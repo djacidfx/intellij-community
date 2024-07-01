@@ -5,6 +5,8 @@ import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.io.NioFiles
 import com.intellij.openapi.util.text.StringUtilRt
 import com.intellij.platform.diagnostic.telemetry.helpers.useWithScope
+import com.intellij.platform.ijent.community.buildConstants.ENABLE_IJENT_WSL_FILE_SYSTEM_VMOPTIONS
+import com.intellij.platform.ijent.community.buildConstants.isIjentWslFsEnabledByDefaultForProduct
 import com.jetbrains.plugin.structure.base.utils.exists
 import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.trace.Span
@@ -413,7 +415,10 @@ internal class WindowsDistributionBuilder(
 
   private fun writeWindowsVmOptions(distBinDir: Path, context: BuildContext): Path {
     val vmOptionsFile = distBinDir.resolve("${context.productProperties.baseFileName}64.exe.vmoptions")
-    val vmOptions = VmOptionsGenerator.computeVmOptions(context, OsFamily.WINDOWS)
+    var vmOptions = VmOptionsGenerator.computeVmOptions(context)
+    if (isIjentWslFsEnabledByDefaultForProduct(context.productProperties.platformPrefix)) {
+      vmOptions = vmOptions + ENABLE_IJENT_WSL_FILE_SYSTEM_VMOPTIONS
+    }
     writeVmOptions(vmOptionsFile, vmOptions, separator = "\r\n")
     return vmOptionsFile
   }

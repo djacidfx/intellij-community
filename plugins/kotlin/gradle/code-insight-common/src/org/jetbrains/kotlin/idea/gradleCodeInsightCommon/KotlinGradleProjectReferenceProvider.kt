@@ -82,8 +82,16 @@ class KotlinGradleProjectReferenceProvider: AbstractKotlinGradleReferenceProvide
         if (className == GRADLE_ROOT_PROJECT_ACCESSOR) return listOf(identifier)
 
         val modules = className.dropSuffix(GRADLE_PROJECT_DEPENDENCY_SUFFIX) ?: return null
-        return modules.split(GRADLE_CLASS_ACCESSOR_SEPARATOR).map { it.first().lowercaseChar() + it.drop(1) } + identifier
+        return modules.split(GRADLE_CLASS_ACCESSOR_SEPARATOR)
+            .map { it.first().lowercaseChar() + it.drop(1).camelToKebabCase() } + identifier.camelToKebabCase()
     }
+
+    fun String.camelToKebabCase(): String =
+        this.fold(StringBuilder()) { acc, c ->
+            val lc = c.lowercase()
+            if (c.isUpperCase()) acc.append('-')
+            acc.append(lc)
+        }.toString()
 
     private fun String.dropPrefix(prefix: String): String? =
         takeIf { it.startsWith(prefix) }?.replaceFirst(prefix, "")

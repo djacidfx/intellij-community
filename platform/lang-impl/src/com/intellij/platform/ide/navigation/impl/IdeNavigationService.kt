@@ -1,7 +1,6 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.platform.ide.navigation.impl
 
-import com.intellij.ide.DataManager
 import com.intellij.ide.ui.UISettings
 import com.intellij.ide.util.PsiNavigationSupport
 import com.intellij.injected.editor.VirtualFileWindow
@@ -83,13 +82,17 @@ private class IdeNavigationService(private val project: Project) : NavigationSer
     return semaphore.withPermit {
       val request = readAction {
         navigatable.navigationRequest()
-      }
-      if (request == null) {
-        false
-      }
-      else {
-        navigateToSource(project = project, request = request, options = options as NavigationOptions.Impl, dataContext = null)
-      }
+      } ?: return@withPermit false
+      navigate(project = project, requests = listOf(request), options = options, dataContext = null)
+    }
+  }
+
+  override suspend fun navigate(request: NavigationRequest, options: NavigationOptions) {
+    if (request is SourceNavigationRequest) {
+      navigateToSource(project = project, request = request, options = options as NavigationOptions.Impl, dataContext = null)
+    }
+    else {
+      navigate(project = project, requests = listOf(request), options = options, dataContext = null)
     }
   }
 }
@@ -100,7 +103,7 @@ private val LOG: Logger = Logger.getInstance("#com.intellij.platform.ide.navigat
  * Navigates to all sources from [requests], or navigates to first non-source request.
  */
 private suspend fun navigate(project: Project, requests: List<NavigationRequest>, options: NavigationOptions, dataContext: DataContext?): Boolean {
-  val maxSourceRequests = Registry.intValue("ide.source.file.navigation.limit", 100)
+  val maxSourceRequests = if (requests.size == 1) Int.MAX_VALUE else Registry.intValue("ide.source.file.navigation.limit", 100)
   var nonSourceRequest: NavigationRequest? = null
 
   options as NavigationOptions.Impl
@@ -207,19 +210,11 @@ private suspend fun navigateToSource(
         descriptor.isUsePreviewTab = true
       }
 
-      val fileNavigator = serviceAsync<FileNavigator>()
-      if (fileNavigator is FileNavigatorImpl &&
-          withContext(Dispatchers.EDT) {
-            blockingContext {
-              fileNavigator.navigateInRequestedEditor(
-                descriptor = descriptor,
-                dataContextSupplier = {
-                  dataContext ?: @Suppress("DEPRECATION") DataManager.getInstance().dataContext
-                },
-              )
-            }
-          }) {
-        return
+      if (dataContext != null) {
+        val fileNavigator = serviceAsync<FileNavigator>()
+        if (fileNavigator is FileNavigatorImpl && fileNavigator.navigateInRequestedEditorAsync(descriptor, dataContext)) {
+          return
+        }
       }
 
       if (openFile(request = request, descriptor = descriptor, options = options, openMode = openMode)) {
@@ -239,7 +234,7 @@ private suspend fun openFile(
 ): Boolean {
   val originalFile = descriptor.file
   val fileEditorManager = descriptor.project.serviceAsync<FileEditorManager>() as FileEditorManagerEx
-  val effectiveDescriptor: FileEditorNavigatable
+  val effectiveDescriptor: OpenFileDescriptor
   if (originalFile is VirtualFileWindow) {
     effectiveDescriptor = readAction {
       val hostOffset = originalFile.documentWindow.injectedToHost(descriptor.offset)
@@ -266,8 +261,8 @@ private suspend fun openFile(
     return false
   }
 
-  val currentCompositeForFile = fileEditorManager.getComposite(file) as? EditorComposite
   val elementRange = if (options.preserveCaret) request.elementRangeMarker?.takeIf { it.isValid }?.textRange else null
+  val currentCompositeForFile = fileEditorManager.getComposite(file) as? EditorComposite
   if (elementRange != null) {
     for (editor in fileEditors) {
       if (editor is TextEditor) {
@@ -278,6 +273,11 @@ private suspend fun openFile(
         }
       }
     }
+  }
+
+
+  if (effectiveDescriptor.line == -1 && effectiveDescriptor.column == -1 && effectiveDescriptor.offset == -1) {
+    return true
   }
 
   suspend fun tryNavigate(filter: (NavigatableFileEditor) -> Boolean): Boolean {
