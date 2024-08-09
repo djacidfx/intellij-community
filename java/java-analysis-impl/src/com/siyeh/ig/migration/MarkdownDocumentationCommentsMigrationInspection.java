@@ -19,6 +19,8 @@ import com.siyeh.ig.BaseInspection;
 import com.siyeh.ig.BaseInspectionVisitor;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Locale;
+
 /**
  * @author Bas Leijdekkers
  */
@@ -149,7 +151,7 @@ final class MarkdownDocumentationCommentsMigrationInspection extends BaseInspect
             continue;
           }
           else if (c == '>') {
-            String name = html.substring(tag + (endTag ? 2 : 1), (html.charAt(i-1) == '/') ? i - 1 : i);
+            String name = html.substring(tag + (endTag ? 2 : 1), (html.charAt(i-1) == '/') ? i - 1 : i).toLowerCase(Locale.ENGLISH);
             if ("li".equals(name)) {
               if (endTag) {
                 inList = false;
@@ -175,10 +177,41 @@ final class MarkdownDocumentationCommentsMigrationInspection extends BaseInspect
               if (i + 1 < length && html.charAt(i + 1) != '\n') result.append("\n ");
             }
             else if ("br".equals(name)) {
-              result.append("  \n");
+              result.append("  ");
+              if (i + 1 < length && html.charAt(i + 1) != '\n') result.append('\n');
             }
             else if ("ul".equals(name)) {
               if (endTag) inList = false;
+            }
+            else if ("h1".equals(name)) {
+              if (!endTag) {
+                result.append("# ");
+              }
+            }
+            else if ("h2".equals(name)) {
+              if (!endTag) {
+                result.append("## ");
+              }
+            }
+            else if ("h3".equals(name)) {
+              if (!endTag) {
+                result.append("### ");
+              }
+            }
+            else if ("h4".equals(name)) {
+              if (!endTag) {
+                result.append("#### ");
+              }
+            }
+            else if ("h5".equals(name)) {
+              if (!endTag) {
+                result.append("##### ");
+              }
+            }
+            else if ("h6".equals(name)) {
+              if (!endTag) {
+                result.append("####### ");
+              }
             }
             else {
               result.append(html, tag, i + 1);

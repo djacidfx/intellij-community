@@ -181,6 +181,7 @@
     "org.jetbrains.plugins.go:app:Go.showDocumentationInParameterPopup",
     "org.jetbrains.plugins.go:app:Go.suggestParametersNames",
     "org.jetbrains.plugins.go:app:GoFoldingSettings.*",
+    "org.jetbrains.plugins.go:app:GoLibraries.urls",
     "org.jetbrains.plugins.ruby:app:RubyCodeinsightSettings.preselectFirstCompletionElement",
     "org.jetbrains.plugins.ruby:app:RubyDuplocatorSettings.*",
     "org.jetbrains.plugins.terminal:app:TerminalOptionsProvider.myCloseSessionOnLogout",
@@ -207,6 +208,7 @@
     "Pythonid:app:PyDuplocatorSettings.distinguish_variables",
     "Pythonid:app:PyDuplocatorSettings.lower_bound",
     "PythonCore:app:PythonFoldingSettings.*",
+    "PythonCore:app:PythonDocumentationMap.entries",
     "Subversion:app:SvnApplicationSettings.mySvnCommandLine"
   ]
 }
