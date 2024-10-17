@@ -20,7 +20,7 @@ def get_shape(table):
 # noinspection PyUnresolvedReferences
 def get_head(table):
      # type: (datasets.arrow_dataset.Dataset) -> str
-    return repr(__convert_to_df(table.select([0])).head().to_html(notebook=True))
+    return repr(__convert_to_df(table.select([0])).head(1).to_html(notebook=True))
 
 
 # noinspection PyUnresolvedReferences
@@ -59,7 +59,7 @@ def display_data_csv(table, start_index, end_index):
         except AttributeError:
             pass
         print(data)
-    _compute_sliced_data(table, ipython_display, end_index)
+    _compute_sliced_data(table, ipython_display, start_index, end_index)
 
 
 # used by DSTableCommands
@@ -69,7 +69,7 @@ def display_data_html(table, start_index, end_index):
     def ipython_display(data):
         from IPython.display import display
         display(data)
-    _compute_sliced_data(table, ipython_display, end_index)
+    _compute_sliced_data(table, ipython_display, start_index, end_index)
 
 
 def __get_data_slice(table, start, end):

@@ -8,9 +8,7 @@ import com.intellij.codeInspection.dataFlow.types.DfType
 import com.intellij.codeInspection.dataFlow.value.DfaVariableValue
 import com.intellij.codeInspection.dataFlow.value.VariableDescriptor
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
-import org.jetbrains.kotlin.analysis.api.symbols.KaNamedClassSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaReceiverParameterSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.name
 import org.jetbrains.kotlin.analysis.api.types.KaClassType
@@ -42,16 +40,14 @@ class KtThisDescriptor(val classDef: KtClassDef, val contextName: String? = null
         return "$receiver.this"
     }
 
-    override fun isInlineClassReference(): Boolean = analyze(classDef.module) {
-        (classDef.pointer.restoreSymbol() as? KaNamedClassSymbol)?.isInline == true
-    }
+    override fun isInlineClassReference(): Boolean = classDef.inline
 
     companion object {
         context(KaSession)
         fun descriptorFromThis(expr: KtThisExpression): Pair<VariableDescriptor?, KaType?> {
             val exprType = expr.getKotlinType()
             val symbol = ((expr.instanceReference as? KtNameReferenceExpression)?.reference as? KtReference)?.resolveToSymbol()
-            var declType: KaType? = null
+            val declType: KaType?
             if (symbol is KaReceiverParameterSymbol && exprType != null) {
                 val function = symbol.psi as? KtFunctionLiteral
                 declType = symbol.returnType

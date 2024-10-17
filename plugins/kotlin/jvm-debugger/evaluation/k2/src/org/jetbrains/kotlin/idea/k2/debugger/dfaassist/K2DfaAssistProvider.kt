@@ -96,6 +96,14 @@ class K2DfaAssistProvider : DfaAssistProvider {
         val descriptor = dfaVar.descriptor
         val inlined = (anchor.parentOfType<KtFunction>() as? KtNamedFunction)?.hasInlineModifier() == true
         if (qualifier == null) {
+            if (descriptor is KtLambdaThisVariableDescriptor) {
+                val scopeName = (descriptor.lambda.parentOfType<KtFunction>() as? KtNamedFunction)?.name
+                val regex = Regex("\\\$this\\\$${scopeName?.let(Regex::escape) ?: ".+"}_u\\d+lambda_u\\d+")
+                val lambdaThis = proxy.stackFrame.visibleVariables().filter { it.name().matches(regex) }
+                if (lambdaThis.size == 1) {
+                    return postprocess(proxy.stackFrame.getValue(lambdaThis.first()))
+                }
+            }
             if (descriptor is KtThisDescriptor) {
                 val pointer = descriptor.classDef.pointer
                 analyze(anchor) {
@@ -119,6 +127,7 @@ class K2DfaAssistProvider : DfaAssistProvider {
                                 }
                             }
                             if (symbol.isInline) {
+                                // See org.jetbrains.kotlin.backend.jvm.MemoizedInlineClassReplacements.createStaticReplacement
                                 val thisVar = proxy.visibleVariableByName("arg0")
                                 if (thisVar != null) {
                                     return postprocess(proxy.getVariableValue(thisVar))

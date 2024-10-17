@@ -18183,9 +18183,19 @@ public abstract class K1QuickFixTestGenerated extends AbstractK1QuickFixTest {
                     runTest("testData/quickfix/typeMismatch/numberConversion/toByte/double.kt");
                 }
 
+                @TestMetadata("doubleInitializer.kt")
+                public void testDoubleInitializer() throws Exception {
+                    runTest("testData/quickfix/typeMismatch/numberConversion/toByte/doubleInitializer.kt");
+                }
+
                 @TestMetadata("float.kt")
                 public void testFloat() throws Exception {
                     runTest("testData/quickfix/typeMismatch/numberConversion/toByte/float.kt");
+                }
+
+                @TestMetadata("floatVarAssignment.kt")
+                public void testFloatVarAssignment() throws Exception {
+                    runTest("testData/quickfix/typeMismatch/numberConversion/toByte/floatVarAssignment.kt");
                 }
 
                 @TestMetadata("floatWithVer1_2.kt")
@@ -18196,6 +18206,11 @@ public abstract class K1QuickFixTestGenerated extends AbstractK1QuickFixTest {
                 @TestMetadata("long.kt")
                 public void testLong() throws Exception {
                     runTest("testData/quickfix/typeMismatch/numberConversion/toByte/long.kt");
+                }
+
+                @TestMetadata("longReturn.kt")
+                public void testLongReturn() throws Exception {
+                    runTest("testData/quickfix/typeMismatch/numberConversion/toByte/longReturn.kt");
                 }
             }
 
@@ -18217,9 +18232,19 @@ public abstract class K1QuickFixTestGenerated extends AbstractK1QuickFixTest {
                     runTest("testData/quickfix/typeMismatch/numberConversion/toChar/byte.kt");
                 }
 
+                @TestMetadata("byteReturn.kt")
+                public void testByteReturn() throws Exception {
+                    runTest("testData/quickfix/typeMismatch/numberConversion/toChar/byteReturn.kt");
+                }
+
                 @TestMetadata("double.kt")
                 public void testDouble() throws Exception {
                     runTest("testData/quickfix/typeMismatch/numberConversion/toChar/double.kt");
+                }
+
+                @TestMetadata("doubleInitializer.kt")
+                public void testDoubleInitializer() throws Exception {
+                    runTest("testData/quickfix/typeMismatch/numberConversion/toChar/doubleInitializer.kt");
                 }
 
                 @TestMetadata("doubleLiteral.kt")
@@ -18235,6 +18260,11 @@ public abstract class K1QuickFixTestGenerated extends AbstractK1QuickFixTest {
                 @TestMetadata("floatLiteral.kt")
                 public void testFloatLiteral() throws Exception {
                     runTest("testData/quickfix/typeMismatch/numberConversion/toChar/floatLiteral.kt");
+                }
+
+                @TestMetadata("floatLiteralVarAssignment.kt")
+                public void testFloatLiteralVarAssignment() throws Exception {
+                    runTest("testData/quickfix/typeMismatch/numberConversion/toChar/floatLiteralVarAssignment.kt");
                 }
 
                 @TestMetadata("int.kt")
@@ -18318,6 +18348,11 @@ public abstract class K1QuickFixTestGenerated extends AbstractK1QuickFixTest {
                 @TestMetadata("convertExpression.kt")
                 public void testConvertExpression() throws Exception {
                     runTest("testData/quickfix/typeMismatch/numberConversion/convertExpression.kt");
+                }
+
+                @TestMetadata("convertExpressionValAssignment.kt")
+                public void testConvertExpressionValAssignment() throws Exception {
+                    runTest("testData/quickfix/typeMismatch/numberConversion/convertExpressionValAssignment.kt");
                 }
 
                 @TestMetadata("convertToSigned.kt")
@@ -18429,6 +18464,16 @@ public abstract class K1QuickFixTestGenerated extends AbstractK1QuickFixTest {
                 KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
             }
 
+            @TestMetadata("assignment.kt")
+            public void testAssignment() throws Exception {
+                runTest("testData/quickfix/typeMismatch/roundNumber/assignment.kt");
+            }
+
+            @TestMetadata("initializer.kt")
+            public void testInitializer() throws Exception {
+                runTest("testData/quickfix/typeMismatch/roundNumber/initializer.kt");
+            }
+
             @TestMetadata("notApplicable.kt")
             public void testNotApplicable() throws Exception {
                 runTest("testData/quickfix/typeMismatch/roundNumber/notApplicable.kt");
@@ -18437,6 +18482,11 @@ public abstract class K1QuickFixTestGenerated extends AbstractK1QuickFixTest {
             @TestMetadata("notApplicable2.kt")
             public void testNotApplicable2() throws Exception {
                 runTest("testData/quickfix/typeMismatch/roundNumber/notApplicable2.kt");
+            }
+
+            @TestMetadata("return.kt")
+            public void testReturn() throws Exception {
+                runTest("testData/quickfix/typeMismatch/roundNumber/return.kt");
             }
 
             @TestMetadata("roundDoubleToInt.kt")
@@ -19287,6 +19337,11 @@ public abstract class K1QuickFixTestGenerated extends AbstractK1QuickFixTest {
                 runTest("testData/quickfix/typeMismatch/wrongPrimitive/floatToInt2.kt");
             }
 
+            @TestMetadata("floatToIntReturn.kt")
+            public void testFloatToIntReturn() throws Exception {
+                runTest("testData/quickfix/typeMismatch/wrongPrimitive/floatToIntReturn.kt");
+            }
+
             @TestMetadata("floatToLong.kt")
             public void testFloatToLong() throws Exception {
                 runTest("testData/quickfix/typeMismatch/wrongPrimitive/floatToLong.kt");
@@ -19305,6 +19360,11 @@ public abstract class K1QuickFixTestGenerated extends AbstractK1QuickFixTest {
             @TestMetadata("intToUnsigned.kt")
             public void testIntToUnsigned() throws Exception {
                 runTest("testData/quickfix/typeMismatch/wrongPrimitive/intToUnsigned.kt");
+            }
+
+            @TestMetadata("intToUnsignedSingleExprFunReturn.kt")
+            public void testIntToUnsignedSingleExprFunReturn() throws Exception {
+                runTest("testData/quickfix/typeMismatch/wrongPrimitive/intToUnsignedSingleExprFunReturn.kt");
             }
 
             @TestMetadata("longToDouble.kt")
