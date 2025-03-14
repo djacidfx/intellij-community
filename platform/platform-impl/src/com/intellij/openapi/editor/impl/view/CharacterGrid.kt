@@ -37,10 +37,8 @@ interface CharacterGrid {
   /**
    * The strategy to differentiate between single and double width characters.
    *
-   *   If not set, then the character width will be guessed by its actual width in the font used.
-   *   Such heuristics generally works well for most regular characters,
-   *   but may fail for special characters sometimes used in fancy shell prompts, for example,
-   *   which is why an explicit strategy is needed.
+   * If not set, then all characters will be considered single width,
+   * so it's necessary to set it explicitly for double-width character support.
    *
    * @param doubleWidthCharacterStrategy the strategy to use
    */
@@ -151,7 +149,7 @@ internal class CharacterGridImpl(
       return if (height > 0) (height.toFloat() / lineHeight.toFloat()).toInt() else 0
     }
 
-  override var doubleWidthCharacterStrategy: DoubleWidthCharacterStrategy by view::doubleWidthCharacterStrategy
+  override var doubleWidthCharacterStrategy: DoubleWidthCharacterStrategy = DoubleWidthCharacterStrategy { false }
 
   override fun codePointWidth(codePoint: Int): Float {
     return (if (doubleWidthCharacterStrategy.isDoubleWidth(codePoint)) 2.0f else 1.0f) * charWidth
@@ -218,7 +216,7 @@ private class CharacterGridIteratorImpl(
       val bmp = Character.isBmpCodePoint(char)
       cellStartOffset = newOffset
       cellEndOffset = if (bmp) {
-        if (char == '\r'.code && newOffset + 1 < textLength && substring.codePointAt(newOffset - startOffset + 1) == '\n'.code) {
+        if (char == '\r'.code && newOffset + 1 < textLength && substring[newOffset - startOffset + 1] == '\n') {
           newOffset + 2 // the \r\n case
         }
         else {

@@ -3,6 +3,7 @@ package com.intellij.ide.actions
 
 import com.intellij.ide.IdeBundle
 import com.intellij.ide.ui.search.SearchUtil
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.diagnostic.getOrLogException
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -23,10 +24,13 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.project.currentOrDefaultProject
 import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.openapi.ui.DialogWrapperDialog
 import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import com.intellij.ui.navigation.Place
+import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.update.Activatable
 import com.intellij.util.ui.update.UiNotifyConnector
+import org.jetbrains.annotations.NotNull
 import java.awt.Component
 import java.awt.Composite
 import java.util.function.Consumer
@@ -57,14 +61,15 @@ open class ShowSettingsUtilImpl : ShowSettingsUtil() {
     }
 
     private fun showInternal(project: Project?, groups: List<ConfigurableGroup>, toSelect: Configurable?, filter: String?) {
-      val currentOrDefaultProject = currentOrDefaultProject(project)
-      val isActualProject = currentOrDefaultProject != ProjectManager.getInstance().defaultProject
-      if (useNonModalSettingsWindow() && isActualProject) {
-        runWithModalProgressBlocking(currentOrDefaultProject, IdeBundle.message("settings.modal.opening.message")) {
-          val settingsFile = SettingsVirtualFileHolder.getInstance(currentOrDefaultProject).getOrCreate(toSelect) {
+      if (project != null &&
+          project != ProjectManager.getInstance().defaultProject &&
+          useNonModalSettingsWindow() &&
+          ModalityState.current() == ModalityState.nonModal()) {
+        runWithModalProgressBlocking(project, IdeBundle.message("settings.modal.opening.message")) {
+          val settingsFile = SettingsVirtualFileHolder.getInstance(project).getOrCreate(toSelect) {
             createDialogWrapper(project, groups, toSelect, filter, false) as SettingsDialog
           }
-          val fileEditorManager = FileEditorManager.getInstance(currentOrDefaultProject) as FileEditorManagerEx;
+          val fileEditorManager = FileEditorManager.getInstance(project) as FileEditorManagerEx;
           val options = FileEditorOpenOptions(reuseOpen = true, isSingletonEditorInWindow = true, requestFocus = true)
           fileEditorManager.openFile(settingsFile, options);
         }
@@ -252,6 +257,23 @@ open class ShowSettingsUtilImpl : ShowSettingsUtil() {
                             dimensionKey = dimensionServiceKey,
                             advancedInitialization = null,
                             showApplyButton = isWorthToShowApplyButton(configurable))
+  }
+
+  override fun closeSettings(@NotNull project: Project, @NotNull component: Component) {
+    if (useNonModalSettingsWindow()) {
+      val virtualFile = SettingsVirtualFileHolder.getInstance(project).getVirtualFileIfExists() ?: return
+      val fileEditorManager = FileEditorManager.getInstance(project) as FileEditorManagerEx
+      fileEditorManager.closeFile(virtualFile)
+    } else {
+      val dialogWrapper: DialogWrapper = getDialogWrapperFor(component) ?: return
+      dialogWrapper.doCancelAction()
+    }
+
+  }
+
+  private fun getDialogWrapperFor(component: Component): DialogWrapper? {
+    val window = UIUtil.getWindow(component)
+    return (window as? DialogWrapperDialog)?.dialogWrapper
   }
 }
 

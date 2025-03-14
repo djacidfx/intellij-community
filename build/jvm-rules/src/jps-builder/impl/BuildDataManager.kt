@@ -24,11 +24,8 @@ import org.jetbrains.jps.dependency.impl.PathSourceMapper
 import org.jetbrains.jps.incremental.relativizer.PathRelativizerService
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Future
-import java.util.concurrent.locks.ReentrantReadWriteLock
 import java.util.function.Consumer
 import java.util.function.Function
-import kotlin.concurrent.read
-import kotlin.concurrent.write
 
 private val processConstantsIncrementally = !System.getProperty("compiler.process.constants.non.incremental", "false").toBoolean()
 
@@ -38,6 +35,7 @@ internal class BuildDataManager private constructor(
   val relativizer: PathRelativizerService,
   private val dataManager: BuildDataProvider,
   depGraph: DependencyGraph,
+  private val containerFactory: BazelPersistentMapletFactory,
 ) {
   @JvmField val depGraph: DependencyGraph = SynchronizedDependencyGraph(depGraph)
   private val depGraphPathMapper: NodeSourcePathMapper
@@ -67,6 +65,7 @@ internal class BuildDataManager private constructor(
         dataManager = dataManager,
         relativizer = relativizer,
         depGraph = depGraph,
+        containerFactory = containerFactory,
       )
     }
   }
@@ -146,20 +145,27 @@ internal class BuildDataManager private constructor(
 
   @Suppress("unused")
   fun flush(memoryCachesOnly: Boolean) {
-    if (!memoryCachesOnly) {
-      dataManager.commit()
-    }
   }
 
   fun close() {
     runAllCatching(sequence {
-      yield { dataManager.close() }
-
+      // we do not call dataManager.close() - it is empty for BazelBuildDataProvider
       for (storage in targetToStorages.values) {
         yield { storage.close() }
       }
 
-      yield { depGraph.close() }
+      yield { containerFactory.close() }
+    })
+  }
+
+  fun forceClose() {
+    runAllCatching(sequence {
+      // we do not call dataManager.close() - it is empty for BazelBuildDataProvider
+      yield { containerFactory.forceClose() }
+
+      for (storage in targetToStorages.values) {
+        yield { storage.close() }
+      }
     })
   }
 
@@ -174,24 +180,19 @@ internal class BuildDataManager private constructor(
 }
 
 private class SynchronizedDependencyGraph(private val delegate: DependencyGraph) : DependencyGraph {
-  private val lock = ReentrantReadWriteLock()
-
+  @Synchronized
   override fun createDelta(sourcesToProcess: Iterable<NodeSource?>?, deletedSources: Iterable<NodeSource?>?, isSourceOnly: Boolean): Delta? {
-    lock.read {
-      return delegate.createDelta(sourcesToProcess, deletedSources, isSourceOnly)
-    }
+    return delegate.createDelta(sourcesToProcess, deletedSources, isSourceOnly)
   }
 
+  @Synchronized
   override fun differentiate(delta: Delta?, params: DifferentiateParameters?): DifferentiateResult? {
-    lock.read {
-      return delegate.differentiate(delta, params)
-    }
+    return delegate.differentiate(delta, params)
   }
 
+  @Synchronized
   override fun integrate(diffResult: DifferentiateResult) {
-    lock.write {
-      delegate.integrate(diffResult)
-    }
+    delegate.integrate(diffResult)
   }
 
   override fun getIndices(): Iterable<BackDependencyIndex?>? {
@@ -212,10 +213,9 @@ private class SynchronizedDependencyGraph(private val delegate: DependencyGraph)
 
   override fun getDependingNodes(id: ReferenceID) = delegate.getDependingNodes(id)
 
+  @Synchronized
   override fun close() {
-    lock.write {
-      delegate.close()
-    }
+    delegate.close()
   }
 }
 

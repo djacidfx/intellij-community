@@ -1,12 +1,14 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.platform.debugger.impl.backend
 
+import com.intellij.execution.KillableProcess
+import com.intellij.execution.process.ProcessEvent
+import com.intellij.execution.process.ProcessHandler
+import com.intellij.execution.process.ProcessListener
 import com.intellij.openapi.application.EDT
-import com.intellij.openapi.components.Service
-import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.impl.EditorId
 import com.intellij.openapi.editor.impl.findEditorOrNull
-import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Key
 import com.intellij.platform.project.ProjectId
 import com.intellij.platform.project.findProject
 import com.intellij.platform.project.findProjectOrNull
@@ -15,15 +17,19 @@ import com.intellij.xdebugger.*
 import com.intellij.xdebugger.impl.XDebugSessionImpl
 import com.intellij.xdebugger.impl.XDebuggerManagerImpl
 import com.intellij.xdebugger.impl.XDebuggerUtilImpl.reshowInlayRunToCursor
+import com.intellij.xdebugger.impl.frame.XDebugSessionProxy.Companion.useFeProxy
 import com.intellij.xdebugger.impl.rpc.*
 import fleet.rpc.core.toRpc
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 internal class BackendXDebuggerManagerApi : XDebuggerManagerApi {
   @OptIn(ExperimentalCoroutinesApi::class)
@@ -42,6 +48,7 @@ internal class BackendXDebuggerManagerApi : XDebuggerManagerApi {
   }
 
   private suspend fun createSessionDto(currentSession: XDebugSessionImpl, debugProcess: XDebugProcess): XDebugSessionDto {
+    currentSession.sessionInitializedDeferred().await()
     val editorsProvider = debugProcess.editorsProvider
     val fileTypeId = editorsProvider.fileType.name
     val initialSessionState = XDebugSessionState(
@@ -50,6 +57,12 @@ internal class BackendXDebuggerManagerApi : XDebuggerManagerApi {
     val sessionDataDto = XDebugSessionDataDto(
       currentSession.sessionData.configurationName,
     )
+
+    val consoleView = if (useFeProxy()) {
+      currentSession.consoleView!!.toRpc(debugProcess)
+    } else {
+      null
+    }
     return XDebugSessionDto(
       currentSession.id(),
       XDebuggerEditorsProviderDto(fileTypeId, editorsProvider),
@@ -57,7 +70,70 @@ internal class BackendXDebuggerManagerApi : XDebuggerManagerApi {
       currentSession.sessionName,
       createSessionEvents(currentSession).toRpc(),
       sessionDataDto,
+      consoleView,
+      currentSession.debugProcess.processHandler.toDto(),
     )
+  }
+
+  private suspend fun ProcessHandler.toDto(): XDebuggerProcessHandlerDto {
+    val flow = channelFlow {
+      val listener = object : ProcessListener {
+        override fun startNotified(event: ProcessEvent) {
+          trySend(XDebuggerProcessHandlerEvent.StartNotified(event.toRpc()))
+        }
+
+        override fun processTerminated(event: ProcessEvent) {
+          trySend(XDebuggerProcessHandlerEvent.ProcessTerminated(event.toRpc()))
+          removeProcessListener(this)
+        }
+
+        override fun processWillTerminate(event: ProcessEvent, willBeDestroyed: Boolean) {
+          trySend(XDebuggerProcessHandlerEvent.ProcessWillTerminate(event.toRpc(), willBeDestroyed))
+        }
+
+        override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
+          trySend(XDebuggerProcessHandlerEvent.OnTextAvailable(event.toRpc(), outputType.toString()))
+        }
+
+        override fun processNotStarted() {
+          trySend(XDebuggerProcessHandlerEvent.ProcessNotStarted)
+        }
+      }
+      addProcessListener(listener)
+
+      // send initial state
+      when {
+        isStartNotified -> {
+          trySend(XDebuggerProcessHandlerEvent.StartNotified(XDebuggerProcessHandlerEventData(null, 0)))
+        }
+        isProcessTerminating -> {
+          trySend(XDebuggerProcessHandlerEvent.StartNotified(XDebuggerProcessHandlerEventData(null, 0)))
+        }
+        isProcessTerminated -> {
+          trySend(XDebuggerProcessHandlerEvent.StartNotified(XDebuggerProcessHandlerEventData(null, exitCode ?: 0)))
+        }
+      }
+
+      try {
+        awaitClose()
+      }
+      finally {
+        removeProcessListener(listener)
+      }
+    }.buffer(Channel.UNLIMITED)
+
+    val killableProcessInfo = if (this is KillableProcess) {
+      KillableProcessInfo(canKillProcess = canKillProcess())
+    }
+    else {
+      null
+    }
+
+    return XDebuggerProcessHandlerDto(detachIsDefault(), flow.toRpc(), killableProcessInfo)
+  }
+
+  private fun ProcessEvent.toRpc(): XDebuggerProcessHandlerEventData {
+    return XDebuggerProcessHandlerEventData(text, exitCode)
   }
 
   @OptIn(ExperimentalCoroutinesApi::class)

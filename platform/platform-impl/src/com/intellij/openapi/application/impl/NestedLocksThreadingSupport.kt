@@ -184,7 +184,6 @@ private class ComputationState(
    * Obtains a write-intent permit if the current thread does not hold anything
    */
   fun acquireReadPermit(): ReadPermit {
-    // todo: acquire the whole chain? because EDT can try to upgrade a higher-level lock
     val permit = acquireReadLockWithCompensation {
       thisLevelLock.acquireReadPermit(false)
     }
@@ -209,6 +208,7 @@ private class ComputationState(
    * Releases a read permit acquired in [acquireReadPermit] or [tryAcquireReadPermit].
    */
   fun releaseReadPermit(readPermit: ReadPermit) {
+    check(thisLevelPermit.get() === readPermit) { "Attempt to release of a read permit that was not acquired in the current thread" }
     thisLevelPermit.set(null)
     return readPermit.release()
   }
@@ -515,18 +515,15 @@ internal object NestedLocksThreadingSupport : ThreadingSupport {
   }
 
   override fun <T> runPreventiveWriteIntentReadAction(computation: () -> T): T {
-    return runWriteIntentReadAction(computation, true)
+    return doRunWriteIntentReadAction(computation)
   }
 
   override fun <T> runWriteIntentReadAction(computation: () -> T): T {
-    return runWriteIntentReadAction(computation, false)
+    handleLockAccess("write-intent lock")
+    return doRunWriteIntentReadAction(computation)
   }
 
-  fun <T> runWriteIntentReadAction(computation: () -> T, isPreventive: Boolean): T {
-    if (!isPreventive) {
-      handleLockAccess("write-intent lock")
-    }
-
+  private fun <T> doRunWriteIntentReadAction(computation: () -> T): T {
     val listener = myWriteIntentActionListener
     fireBeforeWriteIntentReadActionStart(listener, computation.javaClass)
     val currentReadState = myTopmostReadAction.get()
@@ -893,12 +890,12 @@ internal object NestedLocksThreadingSupport : ThreadingSupport {
       return
     }
 
-    check(permit is WritePermit) { "Suspending write action must be called under write lock" }
+    check(permit is WritePermit) { "Suspending write action must be called under write lock or write-intent lock" }
     val prevBase = myWriteStackBase
     myWriteStackBase = myWriteActionsStack.size
     myWriteAcquired = null
     val exposedPermitData = checkNotNull(state.hack_getPublishedWriteData()) {
-      "Suspending write action must be invoked from a read action"
+      "Suspending write action was requested, but the thread did not start write action properly"
     }
     state.hack_setPublishedPermitData(null)
     exposedPermitData.writePermitStack.forEachReversed {
@@ -991,6 +988,17 @@ internal object NestedLocksThreadingSupport : ThreadingSupport {
   override fun prohibitTakingLocksInsideAndRun(action: Runnable, failSoftly: Boolean, advice: String) {
     val currentValue = myLockingProhibited.get()
     myLockingProhibited.set(failSoftly to advice)
+    try {
+      action.run()
+    }
+    finally {
+      myLockingProhibited.set(currentValue)
+    }
+  }
+
+  override fun allowTakingLocksInsideAndRun(action: java.lang.Runnable) {
+    val currentValue = myLockingProhibited.get()
+    myLockingProhibited.set(null)
     try {
       action.run()
     }

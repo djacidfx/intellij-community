@@ -1985,17 +1985,21 @@ a:com.intellij.ide.actions.CloseEditorsActionBase
 - pa:isFileToClose(com.intellij.openapi.fileEditor.impl.EditorComposite,com.intellij.openapi.fileEditor.impl.EditorWindow,com.intellij.openapi.fileEditor.ex.FileEditorManagerEx):Z
 - p:isFileToCloseInContext(com.intellij.openapi.actionSystem.DataContext,com.intellij.openapi.fileEditor.impl.EditorComposite,com.intellij.openapi.fileEditor.impl.EditorWindow):Z
 - update(com.intellij.openapi.actionSystem.AnActionEvent):V
-f:com.intellij.ide.actions.CloseProjectAction
+c:com.intellij.ide.actions.CloseProjectAction
 - com.intellij.ide.actions.CloseProjectsActionBase
 - <init>():V
+- p:canClose(com.intellij.openapi.project.Project,com.intellij.openapi.project.Project):Z
 - getActionUpdateThread():com.intellij.openapi.actionSystem.ActionUpdateThread
+- p:shouldShow(com.intellij.openapi.actionSystem.AnActionEvent):Z
 - update(com.intellij.openapi.actionSystem.AnActionEvent):V
 a:com.intellij.ide.actions.CloseProjectsActionBase
 - com.intellij.openapi.project.DumbAwareAction
 - <init>():V
 - actionPerformed(com.intellij.openapi.actionSystem.AnActionEvent):V
 - pa:canClose(com.intellij.openapi.project.Project,com.intellij.openapi.project.Project):Z
+- pf:getProjectEvenIfNotInitialized(com.intellij.openapi.actionSystem.AnActionEvent):com.intellij.openapi.project.Project
 - pa:shouldShow(com.intellij.openapi.actionSystem.AnActionEvent):Z
+- p:showWelcomeFrameIfNeeded():V
 - update(com.intellij.openapi.actionSystem.AnActionEvent):V
 c:com.intellij.ide.actions.CopyAction
 - com.intellij.openapi.actionSystem.AnAction
@@ -2333,6 +2337,7 @@ c:com.intellij.ide.actions.ShowSettingsUtilImpl
 - com.intellij.openapi.options.ShowSettingsUtil
 - sf:Companion:com.intellij.ide.actions.ShowSettingsUtilImpl$Companion
 - <init>():V
+- closeSettings(com.intellij.openapi.project.Project,java.awt.Component):V
 - sf:createDimensionKey(com.intellij.openapi.options.Configurable):java.lang.String
 - editConfigurable(com.intellij.openapi.project.Project,com.intellij.openapi.options.Configurable):Z
 - editConfigurable(com.intellij.openapi.project.Project,com.intellij.openapi.options.Configurable,java.lang.Runnable):Z
@@ -3351,6 +3356,40 @@ f:com.intellij.ide.lightEdit.project.LightEditDumbService
 - waitForSmartMode():V
 - wrapGently(javax.swing.JComponent,com.intellij.openapi.Disposable):javax.swing.JComponent
 - wrapWithSpoiler(javax.swing.JComponent,java.lang.Runnable,com.intellij.openapi.Disposable):javax.swing.JComponent
+a:com.intellij.ide.navigationToolbar.AbstractNavBarModelExtension
+- com.intellij.ide.navigationToolbar.NavBarModelExtension
+- <init>():V
+- additionalRoots(com.intellij.openapi.project.Project):java.util.Collection
+- adjustElement(com.intellij.psi.PsiElement):com.intellij.psi.PsiElement
+- getParent(com.intellij.psi.PsiElement):com.intellij.psi.PsiElement
+- a:getPresentableText(java.lang.Object):java.lang.String
+c:com.intellij.ide.navigationToolbar.DefaultNavBarExtension
+- com.intellij.ide.navigationToolbar.AbstractNavBarModelExtension
+- <init>():V
+- adjustElement(com.intellij.psi.PsiElement):com.intellij.psi.PsiElement
+- getParent(com.intellij.psi.PsiElement):com.intellij.psi.PsiElement
+- getPresentableText(java.lang.Object):java.lang.String
+- processChildren(java.lang.Object,java.lang.Object,com.intellij.util.Processor):Z
+com.intellij.ide.navigationToolbar.NavBarModelExtension
+- sf:EP_NAME:com.intellij.openapi.extensions.ExtensionPointName
+- a:additionalRoots(com.intellij.openapi.project.Project):java.util.Collection
+- a:adjustElement(com.intellij.psi.PsiElement):com.intellij.psi.PsiElement
+- getData(java.lang.String,com.intellij.openapi.actionSystem.DataProvider):java.lang.Object
+- getIcon(java.lang.Object):javax.swing.Icon
+- getLeafElement(com.intellij.openapi.actionSystem.DataContext):com.intellij.psi.PsiElement
+- a:getParent(com.intellij.psi.PsiElement):com.intellij.psi.PsiElement
+- getPopupMenuGroup(com.intellij.openapi.actionSystem.DataProvider):java.lang.String
+- a:getPresentableText(java.lang.Object):java.lang.String
+- getPresentableText(java.lang.Object,Z):java.lang.String
+- normalizeChildren():Z
+- processChildren(java.lang.Object,java.lang.Object,com.intellij.util.Processor):Z
+f:com.intellij.ide.navigationToolbar.NavBarRootPaneExtension
+- <init>():V
+a:com.intellij.ide.navigationToolbar.NavBarRootPaneExtension$NavBarWrapperPanel
+- javax.swing.JPanel
+- com.intellij.ide.ui.UISettingsListener
+- <init>(java.awt.LayoutManager):V
+- p:getComponentGraphics(java.awt.Graphics):java.awt.Graphics
 f:com.intellij.ide.passwordSafe.impl.providers.EncryptionUtil
 - sf:SECRET_KEY_SIZE_BYTES:I
 - s:decryptText(B[],B[]):com.intellij.credentialStore.OneTimeString
@@ -5546,19 +5585,14 @@ f:com.intellij.internal.statistic.collectors.fus.ui.GotItTooltipAllowlistEP
 - f:setPrefix(java.lang.String):V
 f:com.intellij.jps.impl.JpsPluginBean
 f:com.intellij.notification.ActionCenter
-- sf:EVENT_REQUESTOR:java.lang.String
-- sf:MODEL_CHANGED:com.intellij.util.messages.Topic
-- sf:TOOL_WINDOW_ID:java.lang.String
-- <init>():V
-- s:expireNotifications(com.intellij.openapi.project.Project):V
-- s:fireModelChanged():V
-- s:getNotifications(com.intellij.openapi.project.Project):java.util.List
-- s:getToolWindow(com.intellij.openapi.project.Project):com.intellij.openapi.wm.ToolWindow
-- s:getToolwindowName():java.lang.String
-- s:showNotification(com.intellij.openapi.project.Project):V
-- s:toggleLog(com.intellij.openapi.project.Project):V
-com.intellij.notification.ActionCenter$EventListener
-- a:modelChanged():V
+- sf:INSTANCE:com.intellij.notification.ActionCenter
+- sf:activateLog(com.intellij.openapi.project.Project):V
+- sf:activateLog(com.intellij.openapi.project.Project,Z):V
+- bs:activateLog$default(com.intellij.openapi.project.Project,Z,I,java.lang.Object):V
+- sf:getNotifications(com.intellij.openapi.project.Project):java.util.List
+- sf:getToolwindowName():java.lang.String
+- sf:showLog(com.intellij.openapi.project.Project):V
+- sf:toggleLog(com.intellij.openapi.project.Project):V
 f:com.intellij.notification.EventLog
 - <init>():V
 - s:getEventLog(com.intellij.openapi.project.Project):com.intellij.openapi.wm.ToolWindow
@@ -5655,7 +5689,6 @@ f:com.intellij.notification.impl.NotificationsManagerImpl
 - s:createBalloon(javax.swing.JComponent,com.intellij.notification.Notification,Z,Z,com.intellij.openapi.util.Ref,com.intellij.openapi.Disposable):com.intellij.openapi.ui.popup.Balloon
 - s:createBalloonScrollPane(java.awt.Component,Z):javax.swing.JScrollPane
 - expire(com.intellij.notification.Notification):V
-- expireAll():V
 - s:findWindowForBalloon(com.intellij.openapi.project.Project):java.awt.Window
 - s:frameActivateBalloonListener(com.intellij.openapi.Disposable,java.lang.Runnable):V
 - getNotificationsOfType(java.lang.Class,com.intellij.openapi.project.Project):com.intellij.notification.Notification[]

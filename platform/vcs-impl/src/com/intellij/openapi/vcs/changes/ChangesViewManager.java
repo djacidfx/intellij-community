@@ -1,4 +1,4 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
 package com.intellij.openapi.vcs.changes;
 
@@ -38,6 +38,7 @@ import com.intellij.openapi.vcs.*;
 import com.intellij.openapi.vcs.changes.actions.diff.ShowDiffFromLocalChangesActionProvider;
 import com.intellij.openapi.vcs.changes.shelf.ShelveChangesManager;
 import com.intellij.openapi.vcs.changes.ui.*;
+import com.intellij.openapi.vcs.merge.MergeConflictManager;
 import com.intellij.openapi.vcs.telemetry.VcsTelemetrySpan.ChangesView;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
@@ -113,7 +114,7 @@ public class ChangesViewManager implements ChangesViewEx,
     if (myChangesPanel == null) {
       Activity activity = StartUpMeasurer.startActivity("ChangesViewPanel initialization");
       ChangesListView tree = new LocalChangesListView(myProject);
-      myChangesPanel = new ChangesViewPanel(tree);
+      myChangesPanel = new ChangesViewPanel(tree, this);
       activity.end();
     }
     return myChangesPanel;
@@ -830,6 +831,7 @@ public class ChangesViewManager implements ChangesViewEx,
 
         if (myCommitWorkflowHandler != null && !hasPendingRefresh) {
           myCommitWorkflowHandler.synchronizeInclusion(changeLists, unversionedFiles);
+          MergeConflictManager.getInstance(myProject).synchronizeInclusion();
         }
       }
       finally {

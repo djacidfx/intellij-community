@@ -164,7 +164,7 @@ suspend fun buildUsingJps(
     javaFileCount = args.optionalSingle(JvmBuilderFlags.JAVA_COUNT)?.toInt() ?: -1,
   )
 
-  val isIncrementalCompilation = args.boolFlag(JvmBuilderFlags.INCREMENTAL) || forceIncremental
+  val isIncrementalCompilation = !args.boolFlag(JvmBuilderFlags.NON_INCREMENTAL) || forceIncremental
   if (isDebugEnabled) {
     parentSpan.setAttribute("isIncrementalCompilation", isIncrementalCompilation)
     parentSpan.setAttribute("outJar", outJar.toString())
@@ -331,7 +331,7 @@ private suspend fun initAndBuild(
 ): Int {
   val isRebuild = compileScope.isRebuild
   val tracer = requestLog.tracer
-  val storageInitializer = StorageInitializer(dataDir)
+  val storageInitializer = StorageInitializer(dataDir, dataDir.resolve(dataDir.fileName.toString() + ".db"))
   var storageClosed = false
   val buildDataManager = tracer.spanBuilder("init storage")
     .setAttribute("isRebuild", isRebuild)
@@ -432,7 +432,7 @@ private suspend fun initAndBuild(
       catch (e: Throwable) {
         // in case of error during packaging - clear build
         try {
-          buildDataManager.close()
+          buildDataManager.forceClose()
           storageClosed = true
         }
         finally {
@@ -446,7 +446,7 @@ private suspend fun initAndBuild(
   }
   finally {
     if (!storageClosed) {
-      buildDataManager.close()
+      buildDataManager.forceClose()
     }
   }
 }

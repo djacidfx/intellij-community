@@ -22,7 +22,7 @@ internal class PsiSyntaxBuilderFactoryImpl : PsiSyntaxBuilderFactory {
   ): PsiSyntaxBuilder {
     val parserDefinition = getParserDefinition(lang, chameleon.getElementType())
     val tokenConverter = getConverter(lang, chameleon.getElementType())
-    val syntaxDefinition = LanguageSyntaxDefinitions.INSTANCE.forLanguage(lang)
+    val syntaxDefinition = LanguageSyntaxDefinitions.INSTANCE.forLanguage(lang) ?: throw IllegalStateException("No SyntaxDefinition for language: $lang")
     val actualLexer = lexer ?: syntaxDefinition.getLexer()
 
     return PsiSyntaxBuilderImpl(
@@ -82,30 +82,8 @@ internal class PsiSyntaxBuilderFactoryImpl : PsiSyntaxBuilderFactory {
 
   private fun getConverter(language: Language?, tokenType: IElementType): ElementTypeConverter {
     val adjusted = language ?: tokenType.language
-    val converters = ElementTypeConverters.instance.allForLanguage(adjusted)
-    if (converters.isEmpty()) {
-      throw AssertionError(
-        "ElementTypeConverter absent for language: '${adjusted.id}' (${adjusted.javaClass.getName()}), for elementType: '${tokenType.debugName}' (${tokenType.javaClass.getName()})")
-    }
-
-    if (converters.size == 1) {
-      return converters.first()
-    }
-    return object : ElementTypeConverter {
-      override fun convert(type: IElementType): SyntaxElementType? {
-        converters.forEach { converter ->
-          converter.convert(type)?.let { return it }
-        }
-        return null
-      }
-
-      override fun convert(type: SyntaxElementType): IElementType? {
-        converters.forEach { converter ->
-          converter.convert(type)?.let { return it }
-        }
-        return null
-      }
-    }
+    return ElementTypeConverters.getConverter(adjusted)
+           ?: throw AssertionError("ElementTypeConverter absent for language: '${adjusted.id}' (${adjusted.javaClass.getName()}), for elementType: '${tokenType.debugName}' (${tokenType.javaClass.getName()})")
   }
 }
 

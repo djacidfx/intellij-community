@@ -50,18 +50,17 @@ internal class TerminalOptionsConfigurable(private val project: Project) : Bound
     val osSpecificOptions = TerminalOsSpecificOptions.getInstance()
     val projectOptionsProvider = TerminalProjectOptionsProvider.getInstance(project)
     val blockTerminalOptions = BlockTerminalOptions.getInstance()
-    var fontPreferences = TerminalFontOptions.getInstance().getSettings()
 
     return panel {
       lateinit var terminalEngineComboBox: ComboBox<TerminalEngine>
 
       panel {
         row {
-          val values = if (TerminalUtil.getGenOneTerminalVisibilityValue() == true
+          val values = if (TerminalUtil.isGenOneTerminalOptionVisible()
                            // Normally, New Terminal can't be enabled if 'getGenOneTerminalVisibilityValue' is false.
                            // But if it is enabled for some reason (for example, the corresponding registry key was switched manually),
                            // show this option as well to avoid the errors.
-                           || TerminalEngine.getValue() == TerminalEngine.NEW_TERMINAL) {
+                           || optionsProvider.terminalEngine == TerminalEngine.NEW_TERMINAL) {
             listOf(TerminalEngine.REWORKED, TerminalEngine.CLASSIC, TerminalEngine.NEW_TERMINAL)
           }
           else listOf(TerminalEngine.REWORKED, TerminalEngine.CLASSIC)
@@ -75,10 +74,8 @@ internal class TerminalOptionsConfigurable(private val project: Project) : Bound
 
           terminalEngineComboBox = comboBox(values, renderer)
             .label(message("settings.terminal.engine"))
-            .bindItem(
-              getter = { TerminalEngine.getValue() },
-              setter = { it?.let { TerminalEngine.setValue(it) } }
-            ).component
+            .bindItem(optionsProvider::terminalEngine.toNullableProperty())
+            .component
         }
         indent {
           buttonsGroup(title = message("settings.prompt.style")) {
@@ -125,6 +122,49 @@ internal class TerminalOptionsConfigurable(private val project: Project) : Bound
         }
       }
 
+      group(message("settings.terminal.font.settings")) {
+        var fontSettings = TerminalFontOptions.getInstance().getSettings()
+        row(message("settings.font.name")) {
+          cell(fontComboBox())
+            .bind(
+              componentGet = { comboBox -> comboBox.fontName },
+              componentSet = {comboBox, value -> comboBox.fontName = value },
+              MutableProperty(
+                getter = { fontSettings.fontFamily },
+                setter = { fontSettings = fontSettings.copy(fontFamily = it) },
+              ).toNullableProperty()
+            )
+        }
+
+        row {
+          textField()
+            .label(message("settings.font.size"))
+            .columns(4)
+            .bindText(
+              getter = { fontSettings.fontSize.fontSizeToString() },
+              setter = { fontSettings = fontSettings.copy(fontSize = it.parseFontSize()) },
+            )
+          textField()
+            .label(message("settings.line.height"))
+            .columns(4)
+            .bindText(
+              getter = { fontSettings.lineSpacing.spacingToString() },
+              setter = { fontSettings = fontSettings.copy(lineSpacing = it.parseSpacing()) },
+            )
+          textField()
+            .label(message("settings.column.width"))
+            .columns(4)
+            .bindText(
+              getter = { fontSettings.columnSpacing.spacingToString() },
+              setter = { fontSettings = fontSettings.copy(columnSpacing = it.parseSpacing()) },
+            )
+        }
+
+        onApply {
+          TerminalFontOptions.getInstance().setSettings(fontSettings)
+        }
+      }
+
       group(message("settings.terminal.application.settings")) {
         row(message("settings.shell.path")) {
           cell(textFieldWithHistoryWithBrowseButton(
@@ -152,46 +192,6 @@ internal class TerminalOptionsConfigurable(private val project: Project) : Bound
           textField()
             .bindText(optionsProvider::tabName)
             .align(AlignX.FILL)
-        }
-
-        row(message("settings.font.name")) {
-          cell(fontComboBox())
-            .bind(
-              componentGet = { comboBox -> comboBox.fontName },
-              componentSet = {comboBox, value -> comboBox.fontName = value },
-              MutableProperty(
-                getter = { fontPreferences.fontFamily },
-                setter = { fontPreferences = fontPreferences.copy(fontFamily = it) },
-              ).toNullableProperty()
-            )
-        }
-
-        row {
-          textField()
-            .label(message("settings.font.size"))
-            .columns(4)
-            .bindText(
-              getter = { fontPreferences.fontSize.fontSizeToString() },
-              setter = { fontPreferences = fontPreferences.copy(fontSize = it.parseFontSize()) },
-            )
-          textField()
-            .label(message("settings.line.height"))
-            .columns(4)
-            .bindText(
-              getter = { fontPreferences.lineSpacing.spacingToString() },
-              setter = { fontPreferences = fontPreferences.copy(lineSpacing = it.parseSpacing()) },
-            )
-          textField()
-            .label(message("settings.column.width"))
-            .columns(4)
-            .bindText(
-              getter = { fontPreferences.columnSpacing.spacingToString() },
-              setter = { fontPreferences = fontPreferences.copy(columnSpacing = it.parseSpacing()) },
-            )
-        }
-
-        onApply {
-          TerminalFontOptions.getInstance().setSettings(fontPreferences)
         }
 
         row {

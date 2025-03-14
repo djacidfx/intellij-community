@@ -13,6 +13,7 @@ import com.intellij.openapi.editor.colors.impl.FontPreferencesImpl
 import com.intellij.openapi.util.Disposer
 import org.jetbrains.annotations.ApiStatus
 import java.util.concurrent.CopyOnWriteArrayList
+import kotlin.math.abs
 
 @State(
   name = TerminalFontOptions.COMPONENT_NAME,
@@ -47,17 +48,17 @@ class TerminalFontOptions : AppFontOptions<PersistentTerminalFontPreferences>() 
     )
   }
 
-  fun setSettings(preferences: TerminalFontSettings) {
+  fun setSettings(settings: TerminalFontSettings) {
     val newPreferences = FontPreferencesImpl()
     // start with the console preferences as the default
     AppConsoleFontOptions.getInstance().fontPreferences.copyTo(newPreferences)
     // then overwrite the subset that the terminal settings provide
     newPreferences.clearFonts()
-    newPreferences.addFontFamily(preferences.fontFamily)
-    newPreferences.setFontSize(preferences.fontFamily, preferences.fontSize)
-    newPreferences.lineSpacing = preferences.lineSpacing
+    newPreferences.addFontFamily(settings.fontFamily)
+    newPreferences.setFontSize(settings.fontFamily, settings.fontSize)
+    newPreferences.lineSpacing = settings.lineSpacing
     // then apply the settings that aren't a part of FontPreferences
-    columnSpacing = preferences.columnSpacing
+    columnSpacing = settings.columnSpacing
     // apply the FontPreferences part, the last line because it invokes incModificationCount()
     update(newPreferences)
     fireListeners()
@@ -80,7 +81,10 @@ class TerminalFontOptions : AppFontOptions<PersistentTerminalFontPreferences>() 
   override fun noStateLoaded() {
     // the state is mostly inherited from the console settings
     val defaultState = PersistentTerminalFontPreferences(AppConsoleFontOptions.getInstance().fontPreferences)
-    // but it can be changed here later, for example, if we want to change the default line spacing
+    // except the line spacing: it is only inherited if it's different from the default, otherwise we use our own default
+    if (abs(defaultState.LINE_SPACING - FontPreferences.DEFAULT_LINE_SPACING) < 0.0001) {
+      defaultState.LINE_SPACING = DEFAULT_LINE_SPACING
+    }
     loadState(defaultState)
   }
 
@@ -121,10 +125,14 @@ data class TerminalFontSettings(
 @ApiStatus.Internal
 class PersistentTerminalFontPreferences: AppEditorFontOptions.PersistentFontPreferences {
   @Suppress("unused") // for serialization
-  constructor(): super()
+  constructor(): super() {
+    LINE_SPACING = DEFAULT_LINE_SPACING // to ensure that values different from OUR default are saved
+  }
+
   constructor(fontPreferences: FontPreferences): super(fontPreferences)
 
   var COLUMN_SPACING: Float = DEFAULT_COLUMN_SPACING
 }
 
+private const val DEFAULT_LINE_SPACING = 1.0f
 private const val DEFAULT_COLUMN_SPACING = 1.0f

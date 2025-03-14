@@ -9,6 +9,7 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.DataSink
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.EDT
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.platform.debugger.impl.frontend.evaluate.quick.FrontendXDebuggerEvaluator
 import com.intellij.platform.debugger.impl.frontend.evaluate.quick.FrontendXValue
@@ -32,10 +33,11 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import javax.swing.event.HyperlinkListener
 
-internal class FrontendXDebuggerSession(
+internal class FrontendXDebuggerSession private constructor(
   override val project: Project,
   scope: CoroutineScope,
   sessionDto: XDebugSessionDto,
+  override val consoleView: ConsoleView?,
 ) : XDebugSessionProxy {
   private val cs = scope.childScope("Session ${sessionDto.id}")
   private val localEditorsProvider = sessionDto.editorsProviderDto.editorsProvider
@@ -101,6 +103,24 @@ internal class FrontendXDebuggerSession(
   override val sessionTab: XDebugSessionTab?
     get() = _sessionTab
 
+  // TODO all of the methods below
+  // TODO pass in DTO?
+  override val sessionName: String = sessionDto.sessionName
+  override val sessionData: XDebugSessionData = createFeSessionData(sessionDto)
+
+  override val restartActions: List<AnAction>
+    get() = emptyList() // TODO
+  override val extraActions: List<AnAction>
+    get() = emptyList() // TODO
+  override val extraStopActions: List<AnAction>
+    get() = emptyList() // TODO
+  override val processHandler: ProcessHandler = createProcessHandler(project, id, sessionDto.processHandlerDto)
+  override val coroutineScope: CoroutineScope = cs
+  override val currentStateMessage: String
+    get() = if (isStopped) XDebuggerBundle.message("debugger.state.message.disconnected") else XDebuggerBundle.message("debugger.state.message.connected") // TODO
+  override val currentStateHyperlinkListener: HyperlinkListener?
+    get() = null // TODO
+
   init {
     cs.launch {
       sessionDto.sessionEvents.toFlow().collect { event ->
@@ -146,25 +166,6 @@ internal class FrontendXDebuggerSession(
       }
     }
   }
-
-  // TODO all of the methods below
-  // TODO pass in DTO?
-  override val sessionName: String = sessionDto.sessionName
-  override val sessionData: XDebugSessionData = createFeSessionData(sessionDto)
-  override val consoleView: ConsoleView? get() = null // TODO
-  override val restartActions: List<AnAction>
-    get() = emptyList() // TODO
-  override val extraActions: List<AnAction>
-    get() = emptyList() // TODO
-  override val extraStopActions: List<AnAction>
-    get() = emptyList() // TODO
-  override val processHandler: ProcessHandler? get() = null // TODO
-  override val coroutineScope: CoroutineScope
-    get() = cs
-  override val currentStateMessage: String
-    get() = if (isStopped) XDebuggerBundle.message("debugger.state.message.disconnected") else XDebuggerBundle.message("debugger.state.message.connected") // TODO
-  override val currentStateHyperlinkListener: HyperlinkListener?
-    get() = null // TODO
 
   override fun getCurrentPosition(): XSourcePosition? = sourcePosition.value
 
@@ -234,6 +235,19 @@ internal class FrontendXDebuggerSession(
 
   fun closeScope() {
     cs.cancel()
+  }
+
+  companion object {
+    private val LOG = thisLogger()
+
+    suspend fun create(
+      project: Project,
+      scope: CoroutineScope,
+      sessionDto: XDebugSessionDto,
+    ): FrontendXDebuggerSession {
+      val consoleView = sessionDto.consoleViewData?.consoleView()
+      return FrontendXDebuggerSession(project, scope, sessionDto, consoleView)
+    }
   }
 }
 

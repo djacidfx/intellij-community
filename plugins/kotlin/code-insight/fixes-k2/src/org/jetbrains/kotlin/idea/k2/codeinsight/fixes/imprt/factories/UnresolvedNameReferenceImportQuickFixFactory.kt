@@ -13,65 +13,65 @@ import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtSimpleNameExpression
 
 internal object UnresolvedNameReferenceImportQuickFixFactory : AbstractImportQuickFixFactory() {
-    override fun detectPositionContext(diagnostic: KaDiagnosticWithPsi<*>): ImportPositionContext<*, *>? {
+    override fun detectPositionContext(diagnostic: KaDiagnosticWithPsi<*>): ImportContext? {
         return when (diagnostic) {
             is KaFirDiagnostic.UnresolvedImport,
             is KaFirDiagnostic.UnresolvedReference,
             is KaFirDiagnostic.UnresolvedReferenceWrongReceiver,
             is KaFirDiagnostic.InvisibleReference -> {
                 val diagnosticPsi = diagnostic.psi.operationReferenceForBinaryExpressionOrThis as? KtElement ?: return null
-                ImportPositionContext.detect(diagnosticPsi)
+                ImportContext(diagnosticPsi, ImportPositionTypeAndReceiver.detect(diagnosticPsi))
             }
 
             else -> null
         }
     }
 
-    override fun provideUnresolvedNames(diagnostic: KaDiagnosticWithPsi<*>, importPositionContext: ImportPositionContext<*, *>): Set<Name> {
-        return (importPositionContext.position as? KtSimpleNameExpression)?.mainReference?.resolvesByNames?.toSet().orEmpty()
+    override fun provideUnresolvedNames(diagnostic: KaDiagnosticWithPsi<*>, importContext: ImportContext): Set<Name> {
+        return (importContext.position as? KtSimpleNameExpression)?.mainReference?.resolvesByNames?.toSet().orEmpty()
     }
 
     override fun KaSession.provideImportCandidates(
         unresolvedName: Name,
-        importPositionContext: ImportPositionContext<*, *>,
+        importContext: ImportContext,
         indexProvider: KtSymbolFromIndexProvider
     ): List<ImportCandidate> {
-        val providers = getCandidateProvidersForUnresolvedNameReference(importPositionContext)
+        val providers = getCandidateProvidersForUnresolvedNameReference(importContext)
         return providers.flatMap { it.collectCandidates(unresolvedName, indexProvider) }.toList()
     }
 
     context(KaSession)
     private fun getCandidateProvidersForUnresolvedNameReference(
-        importPositionContext: ImportPositionContext<*, *>,
-    ): Sequence<AbstractImportCandidatesProvider> = when (importPositionContext) {
-        is ImportPositionContext.TypeReference -> sequenceOf(
-            ClassifierImportCandidatesProvider(importPositionContext),
+        importContext: ImportContext,
+    ): Sequence<AbstractImportCandidatesProvider> = when (importContext.positionTypeAndReceiver) {
+        is ImportPositionTypeAndReceiver.TypeReference -> sequenceOf(
+            ClassifierImportCandidatesProvider(importContext),
         )
 
-        is ImportPositionContext.Annotation -> sequenceOf(
-            AnnotationImportCandidatesProvider(importPositionContext),
+        is ImportPositionTypeAndReceiver.Annotation -> sequenceOf(
+            AnnotationImportCandidatesProvider(importContext),
         )
 
-        is ImportPositionContext.DefaultCall -> sequenceOf(
-            CallableImportCandidatesProvider(importPositionContext),
-            ClassifierImportCandidatesProvider(importPositionContext),
-            EnumEntryImportCandidatesProvider(importPositionContext),
+        is ImportPositionTypeAndReceiver.DefaultCall -> sequenceOf(
+            CallableImportCandidatesProvider(importContext),
+            ClassifierImportCandidatesProvider(importContext),
+            EnumEntryImportCandidatesProvider(importContext),
         )
 
-        is ImportPositionContext.DotCall,
-        is ImportPositionContext.SafeCall,
-        is ImportPositionContext.InfixCall,
-        is ImportPositionContext.OperatorCall -> sequenceOf(
-            CallableImportCandidatesProvider(importPositionContext),
+        is ImportPositionTypeAndReceiver.DotCall,
+        is ImportPositionTypeAndReceiver.SafeCall,
+        is ImportPositionTypeAndReceiver.InfixCall,
+        is ImportPositionTypeAndReceiver.OperatorCall -> sequenceOf(
+            CallableImportCandidatesProvider(importContext),
         )
 
-        is ImportPositionContext.KDocNameReference -> sequenceOf(
+        is ImportPositionTypeAndReceiver.KDocNameReference -> sequenceOf(
             // TODO this is currently reported by KDocUnresolvedReferenceInspection
         )
 
-        is ImportPositionContext.CallableReference -> sequenceOf(
-            CallableImportCandidatesProvider(importPositionContext),
-            ConstructorReferenceImportCandidatesProvider(importPositionContext),
+        is ImportPositionTypeAndReceiver.CallableReference -> sequenceOf(
+            CallableImportCandidatesProvider(importContext),
+            ConstructorReferenceImportCandidatesProvider(importContext),
         )
 
         else -> sequenceOf()

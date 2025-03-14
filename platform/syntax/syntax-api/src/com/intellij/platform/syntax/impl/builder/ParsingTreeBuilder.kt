@@ -5,6 +5,7 @@ import com.intellij.platform.syntax.CancellationProvider
 import com.intellij.platform.syntax.Logger
 import com.intellij.platform.syntax.Logger.Attachment
 import com.intellij.platform.syntax.SyntaxElementType
+import com.intellij.platform.syntax.SyntaxElementTypeSet
 import com.intellij.platform.syntax.impl.fastutil.ints.isEmpty
 import com.intellij.platform.syntax.lexer.Lexer
 import com.intellij.platform.syntax.lexer.TokenList
@@ -20,8 +21,8 @@ import kotlin.math.max
 internal class ParsingTreeBuilder(
   val lexer: Lexer,
   override val text: CharSequence,
-  val myWhitespaces: Set<SyntaxElementType>,
-  private var myComments: Set<SyntaxElementType>,
+  val myWhitespaces: SyntaxElementTypeSet,
+  private var myComments: SyntaxElementTypeSet,
   val startOffset: Int,
   private var myWhitespaceSkippedCallback: WhitespaceSkippedCallback?,
   cachedLexemes: TokenList?,
@@ -135,7 +136,7 @@ internal class ParsingTreeBuilder(
     myWhitespaceSkippedCallback = callback
   }
 
-  override fun enforceCommentTokens(tokens: Set<SyntaxElementType>) {
+  override fun enforceCommentTokens(tokens: SyntaxElementTypeSet) {
     myComments = tokens
   }
 
@@ -377,6 +378,31 @@ internal class ParsingTreeBuilder(
 
       override val size: Int
         get() = myProduction.size
+
+      override val collapsedMarkerSize: Int
+        get() = myOptionalData.collapsedMarkerSize
+
+      override val collapsedMarkers: IntArray
+        get() {
+          if (collapsedMarkerSize == 0) return IntArray(0)
+
+          // collapsed marker ids are different from production marker ids!!!
+          // production marker ids are defined by [myProduction]
+          // marker ids are defined by [pool]
+          val markerId2productionId = IntArray(pool.size)
+          for (i in 0 until myProduction.size) {
+            myProduction.getStartMarkerAt(i)?.let { m ->
+              markerId2productionId[m.markerId] = i
+            }
+          }
+
+          // replacing marker ids with production marker ids
+          val collapsedMarkers = myOptionalData.collapsedMarkerIds
+          for (i in 0 until collapsedMarkers.size) {
+            collapsedMarkers[i] = markerId2productionId[collapsedMarkers[i]]
+          }
+          return collapsedMarkers
+        }
     }
 
     override val tokenSequence: TokenList

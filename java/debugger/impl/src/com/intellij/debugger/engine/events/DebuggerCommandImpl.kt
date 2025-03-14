@@ -2,7 +2,6 @@
 package com.intellij.debugger.engine.events
 
 import com.intellij.debugger.engine.DebuggerManagerThreadImpl
-import com.intellij.debugger.engine.DebuggerThreadDispatcher
 import com.intellij.debugger.impl.DebuggerTaskImpl
 import com.intellij.debugger.impl.PrioritizedTask
 import kotlinx.coroutines.*
@@ -11,7 +10,7 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.CoroutineContext.Key
 
-abstract class DebuggerCommandImpl(private val myPriority: PrioritizedTask.Priority = PrioritizedTask.Priority.LOW)
+abstract class DebuggerCommandImpl(override val priority: PrioritizedTask.Priority = PrioritizedTask.Priority.LOW)
   : DebuggerTaskImpl(), CoroutineContext.Element {
 
   /**
@@ -49,8 +48,6 @@ abstract class DebuggerCommandImpl(private val myPriority: PrioritizedTask.Prior
   protected open suspend fun actionSuspend(): Unit = action()
   protected open fun commandCancelled() {
   }
-
-  override fun getPriority(): PrioritizedTask.Priority = myPriority
 
   @ApiStatus.Internal
   fun notifyCancelled() {
@@ -100,7 +97,7 @@ abstract class DebuggerCommandImpl(private val myPriority: PrioritizedTask.Prior
     resetContinuation(null)?.run()
   }
 
-  internal fun invokeCommand(dispatcher: DebuggerThreadDispatcher, parentScope: CoroutineScope) {
+  internal fun invokeCommand(dispatcher: CoroutineDispatcher, parentScope: CoroutineScope) {
     val exception = AtomicReference<Throwable>()
     if (continuation.get() == null) {
       // executed synchronously until the first suspend, resume is handled by dispatcher

@@ -214,18 +214,15 @@ internal object AnyThreadWriteThreadingSupport: ThreadingSupport {
   }
 
   override fun <T> runPreventiveWriteIntentReadAction(computation: () -> T): T {
-    return runWriteIntentReadAction(computation, true)
+    return doRunWriteIntentReadAction(computation)
   }
 
   override fun <T> runWriteIntentReadAction(computation: () -> T): T {
-    return runWriteIntentReadAction(computation, false)
+    handleLockAccess("write-intent lock")
+    return doRunWriteIntentReadAction(computation)
   }
 
-  fun <T> runWriteIntentReadAction(computation: () -> T, isPreventive: Boolean): T {
-    if (!isPreventive) {
-      handleLockAccess("write-intent lock")
-    }
-
+  private fun <T> doRunWriteIntentReadAction(computation: () -> T): T {
     val listener = myWriteIntentActionListener
     fireBeforeWriteIntentReadActionStart(listener, computation.javaClass)
     val currentReadState = myTopmostReadAction.get()
@@ -774,6 +771,17 @@ internal object AnyThreadWriteThreadingSupport: ThreadingSupport {
   override fun prohibitTakingLocksInsideAndRun(action: Runnable, failSoftly: Boolean, advice: String) {
     val currentValue = myLockingProhibited.get()
     myLockingProhibited.set(failSoftly to advice)
+    try {
+      action.run()
+    }
+    finally {
+      myLockingProhibited.set(currentValue)
+    }
+  }
+
+  override fun allowTakingLocksInsideAndRun(action: Runnable) {
+    val currentValue = myLockingProhibited.get()
+    myLockingProhibited.set(null)
     try {
       action.run()
     }

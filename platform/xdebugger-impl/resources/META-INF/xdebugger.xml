@@ -37,6 +37,8 @@
 
     <extensionPoint name="xdebugger.xValueCustomDescriptorSerializerProvider"
                     interface="com.intellij.xdebugger.frame.XValueCustomDescriptorSerializerProvider" dynamic="true"/>
+    <extensionPoint name="xdebugger.consoleViewDataConverter" interface="com.intellij.xdebugger.impl.rpc.XDebuggerConsoleViewConverter"
+                    dynamic="true"/>
   </extensionPoints>
 
   <extensions defaultExtensionNs="com.intellij">
@@ -248,6 +250,8 @@
       <separator/>
       <group id="XDebugger.Inspect.Tree.Popup.Bottom.Section.Frontend"/>
     </group>
+    <action id="Stop.Debugger.Frontend" class="com.intellij.xdebugger.impl.ui.FrontendDebuggerToolbarStopAction" icon="AllIcons.Actions.Suspend"/>
+    <action id="Rerun.Debugger.Frontend" class="com.intellij.xdebugger.impl.ui.FrontendDebuggerToolbarRerunAction" icon="AllIcons.Actions.Restart"/>
   </actions>
 
   <projectListeners>

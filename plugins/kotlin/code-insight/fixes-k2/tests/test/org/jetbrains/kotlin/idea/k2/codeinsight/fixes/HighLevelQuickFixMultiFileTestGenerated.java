@@ -769,9 +769,19 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
                 runTest("../../../idea/tests/testData/quickfix/autoImports/invokeExtensionNoOperator.test");
             }
 
-            @TestMetadata("iteratorOperator.before.Main.kt")
+            @TestMetadata("iteratorOperator.test")
             public void testIteratorOperator() throws Exception {
-                runTest("../../../idea/tests/testData/quickfix/autoImports/iteratorOperator.before.Main.kt");
+                runTest("../../../idea/tests/testData/quickfix/autoImports/iteratorOperator.test");
+            }
+
+            @TestMetadata("iteratorOperator_literalReceiver.test")
+            public void testIteratorOperator_literalReceiver() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/autoImports/iteratorOperator_literalReceiver.test");
+            }
+
+            @TestMetadata("iteratorOperator_wrongReceiverType.test")
+            public void testIteratorOperator_wrongReceiverType() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/autoImports/iteratorOperator_wrongReceiverType.test");
             }
 
             @TestMetadata("ktij27440.test")
