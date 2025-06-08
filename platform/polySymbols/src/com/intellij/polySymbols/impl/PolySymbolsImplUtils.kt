@@ -7,9 +7,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.deser.std.StringDeserializer
 import com.fasterxml.jackson.databind.module.SimpleModule
 import com.fasterxml.jackson.databind.type.TypeFactory
-import com.intellij.util.IconUtil
-import com.intellij.util.containers.Interner
-import com.intellij.util.ui.JBUI
 import com.intellij.polySymbols.PolySymbol
 import com.intellij.polySymbols.PolySymbolApiStatus
 import com.intellij.polySymbols.PolySymbolNameSegment
@@ -18,6 +15,9 @@ import com.intellij.polySymbols.query.PolySymbolsListSymbolsQueryParams
 import com.intellij.polySymbols.query.PolySymbolsNameMatchQueryParams
 import com.intellij.polySymbols.query.PolySymbolsQueryParams
 import com.intellij.polySymbols.webTypes.json.WebTypes
+import com.intellij.util.IconUtil
+import com.intellij.util.containers.Interner
+import com.intellij.util.ui.JBUI
 import org.jetbrains.annotations.ApiStatus
 import javax.swing.Icon
 
@@ -44,19 +44,19 @@ internal fun <T> List<T>.selectBest(
   isExtension: (T) -> Boolean,
 ) =
   if (size > 1) {
-    var bestWeight: IntArray = intArrayOf(0, 0, 0)
+    var bestWeight: DoubleArray = doubleArrayOf(0.0, 0.0, 0.0)
 
-    val results = mutableListOf<Pair<T, IntArray>>()
+    val results = mutableListOf<Pair<T, DoubleArray>>()
     val extensions = mutableListOf<T>()
     forEach { item ->
       if (!isExtension(item)) {
-        val weight: IntArray = intArrayOf(
+        val weight: DoubleArray = doubleArrayOf(
           // match length without a problem
-          segmentsProvider(item).find { it.problem != null }?.start ?: Int.MAX_VALUE,
+          (segmentsProvider(item).find { it.problem != null }?.start ?: Int.MAX_VALUE).toDouble(),
           // priority
-          (priorityProvider(item) ?: PolySymbol.Priority.NORMAL).ordinal,
-          //  match length of static part of RegExp
-          segmentsProvider(item).sumOf { it.matchScore }
+          (priorityProvider(item) ?: PolySymbol.Priority.NORMAL).value,
+          // match length of static part of RegExp
+          segmentsProvider(item).sumOf { it.matchScore }.toDouble(),
         )
         results.add(Pair(item, weight))
         for (i in 0..2) {
@@ -82,9 +82,10 @@ internal fun <T> List<T>.selectBest(
   else this
 
 internal fun List<PolySymbol>.sortSymbolsByPriority(extensionsLast: Boolean = true): List<PolySymbol> =
-  sortedWith(Comparator.comparingInt<PolySymbol> { if (it.extension && extensionsLast) 1 else 0 }
-               .thenComparingInt { -(it.priority ?: PolySymbol.Priority.NORMAL).ordinal }
-               .thenComparingInt { -(it.proximity ?: 0) })
+  sortedWith(
+    Comparator.comparingInt<PolySymbol> { if (it.extension && extensionsLast) 1 else 0 }
+      .thenComparingDouble { -(it.priority ?: PolySymbol.Priority.NORMAL).value }
+  )
 
 internal fun <T : PolySymbol> Sequence<T>.filterByQueryParams(params: PolySymbolsQueryParams): Sequence<T> =
   this.filter { symbol ->

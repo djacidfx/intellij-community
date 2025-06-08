@@ -134,6 +134,7 @@ class StructureViewWrapperImpl(
           ToolWindowManagerEventType.ShowToolWindow -> loggedRun("update file") { checkUpdate() }
           ToolWindowManagerEventType.HideToolWindow -> if (!project.isDisposed) {
             myFile = null
+            myFirstRun = true
             rebuildNow("clear a structure on hide")
           }
           else -> {}
@@ -239,7 +240,10 @@ class StructureViewWrapperImpl(
           myFirstRun = false
 
           coroutineScope.launch {
-            if (file != null) {
+            if (!myToolWindow.isVisible) {
+              return@launch
+            }
+            else if (file != null) {
               setFile(file)
             }
             else if (firstRun) {

@@ -33,7 +33,6 @@
 - getPresentation():com.intellij.platform.backend.presentation.TargetPresentation
 - getPriority():com.intellij.polySymbols.PolySymbol$Priority
 - getProperties():java.util.Map
-- getProximity():java.lang.Integer
 - getPsiContext():com.intellij.psi.PsiElement
 - a:getQualifiedKind():com.intellij.polySymbols.PolySymbolQualifiedKind
 - getQueryScope():java.util.List
@@ -74,17 +73,18 @@
 - f:getJS_PROPERTIES():com.intellij.polySymbols.PolySymbolQualifiedKind
 - f:getJS_STRING_LITERALS():com.intellij.polySymbols.PolySymbolQualifiedKind
 - f:getJS_SYMBOLS():com.intellij.polySymbols.PolySymbolQualifiedKind
-*e:com.intellij.polySymbols.PolySymbol$Priority
-- java.lang.Enum
+*:com.intellij.polySymbols.PolySymbol$Priority
+- java.lang.Comparable
+- *sf:Companion:com.intellij.polySymbols.PolySymbol$Priority$Companion
 - sf:HIGH:com.intellij.polySymbols.PolySymbol$Priority
 - sf:HIGHEST:com.intellij.polySymbols.PolySymbol$Priority
 - sf:LOW:com.intellij.polySymbols.PolySymbol$Priority
 - sf:LOWEST:com.intellij.polySymbols.PolySymbol$Priority
 - sf:NORMAL:com.intellij.polySymbols.PolySymbol$Priority
-- s:getEntries():kotlin.enums.EnumEntries
-- f:getValue():D
-- s:valueOf(java.lang.String):com.intellij.polySymbols.PolySymbol$Priority
-- s:values():com.intellij.polySymbols.PolySymbol$Priority[]
+- s:custom(D):com.intellij.polySymbols.PolySymbol$Priority
+- a:getValue():D
+*f:com.intellij.polySymbols.PolySymbol$Priority$Companion
+- f:custom(D):com.intellij.polySymbols.PolySymbol$Priority
 *:com.intellij.polySymbols.PolySymbolApiStatus
 - *sf:Companion:com.intellij.polySymbols.PolySymbolApiStatus$Companion
 - sf:Deprecated:com.intellij.polySymbols.PolySymbolApiStatus$Deprecated
@@ -133,16 +133,15 @@
 - getName(com.intellij.polySymbols.PolySymbol):java.lang.String
 - a:getPriority():com.intellij.polySymbols.PolySymbol$Priority
 - a:getProblem():com.intellij.polySymbols.PolySymbolNameSegment$MatchProblem
-- a:getProximity():java.lang.Integer
 - a:getStart():I
 - a:getSymbolKinds():java.util.Set
 - a:getSymbols():java.util.List
 *f:com.intellij.polySymbols.PolySymbolNameSegment$Companion
 - f:create(I,I,com.intellij.polySymbols.PolySymbol):com.intellij.polySymbols.PolySymbolNameSegment
-- f:create(I,I,java.util.List,com.intellij.polySymbols.PolySymbolNameSegment$MatchProblem,java.lang.String,I,java.util.Set,com.intellij.polySymbols.PolySymbolApiStatus,com.intellij.polySymbols.PolySymbol$Priority,java.lang.Integer):com.intellij.polySymbols.PolySymbolNameSegment
+- f:create(I,I,java.util.List,com.intellij.polySymbols.PolySymbolNameSegment$MatchProblem,java.lang.String,I,java.util.Set,com.intellij.polySymbols.PolySymbolApiStatus,com.intellij.polySymbols.PolySymbol$Priority):com.intellij.polySymbols.PolySymbolNameSegment
 - f:create(I,I,com.intellij.polySymbols.PolySymbol[]):com.intellij.polySymbols.PolySymbolNameSegment
 - f:create(com.intellij.polySymbols.PolySymbol):com.intellij.polySymbols.PolySymbolNameSegment
-- bs:create$default(com.intellij.polySymbols.PolySymbolNameSegment$Companion,I,I,java.util.List,com.intellij.polySymbols.PolySymbolNameSegment$MatchProblem,java.lang.String,I,java.util.Set,com.intellij.polySymbols.PolySymbolApiStatus,com.intellij.polySymbols.PolySymbol$Priority,java.lang.Integer,I,java.lang.Object):com.intellij.polySymbols.PolySymbolNameSegment
+- bs:create$default(com.intellij.polySymbols.PolySymbolNameSegment$Companion,I,I,java.util.List,com.intellij.polySymbols.PolySymbolNameSegment$MatchProblem,java.lang.String,I,java.util.Set,com.intellij.polySymbols.PolySymbolApiStatus,com.intellij.polySymbols.PolySymbol$Priority,I,java.lang.Object):com.intellij.polySymbols.PolySymbolNameSegment
 *e:com.intellij.polySymbols.PolySymbolNameSegment$MatchProblem
 - java.lang.Enum
 - sf:DUPLICATE:com.intellij.polySymbols.PolySymbolNameSegment$MatchProblem
@@ -903,7 +902,6 @@
 - getPattern():com.intellij.polySymbols.patterns.PolySymbolsPattern
 - getPriority():com.intellij.polySymbols.PolySymbol$Priority
 - getProperties():java.util.Map
-- getProximity():java.lang.Integer
 - getPsiContext():com.intellij.psi.PsiElement
 - getQualifiedKind():com.intellij.polySymbols.PolySymbolQualifiedKind
 - getQueryScope():java.util.List
@@ -1121,7 +1119,6 @@
 - f:getPattern():com.intellij.polySymbols.patterns.PolySymbolsPattern
 - f:getPriority():com.intellij.polySymbols.PolySymbol$Priority
 - getProperties():java.util.Map
-- f:getProximity():java.lang.Integer
 - f:getQualifiedKind():com.intellij.polySymbols.PolySymbolQualifiedKind
 - pf:getQueryExecutor():com.intellij.polySymbols.query.PolySymbolsQueryExecutor
 - f:getQueryScope():java.util.List

@@ -80,7 +80,6 @@ open class PolySymbolsDebugOutputPrinter : DebugOutputPrinter() {
       printProperty(level, "virtual", source.virtual.takeIf { it })
       printProperty(level, "apiStatus", source.apiStatus.takeIf { it !is PolySymbolApiStatus.Stable || it.since != null })
       printProperty(level, "priority", source.priority ?: PolySymbol.Priority.NORMAL)
-      printProperty(level, "proximity", source.proximity?.takeIf { it > 0 })
       printProperty(level, "has-pattern", if (source.pattern != null) true else null)
       printProperty(level, "properties", source.properties.takeIf { it.isNotEmpty() })
       parents.push(source)

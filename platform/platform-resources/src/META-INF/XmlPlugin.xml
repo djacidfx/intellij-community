@@ -5,14 +5,8 @@
   <xi:include href="/META-INF/XmlImpl.xml"/>
 
   <xi:include href="/META-INF/XmlAnalysisImpl.xml"/>
-  <xi:include href="/META-INF/XmlPsiImpl.xml"/>
-  <xi:include href="/META-INF/XmlPsi.xml"/>
 
   <extensionPoints>
-    <extensionPoint name="xmlStructureViewElementProvider" interface="com.intellij.ide.structureView.xml.XmlStructureViewElementProvider" dynamic="true"/>
-
-    <extensionPoint name="xmlStructureViewBuilderProvider" interface="com.intellij.ide.structureView.xml.XmlStructureViewBuilderProvider" dynamic="true"/>
-
     <extensionPoint name="xml.xmlTagRuleProvider" interface="com.intellij.xml.XmlTagRuleProvider" dynamic="true"/>
     <extensionPoint name="embeddedTokenTypesProvider" interface="com.intellij.lexer.EmbeddedTokenTypesProvider" dynamic="true"/>
     <extensionPoint name="embeddedTokenHighlighter" interface="com.intellij.ide.highlighter.EmbeddedTokenHighlighter" dynamic="true"/>
@@ -48,30 +42,11 @@
 
     <syntax.elementTypeConverter language="XML" implementationClass="com.intellij.psi.xml.XmlElementTypeConverterExtension"/>
 
-    <lang.psiStructureViewFactory language="DTD" implementationClass="com.intellij.lang.dtd.DtdStructureViewBuilderFactory"/>
-    <lang.psiStructureViewFactory language="XML" implementationClass="com.intellij.lang.xml.XmlStructureViewBuilderFactory"/>
-    <lang.psiStructureViewFactory language="HTML" implementationClass="com.intellij.lang.xml.XmlStructureViewBuilderFactory"/>
-    <lang.psiStructureViewFactory language="XHTML" implementationClass="com.intellij.lang.xml.XmlStructureViewBuilderFactory"/>
-
     <syntaxHighlighter key="IDEA_PROJECT" implementationClass="com.intellij.ide.highlighter.XmlFileHighlighter"/>
     <syntaxHighlighter key="IDEA_MODULE" implementationClass="com.intellij.ide.highlighter.XmlFileHighlighter"/>
     <syntaxHighlighter key="IDEA_WORKSPACE" implementationClass="com.intellij.ide.highlighter.XmlFileHighlighter"/>
 
     <colorSettingsPage implementation="com.intellij.openapi.options.colors.pages.XMLColorsPage"/>
     <colorSettingsPage implementation="com.intellij.openapi.options.colors.pages.HTMLColorsPage"/>
-
-    <xmlStructureViewBuilderProvider implementation="com.intellij.lang.html.structureView.HtmlStructureViewBuilderProvider"/>
-
-    <polySymbols.enableInLanguage language="HtmlCompatible"/>
-
-    <polySymbols.inspectionToolMapping symbolNamespace="html" symbolKind="attributes" problemKind="UnknownSymbol"
-                                      toolShortName="HtmlUnknownAttribute"/>
-    <polySymbols.inspectionToolMapping symbolNamespace="html" symbolKind="elements" problemKind="UnknownSymbol"
-                                      toolShortName="HtmlUnknownTag"/>
-
-    <polySymbols.inspectionToolMapping symbolNamespace="html" symbolKind="attributes" problemKind="DeprecatedSymbol"
-                                      toolShortName="HtmlDeprecatedAttribute"/>
-    <polySymbols.inspectionToolMapping symbolNamespace="html" symbolKind="elements" problemKind="DeprecatedSymbol"
-                                      toolShortName="HtmlDeprecatedTag"/>
   </extensions>
 </idea-plugin>

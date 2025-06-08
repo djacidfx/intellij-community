@@ -748,6 +748,75 @@ public abstract class K2LocalInspectionTestGenerated extends AbstractK2LocalInsp
     }
 
     @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../../idea/tests/testData/intentions/removeExplicitSuperQualifier")
+    public static class RemoveExplicitSuperQualifier extends AbstractK2LocalInspectionTest {
+        @java.lang.Override
+        @org.jetbrains.annotations.NotNull
+        public final KotlinPluginMode getPluginMode() {
+            return KotlinPluginMode.K2;
+        }
+
+        private void runTest(String testDataFilePath) throws Exception {
+            KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
+        }
+
+        @TestMetadata("AmbiguousSuperMethod.kt")
+        public void testAmbiguousSuperMethod() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeExplicitSuperQualifier/AmbiguousSuperMethod.kt");
+        }
+
+        @TestMetadata("AmbiguousSuperProperty.kt")
+        public void testAmbiguousSuperProperty() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeExplicitSuperQualifier/AmbiguousSuperProperty.kt");
+        }
+
+        @TestMetadata("DataFlowInfoUsed.kt")
+        public void testDataFlowInfoUsed() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeExplicitSuperQualifier/DataFlowInfoUsed.kt");
+        }
+
+        @TestMetadata("IncompleteCall.kt")
+        public void testIncompleteCall() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeExplicitSuperQualifier/IncompleteCall.kt");
+        }
+
+        @TestMetadata("IncompleteCallAmbiguous.kt")
+        public void testIncompleteCallAmbiguous() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeExplicitSuperQualifier/IncompleteCallAmbiguous.kt");
+        }
+
+        @TestMetadata("SingleSuper.kt")
+        public void testSingleSuper() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeExplicitSuperQualifier/SingleSuper.kt");
+        }
+
+        @TestMetadata("SuperWithLabel.kt")
+        public void testSuperWithLabel() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeExplicitSuperQualifier/SuperWithLabel.kt");
+        }
+
+        @TestMetadata("UnambiguousSuperMethod.kt")
+        public void testUnambiguousSuperMethod() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeExplicitSuperQualifier/UnambiguousSuperMethod.kt");
+        }
+
+        @TestMetadata("UnambiguousSuperProperty.kt")
+        public void testUnambiguousSuperProperty() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeExplicitSuperQualifier/UnambiguousSuperProperty.kt");
+        }
+
+        @TestMetadata("WrongOffset1.kt")
+        public void testWrongOffset1() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeExplicitSuperQualifier/WrongOffset1.kt");
+        }
+
+        @TestMetadata("WrongOffset2.kt")
+        public void testWrongOffset2() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeExplicitSuperQualifier/WrongOffset2.kt");
+        }
+    }
+
+    @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../../idea/tests/testData/inspectionsLocal/enumValuesSoftDeprecate")
     public static class EnumValuesSoftDeprecate extends AbstractK2LocalInspectionTest {
         @java.lang.Override
@@ -13612,6 +13681,75 @@ public abstract class K2LocalInspectionTestGenerated extends AbstractK2LocalInsp
         @TestMetadata("vararg.kt")
         public void testVararg() throws Exception {
             runTest("../../../idea/tests/testData/inspectionsLocal/selfReferenceConstructorParameter/vararg.kt");
+        }
+    }
+
+    @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../../idea/tests/testData/inspectionsLocal/simplifyAssertNotNull")
+    public static class SimplifyAssertNotNull extends AbstractK2LocalInspectionTest {
+        @java.lang.Override
+        @org.jetbrains.annotations.NotNull
+        public final KotlinPluginMode getPluginMode() {
+            return KotlinPluginMode.K2;
+        }
+
+        private void runTest(String testDataFilePath) throws Exception {
+            KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
+        }
+
+        @TestMetadata("comments.kt")
+        public void testComments() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/simplifyAssertNotNull/comments.kt");
+        }
+
+        @TestMetadata("commentsNoMessage.kt")
+        public void testCommentsNoMessage() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/simplifyAssertNotNull/commentsNoMessage.kt");
+        }
+
+        @TestMetadata("complicatedMessageLambda.kt")
+        public void testComplicatedMessageLambda() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/simplifyAssertNotNull/complicatedMessageLambda.kt");
+        }
+
+        @TestMetadata("eqNull.kt")
+        public void testEqNull() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/simplifyAssertNotNull/eqNull.kt");
+        }
+
+        @TestMetadata("errorFunctionInContext.kt")
+        public void testErrorFunctionInContext() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/simplifyAssertNotNull/errorFunctionInContext.kt");
+        }
+
+        @TestMetadata("falseAssert.kt")
+        public void testFalseAssert() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/simplifyAssertNotNull/falseAssert.kt");
+        }
+
+        @TestMetadata("noMessage.kt")
+        public void testNoMessage() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/simplifyAssertNotNull/noMessage.kt");
+        }
+
+        @TestMetadata("otherVariable.kt")
+        public void testOtherVariable() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/simplifyAssertNotNull/otherVariable.kt");
+        }
+
+        @TestMetadata("qualifiedAccess.kt")
+        public void testQualifiedAccess() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/simplifyAssertNotNull/qualifiedAccess.kt");
+        }
+
+        @TestMetadata("withMessage.kt")
+        public void testWithMessage() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/simplifyAssertNotNull/withMessage.kt");
+        }
+
+        @TestMetadata("withMessageLambdaOutside.kt")
+        public void testWithMessageLambdaOutside() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/simplifyAssertNotNull/withMessageLambdaOutside.kt");
         }
     }
 

@@ -171,10 +171,6 @@ open class WebTypesSymbolBase : WebTypesSymbol {
     get() = base.contribution.priority?.wrap()
             ?: superContributions.firstOrNull()?.priority
 
-  final override val proximity: Int?
-    get() = base.contribution.proximity
-            ?: superContributions.firstOrNull()?.proximity
-
   final override val abstract: Boolean
     get() = base.contribution.abstract == true
 

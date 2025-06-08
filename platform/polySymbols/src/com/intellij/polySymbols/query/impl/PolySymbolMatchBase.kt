@@ -207,9 +207,6 @@ private interface PolySymbolMatchMixin : PolySymbolMatch {
   override val priority: Priority?
     get() = explicitPriority ?: reversedSegments().mapNotNull { it.priority }.firstOrNull()
 
-  override val proximity: Int?
-    get() = explicitProximity ?: reversedSegments().mapNotNull { it.proximity }.firstOrNull()
-
   override val queryScope: List<PolySymbolsScope>
     get() = nameSegments.asSequence()
       .flatMap { it.symbols }
@@ -349,7 +346,7 @@ private fun List<PolySymbolNameSegment>.equalsIgnoreOffset(other: List<PolySymbo
         || segment1.problem != segment2.problem
         || segment1.displayName != segment2.displayName
         || segment1.priority != segment2.priority
-        || segment1.proximity != segment2.proximity) {
+    ) {
       return false
     }
   }

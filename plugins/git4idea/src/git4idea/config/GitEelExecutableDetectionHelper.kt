@@ -3,11 +3,13 @@ package git4idea.config
 
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
+import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.platform.eel.EelApi
 import com.intellij.platform.eel.EelDescriptor
 import com.intellij.platform.eel.provider.LocalEelDescriptor
+import com.intellij.platform.eel.provider.asNioPath
 import com.intellij.platform.eel.provider.getEelDescriptor
 import com.intellij.platform.eel.provider.toEelApiBlocking
 import com.intellij.platform.eel.where
@@ -18,6 +20,7 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import java.nio.file.Path
+import kotlin.io.path.pathString
 
 @Service(Service.Level.APP)
 internal class GitEelExecutableDetectionHelper private constructor(private val scope: CoroutineScope) {
@@ -29,11 +32,17 @@ internal class GitEelExecutableDetectionHelper private constructor(private val s
     return getExecutablePathPromise(eelApi, rootDir).takeIf { it.isCompleted }?.getCompleted()
   }
 
+  fun getExecutablePathBlocking(eelApi: EelApi, rootDir: String): String? {
+    return runBlockingMaybeCancellable {
+      getExecutablePathPromise(eelApi, rootDir).await();
+    }
+  }
+
   fun getExecutablePathPromise(eelApi: EelApi, rootDir: String): Deferred<String?> {
     return synchronized(myLock) {
       myCache.computeIfAbsent(rootDir) {
         scope.async {
-          eelApi.exec.where("git")?.toString()
+          eelApi.exec.where("git")?.asNioPath()?.pathString
         }
       }
     }

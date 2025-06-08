@@ -14183,6 +14183,80 @@ public abstract class K2IntentionTestGenerated extends AbstractK2IntentionTest {
     @TestMetadata("../../../idea/tests/testData/intentions/contextParameters")
     public abstract static class ContextParameters extends AbstractK2IntentionTest {
         @RunWith(JUnit3RunnerWithInners.class)
+        @TestMetadata("../../../idea/tests/testData/intentions/contextParameters/contextParameterToReceiver")
+        public static class ContextParameterToReceiver extends AbstractK2IntentionTest {
+            @java.lang.Override
+            @org.jetbrains.annotations.NotNull
+            public final KotlinPluginMode getPluginMode() {
+                return KotlinPluginMode.K2;
+            }
+
+            private void runTest(String testDataFilePath) throws Exception {
+                KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
+            }
+
+            @TestMetadata("contextUsage1.kt")
+            public void testContextUsage1() throws Exception {
+                runTest("../../../idea/tests/testData/intentions/contextParameters/contextParameterToReceiver/contextUsage1.kt");
+            }
+
+            @TestMetadata("contextUsage2.kt")
+            public void testContextUsage2() throws Exception {
+                runTest("../../../idea/tests/testData/intentions/contextParameters/contextParameterToReceiver/contextUsage2.kt");
+            }
+
+            @TestMetadata("doubleDispatchExplicitReceiver.kt")
+            public void testDoubleDispatchExplicitReceiver() throws Exception {
+                runTest("../../../idea/tests/testData/intentions/contextParameters/contextParameterToReceiver/doubleDispatchExplicitReceiver.kt");
+            }
+
+            @TestMetadata("doubleDispatchExtensionReceiver1.kt")
+            public void testDoubleDispatchExtensionReceiver1() throws Exception {
+                runTest("../../../idea/tests/testData/intentions/contextParameters/contextParameterToReceiver/doubleDispatchExtensionReceiver1.kt");
+            }
+
+            @TestMetadata("doubleDispatchExtensionReceiver2.kt")
+            public void testDoubleDispatchExtensionReceiver2() throws Exception {
+                runTest("../../../idea/tests/testData/intentions/contextParameters/contextParameterToReceiver/doubleDispatchExtensionReceiver2.kt");
+            }
+
+            @TestMetadata("inapplicableHasReceiver.kt")
+            public void testInapplicableHasReceiver() throws Exception {
+                runTest("../../../idea/tests/testData/intentions/contextParameters/contextParameterToReceiver/inapplicableHasReceiver.kt");
+            }
+
+            @TestMetadata("lambdaContextUsage1.kt")
+            public void testLambdaContextUsage1() throws Exception {
+                runTest("../../../idea/tests/testData/intentions/contextParameters/contextParameterToReceiver/lambdaContextUsage1.kt");
+            }
+
+            @TestMetadata("lambdaContextUsage2.kt")
+            public void testLambdaContextUsage2() throws Exception {
+                runTest("../../../idea/tests/testData/intentions/contextParameters/contextParameterToReceiver/lambdaContextUsage2.kt");
+            }
+
+            @TestMetadata("receiverUsage1.kt")
+            public void testReceiverUsage1() throws Exception {
+                runTest("../../../idea/tests/testData/intentions/contextParameters/contextParameterToReceiver/receiverUsage1.kt");
+            }
+
+            @TestMetadata("receiverUsage2.kt")
+            public void testReceiverUsage2() throws Exception {
+                runTest("../../../idea/tests/testData/intentions/contextParameters/contextParameterToReceiver/receiverUsage2.kt");
+            }
+
+            @TestMetadata("withUsage1.kt")
+            public void testWithUsage1() throws Exception {
+                runTest("../../../idea/tests/testData/intentions/contextParameters/contextParameterToReceiver/withUsage1.kt");
+            }
+
+            @TestMetadata("withUsage2.kt")
+            public void testWithUsage2() throws Exception {
+                runTest("../../../idea/tests/testData/intentions/contextParameters/contextParameterToReceiver/withUsage2.kt");
+            }
+        }
+
+        @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../../idea/tests/testData/intentions/contextParameters/contextParameterToRegularParameter")
         public static class ContextParameterToRegularParameter extends AbstractK2IntentionTest {
             @java.lang.Override
@@ -14283,6 +14357,60 @@ public abstract class K2IntentionTestGenerated extends AbstractK2IntentionTest {
             @TestMetadata("memberFunction1.kt")
             public void testMemberFunction1() throws Exception {
                 runTest("../../../idea/tests/testData/intentions/contextParameters/contextParameterToRegularParameter/memberFunction1.kt");
+            }
+        }
+
+        @RunWith(JUnit3RunnerWithInners.class)
+        @TestMetadata("../../../idea/tests/testData/intentions/contextParameters/regularParameterToContextParameter")
+        public static class RegularParameterToContextParameter extends AbstractK2IntentionTest {
+            @java.lang.Override
+            @org.jetbrains.annotations.NotNull
+            public final KotlinPluginMode getPluginMode() {
+                return KotlinPluginMode.K2;
+            }
+
+            private void runTest(String testDataFilePath) throws Exception {
+                KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
+            }
+
+            @TestMetadata("abstractOverride.kt")
+            public void testAbstractOverride() throws Exception {
+                runTest("../../../idea/tests/testData/intentions/contextParameters/regularParameterToContextParameter/abstractOverride.kt");
+            }
+
+            @TestMetadata("doubleReceiver.kt")
+            public void testDoubleReceiver() throws Exception {
+                runTest("../../../idea/tests/testData/intentions/contextParameters/regularParameterToContextParameter/doubleReceiver.kt");
+            }
+
+            @TestMetadata("inapplicableAlreadyContext.kt")
+            public void testInapplicableAlreadyContext() throws Exception {
+                runTest("../../../idea/tests/testData/intentions/contextParameters/regularParameterToContextParameter/inapplicableAlreadyContext.kt");
+            }
+
+            @TestMetadata("inapplicableFeatureDisabled.kt")
+            public void testInapplicableFeatureDisabled() throws Exception {
+                runTest("../../../idea/tests/testData/intentions/contextParameters/regularParameterToContextParameter/inapplicableFeatureDisabled.kt");
+            }
+
+            @TestMetadata("parametersContextsAndReceiver.kt")
+            public void testParametersContextsAndReceiver() throws Exception {
+                runTest("../../../idea/tests/testData/intentions/contextParameters/regularParameterToContextParameter/parametersContextsAndReceiver.kt");
+            }
+
+            @TestMetadata("qualifiedExpressionArgument.kt")
+            public void testQualifiedExpressionArgument() throws Exception {
+                runTest("../../../idea/tests/testData/intentions/contextParameters/regularParameterToContextParameter/qualifiedExpressionArgument.kt");
+            }
+
+            @TestMetadata("sameType.kt")
+            public void testSameType() throws Exception {
+                runTest("../../../idea/tests/testData/intentions/contextParameters/regularParameterToContextParameter/sameType.kt");
+            }
+
+            @TestMetadata("singleParameter.kt")
+            public void testSingleParameter() throws Exception {
+                runTest("../../../idea/tests/testData/intentions/contextParameters/regularParameterToContextParameter/singleParameter.kt");
             }
         }
     }

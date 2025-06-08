@@ -18,7 +18,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "delegate",
     "deprecated",
     "priority",
-    "proximity",
     "items"
 })
 public class NamePatternDefault
@@ -37,25 +36,28 @@ public class NamePatternDefault
     private List<NamePatternTemplate> or = new ArrayList<NamePatternTemplate>();
     /**
      * A reference to an element in Web-Types model.
-     *
+     * 
      */
     @JsonProperty("delegate")
     @JsonPropertyDescription("A reference to an element in Web-Types model.")
     private Reference delegate;
     /**
      * Specifies whether the symbol is deprecated. Deprecated symbol usage is discouraged, but still supported. Value can be a boolean or a string message with explanation and migration information.
-     *
+     * 
      */
     @JsonProperty("deprecated")
     @JsonPropertyDescription("Specifies whether the symbol is deprecated. Deprecated symbol usage is discouraged, but still supported. Value can be a boolean or a string message with explanation and migration information.")
     private Deprecated deprecated = null;
+    /**
+     * The priority of the contribution or the pattern. You can use predefined constants `lowest`(`0.0`), `low`(`1.0`), `normal`(`10.0`), `high`(`50.0`), `highest`(`100.0`), or a custom number. By default the `normal` priority is used.
+     * 
+     */
     @JsonProperty("priority")
-    private com.intellij.polySymbols.webTypes.json.BaseContribution.Priority priority;
-    @JsonProperty("proximity")
-    private Integer proximity;
+    @JsonPropertyDescription("The priority of the contribution or the pattern. You can use predefined constants `lowest`(`0.0`), `low`(`1.0`), `normal`(`10.0`), `high`(`50.0`), `highest`(`100.0`), or a custom number. By default the `normal` priority is used.")
+    private Priority priority;
     /**
      * A reference to an element in Web-Types model.
-     *
+     * 
      */
     @JsonProperty("items")
     @JsonPropertyDescription("A reference to an element in Web-Types model.")
@@ -113,7 +115,7 @@ public class NamePatternDefault
 
     /**
      * A reference to an element in Web-Types model.
-     *
+     * 
      */
     @JsonProperty("delegate")
     public Reference getDelegate() {
@@ -122,7 +124,7 @@ public class NamePatternDefault
 
     /**
      * A reference to an element in Web-Types model.
-     *
+     * 
      */
     @JsonProperty("delegate")
     public void setDelegate(Reference delegate) {
@@ -131,7 +133,7 @@ public class NamePatternDefault
 
     /**
      * Specifies whether the symbol is deprecated. Deprecated symbol usage is discouraged, but still supported. Value can be a boolean or a string message with explanation and migration information.
-     *
+     * 
      */
     @JsonProperty("deprecated")
     public Deprecated getDeprecated() {
@@ -140,36 +142,34 @@ public class NamePatternDefault
 
     /**
      * Specifies whether the symbol is deprecated. Deprecated symbol usage is discouraged, but still supported. Value can be a boolean or a string message with explanation and migration information.
-     *
+     * 
      */
     @JsonProperty("deprecated")
     public void setDeprecated(Deprecated deprecated) {
         this.deprecated = deprecated;
     }
 
+    /**
+     * The priority of the contribution or the pattern. You can use predefined constants `lowest`(`0.0`), `low`(`1.0`), `normal`(`10.0`), `high`(`50.0`), `highest`(`100.0`), or a custom number. By default the `normal` priority is used.
+     * 
+     */
     @JsonProperty("priority")
-    public com.intellij.polySymbols.webTypes.json.BaseContribution.Priority getPriority() {
+    public Priority getPriority() {
         return priority;
     }
 
+    /**
+     * The priority of the contribution or the pattern. You can use predefined constants `lowest`(`0.0`), `low`(`1.0`), `normal`(`10.0`), `high`(`50.0`), `highest`(`100.0`), or a custom number. By default the `normal` priority is used.
+     * 
+     */
     @JsonProperty("priority")
-    public void setPriority(com.intellij.polySymbols.webTypes.json.BaseContribution.Priority priority) {
+    public void setPriority(Priority priority) {
         this.priority = priority;
-    }
-
-    @JsonProperty("proximity")
-    public Integer getProximity() {
-        return proximity;
-    }
-
-    @JsonProperty("proximity")
-    public void setProximity(Integer proximity) {
-        this.proximity = proximity;
     }
 
     /**
      * A reference to an element in Web-Types model.
-     *
+     * 
      */
     @JsonProperty("items")
     public ListReference getItems() {
@@ -178,7 +178,7 @@ public class NamePatternDefault
 
     /**
      * A reference to an element in Web-Types model.
-     *
+     * 
      */
     @JsonProperty("items")
     public void setItems(ListReference items) {

@@ -47,8 +47,6 @@ private val PLATFORM_API_MODULES = java.util.List.of(
   "intellij.platform.usageView",
   "intellij.platform.execution",
   "intellij.xml",
-  "intellij.xml.psi",
-  "intellij.xml.structureView",
   "intellij.platform.kernel",
 )
 

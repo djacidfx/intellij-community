@@ -121,6 +121,9 @@
     <extensionPoint name="projectOpenProcessor"
                     interface="com.intellij.projectImport.ProjectOpenProcessor"
                     dynamic="true"/>
+    <extensionPoint name="multipleFileOpener"
+                    interface="com.intellij.ide.impl.MultipleFileOpener"
+                    dynamic="true"/>
     <extensionPoint name="projectSetProcessor" interface="com.intellij.projectImport.ProjectSetProcessor" dynamic="true"/>
     <extensionPoint name="lowLevelProjectOpenProcessor"
                     interface="com.intellij.openapi.project.ex.LowLevelProjectOpenProcessor"
@@ -454,9 +457,8 @@
 
     <extensionPoint name="projectCloseHandler" interface="com.intellij.openapi.project.ProjectCloseHandler" dynamic="true"/>
 
-    <extensionPoint name="projectServiceContainerCustomizer" interface="com.intellij.openapi.project.impl.ProjectServiceContainerCustomizer" dynamic="true"/>
-    <extensionPoint name="projectServiceInitializer" interface="com.intellij.openapi.project.impl.ProjectServiceInitializer" dynamic="true"/>
-    <extensionPoint name="projectServiceInitializer.essential" interface="com.intellij.openapi.project.impl.ProjectServiceInitializer" dynamic="true"/>
+    <extensionPoint name="projectServiceContainerCustomizer" interface="com.intellij.openapi.project.impl.ProjectServiceContainerCustomizer" dynamic="false"/>
+    <extensionPoint name="projectPreInit" interface="com.intellij.openapi.startup.InitProjectActivity" dynamic="false"/>
 
     <extensionPoint name="actionConfigurationCustomizer" interface="com.intellij.openapi.actionSystem.impl.ActionConfigurationCustomizer" dynamic="false"/>
     <extensionPoint name="dynamicActionConfigurationCustomizer" interface="com.intellij.openapi.actionSystem.impl.DynamicActionConfigurationCustomizer" dynamic="true"/>
@@ -661,5 +663,6 @@
     <extensionPoint name="usagePresentationProvider"
                     interface="com.intellij.find.impl.UsagePresentationProvider"
                     dynamic="true"/>
+    <extensionPoint name="uiPluginManagerController" interface="com.intellij.ide.plugins.newui.UiPluginManagerController" dynamic="true"/>
   </extensionPoints>
 </idea-plugin>

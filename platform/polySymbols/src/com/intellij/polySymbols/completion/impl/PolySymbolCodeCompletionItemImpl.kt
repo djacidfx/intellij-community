@@ -66,7 +66,7 @@ internal data class PolySymbolCodeCompletionItemImpl(
         else it
       }
       .withTailText(tailText, true)
-      .withBoldness(!deprecatedOrObsolete && priority == PolySymbol.Priority.HIGHEST)
+      .withBoldness(!deprecatedOrObsolete && priority != null && priority >= PolySymbol.Priority.HIGHEST)
       .withStrikeoutness(deprecatedOrObsolete)
       .let {
         if (displayName != null)
@@ -209,7 +209,7 @@ internal data class PolySymbolCodeCompletionItemImpl(
     private var completeAfterChars: Set<Char> = emptySet()
     private var displayName: String? = null
     private var priority: PolySymbol.Priority? = symbol?.priority
-    private var proximity: Int? = symbol?.proximity
+    private var proximity: Int? = null
     private var apiStatus: PolySymbolApiStatus = symbol?.apiStatus ?: PolySymbolApiStatus.Stable
     private var aliases: Set<String> = emptySet()
     private var icon: Icon? = symbol?.let {

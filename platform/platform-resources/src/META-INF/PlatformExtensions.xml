@@ -181,15 +181,16 @@
                  restartRequired="false"
                  description="Set initial Linux tty size to 100x100 for WSL processes not attached to Windows PTY (workaround for https://github.com/microsoft/WSL/issues/10701)"
                  defaultValue="true"/>
+    <registryKey key="reworked.plugin.manager.enabled"
+                 restartRequired="false"
+                 description="Enable reworked 'Preferences | Plugins' settings."
+                 defaultValue="false"/>
     <experimentalFeature id="ide.redesigned.inspector" percentOfUsers="0">
       <description>
         Enable new inspection widget experiment
       </description>
     </experimentalFeature>
-    <registryKey key="ide.welcome.screen.branch.name"
-                 restartRequired="true"
-                 description="Show current branch names for recent projects"
-                 defaultValue="true"/>
+
     <applicationService serviceInterface="com.intellij.execution.wsl.WslDistributionManager"
                         serviceImplementation="com.intellij.execution.wsl.WslDistributionManagerImpl"/>
     <applicationService serviceInterface="com.intellij.execution.wsl.WslIjentAvailabilityService"
@@ -911,7 +912,6 @@
     <editorFloatingToolbarProvider
       implementation="com.intellij.openapi.editor.toolbar.floating.DefaultFloatingToolbarProvider"
       id="DefaultFloatingToolbarProvider"/>
-    <actionPromoter implementation="com.intellij.ui.codeFloatingToolbar.FloatingToolbarTabActionPromoter"/>
 
     <bundledKeymap file="$default.xml"/>
     <bundledKeymap file="Mac OS X 10.5+.xml"/>
@@ -1116,6 +1116,7 @@
 
     <vfs.local.pluggableFileWatcher implementation="com.intellij.openapi.vfs.impl.local.NativeFileWatcherImpl"/>
     <vfs.local.pluggableFileWatcher implementation="com.intellij.openapi.vfs.impl.wsl.WslFileWatcher"/>
+    <vfs.local.pluggableFileWatcher implementation="com.intellij.openapi.vfs.impl.eel.EelFileWatcher"/>
 
     <virtualFileSystem key="dummy" implementationClass="com.intellij.openapi.vfs.ex.dummy.DummyFileSystem"/>
     <virtualFileSystem key="http" implementationClass="com.intellij.openapi.vfs.impl.http.HttpFileSystemImpl"/>
@@ -1912,9 +1913,7 @@
     <applicationService serviceImplementation="com.intellij.openapi.wm.impl.customFrameDecorations.frameButtons.LinuxIconThemeConfiguration" headlessImplementation=""
                         preload="notHeadless" os="linux"/>
 
-    <projectServiceInitializer.essential
-      implementation="com.intellij.execution.eel.EelProjectServiceInitializer"
-      order="before moduleBridgeLoaderService"/>
+    <projectPreInit implementation="com.intellij.execution.eel.EelProjectPreInit" order="before moduleBridgeLoaderService"/>
     <applicationActivity implementation="com.intellij.ide.SwingTooltipManagerCustomizer"/>
     <registryKey key="rhizome.progress"
                  defaultValue="true"

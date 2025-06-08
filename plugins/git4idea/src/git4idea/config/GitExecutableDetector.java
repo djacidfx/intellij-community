@@ -94,10 +94,11 @@ public class GitExecutableDetector {
   }
 
   public static @NotNull GitExecutable getGitExecutable(@Nullable Project project, @NotNull String pathToGit) {
-    var eel = GitEelExecutableDetectionHelper.tryGetEel(project, Path.of(pathToGit));
+    Path pathToGitParsed = Path.of(pathToGit);
+    var eel = GitEelExecutableDetectionHelper.tryGetEel(project, pathToGitParsed);
 
-    if (eel != null) {
-      return new GitExecutable.Eel(pathToGit, eel);
+    if (eel != null && pathToGitParsed.isAbsolute()) {
+      return new GitExecutable.Eel(EelNioBridgeServiceKt.asEelPath(pathToGitParsed).toString(), eel);
     }
 
     WslPath wslPath = WslPath.parseWindowsUncPath(pathToGit);
@@ -109,27 +110,15 @@ public class GitExecutableDetector {
   }
 
   public @Nullable String getExecutable(@Nullable Project project, @Nullable Path gitDirectory, boolean detectIfNeeded) {
-    if (detectIfNeeded) {
-      return detect(project, gitDirectory);
+    List<Detector> detectors = collectDetectors(project, gitDirectory);
+    String detectedPath = getExecutable(detectors);
+    if (detectedPath != null || !detectIfNeeded) {
+      return detectedPath;
     }
     else {
-      return getCachedExecutable(project, gitDirectory);
+      return runUnderProgressIfNeeded(null, GitBundle.message("git.executable.detect.progress.title"),
+                                        () -> detectExecutable(detectors));
     }
-  }
-
-  private @Nullable String getCachedExecutable(@Nullable Project project, @Nullable Path gitDirectory) {
-    List<Detector> detectors = collectDetectors(project, gitDirectory);
-    return getExecutable(detectors);
-  }
-
-  private @NotNull String detect(@Nullable Project project, @Nullable Path gitDirectory) {
-    List<Detector> detectors = collectDetectors(project, gitDirectory);
-
-    String detectedPath = getExecutable(detectors);
-    if (detectedPath != null) return detectedPath;
-
-    return runUnderProgressIfNeeded(null, GitBundle.message("git.executable.detect.progress.title"),
-                                    () -> detectExecutable(detectors));
   }
 
   @RequiresBackgroundThread
@@ -245,12 +234,15 @@ public class GitExecutableDetector {
 
     @Override
     public @Nullable DetectionResult getPath() {
-      return new DetectionResult(GitEelExecutableDetectionHelper.getInstance().getExecutablePathIfReady(myEelApi, myRootDir));
+      String detectedPath = GitEelExecutableDetectionHelper.getInstance().getExecutablePathIfReady(myEelApi, myRootDir);
+      if (detectedPath == null) return null;
+      return new DetectionResult(detectedPath);
     }
 
     @Override
     public void runDetection() {
-      GitEelExecutableDetectionHelper.getInstance().getExecutablePathPromise(myEelApi, myRootDir); // start computing
+      // start computing and wait
+      GitEelExecutableDetectionHelper.getInstance().getExecutablePathBlocking(myEelApi, myRootDir);
     }
   }
 

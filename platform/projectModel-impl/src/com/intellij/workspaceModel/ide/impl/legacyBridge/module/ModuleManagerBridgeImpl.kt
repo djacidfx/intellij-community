@@ -16,9 +16,7 @@ import com.intellij.openapi.module.impl.ModuleManagerEx
 import com.intellij.openapi.module.impl.UnloadedModulesListStorage
 import com.intellij.openapi.module.impl.createGrouper
 import com.intellij.openapi.progress.ProgressManager
-import com.intellij.openapi.progress.blockingContext
 import com.intellij.openapi.progress.impl.CoreProgressManager
-import com.intellij.openapi.project.ModuleListener
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.RootsChangeRescanningInfo
 import com.intellij.openapi.roots.ModuleRootManager
@@ -394,9 +392,7 @@ abstract class ModuleManagerBridgeImpl(
 
     // we need to save module configurations before unloading, otherwise their settings will be lost
     if (moduleEntitiesToUnload.isNotEmpty()) {
-      blockingContext {
-        project.save()
-      }
+      project.save()
     }
 
     val workspaceModel = project.serviceAsync<WorkspaceModel>() as WorkspaceModelInternal
@@ -529,13 +525,6 @@ abstract class ModuleManagerBridgeImpl(
 
     val MutableEntityStorage.mutableModuleMap: MutableExternalEntityMapping<ModuleBridge>
       get() = getMutableExternalMapping(MODULE_BRIDGE_MAPPING_ID)
-
-    fun fireModulesAdded(project: Project, modules: List<Module>) {
-      val bus = project.messageBus
-      if (!bus.isDisposed) {
-        bus.syncPublisher(ModuleListener.TOPIC).modulesAdded(project, modules)
-      }
-    }
 
     internal fun getModuleGroupPath(module: Module, entityStorage: VersionedEntityStorage): Array<String>? {
       val moduleEntity = (module as ModuleBridge).findModuleEntity(entityStorage.current) ?: return null

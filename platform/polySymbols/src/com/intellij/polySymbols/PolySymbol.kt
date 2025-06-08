@@ -12,9 +12,6 @@ import com.intellij.platform.backend.documentation.DocumentationTarget
 import com.intellij.platform.backend.navigation.NavigationTarget
 import com.intellij.platform.backend.presentation.TargetPresentation
 import com.intellij.polySymbols.context.PolyContext
-import com.intellij.polySymbols.documentation.PolySymbolDocumentation
-import com.intellij.polySymbols.documentation.PolySymbolDocumentationCustomizer
-import com.intellij.polySymbols.documentation.impl.PolySymbolDocumentationTargetImpl
 import com.intellij.polySymbols.html.PolySymbolHtmlAttributeValue
 import com.intellij.polySymbols.js.PolySymbolJsKind
 import com.intellij.polySymbols.patterns.PolySymbolsPattern
@@ -22,18 +19,13 @@ import com.intellij.polySymbols.query.PolySymbolMatch
 import com.intellij.polySymbols.query.PolySymbolsQueryExecutor
 import com.intellij.polySymbols.refactoring.PolySymbolRenameTarget
 import com.intellij.polySymbols.search.PolySymbolSearchTarget
-import com.intellij.polySymbols.utils.PolySymbolsPrioritizedScope
-import com.intellij.polySymbols.utils.kind
-import com.intellij.polySymbols.utils.matchedNameOrName
-import com.intellij.polySymbols.utils.namespace
-import com.intellij.polySymbols.utils.qualifiedName
+import com.intellij.polySymbols.utils.*
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.CachedValue
 import com.intellij.refactoring.rename.api.RenameTarget
 import com.intellij.refactoring.rename.symbol.RenameableSymbol
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.intellij.util.concurrency.annotations.RequiresReadLock
-import org.jetbrains.annotations.Nls
 import java.util.*
 import javax.swing.Icon
 
@@ -173,14 +165,6 @@ interface PolySymbol : PolySymbolsScope, Symbol, NavigatableSymbol, PolySymbolsP
     get() = null
 
   /**
-   * Provides additional way to sort symbols in code completion list within a particular priority.
-   * The value must be a non-negative integer and the higher proximity,
-   * the higher the symbol would be on the list.
-   */
-  val proximity: Int?
-    get() = null
-
-  /**
    * A [PsiElement], which is a file or an element, which can be used to roughly
    * locate the source of the symbol within a project to provide a context for loading additional information,
    * like types. If the symbol is [com.intellij.polySymbols.search.PsiSourcedPolySymbol], then `psiContext` is equal to source.
@@ -294,12 +278,42 @@ interface PolySymbol : PolySymbolsScope, Symbol, NavigatableSymbol, PolySymbolsP
     queryExecutor.namesProvider.adjustRename(qualifiedName, newName, occurence)
 
 
-  enum class Priority(val value: Double) {
-    LOWEST(0.0),
-    LOW(1.0),
-    NORMAL(10.0),
-    HIGH(50.0),
-    HIGHEST(100.0);
+  sealed interface Priority : Comparable<Priority> {
+
+    val value: Double
+
+    companion object {
+      @JvmField
+      val LOWEST: Priority = PolySymbolPriority(0.0, "LOWEST")
+
+      @JvmField
+      val LOW: Priority = PolySymbolPriority(1.0, "LOW")
+
+      @JvmField
+      val NORMAL: Priority = PolySymbolPriority(10.0, "NORMAL")
+
+      @JvmField
+      val HIGH: Priority = PolySymbolPriority(50.0, "HIGH")
+
+      @JvmField
+      val HIGHEST: Priority = PolySymbolPriority(100.0, "HIGHEST")
+
+      @JvmStatic
+      fun custom(value: Double): Priority = PolySymbolPriority(value, "CUSTOM($value)")
+
+      private class PolySymbolPriority(override val value: Double, private val displayString: String) : Priority {
+        override fun compareTo(other: Priority): Int =
+          value.compareTo(other.value)
+
+        override fun equals(other: Any?): Boolean =
+          other === this || other is PolySymbolPriority && other.value == value
+
+        override fun hashCode(): Int =
+          value.hashCode()
+
+        override fun toString(): String = displayString
+      }
+    }
   }
 
   companion object {

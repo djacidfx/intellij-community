@@ -16,8 +16,6 @@ import com.intellij.psi.search.PsiSearchHelper
 import com.intellij.psi.search.SearchScope
 import com.intellij.psi.search.searches.MethodReferencesSearch
 import com.intellij.psi.search.searches.ReferencesSearch
-import com.intellij.psi.util.CachedValueProvider
-import com.intellij.psi.util.CachedValuesManager
 import com.intellij.util.Processor
 import com.siyeh.ig.psiutils.SerializationUtils
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
@@ -36,7 +34,6 @@ import org.jetbrains.kotlin.asJava.toLightMethods
 import org.jetbrains.kotlin.builtins.StandardNames
 import org.jetbrains.kotlin.config.AnalysisFlags
 import org.jetbrains.kotlin.config.ExplicitApiMode
-import org.jetbrains.kotlin.idea.base.analysis.KotlinUastOutOfCodeBlockModificationTracker
 import org.jetbrains.kotlin.idea.base.codeInsight.KotlinMainFunctionDetector
 import org.jetbrains.kotlin.idea.base.codeInsight.isEnumValuesSoftDeprecateEnabled
 import org.jetbrains.kotlin.idea.base.projectStructure.languageVersionSettings
@@ -250,15 +247,10 @@ object K2UnusedSymbolUtil {
         declaration: KtNamedDeclaration,
         declarationContainingClass: KtClass?,
         symbol: KaDeclarationSymbol? = null
-    ): Boolean =
-        CachedValuesManager.getCachedValue(declaration) {
-            val isCheapEnough = lazy(LazyThreadSafetyMode.NONE) { isCheapEnoughToSearchUsages(declaration) }
-            val hasNonTrivialUsages = hasNonTrivialUsages(declaration, declarationContainingClass, isCheapEnough, symbol)
-            CachedValueProvider.Result.create(
-                hasNonTrivialUsages,
-                KotlinUastOutOfCodeBlockModificationTracker.getInstance(project = declaration.project)
-            )
-        }
+    ): Boolean {
+        val isCheapEnough = lazy(LazyThreadSafetyMode.NONE) { isCheapEnoughToSearchUsages(declaration) }
+        return hasNonTrivialUsages(declaration, declarationContainingClass, isCheapEnough, symbol)
+    }
 
     context(KaSession)
     private fun hasNonTrivialUsages(
@@ -419,7 +411,7 @@ object K2UnusedSymbolUtil {
 
             if (declaration is KtEnumEntry) {
                 val enumClass = declarationContainingClass?.takeIf { it.isEnum() }
-                if (hasBuiltInEnumFunctionReference(enumClass, useScope, declaration)) return true
+                if (hasBuiltInEnumFunctionReference(enumClass, useScope)) return true
             }
         }
 
@@ -493,10 +485,11 @@ object K2UnusedSymbolUtil {
     }
 
     context(KaSession)
-    private fun hasBuiltInEnumFunctionReference(enumClass: KtClass?, useScope: SearchScope, declaration: KtNamedDeclaration): Boolean {
+    private fun hasBuiltInEnumFunctionReference(enumClass: KtClass?, useScope: SearchScope): Boolean {
         if (enumClass == null) return false
         val isFoundEnumFunctionReferenceViaSearch = referenceExists(enumClass, useScope) {
-            analyze(declaration) {
+            val ktElement = it.element as? KtElement ?: return@referenceExists false
+            analyze(ktElement) {
                 hasBuiltInEnumFunctionReference(it, enumClass)
             }
         }

@@ -92,12 +92,11 @@ private class WebTypesComplexPatternConfigProvider(
                     ?: pattern.toApiStatus(origin)?.takeIf { it.isDeprecatedOrObsolete() }
     val isRequired = (delegate?.required ?: pattern.required) != false
     val priority = delegate?.priority ?: pattern.priority?.wrap()
-    val proximity = delegate?.proximity ?: pattern.proximity
     val repeats = pattern.repeat == true
     val unique = pattern.unique != false
 
     val symbolsResolver = createSymbolsResolver(delegate)
-    return ComplexPatternOptions(delegate, apiStatus, isRequired, priority, proximity, repeats, unique, symbolsResolver)
+    return ComplexPatternOptions(delegate, apiStatus, isRequired, priority, repeats, unique, symbolsResolver)
   }
 
   private fun createSymbolsResolver(delegate: PolySymbol?) =

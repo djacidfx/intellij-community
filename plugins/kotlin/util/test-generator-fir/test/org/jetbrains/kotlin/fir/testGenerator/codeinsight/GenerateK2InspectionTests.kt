@@ -11,6 +11,7 @@ import org.jetbrains.kotlin.idea.k2.quickfix.tests.AbstractK2MultiFileQuickFixTe
 import org.jetbrains.kotlin.idea.k2.quickfix.tests.AbstractK2QuickFixTest
 import org.jetbrains.kotlin.testGenerator.model.*
 import org.jetbrains.kotlin.testGenerator.model.GroupCategory.*
+import org.jetbrains.kotlin.testGenerator.model.Patterns.DIRECTORY
 
 
 internal fun MutableTWorkspace.generateK2InspectionTests() {
@@ -26,6 +27,7 @@ internal fun MutableTWorkspace.generateK2InspectionTests() {
             model("${idea}/inspectionsLocal/redundantInnerClassModifier")
             model("${idea}/inspectionsLocal/doubleNegation")
             model("${idea}/inspectionsLocal/safeCastWithReturn")
+            model("${idea}/intentions/removeExplicitSuperQualifier")
             model("${idea}/inspectionsLocal/enumValuesSoftDeprecate")
             model("${idea}/inspectionsLocal/branched/ifThenToElvis", pattern = Patterns.KT_WITHOUT_DOTS)
             model("${idea}/inspectionsLocal/branched/ifThenToSafeAccess", pattern = Patterns.KT_WITHOUT_DOTS)
@@ -88,6 +90,7 @@ internal fun MutableTWorkspace.generateK2InspectionTests() {
             model("${idea}/inspectionsLocal/unusedReceiverParameter")
             model("${idea}/inspectionsLocal/filterIsInstanceAlwaysEmpty")
             model("${idea}/inspectionsLocal/selfReferenceConstructorParameter")
+            model("${idea}/inspectionsLocal/simplifyAssertNotNull")
             model("${idea}/inspectionsLocal/canBeVal")
             model("${idea}/inspectionsLocal/mapGetWithNotNullAssertionOperator")
             model("${idea}/inspectionsLocal/replaceSubstring")
@@ -168,6 +171,10 @@ internal fun MutableTWorkspace.generateK2InspectionTests() {
             model("${idea}/multiFileLocalInspections/reconcilePackageWithDirectory", pattern = pattern)
             model("${idea}/multiFileLocalInspections/redundantQualifierName", pattern = pattern)
             model("code-insight/inspections-k2/tests/testData/multiFileInspectionsLocal", pattern = pattern)
+        }
+
+        testClass<AbstractK2AmbiguousActualsTest> {
+            model("${idea}/multiplatform/ambiguousActuals", pattern = DIRECTORY, isRecursive = false)
         }
 
         testClass<AbstractK2ActualExpectTest> {

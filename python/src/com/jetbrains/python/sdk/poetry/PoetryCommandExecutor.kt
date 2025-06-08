@@ -11,7 +11,6 @@ import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.python.community.execService.ExecOptions
 import com.intellij.python.community.execService.ExecService
-import com.intellij.python.community.execService.WhatToExec
 import com.intellij.python.community.execService.execGetStdout
 import com.intellij.python.community.impl.poetry.poetryPath
 import com.intellij.util.SystemProperties
@@ -115,7 +114,7 @@ suspend fun setupPoetry(projectPath: Path, python: String?, installPackages: Boo
   if (init) {
     runPoetry(projectPath, *listOf("init", "-n").toTypedArray())
     if (python != null) { // Replace a python version in toml
-      ExecService().execGetStdout(WhatToExec.Binary(Path.of(python)), listOf("-c", REPLACE_PYTHON_VERSION), ExecOptions(workingDirectory = projectPath)).getOr { return it }
+      ExecService().execGetStdout(Path.of(python), listOf("-c", REPLACE_PYTHON_VERSION), ExecOptions(workingDirectory = projectPath)).getOr { return it }
     }
   }
   when {
@@ -167,7 +166,13 @@ suspend fun poetryInstallPackage(sdk: Sdk, packages: List<String>, extraArgs: Li
  * @param [packages] The name of the package to be uninstalled.
  */
 @Internal
-suspend fun poetryUninstallPackage(sdk: Sdk, vararg packages: String): PyResult<String> = runPoetryWithSdk(sdk, "remove", *packages)
+suspend fun poetryRemovePackage(sdk: Sdk, vararg packages: String): PyResult<String> = runPoetryWithSdk(sdk, "remove", *packages)
+
+@Internal
+suspend fun poetryUninstallPackage(sdk: Sdk, vararg packages: String): PyResult<String> {
+  val args = listOf("run", "pip", "uninstall", "-y", *packages)
+  return runPoetryWithSdk(sdk, *args.toTypedArray())
+}
 
 @Internal
 fun parsePoetryShow(input: String): List<PythonPackage> {
@@ -280,6 +285,6 @@ suspend fun configurePoetryEnvironment(modulePath: Path?, vararg args: String) {
 }
 
 private suspend fun getPoetryEnvs(projectPath: Path): List<String> {
-  val executionPyResult = runPoetry(projectPath, "env", "list", "--full-path")
-  return executionPyResult.getOrNull()?.lineSequence()?.map { it.split(" ")[0] }?.filterNot { it.isEmpty() }?.toList() ?: emptyList()
+  val executionResult = runPoetry(projectPath, "env", "list", "--full-path")
+  return executionResult.getOrNull()?.lineSequence()?.map { it.split(" ")[0] }?.filterNot { it.isEmpty() }?.toList() ?: emptyList()
 }
