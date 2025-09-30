@@ -13,6 +13,7 @@
 # limitations under the License.
 
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
+load("@rules_java//java:defs.bzl", "java_common")
 load("@rules_kotlin//kotlin/internal:defs.bzl", KotlinInfo = "KtJvmInfo")
 load("//:rules/impl/compiler-plugins.bzl", "compiler_plugins_from", "exported_compiler_plugins_from")
 load("//:rules/impl/kotlinc-options.bzl", "KotlincExtraOptionsInfo", "KotlincOptions", "kotlinc_options_to_flags")
@@ -139,8 +140,8 @@ def wasmjs_produce_module_actions(ctx, rule_kind):
         tools = [ctx.file._wasmjs_builder_launcher, ctx.file._wasmjs_builder],
         executable = java_runtime.java_executable_exec_path,
         execution_requirements = {
-            "supports-workers": "0",  # TODO: [FL-34215] enable worker support
-            "supports-multiplex-workers": "0",  # TODO: [FL-34215] enable worker support
+            "supports-workers": "1",
+            "supports-multiplex-workers": "1",
             "supports-worker-cancellation": "1",
             "supports-path-mapping": "1",
             "supports-multiplex-sandboxing": "1",
@@ -170,8 +171,8 @@ def wasmjs_produce_module_actions(ctx, rule_kind):
         tools = [ctx.file._wasmjs_builder_launcher, ctx.file._wasmjs_builder],
         executable = java_runtime.java_executable_exec_path,
         execution_requirements = {
-            "supports-workers": "0",  # TODO: [FL-34215] enable worker support
-            "supports-multiplex-workers": "0",  # TODO: [FL-34215] enable worker support
+            "supports-workers": "1",
+            "supports-multiplex-workers": "1",
             "supports-worker-cancellation": "1",
             "supports-path-mapping": "1",
             "supports-multiplex-sandboxing": "1",
