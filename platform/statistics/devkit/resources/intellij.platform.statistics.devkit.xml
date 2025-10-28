@@ -41,6 +41,9 @@
   <extensionPoints>
     <extensionPoint qualifiedName="com.intellij.internal.statistic.devkit.toolwindow.logGroupActionsProvider"
                     interface="com.intellij.internal.statistic.devkit.toolwindow.StatisticsLogGroupActionsProvider" dynamic="true"/>
+    <extensionPoint qualifiedName="com.intellij.internal.statistic.devkit.toolwindow.eventLogToolWindowEPLogProvider"
+                    interface="com.intellij.internal.statistic.devkit.toolwindow.StatisticsEventLogToolWindowEPLogProvider"
+                    dynamic="true"/>
   </extensionPoints>
   <extensions defaultExtensionNs="JavaScript.JsonSchema">
     <ProviderFactory implementation="com.intellij.internal.statistic.devkit.actions.scheme.EventsSchemeJsonSchemaProviderFactory"/>
