@@ -34,9 +34,7 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.ToggleAction
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
-import com.intellij.openapi.extensions.ExtensionPointListener
 import com.intellij.openapi.extensions.ExtensionPointName
-import com.intellij.openapi.extensions.PluginDescriptor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
@@ -47,7 +45,6 @@ import com.intellij.ui.FilterComponent
 import com.intellij.ui.JBColor
 import com.intellij.util.application
 import com.jetbrains.fus.reporting.model.lion3.LogEvent
-import org.jetbrains.annotations.ApiStatus
 import java.awt.BorderLayout
 import java.awt.FlowLayout
 import javax.swing.BorderFactory
@@ -56,7 +53,7 @@ import javax.swing.JPanel
 
 internal const val eventLogToolWindowsId = "Statistics Event Log"
 
-internal class StatisticsEventLogToolWindow(project: Project, private val recorderId: String) : SimpleToolWindowPanel(false, true), Disposable {
+internal class StatisticsEventLogToolWindow(private val project: Project, private val recorderId: String) : SimpleToolWindowPanel(false, true), Disposable {
   private val consoleLog: StatisticsEventLogConsole
   private val messageBuilder = StatisticsEventLogMessageBuilder()
   private val eventLogListener: StatisticsEventLogListener
@@ -92,22 +89,12 @@ internal class StatisticsEventLogToolWindow(project: Project, private val record
 
     Disposer.register(this, consoleLog)
     service<EventLogListenersManager>().subscribe(eventLogListener, recorderId)
-
-    if (application.extensionArea.hasExtensionPoint(StatisticsEventLogToolWindowEPLogProvider.EP_NAME)) {
-      fun StatisticsEventLogToolWindowEPLogProvider.subscribe() = subscribe(recorderId, consoleLog::addLogLine)
-
-      StatisticsEventLogToolWindowEPLogProvider.EP_NAME.extensionList.forEach {
-        it.subscribe()
+    StatisticsEventLogToolWindowEPLogProvider.EP_NAME.extensionList.forEach {
+      it.init(project)
+      it.subscribe(recorderId) { message ->
+        application.invokeLater { consoleLog.addLogLine(message) }
       }
-      StatisticsEventLogToolWindowEPLogProvider.EP_NAME.addExtensionPointListener(object : ExtensionPointListener<StatisticsEventLogToolWindowEPLogProvider> {
-        override fun extensionAdded(extension: StatisticsEventLogToolWindowEPLogProvider, pluginDescriptor: PluginDescriptor) {
-          extension.subscribe()
-        }
-
-        override fun extensionRemoved(extension: StatisticsEventLogToolWindowEPLogProvider, pluginDescriptor: PluginDescriptor) {
-          extension.unsubscribe(recorderId)
-        }
-      })
+      Disposer.register(this, Disposable { it.unsubscribe(recorderId) })
     }
   }
 
@@ -182,14 +169,14 @@ internal class StatisticsMultilineLogToggleAction(private val consoleLog: Statis
   }
 }
 
-@ApiStatus.Internal
 interface StatisticsEventLogToolWindowEPLogProvider {
   companion object {
     @JvmField
     val EP_NAME: ExtensionPointName<StatisticsEventLogToolWindowEPLogProvider> =
-      ExtensionPointName.create<StatisticsEventLogToolWindowEPLogProvider>("com.intellij.internal.statistic.devkit.toolwindow.eventLogToolWindowEPLogProvider")
+      ExtensionPointName.create("com.intellij.internal.statistic.devkit.toolwindow.eventLogToolWindowEPLogProvider")
   }
 
   fun subscribe(recorderId: String, function: (String) -> Unit)
   fun unsubscribe(recorderId: String)
+  fun init(project: Project)
 }
