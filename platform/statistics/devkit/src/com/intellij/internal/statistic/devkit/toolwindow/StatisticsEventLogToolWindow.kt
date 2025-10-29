@@ -169,6 +169,9 @@ internal class StatisticsMultilineLogToggleAction(private val consoleLog: Statis
   }
 }
 
+/**
+ * Allows products with separate backends, which also support FUS (like Rider), to output their logs in the statistics event log tool window
+ */
 interface StatisticsEventLogToolWindowEPLogProvider {
   companion object {
     @JvmField
