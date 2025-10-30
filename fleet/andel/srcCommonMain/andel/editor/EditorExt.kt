@@ -6,7 +6,10 @@ import andel.operation.Operation
 import andel.text.charSequence
 import andel.text.line
 import andel.text.lineEndOffset
+import andel.text.textLines
+import fleet.util.nextLongValue
 import fleet.util.normalizeLineEndings
+import kotlin.math.abs
 
 val MutableEditor.carets: List<Caret> get() = multiCaret.carets
 val MutableEditor.primaryCaret: Caret get() = multiCaret.primaryCaret
@@ -194,4 +197,27 @@ fun MutableEditor.addCaretPerSelectedLine() {
 fun MutableEditor.clear() {
   val text = document.text.view().charSequence().toString()
   document.edit(Operation.deleteAt(0, text, text.length.toLong()))
+}
+
+fun MutableEditor.withScrollCommand(xKind: EditorScrollKind, yKind: EditorScrollKind, block: () -> Unit) {
+  val primaryCaretOffsetBefore = multiCaret.primaryCaret.offset
+  val primaryCaretLineBefore = document.text.view().textLines().offsetToLineNumber(primaryCaretOffsetBefore)
+  val previousScrollCommand = scrollCommand
+
+  block()
+
+  val primaryCaretOffsetAfter = multiCaret.primaryCaret.offset
+  val primaryCaretLineAfter = document.text.view().textLines().offsetToLineNumber(primaryCaretOffsetAfter)
+  val animate = abs(primaryCaretLineBefore - primaryCaretLineAfter) > 1
+
+  if (scrollCommand == previousScrollCommand) {
+    scrollTo(
+      EditorScrollCommand(startOffset = primaryCaretOffsetAfter,
+                          endOffset = primaryCaretOffsetAfter,
+                          xKind = xKind,
+                          yKind = yKind,
+                          animate = animate,
+                          timestamp = nextLongValue())
+    )
+  }
 }
