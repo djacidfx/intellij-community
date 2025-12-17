@@ -2,7 +2,7 @@ package com.intellij.workspaceModel.codegen.impl.writer.fields
 
 import com.intellij.workspaceModel.codegen.deft.meta.ObjProperty
 import com.intellij.workspaceModel.codegen.deft.meta.ValueType
-import com.intellij.workspaceModel.codegen.impl.writer.EntityStorage
+import com.intellij.workspaceModel.codegen.impl.writer.Instrumentation
 import com.intellij.workspaceModel.codegen.impl.writer.extensions.getRefType
 import com.intellij.workspaceModel.codegen.impl.writer.extensions.hasSetter
 import com.intellij.workspaceModel.codegen.impl.writer.extensions.isOverride
@@ -45,28 +45,20 @@ internal fun ObjProperty<*, *>.implWsBlockCode(fieldType: ValueType<*>, name: St
       }
       """.trimIndent()
     is ValueType.ObjRef -> {
-      val notNullAssertion = if (optionalSuffix.isBlank()) "!!" else ""
+      val notNullAssertion = if (optionalSuffix.isBlank()) " ?: error(\"Parent ${this.name} not found for ${this.receiver.name}\")" else ""
       """
         override val $name: ${fieldType.javaType}$optionalSuffix
-        get() = snapshot.${refsConnectionMethodCode()}$notNullAssertion           
+        get() = snapshot.${refsConnectionMethodCode()} as? ${fieldType.javaType}$notNullAssertion           
         """.trimIndent()
     }
     is ValueType.List<*> -> {
       if (fieldType.isRefType()) {
         val connectionName = name.uppercase() + "_CONNECTION_ID"
-        val notNullAssertion = if (optionalSuffix.isBlank()) "!!" else ""
-        if ((fieldType.elementType as ValueType.ObjRef<*>).target.openness.extendable) { 
+        val notNullAssertion = if (optionalSuffix.isBlank()) " ?: error(\"Children ${this.name} not found for ${this.receiver.name}\")" else ""
           """
             override val $name: ${fieldType.javaType}$optionalSuffix
-            get() = snapshot.${EntityStorage.extractOneToAbstractManyChildren}<${fieldType.elementType.javaType}>($connectionName, this)$notNullAssertion.toList()
+            get() = (snapshot.${Instrumentation.getManyChildren}($connectionName, this) as? Sequence<${fieldType.elementType.javaType}>)?.toList()$notNullAssertion
             """.trimIndent()
-        }
-        else { 
-          """
-            override val $name: ${fieldType.javaType}$optionalSuffix
-            get() = snapshot.${EntityStorage.extractOneToManyChildren}<${fieldType.elementType.javaType}>($connectionName, this)$notNullAssertion.toList()
-            """.trimIndent()
-        }
       }
       else { 
         """
@@ -126,24 +118,23 @@ internal val ObjProperty<*, *>.implWsBlockingCodeOverride: String
     val originalField = receiver.refsFields.first { it.valueType.javaType == valueType.javaType }
     val connectionName = originalField.name.uppercase() + "_CONNECTION_ID"
     var valueType = referencedField.valueType
-    val notNullAssertion = if (valueType is ValueType.Optional<*>) "" else "!!"
     if (valueType is ValueType.Optional<*>) {
       valueType = valueType.type
     }
     val getterName = when (valueType) {
       is ValueType.List<*> -> if (receiver.openness.extendable)
-        EntityStorage.extractOneToAbstractManyParent
+        Instrumentation.getParent
       else
-        EntityStorage.extractOneToManyParent
+        Instrumentation.getParent
       is ValueType.ObjRef<*> -> if (receiver.openness.extendable)
-        EntityStorage.extractOneToAbstractOneParent
+        Instrumentation.getParent
       else
-        EntityStorage.extractOneToOneParent
+        Instrumentation.getParent
       else -> error("Unsupported reference type")
     }
     return """
       override val $name: ${this.valueType.javaType}
-      get() = snapshot.$getterName($connectionName, this)$notNullAssertion
+      get() = snapshot.$getterName($connectionName, this) as? ${this.valueType.javaType} ?: error("Parent ${this.name} not found for ${this.receiver.name}")
       """.trimIndent()
   }
 

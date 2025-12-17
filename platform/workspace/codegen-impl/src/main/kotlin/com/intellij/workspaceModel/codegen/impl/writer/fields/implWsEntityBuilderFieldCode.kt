@@ -4,8 +4,7 @@ package com.intellij.workspaceModel.codegen.impl.writer.fields
 import com.intellij.workspaceModel.codegen.deft.meta.ObjProperty
 import com.intellij.workspaceModel.codegen.deft.meta.ValueType
 import com.intellij.workspaceModel.codegen.impl.writer.EntityLink
-import com.intellij.workspaceModel.codegen.impl.writer.EntityStorage
-import com.intellij.workspaceModel.codegen.impl.writer.EntityStorageInstrumentationApi
+import com.intellij.workspaceModel.codegen.impl.writer.Instrumentation
 import com.intellij.workspaceModel.codegen.impl.writer.LibraryRoot
 import com.intellij.workspaceModel.codegen.impl.writer.LinesBuilder
 import com.intellij.workspaceModel.codegen.impl.writer.ModifiableWorkspaceEntityBase
@@ -14,7 +13,6 @@ import com.intellij.workspaceModel.codegen.impl.writer.MutableWorkspaceList
 import com.intellij.workspaceModel.codegen.impl.writer.MutableWorkspaceSet
 import com.intellij.workspaceModel.codegen.impl.writer.SdkRoot
 import com.intellij.workspaceModel.codegen.impl.writer.VirtualFileUrl
-import com.intellij.workspaceModel.codegen.impl.writer.WorkspaceEntityBase
 import com.intellij.workspaceModel.codegen.impl.writer.classes.`else`
 import com.intellij.workspaceModel.codegen.impl.writer.classes.`for`
 import com.intellij.workspaceModel.codegen.impl.writer.classes.`if`
@@ -56,17 +54,15 @@ private fun ValueType<*>.implWsBuilderBlockingCode(field: ObjProperty<*, *>, opt
     val getterSetterNames = field.refNames()
 
     // Opposite field may be either one-to-one or one-to-many
-
-    val notNullAssertion = if (optionalSuffix.isBlank()) "!!" else ""
+    val notNullAssertion = if (optionalSuffix.isBlank()) " ?: error(\"${field.name} is null for ${field.receiver.name}\")" else ""
     lines {
       sectionNoBrackets("override var ${field.javaName}: $javaBuilderTypeWithGeneric$optionalSuffix") {
         section("get()") {
           line("val _diff = diff")
           line("return if (_diff != null) {")
-          line("@OptIn($EntityStorageInstrumentationApi::class)")
-          line("((_diff as $MutableEntityStorageInstrumentation).${getterSetterNames.getterBuilder}($connectionName, this) as? $javaBuilderTypeWithGeneric) ?: (this.entityLinks[${EntityLink}(${field.valueType.getRefType().child}, ${field.refsConnectionId})]$notNullAssertion as$optionalSuffix $javaBuilderTypeWithGeneric)")
+          line("((_diff as $MutableEntityStorageInstrumentation).${getterSetterNames.getterBuilder}($connectionName, this) as? $javaBuilderTypeWithGeneric) ?: (this.entityLinks[${EntityLink}(${field.valueType.getRefType().child}, ${field.refsConnectionId})] as? $javaBuilderTypeWithGeneric)$notNullAssertion")
           line("} else {")
-          line("this.entityLinks[${EntityLink}(${field.valueType.getRefType().child}, ${field.refsConnectionId})]$notNullAssertion as$optionalSuffix $javaBuilderTypeWithGeneric")
+          line("(this.entityLinks[${EntityLink}(${field.valueType.getRefType().child}, ${field.refsConnectionId})] as? $javaBuilderTypeWithGeneric)$notNullAssertion")
           line("}")
         }
         section("set(value)") {
@@ -77,7 +73,11 @@ private fun ValueType<*>.implWsBuilderBlockingCode(field: ObjProperty<*, *>, opt
             line("_diff.addEntity(value as ModifiableWorkspaceEntityBase<WorkspaceEntity, *>)")
           }
           section("if (_diff != null && (value !is ${ModifiableWorkspaceEntityBase}<*, *> || value.diff != null))") {
-            line("_diff.${getterSetterNames.setter}($connectionName, this, value)")
+            if (this@implWsBuilderBlockingCode.child) {
+              line("_diff.${Instrumentation.replaceChildren}($connectionName, this, listOfNotNull(value))")
+            } else {
+              line("_diff.${Instrumentation.addChild}($connectionName, value, this)")
+            }
           }
           section("else") {
             backrefSetup(field)
@@ -100,7 +100,6 @@ private fun ValueType<*>.implWsBuilderBlockingCode(field: ObjProperty<*, *>, opt
             section("get()") {
               line("val _diff = diff")
               line("return if (_diff != null) {")
-              line("@OptIn($EntityStorageInstrumentationApi::class)")
               line("((_diff as $MutableEntityStorageInstrumentation).getManyChildrenBuilders($connectionName, this)$notNullAssertion.toList() as $javaBuilderTypeWithGeneric) + (this.entityLinks[${EntityLink}(${field.valueType.getRefType().child}, ${field.refsConnectionId})] as? $javaBuilderTypeWithGeneric ?: emptyList())")
               line("} else {")
               line("this.entityLinks[${EntityLink}(${field.valueType.getRefType().child}, ${field.refsConnectionId})] as $javaBuilderTypeWithGeneric ${if (notNullAssertion.isNotBlank()) "?: emptyList()" else ""}")
@@ -120,7 +119,7 @@ private fun ValueType<*>.implWsBuilderBlockingCode(field: ObjProperty<*, *>, opt
                     line("_diff.addEntity(item_value as ModifiableWorkspaceEntityBase<WorkspaceEntity, *>)")
                   }
                 }
-                line("_diff.${EntityStorage.updateOneToAbstractManyChildrenOfParent}($connectionName, this, value.asSequence())")
+                line("_diff.${Instrumentation.replaceChildren}($connectionName, this, value)")
               }
               `else` {
                 backrefListSetup(field)
@@ -140,7 +139,6 @@ private fun ValueType<*>.implWsBuilderBlockingCode(field: ObjProperty<*, *>, opt
               lineComment("Getter of the list of non-abstract referenced types")
               line("val _diff = diff")
               line("return if (_diff != null) {")
-              line("@OptIn($EntityStorageInstrumentationApi::class)")
               line("((_diff as $MutableEntityStorageInstrumentation).getManyChildrenBuilders($connectionName, this)$notNullAssertion.toList() as $javaBuilderTypeWithGeneric) + (this.entityLinks[${EntityLink}(${field.valueType.getRefType().child}, ${field.refsConnectionId})] as? $javaBuilderTypeWithGeneric ?: emptyList())")
               line("} else {")
               line("this.entityLinks[${EntityLink}(${field.valueType.getRefType().child}, ${field.refsConnectionId})] as? $javaBuilderTypeWithGeneric ${if (notNullAssertion.isNotBlank()) "?: emptyList()" else ""}")
@@ -158,7 +156,7 @@ private fun ValueType<*>.implWsBuilderBlockingCode(field: ObjProperty<*, *>, opt
                     line("_diff.addEntity(item_value as ModifiableWorkspaceEntityBase<WorkspaceEntity, *>)")
                   }
                 }
-                line("_diff.${EntityStorage.updateOneToManyChildrenOfParent}($connectionName, this, value)")
+                line("_diff.${Instrumentation.replaceChildren}($connectionName, this, value)")
               }
               `else` {
                 backrefListSetup(field)
@@ -318,7 +316,7 @@ fun LinesBuilder.implWsBuilderIsInitializedCode(field: ObjProperty<*, *>) {
     is ValueType.List<*> -> if (field.valueType.isRefType()) {
       lineComment("Check initialization for list with ref type")
       ifElse("_diff != null", {
-        `if`("_diff.${EntityStorage.extractOneToManyChildren}<${WorkspaceEntityBase}>(${field.refsConnectionId}, this) == null") {
+        `if`("_diff.${Instrumentation.getManyChildrenBuilders}(${field.refsConnectionId}, this) == null") {
           line("error(\"Field ${field.receiver.name}#$javaName should be initialized\")")
         }
       }) {
@@ -332,7 +330,7 @@ fun LinesBuilder.implWsBuilderIsInitializedCode(field: ObjProperty<*, *>) {
 
     is ValueType.ObjRef<*> -> {
       ifElse("_diff != null", {
-        `if`("_diff.${field.refsConnectionMethodCode("<${WorkspaceEntityBase}>")} == null") {
+        `if`("_diff.${field.refsConnectionMethodCode(true)} == null") {
           line("error(\"Field ${field.receiver.name}#$javaName should be initialized\")")
         }
       }) {

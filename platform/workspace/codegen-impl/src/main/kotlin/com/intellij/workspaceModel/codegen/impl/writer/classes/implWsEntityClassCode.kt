@@ -7,6 +7,7 @@ import com.intellij.workspaceModel.codegen.engine.ProblemLocation
 import com.intellij.workspaceModel.codegen.impl.CodeGeneratorVersionCalculator
 import com.intellij.workspaceModel.codegen.impl.engine.ProblemReporter
 import com.intellij.workspaceModel.codegen.impl.writer.ConnectionId
+import com.intellij.workspaceModel.codegen.impl.writer.EntityStorageInstrumentationApi
 import com.intellij.workspaceModel.codegen.impl.writer.GeneratedCodeApiVersion
 import com.intellij.workspaceModel.codegen.impl.writer.GeneratedCodeImplVersion
 import com.intellij.workspaceModel.codegen.impl.writer.WorkspaceEntityBase
@@ -36,11 +37,13 @@ fun ObjClass<*>.implWsEntityCode(reporter: ProblemReporter): String {
     else -> ""
   }
 
-  return """package ${module.implPackage}   
+  return """@file:OptIn($EntityStorageInstrumentationApi::class)
+
+package ${module.implPackage}   
  
 import $module.${defaultJavaBuilderName}
 
-${implWsEntityAnnotations}
+$implWsEntityAnnotations
 @OptIn($WorkspaceEntityInternalApi::class)
 internal ${inheritanceModifier}class $javaImplName(private val dataSource: $javaDataName): $javaFullName, ${WorkspaceEntityBase}(dataSource) {
 
