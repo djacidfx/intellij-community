@@ -109,7 +109,7 @@ class FlowDbSource(
     get() = stateFlow.value
 
   override fun toString(): String =
-    "FlowDbSource(${debugName})"
+    "FlowDbSource@${hashCode().toString(16)}(${debugName})"
 }
 
 
