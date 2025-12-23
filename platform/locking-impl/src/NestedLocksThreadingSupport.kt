@@ -27,6 +27,7 @@ import com.intellij.platform.locking.impl.listeners.LegacyProgressIndicatorProvi
 import com.intellij.platform.locking.impl.listeners.LockAcquisitionListener
 import com.intellij.util.IntelliJCoroutinesFacade
 import com.intellij.util.ReflectionUtil
+import com.intellij.util.containers.forEachGuaranteed
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
@@ -220,7 +221,7 @@ class NestedLocksThreadingSupport : ThreadingSupport {
   private val myWriteActionListeners: CopyOnWriteArrayList<WriteActionListener> = CopyOnWriteArrayList()
   private val myWriteIntentActionListeners: CopyOnWriteArrayList<WriteIntentReadActionListener> = CopyOnWriteArrayList()
   private var myLockAcquisitionListener: LockAcquisitionListener<*>? = null
-  private var myWriteLockReacquisitionListener: WriteLockReacquisitionListener? = null
+  private val myWriteLockReacquisitionListener: CopyOnWriteArrayList<WriteLockReacquisitionListener<*>> = CopyOnWriteArrayList()
   private var myLegacyProgressIndicatorProvider: LegacyProgressIndicatorProvider? = null
 
   @Volatile
@@ -248,7 +249,7 @@ class NestedLocksThreadingSupport : ThreadingSupport {
    */
   @Suppress("RemoveExplicitTypeArguments")
   private val myWriteActionPending = AtomicReference<Array<AtomicInteger>>(Array(1) { AtomicInteger(0) })
-  private val myNoWriteActionCounter = ThreadLocal<Int>.withInitial { 0 }
+  private val myNoWriteActionCounter = ThreadLocal.withInitial { 0 }
 
   private val myReadActionsInThread = ThreadLocal.withInitial { 0 }
   private val myLockingProhibited: ThreadLocal<String?> = ThreadLocal.withInitial { null }
@@ -610,12 +611,15 @@ class NestedLocksThreadingSupport : ThreadingSupport {
           }
           while (!myWriteActionPending.compareAndSet(currentPendingWaArray, newArray))
 
-          /**
-           * We need to cancel read actions because after the change of level we might get a pending WA which needs to run asap.
-           * See the comment in [isWriteActionPending]
-           */
-          if (isWriteActionPendingOnCurrentLevel) {
-            myWriteLockReacquisitionListener?.beforeWriteLockReacquired()
+          try {
+            myWriteIntentActionListeners.forEachGuaranteed { it.beforeWriteLockParallelizationEnds(isWriteActionPendingOnCurrentLevel) }
+          } catch (e: Throwable) {
+            try {
+              errorHandler?.handleError(e)
+            }
+            catch (e: Throwable) {
+              // swallowing error :(
+            }
           }
           statesOfWIThread.get()?.removeLast()
           cleanup.finish()
@@ -959,17 +963,17 @@ class NestedLocksThreadingSupport : ThreadingSupport {
   }
 
   @ApiStatus.Internal
-  override fun setWriteLockReacquisitionListener(listener: WriteLockReacquisitionListener) {
-    if (myWriteLockReacquisitionListener != null)
-      error("WriteLockReacquisitionListener already registered")
-    myWriteLockReacquisitionListener = listener
+  override fun setWriteLockReacquisitionListener(listener: WriteLockReacquisitionListener<*>) {
+    if (listener in myWriteLockReacquisitionListener)
+      error("WriteLockReacquisitionListener $listener already registered")
+    myWriteLockReacquisitionListener.add(listener)
   }
 
   @ApiStatus.Internal
-  override fun removeWriteLockReacquisitionListener(listener: WriteLockReacquisitionListener) {
-    if (myWriteLockReacquisitionListener != listener)
-      error("WriteLockReacquisitionListener is not registered")
-    myWriteLockReacquisitionListener = null
+  override fun removeWriteLockReacquisitionListener(listener: WriteLockReacquisitionListener<*>) {
+    if (listener !in myWriteLockReacquisitionListener)
+      error("WriteLockReacquisitionListener $listener is not registered")
+    myWriteLockReacquisitionListener.remove(listener)
   }
 
   @ApiStatus.Internal
@@ -1344,6 +1348,7 @@ class NestedLocksThreadingSupport : ThreadingSupport {
       "Suspending write action was requested, but the thread did not start write action properly"
     }
     hack_setPublishedPermitData(null)
+    val listOfReacquisitionData = myWriteLockReacquisitionListener.map { it.beforeWriteLockTemporarilyReleased() }
     var writePermitIndex = exposedPermitData.writePermitStack.lastIndex
     while (writePermitIndex >= 0) {
       exposedPermitData.writePermitStack[writePermitIndex--].release()
@@ -1356,7 +1361,11 @@ class NestedLocksThreadingSupport : ThreadingSupport {
       override fun finish() {
         myWriteActionPending.get()[state.level()].incrementAndGet()
         val (newWritePermits, newWritePermit) = try {
-          myWriteLockReacquisitionListener?.beforeWriteLockReacquired()
+          myWriteLockReacquisitionListener.zip(listOfReacquisitionData).forEachGuaranteed { (listener, data) ->
+            @Suppress("UNCHECKED_CAST")
+            val castedListener: WriteLockReacquisitionListener<Any> = listener as WriteLockReacquisitionListener<Any>
+            castedListener.beforeWriteLockReacquired(data)
+          }
           val newWritePermit = runSuspendMaybeConsuming(false) {
             rootWriteIntentPermit.acquireWriteActionPermit()
           }
@@ -1584,6 +1593,16 @@ class NestedLocksThreadingSupport : ThreadingSupport {
       // otherwise the outer release in `runWriteIntentReadAction` would fail with NPE
       installThreadContext(currentThreadContext().minusKey(Job), true) {
         state.acquireWriteIntentPermit()
+      }
+      try {
+        myWriteIntentActionListeners.forEachGuaranteed { it.beforeWriteLockParallelizationEnds(false) }
+      } catch (e: Throwable) {
+        try {
+          errorHandler?.handleError(e)
+        }
+        catch (e: Throwable) {
+          // swallowing error :(
+        }
       }
     }
   }

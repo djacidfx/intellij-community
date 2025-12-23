@@ -34,7 +34,6 @@ import com.intellij.openapi.application.ThreadingSupport;
 import com.intellij.openapi.application.TransactionGuard;
 import com.intellij.openapi.application.TransactionGuardImpl;
 import com.intellij.openapi.application.WriteActionListener;
-import com.intellij.openapi.application.WriteIntentReadActionListener;
 import com.intellij.openapi.application.WriteLockReacquisitionListener;
 import com.intellij.openapi.application.ex.ApplicationEx;
 import com.intellij.openapi.application.ex.ApplicationUtil;
@@ -1476,24 +1475,6 @@ public final class ApplicationImpl extends ClientAwareComponentManager implement
     IdeEventQueue.getInstance().flushNativeEventQueue();
   }
 
-  @Override
-  public void addWriteActionListener(@NotNull WriteActionListener listener, @NotNull Disposable parentDisposable) {
-    lock.addWriteActionListener(listener);
-    Disposer.register(parentDisposable, () -> lock.removeWriteActionListener(listener));
-  }
-
-  @Override
-  public void addReadActionListener(@NotNull ReadActionListener listener, @NotNull Disposable parentDisposable) {
-    lock.addReadActionListener(listener);
-    Disposer.register(parentDisposable, () -> lock.removeReadActionListener(listener));
-  }
-
-  @Override
-  public void addWriteIntentReadActionListener(@NotNull WriteIntentReadActionListener listener, @NotNull Disposable parentDisposable) {
-    lock.addWriteIntentReadActionListener(listener);
-    Disposer.register(parentDisposable, () -> lock.removeWriteIntentReadActionListener(listener));
-  }
-
   public void addLockAcquisitionListener(@NotNull LockAcquisitionListener<?> listener, @NotNull Disposable parentDisposable) {
     lock.setLockAcquisitionListener(listener);
     Disposer.register(parentDisposable, () -> lock.removeLockAcquisitionListener(listener));
@@ -1515,7 +1496,7 @@ public final class ApplicationImpl extends ClientAwareComponentManager implement
   }
 
   @Override
-  public void addSuspendingWriteActionListener(@NotNull WriteLockReacquisitionListener listener, @NotNull Disposable parentDisposable) {
+  public void addSuspendingWriteActionListener(@NotNull WriteLockReacquisitionListener<?> listener, @NotNull Disposable parentDisposable) {
     lock.setWriteLockReacquisitionListener(listener);
     Disposer.register(parentDisposable, () -> lock.removeWriteLockReacquisitionListener(listener));
   }

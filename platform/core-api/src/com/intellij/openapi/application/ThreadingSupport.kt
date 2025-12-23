@@ -273,10 +273,10 @@ interface ThreadingSupport {
   fun executeSuspendingWriteAction(action: () -> Unit)
 
   @ApiStatus.Internal
-  fun setWriteLockReacquisitionListener(listener: WriteLockReacquisitionListener)
+  fun setWriteLockReacquisitionListener(listener: WriteLockReacquisitionListener<*>)
 
   @ApiStatus.Internal
-  fun removeWriteLockReacquisitionListener(listener: WriteLockReacquisitionListener)
+  fun removeWriteLockReacquisitionListener(listener: WriteLockReacquisitionListener<*>)
 
   /**
    * Returns `true` if there is a currently executing write action of the specified class.
