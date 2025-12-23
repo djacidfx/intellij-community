@@ -3,6 +3,7 @@ package andel.editor
 
 import andel.operation.Op
 import andel.operation.Operation
+import andel.text.TextRange
 import andel.text.charSequence
 import andel.text.line
 import andel.text.lineEndOffset
@@ -17,7 +18,11 @@ fun MutableEditor.addCaret(position: CaretPosition): Caret = with(multiCaret) {
   addCarets(listOf(position))
   requireNotNull(multiCaret.carets.find { it.position == position } ?: multiCaret.carets.find { it.selection.contains(position.offset) })
 }
-fun MutableEditor.addCarets(positions: List<CaretPosition>) { multiCaret.addCarets(positions) }
+
+fun MutableEditor.addCarets(positions: List<CaretPosition>) {
+  multiCaret.addCarets(positions)
+}
+
 fun MutableEditor.removeCaret(caret: Caret) = multiCaret.removeCarets(listOf(caret))
 fun MutableEditor.removeCarets(carets: Collection<Caret>) = multiCaret.removeCarets(carets)
 fun MutableEditor.moveCarets(moves: List<Caret>) = multiCaret.moveCarets(moves)
@@ -28,6 +33,24 @@ fun MutableEditor.moveCaretRelatively(caret: Caret, relativeOffset: Long, expand
 
 fun MutableEditor.moveCaretRelatively(caret: Caret, relativeOffset: Int, expandSelection: Boolean = false) =
   moveCaretRelatively(caret, relativeOffset.toLong(), expandSelection)
+
+fun Editor.deleteAroundPrimarySelectionOperation(beforeCount: Long, afterCount: Long): Operation {
+  val selection = multiCaret.primaryCaret.selection
+  val textView = document.text.view()
+  val deletionRangeBefore = TextRange((selection.start - beforeCount).coerceAtLeast(0), selection.start)
+  val deletionRangeAfter = TextRange(selection.end, (selection.end + afterCount).coerceAtMost(textView.charCount.toLong()))
+  val textToDeleteBefore = document.text.view().string(deletionRangeBefore.start.toInt(), deletionRangeBefore.end.toInt())
+  val textToDeleteAfter = document.text.view().string(deletionRangeAfter.start.toInt(), deletionRangeAfter.end.toInt())
+  return Operation(
+    listOf(
+      Op.Retain(deletionRangeBefore.end),
+      Op.Replace(textToDeleteBefore, ""),
+      Op.Retain(selection.length),
+      Op.Replace(textToDeleteAfter, ""),
+      Op.Retain(textView.charCount.toLong() - deletionRangeAfter.end - textToDeleteBefore.length - textToDeleteAfter.length)
+    )
+  )
+}
 
 fun Editor.deleteBeforeCaretsOperation(deletions: Map<CaretId, Long>): Operation {
   val ops: MutableList<Op> = ArrayList()
@@ -89,6 +112,10 @@ fun Editor.insertAtCaretsOperation(insertions: Map<CaretId, String>): Operation 
 
 private val newlineRegex = Regex("[\\n\\r]+")
 
+fun MutableEditor.deleteAroundPrimarySelection(beforeCount: Long = 0, afterCount: Long = 0) {
+  document.edit(deleteAroundPrimarySelectionOperation(beforeCount, afterCount))
+}
+
 fun MutableEditor.deleteBeforeCarets(deletions: Map<CaretId, Long>) {
   document.edit(deleteBeforeCaretsOperation(deletions))
 }
@@ -132,7 +159,8 @@ fun MutableEditor.insertAtAllCarets(text: String) {
 fun MutableEditor.replaceAtAllCarets(input: List<String>) {
   val ranges = if (input.size > 1 && carets.size > 1) {
     carets.mapIndexed { index, caret -> caret.selection to (input.getOrNull(index)?.normalizeLineEndings() ?: "") }
-  } else {
+  }
+  else {
     val s = input.joinToString("\n").normalizeLineEndings()
     carets.map { caret -> caret.selection to s }
   }
@@ -188,7 +216,7 @@ fun MutableEditor.addCaretPerSelectedLine() {
   setCarets(carets.flatMap { caret ->
     val selectionStartLineNumber = text.lineAt(caret.selection.start.toInt())
     val selectionEndLineNumber = text.lineAt(caret.selection.end.toInt())
-    (selectionStartLineNumber.line .. selectionEndLineNumber.line).map { line ->
+    (selectionStartLineNumber.line..selectionEndLineNumber.line).map { line ->
       CaretPosition(text.lineEndOffset(line.line).toLong())
     }
   })
