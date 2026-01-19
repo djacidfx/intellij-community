@@ -84,8 +84,8 @@ public class JUnit5TestSessionListener implements LauncherSessionListener {
       final String _FirstInSuiteTestPrefix = "_FirstInSuiteTest.";
 
       // TODO: use the same logic for tests, remove junit34Test
-      final boolean junit34Test = ContainerUtil.exists(testPlan.getRoots(), root -> root.getUniqueId().equals(VINTAGE_UNIQUE_ID));
-      final boolean reportAsBootstrapTestsSuite = "only".equals(ENGINE_VINTAGE);  // reuse existing mutes on TeamCity
+      final boolean junit34Test = ContainerUtil.exists(testPlan.getRoots(), root -> root.getUniqueId().equals(VINTAGE_UNIQUE_ID) && !testPlan.getChildren(root).isEmpty());
+      final boolean reportAsBootstrapTestsSuite = !"false".equals(ENGINE_VINTAGE);  // reuse existing mutes on TeamCity
       final BiConsumer<String, ThrowableRunnable<?>> doTest = (reportAsBootstrapTestsSuite ? this::catchExceptionAndReportAsBootstrapTestsSuite : this::catchException);
 
       // no testReportClassLoadingProblems
@@ -162,8 +162,8 @@ public class JUnit5TestSessionListener implements LauncherSessionListener {
       if (!buildConfName.isEmpty()) buildConfName = "[" + buildConfName + "]";
 
       // TODO: use the same logic for tests, remove junit34Test
-      final boolean junit34Test = ContainerUtil.exists(testPlan.getRoots(), root -> root.getUniqueId().equals(VINTAGE_UNIQUE_ID));
-      final boolean reportAsBootstrapTestsSuite = "only".equals(ENGINE_VINTAGE);  // reuse existing mutes on TeamCity
+      final boolean junit34Test = ContainerUtil.exists(testPlan.getRoots(), root -> root.getUniqueId().equals(VINTAGE_UNIQUE_ID) && !testPlan.getChildren(root).isEmpty());
+      final boolean reportAsBootstrapTestsSuite = !"false".equals(ENGINE_VINTAGE);  // reuse existing mutes on TeamCity
       final BiConsumer<String, ThrowableRunnable<?>> doTest = (reportAsBootstrapTestsSuite ? this::catchExceptionAndReportAsBootstrapTestsSuite : this::catchException);
 
       // setUp

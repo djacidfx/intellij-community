@@ -304,6 +304,10 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
     if (options.repeatCount > 1 && options.attemptCount > 1) {
       context.messages.logErrorAndThrow("'intellij.build.test.repeat.count' and 'intellij.build.test.attempt.count' options cannot be used together")
     }
+
+    if (options.shouldSkipJUnit34Tests && options.shouldSkipJUnit5Tests) {
+      context.messages.logErrorAndThrow("'intellij.build.test.skip.tests.junit34' and 'intellij.build.test.skip.tests.junit5' options cannot be used together")
+    }
   }
 
   private fun errorOptionIgnored(specifiedOption: String, ignoredOption: String) {
@@ -900,18 +904,17 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
       }
       messages.info("Will run tests in dedicated runtimes ('${options.isDedicatedTestRuntime}')")
       // First, collect all tests for both JUnit5 and JUnit3+4
-      val testClassesJUnit5 = blockWithDefaultFlowId("collect junit 5 tests") {
-        if (options.shouldSkipJUnit5Tests) {
-          messages.warning("JUnit 5 tests collections is skipped")
-          return@blockWithDefaultFlowId emptyList()
-        }
-
+      val testClasses = blockWithDefaultFlowId("collect tests") {
         val testClassesListFile = Files.createTempFile("tests-to-run-", ".list").apply { Files.delete(this) }
         runJUnit5Engine(
           mainModule = mainModule,
-          systemProperties = systemProperties + listOf(
+          systemProperties = systemProperties + listOfNotNull(
             "intellij.build.test.list.classes" to testClassesListFile.absolutePathString(),
-            "intellij.build.test.engine.vintage" to "false",
+            when {
+              options.shouldSkipJUnit5Tests -> "intellij.build.test.engine.vintage" to "only"
+              options.shouldSkipJUnit34Tests -> "intellij.build.test.engine.vintage" to "false"
+              else -> null
+            },
             "intellij.build.test.ignoreFirstAndLastTests" to "true",
           ),
           jvmArgs = jvmArgs,
@@ -926,33 +929,7 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
         testClassesListFile.let { if (Files.exists(it)) it.readLines() else emptyList() }
       }
 
-      val testClassesJUnit34 = blockWithDefaultFlowId("collect junit 3+4 tests") {
-        if (options.shouldSkipJUnit34Tests) {
-          messages.warning("JUnit 3+4 tests collections is skipped")
-          return@blockWithDefaultFlowId emptyList()
-        }
-
-        val testClassesListFile = Files.createTempFile("tests-to-run-", ".list").apply { Files.delete(this) }
-        runJUnit5Engine(
-          mainModule = mainModule,
-          systemProperties = systemProperties + listOf(
-            "intellij.build.test.list.classes" to testClassesListFile.absolutePathString(),
-            "intellij.build.test.engine.vintage" to "only",
-            "intellij.build.test.ignoreFirstAndLastTests" to "true",
-            ),
-          jvmArgs = jvmArgs,
-          envVariables = envVariables,
-          bootstrapClasspath = bootstrapClasspath,
-          modulePath = modulePath,
-          testClasspath = testClasspath,
-          suiteName = "__classpathroot__",
-          methodName = null,
-          devBuildSettings = null,
-        )
-        return@blockWithDefaultFlowId testClassesListFile.let { if (Files.exists(it)) it.readLines() else emptyList() }
-      }
-
-      if (testClassesJUnit5.isEmpty() && testClassesJUnit34.isEmpty() &&
+      if (testClasses.isEmpty() &&
           // a bucket might be empty for run configurations with too few tests due to imperfect tests balancing
           options.bucketsCount < 2) {
         throw NoTestsFound()
@@ -981,15 +958,9 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
           else if (exitCode != 0) throw RuntimeException("Unexpected exit code $exitCode when running tests in dedicated runtime (class mode)")
         }
 
-        if (testClassesJUnit5.isNotEmpty()) {
-          messages.info("Will run JUnit 5 tests:\n${testClassesJUnit5.joinToString("\n")}")
-          for (s in testClassesJUnit5) {
-            runOneClass(s)
-          }
-        }
-        if (testClassesJUnit34.isNotEmpty()) {
-          messages.info("Will run JUnit 3+4 tests:\n${testClassesJUnit34.joinToString("\n")}")
-          for (s in testClassesJUnit34) {
+        if (testClasses.isNotEmpty()) {
+          messages.info("Will run test classes:\n${testClasses.joinToString("\n")}")
+          for (s in testClasses) {
             runOneClass(s)
           }
         }
@@ -1032,18 +1003,9 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
           else if (exitCode != 0) throw RuntimeException("Unexpected exit code $exitCode when running tests in dedicated runtime (package mode)")
         }
 
-        if (testClassesJUnit5.isNotEmpty()) {
-          val packages = groupByPackages(testClassesJUnit5)
-          messages.info(packages.entries.joinToString(prefix = "Will run JUnit 5 packages:\n", separator = "\n") { e ->
-            e.value.joinToString(prefix = "${e.key}\n  ", separator = "\n  ")
-          })
-          for (entry in packages) {
-            runOnePackage(entry)
-          }
-        }
-        if (testClassesJUnit34.isNotEmpty()) {
-          val packages = groupByPackages(testClassesJUnit34)
-          messages.info(packages.entries.joinToString(prefix = "Will run JUnit 3+4 packages:\n", separator = "\n") { e ->
+        if (testClasses.isNotEmpty()) {
+          val packages = groupByPackages(testClasses)
+          messages.info(packages.entries.joinToString(prefix = "Will run tests in packages:\n", separator = "\n") { e ->
             e.value.joinToString(prefix = "${e.key}\n  ", separator = "\n  ")
           })
           for (entry in packages) {
@@ -1065,28 +1027,15 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
 
       for (runNumber in 1..options.repeatCount) {
         val additionalProperties = mutableMapOf<String, String>()
-        val additionalPropertiesJUnit5 = mutableMapOf<String, String>()
-        val additionalPropertiesJUnit34 = mutableMapOf<String, String>()
 
         // save failed tests to retry
         val failedClassesListFile = if (options.attemptCount > 1) Files.createTempFile("failed-classes-", ".list").apply { Files.delete(this) } else null
         failedClassesListFile?.let { additionalProperties["intellij.build.test.retries.failedClasses.file"] = it.absolutePathString() }
-        var failedClassesJUnit5: List<String>? = null
-        var failedClassesJUnit34: List<String>? = null
+        var failedClasses: List<String>? = null
 
-        PathManager.PROPERTY_SYSTEM_PATH.let { Path.of(systemProperties[it] ?: error("'$it' is not set")) }.let {
-          additionalPropertiesJUnit5[PathManager.PROPERTY_LOG_PATH] = it.resolve("log/junit5").absolutePathString()
-          additionalPropertiesJUnit34[PathManager.PROPERTY_LOG_PATH] = it.resolve("log/junit34").absolutePathString()
-        }
-
-        var runJUnit5 = !options.shouldSkipJUnit5Tests
-        var runJUnit34 = !options.shouldSkipJUnit34Tests
-        var exitCode5 = 0
-        var exitCode34 = 0
+        var exitCode = 0
 
         for (attempt in 1..options.attemptCount) {
-          if (!runJUnit5 && !runJUnit34) break
-
           val spanNameSuffix = buildString {
             if (options.repeatCount > 1) {
               append(" (run $runNumber/${options.repeatCount})")
@@ -1098,59 +1047,34 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
 
           if (attempt > 1) {
             additionalProperties["intellij.build.test.ignoreFirstAndLastTests"] = "true"
-            if (runJUnit5) {
-              check(!failedClassesJUnit5.isNullOrEmpty())  // already checked in the previous attempt
-              additionalPropertiesJUnit5["intellij.build.test.patterns"] = failedClassesJUnit5.joinToString(";")
-            }
-            if (runJUnit34) {
-              check(!failedClassesJUnit34.isNullOrEmpty())  // already checked in the previous attempt
-              additionalPropertiesJUnit34["intellij.build.test.patterns"] = failedClassesJUnit34.joinToString(";")
-            }
+            check(!failedClasses.isNullOrEmpty())  // already checked in the previous attempt
+            additionalProperties["intellij.build.test.patterns"] = failedClasses.joinToString(";")
           }
 
-          if (runJUnit5) {
-            blockWithDefaultFlowId("run junit 5 tests${spanNameSuffix}") {
-              exitCode5 = runJUnit5Engine(
-                mainModule = mainModule,
-                systemProperties = systemProperties + additionalProperties + additionalPropertiesJUnit5 + listOf(
-                  "intellij.build.test.engine.vintage" to "false",
-                ),
-                jvmArgs = jvmArgs,
-                envVariables = envVariables,
-                bootstrapClasspath = bootstrapClasspath,
-                modulePath = modulePath,
-                testClasspath = testClasspath,
-                suiteName = "__classpathroot__",
-                methodName = null,
-                devBuildSettings = devBuildServerSettings,
-              )
-              failedClassesJUnit5 = failedClassesListFile?.let { if (Files.exists(it)) it.readLines() else emptyList() }
-              if (failedClassesListFile != null) Files.deleteIfExists(failedClassesListFile)
-            }
+          blockWithDefaultFlowId("run tests${spanNameSuffix}") {
+            exitCode = runJUnit5Engine(
+              mainModule = mainModule,
+              systemProperties = systemProperties + additionalProperties + listOfNotNull(
+                when {
+                  options.shouldSkipJUnit5Tests -> "intellij.build.test.engine.vintage" to "only"
+                  options.shouldSkipJUnit34Tests -> "intellij.build.test.engine.vintage" to "false"
+                  else -> null
+                },
+              ),
+              jvmArgs = jvmArgs,
+              envVariables = envVariables,
+              bootstrapClasspath = bootstrapClasspath,
+              modulePath = modulePath,
+              testClasspath = testClasspath,
+              suiteName = "__classpathroot__",
+              methodName = null,
+              devBuildSettings = devBuildServerSettings,
+            )
+            failedClasses = failedClassesListFile?.let { if (Files.exists(it)) it.readLines() else emptyList() }
+            if (failedClassesListFile != null) Files.deleteIfExists(failedClassesListFile)
           }
 
-          if (runJUnit34) {
-            blockWithDefaultFlowId("run junit 3+4 tests${spanNameSuffix}") {
-              exitCode34 = runJUnit5Engine(
-                mainModule = mainModule,
-                systemProperties = systemProperties + additionalProperties + additionalPropertiesJUnit34 + listOf(
-                  "intellij.build.test.engine.vintage" to "only",
-                ),
-                jvmArgs = jvmArgs,
-                envVariables = envVariables,
-                bootstrapClasspath = bootstrapClasspath,
-                modulePath = modulePath,
-                testClasspath = testClasspath,
-                suiteName = "__classpathroot__",
-                methodName = null,
-                devBuildSettings = devBuildServerSettings,
-              )
-              failedClassesJUnit34 = failedClassesListFile?.let { if (Files.exists(it)) it.readLines() else emptyList() }
-              if (failedClassesListFile != null) Files.deleteIfExists(failedClassesListFile)
-            }
-          }
-
-          if (exitCode5 == NO_TESTS_ERROR && exitCode34 == NO_TESTS_ERROR &&
+          if (exitCode == NO_TESTS_ERROR &&
               // only check on the first full run
               attempt == 1 &&
               runNumber == 1 &&
@@ -1158,43 +1082,28 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
               options.bucketsCount < 2) {
             throw NoTestsFound()
           }
-          if (exitCode5 != 0 && exitCode5 != 1 && exitCode5 != NO_TESTS_ERROR) {
-            throw RuntimeException("Unexpected exit code $exitCode5 when running JUnit 5 tests")
-          }
-          if (exitCode34 != 0 && exitCode34 != 1 && exitCode34 != NO_TESTS_ERROR) {
-            throw RuntimeException("Unexpected exit code $exitCode34 when running JUnit 3+4 tests")
+          if (exitCode != 0 && exitCode != 1 && exitCode != NO_TESTS_ERROR) {
+            throw RuntimeException("Unexpected exit code $exitCode when running tests")
           }
 
-          if (runJUnit5 && options.attemptCount > 1) {
-            if (failedClassesJUnit5!!.isNotEmpty()) {
-              if (exitCode5 != 1) throw RuntimeException("Unexpected exit code $exitCode5 when running JUnit 5 tests but found failed tests to retry")
-              messages.warning("Will rerun JUnit 5 tests: $failedClassesJUnit5")
+          if (options.attemptCount > 1) {
+            if (failedClasses!!.isNotEmpty()) {
+              if (exitCode != 1) throw RuntimeException("Unexpected exit code $exitCode when running tests but found failed tests to retry")
+              messages.warning("Will rerun tests: $failedClasses")
             }
             else {
-              if (exitCode5 == 1) throw RuntimeException("Unexpected exit code $exitCode5 when running JUnit 5 tests but no failed tests to retry found")
-              runJUnit5 = false
-            }
-          }
-
-          if (runJUnit34 && options.attemptCount > 1) {
-            if (failedClassesJUnit34!!.isNotEmpty()) {
-              if (exitCode34 != 1) throw RuntimeException("Unexpected exit code $exitCode34 when running JUnit 3+4 tests but found failed tests to retry")
-              messages.warning("Will rerun JUnit 3+4 tests: $failedClassesJUnit34")
-            }
-            else {
-              if (exitCode34 == 1) throw RuntimeException("Unexpected exit code $exitCode34 when running JUnit 3+4 tests but no failed tests to retry found")
-              runJUnit34 = false
+              if (exitCode == 1) throw RuntimeException("Unexpected exit code $exitCode when running tests but no failed tests to retry found")
             }
           }
         }
 
-        val hadRunFailures = exitCode5 == 1 || exitCode34 == 1
+        val hadRunFailures = exitCode == 1
         hadAnyFailures = hadAnyFailures || hadRunFailures
 
         // On TeamCity test failures themselves control the build status, no need to report them as additional errors
         if (hadRunFailures && !TeamCityHelper.isUnderTeamCity) {
           val runSuffix = if (options.repeatCount > 1) " on run $runNumber/${options.repeatCount}" else ""
-          throw RuntimeException("Tests failed$runSuffix (JUnit 5 exit code: $exitCode5, JUnit 3+4 exit code: $exitCode34, $NO_TESTS_ERROR means no test for this test framework)")
+          throw RuntimeException("Tests failed$runSuffix (exit code: $exitCode, $NO_TESTS_ERROR means no tests found)")
         }
       }
 
