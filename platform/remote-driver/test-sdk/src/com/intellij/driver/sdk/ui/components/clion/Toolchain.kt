@@ -79,7 +79,7 @@ sealed class Toolchain(
   class WSL(
     compiler: Compiler = Compiler.DEFAULT,
     debugger: Debugger = Debugger.WSL_DEBUGGER,
-    buildTool: Make = Make.DEFAULT,
+    buildTool: BuildTool = BuildTool.GMAKE,
     name: ToolchainNames = ToolchainNames.WSL,
   ) : Toolchain(name, compiler, debugger, buildTool)
 }
@@ -88,6 +88,11 @@ enum class BuildTool {
   DEFAULT {
     override fun getPath(): String = ""
     override fun getName(): String = "ninja"
+  },
+
+  GMAKE {
+    override fun getPath(): String = ""
+    override fun getName(): String = "gmake"
   };
 
   abstract fun getPath(): String
