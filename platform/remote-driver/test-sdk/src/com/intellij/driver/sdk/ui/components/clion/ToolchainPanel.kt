@@ -54,8 +54,8 @@ class ToolchainPanel(data: ComponentData) : SettingsDialogUiComponent(data) {
   }
 
   fun setupToolchains(toolchain: Toolchain) {
-    if (toolchain.buildTool != Make.DEFAULT) {
-      getToolchainField("Build Tool").text = toolchain.buildTool.getMakePath()
+    if (toolchain.buildTool != BuildTool.DEFAULT) {
+      getToolchainField("Build Tool").text = toolchain.buildTool.getPath()
     }
     getToolchainField("C Compiler").text = toolchain.compiler.getCCompilerPath()
     getToolchainField("C++ Compiler").text = toolchain.compiler.getCppCompilerPath()

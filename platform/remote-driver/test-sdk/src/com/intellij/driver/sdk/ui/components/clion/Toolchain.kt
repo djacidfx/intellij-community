@@ -6,74 +6,73 @@ sealed class Toolchain(
   val name: ToolchainNames,
   val compiler: Compiler,
   val debugger: Debugger,
-  val buildTool: Make,
+  val buildTool: BuildTool,
 ) {
-  // FIX THIS
   override fun toString(): String {
-    return if (compiler == Compiler.DEFAULT) "$debugger"
-    else "${compiler}_$debugger"
+    return if (compiler == Compiler.DEFAULT) "${name}_$debugger"
+    else "${name}_${compiler}_$debugger"
   }
 
   class Default(
     compiler: Compiler = Compiler.DEFAULT,
     debugger: Debugger = Debugger.BUNDLED_GDB,
-    buildTool: Make = Make.DEFAULT,
+    buildTool: BuildTool = BuildTool.DEFAULT,
     name: ToolchainNames = ToolchainNames.DEFAULT,
   ) : Toolchain(name, compiler, debugger, buildTool)
 
   class Gnu(
     compiler: Compiler = Compiler.GCC,
     debugger: Debugger = Debugger.BUNDLED_GDB,
-    buildTool: Make = Make.DEFAULT,
+    buildTool: BuildTool = BuildTool.DEFAULT,
     name: ToolchainNames = ToolchainNames.GCC,
   ) : Toolchain(name, compiler, debugger, buildTool)
 
   class Llvm(
     compiler: Compiler = Compiler.CLANG,
     debugger: Debugger = Debugger.BUNDLED_LLDB,
-    buildTool: Make = Make.DEFAULT,
+    buildTool: BuildTool = BuildTool.DEFAULT,
     name: ToolchainNames = ToolchainNames.CLANG,
   ) : Toolchain(name, compiler, debugger, buildTool)
 
   class CustomGDB(
     compiler: Compiler = Compiler.DEFAULT,
     debugger: Debugger = Debugger.CUSTOM_GDB,
-    buildTool: Make = Make.DEFAULT,
+    buildTool: BuildTool = BuildTool.DEFAULT,
     name: ToolchainNames = ToolchainNames.CUSTOM_GDB,
   ) : Toolchain(name, compiler, debugger, buildTool)
 
   class CustomLLDB(
     compiler: Compiler = Compiler.DEFAULT,
     debugger: Debugger = Debugger.CUSTOM_LLDB,
-    buildTool: Make = Make.DEFAULT,
+    buildTool: BuildTool = BuildTool.DEFAULT,
     name: ToolchainNames = ToolchainNames.CUSTOM_LLDB,
   ) : Toolchain(name, compiler, debugger, buildTool)
 
   class MingwGDB(
     compiler: Compiler = Compiler.DEFAULT,
     debugger: Debugger = Debugger.BUNDLED_GDB,
-    buildTool: Make = Make.DEFAULT,
+    buildTool: BuildTool = BuildTool.DEFAULT,
     name: ToolchainNames = ToolchainNames.MINGW_GDB,
   ) : Toolchain(name, compiler, debugger, buildTool)
 
   class CustomMingwGDB(
     compiler: Compiler = Compiler.DEFAULT,
     debugger: Debugger = Debugger.CUSTOM_GDB,
-    buildTool: Make = Make.DEFAULT,
+    buildTool: BuildTool = BuildTool.DEFAULT,
     name: ToolchainNames = ToolchainNames.MINGW_GDB,
   ) : Toolchain(name, compiler, debugger, buildTool)
 
   class MSVC(
     compiler: Compiler = Compiler.DEFAULT,
     debugger: Debugger = Debugger.BUNDLED_LLDB,
-    buildTool: Make = Make.DEFAULT,
+    buildTool: BuildTool = BuildTool.DEFAULT,
     name: ToolchainNames = ToolchainNames.MSVC,
   ) : Toolchain(name, compiler, debugger, buildTool)
 
   class Cygwin(
     compiler: Compiler = Compiler.DEFAULT,
     debugger: Debugger = Debugger.CYGWIN_GDB,
-    buildTool: Make = Make.DEFAULT,
+    buildTool: BuildTool = BuildTool.DEFAULT,
     name: ToolchainNames = ToolchainNames.CYGWIN,
   ) : Toolchain(name, compiler, debugger, buildTool)
 
@@ -85,12 +84,14 @@ sealed class Toolchain(
   ) : Toolchain(name, compiler, debugger, buildTool)
 }
 
-enum class Make {
+enum class BuildTool {
   DEFAULT {
-    override fun getMakePath(): String = ""
+    override fun getPath(): String = ""
+    override fun getName(): String = "ninja"
   };
 
-  abstract fun getMakePath(): String
+  abstract fun getPath(): String
+  abstract fun getName(): String
 }
 
 enum class Compiler {
