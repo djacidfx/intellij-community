@@ -86,15 +86,14 @@ public class JUnit5TestSessionListener implements LauncherSessionListener {
       String buildConfName = System.getProperty("teamcity.buildConfName", "");
       if (!buildConfName.isEmpty()) buildConfName = "[" + buildConfName + "]";
 
-      // TODO: use the same logic for tests, remove junit34Test
-      final boolean junit34Test = ContainerUtil.exists(testPlan.getRoots(), root -> root.getUniqueId().equals(VINTAGE_UNIQUE_ID) && !testPlan.getChildren(root).isEmpty());
-
       // no testReportClassLoadingProblems
 
       // testNothing
       catchExceptionAndReportAsTestIfFailed(_FirstInSuiteTestPrefix + "testNothing" + testProcessName + buildConfName, () -> {
         suiteStarted = System.nanoTime();
 
+        // TODO: use the same logic for tests, remove junit34Test
+        boolean junit34Test = ContainerUtil.exists(testPlan.getRoots(), root -> root.getUniqueId().equals(VINTAGE_UNIQUE_ID) && !testPlan.getChildren(root).isEmpty());
         if (junit34Test) {
           IdeaForkJoinWorkerThreadFactory.setupForkJoinCommonPool(true);
           SwingUtilities.invokeAndWait(() -> System.out.println("EDT is " + Thread.currentThread()));
@@ -140,9 +139,7 @@ public class JUnit5TestSessionListener implements LauncherSessionListener {
 
       // testGlobalState
       catchExceptionAndReportAsTestIfFailed(_FirstInSuiteTestPrefix + "testGlobalState" + testProcessName + buildConfName, () -> {
-        if (junit34Test) {
-          GlobalState.checkSystemStreams(); // Rather initialize than check.
-        }
+        GlobalState.checkSystemStreams(); // Rather initialize than check.
       });
     }
 
@@ -164,13 +161,8 @@ public class JUnit5TestSessionListener implements LauncherSessionListener {
       String buildConfName = System.getProperty("teamcity.buildConfName", "");
       if (!buildConfName.isEmpty()) buildConfName = "[" + buildConfName + "]";
 
-      // TODO: use the same logic for tests, remove junit34Test
-      final boolean junit34Test = ContainerUtil.exists(testPlan.getRoots(), root -> root.getUniqueId().equals(VINTAGE_UNIQUE_ID) && !testPlan.getChildren(root).isEmpty());
-
       // setUp
-      if (junit34Test) {
-        Disposer.setDebugMode(true);
-      }
+      Disposer.setDebugMode(true);
 
       // testProjectLeak
       catchExceptionAndReportAsTestIfFailed(_LastInSuiteTestPrefix + "testProjectLeak" + testProcessName + buildConfName, () -> {
@@ -184,16 +176,12 @@ public class JUnit5TestSessionListener implements LauncherSessionListener {
 
       // testFilenameIndexConsistency
       catchExceptionAndReportAsTestIfFailed(_LastInSuiteTestPrefix + "testFilenameIndexConsistency" + testProcessName + buildConfName, () -> {
-        if (junit34Test) {
-          FSRecords.checkFilenameIndexConsistency();
-        }
+        FSRecords.checkFilenameIndexConsistency();
       });
 
       // testGlobalState
       catchExceptionAndReportAsTestIfFailed(_LastInSuiteTestPrefix + "testGlobalState" + testProcessName + buildConfName, () -> {
-        if (junit34Test) {
-          GlobalState.checkSystemStreams();
-        }
+        GlobalState.checkSystemStreams();
       });
 
       // testStatistics
