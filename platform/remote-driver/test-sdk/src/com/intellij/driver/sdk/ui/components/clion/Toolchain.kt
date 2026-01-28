@@ -82,6 +82,20 @@ sealed class Toolchain(
     buildTool: BuildTool = BuildTool.GMAKE,
     name: ToolchainNames = ToolchainNames.WSL,
   ) : Toolchain(name, compiler, debugger, buildTool)
+
+  class Docker(
+    compiler: Compiler = Compiler.DEFAULT,
+    debugger: Debugger = Debugger.BUNDLED_GDB,
+    buildTool: BuildTool = BuildTool.DEFAULT,
+    name: ToolchainNames = ToolchainNames.REMOTE_HOST,
+  ) : Toolchain(name, compiler, debugger, buildTool)
+
+  class RemoteHost(
+    compiler: Compiler = Compiler.DEFAULT,
+    debugger: Debugger = Debugger.REMOTE_GDB,
+    buildTool: BuildTool = BuildTool.GMAKE,
+    name: ToolchainNames = ToolchainNames.REMOTE_HOST,
+  ) : Toolchain(name, compiler, debugger, buildTool)
 }
 
 enum class BuildTool {
@@ -146,30 +160,43 @@ enum class Debugger {
     override fun type(): String = "GDB"
   },
 
-CUSTOM_LLDB {
-  override fun getDebuggerPath(): String = "/usr/bin/lldb"
-  override fun getDebuggerFieldName(): String = "Custom LLDB executable"
-  override fun toString(): String = "Custom LLDB"
-  override fun type(): String = "LLDB"
-},
+  CUSTOM_LLDB {
+    override fun getDebuggerPath(): String = "/usr/bin/lldb"
+    override fun getDebuggerFieldName(): String = "Custom LLDB executable"
+    override fun toString(): String = "Custom LLDB"
+    override fun type(): String = "LLDB"
+  },
 
-CYGWIN_GDB {
-  override fun getDebuggerPath(): String = "Cygwin GDB"
-  override fun getDebuggerFieldName(): String = "Custom GDB executable"
-  override fun toString(): String = "Cygwin GDB"
-  override fun type(): String = "GDB"
-},
+  CYGWIN_GDB {
+    override fun getDebuggerPath(): String = "Cygwin GDB"
+    override fun getDebuggerFieldName(): String = "Custom GDB executable"
+    override fun toString(): String = "Cygwin GDB"
+    override fun type(): String = "GDB"
+  },
 
-WSL_DEBUGGER {
-  override fun getDebuggerPath(): String = "WSL GDB"
-  override fun getDebuggerFieldName(): String = "Custom GDB executable"
-  override fun toString(): String = "WSL GDB"
-  override fun type(): String = "GDB"
-};
+  WSL_DEBUGGER {
+    override fun getDebuggerPath(): String = "WSL GDB"
+    override fun getDebuggerFieldName(): String = "Custom GDB executable"
+    override fun toString(): String = "WSL GDB"
+    override fun type(): String = "GDB"
+  },
 
-abstract fun getDebuggerPath(): String
-abstract fun getDebuggerFieldName(): String
-abstract fun type(): String
+  DOCKER_GDB {
+    override fun getDebuggerPath(): String = "Docker GDB"
+    override fun getDebuggerFieldName(): String = "Custom GDB executable"
+    override fun toString(): String = "Custom GDB executable"
+    override fun type(): String = "GDB"
+  },
+  REMOTE_GDB {
+    override fun getDebuggerPath(): String = "Remote Host GDB"
+    override fun getDebuggerFieldName(): String = "Custom GDB executable"
+    override fun toString(): String = "Remote Host GDB"
+    override fun type(): String = "GDB"
+  };
+
+  abstract fun getDebuggerPath(): String
+  abstract fun getDebuggerFieldName(): String
+  abstract fun type(): String
 }
 
 
