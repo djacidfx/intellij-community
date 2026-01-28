@@ -17,7 +17,7 @@ internal class UrlPathInlayHintsProviderFactory : InlayHintsProviderFactory {
 
 private val EP_NAME = ExtensionPointName.create<UrlPathInlayLanguagesProvider>("com.intellij.microservices.urlInlayLanguagesProvider")
 
-internal fun getLanguagesProviderByLanguage(language: Language): UrlPathInlayLanguagesProvider? =
+fun getLanguagesProviderByLanguage(language: Language): UrlPathInlayLanguagesProvider? =
   EP_NAME.extensionList.find { language in it.languages }
 
 @TestOnly
