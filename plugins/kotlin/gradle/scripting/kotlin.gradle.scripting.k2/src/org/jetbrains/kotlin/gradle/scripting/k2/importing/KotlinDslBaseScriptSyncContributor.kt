@@ -7,6 +7,7 @@ import com.intellij.platform.workspace.storage.ImmutableEntityStorage
 import com.intellij.platform.workspace.storage.toBuilder
 import org.gradle.tooling.model.dsl.GradleDslBaseScriptModel
 import org.jetbrains.kotlin.gradle.scripting.k2.GradleKotlinScriptEntityProvider
+import org.jetbrains.kotlin.gradle.scripting.k2.workspaceModel.GradleKotlinScriptEntitySource
 import org.jetbrains.kotlin.gradle.scripting.shared.definition.BaseScriptDefinition
 import org.jetbrains.kotlin.gradle.scripting.shared.definition.ErrorGradleScriptDefinition
 import org.jetbrains.kotlin.gradle.scripting.shared.definition.getGradleTemplatesNames
@@ -56,11 +57,14 @@ internal class KotlinDslBaseScriptSyncContributor : GradleSyncContributor {
         return if (models.isEmpty()) {
             storage
         } else {
-            GradleKotlinScriptEntityProvider.getInstance(context.project).getUpdatedStorage(
-                storage.toBuilder(),
-                models,
-                definitions,
-            )
+            val entitySource = GradleKotlinDslBaseScriptEntitySource(context.projectPath, phase)
+            GradleKotlinScriptEntityProvider.getInstance(context.project)
+                .getUpdatedStorage(storage.toBuilder(), entitySource, models, definitions)
         }
     }
 }
+
+private data class GradleKotlinDslBaseScriptEntitySource(
+    override val projectPath: String,
+    override val phase: GradleSyncPhase
+) : GradleKotlinScriptEntitySource

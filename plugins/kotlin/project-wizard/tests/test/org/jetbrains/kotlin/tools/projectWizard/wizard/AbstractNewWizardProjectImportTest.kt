@@ -20,7 +20,7 @@ import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.components.KaDiagnosticCheckerFilter
 import org.jetbrains.kotlin.analysis.api.diagnostics.KaSeverity
-import org.jetbrains.kotlin.gradle.scripting.k2.workspaceModel.KotlinGradleScriptEntitySource
+import org.jetbrains.kotlin.gradle.scripting.k2.workspaceModel.GradleKotlinScriptEntitySource
 import org.jetbrains.kotlin.idea.codeInsight.inspections.shared.ReplaceUntilWithRangeUntilInspection
 import org.jetbrains.kotlin.idea.core.script.k2.modules.KotlinScriptEntity
 import org.jetbrains.kotlin.idea.core.script.v1.alwaysVirtualFile
@@ -195,7 +195,7 @@ abstract class AbstractNewWizardProjectImportTest : HeavyPlatformTestCase() {
         val scriptEntities = workspaceModel.currentSnapshot.getVirtualFileUrlIndex()
             .findEntitiesByUrl(this.alwaysVirtualFile.toVirtualFileUrl(fileUrlManager))
             .filterIsInstance<KotlinScriptEntity>().toList()
-        return scriptEntities.any { it.entitySource is KotlinGradleScriptEntitySource }
+        return scriptEntities.any { it.entitySource is GradleKotlinScriptEntitySource }
     }
 
     companion object {
