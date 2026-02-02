@@ -85,9 +85,9 @@ sealed class Toolchain(
 
   class Docker(
     compiler: Compiler = Compiler.DEFAULT,
-    debugger: Debugger = Debugger.BUNDLED_GDB,
-    buildTool: BuildTool = BuildTool.DEFAULT,
-    name: ToolchainNames = ToolchainNames.REMOTE_HOST,
+    debugger: Debugger = Debugger.DOCKER_GDB,
+    buildTool: BuildTool = BuildTool.GMAKE,
+    name: ToolchainNames = ToolchainNames.DOCKER,
   ) : Toolchain(name, compiler, debugger, buildTool)
 
   class RemoteHost(
@@ -187,6 +187,7 @@ enum class Debugger {
     override fun toString(): String = "Custom GDB executable"
     override fun type(): String = "GDB"
   },
+
   REMOTE_GDB {
     override fun getDebuggerPath(): String = "Remote Host GDB"
     override fun getDebuggerFieldName(): String = "Custom GDB executable"
