@@ -152,7 +152,7 @@ enum class Debugger {
   CUSTOM_GDB {
     override fun getDebuggerPath(): String = when (OS.CURRENT) {
       // Windows will use cygwin gdbserver executable as the custom gdb server
-      OS.Windows -> "C:/cygwin64/bin/gdbserver.exe"
+      OS.Windows -> "C:/Tools/cygwin/bin/gdbserver.exe"
       else -> "/usr/bin/gdb"
     }
     override fun getDebuggerFieldName(): String = "Custom GDB executable"

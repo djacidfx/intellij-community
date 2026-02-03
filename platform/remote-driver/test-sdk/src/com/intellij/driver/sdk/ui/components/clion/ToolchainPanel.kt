@@ -76,6 +76,13 @@ class ToolchainPanel(data: ComponentData) : SettingsDialogUiComponent(data) {
     }
   }
 
+  fun ToolchainPanel.setupCMake(cmakePath: String) {
+    getToolchainField("CMake").click()
+    keyboard { key(KeyEvent.VK_DOWN) }
+    getToolchainField("CMake").text = cmakePath
+    keyboard { enter() }
+  }
+
   fun ToolchainPanel.setupRemoteHost(host: String, username: String, port: String, password: String) {
     actionButtonByXpath(xQuery { byClass("FixedSizeButton") }).click()
     driver.ui.dialog(xQuery { byTitle("SSH Configurations") }) {
