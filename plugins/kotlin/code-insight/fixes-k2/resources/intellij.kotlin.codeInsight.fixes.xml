@@ -16,12 +16,13 @@
     <applicationService
             serviceInterface="org.jetbrains.kotlin.idea.k2.codeinsight.fixes.imprt.KotlinAddImportActionFactory"
             serviceImplementation="org.jetbrains.kotlin.idea.k2.codeinsight.fixes.imprt.KotlinAddImportActionFactory$Classic"/>
+    <applicationService
+            serviceInterface="org.jetbrains.kotlin.idea.codeinsight.utils.KDocUnresolvedLinkQuickFixFactory"
+            serviceImplementation="org.jetbrains.kotlin.idea.k2.codeinsight.fixes.imprt.KDocUnresolvedLinkQuickFixFactoryImpl"/>
 
     <annotator language="kotlin" implementationClass="org.jetbrains.kotlin.idea.k2.codeinsight.fixes.MissingConstructorBracketsAnnotator"/>
     <codeInsight.unresolvedReferenceQuickFixProvider
             implementation="org.jetbrains.kotlin.idea.k2.codeinsight.fixes.KotlinFirUnresolvedReferenceQuickFixProvider"/>
-    <codeInsight.unresolvedReferenceQuickFixProvider 
-            implementation="org.jetbrains.kotlin.idea.k2.codeinsight.fixes.imprt.KDocUnresolvedReferenceQuickFixProvider"/>
     <errorQuickFixProvider implementation="org.jetbrains.kotlin.idea.k2.codeinsight.fixes.ReplaceAndWithWhenGuardFixProvider"/>
   </extensions>
 </idea-plugin>

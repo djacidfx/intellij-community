@@ -579,6 +579,15 @@
                      language="kotlin"
                      key="inspection.redundant.call.on.flow.display.name" bundle="messages.KotlinBundle"/>
 
+    <externalAnnotator language="kotlin" implementationClass="org.jetbrains.kotlin.idea.k2.codeinsight.inspections.kdoc.KDocUnresolvedLinkAnnotator"/>
+
+    <localInspection implementationClass="org.jetbrains.kotlin.idea.k2.codeinsight.inspections.kdoc.KDocUnresolvedReferenceInspection"
+                     language="kotlin"
+                     groupPath="Kotlin"
+                     groupBundle="messages.KotlinBundle" groupKey="group.names.probable.bugs"
+                     enabledByDefault="true"
+                     level="WARNING" key="inspection.k.doc.unresolved.link.display.name" bundle="messages.KotlinBundle"/>
+    
     <localInspection implementationClass="org.jetbrains.kotlin.idea.k2.codeinsight.inspections.KDocResolutionResultHasChangedInspection"
                      groupPath="Kotlin"
                      groupBundle="messages.KotlinBundle" groupKey="group.names.probable.bugs"

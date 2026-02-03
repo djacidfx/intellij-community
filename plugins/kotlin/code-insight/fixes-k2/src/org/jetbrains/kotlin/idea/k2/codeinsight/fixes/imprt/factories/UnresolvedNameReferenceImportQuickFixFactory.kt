@@ -83,7 +83,7 @@ internal object UnresolvedNameReferenceImportQuickFixFactory : AbstractImportQui
         )
 
         is ImportPositionType.KDocNameReference -> sequenceOf(
-            // TODO this is currently reported by KDocUnresolvedReferenceInspection
+            // TODO this is currently reported by KDocUnresolvedLinkInspection
         )
 
         is ImportPositionType.CallableReference -> sequenceOf(
