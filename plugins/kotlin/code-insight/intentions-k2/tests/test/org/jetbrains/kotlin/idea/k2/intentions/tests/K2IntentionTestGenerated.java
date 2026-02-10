@@ -6391,6 +6391,115 @@ public abstract class K2IntentionTestGenerated extends AbstractK2IntentionTest {
         @TestMetadata("testData/intentions/branched")
         public abstract static class Branched extends AbstractK2IntentionTest {
             @RunWith(JUnit3RunnerWithInners.class)
+            @TestMetadata("testData/intentions/branched/revertExplicitBackingFields")
+            public static class RevertExplicitBackingFields extends AbstractK2IntentionTest {
+                @java.lang.Override
+                @org.jetbrains.annotations.NotNull
+                public final KotlinPluginMode getPluginMode() {
+                    return KotlinPluginMode.K2;
+                }
+
+                private void runTest(String testDataFilePath) throws Exception {
+                    KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
+                }
+
+                @TestMetadata("backTicksAsName.kt")
+                public void testBackTicksAsName() throws Exception {
+                    runTest("testData/intentions/branched/revertExplicitBackingFields/backTicksAsName.kt");
+                }
+
+                @TestMetadata("commentsInsideBrackets.kt")
+                public void testCommentsInsideBrackets() throws Exception {
+                    runTest("testData/intentions/branched/revertExplicitBackingFields/commentsInsideBrackets.kt");
+                }
+
+                @TestMetadata("duplicatePropertyTextInFile.kt")
+                public void testDuplicatePropertyTextInFile() throws Exception {
+                    runTest("testData/intentions/branched/revertExplicitBackingFields/duplicatePropertyTextInFile.kt");
+                }
+
+                @TestMetadata("finalProperty.kt")
+                public void testFinalProperty() throws Exception {
+                    runTest("testData/intentions/branched/revertExplicitBackingFields/finalProperty.kt");
+                }
+
+                @TestMetadata("genericsWithIn.kt")
+                public void testGenericsWithIn() throws Exception {
+                    runTest("testData/intentions/branched/revertExplicitBackingFields/genericsWithIn.kt");
+                }
+
+                @TestMetadata("genericsWithOut.kt")
+                public void testGenericsWithOut() throws Exception {
+                    runTest("testData/intentions/branched/revertExplicitBackingFields/genericsWithOut.kt");
+                }
+
+                @TestMetadata("lambdaParameterShadowing.kt")
+                public void testLambdaParameterShadowing() throws Exception {
+                    runTest("testData/intentions/branched/revertExplicitBackingFields/lambdaParameterShadowing.kt");
+                }
+
+                @TestMetadata("nameConflict.kt")
+                public void testNameConflict() throws Exception {
+                    runTest("testData/intentions/branched/revertExplicitBackingFields/nameConflict.kt");
+                }
+
+                @TestMetadata("nestedBlockShadowing.kt")
+                public void testNestedBlockShadowing() throws Exception {
+                    runTest("testData/intentions/branched/revertExplicitBackingFields/nestedBlockShadowing.kt");
+                }
+
+                @TestMetadata("replaceWithShadowing.kt")
+                public void testReplaceWithShadowing() throws Exception {
+                    runTest("testData/intentions/branched/revertExplicitBackingFields/replaceWithShadowing.kt");
+                }
+
+                @TestMetadata("simple.kt")
+                public void testSimple() throws Exception {
+                    runTest("testData/intentions/branched/revertExplicitBackingFields/simple.kt");
+                }
+
+                @TestMetadata("simpleWithInheritance.kt")
+                public void testSimpleWithInheritance() throws Exception {
+                    runTest("testData/intentions/branched/revertExplicitBackingFields/simpleWithInheritance.kt");
+                }
+
+                @TestMetadata("typeArgument.kt")
+                public void testTypeArgument() throws Exception {
+                    runTest("testData/intentions/branched/revertExplicitBackingFields/typeArgument.kt");
+                }
+
+                @TestMetadata("withBlankLines.kt")
+                public void testWithBlankLines() throws Exception {
+                    runTest("testData/intentions/branched/revertExplicitBackingFields/withBlankLines.kt");
+                }
+
+                @TestMetadata("withComments.kt")
+                public void testWithComments() throws Exception {
+                    runTest("testData/intentions/branched/revertExplicitBackingFields/withComments.kt");
+                }
+
+                @TestMetadata("withComments2.kt")
+                public void testWithComments2() throws Exception {
+                    runTest("testData/intentions/branched/revertExplicitBackingFields/withComments2.kt");
+                }
+
+                @TestMetadata("withCustomFunctions.kt")
+                public void testWithCustomFunctions() throws Exception {
+                    runTest("testData/intentions/branched/revertExplicitBackingFields/withCustomFunctions.kt");
+                }
+
+                @TestMetadata("withCustomFunctions2.kt")
+                public void testWithCustomFunctions2() throws Exception {
+                    runTest("testData/intentions/branched/revertExplicitBackingFields/withCustomFunctions2.kt");
+                }
+
+                @TestMetadata("withInitialization.kt")
+                public void testWithInitialization() throws Exception {
+                    runTest("testData/intentions/branched/revertExplicitBackingFields/withInitialization.kt");
+                }
+            }
+
+            @RunWith(JUnit3RunnerWithInners.class)
             @TestMetadata("testData/intentions/branched/whenToIf")
             public static class WhenToIf extends AbstractK2IntentionTest {
                 @java.lang.Override

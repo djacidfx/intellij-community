@@ -1,0 +1,3 @@
+private val _items = mutableSetOf<Int>()
+val items: Set<Int>
+    get() = _items
