@@ -31,6 +31,7 @@ create_kotlinc_options(name= "k8", jvm_target = "8")
 create_kotlinc_options(name= "k11", jvm_target = "11")
 create_kotlinc_options(name = "k17", jvm_target = "17")
 create_kotlinc_options(name = "k21", jvm_target = "21")
+create_kotlinc_options(name = "k25", jvm_target = "25")
 
 java_binary(
   name = "main_run",

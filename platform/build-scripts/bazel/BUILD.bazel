@@ -9,9 +9,9 @@ exports_files(["intellij.platform.buildScripts.bazel.iml"], visibility = ["//vis
 # see usage in .bazelrc
 # this toolchain prevents dependency on C++ toolchain through proguard_allowlister tool
 default_java_toolchain(
-    name = "jps_to_bazel_toolchain_jdk_21",
-    source_version = "21",
-    target_version = "21",
+    name = "jps_to_bazel_toolchain_jdk_25",
+    source_version = "25",
+    target_version = "25",
     java_runtime = "@rules_java//toolchains:remotejdk_25",
     proguard_allowlister = ":noop_proguard_allowlister",
     visibility = ["//visibility:public"],

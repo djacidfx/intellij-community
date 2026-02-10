@@ -101,7 +101,7 @@ include("//:debugger_test_deps.MODULE.bazel")
 
 jbr_toolchains = use_extension("@community//build:jbr-toolchains.bzl", "jbr_toolchains")
 
-REMOTE_JBR21_REPOS = ["remotejbr21_" + platform for platform in [
+REMOTE_JBR25_REPOS = ["remotejbr25_" + platform for platform in [
     "linux",
     "linux_aarch64",
     "macos",
@@ -113,9 +113,9 @@ REMOTE_JBR21_REPOS = ["remotejbr21_" + platform for platform in [
 [use_repo(
     jbr_toolchains,
     repo + "_toolchain_config_repo",
-) for repo in REMOTE_JBR21_REPOS]
+) for repo in REMOTE_JBR25_REPOS]
 
-[register_toolchains("@" + repo + "_toolchain_config_repo//:all") for repo in REMOTE_JBR21_REPOS]
+[register_toolchains("@" + repo + "_toolchain_config_repo//:all") for repo in REMOTE_JBR25_REPOS]
 
 # Use custom remote_java_tools_windows with vc_redist .dll files due to https://github.com/bazelbuild/rules_java/issues/316
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")

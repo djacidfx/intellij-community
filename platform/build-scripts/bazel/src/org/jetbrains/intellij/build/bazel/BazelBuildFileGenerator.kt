@@ -587,7 +587,7 @@ internal class BazelBuildFileGenerator(
     val customModule = customModules[moduleDescriptor.module.name]
     val jvmTarget = getLanguageLevel(module)
     val kotlincOptionsLabel = computeKotlincOptions(buildFile = this, module = moduleDescriptor, jvmTarget = jvmTarget)
-                              ?: (if (jvmTarget == "21") null else "@community//:k$jvmTarget")
+                              ?: (if (jvmTarget == "25") null else "@community//:k$jvmTarget")
     val javacOptionsLabel = computeJavacOptions(moduleDescriptor, jvmTarget)
 
     val resourceTargets = mutableListOf<BazelLabel>()
@@ -856,7 +856,9 @@ internal class BazelBuildFileGenerator(
     target("kt_javac_options") {
       option("name", customJavacOptionsName)
       // release is not compatible with --add-exports (*** java)
-      require(jvmTarget == "21")
+      require(jvmTarget == "25") {
+        "failed requirement: jvmTarget == \"25\" for module ${module.module.name}"
+      }
       option("x_ep_disable_all_checks", true)
       option("warn", "off")
       option("add_exports", exports)
@@ -872,6 +874,7 @@ internal class BazelBuildFileGenerator(
       languageLevel == LanguageLevel.JDK_11 -> "11"
       languageLevel == LanguageLevel.JDK_17 -> "17"
       languageLevel == LanguageLevel.JDK_21 -> "21"
+      languageLevel == LanguageLevel.JDK_25 -> "25"
       languageLevel != null -> error("Unsupported language level: $languageLevel")
       else -> "21"
     }
@@ -1187,7 +1190,7 @@ private fun computeKotlincOptions(buildFile: BuildFile, module: ModuleDescriptor
   val kotlincOptionsName = "custom_" + module.targetName
   buildFile.target("create_kotlinc_options") {
     option("name", kotlincOptionsName)
-    if (jvmTarget != "21") {
+    if (jvmTarget != "25") {
       option("jvm_target", jvmTarget)
     }
     for ((name, value) in options.entries.sortedBy { it.key }) {
