@@ -369,7 +369,7 @@ abstract class ProductProperties {
    */
   var modulesToCompileTests: PersistentList<String> = persistentListOf()
 
-  var runtimeDistribution: JetBrainsRuntimeDistribution = JetBrainsRuntimeDistribution.JCEF
+  var runtimeDistribution: JetBrainsRuntimeDistribution = JetBrainsRuntimeDistribution.STANDARD
 
   /**
    * A prefix for names of environment variables used by product distributions

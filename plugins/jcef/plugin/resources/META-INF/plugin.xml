@@ -1,0 +1,18 @@
+<idea-plugin>
+  <id>com.intellij.modules.jcef</id>
+  <name>Web Browser (JCEF)</name>
+  <vendor>JetBrains</vendor>
+  <category>Other Tools</category>
+  <description><![CDATA[
+    Provides web browser integration based on JCEF, a framework for embedding Chromium-based browsers in Java applications.
+  ]]></description>
+
+  <dependencies>
+    <!-- OS/ARCH-DEPENDENCY-PLACEHOLDER -->
+    <plugin id="com.intellij.modules.platform"/>
+  </dependencies>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <cefNativeBundleProvider implementation="com.intellij.jcef.plugin.PluggableCefNativeBundleProvider"/>
+  </extensions>
+</idea-plugin>

@@ -1,0 +1,22 @@
+### auto-generated section `build intellij.jcef.plugin` start
+load("@rules_jvm//:jvm.bzl", "jvm_library", "resourcegroup")
+
+resourcegroup(
+  name = "plugin_resources",
+  srcs = glob(["resources/**/*"]),
+  strip_prefix = "resources"
+)
+
+jvm_library(
+  name = "plugin",
+  module_name = "intellij.jcef.plugin",
+  visibility = ["//visibility:public"],
+  srcs = glob(["src/**/*.kt", "src/**/*.java", "src/**/*.form"], allow_empty = True),
+  resources = [":plugin_resources"],
+  deps = [
+    "@lib//:kotlin-stdlib",
+    "//platform/ui.jcef",
+    "//platform/platform-impl:ide-impl",
+  ]
+)
+### auto-generated section `build intellij.jcef.plugin` end

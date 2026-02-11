@@ -1107,6 +1107,7 @@ plugins/javaFX/common
 plugins/javaFX/community
 plugins/javaFX/jps
 plugins/javaFX/sceneBuilder
+plugins/jcef/plugin
 plugins/jshell
 plugins/jshell/console
 plugins/jshell/execution

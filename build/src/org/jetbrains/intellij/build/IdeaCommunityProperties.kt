@@ -195,7 +195,6 @@ fun intellijCommunityBaseFragment(platformPrefix: String? = null): ProductModule
 
   if (platformPrefix != "AndroidStudio") {
     alias("com.intellij.platform.ide.provisioner")
-    alias("com.intellij.modules.jcef")
   }
 
   include(CommunityProductFragments.javaIdeBaseFragment())

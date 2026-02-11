@@ -6,6 +6,8 @@ package org.jetbrains.intellij.build
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.intellij.build.dependencies.BuildDependenciesDownloader
+import org.jetbrains.intellij.build.dependencies.BuildDependenciesExtractOptions
+import org.jetbrains.intellij.build.impl.BuildUtils.checkedReplace
 import org.jetbrains.intellij.build.impl.BundledMavenDownloader
 import org.jetbrains.intellij.build.impl.LibraryPackMode
 import org.jetbrains.intellij.build.impl.ModuleItem
@@ -25,6 +27,7 @@ import org.jetbrains.intellij.build.python.PythonCommunityPluginModules
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
 import org.jetbrains.intellij.build.telemetry.use
 import java.net.URI
+import java.nio.file.Files
 import java.nio.file.Path
 import java.util.Locale
 
@@ -238,7 +241,8 @@ object CommunityRepositoryModules {
     pluginAuto("intellij.java.jshell") { spec ->
       spec.withModule("intellij.java.jshell.protocol", "jshell-protocol.jar")
       spec.withModuleLibrary("jshell-frontend", "intellij.java.jshell.execution", "jshell-frontend.jar")
-    }
+    },
+    *allJcefPlugins()
   )
 
   val CONTRIB_REPOSITORY_PLUGINS: List<PluginLayout> = java.util.List.of(
@@ -292,6 +296,67 @@ object CommunityRepositoryModules {
       //  "//prebuilts/studio/layoutlib:layoutlib",
       //  "//tools/adt/idea/compose-designer:kotlin-compiler-daemon-libs",
       //],
+    }
+  }
+
+  fun allJcefPlugins(): Array<PluginLayout> {
+    val supportedOsArch = listOf(
+      SupportedDistribution(os = OsFamily.MACOS, arch = JvmArchitecture.x64, MacLibcImpl.DEFAULT),
+      SupportedDistribution(os = OsFamily.MACOS, arch = JvmArchitecture.aarch64, MacLibcImpl.DEFAULT),
+      SupportedDistribution(os = OsFamily.WINDOWS, arch = JvmArchitecture.x64, WindowsLibcImpl.DEFAULT),
+      SupportedDistribution(os = OsFamily.WINDOWS, arch = JvmArchitecture.aarch64, WindowsLibcImpl.DEFAULT),
+      SupportedDistribution(os = OsFamily.LINUX, arch = JvmArchitecture.x64, LinuxLibcImpl.GLIBC),
+      SupportedDistribution(os = OsFamily.LINUX, arch = JvmArchitecture.aarch64, LinuxLibcImpl.GLIBC),
+    )
+
+    return supportedOsArch
+      .map { (os, arch, _) -> jcefPlugin(os, arch) }
+      .toTypedArray()
+  }
+
+  fun jcefPlugin(os: OsFamily, arch: JvmArchitecture): PluginLayout {
+    return plugin("intellij.jcef.plugin") { spec ->
+      spec.bundlingRestrictions.supportedOs = persistentListOf(os)
+      spec.bundlingRestrictions.supportedArch = persistentListOf(arch)
+
+      fun archSuffix(arch: JvmArchitecture): String = when (arch) {
+        JvmArchitecture.x64 -> "x64"
+        JvmArchitecture.aarch64 -> "aarch64"
+      }
+
+      fun jcefArchiveName(os: OsFamily, arch: JvmArchitecture, build: String): String =
+        "jcef-${os.jbrArchiveSuffix}-${archSuffix(arch)}-${build}.tar.gz"
+
+      fun downloadUrlFor(os: OsFamily, arch: JvmArchitecture, build: String): String =
+        "https://cache-redirector.jetbrains.com/intellij-jbr/${jcefArchiveName(os, arch, build)}"
+
+      spec.withRawPluginXmlPatcher { text, _ ->
+        checkedReplace(
+          oldText = text,
+          regex = " <!-- OS/ARCH-DEPENDENCY-PLACEHOLDER -->",
+          newText = """
+          |<plugin id="com.intellij.modules.os.${os.osId}"/>
+          |<plugin id="com.intellij.modules.arch.${arch.marketplaceName}"/>
+        """.trimMargin(),
+        )
+      }
+
+      spec.withCustomVersion { _, ideBuildNumber, _ ->
+        // be careful, Marketplace expects linux/macos/windows for os and x86_64/x86/arm64/arm32 for arch
+        val pluginVersion = "$ideBuildNumber-${os.osId}-${arch.marketplaceName}"
+        PluginVersionEvaluatorResult(pluginVersion)
+      }
+
+      spec.withGeneratedResources { targetDir, context ->
+        val communityRoot = context.paths.communityHomeDirRoot
+        val properties = BuildDependenciesDownloader.getDependencyProperties(communityRoot)
+        val jcefBuildNumber = properties.property("jcefBuild")
+
+        val archivePath = downloadFileToCacheLocation(downloadUrlFor(os, arch, jcefBuildNumber), communityRoot)
+        Files.createDirectories(targetDir)
+
+        BuildDependenciesDownloader.extractFile(archivePath, targetDir, communityRoot, BuildDependenciesExtractOptions.STRIP_ROOT)
+      }
     }
   }
 

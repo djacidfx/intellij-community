@@ -58,6 +58,7 @@ val IDEA_BUNDLED_PLUGINS: PersistentList<String> = DEFAULT_BUNDLED_PLUGINS + per
   "intellij.performanceTesting",
   "intellij.compose.ide.plugin",
   "intellij.moduleSet.plugin.debugger.streams",
+  "intellij.jcef.plugin" // todo add to all IDEs
 )
 
 val CE_CLASS_VERSIONS: Map<String, String> = mapOf(
