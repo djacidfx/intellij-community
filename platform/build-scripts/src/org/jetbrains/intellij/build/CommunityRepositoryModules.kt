@@ -29,6 +29,7 @@ import org.jetbrains.intellij.build.telemetry.use
 import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 import java.util.Locale
 
 object CommunityRepositoryModules {
@@ -309,9 +310,15 @@ object CommunityRepositoryModules {
       SupportedDistribution(os = OsFamily.LINUX, arch = JvmArchitecture.aarch64, LinuxLibcImpl.GLIBC),
     )
 
-    return supportedOsArch
-      .map { (os, arch, _) -> jcefPlugin(os, arch) }
-      .toTypedArray()
+    val allLayouts = ArrayList(supportedOsArch.map { (os, arch, _) -> jcefPlugin(os, arch) })
+    allLayouts += jcefCrossPlatformEmpty()
+    return allLayouts.toTypedArray()
+  }
+
+  private fun jcefCrossPlatformEmpty(): PluginLayout {
+    return plugin("intellij.jcef.plugin") { // cross-platform distribution comes without JCEF binaries
+      it.bundlingRestrictions.includeInDistribution = PluginDistribution.CROSS_PLATFORM_DIST_ONLY
+    }
   }
 
   fun jcefPlugin(os: OsFamily, arch: JvmArchitecture): PluginLayout {
@@ -353,9 +360,15 @@ object CommunityRepositoryModules {
         val jcefBuildNumber = properties.property("jcefBuild")
 
         val archivePath = downloadFileToCacheLocation(downloadUrlFor(os, arch, jcefBuildNumber), communityRoot)
-        Files.createDirectories(targetDir)
+        val subDir = targetDir.resolve("jcef-tmp") // to not clean up root plugin directory on BuildDependenciesDownloader.extractFile
+        Files.createDirectories(subDir)
 
-        BuildDependenciesDownloader.extractFile(archivePath, targetDir, communityRoot, BuildDependenciesExtractOptions.STRIP_ROOT)
+        BuildDependenciesDownloader.extractFile(archivePath, subDir, communityRoot, BuildDependenciesExtractOptions.STRIP_ROOT)
+
+        // unix ZIP does not have root `jcef` directory
+        val jcefOutputDir = if (Files.exists(subDir.resolve("jcef"))) subDir.resolve("jcef") else subDir
+        Files.move(jcefOutputDir, targetDir.resolve("jcef"), StandardCopyOption.REPLACE_EXISTING)
+        Files.deleteIfExists(subDir)
       }
     }
   }

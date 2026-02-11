@@ -1,0 +1,3 @@
+- name: lib/jcef-plugin.jar
+  modules:
+  - name: intellij.jcef.plugin

@@ -21,11 +21,12 @@ import org.jetbrains.intellij.build.impl.PluginLayout
  * Default bundled plugins for all products.
  */
 val DEFAULT_BUNDLED_PLUGINS: PersistentList<String> = persistentListOf(
-  "intellij.platform.images",
+  "intellij.dev",
+  "intellij.jcef.plugin",
   "intellij.moduleSet.plugin.grid.core",
   "intellij.moduleSet.plugin.recentFiles",
   "intellij.moduleSet.plugin.vcs.frontend",
-  "intellij.dev"
+  "intellij.platform.images",
 )
 
 class ProductModulesLayout {

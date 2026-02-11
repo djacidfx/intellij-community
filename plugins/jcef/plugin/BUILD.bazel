@@ -20,4 +20,23 @@ jvm_library(
     "//platform/core-impl",
   ]
 )
+
+jvm_library(
+  name = "plugin_test_lib",
+  module_name = "intellij.jcef.plugin",
+  visibility = ["//visibility:public"],
+  srcs = glob([], allow_empty = True),
+  runtime_deps = [
+    ":plugin",
+    "//platform/ui.jcef:ui.jcef_test_lib",
+    "//platform/platform-impl:ide-impl_test_lib",
+    "//platform/core-impl:core-impl_test_lib",
+  ]
+)
 ### auto-generated section `build intellij.jcef.plugin` end
+
+### auto-generated section `iml intellij.jcef.plugin` start
+exports_files([
+  "intellij.jcef.plugin.iml",
+], visibility = ["//visibility:public"])
+### auto-generated section `iml intellij.jcef.plugin` end
