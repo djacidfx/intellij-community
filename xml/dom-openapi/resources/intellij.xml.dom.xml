@@ -18,15 +18,16 @@
   <!-- endregion -->
 
   <extensionPoints>
-    <extensionPoint name="dom.customAnnotationChecker"
+    <extensionPoint qualifiedName="com.intellij.dom.customAnnotationChecker"
                     interface="com.intellij.util.xml.highlighting.DomCustomAnnotationChecker"
                     dynamic="true"/>
-    <extensionPoint name="dom.gotoSuper" interface="com.intellij.util.xml.DomElementNavigationProvider" dynamic="true"/>
+    <extensionPoint qualifiedName="com.intellij.dom.gotoSuper" interface="com.intellij.util.xml.DomElementNavigationProvider"
+                    dynamic="true"/>
 
-    <extensionPoint name="dom.uiControlsProvider"
+    <extensionPoint qualifiedName="com.intellij.dom.uiControlsProvider"
                     interface="com.intellij.util.Consumer"/>
 
-    <extensionPoint name="dom.fileDescription"
+    <extensionPoint qualifiedName="com.intellij.dom.fileDescription"
                     interface="com.intellij.util.xml.DomFileDescription"
                     dynamic="true"/>
 
