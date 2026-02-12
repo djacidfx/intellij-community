@@ -78,6 +78,7 @@ import java.util.List;
 import java.util.Objects;
 
 import static com.intellij.codeInsight.completion.CompletionThreadingKt.checkForExceptions;
+import static com.intellij.codeInsight.completion.FusCompletionKeys.LOOKUP_SYNC_PHASE_DURATION_MILLIS;
 import static com.intellij.codeInsight.util.CodeCompletionKt.CodeCompletion;
 import static com.intellij.psi.stubs.StubInconsistencyReporter.SourceOfCheck.DeliberateAdditionalCheckInCompletion;
 
@@ -384,7 +385,12 @@ public class CodeCompletionHandlerBase {
     }
 
     int timeout = calcSyncTimeOut(startingTime);
-    if (indicator.blockingWaitForFinish(timeout)) {
+    boolean isCompletionFinished = indicator.blockingWaitForFinish(timeout);
+
+    long syncPhaseDurationMs = System.currentTimeMillis() - startingTime;
+    indicator.getLookup().putUserData(LOOKUP_SYNC_PHASE_DURATION_MILLIS, syncPhaseDurationMs);
+
+    if (isCompletionFinished) {
       if (ApplicationManager.getApplication().isUnitTestMode()) {
         //noinspection TestOnlyProblems
         checkForExceptions(future);
