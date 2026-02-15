@@ -49,6 +49,7 @@ object JpsProjectUtils {
     val sdkName = "jdk-home"
     addSdk(model, sdkName, jdkHome)
     JpsSdkTableSerializer.setSdkReference(model.project.sdkReferencesTable, sdkName, JpsJavaSdkType.INSTANCE)
+    println("SDK added: $jdkHome")
     return model
   }
 

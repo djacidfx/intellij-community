@@ -9,8 +9,8 @@
   <version>1.0.0</version>
 
   <properties>
-    <maven.compiler.release>17</maven.compiler.release>
-    <bootstrap.intellij.version>251.21223</bootstrap.intellij.version>
+    <maven.compiler.release>25</maven.compiler.release>
+    <bootstrap.intellij.version>261.20525</bootstrap.intellij.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
@@ -77,6 +77,16 @@
     </dependency>
     <dependency>
       <groupId>com.jetbrains.intellij.platform</groupId>
+      <artifactId>jps-build</artifactId>
+      <version>${bootstrap.intellij.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.jetbrains.intellij.platform</groupId>
+      <artifactId>jps-build-javac-rt</artifactId>
+      <version>${bootstrap.intellij.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.jetbrains.intellij.platform</groupId>
       <artifactId>jps-model</artifactId>
       <version>${bootstrap.intellij.version}</version>
     </dependency>
@@ -93,6 +103,11 @@
     <dependency>
       <groupId>com.jetbrains.intellij.platform</groupId>
       <artifactId>build-scripts-downloader</artifactId>
+      <version>${bootstrap.intellij.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.jetbrains.intellij.platform</groupId>
+      <artifactId>util</artifactId>
       <version>${bootstrap.intellij.version}</version>
     </dependency>
     <dependency>
