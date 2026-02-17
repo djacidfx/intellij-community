@@ -2,7 +2,9 @@
 package org.jetbrains.plugins.gradle.testFramework.projectModel.mock
 
 import com.intellij.openapi.externalSystem.model.DataNode
+import com.intellij.openapi.externalSystem.model.ExternalProjectInfo
 import com.intellij.openapi.externalSystem.model.ProjectKeys
+import com.intellij.openapi.externalSystem.model.internal.InternalExternalProjectInfo
 import com.intellij.openapi.externalSystem.model.project.ModuleData
 import com.intellij.openapi.externalSystem.model.project.ProjectData
 import com.intellij.openapi.util.io.toCanonicalPath
@@ -41,6 +43,17 @@ class GradleTestProjectNode {
       val configuration = GradleTestProjectNode()
       configure(configuration)
       return createProjectNode(configuration)
+    }
+
+    private fun createExternalProjectInfo(configuration: GradleTestProjectNode): ExternalProjectInfo {
+      val projectNode = createProjectNode(configuration)
+      return InternalExternalProjectInfo(GradleConstants.SYSTEM_ID, configuration.projectPath.toCanonicalPath(), projectNode)
+    }
+
+    fun testExternalProjectInfo(configure: (GradleTestProjectNode) -> Unit): ExternalProjectInfo {
+      val configuration = GradleTestProjectNode()
+      configure(configuration)
+      return createExternalProjectInfo(configuration)
     }
   }
 }
