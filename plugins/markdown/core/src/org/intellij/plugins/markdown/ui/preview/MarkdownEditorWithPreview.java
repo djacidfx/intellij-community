@@ -1,6 +1,9 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.intellij.plugins.markdown.ui.preview;
 
+import com.intellij.openapi.actionSystem.ActionGroup;
+import com.intellij.openapi.actionSystem.ActionManager;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.ex.ActionUtil;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.event.VisibleAreaEvent;
@@ -12,6 +15,7 @@ import com.intellij.openapi.project.Project;
 import org.intellij.plugins.markdown.MarkdownBundle;
 import org.intellij.plugins.markdown.settings.MarkdownSettings;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.awt.Point;
 
@@ -55,6 +59,16 @@ public final class MarkdownEditorWithPreview extends TextEditorWithPreview {
       }
     });
     editor.getEditor().getScrollingModel().addVisibleAreaListener(new MyVisibleAreaListener(), this);
+  }
+
+  @Override
+  protected @NotNull ActionGroup createViewActionGroup() {
+    var group = super.createViewActionGroup();
+    var actionGroup = ActionManager.getInstance().getAction("MarkdownRightToolbar.Actions");
+    if (actionGroup != null) {
+      return new DefaultActionGroup(group, actionGroup);
+    }
+    return group;
   }
 
   @Override
