@@ -1559,12 +1559,12 @@ public final class EditorPainter implements TextDrawingCallback {
             }
             else {
               paintCaretBlock(g, startX, y, width, caretHeight);
-              paintCaretText(g, caret, caretColor, startX, y, topOverhang, isRtl);
+              paintCaretText(g, caret, caretColor, opacity, startX, y, topOverhang, isRtl);
             }
           }
           case BLOCK -> {
             paintCaretBlock(g, startX, y, width, caretHeight);
-            paintCaretText(g, caret, caretColor, startX, y, topOverhang, isRtl);
+            paintCaretText(g, caret, caretColor, opacity, startX, y, topOverhang, isRtl);
           }
           case BAR -> {
             // Don't draw if thickness is zero. This allows a plugin to "hide" carets, e.g. to visually emulate a block selection as a
@@ -1575,7 +1575,7 @@ public final class EditorPainter implements TextDrawingCallback {
               paintCaretBar(g, caret, isRtl ? x - barWidth : x, y, barWidth, caretHeight, isRtl);
               Shape savedClip = g.getClip();
               g.setClip(new Rectangle2D.Float(isRtl ? x - barWidth : x, y, barWidth, caretHeight));
-              paintCaretText(g, caret, caretColor, startX, y, topOverhang, isRtl);
+              paintCaretText(g, caret, caretColor, opacity, startX, y, topOverhang, isRtl);
               g.setClip(savedClip);
             }
           }
@@ -1585,7 +1585,7 @@ public final class EditorPainter implements TextDrawingCallback {
               paintCaretUnderscore(g, startX, y + caretHeight - underscoreHeight, width, underscoreHeight);
               Shape oldClip = g.getClip();
               g.setClip(new Rectangle2D.Float(startX, y + caretHeight - underscoreHeight, width, underscoreHeight));
-              paintCaretText(g, caret, caretColor, startX, y, topOverhang, isRtl);
+              paintCaretText(g, caret, caretColor, opacity, startX, y, topOverhang, isRtl);
               g.setClip(oldClip);
             }
           }
@@ -1659,6 +1659,7 @@ public final class EditorPainter implements TextDrawingCallback {
     private void paintCaretText(@NotNull Graphics2D g,
                                 @Nullable Caret caret,
                                 @NotNull Color caretColor,
+                                float opacity,
                                 float x,
                                 float y,
                                 int topOverhang,
@@ -1672,7 +1673,7 @@ public final class EditorPainter implements TextDrawingCallback {
           int startVisualColumn = fragment.getStartVisualColumn();
           int endVisualColumn = fragment.getEndVisualColumn();
           if (startVisualColumn <= targetVisualColumn && targetVisualColumn < endVisualColumn) {
-            g.setColor(ColorUtil.isDark(caretColor) ? CARET_LIGHT : CARET_DARK);
+            g.setColor(withOpacity(ColorUtil.isDark(caretColor) ? CARET_LIGHT : CARET_DARK, opacity));
             fragment.draw(x, y + topOverhang + myAscent,
                           fragment.visualColumnToOffset(targetVisualColumn - startVisualColumn),
                           fragment.visualColumnToOffset(targetVisualColumn + 1 - startVisualColumn)).accept(g);
