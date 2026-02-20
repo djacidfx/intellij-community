@@ -1,4 +1,4 @@
-// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 @file:Suppress("ClassName")
 
 package com.intellij.execution.wsl
@@ -24,6 +24,8 @@ import com.intellij.platform.eel.EelPlatform
 import com.intellij.platform.eel.EelPosixProcess
 import com.intellij.platform.eel.EelUserPosixInfo
 import com.intellij.platform.eel.ExecuteProcessException
+import com.intellij.platform.eel.channels.EelReceiveChannel
+import com.intellij.platform.eel.channels.EelSendChannel
 import com.intellij.platform.eel.path.EelPath
 import com.intellij.platform.ijent.IjentPosixApi
 import com.intellij.platform.ijent.IjentProcessInfo
@@ -58,6 +60,8 @@ import org.junit.jupiter.api.extension.ParameterResolver
 import org.junit.jupiter.api.extension.TestTemplateInvocationContext
 import org.junit.jupiter.api.extension.TestTemplateInvocationContextProvider
 import java.io.File
+import java.io.InputStream
+import java.io.OutputStream
 import java.nio.file.FileSystems
 import java.util.UUID
 import java.util.stream.Stream
@@ -558,6 +562,12 @@ private class MockIjentApi(private val adapter: GeneralCommandLine, val rootUser
   override val tunnels: IjentTunnelsPosixApi get() = throw UnsupportedOperationException()
 
   override suspend fun requestHyperVTransports(vmId: UUID): Boolean = false
+
+  override suspend fun requestUnixSockets(): IjentPosixApi.IjentTransportUnixSockets? = null
+
+  override fun addGrpcChannel(inputStream: InputStream, outputStream: OutputStream): Unit = Unit
+
+  override fun addSpecialChannel(input: EelReceiveChannel, output: EelSendChannel): Unit = Unit
 }
 
 private class MockIjentExecApi(private val adapter: GeneralCommandLine, private val rootUser: Boolean) : EelExecPosixApi {
