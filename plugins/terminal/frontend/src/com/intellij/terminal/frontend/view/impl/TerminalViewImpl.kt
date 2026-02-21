@@ -9,6 +9,7 @@ import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.UI
 import com.intellij.openapi.application.asContextElement
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.MockDocumentEvent
 import com.intellij.openapi.editor.ex.EditorEx
@@ -110,6 +111,7 @@ import java.awt.event.FocusListener
 import java.awt.event.KeyEvent
 import javax.swing.JComponent
 import javax.swing.JPanel
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.min
 
 @Suppress("TestOnlyProblems")
@@ -371,8 +373,8 @@ class TerminalViewImpl(
 
       if (TerminalAiInlineCompletion.isEnabled()) {
         configureInlineCompletion(
+          terminalView = this@TerminalViewImpl,
           outputEditor,
-          outputModel,
           shellIntegration,
           coroutineScope.childScope("TerminalInlineCompletion")
         )
@@ -599,8 +601,8 @@ class TerminalViewImpl(
 
   @OptIn(AwaitCancellationAndInvoke::class)
   private fun configureInlineCompletion(
+    terminalView: TerminalView,
     editor: EditorEx,
-    model: TerminalOutputModel,
     shellIntegration: TerminalShellIntegration,
     coroutineScope: CoroutineScope,
   ) {
@@ -610,7 +612,8 @@ class TerminalViewImpl(
       InlineCompletion.remove(editor)
     }
 
-    model.addListener(coroutineScope.asDisposable(), object : TerminalOutputModelListener {
+    val outputModel = terminalView.outputModels.regular
+    outputModel.addListener(coroutineScope.asDisposable(), object : TerminalOutputModelListener {
       var commandText: String? = null
       var cursorPosition: Int? = null
 
@@ -622,25 +625,53 @@ class TerminalViewImpl(
         }
 
         val commandBlock = shellIntegration.blocksModel.activeBlock as? TerminalCommandBlock ?: return
-        val curCommandText = commandBlock.getTypedCommandText(model) ?: return
+        val curCommandText = commandBlock.getTypedCommandText(outputModel) ?: return
 
         val inlineCompletionTypingSession = InlineCompletion.getHandlerOrNull(editor)?.typingSessionTracker
         if (event.isTypeAhead) {
           // Trim because of differing whitespace between terminal and type ahead
           commandText = curCommandText
-          val newCursorOffset = model.cursorOffset.toRelative(model) + 1
+          val newCursorOffset = outputModel.cursorOffset.toRelative(outputModel) + 1
           editor.caretModel.moveToOffset(newCursorOffset)
           inlineCompletionTypingSession?.ignoreDocumentChanges = true
           inlineCompletionTypingSession?.endTypingSession(editor)
           cursorPosition = newCursorOffset
         }
-        else if (commandText != null && (curCommandText != commandText || cursorPosition != model.cursorOffset.toRelative(model))) {
+        else if (commandText != null && (curCommandText != commandText || cursorPosition != outputModel.cursorOffset.toRelative(outputModel))) {
           inlineCompletionTypingSession?.ignoreDocumentChanges = false
           inlineCompletionTypingSession?.collectTypedCharOrInvalidateSession(MockDocumentEvent(editor.document, 0), editor)
           commandText = null
         }
       }
     })
+
+    coroutineScope.launch(Dispatchers.UI) {
+      terminalView.keyEventsFlow.collect {
+        try {
+          val session = InlineCompletion.getHandlerOrNull(editor)?.typingSessionTracker ?: return@collect
+          when (it.awtEvent.id) {
+            KeyEvent.KEY_PRESSED -> {
+              session.endTypingSession(editor)
+              // To invalidate inline completion in the case of inputs like backspace, CTRL + C, etc.
+              session.ignoreDocumentChanges = false
+            }
+            KeyEvent.KEY_TYPED -> {
+              editor.caretModel.moveToOffset(outputModel.cursorOffset.toRelative(outputModel))
+              session.startTypingSession(editor)
+            }
+            else -> {
+              // Shouldn't be the case.
+            }
+          }
+        }
+        catch (e: CancellationException) {
+          throw e
+        }
+        catch (e: Exception) {
+          LOG.error("Exception when handling inline completion key event: $it", e)
+        }
+      }
+    }
   }
 
   private fun configureCommandCompletion(
@@ -825,6 +856,10 @@ class TerminalViewImpl(
       val compHeight = min(prefSize.height, maxSize.height)
       component.setBounds(width - compWidth, 0, compWidth, compHeight)
     }
+  }
+
+  companion object {
+    private val LOG = logger<TerminalViewImpl>()
   }
 }
 

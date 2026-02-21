@@ -2,7 +2,6 @@
 package com.intellij.terminal.frontend.view.impl
 
 import com.google.common.base.Ascii
-import com.intellij.codeInsight.inline.completion.InlineCompletion
 import com.intellij.codeInsight.lookup.LookupManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.trace
@@ -75,11 +74,6 @@ internal open class TerminalKeyEventsHandlerImpl(
 
   private fun processTerminalKeyPressed(e: TimedKeyEvent): Boolean {
     try {
-      val inlineCompletionTypingSession = InlineCompletion.getHandlerOrNull(editor)?.typingSessionTracker
-      inlineCompletionTypingSession?.endTypingSession(editor)
-      // To invalidate inline completion in case of inputs like backspace, CTRL + C, etc.
-      inlineCompletionTypingSession?.ignoreDocumentChanges = false
-
       val keyCode = e.original.keyCode
       val keyChar = e.original.keyChar
       if (isNoModifiers(e.original) && keyCode == KeyEvent.VK_BACK_SPACE) {
@@ -151,10 +145,6 @@ internal open class TerminalKeyEventsHandlerImpl(
     }
     val typedString = keyChar.toString()
     if (e.original.id == KeyEvent.KEY_TYPED) {
-      val inlineCompletionTypingSession = InlineCompletion.getHandlerOrNull(editor)?.typingSessionTracker
-      editor.caretModel.moveToOffset(outputModel.cursorOffset.toRelative(outputModel))
-      inlineCompletionTypingSession?.startTypingSession(editor)
-
       typeAhead?.type(typedString)
       terminalInput.sendTrackedString(typedString, eventTime = e.initTime)
     }
