@@ -7,6 +7,7 @@ import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.actionSystem.UiDataProvider
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.application.UI
 import com.intellij.openapi.application.asContextElement
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.MockDocumentEvent
@@ -105,6 +106,7 @@ import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
 import java.awt.event.FocusEvent
 import java.awt.event.FocusListener
+import java.awt.event.KeyEvent
 import javax.swing.JComponent
 import javax.swing.JPanel
 import kotlin.math.min
@@ -349,6 +351,7 @@ class TerminalViewImpl(
     listenPanelSizeChanges()
     listenAlternateBufferSwitch()
     listenApplicationTitleChanges()
+    listenKeyEvents()
 
     TerminalVfsSynchronizer.install(
       terminalView = this,
@@ -492,6 +495,18 @@ class TerminalViewImpl(
         title.change {
           @Suppress("HardCodedStringLiteral")
           applicationTitle = state.windowTitle
+        }
+      }
+    }
+  }
+
+  /** Logic that can be performed asynchronously with typing */
+  private fun listenKeyEvents() {
+    coroutineScope.launch(Dispatchers.UI + CoroutineName("Key events listener")) {
+      keyEventsFlow.collect { e ->
+        if (e.awtEvent.id == KeyEvent.KEY_TYPED) {
+          outputEditor.selectionModel.let { if (it.hasSelection()) it.removeSelection() }
+          alternateBufferEditor.selectionModel.let { if (it.hasSelection()) it.removeSelection() }
         }
       }
     }

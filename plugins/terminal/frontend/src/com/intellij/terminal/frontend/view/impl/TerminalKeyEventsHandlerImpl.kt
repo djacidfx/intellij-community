@@ -59,11 +59,6 @@ internal open class TerminalKeyEventsHandlerImpl(
     val charTyped = e.original.keyChar
     val beforeKeyTypedCursorOffset = outputModel.cursorOffset
 
-    val selectionModel = editor.selectionModel
-    if (selectionModel.hasSelection()) {
-      selectionModel.removeSelection()
-    }
-
     if (ignoreNextKeyTypedEvent) {
       e.original.consume()
       LOG.trace { "Key event ignored: ${e.original}" }
