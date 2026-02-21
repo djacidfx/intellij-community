@@ -140,7 +140,7 @@ class TerminalViewImpl(
 
   private val terminalPanel: TerminalPanel
   @VisibleForTesting
-  val outputEditorEventsHandler: TerminalEventsHandler
+  val outputEditorKeyEventsHandler: TerminalKeyEventsHandler
 
   @VisibleForTesting
   val shellIntegrationFeaturesInitJob: Job
@@ -200,10 +200,9 @@ class TerminalViewImpl(
     TerminalSourceNavigationInfo.setProjectPath(alternateBufferEditor, sourceNavigationProjectPath)
     val alternateBufferModel = MutableTerminalOutputModelImpl(alternateBufferEditor.document, maxOutputLength = 0)
     val alternateBufferModelController = TerminalOutputModelControllerImpl(alternateBufferModel)
-    val alternateBufferEventsHandler = TerminalEventsHandlerImpl(
+    val alternateBufferKeyEventsHandler = TerminalKeyEventsHandlerImpl(
       mutableKeyEventsFlow,
       terminalView = this,
-      sessionModel,
       alternateBufferEditor,
       encodingManager,
       terminalInput,
@@ -214,6 +213,14 @@ class TerminalViewImpl(
       startupOptionsDeferred = null,
       typeAhead = null,
     )
+    val alternateBufferMouseEventsHandler = TerminalMouseEventsHandlerImpl(
+      alternateBufferEditor,
+      terminalInput,
+      sessionModel,
+      encodingManager,
+      settings,
+    )
+
     configureOutputEditor(
       project,
       editor = alternateBufferEditor,
@@ -224,8 +231,10 @@ class TerminalViewImpl(
       coroutineScope.childScope("TerminalAlternateBufferModel"),
       fusCursorPaintingListener,
       fusFirstOutputListener,
-      alternateBufferEventsHandler,
+      alternateBufferKeyEventsHandler,
+      alternateBufferMouseEventsHandler,
     )
+
     alternateBufferHyperlinkFacade = FrontendTerminalHyperlinkFacade(
       isInAlternateBuffer = true,
       editor = alternateBufferEditor,
@@ -251,10 +260,9 @@ class TerminalViewImpl(
     )
     outputEditor.putUserData(TerminalTypeAhead.KEY, outputModelController)
 
-    outputEditorEventsHandler = TerminalEventsHandlerImpl(
+    outputEditorKeyEventsHandler = TerminalKeyEventsHandlerImpl(
       mutableKeyEventsFlow,
       terminalView = this,
-      sessionModel,
       outputEditor,
       encodingManager,
       terminalInput,
@@ -264,6 +272,13 @@ class TerminalViewImpl(
       shellIntegrationDeferred,
       startupOptionsDeferred,
       typeAhead = outputModelController
+    )
+    val outputEditorMouseEventsHandler = TerminalMouseEventsHandlerImpl(
+      outputEditor,
+      terminalInput,
+      sessionModel,
+      encodingManager,
+      settings,
     )
 
     configureOutputEditor(
@@ -276,7 +291,8 @@ class TerminalViewImpl(
       coroutineScope.childScope("TerminalOutputModel"),
       fusCursorPaintingListener,
       fusFirstOutputListener,
-      outputEditorEventsHandler,
+      outputEditorKeyEventsHandler,
+      outputEditorMouseEventsHandler,
     )
 
     outputEditor.putUserData(TerminalSessionModel.KEY, sessionModel)
@@ -498,7 +514,8 @@ class TerminalViewImpl(
     coroutineScope: CoroutineScope,
     fusCursorPainterListener: TerminalFusCursorPainterListener?,
     fusFirstOutputListener: TerminalFusFirstOutputListener?,
-    eventsHandler: TerminalEventsHandlerImpl,
+    keyEventsHandler: TerminalKeyEventsHandlerImpl,
+    mouseEventsHandler: TerminalMouseEventsHandlerImpl,
   ) {
     val parentDisposable = coroutineScope.asDisposable() // same lifecycle as `this@ReworkedTerminalView`
 
@@ -534,8 +551,8 @@ class TerminalViewImpl(
       cursorPainter.addListener(parentDisposable, fusCursorPainterListener)
     }
 
-    setupKeyEventHandling(editor, settings, eventsHandler, parentDisposable)
-    setupMouseListener(editor, sessionModel, settings, eventsHandler, parentDisposable)
+    setupKeyEventsHandling(editor, settings, keyEventsHandler, parentDisposable)
+    setupMouseEventsHandling(editor, sessionModel, settings, mouseEventsHandler, parentDisposable)
 
     TerminalOutputEditorInputMethodSupport(
       editor,
