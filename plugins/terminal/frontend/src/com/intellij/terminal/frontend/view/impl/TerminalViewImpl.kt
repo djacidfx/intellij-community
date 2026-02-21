@@ -31,6 +31,7 @@ import com.intellij.terminal.frontend.view.TerminalView
 import com.intellij.terminal.frontend.view.TerminalViewSessionState
 import com.intellij.terminal.frontend.view.completion.ShellDataGeneratorsExecutorReworkedImpl
 import com.intellij.terminal.frontend.view.completion.ShellRuntimeContextProviderReworkedImpl
+import com.intellij.terminal.frontend.view.completion.TerminalCommandCompletionTypingListener
 import com.intellij.terminal.frontend.view.hyperlinks.FrontendTerminalHyperlinkFacade
 import com.intellij.ui.components.JBLayeredPane
 import com.intellij.ui.components.panels.ListLayout
@@ -204,15 +205,12 @@ class TerminalViewImpl(
     val alternateBufferModelController = TerminalOutputModelControllerImpl(alternateBufferModel)
     val alternateBufferKeyEventsHandler = TerminalKeyEventsHandlerImpl(
       mutableKeyEventsFlow,
-      terminalView = this,
       alternateBufferEditor,
       encodingManager,
       terminalInput,
       settings,
       scrollingModel = null,
       alternateBufferModel,
-      shellIntegrationDeferred = null,
-      startupOptionsDeferred = null,
       typeAhead = null,
     )
     val alternateBufferMouseEventsHandler = TerminalMouseEventsHandlerImpl(
@@ -264,15 +262,12 @@ class TerminalViewImpl(
 
     outputEditorKeyEventsHandler = TerminalKeyEventsHandlerImpl(
       mutableKeyEventsFlow,
-      terminalView = this,
       outputEditor,
       encodingManager,
       terminalInput,
       settings,
       scrollingModel,
       outputModel,
-      shellIntegrationDeferred,
-      startupOptionsDeferred,
       typeAhead = outputModelController
     )
     val outputEditorMouseEventsHandler = TerminalMouseEventsHandlerImpl(
@@ -385,6 +380,7 @@ class TerminalViewImpl(
 
       val startupOptions = startupOptionsDeferred.await()
       configureCommandCompletion(
+        terminalView = this@TerminalViewImpl,
         outputEditor,
         sessionModel,
         shellIntegration,
@@ -648,7 +644,8 @@ class TerminalViewImpl(
   }
 
   private fun configureCommandCompletion(
-    editor: Editor,
+    terminalView: TerminalView,
+    editor: EditorEx,
     sessionModel: TerminalSessionModel,
     shellIntegration: TerminalShellIntegration,
     envVariables: Map<String, String>,
@@ -664,6 +661,12 @@ class TerminalViewImpl(
       )
     )
     editor.putUserData(TerminalCommandCompletionServices.KEY, services)
+
+    TerminalCommandCompletionTypingListener.install(
+      terminalView,
+      editor,
+      coroutineScope.childScope("TerminalCommandCompletionTypingListener")
+    )
   }
 
   override fun toString(): String {

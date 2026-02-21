@@ -10,15 +10,9 @@ import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.terminal.JBTerminalSystemSettingsProviderBase
 import com.intellij.terminal.frontend.view.TerminalKeyEvent
 import com.intellij.terminal.frontend.view.TerminalKeyEventImpl
-import com.intellij.terminal.frontend.view.TerminalView
-import com.intellij.terminal.frontend.view.completion.TerminalCommandCompletionTypingListener
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.flow.MutableSharedFlow
 import org.jetbrains.plugins.terminal.block.reworked.TerminalUsageLocalStorage
-import org.jetbrains.plugins.terminal.block.util.TerminalDataContextUtils.isOutputModelEditor
-import org.jetbrains.plugins.terminal.session.TerminalStartupOptions
 import org.jetbrains.plugins.terminal.view.TerminalOutputModel
-import org.jetbrains.plugins.terminal.view.shellIntegration.TerminalShellIntegration
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
 
@@ -29,30 +23,15 @@ import java.awt.event.KeyEvent
  */
 internal open class TerminalKeyEventsHandlerImpl(
   private val keyEventsFlow: MutableSharedFlow<TerminalKeyEvent>,
-  terminalView: TerminalView,
   private val editor: EditorEx,
   private val encodingManager: TerminalKeyEncodingManager,
   private val terminalInput: TerminalInput,
   private val settings: JBTerminalSystemSettingsProviderBase,
   private val scrollingModel: TerminalOutputScrollingModel?,
   private val outputModel: TerminalOutputModel,
-  shellIntegrationDeferred: Deferred<TerminalShellIntegration>?,
-  startupOptionsDeferred: Deferred<TerminalStartupOptions>?,
   private val typeAhead: TerminalTypeAhead?,
 ) : TerminalKeyEventsHandler {
   private var ignoreNextKeyTypedEvent: Boolean = false
-
-  private val completionTypingListener: TerminalCommandCompletionTypingListener? =
-    if (editor.isOutputModelEditor && shellIntegrationDeferred != null && startupOptionsDeferred != null) {
-      TerminalCommandCompletionTypingListener(
-        terminalView,
-        editor,
-        outputModel,
-        shellIntegrationDeferred,
-        startupOptionsDeferred,
-      )
-    }
-    else null
 
   override fun keyTyped(e: TimedKeyEvent) {
     LOG.trace { "Key typed event received: ${e.original}" }
@@ -77,8 +56,6 @@ internal open class TerminalKeyEventsHandlerImpl(
     }
 
     syncEditorCaretWithModel(editor, outputModel)
-    completionTypingListener?.onCharTyped(beforeKeyTypedCursorOffset, charTyped)
-
     check(keyEventsFlow.tryEmit(TerminalKeyEventImpl(e.original, beforeKeyTypedCursorOffset)))
   }
 
