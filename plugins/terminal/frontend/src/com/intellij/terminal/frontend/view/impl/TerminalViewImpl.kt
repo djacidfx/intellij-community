@@ -350,13 +350,10 @@ class TerminalViewImpl(
     listenAlternateBufferSwitch()
     listenApplicationTitleChanges()
 
-    val synchronizer = TerminalVfsSynchronizer(
-      shellIntegrationDeferred,
-      outputModel,
-      terminalPanel,
+    TerminalVfsSynchronizer.install(
+      terminalView = this,
       coroutineScope.childScope("TerminalVfsSynchronizer"),
     )
-    outputEditor.putUserData(TerminalVfsSynchronizer.KEY, synchronizer)
 
     shellIntegrationFeaturesInitJob = coroutineScope.launch(
       Dispatchers.EDT +

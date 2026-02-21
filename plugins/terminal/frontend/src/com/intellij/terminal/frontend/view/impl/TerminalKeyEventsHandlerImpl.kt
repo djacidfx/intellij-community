@@ -42,9 +42,6 @@ internal open class TerminalKeyEventsHandlerImpl(
 ) : TerminalKeyEventsHandler {
   private var ignoreNextKeyTypedEvent: Boolean = false
 
-  private val vfsSynchronizer: TerminalVfsSynchronizer?
-    get() = editor.getUserData(TerminalVfsSynchronizer.KEY)
-
   private val completionTypingListener: TerminalCommandCompletionTypingListener? =
     if (editor.isOutputModelEditor && shellIntegrationDeferred != null && startupOptionsDeferred != null) {
       TerminalCommandCompletionTypingListener(
@@ -110,8 +107,6 @@ internal open class TerminalKeyEventsHandlerImpl(
       inlineCompletionTypingSession?.endTypingSession(editor)
       // To invalidate inline completion in case of inputs like backspace, CTRL + C, etc.
       inlineCompletionTypingSession?.ignoreDocumentChanges = false
-
-      vfsSynchronizer?.handleKeyPressed(e.original)
 
       val keyCode = e.original.keyCode
       val keyChar = e.original.keyChar
