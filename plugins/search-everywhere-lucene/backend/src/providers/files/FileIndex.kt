@@ -44,6 +44,7 @@ import org.apache.lucene.search.BoostQuery
 import org.apache.lucene.search.FuzzyQuery
 import org.apache.lucene.search.PrefixQuery
 import org.apache.lucene.search.Query
+import org.jetbrains.annotations.TestOnly
 import java.io.IOException
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -97,6 +98,11 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
         }
       }
     }
+  }
+
+  @TestOnly
+  suspend fun awaitIndexCreation() {
+    processFileIndexOp(LuceneFileIndexOperation.IndexAll)
   }
 
   // TODO somehow inform UI that indexing is in progress
