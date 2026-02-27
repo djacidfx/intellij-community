@@ -33,6 +33,9 @@ import com.intellij.platform.ijent.fs.IjentFileSystemWindowsApi
 import com.intellij.util.io.PosixFilePermissionsUtil
 import com.intellij.util.text.nullize
 import com.sun.nio.file.ExtendedCopyOption
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.job
+import org.jetbrains.annotations.TestOnly
 import java.io.IOException
 import java.net.URI
 import java.nio.channels.AsynchronousFileChannel
@@ -692,6 +695,18 @@ class IjentNioFileSystemProvider : FileSystemProvider() {
       authorityRegistry[uri]
     }
 
+  @TestOnly
+  fun getNioFs(ijentFs: IjentFileSystemApi): IjentNioFileSystem =
+    criticalSection {
+      authorityRegistry.entries
+        .single { (_, fs) ->
+          // Checking by descriptor to match IjentFailSafeFileSystemApi with its wrapped IjentFileSystemApi.
+          fs.descriptor == ijentFs.descriptor
+        }
+        .key
+        .let(::getFileSystem)
+    }
+
   @OptIn(ExperimentalContracts::class)
   private fun ensureIjentNioPath(path: Path): IjentNioPath {
     contract {
@@ -716,6 +731,18 @@ class IjentNioFileSystemProvider : FileSystemProvider() {
     }
 
     return path
+  }
+
+  @TestOnly
+  fun maskFileSystems(lifetime: CoroutineScope) {
+    criticalSection {
+      val oldAuthority = authorityRegistry.toMutableMap()
+      authorityRegistry.clear()
+      lifetime.coroutineContext.job.invokeOnCompletion {
+        authorityRegistry.clear()
+        authorityRegistry.putAll(oldAuthority)
+      }
+    }
   }
 }
 
