@@ -50,6 +50,11 @@ public class K1CodeFragmentCompletionHandlerTestGenerated extends AbstractK1Code
         runTest("../../completion/testData/handlers/runtimeCast/CastRuntimeTypeCompletion.kt");
     }
 
+    @TestMetadata("CastToIntersectionConjunct.kt")
+    public void testCastToIntersectionConjunct() throws Exception {
+        runTest("../../completion/testData/handlers/runtimeCast/CastToIntersectionConjunct.kt");
+    }
+
     @TestMetadata("InsertExtFunction.kt")
     public void testInsertExtFunction() throws Exception {
         runTest("../../completion/testData/handlers/runtimeCast/InsertExtFunction.kt");

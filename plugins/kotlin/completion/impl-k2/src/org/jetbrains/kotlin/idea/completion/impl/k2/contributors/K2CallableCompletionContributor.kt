@@ -27,8 +27,10 @@ import org.jetbrains.kotlin.analysis.api.components.containingSymbol
 import org.jetbrains.kotlin.analysis.api.components.declarationScope
 import org.jetbrains.kotlin.analysis.api.components.defaultType
 import org.jetbrains.kotlin.analysis.api.components.expressionType
+import org.jetbrains.kotlin.analysis.api.components.fakeOverrideOriginal
 import org.jetbrains.kotlin.analysis.api.components.isDenotable
 import org.jetbrains.kotlin.analysis.api.components.isStringType
+import org.jetbrains.kotlin.analysis.api.components.isSubtypeOf
 import org.jetbrains.kotlin.analysis.api.components.lowerBoundIfFlexible
 import org.jetbrains.kotlin.analysis.api.components.memberScope
 import org.jetbrains.kotlin.analysis.api.components.packageScope
@@ -63,8 +65,10 @@ import org.jetbrains.kotlin.analysis.api.symbols.KaPackageSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolLocation
 import org.jetbrains.kotlin.analysis.api.symbols.KaSyntheticJavaPropertySymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaValueParameterSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.receiverType
 import org.jetbrains.kotlin.analysis.api.symbols.symbol
 import org.jetbrains.kotlin.analysis.api.types.KaErrorType
+import org.jetbrains.kotlin.analysis.api.types.KaIntersectionType
 import org.jetbrains.kotlin.analysis.api.types.KaType
 import org.jetbrains.kotlin.analysis.api.types.symbol
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.collectReceiverTypesForExplicitReceiverExpression
@@ -241,6 +245,7 @@ internal abstract class K2AbstractCallableCompletionContributor<P : KotlinNameRe
                         return@map builder
 
                     val explicitReceiverTypeHint = callableWithMetadata.explicitReceiverTypeHint
+                        ?.resolveDenotableConjunct(callableWithMetadata.signature.symbol)
                         ?: return@map builder
 
                     val typeWithStarProjections = explicitReceiverTypeHint.replaceTypeParametersWithStarProjections()
@@ -722,6 +727,21 @@ internal abstract class K2AbstractCallableCompletionContributor<P : KotlinNameRe
             aliasName = aliasName,
             _explicitReceiverTypeHint = explicitReceiverTypeHint,
         )
+    }
+
+    /**
+     * In case type of the receiver is an intersection type (for `object : A(), B, C { ... }` the type is (`A & B & C`)),
+     * we should pick the single conjunct that declares [symbol] and use that to generate a type hint.
+     */
+    context(_: KaSession)
+    private fun KaType.resolveDenotableConjunct(symbol: KaCallableSymbol): KaType? {
+        if (this !is KaIntersectionType) return this
+        val expectedReceiverType = symbol.receiverType
+            ?: (symbol.fakeOverrideOriginal.containingSymbol as? KaClassSymbol)?.defaultType
+        val matching = expectedReceiverType?.let {
+            conjuncts.firstOrNull { conjunct -> conjunct.isDenotable && conjunct.isSubtypeOf(it) }
+        }
+        return matching
     }
 
     private fun isUninitializedCallable(
