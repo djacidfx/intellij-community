@@ -165,7 +165,7 @@ class HelpersTestCase(unittest.TestCase):
             raise AssertionError("File {} doesn't exist".format(expected_path))
 
         try:
-            self.assertMultiLineEqual(actual_text.strip(), expected.strip())
+            self.assertMultiLineEqual(expected.strip(), actual_text.strip())
         except AssertionError:
             if _override_test_data:
                 self._dump_file(expected_path, actual_text)
