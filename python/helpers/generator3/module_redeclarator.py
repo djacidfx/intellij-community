@@ -677,6 +677,8 @@ class ModuleRedeclarator(object):
                     continue # in all other cases must be skipped
             elif keyword.iskeyword(item_name):  # for example, PyQt4 contains definitions of methods named 'exec'
                 continue
+            elif item_name in PURE_PYTHON_CLASS_ATTRS:
+                continue
             elif item_qname in CLASS_ATTR_BLACKLIST:
                 note('skipping blacklisted attribute ' + item_qname)
                 item = field_source.get(item_name)
@@ -864,7 +866,11 @@ class ModuleRedeclarator(object):
             if item_name in (
                 "__dict__", "__doc__", "__module__", "__file__", "__name__", "__builtins__", "__package__"):
                 continue # handled otherwise
-            if self.test_mode and item_name in ('__loader__', '__spec__', '__cached__'):
+            if self.test_mode and (
+                    item_name in ('__loader__', '__spec__', '__cached__') or
+                    # In tests some modules are simulated with normal class objects
+                    item_name in PURE_PYTHON_CLASS_ATTRS
+            ):
                 continue
             try:
                 item = getattr(self.module, item_name) # let getters do the magic

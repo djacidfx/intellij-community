@@ -696,6 +696,12 @@ CLASS_ATTR_BLACKLIST = [
     'panda3d.core.ExecutionEnvironment.environment_variables',
 ]
 
+PURE_PYTHON_CLASS_ATTRS = [
+    "__static_attributes__",
+    "__firstlineno__",
+    "__weakref__"
+]
+
 SKELETON_HEADER_VERSION_LINE = re.compile(r'# by generator (?P<version>\d+\.\d+)')
 SKELETON_HEADER_ORIGIN_LINE = re.compile(r'# from (?P<path>.*)')
 REQUIRED_GEN_VERSION_LINE = re.compile(r'(?P<name>\S+)\s+(?P<version>\d+\.\d+)')
