@@ -14,6 +14,7 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer
 import org.apache.lucene.document.Document
 import org.apache.lucene.index.IndexWriter
 import org.apache.lucene.index.IndexWriterConfig
+import org.apache.lucene.search.Explanation
 import org.apache.lucene.search.IndexSearcher
 import org.apache.lucene.search.Query
 import org.apache.lucene.search.ScoreDoc
@@ -138,6 +139,16 @@ class LuceneIndex(val project: Project, indexName: String, val log: Logger) : Di
         searcherManager.release(searcher)
       }
     }.buffer(0, onBufferOverflow = BufferOverflow.SUSPEND)
+  }
+  fun <T> withSearcher(block: (IndexSearcher) -> T): T {
+    val searcherManager = atomicIndexRW.load().searcherManager
+    val searcher = searcherManager.acquire()
+    try {
+      return block(searcher)
+    }
+    finally {
+      searcherManager.release(searcher)
+    }
   }
 
   override fun dispose() {

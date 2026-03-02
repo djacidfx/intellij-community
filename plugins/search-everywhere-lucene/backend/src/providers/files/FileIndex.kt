@@ -212,17 +212,6 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
   }
 
 
-  fun buildQuery(params: SeParams): Query {
-    val fixedPattern = params.inputQuery.trim().lowercase()
-    val prefixQuery = BoostQuery(PrefixQuery(Term(FILE_LOWERCASE_NAME, fixedPattern)), 5f)
-    val fuzzyQuery = FuzzyQuery(Term(FILE_LOWERCASE_NAME, fixedPattern))
-
-    val builder = BooleanQuery.Builder()
-    builder.add(prefixQuery, BooleanClause.Occur.SHOULD)
-    builder.add(fuzzyQuery, BooleanClause.Occur.SHOULD)
-    return builder.build()
-  }
-
   fun search(params: SeParams): Flow<LuceneFileSearchResult> {
     if (!indexingEnabled) return emptyFlow()
 
@@ -287,6 +276,16 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
       val term = getTerm(virtualFile.url)
 
       return Pair(term, document)
+    }
+    fun buildQuery(params: SeParams): Query {
+      val fixedPattern = params.inputQuery.trim().lowercase()
+      val prefixQuery = BoostQuery(PrefixQuery(Term(FILE_LOWERCASE_NAME, fixedPattern)), 5f)
+      val fuzzyQuery = FuzzyQuery(Term(FILE_LOWERCASE_NAME, fixedPattern))
+
+      val builder = BooleanQuery.Builder()
+      builder.add(prefixQuery, BooleanClause.Occur.SHOULD)
+      builder.add(fuzzyQuery, BooleanClause.Occur.SHOULD)
+      return builder.build()
     }
 
     private fun getTerm(url: String): Term {
