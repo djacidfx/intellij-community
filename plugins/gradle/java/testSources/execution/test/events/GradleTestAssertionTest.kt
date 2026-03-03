@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.plugins.gradle.execution.test.events
 
 import com.intellij.gradle.toolingExtension.util.GradleVersionUtil
@@ -9,12 +9,10 @@ import org.gradle.util.GradleVersion
 import org.jetbrains.plugins.gradle.testFramework.GradleTestExecutionTestCase
 import org.jetbrains.plugins.gradle.testFramework.GradleTestFixtureBuilder
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
-import org.jetbrains.plugins.gradle.testFramework.util.assumeThatGradleIsAtLeast
-import org.jetbrains.plugins.gradle.testFramework.util.assumeThatJunit5IsSupported
 import org.jetbrains.plugins.gradle.testFramework.util.withBuildFile
 import org.jetbrains.plugins.gradle.testFramework.util.withSettingsFile
+import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
 import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.Assumptions
 import org.junit.jupiter.params.ParameterizedTest
 
 class GradleTestAssertionTest : GradleTestExecutionTestCase() {
@@ -1628,14 +1626,9 @@ class GradleTestAssertionTest : GradleTestExecutionTestCase() {
   }
 
   @ParameterizedTest
+  @TargetVersions("8.4+")
   @AllGradleVersionsSource
   fun `test assertion result of Junit 4 (Opentest4j FileComparisonFailure)`(gradleVersion: GradleVersion) {
-    assumeThatGradleIsAtLeast(gradleVersion, "7.6") {
-      "Integration between Intellij and Gradle ${gradleVersion.version} doesn't support custom assertion exceptions."
-    }
-    assumeThatGradleIsAtLeast(gradleVersion, "8.4") {
-      "Integration between Junit 4 and Gradle ${gradleVersion.version} doesn't support Opentest4j assertion exceptions."
-    }
     testJunit4Opentest4jProject(gradleVersion) {
       val expectedPath = writeText("expected.txt", "Expected text.").path
       val actualPath = writeText("actual.txt", "Actual text.").path
@@ -1727,11 +1720,27 @@ class GradleTestAssertionTest : GradleTestExecutionTestCase() {
   }
 
   @ParameterizedTest
+  @TargetVersions("<7.6")
   @AllGradleVersionsSource
-  fun `test assertion result of Junit 4 (Opentest4j FileInfo)`(gradleVersion: GradleVersion) {
-    Assumptions.assumeTrue(GradleVersionUtil.isGradleOlderThan(gradleVersion, "7.6") || GradleVersionUtil.isGradleAtLeast(gradleVersion, "8.4")) {
+  fun `test assertion result of Junit 4 (Opentest4j FileInfo) for Gradle older than 7_6`(gradleVersion: GradleVersion) {
+    `test assertion result of Junit 4 (Opentest4j FileInfo)`(gradleVersion)
+  }
+
+  @ParameterizedTest
+  @TargetVersions("8.4+")
+  @AllGradleVersionsSource
+  fun `test assertion result of Junit 4 (Opentest4j FileInfo) for Gradle at least 8_4`(gradleVersion: GradleVersion) {
+    `test assertion result of Junit 4 (Opentest4j FileInfo)`(gradleVersion)
+  }
+
+  private fun `test assertion result of Junit 4 (Opentest4j FileInfo)`(gradleVersion: GradleVersion) {
+    Assertions.assertTrue(
+      GradleVersionUtil.isGradleOlderThan(gradleVersion, "7.6") ||
+      GradleVersionUtil.isGradleAtLeast(gradleVersion, "8.4")
+    ) {
       "Integration between Junit 4 and Gradle ${gradleVersion.version} doesn't support Opentest4j assertion exceptions."
     }
+
     testJunit4Opentest4jProject(gradleVersion) {
       val expectedPath = writeText("expected.txt", "Expected text.").path
       val actualPath = writeText("actual.txt", "Actual text.").path
@@ -1805,9 +1814,9 @@ class GradleTestAssertionTest : GradleTestExecutionTestCase() {
   }
 
   @ParameterizedTest
+  @TargetVersions("4.7+")
   @AllGradleVersionsSource
   fun `test assertion result of Junit 5 (IJ FileComparisonFailure)`(gradleVersion: GradleVersion) {
-    assumeThatJunit5IsSupported(gradleVersion)
     val fixture = GradleTestFixtureBuilder.create("GradleTestAssertionTest-file-comparison-junit-5") {
       withSettingsFile(gradleVersion) {
         setProjectName("GradleTestAssertionTest-file-comparison-junit-5")

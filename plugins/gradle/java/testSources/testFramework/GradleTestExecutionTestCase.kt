@@ -1,23 +1,22 @@
-// Copyright 2000-2023 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.plugins.gradle.testFramework
 
 import org.gradle.util.GradleVersion
 import org.jetbrains.plugins.gradle.frameworkSupport.buildscript.isJunit5Supported
-import org.jetbrains.plugins.gradle.testFramework.util.assumeThatJunit5IsSupported
-import org.jetbrains.plugins.gradle.testFramework.util.assumeThatSpockIsSupported
 import org.jetbrains.plugins.gradle.testFramework.util.withBuildFile
 import org.jetbrains.plugins.gradle.testFramework.util.withSettingsFile
+import org.junit.jupiter.api.Assertions
 
 abstract class GradleTestExecutionTestCase : GradleTestExecutionBaseTestCase() {
 
   val jUnitTestAnnotationClass: String
-    get() = when (isJunit5Supported(gradleVersion)) {
+    get() = when (isJunit5Supported()) {
       true -> "org.junit.jupiter.api.Test"
       else -> "org.junit.Test"
     }
 
   val jUnitIgnoreAnnotationClass: String
-    get() = when (isJunit5Supported(gradleVersion)) {
+    get() = when (isJunit5Supported()) {
       true -> "org.junit.jupiter.api.Disabled"
       else -> "org.junit.Ignore"
     }
@@ -30,8 +29,17 @@ abstract class GradleTestExecutionTestCase : GradleTestExecutionBaseTestCase() {
 
   fun isOpentest4jSupportedByGradleJunit4Integration(): Boolean = isGradleAtLeast("8.4")
 
+  fun assertJunit5IsSupported(gradleVersion: GradleVersion) {
+    Assertions.assertTrue(isJunit5Supported(gradleVersion)) {
+      """
+        |Gradle $gradleVersion doesn't support Junit 5.
+        |Please, use @TargetVersions("4.7+") annotation to ignore this version.
+      """.trimMargin()
+    }
+  }
+
   fun testJunitPlatformProject(gradleVersion: GradleVersion, action: () -> Unit) {
-    assumeThatJunit5IsSupported(gradleVersion)
+    assertJunit5IsSupported(gradleVersion)
     testJavaProject(gradleVersion, action)
   }
 
@@ -48,12 +56,12 @@ abstract class GradleTestExecutionTestCase : GradleTestExecutionBaseTestCase() {
   }
 
   fun testJunit5AssertJProject(gradleVersion: GradleVersion, action: () -> Unit) {
-    assumeThatJunit5IsSupported(gradleVersion)
+    assertJunit5IsSupported(gradleVersion)
     test(gradleVersion, JAVA_JUNIT5_ASSERTJ_FIXTURE, action)
   }
 
   fun testSpockProject(gradleVersion: GradleVersion, action: () -> Unit) {
-    assumeThatSpockIsSupported(gradleVersion)
+    assertSpockIsSupported(gradleVersion)
     test(gradleVersion, GROOVY_SPOCK_FIXTURE, action)
   }
 

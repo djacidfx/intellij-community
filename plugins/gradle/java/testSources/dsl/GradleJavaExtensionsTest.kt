@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.plugins.gradle.dsl
 
 import com.intellij.psi.PsiMethod
@@ -6,7 +6,7 @@ import org.gradle.util.GradleVersion
 import org.jetbrains.plugins.gradle.service.resolve.GradleCommonClassNames.GRADLE_API_JAVA_PLUGIN_EXTENSION
 import org.jetbrains.plugins.gradle.testFramework.GradleCodeInsightTestCase
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
-import org.jetbrains.plugins.gradle.testFramework.util.assumeThatJavaConventionsBlockIsSupported
+import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
 import org.junit.jupiter.params.ParameterizedTest
 
 class GradleJavaExtensionsTest : GradleCodeInsightTestCase() {
@@ -16,8 +16,8 @@ class GradleJavaExtensionsTest : GradleCodeInsightTestCase() {
     java."<caret>docsDir",
     "project.java.<caret>docsDir"
   """)
+  @TargetVersions("7.1+")
   fun `test property read`(gradleVersion: GradleVersion, decorator: String, expression: String) {
-    assumeThatJavaConventionsBlockIsSupported(gradleVersion)
     testJavaProject(gradleVersion) {
       testBuildscript(decorator, expression) {
         methodTest(resolveTest(PsiMethod::class.java), "getDocsDir", GRADLE_API_JAVA_PLUGIN_EXTENSION)
@@ -27,8 +27,8 @@ class GradleJavaExtensionsTest : GradleCodeInsightTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource(PROJECT_CONTEXTS)
+  @TargetVersions("7.1+")
   fun `test property write`(gradleVersion: GradleVersion, decorator: String) {
-    assumeThatJavaConventionsBlockIsSupported(gradleVersion)
     testJavaProject(gradleVersion) {
       testBuildscript(decorator, "java.<caret>sourceCompatibility = 42") {
         methodTest(resolveTest(PsiMethod::class.java), "setSourceCompatibility", GRADLE_API_JAVA_PLUGIN_EXTENSION)
@@ -39,8 +39,8 @@ class GradleJavaExtensionsTest : GradleCodeInsightTestCase() {
   // this test is wrong and exists only to preserve current behaviour and to fail when behaviour changes
   @ParameterizedTest
   @AllGradleVersionsSource(PROJECT_CONTEXTS)
+  @TargetVersions("7.1+")
   fun `test setter method`(gradleVersion: GradleVersion, decorator: String) {
-    assumeThatJavaConventionsBlockIsSupported(gradleVersion)
     testJavaProject(gradleVersion) {
       testBuildscript(decorator, "java.<caret>targetCompatibility('1.8')") {
         setterMethodTest("targetCompatibility", "setTargetCompatibility", GRADLE_API_JAVA_PLUGIN_EXTENSION)

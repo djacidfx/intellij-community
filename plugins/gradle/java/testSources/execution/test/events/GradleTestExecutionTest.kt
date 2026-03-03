@@ -1,4 +1,4 @@
-// Copyright 2000-2023 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.plugins.gradle.execution.test.events
 
 import com.intellij.openapi.application.edtWriteAction
@@ -15,15 +15,14 @@ import org.jetbrains.plugins.gradle.service.execution.GradleExecutionContext
 import org.jetbrains.plugins.gradle.service.project.GradleExecutionHelperExtension
 import org.jetbrains.plugins.gradle.testFramework.GradleTestExecutionTestCase
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
-import org.jetbrains.plugins.gradle.testFramework.util.assumeThatConfigurationCacheIsSupported
-import org.jetbrains.plugins.gradle.testFramework.util.assumeThatGradleIsAtLeast
-import org.jetbrains.plugins.gradle.testFramework.util.assumeThatGradleIsOlderThan
+import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.params.ParameterizedTest
 
 class GradleTestExecutionTest : GradleTestExecutionTestCase() {
 
   @ParameterizedTest
+  @TargetVersions("4.7+")
   @AllGradleVersionsSource
   fun `test grouping events of the same suite comes from different tasks`(gradleVersion: GradleVersion) {
     testJunitPlatformProject(gradleVersion) {
@@ -556,9 +555,9 @@ class GradleTestExecutionTest : GradleTestExecutionTestCase() {
   }
 
   @ParameterizedTest
+  @TargetVersions("8.1+")
   @AllGradleVersionsSource
   fun `test configuration cache for tests`(gradleVersion: GradleVersion) {
-    assumeThatConfigurationCacheIsSupported(gradleVersion)
     testJavaProject(gradleVersion) {
       writeText("src/test/java/org/example/TestCase.java", """
         |package org.example;
