@@ -1,275 +1,187 @@
 // Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.minimap
 
+import com.intellij.ide.minimap.legacy.MinimapLegacyPreview
+import com.intellij.ide.minimap.hover.MinimapHoverController
+import com.intellij.ide.minimap.interaction.MinimapMouseInteractionController
+import com.intellij.ide.minimap.paint.MinimapSelectionPainter
+import com.intellij.ide.minimap.scene.MinimapSnapshot
+import com.intellij.ide.minimap.render.MinimapRenderer
 import com.intellij.ide.minimap.settings.MinimapSettings
+import com.intellij.ide.minimap.settings.MinimapSettingsState
+import com.intellij.ide.ui.customization.CustomActionsSchema
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.editor.event.SelectionEvent
-import com.intellij.openapi.editor.event.SelectionListener
-import com.intellij.openapi.editor.event.VisibleAreaEvent
-import com.intellij.openapi.editor.event.VisibleAreaListener
+import com.intellij.openapi.util.Disposer
 import com.intellij.ui.Gray
 import com.intellij.ui.PopupHandler
+import kotlinx.coroutines.CoroutineScope
 import java.awt.AlphaComposite
-import java.awt.Cursor
 import java.awt.Dimension
 import java.awt.Graphics
 import java.awt.Graphics2D
-import java.awt.Rectangle
-import java.awt.event.ComponentAdapter
-import java.awt.event.ComponentEvent
-import java.awt.event.MouseAdapter
-import java.awt.event.MouseEvent
-import java.awt.event.MouseWheelEvent
-import java.lang.ref.SoftReference
 import javax.swing.JPanel
-import kotlin.math.min
 
-class MinimapPanel(private val parentDisposable: Disposable, private val editor: Editor, private val container: JPanel) : JPanel() {
+class MinimapPanel(
+  private val parentDisposable: Disposable,
+  coroutineScope: CoroutineScope,
+  val editor: Editor,
+  val container: JPanel,
+) : JPanel() {
+  private val renderer = MinimapRenderer()
 
-  private val settings = MinimapSettings.getInstance()
-  private var state = settings.state
+  val settings: MinimapSettings = MinimapSettings.getInstance()
 
-  private var isResizing = false
-  private var isDragging = false
-  private var resizeInitialX = 0
-  private var resizeInitialWidth = 0
+  private var settingsState: MinimapSettingsState = settings.state
 
-  private var minimapImageSoftReference = SoftReference<MinimapImage>(null)
+  private val selectionPainter = MinimapSelectionPainter(editor)
 
-  private var minimapHeight = 0
-  private var areaStart = 0
-  private var areaEnd = 0
+  private val legacyPreview = MinimapLegacyPreview { repaint() }
 
-  private var thumbStart = 0
-  private var thumbHeight = 0
+  private var snapshot: MinimapSnapshot? = null
 
-  private val contentComponentListener = object : ComponentAdapter() {
-    override fun componentResized(componentEvent: ComponentEvent?) {
-      updateParameters()
-      repaint()
-    }
-  }
+  private var initialized = false
 
-  private val componentListener = object : ComponentAdapter() {
-    private var lastHeight = -1
-    override fun componentResized(componentEvent: ComponentEvent?) {
-      if (lastHeight == height) {
-        return
-      }
-      lastHeight = height
-      updateParameters()
-      revalidate()
-      repaint()
-    }
-  }
+  private val minimapController = registerDisposable(
+    MinimapController(
+      coroutineScope,
+      this,
+      container,
+    )
+  )
 
-  private val selectionListener = object : SelectionListener {
-    override fun selectionChanged(e: SelectionEvent) {
-      repaint()
-    }
-  }
+  private val hoverController = registerDisposable(
+    MinimapHoverController(
+      coroutineScope,
+      this,
+      minimapController::isDocumentCommitted
+    )
+  )
 
-  private val visibleAreaListener = object : VisibleAreaListener {
-    private var visibleArea = Rectangle(0, 0, 0, 0)
-
-    override fun visibleAreaChanged(e: VisibleAreaEvent) {
-      if (visibleArea.y == e.newRectangle.y &&
-          visibleArea.height == e.newRectangle.height &&
-          visibleArea.width == e.newRectangle.width) {
-        return
-      }
-      visibleArea = e.newRectangle
-      updateParameters()
-      repaint()
-    }
-  }
+  private val interactionController = registerDisposable(
+    MinimapMouseInteractionController(
+      this,
+      settings,
+      hoverController
+    )
+  )
 
   private val onSettingsChange = { _: MinimapSettings.SettingsChangeType ->
     updatePreferredSize()
     revalidate()
+    minimapController.refreshSnapshot()
     repaint()
   }
 
-  private var initialized = false
-
   init {
-    container.addComponentListener(componentListener)
-    settings.settingsChangeCallback += onSettingsChange
-    editor.scrollingModel.addVisibleAreaListener(visibleAreaListener)
-    editor.selectionModel.addSelectionListener(selectionListener)
-    editor.contentComponent.addComponentListener(contentComponentListener)
-
-    PopupHandler.installPopupMenu(this, createPopupActionGroup(), "Minimap")
-
+    PopupHandler.installPopupMenu(this, createPopupActionGroup(), "MinimapPopup")
+    installSettingsListeners()
     updatePreferredSize()
 
-    val mouseListener = PanelMouseListener()
-    addMouseListener(mouseListener)
-    addMouseWheelListener(mouseListener)
-    addMouseMotionListener(mouseListener)
-  }
-
-  private fun updateParameters() {
-    val visibleArea = editor.scrollingModel.visibleArea
-    val componentHeight = editor.contentComponent.height
-    minimapHeight = (componentHeight * state.width / visibleArea.width.toDouble()).toInt()
-
-    val proportion = minimapHeight.toDouble() / componentHeight
-
-    thumbStart = (visibleArea.y * proportion).toInt()
-    thumbHeight = (visibleArea.height * proportion).toInt()
-
-    areaStart = ((thumbStart / (minimapHeight - thumbHeight).toFloat()) * (minimapHeight - height)).toInt()
-    if (areaStart < 0) {
-      areaStart = 0
+    if (!MinimapRegistry.isLegacy()) {
+      minimapController.updateStructureMarkersNow()
     }
 
-    areaEnd = areaStart + min(height, minimapHeight)
+    minimapController.install()
+    interactionController.install()
   }
 
-  private fun isInResizeArea(x: Int): Boolean {
-    return when {
-      state.rightAligned -> x in 0..RESIZE_TOLERANCE
-      else -> x in (state.width - RESIZE_TOLERANCE)..state.width
-    }
+  override fun addNotify() {
+    super.addNotify()
   }
 
-  private fun scrollTo(y: Int) {
-    val percentage = (y + areaStart) / minimapHeight.toFloat()
-    val offset = editor.component.size.height / 2
-    editor.scrollingModel.scrollVertically((percentage * editor.contentComponent.size.height - offset).toInt())
-  }
-
-  override fun updateUI() {
-    super.updateUI()
-    if (initialized) {
-      minimapImageSoftReference.get()?.update(editor, editor.contentComponent.height, editor.scrollingModel.visibleArea.width,
-                                              minimapHeight, true)
-    }
-  }
-
-  private fun createPopupActionGroup() = DefaultActionGroup(
-    ActionManager.getInstance().getAction("MoveMinimap"),
-    ActionManager.getInstance().getAction("OpenMinimapSettings"),
-    ActionManager.getInstance().getAction("DisableMinimap")
-  )
-
-  private fun updatePreferredSize() {
-    preferredSize = Dimension(state.width, 0)
-  }
-
-  private fun getOrCreateImage(): MinimapImage {
-    var map = minimapImageSoftReference.get()
-
-    if (map == null) {
-      map = MinimapImage()
-      map.onImageReady = { repaint() }
-      minimapImageSoftReference = SoftReference(map)
-    }
-
-    return map
+  override fun removeNotify() {
+    hoverController.hideBalloon()
+    super.removeNotify()
   }
 
   override fun paint(g: Graphics) {
     if (!initialized) {
-      updateParameters()
+      minimapController.refreshSnapshot()
       initialized = true
     }
 
-    val minimap = getOrCreateImage()
-    minimap.update(editor, editor.contentComponent.height, editor.scrollingModel.visibleArea.width, minimapHeight)
+    val g2d = g as Graphics2D
+    g2d.color = editor.contentComponent.background
+    g2d.fillRect(0, 0, width, height)
 
-    g.color = editor.contentComponent.background
-    g.fillRect(0, 0, width, height)
+    val snapshot = currentSnapshot() ?: return
+    val geometry = snapshot.geometry
 
-    val preview = minimap.preview
-    if (preview != null) {
-      val scaleY = (preview.graphics as Graphics2D).transform.scaleY
-
-      g.drawImage(preview, 0, 0, state.width, areaEnd - areaStart,
-                  0, (areaStart * scaleY).toInt(), preview.width, (areaEnd * scaleY).toInt(),
-                  null)
+    if (MinimapRegistry.isLegacy()) {
+      legacyPreview.paint(g2d, editor, settingsState.width, snapshot.geometry)
+    }
+    else {
+      renderer.paint(g2d, snapshot.context, snapshot.entries)
+      hoverController.paint(g2d)
+      selectionPainter.paint(g2d, snapshot.context, snapshot.entries)
     }
 
-    // Thumb transparent rect
-    g.color = Gray._161
-    (g as? Graphics2D)?.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.35f)
-    g.fillRect(0, thumbStart - areaStart, width, thumbHeight)
+    minimapController.paintCaret(g2d)
+
+    g2d.color = Gray._161
+    val oldComposite = g2d.composite
+    g2d.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.35f)
+    g2d.fillRect(0, geometry.thumbStart - geometry.areaStart, width, geometry.thumbHeight)
+    g2d.composite = oldComposite
+  }
+
+  override fun updateUI() {
+    super.updateUI()
+
+    if (initialized && MinimapRegistry.isLegacy()) {
+      legacyPreview.update(editor, currentSnapshot()?.geometry?.minimapHeight ?: 0, true)
+    }
   }
 
   fun onClose() {
+    uninstallSettingsListeners()
+    legacyPreview.clear()
+  }
+
+  fun isInResizeArea(x: Int): Boolean = when (settingsState.rightAligned) {
+    true -> x in 0..RESIZE_TOLERANCE
+    false -> x in (settingsState.width - RESIZE_TOLERANCE)..settingsState.width
+  }
+
+  fun scrollTo(y: Int) {
+    val geometry = currentSnapshot()?.geometry ?: return
+    val percentage = (y + geometry.areaStart) / geometry.minimapHeight.toFloat()
+    val offset = editor.component.size.height / 2
+
+    editor.scrollingModel.scrollVertically((percentage * editor.contentComponent.size.height - offset).toInt())
+  }
+
+  fun currentSnapshot(): MinimapSnapshot? = snapshot
+
+  fun updateSnapshot(snapshot: MinimapSnapshot) {
+    this.snapshot = snapshot
+    hoverController.onSnapshot(snapshot)
+  }
+
+  private fun updatePreferredSize() {
+    preferredSize = Dimension(settingsState.width, 0)
+  }
+
+
+  private fun installSettingsListeners() {
+    settings.settingsChangeCallback += onSettingsChange
+  }
+
+  private fun uninstallSettingsListeners() {
     settings.settingsChangeCallback -= onSettingsChange
-    container.removeComponentListener(componentListener)
-    editor.selectionModel.removeSelectionListener(selectionListener)
-    editor.contentComponent.removeComponentListener(contentComponentListener)
-    editor.scrollingModel.removeVisibleAreaListener(visibleAreaListener)
-
-    minimapImageSoftReference.clear()
   }
 
-  inner class PanelMouseListener : MouseAdapter() {
-    override fun mousePressed(e: MouseEvent) {
 
-      if (e.button != MouseEvent.BUTTON1) {
-        return
-      }
-
-      if (!isDragging && isInResizeArea(e.x)) {
-        isResizing = true
-        resizeInitialX = e.xOnScreen
-        resizeInitialWidth = state.width
-      }
-      else {
-        isDragging = true
-        scrollTo(e.y)
-      }
-    }
-
-    override fun mouseReleased(e: MouseEvent) {
-      if (e.button == MouseEvent.BUTTON1) {
-        isDragging = false
-        isResizing = false
-      }
-    }
-
-    override fun mouseWheelMoved(mouseWheelEvent: MouseWheelEvent) {
-      editor.scrollingModel.scrollVertically(
-        editor.scrollingModel.verticalScrollOffset + (mouseWheelEvent.preciseWheelRotation * editor.lineHeight * 5).toInt())
-    }
-
-    override fun mouseDragged(e: MouseEvent) {
-      if (isResizing) {
-        var newWidth = resizeInitialWidth + if (state.rightAligned) resizeInitialX - e.xOnScreen else e.xOnScreen - resizeInitialX
-        newWidth = when {
-          newWidth < MINIMUM_WIDTH -> MINIMUM_WIDTH
-          newWidth > container.width / 2 -> container.width / 2
-          else -> newWidth
-        }
-        if (state.width != newWidth) {
-          state.width = newWidth
-          settings.settingsChangeCallback.notify(MinimapSettings.SettingsChangeType.Normal)
-        }
-      }
-      else if (isDragging) {
-        editor.scrollingModel.disableAnimation()
-        scrollTo(e.y)
-        editor.scrollingModel.enableAnimation()
-      }
-    }
-
-    override fun mouseMoved(e: MouseEvent) {
-      if (isInResizeArea(e.x)) {
-        cursor = if (state.rightAligned) Cursor.getPredefinedCursor(Cursor.W_RESIZE_CURSOR)
-        else Cursor.getPredefinedCursor(Cursor.E_RESIZE_CURSOR)
-      }
-      else {
-        cursor = Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR)
-      }
-    }
+  private fun <T : Disposable> registerDisposable(disposable: T): T {
+    Disposer.register(parentDisposable, disposable)
+    return disposable
   }
+
+  private fun createPopupActionGroup() = CustomActionsSchema.getInstance().getCorrectedAction("MinimapActionsGroup") as? ActionGroup
+                                         ?: DefaultActionGroup()
 
   companion object {
     const val MINIMUM_WIDTH: Int = 50

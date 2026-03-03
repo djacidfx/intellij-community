@@ -1,0 +1,158 @@
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+package com.intellij.ide.minimap.layout
+
+import com.intellij.ide.minimap.model.MinimapStructureMarker
+import com.intellij.ide.minimap.render.MinimapRenderContext
+import com.intellij.ide.minimap.render.MinimapRenderEntry
+import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.util.TextRange
+import java.awt.geom.Rectangle2D
+
+class MinimapLayoutCalculator(private val editor: Editor) {
+  private data class LineBand(
+    val yOffset: Double,
+    val height: Double,
+  )
+
+  fun buildLayout(
+    context: MinimapRenderContext,
+    structureMarkers: List<MinimapStructureMarker>,
+  ): List<MinimapRenderEntry> {
+    val geometry = context.geometry
+    val panelWidth = context.panelWidth
+    val minimapHeight = geometry.minimapHeight
+
+    if (panelWidth <= 0 || minimapHeight <= 0) return emptyList()
+
+    val document = editor.document
+    val documentLength = document.textLength
+    if (documentLength == 0) return emptyList()
+
+    val metrics = MinimapLayoutUtil.computeLayoutMetrics(editor, context) ?: return emptyList()
+    val lineCount = metrics.lineCount
+    if (lineCount == 0) return emptyList()
+
+    val result = ArrayList<MinimapRenderEntry>(structureMarkers.size)
+    val visibleLines = MinimapLayoutUtil.visibleLines(geometry, lineCount)
+    val layout = MinimapLayoutContext(document, metrics, panelWidth, geometry.areaStart.toDouble(), visibleLines)
+
+    appendTokenFillers(result, layout)
+    appendStructureMarkers(result, layout, structureMarkers, documentLength)
+    return result
+  }
+
+  private fun appendTokenFillers(result: MutableList<MinimapRenderEntry>,
+                                 context: MinimapLayoutContext) {
+    val pxPerColumn = context.metrics.pxPerColumn
+    val document = context.document
+    val chars = document.charsSequence
+
+    for (line in context.visibleLines) {
+      val lineStartOffset = document.getLineStartOffset(line)
+      val lineEndOffset = document.getLineEndOffset(line)
+      if (lineEndOffset <= lineStartOffset) continue
+
+      val trimmedEndOffset = trimLineEnd(chars, lineStartOffset, lineEndOffset)
+      if (trimmedEndOffset <= lineStartOffset) continue
+
+      val band = getLineBand(line, line + 1, context) ?: continue
+      val iterator = editor.highlighter.createIterator(lineStartOffset)
+
+      while (!iterator.atEnd() && iterator.start < trimmedEndOffset) {
+        val tokenStart = iterator.start.coerceAtLeast(lineStartOffset)
+        val tokenEnd = iterator.end.coerceAtMost(trimmedEndOffset)
+
+        if (tokenEnd <= tokenStart || isWhitespace(chars, tokenStart, tokenEnd)) {
+          iterator.advance()
+          continue
+        }
+
+        val startColumn = (tokenStart - lineStartOffset).coerceAtLeast(0)
+        val endColumn = (tokenEnd - lineStartOffset).coerceAtLeast(startColumn + 1)
+        val rect2d = rectForColumns(startColumn, endColumn, band, context, pxPerColumn)
+        result.add(MinimapRenderEntry(null, rect2d, sampleOffset = tokenStart))
+        iterator.advance()
+      }
+    }
+  }
+
+  private fun appendStructureMarkers(result: MutableList<MinimapRenderEntry>,
+                                     context: MinimapLayoutContext,
+                                     structureMarkers: List<MinimapStructureMarker>,
+                                     documentLength: Int) {
+    // todo: some logic can be shared with appendTokenFillers
+    if (structureMarkers.isEmpty()) return
+
+    val document = context.document
+    val pxPerColumn = context.metrics.pxPerColumn
+    val lineCount = context.metrics.lineCount
+
+    for (marker in structureMarkers) {
+      val range = resolveRange(marker) ?: continue
+
+      val startOffset = range.startOffset.coerceIn(0, documentLength)
+      val endOffset = range.endOffset.coerceIn(startOffset, documentLength)
+      val startLine = document.getLineNumber(startOffset)
+      val endLine = (startLine + 1).coerceAtMost(lineCount)
+      val band = getLineBand(startLine, endLine, context) ?: continue
+
+      val lineStartOffset = document.getLineStartOffset(startLine)
+      val lineEndOffset = document.getLineEndOffset(startLine)
+      val endOffsetInLine = endOffset.coerceIn(startOffset, lineEndOffset)
+      val startColumn = (startOffset - lineStartOffset).coerceAtLeast(0)
+      val endColumn = (endOffsetInLine - lineStartOffset).coerceAtLeast(startColumn + 1)
+      val rect2d = rectForColumns(startColumn, endColumn, band, context, pxPerColumn)
+      result.add(MinimapRenderEntry(marker.element, rect2d, sampleOffset = startOffset))
+    }
+  }
+
+  private fun getLineBand(startLine: Int, endLine: Int, context: MinimapLayoutContext): LineBand? {
+    val band = MinimapLayoutUtil.lineBandRect(startLine, endLine, context.metrics.baseLineHeight, context.areaStart)
+    return if (band.height <= 0.0) null else LineBand(band.y, band.height)
+  }
+
+  private fun getRectForLineBand(x1: Double, x2: Double, band: LineBand, context: MinimapLayoutContext): Rectangle2D.Double {
+    val maxWidth = context.panelWidth.toDouble()
+    val clampedX1 = x1.coerceIn(0.0, maxWidth)
+    val clampedX2 = x2.coerceIn(clampedX1, maxWidth)
+    val width = (clampedX2 - clampedX1).coerceAtLeast(1.0)
+
+    return Rectangle2D.Double(clampedX1, band.yOffset, width, band.height)
+  }
+
+  private fun rectForColumns(startColumn: Int,
+                             endColumn: Int,
+                             band: LineBand,
+                             context: MinimapLayoutContext,
+                             perChar: Double): Rectangle2D.Double {
+    return if (perChar < 0) {
+      getRectForLineBand(0.0, context.panelWidth.toDouble(), band, context)
+    } else {
+      getRectForLineBand(startColumn * perChar, endColumn * perChar, band, context)
+    }
+  }
+
+  private fun resolveRange(structureMarker: MinimapStructureMarker): TextRange? {
+    val pointerRange = structureMarker.pointer?.range
+    if (pointerRange != null) return TextRange(pointerRange.startOffset, pointerRange.endOffset)
+
+    val rangeMarker = structureMarker.rangeMarker ?: return null
+    if (!rangeMarker.isValid) return null
+
+    return rangeMarker.textRange
+  }
+
+  // TODO: definitely there must be a platform solution for such ops
+  private fun trimLineEnd(chars: CharSequence, start: Int, end: Int): Int {
+    var index = end
+    while (index > start && chars[index - 1].isWhitespace()) index--
+    return index
+  }
+
+  private fun isWhitespace(chars: CharSequence, start: Int, end: Int): Boolean {
+    for (index in start until end) {
+      if (!chars[index].isWhitespace()) return false
+    }
+    return true
+  }
+}

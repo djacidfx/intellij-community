@@ -1,5 +1,5 @@
-// Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.ide.minimap
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+package com.intellij.ide.minimap.legacy
 
 import com.intellij.concurrency.JobScheduler
 import com.intellij.ide.minimap.settings.MinimapSettings
@@ -78,9 +78,9 @@ class MinimapImage {
       //  firePropertyChange("paintingForPrint", true, false)
       //}
 
-      invokeAndWaitIfNeeded {
-        editor.contentComponent.print(g)
-      }
+        invokeAndWaitIfNeeded {
+            editor.contentComponent.print(g)
+        }
 
       //   if (downscaleSteps == 0)
       // {
@@ -158,7 +158,7 @@ class MinimapImage {
 
   private fun innerUpdate(editor: Editor, visibleHeight: Int, visibleWidth: Int, minimapHeight: Int) {
 
-    val state = MinimapSettings.getInstance().state
+    val state = MinimapSettings.Companion.getInstance().state
 
     if (contentHeight == visibleHeight &&
         contentVisibleWidth == visibleWidth &&

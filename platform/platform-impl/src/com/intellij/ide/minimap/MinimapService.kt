@@ -9,20 +9,15 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.impl.EditorImpl
-import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
+import com.intellij.psi.PsiDocumentManager
+import kotlinx.coroutines.CoroutineScope
 import java.awt.BorderLayout
 import javax.swing.JPanel
 
-@Service
-class MinimapService : Disposable {
-
-  companion object {
-    fun getInstance(): MinimapService = service<MinimapService>()
-    private val MINI_MAP_PANEL_KEY: Key<MinimapPanel> = Key.create("com.intellij.ide.minimap.panel")
-  }
-
+@Service(Service.Level.APP)
+class MinimapService(private val scope: CoroutineScope) : Disposable {
   private val settings = MinimapSettings.getInstance()
 
   private val onSettingsChange = { type: MinimapSettings.SettingsChangeType ->
@@ -35,6 +30,16 @@ class MinimapService : Disposable {
     MinimapSettings.getInstance().settingsChangeCallback += onSettingsChange
   }
 
+  override fun dispose() {
+    MinimapSettings.getInstance().settingsChangeCallback -= onSettingsChange
+  }
+
+  fun editorOpened(editor: Editor) {
+    if (!settings.state.enabled) return
+    getEditorImpl(editor)?.let { addMinimap(it) }
+  }
+
+
   fun updateAllEditors() {
     EditorFactory.getInstance().allEditors.forEach { editor ->
       getEditorImpl(editor)?.let {
@@ -46,23 +51,14 @@ class MinimapService : Disposable {
     }
   }
 
-  override fun dispose() {
-    MinimapSettings.getInstance().settingsChangeCallback -= onSettingsChange
-  }
-
   private fun getEditorImpl(editor: Editor): EditorImpl? {
     val editorImpl = editor as? EditorImpl ?: return null
     if (editorImpl.editorKind != EditorKind.MAIN_EDITOR) return null
-    val virtualFile = editorImpl.virtualFile ?: FileDocumentManager.getInstance().getFile(editor.document) ?: return null
+    val project = editorImpl.project ?: return null
+    val document = editorImpl.document
+    val virtualFile = PsiDocumentManager.getInstance(project).getPsiFile(document)?.virtualFile ?: return null
     if (settings.state.fileTypes.isNotEmpty() && !settings.state.fileTypes.contains(virtualFile.fileType.defaultExtension)) return null
     return editorImpl
-  }
-
-  fun editorOpened(editor: Editor) {
-    if (!settings.state.enabled) {
-      return
-    }
-    getEditorImpl(editor)?.let { addMinimap(it) }
   }
 
   private fun getPanel(fileEditor: EditorImpl): JPanel? {
@@ -74,18 +70,22 @@ class MinimapService : Disposable {
 
     val where = if (settings.state.rightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
 
-    if ((panel.layout as? BorderLayout)?.getLayoutComponent(where) == null) {
-      val minimapPanel = MinimapPanel(textEditor.disposable, textEditor, panel)
-      panel.add(minimapPanel, where)
-      textEditor.putUserData(MINI_MAP_PANEL_KEY, minimapPanel)
+    val borderLayout = panel.layout as? BorderLayout ?: return
+    if (borderLayout.getLayoutComponent(where) != null) return
 
-      Disposer.register(textEditor.disposable) {
-        textEditor.getUserData(MINI_MAP_PANEL_KEY)?.onClose()
-        textEditor.putUserData(MINI_MAP_PANEL_KEY, null)
-      }
-      panel.revalidate()
-      panel.repaint()
+    val disposable = textEditor.disposable
+    val minimapPanel = MinimapPanel(disposable, scope, textEditor, panel)
+
+    panel.add(minimapPanel, where)
+    textEditor.putUserData(MINI_MAP_PANEL_KEY, minimapPanel)
+
+    Disposer.register(textEditor.disposable) {
+      textEditor.getUserData(MINI_MAP_PANEL_KEY)?.onClose()
+      textEditor.putUserData(MINI_MAP_PANEL_KEY, null)
     }
+
+    panel.revalidate()
+    panel.repaint()
   }
 
   private fun removeMinimap(editor: EditorImpl) {
@@ -98,5 +98,10 @@ class MinimapService : Disposable {
       revalidate()
       repaint()
     }
+  }
+
+  companion object {
+    fun getInstance(): MinimapService = service<MinimapService>()
+    private val MINI_MAP_PANEL_KEY: Key<MinimapPanel> = Key.create("com.intellij.ide.minimap.panel")
   }
 }

@@ -178,7 +178,7 @@
                     dynamic="true"/>
 
     <extensionPoint name="openInBrowserFloatingToolbarSuppressor"
-                    interface="com.intellij.ide.browsers.actions.OpenInBrowserFloatingToolbarSuppressor"
+                    interface="com.intellij.ide.browsers.actions.OpenInBrowserBaseGroupAction$OpenInBrowserFloatingToolbarSuppressor"
                     dynamic="true"/>
 
     <extensionPoint name="actionPromoter" interface="com.intellij.openapi.actionSystem.ActionPromoter" dynamic="true"/>
@@ -721,6 +721,10 @@
     <extensionPoint name="pluginCategoryPromotionProvider"
                     interface="com.intellij.ide.plugins.PluginCategoryPromotionProvider"
                     dynamic="false"/>
+
+    <extensionPoint name="minimapStructureMarkerPolicy"
+                    interface="com.intellij.ide.minimap.model.MinimapStructureMarkerPolicy"
+                    dynamic="true"/>
 
     <extensionPoint name="fileChooserCustomizer"
                     interface="com.intellij.openapi.fileChooser.FileChooserCustomizer"

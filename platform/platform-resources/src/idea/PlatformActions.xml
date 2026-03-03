@@ -1902,10 +1902,7 @@
     <action id="UndoDumpAction" internal="true" class="com.intellij.ide.actions.UndoDumpHistoryAction"/>
     <action id="UndoClearAction" internal="true" class="com.intellij.ide.actions.UndoClearHistoryAction"/>
 
-    <action id="DisableMinimap" class="com.intellij.ide.minimap.actions.DisableMinimapAction"/>
-    <action id="ToggleMinimap" class="com.intellij.ide.minimap.actions.ToggleMinimapAction"/>
-    <action id="OpenMinimapSettings" class="com.intellij.ide.minimap.actions.OpenMinimapSettingsAction"/>
-    <action id="MoveMinimap" class="com.intellij.ide.minimap.actions.MoveMinimapAction"/>
+
 
     <!-- id should be "OpenInDefaultBrowser", but existing name preserved to keep compatibility - if user configured shortcut for action, it should not be lost -->
     <action id="OpenInBrowser" class="com.intellij.ide.browsers.actions.OpenFileInDefaultBrowserAction"
@@ -1922,6 +1919,19 @@
       <add-to-group group-id="OpenInBrowserEditorContextBarGroup" anchor="last"/>
     </group>
   </actions>
+
+  <actions resource-bundle="messages.MinimapBundle">
+    <action id="ToggleMinimap" class="com.intellij.ide.minimap.actions.ToggleMinimapAction" icon="AllIcons.Actions.Minimap"/>
+    <action id="DisableMinimap" class="com.intellij.ide.minimap.actions.DisableMinimapAction"/>
+    <action id="OpenMinimapSettings" class="com.intellij.ide.minimap.actions.OpenMinimapSettingsAction"/>
+    <action id="MoveMinimap" class="com.intellij.ide.minimap.actions.MoveMinimapAction"/>
+
+    <group id="MinimapActionsGroup">
+      <reference ref="OpenMinimapSettings"/>
+      <reference ref="MoveMinimap"/>
+    </group>
+  </actions>
+
   <applicationListeners>
     <listener class="com.intellij.ide.projectView.impl.ProjectViewVfsInfoListener" topic="com.intellij.openapi.util.registry.RegistryValueListener"/>
     <listener class="com.intellij.ide.projectView.impl.ProjectViewIndexableInfoListener" topic="com.intellij.openapi.util.registry.RegistryValueListener"/>
