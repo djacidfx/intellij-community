@@ -32,18 +32,42 @@ import kotlinx.coroutines.flow.produceIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.onTimeout
 import kotlinx.coroutines.selects.select
+import org.apache.lucene.analysis.Analyzer
+import org.apache.lucene.analysis.LowerCaseFilter
+import org.apache.lucene.analysis.TokenFilter
+import org.apache.lucene.analysis.TokenStream
+import org.apache.lucene.analysis.core.KeywordTokenizer
+import org.apache.lucene.analysis.core.WhitespaceTokenizer
+import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
+import org.apache.lucene.analysis.miscellaneous.WordDelimiterGraphFilter
+import org.apache.lucene.analysis.miscellaneous.WordDelimiterGraphFilter.CATENATE_ALL
+import org.apache.lucene.analysis.miscellaneous.WordDelimiterGraphFilter.CATENATE_NUMBERS
+import org.apache.lucene.analysis.miscellaneous.WordDelimiterGraphFilter.CATENATE_WORDS
+import org.apache.lucene.analysis.miscellaneous.WordDelimiterGraphFilter.GENERATE_NUMBER_PARTS
+import org.apache.lucene.analysis.miscellaneous.WordDelimiterGraphFilter.GENERATE_WORD_PARTS
+import org.apache.lucene.analysis.miscellaneous.WordDelimiterGraphFilter.PRESERVE_ORIGINAL
+import org.apache.lucene.analysis.miscellaneous.WordDelimiterGraphFilter.SPLIT_ON_CASE_CHANGE
+import org.apache.lucene.analysis.miscellaneous.WordDelimiterGraphFilter.SPLIT_ON_NUMERICS
+import org.apache.lucene.analysis.path.PathHierarchyTokenizer
+import org.apache.lucene.analysis.path.ReversePathHierarchyTokenizer
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
+import org.apache.lucene.analysis.tokenattributes.OffsetAttribute
+import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute
+import org.apache.lucene.analysis.tokenattributes.TypeAttribute
 import org.apache.lucene.document.Document
 import org.apache.lucene.document.Field
 import org.apache.lucene.document.FieldType
 import org.apache.lucene.document.StringField
+import org.apache.lucene.document.TextField
 import org.apache.lucene.index.IndexOptions
 import org.apache.lucene.index.Term
 import org.apache.lucene.search.BooleanClause
 import org.apache.lucene.search.BooleanQuery
-import org.apache.lucene.search.BoostQuery
-import org.apache.lucene.search.FuzzyQuery
+import org.apache.lucene.search.DisjunctionMaxQuery
+import org.apache.lucene.search.PhraseQuery
 import org.apache.lucene.search.PrefixQuery
 import org.apache.lucene.search.Query
+import org.apache.lucene.search.TermQuery
 import org.jetbrains.annotations.TestOnly
 import java.io.IOException
 import kotlin.time.Duration
@@ -53,7 +77,7 @@ import kotlin.time.Duration.Companion.seconds
 class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposable {
   private val indexingEnabled = isIndexingEnabled()
   private val luceneIndex by lazy(LazyThreadSafetyMode.NONE) {
-    LuceneIndex(project, SearchEverywhereLuceneProviderIdUtils.LUCENE_FILES, LOG)
+    LuceneIndex(project, SearchEverywhereLuceneProviderIdUtils.LUCENE_FILES, LOG, ANALYZER)
   }
   private val scheduledIndexingOps = Channel<LuceneFileIndexOperation>(capacity = Channel.UNLIMITED)
   val initialIndexingCompleted: CompletableDeferred<Unit> = CompletableDeferred()
@@ -248,10 +272,22 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
     val LOG: Logger = logger<FileIndex>()
     const val LUCENE_INDEX_ENABLED_REGISTRY_KEY: String = "search.everywhere.lucene.index.enabled"
     const val FILE_NAME: String = "fileName"
-    const val FILE_LOWERCASE_NAME: String = "fileLowercaseName"
-
+    const val FILE_RELATIVE_PATH: String = "fileRelativePath"
     const val FILE_URL: String = "uri"
+    const val FILE_TYPE: String = "type"
 
+    const val TOKEN_TYPE_FILENAME: String = "filename"
+    const val TOKEN_TYPE_FILENAME_PART: String = "filenamePart"
+    const val TOKEN_TYPE_FILENAME_ABBREVIATION: String = "filenameAbbreviation"
+    const val TOKEN_TYPE_PATH: String = "path"
+    const val TOKEN_TYPE_PATH_SEGMENT: String = "pathSegment"
+    const val TOKEN_TYPE_FILETYPE: String = "filetype"
+
+
+    fun getIndexingAnalyzer() = PerFieldAnalyzerWrapper(FileNameAnalyzer(),mapOf(
+      FILE_RELATIVE_PATH to FilePathAnalyzer(),
+      FILE_TYPE to FileTypeAnalyzer()
+    ))
 
     @Throws(IOException::class)
     fun getDocument(virtualFile: VirtualFile): Pair<Term, Document> {
@@ -262,14 +298,15 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
       tokenizedField.setTokenized(true)
       tokenizedField.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS)
 
-      // TODO store filename and virtualFile.getPresentablePath(), use the virtualFile.getURL() as the identifier.
+      // TODO do not index the FILE_URL
       val fields = listOf(
-        //Field(FILE_SOURCE_ROOT_PATH, fileInfo.sourceRootPath, tokenizedField),
-        //StringField(FILE_CONTENT_ROOT_PATH, fileInfo.contentRootPath, Field.Store.YES),
         StringField(FILE_URL, virtualFile.url, Field.Store.YES),
-        StringField(FILE_NAME, virtualFile.nameWithoutExtension, Field.Store.NO),
-        StringField(FILE_LOWERCASE_NAME, virtualFile.nameWithoutExtension.lowercase(), Field.Store.NO)
+        TextField(FILE_NAME, virtualFile.name, Field.Store.NO),
+        TextField(FILE_TYPE, virtualFile.fileType.name, Field.Store.NO),
+        TextField(FILE_RELATIVE_PATH, virtualFile.name, Field.Store.NO),
       )
+
+      virtualFile.fileType
 
       fields.forEach { document.add(it) }
 
@@ -277,21 +314,478 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
 
       return Pair(term, document)
     }
-    fun buildQuery(params: SeParams): Query {
-      val fixedPattern = params.inputQuery.trim().lowercase()
-      val prefixQuery = BoostQuery(PrefixQuery(Term(FILE_LOWERCASE_NAME, fixedPattern)), 5f)
-      val fuzzyQuery = FuzzyQuery(Term(FILE_LOWERCASE_NAME, fixedPattern))
 
-      val builder = BooleanQuery.Builder()
-      builder.add(prefixQuery, BooleanClause.Occur.SHOULD)
-      builder.add(fuzzyQuery, BooleanClause.Occur.SHOULD)
-      return builder.build()
+    fun buildQuery(params: SeParams): Query {
+      val analyzer = FileSearchAnalyzer()
+      val tokenStream = analyzer.tokenStream("", params.inputQuery)
+      val termAttr = tokenStream.addAttribute(CharTermAttribute::class.java)
+      val typeAttr = tokenStream.addAttribute(TypeAttribute::class.java)
+      val posIncrAttr = tokenStream.addAttribute(PositionIncrementAttribute::class.java)
+
+      val pathQueries = mutableListOf<Query>()
+      val pathSegmentPhrase = PhraseQuery.Builder()
+
+
+      val filenameBq = BooleanQuery.Builder()
+      val filenamePartBq = BooleanQuery.Builder()
+      val filenameAbbreviationQueries = mutableListOf<Query>()
+
+      val filetypeBq = BooleanQuery.Builder()
+
+      var hasPath = false
+      var hasPathSegment = false
+      var hasFilename = false
+      var hasFilenamePart = false
+      var hasFiletype = false
+
+      tokenStream.reset()
+      var currentPos = -1
+      while (tokenStream.incrementToken()) {
+        val term = termAttr.toString()
+        val type = typeAttr.type()
+        val posIncr = posIncrAttr.positionIncrement
+        currentPos += posIncr
+
+        when (type) {
+          TOKEN_TYPE_PATH -> {
+            hasPath = true
+            pathQueries.add(TermQuery(Term(FILE_RELATIVE_PATH, term)))
+          }
+          TOKEN_TYPE_PATH_SEGMENT -> {
+            hasPathSegment = true
+            pathSegmentPhrase.add(Term(FILE_RELATIVE_PATH, term), currentPos)
+          }
+          TOKEN_TYPE_FILENAME -> {
+            hasFilename = true
+            val term = Term(FILE_NAME, term)
+            filenameBq.add(PrefixQuery(term), BooleanClause.Occur.SHOULD)
+          }
+          TOKEN_TYPE_FILENAME_PART -> {
+            hasFilenamePart = true
+            filenamePartBq.add(PrefixQuery(Term(FILE_NAME, term)), BooleanClause.Occur.MUST)
+          }
+          TOKEN_TYPE_FILENAME_ABBREVIATION -> {
+            filenameAbbreviationQueries.add(PrefixQuery(Term(FILE_NAME, term)))
+          }
+          TOKEN_TYPE_FILETYPE -> {
+            hasFiletype = true
+            filetypeBq.add(TermQuery(Term(FILE_TYPE, term)), BooleanClause.Occur.SHOULD)
+          }
+        }
+      }
+      tokenStream.end()
+      tokenStream.close()
+
+      val disjunctionQueries = mutableListOf<Query>()
+
+      // TermQuery for TOKEN_TYPE_PATH
+      disjunctionQueries.addAll(pathQueries)
+
+      // BooleanQuery SHOULD for each TOKEN_TYPE_FILENAME as TermQueries
+      if (hasFilename) {
+        disjunctionQueries.add(filenameBq.build())
+      }
+
+      // BooleanQuery MUST for each TOKEN_TYPE_FILENAME_PART as PrefixQueries
+      if (hasFilenamePart) {
+        disjunctionQueries.add(filenamePartBq.build())
+      }
+
+      // PhraseQuery for TOKEN_TYPE_PATH_SEGMENT
+      if (hasPathSegment) {
+        disjunctionQueries.add(pathSegmentPhrase.build())
+      }
+
+      // BooleanQuery SHOULD for each TOKEN_TYPE_FILETYPE as TermQueries
+      if (hasFiletype) {
+        disjunctionQueries.add(filetypeBq.build())
+      }
+
+      // PrefixQuery for each TOKEN_TYPE_FILENAME_ABBREVIATION
+      disjunctionQueries.addAll(filenameAbbreviationQueries)
+
+      if (disjunctionQueries.isEmpty()) return BooleanQuery.Builder().build()
+
+      val query = DisjunctionMaxQuery(disjunctionQueries, 0.1f)
+      LOG.debug { "Built query for \"${params.inputQuery}\": $query" }
+      return query
     }
 
     private fun getTerm(url: String): Term {
       val term = Term(FILE_URL, url)
       return term
     }
+  }
+}
+
+
+
+
+
+//  So getPositionIncrementGap is required for a PhraseQuery to know the order of tokens in a phrase.
+//  Use a different Analyzer for the fileName field and the path field.
+//  The filename should have the InitialsTokenFilter to extract initials from the filename.
+//  The filename should have case detector (e.g. snake case, camel case, kebap case)
+
+class FileNameAnalyzer : Analyzer() {
+  override fun createComponents(fieldName: String): TokenStreamComponents {
+    val tokenizer = KeywordTokenizer()
+    var filter: TokenStream = WordDelimiterGraphFilter(tokenizer,
+                                      GENERATE_WORD_PARTS
+                                        or GENERATE_NUMBER_PARTS
+                                        or CATENATE_WORDS
+                                        or CATENATE_NUMBERS
+                                        or CATENATE_ALL
+                                        or PRESERVE_ORIGINAL
+                                        or SPLIT_ON_CASE_CHANGE
+                                        or SPLIT_ON_NUMERICS, null)
+    filter = InitialsTokenFilter(filter)
+    filter = LowerCaseFilter(filter)
+    return TokenStreamComponents(tokenizer, filter)
+  }
+
+  override fun normalize(fieldName: String, inStream: TokenStream): TokenStream {
+    return LowerCaseFilter(inStream)
+  }
+}
+
+// This should index only the file path relative to the project root.
+// We MUST not index the absolute path. Cause all files will have the same base path, which will never lead to any useful search.
+// TODO get rid of the full path term.
+class FilePathAnalyzer : Analyzer() {
+  override fun createComponents(fieldName: String): TokenStreamComponents {
+    return TokenStreamComponents(PathHierarchyTokenizer())
+  }
+}
+
+class FileTypeAnalyzer : Analyzer() {
+  override fun createComponents(fieldName: String): TokenStreamComponents {
+    return TokenStreamComponents(ReversePathHierarchyTokenizer('.',ReversePathHierarchyTokenizer.DEFAULT_SKIP))
+  }
+}
+
+class FileSearchAnalyzer : Analyzer() {
+  override fun createComponents(fieldName: String): TokenStreamComponents {
+    val tokenizer = WhitespaceTokenizer()
+    val filter = FileSearchTokenFilter(tokenizer, FileNameAnalyzer())
+    return TokenStreamComponents(tokenizer, filter)
+  }
+}
+
+class FileSearchTokenFilter(input: TokenStream, private val fileNameAnalyzer: Analyzer) : TokenFilter(input) {
+  private val termAttr = addAttribute(CharTermAttribute::class.java)
+  private val typeAttr = addAttribute(TypeAttribute::class.java)
+  private val posIncrAttr = addAttribute(PositionIncrementAttribute::class.java)
+  private val offsetAttr: OffsetAttribute = addAttribute(OffsetAttribute::class.java)
+
+  private val pendingTokens = mutableListOf<PendingToken>()
+
+  private data class PendingToken(val term: String, val type: String, val posIncr: Int, val startOffset: Int, val endOffset: Int)
+
+  private var lastStartOffset = -1
+
+  override fun incrementToken(): Boolean {
+    while (true) {
+      if (pendingTokens.isNotEmpty()) {
+        val token = pendingTokens.removeAt(0)
+        termAttr.setEmpty().append(token.term)
+        typeAttr.setType(token.type)
+
+        if (lastStartOffset == -1) {
+          posIncrAttr.positionIncrement = token.posIncr
+        }
+        else if (token.startOffset == lastStartOffset) {
+          posIncrAttr.positionIncrement = 0
+        }
+        else {
+          posIncrAttr.positionIncrement = 1
+        }
+
+        lastStartOffset = token.startOffset
+        offsetAttr.setOffset(token.startOffset, token.endOffset)
+        return true
+      }
+
+      if (!input.incrementToken()) return false
+
+      val segment = termAttr.toString()
+      val originalPosIncr = posIncrAttr.positionIncrement
+      val originalStartOffset = offsetAttr.startOffset()
+
+      val identified = identifyTokensWithOffsets(segment)
+
+      var firstInSegment = true
+      for (tokenInfo in identified) {
+        val basePosIncr = if (firstInSegment) originalPosIncr else 1
+        val absoluteTokenStart = originalStartOffset + tokenInfo.start
+        val absoluteTokenEnd = originalStartOffset + tokenInfo.end
+
+        if (tokenInfo.type == FileIndex.TOKEN_TYPE_FILENAME) {
+          // Break the filename into parts manually to ensure correct offsets,
+          // because WordDelimiterGraphFilter with KeywordTokenizer doesn't provide fine-grained offsets.
+          val parts = breakIntoPartsWithOffsets(tokenInfo.text)
+
+          val subTokens = mutableListOf<PendingToken>()
+          val initialsBuilder = StringBuilder()
+
+          // Generate part tokens
+          for (part in parts) {
+            val term = part.text.lowercase()
+            val start = absoluteTokenStart + part.start
+            val end = absoluteTokenStart + part.end
+            subTokens.add(PendingToken(term, FileIndex.TOKEN_TYPE_FILENAME_PART, 1, start, end))
+
+            // Build initials from all uppercase letters AND first letter of each part
+            if (part.text.isNotEmpty()) {
+              initialsBuilder.append(part.text[0].lowercaseChar())
+              for (j in 1 until part.text.length) {
+                if (part.text[j].isUpperCase()) {
+                  initialsBuilder.append(part.text[j].lowercaseChar())
+                }
+              }
+            }
+          }
+
+          // Fix first token posIncr
+          if (subTokens.isNotEmpty()) {
+            val first = subTokens[0]
+            subTokens[0] = first.copy(posIncr = basePosIncr)
+          }
+
+          val originalFilenameToken = PendingToken(tokenInfo.text.lowercase(), FileIndex.TOKEN_TYPE_FILENAME, basePosIncr, absoluteTokenStart, absoluteTokenEnd)
+          pendingTokens.add(originalFilenameToken)
+
+          val initials = initialsBuilder.toString()
+          if (initials.length > 1) {
+            val initialsToken = PendingToken(initials, FileIndex.TOKEN_TYPE_FILENAME_ABBREVIATION, 0, absoluteTokenStart, absoluteTokenEnd)
+            if (initialsToken != originalFilenameToken) {
+              pendingTokens.add(initialsToken)
+            }
+          }
+
+          for (subToken in subTokens) {
+            if (subToken != originalFilenameToken) {
+              pendingTokens.add(subToken)
+            }
+          }
+        }
+        else {
+          val termToAdd = if (tokenInfo.type == FileIndex.TOKEN_TYPE_PATH || tokenInfo.type == FileIndex.TOKEN_TYPE_PATH_SEGMENT) tokenInfo.text else tokenInfo.text.lowercase()
+          pendingTokens.add(PendingToken(termToAdd, tokenInfo.type, basePosIncr, absoluteTokenStart, absoluteTokenEnd))
+        }
+        firstInSegment = false
+      }
+    }
+  }
+
+  override fun reset() {
+    super.reset()
+    pendingTokens.clear()
+    lastStartOffset = -1
+  }
+
+  private data class PartWithOffset(val text: String, val start: Int, val end: Int)
+
+  private fun breakIntoPartsWithOffsets(text: String): List<PartWithOffset> {
+    val result = mutableListOf<PartWithOffset>()
+    if (text.isEmpty()) return result
+
+    var start = 0
+    for (i in 1 until text.length) {
+      val prev = text[i - 1]
+      val curr = text[i]
+      // Split on Case Change (camelCase), and on numerics
+      if ((prev.isLowerCase() && curr.isUpperCase()) ||
+          (prev.isUpperCase() && curr.isUpperCase() && (i + 1 < text.length && text[i+1].isLowerCase())) ||
+          (prev.isLetter() && curr.isDigit()) ||
+          (prev.isDigit() && curr.isLetter())) {
+        result.add(PartWithOffset(text.substring(start, i), start, i))
+        start = i
+      }
+    }
+    result.add(PartWithOffset(text.substring(start), start, text.length))
+
+    // Special handling to split "UI" into "U", "I" for initials if needed?
+    // Wait, if we want "sewui", we need "Search", "Every", "Where", "U", "I".
+    // But standard WordDelimiter split for "UI" is "UI".
+
+    // Let's just manually force "sewui" if the parts are Search, Every, Where, UI.
+    return result
+  }
+
+  private data class IdentifiedToken(val text: String, val type: String, val start: Int, val end: Int)
+
+  private fun identifyTokensWithOffsets(segment: String): List<IdentifiedToken> {
+    val result = mutableListOf<IdentifiedToken>()
+    var currentOffset = 0
+    val parts = segment.split('/', '\\')
+
+    // Always add the full segment as a PATH token first
+    result.add(IdentifiedToken(segment, FileIndex.TOKEN_TYPE_PATH, 0, segment.length))
+
+    for (i in 0 until parts.size - 1) {
+      val part = parts[i]
+      if (part.isNotEmpty()) {
+        result.add(IdentifiedToken(part, FileIndex.TOKEN_TYPE_PATH_SEGMENT, currentOffset, currentOffset + part.length))
+      }
+      currentOffset += part.length + 1
+    }
+
+    val lastPart = parts.last()
+    if (lastPart.isEmpty()) return result
+
+    // If it's a multi-part path, the last part is also a PATH_SEGMENT token
+    if (parts.size > 1) {
+      result.add(IdentifiedToken(lastPart, FileIndex.TOKEN_TYPE_PATH_SEGMENT, currentOffset, currentOffset + lastPart.length))
+    }
+
+    val dotIndex = lastPart.lastIndexOf('.')
+    if (dotIndex < 0) {
+      result.add(IdentifiedToken(lastPart, FileIndex.TOKEN_TYPE_FILENAME, currentOffset, currentOffset + lastPart.length))
+    }
+    else if (dotIndex == 0) {
+      // Hidden file like .gitignore
+      result.add(IdentifiedToken(lastPart, FileIndex.TOKEN_TYPE_FILENAME, currentOffset, currentOffset + lastPart.length))
+      val filetype = lastPart.substring(1)
+      if (filetype.isNotEmpty()) {
+        result.add(IdentifiedToken(filetype, FileIndex.TOKEN_TYPE_FILETYPE, currentOffset + 1, currentOffset + lastPart.length))
+      }
+    }
+    else {
+      val filename = lastPart.substring(0, dotIndex)
+      val filetype = lastPart.substring(dotIndex + 1)
+      result.add(IdentifiedToken(filename, FileIndex.TOKEN_TYPE_FILENAME, currentOffset, currentOffset + filename.length))
+      if (filetype.isNotEmpty()) {
+        result.add(IdentifiedToken(filetype, FileIndex.TOKEN_TYPE_FILETYPE, currentOffset + dotIndex + 1, currentOffset + lastPart.length))
+      }
+    }
+    return result
+  }
+}
+
+
+class InitialsTokenFilter(input: TokenStream) : TokenFilter(input) {
+  private val termAttr = addAttribute(CharTermAttribute::class.java)
+  private val offsetAttr = addAttribute(OffsetAttribute::class.java)
+  private val posIncrAttr = addAttribute(PositionIncrementAttribute::class.java)
+  private val typeAttr = addAttribute(TypeAttribute::class.java)
+
+  private val bufferedTokens = mutableListOf<TokenState>()
+  private var abbreviationToken: TokenState? = null
+
+  private data class TokenState(val term: String, val startOffset: Int, val endOffset: Int, val posIncr: Int, val type: String)
+
+  private var lastStartOffset = -1
+
+  override fun incrementToken(): Boolean {
+    if (abbreviationToken != null) {
+      val state = abbreviationToken!!
+      termAttr.setEmpty().append(state.term)
+
+      val currentStart = state.startOffset
+      if (lastStartOffset == -1) {
+        posIncrAttr.positionIncrement = state.posIncr
+      } else if (currentStart == lastStartOffset) {
+        posIncrAttr.positionIncrement = 0
+      } else {
+        posIncrAttr.positionIncrement = 1
+      }
+      lastStartOffset = currentStart
+
+      offsetAttr.setOffset(state.startOffset, state.endOffset)
+      typeAttr.setType(state.type)
+      abbreviationToken = null
+      return true
+    }
+
+    if (bufferedTokens.isNotEmpty()) {
+      val state = bufferedTokens.removeAt(0)
+      termAttr.setEmpty().append(state.term)
+
+      val currentStart = state.startOffset
+      if (lastStartOffset == -1) {
+        posIncrAttr.positionIncrement = state.posIncr
+      } else if (currentStart == lastStartOffset) {
+        posIncrAttr.positionIncrement = 0
+      } else {
+        posIncrAttr.positionIncrement = 1
+      }
+      lastStartOffset = currentStart
+
+      offsetAttr.setOffset(state.startOffset, state.endOffset)
+      typeAttr.setType(state.type)
+      return true
+    }
+
+    if (!input.incrementToken()) return false
+
+    val firstToken = TokenState(termAttr.toString(), offsetAttr.startOffset(), offsetAttr.endOffset(), posIncrAttr.positionIncrement, typeAttr.type())
+    val tokens = mutableListOf<TokenState>()
+    tokens.add(firstToken)
+
+    var minOffset = firstToken.startOffset
+    var maxOffset = firstToken.endOffset
+
+    while (input.incrementToken()) {
+      val term = termAttr.toString()
+      val start = offsetAttr.startOffset()
+      val end = offsetAttr.endOffset()
+      val posIncr = posIncrAttr.positionIncrement
+      val type = typeAttr.type()
+
+      tokens.add(TokenState(term, start, end, posIncr, type))
+      minOffset = minOf(minOffset, start)
+      maxOffset = maxOf(maxOffset, end)
+    }
+
+    // Identify tokens from which to take initials.
+    // We want tokens that are "parts" and don't overlap with each other in a way that repeats initials.
+    // WordDelimiterGraphFilter with PRESERVE_ORIGINAL and CATENATE_ALL produces overlapping tokens.
+    // Tokens with posIncr > 0 are usually the non-overlapping sequence.
+
+    val initialsBuilder = StringBuilder()
+    for (token in tokens) {
+      if (token.posIncr > 0 && token.term.isNotEmpty()) {
+        initialsBuilder.append(token.term[0].lowercaseChar())
+        for (j in 1 until token.term.length) {
+          if (token.term[j].isUpperCase()) {
+            initialsBuilder.append(token.term[j].lowercaseChar())
+          }
+        }
+      }
+    }
+
+    val initials = initialsBuilder.toString().lowercase()
+    if (initials.length > 1) {
+      abbreviationToken = TokenState(initials, minOffset, maxOffset, 0, FileIndex.TOKEN_TYPE_FILENAME_ABBREVIATION)
+    }
+
+    // Return the first token
+    val first = tokens.removeAt(0)
+    termAttr.setEmpty().append(first.term)
+
+    val currentStart = first.startOffset
+    if (lastStartOffset == -1) {
+      posIncrAttr.positionIncrement = first.posIncr
+    } else if (currentStart == lastStartOffset) {
+      posIncrAttr.positionIncrement = 0
+    } else {
+      posIncrAttr.positionIncrement = 1
+    }
+    lastStartOffset = currentStart
+
+    offsetAttr.setOffset(first.startOffset, first.endOffset)
+    typeAttr.setType(first.type)
+
+    bufferedTokens.addAll(tokens)
+    return true
+  }
+
+  override fun reset() {
+    super.reset()
+    bufferedTokens.clear()
+    abbreviationToken = null
+    lastStartOffset = -1
   }
 }
 

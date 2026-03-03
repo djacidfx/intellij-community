@@ -10,11 +10,10 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.channelFlow
-import org.apache.lucene.analysis.standard.StandardAnalyzer
+import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.document.Document
 import org.apache.lucene.index.IndexWriter
 import org.apache.lucene.index.IndexWriterConfig
-import org.apache.lucene.search.Explanation
 import org.apache.lucene.search.IndexSearcher
 import org.apache.lucene.search.Query
 import org.apache.lucene.search.ScoreDoc
@@ -29,7 +28,7 @@ import kotlin.io.path.div
 
 
 @OptIn(ExperimentalAtomicApi::class)
-class LuceneIndex(val project: Project, indexName: String, val log: Logger) : Disposable {
+class LuceneIndex(val project: Project, indexName: String, val log: Logger, private val analyzer: Analyzer) : Disposable {
 
   // These are managed as one to ensure proper cleanup and synchronization.
   private data class IndexReaderWriter(val writer: IndexWriter, val searcherManager: SearcherManager)
@@ -45,7 +44,6 @@ class LuceneIndex(val project: Project, indexName: String, val log: Logger) : Di
   //TODO implement operating in a read-only mode, that just hopes the other process will maintain the index properly. (Or even better, indicate some fallback flag so the fallback logic is used.)
   // Then it regularly checks if the index is still locked and once the lock can be acquired, we take ownership of the index and reindex everything once.
   private fun createIndexReaderWriter(): IndexReaderWriter {
-    val analyzer = StandardAnalyzer()
     val config = IndexWriterConfig(analyzer)
     // When closing the writer, the IDE shuts down. Since we reindex on startup anyway, we do not need to persist any pending changes.
     config.setCommitOnClose(false)

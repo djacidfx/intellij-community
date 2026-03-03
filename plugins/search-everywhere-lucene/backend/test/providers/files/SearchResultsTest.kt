@@ -1,13 +1,14 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.searchEverywhereLucene.backend.providers.files
 
+import com.intellij.mock.MockVirtualFile
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.logger
-import com.intellij.mock.MockVirtualFile
 import com.intellij.platform.searchEverywhere.SeFilterState
 import com.intellij.platform.searchEverywhere.SeParams
-import com.intellij.searchEverywhereLucene.backend.*
+import com.intellij.searchEverywhereLucene.backend.LuceneIndexTestBase
 import com.intellij.testFramework.junit5.TestApplication
+import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.document.Document
 import org.apache.lucene.search.Query
 import org.junit.jupiter.api.DynamicNode
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.TestFactory
 class SearchResultsTest : LuceneIndexTestBase() {
 
   override val log: Logger = logger<SearchResultsTest>()
+  override val analyzer: Analyzer = FileIndex.getIndexingAnalyzer()
 
   override fun buildSimpleQuery(pattern: String): Query {
     return FileIndex.buildQuery(SeParams(pattern, SeFilterState.Empty))
@@ -57,12 +59,23 @@ class SearchResultsTest : LuceneIndexTestBase() {
     val petC = file("PetController.java")
 
     return indexWith(listOf(pet,petC)) { index ->
-      index.assertSearch("pet.java") {
+      index.assertSearch("Pet.java") {
         findsWithOrdering(listOf(pet,petC))
       }
     }
   }
 
+  @TestFactory
+  fun `test case insensitive search`(): List<DynamicNode> {
+    val pet = file("Pet.java")
+    val petC = file("PetController.java")
+
+    return indexWith(listOf(pet, petC)) { index ->
+      index.assertSearch("pet.java") {
+        findsWithOrdering(listOf(pet, petC))
+      }
+    }
+  }
 
 
   @TestFactory

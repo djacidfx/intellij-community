@@ -9,12 +9,13 @@ import com.intellij.testFramework.junit5.SystemProperty
 import com.intellij.testFramework.rules.ProjectModelExtension
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
+import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.document.Document
 import org.apache.lucene.document.Field
 import org.apache.lucene.document.TextField
 import org.apache.lucene.search.Query
 import org.apache.lucene.search.ScoreDoc
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DynamicNode
 import org.junit.jupiter.api.DynamicTest.dynamicTest
@@ -29,6 +30,7 @@ abstract class LuceneIndexTestBase {
   protected val project: Project get() = projectModel.project
 
   abstract val log: Logger
+  abstract val analyzer: Analyzer
 
   @BeforeEach
   fun setupLogging() {
@@ -37,7 +39,7 @@ abstract class LuceneIndexTestBase {
     if (rootLogger.handlers.none { it is TestLoggerFactory.LogToStdoutJulHandler }) {
       val handler = TestLoggerFactory.LogToStdoutJulHandler()
       rootLogger.addHandler(handler)
-      com.intellij.openapi.util.Disposer.register(projectModel.disposableRule.disposable) {
+      Disposer.register(projectModel.disposableRule.disposable) {
         rootLogger.removeHandler(handler)
       }
     }
@@ -183,17 +185,21 @@ abstract class LuceneIndexTestBase {
     val query = buildQuery(input)
     dynamicNodes.add(dynamicTest("Searching for `$input`") {
       runBlocking {
+        this@LuceneIndexTestBase.log.info("Searching for `$input` with query: $query ")
         val results = search(query).toList()
         SearchFlowAssert(this@assertSearch, query, results, isEquivalent).block()
       }
     })
   }
 
-  fun indexWith(docs: List<Document>, block: suspend (LuceneIndex) -> Unit): List<DynamicNode> = runBlocking {
+
+  fun indexWith(docs: List<Document>, a: Analyzer = analyzer, block: suspend (LuceneIndex) -> Unit): List<DynamicNode> = runBlocking {
     val indexName = "test-index-${UUID.randomUUID()}"
-    
-    val luceneIndex = LuceneIndex(project, indexName, log)
+
+    val luceneIndex = LuceneIndex(project, indexName, log, a)
     Disposer.register(projectModel.disposableRule.disposable, luceneIndex)
+
+    log.info("Indexing ${docs.size} documents: ${docs.joinToString(limit = 3, prefix = "[", postfix = "]")}")
 
     luceneIndex.processChanges { writer ->
       writer.deleteAll()
