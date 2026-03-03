@@ -57,7 +57,7 @@ object PythonExecuteUtils {
     workingDir: Path?,
     additionalUploadLocalDir: Path?,
     targetPortsForwarding: List<Int> = emptyList(),
-    buildPythonPath: Boolean = true,
+    includeSourceRootsToPythonPath: Boolean = true,
   ): TargetProcessRunResult {
     val execution = PythonModuleExecution()
     execution.moduleName = pyModuleToRun
@@ -74,7 +74,7 @@ object PythonExecuteUtils {
 
     val modules: Array<Module> = module?.let { arrayOf(it) } ?: project.modules
     request.ensureProjectSdkAndModuleDirsAreOnTarget(project, *modules)
-    if (buildPythonPath) {
+    if (includeSourceRootsToPythonPath) {
       PythonCommandLineState.buildPythonPath(project, module, execution, sdk, null, false, true,
                                              true, false, request)
     }
