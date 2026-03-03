@@ -34,6 +34,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.IntRef
 import com.intellij.platform.structureView.impl.DelegatingNodeProvider
+import com.intellij.platform.structureView.impl.ShowStructurePopupRequest
 import com.intellij.platform.structureView.impl.StructureViewScopeHolder
 import com.intellij.platform.structureView.impl.dto.DeferredNodesDto
 import com.intellij.platform.structureView.impl.dto.NodeProviderNodesDto
@@ -52,6 +53,7 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -67,9 +69,23 @@ import javax.swing.tree.TreePath
 
 internal class BackendStructureTreeService(private val session: ClientAppSession) {
   private val structureViews = ConcurrentHashMap<Int, StructureViewEntry>()
+  private val showPopupRequestFlow by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+    MutableSharedFlow<ShowStructurePopupRequest>(
+      extraBufferCapacity = 1,
+      onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+  }
 
   fun getStructureViewEntry(id: StructureViewDtoId): StructureViewEntry? {
     return structureViews[id.id]
+  }
+
+  fun getShowPopupRequestFlow(): Flow<ShowStructurePopupRequest> {
+    return showPopupRequestFlow
+  }
+
+  suspend fun emitShowPopupRequest(request: ShowStructurePopupRequest) {
+    showPopupRequestFlow.emit(request)
   }
 
   internal suspend fun createStructureViewModel(

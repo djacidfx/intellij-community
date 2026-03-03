@@ -7,26 +7,16 @@ import com.intellij.ide.structureView.StructureViewModel;
 import com.intellij.ide.structureView.impl.StructureViewComposite;
 import com.intellij.ide.util.StructureViewCompositeModel;
 import com.intellij.ide.util.treeView.AbstractTreeNode;
-import com.intellij.openapi.actionSystem.ActionUpdateThread;
-import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.CommonDataKeys;
-import com.intellij.openapi.actionSystem.PlatformCoreDataKeys;
-import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.ex.util.EditorUtil;
 import com.intellij.openapi.fileEditor.FileEditor;
-import com.intellij.openapi.fileEditor.TextEditor;
-import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Disposer;
-import com.intellij.openapi.util.registry.Registry;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.PsiDocumentManager;
 import com.intellij.platform.structureView.impl.StructurePopup;
 import com.intellij.platform.structureView.impl.StructurePopupProvider;
 import com.intellij.platform.structureView.impl.StructurePopupTestExt;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
-import com.intellij.ui.EditorTextField;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -36,38 +26,32 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-public final class ViewStructureAction extends DumbAwareAction {
+public final class ViewStructureAction extends ViewStructureActionBase {
 
   @Nullable
   private final Consumer<AbstractTreeNode<?>> myCallbackAfterNavigation;
 
   public ViewStructureAction() {
-    setEnabledInModalContext(true);
+    super();
     myCallbackAfterNavigation = null;
   }
 
+  /**
+   * @deprecated use com.intellij.platform.structureView.backend.StructurePopupHelper.showFileStructurePopup instead
+   */
+  @Deprecated
   @ApiStatus.Internal
   public ViewStructureAction(@Nullable Consumer<AbstractTreeNode<?>> callbackAfterNavigation) {
     myCallbackAfterNavigation = callbackAfterNavigation;
   }
 
   @Override
-  public void actionPerformed(@NotNull AnActionEvent e) {
-    Project project = e.getData(CommonDataKeys.PROJECT);
-    if (project == null) return;
-    FileEditor fileEditor = e.getData(PlatformCoreDataKeys.FILE_EDITOR);
-    if (fileEditor == null) return;
-
-    VirtualFile virtualFile = fileEditor.getFile();
-    Editor editor = fileEditor instanceof TextEditor te ? te.getEditor() :
-                    e.getData(CommonDataKeys.EDITOR);
-    if (editor != null) {
-      PsiDocumentManager.getInstance(project).commitDocument(editor.getDocument());
-    }
-
+  protected void showFileStructurePopup(@NotNull Project project,
+                                        @NotNull FileEditor fileEditor) {
     StructurePopup popup = createPopup(project, fileEditor, myCallbackAfterNavigation);
     if (popup == null) return;
 
+    VirtualFile virtualFile = fileEditor.getFile();
     String title = virtualFile == null ? fileEditor.getName() : virtualFile.getName();
     popup.setTitle(title);
     popup.show();
@@ -89,29 +73,6 @@ public final class ViewStructureAction extends DumbAwareAction {
       .filter(Objects::nonNull)
       .findFirst()
       .orElse(null);
-  }
-
-  @Override
-  public void update(@NotNull AnActionEvent e) {
-    Project project = e.getData(CommonDataKeys.PROJECT);
-    if (project == null) {
-      e.getPresentation().setEnabled(false);
-      return;
-    }
-
-    FileEditor fileEditor = e.getData(PlatformCoreDataKeys.FILE_EDITOR);
-    Editor editor = fileEditor instanceof TextEditor te ? te.getEditor() :
-                    e.getData(CommonDataKeys.EDITOR);
-
-    boolean enabled = fileEditor != null &&
-                      (!Boolean.TRUE.equals(EditorTextField.SUPPLEMENTARY_KEY.get(editor))) &&
-                      (Registry.is("frontend.structure.popup") || fileEditor.getStructureViewBuilder() != null);
-    e.getPresentation().setEnabled(enabled);
-  }
-
-  @Override
-  public @NotNull ActionUpdateThread getActionUpdateThread() {
-    return ActionUpdateThread.BGT;
   }
 
   public static @NotNull StructureViewModel createStructureViewModel(@NotNull Project project,

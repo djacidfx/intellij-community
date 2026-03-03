@@ -52,6 +52,6 @@
 
     <structurePopupProvider implementation="com.intellij.ide.util.OldStructurePopupProviderImpl"/>
 
-    <registryKey key="frontend.structure.popup" defaultValue="false" description="Enables frontend side file structure popup" />
+    <registryKey key="frontend.structure.popup" defaultValue="false" description="Enables frontend side file structure popup" restartRequired="true" />
   </extensions>
 </idea-plugin>

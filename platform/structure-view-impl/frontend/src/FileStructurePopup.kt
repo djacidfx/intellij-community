@@ -142,7 +142,7 @@ import kotlin.time.Duration.Companion.nanoseconds
  */
 class FileStructurePopup(
   private val myProject: Project,
-  private val myFileEditor: FileEditor,
+  private val myFileEditor: FileEditor?,
   private val myModel: StructureUiModel,
 ) : Disposable, TreeActionsOwner, StructurePopup, StructurePopupTestExt {
   private var myPopup: JBPopup? = null

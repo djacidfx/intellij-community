@@ -22,7 +22,7 @@
   <!-- endregion -->
 
   <extensions defaultExtensionNs="com.intellij">
+    <postStartupActivity implementation="com.intellij.platform.structureView.frontend.ShowStructurePopupFlowStartupActivity"/>
     <structurePopupProvider implementation="com.intellij.platform.structureView.frontend.impl.StructurePopupProviderImpl"/>
-    <platform.rpc.projectRemoteTopicListener implementation="com.intellij.platform.structureView.frontend.ShowStructurePopupRemoteTopicListener"/>
   </extensions>
 </idea-plugin>
