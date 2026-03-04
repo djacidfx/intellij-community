@@ -34,13 +34,13 @@ import java.util.Set;
 import static com.jetbrains.python.debugger.PyDebugValueGroupsKt.addGroupValues;
 
 public class PyStackFrame extends XStackFrame {
-  private static final Logger LOG = Logger.getInstance(PyStackFrame.class);
+  protected static final Logger LOG = Logger.getInstance(PyStackFrame.class);
 
   private static final Object STACK_FRAME_EQUALITY_OBJECT = new Object();
   public static final @NotNull @NonNls Set<String> COMPREHENSION_NAMES = Set.of("<genexpr>", "<listcomp>", "<dictcomp>",
                                                                                 "<setcomp>");
   private final Project myProject;
-  private final PyFrameAccessor myDebugProcess;
+  protected final PyFrameAccessor myDebugProcess;
   private final PyStackFrameInfo myFrameInfo;
   private final XSourcePosition myPosition;
   private volatile boolean isExternal = true;
@@ -211,7 +211,7 @@ public class PyStackFrame extends XStackFrame {
     descriptorsCache.put(threadFrameId, childrenDescriptors);
   }
 
-  private void restoreValueDescriptor(PyDebugValue value) {
+  protected void restoreValueDescriptor(PyDebugValue value) {
     if (myChildrenDescriptors != null) {
       PyDebugValueDescriptor descriptor = myChildrenDescriptors.getOrDefault(value.getName(), null);
       if (descriptor == null) {

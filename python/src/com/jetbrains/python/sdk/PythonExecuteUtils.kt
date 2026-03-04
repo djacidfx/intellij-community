@@ -67,6 +67,12 @@ object PythonExecuteUtils {
     patchedEnvs.forEach {
       execution.addEnvironmentVariable(it.key, it.value)
     }
+    //if (includeDebugPyToPythonPath) {
+    //  val libsPaths = JupyterPyHelperProvider.getRequiredLibPaths(virtualFile, project)
+    //  if (libsPaths.isEmpty())
+    //    return ""
+    //  execution.addEnvironmentVariable("PYTHONPATH", "${sdk.homePath}/debugpy")
+    //}
 
     val helpersAwareTargetEnvironmentRequest = getPythonTargetInterpreter(project, sdk)
     helpersAwareTargetEnvironmentRequest.preparePyCharmHelpers()
