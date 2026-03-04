@@ -15,13 +15,11 @@ import java.util.Arrays
 import java.util.function.Supplier
 
 @ApiStatus.Internal
-class PluginSetBuilder(@JvmField val unsortedPlugins: Set<PluginMainDescriptor>) {
+class PluginSetBuilder(@JvmField val unsortedPlugins: UnambiguousPluginSet) {
   private val moduleGraph: ModuleGraph
   private val sortedModulesWithDependencies: ModulesWithDependencies
   private val builder: DFSTBuilder<PluginModuleDescriptor>
   val topologicalComparator: Comparator<PluginModuleDescriptor>
-
-  constructor(unambiguousPluginSet: UnambiguousPluginSet): this(unambiguousPluginSet.plugins.toSet())
 
   init {
     val (unsortedModulesWithDependencies, additionalEdges) = createModulesWithDependenciesAndAdditionalEdges(unsortedPlugins)
@@ -31,8 +29,8 @@ class PluginSetBuilder(@JvmField val unsortedPlugins: Set<PluginMainDescriptor>)
     sortedModulesWithDependencies = unsortedModulesWithDependencies.sorted(topologicalComparator)
   }
 
-  private val enabledPluginIds = HashMap<PluginId, PluginModuleDescriptor>(unsortedPlugins.size)
-  private val enabledModuleV2Ids = HashMap<PluginModuleId, ContentModuleDescriptor>(unsortedPlugins.size * 2)
+  private val enabledPluginIds = HashMap<PluginId, PluginModuleDescriptor>(unsortedPlugins.plugins.size)
+  private val enabledModuleV2Ids = HashMap<PluginModuleId, ContentModuleDescriptor>(unsortedPlugins.plugins.size * 2)
 
   internal fun checkPluginCycles(): List<PluginLoadingError> {
     if (builder.isAcyclic) {
@@ -83,7 +81,7 @@ class PluginSetBuilder(@JvmField val unsortedPlugins: Set<PluginMainDescriptor>)
 
   // Only plugins returned. Not modules. See PluginManagerTest.moduleSort test to understand the issue.
   private fun getSortedPlugins(): Array<PluginMainDescriptor> {
-    val pluginToNumber = Object2IntOpenHashMap<PluginId>(unsortedPlugins.size)
+    val pluginToNumber = Object2IntOpenHashMap<PluginId>(unsortedPlugins.plugins.size)
     pluginToNumber.put(PluginManagerCore.CORE_ID, 0)
     var number = 0
     for (module in sortedModulesWithDependencies.modules) {
@@ -92,7 +90,7 @@ class PluginSetBuilder(@JvmField val unsortedPlugins: Set<PluginMainDescriptor>)
         pluginToNumber.putIfAbsent(module.pluginId, number++)
       }
     }
-    val sorted = unsortedPlugins.toTypedArray()
+    val sorted = unsortedPlugins.plugins.toTypedArray()
     Arrays.sort(sorted, Comparator { o1, o2 ->
       pluginToNumber.getInt(o1.pluginId) - pluginToNumber.getInt(o2.pluginId)
     })

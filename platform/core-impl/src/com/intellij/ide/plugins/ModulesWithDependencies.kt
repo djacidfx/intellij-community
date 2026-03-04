@@ -46,12 +46,12 @@ internal class ModulesWithDependencies(
  * Computes dependencies between modules in plugins and also computes additional edges in the module graph which shouldn't be treated as
  *  dependencies but should be used to determine the order in which modules are processed. 
  */
-internal fun createModulesWithDependenciesAndAdditionalEdges(plugins: Collection<PluginMainDescriptor>): Pair<ModulesWithDependencies, IdentityHashMap<PluginModuleDescriptor, List<PluginModuleDescriptor>>> {
-  val pluginIdToDescriptor = HashMap<PluginId, PluginModuleDescriptor>(plugins.size * 2)
+internal fun createModulesWithDependenciesAndAdditionalEdges(pluginSet: UnambiguousPluginSet): Pair<ModulesWithDependencies, IdentityHashMap<PluginModuleDescriptor, List<PluginModuleDescriptor>>> {
+  val pluginIdToDescriptor = HashMap<PluginId, PluginModuleDescriptor>(pluginSet.plugins.size * 2)
   val moduleIdToModule = HashMap<PluginModuleId, ContentModuleDescriptor>()
   val modules = ArrayList<PluginModuleDescriptor>(pluginIdToDescriptor.size)
   val additionalEdges = IdentityHashMap<PluginModuleDescriptor, List<PluginModuleDescriptor>>()
-  for (module in plugins) {
+  for (module in pluginSet.plugins) {
     pluginIdToDescriptor.put(module.pluginId, module)
     for (pluginAlias in module.pluginAliases) {
       pluginIdToDescriptor.put(pluginAlias, module)
