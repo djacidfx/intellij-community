@@ -62,8 +62,8 @@ internal fun createModulesWithDependenciesAndAdditionalEdges(pluginSet: Unambigu
   val directDependencies = IdentityHashMap<PluginModuleDescriptor, List<PluginModuleDescriptor>>(modules.size)
   for (module in modules) {
     // If a plugin does not include any module dependency tags in its plugin.xml, it's assumed to be a legacy plugin
-   // and is loaded only in IntelliJ IDEA, so it may use classes from Java plugin.
-    val implicitDep = if (hasAllModules && PluginCompatibilityUtils.isLegacyPluginWithoutPlatformAliasDependencies(module)) {
+    // and is loaded only in IntelliJ IDEA, so it may use classes from Java plugin.
+    val implicitDep = if (module is PluginMainDescriptor && hasAllModules && PluginCompatibilityUtils.isLegacyPluginWithoutPlatformAliasDependencies(module)) {
       pluginSet.resolvePluginId(JAVA_PLUGIN_ALIAS_ID)
     }
     else {
