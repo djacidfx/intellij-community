@@ -105,14 +105,14 @@ internal class ClassLoaderConfiguratorTest {
     }.buildDir(rootDir.resolve("p_dependent"))
     val plugins = PluginSetTestBuilder.fromPath(rootDir).discoverPlugins().second.pluginLists.flatMap { it.plugins }
     Assertions.assertThat(plugins).hasSize(2)
-    val classLoaderConfigurator = ClassLoaderConfigurator(PluginSetBuilder(plugins.toSet()).createPluginSetWithEnabledModulesMap())
+    val classLoaderConfigurator = ClassLoaderConfigurator(PluginSetBuilder(UnambiguousPluginSet.tryBuild(plugins)!!).createPluginSetWithEnabledModulesMap())
     classLoaderConfigurator.configure()
     val plugin = plugins[1]
     assertThat(plugin.contentModules[0].pluginClassLoader).isInstanceOf(PluginAwareClassLoader::class.java)
 
     val scope = createPluginDependencyAndContentBasedScope(
       plugin,
-      PluginSetBuilder(plugins.toSet()).createPluginSetWithEnabledModulesMap()
+      PluginSetBuilder(UnambiguousPluginSet.tryBuild(plugins)!!).createPluginSetWithEnabledModulesMap()
     )!!
     assertThat(scope.isDefinitelyAlienClass(name = "dd", packagePrefix = "dd", force = false)).isNull()
     assertThat(scope.isDefinitelyAlienClass(name = "com.example.extraSupportedFeature.Foo", packagePrefix = "com.example.extraSupportedFeature.", force = false))
@@ -138,7 +138,7 @@ internal class ClassLoaderConfiguratorTest {
     val barPlugin = plugins.get(1)
     assertThat(barPlugin.pluginId.idString).isEqualTo("2-bar")
 
-    val classLoaderConfigurator = ClassLoaderConfigurator(PluginSetBuilder(plugins.toSet()).createPluginSetWithEnabledModulesMap())
+    val classLoaderConfigurator = ClassLoaderConfigurator(PluginSetBuilder(UnambiguousPluginSet.tryBuild(plugins)!!).createPluginSetWithEnabledModulesMap())
     classLoaderConfigurator.configure()
 
     assertThat((barPlugin.pluginClassLoader as PluginClassLoader)._getParents().map { it.descriptorPath })

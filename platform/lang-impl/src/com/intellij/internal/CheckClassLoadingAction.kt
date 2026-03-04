@@ -4,9 +4,11 @@ package com.intellij.internal
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.ide.plugins.PluginModuleDescriptor
 import com.intellij.ide.plugins.PluginSetBuilder
+import com.intellij.ide.plugins.UnambiguousPluginSet
 import com.intellij.ide.plugins.cl.PluginAwareClassLoader
 import com.intellij.ide.plugins.cl.PluginClassLoader
 import com.intellij.ide.plugins.contentModuleName
+import com.intellij.ide.plugins.tryBuild
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.remoting.ActionRemoteBehaviorSpecification
 import com.intellij.openapi.project.DumbAwareAction
@@ -107,7 +109,8 @@ internal class CheckClassLoadingAction : DumbAwareAction(), ActionRemoteBehavior
   private fun buildClassLoadingMap(className: String): Map<PluginModuleDescriptor, Class<*>?> {
     val pluginSet = PluginManagerCore.getPluginSet()
     val loadingResults = mutableMapOf<PluginModuleDescriptor, Class<*>?>()
-    val topologicalComparator = PluginSetBuilder(pluginSet.enabledPlugins.toSet()).topologicalComparator
+    val unambiguousPluginSet = UnambiguousPluginSet.tryBuild(pluginSet.enabledPlugins)!!
+    val topologicalComparator = PluginSetBuilder(unambiguousPluginSet).topologicalComparator
     for (plugin in pluginSet.enabledPlugins) {
       loadingResults[plugin] = plugin.tryLoadClass(className)
       for (module in plugin.contentModules) {

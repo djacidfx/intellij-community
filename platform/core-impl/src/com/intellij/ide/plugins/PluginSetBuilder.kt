@@ -21,6 +21,8 @@ class PluginSetBuilder(@JvmField val unsortedPlugins: Set<PluginMainDescriptor>)
   private val builder: DFSTBuilder<PluginModuleDescriptor>
   val topologicalComparator: Comparator<PluginModuleDescriptor>
 
+  constructor(unambiguousPluginSet: UnambiguousPluginSet): this(unambiguousPluginSet.plugins.toSet())
+
   init {
     val (unsortedModulesWithDependencies, additionalEdges) = createModulesWithDependenciesAndAdditionalEdges(unsortedPlugins)
     moduleGraph = ModuleGraph(unsortedModulesWithDependencies, additionalEdges)

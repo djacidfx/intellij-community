@@ -274,7 +274,10 @@ object DynamicPlugins {
     //  2) SortedModuleGraph;
     //  3) SortedModuleGraph.topologicalComparator;
     //  4) PluginSetBuilder.sortedModuleGraph.
-    var comparator = PluginSetBuilder(allPlugins).topologicalComparator
+
+    val newPluginSet = UnambiguousPluginSet.tryBuild(allPlugins.toList())
+                       ?: return emptyList() // conflict appeared
+    var comparator = PluginSetBuilder(newPluginSet).topologicalComparator
 
     if (!load) {
       comparator = comparator.reversed()

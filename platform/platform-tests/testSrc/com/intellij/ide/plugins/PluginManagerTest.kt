@@ -202,7 +202,7 @@ class PluginManagerTest {
   fun testModulePluginIdContract() {
     val pluginsPath = Path.of(PlatformTestUtil.getPlatformTestDataPath(), "plugins", "withModules")
     val descriptorBundled = loadDescriptorInTest(pluginsPath, true)
-    val pluginSet = PluginSetBuilder(mutableSetOf(descriptorBundled)).createPluginSetWithEnabledModulesMap()
+    val pluginSet = PluginSetBuilder(UnambiguousPluginSet.tryBuild(listOf(descriptorBundled))!!).createPluginSetWithEnabledModulesMap()
 
     val moduleId = PluginId.getId("foo.bar")
     val corePlugin = PluginId.getId("my.plugin")

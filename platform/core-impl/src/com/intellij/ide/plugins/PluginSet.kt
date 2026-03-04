@@ -56,17 +56,23 @@ class PluginSet internal constructor(
     unsortedPlugins.removeIf { it.legacyEquals(plugin) }
     unsortedPlugins.add(plugin)
 
-    return PluginSetBuilder(unsortedPlugins)
+    // FIXME handle potential conflict
+    // FIXME this method loses information (takes only currently loaded plugins)
+    val newUnambiguousPluginSet = UnambiguousPluginSet.tryBuild(unsortedPlugins.toList())
+                                  ?: error("plugin substitution creates a conflict: $plugin")
+    return PluginSetBuilder(newUnambiguousPluginSet)
   }
 
   fun withoutPlugin(plugin: PluginMainDescriptor, disable: Boolean = true): PluginSetBuilder {
-    return if (disable) {
-      PluginSetBuilder(allPlugins)
+    val newAllPlugins = if (disable) {
+      allPlugins
     } else {
       val newAllPlugins = LinkedHashSet(allPlugins)
       newAllPlugins.removeIf { it.legacyEquals(plugin) }
-      PluginSetBuilder(newAllPlugins)
+      newAllPlugins
     }
+    val newUnambiguousPluginSet = UnambiguousPluginSet.tryBuild(newAllPlugins.toList())!!
+    return PluginSetBuilder(newUnambiguousPluginSet)
   }
 
   /**
