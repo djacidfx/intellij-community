@@ -75,6 +75,9 @@ fun PluginDependencyAnalysis.sequenceRequiredModules(initContext: PluginInitiali
 @ApiStatus.Internal
 fun PluginDependencyAnalysis.sequenceStrictDependencies(descriptor: IdeaPluginDescriptorImpl): Sequence<DependencyRef> {
   return sequence {
+    if (descriptor is DependsSubDescriptor) {
+      yield(DependencyRef.Plugin(descriptor.dependsTargetId))
+    }
     for (depends in descriptor.dependencies) {
       if (depends.isOptional) continue
       yield(DependencyRef.Plugin(depends.pluginId))
