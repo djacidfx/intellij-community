@@ -539,6 +539,34 @@ class PluginDependencyAnalysisTest {
       val pluginDep = result[0] as PluginDependencyAnalysis.DependencyRef.Plugin
       assertThat(pluginDep.pluginId.idString).isEqualTo("bar")
     }
+
+    @Test
+    fun `depends sub-descriptor includes target dependency`() {
+      plugin("bar") {
+        version = "1.0"
+      }.buildDir(pluginsDirPath.resolve("bar"))
+
+      plugin("baz") {
+        version = "1.0"
+      }.buildDir(pluginsDirPath.resolve("baz"))
+
+      plugin("foo") {
+        version = "1.0"
+        depends("bar", "bar.xml") {
+          depends("baz")
+        }
+      }.buildDir(pluginsDirPath.resolve("foo"))
+
+      val plugins = discoverPlugins()
+      val fooPlugin = plugins.first { it.pluginId.idString == "foo" }
+      val subDescriptor = fooPlugin.dependencies.first { it.pluginId.idString == "bar" }.subDescriptor!!
+      val result = PluginDependencyAnalysis.sequenceStrictDependencies(subDescriptor).toList()
+
+      val pluginIds = result.filterIsInstance<PluginDependencyAnalysis.DependencyRef.Plugin>()
+        .map { it.pluginId.idString }
+
+      assertThat(pluginIds).containsExactlyInAnyOrder("bar", "baz")
+    }
   }
 
   @Nested
