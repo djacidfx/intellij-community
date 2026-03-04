@@ -47,14 +47,12 @@ internal class ModulesWithDependencies(
  *  dependencies but should be used to determine the order in which modules are processed. 
  */
 internal fun createModulesWithDependenciesAndAdditionalEdges(pluginSet: UnambiguousPluginSet): Pair<ModulesWithDependencies, IdentityHashMap<PluginModuleDescriptor, List<PluginModuleDescriptor>>> {
-  val moduleIdToModule = HashMap<PluginModuleId, ContentModuleDescriptor>()
   val modules = ArrayList<PluginModuleDescriptor>(pluginSet.plugins.size * 2)
   val additionalEdges = IdentityHashMap<PluginModuleDescriptor, List<PluginModuleDescriptor>>()
   for (module in pluginSet.plugins) {
     modules.add(module)
     for (subModule in module.contentModules) {
       modules.add(subModule)
-      moduleIdToModule.put(subModule.moduleId, subModule)
     }
   }
 
@@ -77,53 +75,53 @@ internal fun createModulesWithDependenciesAndAdditionalEdges(pluginSet: Unambigu
       }
       else {
         dependenciesCollector.add(implicitDep)
-        moduleIdToModule.get(JAVA_BACKEND_MODULE_ID)?.let { dependenciesCollector.add(it) }
+        pluginSet.resolveContentModuleId(JAVA_BACKEND_MODULE_ID)?.let { dependenciesCollector.add(it) }
       }
     }
 
-    collectDirectDependenciesInOldFormat(module, pluginSet, moduleIdToModule, dependenciesCollector, additionalEdgesForCurrentModule)
-    collectDirectDependenciesInNewFormat(module, pluginSet, moduleIdToModule, dependenciesCollector, additionalEdgesForCurrentModule)
+    collectDirectDependenciesInOldFormat(module, pluginSet, dependenciesCollector, additionalEdgesForCurrentModule)
+    collectDirectDependenciesInNewFormat(module, pluginSet, dependenciesCollector, additionalEdgesForCurrentModule)
 
     // Check modules as well, for example, intellij.diagram.impl.vcs.
     // We are not yet ready to recommend adding a dependency on extracted VCS modules since the coordinates are not finalized.
     if (module.pluginId != PluginManagerCore.CORE_ID || module is ContentModuleDescriptor) {
       val strictCheck = module.isBundled || PluginManagerCore.isVendorJetBrains(module.vendor ?: "")
       if (!strictCheck || doesDependOnPluginAlias(module, VCS_ALIAS_ID)) {
-        vcsApiContentModules.mapNotNullTo(dependenciesCollector) { moduleIdToModule.get(it) }
+        vcsApiContentModules.mapNotNullTo(dependenciesCollector) { pluginSet.resolveContentModuleId(it) }
       }
       if (!strictCheck) {
         if (System.getProperty("enable.implicit.json.dependency").toBoolean()) {
           pluginSet.resolvePluginId(JSON_ALIAS_ID)?.let { dependenciesCollector.add(it) }
-          moduleIdToModule.get(JSON_BACKEND_MODULE_ID)?.let { dependenciesCollector.add(it) }
+          pluginSet.resolveContentModuleId(JSON_BACKEND_MODULE_ID)?.let { dependenciesCollector.add(it) }
         }
         if (doesDependOnPluginAlias(module, JSON_ALIAS_ID)) {
-          moduleIdToModule.get(JSON_BACKEND_MODULE_ID)?.let { dependenciesCollector.add(it) }
+          pluginSet.resolveContentModuleId(JSON_BACKEND_MODULE_ID)?.let { dependenciesCollector.add(it) }
         }
         if (doesDependOnPluginAlias(module, CWM_PLUGIN_ID)) {
-          moduleIdToModule.get(REMOTE_DEVELOPMENT_MODULE_ID)?.let { dependenciesCollector.add(it) }
+          pluginSet.resolveContentModuleId(REMOTE_DEVELOPMENT_MODULE_ID)?.let { dependenciesCollector.add(it) }
         }
         if (doesDependOnPluginAlias(module, CWM_RIDER_PLUGIN_ID)) {
-          moduleIdToModule.get(REMOTE_DEVELOPMENT_RIDER_MODULE_ID)?.let { dependenciesCollector.add(it) }
+          pluginSet.resolveContentModuleId(REMOTE_DEVELOPMENT_RIDER_MODULE_ID)?.let { dependenciesCollector.add(it) }
         }
         if (doesDependOnPluginAlias(module, XDEBUGGER_PLUGIN_ALIAS_ID)) {
           for (moduleId in XDEBUGGER_MODULE_IDS) {
-            moduleIdToModule.get(moduleId)?.let { dependenciesCollector.add(it) }
+            pluginSet.resolveContentModuleId(moduleId)?.let { dependenciesCollector.add(it) }
           }
         }
-        moduleIdToModule.get(COLLABORATION_TOOLS_MODULE_ID)?.let { dependenciesCollector.add(it) }
+        pluginSet.resolveContentModuleId(COLLABORATION_TOOLS_MODULE_ID)?.let { dependenciesCollector.add(it) }
       }
 
       /* Compatibility Layer */
 
       if (doesDependOnPluginAlias(module, JAVA_PLUGIN_ALIAS_ID)) {
-        moduleIdToModule.get(JAVA_BACKEND_MODULE_ID)?.let { dependenciesCollector.add(it) }
+        pluginSet.resolveContentModuleId(JAVA_BACKEND_MODULE_ID)?.let { dependenciesCollector.add(it) }
       }
 
       if (doesDependOnPluginAlias(module, RIDER_ALIAS_ID)) {
-        moduleIdToModule.get(RIDER_MODULE_ID)?.let { dependenciesCollector.add(it) }
+        pluginSet.resolveContentModuleId(RIDER_MODULE_ID)?.let { dependenciesCollector.add(it) }
       }
       if (doesDependOnPluginAlias(module, PluginId.getId("org.jetbrains.completion.full.line"))) {
-        fullLineApiContentModules.mapNotNullTo(dependenciesCollector) { moduleIdToModule.get(it) }
+        fullLineApiContentModules.mapNotNullTo(dependenciesCollector) { pluginSet.resolveContentModuleId(it) }
       }
     }
 
@@ -234,7 +232,6 @@ private val fullLineApiContentModules = arrayOf(
 private fun collectDirectDependenciesInOldFormat(
   rootDescriptor: IdeaPluginDescriptorImpl,
   pluginSet: UnambiguousPluginSet,
-  moduleIdToModule: Map<PluginModuleId, ContentModuleDescriptor>,
   dependenciesCollector: MutableSet<PluginModuleDescriptor>,
   additionalEdges: MutableSet<PluginModuleDescriptor>,
 ) {
@@ -261,7 +258,7 @@ private fun collectDirectDependenciesInOldFormat(
     }
     if (dependencyPluginId == PLATFORM_PLUGIN_ALIAS_ID || dependencyPluginId == LANG_PLUGIN_ALIAS_ID) {
       for (contentModuleId in contentModulesExtractedInCorePluginWhichCanBeUsedFromExternalPlugins) {
-        moduleIdToModule.get(contentModuleId)?.let {
+        pluginSet.resolveContentModuleId(contentModuleId)?.let {
           dependenciesCollector.add(it)
         }
       }
@@ -275,7 +272,7 @@ private fun collectDirectDependenciesInOldFormat(
     }
 
     dependency.subDescriptor?.let {
-      collectDirectDependenciesInOldFormat(it, pluginSet, moduleIdToModule, dependenciesCollector, additionalEdges)
+      collectDirectDependenciesInOldFormat(it, pluginSet, dependenciesCollector, additionalEdges)
     }
   }
 
@@ -289,12 +286,11 @@ private fun collectDirectDependenciesInOldFormat(
 private fun collectDirectDependenciesInNewFormat(
   module: PluginModuleDescriptor,
   pluginSet: UnambiguousPluginSet,
-  moduleIdToModule: Map<PluginModuleId, ContentModuleDescriptor>,
   dependenciesCollector: MutableCollection<PluginModuleDescriptor>,
   additionalEdges: MutableSet<PluginModuleDescriptor>
 ) {
   for (item in module.moduleDependencies.modules) {
-    val dependency = moduleIdToModule.get(item)
+    val dependency = pluginSet.resolveContentModuleId(item)
     if (dependency != null) {
       dependenciesCollector.add(dependency)
       if (dependency.isRequiredContentModule) {
@@ -327,7 +323,7 @@ private fun collectDirectDependenciesInNewFormat(
        can be loaded or not. */
     for (item in module.contentModules) {
       if (item.moduleLoadingRule.required) {
-        val descriptor = moduleIdToModule.get(item.moduleId)
+        val descriptor = pluginSet.resolveContentModuleId(item.moduleId)
         if (descriptor != null) {
           additionalEdges.add(descriptor)
         }
