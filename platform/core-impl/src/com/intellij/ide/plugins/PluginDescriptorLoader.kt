@@ -1401,7 +1401,7 @@ private fun loadPluginDependencyDescriptors(
     checkCycle(descriptor, configFile, visitedFiles)
     visitedFiles.add(configFile)
     try {
-      val subDescriptor = descriptor.createDependsSubDescriptor(raw, configFile)
+      val subDescriptor = descriptor.createDependsSubDescriptor(raw, configFile, dependsTargetId = dependency.pluginId)
       loadPluginDependencyDescriptors(descriptor = subDescriptor, context = context, pathResolver = pathResolver, dataLoader = dataLoader, visitedFiles = visitedFiles)
       dependency.setSubDescriptor(subDescriptor)
     }

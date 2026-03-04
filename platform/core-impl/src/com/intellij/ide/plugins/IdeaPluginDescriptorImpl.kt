@@ -81,10 +81,12 @@ sealed class IdeaPluginDescriptorImpl(
   internal fun createDependsSubDescriptor(
     subBuilder: PluginDescriptorBuilder,
     descriptorPath: String,
+    dependsTargetId: PluginId,
   ): DependsSubDescriptor = DependsSubDescriptor(
     parent = this,
     raw = subBuilder.build(),
-    descriptorPath = descriptorPath
+    descriptorPath = descriptorPath,
+    dependsTargetId = dependsTargetId,
   )
 }
 
@@ -145,6 +147,7 @@ class DependsSubDescriptor(
   val parent: IdeaPluginDescriptorImpl,
   raw: RawPluginDescriptor,
   private val descriptorPath: String,
+  val dependsTargetId: PluginId,
 ) : IdeaPluginDescriptorImpl(raw) {
   init {
     check(parent is PluginMainDescriptor || parent is DependsSubDescriptor)
@@ -164,6 +167,7 @@ class DependsSubDescriptor(
 
   override fun toString(): String =
     "DependsSubDescriptor(" +
+    "target=$dependsTargetId, " +
     "descriptorPath=$descriptorPath" +
     (if (packagePrefix == null) "" else ", package=$packagePrefix") +
     ") <- $parent"
