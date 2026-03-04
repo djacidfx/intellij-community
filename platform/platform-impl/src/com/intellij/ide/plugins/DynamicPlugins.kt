@@ -277,7 +277,7 @@ object DynamicPlugins {
 
     val newPluginSet = UnambiguousPluginSet.tryBuild(allPlugins.toList())
                        ?: return emptyList() // conflict appeared
-    var comparator = PluginSetBuilder(newPluginSet).topologicalComparator
+    var comparator = PluginSetBuilder(ProductPluginInitContext(), newPluginSet).topologicalComparator
 
     if (!load) {
       comparator = comparator.reversed()

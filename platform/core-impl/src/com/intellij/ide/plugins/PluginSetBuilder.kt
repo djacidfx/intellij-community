@@ -15,14 +15,14 @@ import java.util.Arrays
 import java.util.function.Supplier
 
 @ApiStatus.Internal
-class PluginSetBuilder(@JvmField val unsortedPlugins: UnambiguousPluginSet) {
+class PluginSetBuilder(initContext: PluginInitializationContext, @JvmField val unsortedPlugins: UnambiguousPluginSet) {
   private val moduleGraph: ModuleGraph
   private val sortedModulesWithDependencies: ModulesWithDependencies
   private val builder: DFSTBuilder<PluginModuleDescriptor>
   val topologicalComparator: Comparator<PluginModuleDescriptor>
 
   init {
-    val (unsortedModulesWithDependencies, additionalEdges) = createModulesWithDependenciesAndAdditionalEdges(unsortedPlugins)
+    val (unsortedModulesWithDependencies, additionalEdges) = createModulesWithDependenciesAndAdditionalEdges(initContext, unsortedPlugins)
     moduleGraph = ModuleGraph(unsortedModulesWithDependencies, additionalEdges)
     builder = DFSTBuilder(moduleGraph, null, true)
     topologicalComparator = toCoreAwareComparator(builder.comparator())

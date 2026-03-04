@@ -578,7 +578,7 @@ object PluginManagerCore {
 
     checkThirdPartyPluginsPrivacyConsent(parentActivity, pluginsToLoad)
 
-    val pluginSetBuilder = PluginSetBuilder(pluginsToLoad)
+    val pluginSetBuilder = PluginSetBuilder(initContext, pluginsToLoad)
     val cycleErrors = pluginSetBuilder.checkPluginCycles()
     val pluginsToDisable = HashMap<PluginId, PluginStateChangeData>()
     val pluginsToEnable = HashMap<PluginId, PluginStateChangeData>()

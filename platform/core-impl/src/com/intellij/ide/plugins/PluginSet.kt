@@ -60,7 +60,7 @@ class PluginSet internal constructor(
     // FIXME this method loses information (takes only currently loaded plugins)
     val newUnambiguousPluginSet = UnambiguousPluginSet.tryBuild(unsortedPlugins.toList())
                                   ?: error("plugin substitution creates a conflict: $plugin")
-    return PluginSetBuilder(newUnambiguousPluginSet)
+    return PluginSetBuilder(ProductPluginInitContext(), newUnambiguousPluginSet)
   }
 
   fun withoutPlugin(plugin: PluginMainDescriptor, disable: Boolean = true): PluginSetBuilder {
@@ -72,7 +72,7 @@ class PluginSet internal constructor(
       newAllPlugins
     }
     val newUnambiguousPluginSet = UnambiguousPluginSet.tryBuild(newAllPlugins.toList())!!
-    return PluginSetBuilder(newUnambiguousPluginSet)
+    return PluginSetBuilder(ProductPluginInitContext(), newUnambiguousPluginSet)
   }
 
   /**
