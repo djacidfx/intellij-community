@@ -2,6 +2,7 @@
 package com.intellij.ide.plugins
 
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.util.BuildNumber
 import com.intellij.platform.pluginSystem.parser.impl.elements.ModuleLoadingRuleValue
 import com.intellij.platform.pluginSystem.testFramework.PluginSetTestBuilder
@@ -431,6 +432,17 @@ class PluginSetLoadingTest {
     for (alias in IdeaPluginOsRequirement.getHostOsModuleIds() + productModeAliasesForCorePlugin()) {
       assertThat(pluginSet.findEnabledPlugin(alias)).isSameAs(core)
     }
+  }
+
+  @Test
+  fun `findEnabledPlugin resolves plugin alias to declaring plugin`() {
+    plugin("com.example.owner") {
+      pluginAlias("com.example.owner.alias")
+    }.buildDir(pluginsDirPath.resolve("owner"))
+
+    val pluginSet = buildPluginSet()
+    val owner = pluginSet.getEnabledPlugin("com.example.owner")
+    assertThat(pluginSet.findEnabledPlugin(PluginId.getId("com.example.owner.alias"))).isSameAs(owner)
   }
 
   @Test

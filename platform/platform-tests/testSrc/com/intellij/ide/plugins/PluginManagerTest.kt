@@ -13,7 +13,6 @@ import com.intellij.platform.pluginSystem.parser.impl.PluginDescriptorFromXmlStr
 import com.intellij.platform.pluginSystem.parser.impl.PluginDescriptorReaderContext
 import com.intellij.platform.pluginSystem.parser.impl.consume
 import com.intellij.platform.runtime.product.ProductMode
-import com.intellij.platform.testFramework.loadDescriptorInTest
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.TestDataPath
 import com.intellij.testFramework.UsefulTestCase
@@ -24,7 +23,6 @@ import com.intellij.util.system.OS
 import com.intellij.util.xml.dom.NoOpXmlInterner
 import com.intellij.util.xml.dom.XmlElement
 import com.intellij.util.xml.dom.readXmlAsModel
-import org.assertj.core.api.Assertions
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Assert
 import org.junit.Assert.assertEquals
@@ -196,17 +194,6 @@ class PluginManagerTest {
   @Throws(Exception::class)
   fun testUltimatePlugins() {
     doPluginSortTest("ultimatePlugins", true)
-  }
-
-  @Test
-  fun testModulePluginIdContract() {
-    val pluginsPath = Path.of(PlatformTestUtil.getPlatformTestDataPath(), "plugins", "withModules")
-    val descriptorBundled = loadDescriptorInTest(pluginsPath, true)
-    val pluginSet = PluginSetBuilder(UnambiguousPluginSet.tryBuild(listOf(descriptorBundled))!!).createPluginSetWithEnabledModulesMap()
-
-    val moduleId = PluginId.getId("foo.bar")
-    val corePlugin = PluginId.getId("my.plugin")
-    Assertions.assertThat(pluginSet.findEnabledPlugin(moduleId)!!.getPluginId()).isEqualTo(corePlugin)
   }
 
   @Test
