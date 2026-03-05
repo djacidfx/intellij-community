@@ -17,8 +17,10 @@ import com.intellij.platform.testFramework.plugins.plugin
 import com.intellij.platform.testFramework.plugins.pluginAlias
 import com.intellij.testFramework.LoggedErrorProcessor
 import com.intellij.testFramework.assertions.Assertions.assertThat
+import com.intellij.testFramework.junit5.SystemProperty
 import com.intellij.testFramework.rules.InMemoryFsExtension
 import org.assertj.core.api.Assertions.assertThatThrownBy
+import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
 import java.nio.file.FileVisitResult
@@ -839,6 +841,512 @@ internal class PluginDependenciesTest {
     assertThat(opt)
       .hasExactDirectParentClassloaders(foo)
       .doesNotHaveTransitiveParentClassloaders(req)
+  }
+
+  @Nested
+  inner class ImplicitDependencyAdditionTests {
+    @Test
+    fun `legacy plugin gets implicit java dependency when all modules marker is present`() {
+      // marker enables implicit dependencies for legacy plugins
+      plugin("com.intellij.modules.all") {}.buildDir(pluginDirPath.resolve("all-modules"))
+
+      // provide java alias and backend module
+      plugin(PluginManagerCore.JAVA_PLUGIN_ID.idString) {
+        pluginAlias(PluginManagerCore.JAVA_PLUGIN_ALIAS_ID.idString)
+        content {
+          module("intellij.java.backend") { packagePrefix = "com.intellij.java.backend" }
+        }
+      }.buildDir(pluginDirPath.resolve("java"))
+
+      // legacy plugin: no explicit depends/module deps, non-bundled, no package prefix
+      plugin("legacy.plugin") {}.buildDir(pluginDirPath.resolve("legacy"))
+
+      val pluginSet = buildPluginSet()
+      assertThat(pluginSet).hasExactlyEnabledPlugins(
+        "legacy.plugin",
+        PluginManagerCore.JAVA_PLUGIN_ID.idString,
+        PluginManagerCore.ALL_MODULES_MARKER.idString,
+      )
+      val legacy = pluginSet.getEnabledPlugin("legacy.plugin")
+      val java = pluginSet.getEnabledPlugin(PluginManagerCore.JAVA_PLUGIN_ID.idString)
+      val javaBackend = pluginSet.getEnabledModule("intellij.java.backend")
+      assertThat(legacy).hasExactDirectParentClassloaders(java, javaBackend)
+    }
+
+    @Test
+    fun `legacy plugin does not get implicit java dependency without all modules marker`() {
+      plugin(PluginManagerCore.JAVA_PLUGIN_ID.idString) {
+        pluginAlias(PluginManagerCore.JAVA_PLUGIN_ALIAS_ID.idString)
+        content {
+          module("intellij.java.backend") { packagePrefix = "com.intellij.java.backend" }
+        }
+      }.buildDir(pluginDirPath.resolve("java"))
+
+      plugin("legacy.plugin") {}.buildDir(pluginDirPath.resolve("legacy"))
+
+      val pluginSet = buildPluginSet()
+      val legacy = pluginSet.getEnabledPlugin("legacy.plugin")
+      val javaBackend = pluginSet.getEnabledModule("intellij.java.backend")
+      assertThat(legacy).doesNotHaveDirectParentClassloaders(javaBackend)
+    }
+
+    @Test
+    @SystemProperty(propertyKey = "enable.implicit.json.dependency", propertyValue = "true")
+    fun `non strict plugin gets implicit json backend and collaboration tools`() {
+      // JSON alias + backend
+      plugin("json.provider") {
+        vendor = "JetBrains"
+        pluginAlias("com.intellij.modules.json")
+        content {
+          module("intellij.json.backend") { packagePrefix = "com.intellij.json.backend" }
+        }
+      }.buildDir(pluginDirPath.resolve("json"))
+
+      // Collaboration tools module
+      plugin("collab.provider") {
+        vendor = "JetBrains"
+        content {
+          module("intellij.platform.collaborationTools") { packagePrefix = "com.intellij.platform.collaborationTools" }
+        }
+      }.buildDir(pluginDirPath.resolve("collab"))
+
+      // VCS module to ensure only non-strict plugins get it implicitly
+      plugin("vcs.provider") {
+        vendor = "JetBrains"
+        content {
+          module("intellij.platform.vcs.impl") { packagePrefix = "com.intellij.vcs.impl" }
+        }
+      }.buildDir(pluginDirPath.resolve("vcs"))
+
+      plugin("consumer.plugin") {}
+        .buildDir(pluginDirPath.resolve("consumer"))
+
+      val pluginSet = buildPluginSet()
+      val consumer = pluginSet.getEnabledPlugin("consumer.plugin")
+      val jsonProvider = pluginSet.getEnabledPlugin("json.provider")
+      val jsonBackend = pluginSet.getEnabledModule("intellij.json.backend")
+      val collab = pluginSet.getEnabledModule("intellij.platform.collaborationTools")
+      val vcsImpl = pluginSet.getEnabledModule("intellij.platform.vcs.impl")
+      assertThat(consumer).hasExactDirectParentClassloaders(jsonProvider, jsonBackend, collab, vcsImpl)
+    }
+
+    @Test
+    @SystemProperty(propertyKey = "enable.implicit.json.dependency", propertyValue = "true")
+    fun `strict plugin does not get non strict implicit deps`() {
+      plugin("json.provider") {
+        vendor = "JetBrains"
+        pluginAlias("com.intellij.modules.json")
+        content { module("intellij.json.backend") { packagePrefix = "com.intellij.json.backend" } }
+      }.buildDir(pluginDirPath.resolve("json"))
+
+      plugin("collab.provider") {
+        vendor = "JetBrains"
+        content { module("intellij.platform.collaborationTools") { packagePrefix = "com.intellij.platform.collaborationTools" } }
+      }.buildDir(pluginDirPath.resolve("collab"))
+
+      plugin("vcs.provider") {
+        vendor = "JetBrains"
+        content { module("intellij.platform.vcs.impl") { packagePrefix = "com.intellij.vcs.impl" } }
+      }.buildDir(pluginDirPath.resolve("vcs"))
+
+      plugin("strict.consumer") { vendor = "JetBrains" }
+        .buildDir(pluginDirPath.resolve("strict"))
+
+      val pluginSet = buildPluginSet()
+      val consumer = pluginSet.getEnabledPlugin("strict.consumer")
+      val jsonBackend = pluginSet.getEnabledModule("intellij.json.backend")
+      val collab = pluginSet.getEnabledModule("intellij.platform.collaborationTools")
+      val vcsImpl = pluginSet.getEnabledModule("intellij.platform.vcs.impl")
+      assertThat(consumer).doesNotHaveDirectParentClassloaders(jsonBackend, collab, vcsImpl)
+    }
+
+    @Test
+    fun `strict plugin gets vcs module only with explicit alias and no json backend`() {
+      plugin("vcs.provider") {
+        vendor = "JetBrains"
+        pluginAlias("com.intellij.modules.vcs")
+        content { module("intellij.platform.vcs.impl") { packagePrefix = "com.intellij.vcs.impl" } }
+      }.buildDir(pluginDirPath.resolve("vcs"))
+
+      plugin("json.provider") {
+        vendor = "JetBrains"
+        pluginAlias("com.intellij.modules.json")
+        content { module("intellij.json.backend") { packagePrefix = "com.intellij.json.backend" } }
+      }.buildDir(pluginDirPath.resolve("json"))
+
+      plugin("strict.no.dep") { vendor = "JetBrains" }
+        .buildDir(pluginDirPath.resolve("strict-no-dep"))
+      plugin("strict.with.dep") {
+        vendor = "JetBrains"
+        dependencies {
+          plugin("com.intellij.modules.vcs")
+          plugin("com.intellij.modules.json")
+        }
+      }.buildDir(pluginDirPath.resolve("strict-with-dep"))
+
+      val pluginSet = buildPluginSet()
+      val noDep = pluginSet.getEnabledPlugin("strict.no.dep")
+      val withDep = pluginSet.getEnabledPlugin("strict.with.dep")
+      val vcsImpl = pluginSet.getEnabledModule("intellij.platform.vcs.impl")
+      val jsonBackend = pluginSet.getEnabledModule("intellij.json.backend")
+      assertThat(noDep).doesNotHaveTransitiveParentClassloaders(vcsImpl)
+      assertThat(withDep)
+        .hasTransitiveParentClassloaders(vcsImpl)
+        .doesNotHaveTransitiveParentClassloaders(jsonBackend)
+    }
+
+    @Test
+    fun `compatibility layer adds backend modules for alias dependencies`() {
+      plugin("java.provider") {
+        pluginAlias(PluginManagerCore.JAVA_PLUGIN_ALIAS_ID.idString)
+        content { module("intellij.java.backend") { packagePrefix = "com.intellij.java.backend" } }
+      }.buildDir(pluginDirPath.resolve("java"))
+
+      plugin("rider.provider") {
+        pluginAlias("com.intellij.modules.rider")
+        content { module("intellij.rider") { packagePrefix = "com.intellij.rider" } }
+      }.buildDir(pluginDirPath.resolve("rider"))
+
+      plugin("full.line.provider") {
+        pluginAlias("org.jetbrains.completion.full.line")
+        content {
+          module("intellij.fullLine.core") { packagePrefix = "com.intellij.fullLine.core" }
+          module("intellij.fullLine.local") { packagePrefix = "com.intellij.fullLine.local" }
+          module("intellij.fullLine.core.impl") { packagePrefix = "com.intellij.fullLine.core.impl" }
+        }
+      }.buildDir(pluginDirPath.resolve("full-line"))
+
+      plugin("cwm.provider") {
+        pluginAlias("com.jetbrains.codeWithMe")
+        content { module("intellij.cwm") { packagePrefix = "com.intellij.cwm" } }
+      }.buildDir(pluginDirPath.resolve("cwm"))
+
+      plugin("cwm.rider.provider") {
+        pluginAlias("intellij.rider.plugins.cwm")
+        content { module("intellij.rider.plugins.cwm") { packagePrefix = "com.intellij.rider.plugins.cwm" } }
+      }.buildDir(pluginDirPath.resolve("cwm-rider"))
+
+      plugin("json.provider") {
+        pluginAlias("com.intellij.modules.json")
+        content { module("intellij.json.backend") { packagePrefix = "com.intellij.json.backend" } }
+      }.buildDir(pluginDirPath.resolve("json"))
+
+      plugin("consumer.plugin") {
+        dependencies {
+          plugin(PluginManagerCore.JAVA_PLUGIN_ALIAS_ID.idString)
+          plugin("com.intellij.modules.rider")
+          plugin("org.jetbrains.completion.full.line")
+          plugin("com.jetbrains.codeWithMe")
+          plugin("intellij.rider.plugins.cwm")
+          plugin("com.intellij.modules.json")
+        }
+      }.buildDir(pluginDirPath.resolve("consumer"))
+
+      val pluginSet = buildPluginSet()
+      val consumer = pluginSet.getEnabledPlugin("consumer.plugin")
+      assertThat(consumer).hasExactDirectParentClassloaders(
+        pluginSet.getEnabledPlugin("java.provider"),
+        pluginSet.getEnabledPlugin("rider.provider"),
+        pluginSet.getEnabledPlugin("full.line.provider"),
+        pluginSet.getEnabledPlugin("cwm.provider"),
+        pluginSet.getEnabledPlugin("cwm.rider.provider"),
+        pluginSet.getEnabledPlugin("json.provider"),
+        pluginSet.getEnabledModule("intellij.java.backend"),
+        pluginSet.getEnabledModule("intellij.rider"),
+        pluginSet.getEnabledModule("intellij.fullLine.core"),
+        pluginSet.getEnabledModule("intellij.fullLine.local"),
+        pluginSet.getEnabledModule("intellij.fullLine.core.impl"),
+        pluginSet.getEnabledModule("intellij.cwm"),
+        pluginSet.getEnabledModule("intellij.rider.plugins.cwm"),
+        pluginSet.getEnabledModule("intellij.json.backend"),
+      )
+    }
+
+    @Test
+    fun `content module gets backend modules for alias dependencies`() {
+      plugin("java.provider") {
+        vendor = "JetBrains"
+        pluginAlias(PluginManagerCore.JAVA_PLUGIN_ALIAS_ID.idString)
+        content { module("intellij.java.backend") { packagePrefix = "com.intellij.java.backend" } }
+      }.buildDir(pluginDirPath.resolve("java"))
+
+      plugin("json.provider") {
+        vendor = "JetBrains"
+        pluginAlias("com.intellij.modules.json")
+        content { module("intellij.json.backend") { packagePrefix = "com.intellij.json.backend" } }
+      }.buildDir(pluginDirPath.resolve("json"))
+
+      plugin("consumer") {
+        content {
+          module("consumer.module", ModuleLoadingRuleValue.REQUIRED) {
+            packagePrefix = "consumer.module"
+            dependencies {
+              plugin(PluginManagerCore.JAVA_PLUGIN_ALIAS_ID.idString)
+              plugin("com.intellij.modules.json")
+            }
+          }
+        }
+      }.buildDir(pluginDirPath.resolve("consumer"))
+
+      val pluginSet = buildPluginSet()
+      val consumerModule = pluginSet.getEnabledModule("consumer.module")
+      assertThat(consumerModule).hasExactDirectParentClassloaders(
+        pluginSet.getEnabledPlugin("java.provider"),
+        pluginSet.getEnabledPlugin("json.provider"),
+        pluginSet.getEnabledModule("intellij.java.backend"),
+        pluginSet.getEnabledModule("intellij.json.backend"),
+      )
+    }
+
+    @Test
+    @SystemProperty(propertyKey = "enable.implicit.json.dependency", propertyValue = "true")
+    fun `non strict content module gets implicit json backend and collaboration tools`() {
+      plugin("json.provider") {
+        vendor = "JetBrains"
+        pluginAlias("com.intellij.modules.json")
+        content { module("intellij.json.backend") { packagePrefix = "com.intellij.json.backend" } }
+      }.buildDir(pluginDirPath.resolve("json"))
+
+      plugin("collab.provider") {
+        vendor = "JetBrains"
+        content { module("intellij.platform.collaborationTools") { packagePrefix = "com.intellij.platform.collaborationTools" } }
+      }.buildDir(pluginDirPath.resolve("collab"))
+
+      plugin("vcs.provider") {
+        vendor = "JetBrains"
+        content { module("intellij.platform.vcs.impl") { packagePrefix = "com.intellij.vcs.impl" } }
+      }.buildDir(pluginDirPath.resolve("vcs"))
+
+      plugin("consumer") {
+        content {
+          module("consumer.module", ModuleLoadingRuleValue.REQUIRED) { packagePrefix = "consumer.module" }
+        }
+      }.buildDir(pluginDirPath.resolve("consumer"))
+
+      val pluginSet = buildPluginSet()
+      val consumerModule = pluginSet.getEnabledModule("consumer.module")
+      assertThat(consumerModule).hasExactDirectParentClassloaders(
+        pluginSet.getEnabledPlugin("json.provider"),
+        pluginSet.getEnabledModule("intellij.json.backend"),
+        pluginSet.getEnabledModule("intellij.platform.collaborationTools"),
+        pluginSet.getEnabledModule("intellij.platform.vcs.impl"),
+      )
+    }
+
+    @Test
+    fun `depends on java alias adds java backend module`() {
+      plugin("java.alias.provider") {
+        pluginAlias(PluginManagerCore.JAVA_PLUGIN_ALIAS_ID.idString)
+      }.buildDir(pluginDirPath.resolve("java-alias"))
+
+      plugin("java.backend.provider") {
+        content { module("intellij.java.backend") { packagePrefix = "com.intellij.java.backend" } }
+      }.buildDir(pluginDirPath.resolve("java-backend"))
+
+      plugin("consumer") {
+        vendor = "JetBrains"
+        depends(PluginManagerCore.JAVA_PLUGIN_ALIAS_ID.idString)
+      }.buildDir(pluginDirPath.resolve("consumer"))
+
+      val pluginSet = buildPluginSet()
+      val consumer = pluginSet.getEnabledPlugin("consumer")
+      assertThat(consumer).hasExactDirectParentClassloaders(
+        pluginSet.getEnabledPlugin("java.alias.provider"),
+        pluginSet.getEnabledModule("intellij.java.backend"),
+      )
+    }
+
+    @Test
+    fun `depends on full line alias adds full line modules`() {
+      plugin("full.line.alias.provider") {
+        pluginAlias("org.jetbrains.completion.full.line")
+      }.buildDir(pluginDirPath.resolve("full-line-alias"))
+
+      plugin("full.line.modules") {
+        content {
+          module("intellij.fullLine.core") { packagePrefix = "com.intellij.fullLine.core" }
+          module("intellij.fullLine.local") { packagePrefix = "com.intellij.fullLine.local" }
+          module("intellij.fullLine.core.impl") { packagePrefix = "com.intellij.fullLine.core.impl" }
+        }
+      }.buildDir(pluginDirPath.resolve("full-line-modules"))
+
+      plugin("consumer") {
+        vendor = "JetBrains"
+        depends("org.jetbrains.completion.full.line")
+      }.buildDir(pluginDirPath.resolve("consumer"))
+
+      val pluginSet = buildPluginSet()
+      val consumer = pluginSet.getEnabledPlugin("consumer")
+      assertThat(consumer).hasExactDirectParentClassloaders(
+        pluginSet.getEnabledPlugin("full.line.alias.provider"),
+        pluginSet.getEnabledModule("intellij.fullLine.core"),
+        pluginSet.getEnabledModule("intellij.fullLine.local"),
+        pluginSet.getEnabledModule("intellij.fullLine.core.impl"),
+      )
+    }
+
+    @Test
+    fun `depends on code with me alias adds remote development module`() {
+      plugin("cwm.alias.provider") {
+        pluginAlias("com.jetbrains.codeWithMe")
+      }.buildDir(pluginDirPath.resolve("cwm-alias"))
+
+      plugin("cwm.module.provider") {
+        content { module("intellij.cwm") { packagePrefix = "com.intellij.cwm" } }
+      }.buildDir(pluginDirPath.resolve("cwm-module"))
+
+      plugin("consumer") {
+        depends("com.jetbrains.codeWithMe")
+      }.buildDir(pluginDirPath.resolve("consumer"))
+
+      val pluginSet = buildPluginSet()
+      val consumer = pluginSet.getEnabledPlugin("consumer")
+      assertThat(consumer).hasExactDirectParentClassloaders(
+        pluginSet.getEnabledPlugin("cwm.alias.provider"),
+        pluginSet.getEnabledModule("intellij.cwm"),
+      )
+    }
+
+    @Test
+    fun `depends on json alias adds json backend without property`() {
+      plugin("json.alias.provider") {
+        pluginAlias("com.intellij.modules.json")
+      }.buildDir(pluginDirPath.resolve("json-alias"))
+
+      plugin("json.backend.provider") {
+        content { module("intellij.json.backend") { packagePrefix = "com.intellij.json.backend" } }
+      }.buildDir(pluginDirPath.resolve("json-backend"))
+
+      plugin("consumer") {
+        depends("com.intellij.modules.json")
+      }.buildDir(pluginDirPath.resolve("consumer"))
+
+      val pluginSet = buildPluginSet()
+      val consumer = pluginSet.getEnabledPlugin("consumer")
+      assertThat(consumer).hasExactDirectParentClassloaders(
+        pluginSet.getEnabledPlugin("json.alias.provider"),
+        pluginSet.getEnabledModule("intellij.json.backend"),
+      )
+    }
+
+    @Test
+    fun `depends on rider alias adds rider module`() {
+      plugin("rider.alias.provider") {
+        pluginAlias("com.intellij.modules.rider")
+      }.buildDir(pluginDirPath.resolve("rider-alias"))
+
+      plugin("rider.module.provider") {
+        content { module("intellij.rider") { packagePrefix = "com.intellij.rider" } }
+      }.buildDir(pluginDirPath.resolve("rider-module"))
+
+      plugin("consumer") {
+        vendor = "JetBrains"
+        depends("com.intellij.modules.rider")
+      }.buildDir(pluginDirPath.resolve("consumer"))
+
+      val pluginSet = buildPluginSet()
+      val consumer = pluginSet.getEnabledPlugin("consumer")
+      assertThat(consumer).hasExactDirectParentClassloaders(
+        pluginSet.getEnabledPlugin("rider.alias.provider"),
+        pluginSet.getEnabledModule("intellij.rider"),
+      )
+    }
+
+    @Test
+    fun `depends on code with me rider alias adds remote development rider module`() {
+      plugin("cwm.rider.alias.provider") {
+        pluginAlias("intellij.rider.plugins.cwm")
+      }.buildDir(pluginDirPath.resolve("cwm-rider-alias"))
+
+      plugin("cwm.rider.module.provider") {
+        content { module("intellij.rider.plugins.cwm") { packagePrefix = "com.intellij.rider.plugins.cwm" } }
+      }.buildDir(pluginDirPath.resolve("cwm-rider-module"))
+
+      plugin("consumer") {
+        depends("intellij.rider.plugins.cwm")
+      }.buildDir(pluginDirPath.resolve("consumer"))
+
+      val pluginSet = buildPluginSet()
+      val consumer = pluginSet.getEnabledPlugin("consumer")
+      assertThat(consumer).hasExactDirectParentClassloaders(
+        pluginSet.getEnabledPlugin("cwm.rider.alias.provider"),
+        pluginSet.getEnabledModule("intellij.rider.plugins.cwm"),
+      )
+    }
+
+    @Test
+    fun `depends on vcs alias adds vcs module`() {
+      plugin("vcs.alias.provider") {
+        pluginAlias("com.intellij.modules.vcs")
+      }.buildDir(pluginDirPath.resolve("vcs-alias"))
+
+      plugin("vcs.module.provider") {
+        vendor = "JetBrains"
+        content { module("intellij.platform.vcs.impl") { packagePrefix = "com.intellij.vcs.impl" } }
+      }.buildDir(pluginDirPath.resolve("vcs-module"))
+
+      plugin("consumer") {
+        vendor = "JetBrains"
+        depends("com.intellij.modules.vcs")
+      }.buildDir(pluginDirPath.resolve("consumer"))
+
+      val pluginSet = buildPluginSet()
+      val consumer = pluginSet.getEnabledPlugin("consumer")
+      assertThat(consumer).hasExactDirectParentClassloaders(
+        pluginSet.getEnabledPlugin("vcs.alias.provider"),
+        pluginSet.getEnabledModule("intellij.platform.vcs.impl"),
+      )
+    }
+
+    @Test
+    fun `depends on platform or lang alias adds extracted core content modules`() {
+      val extractedModules = listOf(
+        "intellij.platform.collaborationTools.auth",
+        "intellij.platform.collaborationTools.auth.base",
+        "intellij.platform.tasks",
+        "intellij.platform.tasks.impl",
+        "intellij.platform.scriptDebugger.ui",
+        "intellij.platform.scriptDebugger.backend",
+        "intellij.platform.scriptDebugger.protocolReaderRuntime",
+        "intellij.spellchecker.xml",
+        "intellij.relaxng",
+        "intellij.spellchecker",
+        "intellij.platform.structuralSearch",
+      )
+      plugin(PluginManagerCore.CORE_PLUGIN_ID) {
+        vendor = "JetBrains"
+        pluginAlias("com.intellij.modules.platform")
+        pluginAlias("com.intellij.modules.lang")
+        content {
+          for (moduleId in extractedModules) {
+            module(moduleId) { packagePrefix = "p.${moduleId.replace('/', '.')}" }
+          }
+        }
+      }.buildDir(pluginDirPath.resolve("core"))
+
+      plugin("with-platform") {
+        vendor = "JetBrains"
+        depends("com.intellij.modules.platform")
+      }.buildDir(pluginDirPath.resolve("with-platform"))
+
+      plugin("with-lang") {
+        vendor = "JetBrains"
+        depends("com.intellij.modules.lang")
+      }.buildDir(pluginDirPath.resolve("with-lang"))
+
+      plugin("with-dependencies") {
+        vendor = "JetBrains"
+        dependencies { plugin("com.intellij.modules.platform") }
+      }.buildDir(pluginDirPath.resolve("with-dependencies"))
+
+      val pluginSet = buildPluginSet()
+      val moduleDescriptors = extractedModules.map { pluginSet.getEnabledModule(it) }
+      val (withPlatform, withLang, withDependencies) =
+        pluginSet.getEnabledPlugins("with-platform", "with-lang", "with-dependencies")
+      assertThat(withPlatform).hasExactDirectParentClassloaders(*moduleDescriptors.toTypedArray())
+      assertThat(withLang).hasExactDirectParentClassloaders(*moduleDescriptors.toTypedArray())
+      assertThat(withDependencies).hasExactDirectParentClassloaders()
+    }
   }
 
   private fun foo() = plugin("foo") {}.buildDir(pluginDirPath.resolve("foo"))
