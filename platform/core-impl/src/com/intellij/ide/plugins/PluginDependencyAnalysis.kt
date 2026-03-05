@@ -49,6 +49,11 @@ object PluginDependencyAnalysis {
   sealed class DependencyRef {
     class Plugin(val pluginId: PluginId) : DependencyRef()
     class ContentModule(val moduleId: PluginModuleId) : DependencyRef()
+
+    companion object {
+      fun of(pluginId: PluginId): Plugin = Plugin(pluginId)
+      fun of(moduleId: PluginModuleId): ContentModule = ContentModule(moduleId)
+    }
   }
 }
 

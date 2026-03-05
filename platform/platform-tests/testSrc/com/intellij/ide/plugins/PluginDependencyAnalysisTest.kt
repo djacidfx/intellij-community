@@ -55,7 +55,7 @@ class PluginDependencyAnalysisTest {
       override val pluginsPerProjectConfig: PluginsPerProjectConfig? = null
       override val currentProductModeId: String = "test"
       override val environmentConfiguredModules: Map<PluginModuleId, PluginInitializationContext.EnvironmentConfiguredModuleData> = environmentConfiguredModules
-      override fun provideCompatibilityDependencies(descriptor: IdeaPluginDescriptorImpl, pluginSet: UnambiguousPluginSet): Sequence<PluginModuleDescriptor> =
+      override fun provideCompatibilityDependencies(descriptor: IdeaPluginDescriptorImpl, pluginSet: UnambiguousPluginSet): Sequence<PluginDependencyAnalysis.DependencyRef> =
         defaultProductCompatibilityDependenciesProvider(descriptor, pluginSet)
     }
   }

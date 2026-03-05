@@ -2,6 +2,7 @@
 package com.intellij.ide.plugins
 
 import com.intellij.core.CoreBundle
+import com.intellij.ide.plugins.PluginDependencyAnalysis.DependencyRef
 import com.intellij.ide.plugins.ProductPluginInitContext.Companion.configureProductModeModules
 import com.intellij.ide.plugins.ProductPluginInitContext.Companion.defaultProductCompatibilityDependenciesProvider
 import com.intellij.idea.AppMode
@@ -63,8 +64,10 @@ interface PluginInitializationContext {
   /**
    * Processed for all possible modules and "depends" sub-descriptors independently.
    * @return a sequence of modules that should be deemed as additional dependencies of a given [descriptor].
+   *
+   * TODO Ideally, [pluginSet] should not be used, but it's required in the current [ProductPluginInitContext] implementation.
    */
-  fun provideCompatibilityDependencies(descriptor: IdeaPluginDescriptorImpl, pluginSet: UnambiguousPluginSet): Sequence<PluginModuleDescriptor>
+  fun provideCompatibilityDependencies(descriptor: IdeaPluginDescriptorImpl, pluginSet: UnambiguousPluginSet): Sequence<DependencyRef>
 
   @ApiStatus.Internal
   companion object {
@@ -97,7 +100,7 @@ interface PluginInitializationContext {
           configureProductModeModules(currentProductModeId)
         }
 
-        override fun provideCompatibilityDependencies(descriptor: IdeaPluginDescriptorImpl, pluginSet: UnambiguousPluginSet): Sequence<PluginModuleDescriptor> =
+        override fun provideCompatibilityDependencies(descriptor: IdeaPluginDescriptorImpl, pluginSet: UnambiguousPluginSet): Sequence<DependencyRef> =
           defaultProductCompatibilityDependenciesProvider(descriptor, pluginSet)
       }
   }

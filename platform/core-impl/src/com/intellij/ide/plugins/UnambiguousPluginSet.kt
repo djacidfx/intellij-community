@@ -1,6 +1,7 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.plugins
 
+import com.intellij.ide.plugins.PluginDependencyAnalysis.DependencyRef
 import com.intellij.openapi.extensions.PluginId
 import org.jetbrains.annotations.ApiStatus
 
@@ -87,3 +88,11 @@ fun AmbiguousPluginSet.buildFullPluginIdMapping(): Map<PluginId, List<PluginModu
 @ApiStatus.Internal
 fun AmbiguousPluginSet.buildFullContentModuleIdMapping(): Map<PluginModuleId, List<ContentModuleDescriptor>> =
   sequenceAllContentModuleIds().associateWith { resolveContentModuleId(it).toList() }
+
+@ApiStatus.Internal
+fun UnambiguousPluginSet.resolveReference(ref: DependencyRef): PluginModuleDescriptor? {
+  return when (ref) {
+    is DependencyRef.Plugin -> resolvePluginId(ref.pluginId)
+    is DependencyRef.ContentModule -> resolveContentModuleId(ref.moduleId)
+  }
+}

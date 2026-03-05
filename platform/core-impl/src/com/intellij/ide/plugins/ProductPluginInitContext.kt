@@ -1,6 +1,7 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.plugins
 
+import com.intellij.ide.plugins.PluginDependencyAnalysis.DependencyRef
 import com.intellij.ide.plugins.PluginInitializationContext.EnvironmentConfiguredModuleData
 import com.intellij.ide.plugins.PluginManagerCore.JAVA_PLUGIN_ALIAS_ID
 import com.intellij.openapi.application.PathManager
@@ -77,7 +78,7 @@ class ProductPluginInitContext(
     }
   }
 
-  override fun provideCompatibilityDependencies(descriptor: IdeaPluginDescriptorImpl, pluginSet: UnambiguousPluginSet): Sequence<PluginModuleDescriptor> =
+  override fun provideCompatibilityDependencies(descriptor: IdeaPluginDescriptorImpl, pluginSet: UnambiguousPluginSet): Sequence<DependencyRef> =
     defaultProductCompatibilityDependenciesProvider(descriptor, pluginSet)
 
   companion object {
@@ -106,7 +107,12 @@ class ProductPluginInitContext(
     }
 
     @VisibleForTesting
-    fun defaultProductCompatibilityDependenciesProvider(descriptor: IdeaPluginDescriptorImpl, pluginSet: UnambiguousPluginSet): Sequence<PluginModuleDescriptor> {
+    fun defaultProductCompatibilityDependenciesProvider(descriptor: IdeaPluginDescriptorImpl, pluginSet: UnambiguousPluginSet): Sequence<DependencyRef> {
+      suspend fun SequenceScope<DependencyRef>.yieldIfResolves(ref: DependencyRef) {
+        if (pluginSet.resolveReference(ref) != null) {
+          yield(ref)
+        }
+      }
       return sequence {
         // If a plugin does not include any module dependency tags in its plugin.xml, it's assumed to be a legacy plugin
         // and is loaded only in IntelliJ IDEA, so it may use classes from Java plugin.
@@ -115,8 +121,8 @@ class ProductPluginInitContext(
             PluginCompatibilityUtils.isLegacyPluginWithoutPlatformAliasDependencies(descriptor)) {
           val java = pluginSet.resolvePluginId(JAVA_PLUGIN_ALIAS_ID)
           if (java != null && java !== descriptor) {
-            yield(java)
-            pluginSet.resolveContentModuleId(JAVA_BACKEND_MODULE_ID)?.let { yield(it) }
+            yield(DependencyRef.of(JAVA_PLUGIN_ALIAS_ID))
+            yieldIfResolves(DependencyRef.of(JAVA_BACKEND_MODULE_ID))
           }
         }
 
@@ -126,43 +132,43 @@ class ProductPluginInitContext(
           val strictCheck = descriptor.isBundled || PluginManagerCore.isVendorJetBrains(descriptor.vendor ?: "")
           if (!strictCheck || doesDependOnPluginAlias(descriptor, VCS_ALIAS_ID)) {
             vcsApiContentModules.forEach { vcsModule ->
-              pluginSet.resolveContentModuleId(vcsModule)?.let { yield(it) }
+              yieldIfResolves(DependencyRef.of(vcsModule))
             }
           }
           if (!strictCheck) {
             if (System.getProperty("enable.implicit.json.dependency").toBoolean()) {
-              pluginSet.resolvePluginId(JSON_ALIAS_ID)?.let { yield(it) }
-              pluginSet.resolveContentModuleId(JSON_BACKEND_MODULE_ID)?.let { yield(it) }
+              yieldIfResolves(DependencyRef.of(JSON_ALIAS_ID))
+              yieldIfResolves(DependencyRef.of(JSON_BACKEND_MODULE_ID))
             }
             if (doesDependOnPluginAlias(descriptor, JSON_ALIAS_ID)) {
-              pluginSet.resolveContentModuleId(JSON_BACKEND_MODULE_ID)?.let { yield(it) }
+              yieldIfResolves(DependencyRef.of(JSON_BACKEND_MODULE_ID))
             }
             if (doesDependOnPluginAlias(descriptor, CWM_PLUGIN_ID)) {
-              pluginSet.resolveContentModuleId(REMOTE_DEVELOPMENT_MODULE_ID)?.let { yield(it) }
+              yieldIfResolves(DependencyRef.of(REMOTE_DEVELOPMENT_MODULE_ID))
             }
             if (doesDependOnPluginAlias(descriptor, CWM_RIDER_PLUGIN_ID)) {
-              pluginSet.resolveContentModuleId(REMOTE_DEVELOPMENT_RIDER_MODULE_ID)?.let { yield(it) }
+              yieldIfResolves(DependencyRef.of(REMOTE_DEVELOPMENT_RIDER_MODULE_ID))
             }
             if (doesDependOnPluginAlias(descriptor, XDEBUGGER_PLUGIN_ALIAS_ID)) {
               for (moduleId in XDEBUGGER_MODULE_IDS) {
-                pluginSet.resolveContentModuleId(moduleId)?.let { yield(it) }
+                yieldIfResolves(DependencyRef.of(moduleId))
               }
             }
-            pluginSet.resolveContentModuleId(COLLABORATION_TOOLS_MODULE_ID)?.let { yield(it) }
+            yieldIfResolves(DependencyRef.of(COLLABORATION_TOOLS_MODULE_ID))
           }
 
           /* Compatibility Layer */
 
           if (doesDependOnPluginAlias(descriptor, JAVA_PLUGIN_ALIAS_ID)) {
-            pluginSet.resolveContentModuleId(JAVA_BACKEND_MODULE_ID)?.let { yield(it) }
+            yieldIfResolves(DependencyRef.of(JAVA_BACKEND_MODULE_ID))
           }
 
           if (doesDependOnPluginAlias(descriptor, RIDER_ALIAS_ID)) {
-            pluginSet.resolveContentModuleId(RIDER_MODULE_ID)?.let { yield(it) }
+            yieldIfResolves(DependencyRef.of(RIDER_MODULE_ID))
           }
           if (doesDependOnPluginAlias(descriptor, PluginId.getId("org.jetbrains.completion.full.line"))) {
             fullLineApiContentModules.forEach { fullLineModule ->
-              pluginSet.resolveContentModuleId(fullLineModule)?.let { yield(it) }
+              yieldIfResolves(DependencyRef.of(fullLineModule))
             }
           }
         }
@@ -173,7 +179,7 @@ class ProductPluginInitContext(
           }
           if ((depends.pluginId == PLATFORM_PLUGIN_ALIAS_ID || depends.pluginId == LANG_PLUGIN_ALIAS_ID) && pluginSet.resolvePluginId(depends.pluginId) != null) {
             for (contentModuleId in contentModulesExtractedInCorePluginWhichCanBeUsedFromExternalPlugins) {
-              pluginSet.resolveContentModuleId(contentModuleId)?.let { yield(it) }
+              yieldIfResolves(DependencyRef.of(contentModuleId))
             }
           }
         }
@@ -181,7 +187,7 @@ class ProductPluginInitContext(
         if (descriptor is DependsSubDescriptor) {
           if ((descriptor.dependsTargetId == PLATFORM_PLUGIN_ALIAS_ID || descriptor.dependsTargetId == LANG_PLUGIN_ALIAS_ID) && pluginSet.resolvePluginId(descriptor.pluginId) != null) {
             for (contentModuleId in contentModulesExtractedInCorePluginWhichCanBeUsedFromExternalPlugins) {
-              pluginSet.resolveContentModuleId(contentModuleId)?.let { yield(it) }
+              yieldIfResolves(DependencyRef.of(contentModuleId))
             }
           }
         }

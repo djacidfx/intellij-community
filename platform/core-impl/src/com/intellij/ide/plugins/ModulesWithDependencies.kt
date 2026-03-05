@@ -37,8 +37,8 @@ internal fun createModulesWithDependenciesAndAdditionalEdges(initContext: Plugin
   val additionalEdgesForCurrentModule: MutableSet<PluginModuleDescriptor> = Collections.newSetFromMap(IdentityHashMap())
   val directDependencies = IdentityHashMap<PluginModuleDescriptor, List<PluginModuleDescriptor>>(modules.size)
   for (module in modules) {
-    for (implicitDependency in initContext.provideCompatibilityDependencies(module, pluginSet)) {
-      dependenciesCollector.add(implicitDependency)
+    for (implicitDependencyRef in initContext.provideCompatibilityDependencies(module, pluginSet)) {
+      pluginSet.resolveReference(implicitDependencyRef)?.let(dependenciesCollector::add)
     }
     collectDirectDependenciesInOldFormat(module, pluginSet, dependenciesCollector, additionalEdgesForCurrentModule, initContext)
     collectDirectDependenciesInNewFormat(module, pluginSet, dependenciesCollector, additionalEdgesForCurrentModule)
@@ -133,7 +133,7 @@ private fun collectDirectDependenciesInOldFormat(
 
     dependency.subDescriptor?.let { subDescriptor ->
       for (implicitDep in initContext.provideCompatibilityDependencies(subDescriptor, pluginSet)) {
-        dependenciesCollector.add(implicitDep)
+        pluginSet.resolveReference(implicitDep)?.let(dependenciesCollector::add)
       }
       collectDirectDependenciesInOldFormat(subDescriptor, pluginSet, dependenciesCollector, additionalEdges, initContext)
     }
