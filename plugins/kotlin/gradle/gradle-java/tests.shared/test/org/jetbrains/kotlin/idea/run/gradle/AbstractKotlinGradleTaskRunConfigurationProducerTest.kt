@@ -1,9 +1,10 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.kotlin.idea.run.gradle
 
 import org.gradle.util.GradleVersion
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
-import org.jetbrains.plugins.gradle.testFramework.util.assumeThatKotlinDslScriptsModelImportIsSupported
+import org.jetbrains.plugins.gradle.testFramework.util.assertThatKotlinDslScriptsModelImportIsSupported
+import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
 import org.junit.jupiter.params.ParameterizedTest
 
 /**
@@ -35,8 +36,9 @@ abstract class AbstractKotlinGradleTaskRunConfigurationProducerTest : AbstractKo
         taskName : 'tasks { var task<caret>Name by registering }',
         taskName : 'tasks { var task<caret>Name by creating }'
     """)
+    @TargetVersions("6.0+")
     fun testTaskHasConfiguration(gradleVersion: GradleVersion, taskName: String, taskDefinition: String) {
-        assumeThatKotlinDslScriptsModelImportIsSupported(gradleVersion)
+        assertThatKotlinDslScriptsModelImportIsSupported(gradleVersion)
         testKotlinDslEmptyProject(gradleVersion) {
             writeTextAndCommit("build.gradle.kts", taskDefinition)
             verifyGradleConfigurationAtCaret(taskName)
@@ -52,8 +54,9 @@ abstract class AbstractKotlinGradleTaskRunConfigurationProducerTest : AbstractKo
             doLast { println("task<caret>Name") }
         }' 
     """)
+    @TargetVersions("6.0+")
     fun testOtherLineDontHaveConfiguration(gradleVersion: GradleVersion, taskDefinition: String) {
-        assumeThatKotlinDslScriptsModelImportIsSupported(gradleVersion)
+        assertThatKotlinDslScriptsModelImportIsSupported(gradleVersion)
         testKotlinDslEmptyProject(gradleVersion) {
             writeTextAndCommit("build.gradle.kts", taskDefinition)
             assertNoConfigurationAtCaret()

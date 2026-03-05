@@ -1,4 +1,4 @@
-// Copyright 2000-2023 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.plugins.gradle.dsl
 
 import com.intellij.gradle.toolingExtension.util.GradleVersionUtil
@@ -16,7 +16,8 @@ import org.jetbrains.plugins.gradle.service.resolve.GradleCommonClassNames.GRADL
 import org.jetbrains.plugins.gradle.service.resolve.GradleCommonClassNames.GRADLE_API_DEPENDENCY_HANDLER
 import org.jetbrains.plugins.gradle.testFramework.GradleCodeInsightTestCase
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
-import org.jetbrains.plugins.gradle.testFramework.util.assumeThatGradleIsOlderThan
+import org.jetbrains.plugins.gradle.testFramework.util.assertThatGradleIsOlderThan
+import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
 import org.junit.jupiter.params.ParameterizedTest
 
 class GradleDependenciesTest : GradleCodeInsightTestCase() {
@@ -100,8 +101,9 @@ class GradleDependenciesTest : GradleCodeInsightTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
+  @TargetVersions("<9.0")
   fun `test module delegate`(gradleVersion: GradleVersion) {
-    assumeThatGradleIsOlderThan(gradleVersion, "9.0") {
+    assertThatGradleIsOlderThan(gradleVersion, "9.0") {
       """
       ClientModule dependencies were a legacy precursor to ComponentMetadataRules, and have since been replaced and removed in Gradle 9.0.
       See gradle/pull/32743 for more information. 
@@ -116,8 +118,9 @@ class GradleDependenciesTest : GradleCodeInsightTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
+  @TargetVersions("<9.0")
   fun `test module delegate method setter`(gradleVersion: GradleVersion) {
-    assumeThatGradleIsOlderThan(gradleVersion, "9.0") {
+    assertThatGradleIsOlderThan(gradleVersion, "9.0") {
       """
       ClientModule dependencies were a legacy precursor to ComponentMetadataRules, and have since been replaced and removed in Gradle 9.0.
       See gradle/pull/32743 for more information. 

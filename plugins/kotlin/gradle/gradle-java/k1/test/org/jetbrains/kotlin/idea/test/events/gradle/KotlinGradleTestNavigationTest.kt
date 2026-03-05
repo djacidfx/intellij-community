@@ -10,7 +10,7 @@ import org.junit.jupiter.params.ParameterizedTest
 class KotlinGradleTestNavigationTest : KotlinGradleTestExecutionTestCase() {
 
     @ParameterizedTest
-    @TargetVersions("5.6.2 <=> 7.0")
+    @TargetVersions("5.6.2+", "<7.0")
     @AllGradleVersionsSource
     fun `test display name and navigation with Kotlin and Junit 5 OLD`(gradleVersion: GradleVersion) {
         testKotlinJunit5Project(gradleVersion) {
@@ -181,12 +181,9 @@ class KotlinGradleTestNavigationTest : KotlinGradleTestExecutionTestCase() {
     }
 
     @ParameterizedTest
-    @TargetVersions("5.6.2+")
+    @TargetVersions("6.8.3+") // Kotlin multiplatform isn't supported by Gradle older than 6.8.3
     @AllGradleVersionsSource
     fun `test display name and navigation with Kotlin Multiplatform and Kotlin Test`(gradleVersion: GradleVersion) {
-        assumeThatGradleIsAtLeast(gradleVersion, "6.8.3") {
-            "Kotlin multiplatform isn't supported by Gradle older than 6.8.3"
-        }
         testKotlinMultiplatformProject(gradleVersion) {
             writeText("src/jsTest/kotlin/Foo.kt", KOTLIN_TEST)
 
@@ -204,6 +201,7 @@ class KotlinGradleTestNavigationTest : KotlinGradleTestExecutionTestCase() {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("5.6.2+")
     fun `test display name and navigation with Kotlin and Test NG`(gradleVersion: GradleVersion) {
         testKotlinTestNGProject(gradleVersion) {
             writeText("src/test/kotlin/org/example/TestCase.kt", KOTLIN_TESTNG_TEST)

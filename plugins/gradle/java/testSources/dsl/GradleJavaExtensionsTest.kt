@@ -6,6 +6,7 @@ import org.gradle.util.GradleVersion
 import org.jetbrains.plugins.gradle.service.resolve.GradleCommonClassNames.GRADLE_API_JAVA_PLUGIN_EXTENSION
 import org.jetbrains.plugins.gradle.testFramework.GradleCodeInsightTestCase
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
+import org.jetbrains.plugins.gradle.testFramework.util.assertThatJavaConventionsBlockIsSupported
 import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
 import org.junit.jupiter.params.ParameterizedTest
 
@@ -18,6 +19,7 @@ class GradleJavaExtensionsTest : GradleCodeInsightTestCase() {
   """)
   @TargetVersions("7.1+")
   fun `test property read`(gradleVersion: GradleVersion, decorator: String, expression: String) {
+    assertThatJavaConventionsBlockIsSupported(gradleVersion)
     testJavaProject(gradleVersion) {
       testBuildscript(decorator, expression) {
         methodTest(resolveTest(PsiMethod::class.java), "getDocsDir", GRADLE_API_JAVA_PLUGIN_EXTENSION)
@@ -29,6 +31,7 @@ class GradleJavaExtensionsTest : GradleCodeInsightTestCase() {
   @AllGradleVersionsSource(PROJECT_CONTEXTS)
   @TargetVersions("7.1+")
   fun `test property write`(gradleVersion: GradleVersion, decorator: String) {
+    assertThatJavaConventionsBlockIsSupported(gradleVersion)
     testJavaProject(gradleVersion) {
       testBuildscript(decorator, "java.<caret>sourceCompatibility = 42") {
         methodTest(resolveTest(PsiMethod::class.java), "setSourceCompatibility", GRADLE_API_JAVA_PLUGIN_EXTENSION)
@@ -41,6 +44,7 @@ class GradleJavaExtensionsTest : GradleCodeInsightTestCase() {
   @AllGradleVersionsSource(PROJECT_CONTEXTS)
   @TargetVersions("7.1+")
   fun `test setter method`(gradleVersion: GradleVersion, decorator: String) {
+    assertThatJavaConventionsBlockIsSupported(gradleVersion)
     testJavaProject(gradleVersion) {
       testBuildscript(decorator, "java.<caret>targetCompatibility('1.8')") {
         setterMethodTest("targetCompatibility", "setTargetCompatibility", GRADLE_API_JAVA_PLUGIN_EXTENSION)

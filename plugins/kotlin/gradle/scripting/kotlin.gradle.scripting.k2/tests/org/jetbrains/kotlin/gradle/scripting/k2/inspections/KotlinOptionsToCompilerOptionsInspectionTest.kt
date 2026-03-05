@@ -6,10 +6,11 @@ import org.jetbrains.kotlin.gradle.K2GradleCodeInsightTestCase
 import org.jetbrains.plugins.gradle.frameworkSupport.GradleDsl
 import org.jetbrains.plugins.gradle.testFramework.GradleTestFixtureBuilder
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
-import org.jetbrains.plugins.gradle.testFramework.util.assumeThatGradleIsAtLeast
-import org.jetbrains.plugins.gradle.testFramework.util.assumeThatGradleIsOlderThan
+import org.jetbrains.plugins.gradle.testFramework.util.assertThatGradleIsAtLeast
+import org.jetbrains.plugins.gradle.testFramework.util.assertThatGradleIsOlderThan
 import org.jetbrains.plugins.gradle.testFramework.util.withBuildFile
 import org.jetbrains.plugins.gradle.testFramework.util.withSettingsFile
+import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.params.ParameterizedTest
 
@@ -20,8 +21,8 @@ internal class KotlinOptionsToCompilerOptionsInspectionTest : K2GradleCodeInsigh
         projectFixture: GradleTestFixtureBuilder,
         test: () -> Unit
     ) {
-        assumeThatGradleIsAtLeast(gradleVersion, "8.11")
-        assumeThatGradleIsOlderThan(gradleVersion, "9.0.0")
+        assertThatGradleIsAtLeast(gradleVersion, "8.11")
+        assertThatGradleIsOlderThan(gradleVersion, "9.0.0")
         test(gradleVersion, projectFixture) {
             codeInsightFixture.enableInspections(KotlinOptionsToCompilerOptionsInspection::class.java)
             test()
@@ -76,6 +77,7 @@ allprojects {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testAllProjects(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -109,6 +111,7 @@ tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::cl
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testAssignmentOperation(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -137,6 +140,7 @@ tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::cl
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testAssignmentOperationTwoParams(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -176,6 +180,7 @@ tasks.withType<KotlinCompile>().configureEach {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testDontMergeConvertedOptionsToAnotherCompilerOptions(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -223,6 +228,7 @@ tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::cl
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testDontReplaceIfForbiddenOperation(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -246,6 +252,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testDontReplaceIfForbiddenOperation2(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -272,6 +279,7 @@ fun main() {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testDontReplaceInKotlinFile(gradleVersion: GradleVersion) {
         runTest(gradleVersion, BASIC_PROJECT_FIXTURE) {
             testNoIntentions(
@@ -290,6 +298,7 @@ ${placeCaretIfNeeded(placeCaret)}kotlinOptions["jvmTarget"]
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testDontReplaceInSettingsGradle(gradleVersion: GradleVersion) {
         runTest(gradleVersion, BASIC_PROJECT_FIXTURE) {
             testNoIntentions(
@@ -319,6 +328,7 @@ subprojects {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testDontReplaceWithMinusOperator1(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -351,6 +361,7 @@ subprojects {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testDontReplaceWithMinusOperator2(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -369,6 +380,7 @@ subprojects {
     @Disabled("KTIJ-38171")
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testDontReplaceWithMinusOperatorAndExpressionOnTheRightSide1(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -402,6 +414,7 @@ subprojects {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testDontReplaceWithMinusOperator3(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -420,6 +433,7 @@ subprojects {
     @Disabled("KTIJ-38171")
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testDontReplaceWithMinusOperatorAndExpressionOnTheRightSide2(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -446,6 +460,7 @@ tasks.withType<KotlinCompile> {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testFreeCompilerArgsAddAllFromList(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -490,6 +505,7 @@ subprojects {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testFreeCompilerArgsMultipleAddition1(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -542,6 +558,7 @@ subprojects {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testFreeCompilerArgsMultipleAddition2(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -598,6 +615,7 @@ subprojects {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testFreeCompilerArgsMultipleAddition3(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -656,6 +674,7 @@ subprojects {
     @Disabled("KTIJ-38174")
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testFreeCompilerArgsMultipleAddition4(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -718,6 +737,7 @@ subprojects {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testFreeCompilerArgsMultipleAddition5(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -774,6 +794,7 @@ tasks.withType<KotlinCompile> {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testFreeCompilerArgsPlusFreeCompilerArgs(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -810,6 +831,7 @@ tasks.withType<KotlinCompile> {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testFreeCompilerArgsSetList(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -849,6 +871,7 @@ tasks.withType<KotlinCompile> {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testFreeCompilerArgsWithSuppress(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -887,6 +910,7 @@ compileKotlin.<caret>kotlinOptions {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testJava11(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -926,6 +950,7 @@ tasks.withType(KotlinJvmCompile::class.java).configureEach {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testJavaVersionDefinedSeparately(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -966,6 +991,7 @@ tasks.withType<Kotlin2JsCompile>().configureEach {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testJsSourceMapEmbedSources(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -998,6 +1024,7 @@ tasks.withType<Kotlin2JsCompile>().configureEach {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testJsSourceMapNamesPolicy(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -1030,6 +1057,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile>().configureEa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testJsTasksWithTypeOfFQNandConfigureEach(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -1059,6 +1087,7 @@ tasks.withType<Kotlin2JsCompile>().configureEach {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testJsTestOrdinaryStringOption(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -1091,6 +1120,7 @@ compileKotlin.<caret>kotlinOptions {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testJvmTarget9(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -1123,6 +1153,7 @@ compileKotlin.compilerOptions {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testJvmTargetDefinedWithEnum(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -1173,6 +1204,7 @@ compileTestKotlin.kotlinOptions {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testJvmTargetSettingWithProperties(gradleVersion: GradleVersion) {
         runTest(gradleVersion, BASIC_PROJECT_FIXTURE) {
             testIntention(
@@ -1213,6 +1245,7 @@ compileKotlin.<caret>kotlinOptions {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testApiVersionAsString(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -1253,6 +1286,7 @@ tasks.withType<KotlinCompile>().configureEach {
     @Disabled("KTIJ-38181") // The "After" part should be fixed don't know yet how
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testOptionsBeforeDot(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -1286,6 +1320,7 @@ tasks.withType<KotlinCompile>().configureEach {
     @Disabled("KTIJ-38181") // The "After" part should be fixed don't know yet how
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testOptionsBeforeDotInDotQualifiedExpression(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -1329,6 +1364,7 @@ subprojects {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testWithSubprojects(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -1372,6 +1408,7 @@ tasks.getByName<KotlinCompile>("compileKotlin") {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testGetByName(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -1406,6 +1443,7 @@ tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::cl
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testGetByNameAndDotReferenced(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,
@@ -1439,6 +1477,7 @@ tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::cl
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("8.11+", "<9.0.0")
     fun testGetByNameAndLambda(gradleVersion: GradleVersion) {
         runTest(
             gradleVersion,

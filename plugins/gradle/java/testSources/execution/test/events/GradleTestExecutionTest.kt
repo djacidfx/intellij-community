@@ -15,6 +15,7 @@ import org.jetbrains.plugins.gradle.service.execution.GradleExecutionContext
 import org.jetbrains.plugins.gradle.service.project.GradleExecutionHelperExtension
 import org.jetbrains.plugins.gradle.testFramework.GradleTestExecutionTestCase
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
+import org.jetbrains.plugins.gradle.testFramework.util.assertThatConfigurationCacheIsSupported
 import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.params.ParameterizedTest
@@ -471,12 +472,10 @@ class GradleTestExecutionTest : GradleTestExecutionTestCase() {
     }
   }
 
-  @ParameterizedTest
+  @ParameterizedTest(allowZeroInvocations = true) // TODO remove flag when `gradle.versions.to.run` is changed from `LAST:*` IDEA-382646
   @AllGradleVersionsSource
+  @TargetVersions("<7.6") // IDEA-340676 flaky test
   fun `test task execution order`(gradleVersion: GradleVersion) {
-    assumeThatGradleIsOlderThan(gradleVersion, "7.6"){
-      "IDEA-340676 flaky test"
-    }
     testJavaProject(gradleVersion) {
       writeText("src/test/java/org/example/TestCase.java", """
         |package org.example;
@@ -558,6 +557,7 @@ class GradleTestExecutionTest : GradleTestExecutionTestCase() {
   @TargetVersions("8.1+")
   @AllGradleVersionsSource
   fun `test configuration cache for tests`(gradleVersion: GradleVersion) {
+    assertThatConfigurationCacheIsSupported(gradleVersion)
     testJavaProject(gradleVersion) {
       writeText("src/test/java/org/example/TestCase.java", """
         |package org.example;
@@ -625,6 +625,7 @@ class GradleTestExecutionTest : GradleTestExecutionTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
+  @TargetVersions("4.7+")
   fun `test test task execution with additional gradle listeners`(gradleVersion: GradleVersion) {
     val extension = object : GradleExecutionHelperExtension {
       override fun configureOperation(operation: LongRunningOperation, context: GradleExecutionContext) {
@@ -672,8 +673,8 @@ class GradleTestExecutionTest : GradleTestExecutionTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
+  @TargetVersions("7.5+")
   fun `test Gradle test distribution nodes are hidden by default`(gradleVersion: GradleVersion) {
-    assumeThatGradleIsAtLeast(gradleVersion, "7.5")
     testJunitPlatformProject(gradleVersion) {
       // Project configuration without an existing directory is not allowed
       runBlocking {

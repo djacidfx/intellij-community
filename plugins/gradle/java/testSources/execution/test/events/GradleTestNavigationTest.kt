@@ -10,8 +10,8 @@ import org.junit.jupiter.params.ParameterizedTest
 
 class GradleTestNavigationTest : GradleTestExecutionTestCase() {
 
-  @ParameterizedTest
-  @TargetVersions("4.7 <=> 7.0")
+  @ParameterizedTest(allowZeroInvocations = true) // TODO remove flag when `gradle.versions.to.run` is changed from `LAST:*` IDEA-382646
+  @TargetVersions("4.7+", "<7.0")
   @AllGradleVersionsSource
   fun `test display name and navigation with Java and Junit Platform with Gradle before 7_0`(gradleVersion: GradleVersion) {
     testJunitPlatformProject(gradleVersion) {
@@ -101,7 +101,7 @@ class GradleTestNavigationTest : GradleTestExecutionTestCase() {
   }
 
   @ParameterizedTest
-  @TargetVersions("7.0 <=> 9.0")
+  @TargetVersions("7.0+", "<9.0")
   @AllGradleVersionsSource
   fun `test display name and navigation with Java and Junit Platform with Gradle from 7_0 before 9_0`(gradleVersion: GradleVersion) {
     testJunitPlatformProject(gradleVersion) {
@@ -208,8 +208,8 @@ class GradleTestNavigationTest : GradleTestExecutionTestCase() {
    */
   @ParameterizedTest
   @AllGradleVersionsSource
+  @TargetVersions("9.0.0+")
   fun `test display name and navigation with Java and Junit Platform with Gradle 9_0 and newer`(gradleVersion: GradleVersion) {
-    assumeThatGradleIsAtLeast(gradleVersion, "9.0")
     testJunitPlatformProject(gradleVersion) {
       writeText("src/test/java/org/example/TestCase.java", JAVA_JUNIT5_TEST)
       writeText("src/test/java/org/example/DisplayNameTestCase.java", JAVA_DISPLAY_NAME_JUNIT5_TEST)
@@ -309,8 +309,8 @@ class GradleTestNavigationTest : GradleTestExecutionTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
+  @TargetVersions("<9.3.0")
   fun `test display name and navigation with Java and Junit 4`(gradleVersion: GradleVersion) {
-    assumeThatGradleIsOlderThan(gradleVersion, "9.3")
     testJunit4Project(gradleVersion) {
       writeText("src/test/java/org/example/TestCase.java", JAVA_JUNIT4_TEST)
       writeText("src/test/java/org/example/ParametrizedTestCase.java", JAVA_PARAMETRIZED_JUNIT4_TEST)
@@ -348,8 +348,8 @@ class GradleTestNavigationTest : GradleTestExecutionTestCase() {
   */
   @ParameterizedTest
   @AllGradleVersionsSource
+  @TargetVersions("9.3.0+")
   fun `test display name and navigation with Java and Junit 4 for gradle 9_3 and newer`(gradleVersion: GradleVersion) {
-    assumeThatGradleIsAtLeast(gradleVersion, "9.3")
     testJunit4Project(gradleVersion) {
       writeText("src/test/java/org/example/TestCase.java", JAVA_JUNIT4_TEST)
       writeText("src/test/java/org/example/ParametrizedTestCase.java", JAVA_PARAMETRIZED_JUNIT4_TEST)

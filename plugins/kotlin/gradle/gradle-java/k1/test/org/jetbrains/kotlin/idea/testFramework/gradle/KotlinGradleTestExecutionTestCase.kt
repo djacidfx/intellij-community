@@ -8,6 +8,8 @@ import org.jetbrains.kotlin.idea.testFramework.gradle.KotlinGradleProjectTestCas
 import org.jetbrains.plugins.gradle.frameworkSupport.GradleDsl
 import org.jetbrains.plugins.gradle.testFramework.GradleTestExecutionTestCase
 import org.jetbrains.plugins.gradle.testFramework.GradleTestFixtureBuilder
+import org.jetbrains.plugins.gradle.testFramework.util.assertThatJunit5IsSupported
+import org.jetbrains.plugins.gradle.testFramework.util.assertThatKotlinIsSupported
 import org.jetbrains.plugins.gradle.testFramework.util.withBuildFile
 import org.jetbrains.plugins.gradle.testFramework.util.withSettingsFile
 
@@ -21,27 +23,27 @@ abstract class KotlinGradleTestExecutionTestCase : GradleTestExecutionTestCase()
     }
 
     fun testKotlinProject(gradleVersion: GradleVersion, test: () -> Unit) {
-        assertKotlinIsSupported(gradleVersion)
+        assertThatKotlinIsSupported(gradleVersion)
         test(gradleVersion, KOTLIN_PROJECT, test)
     }
 
     fun testKotlinJunit5Project(gradleVersion: GradleVersion, action: () -> Unit) {
-        assertJunit5IsSupported(gradleVersion)
+        assertThatJunit5IsSupported(gradleVersion)
         testKotlinProject(gradleVersion, action)
     }
 
     fun testKotlinJunit4Project(gradleVersion: GradleVersion, action: () -> Unit) {
-        assertKotlinIsSupported(gradleVersion)
+        assertThatKotlinIsSupported(gradleVersion)
         test(gradleVersion, KOTLIN_JUNIT4_FIXTURE, action)
     }
 
     fun testKotlinMultiplatformProject(gradleVersion: GradleVersion, action: () -> Unit) {
-        assertKotlinIsSupported(gradleVersion)
+        assertThatKotlinIsSupported(gradleVersion)
         test(gradleVersion, KOTLIN_JS_MULTIPLATFORM_FIXTURE, action)
     }
 
     fun testKotlinTestNGProject(gradleVersion: GradleVersion, action: () -> Unit) {
-        assertKotlinIsSupported(gradleVersion)
+        assertThatKotlinIsSupported(gradleVersion)
         test(gradleVersion, KOTLIN_TESTNG_FIXTURE, action)
     }
 

@@ -6,18 +6,20 @@ import org.gradle.util.GradleVersion
 import org.jetbrains.plugins.gradle.service.resolve.GradleCommonClassNames.GRADLE_API_JAVA_PLUGIN_CONVENTION
 import org.jetbrains.plugins.gradle.testFramework.GradleCodeInsightTestCase
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
+import org.jetbrains.plugins.gradle.testFramework.util.assertThatTopLevelJavaConventionsIsSupported
 import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
 import org.junit.jupiter.params.ParameterizedTest
 
 class GradleConventionsTest : GradleCodeInsightTestCase() {
 
-  @ParameterizedTest
+  @ParameterizedTest(allowZeroInvocations = true) // TODO remove flag when `gradle.versions.to.run` is changed from `LAST:*` IDEA-382646
   @AllGradleVersionsSource(PROJECT_CONTEXTS, """
     "<caret>docsDir",
     "project.<caret>docsDir"
   """)
   @TargetVersions("<8.2")
   fun `test property read`(gradleVersion: GradleVersion, decorator: String, expression: String) {
+    assertThatTopLevelJavaConventionsIsSupported(gradleVersion)
     testJavaProject(gradleVersion) {
       testBuildscript(decorator, expression) {
         methodTest(resolveTest(PsiMethod::class.java), "getDocsDir", GRADLE_API_JAVA_PLUGIN_CONVENTION)
@@ -25,10 +27,11 @@ class GradleConventionsTest : GradleCodeInsightTestCase() {
     }
   }
 
-  @ParameterizedTest
+  @ParameterizedTest(allowZeroInvocations = true) // TODO remove flag when `gradle.versions.to.run` is changed from `LAST:*` IDEA-382646
   @AllGradleVersionsSource(PROJECT_CONTEXTS)
   @TargetVersions("<8.2")
   fun `test property write`(gradleVersion: GradleVersion, decorator: String) {
+    assertThatTopLevelJavaConventionsIsSupported(gradleVersion)
     testJavaProject(gradleVersion) {
       testBuildscript(decorator, "<caret>sourceCompatibility = 42") {
         methodTest(resolveTest(PsiMethod::class.java), "setSourceCompatibility", GRADLE_API_JAVA_PLUGIN_CONVENTION)
@@ -37,10 +40,11 @@ class GradleConventionsTest : GradleCodeInsightTestCase() {
   }
 
   // this test is wrong and exists only to preserve current behaviour and to fail when behaviour changes
-  @ParameterizedTest
+  @ParameterizedTest(allowZeroInvocations = true) // TODO remove flag when `gradle.versions.to.run` is changed from `LAST:*` IDEA-382646
   @AllGradleVersionsSource(PROJECT_CONTEXTS)
   @TargetVersions("<8.2")
   fun `test setter method`(gradleVersion: GradleVersion, decorator: String) {
+    assertThatTopLevelJavaConventionsIsSupported(gradleVersion)
     testJavaProject(gradleVersion) {
       testBuildscript(decorator, "<caret>targetCompatibility('1.8')") {
         setterMethodTest("targetCompatibility", "setTargetCompatibility", GRADLE_API_JAVA_PLUGIN_CONVENTION)

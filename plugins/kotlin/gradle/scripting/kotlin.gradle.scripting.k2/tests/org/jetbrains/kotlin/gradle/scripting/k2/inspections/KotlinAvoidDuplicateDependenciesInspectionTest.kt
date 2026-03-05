@@ -5,8 +5,8 @@ import org.gradle.util.GradleVersion
 import org.jetbrains.kotlin.gradle.K2GradleCodeInsightTestCase
 import org.jetbrains.plugins.gradle.codeInspection.GradleAvoidDuplicateDependenciesInspection
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
-import org.jetbrains.plugins.gradle.testFramework.util.assumeThatKotlinDslScriptsModelImportIsSupported
-import org.jetbrains.plugins.gradle.testFramework.util.assumeThatVersionCatalogsAreSupported
+import org.jetbrains.plugins.gradle.testFramework.util.assertThatKotlinDslScriptsModelImportIsSupported
+import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
 import org.junit.jupiter.params.ParameterizedTest
 
 class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCase() {
@@ -16,9 +16,8 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
         withVersionCatalogs: Boolean,
         test: () -> Unit
     ) {
-        assumeThatKotlinDslScriptsModelImportIsSupported(gradleVersion)
+        assertThatKotlinDslScriptsModelImportIsSupported(gradleVersion)
         val fixture = if (withVersionCatalogs) {
-            assumeThatVersionCatalogsAreSupported(gradleVersion)
             WITH_CUSTOM_CONFIGURATIONS_AND_VERSION_CATALOGS_FIXTURE
         } else {
             WITH_CUSTOM_CONFIGURATIONS_FIXTURE
@@ -31,6 +30,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testSingleDependency(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -45,6 +45,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testDifferentDependencies(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -61,6 +62,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testSimpleSameDependency(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -76,6 +78,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testSameDependencyDifferentConfigurations(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -91,6 +94,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testSameDependencyInDifferentBlocks(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -109,6 +113,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testSameDependencyConfigurationBlock(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -124,6 +129,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testSameDependencyNamedArguments(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -139,6 +145,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testSameDependencyNoVersion(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -154,6 +161,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testDifferentVersions(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -170,6 +178,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("7.4+")
     fun testSimpleVersionCatalogsResolve(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = true) {
             testHighlighting(
@@ -185,6 +194,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("7.4+")
     fun testSimpleVersionCatalogsResolveNoVersion(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = true) {
             testHighlighting(
@@ -200,6 +210,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("7.4+")
     fun testVersionCatalogsResolve(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = true) {
             testHighlighting(
@@ -223,6 +234,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("7.4+")
     fun testVersionCatalogsResolveVersionRef(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = true) {
             testHighlighting(
@@ -246,6 +258,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("7.4+")
     fun testVersionCatalogsResolveMultiline(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = true) {
             testHighlighting(
@@ -261,6 +274,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testSameVersionVal(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -277,6 +291,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testStringInterpolation(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -295,6 +310,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testNamedArgumentsVals(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -314,6 +330,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testCoordinateVal(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -330,6 +347,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testDifferentVersionSameNameVal(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -349,6 +367,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testDifferentVersionSameNameValNamedArguments(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -368,6 +387,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testCustomConfigurationSimple(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -384,6 +404,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("7.4+")
     fun testCustomConfigurationVersionCatalog(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = true) {
             testHighlighting(
@@ -400,6 +421,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testSameKotlinArg(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -415,6 +437,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testDifferentKotlinArg(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -430,6 +453,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testKotlinArgVar(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -446,6 +470,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testSameKotlinArgDifferentVals(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -463,6 +488,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testSameKotlinArgWithSameVersion(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -478,6 +504,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testSameKotlinArgWithDifferentVersion(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -493,6 +520,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testSameKotlinArgWithSameVersionVals(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -510,6 +538,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testSameKotlinArgWithDifferentVersionVals(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -527,6 +556,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testEquivalentKotlinArgWithSingleString(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -542,6 +572,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testEquivalentKotlinArgWithNamedArguments(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -557,6 +588,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testEquivalentKotlinArgWithSingleStringAndVersions(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -572,6 +604,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testEquivalentKotlinArgWithNamedArgumentsAndVersions(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -587,6 +620,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testNotEquivalentKotlinArg(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -606,6 +640,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testIgnoreOtherDependencyBlocks(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -625,6 +660,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testRemoveSimple(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testIntention(
@@ -646,6 +682,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testRemoveSimpleMultiple(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testIntention(
@@ -668,6 +705,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testRemoveSimpleUnselected(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testIntention(
@@ -694,6 +732,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testRemoveNamedArguments(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testIntention(
@@ -715,6 +754,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testNoRemoveNamedArgumentsAndSimpleMix(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testNoIntentions(
@@ -740,6 +780,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testRemoveVals(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testIntention(
@@ -764,6 +805,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testNoRemoveDifferentConfiguration(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testNoIntentions(
@@ -789,6 +831,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testNoRemoveWithConfigurationBlock(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testNoIntentions(
@@ -814,6 +857,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testNoRemoveDifferentExtraArguments(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testNoIntentions(
@@ -839,6 +883,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testAnnotationProcessorSeparation(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -854,6 +899,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testAnnotationProcessorGrouping(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
@@ -870,6 +916,7 @@ class KotlinAvoidDuplicateDependenciesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions("6.0+")
     fun testAnnotationProcessorDifferentGrouping(gradleVersion: GradleVersion) {
         runTest(gradleVersion, withVersionCatalogs = false) {
             testHighlighting(
