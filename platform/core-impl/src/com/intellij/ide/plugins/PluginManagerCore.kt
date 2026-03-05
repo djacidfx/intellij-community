@@ -647,19 +647,6 @@ object PluginManagerCore {
     )
   }
 
-  /**
-   * processes postponed consent check from the previous run (e.g., when the previous run was headless)
-   * see usages of [ThirdPartyPluginsWithoutConsentFile.appendAliens]
-   */
-  private fun checkThirdPartyPluginsPrivacyConsent(parentActivity: Activity?, idMap: UnambiguousPluginSet) {
-    val activity = parentActivity?.startChild("3rd-party plugins consent")
-    val aliens = ThirdPartyPluginsWithoutConsentFile.consumeAliensFile().mapNotNull { idMap.resolvePluginId(it)?.getMainDescriptor() }
-    if (!aliens.isEmpty()) {
-      checkThirdPartyPluginsPrivacyConsent(aliens)
-    }
-    activity?.end()
-  }
-
   private fun checkEssentialPluginsAreAvailable(idMap: Map<PluginId, IdeaPluginDescriptorImpl>, essentialPlugins: Set<PluginId>, pluginNonLoadReasons: Map<PluginId, PluginNonLoadReason>) {
     val corePlugin = idMap.get(CORE_ID)
     if (corePlugin != null) {
@@ -682,6 +669,19 @@ object PluginManagerCore {
       throw EssentialPluginMissingException(missing.map { it.first })
         .apply { missing.forEach { (_, reason) -> if (reason != null) addSuppressed(Exception(reason.logMessage)) } }
     }
+  }
+
+  /**
+   * processes postponed consent check from the previous run (e.g., when the previous run was headless)
+   * see usages of [ThirdPartyPluginsWithoutConsentFile.appendAliens]
+   */
+  private fun checkThirdPartyPluginsPrivacyConsent(parentActivity: Activity?, idMap: UnambiguousPluginSet) {
+    val activity = parentActivity?.startChild("3rd-party plugins consent")
+    val aliens = ThirdPartyPluginsWithoutConsentFile.consumeAliensFile().mapNotNull { idMap.resolvePluginId(it)?.getMainDescriptor() }
+    if (!aliens.isEmpty()) {
+      checkThirdPartyPluginsPrivacyConsent(aliens)
+    }
+    activity?.end()
   }
 
   private fun checkThirdPartyPluginsPrivacyConsent(aliens: List<IdeaPluginDescriptorImpl>) {
