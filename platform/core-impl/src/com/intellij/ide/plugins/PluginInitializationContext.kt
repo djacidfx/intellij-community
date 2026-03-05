@@ -3,6 +3,7 @@ package com.intellij.ide.plugins
 
 import com.intellij.core.CoreBundle
 import com.intellij.ide.plugins.ProductPluginInitContext.Companion.configureProductModeModules
+import com.intellij.ide.plugins.ProductPluginInitContext.Companion.defaultProductCompatibilityDependenciesProvider
 import com.intellij.idea.AppMode
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.util.BuildNumber
@@ -59,6 +60,12 @@ interface PluginInitializationContext {
     val isAvailable: Boolean get() = unavailabilityReason == null
   }
 
+  /**
+   * Processed for all possible modules and "depends" sub-descriptors independently.
+   * @return a sequence of modules that should be deemed as additional dependencies of a given [descriptor].
+   */
+  fun provideCompatibilityDependencies(descriptor: IdeaPluginDescriptorImpl, pluginSet: UnambiguousPluginSet): Sequence<PluginModuleDescriptor>
+
   @ApiStatus.Internal
   companion object {
     @TestOnly
@@ -89,6 +96,9 @@ interface PluginInitializationContext {
         override val environmentConfiguredModules: Map<PluginModuleId, EnvironmentConfiguredModuleData> = buildMap {
           configureProductModeModules(currentProductModeId)
         }
+
+        override fun provideCompatibilityDependencies(descriptor: IdeaPluginDescriptorImpl, pluginSet: UnambiguousPluginSet): Sequence<PluginModuleDescriptor> =
+          defaultProductCompatibilityDependenciesProvider(descriptor, pluginSet)
       }
   }
 }

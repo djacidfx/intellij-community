@@ -2,6 +2,7 @@
 package com.intellij.ide.plugins
 
 import com.intellij.ide.plugins.PluginInitializationContext.EnvironmentConfiguredModuleData
+import com.intellij.ide.plugins.PluginManagerCore.JAVA_PLUGIN_ALIAS_ID
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.application.impl.ApplicationInfoImpl
 import com.intellij.openapi.extensions.PluginId
@@ -76,6 +77,9 @@ class ProductPluginInitContext(
     }
   }
 
+  override fun provideCompatibilityDependencies(descriptor: IdeaPluginDescriptorImpl, pluginSet: UnambiguousPluginSet): Sequence<PluginModuleDescriptor> =
+    defaultProductCompatibilityDependenciesProvider(descriptor, pluginSet)
+
   companion object {
     @VisibleForTesting
     internal fun MutableMap<PluginModuleId, EnvironmentConfiguredModuleData>.configureProductModeModules(productModeId: String) {
@@ -100,5 +104,24 @@ class ProductPluginInitContext(
         check(replaced == null) { "$moduleId is already registered as environment-configured module" }
       }
     }
+
+    @VisibleForTesting
+    fun defaultProductCompatibilityDependenciesProvider(descriptor: IdeaPluginDescriptorImpl, pluginSet: UnambiguousPluginSet): Sequence<PluginModuleDescriptor> {
+      return sequence {
+        // If a plugin does not include any module dependency tags in its plugin.xml, it's assumed to be a legacy plugin
+        // and is loaded only in IntelliJ IDEA, so it may use classes from Java plugin.
+        if (descriptor is PluginMainDescriptor &&
+            pluginSet.resolvePluginId(PluginManagerCore.ALL_MODULES_MARKER) != null &&
+            PluginCompatibilityUtils.isLegacyPluginWithoutPlatformAliasDependencies(descriptor)) {
+          val java = pluginSet.resolvePluginId(JAVA_PLUGIN_ALIAS_ID)
+          if (java != null && java !== descriptor) {
+            yield(java)
+            pluginSet.resolveContentModuleId(JAVA_BACKEND_MODULE_ID)?.let { yield(it) }
+          }
+        }
+      }
+    }
   }
 }
+
+private val JAVA_BACKEND_MODULE_ID = PluginModuleId("intellij.java.backend", PluginModuleId.JETBRAINS_NAMESPACE)

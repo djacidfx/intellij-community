@@ -56,29 +56,13 @@ internal fun createModulesWithDependenciesAndAdditionalEdges(initContext: Plugin
     }
   }
 
-  val hasAllModules = pluginSet.resolvePluginId(PluginManagerCore.ALL_MODULES_MARKER) != null
   val dependenciesCollector: MutableSet<PluginModuleDescriptor> = Collections.newSetFromMap(IdentityHashMap())
   val additionalEdgesForCurrentModule: MutableSet<PluginModuleDescriptor> = Collections.newSetFromMap(IdentityHashMap())
   val directDependencies = IdentityHashMap<PluginModuleDescriptor, List<PluginModuleDescriptor>>(modules.size)
   for (module in modules) {
-    // If a plugin does not include any module dependency tags in its plugin.xml, it's assumed to be a legacy plugin
-    // and is loaded only in IntelliJ IDEA, so it may use classes from Java plugin.
-    val implicitDep = if (module is PluginMainDescriptor && hasAllModules && PluginCompatibilityUtils.isLegacyPluginWithoutPlatformAliasDependencies(module)) {
-      pluginSet.resolvePluginId(JAVA_PLUGIN_ALIAS_ID)
+    for (implicitDependency in initContext.provideCompatibilityDependencies(module, pluginSet)) {
+      dependenciesCollector.add(implicitDependency)
     }
-    else {
-      null
-    }
-    if (implicitDep != null) {
-      if (module === implicitDep) {
-        PluginManagerCore.logger.error("Plugin $module depends on self")
-      }
-      else {
-        dependenciesCollector.add(implicitDep)
-        pluginSet.resolveContentModuleId(JAVA_BACKEND_MODULE_ID)?.let { dependenciesCollector.add(it) }
-      }
-    }
-
     collectDirectDependenciesInOldFormat(module, pluginSet, dependenciesCollector, additionalEdgesForCurrentModule)
     collectDirectDependenciesInNewFormat(module, pluginSet, dependenciesCollector, additionalEdgesForCurrentModule)
 
