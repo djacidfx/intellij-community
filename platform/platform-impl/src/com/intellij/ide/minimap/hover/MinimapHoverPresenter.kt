@@ -11,6 +11,7 @@ class MinimapHoverPresenter(private val panel: MinimapPanel) {
   private val balloonController = MinimapBalloonController(panel)
   private var activeTarget: MinimapHoverTarget? = null
   private var lastContext: MinimapRenderContext? = null
+  //private val editorScheme = panel.editor.colorsScheme
 
   fun setContext(context: MinimapRenderContext?) {
     lastContext = context
@@ -30,6 +31,9 @@ class MinimapHoverPresenter(private val panel: MinimapPanel) {
     val context = lastContext ?: return
 
     val lineHeight = computeLineHeight(context)
+    //val hoverColor = editorScheme.getAttributes(EditorColors.SEARCH_RESULT_ATTRIBUTES)?.foregroundColor
+    //                 ?: editorScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
+    //                 ?: JBColor.BLUE
     hoverPainter.paint(graphics, target.rect, lineHeight)
   }
 

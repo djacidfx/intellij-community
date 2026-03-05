@@ -63,7 +63,6 @@ class MinimapPanel(
   private val interactionController = registerDisposable(
     MinimapMouseInteractionController(
       this,
-      settings,
       hoverController
     )
   )
@@ -141,11 +140,6 @@ class MinimapPanel(
     legacyPreview.clear()
   }
 
-  fun isInResizeArea(x: Int): Boolean = when (settingsState.rightAligned) {
-    true -> x in 0..RESIZE_TOLERANCE
-    false -> x in (settingsState.width - RESIZE_TOLERANCE)..settingsState.width
-  }
-
   fun scrollTo(y: Int) {
     val geometry = currentSnapshot()?.geometry ?: return
     val percentage = (y + geometry.areaStart) / geometry.minimapHeight.toFloat()
@@ -183,8 +177,4 @@ class MinimapPanel(
   private fun createPopupActionGroup() = CustomActionsSchema.getInstance().getCorrectedAction("MinimapActionsGroup") as? ActionGroup
                                          ?: DefaultActionGroup()
 
-  companion object {
-    const val MINIMUM_WIDTH: Int = 50
-    const val RESIZE_TOLERANCE: Int = 7
-  }
 }

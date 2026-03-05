@@ -2,6 +2,7 @@
 package com.intellij.ide.minimap.hover
 
 import com.intellij.ui.JBColor
+import com.intellij.util.ui.JBUI
 import java.awt.Graphics2D
 import java.awt.Rectangle
 import kotlin.math.max
@@ -41,9 +42,9 @@ class MinimapHoverPainter {
   }
 
   companion object {
-    private const val VERTICAL_LINE_WIDTH = 1
-    private const val HOOK_HEIGHT = 2
-    private const val MIN_HOOK_WIDTH = 6
-    private val HOVER_COLOR = JBColor.BLUE  // todo: probably add to some proper color scheme
+    private val VERTICAL_LINE_WIDTH = JBUI.scale(1)
+    private val HOOK_HEIGHT = JBUI.scale(2)
+    private val MIN_HOOK_WIDTH = JBUI.scale(6)
+    private val HOVER_COLOR = JBColor.BLUE  // TODO: consider using a standard editor color scheme
   }
 }
