@@ -166,6 +166,25 @@ class ProductPluginInitContext(
             }
           }
         }
+
+        for (depends in descriptor.pluginDependencies) {
+          if (depends.subDescriptor != null) { // will be processed when invoked for the sub-descriptor
+            continue
+          }
+          if ((depends.pluginId == PLATFORM_PLUGIN_ALIAS_ID || depends.pluginId == LANG_PLUGIN_ALIAS_ID) && pluginSet.resolvePluginId(depends.pluginId) != null) {
+            for (contentModuleId in contentModulesExtractedInCorePluginWhichCanBeUsedFromExternalPlugins) {
+              pluginSet.resolveContentModuleId(contentModuleId)?.let { yield(it) }
+            }
+          }
+        }
+
+        if (descriptor is DependsSubDescriptor) {
+          if ((descriptor.dependsTargetId == PLATFORM_PLUGIN_ALIAS_ID || descriptor.dependsTargetId == LANG_PLUGIN_ALIAS_ID) && pluginSet.resolvePluginId(descriptor.pluginId) != null) {
+            for (contentModuleId in contentModulesExtractedInCorePluginWhichCanBeUsedFromExternalPlugins) {
+              pluginSet.resolveContentModuleId(contentModuleId)?.let { yield(it) }
+            }
+          }
+        }
       }
     }
   }
@@ -186,6 +205,8 @@ private val CWM_RIDER_PLUGIN_ID = PluginId.getId("intellij.rider.plugins.cwm")
 private val JSON_BACKEND_MODULE_ID = PluginModuleId("intellij.json.backend", PluginModuleId.JETBRAINS_NAMESPACE)
 private val REMOTE_DEVELOPMENT_MODULE_ID = PluginModuleId("intellij.cwm", PluginModuleId.JETBRAINS_NAMESPACE)
 private val REMOTE_DEVELOPMENT_RIDER_MODULE_ID = PluginModuleId("intellij.rider.plugins.cwm", PluginModuleId.JETBRAINS_NAMESPACE)
+private val PLATFORM_PLUGIN_ALIAS_ID = PluginId.getId("com.intellij.modules.platform")
+private val LANG_PLUGIN_ALIAS_ID = PluginId.getId("com.intellij.modules.lang")
 private val XDEBUGGER_PLUGIN_ALIAS_ID = PluginId.getId("com.intellij.modules.xdebugger")
 private val XDEBUGGER_MODULE_IDS = listOf(
   PluginModuleId("intellij.platform.debugger", PluginModuleId.JETBRAINS_NAMESPACE),
@@ -217,4 +238,26 @@ private val fullLineApiContentModules = arrayOf(
   "intellij.fullLine.core",
   "intellij.fullLine.local",
   "intellij.fullLine.core.impl",
+).map { PluginModuleId(it, PluginModuleId.JETBRAINS_NAMESPACE) }
+
+/**
+ * Specifies the list of content modules which was recently extracted from the main module of the core plugin and may have external usages.
+ * Since such modules were loaded by the core classloader before, it wasn't necessary to specify any dependencies to use classes from them.
+ * To avoid breaking compatibility, dependencies on these modules are automatically added to plugins which define dependency on the platform using
+ * `<depends>com.intellij.modules.platform</depends>` or `<depends>com.intellij.modules.lang</depends>` tags.
+ * See [this article](https://youtrack.jetbrains.com/articles/IJPL-A-956#keep-compatibility-with-external-plugins) for more details.
+ */
+private val contentModulesExtractedInCorePluginWhichCanBeUsedFromExternalPlugins = arrayOf(
+  "intellij.platform.collaborationTools.auth",
+  "intellij.platform.collaborationTools.auth.base",
+  "intellij.platform.tasks",
+  "intellij.platform.tasks.impl",
+  "intellij.platform.scriptDebugger.ui",
+  "intellij.platform.scriptDebugger.backend",
+  "intellij.platform.scriptDebugger.protocolReaderRuntime",
+  "intellij.spellchecker.xml",
+  "intellij.relaxng",
+  "intellij.spellchecker",
+  "intellij.platform.structuralSearch",
+  "intellij.xml.emmet",
 ).map { PluginModuleId(it, PluginModuleId.JETBRAINS_NAMESPACE) }

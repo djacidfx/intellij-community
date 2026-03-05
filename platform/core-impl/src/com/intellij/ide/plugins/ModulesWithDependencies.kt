@@ -3,13 +3,9 @@
 
 package com.intellij.ide.plugins
 
-import com.intellij.openapi.extensions.PluginId
 import com.intellij.util.containers.Java11Shim
 import java.util.Collections
 import java.util.IdentityHashMap
-
-private val PLATFORM_PLUGIN_ALIAS_ID = PluginId.getId("com.intellij.modules.platform")
-private val LANG_PLUGIN_ALIAS_ID = PluginId.getId("com.intellij.modules.lang")
 
 internal class ModulesWithDependencies(
   @JvmField val modules: List<PluginModuleDescriptor>,
@@ -44,7 +40,7 @@ internal fun createModulesWithDependenciesAndAdditionalEdges(initContext: Plugin
     for (implicitDependency in initContext.provideCompatibilityDependencies(module, pluginSet)) {
       dependenciesCollector.add(implicitDependency)
     }
-    collectDirectDependenciesInOldFormat(module, pluginSet, dependenciesCollector, additionalEdgesForCurrentModule)
+    collectDirectDependenciesInOldFormat(module, pluginSet, dependenciesCollector, additionalEdgesForCurrentModule, initContext)
     collectDirectDependenciesInNewFormat(module, pluginSet, dependenciesCollector, additionalEdgesForCurrentModule)
 
     if (module.pluginId != PluginManagerCore.CORE_ID && module is ContentModuleDescriptor) {
@@ -99,33 +95,12 @@ internal fun toCoreAwareComparator(comparator: Comparator<PluginModuleDescriptor
   }
 }
 
-/**
- * Specifies the list of content modules which was recently extracted from the main module of the core plugin and may have external usages.
- * Since such modules were loaded by the core classloader before, it wasn't necessary to specify any dependencies to use classes from them.
- * To avoid breaking compatibility, dependencies on these modules are automatically added to plugins which define dependency on the platform using 
- * `<depends>com.intellij.modules.platform</depends>` or `<depends>com.intellij.modules.lang</depends>` tags.
- * See [this article](https://youtrack.jetbrains.com/articles/IJPL-A-956#keep-compatibility-with-external-plugins) for more details.
- */
-private val contentModulesExtractedInCorePluginWhichCanBeUsedFromExternalPlugins = arrayOf(
-  "intellij.platform.collaborationTools.auth",
-  "intellij.platform.collaborationTools.auth.base",
-  "intellij.platform.tasks",
-  "intellij.platform.tasks.impl",
-  "intellij.platform.scriptDebugger.ui",
-  "intellij.platform.scriptDebugger.backend",
-  "intellij.platform.scriptDebugger.protocolReaderRuntime",
-  "intellij.spellchecker.xml",
-  "intellij.relaxng",
-  "intellij.spellchecker",
-  "intellij.platform.structuralSearch",
-  "intellij.xml.emmet",
-).map { PluginModuleId(it, PluginModuleId.JETBRAINS_NAMESPACE) }
-
 private fun collectDirectDependenciesInOldFormat(
   rootDescriptor: IdeaPluginDescriptorImpl,
   pluginSet: UnambiguousPluginSet,
   dependenciesCollector: MutableSet<PluginModuleDescriptor>,
   additionalEdges: MutableSet<PluginModuleDescriptor>,
+  initContext: PluginInitializationContext,
 ) {
   for (dependency in rootDescriptor.dependencies) {
     // check for missing optional dependency
@@ -148,13 +123,6 @@ private fun collectDirectDependenciesInOldFormat(
         dependenciesCollector.add(dep)
       }
     }
-    if (dependencyPluginId == PLATFORM_PLUGIN_ALIAS_ID || dependencyPluginId == LANG_PLUGIN_ALIAS_ID) {
-      for (contentModuleId in contentModulesExtractedInCorePluginWhichCanBeUsedFromExternalPlugins) {
-        pluginSet.resolveContentModuleId(contentModuleId)?.let {
-          dependenciesCollector.add(it)
-        }
-      }
-    }
     if (dep is ContentModuleDescriptor && dep.moduleLoadingRule.required) {
       val dependencyPluginDescriptor = pluginSet.resolvePluginId(dep.pluginId)
       if (dependencyPluginDescriptor != null && dependencyPluginDescriptor !== rootDescriptor) {
@@ -163,8 +131,11 @@ private fun collectDirectDependenciesInOldFormat(
       }
     }
 
-    dependency.subDescriptor?.let {
-      collectDirectDependenciesInOldFormat(it, pluginSet, dependenciesCollector, additionalEdges)
+    dependency.subDescriptor?.let { subDescriptor ->
+      for (implicitDep in initContext.provideCompatibilityDependencies(subDescriptor, pluginSet)) {
+        dependenciesCollector.add(implicitDep)
+      }
+      collectDirectDependenciesInOldFormat(subDescriptor, pluginSet, dependenciesCollector, additionalEdges, initContext)
     }
   }
 
