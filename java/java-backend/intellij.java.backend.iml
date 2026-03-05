@@ -31,6 +31,7 @@
     <orderEntry type="module" module-name="intellij.java.indexing.impl" exported="" scope="RUNTIME" />
     <orderEntry type="module" module-name="intellij.java.analysis.impl" exported="" scope="RUNTIME" />
     <orderEntry type="module" module-name="intellij.java.structureView" exported="" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.platform.structureView.backend" scope="RUNTIME" />
     <orderEntry type="module" module-name="intellij.java.impl" exported="" scope="RUNTIME" />
     <orderEntry type="module" module-name="intellij.java.impl.refactorings" exported="" scope="RUNTIME" />
     <orderEntry type="module" module-name="intellij.java.compiler.impl" exported="" scope="RUNTIME" />

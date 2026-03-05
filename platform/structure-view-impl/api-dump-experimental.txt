@@ -61,7 +61,3 @@ f:com.intellij.ide.impl.StructureViewWrapperImpl
 - getActionUpdateThread():com.intellij.openapi.actionSystem.ActionUpdateThread
 - pa:showFileStructurePopup(com.intellij.openapi.project.Project,com.intellij.openapi.fileEditor.FileEditor):V
 - update(com.intellij.openapi.actionSystem.AnActionEvent):V
-*f:com.intellij.platform.structureView.impl.commands.ViewStructureCompletionCommandProvider
-- com.intellij.codeInsight.completion.command.commands.ActionCommandProvider
-- <init>():V
-- supportNewLineCompletion():Z

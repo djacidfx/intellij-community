@@ -14,7 +14,9 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.registry.Registry;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.ui.EditorTextField;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 @ApiStatus.Experimental
 public abstract class ViewStructureActionBase extends DumbAwareAction {
@@ -53,10 +55,14 @@ public abstract class ViewStructureActionBase extends DumbAwareAction {
     Editor editor = fileEditor instanceof TextEditor te ? te.getEditor() :
                     e.getData(CommonDataKeys.EDITOR);
 
-    boolean enabled = fileEditor != null &&
-                      (!Boolean.TRUE.equals(EditorTextField.SUPPLEMENTARY_KEY.get(editor))) &&
-                      (Registry.is("frontend.structure.popup") || fileEditor.getStructureViewBuilder() != null);
-    e.getPresentation().setEnabled(enabled);
+    e.getPresentation().setEnabled(isPopupAvailableFor(fileEditor, editor));
+  }
+
+  @ApiStatus.Internal
+  public static boolean isPopupAvailableFor(@Nullable FileEditor fileEditor, @Nullable Editor editor) {
+    return fileEditor != null &&
+           (!Boolean.TRUE.equals(EditorTextField.SUPPLEMENTARY_KEY.get(editor))) &&
+           (Registry.is("frontend.structure.popup") || fileEditor.getStructureViewBuilder() != null);
   }
 
   @Override
