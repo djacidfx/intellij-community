@@ -119,9 +119,102 @@ class ProductPluginInitContext(
             pluginSet.resolveContentModuleId(JAVA_BACKEND_MODULE_ID)?.let { yield(it) }
           }
         }
+
+        // Check modules as well, for example, intellij.diagram.impl.vcs.
+        // We are not yet ready to recommend adding a dependency on extracted VCS modules since the coordinates are not finalized.
+        if ((descriptor is PluginMainDescriptor && descriptor.pluginId != PluginManagerCore.CORE_ID) || descriptor is ContentModuleDescriptor) {
+          val strictCheck = descriptor.isBundled || PluginManagerCore.isVendorJetBrains(descriptor.vendor ?: "")
+          if (!strictCheck || doesDependOnPluginAlias(descriptor, VCS_ALIAS_ID)) {
+            vcsApiContentModules.forEach { vcsModule ->
+              pluginSet.resolveContentModuleId(vcsModule)?.let { yield(it) }
+            }
+          }
+          if (!strictCheck) {
+            if (System.getProperty("enable.implicit.json.dependency").toBoolean()) {
+              pluginSet.resolvePluginId(JSON_ALIAS_ID)?.let { yield(it) }
+              pluginSet.resolveContentModuleId(JSON_BACKEND_MODULE_ID)?.let { yield(it) }
+            }
+            if (doesDependOnPluginAlias(descriptor, JSON_ALIAS_ID)) {
+              pluginSet.resolveContentModuleId(JSON_BACKEND_MODULE_ID)?.let { yield(it) }
+            }
+            if (doesDependOnPluginAlias(descriptor, CWM_PLUGIN_ID)) {
+              pluginSet.resolveContentModuleId(REMOTE_DEVELOPMENT_MODULE_ID)?.let { yield(it) }
+            }
+            if (doesDependOnPluginAlias(descriptor, CWM_RIDER_PLUGIN_ID)) {
+              pluginSet.resolveContentModuleId(REMOTE_DEVELOPMENT_RIDER_MODULE_ID)?.let { yield(it) }
+            }
+            if (doesDependOnPluginAlias(descriptor, XDEBUGGER_PLUGIN_ALIAS_ID)) {
+              for (moduleId in XDEBUGGER_MODULE_IDS) {
+                pluginSet.resolveContentModuleId(moduleId)?.let { yield(it) }
+              }
+            }
+            pluginSet.resolveContentModuleId(COLLABORATION_TOOLS_MODULE_ID)?.let { yield(it) }
+          }
+
+          /* Compatibility Layer */
+
+          if (doesDependOnPluginAlias(descriptor, JAVA_PLUGIN_ALIAS_ID)) {
+            pluginSet.resolveContentModuleId(JAVA_BACKEND_MODULE_ID)?.let { yield(it) }
+          }
+
+          if (doesDependOnPluginAlias(descriptor, RIDER_ALIAS_ID)) {
+            pluginSet.resolveContentModuleId(RIDER_MODULE_ID)?.let { yield(it) }
+          }
+          if (doesDependOnPluginAlias(descriptor, PluginId.getId("org.jetbrains.completion.full.line"))) {
+            fullLineApiContentModules.forEach { fullLineModule ->
+              pluginSet.resolveContentModuleId(fullLineModule)?.let { yield(it) }
+            }
+          }
+        }
       }
     }
   }
 }
 
+// alias in most cases points to Core plugin, so we cannot use computed dependencies to check
+private fun doesDependOnPluginAlias(plugin: IdeaPluginDescriptorImpl, @Suppress("SameParameterValue") aliasId: PluginId): Boolean {
+  return plugin.dependencies.any { it.pluginId == aliasId } || plugin.moduleDependencies.plugins.any { it == aliasId }
+}
+
 private val JAVA_BACKEND_MODULE_ID = PluginModuleId("intellij.java.backend", PluginModuleId.JETBRAINS_NAMESPACE)
+private val VCS_ALIAS_ID = PluginId.getId("com.intellij.modules.vcs")
+private val RIDER_ALIAS_ID = PluginId.getId("com.intellij.modules.rider")
+private val RIDER_MODULE_ID = PluginModuleId("intellij.rider", PluginModuleId.JETBRAINS_NAMESPACE)
+private val JSON_ALIAS_ID = PluginId.getId("com.intellij.modules.json")
+private val CWM_PLUGIN_ID = PluginId.getId("com.jetbrains.codeWithMe")
+private val CWM_RIDER_PLUGIN_ID = PluginId.getId("intellij.rider.plugins.cwm")
+private val JSON_BACKEND_MODULE_ID = PluginModuleId("intellij.json.backend", PluginModuleId.JETBRAINS_NAMESPACE)
+private val REMOTE_DEVELOPMENT_MODULE_ID = PluginModuleId("intellij.cwm", PluginModuleId.JETBRAINS_NAMESPACE)
+private val REMOTE_DEVELOPMENT_RIDER_MODULE_ID = PluginModuleId("intellij.rider.plugins.cwm", PluginModuleId.JETBRAINS_NAMESPACE)
+private val XDEBUGGER_PLUGIN_ALIAS_ID = PluginId.getId("com.intellij.modules.xdebugger")
+private val XDEBUGGER_MODULE_IDS = listOf(
+  PluginModuleId("intellij.platform.debugger", PluginModuleId.JETBRAINS_NAMESPACE),
+  PluginModuleId("intellij.platform.debugger.impl", PluginModuleId.JETBRAINS_NAMESPACE),
+  PluginModuleId("intellij.platform.debugger.impl.shared", PluginModuleId.JETBRAINS_NAMESPACE),
+  PluginModuleId("intellij.platform.debugger.impl.ui", PluginModuleId.JETBRAINS_NAMESPACE),
+)
+
+/**
+ * List of content modules from the core plugin which should be automatically added as dependencies third-party plugins and plugins with dependency on `com.intellij.modules.vcs`
+ * plugin alias for compatibility.
+ */
+private val vcsApiContentModules = arrayOf(
+  "intellij.platform.vcs.impl",
+  "intellij.platform.vcs.dvcs",
+  "intellij.platform.vcs.dvcs.impl",
+  "intellij.platform.vcs.log",
+  "intellij.platform.vcs.log.graph",
+  "intellij.platform.vcs.log.impl",
+).map { PluginModuleId(it, PluginModuleId.JETBRAINS_NAMESPACE) }
+
+private val COLLABORATION_TOOLS_MODULE_ID = PluginModuleId("intellij.platform.collaborationTools", PluginModuleId.JETBRAINS_NAMESPACE)
+
+/**
+ * List of content modules from the core plugin which should be automatically added as dependencies to all plugins with dependency on `org.jetbrains.completion.full.line` plugin
+ * alias for compatibility.
+ */
+private val fullLineApiContentModules = arrayOf(
+  "intellij.fullLine.core",
+  "intellij.fullLine.local",
+  "intellij.fullLine.core.impl",
+).map { PluginModuleId(it, PluginModuleId.JETBRAINS_NAMESPACE) }

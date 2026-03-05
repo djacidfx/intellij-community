@@ -3,7 +3,6 @@
 
 package com.intellij.ide.plugins
 
-import com.intellij.ide.plugins.PluginManagerCore.JAVA_PLUGIN_ALIAS_ID
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.util.containers.Java11Shim
 import java.util.Collections
@@ -11,24 +10,6 @@ import java.util.IdentityHashMap
 
 private val PLATFORM_PLUGIN_ALIAS_ID = PluginId.getId("com.intellij.modules.platform")
 private val LANG_PLUGIN_ALIAS_ID = PluginId.getId("com.intellij.modules.lang")
-private val VCS_ALIAS_ID = PluginId.getId("com.intellij.modules.vcs")
-private val RIDER_ALIAS_ID = PluginId.getId("com.intellij.modules.rider")
-private val RIDER_MODULE_ID = PluginModuleId("intellij.rider", PluginModuleId.JETBRAINS_NAMESPACE)
-private val JSON_ALIAS_ID = PluginId.getId("com.intellij.modules.json")
-private val CWM_PLUGIN_ID = PluginId.getId("com.jetbrains.codeWithMe")
-private val CWM_RIDER_PLUGIN_ID = PluginId.getId("intellij.rider.plugins.cwm")
-private val JSON_BACKEND_MODULE_ID = PluginModuleId("intellij.json.backend", PluginModuleId.JETBRAINS_NAMESPACE)
-private val JAVA_BACKEND_MODULE_ID = PluginModuleId("intellij.java.backend", PluginModuleId.JETBRAINS_NAMESPACE)
-private val REMOTE_DEVELOPMENT_MODULE_ID = PluginModuleId("intellij.cwm", PluginModuleId.JETBRAINS_NAMESPACE)
-private val REMOTE_DEVELOPMENT_RIDER_MODULE_ID = PluginModuleId("intellij.rider.plugins.cwm", PluginModuleId.JETBRAINS_NAMESPACE)
-private val XDEBUGGER_PLUGIN_ALIAS_ID = PluginId.getId("com.intellij.modules.xdebugger")
-private val XDEBUGGER_MODULE_IDS = listOf(
-  PluginModuleId("intellij.platform.debugger", PluginModuleId.JETBRAINS_NAMESPACE),
-  PluginModuleId("intellij.platform.debugger.impl", PluginModuleId.JETBRAINS_NAMESPACE),
-  PluginModuleId("intellij.platform.debugger.impl.shared", PluginModuleId.JETBRAINS_NAMESPACE),
-  PluginModuleId("intellij.platform.debugger.impl.ui", PluginModuleId.JETBRAINS_NAMESPACE),
-)
-
 
 internal class ModulesWithDependencies(
   @JvmField val modules: List<PluginModuleDescriptor>,
@@ -65,49 +46,6 @@ internal fun createModulesWithDependenciesAndAdditionalEdges(initContext: Plugin
     }
     collectDirectDependenciesInOldFormat(module, pluginSet, dependenciesCollector, additionalEdgesForCurrentModule)
     collectDirectDependenciesInNewFormat(module, pluginSet, dependenciesCollector, additionalEdgesForCurrentModule)
-
-    // Check modules as well, for example, intellij.diagram.impl.vcs.
-    // We are not yet ready to recommend adding a dependency on extracted VCS modules since the coordinates are not finalized.
-    if (module.pluginId != PluginManagerCore.CORE_ID || module is ContentModuleDescriptor) {
-      val strictCheck = module.isBundled || PluginManagerCore.isVendorJetBrains(module.vendor ?: "")
-      if (!strictCheck || doesDependOnPluginAlias(module, VCS_ALIAS_ID)) {
-        vcsApiContentModules.mapNotNullTo(dependenciesCollector) { pluginSet.resolveContentModuleId(it) }
-      }
-      if (!strictCheck) {
-        if (System.getProperty("enable.implicit.json.dependency").toBoolean()) {
-          pluginSet.resolvePluginId(JSON_ALIAS_ID)?.let { dependenciesCollector.add(it) }
-          pluginSet.resolveContentModuleId(JSON_BACKEND_MODULE_ID)?.let { dependenciesCollector.add(it) }
-        }
-        if (doesDependOnPluginAlias(module, JSON_ALIAS_ID)) {
-          pluginSet.resolveContentModuleId(JSON_BACKEND_MODULE_ID)?.let { dependenciesCollector.add(it) }
-        }
-        if (doesDependOnPluginAlias(module, CWM_PLUGIN_ID)) {
-          pluginSet.resolveContentModuleId(REMOTE_DEVELOPMENT_MODULE_ID)?.let { dependenciesCollector.add(it) }
-        }
-        if (doesDependOnPluginAlias(module, CWM_RIDER_PLUGIN_ID)) {
-          pluginSet.resolveContentModuleId(REMOTE_DEVELOPMENT_RIDER_MODULE_ID)?.let { dependenciesCollector.add(it) }
-        }
-        if (doesDependOnPluginAlias(module, XDEBUGGER_PLUGIN_ALIAS_ID)) {
-          for (moduleId in XDEBUGGER_MODULE_IDS) {
-            pluginSet.resolveContentModuleId(moduleId)?.let { dependenciesCollector.add(it) }
-          }
-        }
-        pluginSet.resolveContentModuleId(COLLABORATION_TOOLS_MODULE_ID)?.let { dependenciesCollector.add(it) }
-      }
-
-      /* Compatibility Layer */
-
-      if (doesDependOnPluginAlias(module, JAVA_PLUGIN_ALIAS_ID)) {
-        pluginSet.resolveContentModuleId(JAVA_BACKEND_MODULE_ID)?.let { dependenciesCollector.add(it) }
-      }
-
-      if (doesDependOnPluginAlias(module, RIDER_ALIAS_ID)) {
-        pluginSet.resolveContentModuleId(RIDER_MODULE_ID)?.let { dependenciesCollector.add(it) }
-      }
-      if (doesDependOnPluginAlias(module, PluginId.getId("org.jetbrains.completion.full.line"))) {
-        fullLineApiContentModules.mapNotNullTo(dependenciesCollector) { pluginSet.resolveContentModuleId(it) }
-      }
-    }
 
     if (module.pluginId != PluginManagerCore.CORE_ID && module is ContentModuleDescriptor) {
       // add main as an implicit dependency for optional content modules 
@@ -146,11 +84,6 @@ internal fun createModulesWithDependenciesAndAdditionalEdges(initContext: Plugin
   ) to additionalEdges
 }
 
-// alias in most cases points to Core plugin, so we cannot use computed dependencies to check
-private fun doesDependOnPluginAlias(plugin: IdeaPluginDescriptorImpl, @Suppress("SameParameterValue") aliasId: PluginId): Boolean {
-  return plugin.dependencies.any { it.pluginId == aliasId } || plugin.moduleDependencies.plugins.any { it == aliasId }
-}
-
 internal fun toCoreAwareComparator(comparator: Comparator<PluginModuleDescriptor>): Comparator<PluginModuleDescriptor> {
   // there is circular reference between core and implementation-detail plugin, as not all such plugins extracted from core,
   // so, ensure that core plugin is always first (otherwise not possible to register actions - a parent group not defined)
@@ -186,31 +119,6 @@ private val contentModulesExtractedInCorePluginWhichCanBeUsedFromExternalPlugins
   "intellij.spellchecker",
   "intellij.platform.structuralSearch",
   "intellij.xml.emmet",
-).map { PluginModuleId(it, PluginModuleId.JETBRAINS_NAMESPACE) }
-
-/**
- * List of content modules from the core plugin which should be automatically added as dependencies third-party plugins and plugins with dependency on `com.intellij.modules.vcs`
- * plugin alias for compatibility.
- */
-private val vcsApiContentModules = arrayOf(
-  "intellij.platform.vcs.impl",
-  "intellij.platform.vcs.dvcs",
-  "intellij.platform.vcs.dvcs.impl",
-  "intellij.platform.vcs.log",
-  "intellij.platform.vcs.log.graph",
-  "intellij.platform.vcs.log.impl",
-).map { PluginModuleId(it, PluginModuleId.JETBRAINS_NAMESPACE) }
-
-private val COLLABORATION_TOOLS_MODULE_ID = PluginModuleId("intellij.platform.collaborationTools", PluginModuleId.JETBRAINS_NAMESPACE)
-
-/**
- * List of content modules from the core plugin which should be automatically added as dependencies to all plugins with dependency on `org.jetbrains.completion.full.line` plugin
- * alias for compatibility.
- */
-private val fullLineApiContentModules = arrayOf(
-  "intellij.fullLine.core",
-  "intellij.fullLine.local",
-  "intellij.fullLine.core.impl",
 ).map { PluginModuleId(it, PluginModuleId.JETBRAINS_NAMESPACE) }
 
 private fun collectDirectDependenciesInOldFormat(
