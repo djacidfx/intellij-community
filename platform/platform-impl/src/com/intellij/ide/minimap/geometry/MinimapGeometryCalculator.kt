@@ -10,15 +10,19 @@ class MinimapGeometryCalculator(private val editor: Editor) {
   fun compute(panelHeight: Int, stateWidth: Int): MinimapGeometryData {
     val visibleArea = editor.scrollingModel.visibleArea
     val componentHeight = editor.contentComponent.height
+    val documentHeight = (editor.document.lineCount.toLong() * editor.lineHeight)
+    val contentHeight = min(componentHeight.toLong(), documentHeight).toInt()
+
     val rightMargin = MinimapLayoutUtil.getRightMarginChars(editor)
     val charWidth = EditorUtil.getPlainSpaceWidth(editor)
 
     val logicalWidth = MinimapLayoutUtil.computeLogicalWidth(rightMargin, charWidth, visibleArea.width)
-    val minimapHeight = (componentHeight * stateWidth / logicalWidth.toDouble()).toInt().coerceAtLeast(0)
+    val minimapHeight = (contentHeight * stateWidth / logicalWidth.toDouble()).toInt().coerceAtLeast(0)
 
-    val proportion = if (componentHeight > 0) minimapHeight.toDouble() / componentHeight else 0.0
+    val proportion = if (contentHeight > 0) minimapHeight.toDouble() / contentHeight else 0.0
+    val visibleHeight = min(visibleArea.height, contentHeight)
     val thumbStart = (visibleArea.y * proportion).toInt()
-    val thumbHeight = (visibleArea.height * proportion).toInt()
+    val thumbHeight = (visibleHeight * proportion).toInt()
 
     val areaStart = if (minimapHeight > thumbHeight) {
       val maxScroll = (minimapHeight - thumbHeight).coerceAtLeast(1)
