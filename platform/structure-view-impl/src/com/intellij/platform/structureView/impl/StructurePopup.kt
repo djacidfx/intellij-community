@@ -19,10 +19,7 @@ interface StructurePopup: TreeActionsOwner, Disposable {
 
 @ApiStatus.Internal
 interface StructurePopupProvider {
-  /**
-   * callbackAfterNavigation doesn't work in the new file structure popup
-   */
-  fun createPopup(project: Project, fileEditor: FileEditor, callbackAfterNavigation: Consumer<AbstractTreeNode<*>>?): StructurePopup?
+  fun createPopup(project: Project, fileEditor: FileEditor): StructurePopup?
 
   companion object {
     @JvmField

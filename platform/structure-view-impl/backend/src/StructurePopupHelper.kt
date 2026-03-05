@@ -1,10 +1,11 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.platform.structureView.backend
 
-import com.intellij.ide.rpc.rpcId
+import com.intellij.ide.actions.ViewStructureAction
 import com.intellij.ide.util.treeView.AbstractTreeNode
 import com.intellij.ide.vfs.rpcId
 import com.intellij.openapi.components.service
+import com.intellij.openapi.diagnostic.fileLogger
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsContexts
@@ -26,14 +27,22 @@ import kotlin.time.Duration.Companion.milliseconds
 private val nextBackendModelId = AtomicInteger(-1)
 
 @ApiStatus.Internal
+@JvmOverloads
 fun showFileStructurePopup(
   project: Project,
   fileEditor: FileEditor,
-  virtualFile: VirtualFile,
-  @NlsContexts.PopupTitle title: String?,
-  callback: (AbstractTreeNode<*>) -> Unit,
+  virtualFile: VirtualFile?,
+  @NlsContexts.PopupTitle title: String? = null,
+  callback: ((AbstractTreeNode<*>) -> Unit)? = null,
 ) {
-  if (!Registry.`is`("frontend.structure.popup")) return
+  if (!Registry.`is`("frontend.structure.popup")) {
+    val popup = ViewStructureAction.createPopup(project, fileEditor, callback)
+    if (popup == null) return
+
+    popup.setTitle(title ?: virtualFile?.name ?: fileEditor.name)
+    popup.show()
+    return
+  }
 
   StructureViewScopeHolder.getInstance(project).cs.launch {
     val structureTreeService = application.service<BackendStructureTreeService>()
@@ -48,8 +57,8 @@ fun showFileStructurePopup(
           project.projectId(),
           modelId,
           modelDto,
-          virtualFile.rpcId(),
-          title ?: virtualFile.getName(),
+          virtualFile?.rpcId(),
+          title ?: virtualFile?.name ?: fileEditor.name,
           receipt
         )
         durable {

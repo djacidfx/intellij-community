@@ -1,7 +1,6 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.platform.structureView.backend
 
-import com.intellij.ide.actions.ViewStructureAction
 import com.intellij.ide.structureView.StructureViewModel
 import com.intellij.ide.structureView.StructureViewModel.ElementInfoProvider
 import com.intellij.ide.structureView.StructureViewModel.ExpandInfoProvider
@@ -42,6 +41,7 @@ import com.intellij.platform.structureView.impl.dto.StructureViewDtoId
 import com.intellij.platform.structureView.impl.dto.StructureViewModelDto
 import com.intellij.platform.structureView.impl.dto.StructureViewTreeElementDto
 import com.intellij.platform.structureView.impl.dto.TreeNodesDto
+import com.intellij.platform.structureView.impl.util.StructurePopupUtil
 import com.intellij.psi.PsiElement
 import com.intellij.ui.PlaceHolder
 import com.intellij.ui.tree.StructureTreeModel
@@ -118,7 +118,7 @@ internal class BackendStructureTreeService(private val session: ClientAppSession
               is PhysicalAndLogicalStructureViewBuilder -> {
                 val view = structureViewBuilder.createPhysicalStructureView(fileEditor, project)
                 Disposer.register(disposable, view)
-                ViewStructureAction.createStructureViewModel(project, fileEditor, view)
+                StructurePopupUtil.createStructureViewModel(project, fileEditor, view)
               }
               is TreeBasedStructureViewBuilder -> {
                 structureViewBuilder.createStructureViewModel(EditorUtil.getEditorEx(fileEditor))
@@ -126,7 +126,7 @@ internal class BackendStructureTreeService(private val session: ClientAppSession
               else -> {
                 val view = structureViewBuilder.createStructureView(fileEditor, project)
                 Disposer.register(disposable, view)
-                ViewStructureAction.createStructureViewModel(project, fileEditor, view)
+                StructurePopupUtil.createStructureViewModel(project, fileEditor, view)
               }
             }
           }

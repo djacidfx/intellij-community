@@ -1,7 +1,7 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.testFramework
 
-import com.intellij.ide.actions.ViewStructureAction
+import com.intellij.platform.structureView.impl.actions.ViewStructureAction
 import com.intellij.platform.structureView.impl.StructurePopupTestExt
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.fileEditor.impl.text.TextEditorProvider.Companion.getInstance

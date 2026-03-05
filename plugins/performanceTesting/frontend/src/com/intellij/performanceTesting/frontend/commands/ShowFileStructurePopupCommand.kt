@@ -1,7 +1,7 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.performanceTesting.frontend.commands
 
-import com.intellij.ide.actions.ViewStructureAction
+import com.intellij.platform.structureView.impl.actions.ViewStructureAction
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -13,14 +13,11 @@ import com.intellij.platform.structureView.impl.StructureViewScopeHolder
 import com.intellij.platform.util.coroutines.childScope
 import com.jetbrains.performancePlugin.PerformanceTestSpan
 import com.jetbrains.performancePlugin.utils.ActionCallbackProfilerStopper
-import io.opentelemetry.api.trace.StatusCode
 import io.opentelemetry.context.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.toPromise
-import java.util.function.Consumer
-import javax.swing.tree.TreePath
 
 class ShowFileStructurePopupCommand(text: String, line: Int) : AbstractCommand(text, line), Disposable {
   override fun _execute(context: PlaybackContext): Promise<Any?> {

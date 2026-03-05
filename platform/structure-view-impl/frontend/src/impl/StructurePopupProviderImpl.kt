@@ -12,11 +12,7 @@ import com.intellij.platform.structureView.frontend.uiModel.StructureUiModelImpl
 import java.util.function.Consumer
 
 class StructurePopupProviderImpl: StructurePopupProvider {
-  override fun createPopup(
-    project: Project,
-    fileEditor: FileEditor,
-    callbackAfterNavigation: Consumer<AbstractTreeNode<*>>?
-  ): StructurePopup? {
+  override fun createPopup(project: Project, fileEditor: FileEditor): StructurePopup? {
     if (!Registry.`is`("frontend.structure.popup")) return null
     val file = fileEditor.file
     return FileStructurePopup(project, fileEditor, StructureUiModelImpl(fileEditor, file, project))

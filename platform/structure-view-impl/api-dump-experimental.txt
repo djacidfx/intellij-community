@@ -54,6 +54,13 @@ f:com.intellij.ide.impl.StructureViewWrapperImpl
 - com.intellij.ide.structureView.newStructureView.TreeActionsOwner
 - a:isActionActive(com.intellij.ide.util.treeView.smartTree.TreeAction):Z
 - a:setActionActive(com.intellij.ide.util.treeView.smartTree.TreeAction,Z):V
+*a:com.intellij.platform.structureView.impl.actions.ViewStructureActionBase
+- com.intellij.openapi.project.DumbAwareAction
+- p:<init>():V
+- actionPerformed(com.intellij.openapi.actionSystem.AnActionEvent):V
+- getActionUpdateThread():com.intellij.openapi.actionSystem.ActionUpdateThread
+- pa:showFileStructurePopup(com.intellij.openapi.project.Project,com.intellij.openapi.fileEditor.FileEditor):V
+- update(com.intellij.openapi.actionSystem.AnActionEvent):V
 *f:com.intellij.platform.structureView.impl.commands.ViewStructureCompletionCommandProvider
 - com.intellij.codeInsight.completion.command.commands.ActionCommandProvider
 - <init>():V
