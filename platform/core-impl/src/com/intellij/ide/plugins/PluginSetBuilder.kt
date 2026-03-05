@@ -11,6 +11,7 @@ import com.intellij.util.containers.Java11Shim
 import com.intellij.util.graph.DFSTBuilder
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
 import org.jetbrains.annotations.ApiStatus
+import org.jetbrains.annotations.VisibleForTesting
 import java.util.Arrays
 import java.util.function.Supplier
 
@@ -265,50 +266,6 @@ class PluginSetBuilder(initContext: PluginInitializationContext, @JvmField val u
     return loadingErrors
   }
 
-  private fun checkVisibilityAndReturnErrorMessage(sourceModule: PluginModuleDescriptor, targetModule: ContentModuleDescriptor): String? {
-    if (pluginModuleVisibilityCheck == PluginModuleVisibilityCheckOption.DISABLED) {
-      return null
-    }
-
-    val errorMessage = when (targetModule.visibility) {
-      ModuleVisibility.PUBLIC -> null
-      ModuleVisibility.INTERNAL -> {
-        if (targetModule.parent.namespace != null && targetModule.parent.namespace == sourceModule.namespace) null
-        else {
-          val sourceNamespace = sourceModule.namespace?.let { "is from namespace '$it'" } ?: "has no namespace specified"
-          val targetNamespace = targetModule.parent.namespace?.let { "namespace '$it'" } ?: "unspecified namespace"
-          "it $sourceNamespace and depends on module '${targetModule.contentModuleName}' which is registered in '${targetModule.parent.pluginId}' plugin with internal visibility in $targetNamespace"
-        }
-      }
-      ModuleVisibility.PRIVATE -> {
-        if (sourceModule.pluginId == targetModule.pluginId) null
-        else "it depends on module '${targetModule.contentModuleName}' which has private visibility in '${targetModule.pluginId}' plugin"
-      }
-    }
-    if (errorMessage == null) {
-      return null
-    }
-
-    val sourceModuleId = sourceModule.contentModuleName ?: sourceModule.pluginId
-    return when (pluginModuleVisibilityCheck) {
-      PluginModuleVisibilityCheckOption.REPORT_WARNING -> {
-        PluginManagerCore.logger.warn("$sourceModuleId has accessibility problem which is currently ignored: $errorMessage")
-        null
-      }
-      PluginModuleVisibilityCheckOption.REPORT_ERROR -> {
-        PluginManagerCore.logger.error(PluginException("$sourceModuleId isn't loaded: $errorMessage", sourceModule.pluginId))
-        errorMessage
-      }
-      PluginModuleVisibilityCheckOption.DISABLED -> null
-    }
-  }
-
-  private val PluginModuleDescriptor.namespace: String?
-    get() = when (this) {
-      is ContentModuleDescriptor -> parent.namespace
-      is PluginMainDescriptor -> namespace
-    }
-
   private fun markModuleAsEnabled(moduleId: PluginModuleId, moduleDescriptor: ContentModuleDescriptor) {
     enabledModuleV2Ids.put(moduleId, moduleDescriptor)
     for (pluginAlias in moduleDescriptor.pluginAliases) {
@@ -399,6 +356,47 @@ class PluginSetBuilder(initContext: PluginInitializationContext, @JvmField val u
       shouldNotifyUser = isNotifyUser,
     )
   }
+
+  companion object {
+    @VisibleForTesting
+    fun checkVisibilityAndReturnErrorMessage(sourceModule: PluginModuleDescriptor, targetModule: ContentModuleDescriptor): String? {
+      if (pluginModuleVisibilityCheck == PluginModuleVisibilityCheckOption.DISABLED) {
+        return null
+      }
+
+      val errorMessage = when (targetModule.visibility) {
+        ModuleVisibility.PUBLIC -> null
+        ModuleVisibility.INTERNAL -> {
+          if (targetModule.parent.namespace != null && targetModule.parent.namespace == sourceModule.namespace) null
+          else {
+            val sourceNamespace = sourceModule.namespace?.let { "is from namespace '$it'" } ?: "has no namespace specified"
+            val targetNamespace = targetModule.parent.namespace?.let { "namespace '$it'" } ?: "unspecified namespace"
+            "it $sourceNamespace and depends on module '${targetModule.contentModuleName}' which is registered in '${targetModule.parent.pluginId}' plugin with internal visibility in $targetNamespace"
+          }
+        }
+        ModuleVisibility.PRIVATE -> {
+          if (sourceModule.pluginId == targetModule.pluginId) null
+          else "it depends on module '${targetModule.contentModuleName}' which has private visibility in '${targetModule.pluginId}' plugin"
+        }
+      }
+      if (errorMessage == null) {
+        return null
+      }
+
+      val sourceModuleId = sourceModule.contentModuleName ?: sourceModule.pluginId
+      return when (pluginModuleVisibilityCheck) {
+        PluginModuleVisibilityCheckOption.REPORT_WARNING -> {
+          PluginManagerCore.logger.warn("$sourceModuleId has accessibility problem which is currently ignored: $errorMessage")
+          null
+        }
+        PluginModuleVisibilityCheckOption.REPORT_ERROR -> {
+          PluginManagerCore.logger.error(PluginException("$sourceModuleId isn't loaded: $errorMessage", sourceModule.pluginId))
+          errorMessage
+        }
+        PluginModuleVisibilityCheckOption.DISABLED -> null
+      }
+    }
+  }
 }
 
 private enum class PluginModuleVisibilityCheckOption {
@@ -443,3 +441,9 @@ private fun getAllPluginDependencies(plugin: IdeaPluginDescriptorImpl): Sequence
            .map { it.pluginId } +
          plugin.moduleDependencies.plugins.asSequence()
 }
+
+private val PluginModuleDescriptor.namespace: String?
+  get() = when (this) {
+    is ContentModuleDescriptor -> parent.namespace
+    is PluginMainDescriptor -> namespace
+  }
