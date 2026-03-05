@@ -10,19 +10,19 @@ import com.intellij.ide.minimap.model.MinimapModel
 import com.intellij.ide.minimap.scene.MinimapSceneBuilder
 import com.intellij.ide.minimap.settings.MinimapSettings
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.application.EDT
+import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.Disposer
 import com.intellij.platform.util.coroutines.childScope
+import com.intellij.util.concurrency.AppExecutorUtil
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.awt.Graphics2D
 import javax.swing.JPanel
 import kotlin.math.max
@@ -91,16 +91,18 @@ class MinimapController(
   }
 
   fun updateStructureMarkersNow() {
-    model.updateStructureMarkers()
-    refreshSnapshot()
-    panel.repaint()
+    ReadAction.nonBlocking<Unit> { model.updateStructureMarkers() }
+      .coalesceBy(this)
+      .expireWith(this)
+      .finishOnUiThread(ModalityState.any()) {
+        refreshSnapshot()
+        panel.repaint()
+      }.submit(AppExecutorUtil.getAppExecutorService())
   }
 
   private fun initStructureMarkersFlow() = scope.launch {
     updates.debounce(STRUCTURE_MARKERS_DEBOUNCE_MS).collect {
-      withContext(Dispatchers.EDT) {
-        updateStructureMarkersNow()
-      }
+      updateStructureMarkersNow()
     }
   }
 
