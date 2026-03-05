@@ -9,12 +9,11 @@ import com.intellij.util.ui.JBUI
  * @param rightAligned If false, Minimap will be on the left side
  * @param fileTypes List of file extensions for which we want to show Minimap. For example txt,kt,java,zpln.
  */
-data class MinimapSettingsState(var enabled: Boolean = false,
+data class MinimapSettingsState(var enabled: Boolean = true,
                                 var width: Int = FIXED_WIDTH,
                                 var rightAligned: Boolean = true,
-                                // Temporary, by default, minimap will be only in zeppelin notes.
-                                //var fileTypes: List<String> = listOf("java", "kt", "php", "scala", "md", "py", "cpp", "c", "cs", "zpln")
-                                var fileTypes: List<String> = listOf("zpln")) {
+                                // TODO: come up with a more user-friendly and sustanable solution
+                                var fileTypes: List<String> = listOf("zpln", "py", "json", "html", "txt")) {
   companion object {
     val FIXED_WIDTH: Int = JBUI.scale(200)
   }

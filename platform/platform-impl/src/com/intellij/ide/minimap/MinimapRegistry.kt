@@ -4,10 +4,10 @@ package com.intellij.ide.minimap
 import com.intellij.openapi.util.registry.Registry
 
 internal object MinimapRegistry {
-  internal enum class MinimapMode { DISABLED, LEGACY, NEW }
+  private enum class MinimapMode { DISABLED, LEGACY, NEW }
   private const val KEY = "editor.minimap.mode"
 
-  fun mode(): MinimapMode = try {
+  private fun mode(): MinimapMode = try {
     val value = Registry.get(KEY).selectedOption
     MinimapMode.entries.firstOrNull { it.name.equals(value, ignoreCase = true) } ?: MinimapMode.DISABLED
   }
@@ -16,6 +16,5 @@ internal object MinimapRegistry {
   }
 
   fun isEnabled(): Boolean = mode() != MinimapMode.DISABLED
-
   fun isLegacy(): Boolean = mode() == MinimapMode.LEGACY
 }
