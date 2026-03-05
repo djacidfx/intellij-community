@@ -1922,6 +1922,7 @@
 
   <actions resource-bundle="messages.MinimapBundle">
     <action id="ToggleMinimap" class="com.intellij.ide.minimap.actions.ToggleMinimapAction" icon="AllIcons.Actions.Minimap"/>
+    <action id="EnableMinimap" class="com.intellij.ide.minimap.actions.EnableMinimapAction" icon="AllIcons.Actions.Minimap"/>
     <action id="DisableMinimap" class="com.intellij.ide.minimap.actions.DisableMinimapAction"/>
     <action id="OpenMinimapSettings" class="com.intellij.ide.minimap.actions.OpenMinimapSettingsAction"/>
     <action id="MoveMinimap" class="com.intellij.ide.minimap.actions.MoveMinimapAction"/>
@@ -1929,6 +1930,7 @@
     <group id="MinimapActionsGroup">
       <reference ref="OpenMinimapSettings"/>
       <reference ref="MoveMinimap"/>
+      <reference ref="DisableMinimap"/>
     </group>
   </actions>
 
