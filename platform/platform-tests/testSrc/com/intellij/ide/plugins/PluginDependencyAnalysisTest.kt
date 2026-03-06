@@ -2,6 +2,7 @@
 package com.intellij.ide.plugins
 
 import com.intellij.ide.plugins.ProductPluginInitContext.Companion.defaultProductCompatibilityDependenciesProvider
+import com.intellij.ide.plugins.ProductRulesImposedExclusion.ProductRulesImposedExclusionReason
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.util.BuildNumber
@@ -57,6 +58,8 @@ class PluginDependencyAnalysisTest {
       override val environmentConfiguredModules: Map<PluginModuleId, PluginInitializationContext.EnvironmentConfiguredModuleData> = environmentConfiguredModules
       override fun provideCompatibilityDependencies(descriptor: IdeaPluginDescriptorImpl, pluginSet: UnambiguousPluginSet): Sequence<PluginDependencyAnalysis.DependencyRef> =
         defaultProductCompatibilityDependenciesProvider(descriptor, pluginSet)
+      override fun provideModuleExclusionsImposedByProductRules(pluginSet: UnambiguousPluginSet): Sequence<Pair<PluginModuleDescriptor, ProductRulesImposedExclusionReason>> =
+        emptySequence()
     }
   }
 

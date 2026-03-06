@@ -8,6 +8,7 @@ import com.intellij.ide.plugins.PluginInitializationContext.EnvironmentConfigure
 import com.intellij.ide.plugins.PluginManagerCore.JAVA_PLUGIN_ALIAS_ID
 import com.intellij.ide.plugins.PluginManagerCore.getPluginNameAndVendor
 import com.intellij.ide.plugins.PluginManagerCore.logger
+import com.intellij.ide.plugins.ProductRulesImposedExclusion.ProductRulesImposedExclusionReason
 import com.intellij.idea.AppMode
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.application.impl.ApplicationInfoImpl
@@ -100,6 +101,21 @@ class ProductPluginInitContext(
 
   override fun provideCompatibilityDependencies(descriptor: IdeaPluginDescriptorImpl, pluginSet: UnambiguousPluginSet): Sequence<DependencyRef> =
     defaultProductCompatibilityDependenciesProvider(descriptor, pluginSet)
+
+  override fun provideModuleExclusionsImposedByProductRules(pluginSet: UnambiguousPluginSet): Sequence<Pair<PluginModuleDescriptor, ProductRulesImposedExclusionReason>> {
+    return sequence {
+      for (expiredPluginId in expiredPlugins) {
+        val plugin = pluginSet.resolvePluginId(expiredPluginId)
+                     ?: continue
+        yield(plugin to PluginHasExpiredLicense())
+      }
+      thirdPartyPluginsWithoutConsentCheckResult?.let {
+        for (plugin in it.pluginsToExcludeFromLoading) {
+          yield(plugin to ThirdPartyPrivacyNoticeIsNotAccepted())
+        }
+      }
+    }
+  }
 
   data class ThirdPartyPluginsWithoutConsentCheckResult(
     /** null if wasn't asked */
@@ -200,6 +216,8 @@ class ProductPluginInitContext(
         }
       }
       return sequence {
+        // TODO: add dependency on com.intellij for everything but content modules of core (?)
+
         // If a plugin does not include any module dependency tags in its plugin.xml, it's assumed to be a legacy plugin
         // and is loaded only in IntelliJ IDEA, so it may use classes from Java plugin.
         if (descriptor is PluginMainDescriptor &&
@@ -281,6 +299,15 @@ class ProductPluginInitContext(
     }
   }
 }
+
+@ApiStatus.Internal
+sealed interface IntellijImposedModuleExclusionReason : ProductRulesImposedExclusionReason
+
+@ApiStatus.Internal
+class PluginHasExpiredLicense : IntellijImposedModuleExclusionReason
+
+@ApiStatus.Internal
+class ThirdPartyPrivacyNoticeIsNotAccepted : IntellijImposedModuleExclusionReason
 
 // alias in most cases points to Core plugin, so we cannot use computed dependencies to check
 private fun doesDependOnPluginAlias(plugin: IdeaPluginDescriptorImpl, @Suppress("SameParameterValue") aliasId: PluginId): Boolean {

@@ -5,6 +5,7 @@ import com.intellij.core.CoreBundle
 import com.intellij.ide.plugins.PluginDependencyAnalysis.DependencyRef
 import com.intellij.ide.plugins.ProductPluginInitContext.Companion.configureProductModeModules
 import com.intellij.ide.plugins.ProductPluginInitContext.Companion.defaultProductCompatibilityDependenciesProvider
+import com.intellij.ide.plugins.ProductRulesImposedExclusion.ProductRulesImposedExclusionReason
 import com.intellij.idea.AppMode
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.util.BuildNumber
@@ -16,7 +17,7 @@ interface PluginInitializationContext {
   val productBuildNumber: BuildNumber
   val essentialPlugins: Set<PluginId>
   fun isPluginDisabled(id: PluginId): Boolean
-  fun isPluginExpired(id: PluginId): Boolean
+  fun isPluginExpired(id: PluginId): Boolean // TODO this method should disappear and related logic should be managed by [provideProductRulesImposedModuleExclusions]
   fun isPluginBroken(id: PluginId, version: String?): Boolean
 
   /**
@@ -69,6 +70,8 @@ interface PluginInitializationContext {
    */
   fun provideCompatibilityDependencies(descriptor: IdeaPluginDescriptorImpl, pluginSet: UnambiguousPluginSet): Sequence<DependencyRef>
 
+  fun provideModuleExclusionsImposedByProductRules(pluginSet: UnambiguousPluginSet): Sequence<Pair<PluginModuleDescriptor, ProductRulesImposedExclusionReason>>
+
   @ApiStatus.Internal
   companion object {
     @TestOnly
@@ -102,6 +105,8 @@ interface PluginInitializationContext {
 
         override fun provideCompatibilityDependencies(descriptor: IdeaPluginDescriptorImpl, pluginSet: UnambiguousPluginSet): Sequence<DependencyRef> =
           defaultProductCompatibilityDependenciesProvider(descriptor, pluginSet)
+
+        override fun provideModuleExclusionsImposedByProductRules(pluginSet: UnambiguousPluginSet): Sequence<Pair<PluginModuleDescriptor, ProductRulesImposedExclusionReason>> = emptySequence()
       }
   }
 }
