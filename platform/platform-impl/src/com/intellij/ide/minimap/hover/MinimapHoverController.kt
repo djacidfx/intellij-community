@@ -45,7 +45,11 @@ class MinimapHoverController(
 
   fun paint(graphics: Graphics2D): Unit = presenter.paint(graphics)
 
-  fun hideBalloon(): Unit = presenter.hide()
+  fun hideBalloon() {
+    hoverStateMachine.updateTarget(null)
+    hoverStateMachine.syncActiveTarget(null)
+    presenter.hide()
+  }
 
   fun updateHover(point: Point?) {
     if (point == null) {

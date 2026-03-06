@@ -16,6 +16,10 @@ class MinimapBalloonController(private val panel: MinimapPanel) {
   private val settingsState = MinimapSettings.getInstance().state
 
   fun show(@NlsSafe text: String, rect: Rectangle, icon: Icon?) {
+    if (!panel.isShowing) {
+      hide()
+      return
+    }
     if (balloonState.isSame(text, rect, icon)) return
 
     if (balloonState.hasActiveBalloon()) {
