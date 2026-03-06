@@ -11,6 +11,8 @@ import org.jetbrains.annotations.ApiStatus
  * with each other by declared plugin and content module ids (including plugin aliases).
  *
  * @see AmbiguousPluginSet
+ *
+ * TODO: rename into PluginSet after current PluginSet is dropped, rename AmbiguousPluginSet into PluginMultiSet
  */
 @ApiStatus.Internal
 interface UnambiguousPluginSet {
