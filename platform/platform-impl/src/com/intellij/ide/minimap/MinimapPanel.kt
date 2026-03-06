@@ -23,6 +23,8 @@ import java.awt.Dimension
 import java.awt.Graphics
 import java.awt.Graphics2D
 import javax.swing.JPanel
+import kotlin.math.min
+import kotlin.math.roundToInt
 
 class MinimapPanel(
   private val parentDisposable: Disposable,
@@ -148,6 +150,38 @@ class MinimapPanel(
     editor.scrollingModel.scrollVertically((percentage * editor.contentComponent.size.height - offset).toInt())
   }
 
+  fun scrollThumbTo(y: Int, dragOffset: Int) {
+    val geometry = currentSnapshot()?.geometry ?: return
+    val panelHeight = height
+    val minimapHeight = geometry.minimapHeight
+    val thumbHeight = geometry.thumbHeight
+    if (panelHeight <= 0 || minimapHeight <= 0 || thumbHeight <= 0) return
+
+    val visibleSpan = when {
+      minimapHeight <= panelHeight -> (minimapHeight - thumbHeight)
+      else -> (panelHeight - thumbHeight)
+    }.coerceAtLeast(0)
+    val desiredTop = (y - dragOffset).coerceIn(0, visibleSpan)
+
+    val thumbStart = when {
+      minimapHeight <= thumbHeight -> 0
+      minimapHeight <= panelHeight -> desiredTop
+      panelHeight <= thumbHeight -> 0
+      else -> {
+        val maxScroll = (minimapHeight - thumbHeight).toFloat()
+        val denominator = (panelHeight - thumbHeight).toFloat()
+        (desiredTop * maxScroll / denominator).roundToInt()
+      }
+    }
+
+    val contentHeight = contentHeight()
+    if (contentHeight <= 0) return
+    val proportion = minimapHeight.toDouble() / contentHeight
+    if (proportion <= 0.0) return
+
+    editor.scrollingModel.scrollVertically((thumbStart / proportion).roundToInt())
+  }
+
   fun currentSnapshot(): MinimapSnapshot? = snapshot
 
   fun updateSnapshot(snapshot: MinimapSnapshot) {
@@ -157,6 +191,12 @@ class MinimapPanel(
 
   private fun updatePreferredSize() {
     preferredSize = Dimension(settingsState.width, 0)
+  }
+
+  private fun contentHeight(): Int {
+    val componentHeight = editor.contentComponent.height
+    val documentHeight = (editor.document.lineCount.toLong() * editor.lineHeight)
+    return min(componentHeight.toLong(), documentHeight).toInt()
   }
 
 

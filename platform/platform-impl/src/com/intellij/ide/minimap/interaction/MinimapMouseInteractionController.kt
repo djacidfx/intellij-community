@@ -19,6 +19,8 @@ class MinimapMouseInteractionController(
   private val editor = panel.editor
   private var interactionState: MinimapMouseInteractionState = MinimapMouseInteractionState.IDLE
   private var dragAnimationDisabled = false
+  private var dragOffset = 0
+  private var dragUsesThumb = false
 
   fun install() {
     panel.addMouseListener(this)
@@ -36,17 +38,37 @@ class MinimapMouseInteractionController(
     if (e.button != MouseEvent.BUTTON1) return
     interactionState = MinimapMouseInteractionState.DRAGGING
     dragAnimationDisabled = false
+    dragUsesThumb = false
+    val geometry = panel.currentSnapshot()?.geometry
+
+    if (geometry == null || geometry.thumbHeight == 0) {
+      dragOffset = 0
+      return
+    }
+
+    val thumbTop = geometry.thumbStart - geometry.areaStart
+    val thumbBottom = thumbTop + geometry.thumbHeight
+
+    dragOffset = if (e.y in thumbTop until thumbBottom) {
+      e.y - thumbTop
+    }
+    else {
+      geometry.thumbHeight / 2
+    }
+
+    dragUsesThumb = true
   }
 
   override fun mouseReleased(e: MouseEvent) {
-    if (e.button == MouseEvent.BUTTON1) {
-      if (interactionState == MinimapMouseInteractionState.DRAGGING) {
-        if (dragAnimationDisabled) {
-          editor.scrollingModel.enableAnimation()
-        }
-      }
-      interactionState = MinimapMouseInteractionState.IDLE
+    if (e.button != MouseEvent.BUTTON1) return
+
+    if (interactionState == MinimapMouseInteractionState.DRAGGING && dragAnimationDisabled) {
+      editor.scrollingModel.enableAnimation()
     }
+
+    interactionState = MinimapMouseInteractionState.IDLE
+    dragUsesThumb = false
+    dragOffset = 0
   }
 
   override fun mouseWheelMoved(mouseWheelEvent: MouseWheelEvent) {
@@ -56,11 +78,17 @@ class MinimapMouseInteractionController(
   }
 
   override fun mouseDragged(e: MouseEvent) {
-    if (interactionState == MinimapMouseInteractionState.DRAGGING) {
-      if (!dragAnimationDisabled) {
-        editor.scrollingModel.disableAnimation()
-        dragAnimationDisabled = true
-      }
+    if (interactionState != MinimapMouseInteractionState.DRAGGING) return
+
+    if (!dragAnimationDisabled) {
+      editor.scrollingModel.disableAnimation()
+      dragAnimationDisabled = true
+    }
+
+    if (dragUsesThumb) {
+      panel.scrollThumbTo(e.y, dragOffset)
+    }
+    else {
       panel.scrollTo(e.y)
     }
   }
