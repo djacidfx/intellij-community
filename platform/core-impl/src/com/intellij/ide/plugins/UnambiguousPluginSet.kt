@@ -3,6 +3,7 @@ package com.intellij.ide.plugins
 
 import com.intellij.ide.plugins.PluginDependencyAnalysis.DependencyRef
 import com.intellij.openapi.extensions.PluginId
+import com.intellij.util.containers.sequenceOfNotNull
 import org.jetbrains.annotations.ApiStatus
 
 /**
@@ -95,4 +96,13 @@ fun UnambiguousPluginSet.resolveReference(ref: DependencyRef): PluginModuleDescr
     is DependencyRef.Plugin -> resolvePluginId(ref.pluginId)
     is DependencyRef.ContentModule -> resolveContentModuleId(ref.moduleId)
   }
+}
+
+@ApiStatus.Internal
+fun UnambiguousPluginSet.asAmbiguousPluginSet(): AmbiguousPluginSet = object : AmbiguousPluginSet {
+  override val plugins: List<PluginMainDescriptor> get() = this@asAmbiguousPluginSet.plugins
+  override fun resolvePluginId(id: PluginId): Sequence<PluginModuleDescriptor> = sequenceOfNotNull(this@asAmbiguousPluginSet.resolvePluginId(id))
+  override fun resolveContentModuleId(id: PluginModuleId): Sequence<ContentModuleDescriptor> = sequenceOfNotNull(this@asAmbiguousPluginSet.resolveContentModuleId(id))
+  override fun sequenceAllPluginIds(): Sequence<PluginId> = this@asAmbiguousPluginSet.sequenceAllPluginIds()
+  override fun sequenceAllContentModuleIds(): Sequence<PluginModuleId> = this@asAmbiguousPluginSet.sequenceAllContentModuleIds()
 }
