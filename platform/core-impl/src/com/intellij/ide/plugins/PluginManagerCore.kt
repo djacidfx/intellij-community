@@ -27,8 +27,6 @@ import com.intellij.openapi.util.BuildNumber
 import com.intellij.openapi.util.IntellijInternalApi
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.text.HtmlChunk
-import com.intellij.ui.IconManager
-import com.intellij.ui.PlatformIcons
 import com.intellij.util.PlatformUtils
 import com.intellij.util.lang.ZipEntryResolverPool
 import com.intellij.util.system.CpuArch
@@ -52,13 +50,12 @@ import java.util.IdentityHashMap
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
 import java.util.function.Supplier
-import javax.swing.JOptionPane
 import kotlin.io.path.name
 
 private const val PLATFORM_ALIAS_DEPENDENCY_PREFIX = "com.intellij.module"
 
-private val QODANA_PLUGINS_THIRD_PARTY_ACCEPT = java.lang.Boolean.getBoolean("idea.qodana.thirdpartyplugins.accept")
-private val FLEET_BACKEND_PLUGINS_THIRD_PARTY_ACCEPT = java.lang.Boolean.getBoolean("fleet.backend.third-party.plugins.accept")
+internal val QODANA_PLUGINS_THIRD_PARTY_ACCEPT = java.lang.Boolean.getBoolean("idea.qodana.thirdpartyplugins.accept")
+internal val FLEET_BACKEND_PLUGINS_THIRD_PARTY_ACCEPT = java.lang.Boolean.getBoolean("fleet.backend.third-party.plugins.accept")
 
 /**
  * See [Plugin Model](https://youtrack.jetbrains.com/articles/IJPL-A-31/Plugin-Model) documentation.
@@ -576,7 +573,16 @@ object PluginManagerCore {
         .apply { pluginNonLoadReasons.get(CORE_ID)?.let { addSuppressed(Exception(it.logMessage)) } }
     }
 
-    checkThirdPartyPluginsPrivacyConsent(parentActivity, pluginsToLoad)
+    if (initContext is ProductPluginInitContext) {
+      // TODO: this `if` should not exist and third party plugins without consent should be excluded by [PluginInitializationContext.provideModuleExclusionsImposedByProductRules]
+      val checkResult = initContext.checkThirdPartyPluginsPrivacyConsent(parentActivity, pluginsToLoad)
+      if (checkResult != null) {
+        pluginsState.thirdPartyPluginsNoteAccepted = checkResult.privacyNoteAccepted
+        for (pluginToExclude in checkResult.pluginsToExcludeFromLoading) {
+          pluginToExclude.isMarkedForLoading = false
+        }
+      }
+    }
 
     val pluginSetBuilder = PluginSetBuilder(initContext, pluginsToLoad)
     val cycleErrors = pluginSetBuilder.checkPluginCycles()
@@ -671,72 +677,11 @@ object PluginManagerCore {
     }
   }
 
-  /**
-   * processes postponed consent check from the previous run (e.g., when the previous run was headless)
-   * see usages of [ThirdPartyPluginsWithoutConsentFile.appendAliens]
-   */
-  private fun checkThirdPartyPluginsPrivacyConsent(parentActivity: Activity?, idMap: UnambiguousPluginSet) {
-    val activity = parentActivity?.startChild("3rd-party plugins consent")
-    val aliens = ThirdPartyPluginsWithoutConsentFile.consumeAliensFile().mapNotNull { idMap.resolvePluginId(it)?.getMainDescriptor() }
-    if (!aliens.isEmpty()) {
-      checkThirdPartyPluginsPrivacyConsent(aliens)
-    }
-    activity?.end()
-  }
-
-  private fun checkThirdPartyPluginsPrivacyConsent(aliens: List<IdeaPluginDescriptorImpl>) {
-    fun disableThirdPartyPlugins() {
-      for (descriptor in aliens) {
-        descriptor.isMarkedForLoading = false
-      }
-      PluginEnabler.HEADLESS.disable(aliens)
-    }
-
-    if (GraphicsEnvironment.isHeadless()) {
-      if (QODANA_PLUGINS_THIRD_PARTY_ACCEPT || FLEET_BACKEND_PLUGINS_THIRD_PARTY_ACCEPT) {
-        pluginsState.thirdPartyPluginsNoteAccepted = true
-        return
-      }
-      logger.info("3rd-party plugin privacy note not accepted yet; disabling plugins for this headless session")
-      for (descriptor in aliens) {
-        descriptor.isMarkedForLoading = false
-      }
-      //write the list of third-party plugins back to ensure that the privacy note will be shown next time
-      ThirdPartyPluginsWithoutConsentFile.appendAliens(aliens.map { it.pluginId })
-    }
-    else if (AppMode.isRemoteDevHost()) {
-      logger.warn("""
-        |New third-party plugins were installed, they will be disabled because asking for consent to use third-party plugins during startup isn't supported in remote development mode:
-        | ${aliens.joinToString(separator = "\n ") { it.name }} 
-        |Use '--give-consent-to-use-third-party-plugins' option in 'installPlugins' option to approve installed third-party plugins automatically.
-        |""".trimMargin())
-      disableThirdPartyPlugins()
-    }
-    else if (!askThirdPartyPluginsPrivacyConsent(aliens)) {
-      logger.info("3rd-party plugin privacy note declined; disabling plugins")
-      disableThirdPartyPlugins()
-      pluginsState.thirdPartyPluginsNoteAccepted = false
-    }
-    else {
-      pluginsState.thirdPartyPluginsNoteAccepted = true
-    }
-  }
-
   @Internal
   fun consumeThirdPartyPluginsNoteAcceptedFlag(): Boolean? {
     val result = pluginsState.thirdPartyPluginsNoteAccepted
     pluginsState.thirdPartyPluginsNoteAccepted = null
     return result
-  }
-
-  private fun askThirdPartyPluginsPrivacyConsent(descriptors: List<IdeaPluginDescriptorImpl>): Boolean {
-    val title = CoreBundle.message("third.party.plugins.privacy.note.title")
-    val pluginList = descriptors.joinToString(separator = "<br>") { "&nbsp;&nbsp;&nbsp;${getPluginNameAndVendor(it)}" }
-    val text = CoreBundle.message("third.party.plugins.privacy.note.text", pluginList, ApplicationInfoImpl.getShadowInstance().shortCompanyName)
-    val buttons = arrayOf(CoreBundle.message("third.party.plugins.privacy.note.accept"), CoreBundle.message("third.party.plugins.privacy.note.disable"))
-    val icon = IconManager.getInstance().getPlatformIcon(PlatformIcons.WarningDialog)
-    val choice = JOptionPane.showOptionDialog(null, text, title, JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE, icon, buttons, buttons.get(0))
-    return choice == 0
   }
 
   @JvmStatic
@@ -888,6 +833,11 @@ object PluginManagerCore {
       }
     }
   }
+
+  /**
+   * TODO: add "check third party plugins without consent flag" to ProductInitContext, set this flag only to startup's init context instance;
+   *   add handling to product imposed exclusions
+   */
 
   /**
    * @return `true` If any required dependency of some essential plugin (both plugin or modular, including transitive) is provided by [pluginDescriptor].

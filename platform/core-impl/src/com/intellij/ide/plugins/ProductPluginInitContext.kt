@@ -1,17 +1,37 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.plugins
 
+import com.intellij.core.CoreBundle
+import com.intellij.diagnostic.Activity
 import com.intellij.ide.plugins.PluginDependencyAnalysis.DependencyRef
 import com.intellij.ide.plugins.PluginInitializationContext.EnvironmentConfiguredModuleData
 import com.intellij.ide.plugins.PluginManagerCore.JAVA_PLUGIN_ALIAS_ID
+import com.intellij.ide.plugins.PluginManagerCore.getPluginNameAndVendor
+import com.intellij.ide.plugins.PluginManagerCore.logger
+import com.intellij.idea.AppMode
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.application.impl.ApplicationInfoImpl
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.util.BuildNumber
+import com.intellij.ui.IconManager
+import com.intellij.ui.PlatformIcons
 import com.intellij.util.PlatformUtils
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.VisibleForTesting
+import java.awt.GraphicsEnvironment
+import javax.swing.JOptionPane
 
+/**
+ * TODO: in the end, the way PluginInitContext is supposed to be used is the following:
+ *   * an instance of PluginInitContext is immutable and it provides a total configuration against which the plugin subsystem state can be definitively computed
+ *   * plugin subsystem state is a function of (initContext, a set of available plugin descriptors)
+ *   * in order to change the plugin subsystem state, one of the inputs needs to change, i.e., any change in the settings (be it disabled plugins set change,
+ *     or licensing subsystem detects that license has expired and the ultimate module needs to be unloaded) generates a new instance of PluginInitContext
+ *   * Dynamic plugin subsystem reconfiguration procedure takes in the current state of the plugin subsystem, the new expected one, determines
+ *     if a dynamic transition is possible without a restart and performs it
+ *
+ *     Right now an instance of ProductPluginInitContext is not immutable and it is instantiated in quite a few places
+ */
 @ApiStatus.Internal
 class ProductPluginInitContext(
   private val buildNumberOverride: BuildNumber? = null,
@@ -25,9 +45,9 @@ class ProductPluginInitContext(
       addAll(ApplicationInfoImpl.getShadowInstance().getEssentialPluginIds())
     }
   }
-  private val disabledPlugins: Set<PluginId> by lazy { disabledPluginsOverride ?: DisabledPluginsState.getDisabledIds() }
-  private val expiredPlugins: Set<PluginId> by lazy { expiredPluginsOverride ?: ExpiredPluginsState.expiredPluginIds }
-  private val brokenPluginVersions: Map<PluginId, Set<String>> by lazy { brokenPluginVersionsOverride ?: getBrokenPluginVersions() }
+  private val disabledPlugins: Set<PluginId> get() = disabledPluginsOverride ?: DisabledPluginsState.getDisabledIds()
+  private val expiredPlugins: Set<PluginId> get() = expiredPluginsOverride ?: ExpiredPluginsState.expiredPluginIds
+  private val brokenPluginVersions: Map<PluginId, Set<String>> get() = brokenPluginVersionsOverride ?: getBrokenPluginVersions()
 
   override val productBuildNumber: BuildNumber
     get() = buildNumberOverride ?: PluginManagerCore.buildNumber
@@ -80,6 +100,72 @@ class ProductPluginInitContext(
 
   override fun provideCompatibilityDependencies(descriptor: IdeaPluginDescriptorImpl, pluginSet: UnambiguousPluginSet): Sequence<DependencyRef> =
     defaultProductCompatibilityDependenciesProvider(descriptor, pluginSet)
+
+  data class ThirdPartyPluginsWithoutConsentCheckResult(
+    /** null if wasn't asked */
+    val privacyNoteAccepted: Boolean?,
+    val pluginsToExcludeFromLoading: List<IdeaPluginDescriptorImpl>
+  )
+
+  private var thirdPartyPluginsWithoutConsentCheckResult: ThirdPartyPluginsWithoutConsentCheckResult? = null
+
+  /**
+   * Processes postponed consent check from the previous run (e.g., when the previous run was headless)
+   * see usages of [ThirdPartyPluginsWithoutConsentFile.appendAliens].
+   *
+   * Invoked only during startup initialization.
+   */
+  fun checkThirdPartyPluginsPrivacyConsent(parentActivity: Activity?, idMap: UnambiguousPluginSet): ThirdPartyPluginsWithoutConsentCheckResult? {
+    val closeableActivity = parentActivity?.startChild("3rd-party plugins consent")
+      .let { activity -> AutoCloseable { activity?.end() } }
+    closeableActivity.use {
+      val aliens = ThirdPartyPluginsWithoutConsentFile.consumeAliensFile().mapNotNull { idMap.resolvePluginId(it)?.getMainDescriptor() }
+      if (aliens.isEmpty()) {
+        return null
+      }
+      return checkThirdPartyPluginsPrivacyConsent(aliens).also { thirdPartyPluginsWithoutConsentCheckResult = it }
+    }
+  }
+
+  /** This method mutates [DisabledPluginsState]! */
+  private fun checkThirdPartyPluginsPrivacyConsent(aliens: List<IdeaPluginDescriptorImpl>): ThirdPartyPluginsWithoutConsentCheckResult {
+    if (GraphicsEnvironment.isHeadless()) {
+      if (QODANA_PLUGINS_THIRD_PARTY_ACCEPT || FLEET_BACKEND_PLUGINS_THIRD_PARTY_ACCEPT) {
+        return ThirdPartyPluginsWithoutConsentCheckResult(true, emptyList())
+      }
+      logger.info("3rd-party plugin privacy note not accepted yet; disabling plugins for this headless session")
+      //write the list of third-party plugins back to ensure that the privacy note will be shown next time
+      ThirdPartyPluginsWithoutConsentFile.appendAliens(aliens.map { it.pluginId })
+      return ThirdPartyPluginsWithoutConsentCheckResult(null, aliens)
+    }
+    else if (AppMode.isRemoteDevHost()) {
+      logger.warn("""
+        |New third-party plugins were installed, they will be disabled because asking for consent to use third-party plugins during startup isn't supported in remote development mode:
+        | ${aliens.joinToString(separator = "\n ") { it.name }} 
+        |Use '--give-consent-to-use-third-party-plugins' option in 'installPlugins' option to approve installed third-party plugins automatically.
+        |""".trimMargin())
+      PluginEnabler.HEADLESS.disable(aliens)
+      return ThirdPartyPluginsWithoutConsentCheckResult(null, aliens)
+    }
+    else if (!askThirdPartyPluginsPrivacyConsent(aliens)) {
+      logger.info("3rd-party plugin privacy note declined; disabling plugins")
+      PluginEnabler.HEADLESS.disable(aliens)
+      return ThirdPartyPluginsWithoutConsentCheckResult(false, aliens)
+    }
+    else {
+      return ThirdPartyPluginsWithoutConsentCheckResult(true, emptyList())
+    }
+  }
+
+  private fun askThirdPartyPluginsPrivacyConsent(descriptors: List<IdeaPluginDescriptorImpl>): Boolean {
+    val title = CoreBundle.message("third.party.plugins.privacy.note.title")
+    val pluginList = descriptors.joinToString(separator = "<br>") { "&nbsp;&nbsp;&nbsp;${getPluginNameAndVendor(it)}" }
+    val text = CoreBundle.message("third.party.plugins.privacy.note.text", pluginList, ApplicationInfoImpl.getShadowInstance().shortCompanyName)
+    val buttons = arrayOf(CoreBundle.message("third.party.plugins.privacy.note.accept"), CoreBundle.message("third.party.plugins.privacy.note.disable"))
+    val icon = IconManager.getInstance().getPlatformIcon(PlatformIcons.WarningDialog)
+    val choice = JOptionPane.showOptionDialog(null, text, title, JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE, icon, buttons, buttons.get(0))
+    return choice == 0
+  }
 
   companion object {
     @VisibleForTesting
