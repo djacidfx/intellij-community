@@ -602,7 +602,8 @@ fun callAppInitialized(scope: CoroutineScope, listeners: List<ApplicationInitial
 }
 
 private suspend fun checkThirdPartyPluginsAllowed() {
-  val noteAccepted = PluginManagerCore.consumeThirdPartyPluginsNoteAcceptedFlag() ?: return
+  val noteAccepted = PluginManagerCore.consumeThirdPartyPluginsNoteAcceptedFlag()
+                     ?: return
   if (noteAccepted) {
     serviceAsync<UpdateSettings>().isThirdPartyPluginsAllowed = true
     PluginManagerUsageCollector.thirdPartyAcceptanceCheck(DialogAcceptanceResultEnum.ACCEPTED)
