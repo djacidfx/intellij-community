@@ -104,7 +104,7 @@ class ProductPluginInitContext(
   data class ThirdPartyPluginsWithoutConsentCheckResult(
     /** null if wasn't asked */
     val privacyNoteAccepted: Boolean?,
-    val pluginsToExcludeFromLoading: List<IdeaPluginDescriptorImpl>
+    val pluginsToExcludeFromLoading: List<PluginMainDescriptor>
   )
 
   private var thirdPartyPluginsWithoutConsentCheckResult: ThirdPartyPluginsWithoutConsentCheckResult? = null
@@ -128,7 +128,7 @@ class ProductPluginInitContext(
   }
 
   /** This method mutates [DisabledPluginsState]! */
-  private fun checkThirdPartyPluginsPrivacyConsent(aliens: List<IdeaPluginDescriptorImpl>): ThirdPartyPluginsWithoutConsentCheckResult {
+  private fun checkThirdPartyPluginsPrivacyConsent(aliens: List<PluginMainDescriptor>): ThirdPartyPluginsWithoutConsentCheckResult {
     if (GraphicsEnvironment.isHeadless()) {
       if (QODANA_PLUGINS_THIRD_PARTY_ACCEPT || FLEET_BACKEND_PLUGINS_THIRD_PARTY_ACCEPT) {
         return ThirdPartyPluginsWithoutConsentCheckResult(true, emptyList())
