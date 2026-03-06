@@ -97,20 +97,6 @@ fun PluginDependencyAnalysis.sequenceStrictDependencies(descriptor: IdeaPluginDe
 }
 
 /**
- * Sequences legacy `depends` style optional dependencies for the [this] descriptor.
- */
-@ApiStatus.Internal
-fun PluginDependencyAnalysis.sequenceOptionalDependsStatements(plugin: PluginMainDescriptor): Sequence<PluginDependency> {
-  return sequence {
-    for (depends in plugin.dependencies) {
-      if (depends.isOptional) {
-        yield(depends)
-      }
-    }
-  }
-}
-
-/**
  * Calculates a set of all modules that are required for [plugins] to load.
  * If [ambiguousPluginSet] happens to resolve some ids to many modules, they all are included in the resulting sequence.
  * Resulting set includes [plugins].
