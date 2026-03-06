@@ -3,6 +3,7 @@ package com.intellij.ide.minimap
 
 import com.intellij.ide.minimap.caret.MinimapCaretController
 import com.intellij.ide.minimap.geometry.MinimapGeometryCalculator
+import com.intellij.ide.minimap.geometry.MinimapScaleUtil
 import com.intellij.ide.minimap.layout.MinimapLayoutCalculator
 import com.intellij.ide.minimap.listeners.MinimapStateListeners
 import com.intellij.ide.minimap.listeners.MinimapUiListeners
@@ -35,7 +36,7 @@ class MinimapController(
 ): Disposable {
   private val scope = coroutineScope.childScope("MinimapController")
   private val updates = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
-  private val state = MinimapSettings.getInstance().state
+  private val settings = MinimapSettings.getInstance()
   private val editor: Editor = panel.editor
 
   private val model = MinimapModel(editor).also {
@@ -84,9 +85,15 @@ class MinimapController(
   fun scheduleStructureMarkersUpdate(): Boolean = updates.tryEmit(Unit)
 
   fun refreshSnapshot() {
-    val panelWidth = max(panel.width, state.width)
+    val state = settings.state
     val panelHeight = max(panel.height, 0)
-    val snapshot = sceneBuilder.buildSnapshot(panelWidth, panelHeight, state.width, MinimapRegistry.isLegacy())
+    val scaleData = MinimapScaleUtil.computeScale(editor, panelHeight, state.width, state.scaleMode)
+    if (panel.updatePreferredWidth(scaleData.width)) {
+      panel.revalidate()
+    }
+
+    val panelWidth = max(panel.width, scaleData.width)
+    val snapshot = sceneBuilder.buildSnapshot(panelWidth, panelHeight, scaleData, state.scaleMode, MinimapRegistry.isLegacy())
     panel.updateSnapshot(snapshot)
   }
 

@@ -2,6 +2,7 @@
 package com.intellij.ide.minimap
 
 import com.intellij.ide.minimap.legacy.MinimapLegacyPreview
+import com.intellij.ide.minimap.geometry.MinimapScaleUtil
 import com.intellij.ide.minimap.hover.MinimapHoverController
 import com.intellij.ide.minimap.interaction.MinimapMouseInteractionController
 import com.intellij.ide.minimap.paint.MinimapSelectionPainter
@@ -23,7 +24,6 @@ import java.awt.Dimension
 import java.awt.Graphics
 import java.awt.Graphics2D
 import javax.swing.JPanel
-import kotlin.math.min
 import kotlin.math.roundToInt
 
 class MinimapPanel(
@@ -36,7 +36,8 @@ class MinimapPanel(
 
   val settings: MinimapSettings = MinimapSettings.getInstance()
 
-  private var settingsState: MinimapSettingsState = settings.state
+  private val settingsState: MinimapSettingsState
+    get() = settings.state
 
   private val selectionPainter = MinimapSelectionPainter(editor)
 
@@ -112,7 +113,7 @@ class MinimapPanel(
     val geometry = snapshot.geometry
 
     if (MinimapRegistry.isLegacy()) {
-      legacyPreview.paint(g2d, editor, settingsState.width, snapshot.geometry)
+      legacyPreview.paint(g2d, editor, width, snapshot.geometry)
     }
     else {
       renderer.paint(g2d, snapshot.context, snapshot.entries)
@@ -189,14 +190,20 @@ class MinimapPanel(
     hoverController.onSnapshot(snapshot)
   }
 
+  internal fun updatePreferredWidth(preferredWidth: Int): Boolean {
+    if (preferredSize.width == preferredWidth) return false
+    preferredSize = Dimension(preferredWidth, 0)
+    return true
+  }
+
   private fun updatePreferredSize() {
-    preferredSize = Dimension(settingsState.width, 0)
+    val panelHeight = if (height > 0) height else container.height
+    val preferredWidth = MinimapScaleUtil.effectiveWidth(editor, panelHeight, settingsState.width, settingsState.scaleMode)
+    updatePreferredWidth(preferredWidth)
   }
 
   private fun contentHeight(): Int {
-    val componentHeight = editor.contentComponent.height
-    val documentHeight = (editor.document.lineCount.toLong() * editor.lineHeight)
-    return min(componentHeight.toLong(), documentHeight).toInt()
+    return MinimapScaleUtil.contentHeight(editor, settingsState.scaleMode)
   }
 
 

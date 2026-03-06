@@ -11,6 +11,7 @@ import com.intellij.util.ui.JBUI
  */
 data class MinimapSettingsState(var enabled: Boolean = true,
                                 var width: Int = FIXED_WIDTH,
+                                var scaleMode: MinimapScaleMode = MinimapScaleMode.FILL,
                                 var rightAligned: Boolean = true,
                                 // TODO: come up with a more user-friendly and sustanable solution
                                 var fileTypes: List<String> = listOf("zpln", "py", "json", "html", "txt")) {

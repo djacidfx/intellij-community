@@ -36,6 +36,7 @@ class MinimapConfigurable : BoundConfigurable(MiniMessagesBundle.message("settin
       state.enabled = it.enabled
       state.rightAligned = it.rightAligned
       state.width = it.width
+      state.scaleMode = it.scaleMode
       fileTypes.clear()
       fileTypes.addAll(it.fileTypes)
     }
@@ -56,6 +57,12 @@ class MinimapConfigurable : BoundConfigurable(MiniMessagesBundle.message("settin
           radioButton(MiniMessagesBundle.message("settings.right"), true)
         }
       }.bind(state::rightAligned)
+      buttonsGroup {
+        row(MiniMessagesBundle.message("settings.scale")) {
+          radioButton(MiniMessagesBundle.message("settings.scale.fill"), MinimapScaleMode.FILL)
+          radioButton(MiniMessagesBundle.message("settings.scale.fit"), MinimapScaleMode.FIT)
+        }
+      }.bind(state::scaleMode)
       row(MiniMessagesBundle.message("settings.file.types")) {
         val textFileTypes = (FileTypeManager.getInstance() as FileTypeManagerImpl).registeredFileTypes
           .filter { !it.isBinary && it.defaultExtension.isNotBlank() }.distinctBy { it.defaultExtension }

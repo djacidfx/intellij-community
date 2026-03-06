@@ -2,22 +2,27 @@
 package com.intellij.ide.minimap.geometry
 
 import com.intellij.ide.minimap.layout.MinimapLayoutUtil
+import com.intellij.ide.minimap.settings.MinimapScaleMode
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import kotlin.math.min
 
 class MinimapGeometryCalculator(private val editor: Editor) {
-  fun compute(panelHeight: Int, stateWidth: Int): MinimapGeometryData {
+  fun compute(panelHeight: Int, scaleData: MinimapScaleData, scaleMode: MinimapScaleMode): MinimapGeometryData {
     val visibleArea = editor.scrollingModel.visibleArea
-    val componentHeight = editor.contentComponent.height
-    val documentHeight = (editor.document.lineCount.toLong() * editor.lineHeight)
-    val contentHeight = min(componentHeight.toLong(), documentHeight).toInt()
+    val contentHeight = MinimapScaleUtil.contentHeight(editor, scaleMode)
 
     val rightMargin = MinimapLayoutUtil.getRightMarginChars(editor)
     val charWidth = EditorUtil.getPlainSpaceWidth(editor)
 
     val logicalWidth = MinimapLayoutUtil.computeLogicalWidth(rightMargin, charWidth, visibleArea.width)
-    val minimapHeight = (contentHeight * stateWidth / logicalWidth.toDouble()).toInt().coerceAtLeast(0)
+    val minimapWidth = scaleData.width
+    val minimapHeight = if (scaleMode == MinimapScaleMode.FIT && scaleData.fitToHeight) {
+      panelHeight.coerceAtLeast(0)
+    }
+    else {
+      (contentHeight * minimapWidth / logicalWidth.toDouble()).toInt().coerceAtLeast(0)
+    }
 
     val proportion = if (contentHeight > 0) minimapHeight.toDouble() / contentHeight else 0.0
     val visibleHeight = min(visibleArea.height, contentHeight)
