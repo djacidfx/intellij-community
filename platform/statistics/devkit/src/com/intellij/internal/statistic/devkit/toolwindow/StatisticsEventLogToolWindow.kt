@@ -26,6 +26,7 @@ import com.jetbrains.fus.reporting.api.ValidationResultType.REQUIRED_FIELD_MISSE
 import com.jetbrains.fus.reporting.api.ValidationResultType.UNDEFINED_RULE
 import com.jetbrains.fus.reporting.api.ValidationResultType.UNREACHABLE_METADATA
 import com.jetbrains.fus.reporting.api.ValidationResultType.UNREACHABLE_METADATA_OBSOLETE
+import com.intellij.internal.statistic.extensibility.StatisticsEventLogToolWindowEPLogProvider
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionUpdateThread
@@ -34,7 +35,6 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.ToggleAction
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
-import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
@@ -167,19 +167,4 @@ internal class StatisticsMultilineLogToggleAction(private val consoleLog: Statis
   override fun getActionUpdateThread(): ActionUpdateThread {
     return ActionUpdateThread.BGT
   }
-}
-
-/**
- * Allows products with separate backends, which also support FUS (like Rider), to output their logs in the statistics event log tool window
- */
-interface StatisticsEventLogToolWindowEPLogProvider {
-  companion object {
-    @JvmField
-    val EP_NAME: ExtensionPointName<StatisticsEventLogToolWindowEPLogProvider> =
-      ExtensionPointName.create("com.intellij.internal.statistic.devkit.toolwindow.eventLogToolWindowEPLogProvider")
-  }
-
-  fun subscribe(recorderId: String, function: (String) -> Unit)
-  fun unsubscribe(recorderId: String)
-  fun init(project: Project)
 }
