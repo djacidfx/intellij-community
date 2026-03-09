@@ -59,17 +59,26 @@ abstract class LuceneIndexTestBase {
       this@LuceneIndexTestBase.log.info("[DEBUG_LOG] $message")
     }
 
-    fun findsNothing() {
-      log("finds Nothing")
-      if (results.isNotEmpty()) {
-        fail<Nothing>("Expected no results, but found ${results.size} documents:\n${results.joinToString("\n") { "  - ${it.second.asMap()}" }}")
+    private fun explainResults(resultsToExplain: List<Pair<ScoreDoc, Document>>, limit: Int = 3): String {
+      return index.withSearcher { searcher ->
+        resultsToExplain.map { (score, doc) ->
+          """
+Document: ${doc.asMap()}
+Explanation: 
+${searcher.explain(query, score.doc).toString().trim().prependIndent(">   ")}
+          """
+        }.joinToString(
+          separator = "\n\n",
+          limit = limit,
+          truncated = "... (total ${resultsToExplain.size})"
+        ).prependIndent("  ")
       }
     }
 
-    fun findsSomething() {
-      log("finds Something")
-      if (results.isEmpty()) {
-        fail<Nothing>("Expected some results, but none were found for query: $query")
+    fun findsNothing() {
+      log("finds Nothing")
+      if (results.isNotEmpty()) {
+        fail<Nothing>("Expected no results, but found ${results.size} documents:\n${explainResults(results)}")
       }
     }
 
@@ -82,7 +91,7 @@ abstract class LuceneIndexTestBase {
             Expected document not found in results.
             Missing Document: ${expectedDoc.asMap()}
             Total Results (${results.size}):
-            ${results.joinToString("\n") { "  - ${it.second.asMap()}" }}
+            ${explainResults(results)}
           """.trimIndent())
         }
       }
@@ -92,12 +101,13 @@ abstract class LuceneIndexTestBase {
       val expectedDocsString: String = expectedDocs.joinToString("", limit = 3, truncated = "... (total ${expectedDocs.size})", transform = { it.asMap().toString() })
       log("finds none of $expectedDocsString")
       for (expectedDoc in expectedDocs) {
-        val found = results.find { isEquivalent(it.second, expectedDoc) }
-        if (found != null) {
+        val found = results.filter { isEquivalent(it.second, expectedDoc) }
+        if (found.isNotEmpty()) {
           fail<Nothing>("""
             Found document that should NOT be in results.
-            Unexpected Document: ${expectedDoc.asMap()}
             Query: $query
+            
+            ${explainResults(found)}
           """.trimIndent())
         }
       }
@@ -119,7 +129,7 @@ abstract class LuceneIndexTestBase {
               Document not found in results (required by containsAll=true):
               Missing Document: ${doc.asMap()}
               Total Results (${results.size}):
-              ${results.joinToString("\n") { "  - ${it.second.asMap()}" }}
+              ${explainResults(results)}
             """.trimIndent())
           }
         }
