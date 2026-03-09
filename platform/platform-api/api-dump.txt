@@ -6036,6 +6036,7 @@ c:com.intellij.ui.EditorNotificationPanel
 - pf:myGearLabel:javax.swing.JLabel
 - pf:myLabel:javax.swing.JLabel
 - pf:myLinksPanel:javax.swing.JPanel
+- pf:myTextLabel:com.intellij.ui.components.JBLabel
 - <init>():V
 - <init>(com.intellij.openapi.editor.Editor,java.awt.Color,com.intellij.openapi.editor.colors.ColorKey):V
 - <init>(com.intellij.openapi.editor.Editor,java.awt.Color,com.intellij.openapi.editor.colors.ColorKey,com.intellij.ui.EditorNotificationPanel$Status):V
