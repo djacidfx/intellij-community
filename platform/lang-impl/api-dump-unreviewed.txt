@@ -3842,9 +3842,6 @@ f:com.intellij.codeInsight.intention.impl.DefaultIntentionsOrderProvider
 - s:getPriorityWeight(com.intellij.codeInsight.intention.impl.IntentionActionWithTextCaching):I
 - getSortedIntentions(com.intellij.codeInsight.intention.impl.CachedIntentions,java.util.List):java.util.List
 - s:getWeight(com.intellij.codeInsight.intention.impl.CachedIntentions,com.intellij.codeInsight.intention.impl.IntentionActionWithTextCaching):I
-f:com.intellij.codeInsight.intention.impl.FileLevelIntentionComponent
-- com.intellij.ui.EditorNotificationPanel
-- <init>(java.lang.String,com.intellij.lang.annotation.HighlightSeverity,com.intellij.codeInsight.daemon.GutterMark,java.util.List,com.intellij.psi.PsiFile,com.intellij.openapi.editor.Editor,java.lang.String):V
 com.intellij.codeInsight.intention.impl.IntentionContainer
 - a:getAllActions():java.util.List
 - getErrorFixes():java.util.Set
