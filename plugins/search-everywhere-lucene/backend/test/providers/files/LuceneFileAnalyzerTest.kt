@@ -91,23 +91,32 @@ class LuceneAnalyzerTest {
       .noDuplicateTokens()
   }
 
+  @Test
+  fun `test FileSearchAnalyzer word index`() {
+    tokenizing(FileSearchAnalyzer(), "Readme foo")
+      .print()
+      .producesTokenWithWordIndex("readme", Filename, 0)
+      .producesTokenWithWordIndex("foo", Filename, 1)
+  }
+
   private fun tokenizing(analyzer: Analyzer, text: String): TokenAssertion {
     val tokens = mutableListOf<TokenInfo>()
     val tokenStream = analyzer.tokenStream("content", text)
     val termAttr = tokenStream.addAttribute(CharTermAttribute::class.java)
     val typeAttr = tokenStream.addAttribute(TypeAttribute::class.java)
     val offsetAttr = tokenStream.addAttribute(OffsetAttribute::class.java)
+    val wordAttr = tokenStream.addAttribute(WordAttribute::class.java)
 
     tokenStream.reset()
     while (tokenStream.incrementToken()) {
-      tokens.add(TokenInfo(termAttr.toString(), typeAttr.type(), offsetAttr.startOffset(), offsetAttr.endOffset()))
+      tokens.add(TokenInfo(termAttr.toString(), typeAttr.type(), offsetAttr.startOffset(), offsetAttr.endOffset(), wordAttr.wordIndex))
     }
     tokenStream.end()
     tokenStream.close()
     return TokenAssertion(analyzer, text, tokens)
   }
 
-  private data class TokenInfo(val term: String, val type: String, val startOffset: Int, val endOffset: Int)
+  private data class TokenInfo(val term: String, val type: String, val startOffset: Int, val endOffset: Int, val wordIndex: Int)
 
   private class TokenAssertion(private val analyzer: Analyzer, private val text: String, private val tokens: List<TokenInfo>) {
     fun producesToken(term: String, type: String, startOffset: Int? = null, endOffset: Int? = null): TokenAssertion {
@@ -120,6 +129,14 @@ class LuceneAnalyzerTest {
       assertTrue(found, "Token with term \"$term\" and type \"$type\"$offsetMsg not found in $tokens")
       return this
     }
+
+    fun producesTokenWithWordIndex(term: String, type: String, wordIndex: Int): TokenAssertion {
+      val found = tokens.any {
+        it.term == term && it.type == type && it.wordIndex == wordIndex
+      }
+      assertTrue(found, "Token with term \"$term\", type \"$type\" and wordIndex $wordIndex not found in $tokens")
+      return this
+    }
     
     fun print(): TokenAssertion {
       println("\nAnalyzer: ${analyzer::class.simpleName}")
@@ -129,13 +146,19 @@ class LuceneAnalyzerTest {
       val posIncrAttr = tokenStream.addAttribute(PositionIncrementAttribute::class.java)
       val offsetAttr = tokenStream.addAttribute(OffsetAttribute::class.java)
       val typeAttr = tokenStream.addAttribute(TypeAttribute::class.java)
+      val wordAttr = tokenStream.addAttribute(WordAttribute::class.java)
 
       tokenStream.reset()
       var position = 0
       while (tokenStream.incrementToken()) {
         position += posIncrAttr.positionIncrement
-        println(String.format("  pos %2d: %-25s offset [%2d-%2d] type: %s",
-                              position, termAttr.toString(), offsetAttr.startOffset(), offsetAttr.endOffset(), typeAttr.type()))
+        println(String.format("  pos %2d: %-25s offset [%2d-%2d] word: %d type: %s",
+                              position,
+                              termAttr.toString(),
+                              offsetAttr.startOffset(),
+                              offsetAttr.endOffset(),
+                              wordAttr.wordIndex,
+                              typeAttr.type()))
       }
       tokenStream.end()
       tokenStream.close()

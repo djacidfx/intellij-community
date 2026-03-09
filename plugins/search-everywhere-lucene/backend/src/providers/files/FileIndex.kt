@@ -64,10 +64,12 @@ import org.apache.lucene.index.Term
 import org.apache.lucene.search.BooleanClause
 import org.apache.lucene.search.BooleanQuery
 import org.apache.lucene.search.DisjunctionMaxQuery
-import org.apache.lucene.search.PhraseQuery
 import org.apache.lucene.search.PrefixQuery
 import org.apache.lucene.search.Query
 import org.apache.lucene.search.TermQuery
+import org.apache.lucene.util.Attribute
+import org.apache.lucene.util.AttributeImpl
+import org.apache.lucene.util.AttributeReflector
 import org.jetbrains.annotations.TestOnly
 import java.io.IOException
 import kotlin.time.Duration
@@ -320,93 +322,49 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
       val tokenStream = analyzer.tokenStream("", params.inputQuery)
       val termAttr = tokenStream.addAttribute(CharTermAttribute::class.java)
       val typeAttr = tokenStream.addAttribute(TypeAttribute::class.java)
-      val posIncrAttr = tokenStream.addAttribute(PositionIncrementAttribute::class.java)
+      val wordAttr = tokenStream.addAttribute(WordAttribute::class.java)
 
-      val pathQueries = mutableListOf<Query>()
-      val pathSegmentPhrase = PhraseQuery.Builder()
-
-
-      val filenameBq = BooleanQuery.Builder()
-      val filenamePartBq = BooleanQuery.Builder()
-      val filenameAbbreviationQueries = mutableListOf<Query>()
-
-      val filetypeBq = BooleanQuery.Builder()
-
-      var hasPath = false
-      var hasPathSegment = false
-      var hasFilename = false
-      var hasFilenamePart = false
-      var hasFiletype = false
+      val wordQueries = mutableMapOf<Int, MutableList<Query>>()
 
       tokenStream.reset()
-      var currentPos = -1
       while (tokenStream.incrementToken()) {
-        val term = termAttr.toString()
+        val termString = termAttr.toString()
         val type = typeAttr.type()
-        val posIncr = posIncrAttr.positionIncrement
-        currentPos += posIncr
+        val wordIndex = wordAttr.wordIndex
 
-        when (type) {
-          TOKEN_TYPE_PATH -> {
-            hasPath = true
-            pathQueries.add(TermQuery(Term(FILE_RELATIVE_PATH, term)))
-          }
-          TOKEN_TYPE_PATH_SEGMENT -> {
-            hasPathSegment = true
-            pathSegmentPhrase.add(Term(FILE_RELATIVE_PATH, term), currentPos)
-          }
-          TOKEN_TYPE_FILENAME -> {
-            hasFilename = true
-            val term = Term(FILE_NAME, term)
-            filenameBq.add(PrefixQuery(term), BooleanClause.Occur.SHOULD)
-          }
-          TOKEN_TYPE_FILENAME_PART -> {
-            hasFilenamePart = true
-            filenamePartBq.add(PrefixQuery(Term(FILE_NAME, term)), BooleanClause.Occur.MUST)
-          }
-          TOKEN_TYPE_FILENAME_ABBREVIATION -> {
-            filenameAbbreviationQueries.add(PrefixQuery(Term(FILE_NAME, term)))
-          }
-          TOKEN_TYPE_FILETYPE -> {
-            hasFiletype = true
-            filetypeBq.add(TermQuery(Term(FILE_TYPE, term)), BooleanClause.Occur.SHOULD)
-          }
+        val query = when (type) {
+          TOKEN_TYPE_PATH -> PrefixQuery(Term(FILE_RELATIVE_PATH, termString))
+          TOKEN_TYPE_PATH_SEGMENT -> PrefixQuery(Term(FILE_RELATIVE_PATH, termString))
+          TOKEN_TYPE_FILENAME -> PrefixQuery(Term(FILE_NAME, termString))
+          TOKEN_TYPE_FILENAME_PART -> PrefixQuery(Term(FILE_NAME, termString))
+          TOKEN_TYPE_FILENAME_ABBREVIATION -> PrefixQuery(Term(FILE_NAME, termString))
+          TOKEN_TYPE_FILETYPE -> TermQuery(Term(FILE_TYPE, termString))
+          else -> null
+        }
+
+        if (query != null) {
+          wordQueries.computeIfAbsent(wordIndex) { mutableListOf() }.add(query)
         }
       }
       tokenStream.end()
       tokenStream.close()
 
-      val disjunctionQueries = mutableListOf<Query>()
+      if (wordQueries.isEmpty()) return BooleanQuery.Builder().build()
 
-      // TermQuery for TOKEN_TYPE_PATH
-      disjunctionQueries.addAll(pathQueries)
-
-      // BooleanQuery SHOULD for each TOKEN_TYPE_FILENAME as TermQueries
-      if (hasFilename) {
-        disjunctionQueries.add(filenameBq.build())
+      val mainBq = BooleanQuery.Builder()
+      val sortedWordIndices = wordQueries.keys.sorted()
+      for (index in sortedWordIndices) {
+        val queries = wordQueries[index]!!
+        if (queries.isEmpty()) continue
+        if (queries.size == 1) {
+          mainBq.add(queries[0], BooleanClause.Occur.MUST)
+        }
+        else {
+          mainBq.add(DisjunctionMaxQuery(queries, 0.1f), BooleanClause.Occur.MUST)
+        }
       }
 
-      // BooleanQuery MUST for each TOKEN_TYPE_FILENAME_PART as PrefixQueries
-      if (hasFilenamePart) {
-        disjunctionQueries.add(filenamePartBq.build())
-      }
-
-      // PhraseQuery for TOKEN_TYPE_PATH_SEGMENT
-      if (hasPathSegment) {
-        disjunctionQueries.add(pathSegmentPhrase.build())
-      }
-
-      // BooleanQuery SHOULD for each TOKEN_TYPE_FILETYPE as TermQueries
-      if (hasFiletype) {
-        disjunctionQueries.add(filetypeBq.build())
-      }
-
-      // PrefixQuery for each TOKEN_TYPE_FILENAME_ABBREVIATION
-      disjunctionQueries.addAll(filenameAbbreviationQueries)
-
-      if (disjunctionQueries.isEmpty()) return BooleanQuery.Builder().build()
-
-      val query = DisjunctionMaxQuery(disjunctionQueries, 0.1f)
+      val query = mainBq.build()
       LOG.debug { "Built query for \"${params.inputQuery}\": $query" }
       return query
     }
@@ -472,17 +430,45 @@ class FileSearchAnalyzer : Analyzer() {
   }
 }
 
+interface WordAttribute : Attribute {
+  var wordIndex: Int
+}
+
+class WordAttributeImpl : AttributeImpl(), WordAttribute {
+  override var wordIndex: Int = 0
+  override fun clear() {
+    wordIndex = 0
+  }
+
+  override fun copyTo(target: AttributeImpl) {
+    (target as WordAttribute).wordIndex = wordIndex
+  }
+
+  override fun reflectWith(reflector: AttributeReflector) {
+    reflector.reflect(WordAttribute::class.java, "wordIndex", wordIndex)
+  }
+}
+
 class FileSearchTokenFilter(input: TokenStream, private val fileNameAnalyzer: Analyzer) : TokenFilter(input) {
   private val termAttr = addAttribute(CharTermAttribute::class.java)
   private val typeAttr = addAttribute(TypeAttribute::class.java)
   private val posIncrAttr = addAttribute(PositionIncrementAttribute::class.java)
   private val offsetAttr: OffsetAttribute = addAttribute(OffsetAttribute::class.java)
+  private val wordAttr = addAttribute(WordAttribute::class.java)
 
   private val pendingTokens = mutableListOf<PendingToken>()
 
-  private data class PendingToken(val term: String, val type: String, val posIncr: Int, val startOffset: Int, val endOffset: Int)
+  private data class PendingToken(
+    val term: String,
+    val type: String,
+    val posIncr: Int,
+    val startOffset: Int,
+    val endOffset: Int,
+    val wordIndex: Int,
+  )
 
   private var lastStartOffset = -1
+  private var currentWordIndex = -1
 
   override fun incrementToken(): Boolean {
     while (true) {
@@ -490,6 +476,7 @@ class FileSearchTokenFilter(input: TokenStream, private val fileNameAnalyzer: An
         val token = pendingTokens.removeAt(0)
         termAttr.setEmpty().append(token.term)
         typeAttr.setType(token.type)
+        wordAttr.wordIndex = token.wordIndex
 
         if (lastStartOffset == -1) {
           posIncrAttr.positionIncrement = token.posIncr
@@ -508,6 +495,7 @@ class FileSearchTokenFilter(input: TokenStream, private val fileNameAnalyzer: An
 
       if (!input.incrementToken()) return false
 
+      currentWordIndex++
       val segment = termAttr.toString()
       val originalPosIncr = posIncrAttr.positionIncrement
       val originalStartOffset = offsetAttr.startOffset()
@@ -533,7 +521,7 @@ class FileSearchTokenFilter(input: TokenStream, private val fileNameAnalyzer: An
             val term = part.text.lowercase()
             val start = absoluteTokenStart + part.start
             val end = absoluteTokenStart + part.end
-            subTokens.add(PendingToken(term, FileIndex.TOKEN_TYPE_FILENAME_PART, 1, start, end))
+            subTokens.add(PendingToken(term, FileIndex.TOKEN_TYPE_FILENAME_PART, 1, start, end, currentWordIndex))
 
             // Build initials from all uppercase letters AND first letter of each part
             if (part.text.isNotEmpty()) {
@@ -552,12 +540,18 @@ class FileSearchTokenFilter(input: TokenStream, private val fileNameAnalyzer: An
             subTokens[0] = first.copy(posIncr = basePosIncr)
           }
 
-          val originalFilenameToken = PendingToken(tokenInfo.text.lowercase(), FileIndex.TOKEN_TYPE_FILENAME, basePosIncr, absoluteTokenStart, absoluteTokenEnd)
+          val originalFilenameToken = PendingToken(tokenInfo.text.lowercase(),
+                                                   FileIndex.TOKEN_TYPE_FILENAME,
+                                                   basePosIncr,
+                                                   absoluteTokenStart,
+                                                   absoluteTokenEnd,
+                                                   currentWordIndex)
           pendingTokens.add(originalFilenameToken)
 
           val initials = initialsBuilder.toString()
           if (initials.length > 1) {
-            val initialsToken = PendingToken(initials, FileIndex.TOKEN_TYPE_FILENAME_ABBREVIATION, 0, absoluteTokenStart, absoluteTokenEnd)
+            val initialsToken =
+              PendingToken(initials, FileIndex.TOKEN_TYPE_FILENAME_ABBREVIATION, 0, absoluteTokenStart, absoluteTokenEnd, currentWordIndex)
             if (initialsToken != originalFilenameToken) {
               pendingTokens.add(initialsToken)
             }
@@ -571,7 +565,7 @@ class FileSearchTokenFilter(input: TokenStream, private val fileNameAnalyzer: An
         }
         else {
           val termToAdd = if (tokenInfo.type == FileIndex.TOKEN_TYPE_PATH || tokenInfo.type == FileIndex.TOKEN_TYPE_PATH_SEGMENT) tokenInfo.text else tokenInfo.text.lowercase()
-          pendingTokens.add(PendingToken(termToAdd, tokenInfo.type, basePosIncr, absoluteTokenStart, absoluteTokenEnd))
+          pendingTokens.add(PendingToken(termToAdd, tokenInfo.type, basePosIncr, absoluteTokenStart, absoluteTokenEnd, currentWordIndex))
         }
         firstInSegment = false
       }
@@ -582,6 +576,7 @@ class FileSearchTokenFilter(input: TokenStream, private val fileNameAnalyzer: An
     super.reset()
     pendingTokens.clear()
     lastStartOffset = -1
+    currentWordIndex = -1
   }
 
   private data class PartWithOffset(val text: String, val start: Int, val end: Int)

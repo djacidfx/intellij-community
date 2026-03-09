@@ -52,6 +52,30 @@ class SearchResultsTest : LuceneIndexTestBase() {
       }
     }
   }
+
+  @TestFactory
+  fun `ensure each part must match`(): List<DynamicNode> {
+
+    val foo = file("foo/Readme.md")
+    val bar = file("bar/Readme.md")
+
+
+    return indexWith(listOf(foo, bar)) { index ->
+      index.assertSearch("Readme.md") {
+        findsAllOf(foo, bar)
+      }
+
+      index.assertSearch("Readme.md foo") {
+        findsAllOf(foo)
+        findsNoneOf(bar)
+      }
+
+      index.assertSearch("Readme.md bar") {
+        findsAllOf(bar)
+        findsNoneOf(foo)
+      }
+    }
+  }
   
   @TestFactory
   fun `test pet search`(): List<DynamicNode> {
