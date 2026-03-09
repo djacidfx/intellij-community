@@ -43,7 +43,7 @@ class MinimapSceneBuilder(
       lastStructureMarkers
     }
 
-    val entries = if (structureMarkers.isEmpty()) emptyList() else layoutCalculator.buildLayout(context, structureMarkers)
+    val entries = layoutCalculator.buildLayout(context, structureMarkers)
     return MinimapSnapshot(context, geometry, entries)
   }
 

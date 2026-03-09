@@ -9,8 +9,11 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.impl.EditorImpl
+import com.intellij.openapi.fileTypes.PlainTextFileType
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDocumentManager
 import kotlinx.coroutines.CoroutineScope
 import java.awt.BorderLayout
@@ -56,9 +59,25 @@ class MinimapService(private val scope: CoroutineScope) : Disposable {
     if (editorImpl.editorKind != EditorKind.MAIN_EDITOR) return null
     val project = editorImpl.project ?: return null
     val document = editorImpl.document
-    val virtualFile = PsiDocumentManager.getInstance(project).getPsiFile(document)?.virtualFile ?: return null
-    if (settings.state.fileTypes.isNotEmpty() && !settings.state.fileTypes.contains(virtualFile.fileType.defaultExtension)) return null
+    val virtualFile = PsiDocumentManager.getInstance(project).getPsiFile(document)?.virtualFile
+                      ?: FileDocumentManager.getInstance().getFile(document)
+                      ?: return null
+
+    val enabledFileTypes = settings.state.fileTypes.toSet()
+    if (enabledFileTypes.isEmpty()) return null
+    if (!isFileTypeEnabled(virtualFile, enabledFileTypes)) return null
     return editorImpl
+  }
+
+  private fun isFileTypeEnabled(virtualFile: VirtualFile, enabled: Set<String>): Boolean {
+    val ext = virtualFile.extension?.lowercase()
+    if (ext != null && ext in enabled) return true
+
+    // separate processing for plain text
+    if ("txt" !in enabled) return false
+    if (ext == "log") return true
+
+    return virtualFile.fileType == PlainTextFileType.INSTANCE
   }
 
   private fun getPanel(fileEditor: EditorImpl): JPanel? {
