@@ -402,6 +402,7 @@ class PyTypeHintsInspection : PyInspection() {
       checkForwardReferencesInBinaryExpression(annotationValue)
 
       checkRawConcatenateUsage(annotationValue)
+      checkParamSpecComponentInNonParameterAnnotation(node, annotationValue)
       val type = Ref.deref(PyTypingTypeProvider.getType(annotationValue, myTypeEvalContext))
       if (type is PyTupleType) {
         checkTupleIsValid(annotationValue, type)
@@ -481,6 +482,7 @@ class PyTypeHintsInspection : PyInspection() {
       checkTypeCommentAndParameters(node)
       reportTypeParametersUsedByOuterScope(node)
       checkInitSelfParameterAnnotation(node)
+      checkParamSpecComponents(node)
     }
 
     override fun visitPyTargetExpression(node: PyTargetExpression) {
@@ -1647,6 +1649,107 @@ class PyTypeHintsInspection : PyInspection() {
       }
     }
 
+    private fun isParamSpecInScope(paramSpecName: String, function: PyFunction): Boolean {
+      var current: PyTypeParameterListOwner? = function
+      while (current != null) {
+        if (current.typeParameterList?.typeParameters?.
+          any { it.kind == PyAstTypeParameter.Kind.ParamSpec && it.name == paramSpecName } == true) return true
+
+        if (current is PyFunction) {
+          val paramSpecsInNonContainerParams = current.parameterList.parameters.asSequence()
+            .filterIsInstance<PyNamedParameter>()
+            .filter { !it.isPositionalContainer && !it.isKeywordContainer }
+            .map { myTypeEvalContext.getType(it) }
+            .map { it.collectGenerics(myTypeEvalContext) }
+            .flatMap { it.paramSpecs }
+            .toList()
+
+          if (paramSpecsInNonContainerParams.any { it.variableName == paramSpecName }) return true
+        }
+
+        if (current is PyClass) {
+          val genericType = PyTypeChecker.findGenericDefinitionType(current, myTypeEvalContext)
+          if (genericType?.elementTypes?.any { it is PyParamSpecType && it.variableName == paramSpecName } == true) return true
+        }
+
+        current = PsiTreeUtil.getParentOfType(current, PyTypeParameterListOwner::class.java)
+      }
+      return false
+    }
+
+    private fun checkParamSpecComponents(function: PyFunction) {
+      val parameters = function.parameterList.parameters.filterIsInstance<PyNamedParameter>()
+      var seenArgs = false
+
+      for ((index, param) in parameters.withIndex()) {
+        val annotationValue = param.annotation?.value ?: continue
+        val component = ParamSpecComponent.getParamSpecComponent(annotationValue, myTypeEvalContext)
+
+        when {
+          param.isPositionalContainer -> {
+            if (component != null) {
+              if (component.isArgs()) {
+                seenArgs = true
+                val next = parameters.getOrNull(index + 1)
+                val nextComponent = ParamSpecComponent.getParamSpecComponent(next?.annotation?.value, myTypeEvalContext)
+                if (!isParamSpecInScope(component.refName, function)) {
+                  registerProblem(component.qualifier, PyPsiBundle.message("INSP.type.hints.paramspec.not.in.scope", component.refName))
+                }
+                if (next != null && !next.isKeywordContainer) {
+                  registerProblem(next,
+                                  PyPsiBundle.message("INSP.type.hints.paramspec.no.keyword.only.between.components", component.refName))
+                  break
+                }
+                if (next == null || (nextComponent != null && !nextComponent.isKwargs())) {
+                  registerProblem(annotationValue,
+                                  PyPsiBundle.message("INSP.type.hints.paramspec.components.must.be.paired", component.refName))
+                }
+              }
+              else {
+                registerProblem(annotationValue,
+                                PyPsiBundle.message("INSP.type.hints.paramspec.kwargs.must.annotate.star.kwargs", component.refName))
+              }
+            }
+          }
+          param.isKeywordContainer -> {
+            if (component != null) {
+              if (component.isArgs()) {
+                registerProblem(annotationValue,
+                                PyPsiBundle.message("INSP.type.hints.paramspec.args.must.annotate.star.args", component.refName))
+                break
+              }
+              if (!seenArgs) {
+                registerProblem(annotationValue,
+                                PyPsiBundle.message("INSP.type.hints.paramspec.components.must.be.paired", component.refName))
+                break
+              }
+            }
+            else {
+              if (seenArgs) {
+                registerProblem(annotationValue,
+                                PyPsiBundle.message("INSP.type.hints.paramspec.component.was.expected"))
+              }
+            }
+          }
+          else -> {
+            if (component != null) {
+              registerProblem(annotationValue,
+                              PyPsiBundle.message("INSP.type.hints.paramspec.component.not.allowed", component.refName))
+            }
+          }
+        }
+      }
+    }
+
+    private fun checkParamSpecComponentInNonParameterAnnotation(annotation: PyAnnotation, annotationValue: PyExpression) {
+      val component = ParamSpecComponent.getParamSpecComponent(annotationValue, myTypeEvalContext) ?: return
+      val owner = annotation.parent
+      if (owner is PyNamedParameter) return
+      registerProblem(annotationValue,
+                      PyPsiBundle.message("INSP.type.hints.paramspec.component.not.allowed",
+                                          "${component.refName}.${component.component}"))
+    }
+
     private fun checkTypeArgumentsMatchTypeParameters(
       node: PySubscriptionExpression,
       typeParameters: List<PyType>,
@@ -1791,6 +1894,32 @@ private fun PySubscriptionExpression.isParamSpecArgument(argIndex: Int, context:
 
   return false
 }
+
+private class ParamSpecComponent private constructor(val refName: String, val qualifier: PyExpression, val component: String) {
+  init { require(component == ARGS || component == KWARGS) { "Invalid component: $component" } }
+
+  companion object {
+    const val ARGS = "args"
+    const val KWARGS = "kwargs"
+
+    fun getParamSpecComponent(expression: PyExpression?, context: TypeEvalContext): ParamSpecComponent? {
+      if (expression !is PyReferenceExpression || !expression.isQualified) return null
+      val componentName = expression.referencedName
+      val component = when (componentName) {
+        ParamSpecComponent.ARGS, ParamSpecComponent.KWARGS -> componentName
+        else -> return null
+      }
+      val qualifier = expression.qualifier ?: return null
+      val qualifierType = Ref.deref(PyTypingTypeProvider.getType(qualifier, context))
+      if (qualifierType !is PyParamSpecType) return null
+      return ParamSpecComponent(qualifierType.variableName, qualifier, component)
+    }
+  }
+
+  fun isArgs() = component == ARGS
+  fun isKwargs() = component == KWARGS
+}
+
 private class ReplaceWithTypeNameQuickFix(private val typeName: String) : PsiUpdateModCommandQuickFix() {
 
   override fun getFamilyName() = PyPsiBundle.message("QFIX.replace.with.type.name")
