@@ -103,10 +103,10 @@ public final class FileLevelIntentionComponent extends EditorNotificationPanel {
       }
     }
 
-    myLabel.setText(description);
-    myLabel.setToolTipText(tooltip);
+    myTextLabel.setText(description);
+    myTextLabel.setToolTipText(tooltip);
     if (gutterMark != null) {
-      myLabel.setIcon(gutterMark.getIcon());
+      myTextLabel.setIcon(gutterMark.getIcon());
     }
 
     if (intentions != null && !intentions.isEmpty()) {

@@ -403,8 +403,8 @@ public class CoverageEditorAnnotatorImpl implements CoverageEditorAnnotator, Dis
         if (isCurrentEditor(editor)) {
           final EditorNotificationPanel panel = new EditorNotificationPanel(editor, EditorNotificationPanel.Status.Warning) {
             {
-              myLabel.setIcon(AllIcons.General.ExclMark);
-              myLabel.setText(message);
+              myTextLabel.setIcon(AllIcons.General.ExclMark);
+              myTextLabel.setText(message);
             }
           };
           panel.createActionLabel(CoverageBundle.message("link.label.close"), () -> fileEditorManager.removeTopComponent(editor, panel));
