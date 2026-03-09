@@ -47,8 +47,8 @@ def parse_args(gen_version):
                     'built-in Python modules.'
     )
     parser.add_argument(
-        '-d', metavar='PATH', dest='output_dir',
-        help='Output dir, must be writable. If not given, current dir is used.'
+        '-d', metavar='PATH', dest='output_dir', required=True,
+        help='Output dir, must be writable. If not given, current dir is used.',
     )
     # TODO using os.pathsep might cause problems with remote interpreters when host and
     #  target OS don't match
