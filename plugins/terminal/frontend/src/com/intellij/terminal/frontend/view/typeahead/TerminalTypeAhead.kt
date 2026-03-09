@@ -1,14 +1,16 @@
-package com.intellij.terminal.frontend.view.impl
+package com.intellij.terminal.frontend.view.typeahead
 
 import com.intellij.openapi.util.Key
 import com.intellij.util.concurrency.annotations.RequiresEdt
+import org.jetbrains.annotations.ApiStatus
 
 /**
  * Interface for the terminal type-ahead feature.
  * To support immediate output model updates for some user actions, without waiting for the shell response.
  * Note that the type-ahead might be available only in some contexts.
  */
-internal interface TerminalTypeAhead {
+@ApiStatus.Internal
+interface TerminalTypeAhead {
   /**
    * Tries to insert the given [string] at the current cursor position.
    * If it is not possible, do nothing.

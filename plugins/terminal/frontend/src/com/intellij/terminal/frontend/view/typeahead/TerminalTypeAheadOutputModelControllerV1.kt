@@ -1,4 +1,4 @@
-package com.intellij.terminal.frontend.view.impl
+package com.intellij.terminal.frontend.view.typeahead
 
 import com.intellij.codeInsight.lookup.LookupManager
 import com.intellij.idea.AppMode
@@ -37,7 +37,7 @@ import org.jetbrains.plugins.terminal.view.shellIntegration.TerminalOutputStatus
 import org.jetbrains.plugins.terminal.view.shellIntegration.TerminalShellIntegration
 
 /**
- * Implementation of the [TerminalOutputModelController] that supports type-ahead.
+ * Initial implementation of the [com.intellij.terminal.frontend.view.impl.TerminalOutputModelController] that supports type-ahead.
  *
  * The approach is to delay applying the output updates from the backend for some time
  * if type-ahead prediction was applied to the output model.
@@ -45,12 +45,12 @@ import org.jetbrains.plugins.terminal.view.shellIntegration.TerminalShellIntegra
  * And if type-ahead predictions were incorrect, the user will see the actual state with a small delay.
  */
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
-internal class TerminalTypeAheadOutputModelController(
+internal class TerminalTypeAheadOutputModelControllerV1(
   private val project: Project,
   private val outputModel: MutableTerminalOutputModel,
   private val shellIntegrationDeferred: Deferred<TerminalShellIntegration>,
   coroutineScope: CoroutineScope,
-) : TerminalOutputModelController, TerminalTypeAhead {
+) : TerminalTypeAheadOutputModelController {
   override val model: MutableTerminalOutputModel = outputModel
 
   private val delayedUpdateRequests: MutableSharedFlow<Unit> = MutableSharedFlow(replay = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
@@ -80,6 +80,7 @@ internal class TerminalTypeAheadOutputModelController(
 
   override fun type(string: String) {
     if (!isTypeAheadEnabled()) return
+    if (string.contains('\n')) return
 
     // At this moment we only support type-ahead at the end of the output
     if (outputModel.getTextAfterCursor().isBlank()) {
@@ -211,7 +212,7 @@ internal class TerminalTypeAheadOutputModelController(
   }
 
   companion object {
-    private val LOG = logger<TerminalTypeAheadOutputModelController>()
+    private val LOG = logger<TerminalTypeAheadOutputModelControllerV1>()
 
     /**
      * The number of milliseconds to delay the output updates came from backend

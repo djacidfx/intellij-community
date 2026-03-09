@@ -72,7 +72,9 @@
     <registryKey key="terminal.new.ui.completion.popup" defaultValue="true"
                  description="Whether popup-based command completion feature is enabled in the Reworked Terminal"/>
     <registryKey key="terminal.type.ahead" defaultValue="true"
-                 description="Whether terminal should predict how shell handles typing to minimize the typing latency. Monolith-only at the moment"/>
+                 description="Whether terminal should predict how shell handles typing to minimize the typing latency"/>
+    <registryKey key="terminal.type.ahead.v2" defaultValue="true"
+                 description="Whether to use the new experimental terminal type-ahead implementation"/>
     <registryKey key="terminal.generic.hyperlinks" defaultValue="true"
                  description="Show generic file hyperlinks in the reworked terminal. Such hyperlinks are highlighted on mouse hover.
                   Open a new terminal after enabling this option to take effect."/>

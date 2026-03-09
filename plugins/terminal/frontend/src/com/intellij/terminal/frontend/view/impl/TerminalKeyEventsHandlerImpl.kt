@@ -9,6 +9,7 @@ import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.terminal.JBTerminalSystemSettingsProviderBase
 import com.intellij.terminal.frontend.view.TerminalKeyEvent
 import com.intellij.terminal.frontend.view.TerminalKeyEventImpl
+import com.intellij.terminal.frontend.view.typeahead.TerminalTypeAhead
 import kotlinx.coroutines.flow.MutableSharedFlow
 import org.jetbrains.plugins.terminal.block.reworked.TerminalUsageLocalStorage
 import org.jetbrains.plugins.terminal.view.TerminalOutputModel
@@ -107,6 +108,7 @@ internal open class TerminalKeyEventsHandlerImpl(
           scrollingModel?.scrollToCursor(force = true)
         }
         if (keyCode == KeyEvent.VK_ENTER) {
+          typeAhead?.type("\n")
           TerminalUsageLocalStorage.getInstance().recordEnterKeyPressed()
         }
         return true

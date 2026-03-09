@@ -46,7 +46,7 @@ object EmptyTextAttributesProvider : TextAttributesProvider {
 class TextStyleAdapter(
   val style: TextStyle,
   val colorPalette: TerminalColorPalette,
-  private val ignoreContrastAdjustment: Boolean = true,
+  val ignoreContrastAdjustment: Boolean = true,
 ) : TextAttributesProvider {
   override fun getTextAttributes(): TextAttributes {
     val baseContrast = if (ignoreContrastAdjustment) {

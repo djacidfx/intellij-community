@@ -17,6 +17,7 @@ import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.isFocusAncestor
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.platform.eel.provider.LocalEelDescriptor
 import com.intellij.platform.util.coroutines.childScope
@@ -34,6 +35,10 @@ import com.intellij.terminal.frontend.view.completion.ShellDataGeneratorsExecuto
 import com.intellij.terminal.frontend.view.completion.ShellRuntimeContextProviderReworkedImpl
 import com.intellij.terminal.frontend.view.completion.TerminalCommandCompletionTypingListener
 import com.intellij.terminal.frontend.view.hyperlinks.FrontendTerminalHyperlinkFacade
+import com.intellij.terminal.frontend.view.typeahead.TerminalTypeAhead
+import com.intellij.terminal.frontend.view.typeahead.TerminalTypeAheadOutputModelController
+import com.intellij.terminal.frontend.view.typeahead.TerminalTypeAheadOutputModelControllerV1
+import com.intellij.terminal.frontend.view.typeahead.TerminalTypeAheadOutputModelControllerV2
 import com.intellij.ui.components.JBLayeredPane
 import com.intellij.ui.components.panels.ListLayout
 import com.intellij.util.AwaitCancellationAndInvoke
@@ -43,6 +48,7 @@ import com.intellij.util.ui.components.BorderLayoutPanel
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
@@ -61,7 +67,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.VisibleForTesting
-import org.jetbrains.plugins.terminal.hyperlinks.TerminalSourceNavigationInfo
 import org.jetbrains.plugins.terminal.TerminalPanelMarker
 import org.jetbrains.plugins.terminal.block.completion.ShellCommandSpecsManagerImpl
 import org.jetbrains.plugins.terminal.block.completion.spec.impl.TerminalCommandCompletionServices
@@ -79,6 +84,7 @@ import org.jetbrains.plugins.terminal.block.ui.calculateTerminalSize
 import org.jetbrains.plugins.terminal.block.ui.isTerminalOutputScrollChangingActionInProgress
 import org.jetbrains.plugins.terminal.block.util.TerminalDataContextUtils
 import org.jetbrains.plugins.terminal.fus.TerminalStartupFusInfo
+import org.jetbrains.plugins.terminal.hyperlinks.TerminalSourceNavigationInfo
 import org.jetbrains.plugins.terminal.session.TerminalGridSize
 import org.jetbrains.plugins.terminal.session.TerminalStartupOptions
 import org.jetbrains.plugins.terminal.session.impl.TerminalHyperlinkId
@@ -254,7 +260,7 @@ class TerminalViewImpl(
                                                       coroutineScope.childScope("TerminalOutputScrollingModel"))
     outputEditor.putUserData(TerminalOutputScrollingModel.KEY, scrollingModel)
 
-    val outputModelController = TerminalTypeAheadOutputModelController(
+    val outputModelController = createOutputModelController(
       project,
       outputModel,
       shellIntegrationDeferred,
@@ -507,6 +513,20 @@ class TerminalViewImpl(
           alternateBufferEditor.selectionModel.let { if (it.hasSelection()) it.removeSelection() }
         }
       }
+    }
+  }
+
+  private fun createOutputModelController(
+    project: Project,
+    outputModel: MutableTerminalOutputModel,
+    shellIntegrationDeferred: Deferred<TerminalShellIntegration>,
+    coroutineScope: CoroutineScope,
+  ): TerminalTypeAheadOutputModelController {
+    return if (Registry.`is`("terminal.type.ahead.v2", false)) {
+      TerminalTypeAheadOutputModelControllerV2(project, outputModel, shellIntegrationDeferred, coroutineScope)
+    }
+    else {
+      TerminalTypeAheadOutputModelControllerV1(project, outputModel, shellIntegrationDeferred, coroutineScope)
     }
   }
 
