@@ -156,6 +156,10 @@ val Arch.canonicalName: String
     Arch.Unknown -> "unknown"
   }
 
+/**
+ * The path-separator character, used to separate filenames in a sequence of files given as a *path list* (e.g., the `PATH` environment variable).
+ * On POSIX systems, this character is `':'`; on Windows systems it is `';'`.
+ */
 @get:ApiStatus.Experimental
 val EelOsFamily.pathSeparator: String
   get() = when (this) {
