@@ -16,6 +16,7 @@ import org.apache.lucene.analysis.tokenattributes.TypeAttribute
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
+//TODO create a new ManyTypes Attribute which stores types as Set<String>. This is to ensure we dont query with duplicate tokens in the query.
 class FileAnalyzerTests {
 
   @Test
@@ -69,6 +70,21 @@ class FileAnalyzerTests {
       .producesToken("rea", FILE_NAME_PART)
       .noDuplicateTokens()
 
+    tokenizing(FileSearchAnalyzer(), "java")
+      .print()
+      .producesToken("java", FILE_NAME_PART)
+      .producesToken("java", FILETYPE)
+      .producesToken("java", FILE_NAME)
+      .producesToken("java", PATH_SEGMENT)
+      .noDuplicateTokens()
+
+    tokenizing(FileSearchAnalyzer(), "kt")
+      .print()
+      .producesToken("kt", FILE_NAME_PART)
+      .producesToken("kt", FILETYPE)
+      .producesToken("kt", FILE_NAME)
+      .producesToken("java", PATH_SEGMENT)
+      .noDuplicateTokens()
 
     tokenizing(FileSearchAnalyzer(), "SearchEver")
       .print()
