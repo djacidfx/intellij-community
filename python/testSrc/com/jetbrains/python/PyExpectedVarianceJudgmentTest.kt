@@ -7,7 +7,7 @@ import com.jetbrains.python.psi.PyExpression
 import com.jetbrains.python.psi.PyStringLiteralExpression
 import com.jetbrains.python.psi.PyUtil
 import com.jetbrains.python.psi.types.PyExpectedVarianceJudgment.getExpectedVariance
-import com.jetbrains.python.psi.types.PyTypeVarType.Variance
+import com.jetbrains.python.psi.types.PyTypeParameterType.Variance
 import com.jetbrains.python.psi.types.TypeEvalContext
 import org.intellij.lang.annotations.Language
 

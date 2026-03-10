@@ -23,6 +23,7 @@ import com.jetbrains.python.psi.PyListLiteralExpression
 import com.jetbrains.python.psi.PyNamedParameter
 import com.jetbrains.python.psi.PyParameterList
 import com.jetbrains.python.psi.PyReferenceExpression
+import com.jetbrains.python.psi.PyStarExpression
 import com.jetbrains.python.psi.PyStatementList
 import com.jetbrains.python.psi.PyStringLiteralExpression
 import com.jetbrains.python.psi.PySubscriptionExpression
@@ -36,11 +37,11 @@ import com.jetbrains.python.psi.types.PyInferredVarianceJudgment.attributeDoesNo
 import com.jetbrains.python.psi.types.PyInferredVarianceJudgment.combineVariance
 import com.jetbrains.python.psi.types.PyInferredVarianceJudgment.functionDoesNotAffectVarianceInference
 import com.jetbrains.python.psi.types.PyInferredVarianceJudgment.getDeclaredOrInferredVariance
-import com.jetbrains.python.psi.types.PyTypeVarType.Variance
-import com.jetbrains.python.psi.types.PyTypeVarType.Variance.BIVARIANT
-import com.jetbrains.python.psi.types.PyTypeVarType.Variance.CONTRAVARIANT
-import com.jetbrains.python.psi.types.PyTypeVarType.Variance.COVARIANT
-import com.jetbrains.python.psi.types.PyTypeVarType.Variance.INVARIANT
+import com.jetbrains.python.psi.types.PyTypeParameterType.Variance
+import com.jetbrains.python.psi.types.PyTypeParameterType.Variance.BIVARIANT
+import com.jetbrains.python.psi.types.PyTypeParameterType.Variance.CONTRAVARIANT
+import com.jetbrains.python.psi.types.PyTypeParameterType.Variance.COVARIANT
+import com.jetbrains.python.psi.types.PyTypeParameterType.Variance.INVARIANT
 import org.jetbrains.annotations.ApiStatus
 
 
@@ -79,6 +80,7 @@ object PyExpectedVarianceJudgment {
       is PyReferenceExpression,
       is PySubscriptionExpression,
       is PyTupleExpression,
+      is PyStarExpression,
         -> {
         when (parent) {
           is PySubscriptionExpression,
@@ -152,8 +154,8 @@ object PyExpectedVarianceJudgment {
       }
       // check definition type since generic type aliases are parameterized, i.e.: `A_Alias_1 = ClassA[T_co]` will be ClassA[Any]
       val definitionType = PyTypeChecker.findGenericDefinitionType(qualifierType.pyClass, context) ?: qualifierType
-      val typeParamType = definitionType.elementTypes.getOrNull(index) as? PyTypeVarType
-                          ?: qualifierType.elementTypes.getOrNull(index) as? PyTypeVarType
+      val typeParamType = definitionType.elementTypes.getOrNull(index) as? PyTypeParameterType
+                          ?: qualifierType.elementTypes.getOrNull(index) as? PyTypeParameterType
                           ?: return null
       return getDeclaredOrInferredVariance(typeParamType, context)
     }
