@@ -1,5 +1,6 @@
 package com.intellij.searchEverywhereLucene.backend.providers.files
 
+import com.intellij.searchEverywhereLucene.backend.AnalyzersTestBase
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FileSearchAnalyzer
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_FILENAME
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_FILENAME_ABBREVIATION

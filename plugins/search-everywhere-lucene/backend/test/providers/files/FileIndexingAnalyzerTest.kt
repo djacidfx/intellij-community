@@ -1,5 +1,6 @@
 package com.intellij.searchEverywhereLucene.backend.providers.files
 
+import com.intellij.searchEverywhereLucene.backend.AnalyzersTestBase
 import org.junit.jupiter.api.Test
 
 /**

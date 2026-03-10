@@ -1,4 +1,4 @@
-package com.intellij.searchEverywhereLucene.backend.providers.files
+package com.intellij.searchEverywhereLucene.backend
 
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.WordAttribute
 import org.apache.lucene.analysis.Analyzer
