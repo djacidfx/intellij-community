@@ -217,6 +217,11 @@ class FileSearchTokenFilter(input: TokenStream) : TokenFilter(input) {
       if (lastPart.isNotEmpty()) {
         result.add(IdentifiedToken(lastPart, TOKEN_TYPE_FILETYPE, currentOffset, currentOffset + lastPart.length))
       }
+      // For single-component paths without extension (like "foo"), also emit as PATH_SEGMENT
+      // so that searching for "foo" can match directory names in paths like "foo/bar/file.txt"
+      if (parts.size == 1 && lastPart.isNotEmpty()) {
+        result.add(IdentifiedToken(lastPart, TOKEN_TYPE_PATH_SEGMENT, currentOffset, currentOffset + lastPart.length))
+      }
     }
     else if (dotIndex == 0) {
       // Hidden file like .gitignore
