@@ -213,6 +213,10 @@ class FileSearchTokenFilter(input: TokenStream) : TokenFilter(input) {
     val dotIndex = lastPart.lastIndexOf('.')
     if (dotIndex < 0) {
       result.add(IdentifiedToken(lastPart, TOKEN_TYPE_FILENAME, currentOffset, currentOffset + lastPart.length))
+      // Also emit as FILETYPE since extension-less files like "java", "kt" should be searchable by type
+      if (lastPart.isNotEmpty()) {
+        result.add(IdentifiedToken(lastPart, TOKEN_TYPE_FILETYPE, currentOffset, currentOffset + lastPart.length))
+      }
     }
     else if (dotIndex == 0) {
       // Hidden file like .gitignore
