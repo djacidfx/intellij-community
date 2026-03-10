@@ -43,37 +43,6 @@ class TokenAttributeFilter(
     }
     return false
   }
-
-  class Builder(private val input: TokenStream) {
-    private var typePredicate: ((String) -> Boolean)? = null
-    private var wordIndexPredicate: ((Int) -> Boolean)? = null
-    private var offsetPredicate: ((Int, Int) -> Boolean)? = null
-    private var termPredicate: ((String) -> Boolean)? = null
-
-    fun filterType(predicate: (String) -> Boolean): Builder {
-      typePredicate = predicate
-      return this
-    }
-
-    fun filterWordIndex(predicate: (Int) -> Boolean): Builder {
-      wordIndexPredicate = predicate
-      return this
-    }
-
-    fun filterOffset(predicate: (startOffset: Int, endOffset: Int) -> Boolean): Builder {
-      offsetPredicate = predicate
-      return this
-    }
-
-    fun filterTerm(predicate: (String) -> Boolean): Builder {
-      termPredicate = predicate
-      return this
-    }
-
-    fun build(): TokenAttributeFilter {
-      return TokenAttributeFilter(input, typePredicate, wordIndexPredicate, offsetPredicate, termPredicate)
-    }
-  }
 }
 
 /**

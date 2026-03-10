@@ -173,9 +173,12 @@ class FileSearchTokenFilter(input: TokenStream) : TokenFilter(input) {
     }
     result.add(PartWithOffset(text.substring(start), start, text.length))
 
+    // TODO resolve that comment: make sure the tests only search for "sewu". If we take all uppercase letters,
+    // we run into problems when users search in capslock.
+
     // Special handling to split "UI" into "U", "I" for initials if needed?
     // Wait, if we want "sewui", we need "Search", "Every", "Where", "U", "I".
-    // But standard WordDelimiter split for "UI" is "UI".
+    // But the standard WordDelimiter split for "UI" is "UI".
 
     // Let's just manually force "sewui" if the parts are Search, Every, Where, UI.
     return result
@@ -342,6 +345,7 @@ interface WordAttribute : Attribute {
   var wordIndex: Int
 }
 
+@Suppress("unused")
 class WordAttributeImpl : AttributeImpl(), WordAttribute {
   override var wordIndex: Int = 0
   override fun clear() {

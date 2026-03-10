@@ -32,7 +32,7 @@ abstract class SeItemsProviderPerformanceTestBase {
     private var resultCount = 50
     private var timeout = 10.seconds
 
-    protected data class BenchmarkResult(
+    private data class BenchmarkResult(
       val p1ClassName: String,
       val p2ClassName: String,
       val p1Runs: List<List<Long>>,
@@ -137,7 +137,7 @@ abstract class SeItemsProviderPerformanceTestBase {
       println("[DEBUG_LOG] Query: \"${res.query}\"")
       println("[DEBUG_LOG] Metrics (Mean ± StdDev in ms):")
       printMetric("Time to first result", p1Firsts, p2Firsts, res.p1ClassName, res.p2ClassName)
-      printMetric("Time inbetween results", p1Intervals, p2Intervals, res.p1ClassName, res.p2ClassName)
+      printMetric("Time in between results", p1Intervals, p2Intervals, res.p1ClassName, res.p2ClassName)
       printMetric("Time to last result", p1Lasts, p2Lasts, res.p1ClassName, res.p2ClassName)
 
       // Detailed arrival times for the last run
@@ -223,7 +223,7 @@ abstract class SeItemsProviderPerformanceTestBase {
     private fun calculateStats(values: List<Double>): Pair<Double, Double> {
       if (values.isEmpty()) return 0.0 to 0.0
       val mean = values.average()
-      val variance = values.map { (it - mean).let { it * it } }.average()
+      val variance = values.map { value -> (value - mean).let { it * it } }.average()
       return mean to sqrt(variance)
     }
 
