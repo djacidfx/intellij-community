@@ -18,24 +18,24 @@ class FileSearchingAnalyzerTest : AnalyzersTestBase() {
   fun testFileSearchAnalyzer() {
     tokenizing(FileSearchAnalyzer(), "SearchEveryWhereUI.java")
       .print()
-      .producesToken("SearchEveryWhereUI.java", PATH)
-      .producesToken("java", FILETYPE, 19, 23)
-      .producesToken("searcheverywhereui", FILE_NAME, 0, 18)
-      .producesToken("search", FILE_NAME_PART, 0, 6)
-      .producesToken("every", FILE_NAME_PART, 6, 11)
-      .producesToken("sewui", FILE_NAME_ABBREVIATION, 0, 18)
-      .producesToken("ui", FILE_NAME_PART, 16, 18)
+      .producesToken("SearchEveryWhereUI.java", TOKEN_TYPE_PATH)
+      .producesToken("java", TOKEN_TYPE_FILETYPE, 19, 23)
+      .producesToken("searcheverywhereui", TOKEN_TYPE_FILENAME, 0, 18)
+      .producesToken("search", TOKEN_TYPE_FILENAME_PART, 0, 6)
+      .producesToken("every", TOKEN_TYPE_FILENAME_PART, 6, 11)
+      .producesToken("sewui", TOKEN_TYPE_FILENAME_ABBREVIATION, 0, 18)
+      .producesToken("ui", TOKEN_TYPE_FILENAME_PART, 16, 18)
       .noDuplicateTokens()
 
     tokenizing(FileSearchAnalyzer(), "com/intellij/MyFile.kt")
-      .producesToken("kt", FILETYPE)
-      .producesToken("com/intellij/MyFile.kt", PATH)
-      .producesToken("com", PATH_SEGMENT)
-      .producesToken("intellij", PATH_SEGMENT)
-      .producesToken("MyFile.kt", PATH_SEGMENT)
-      .producesToken("myfile", FILE_NAME)
-      .producesToken("my", FILE_NAME_PART)
-      .producesToken("file", FILE_NAME_PART)
+      .producesToken("kt", TOKEN_TYPE_FILETYPE)
+      .producesToken("com/intellij/MyFile.kt", TOKEN_TYPE_PATH)
+      .producesToken("com", TOKEN_TYPE_PATH_SEGMENT)
+      .producesToken("intellij", TOKEN_TYPE_PATH_SEGMENT)
+      .producesToken("MyFile.kt", TOKEN_TYPE_PATH_SEGMENT)
+      .producesToken("myfile", TOKEN_TYPE_FILENAME)
+      .producesToken("my", TOKEN_TYPE_FILENAME_PART)
+      .producesToken("file", TOKEN_TYPE_FILENAME_PART)
       .print()
       .noDuplicateTokens()
   }
@@ -44,49 +44,49 @@ class FileSearchingAnalyzerTest : AnalyzersTestBase() {
   fun `test FileSearchAnalyzer hidden files`() {
     tokenizing(FileSearchAnalyzer(), ".gitignore")
       .print()
-      .producesToken(".gitignore", PATH)
-      .producesToken("gitignore", FILETYPE)
+      .producesToken(".gitignore", TOKEN_TYPE_PATH)
+      .producesToken("gitignore", TOKEN_TYPE_FILETYPE)
       .noDuplicateTokens()
 
     tokenizing(FileSearchAnalyzer(), ".git/test")
       .print()
-      .producesToken("test", FILE_NAME)
-      .producesToken(".git/test", PATH)
+      .producesToken("test", TOKEN_TYPE_FILENAME)
+      .producesToken(".git/test", TOKEN_TYPE_PATH)
       
     tokenizing(FileSearchAnalyzer(), ".hidden").print()
-      .producesToken("hidden", FILETYPE)
-      .producesToken(".hidden", PATH)
+      .producesToken("hidden", TOKEN_TYPE_FILETYPE)
+      .producesToken(".hidden", TOKEN_TYPE_PATH)
   }
 
   @Test
   fun `test FileSearchAnalyzer incomplete`() {
     tokenizing(FileSearchAnalyzer(), "Rea")
       .print()
-      .producesToken("rea", FILE_NAME_PART)
+      .producesToken("rea", TOKEN_TYPE_FILENAME_PART)
       .noDuplicateTokens()
 
     tokenizing(FileSearchAnalyzer(), "java")
       .print()
-      .producesToken("java", FILE_NAME_PART)
-      .producesToken("java", FILETYPE)
-      .producesToken("java", FILE_NAME)
-      .producesToken("java", PATH_SEGMENT)
+      .producesToken("java", TOKEN_TYPE_FILENAME_PART)
+      .producesToken("java", TOKEN_TYPE_FILETYPE)
+      .producesToken("java", TOKEN_TYPE_FILENAME)
+      .producesToken("java", TOKEN_TYPE_PATH_SEGMENT)
       .noDuplicateTokens()
 
     tokenizing(FileSearchAnalyzer(), "kt")
       .print()
-      .producesToken("kt", FILE_NAME_PART)
-      .producesToken("kt", FILETYPE)
-      .producesToken("kt", FILE_NAME)
-      .producesToken("java", PATH_SEGMENT)
+      .producesToken("kt", TOKEN_TYPE_FILENAME_PART)
+      .producesToken("kt", TOKEN_TYPE_FILETYPE)
+      .producesToken("kt", TOKEN_TYPE_FILENAME)
+      .producesToken("kt", TOKEN_TYPE_PATH_SEGMENT)
       .noDuplicateTokens()
 
     tokenizing(FileSearchAnalyzer(), "SearchEver")
       .print()
-      .producesToken("searchever", FILE_NAME, 0, 10)
-      .producesToken("search", FILE_NAME_PART, 0, 6)
-      .producesToken("ever", FILE_NAME_PART, 6, 10)
-      .producesToken("se", FILE_NAME_ABBREVIATION, 0, 10)
+      .producesToken("searchever", TOKEN_TYPE_FILENAME, 0, 10)
+      .producesToken("search", TOKEN_TYPE_FILENAME_PART, 0, 6)
+      .producesToken("ever", TOKEN_TYPE_FILENAME_PART, 6, 10)
+      .producesToken("se", TOKEN_TYPE_FILENAME_ABBREVIATION, 0, 10)
       .noDuplicateTokens()
   }
 
@@ -95,18 +95,18 @@ class FileSearchingAnalyzerTest : AnalyzersTestBase() {
   fun `test FileSearchAnalyzer with Spaces`() {
     tokenizing(FileSearchAnalyzer(), "SearchEveryWhereUI.java com/intellij/Test.txt")
       .print()
-      .producesToken("SearchEveryWhereUI.java", PATH)
-      .producesToken("java", FILETYPE, 19, 23)
-      .producesToken("search", FILE_NAME_PART, 0, 6)
-      .producesToken("every", FILE_NAME_PART, 6, 11)
-      .producesToken("sewui", FILE_NAME_ABBREVIATION, 0, 18)
-      .producesToken("ui", FILE_NAME_PART, 16, 18)
-      .producesToken("com/intellij/Test.txt", PATH)
-      .producesToken("com", PATH_SEGMENT)
-      .producesToken("intellij", PATH_SEGMENT)
-      .producesToken("Test.txt", PATH_SEGMENT)
-      .producesToken("test", FILE_NAME)
-      .producesToken("txt", FILETYPE)
+      .producesToken("SearchEveryWhereUI.java", TOKEN_TYPE_PATH)
+      .producesToken("java", TOKEN_TYPE_FILETYPE, 19, 23)
+      .producesToken("search", TOKEN_TYPE_FILENAME_PART, 0, 6)
+      .producesToken("every", TOKEN_TYPE_FILENAME_PART, 6, 11)
+      .producesToken("sewui", TOKEN_TYPE_FILENAME_ABBREVIATION, 0, 18)
+      .producesToken("ui", TOKEN_TYPE_FILENAME_PART, 16, 18)
+      .producesToken("com/intellij/Test.txt", TOKEN_TYPE_PATH)
+      .producesToken("com", TOKEN_TYPE_PATH_SEGMENT)
+      .producesToken("intellij", TOKEN_TYPE_PATH_SEGMENT)
+      .producesToken("Test.txt", TOKEN_TYPE_PATH_SEGMENT)
+      .producesToken("test", TOKEN_TYPE_FILENAME)
+      .producesToken("txt", TOKEN_TYPE_FILETYPE)
       .noDuplicateTokens()
   }
 
@@ -114,15 +114,7 @@ class FileSearchingAnalyzerTest : AnalyzersTestBase() {
   fun `test FileSearchAnalyzer word index`() {
     tokenizing(FileSearchAnalyzer(), "Readme foo")
       .print()
-      .producesTokenWithWordIndex("readme", FILE_NAME, 0)
-      .producesTokenWithWordIndex("foo", FILE_NAME, 1)
+      .producesTokenWithWordIndex("readme", TOKEN_TYPE_FILENAME, 0)
+      .producesTokenWithWordIndex("foo", TOKEN_TYPE_FILENAME, 1)
   }
-
-
-  private val FILE_NAME = TOKEN_TYPE_FILENAME
-  private val FILE_NAME_PART = TOKEN_TYPE_FILENAME_PART
-  private val FILE_NAME_ABBREVIATION = TOKEN_TYPE_FILENAME_ABBREVIATION
-  private val PATH = TOKEN_TYPE_PATH
-  private val PATH_SEGMENT = TOKEN_TYPE_PATH_SEGMENT
-  private val FILETYPE = TOKEN_TYPE_FILETYPE
 }
