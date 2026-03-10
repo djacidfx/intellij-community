@@ -2,11 +2,13 @@
 package com.intellij.ide.minimap.scene
 
 import com.intellij.ide.minimap.geometry.MinimapGeometryData
+import com.intellij.ide.minimap.layout.MinimapLayoutMode
 import com.intellij.ide.minimap.render.MinimapRenderEntry
 import com.intellij.ide.minimap.render.MinimapRenderContext
 
 data class MinimapSnapshot(
   val context: MinimapRenderContext,
   val geometry: MinimapGeometryData,
-  val entries: List<MinimapRenderEntry>
+  val entries: List<MinimapRenderEntry>,
+  val layoutMode: MinimapLayoutMode,
 )

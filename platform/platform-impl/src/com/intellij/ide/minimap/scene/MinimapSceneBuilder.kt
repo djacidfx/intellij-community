@@ -4,6 +4,8 @@ package com.intellij.ide.minimap.scene
 import com.intellij.ide.minimap.geometry.MinimapGeometryCalculator
 import com.intellij.ide.minimap.geometry.MinimapScaleData
 import com.intellij.ide.minimap.layout.MinimapLayoutCalculator
+import com.intellij.ide.minimap.layout.MinimapLayoutMode
+import com.intellij.ide.minimap.layout.MinimapLayoutModeSelector
 import com.intellij.ide.minimap.model.MinimapStructureMarker
 import com.intellij.ide.minimap.model.MinimapModel
 import com.intellij.ide.minimap.render.MinimapRenderContext
@@ -32,7 +34,7 @@ class MinimapSceneBuilder(
     )
 
     if (isLegacy) {
-      return MinimapSnapshot(context, geometry, emptyList())
+      return MinimapSnapshot(context, geometry, emptyList(), MinimapLayoutMode.EXACT)
     }
 
     val isCommitted = model.isDocumentCommitted()
@@ -43,8 +45,9 @@ class MinimapSceneBuilder(
       lastStructureMarkers
     }
 
-    val entries = layoutCalculator.buildLayout(context, structureMarkers)
-    return MinimapSnapshot(context, geometry, entries)
+    val layoutMode = MinimapLayoutModeSelector.selectMode(context, scaleMode)
+    val entries = layoutCalculator.buildLayout(context, structureMarkers, layoutMode)
+    return MinimapSnapshot(context, geometry, entries, layoutMode)
   }
 
   fun clear() {

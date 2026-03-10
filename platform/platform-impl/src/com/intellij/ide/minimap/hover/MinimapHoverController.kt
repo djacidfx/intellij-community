@@ -8,6 +8,7 @@ import com.intellij.platform.util.coroutines.childScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import com.intellij.ide.minimap.scene.MinimapSnapshot
+import com.intellij.ide.minimap.layout.MinimapLayoutMode
 import java.awt.Graphics2D
 import java.awt.Point
 
@@ -20,6 +21,7 @@ class MinimapHoverController(
   private val hitChecker = MinimapHoverHitCheck(panel.editor)
   private val presenter = MinimapHoverPresenter(panel)
   private var lastSnapshot: MinimapSnapshot? = null
+  private var hoverEnabled = true
 
   private val hoverStateMachine = MinimapHoverStateMachine(scope, panel) { target ->
     presenter.setTarget(target)
@@ -38,12 +40,21 @@ class MinimapHoverController(
   }
 
   fun onSnapshot(snapshot: MinimapSnapshot) {
+    hoverEnabled = snapshot.layoutMode == MinimapLayoutMode.EXACT
+    if (!hoverEnabled) {
+      hideBalloon()
+    }
     lastSnapshot = snapshot
     presenter.setContext(snapshot.context)
-    updateActiveTargetForSnapshot(snapshot)
+    if (hoverEnabled) {
+      updateActiveTargetForSnapshot(snapshot)
+    }
   }
 
-  fun paint(graphics: Graphics2D): Unit = presenter.paint(graphics)
+  fun paint(graphics: Graphics2D) {
+    if (!hoverEnabled) return
+    presenter.paint(graphics)
+  }
 
   fun hideBalloon() {
     hoverStateMachine.updateTarget(null)
@@ -52,6 +63,7 @@ class MinimapHoverController(
   }
 
   fun updateHover(point: Point?) {
+    if (!hoverEnabled) return
     if (point == null) {
       hoverStateMachine.updateTarget(null)
       return
@@ -81,6 +93,8 @@ class MinimapHoverController(
   }
 
   private fun updateActiveTargetForSnapshot(snapshot: MinimapSnapshot) {
+    if (!hoverEnabled) return
+
     if (!isDocumentCommitted() || snapshot.entries.isEmpty()) {
       hoverStateMachine.updateTarget(null)
       return
