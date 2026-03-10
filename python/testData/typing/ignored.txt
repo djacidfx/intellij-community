@@ -13,7 +13,6 @@ dataclasses_hash.py
 directives_deprecated.py
 directives_version_platform.py
 generics_base_class.py
-generics_paramspec_components.py
 generics_paramspec_semantics.py
 generics_syntax_infer_variance.py
 generics_typevartuple_basic.py
