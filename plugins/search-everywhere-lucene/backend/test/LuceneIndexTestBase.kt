@@ -11,8 +11,6 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.document.Document
-import org.apache.lucene.document.Field
-import org.apache.lucene.document.TextField
 import org.apache.lucene.search.Query
 import org.apache.lucene.search.ScoreDoc
 import org.junit.jupiter.api.Assertions.fail
@@ -46,14 +44,6 @@ abstract class LuceneIndexTestBase {
   }
 
 
-  fun doc(vararg fields: Pair<String, String>): Document {
-    val document = Document()
-    for ((name, value) in fields) {
-      document.add(TextField(name, value, Field.Store.YES))
-    }
-    return document
-  }
-
   inner class SearchFlowAssert(val index: LuceneIndex, val query: Query, val results: List<Pair<ScoreDoc, Document>>, val isEquivalent: (Document, Document) -> Boolean) {
     private fun log(message: String) {
       this@LuceneIndexTestBase.log.info("[DEBUG_LOG] $message")
@@ -61,17 +51,17 @@ abstract class LuceneIndexTestBase {
 
     private fun explainResults(resultsToExplain: List<Pair<ScoreDoc, Document>>, limit: Int = 3): String {
       return index.withSearcher { searcher ->
-        resultsToExplain.map { (score, doc) ->
+        resultsToExplain.joinToString(
+          separator = "\n\n",
+          limit = limit,
+          truncated = "... (total ${resultsToExplain.size})"
+        ) { (score, doc) ->
           """
 Document: ${doc.asMap()}
 Explanation: 
 ${searcher.explain(query, score.doc).toString().trim().prependIndent(">   ")}
           """
-        }.joinToString(
-          separator = "\n\n",
-          limit = limit,
-          truncated = "... (total ${resultsToExplain.size})"
-        ).prependIndent("  ")
+        }.prependIndent("  ")
       }
     }
 

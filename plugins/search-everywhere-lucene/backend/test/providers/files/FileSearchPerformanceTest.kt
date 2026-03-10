@@ -1,17 +1,18 @@
-// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.searchEverywhereLucene.backend
+package com.intellij.searchEverywhereLucene.backend.providers.files
 
+import com.intellij.ide.actions.searcheverywhere.FileSearchEverywhereContributor
+import com.intellij.openapi.actionSystem.ActionUiKind
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.application.readAction
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VfsUtil
-import com.intellij.openapi.vfs.newvfs.NewVirtualFile
-import com.intellij.searchEverywhereLucene.backend.providers.files.FileIndex
-import com.intellij.searchEverywhereLucene.backend.providers.files.LuceneFileIndexOperation
-import com.intellij.searchEverywhereLucene.backend.providers.files.SearchEverywhereLuceneFilesProvider
-import com.intellij.testFramework.PerformanceUnitTest
-import com.intellij.testFramework.junit5.RegistryKey
-import com.intellij.testFramework.junit5.StressTestApplication
+import com.intellij.platform.searchEverywhere.SeItemsProvider
+import com.intellij.platform.searchEverywhere.backend.providers.files.SeFilesProviderFactory
+import com.intellij.searchEverywhereLucene.backend.SeItemsProviderPerformanceTestBase
+import com.intellij.testFramework.junit5.TestApplication
 import com.intellij.testFramework.runInEdtAndWait
 import com.intellij.workspaceModel.core.fileIndex.WorkspaceFileIndex
 import com.intellij.workspaceModel.ide.registerProjectRootBlocking
@@ -24,27 +25,15 @@ import kotlin.io.path.Path
 /**
  * Performance test for [SearchEverywhereLuceneFilesProvider].
  */
-@StressTestApplication
-@RegistryKey(key = "se.enable.non.indexable.files.contributor", value = "true")
-@PerformanceUnitTest
-class LuceneFileSearchPerformanceTest : SeItemsProviderPerformanceTestBase() {
+@TestApplication
+class FileSearchPerformanceTest : SeItemsProviderPerformanceTestBase() {
 
   private val workspaceFileIndex get() = WorkspaceFileIndex.getInstance(project)
 
   companion object {
     private val communityPath = Path(PathManager.getCommunityHomePath())
     private val communityVirtualFile = VfsUtil.findFile(communityPath, true)!!
-
-    private val nonIndexableFilesCount: Int = run {
-      var nonIndexableFiles = 0
-      VfsUtil.processFilesRecursively(NewVirtualFile.asCacheAvoiding(communityVirtualFile)) {
-        nonIndexableFiles++
-        true
-      }
-      nonIndexableFiles
-    }
   }
-
 
 
   @BeforeEach
@@ -60,20 +49,26 @@ class LuceneFileSearchPerformanceTest : SeItemsProviderPerformanceTestBase() {
       "project root must be non-indexable"
     }
 
-    // Initialize and wait for index to be built
+    // Initialize and wait for the index to be built
     val luceneIndex = FileIndex.getInstance(project)
     luceneIndex.awaitIndexCreation()
+
+    DumbService.getInstance(project).waitForSmartMode()
   }
 
   @Test
-  fun `benchmark a Lucene search`() {
+  fun `benchmark Lucene vs Standard search`() {
     val searchPattern = "a"
-    val provider = createProvider()
-    benchmarkProvider(
-      provider = provider,
-      inputQuery = searchPattern,
-      expectedMinResults = 1
-    )
+    val luceneProvider = createProvider()
+    val standardProvider = createStandardProvider()
+    newBenchmarkForProviders(luceneProvider, standardProvider)
+      .warmupIterations(1)
+      .runs(2)
+      .resultLimit(100)
+      .inputQuery(searchPattern)
+      .run()
+      .printResults()
+      .plot()
   }
 
   private fun createProvider(): SearchEverywhereLuceneFilesProvider {
@@ -81,4 +76,15 @@ class LuceneFileSearchPerformanceTest : SeItemsProviderPerformanceTestBase() {
       Disposer.register(projectModel.disposableRule.disposable, provider)
     }
   }
+
+  private fun createStandardProvider(): SeItemsProvider = runBlocking {
+    val dataContext = SimpleDataContext.getProjectContext(project)
+    val event = AnActionEvent.createEvent(dataContext, null, "", ActionUiKind.NONE, null)
+    val legacyContributor = FileSearchEverywhereContributor(event)
+
+    SeFilesProviderFactory().getItemsProvider(project, legacyContributor = legacyContributor)
+    ?: error("File Provider could not be created")
+  }
+
+
 }

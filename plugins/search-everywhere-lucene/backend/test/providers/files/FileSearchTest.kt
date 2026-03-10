@@ -15,9 +15,9 @@ import org.junit.jupiter.api.DynamicNode
 import org.junit.jupiter.api.TestFactory
 
 @TestApplication
-class SearchResultsTest : LuceneIndexTestBase() {
+class FileSearchTest : LuceneIndexTestBase() {
 
-  override val log: Logger = logger<SearchResultsTest>()
+  override val log: Logger = logger<FileSearchTest>()
   override val analyzer: Analyzer = FileIndex.getIndexingAnalyzer()
 
   override fun buildSimpleQuery(pattern: String): Query {
