@@ -37,7 +37,7 @@ import com.intellij.psi.impl.file.PsiBinaryFileImpl;
 import com.intellij.psi.impl.file.PsiLargeBinaryFileImpl;
 import com.intellij.psi.impl.file.PsiLargeTextFileImpl;
 import com.intellij.psi.impl.file.impl.FileManager;
-import com.intellij.psi.impl.file.impl.FileManagerImpl;
+import com.intellij.psi.impl.file.impl.PossibleInvalidationKt;
 import com.intellij.psi.impl.source.PsiFileImpl;
 import com.intellij.psi.impl.source.PsiPlainTextFileImpl;
 import com.intellij.psi.impl.source.SourceTreeToPsiMap;
@@ -416,7 +416,7 @@ public abstract class AbstractFileViewProvider extends UserDataHolderBase implem
   public final void markPossiblyInvalidated() {
     invalidateCachedPsi();
     for (AbstractFileViewProvider copy : getKnownCopies()) {
-      FileManagerImpl.markPossiblyInvalidated(copy);
+      PossibleInvalidationKt.markPossiblyInvalidated(copy);
     }
   }
 

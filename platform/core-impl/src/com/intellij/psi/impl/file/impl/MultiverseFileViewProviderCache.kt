@@ -2,25 +2,38 @@
 package com.intellij.psi.impl.file.impl
 
 import com.intellij.codeInsight.multiverse.CodeInsightContext
+import com.intellij.codeInsight.multiverse.CodeInsightContextManagerImpl
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.progress.util.ProgressIndicatorUtilBase
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.AbstractFileViewProvider
 import com.intellij.psi.FileViewProvider
 import com.intellij.testFramework.LightVirtualFile
 import com.intellij.util.AtomicMapCache
+import com.intellij.util.concurrency.annotations.RequiresReadLock
+import com.intellij.util.concurrency.annotations.RequiresWriteLock
 import com.intellij.util.containers.CollectionFactory
 import org.jetbrains.annotations.ApiStatus
 import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.locks.ReentrantLock
 import java.util.function.Consumer
 
 /**
  * Stores mapping (file -> FileProviderMap(context -> Weak(FileViewProvider)))
  */
-internal class MultiverseFileViewProviderCache : FileViewProviderCache {
+internal class MultiverseFileViewProviderCache(
+  private val project: Project,
+  private val newFileViewProviderFactory: NewFileViewProviderFactory,
+) : FileViewProviderCache {
+
+  private val myTempProviderStorage = createTemporaryProviderStorage()
+  private val evaluator: ValidityEvaluator = ValidityEvaluatorImpl(myTempProviderStorage, this, newFileViewProviderFactory)
+  private val synchronizer = CancellableSynchronizer()
 
   // todo IJPL-339 we need atomic update for values of the maps???
 
@@ -64,14 +77,115 @@ internal class MultiverseFileViewProviderCache : FileViewProviderCache {
     }
   }
 
-  override fun getAllProviders(vFile: VirtualFile): List<FileViewProvider> {
-    val map = cache[vFile] ?: return emptyList()
-    return map.allProviders
+  override fun getAllProvidersRaw(vFile: VirtualFile): List<FileViewProvider> =
+    cache[vFile]?.allProviders ?: emptyList()
+
+  override fun getAllProvidersAndReanimateIfNecessary(vFile: VirtualFile): List<FileViewProvider> {
+    val fileMap = cache[vFile] ?: return emptyList()
+    val reanimated = reanimateIfNecessary(vFile, fileMap, null) ?: return emptyList()
+    return reanimated.allProviders
   }
 
-  override fun get(file: VirtualFile, context: CodeInsightContext): FileViewProvider? {
-    val result = cache.cache[file]?.get(context)
-    return result
+  override fun getRaw(file: VirtualFile, context: CodeInsightContext): FileViewProvider? =
+    cache[file]?.get(context)
+
+  override fun getAndReanimateIfNecessary(
+    vFile: VirtualFile,
+    context: CodeInsightContext,
+  ): FileViewProvider? {
+    val fileMap = cache[vFile] ?: return null
+    val reanimated = reanimateIfNecessary(vFile, fileMap, context) ?: return null
+    return reanimated[context]
+  }
+
+  @RequiresReadLock
+  private fun reanimateIfNecessary(
+    vFile: VirtualFile,
+    fileMap: FileProviderMap,
+    context: CodeInsightContext?,
+  ): FileProviderMap? {
+    if (!fileMap.isPossiblyInvalidated) return fileMap
+
+    return synchronizer.cancellableSynchronized(fileMap) {
+      if (!fileMap.isPossiblyInvalidated) {
+        return@cancellableSynchronized cache[vFile] // either same if survived in another thread, or null if died, or a new map if died and restored in another thread
+      }
+
+      evaluateValidityUnderLock(vFile, context, fileMap)
+    }
+  }
+
+  private fun evaluateValidityUnderLock(
+    vFile: VirtualFile,
+    context: CodeInsightContext?,
+    fileMap: FileProviderMap,
+  ): FileProviderMap? {
+    if (!vFile.isValid()) return null
+
+    if (context != null) {
+      val temp = myTempProviderStorage.get(vFile)
+      if (temp != null) {    // todo check this if context == null
+        val tempFileProviderMap = FileProviderMap()
+        tempFileProviderMap.cacheOrGet(context, temp)
+        return tempFileProviderMap
+      }
+    }
+
+    val firstEntry = fileMap.entries.firstOrNull()
+    if (firstEntry == null ||
+        !evaluator.isRecreatedViewProviderIsIdentical(vFile, firstEntry.value as AbstractFileViewProvider, firstEntry.key)
+    ) {
+      dropPossibleInvalidation(fileMap)
+      remove(vFile)
+      return null
+    }
+
+    reassignProvidersWithOutdatedContextToActualContexts(vFile, fileMap)
+
+    dropPossibleInvalidation(fileMap)
+    return fileMap
+  }
+
+  private fun dropPossibleInvalidation(fileMap: FileProviderMap) {
+    fileMap.forEach { _, provider ->
+      provider.unmarkPossiblyInvalidated()
+    }
+    fileMap.isPossiblyInvalidated = false
+  }
+
+  private fun reassignProvidersWithOutdatedContextToActualContexts(vFile: VirtualFile, fileMap: FileProviderMap) {
+    val contextManager = CodeInsightContextManagerImpl.getInstanceImpl(project)
+    val actualContexts = contextManager.getCodeInsightContexts(vFile)
+
+    val outdatedProviders = mutableListOf<Pair<FileViewProvider, CodeInsightContext>>()
+
+    val actualUnusedContextSet = LinkedHashSet(actualContexts) // ordered!
+    fileMap.forEach { context, provider ->
+      if (actualContexts.contains(context)) {
+        actualUnusedContextSet.remove(context)
+      }
+      else {
+        outdatedProviders.add(provider to context)
+      }
+    }
+
+    if (outdatedProviders.isEmpty()) {
+      return
+    }
+
+    outdatedProviders.zip(actualUnusedContextSet).forEach { (outdatedProviderAndContext, context) ->
+      val (outdatedProvider, outDatedContext) = outdatedProviderAndContext
+      fileMap.remove(outDatedContext, outdatedProvider)
+      contextManager.setCodeInsightContext(outdatedProvider, context)
+      require(fileMap.cacheOrGet(context, outdatedProvider) == outdatedProvider)
+    }
+
+    if (actualUnusedContextSet.size < outdatedProviders.size) {
+      outdatedProviders.subList(actualUnusedContextSet.size, outdatedProviders.size).forEach { (outdatedProvider, context) ->
+        fileMap.remove(context, outdatedProvider)
+        outdatedProvider.unmarkPossiblyInvalidated()
+      }
+    }
   }
 
   override fun removeAllFileViewProvidersAndSet(vFile: VirtualFile, viewProvider: FileViewProvider) {
@@ -118,6 +232,46 @@ internal class MultiverseFileViewProviderCache : FileViewProviderCache {
     log.doTrace { "trySetContext finished $viewProvider $context, effectiveContext=$effectiveContext" }
     return effectiveContext
   }
+
+  @RequiresWriteLock
+  override fun markPossiblyInvalidated() {
+    doIfInitialized { map ->
+      map.forEach { (_, map: FileProviderMap?) ->
+        if (map != null) {
+          map.isPossiblyInvalidated = true
+          map.forEach { _, provider ->
+            provider.markPossiblyInvalidated()
+          }
+        }
+      }
+    }
+  }
+
+  override fun evaluateValidity(viewProvider: AbstractFileViewProvider): Boolean {
+    val vFile = viewProvider.virtualFile
+    val fileMap = cache[vFile] ?: return false
+
+    val reanimatedFileMap = reanimateIfNecessary(vFile, fileMap, viewProvider.getRawContext()) ?: return false
+
+    return reanimatedFileMap[viewProvider.getRawContext()] === viewProvider
+  }
+
+  override fun findViewProvider(
+    vFile: VirtualFile,
+    context: CodeInsightContext,
+  ): FileViewProvider {
+    getAndReanimateIfNecessary(vFile, context)?.let {
+      return it
+    }
+
+    myTempProviderStorage.get(vFile)?.let {
+      return it
+    }
+
+    val viewProvider = newFileViewProviderFactory.createNewFileViewProvider(vFile, context)
+
+    return cacheOrGet(vFile, context, viewProvider)
+  }
 }
 
 private inline fun Logger.doTrace(block: () -> String) {
@@ -156,3 +310,33 @@ private object NullFile : LightVirtualFile()
 private typealias FullCacheMap = ConcurrentMap<VirtualFile, FileProviderMap>
 
 private val log = logger<MultiverseFileViewProviderCache>()
+
+private fun FileViewProvider.getRawContext(): CodeInsightContext =
+  CodeInsightContextManagerImpl.getInstanceImpl(this.manager.project).getCodeInsightContextRaw(this)
+
+private class CancellableSynchronizer {
+  private val lockMap = CollectionFactory.createConcurrentWeakValueMap<FileProviderMap, ReentrantLock>()
+  private val deadlockPrevention = ThreadLocal<FileProviderMap?>()
+
+  fun <T> cancellableSynchronized(fileMap: FileProviderMap, block: () -> T): T {
+    val alreadyTaken = deadlockPrevention.get()
+    if (alreadyTaken != null && alreadyTaken !== fileMap) {
+      throw IllegalStateException("Already taken lock for $fileMap, cannot take it again for $alreadyTaken")
+    }
+
+    deadlockPrevention.set(fileMap)
+    try {
+      val lock = lockMap.computeIfAbsent(fileMap) { ReentrantLock() }
+      ProgressIndicatorUtilBase.awaitWithCheckCanceled(lock)
+      try {
+        return block()
+      }
+      finally {
+        lock.unlock()
+      }
+    }
+    finally {
+      deadlockPrevention.remove()
+    }
+  }
+}

@@ -67,6 +67,11 @@ internal sealed interface FileProviderMap {
   fun trySetContext(viewProvider: FileViewProvider, context: CodeInsightContext): CodeInsightContext?
 
   /**
+   * see doc of [FileManagerEx.possiblyInvalidatePhysicalPsi]
+   */
+  var isPossiblyInvalidated: Boolean
+
+  /**
    * Returns all existing entries. The returned collection is thread-safe and cannot be collected by GC.
    * Thus, don't store it in a field.
    */
@@ -249,6 +254,9 @@ private class FileProviderMapImpl : FileProviderMap, AtomicReference<ContextMap<
     installContext(viewProvider, context)
     return context
   }
+
+  @Volatile
+  override var isPossiblyInvalidated: Boolean = false
 
   override fun remove(context: CodeInsightContext, provider: FileViewProvider): Boolean {
     update { map ->
@@ -544,3 +552,7 @@ private class EntryImpl<V : Any>(
 private val log = com.intellij.openapi.diagnostic.logger<FileProviderMap>()
 
 private val strongLinkToFileProviderMap = Key.create<FileProviderMap>("strongLinkToFileProviderMap")
+
+internal fun FileViewProvider.getFileProviderMap(): FileProviderMap? {
+  return getUserData(strongLinkToFileProviderMap)
+}

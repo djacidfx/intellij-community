@@ -57,7 +57,7 @@ internal class InvalidFileProcessor(
     DebugUtil.performPsiModification(null, ThrowableRunnable {
       for (entry in originalFileToPsiFileMap) {
         val viewProvider = entry.provider
-        if (vFileToViewProviderMap.get(entry.file, entry.context) !== viewProvider) {
+        if (vFileToViewProviderMap.getRaw(entry.file, entry.context) !== viewProvider) {
           fileManager.markInvalidated(viewProvider)
         }
       }

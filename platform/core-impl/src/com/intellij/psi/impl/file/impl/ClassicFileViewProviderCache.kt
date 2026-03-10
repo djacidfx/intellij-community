@@ -1,8 +1,9 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.psi.impl.file.impl
 
 import com.intellij.codeInsight.multiverse.CodeInsightContext
 import com.intellij.codeInsight.multiverse.anyContext
+import com.intellij.codeInsight.multiverse.defaultContext
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.AbstractFileViewProvider
 import com.intellij.psi.FileViewProvider
@@ -17,11 +18,16 @@ import java.util.function.Consumer
  * Thread-safe.
  * Does not take [CodeInsightContext] into account.
  */
-internal class ClassicFileViewProviderCache : FileViewProviderCache {
+internal class ClassicFileViewProviderCache(
+  val newFileViewProviderFactory: NewFileViewProviderFactory,
+) : FileViewProviderCache {
 
   private val cache = AtomicMapCache<VirtualFile, FileViewProvider, ConcurrentMap<VirtualFile, FileViewProvider>> {
     CollectionFactory.createConcurrentWeakValueMap()
   }
+
+  private val myTempProviderStorage = createTemporaryProviderStorage()
+  private val evaluator: ValidityEvaluator = ValidityEvaluatorImpl(myTempProviderStorage, this, newFileViewProviderFactory)
 
   override fun clear() {
     cache.invalidate()
@@ -50,12 +56,24 @@ internal class ClassicFileViewProviderCache : FileViewProviderCache {
     }
   }
 
-  override fun getAllProviders(vFile: VirtualFile): List<FileViewProvider> {
+  override fun getAllProvidersRaw(vFile: VirtualFile): List<FileViewProvider> {
     return listOfNotNull(cache[vFile])
   }
 
-  override fun get(file: VirtualFile, context: CodeInsightContext): FileViewProvider? {
+  override fun getRaw(file: VirtualFile, context: CodeInsightContext): FileViewProvider? {
     return cache.cache[file]
+  }
+
+  override fun getAndReanimateIfNecessary(
+    vFile: VirtualFile,
+    context: CodeInsightContext,
+  ): FileViewProvider? {
+    val provider = getRaw(vFile, context) ?: return null
+    return evaluator.reanimateProviderIfNecessary(vFile, provider)
+  }
+
+  override fun getAllProvidersAndReanimateIfNecessary(vFile: VirtualFile): List<FileViewProvider> {
+    return listOfNotNull(getAndReanimateIfNecessary(vFile, defaultContext()))
   }
 
   override fun removeAllFileViewProvidersAndSet(vFile: VirtualFile, viewProvider: FileViewProvider) {
@@ -82,6 +100,33 @@ internal class ClassicFileViewProviderCache : FileViewProviderCache {
 
   override fun trySetContext(viewProvider: FileViewProvider, context: CodeInsightContext): CodeInsightContext? {
     throw UnsupportedOperationException()
+  }
+
+  override fun markPossiblyInvalidated() {
+    forEach { _, _, provider ->
+      provider.markPossiblyInvalidated()
+    }
+  }
+
+  override fun findViewProvider(
+    vFile: VirtualFile,
+    context: CodeInsightContext,
+  ): FileViewProvider {
+    getAndReanimateIfNecessary(vFile, context)?.let {
+      return it
+    }
+
+    myTempProviderStorage.get(vFile)?.let {
+      return it
+    }
+
+    val viewProvider = newFileViewProviderFactory.createNewFileViewProvider(vFile, context)
+
+    return cacheOrGet(vFile, context, viewProvider)
+  }
+
+  override fun evaluateValidity(viewProvider: AbstractFileViewProvider): Boolean {
+    return evaluator.evaluateValidity(viewProvider)
   }
 }
 
