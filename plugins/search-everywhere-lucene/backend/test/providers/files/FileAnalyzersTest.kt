@@ -1,5 +1,13 @@
 package com.intellij.searchEverywhereLucene.backend.providers.files
 
+import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FileSearchAnalyzer
+import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_FILENAME
+import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_FILENAME_ABBREVIATION
+import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_FILENAME_PART
+import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_FILETYPE
+import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_PATH
+import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_PATH_SEGMENT
+import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.WordAttribute
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute
@@ -8,7 +16,7 @@ import org.apache.lucene.analysis.tokenattributes.TypeAttribute
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
-class LuceneAnalyzerTest {
+class FileAnalyzerTests {
 
   @Test
   fun testFileSearchAnalyzer() {
@@ -174,10 +182,10 @@ class LuceneAnalyzerTest {
     }
   }
 
-  private val FILE_NAME = FileIndex.TOKEN_TYPE_FILENAME
-  private val FILE_NAME_PART = FileIndex.TOKEN_TYPE_FILENAME_PART
-  private val FILE_NAME_ABBREVIATION = FileIndex.TOKEN_TYPE_FILENAME_ABBREVIATION
-  private val PATH = FileIndex.TOKEN_TYPE_PATH
-  private val PATH_SEGMENT = FileIndex.TOKEN_TYPE_PATH_SEGMENT
-  private val FILETYPE = FileIndex.TOKEN_TYPE_FILETYPE
+  private val FILE_NAME = TOKEN_TYPE_FILENAME
+  private val FILE_NAME_PART = TOKEN_TYPE_FILENAME_PART
+  private val FILE_NAME_ABBREVIATION = TOKEN_TYPE_FILENAME_ABBREVIATION
+  private val PATH = TOKEN_TYPE_PATH
+  private val PATH_SEGMENT = TOKEN_TYPE_PATH_SEGMENT
+  private val FILETYPE = TOKEN_TYPE_FILETYPE
 }
