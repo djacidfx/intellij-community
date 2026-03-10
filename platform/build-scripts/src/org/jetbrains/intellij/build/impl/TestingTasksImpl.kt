@@ -17,6 +17,7 @@ import com.intellij.openapi.util.io.NioFiles
 import com.intellij.openapi.util.text.StringUtilRt
 import com.intellij.platform.ijent.community.buildConstants.IJENT_BOOT_CLASSPATH_MODULE
 import com.intellij.platform.ijent.community.buildConstants.MULTI_ROUTING_FILE_SYSTEM_VMOPTIONS
+import com.intellij.platform.util.coroutines.filterConcurrent
 import com.intellij.testFramework.SkipInHeadlessEnvironment
 import com.intellij.util.bazelEnvironment.BazelRunfiles
 import com.intellij.util.io.awaitExit
@@ -48,12 +49,14 @@ import org.jetbrains.jps.model.java.JavaResourceRootType
 import org.jetbrains.jps.model.java.JpsJavaClasspathKind
 import org.jetbrains.jps.model.java.JpsJavaExtensionService
 import org.jetbrains.jps.model.java.JpsJavaSdkType
+import org.jetbrains.jps.model.module.JpsModule
 import org.jetbrains.jps.util.JpsPathUtil
 import java.io.File
 import java.io.PrintStream
 import java.lang.reflect.Modifier
 import java.nio.charset.Charset
 import java.nio.file.AccessDeniedException
+import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.ExperimentalPathApi
@@ -285,9 +288,6 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
     }
 
     if (options.searchScope != JUnitRunConfigurationProperties.TestSearchScope.MODULE_WITH_DEPENDENCIES.serialized) {
-      if (TeamCityHelper.isUnderTeamCity) {
-        context.messages.logErrorAndThrow("'intellij.build.test.search.scope' option should be used only for local runs")
-      }
       if (options.searchScope != JUnitRunConfigurationProperties.TestSearchScope.SINGLE_MODULE.serialized) {
         context.messages.logErrorAndThrow("Unsupported 'intellij.build.test.search.scope' value: ${options.searchScope}")
       }
@@ -323,7 +323,7 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
   ) {
     try {
       runTestsProcess(
-        mainModule = runConfigurationProperties.moduleName,
+        mainModule = context.findRequiredModule(runConfigurationProperties.moduleName),
         testGroups = null,
         testPatterns = runConfigurationProperties.testClassPatterns.joinToString(separator = ";"),
         jvmArgs = removeStandardJvmOptions(runConfigurationProperties.vmParameters) + additionalJvmOptions
@@ -342,16 +342,68 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
     }
   }
 
+  private suspend fun guessTestModulesForGroupsAndPatterns(
+    mainModule: JpsModule,
+    rootExcludeCondition: ((Path) -> Boolean)?,
+    systemProperties: Map<String, String>,
+  ): List<JpsModule> {
+    fun setPropertyFromPass(property: String) = System.getProperty("pass.$property")?.run {
+      if (System.getProperty(property, this) != this) {
+        context.messages.logErrorAndThrow("'$property' and 'pass.$property' mismatch: ${System.getProperty(property)} != $this")
+      }
+
+      System.setProperty(property, this)
+    }
+
+    // configure TestCaseLoader#isClassNameIncluded with the properties from the test process
+    "test.group.roots".let { systemProperties[it]?.run { System.setProperty(it, this) } }  // from systemProperties
+    "intellij.build.test.patterns".let { options.testPatterns?.run { System.setProperty(it, this) } }  // from options, e.g. TestingTasksImpl#runTestsSkippedInHeadlessEnvironment
+    "intellij.build.test.groups".let { options.testGroups?.run { System.setProperty(it, this) } }  // from options, e.g. RunAnyTestTheSameWayTeamCityDoes#run
+    setPropertyFromPass(TestCaseLoader.INCLUDE_UNCONVENTIONALLY_NAMED_TESTS_FLAG)
+
+    // configure TestCaseLoader#matchesCurrentBucket with the properties from the test process
+    listOf(
+      "idea.bucketing.season",
+      "idea.bucketing.season.fallback",
+      TestCaseLoader.IS_TESTS_DURATION_BUCKETING_ENABLED_FLAG
+    ).forEach(::setPropertyFromPass)
+
+    return JpsJavaExtensionService.dependencies(mainModule).recursively().modules
+      .filterConcurrent {
+        if (rootExcludeCondition != null) {
+          val contentRoot = it.contentRootsList.urls.firstOrNull()?.let(JpsPathUtil::urlToNioPath)
+          if (contentRoot != null && rootExcludeCondition(contentRoot)) return@filterConcurrent false  // root excluded
+        }
+
+        for (outputRoot in context.outputProvider.getModuleOutputRoots(it, forTests = true)) {
+          val classNames = FileSystems.newFileSystem(outputRoot).use { fs ->
+            fs.rootDirectories.map(Files::walk).flatMap { stream ->
+              stream.filter { it.toString().endsWith(".class") }.map { classFile ->
+                classFile.toString().removePrefix("/").replace("/", ".").removeSuffix(".class")
+              }.toList()
+            }
+          }
+
+          // same as `com.intellij.tests.JUnit5TeamCityRunner.CommonTestClassesFilter` and `com.intellij.tests.JUnit5TeamCityRunner.BucketingClassNameFilter`
+          if (classNames.any { TestCaseLoader.isClassNameIncluded(it) && TestCaseLoader.matchesCurrentBucket(it) }) return@filterConcurrent true
+        }
+
+        false
+      }.sortedBy { it.name }
+  }
+
   private suspend fun runTestsFromGroupsAndPatterns(
     additionalJvmOptions: List<String>,
     mainModule: String,
     rootExcludeCondition: ((Path) -> Boolean)?,
     systemProperties: MutableMap<String, String>,
   ) {
+    val mainModule = context.findRequiredModule(mainModule)
+
     if (options.testGroups != null) {
       val testGroupRoots = let {
         if (options.testGroups!!.contains(GroupBasedTestClassFilter.ALL_EXCLUDE_DEFINED)) context.project.modules
-        else JpsJavaExtensionService.dependencies(context.project.findModuleByName(mainModule)).recursively().modules.toList()
+        else JpsJavaExtensionService.dependencies(mainModule).recursively().modules.toList()
       }.mapConcurrent {
         it.sourceRoots
           .filter { it.rootType is JavaResourceRootType }
@@ -362,34 +414,39 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
       systemProperties.put("test.group.roots", testGroupRoots.joinToString(File.pathSeparator, transform = Path::absolutePathString))
     }
 
-    try {
-      runTestsProcess(
-        mainModule = mainModule,
-        testGroups = options.testGroups,
-        testPatterns = options.testPatterns,
-        testTags = options.testTags,
-        jvmArgs = additionalJvmOptions,
-        systemProperties = systemProperties,
-        remoteDebugging = false,
-        searchForTestsAcrossModuleDependencies = options.searchScope == JUnitRunConfigurationProperties.TestSearchScope.MODULE_WITH_DEPENDENCIES.serialized,
-        rootExcludeCondition = rootExcludeCondition,
-      )
+    val searchForTestsAcrossModuleDependencies = options.searchScope == JUnitRunConfigurationProperties.TestSearchScope.MODULE_WITH_DEPENDENCIES.serialized
+    val testModules = let {
+      if (searchForTestsAcrossModuleDependencies && System.getProperty("pass.jar.dependencies.to.tests") == null) guessTestModulesForGroupsAndPatterns(mainModule, rootExcludeCondition, systemProperties)
+      else listOf(mainModule)
     }
-    catch (e: NoTestsFound) {
-      val msg = buildString {
-        append("No tests were found in '$mainModule' classpath ")
-        if (options.testPatterns != null) {
-          append("with test patterns '${options.testPatterns}'")
+
+    context.messages.info("Will run tests from simple patterns, patterns, or groups in ${testModules.size} modules: ${testModules.joinToString(", ") { it.name }}")
+    val suppressedExceptions = mutableListOf<Throwable>()
+    for (testModule in testModules) {
+      spanBuilder("run '${testModule.name}' module").use {
+        try {
+          runTestsProcess(
+            mainModule = testModule,
+            runContextModule = mainModule,
+            testGroups = options.testGroups,
+            testPatterns = options.testPatterns,
+            testTags = options.testTags,
+            jvmArgs = additionalJvmOptions,
+            systemProperties = systemProperties,
+            remoteDebugging = false,
+            searchForTestsAcrossModuleDependencies = false,
+            rootExcludeCondition = rootExcludeCondition,
+          )
         }
-        else if (options.testSimplePatterns != null) {
-          append("with test simple patterns '${options.testSimplePatterns}'")
-        }
-        else {
-          append("for test groups '${options.testGroups}'")
+        catch (e: NoTestsFound) {
+          suppressedExceptions.add(RuntimeException("No tests were found in '${testModule.name}' module", e))
         }
       }
-      throw RuntimeException(msg).apply {
-        addSuppressed(e)
+    }
+
+    if (suppressedExceptions.isNotEmpty() && suppressedExceptions.size == testModules.size) {
+      throw RuntimeException("No tests were found in '${mainModule.name}' module classpath w/ simple patterns '${options.testSimplePatterns}', patterns '${options.testPatterns}', or groups '${options.testGroups}'").apply {
+        suppressedExceptions.forEach(::addSuppressed)
       }
     }
   }
@@ -454,7 +511,7 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
       context.messages.warning("'intellij.build.test.configurations' option is ignored while debugging via TeamCity plugin")
     }
     runTestsProcess(
-      mainModule = mainModule,
+      mainModule = context.findRequiredModule(mainModule),
       testGroups = null,
       testPatterns = junitClass,
       jvmArgs = removeStandardJvmOptions(StringUtilRt.splitHonorQuotes(remoteDebugJvmOptions, ' ')) + additionalJvmOptions,
@@ -466,7 +523,8 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
   }
 
   private suspend fun runTestsProcess(
-    mainModule: String,
+    mainModule: JpsModule,
+    runContextModule: JpsModule = mainModule,
     testGroups: String?,
     testPatterns: String?,
     testTags: String? = null,
@@ -478,21 +536,20 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
     rootExcludeCondition: ((Path) -> Boolean)?,
   ) {
     val outputProvider = context.outputProvider
-    val mainJpsModule = outputProvider.findRequiredModule(mainModule)
 
     val modulePath: List<String>?
     var testClasspath = buildList {
-      addAll(context.getModuleRuntimeClasspath(mainJpsModule, forTests = true))
+      addAll(context.getModuleRuntimeClasspath(runContextModule, forTests = true))
 
       //module with "com.intellij.TestAll" which output should be found in `testClasspath + modulePath`
       val testFrameworkCoreModule = outputProvider.findRequiredModule("intellij.platform.testFramework.core")
       addAll(context.getModuleRuntimeClasspath(testFrameworkCoreModule, false) )
     }.distinct()
 
-    val moduleInfoFile = JpsJavaExtensionService.getInstance().getJavaModuleIndex(context.project).getModuleInfoFile(mainJpsModule, true)
+    val moduleInfoFile = JpsJavaExtensionService.getInstance().getJavaModuleIndex(context.project).getModuleInfoFile(mainModule, true)
     val toExistingAbsolutePathConverter: (Path) -> String = { require(Files.exists(it)); it.toAbsolutePath().normalize().toString() }
     if (moduleInfoFile != null) {
-      val outputDir = outputProvider.getModuleOutputRoots(mainJpsModule, forTests = true).single().let(Path::toFile)
+      val outputDir = outputProvider.getModuleOutputRoots(mainModule, forTests = true).single().let(Path::toFile)
       val pair = ModulePathSplitter().splitPath(moduleInfoFile, mutableSetOf(outputDir), testClasspath.map {
         @Suppress("IO_FILE_USAGE")
         it.toFile()
@@ -505,8 +562,8 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
     }
 
     val testRoots = let {
-      if (searchForTestsAcrossModuleDependencies) JpsJavaExtensionService.dependencies(mainJpsModule).recursively().modules
-      else listOf(mainJpsModule)
+      if (searchForTestsAcrossModuleDependencies) JpsJavaExtensionService.dependencies(mainModule).recursively().modules
+      else listOf(mainModule)
     }.flatMap {
       if (rootExcludeCondition != null) {
         val contentRoot = it.contentRootsList.urls.firstOrNull()?.let(JpsPathUtil::urlToNioPath)
@@ -516,7 +573,8 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
       context.outputProvider.getModuleOutputRoots(it, forTests = true)
     }
 
-    val devBuildServerSettings = DevBuildServerSettings.readDevBuildServerSettingsFromIntellijYaml(mainModule)
+    val devBuildServerSettings = DevBuildServerSettings.readDevBuildServerSettingsFromIntellijYaml(mainModule.name)
+      .takeIf { runContextModule.name != "intellij.clion.main.tests" }  // TODO: remove this after fixing clion tests build types
     val bootstrapClasspath = context.getModuleRuntimeClasspath(module = outputProvider.findRequiredModule("intellij.tools.testsBootstrap"), forTests = false)
       .mapTo(mutableListOf()) { it.toString() }
     @Suppress("NAME_SHADOWING")
@@ -531,10 +589,10 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
     prepareEnvForTestRun(jvmArgs = allJvmArgs, systemProperties = systemProperties, classPath = bootstrapClasspath, remoteDebugging = remoteDebugging)
     val messages = context.messages
     if (!testPatterns.isNullOrEmpty()) {
-      messages.info("Starting tests from patterns '${testPatterns}' from classpath of module '${mainModule}'")
+      messages.info("Starting tests from patterns '${testPatterns}' from classpath of module '${mainModule.name}'")
     }
     else {
-      messages.info("Starting tests from groups '${testGroups}' from classpath of module '${mainModule}'")
+      messages.info("Starting tests from groups '${testGroups}' from classpath of module '${mainModule.name}'")
     }
     if (options.bucketsCount > 1) {
       messages.info("Tests from bucket ${options.bucketIndex + 1} of ${options.bucketsCount} will be executed")
@@ -566,7 +624,7 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
       }
     }
     runJUnit5Engine(
-      mainModule = mainModule,
+      mainModule = mainModule.name,
       systemProperties = systemProperties,
       jvmArgs = allJvmArgs,
       envVariables = envVariables,
@@ -767,7 +825,7 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
     context.compileModules(moduleNames = null, includingTestsInModules = null)
     val tests = spanBuilder("loading all tests annotated with @SkipInHeadlessEnvironment").use { loadTestsSkippedInHeadlessEnvironment() }
     for (it in tests) {
-      options.isDedicatedTestRuntime = "class"
+      options.searchScope = JUnitRunConfigurationProperties.TestSearchScope.SINGLE_MODULE.serialized
       options.testPatterns = it.getFirst()
       options.mainModule = it.getSecond()
       runTests()
