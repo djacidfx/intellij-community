@@ -4,7 +4,6 @@ import com.intellij.openapi.util.RecursionManager
 import com.intellij.openapi.util.StackOverflowPreventedException
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
-import com.intellij.util.Processor
 import com.jetbrains.python.ProtectionLevel
 import com.jetbrains.python.PyNames
 import com.jetbrains.python.codeInsight.typing.PyTypingTypeProvider
@@ -140,15 +139,16 @@ object PyInferredVarianceJudgment {
     fun collectInClass(tvId: TypeVariableId, clazz: PyClass) {
       val classType = context.getType(clazz)
       if (classType is PyClassLikeType) {
-        val processor = Processor<PsiElement> { element ->
-          when (element) {
-            is PyTargetExpression -> collectInAttribute(tvId, element)
-            is PyFunction -> collectInFunction(tvId, element)
-          }
-          val isInvariantAlready = usages.contains(INVARIANT) || (usages.contains(COVARIANT) && usages.contains(CONTRAVARIANT))
-          !isInvariantAlready // performance tweak: no need to search for further usages
-        }
-        classType.visitMembers(processor, false, context)
+        classType.visitMembers(
+          { element ->
+            when (element) {
+              is PyTargetExpression -> collectInAttribute(tvId, element)
+              is PyFunction -> collectInFunction(tvId, element)
+            }
+            val isInvariantAlready =
+              INVARIANT in usages || (COVARIANT in usages && CONTRAVARIANT in usages)
+            !isInvariantAlready // performance tweak: no need to search for further usages
+          }, false, context)
       }
       collectInBaseClasses(tvId, clazz)
     }

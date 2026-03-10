@@ -1091,10 +1091,7 @@ class PyTypingTypeProvider : PyTypeProviderWithCustomContext<Context?>() {
         val typeParameters = cls.typeParameterList!!.typeParameters
         return StreamEx.of(typeParameters)
           .map {
-            getTypeParameterTypeFromTypeParameter(
-              it!!,
-              context
-            )
+            getTypeParameterTypeFromTypeParameter(it, context)
           }
           .nonNull()
           .toList()
@@ -1109,7 +1106,7 @@ class PyTypingTypeProvider : PyTypeProviderWithCustomContext<Context?>() {
         if (genericOrProtocolBase != null) listOf(genericOrProtocolBase)
         else parameterizedSuperClassExpressions
       )
-        .map { it!!.indexExpression }
+        .map { it.indexExpression }
         .flatMap {
           val tupleExpr = it as? PyTupleExpression
           if (tupleExpr != null) StreamEx.of(*tupleExpr.elements) else StreamEx.of(it)
@@ -1242,7 +1239,7 @@ class PyTypingTypeProvider : PyTypeProviderWithCustomContext<Context?>() {
       alias: PyQualifiedNameOwner?,
       resolved: PsiElement,
       context: Context,
-      parameterizeTopLevel: Boolean = true
+      parameterizeTopLevel: Boolean = true,
     ): Ref<PyType?>? {
       if (alias != null) {
         if (context.containsTypeAlias(alias)) {
@@ -2240,9 +2237,9 @@ class PyTypingTypeProvider : PyTypeProviderWithCustomContext<Context?>() {
       typeParameter: PyTypeParameter,
       context: TypeEvalContext,
     ): PyTypeParameterType? {
-      return staticWithCustomContext(
-        context
-      ) { getTypeParameterTypeFromTypeParameter(typeParameter, it) }
+      return staticWithCustomContext(context) {
+        getTypeParameterTypeFromTypeParameter(typeParameter, it)
+      }
     }
 
     private fun getTypeParameterTypeFromTypeParameter(
