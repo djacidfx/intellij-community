@@ -37,8 +37,6 @@ interface DocRenderItemManager {
   companion object {
     @JvmStatic
     fun getInstance(): DocRenderItemManager = service()
-
-    private val LISTENERS_DISPOSABLE = Key.create<Disposable>("doc.render.listeners.disposable")
   }
 
   fun getItemAroundOffset(editor: Editor, offset: Int): DocRenderItem? {
@@ -54,46 +52,50 @@ interface DocRenderItemManager {
   fun getItems(editor: Editor): Collection<DocRenderItem>?
 
   fun isRenderedDocHighlighter(highlighter: RangeHighlighter): Boolean
+}
 
-  fun setupListeners(editor: Editor, disable: Boolean) {
-    val existingDisposable = editor.getUserData(LISTENERS_DISPOSABLE)
-    if (disable) {
-      existingDisposable?.let {
-        Disposer.dispose(it)
-        editor.putUserData(LISTENERS_DISPOSABLE, null)
-      }
-    }
-    else if (existingDisposable == null) {
-      val connection = ApplicationManager.getApplication().messageBus.connect()
-      editor.putUserData(LISTENERS_DISPOSABLE, connection)
-      connection.setDefaultHandler(Runnable { DocRenderItemUpdater.updateRenderers(editor, true) })
-      connection.subscribe(EditorColorsManager.TOPIC)
-      connection.subscribe(LafManagerListener.TOPIC)
-      val selectionManager = DocRenderSelectionManager(editor)
-      Disposer.register(connection, selectionManager)
-      val mouseEventBridge = DocRenderMouseEventBridge(selectionManager)
-      editor.addEditorMouseListener(mouseEventBridge, connection)
-      editor.addEditorMouseMotionListener(mouseEventBridge, connection)
-      val iconVisibilityController = IconVisibilityController()
-      editor.addEditorMouseListener(iconVisibilityController, connection)
-      editor.addEditorMouseMotionListener(iconVisibilityController, connection)
-      editor.scrollingModel.addVisibleAreaListener(iconVisibilityController, connection)
-      Disposer.register(connection, iconVisibilityController)
-      editor.scrollingModel.addVisibleAreaListener(MyVisibleAreaListener(editor), connection)
-      (editor as EditorEx).foldingModel.addListener(MyFoldingListener(), connection)
-      Disposer.register(connection) { DocRenderer.clearCachedLoadingPane(editor) }
-      EditorFactory.getInstance().addEditorFactoryListener(object : EditorFactoryListener {
-        override fun editorReleased(event: EditorFactoryEvent) {
-          if (event.editor == editor) {
-            // this ensures renderers are not kept for the released editors
-            removeAllItems(editor)
-          }
-        }
-      }, connection)
-    }
+@ApiStatus.Internal
+object DocRenderItemUpdaterListeners {
+  private val LISTENERS_DISPOSABLE = Key.create<Disposable>("doc.render.listeners.disposable")
+
+  fun disposeListeners(editor: Editor) {
+    val existingDisposable = editor.getUserData(LISTENERS_DISPOSABLE) ?: return
+    Disposer.dispose(existingDisposable)
+    editor.putUserData(LISTENERS_DISPOSABLE, null)
   }
 
-  fun areListenersAttached(editor: Editor): Boolean = editor.getUserData(LISTENERS_DISPOSABLE) != null
+  fun setupListeners(editor: Editor): Disposable? {
+    val existingDisposable = editor.getUserData(LISTENERS_DISPOSABLE)
+    if (existingDisposable != null) return null
+
+    val connection = ApplicationManager.getApplication().messageBus.connect()
+    editor.putUserData(LISTENERS_DISPOSABLE, connection)
+    connection.setDefaultHandler(Runnable { DocRenderItemUpdater.updateRenderers(editor, true) })
+    connection.subscribe(EditorColorsManager.TOPIC)
+    connection.subscribe(LafManagerListener.TOPIC)
+    val selectionManager = DocRenderSelectionManager(editor)
+    Disposer.register(connection, selectionManager)
+    val mouseEventBridge = DocRenderMouseEventBridge(selectionManager)
+    editor.addEditorMouseListener(mouseEventBridge, connection)
+    editor.addEditorMouseMotionListener(mouseEventBridge, connection)
+    val iconVisibilityController = IconVisibilityController()
+    editor.addEditorMouseListener(iconVisibilityController, connection)
+    editor.addEditorMouseMotionListener(iconVisibilityController, connection)
+    editor.scrollingModel.addVisibleAreaListener(iconVisibilityController, connection)
+    Disposer.register(connection, iconVisibilityController)
+    editor.scrollingModel.addVisibleAreaListener(MyVisibleAreaListener(editor), connection)
+    (editor as EditorEx).foldingModel.addListener(MyFoldingListener(), connection)
+    Disposer.register(connection) { DocRenderer.clearCachedLoadingPane(editor) }
+    EditorFactory.getInstance().addEditorFactoryListener(object : EditorFactoryListener {
+      override fun editorReleased(event: EditorFactoryEvent) {
+        if (event.editor == editor) {
+          // this ensures renderers are not kept for the released editors
+          DocRenderItemManager.getInstance().removeAllItems(editor)
+        }
+      }
+    }, connection)
+    return connection
+  }
 
   private class MyVisibleAreaListener(editor: Editor) : VisibleAreaListener {
     private var lastWidth: Int
@@ -202,7 +204,7 @@ interface DocRenderItemManager {
         val lineNumber = document.getLineNumber(neighborOffset)
         val searchStartOffset = document.getLineStartOffset(0.coerceAtLeast(lineNumber - 1))
         val searchEndOffset = document.getLineEndOffset(lineNumber)
-        val items = getInstance().getItems(editor) ?: return null
+        val items = DocRenderItemManager.getInstance().getItems(editor) ?: return null
         for (item in items) {
           val highlighter = item.highlighter
           if (highlighter.isValid && highlighter.startOffset <= searchEndOffset && highlighter.endOffset >= searchStartOffset) {
