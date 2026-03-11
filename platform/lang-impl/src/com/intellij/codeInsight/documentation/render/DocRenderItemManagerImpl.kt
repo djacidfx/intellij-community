@@ -191,3 +191,9 @@ class DocRenderItemManagerImpl : DocRenderItemManager {
     }
   }
 }
+
+internal class DefaultDocRenderItemUpdateProvider : DocRenderItemUpdateProvider {
+  override fun getItems(editor: Editor): Collection<DocRenderItem> {
+    return DocRenderItemManager.getInstance().getItems(editor) ?: emptyList()
+  }
+}

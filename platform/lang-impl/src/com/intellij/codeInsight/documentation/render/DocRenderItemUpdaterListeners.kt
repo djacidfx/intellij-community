@@ -180,7 +180,7 @@ object DocRenderItemUpdaterListeners {
         val lineNumber = document.getLineNumber(neighborOffset)
         val searchStartOffset = document.getLineStartOffset(0.coerceAtLeast(lineNumber - 1))
         val searchEndOffset = document.getLineEndOffset(lineNumber)
-        val items = DocRenderItemManager.getInstance().getItems(editor) ?: return null
+        val items = DocRenderItemUpdateProvider.getAllItems(editor) ?: return null
         for (item in items) {
           val highlighter = item.highlighter
           if (highlighter.isValid && highlighter.startOffset <= searchEndOffset && highlighter.endOffset >= searchStartOffset) {

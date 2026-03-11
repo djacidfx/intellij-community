@@ -1013,8 +1013,9 @@
     <pathMacroFilter implementation="com.intellij.ide.projectView.impl.ProjectViewPathMacroFilter"/>
     <projectService serviceImplementation="com.intellij.ide.projectView.impl.ProjectViewState"/>
 
-    <applicationService serviceInterface="com.intellij.codeInsight.documentation.render.DocRenderItemManager" open="true"
+    <applicationService serviceInterface="com.intellij.codeInsight.documentation.render.DocRenderItemManager"
                         serviceImplementation="com.intellij.codeInsight.documentation.render.DocRenderItemManagerImpl" />
+    <codeInsight.documentation.render.itemUpdateProvider implementation="com.intellij.codeInsight.documentation.render.DefaultDocRenderItemUpdateProvider"/>
     <applicationService serviceInterface="com.intellij.codeInsight.documentation.render.DocRendererProvider" open="true"
                         serviceImplementation="com.intellij.codeInsight.documentation.render.DocRendererProviderImpl" />
     <projectService serviceInterface="com.intellij.codeInsight.documentation.render.InlineDocumentationFinder" open="true"
