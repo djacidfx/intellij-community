@@ -171,7 +171,7 @@ class KotlinCompilerReferenceIndexService(private val project: Project, private 
         }
     }
 
-    private fun onExternalCompilationDetected(compiledModules: List<Module>) {
+    private fun onExternalCompilationDetected(compiledModules: Collection<Module>) {
         val allModules = if (!initialized) allModules() else null
         compilationCounter.increment()
         val projectPath = runReadActionBlocking { projectIfNotDisposed?.basePath }
@@ -183,7 +183,7 @@ class KotlinCompilerReferenceIndexService(private val project: Project, private 
             if (!initialized) {
                 initialize(allModules, compiledModules)
             } else {
-                compilerActivityFinished(compiledModules)
+                compilerActivityFinished(compiledModules.toList())
             }
         }
     }

@@ -6,20 +6,30 @@ package org.jetbrains.kotlin.idea.search.refIndex.bta
 import com.intellij.openapi.application.runReadActionBlocking
 import com.intellij.openapi.externalSystem.util.ExternalSystemApiUtil
 import com.intellij.openapi.module.Module
+import com.intellij.openapi.module.ModuleManager
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ModuleRootManager
+import org.jetbrains.annotations.ApiStatus
+import com.intellij.openapi.util.io.toNioPathOrNull
 import org.jetbrains.kotlin.buildtools.api.ExperimentalBuildToolsApi
 import org.jetbrains.kotlin.buildtools.api.cri.CriToolchain
 import org.jetbrains.kotlin.idea.base.util.isGradleModule
 import org.jetbrains.kotlin.idea.base.util.isMavenModule
 import java.nio.file.Path
 import kotlin.io.path.div
+import kotlin.io.path.exists
+import kotlin.io.path.isDirectory
+import kotlin.io.path.listDirectoryEntries
 
-internal fun Module.getCriPath(): Path? {
-    val modulePath = Path.of(getPath() ?: return null)
+internal fun Project.getCriPaths(): Collection<Path> = ModuleManager.getInstance(this).modules
+    .flatMapTo(mutableSetOf(), Module::getCriPaths)
+
+internal fun Module.getCriPaths(): Collection<Path> {
+    val modulePath = getPath()?.toNioPathOrNull() ?: return emptyList()
     return when {
-        isGradleModule -> getGradleCriPath(modulePath)
-        isMavenModule -> getMavenCriPath(modulePath)
-        else -> null
+        isGradleModule -> getGradleCriPaths(modulePath)
+        isMavenModule -> listOfNotNull(getMavenCriPath(modulePath))
+        else -> emptyList()
     }
 }
 
@@ -33,6 +43,20 @@ private fun Module.getPath(): String? = runReadActionBlocking {
         ?: ModuleRootManager.getInstance(this).contentRoots.firstOrNull()?.path
 }
 
-private fun getGradleCriPath(modulePath: Path) = modulePath / "build" / "kotlin" / "compileKotlin" / "cacheable" / CriToolchain.DATA_PATH
+@ApiStatus.Internal
+fun getGradleCriPaths(modulePath: Path): Collection<Path> {
+    val kotlinBuildDirectory = modulePath / "build" / "kotlin"
+    if (!kotlinBuildDirectory.exists() || !kotlinBuildDirectory.isDirectory()) return emptyList()
 
-private fun getMavenCriPath(modulePath: Path) = modulePath / "target" / "kotlin-ic" / "compile" / CriToolchain.DATA_PATH
+    // Gradle writes CRI into a separate build/kotlin/<compile task>/cacheable/cri directory per compilation task
+    return kotlinBuildDirectory.listDirectoryEntries()
+        .asSequence()
+        .map { it / "cacheable" / CriToolchain.DATA_PATH }
+        .filter { it.exists() }
+        .toSet()
+}
+
+private fun getMavenCriPath(modulePath: Path): Path? {
+    val criPath = modulePath / "target" / "kotlin-ic" / "compile" / CriToolchain.DATA_PATH
+    return criPath.takeIf { it.exists() }
+}

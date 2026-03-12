@@ -2,6 +2,7 @@
 package org.jetbrains.kotlin.idea.search.refIndex.bta
 
 import com.intellij.openapi.module.Module
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import org.jetbrains.kotlin.idea.search.refIndex.IncrementalKotlinCompilerReferenceIndexStorage
@@ -10,6 +11,7 @@ import org.jetbrains.kotlin.name.FqName
 import java.nio.file.Path
 
 internal class BtaKotlinCompilerReferenceIndexStorageImpl(
+    private val project: Project,
     private val projectPath: String,
     @Volatile private var lookupStoragesByRoot: Map<Path, BtaLookupInMemoryStorage>,
     @Volatile private var subtypeStoragesByRoot: Map<Path, BtaSubtypeInMemoryStorage>,
@@ -30,25 +32,35 @@ internal class BtaKotlinCompilerReferenceIndexStorageImpl(
         .distinct()
 
     override fun refreshModules(modules: Collection<Module>): Boolean {
-        val updatedCriRoots = modules.mapNotNullTo(mutableSetOf(), Module::getCriPath)
-        if (updatedCriRoots.isEmpty()) return lookupStoragesByRoot.isNotEmpty()
+        // Rebuild from the current project roots so stale CRI directories
+        // (which disappeared after a recompilation or a source set change) do not stay loaded indefinitely
+        val updatedCriRoots = modules.flatMapTo(mutableSetOf(), Module::getCriPaths)
+        val currentCriRoots = project.getCriPaths()
 
-        val refreshedLookupStorages = lookupStoragesByRoot.toMutableMap()
-        val refreshedSubtypeStorages = subtypeStoragesByRoot.toMutableMap()
-
-        for (criRoot in updatedCriRoots) {
-            val lookupStorage = BtaLookupInMemoryStorage.create(criRoot, projectPath)
-            if (lookupStorage != null) {
-                refreshedLookupStorages[criRoot] = lookupStorage
-            } else {
-                refreshedLookupStorages.remove(criRoot)
+        // Recreate storages for changed or newly discovered CRI roots, but keep existing instances for unchanged roots
+        val refreshedLookupStorages = buildMap {
+            for (criRoot in currentCriRoots) {
+                val storage = if (criRoot in updatedCriRoots || criRoot !in lookupStoragesByRoot) {
+                    BtaLookupInMemoryStorage.create(criRoot, projectPath)
+                } else {
+                    lookupStoragesByRoot[criRoot]
+                }
+                if (storage != null) {
+                    put(criRoot, storage)
+                }
             }
+        }
 
-            val subtypeStorage = BtaSubtypeInMemoryStorage.create(criRoot)
-            if (subtypeStorage != null) {
-                refreshedSubtypeStorages[criRoot] = subtypeStorage
-            } else {
-                refreshedSubtypeStorages.remove(criRoot)
+        val refreshedSubtypeStorages = buildMap {
+            for (criRoot in currentCriRoots) {
+                val storage = if (criRoot in updatedCriRoots || criRoot !in subtypeStoragesByRoot) {
+                    BtaSubtypeInMemoryStorage.create(criRoot)
+                } else {
+                    subtypeStoragesByRoot[criRoot]
+                }
+                if (storage != null) {
+                    put(criRoot, storage)
+                }
             }
         }
 

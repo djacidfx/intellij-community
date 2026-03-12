@@ -7,6 +7,7 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.registry.Registry
+import org.jetbrains.annotations.ApiStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -15,6 +16,7 @@ import org.jetbrains.kotlin.buildtools.api.ExperimentalBuildToolsApi
 import org.jetbrains.kotlin.buildtools.api.cri.CriToolchain
 import org.jetbrains.kotlin.idea.base.util.isMavenModule
 import org.jetbrains.kotlin.idea.gradle.configuration.readGradleProperty
+import org.jetbrains.kotlin.idea.search.refIndex.bta.BtaFileWatcher.Companion.ENABLE_BTA_CRI_KEY
 import org.jetbrains.plugins.gradle.settings.GradleSettings
 import java.io.IOException
 import java.nio.file.Path
@@ -28,7 +30,7 @@ import kotlin.time.Duration.Companion.seconds
  * Watches KCRI artifact directories produced by Kotlin Build Tools API-based builds (Gradle and Maven)
  * and detects which modules were recompiled by comparing file timestamps.
  *
- * For Gradle, KCRI artifacts are located at `build/kotlin/compileKotlin/cacheable/cri/` under each module directory.
+ * For Gradle, KCRI artifacts are located at `build/kotlin/<compile task>/cacheable/cri/` under each module directory.
  * For Maven, KCRI artifacts are located at `target/kotlin-ic/compile/cri/` under each module directory.
  *
  * Uses periodic polling via a coroutine with [delay] to check KCRI artifact timestamps.
@@ -37,7 +39,7 @@ import kotlin.time.Duration.Companion.seconds
 internal class BtaFileWatcher(private val project: Project) {
     private val lastSeenCriTimestamps = ConcurrentHashMap<Path, FileTime>()
 
-    fun watchIn(coroutineScope: CoroutineScope, onModulesCompiled: (List<Module>) -> Unit) {
+    fun watchIn(coroutineScope: CoroutineScope, onModulesCompiled: (Collection<Module>) -> Unit) {
         coroutineScope.launch(Dispatchers.IO) {
             while (true) {
                 delay(POLLING_INTERVAL)
@@ -46,30 +48,42 @@ internal class BtaFileWatcher(private val project: Project) {
         }
     }
 
-    private fun checkForExternalCompilation(onModulesCompiled: (List<Module>) -> Unit) {
+    private fun checkForExternalCompilation(onModulesCompiled: (Collection<Module>) -> Unit) {
         val modules = runReadActionBlocking {
             if (project.isDisposed) return@runReadActionBlocking emptyArray()
             ModuleManager.getInstance(project).modules
         }
-        // Since `module_name` and `module_name.main` are different modules but share the same BTA CRI artifacts,
-        // we need to group them by their CRI path
-        val updatedModules = modules.groupBy { it.getCriPath() }.flatMap { (criPath, modules) ->
-            val criPath = criPath ?: return@flatMap emptyList()
-            val lookupsFile = criPath.resolve(CriToolchain.LOOKUPS_FILENAME)
-            if (!lookupsFile.exists()) return@flatMap emptyList()
-            val currentTimestamp = try {
-                lookupsFile.getLastModifiedTime()
-            } catch (e: IOException) {
-                LOG.warn("Failed to check CRI timestamp for lookups in modules ${modules.joinToString { it.name }}", e)
-                return@flatMap emptyList()
-            }
 
-            val previousTimestamp = lastSeenCriTimestamps[criPath]
-            if (previousTimestamp == null || currentTimestamp > previousTimestamp) {
-                lastSeenCriTimestamps[criPath] = currentTimestamp
-                return@flatMap modules
+        // Gradle import creates separate IntelliJ modules for `module_name`, `module_name.main`, and `module_name.test`,
+        // but they share the same Gradle project directory and therefore the same CRI artifact paths.
+        // Grouping by CRI path avoids checking the same directory multiple times per poll and reporting duplicate module updates.
+        val modulesByCriPath = buildMap {
+            for (module in modules) {
+                for (criPath in module.getCriPaths()) {
+                    getOrPut(criPath) { mutableSetOf() }.add(module)
+                }
             }
-            emptyList()
+        }
+
+        for (criPath in lastSeenCriTimestamps.keys) {
+            if (criPath !in modulesByCriPath) {
+                lastSeenCriTimestamps.remove(criPath)
+            }
+        }
+
+        val updatedModules = buildSet {
+            for ((criPath, criModules) in modulesByCriPath) {
+                val currentTimestamp = getCriArtifactTimestamp(criPath) ?: continue
+
+                lastSeenCriTimestamps.compute(criPath) { _, previousTimestamp ->
+                    if (previousTimestamp == null || currentTimestamp > previousTimestamp) {
+                        addAll(criModules)
+                        currentTimestamp
+                    } else {
+                        previousTimestamp
+                    }
+                }
+            }
         }
 
         if (updatedModules.isNotEmpty()) {
@@ -100,5 +114,26 @@ internal class BtaFileWatcher(private val project: Project) {
         private fun isMavenCriEnabled(project: Project): Boolean = runReadActionBlocking {
             ModuleManager.getInstance(project).modules.any { it.isMavenModule }
         }
+
     }
+}
+
+@OptIn(ExperimentalBuildToolsApi::class)
+@ApiStatus.Internal
+fun getCriArtifactTimestamp(criPath: Path): FileTime? {
+    // Get the latest timestamp across all CRI artifacts used by BTA storages.
+    return sequenceOf(
+        criPath.resolve(CriToolchain.LOOKUPS_FILENAME),
+        criPath.resolve(CriToolchain.FILE_IDS_TO_PATHS_FILENAME),
+        criPath.resolve(CriToolchain.SUBTYPES_FILENAME),
+    )
+        .filter { it.exists() }
+        .mapNotNull {
+            try {
+                it.getLastModifiedTime()
+            } catch (_: IOException) {
+                null
+            }
+        }
+        .maxOrNull()
 }

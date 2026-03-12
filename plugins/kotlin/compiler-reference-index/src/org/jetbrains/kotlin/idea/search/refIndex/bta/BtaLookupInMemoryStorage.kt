@@ -34,7 +34,12 @@ internal class BtaLookupInMemoryStorage private constructor(
             val lookupsData = criRoot.resolve(CriToolchain.LOOKUPS_FILENAME).readBytes()
             val fileIdsToPathsData = criRoot.resolve(CriToolchain.FILE_IDS_TO_PATHS_FILENAME).readBytes()
 
-            val toolchains = KotlinToolchains.loadImplementation(ClassLoader.getSystemClassLoader())
+            val toolchains = try {
+                KotlinToolchains.loadImplementation(ClassLoader.getSystemClassLoader())
+            } catch (e: Throwable) {
+                return null
+                // org.jetbrains.kotlin.buildtools.api.NoImplementationFoundException: The classpath contains no implementation for org.jetbrains.kotlin.buildtools.api.KotlinToolchains
+            }
             val (lookupEntries, fileIdToPathEntries) = toolchains.createBuildSession().use { session ->
                 val criToolchain = session.kotlinToolchains.cri
                 // TODO KTIJ-37735: use streaming deserialization to avoid reading whole files
