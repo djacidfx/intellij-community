@@ -1,11 +1,12 @@
 load("//:rules/library.bzl", _jvm_library = "jvm_library")
 load("//:rules/provided-library.bzl", _jvm_provided_library = "jvm_provided_library")
 load("//:rules/import.bzl", _jvm_import = "jvm_import")
-load("//:rules/resource.bzl", _resourcegroup = "resourcegroup")
+load("//:rules/resource.bzl", _ResourceGroupInfo = "ResourceGroupInfo", _resourcegroup = "resourcegroup")
 load("@rules_kotlin//kotlin/internal:opts.bzl", _kt_javac_options = "kt_javac_options")
 load("//:rules/impl/kotlinc-options.bzl", _kt_kotlinc_options = "kt_kotlinc_options")
 
 resourcegroup = _resourcegroup
+ResourceGroupInfo = _ResourceGroupInfo
 jvm_library = _jvm_library
 
 jvm_provided_library = _jvm_provided_library

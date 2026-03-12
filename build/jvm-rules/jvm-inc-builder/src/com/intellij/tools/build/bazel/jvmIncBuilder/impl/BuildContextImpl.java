@@ -139,6 +139,10 @@ public class BuildContextImpl implements BuildContext {
       String stripPrefix = parts[0];
       String addPrefix = parts[1];
       Map<NodeSource, String> resourcesMap = new HashMap<>();
+      if (parts.length == 2) {
+        // Empty resource directory passed as an argument, nothing to parse, continue
+        continue;
+      }
       for (String file : parts[2].split(":")) {
         Path path = baseDir.resolve(file).normalize();
         String digest = getDigest.apply(file);

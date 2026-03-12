@@ -614,6 +614,28 @@ internal class BazelBuildFileGenerator(
 
     load("@rules_jvm//:jvm.bzl", "jvm_library")
 
+    var deps = moduleList.deps.get(moduleDescriptor)
+    if (deps != null && deps.provided.isNotEmpty()) {
+      val extraDeps = generateProvidedLibs(deps.provided)
+      deps = deps.copy(deps = deps.deps + extraDeps)
+      generatedProvidedLibs = extraDeps
+    }
+
+    val mustGenerateFleetPluginServicesResources = moduleDescriptor.isFleetModule() && hasRhizomeDbOrPluginDependency(moduleList, moduleDescriptor)
+    if (mustGenerateFleetPluginServicesResources) {
+      val codegenTargetName = "${moduleDescriptor.targetName}_fleet_plugin_services_resources"
+      val ruleName = "fleet_plugin_services_resources"
+      load("@community//fleet/build:fleet.bzl", ruleName)
+      target(ruleName) {
+        option("name", codegenTargetName)
+        option("srcs", sourcesToGlob(sources, moduleDescriptor))
+        if (deps?.deps?.isNotEmpty() == true) {
+          option("deps", deps.deps)
+        }
+      }
+      resourceTargets.add(BazelLabel(label = codegenTargetName, module = null))
+    }
+
     target("jvm_library") {
       option("name", moduleDescriptor.targetName)
       productionCompileTargets.add(moduleDescriptor.targetAsLabel)
@@ -647,24 +669,12 @@ internal class BazelBuildFileGenerator(
       if (module.name == "fleet.util.multiplatform" || module.name == "intellij.platform.multiplatformSupport") {
         option("exported_compiler_plugins", listOf("@community//fleet/compiler-plugins/expects:expects-plugin"))
       }
-      //else if (module.name == "fleet.rhizomedb") {
-        // https://youtrack.jetbrains.com/issue/IJI-2662/RhizomedbCommandLineProcessor-requires-output-dir-but-we-dont-have-it-for-Bazel-compilation
-        //option("exported_compiler_plugins", arrayOf("@lib//:rhizomedb-plugin"))
-      //}
       else if (module.name == "fleet.rpc") {
         option("exported_compiler_plugins", listOf("@community//fleet/compiler-plugins/rpc:rpc-plugin"))
       }
       else if (module.name == "fleet.noria.cells") {
         option("exported_compiler_plugins", listOf("@community//fleet/compiler-plugins/noria:noria-plugin"))
       }
-
-      var deps = moduleList.deps.get(moduleDescriptor)
-      if (deps != null && deps.provided.isNotEmpty()) {
-        val extraDeps = generateProvidedLibs(deps.provided)
-        deps = deps.copy(deps = deps.deps + extraDeps)
-        generatedProvidedLibs = extraDeps
-      }
-
       renderDeps(deps = deps, target = this, resourceDependencies = emptyList(), forTests = false)
     }
 
@@ -739,6 +749,19 @@ internal class BazelBuildFileGenerator(
       testTargets = testCompileTargets.map { addPackagePrefix(it) },
       testJars = testCompileTargets.map { getJarLocation(it) },
     )
+  }
+
+  private fun ModuleDescriptor.isFleetModule(): Boolean {
+    return module.name.startsWith("fleet.")
+  }
+
+  private fun hasRhizomeDbOrPluginDependency(
+    moduleList: ModuleList,
+    moduleDescriptor: ModuleDescriptor,
+  ): Boolean {
+    val moduleDeps = moduleList.deps.get(moduleDescriptor) ?: return false
+    val allDependencies = moduleDeps.deps + moduleDeps.provided
+    return allDependencies.any { it.module?.module?.name in setOf("fleet.rhizomedb", "fleet.kernel.plugins") }
   }
 
   private fun Target.sourcesToGlob(sources: List<SourceDirDescriptor>, module: ModuleDescriptor): Renderable {

@@ -1,5 +1,3 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 // IMPORT__MARKER_START
 import fleet.buildtool.conventions.configureAtMostOneJvmTargetOrThrow
 import fleet.buildtool.conventions.withJavaSourceSet
@@ -10,7 +8,6 @@ plugins {
   id("fleet.project-module-conventions")
   id("fleet.toolchain-conventions")
   alias(libs.plugins.dokka)
-  id("fleet.module-publishing-conventions")
   // GRADLE_PLUGINS__MARKER_START
   id("fleet-module")
   // GRADLE_PLUGINS__MARKER_END
@@ -18,20 +15,8 @@ plugins {
 
 fleetModule {
   module {
-    name = "fleet.build.buildtool.cli"
+    name = "fleet.build.kernel.plugins.processor"
     importedFromJps {}
-  }
-}
-
-kotlin {
-  jvm {
-    @OptIn(ExperimentalKotlinGradlePluginApi::class)
-    binaries {
-      // Configures a JavaExec task named "runJvm" and a Gradle distribution for the "main" compilation in this target
-      executable {
-        mainClass.set("fleet.buildtool.cli.commands.GenerateInitModuleDescriptorCommandKt")
-      }
-    }
   }
 }
 
@@ -66,39 +51,11 @@ kotlin {
     implementation(jps.org.jetbrains.kotlinx.kotlinx.io.core.jvm479158162.get().let { "${it.group}:kotlinx-io-core:${it.version}" }) {
       exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
     }
-    implementation(jps.org.slf4j.slf4j.api2013636515.get().let { "${it.group}:${it.name}:${it.version}" }) {
-      isTransitive = false
-      exclude(group = "org.slf4j", module = "slf4j-jdk14")
-    }
-    implementation(jps.ch.qos.logback.logback.classic410158546.get().let { "${it.group}:${it.name}:${it.version}" }) {
-      exclude(group = "org.slf4j", module = "slf4j-api")
-      exclude(group = "com.sun.mail", module = "javax.mail")
-    }
     implementation(jps.org.jetbrains.intellij.deps.kotlinx.kotlinx.coroutines.core.jvm930800474.get().let { "${it.group}:kotlinx-coroutines-core:${it.version}" }) {
       isTransitive = false
     }
     implementation(jps.com.google.devtools.ksp.symbol.processing.api1172187089.get().let { "${it.group}:${it.name}:${it.version}" }) {
       isTransitive = false
-    }
-    implementation(jps.com.google.devtools.ksp.symbol.processing.aa.embeddable356149943.get().let { "${it.group}:${it.name}:${it.version}" }) {
-      isTransitive = false
-    }
-    implementation(jps.com.google.devtools.ksp.symbol.processing.common.deps1883862941.get().let { "${it.group}:${it.name}:${it.version}" }) {
-      isTransitive = false
-    }
-    api(jps.com.github.ajalt.clikt.clikt.core.jvm23167398.get().let { "${it.group}:clikt-core:${it.version}" }) {
-      isTransitive = false
-    }
-    api(jps.com.github.ajalt.clikt.clikt.jvm1164206222.get().let { "${it.group}:clikt:${it.version}" }) {
-      exclude(group = "com.github.ajalt.clikt", module = "clikt-core-jvm")
-      exclude(group = "com.github.ajalt.clikt", module = "clikt-core")
-      exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
-      exclude(group = "com.github.ajalt.mordant", module = "mordant-jvm-jna-jvm")
-      exclude(group = "com.github.ajalt.mordant", module = "mordant-jvm-jna")
-      exclude(group = "com.github.ajalt.mordant", module = "mordant-jvm-ffm-jvm")
-      exclude(group = "com.github.ajalt.mordant", module = "mordant-jvm-ffm")
-      exclude(group = "com.github.ajalt.mordant", module = "mordant-jvm-graal-ffi-jvm")
-      exclude(group = "com.github.ajalt.mordant", module = "mordant-jvm-graal-ffi")
     }
   }
   // KOTLIN__MARKER_END

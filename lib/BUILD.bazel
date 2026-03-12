@@ -2821,6 +2821,43 @@ jvm_import(
 )
 
 copy_file(
+  name = "ch.qos.logback/logback-classic-1.3.14.jar_copy",
+  src = "@ch_qos_logback-logback-classic-1_3_14_http//file",
+  out = "ch.qos.logback/logback-classic-1.3.14.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "ch.qos.logback/logback-core-1.3.14.jar_copy",
+  src = "@ch_qos_logback-logback-core-1_3_14_http//file",
+  out = "ch.qos.logback/logback-core-1.3.14.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+java_library(
+  name = "fleet-logback-classic",
+  exports = [
+    ":ch_qos_logback-logback-classic-1_3_14_http_import",
+    ":ch_qos_logback-logback-core-1_3_14_http_import",
+  ],
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "ch_qos_logback-logback-classic-1_3_14_http_import",
+  jar = "@ch_qos_logback-logback-classic-1_3_14_http//file",
+  source_jar = "@ch_qos_logback-logback-classic-1_3_14-sources_http//file"
+)
+
+jvm_import(
+  name = "ch_qos_logback-logback-core-1_3_14_http_import",
+  jar = "@ch_qos_logback-logback-core-1_3_14_http//file",
+  source_jar = "@ch_qos_logback-logback-core-1_3_14-sources_http//file"
+)
+
+copy_file(
   name = "org.fusesource.jansi/jansi-2.4.1.jar_copy",
   src = "@org_fusesource_jansi-jansi-2_4_1_http//file",
   out = "org.fusesource.jansi/jansi-2.4.1.jar",
