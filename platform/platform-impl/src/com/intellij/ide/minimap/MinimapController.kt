@@ -88,6 +88,9 @@ class MinimapController(
     val state = settings.state
     val panelHeight = max(panel.height, 0)
     val scaleData = MinimapScaleUtil.computeScale(editor, panelHeight, state.width, state.scaleMode)
+    if (!updatePanelVisibility(scaleData.width)) {
+      return
+    }
     if (panel.updatePreferredWidth(scaleData.width)) {
       panel.revalidate()
     }
@@ -95,6 +98,22 @@ class MinimapController(
     val panelWidth = max(panel.width, scaleData.width)
     val snapshot = sceneBuilder.buildSnapshot(panelWidth, panelHeight, scaleData, state.scaleMode, MinimapRegistry.isLegacy())
     panel.updateSnapshot(snapshot)
+  }
+
+  private fun updatePanelVisibility(minimapWidth: Int): Boolean {
+    val shouldBeVisible = !shouldHideForNarrowEditor(minimapWidth)
+    if (panel.isVisible == shouldBeVisible) return shouldBeVisible
+    panel.isVisible = shouldBeVisible
+    container.revalidate()
+    container.repaint()
+    return shouldBeVisible
+  }
+
+  private fun shouldHideForNarrowEditor(minimapWidth: Int): Boolean {
+    if (minimapWidth <= 0) return false
+    val editorWidth = container.width
+    if (editorWidth <= 0) return false
+    return editorWidth.toLong() <= minimapWidth.toLong() * HIDE_MINIMAP_EDITOR_WIDTH_MULTIPLIER
   }
 
   fun updateStructureMarkersNow() {
@@ -115,5 +134,6 @@ class MinimapController(
 
   companion object {
     private const val STRUCTURE_MARKERS_DEBOUNCE_MS: Long = 125
+    private const val HIDE_MINIMAP_EDITOR_WIDTH_MULTIPLIER: Long = 2
   }
 }

@@ -13,9 +13,9 @@ data class MinimapSettingsState(var enabled: Boolean = true,
                                 var width: Int = FIXED_WIDTH,
                                 var scaleMode: MinimapScaleMode = MinimapScaleMode.FILL,
                                 var rightAligned: Boolean = true,
-                                // TODO: come up with a more user-friendly and sustanable solution
+                                // TODO: come up with a more user-friendly and sustainable solution
                                 var fileTypes: List<String> = listOf("zpln", "py", "json", "html", "txt")) {
   companion object {
-    val FIXED_WIDTH: Int = JBUI.scale(200)
+    val FIXED_WIDTH: Int = JBUI.scale(160)
   }
 }
