@@ -3,6 +3,8 @@ package com.intellij.internal.statistic.devkit.toolwindow
 
 import com.intellij.diagnostic.logging.LogConsoleBase
 import com.intellij.icons.AllIcons.Actions.PrettyPrint
+import com.intellij.ide.plugins.PluginManager
+import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.internal.statistic.StatisticsBundle
 import com.intellij.internal.statistic.devkit.actions.CleanupEventsTestSchemeAction
 import com.intellij.internal.statistic.devkit.actions.ConfigureEventsSchemeFileAction
@@ -90,6 +92,11 @@ internal class StatisticsEventLogToolWindow(private val project: Project, privat
     Disposer.register(this, consoleLog)
     service<EventLogListenersManager>().subscribe(eventLogListener, recorderId)
     StatisticsEventLogToolWindowEPLogProvider.EP_NAME.extensionList.forEach {
+      val epPlugin = PluginManager.getPluginByClass(it.javaClass) ?: return@forEach
+      if (!PluginManagerCore.isDevelopedExclusivelyByJetBrains(epPlugin)) {
+        return@forEach
+      }
+
       it.init(project)
       it.subscribe(recorderId) { message ->
         application.invokeLater { consoleLog.addLogLine(message) }
