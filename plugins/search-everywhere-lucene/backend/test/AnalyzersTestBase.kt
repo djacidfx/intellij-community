@@ -13,9 +13,9 @@ import org.junit.jupiter.api.Assertions.assertTrue
  */
 abstract class AnalyzersTestBase {
 
-  protected fun tokenizing(analyzer: Analyzer, text: String): TokenAssertion {
+  protected fun tokenizing(analyzer: Analyzer, text: String, fieldName: String = "content"): TokenAssertion {
     val tokens = mutableListOf<TokenInfo>()
-    val tokenStream = analyzer.tokenStream("content", text)
+    val tokenStream = analyzer.tokenStream(fieldName, text)
     val termAttr = tokenStream.addAttribute(CharTermAttribute::class.java)
     val typeAttr = tokenStream.addAttribute(TypeAttribute::class.java)
     val offsetAttr = tokenStream.addAttribute(OffsetAttribute::class.java)
