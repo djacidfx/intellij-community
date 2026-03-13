@@ -70,6 +70,7 @@ import com.jetbrains.python.psi.types.PyNeverType;
 import com.jetbrains.python.psi.types.PyParamSpecType;
 import com.jetbrains.python.psi.types.PyPositionalVariadicType;
 import com.jetbrains.python.psi.types.PySelfType;
+import com.jetbrains.python.psi.types.PySentinelType;
 import com.jetbrains.python.psi.types.PyTupleType;
 import com.jetbrains.python.psi.types.PyType;
 import com.jetbrains.python.psi.types.PyTypeChecker;
@@ -97,6 +98,7 @@ import java.util.Objects;
 import static com.jetbrains.python.psi.PyUtil.as;
 import static com.jetbrains.python.psi.impl.PyCallExpressionHelper.mapArguments;
 import static com.jetbrains.python.psi.types.PyNoneTypeKt.isNoneType;
+import static com.jetbrains.python.psi.types.PyTypeUtilKt.isObject;
 
 public class PyTypeCheckerInspection extends PyInspection {
   private static final Logger LOG = Logger.getInstance(PyTypeCheckerInspection.class.getName());
@@ -350,11 +352,15 @@ public class PyTypeCheckerInspection extends PyInspection {
         }
       }
 
-      PyType actual = tryPromotingType(assignedValue, expected);
-
       if (expected instanceof PyTypedDictType expectedTypedDictType && PyTypedDictType.isDictExpression(assignedValue, myTypeEvalContext)) {
         reportTypedDictProblems(expectedTypedDictType, assignedValue);
         return;
+      }
+
+      PyType actual = tryPromotingType(assignedValue, expected);
+
+      if (expected instanceof PySentinelType) {
+        if (isObject(actual)) return;
       }
 
       if (!PyTypeChecker.match(expected, actual, myTypeEvalContext)) {
@@ -511,6 +517,9 @@ public class PyTypeCheckerInspection extends PyInspection {
       if (expectedRef == null) return;
       final var expected = expectedRef.get();
       final var actual = tryPromotingType(defaultValue, expected);
+      
+      if (actual instanceof PySentinelType) return;
+
       if (!PyTypeChecker.match(expected, actual, myTypeEvalContext)) {
         registerProblem(defaultValue, typeMismatchMessage(expected, actual),
                         effectiveHighlightType(ProblemHighlightType.GENERIC_ERROR_OR_WARNING));

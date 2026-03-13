@@ -687,6 +687,10 @@ object PyTypeChecker {
       return Optional.of(match(expected, actual))
     }
 
+    if (expected is PySentinelType || actual is PySentinelType) {
+      return Optional.of(false)
+    }
+
     val superClass = expected.pyClass
     val subClass = actual.pyClass
 

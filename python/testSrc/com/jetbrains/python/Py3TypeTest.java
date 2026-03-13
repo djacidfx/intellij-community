@@ -4726,6 +4726,28 @@ public class Py3TypeTest extends PyTestCase {
       """);
   }
 
+  @TestFor(issues = "PY-87997")
+  public void testSentinelAsDefaultValueForParameter() {
+    doTest("int | SENTINEL", """
+      SENTINEL = object()
+      
+      def f(a: int = SENTINEL):
+          b = a
+          expr = b
+      """);
+  }
+
+  @TestFor(issues = "PY-87997")
+  public void testSentinelAssignedInsideFunction() {
+    doTest("SENTINEL", """
+      SENTINEL = object()
+      
+      def f(a: int = SENTINEL):
+          a = SENTINEL
+          expr = a
+      """);
+  }
+
   // PY-86928
   public void testProperlyImportedQualifiedNameInTypeHint() {
     doMultiFileTest("MyClass", """

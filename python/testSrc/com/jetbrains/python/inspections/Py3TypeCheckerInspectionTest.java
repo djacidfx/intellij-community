@@ -1553,6 +1553,31 @@ public class Py3TypeCheckerInspectionTest extends PyInspectionTestCase {
                    """);
   }
 
+  @TestFor(issues = "PY-87997")
+  public void testParameterSentinelDefaultValue() {
+    doTestByText("""
+                   SENTINEL = object()
+                   
+                   def f(a: int = SENTINEL): ...
+                   
+                   f(1)
+                   f(SENTINEL)
+                   
+                   ANOTHER_SENTINEL = object()
+                   COPIED_SENTINEL = SENTINEL
+                   f(<warning descr="Expected type 'int | SENTINEL', got 'ANOTHER_SENTINEL' instead">ANOTHER_SENTINEL</warning>)
+                   f(<warning descr="Expected type 'int | SENTINEL', got 'COPIED_SENTINEL' instead">COPIED_SENTINEL</warning>)
+                   f(<warning descr="Expected type 'int | SENTINEL', got 'object' instead">object()</warning>)
+                   
+                   _: object = object()
+                   _: int = <warning descr="Expected type 'int', got 'object' instead">object()</warning>
+                   
+                   _ = SENTINEL
+                   _: object = SENTINEL
+                   _: int = <warning descr="Expected type 'int', got 'SENTINEL' instead">SENTINEL</warning>
+                   """);
+  }
+
   // PY-53611
   public void testTypedDictRequiredNotRequiredEquivalence() {
     runWithLanguageLevel(LanguageLevel.getLatest(), this::doTest);

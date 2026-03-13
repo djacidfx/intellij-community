@@ -21,6 +21,7 @@ import com.intellij.openapi.util.UserDataHolder
 import com.intellij.psi.PsiElement
 import com.jetbrains.python.psi.PyExpression
 import com.jetbrains.python.psi.PyPsiFacade
+import com.jetbrains.python.psi.PyUtil.isObjectClass
 import com.jetbrains.python.psi.impl.PyBuiltinCache
 import com.jetbrains.python.psi.types.PyRecursiveTypeVisitor.PyTypeTraverser
 import com.jetbrains.python.psi.types.PyTypeChecker.convertToType
@@ -408,6 +409,15 @@ val PyType?.isUnknown: Boolean get() {
 
   PyAnyType.validate(this)
   return if (PyAnyType.isEnabled) this is PyAnyType.Unknown else this == null
+}
+
+@OptIn(ExperimentalContracts::class)
+val PyType?.isObject: Boolean get() {
+  contract {
+    returns(true) implies (this@isObject is PyClassType)
+  }
+
+  return this is PyClassType && isObjectClass(this.pyClass)
 }
 
 @ApiStatus.Internal

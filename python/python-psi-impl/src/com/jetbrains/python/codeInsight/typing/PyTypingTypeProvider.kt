@@ -117,6 +117,7 @@ import com.jetbrains.python.psi.types.PyOverloadType
 import com.jetbrains.python.psi.types.PyParamSpecType
 import com.jetbrains.python.psi.types.PyPositionalVariadicType
 import com.jetbrains.python.psi.types.PySelfType
+import com.jetbrains.python.psi.types.PySentinelType
 import com.jetbrains.python.psi.types.PyTupleType
 import com.jetbrains.python.psi.types.PyType
 import com.jetbrains.python.psi.types.PyTypeChecker
@@ -138,6 +139,7 @@ import com.jetbrains.python.psi.types.PyUnionType
 import com.jetbrains.python.psi.types.PyUnpackedTupleTypeImpl
 import com.jetbrains.python.psi.types.PyVariadicType
 import com.jetbrains.python.psi.types.TypeEvalContext
+import com.jetbrains.python.psi.types.isObject
 import com.jetbrains.python.sdk.legacy.PythonSdkUtil
 import one.util.streamex.StreamEx
 import org.jetbrains.annotations.ApiStatus
@@ -212,6 +214,15 @@ class PyTypingTypeProvider : PyTypeProviderWithCustomContext<Context?>() {
     }
     if (PyNames.NONE == param.defaultValueText) {
       return Ref(PyUnionType.union(type, getInstance(param).noneType))
+    }
+    if (context.typeContext.maySwitchToAST(param)) {
+      val defaultValue = param.defaultValue
+      if (defaultValue != null) {
+        val defaultType = context.typeContext.getType(defaultValue)
+        if (defaultType is PySentinelType) {
+          return Ref(PyUnionType.union(type, defaultType))
+        }
+      }
     }
     return Ref(type)
   }
@@ -331,6 +342,18 @@ class PyTypingTypeProvider : PyTypeProviderWithCustomContext<Context?>() {
         return null
       }
 
+      val qName = referenceTarget.qualifiedName
+
+      if (qName != null && name == name.uppercase() && context.typeContext.maySwitchToAST(referenceTarget)) {
+        val assignedValue = referenceTarget.findAssignedValue()
+        if (assignedValue != null) {
+          val type = context.typeContext.getType(assignedValue)
+          if (type.isObject) {
+            return Ref(PySentinelType(name, qName, type.pyClass))
+          }
+        }
+      }
+
       val pyClass = referenceTarget.containingClass
 
       if (referenceTarget.isQualified) {
@@ -409,6 +432,13 @@ class PyTypingTypeProvider : PyTypeProviderWithCustomContext<Context?>() {
             //    }
             //    else if (current.isKeywordContainer) {
             //      return Ref.create(current.toKeywordContainerType(type.get()))
+            //    }
+            //    val defaultValue = current.defaultValue
+            //    if (defaultValue != null) {
+            //      val defaultType = context.typeContext.getType(defaultValue)
+            //      if (defaultType is PySentinelType) {
+            //        return Ref.create(PyUnionType.union(type.get(), defaultType))
+            //      }
             //    }
             //    return type
             //  }
