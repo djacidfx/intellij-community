@@ -11,6 +11,7 @@ import com.intellij.platform.eel.EelDescriptor
 import com.intellij.platform.eel.provider.getEelDescriptor
 import com.intellij.platform.ijent.IjentId
 import com.intellij.platform.ijent.IjentPosixApi
+import com.intellij.platform.ijent.IjentSession
 import com.intellij.platform.ijent.IjentSessionRegistry
 import com.intellij.platform.ijent.spi.IjentThreadPool
 import com.intellij.platform.util.coroutines.childScope
@@ -40,33 +41,36 @@ class ProductionWslIjentManager(private val scope: CoroutineScope) : WslIjentMan
     )
   }
 
-  override suspend fun getIjentApi(descriptor: EelDescriptor?, wslDistribution: WSLDistribution, project: Project?, rootUser: Boolean): IjentPosixApi {
-    val descriptor = (descriptor ?: (project?.getEelDescriptor() as? WslEelDescriptor) ?: WslEelDescriptor(wslDistribution)) as WslEelDescriptor
-
+  @VisibleForTesting
+  suspend fun getIjentSession(wslDistribution: WSLDistribution, project: Project?, rootUser: Boolean, sessionScope: CoroutineScope): IjentSession.Posix {
     val ijentSessionRegistry = IjentSessionRegistry.instanceAsync()
     val ijentIdLabel = ijentIdLabel(wslDistribution, rootUser)
     val ijentId = myCache.computeIfAbsent(ijentIdLabel) { ijentName ->
       val ijentId = ijentSessionRegistry.register(ijentName) { ijentId ->
         val ijentSession = wslDistribution.createIjentSession(
-          scope,
+          sessionScope,
           project,
           ijentId.toString(),
           wslCommandLineOptionsModifier = { it.setSudo(rootUser) },
         )
-        scope.coroutineContext.job.invokeOnCompletion {
+        sessionScope.coroutineContext.job.invokeOnCompletion {
           ijentSession.close()
         }
         ijentSession
       }
-      scope.coroutineContext.job.invokeOnCompletion {
+      sessionScope.coroutineContext.job.invokeOnCompletion {
         ijentSessionRegistry.unregister(ijentId)
         myCache.remove(ijentName)
       }
       ijentId
     }
-    val ijent = ijentSessionRegistry.get(ijentId).getIjentInstance(descriptor)
     initializedIjents.add(ijentIdLabel)
-    return ijent
+    return ijentSessionRegistry.get(ijentId)
+  }
+
+  override suspend fun getIjentApi(descriptor: EelDescriptor?, wslDistribution: WSLDistribution, project: Project?, rootUser: Boolean): IjentPosixApi {
+    val descriptor = (descriptor ?: (project?.getEelDescriptor() as? WslEelDescriptor) ?: WslEelDescriptor(wslDistribution)) as WslEelDescriptor
+    return getIjentSession(wslDistribution, project, rootUser, scope).getIjentInstance(descriptor)
   }
 
   override fun isIjentInitialized(descriptor: EelDescriptor): Boolean {
