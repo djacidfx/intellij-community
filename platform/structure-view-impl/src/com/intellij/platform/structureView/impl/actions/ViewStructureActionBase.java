@@ -31,12 +31,6 @@ public abstract class ViewStructureActionBase extends DumbAwareAction {
     FileEditor fileEditor = e.getData(PlatformCoreDataKeys.FILE_EDITOR);
     if (fileEditor == null) return;
 
-    Editor editor = fileEditor instanceof TextEditor te ? te.getEditor() :
-                    e.getData(CommonDataKeys.EDITOR);
-    if (editor != null) {
-      PsiDocumentManager.getInstance(project).commitDocument(editor.getDocument());
-    }
-
     showFileStructurePopup(project, fileEditor);
   }
 

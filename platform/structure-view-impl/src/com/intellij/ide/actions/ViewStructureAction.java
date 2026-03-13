@@ -61,11 +61,6 @@ public final class ViewStructureAction extends DumbAwareAction {
     if (fileEditor == null) return;
 
     VirtualFile virtualFile = fileEditor.getFile();
-    Editor editor = fileEditor instanceof TextEditor te ? te.getEditor() :
-                    e.getData(CommonDataKeys.EDITOR);
-    if (editor != null) {
-      PsiDocumentManager.getInstance(project).commitDocument(editor.getDocument());
-    }
 
     FileStructurePopup popup = createPopup(project, fileEditor, myCallbackAfterNavigation);
     if (popup == null) return;

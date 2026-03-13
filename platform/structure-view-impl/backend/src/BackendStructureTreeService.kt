@@ -7,14 +7,14 @@ import com.intellij.ide.structureView.StructureViewModel.ExpandInfoProvider
 import com.intellij.ide.structureView.StructureViewTreeElement
 import com.intellij.ide.structureView.TreeBasedStructureViewBuilder
 import com.intellij.ide.structureView.logical.PhysicalAndLogicalStructureViewBuilder
+import com.intellij.ide.structureView.newStructureView.StructureViewComponent
 import com.intellij.ide.structureView.newStructureView.StructureViewSelectVisitorState
+import com.intellij.ide.structureView.newStructureView.StructureViewUtil
 import com.intellij.ide.structureView.newStructureView.TreeModelWrapper
+import com.intellij.ide.structureView.newStructureView.getElementInfoProvider
 import com.intellij.ide.util.FileStructureFilter
 import com.intellij.ide.util.FileStructureNodeProvider
 import com.intellij.ide.util.FileStructurePopup
-import com.intellij.ide.structureView.newStructureView.StructureViewComponent
-import com.intellij.ide.structureView.newStructureView.StructureViewUtil
-import com.intellij.ide.structureView.newStructureView.getElementInfoProvider
 import com.intellij.ide.util.treeView.AbstractTreeNode
 import com.intellij.ide.util.treeView.smartTree.SmartTreeStructure
 import com.intellij.ide.util.treeView.smartTree.TreeElementWrapper
@@ -42,6 +42,7 @@ import com.intellij.platform.structureView.impl.dto.StructureViewModelDto
 import com.intellij.platform.structureView.impl.dto.StructureViewTreeElementDto
 import com.intellij.platform.structureView.impl.dto.TreeNodesDto
 import com.intellij.platform.structureView.impl.util.StructurePopupUtil
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.ui.PlaceHolder
 import com.intellij.ui.tree.StructureTreeModel
@@ -92,7 +93,7 @@ internal class BackendStructureTreeService(private val session: ClientAppSession
     id: StructureViewDtoId,
     project: Project,
     fileEditor: FileEditor,
-    navigationCallback: ((AbstractTreeNode<*>) -> Unit)?
+    navigationCallback: ((AbstractTreeNode<*>) -> Unit)?,
   ): StructureViewModelDto? {
     // the model with this id has been created but hasn't been received by the frontend
     structureViews[id.id]?.disposable?.let {
@@ -113,6 +114,8 @@ internal class BackendStructureTreeService(private val session: ClientAppSession
       dto = run {
         val treeModel: StructureViewModel? = withContext(Dispatchers.EDT) {
           writeIntentReadAction {
+            PsiDocumentManager.getInstance(project).commitAllDocuments()
+
             val structureViewBuilder = fileEditor.structureViewBuilder ?: return@writeIntentReadAction null
             when (structureViewBuilder) {
               is PhysicalAndLogicalStructureViewBuilder -> {
