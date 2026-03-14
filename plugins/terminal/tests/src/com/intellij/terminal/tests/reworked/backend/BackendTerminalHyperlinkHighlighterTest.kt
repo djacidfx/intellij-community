@@ -536,7 +536,15 @@ internal class BackendTerminalHyperlinkHighlighterTest : BasePlatformTestCase() 
     }
 
     suspend fun updateModel(fromLine: Long, newText: String) {
-      updateEvents.send(listOf(TerminalContentUpdatedEvent(newText.ensureEOL(), emptyList(), fromLine)))
+      val textWithEol = newText.ensureEOL()
+      val event = TerminalContentUpdatedEvent(
+        text = textWithEol,
+        styles = emptyList(),
+        startLineLogicalIndex = fromLine,
+        cursorLogicalLineIndex = fromLine + textWithEol.count { it == '\n' } - 1,
+        cursorColumnIndex = 0
+      )
+      updateEvents.send(listOf(event))
       pendingUpdateEventCount.update { it + 1 }
     }
 

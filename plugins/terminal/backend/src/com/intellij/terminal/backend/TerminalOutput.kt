@@ -28,6 +28,7 @@ import org.jetbrains.plugins.terminal.session.impl.TerminalCommandFinishedEvent
 import org.jetbrains.plugins.terminal.session.impl.TerminalCommandStartedEvent
 import org.jetbrains.plugins.terminal.session.impl.TerminalCompletionFinishedEvent
 import org.jetbrains.plugins.terminal.session.impl.TerminalContentUpdatedEvent
+import org.jetbrains.plugins.terminal.session.impl.TerminalCursorPositionChangedEvent
 import org.jetbrains.plugins.terminal.session.impl.TerminalOutputEvent
 import org.jetbrains.plugins.terminal.session.impl.TerminalPromptFinishedEvent
 import org.jetbrains.plugins.terminal.session.impl.TerminalPromptStartedEvent
@@ -77,8 +78,8 @@ internal fun createTerminalOutputFlow(
   ))
 
   /**
-   * Events should be sent in the following order: content update, cursor position update, other events.
-   * This function allows providing content update if it is precalculated, and the other optional event to be sent last.
+   * Events should be sent in the following order: content update / cursor position update, other events.
+   * This function allows providing a content update if it is precalculated, and the other optional event to be sent last.
    */
   fun collectAndSendEvents(
     contentUpdate: TerminalContentUpdate?,
@@ -88,18 +89,25 @@ internal fun createTerminalOutputFlow(
     textBuffer.withLock {
       val actualContentUpdate = contentUpdate ?: contentChangesTracker.getContentUpdate()
       val contentUpdateEvent = if (actualContentUpdate != null) {
+        // If text is changed, send the event together with the actual cursor position
+        val cursorPosition = cursorPositionTracker.getCursorPositionAndResetTracker()
         TerminalContentUpdatedEvent(
           text = actualContentUpdate.text,
           styles = actualContentUpdate.styles,
           startLineLogicalIndex = actualContentUpdate.startLineLogicalIndex,
+          cursorLogicalLineIndex = cursorPosition.logicalLineIndex,
+          cursorColumnIndex = cursorPosition.column,
           readTime = outputLatencyTracker.getCurUpdateTtyReadTimeAndReset(),
         )
       }
-      else null
+      else {
+        // If no text is changed, send the separate cursor position update if cursor position changed
+        val cursorPosition = cursorPositionTracker.getCursorPositionUpdate()
+        cursorPosition?.let { TerminalCursorPositionChangedEvent(it.logicalLineIndex, it.column) }
+      }
 
-      val cursorPositionUpdate = cursorPositionTracker.getCursorPositionUpdate()
       val stateUpdate = stateChangesTracker.getStateUpdate()
-      val updates = listOfNotNull(contentUpdateEvent, cursorPositionUpdate, stateUpdate, otherEvent)
+      val updates = listOfNotNull(contentUpdateEvent, stateUpdate, otherEvent)
       if (updates.isNotEmpty()) {
         // Block the shell output reading if any of the following:
         // 1. There are no active collectors: then there is no need to read the shell output.

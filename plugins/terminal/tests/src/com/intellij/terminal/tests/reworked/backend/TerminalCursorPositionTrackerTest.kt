@@ -3,6 +3,7 @@ package com.intellij.terminal.tests.reworked.backend
 
 import com.intellij.terminal.backend.TerminalContentChangesTracker
 import com.intellij.terminal.backend.TerminalContentUpdate
+import com.intellij.terminal.backend.TerminalCursorPosition
 import com.intellij.terminal.backend.TerminalCursorPositionTracker
 import com.intellij.terminal.backend.TerminalDiscardedHistoryTracker
 import com.intellij.terminal.backend.TerminalDisplayImpl
@@ -36,6 +37,6 @@ internal class TerminalCursorPositionTrackerTest {
     val cursorUpdate = cursorPositionTracker.getCursorPositionUpdate() ?: error("Cursor update is null")
 
     assertThat(contentUpdate).isEqualTo(TerminalContentUpdate("", emptyList(), 1))
-    assertThat(cursorUpdate).isEqualTo(TerminalCursorPositionChangedEvent(1, 0))
+    assertThat(cursorUpdate).isEqualTo(TerminalCursorPosition(1, 0))
   }
 }

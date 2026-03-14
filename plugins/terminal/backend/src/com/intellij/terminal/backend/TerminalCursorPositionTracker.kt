@@ -8,7 +8,6 @@ import com.jediterm.terminal.util.CharUtils
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.plugins.terminal.block.ui.getLengthWithoutDwc
 import org.jetbrains.plugins.terminal.block.ui.withLock
-import org.jetbrains.plugins.terminal.session.impl.TerminalCursorPositionChangedEvent
 
 @ApiStatus.Internal
 class TerminalCursorPositionTracker(
@@ -37,17 +36,39 @@ class TerminalCursorPositionTracker(
 
   /**
    * Should be executed under [TerminalTextBuffer.lock]
+   *
+   * Returns null if the cursor position has not changed since the last call to this method.
    */
-  fun getCursorPositionUpdate(): TerminalCursorPositionChangedEvent? {
+  fun getCursorPositionUpdate(): TerminalCursorPosition? {
     return if (cursorPositionChanged) {
       doGetCursorPositionUpdate()
     }
     else null
   }
 
-  private fun doGetCursorPositionUpdate(): TerminalCursorPositionChangedEvent {
+  private fun doGetCursorPositionUpdate(): TerminalCursorPosition {
     check(cursorPositionChanged) { "It is expected that this method is called only if something is changed" }
+    val position = getCursorPosition()
+    LOG.debug {
+      "Terminal cursor position changed: line = ${position.logicalLineIndex}, " +
+      "column = ${position.column}, " +
+      "discarded lines = ${discardedHistoryTracker.getDiscardedLogicalLinesCount()}"
+    }
+    cursorPositionChanged = false
+    return position
+  }
 
+  /**
+   * Should be executed under [TerminalTextBuffer.lock]
+   *
+   * Returns the current cursor position and resets the change flag.
+   */
+  fun getCursorPositionAndResetTracker(): TerminalCursorPosition {
+    cursorPositionChanged = false
+    return getCursorPosition()
+  }
+
+  private fun getCursorPosition(): TerminalCursorPosition {
     var line = cursorY
     // Lines in the terminal buffer contain special character DWC (double width character)
     // that indicate that the previous character is double width (for example, chinese symbol).
@@ -66,16 +87,11 @@ class TerminalCursorPositionTracker(
     }
 
     val logicalLine = textBuffer.getLogicalLineIndex(line) + discardedHistoryTracker.getDiscardedLogicalLinesCount()
-
-    cursorPositionChanged = false
-
-    LOG.debug {
-      "Terminal cursor position changed: line = $logicalLine, " +
-      "column = $column, " +
-      "discarded lines = ${discardedHistoryTracker.getDiscardedLogicalLinesCount()}"
-    }
-    return TerminalCursorPositionChangedEvent(logicalLine, column)
+    return TerminalCursorPosition(logicalLine, column)
   }
 }
+
+@ApiStatus.Internal
+data class TerminalCursorPosition(val logicalLineIndex: Long, val column: Int)
 
 private val LOG = logger<TerminalCursorPositionTracker>()

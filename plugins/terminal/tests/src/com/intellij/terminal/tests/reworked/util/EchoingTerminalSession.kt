@@ -28,7 +28,6 @@ import org.jetbrains.plugins.terminal.session.impl.TerminalBeepEvent
 import org.jetbrains.plugins.terminal.session.impl.TerminalCloseEvent
 import org.jetbrains.plugins.terminal.session.impl.TerminalCompletionFinishedEvent
 import org.jetbrains.plugins.terminal.session.impl.TerminalContentUpdatedEvent
-import org.jetbrains.plugins.terminal.session.impl.TerminalCursorPositionChangedEvent
 import org.jetbrains.plugins.terminal.session.impl.TerminalInitialStateEvent
 import org.jetbrains.plugins.terminal.session.impl.TerminalInputEvent
 import org.jetbrains.plugins.terminal.session.impl.TerminalOutputEvent
@@ -162,9 +161,8 @@ internal class EchoingTerminalSession(
 
         screenState.addListener(listenerDisposable) {
           val screen = screenState.getSnapshot()
-          val contentChangeEvent = TerminalContentUpdatedEvent(screen.text, emptyList(), 0)
-          val cursorChangeEvent = TerminalCursorPositionChangedEvent(screen.cursorLine.toLong(), screen.cursorColumn)
-          trySend(listOf(contentChangeEvent, cursorChangeEvent))
+          val contentChangeEvent = TerminalContentUpdatedEvent(screen.text, emptyList(), 0, screen.cursorLine.toLong(), screen.cursorColumn)
+          trySend(listOf(contentChangeEvent))
         }
       }
 
