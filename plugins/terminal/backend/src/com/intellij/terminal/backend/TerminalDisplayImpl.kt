@@ -48,7 +48,9 @@ class TerminalDisplayImpl(private val settings: DefaultSettingsProvider) : Termi
     if (x != cursorX || zeroBasedY != cursorY) {
       cursorX = x
       cursorY = zeroBasedY
-      dispatcher.multicaster.cursorPositionChanged(x, zeroBasedY)
+      if (isCursorVisible) {
+        dispatcher.multicaster.cursorPositionChanged(x, zeroBasedY)
+      }
     }
   }
 
@@ -63,6 +65,9 @@ class TerminalDisplayImpl(private val settings: DefaultSettingsProvider) : Termi
     if (this.isCursorVisible != isCursorVisible) {
       this.isCursorVisible = isCursorVisible
       dispatcher.multicaster.cursorVisibilityChanged(isCursorVisible)
+      if (isCursorVisible) {
+        dispatcher.multicaster.cursorPositionChanged(cursorX, cursorY)
+      }
     }
   }
 
