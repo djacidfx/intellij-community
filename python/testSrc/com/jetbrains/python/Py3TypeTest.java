@@ -150,6 +150,70 @@ public class Py3TypeTest extends PyTestCase {
           if self.t is None:
               expr = self.t
       """);
+
+    // Calling a method on the prefix may invalidate narrowing
+    doTest("UnsafeUnion[int, int | None]", """
+      class C:
+          def __init__(self):
+              self.t: int | None = 5
+      
+          def reset(self):
+              self.t = None
+      
+          def f(self):
+              if self.t is not None:
+                  self.reset()
+                  expr = self.t
+      """);
+
+    // PY-88265
+    doTest("UnsafeUnion[int, int | None]", """
+      class C:
+          def __init__(self):
+              self.t: int | None = 5
+      
+      def reset(self: C):
+          self.t = None
+      
+      def f(self: C):
+          if self.t is not None:
+              reset(self)
+              expr = self.t
+      """);
+
+    doTest("UnsafeUnion[int, int | None]", """
+      class C:
+          def __init__(self):
+              self.t: int | None = 5
+      
+          def reset(self):
+              self.t = None
+      
+      def f(self: C):
+          if self.t is not None:
+              self.reset()
+              expr = self.t
+      """);
+
+    // PY-88265
+    doTest("UnsafeUnion[Literal[3], int]", """
+      class Computer:
+          def __init__(self):
+              self._instruction_pointer: int = 0
+      
+          def next(self):
+              self._instruction_pointer += 1
+      
+      def test_computer():
+          computer = Computer()
+          assert computer._instruction_pointer == 0
+          computer.next()
+          assert computer._instruction_pointer == 2
+          computer.next()
+          assert computer._instruction_pointer == 3
+          computer.next()
+          expr = computer._instruction_pointer
+      """);
   }
 
   /**
