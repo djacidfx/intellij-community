@@ -584,11 +584,8 @@ object PluginManagerCore {
       }
     }
 
-    val pluginSetBuilder = PluginSetBuilder(initContext, pluginsToLoad)
-    val cycleErrors = pluginSetBuilder.checkPluginCycles()
     val pluginsToDisable = HashMap<PluginId, PluginStateChangeData>()
     val pluginsToEnable = HashMap<PluginId, PluginStateChangeData>()
-    
     fun registerLoadingError(loadingError: PluginNonLoadReason) {
       pluginNonLoadReasons.put(loadingError.plugin.pluginId, loadingError)
       pluginsToDisable.put(loadingError.plugin.pluginId, PluginStateChangeData(loadingError.plugin.pluginId, loadingError.plugin.name))
@@ -604,6 +601,8 @@ object PluginManagerCore {
     }
 
     val idMap = pluginsToLoad.buildFullPluginIdMapping()
+    val pluginSetBuilder = PluginSetBuilder(initContext, pluginsToLoad)
+    val cycleErrors = pluginSetBuilder.checkPluginCycles()
     val additionalErrors = pluginSetBuilder.computeEnabledModuleMap(
       incompletePlugins = incompletePlugins.values.toList(),
       initContext = initContext,
