@@ -54,3 +54,21 @@ class ProductRulesImposedExclusion(
 ) : DescriptorExclusionReason {
   interface ProductRulesImposedExclusionReason
 }
+
+/**
+ * @return a descriptor whose exclusion directly caused the exclusion of [descriptor]
+ */
+fun DescriptorExclusionReason.getExcludedDependencyDescriptor(descriptor: IdeaPluginDescriptorImpl): IdeaPluginDescriptorImpl? = when (this) {
+  is ContentModuleParentIsExcluded -> (descriptor as ContentModuleDescriptor).parent
+  is DependencyIsExcluded -> dependencyModule
+  is DependsParentIsExcluded -> (descriptor as DependsSubDescriptor).parent
+  is RequiredContentModuleIsExcluded -> excludedContentModule
+  is DependencyIsNotResolved -> null
+  is DependencyIsNotVisible -> null
+  is ExcludedByEnvironmentConfiguration -> null
+  is IncompatibleWithAnotherModule -> null
+  is PackagePrefixConflictWithAnotherModule -> null
+  is PartOfDependencyCycle -> null
+  is PartOfRuntimeModuleGroupDependencyCycle -> null
+  is ProductRulesImposedExclusion -> null
+}
