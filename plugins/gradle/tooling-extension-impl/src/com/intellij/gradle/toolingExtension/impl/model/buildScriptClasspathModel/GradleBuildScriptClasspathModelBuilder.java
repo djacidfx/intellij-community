@@ -47,7 +47,18 @@ public class GradleBuildScriptClasspathModelBuilder extends AbstractModelBuilder
     DefaultGradleBuildScriptClasspathModel buildScriptClasspath = new DefaultGradleBuildScriptClasspathModel();
     buildScriptClasspath.setGradleHomeDir(project.getGradle().getGradleHomeDir());
     buildScriptClasspath.setGradleVersion(GradleVersion.current().getVersion());
+    buildScriptClasspath.setClasspath(collectClasspathEntries(context, project));
 
+    GradleBuildScriptClasspathCache.getInstance(context)
+      .setBuildScriptClasspathModel(project, buildScriptClasspath);
+
+    return buildScriptClasspath;
+  }
+
+  private static @NotNull List<ClasspathEntryModel> collectClasspathEntries(
+    @NotNull ModelBuilderContext context,
+    @NotNull Project project
+  ) {
     List<ClasspathEntryModel> classpathEntries = new ArrayList<>();
 
     Project parentProject = project.getParent();
@@ -100,12 +111,7 @@ public class GradleBuildScriptClasspathModelBuilder extends AbstractModelBuilder
       }
     }
 
-    buildScriptClasspath.setClasspath(classpathEntries);
-
-    GradleBuildScriptClasspathCache.getInstance(context)
-      .setBuildScriptClasspathModel(project, buildScriptClasspath);
-
-    return buildScriptClasspath;
+    return classpathEntries;
   }
 
 
