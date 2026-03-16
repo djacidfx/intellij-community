@@ -305,3 +305,8 @@ fun PluginMainDescriptor.createContentModuleInTest(
   descriptorPath: String,
   module: PluginContentDescriptor.ModuleItem,
 ): ContentModuleDescriptor = createContentModule(subBuilder, descriptorPath, module)
+
+@Internal
+fun PluginMainDescriptor.sequenceAllDescriptors(): Sequence<IdeaPluginDescriptorImpl> = sequence {
+  yieldAllDescriptors(this@sequenceAllDescriptors)
+}

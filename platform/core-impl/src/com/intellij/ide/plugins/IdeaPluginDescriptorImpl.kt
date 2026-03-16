@@ -392,6 +392,24 @@ val IdeaPluginDescriptorImpl.contentModules: List<ContentModuleDescriptor>
 val IdeaPluginDescriptorImpl.isLoaded: Boolean
   get() = pluginClassLoader != null
 
+@Internal
+suspend fun SequenceScope<IdeaPluginDescriptorImpl>.yieldAllDescriptors(plugin: PluginMainDescriptor) {
+  yield(plugin)
+  yieldAllDependsSubDescriptors(plugin)
+  yieldAll(plugin.contentModules)
+}
+
+/** does not include [descriptor] itself */
+@Internal
+suspend fun SequenceScope<IdeaPluginDescriptorImpl>.yieldAllDependsSubDescriptors(descriptor: IdeaPluginDescriptorImpl) {
+  for (dep in descriptor.pluginDependencies) {
+    dep.subDescriptor?.let {
+      yield(it)
+      yieldAllDependsSubDescriptors(it)
+    }
+  }
+}
+
 internal fun convertDependencies(dependencies: List<DependenciesElement>, parent: PluginMainDescriptor?): ModuleDependencies {
   if (dependencies.isEmpty()) {
     return ModuleDependencies.EMPTY

@@ -535,19 +535,3 @@ private fun UnambiguousPluginSet.sequenceAllDescriptors(): Sequence<IdeaPluginDe
     }
   }
 }
-
-private suspend fun SequenceScope<IdeaPluginDescriptorImpl>.yieldAllDescriptors(plugin: PluginMainDescriptor) {
-  yield(plugin)
-  yieldAllDependsSubDescriptors(plugin)
-  yieldAll(plugin.contentModules)
-}
-
-/** does not include [descriptor] itself */
-private suspend fun SequenceScope<IdeaPluginDescriptorImpl>.yieldAllDependsSubDescriptors(descriptor: IdeaPluginDescriptorImpl) {
-  for (dep in descriptor.pluginDependencies) {
-    dep.subDescriptor?.let {
-      yield(it)
-      yieldAllDependsSubDescriptors(it)
-    }
-  }
-}
