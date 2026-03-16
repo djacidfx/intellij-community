@@ -17,24 +17,6 @@ default_java_toolchain(
     visibility = ["//visibility:public"],
 )
 
-java_import(
-  name = "junit",
-  jars = ["@junit_http//file:junit.jar"],
-  visibility = ["//visibility:public"],
-)
-
-java_import(
-  name = "assertj-core",
-  jars = ["@assertj-core_http//file:assertj-core.jar"],
-  visibility = ["//visibility:public"],
-)
-
-java_import(
-  name = "byte-buddy",
-  jars = ["@byte-buddy_http//file:byte-buddy.jar"],
-  visibility = ["//visibility:public"],
-)
-
 native_binary(
     name = "noop_proguard_allowlister",
     src = "noop_proguard_allowlister.sh",
@@ -86,9 +68,9 @@ kt_jvm_library(
     srcs = ["test/org/jetbrains/intellij/build/bazel/BazelGeneratorIntegrationTests.kt"],
     associates = [":jps_to_bazel-lib"],
     deps = [
-        ":junit",
-        ":assertj-core",
-        ":byte-buddy",
+        "@j2b_maven//:junit_junit",
+        "@j2b_maven//:org_assertj_assertj_core",
+        "@j2b_maven//:net_bytebuddy_byte_buddy",
     ],
 )
 
