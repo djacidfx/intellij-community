@@ -12,6 +12,8 @@ import com.intellij.platform.eel.provider.asEelPath
 import com.intellij.platform.eel.provider.asNioPath
 import com.intellij.platform.eel.provider.getEelDescriptor
 import com.intellij.platform.eel.spawnProcess
+import com.intellij.platform.testFramework.junit5.eel.params.api.DockerTest
+import com.intellij.platform.testFramework.junit5.eel.params.api.DockerTestImageProvider
 import com.intellij.platform.testFramework.junit5.eel.params.api.EelHolder
 import com.intellij.platform.testFramework.junit5.eel.params.api.TestApplicationWithEel
 import com.intellij.testFramework.junit5.fixture.tempPathFixture
@@ -41,8 +43,17 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+class CustomUserDockerTestImageProvider : DockerTestImageProvider {
+  override val image = "alpine"
+  override val furtherLines = listOf(
+    "RUN addgroup -g 1000 user && adduser -u 1000 -G user -s /bin/sh -D user",
+    "USER user"
+  )
+}
+
 @TestApplicationWithEel(osesMayNotHaveRemoteEels = [OS.WINDOWS, OS.LINUX, OS.MAC])
 @ParameterizedClass
+@DockerTest(imageProvider = CustomUserDockerTestImageProvider::class)
 class FileAttributesReadingTest(val eelHolder: EelHolder) {
   private val tempDirFixture = tempPathFixture()
   private val tempDir: Path
