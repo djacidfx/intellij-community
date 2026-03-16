@@ -1,8 +1,6 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.gradle.toolingExtension.impl.model.buildScriptClasspathModel;
 
-import org.gradle.tooling.model.DomainObjectSet;
-import org.gradle.tooling.model.internal.ImmutableDomainObjectSet;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -20,7 +18,7 @@ import java.util.Objects;
 @ApiStatus.Internal
 public class DefaultGradleBuildScriptClasspathModel implements GradleBuildScriptClasspathModel {
 
-  private final List<ClasspathEntryModel> myClasspathEntries;
+  private final @NotNull List<ClasspathEntryModel> myClasspathEntries;
   private @Nullable File gradleHomeDir;
   private String myGradleVersion;
   private int myClasspathEntriesHashCode;
@@ -31,8 +29,8 @@ public class DefaultGradleBuildScriptClasspathModel implements GradleBuildScript
   }
 
   @Override
-  public DomainObjectSet<? extends ClasspathEntryModel> getClasspath() {
-    return ImmutableDomainObjectSet.of(myClasspathEntries);
+  public @NotNull List<? extends ClasspathEntryModel> getClasspath() {
+    return myClasspathEntries;
   }
 
   public void setGradleHomeDir(@Nullable File file) {

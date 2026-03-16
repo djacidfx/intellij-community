@@ -20,7 +20,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import static org.jetbrains.plugins.gradle.tooling.serialization.ToolingStreamApiUtils.OBJECT_ID_FIELD;
 import static org.jetbrains.plugins.gradle.tooling.serialization.ToolingStreamApiUtils.assertNotNull;
@@ -83,7 +82,7 @@ public final class GradleBuildScriptClasspathSerializationService implements Ser
     });
   }
 
-  private static void writeClasspath(IonWriter writer, Set<? extends ClasspathEntryModel> classpath) throws IOException {
+  private static void writeClasspath(IonWriter writer, List<? extends ClasspathEntryModel> classpath) throws IOException {
     writer.setFieldName("classpath");
     writer.stepIn(IonType.LIST);
     for (ClasspathEntryModel entry : classpath) {
