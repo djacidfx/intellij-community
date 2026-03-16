@@ -115,10 +115,7 @@ public final class GradleBuildScriptClasspathSerializationService implements Ser
           }
           classpathModel.setGradleVersion(context.gradleVersion);
           classpathModel.setGradleHomeDir(context.gradleHomeDir);
-          List<ClasspathEntryModel> classpathEntries = readClasspath(reader);
-          for (ClasspathEntryModel entry : classpathEntries) {
-            classpathModel.add(entry);
-          }
+          classpathModel.setClasspath(readClasspath(reader));
           return classpathModel;
         }
       });

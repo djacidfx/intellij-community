@@ -18,19 +18,25 @@ import java.util.Objects;
 @ApiStatus.Internal
 public class DefaultGradleBuildScriptClasspathModel implements GradleBuildScriptClasspathModel {
 
-  private final @NotNull List<ClasspathEntryModel> myClasspathEntries;
+  private @NotNull List<ClasspathEntryModel> myClasspathEntries;
+  private int myClasspathEntriesHashCode;
+
   private @Nullable File gradleHomeDir;
   private String myGradleVersion;
-  private int myClasspathEntriesHashCode;
 
   public DefaultGradleBuildScriptClasspathModel() {
     myClasspathEntries = new ArrayList<>(0);
-    myClasspathEntriesHashCode = 0;
+    myClasspathEntriesHashCode = myClasspathEntries.hashCode();
   }
 
   @Override
   public @NotNull List<? extends ClasspathEntryModel> getClasspath() {
     return myClasspathEntries;
+  }
+
+  public void setClasspath(@NotNull List<ClasspathEntryModel> classpathEntries) {
+    myClasspathEntries = classpathEntries;
+    myClasspathEntriesHashCode = myClasspathEntries.hashCode();
   }
 
   public void setGradleHomeDir(@Nullable File file) {
@@ -40,11 +46,6 @@ public class DefaultGradleBuildScriptClasspathModel implements GradleBuildScript
   @Override
   public @Nullable File getGradleHomeDir() {
     return gradleHomeDir;
-  }
-
-  public void add(@NotNull ClasspathEntryModel classpathEntryModel) {
-    myClasspathEntries.add(classpathEntryModel);
-    myClasspathEntriesHashCode = 31 * myClasspathEntriesHashCode + classpathEntryModel.hashCode();
   }
 
   public void setGradleVersion(@NotNull String gradleVersion) {
