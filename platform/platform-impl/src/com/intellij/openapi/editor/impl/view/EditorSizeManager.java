@@ -35,6 +35,7 @@ import com.intellij.openapi.util.TextRange;
 import com.intellij.util.DocumentEventUtil;
 import com.intellij.util.DocumentUtil;
 import com.intellij.util.IntPair;
+import com.intellij.util.ui.JBUI;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import org.jetbrains.annotations.NotNull;
@@ -346,6 +347,8 @@ final class EditorSizeManager implements PrioritizedDocumentListener, Disposable
     return width + insets.right;
   }
 
+
+
   int getPreferredHeight() {
     resetIfOutdated(false);
 
@@ -370,8 +373,8 @@ final class EditorSizeManager implements PrioritizedDocumentListener, Disposable
       size += settings.getAdditionalLinesCount() * lineHeight;
     }
 
-    Insets insets = myView.getInsets();
-    return size + insets.top + insets.bottom;
+    Insets insets = myEditor.getShouldIgnoreViewportInsets() ? JBUI.emptyInsets() : myView.getInsets();
+    return size + insets.top + insets.bottom + myEditor.getAdditionalSizeForMeasure();
   }
 
   private boolean shouldRespectAdditionalColumns(int widthWithoutCaret) {

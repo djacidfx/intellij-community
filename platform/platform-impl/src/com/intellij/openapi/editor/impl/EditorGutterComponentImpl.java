@@ -166,6 +166,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterable;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
@@ -215,6 +216,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 import static com.intellij.openapi.ui.ex.lineNumber.LineNumberConvertersKt.getStandardLineNumberConverter;
 
@@ -303,7 +305,7 @@ final class EditorGutterComponentImpl extends EditorGutterComponentEx
   private int myRightFreePaintersAreaReserveWidth = 0;
   private int myLastNonDumbModeIconAreaWidth;
   boolean myDnDInProgress;
-  private final EditorGutterLayout myLayout = new EditorGutterLayout(this);
+  private EditorGutterLayout myLayout = new EditorGutterLayout(this);
   private @Nullable AccessibleGutterLine myAccessibleGutterLine;
   private final AlphaAnimationContext myAlphaContext = new AlphaAnimationContext(composite -> {
     if (isShowing()) repaint();
@@ -314,6 +316,24 @@ final class EditorGutterComponentImpl extends EditorGutterComponentEx
   private int myHoveredFreeMarkersLine = -1;
   private int myHoveredFreeMarkersY = -1;
   private @Nullable GutterIconRenderer myCurrentHoveringGutterRenderer;
+
+  @Override
+  @ApiStatus.Internal
+  public void pinLayoutsTogetherOnMaximalWidth(List<EditorGutterComponentEx> gutters) {
+    if (!ContainerUtil.and(gutters, it -> it instanceof EditorGutterComponentImpl)) {
+      return; // Can't pin together with a list that is not pinnable
+    }
+
+    final List<EditorGutterLayout> layouts =
+      ContainerUtil.mapNotNull(gutters, it -> it instanceof EditorGutterComponentImpl impl ? impl.myLayout : null);
+
+    final Function<List<EditorGutterLayout>, EditorGutterLayout> chooser = list -> {
+      final var lay = list.stream().max(Comparator.comparingInt(EditorGutterLayout::getWidth));
+      return lay.orElseThrow();
+    };
+
+    myLayout = new EditorGutterLayout.CompoundChooser(this, layouts, chooser);
+  }
 
   EditorGutterComponentImpl(@NotNull EditorImpl editor) {
     myEditor = editor;

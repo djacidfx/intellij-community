@@ -391,6 +391,7 @@ com.intellij.diff.impl.DiffEditorViewerListener
 c:com.intellij.diff.impl.DiffRequestPanelImpl
 - com.intellij.diff.DiffRequestPanel
 - <init>(com.intellij.openapi.project.Project,java.awt.Window):V
+- <init>(com.intellij.openapi.project.Project,java.awt.Window,com.intellij.openapi.util.UserDataHolder):V
 - dispose():V
 - getComponent():javax.swing.JComponent
 - getPreferredFocusedComponent():javax.swing.JComponent
@@ -1421,10 +1422,11 @@ f:com.intellij.diff.tools.util.base.TextDiffSettingsHolder
 f:com.intellij.diff.tools.util.base.TextDiffSettingsHolder$Companion
 f:com.intellij.diff.tools.util.base.TextDiffSettingsHolder$PlaceSettings
 - <init>():V
-- <init>(com.intellij.diff.tools.util.base.HighlightPolicy,com.intellij.diff.tools.util.base.IgnorePolicy,Z,Z,Z,Z,com.intellij.diff.tools.util.base.HighlightingLevel,Z,com.intellij.diff.tools.util.breadcrumbs.BreadcrumbsPlacement,Z):V
-- b:<init>(com.intellij.diff.tools.util.base.HighlightPolicy,com.intellij.diff.tools.util.base.IgnorePolicy,Z,Z,Z,Z,com.intellij.diff.tools.util.base.HighlightingLevel,Z,com.intellij.diff.tools.util.breadcrumbs.BreadcrumbsPlacement,Z,I,kotlin.jvm.internal.DefaultConstructorMarker):V
+- <init>(com.intellij.diff.tools.util.base.HighlightPolicy,com.intellij.diff.tools.util.base.IgnorePolicy,Z,Z,Z,Z,com.intellij.diff.tools.util.base.HighlightingLevel,Z,com.intellij.diff.tools.util.breadcrumbs.BreadcrumbsPlacement,Z,I):V
+- b:<init>(com.intellij.diff.tools.util.base.HighlightPolicy,com.intellij.diff.tools.util.base.IgnorePolicy,Z,Z,Z,Z,com.intellij.diff.tools.util.base.HighlightingLevel,Z,com.intellij.diff.tools.util.breadcrumbs.BreadcrumbsPlacement,Z,I,I,kotlin.jvm.internal.DefaultConstructorMarker):V
 - f:component1():com.intellij.diff.tools.util.base.HighlightPolicy
 - f:component10():Z
+- f:component11():I
 - f:component2():com.intellij.diff.tools.util.base.IgnorePolicy
 - f:component3():Z
 - f:component4():Z
@@ -1433,10 +1435,11 @@ f:com.intellij.diff.tools.util.base.TextDiffSettingsHolder$PlaceSettings
 - f:component7():com.intellij.diff.tools.util.base.HighlightingLevel
 - f:component8():Z
 - f:component9():com.intellij.diff.tools.util.breadcrumbs.BreadcrumbsPlacement
-- f:copy(com.intellij.diff.tools.util.base.HighlightPolicy,com.intellij.diff.tools.util.base.IgnorePolicy,Z,Z,Z,Z,com.intellij.diff.tools.util.base.HighlightingLevel,Z,com.intellij.diff.tools.util.breadcrumbs.BreadcrumbsPlacement,Z):com.intellij.diff.tools.util.base.TextDiffSettingsHolder$PlaceSettings
-- bs:copy$default(com.intellij.diff.tools.util.base.TextDiffSettingsHolder$PlaceSettings,com.intellij.diff.tools.util.base.HighlightPolicy,com.intellij.diff.tools.util.base.IgnorePolicy,Z,Z,Z,Z,com.intellij.diff.tools.util.base.HighlightingLevel,Z,com.intellij.diff.tools.util.breadcrumbs.BreadcrumbsPlacement,Z,I,java.lang.Object):com.intellij.diff.tools.util.base.TextDiffSettingsHolder$PlaceSettings
+- f:copy(com.intellij.diff.tools.util.base.HighlightPolicy,com.intellij.diff.tools.util.base.IgnorePolicy,Z,Z,Z,Z,com.intellij.diff.tools.util.base.HighlightingLevel,Z,com.intellij.diff.tools.util.breadcrumbs.BreadcrumbsPlacement,Z,I):com.intellij.diff.tools.util.base.TextDiffSettingsHolder$PlaceSettings
+- bs:copy$default(com.intellij.diff.tools.util.base.TextDiffSettingsHolder$PlaceSettings,com.intellij.diff.tools.util.base.HighlightPolicy,com.intellij.diff.tools.util.base.IgnorePolicy,Z,Z,Z,Z,com.intellij.diff.tools.util.base.HighlightingLevel,Z,com.intellij.diff.tools.util.breadcrumbs.BreadcrumbsPlacement,Z,I,I,java.lang.Object):com.intellij.diff.tools.util.base.TextDiffSettingsHolder$PlaceSettings
 - equals(java.lang.Object):Z
 - f:getBREADCRUMBS_PLACEMENT():com.intellij.diff.tools.util.breadcrumbs.BreadcrumbsPlacement
+- f:getCONTEXT_RANGE():I
 - f:getENABLE_SYNC_SCROLL():Z
 - f:getEXPAND_BY_DEFAULT():Z
 - f:getEventDispatcher():com.intellij.util.EventDispatcher
@@ -1450,6 +1453,7 @@ f:com.intellij.diff.tools.util.base.TextDiffSettingsHolder$PlaceSettings
 - f:getUSE_SOFT_WRAPS():Z
 - hashCode():I
 - f:setBREADCRUMBS_PLACEMENT(com.intellij.diff.tools.util.breadcrumbs.BreadcrumbsPlacement):V
+- f:setCONTEXT_RANGE(I):V
 - f:setENABLE_SYNC_SCROLL(Z):V
 - f:setEXPAND_BY_DEFAULT(Z):V
 - f:setHIGHLIGHTING_LEVEL(com.intellij.diff.tools.util.base.HighlightingLevel):V
@@ -1462,24 +1466,21 @@ f:com.intellij.diff.tools.util.base.TextDiffSettingsHolder$PlaceSettings
 - f:setUSE_SOFT_WRAPS(Z):V
 f:com.intellij.diff.tools.util.base.TextDiffSettingsHolder$SharedSettings
 - <init>():V
-- <init>(I,Z,Z,Z,Z):V
-- b:<init>(I,Z,Z,Z,Z,I,kotlin.jvm.internal.DefaultConstructorMarker):V
-- f:component1():I
+- <init>(Z,Z,Z,Z):V
+- b:<init>(Z,Z,Z,Z,I,kotlin.jvm.internal.DefaultConstructorMarker):V
+- f:component1():Z
 - f:component2():Z
 - f:component3():Z
 - f:component4():Z
-- f:component5():Z
-- f:copy(I,Z,Z,Z,Z):com.intellij.diff.tools.util.base.TextDiffSettingsHolder$SharedSettings
-- bs:copy$default(com.intellij.diff.tools.util.base.TextDiffSettingsHolder$SharedSettings,I,Z,Z,Z,Z,I,java.lang.Object):com.intellij.diff.tools.util.base.TextDiffSettingsHolder$SharedSettings
+- f:copy(Z,Z,Z,Z):com.intellij.diff.tools.util.base.TextDiffSettingsHolder$SharedSettings
+- bs:copy$default(com.intellij.diff.tools.util.base.TextDiffSettingsHolder$SharedSettings,Z,Z,Z,Z,I,java.lang.Object):com.intellij.diff.tools.util.base.TextDiffSettingsHolder$SharedSettings
 - equals(java.lang.Object):Z
-- f:getCONTEXT_RANGE():I
 - f:getENABLE_ALIGNING_CHANGES_MODE():Z
 - f:getEventDispatcher():com.intellij.util.EventDispatcher
 - f:getMERGE_AUTO_APPLY_NON_CONFLICTED_CHANGES():Z
 - f:getMERGE_AUTO_RESOLVE_IMPORT_CONFLICTS():Z
 - f:getMERGE_LST_GUTTER_MARKERS():Z
 - hashCode():I
-- f:setCONTEXT_RANGE(I):V
 - f:setENABLE_ALIGNING_CHANGES_MODE(Z):V
 - f:setMERGE_AUTO_APPLY_NON_CONFLICTED_CHANGES(Z):V
 - f:setMERGE_AUTO_RESOLVE_IMPORT_CONFLICTS(Z):V
@@ -1868,6 +1869,7 @@ com.intellij.diff.util.DiffPlaces
 - sf:DEFAULT:java.lang.String
 - sf:DIR_DIFF:java.lang.String
 - sf:EXTERNAL:java.lang.String
+- sf:INTENTION_PREVIEW:java.lang.String
 - sf:MERGE:java.lang.String
 - sf:SHELVE_VIEW:java.lang.String
 - sf:TESTS_FAILED_ASSERTIONS:java.lang.String
@@ -1946,6 +1948,7 @@ f:com.intellij.diff.util.DiffUtil
 - s:createCustomNotifications(com.intellij.diff.FrameDiffTool$DiffViewer,com.intellij.openapi.util.UserDataHolder,com.intellij.openapi.util.UserDataHolder):java.util.List
 - s:createEditor(com.intellij.openapi.editor.Document,com.intellij.openapi.project.Project,Z):com.intellij.openapi.editor.ex.EditorEx
 - s:createEditor(com.intellij.openapi.editor.Document,com.intellij.openapi.project.Project,Z,Z):com.intellij.openapi.editor.ex.EditorEx
+- s:createEditor(com.intellij.openapi.editor.Document,com.intellij.openapi.project.Project,Z,Z,java.awt.Cursor,java.lang.Integer):com.intellij.openapi.editor.ex.EditorEx
 - s:createEditorHighlighter(com.intellij.openapi.project.Project,com.intellij.diff.contents.DocumentContent):com.intellij.openapi.editor.highlighter.EditorHighlighter
 - s:createEmptyEditorHighlighter():com.intellij.openapi.editor.highlighter.EditorHighlighter
 - s:createMessagePanel(java.lang.String):javax.swing.JPanel

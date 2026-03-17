@@ -31,6 +31,7 @@ import com.intellij.diff.tools.external.ExternalDiffSettings;
 import com.intellij.diff.tools.external.ExternalDiffSettings.ExternalTool;
 import com.intellij.diff.tools.external.ExternalDiffSettings.ExternalToolGroup;
 import com.intellij.diff.tools.external.ExternalDiffTool;
+import com.intellij.diff.tools.intentions.IntentionDiffFeatureKeys;
 import com.intellij.diff.tools.util.CrossFilePrevNextDifferenceIterableSupport;
 import com.intellij.diff.tools.util.DiffDataKeys;
 import com.intellij.diff.tools.util.PrevNextFileIterable;
@@ -1301,12 +1302,9 @@ public abstract class DiffRequestProcessor
     }
   }
 
-  private class MyDiffContext extends DiffContextEx {
-    private final @NotNull UserDataHolder myInitialContext;
-    private final @NotNull UserDataHolder myOwnContext = new UserDataHolderBase();
-
+  private class MyDiffContext extends DiffContextOnDataHolders {
     MyDiffContext(@NotNull UserDataHolder initialContext) {
-      myInitialContext = initialContext;
+      super(initialContext);
     }
 
     @Override
@@ -1352,18 +1350,6 @@ public abstract class DiffRequestProcessor
     @Override
     public void requestFocusInWindow() {
       DiffRequestProcessor.this.requestFocusInWindow();
-    }
-
-    @Override
-    public @Nullable <T> T getUserData(@NotNull Key<T> key) {
-      T data = myOwnContext.getUserData(key);
-      if (data != null) return data;
-      return myInitialContext.getUserData(key);
-    }
-
-    @Override
-    public <T> void putUserData(@NotNull Key<T> key, @Nullable T value) {
-      myOwnContext.putUserData(key, value);
     }
   }
 

@@ -126,7 +126,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -145,7 +144,7 @@ public class UnifiedDiffViewer extends ListenerDiffViewerBase implements EditorD
   private final @NotNull MyStatusPanel myStatusPanel;
 
   private final @NotNull MyInitialScrollHelper myInitialScrollHelper = new MyInitialScrollHelper();
-  private final @NotNull MyFoldingModel myFoldingModel;
+  private final @NotNull UnifiedFoldingModel myFoldingModel;
   private final @NotNull MarkupUpdater myMarkupUpdater;
 
   protected final @NotNull TwosideTextDiffProvider.NoIgnore myTextDiffProvider;
@@ -178,6 +177,7 @@ public class UnifiedDiffViewer extends ListenerDiffViewerBase implements EditorD
 
 
     myDocument = EditorFactory.getInstance().createDocument("");
+
     myEditor = DiffUtil.createEditor(myDocument, myProject, true, true);
 
     myContentPanel = new OnesideContentPanel(myEditor.getComponent());
@@ -193,7 +193,7 @@ public class UnifiedDiffViewer extends ListenerDiffViewerBase implements EditorD
       }
     };
 
-    myFoldingModel = new MyFoldingModel(getProject(), myEditor, this);
+    myFoldingModel = new UnifiedFoldingModel(getProject(), myEditor, this);
     myMarkupUpdater = new MarkupUpdater(getContents());
 
     myEditorSettingsAction = new SetEditorSettingsActionGroup(getTextSettings(), getEditors());
@@ -431,40 +431,22 @@ public class UnifiedDiffViewer extends ListenerDiffViewerBase implements EditorD
     myModel.updateGutterActions();
   }
 
-  private static @Nullable EditorHighlighter buildHighlighter(@Nullable Project project,
-                                                              @NotNull Document document,
-                                                              @NotNull DocumentContent content1,
-                                                              @NotNull DocumentContent content2,
-                                                              @NotNull CharSequence text1,
-                                                              @NotNull CharSequence text2,
-                                                              @NotNull List<HighlightRange> ranges,
-                                                              int textLength) {
-    EditorHighlighter highlighter1 = DiffUtil.initEditorHighlighter(project, content1, text1);
-    EditorHighlighter highlighter2 = DiffUtil.initEditorHighlighter(project, content2, text2);
-
-    if (highlighter1 == null && highlighter2 == null) return null;
-    if (highlighter1 == null) highlighter1 = DiffUtil.initEmptyEditorHighlighter(text1);
-    if (highlighter2 == null) highlighter2 = DiffUtil.initEmptyEditorHighlighter(text2);
-
-    return new UnifiedEditorHighlighter(document, highlighter1, highlighter2, ranges, textLength);
-  }
-
   protected @NotNull Runnable apply(@NotNull UnifiedDiffState builder,
                                     CharSequence @NotNull [] texts,
                                     @NotNull ProgressIndicator indicator) {
     final DocumentContent content1 = getContent1();
     final DocumentContent content2 = getContent2();
 
-    HighlightersData highlightersData = BackgroundTaskUtil.tryComputeFast(___ -> {
+    UnifiedDiffHighlightersData unifiedDiffHighlightersData = BackgroundTaskUtil.tryComputeFast(___ -> {
       return ReadAction.compute(() -> {
         EditorHighlighter highlighter =
-          buildHighlighter(myProject, myDocument, content1, content2,
+          UnifiedEditorHighlighter.buildHighlighter(myProject, myDocument, content1, content2,
                            texts[0], texts[1], builder.getRanges(),
                            builder.getText().length());
         UnifiedEditorRangeHighlighter rangeHighlighter =
           new UnifiedEditorRangeHighlighter(myProject, content1.getDocument(),
                                             content2.getDocument(), builder.getRanges());
-        return new HighlightersData(highlighter, rangeHighlighter);
+        return new UnifiedDiffHighlightersData(highlighter, rangeHighlighter);
       });
     }, 500);
 
@@ -535,7 +517,7 @@ public class UnifiedDiffViewer extends ListenerDiffViewerBase implements EditorD
 
         myFoldingModel.install(foldingState, myRequest, getFoldingModelSettings());
 
-        HighlightersData.apply(myProject, myEditor, highlightersData);
+        UnifiedDiffHighlightersData.apply(myProject, myEditor, unifiedDiffHighlightersData);
         myMarkupUpdater.resumeUpdate();
 
         myInitialScrollHelper.onRediff();
@@ -1307,73 +1289,6 @@ public class UnifiedDiffViewer extends ListenerDiffViewerBase implements EditorD
     }
   }
 
-  private static class MyFoldingModel extends FoldingModelSupport {
-    private @NotNull DisposableLineNumberConvertor myLineNumberConvertor = new DisposableLineNumberConvertor(null);
-
-    MyFoldingModel(@Nullable Project project, @NotNull EditorEx editor, @NotNull Disposable disposable) {
-      super(project, new EditorEx[]{editor}, disposable);
-    }
-
-    public @Nullable Data createState(@Nullable List<? extends LineRange> changedLines,
-                                      @NotNull Settings settings,
-                                      @NotNull Document document,
-                                      @NotNull LineNumberConvertor lineConvertor,
-                                      int lineCount) {
-      Iterator<int[]> it = map(changedLines, line -> new int[]{
-        line.start,
-        line.end
-      });
-
-      if (it == null || settings.range == -1) return null;
-
-      myLineNumberConvertor = new DisposableLineNumberConvertor(lineConvertor);
-      MyFoldingBuilder builder = new MyFoldingBuilder(document, myLineNumberConvertor, lineCount, settings);
-      return builder.build(it);
-    }
-
-    public void disposeLineConvertor() {
-      myLineNumberConvertor.dispose();
-    }
-
-    private static final class MyFoldingBuilder extends FoldingBuilderBase {
-      private final @NotNull Document myDocument;
-      private final @NotNull DisposableLineNumberConvertor myLineConvertor;
-
-      private MyFoldingBuilder(@NotNull Document document,
-                               @NotNull DisposableLineNumberConvertor lineConvertor,
-                               int lineCount,
-                               @NotNull Settings settings) {
-        super(new int[]{lineCount}, settings);
-        myDocument = document;
-        myLineConvertor = lineConvertor;
-      }
-
-      @Override
-      protected @Nullable FoldedRangeDescription getDescription(@NotNull Project project, int lineNumber, int index) {
-        int masterLine = myLineConvertor.convert(lineNumber);
-        if (masterLine == -1) return null;
-        return getLineSeparatorDescription(project, myDocument, masterLine);
-      }
-    }
-
-    private static final class DisposableLineNumberConvertor {
-      private volatile @Nullable LineNumberConvertor myConvertor;
-
-      private DisposableLineNumberConvertor(@Nullable LineNumberConvertor convertor) {
-        myConvertor = convertor;
-      }
-
-      public int convert(int lineNumber) {
-        LineNumberConvertor convertor = myConvertor;
-        return convertor != null ? convertor.convert(lineNumber) : -1;
-      }
-
-      public void dispose() {
-        myConvertor = null;
-      }
-    }
-  }
-
   private static class MyReadonlyFragmentModificationHandler implements ReadonlyFragmentModificationHandler {
     @Override
     public void handle(ReadOnlyFragmentModificationException e) {
@@ -1453,7 +1368,7 @@ public class UnifiedDiffViewer extends ListenerDiffViewerBase implements EditorD
             .finishOnUiThread(ModalityState.stateForComponent(myPanel), result -> {
               if (myStateIsOutOfDate || blockData != myModel.getData()) return;
 
-              HighlightersData.apply(myProject, myEditor, result);
+              UnifiedDiffHighlightersData.apply(myProject, myEditor, result);
             })
             .withDocumentsCommitted(myProject)
             .wrapProgress(myUpdateIndicator)
@@ -1462,20 +1377,20 @@ public class UnifiedDiffViewer extends ListenerDiffViewerBase implements EditorD
       });
     }
 
-    private @NotNull HighlightersData updateHighlighters(@NotNull ChangedBlockData blockData) {
+    private @NotNull UnifiedDiffHighlightersData updateHighlighters(@NotNull ChangedBlockData blockData) {
       List<HighlightRange> ranges = blockData.getRanges();
       Document document1 = getContent1().getDocument();
       Document document2 = getContent2().getDocument();
 
       ProgressManager.checkCanceled();
-      EditorHighlighter highlighter = buildHighlighter(myProject, myDocument, getContent1(), getContent2(),
+      EditorHighlighter highlighter = UnifiedEditorHighlighter.buildHighlighter(myProject, myDocument, getContent1(), getContent2(),
                                                        document1.getCharsSequence(), document2.getCharsSequence(), ranges,
                                                        myDocument.getTextLength());
 
       ProgressManager.checkCanceled();
       UnifiedEditorRangeHighlighter rangeHighlighter = new UnifiedEditorRangeHighlighter(myProject, document1, document2, ranges);
 
-      return new HighlightersData(highlighter, rangeHighlighter);
+      return new UnifiedDiffHighlightersData(highlighter, rangeHighlighter);
     }
 
     private class MyMarkupModelListener implements MarkupModelListener {
@@ -1492,34 +1407,6 @@ public class UnifiedDiffViewer extends ListenerDiffViewerBase implements EditorD
       @Override
       public void attributesChanged(@NotNull RangeHighlighterEx highlighter, boolean renderersChanged, boolean fontStyleOrColorChanged) {
         scheduleUpdate();
-      }
-    }
-  }
-
-  private static class HighlightersData {
-    private final @Nullable EditorHighlighter myHighlighter;
-    private final @Nullable UnifiedEditorRangeHighlighter myRangeHighlighter;
-
-    private HighlightersData(@Nullable EditorHighlighter highlighter,
-                             @Nullable UnifiedEditorRangeHighlighter rangeHighlighter) {
-      myHighlighter = highlighter;
-      myRangeHighlighter = rangeHighlighter;
-    }
-
-    public static void apply(@Nullable Project project, @NotNull EditorEx editor, @Nullable HighlightersData highlightersData) {
-      EditorHighlighter highlighter = highlightersData != null ? highlightersData.myHighlighter : null;
-      UnifiedEditorRangeHighlighter rangeHighlighter = highlightersData != null ? highlightersData.myRangeHighlighter : null;
-
-      if (highlighter != null) {
-        editor.setHighlighter(highlighter);
-      }
-      else {
-        editor.setHighlighter(DiffUtil.createEmptyEditorHighlighter());
-      }
-
-      UnifiedEditorRangeHighlighter.erase(project, editor.getDocument());
-      if (rangeHighlighter != null) {
-        rangeHighlighter.apply(project, editor.getDocument());
       }
     }
   }

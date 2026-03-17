@@ -282,6 +282,24 @@ com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
 - s:navigatePreviewHtmlChunk(com.intellij.psi.PsiFile,I):com.intellij.openapi.util.text.HtmlChunk
 - s:rename(com.intellij.openapi.vfs.VirtualFile,java.lang.String):com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
 - s:rename(com.intellij.psi.PsiFile,java.lang.String):com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
+f:com.intellij.codeInsight.intention.preview.IntentionPreviewInfo$ModernDiff
+- com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
+- <init>(java.util.List):V
+- <init>(java.util.List,java.lang.String,java.lang.String,java.lang.String):V
+- getCurrentContextDisplayName():java.lang.String
+- getDiffs():java.util.List
+- getHighlightingHtml():java.lang.String
+- getInspectionTitle():java.lang.String
+f:com.intellij.codeInsight.intention.preview.IntentionPreviewInfo$ModernDiff$DiffInfo
+- <init>(java.lang.String,java.util.List,java.lang.String,java.util.List,java.lang.String,java.lang.String,com.intellij.openapi.fileTypes.FileType,I):V
+- getFileName():java.lang.String
+- getFilePath():java.lang.String
+- getFileType():com.intellij.openapi.fileTypes.FileType
+- getModifiedHighlighters():java.util.List
+- getModifiedText():java.lang.String
+- getOriginalHighlighters():java.util.List
+- getOriginalText():java.lang.String
+- getStartLineIndex():I
 com.intellij.codeInsight.lookup.Lookup
 - sf:AUTO_INSERT_SELECT_CHAR:C
 - sf:COMPLETE_STATEMENT_SELECT_CHAR:C

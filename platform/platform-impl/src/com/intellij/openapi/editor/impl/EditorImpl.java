@@ -551,6 +551,10 @@ public final class EditorImpl extends UserDataHolderBase implements EditorEx, Hi
 
   private boolean myIsStickyLinePainting;
 
+  private int myAdditionalSizeForMeasure;
+
+  private boolean myShouldCalculateInsetsWithRegardsToViewport;
+
   EditorImpl(@NotNull Document document,
              boolean viewer,
              @Nullable Project project,
@@ -5868,6 +5872,30 @@ public final class EditorImpl extends UserDataHolderBase implements EditorEx, Hi
       return stickyManager;
     }
     return null;
+  }
+
+  @ApiStatus.Experimental
+  @ApiStatus.Internal
+  public void setAdditionalSizeForMeasure(int size) {
+    myAdditionalSizeForMeasure = size;
+  }
+
+  @ApiStatus.Experimental
+  @ApiStatus.Internal
+  public int getAdditionalSizeForMeasure() {
+    return myAdditionalSizeForMeasure;
+  }
+
+  @ApiStatus.Experimental
+  @ApiStatus.Internal
+  public boolean getShouldIgnoreViewportInsets() {
+    return myShouldCalculateInsetsWithRegardsToViewport;
+  }
+
+  @ApiStatus.Experimental
+  @ApiStatus.Internal
+  public void setShouldIgnoreViewportInsets(boolean shouldCalculateInsetsWithRegardsToViewport) {
+    myShouldCalculateInsetsWithRegardsToViewport = shouldCalculateInsetsWithRegardsToViewport;
   }
 
   @ApiStatus.Experimental

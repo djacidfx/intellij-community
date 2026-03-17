@@ -189,6 +189,7 @@ import javax.swing.border.Border;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Frame;
 import java.awt.Image;
@@ -363,11 +364,25 @@ public final class DiffUtil {
     editor.getColorsScheme().setAttributes(EditorColors.FOLDED_TEXT_ATTRIBUTES, null);
   }
 
-  public static @NotNull EditorEx createEditor(@NotNull Document document, @Nullable Project project, boolean isViewer) {
-    return createEditor(document, project, isViewer, false);
+  public static @NotNull EditorEx createEditor(@NotNull Document document,
+                                               @Nullable Project project,
+                                               boolean isViewer) {
+    return createEditor(document, project, isViewer, false, null, null);
   }
 
-  public static @NotNull EditorEx createEditor(@NotNull Document document, @Nullable Project project, boolean isViewer, boolean enableFolding) {
+  public static @NotNull EditorEx createEditor(@NotNull Document document,
+                                               @Nullable Project project,
+                                               boolean isViewer,
+                                               boolean enableFolding) {
+    return createEditor(document, project, isViewer, enableFolding, null, null);
+  }
+
+  public static @NotNull EditorEx createEditor(@NotNull Document document,
+                                               @Nullable Project project,
+                                               boolean isViewer,
+                                               boolean enableFolding,
+                                               @Nullable Cursor forcedCursor,
+                                               @Nullable Integer additionalEditorLinesAfterEnd) {
     EditorFactory factory = EditorFactory.getInstance();
     EditorKind kind = EditorKind.DIFF;
     EditorEx editor = (EditorEx)(isViewer ? factory.createViewer(document, project, kind) : factory.createEditor(document, project, kind));
@@ -382,6 +397,16 @@ public final class DiffUtil {
     else {
       editor.getSettings().setFoldingOutlineShown(false);
       editor.getFoldingModel().setFoldingEnabled(false);
+    }
+
+    // Some other places in the diff view attempt to force cursors over the editor.
+    // When we create an editor with this flag, we should avoid doing that.
+    if (forcedCursor != null) {
+      editor.setCustomCursor(DiffUtil.class, forcedCursor);
+    }
+
+    if (additionalEditorLinesAfterEnd != null) {
+      editor.getSettings().setAdditionalLinesCount(additionalEditorLinesAfterEnd);
     }
 
     UIUtil.removeScrollBorder(editor.getComponent());
@@ -973,6 +998,16 @@ public final class DiffUtil {
     if (diffComputer != null) return new SimpleTextDiffProvider(settings, rediff, disposable, diffComputer);
 
     return SmartTextDiffProvider.create(project, request, settings, rediff, disposable);
+  }
+
+  @ApiStatus.Internal
+  public static @NotNull TwosideTextDiffProvider.NoIgnore createDefaultDiffComputerNoIgnoreDiffProvider(@Nullable Project project,
+                                                                                                        @NotNull DiffContent content1,
+                                                                                                        @NotNull DiffContent content2,
+                                                                                                        @NotNull TextDiffSettings settings,
+                                                                                                        @NotNull Runnable rediff,
+                                                                                                        @NotNull Disposable disposable) {
+    return SmartTextDiffProvider.createNoIgnore(project, content1, content2, settings, rediff, disposable);
   }
 
   public static @NotNull TwosideTextDiffProvider.NoIgnore createNoIgnoreTextDiffProvider(@Nullable Project project,
