@@ -18,6 +18,11 @@ interface ResolvedPluginSet {
   val originalPluginSet: UnambiguousPluginSet
 
   /**
+   * The input initialization context.
+   */
+  val initContext: PluginInitializationContext
+
+  /**
    * A descriptor is resolved when all its loading constraints are satisfied,
    * e.g., the content module loading depends on the main plugin descriptor loading; all dependencies are resolved too; etc.
    *
