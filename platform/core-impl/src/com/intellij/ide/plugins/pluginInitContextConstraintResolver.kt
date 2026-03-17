@@ -90,24 +90,24 @@ private class PluginSetConstraintsResolver(
   private fun processExclusionListener(excludedDescriptor: IdeaPluginDescriptorImpl, data: ExclusionListenerData) {
     when (data) {
       is ExcludeDependsDescriptorOnParentExclusion ->
-        exclude(data.dependsDescriptor, DependsParentIsExcluded())
+        exclude(data.dependsDescriptor, DependsParentIsExcluded(data.dependsDescriptor))
       is ExcludeContentModuleOnPluginExclusion ->
-        exclude(data.contentModule, ContentModuleParentIsExcluded())
+        exclude(data.contentModule, ContentModuleParentIsExcluded(data.contentModule))
       is ExcludePluginOnRequiredContentModuleExclusion ->
-        exclude(data.plugin, RequiredContentModuleIsExcluded(excludedDescriptor as ContentModuleDescriptor))
+        exclude(data.plugin, RequiredContentModuleIsExcluded(data.plugin, excludedDescriptor as ContentModuleDescriptor))
       is ExcludeDependentDescriptorOnModuleExclusion ->
-        exclude(data.dependentDescriptor, DependencyIsExcluded(excludedDescriptor as PluginModuleDescriptor))
+        exclude(data.dependentDescriptor, DependencyIsExcluded(data.dependentDescriptor, excludedDescriptor as PluginModuleDescriptor))
     }
   }
 
   /** Special case for dependency cycle exclusions */
-  private fun batchExclude(candidatesToExclude: Collection<IdeaPluginDescriptorImpl>, commonReason: DescriptorExclusionReason) {
+  private fun batchExclude(candidatesToExclude: Collection<IdeaPluginDescriptorImpl>, reasonBuilder: (IdeaPluginDescriptorImpl) -> DescriptorExclusionReason) {
     val deferredListeners = ArrayList<Pair<IdeaPluginDescriptorImpl, ArrayList<ExclusionListenerData>>>()
     for (candidate in candidatesToExclude) {
       when (val state = candidate.getState()) {
         is Excluded -> continue
         is Candidate -> {
-          candidates[candidate] = Excluded(commonReason)
+          candidates[candidate] = Excluded(reasonBuilder(candidate))
           state.listeners?.let { deferredListeners.add(candidate to it) }
         }
       }
@@ -121,7 +121,7 @@ private class PluginSetConstraintsResolver(
 
   private fun applyProductRulesImposedExclusions() {
     for ((module, reason) in initContext.provideModuleExclusionsImposedByProductRules(pluginSet)) {
-      exclude(module, ProductRulesImposedExclusion(reason))
+      exclude(module, ProductRulesImposedExclusion(module, reason))
     }
   }
 
@@ -129,7 +129,7 @@ private class PluginSetConstraintsResolver(
     for ((moduleId, envConfig) in initContext.environmentConfiguredModules) {
       val module = pluginSet.resolveContentModuleId(moduleId) ?: error("Environment-configured module is not found: $moduleId")
       if (envConfig.unavailabilityReason != null) {
-        exclude(module, ExcludedByEnvironmentConfiguration(envConfig.unavailabilityReason))
+        exclude(module, ExcludedByEnvironmentConfiguration(module, envConfig.unavailabilityReason))
       }
     }
   }
@@ -143,12 +143,12 @@ private class PluginSetConstraintsResolver(
     when (candidate) {
       is DependsSubDescriptor ->
         when (val parentState = candidate.parent.getState()) {
-          is Excluded -> exclude(candidate, DependsParentIsExcluded())
+          is Excluded -> exclude(candidate, DependsParentIsExcluded(candidate))
           is Candidate -> parentState.addListener(ExcludeDependsDescriptorOnParentExclusion(candidate))
         }
       is ContentModuleDescriptor ->
         when (val parentState = candidate.parent.getState()) {
-          is Excluded -> exclude(candidate, ContentModuleParentIsExcluded())
+          is Excluded -> exclude(candidate, ContentModuleParentIsExcluded(candidate))
           is Candidate -> parentState.addListener(ExcludeContentModuleOnPluginExclusion(candidate))
         }
       is PluginMainDescriptor -> {
@@ -158,7 +158,7 @@ private class PluginSetConstraintsResolver(
           }
           when (val contentModuleState = contentModule.getState()) {
             is Excluded -> {
-              exclude(candidate, RequiredContentModuleIsExcluded(contentModule))
+              exclude(candidate, RequiredContentModuleIsExcluded(candidate, contentModule))
               break
             }
             is Candidate -> contentModuleState.addListener(ExcludePluginOnRequiredContentModuleExclusion(candidate))
@@ -202,7 +202,7 @@ private class PluginSetConstraintsResolver(
     for (dependencyRef in sequenceAllDependenciesOfCandidateIncludingCompatibility(candidate)) {
       val target = pluginSet.resolveReference(dependencyRef)
       if (target == null) {
-        exclude(candidate, DependencyIsNotResolved(dependencyRef))
+        exclude(candidate, DependencyIsNotResolved(candidate, dependencyRef))
         return
       }
       else if (tryAddDependency(target)) {
@@ -212,13 +212,13 @@ private class PluginSetConstraintsResolver(
             target
           )
           if (visibilityViolation != null) {
-            exclude(candidate, DependencyIsNotVisible(target, visibilityViolation))
+            exclude(candidate, DependencyIsNotVisible(candidate, target, visibilityViolation))
             return
           }
         }
         when (val targetState = target.getState()) {
           is Excluded -> {
-            exclude(candidate, DependencyIsExcluded(target))
+            exclude(candidate, DependencyIsExcluded(candidate, target))
             return
           }
           is Candidate -> targetState.addListener(ExcludeDependentDescriptorOnModuleExclusion(candidate))
@@ -293,7 +293,7 @@ private class PluginSetConstraintsResolver(
         incompatiblePlugin to candidate
       }
       exclude(excluded, IncompatibleWithAnotherModule(
-        survivor as? PluginModuleDescriptor ?: survivor.getMainDescriptor()
+        candidate, survivor as? PluginModuleDescriptor ?: survivor.getMainDescriptor()
       ))
     }
   }
@@ -326,7 +326,7 @@ private class PluginSetConstraintsResolver(
           else {
             candidate to currentSurvivor
           }
-          exclude(excluded, PackagePrefixConflictWithAnotherModule(survivor))
+          exclude(excluded, PackagePrefixConflictWithAnotherModule(excluded, survivor))
           currentSurvivor = survivor
         }
       }
@@ -361,7 +361,7 @@ private class PluginSetConstraintsResolver(
           continue
         }
         val dependencyCycle = component.toList()
-        batchExclude(dependencyCycle, PartOfDependencyCycle(dependencyCycle))
+        batchExclude(dependencyCycle) { PartOfDependencyCycle(it, dependencyCycle) }
       }
       return null
     }
@@ -409,7 +409,7 @@ private class PluginSetConstraintsResolver(
         val descriptors = groupDependencyCycle.flatMap { it.sortedDescriptors }
         // try to exclude only non-essential at first (e.g., it may be possible to eliminate cycles by dropping some optional `depends` descriptors first)
         val toExclude = descriptors.filter { !it.isEssential() }.takeIf { it.isNotEmpty() } ?: descriptors
-        batchExclude(toExclude, PartOfRuntimeModuleGroupDependencyCycle(groupDependencyCycle))
+        batchExclude(toExclude) { PartOfRuntimeModuleGroupDependencyCycle(it, groupDependencyCycle) }
       }
       return null
     }
@@ -428,7 +428,8 @@ private class PluginSetConstraintsResolver(
       is ContentModuleDescriptor -> {
         if (candidate.moduleLoadingRule == ModuleLoadingRule.EMBEDDED) {
           getRuntimeModuleGroupRepresentative(candidate.parent)
-        } else {
+        }
+        else {
           candidate
         }
       }
@@ -445,7 +446,8 @@ private class PluginSetConstraintsResolver(
     }
   }
 
-  private class RuntimeModuleGroupGraphAdapter(val groups: Collection<RuntimeModuleGroup>, val dependencies: Map<RuntimeModuleGroup, List<RuntimeModuleGroup>>): OutboundSemiGraph<RuntimeModuleGroup> {
+  private class RuntimeModuleGroupGraphAdapter(val groups: Collection<RuntimeModuleGroup>, val dependencies: Map<RuntimeModuleGroup, List<RuntimeModuleGroup>>) :
+    OutboundSemiGraph<RuntimeModuleGroup> {
     override fun getNodes(): Collection<RuntimeModuleGroup> = groups
     override fun getOut(node: RuntimeModuleGroup): Iterator<RuntimeModuleGroup> {
       return dependencies[node]?.iterator() ?: emptyList<RuntimeModuleGroup>().iterator()
@@ -454,14 +456,14 @@ private class PluginSetConstraintsResolver(
 
   private class RuntimeModuleGroupImpl(
     override val representativeModule: PluginModuleDescriptor,
-    override val sortedDescriptors: ArrayList<IdeaPluginDescriptorImpl> = ArrayList()
-  ): RuntimeModuleGroup
+    override val sortedDescriptors: ArrayList<IdeaPluginDescriptorImpl> = ArrayList(),
+  ) : RuntimeModuleGroup
 
   private class RuntimeModuleGroupGraphImpl(
     override val sortedGroups: List<RuntimeModuleGroup>,
     private val dependencies: HashMap<RuntimeModuleGroup, List<RuntimeModuleGroup>>,
     private val descriptorToGroup: HashMap<IdeaPluginDescriptorImpl, RuntimeModuleGroup>,
-  ): RuntimeModuleGroupGraph {
+  ) : RuntimeModuleGroupGraph {
     private val dependents by lazy {
       val result = dependencies.mapValues { ArrayList<RuntimeModuleGroup>() }
       for ((group, dependencies) in dependencies) {
@@ -488,11 +490,12 @@ private class PluginSetConstraintsResolver(
   private class ResolvedPluginSetImpl(
     /** May contain unresolved plugins */
     override val originalPluginSet: UnambiguousPluginSet,
+    override val initContext: PluginInitializationContext,
     override val sortedResolvedDescriptors: Set<IdeaPluginDescriptorImpl>,
     override val runtimeModuleGroupGraph: RuntimeModuleGroupGraph,
     private val exclusions: Map<IdeaPluginDescriptorImpl, DescriptorExclusionReason?>,
     private val resolvedDependencies: Map<IdeaPluginDescriptorImpl, List<IdeaPluginDescriptorImpl>>,
-  ): ResolvedPluginSet {
+  ) : ResolvedPluginSet {
     private val resolvedDependents by lazy {
       val result = resolvedDependencies.mapValues { ArrayList<IdeaPluginDescriptorImpl>() }
       for ((resolvedDescriptor, dependencies) in resolvedDependencies) {
