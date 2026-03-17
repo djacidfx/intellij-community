@@ -29,7 +29,11 @@ import kotlin.io.path.div
 import kotlin.io.path.exists
 
 /**
- * Starts, stops Dev Build Server
+ * Starts, stops Dev Build Server.
+ *
+ * IDE selection is enforced at compile-time through module dependencies.
+ * Tests must depend on IDE-specific modules (e.g., `intellij.tools.ide.starter.build.server.goland`)
+ * to use the corresponding IdeInfo, which ensures CI can determine upfront which IDEs need to be built.
  */
 object DevBuildServerRunnerImpl : DevBuildServerRunner {
   private val ideaRootPath = PathManager.getHomeDir()

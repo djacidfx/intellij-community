@@ -1,0 +1,55 @@
+// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+package com.intellij.tools.ide.starter.build.server.goland
+
+import com.intellij.ide.starter.di.di
+import com.intellij.ide.starter.di.initDevBuildServerDiBinding
+import com.intellij.ide.starter.models.IdeInfo
+import com.intellij.ide.starter.models.IdeInfoType
+import org.junit.platform.launcher.TestExecutionListener
+import org.kodein.di.direct
+import org.kodein.di.instance
+
+/**
+ * GoLand [IdeInfo] resolved from DI.
+ *
+ * Tests that need GoLand should depend on this module
+ * (`intellij.tools.ide.starter.build.server.goland`).
+ *
+ * Example:
+ * ```kotlin
+ * import com.intellij.tools.ide.starter.build.server.goland.GoLand
+ *
+ * class MyGoLandTest : TestCaseTemplate(IdeInfo.GoLand) { ... }
+ * ```
+ */
+val IdeInfo.Companion.GoLand: IdeInfo
+  get() {
+    GoLandDevBuildServerListener.init()
+    return di.direct.instance<IdeInfo>(tag = IdeInfoType.GOLAND)
+  }
+
+internal val DefaultGoLand = IdeInfo(
+  productCode = "GO",
+  platformPrefix = "GoLand",
+  executableFileName = "goland",
+  fullName = "GoLand",
+  qodanaProductCode = "QDGO"
+)
+
+/**
+ * Registers GoLand [IdeInfo] in DI and initializes Dev Build Server support.
+ *
+ * This listener is automatically loaded via ServiceLoader when this module
+ * is on the classpath.
+ */
+class GoLandDevBuildServerListener : TestExecutionListener {
+  companion object {
+    init {
+      init()
+    }
+
+    fun init() {
+      initDevBuildServerDiBinding(IdeInfoType.GOLAND, DefaultGoLand)
+    }
+  }
+}

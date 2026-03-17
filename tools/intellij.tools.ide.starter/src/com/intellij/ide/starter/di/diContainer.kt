@@ -18,8 +18,8 @@ import com.intellij.ide.starter.ide.IdeDownloader
 import com.intellij.ide.starter.ide.JBRDownloader
 import com.intellij.ide.starter.ide.StarterJBRDownloader
 import com.intellij.ide.starter.ide.installer.IdeInstallerFactory
-import com.intellij.ide.starter.models.IdeProduct
-import com.intellij.ide.starter.models.IdeProductImp
+import com.intellij.ide.starter.models.IdeInfo
+import com.intellij.ide.starter.models.IdeInfoType
 import com.intellij.ide.starter.path.GlobalPaths
 import com.intellij.ide.starter.path.StarterGlobalPaths
 import com.intellij.ide.starter.plugins.PluginConfigurator
@@ -47,6 +47,8 @@ import org.kodein.di.bindArgSet
 import org.kodein.di.bindFactory
 import org.kodein.di.bindProvider
 import org.kodein.di.bindSingleton
+import org.kodein.di.direct
+import org.kodein.di.instanceOrNull
 import java.net.URI
 import java.nio.file.Path
 
@@ -83,7 +85,6 @@ private var _di = DI {
 
   bindSingleton<List<ReportPublisher>> { listOf(ConsoleTestResultPublisher) }
 
-  bindSingleton<IdeProduct> { IdeProductImp }
   bindSingleton<CurrentTestMethod> { CurrentTestMethod }
   bindSingleton<ConfigurationStorage> { ConfigurationStorage(this, starterConfigurationStorageDefaults) }
   bindSingleton<TestTelemetryService> { NoopTestTelemetryService() }
@@ -119,3 +120,14 @@ var di: DI = _di
       )
     }
   }
+
+fun initDevBuildServerDiBinding(ideInfoType: IdeInfoType, ideInfo: IdeInfo) {
+  synchronized(ideInfo) {
+    if (di.direct.instanceOrNull<IdeInfo>(tag = ideInfoType) != null) return@synchronized
+
+    di = DI {
+      extend(di)
+      bindSingleton<IdeInfo>(tag = ideInfoType) { ideInfo }
+    }
+  }
+}

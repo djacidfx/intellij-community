@@ -7,6 +7,7 @@ import com.intellij.ide.starter.ci.CIServer
 import com.intellij.ide.starter.di.di
 import com.intellij.ide.starter.frameworks.Framework
 import com.intellij.ide.starter.models.IDEStartResult
+import com.intellij.ide.starter.models.IdeInfoType
 import com.intellij.ide.starter.models.TestCase
 import com.intellij.ide.starter.models.VMOptions
 import com.intellij.ide.starter.models.VMOptions.Companion.ALLOW_SKIPPING_FULL_SCANNING_ON_STARTUP_OPTION
@@ -563,10 +564,17 @@ open class IDETestContext(
 
   @Suppress("unused")
   fun setLicense(pathToFileWithLicense: Path): IDETestContext {
-    val supportedProducts = listOf(IdeProductProvider.IU.productCode, IdeProductProvider.RM.productCode, IdeProductProvider.WS.productCode,
-                                   IdeProductProvider.PS.productCode, IdeProductProvider.PS.productCode, IdeProductProvider.PS.productCode,
-                                   IdeProductProvider.GO.productCode, IdeProductProvider.PY.productCode, IdeProductProvider.DB.productCode,
-                                   IdeProductProvider.CL.productCode)
+    val supportedProducts = listOf(
+      IdeInfoType.IDEA_ULTIMATE,
+      IdeInfoType.RUBYMINE,
+      IdeInfoType.WEBSTORM,
+      IdeInfoType.PHPSTORM,
+      IdeInfoType.GOLAND,
+      IdeInfoType.PYCHARM,
+      IdeInfoType.DATAGRIP,
+      IdeInfoType.CLION
+    ).map { it.productCode }
+
     if (this.ide.productCode !in supportedProducts) {
       error("Setting license to the product ${this.ide.productCode} is not supported")
     }
@@ -616,17 +624,17 @@ open class IDETestContext(
     }
 
     val licenseKeyFileName: String = when (this.ide.productCode) {
-      IdeProductProvider.IU.productCode -> "idea.key"
-      IdeProductProvider.RM.productCode -> "rubymine.key"
-      IdeProductProvider.WS.productCode -> "webstorm.key"
-      IdeProductProvider.PS.productCode -> "phpstorm.key"
-      IdeProductProvider.GO.productCode -> "goland.key"
-      IdeProductProvider.PY.productCode -> "pycharm.key"
-      IdeProductProvider.DB.productCode -> "datagrip.key"
-      IdeProductProvider.CL.productCode -> "clion.key"
-      IdeProductProvider.QA.productCode -> "aqua.key"
-      IdeProductProvider.RR.productCode -> "rustrover.key"
-      IdeProductProvider.RD.productCode -> "rider.key"
+      IdeInfoType.IDEA_ULTIMATE.productCode -> "idea.key"
+      IdeInfoType.RUBYMINE.productCode -> "rubymine.key"
+      IdeInfoType.WEBSTORM.productCode -> "webstorm.key"
+      IdeInfoType.PHPSTORM.productCode -> "phpstorm.key"
+      IdeInfoType.GOLAND.productCode -> "goland.key"
+      IdeInfoType.PYCHARM.productCode -> "pycharm.key"
+      IdeInfoType.DATAGRIP.productCode -> "datagrip.key"
+      IdeInfoType.CLION.productCode -> "clion.key"
+      IdeInfoType.AQUA.productCode -> "aqua.key"
+      IdeInfoType.RUSTROVER.productCode -> "rustrover.key"
+      IdeInfoType.RIDER.productCode -> "rider.key"
       else -> return this
     }
     val keyFile = paths.configDir.resolve(licenseKeyFileName)
@@ -679,7 +687,7 @@ open class IDETestContext(
   fun addProjectToTrustedLocations(projectPath: Path? = null, addParentDir: Boolean = false, configPath: Path = paths.configDir): IDETestContext {
     if (this.testCase.projectInfo == NoProject && projectPath == null) return this
 
-    val isRDProduct = this.ide.productCode == IdeProductProvider.RD.productCode
+    val isRDProduct = this.ide.productCode == IdeInfoType.RIDER.productCode
 
     val (path, expression) = when (addParentDir) {
       true -> Pair(first = projectPath?.parent ?: this.resolvedProjectHome.normalize().parent, second = when (isRDProduct) {

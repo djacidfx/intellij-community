@@ -1,0 +1,45 @@
+// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+package com.intellij.tools.ide.starter.build.server.idea.ultimate
+
+import com.intellij.ide.starter.di.di
+import com.intellij.ide.starter.di.initDevBuildServerDiBinding
+import com.intellij.ide.starter.models.IdeInfo
+import com.intellij.ide.starter.models.IdeInfoType
+import org.junit.platform.launcher.TestExecutionListener
+import org.kodein.di.direct
+import org.kodein.di.instance
+
+/**
+ * IntelliJ IDEA Ultimate [IdeInfo] resolved from DI.
+ *
+ * Tests that need IntelliJ IDEA Ultimate should depend on this module
+ * (`intellij.tools.ide.starter.build.server.idea.ultimate`).
+ */
+val IdeInfo.Companion.IdeaUltimate: IdeInfo
+  get() {
+    IdeaUltimateDevBuildServerListener.init()
+    return di.direct.instance<IdeInfo>(tag = IdeInfoType.IDEA_ULTIMATE)
+  }
+
+internal val DefaultIdeaUltimate = IdeInfo(
+  productCode = "IU",
+  platformPrefix = "idea",
+  executableFileName = "idea",
+  fullName = "IDEA",
+  qodanaProductCode = "QDJVM"
+)
+
+/**
+ * Registers IntelliJ IDEA Ultimate [IdeInfo] in DI and initializes Dev Build Server support.
+ */
+class IdeaUltimateDevBuildServerListener : TestExecutionListener {
+  companion object {
+    init {
+      init()
+    }
+
+    fun init() {
+      initDevBuildServerDiBinding(IdeInfoType.IDEA_ULTIMATE, DefaultIdeaUltimate)
+    }
+  }
+}

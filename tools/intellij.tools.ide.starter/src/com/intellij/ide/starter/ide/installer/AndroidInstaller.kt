@@ -112,7 +112,7 @@ class AndroidInstaller : IdeInstaller {
 
   override suspend fun install(ideInfo: IdeInfo): Pair<String, InstalledIde> {
     if (ideInfo.buildNumber.isBlank()) {
-      throw IllegalArgumentException("Build is not specified, please, provide buildNumber as IdeProductProvider.AI.copy(buildNumber = \"2023.1.1.28\")")
+      throw IllegalArgumentException("Build is not specified, please, provide buildNumber as IdeInfo.AndroidStudio.copy(buildNumber = \"2023.1.1.28\")")
     }
     val (installDir, installerFile) = downloadAndroidStudio(ideInfo.buildNumber)
     IdeArchiveExtractor.unpackIdeIfNeeded(installerFile, installDir)

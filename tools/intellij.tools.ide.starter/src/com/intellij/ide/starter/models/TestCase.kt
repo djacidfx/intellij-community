@@ -2,7 +2,6 @@ package com.intellij.ide.starter.models
 
 import com.intellij.ide.starter.community.PublicIdeDownloader
 import com.intellij.ide.starter.community.model.BuildType
-import com.intellij.ide.starter.ide.IdeProductProvider
 import com.intellij.ide.starter.ide.installer.StandardInstaller
 import com.intellij.ide.starter.project.GitProjectInfo
 import com.intellij.ide.starter.project.LocalProjectInfo
@@ -24,7 +23,8 @@ data class TestCase<T : ProjectInfoSpec>(
   fun withCommands(commands: Iterable<MarshallableCommand> = this.commands): TestCase<T> = copy(commands = commands.toList())
 
   /**
-   * You may consider using this method with [IdeProductProvider]
+   * You may consider using this method with IDE-specific IdeInfo extensions on [IdeInfo.Companion],
+   * e.g., `IdeInfo.GoLand` from `com.intellij.tools.ide.starter.build.server.goland`.
    */
   fun onIDE(ideInfo: IdeInfo): TestCase<T> = copy(ideInfo = ideInfo)
 

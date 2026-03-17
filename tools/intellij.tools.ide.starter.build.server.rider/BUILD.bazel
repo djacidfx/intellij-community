@@ -1,0 +1,52 @@
+### auto-generated section `build intellij.tools.ide.starter.build.server.rider` start
+load("//build:compiler-options.bzl", "create_kotlinc_options")
+load("@rules_jvm//:jvm.bzl", "jvm_library", "resourcegroup")
+
+create_kotlinc_options(
+  name = "custom_ide-starter-build-server-rider",
+  opt_in = ["kotlin.time.ExperimentalTime"]
+)
+
+resourcegroup(
+  name = "ide-starter-build-server-rider_resources",
+  srcs = glob(["resources/**/*"]),
+  strip_prefix = "resources"
+)
+
+jvm_library(
+  name = "ide-starter-build-server-rider",
+  module_name = "intellij.tools.ide.starter.build.server.rider",
+  visibility = ["//visibility:public"],
+  srcs = glob(["src/**/*.kt", "src/**/*.java", "src/**/*.form"], allow_empty = True),
+  resources = [":ide-starter-build-server-rider_resources"],
+  kotlinc_opts = ":custom_ide-starter-build-server-rider",
+  deps = [
+    "@lib//:kotlin-stdlib",
+    "//tools/intellij.tools.ide.starter.build.server:ide-starter-build-server",
+    "//tools/intellij.tools.ide.starter:ide-starter",
+    "//libraries/junit5-launcher",
+    "@lib//:kodein-di-jvm-provided",
+  ]
+)
+
+jvm_library(
+  name = "ide-starter-build-server-rider_test_lib",
+  module_name = "intellij.tools.ide.starter.build.server.rider",
+  visibility = ["//visibility:public"],
+  srcs = glob([], allow_empty = True),
+  kotlinc_opts = ":custom_ide-starter-build-server-rider",
+  runtime_deps = [
+    ":ide-starter-build-server-rider",
+    "//tools/intellij.tools.ide.starter.build.server:ide-starter-build-server_test_lib",
+    "//tools/intellij.tools.ide.starter:ide-starter_test_lib",
+    "//libraries/junit5-launcher:junit5-launcher_test_lib",
+    "@lib//:kodein-di-jvm-provided",
+  ]
+)
+### auto-generated section `build intellij.tools.ide.starter.build.server.rider` end
+
+### auto-generated section `iml intellij.tools.ide.starter.build.server.rider` start
+exports_files([
+  "intellij.tools.ide.starter.build.server.rider.iml",
+], visibility = ["//visibility:public"])
+### auto-generated section `iml intellij.tools.ide.starter.build.server.rider` end
