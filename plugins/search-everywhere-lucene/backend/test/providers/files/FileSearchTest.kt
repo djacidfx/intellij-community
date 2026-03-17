@@ -43,11 +43,23 @@ class FileSearchTest : LuceneIndexTestBase() {
     d1.get(FileIndex.FILE_URL) == d2.get(FileIndex.FILE_URL)
   }
 
-  private fun file(fileName: String): Document {
+  private fun buildMockVirtualFile(path: String): MockVirtualFile {
+    val segments = path.split('/')
+    val file = MockVirtualFile(segments.last())
+    var current: MockVirtualFile = file
+    for (segment in segments.dropLast(1).reversed()) {
+      val parent = MockVirtualFile(true, segment)
+      parent.addChild(current)
+      current = parent
+    }
+    return file
+  }
+
+  private fun file(path: String): Document {
     return runBlocking {
       readAction {
         val fileIndex = FileIndex.getInstance(project)
-        fileIndex.getDocument(MockVirtualFile(fileName)).second
+        fileIndex.getDocument(buildMockVirtualFile(path)).second
       }
     }
   }
@@ -81,6 +93,7 @@ class FileSearchTest : LuceneIndexTestBase() {
 
     val foo = file("foo/Readme.md")
     val bar = file("bar/Readme.md")
+    val baz = file("baz/Readme.md")
 
 
     return indexWith(listOf(foo, bar)) { index ->
@@ -96,6 +109,15 @@ class FileSearchTest : LuceneIndexTestBase() {
       index.assertSearch("Readme.md bar") {
         findsAllOf(bar)
         findsNoneOf(foo)
+      }
+
+      index.assertSearch("md bar") {
+        findsAllOf(bar)
+        findsNoneOf(foo,baz)
+      }
+
+      index.assertSearch("bar baz") {
+        findsNothing()
       }
     }
   }

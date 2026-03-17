@@ -13,6 +13,7 @@ import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.document.Document
 import org.apache.lucene.search.Query
 import org.apache.lucene.search.ScoreDoc
+import org.apache.lucene.util.Bits
 import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DynamicNode
@@ -58,10 +59,29 @@ abstract class LuceneIndexTestBase {
         ) { (score, doc) ->
           """
 Document: ${doc.asMap()}
-Explanation: 
+Explanation:
 ${searcher.explain(query, score.doc).toString().trim().prependIndent(">   ")}
           """
         }.prependIndent("  ")
+      }
+    }
+
+    private fun explainAllIndexedDocs(limit: Int = 5): String {
+      return index.withSearcher { searcher ->
+        val reader = searcher.indexReader
+        val maxDoc = reader.maxDoc()
+        val liveDocs: Bits? = reader.leaves().firstOrNull()?.reader()?.liveDocs
+        (0 until minOf(maxDoc, limit))
+          .filter { docId -> liveDocs == null || liveDocs.get(docId) }
+          .joinToString(separator = "\n\n") { docId ->
+            val doc = searcher.storedFields().document(docId)
+            val explanation = searcher.explain(query, docId)
+            "Doc $docId ${doc.asMap()}\n" +
+            "Score: ${explanation.value}\n" +
+            explanation.toString().trim().prependIndent(">   ")
+          }
+          .let { if (it.isEmpty()) "(index is empty)" else it }
+          .prependIndent("  ")
       }
     }
 
@@ -79,7 +99,12 @@ ${searcher.explain(query, score.doc).toString().trim().prependIndent(">   ")}
         if (results.none { isEquivalent(it.second, expectedDoc) }) {
           fail<Nothing>("""
             Expected document not found in results.
+            Query: $query
             Missing Document: ${expectedDoc.asMap()}
+
+            === All indexed docs (score explanation for query) ===
+            ${explainAllIndexedDocs()}
+
             Total Results (${results.size}):
             ${explainResults(results)}
           """.trimIndent())

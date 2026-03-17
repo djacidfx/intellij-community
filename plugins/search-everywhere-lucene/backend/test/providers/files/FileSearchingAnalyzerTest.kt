@@ -1,6 +1,7 @@
 package com.intellij.searchEverywhereLucene.backend.providers.files
 
 import com.intellij.searchEverywhereLucene.backend.AnalyzersTestBase
+import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FileNameAnalyzer
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FileSearchAnalyzer
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_FILENAME
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_FILENAME_ABBREVIATION
@@ -19,6 +20,7 @@ class FileSearchingAnalyzerTest : AnalyzersTestBase() {
   fun testFileSearchAnalyzer() {
     tokenizing(FileSearchAnalyzer(), "SearchEveryWhereUI.java")
       .print()
+      .producesSameTokensAs(FileNameAnalyzer())
       .producesToken("SearchEveryWhereUI.java", TOKEN_TYPE_PATH)
       .producesToken("java", TOKEN_TYPE_FILETYPE, 19, 23)
       .producesToken("searcheverywhereui", TOKEN_TYPE_FILENAME, 0, 18)

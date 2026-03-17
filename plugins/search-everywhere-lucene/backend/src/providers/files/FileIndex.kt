@@ -294,13 +294,20 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
   private fun getRelativePathForFile(virtualFile: VirtualFile): String {
     // Try to get path relative to content root; fall back to filename if not in a content root
     val contentRoot = ProjectFileIndex.getInstance(project).getContentRootForFile(virtualFile) // REQUIRES READ-ACTION
+    // TODO Find out if there are other ways to mock the files so that this special handling is not necessary?
 
-    return if (contentRoot != null) {
-      VfsUtil.getRelativePath(virtualFile, contentRoot) ?: virtualFile.name
+    if (contentRoot != null) {
+      return VfsUtil.getRelativePath(virtualFile, contentRoot) ?: virtualFile.name
     }
-    else {
-      virtualFile.name
+
+    // No content root: walk parent chain to build relative path (supports mock file trees in tests)
+    val parts = mutableListOf<String>()
+    var current: VirtualFile? = virtualFile
+    while (current != null) {
+      parts.add(0, current.name)
+      current = current.parent
     }
+    return parts.joinToString("/")
   }
 
   companion object {

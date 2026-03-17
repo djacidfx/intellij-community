@@ -27,12 +27,12 @@ abstract class AnalyzersTestBase {
     }
     tokenStream.end()
     tokenStream.close()
-    return TokenAssertion(analyzer, text, tokens)
+    return TokenAssertion(analyzer, text, tokens, fieldName)
   }
 
   protected data class TokenInfo(val term: String, val type: String, val startOffset: Int, val endOffset: Int, val wordIndex: Int)
 
-  protected class TokenAssertion(private val analyzer: Analyzer, private val text: String, private val tokens: List<TokenInfo>) {
+  protected class TokenAssertion(private val analyzer: Analyzer, private val text: String, private val tokens: List<TokenInfo>, private val fieldName: String = "content") {
     fun producesToken(term: String, type: String, startOffset: Int? = null, endOffset: Int? = null): TokenAssertion {
       val found = tokens.any {
         it.term == term && it.type == type &&
@@ -53,9 +53,9 @@ abstract class AnalyzersTestBase {
     }
 
     fun print(): TokenAssertion {
-      println("\nAnalyzer: ${analyzer::class.simpleName}")
+      println("\nAnalyzer: ${analyzer::class.simpleName} on field: $fieldName")
       println("Text: \"$text\"")
-      val tokenStream = analyzer.tokenStream("content", text)
+      val tokenStream = analyzer.tokenStream(fieldName, text)
       val termAttr = tokenStream.addAttribute(CharTermAttribute::class.java)
       val posIncrAttr = tokenStream.addAttribute(PositionIncrementAttribute::class.java)
       val offsetAttr = tokenStream.addAttribute(OffsetAttribute::class.java)
@@ -84,6 +84,30 @@ abstract class AnalyzersTestBase {
       for (token in tokens) {
         assertTrue(seen.add(token), "Duplicate token found: $token")
       }
+      return this
+    }
+
+    fun producesSameTokensAs(otherAnalyzer: Analyzer): TokenAssertion {
+      val otherTokens = mutableListOf<TokenInfo>()
+      val tokenStream = otherAnalyzer.tokenStream(fieldName, text)
+      val termAttr = tokenStream.addAttribute(CharTermAttribute::class.java)
+      val typeAttr = tokenStream.addAttribute(TypeAttribute::class.java)
+      val offsetAttr = tokenStream.addAttribute(OffsetAttribute::class.java)
+      val wordAttr = tokenStream.addAttribute(WordAttribute::class.java)
+      tokenStream.reset()
+      while (tokenStream.incrementToken()) {
+        otherTokens.add(TokenInfo(termAttr.toString(), typeAttr.type(), offsetAttr.startOffset(), offsetAttr.endOffset(), wordAttr.wordIndex))
+      }
+      tokenStream.end()
+      tokenStream.close()
+      val thisSet = tokens.toSet()
+      val otherSet = otherTokens.toSet()
+      val only1 = thisSet - otherSet
+      val only2 = otherSet - thisSet
+      assertTrue(thisSet == otherSet,
+        "Tokens differ for \"$text\".\n" +
+        "Only in ${analyzer::class.simpleName}: $only1\n" +
+        "Only in ${otherAnalyzer::class.simpleName}: $only2")
       return this
     }
   }

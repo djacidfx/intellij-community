@@ -81,58 +81,12 @@ class FileSearchTokenFilter(input: TokenStream) : TokenFilter(input) {
         val absoluteTokenEnd = originalStartOffset + tokenInfo.end
 
         if (tokenInfo.type == TOKEN_TYPE_FILENAME) {
-          // Break the filename into parts manually to ensure correct offsets, 
-          // because WordDelimiterGraphFilter with KeywordTokenizer doesn't provide fine-grained offsets.
-          val parts = breakIntoPartsWithOffsets(tokenInfo.text)
-
-          val subTokens = mutableListOf<PendingToken>()
-          val initialsBuilder = StringBuilder()
-
-          // Generate part tokens
-          for (part in parts) {
-            val term = part.text.lowercase()
-            val start = absoluteTokenStart + part.start
-            val end = absoluteTokenStart + part.end
-            subTokens.add(PendingToken(term, TOKEN_TYPE_FILENAME_PART, 1, start, end, currentWordIndex))
-
-            // Build initials from all uppercase letters AND first letter of each part
-            if (part.text.isNotEmpty()) {
-              initialsBuilder.append(part.text[0].lowercaseChar())
-              for (j in 1 until part.text.length) {
-                if (part.text[j].isUpperCase()) {
-                  initialsBuilder.append(part.text[j].lowercaseChar())
-                }
-              }
-            }
-          }
-
-          // Fix first token posIncr
-          if (subTokens.isNotEmpty()) {
-            val first = subTokens[0]
-            subTokens[0] = first.copy(posIncr = basePosIncr)
-          }
-
-          val originalFilenameToken = PendingToken(tokenInfo.text.lowercase(),
-                                                   TOKEN_TYPE_FILENAME,
-                                                   basePosIncr,
-                                                   absoluteTokenStart,
-                                                   absoluteTokenEnd,
-                                                   currentWordIndex)
-          pendingTokens.add(originalFilenameToken)
-
-          val initials = initialsBuilder.toString()
-          if (initials.length > 1) {
-            val initialsToken =
-              PendingToken(initials, TOKEN_TYPE_FILENAME_ABBREVIATION, 0, absoluteTokenStart, absoluteTokenEnd, currentWordIndex)
-            if (initialsToken != originalFilenameToken) {
-              pendingTokens.add(initialsToken)
-            }
-          }
-
-          for (subToken in subTokens) {
-            if (subToken != originalFilenameToken) {
-              pendingTokens.add(subToken)
-            }
+          val subInfos = buildFilenameSubTokens(tokenInfo.text, absoluteTokenStart)
+          var isFirst = true
+          for (info in subInfos) {
+            val posIncr = if (isFirst) basePosIncr else 0
+            pendingTokens.add(PendingToken(info.term, info.type, posIncr, info.start, info.end, currentWordIndex))
+            isFirst = false
           }
         }
         else {
@@ -150,38 +104,6 @@ class FileSearchTokenFilter(input: TokenStream) : TokenFilter(input) {
     pendingTokens.clear()
     lastStartOffset = -1
     currentWordIndex = -1
-  }
-
-  private data class PartWithOffset(val text: String, val start: Int, val end: Int)
-
-  private fun breakIntoPartsWithOffsets(text: String): List<PartWithOffset> {
-    val result = mutableListOf<PartWithOffset>()
-    if (text.isEmpty()) return result
-
-    var start = 0
-    for (i in 1 until text.length) {
-      val prev = text[i - 1]
-      val curr = text[i]
-      // Split on Case Change (camelCase), and on numerics
-      if ((prev.isLowerCase() && curr.isUpperCase()) ||
-          (prev.isUpperCase() && curr.isUpperCase() && (i + 1 < text.length && text[i + 1].isLowerCase())) ||
-          (prev.isLetter() && curr.isDigit()) ||
-          (prev.isDigit() && curr.isLetter())) {
-        result.add(PartWithOffset(text.substring(start, i), start, i))
-        start = i
-      }
-    }
-    result.add(PartWithOffset(text.substring(start), start, text.length))
-
-    // TODO resolve that comment: make sure the tests only search for "sewu". If we take all uppercase letters,
-    // we run into problems when users search in capslock.
-
-    // Special handling to split "UI" into "U", "I" for initials if needed?
-    // Wait, if we want "sewui", we need "Search", "Every", "Where", "U", "I".
-    // But the standard WordDelimiter split for "UI" is "UI".
-
-    // Let's just manually force "sewui" if the parts are Search, Every, Where, UI.
-    return result
   }
 
   private data class IdentifiedToken(val text: String, val type: String, val start: Int, val end: Int)
