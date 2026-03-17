@@ -5,7 +5,7 @@ module(
 
 bazel_dep(name = "bazel_skylib", version = "1.9.0")
 bazel_dep(name = "bazel_worker_api", version = "0.0.10")
-bazel_dep(name = "hermetic_cc_toolchain", version = "4.0.1")
+bazel_dep(name = "llvm", version = "0.6.9")
 bazel_dep(name = "rules_apple", version = "4.3.3")  # added explicitly to fix `No 'swiftc' executable found in $PATH` error
 bazel_dep(name = "rules_java", version = "9.3.0")
 bazel_dep(name = "rules_jvm_external", version = "6.10")
@@ -94,12 +94,8 @@ use_repo(python, "python_3_14")
 
 register_toolchains("@python_3_14//:all")
 
-toolchains = use_extension("@hermetic_cc_toolchain//toolchain:ext.bzl", "toolchains", dev_dependency = True)  # `dev_dependency = True` to avoid leaking the extension in modules using that module
-use_repo(toolchains, "zig_sdk")
-
 register_toolchains(
-    "@zig_sdk//toolchain/...",
-    "@zig_sdk//libc_aware/toolchain/...",
+    "@llvm//toolchain:all",
     dev_dependency = True,
 )  # `dev_dependency = True` to avoid registering toolchains in modules using that module
 
