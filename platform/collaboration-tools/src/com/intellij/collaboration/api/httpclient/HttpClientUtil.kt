@@ -134,7 +134,7 @@ class InflatedStreamReadingBodyHandler<T>(
       .contains(CONTENT_ENCODING_GZIP)
 
     val subscriber = if (isGzipContent) {
-      BodySubscribers.mapping<InputStream?, InputStream?>(inputStreamSubscriber, ::GZIPInputStream)
+      BodySubscribers.mapping<InputStream, InputStream>(inputStreamSubscriber, ::GZIPInputStream)
     }
     else {
       inputStreamSubscriber

@@ -84,8 +84,8 @@ internal object DevKitPatcherHelper {
     val holder: UserDataHolder = module ?: project
     var result = holder.getUserData(LOADER_VALID)
     if (result == null) {
-      result = ReadAction.computeBlocking<Boolean?, RuntimeException> {
-        getInstance(project).computeWithAlternativeResolveEnabled<Boolean?, RuntimeException?> {
+      result = ReadAction.computeBlocking<Boolean, RuntimeException> {
+        getInstance(project).computeWithAlternativeResolveEnabled<Boolean, RuntimeException> {
           val scope = if (module != null) GlobalSearchScope.moduleRuntimeScope(module, true) else GlobalSearchScope.allScope(project)
           JavaPsiFacade.getInstance(project).findClass(qualifiedName, scope) != null
         }
