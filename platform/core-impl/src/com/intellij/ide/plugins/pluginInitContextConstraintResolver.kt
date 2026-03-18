@@ -174,14 +174,13 @@ private class PluginSetConstraintsResolver(
   }
 
   /**
-   * Stores a **full** list of descriptor's dependencies, i.e., such modules (and descriptors) that must be registered
+   * Stores a list of descriptor's dependencies, i.e., such modules (and descriptors) that must be registered
    * by the application before ours and whose resources and classes must be available in our classloader.
+   *
+   * For `<depends>` dependencies **does not** include edges to the content modules of the target plugin
+   * (the accurate set of such dependencies can only be determined after all exclusions are settled).
    */
-  private val resolvedFullDependenciesLists: HashMap<IdeaPluginDescriptorImpl, List<IdeaPluginDescriptorImpl>> = HashMap()
-
-  private fun getResolvedFullDependenciesList(candidate: IdeaPluginDescriptorImpl): List<IdeaPluginDescriptorImpl> {
-    return resolvedFullDependenciesLists[candidate] ?: error("Dependency list is not resolved for $candidate")
-  }
+  private val resolvedDependenciesLists: HashMap<IdeaPluginDescriptorImpl, List<IdeaPluginDescriptorImpl>> = HashMap()
 
   /**
    * For all strict dependencies and implicit dependencies provided by [PluginInitializationContext.provideCompatibilityDependencies]:
@@ -246,7 +245,7 @@ private class PluginSetConstraintsResolver(
         tryAddDependency(candidate.parent)
       }
     }
-    resolvedFullDependenciesLists[candidate] = resolvedDependencies
+    resolvedDependenciesLists[candidate] = resolvedDependencies
   }
 
   private val essentialModulesClosure: Set<PluginModuleDescriptor> by lazy {
@@ -334,10 +333,17 @@ private class PluginSetConstraintsResolver(
   }
 
 
+  /**
+   * DFSTBuilder expects edge to represent `<` relation, but in our case dependents of a descriptor should come first, so we need dependents, not dependencies
+   */
   private fun tryBuildRuntimeModuleGroupDAGOrExcludeCycles(): ResolvedPluginSet? {
-    val sortedCandidates = sortRemainingCandidatesTopologicallyOrExcludeCycles()
+    // TODO handle implicit deps on content modules from `<depends>`
+    val remainingCandidates = candidates.keys.filterTo(ArrayList()) { it.getState() is Candidate }
+    val resolvedDependencies = resolvedDependenciesLists.filterKeys { it.getState() is Candidate }
+    val resolvedDependents = resolvedDependencies.invertEdges()
+    val sortedCandidates = sortRemainingCandidatesTopologicallyOrExcludeCycles(remainingCandidates, resolvedDependents)
                            ?: return null
-    val runtimeModuleGroupGraph = buildAcyclicRuntimeModuleGroupGraphOrExcludeCycles(sortedCandidates)
+    val runtimeModuleGroupGraph = buildAcyclicRuntimeModuleGroupGraphOrExcludeCycles(sortedCandidates, resolvedDependencies)
                                   ?: return null
 
     // preserves all keys for 'unknown descriptor' check
@@ -348,14 +354,17 @@ private class PluginSetConstraintsResolver(
       sortedResolvedDescriptors = LinkedHashSet(sortedCandidates),
       runtimeModuleGroupGraph = runtimeModuleGroupGraph,
       exclusions = exclusions,
-      resolvedDependencies = resolvedFullDependenciesLists.filterKeys { it.getState() is Candidate }
+      resolvedDependencies = resolvedDependencies,
+      resolvedDependents = resolvedDependents,
     )
     return resolvedPluginSet
   }
 
-  private fun sortRemainingCandidatesTopologicallyOrExcludeCycles(): List<IdeaPluginDescriptorImpl>? {
-    val remainingCandidates = candidates.keys.filterTo(ArrayList()) { it.getState() is Candidate }
-    val descriptorGraph = DFSTBuilder(DescriptorGraphAdapter(remainingCandidates))
+  private fun sortRemainingCandidatesTopologicallyOrExcludeCycles(
+    remainingCandidates: ArrayList<IdeaPluginDescriptorImpl>,
+    resolvedDependents: Map<IdeaPluginDescriptorImpl, List<IdeaPluginDescriptorImpl>>
+  ): List<IdeaPluginDescriptorImpl>? {
+    val descriptorGraph = DFSTBuilder(DescriptorGraphAdapter(remainingCandidates, resolvedDependents))
     if (!descriptorGraph.isAcyclic) {
       for (component in descriptorGraph.components) {
         if (component.size <= 1) {
@@ -372,7 +381,10 @@ private class PluginSetConstraintsResolver(
 
   private typealias RepresentativeModule = PluginModuleDescriptor
 
-  private fun buildAcyclicRuntimeModuleGroupGraphOrExcludeCycles(sortedCandidates: List<IdeaPluginDescriptorImpl>): RuntimeModuleGroupGraphImpl? {
+  private fun buildAcyclicRuntimeModuleGroupGraphOrExcludeCycles(
+    sortedCandidates: List<IdeaPluginDescriptorImpl>,
+    resolvedDependencies: Map<IdeaPluginDescriptorImpl, List<IdeaPluginDescriptorImpl>>
+  ): RuntimeModuleGroupGraphImpl? {
     val representativeToGroups = HashMap<RepresentativeModule, RuntimeModuleGroupImpl>(sortedCandidates.size)
     val candidateToGroup = HashMap<IdeaPluginDescriptorImpl, RuntimeModuleGroup>(sortedCandidates.size)
     for (candidate in sortedCandidates) {
@@ -387,7 +399,7 @@ private class PluginSetConstraintsResolver(
       val descriptors = group.sortedDescriptors
       val seenDependencies = HashMap<RuntimeModuleGroupImpl, Boolean>()
       for (descriptor in descriptors) {
-        for (target in getResolvedFullDependenciesList(descriptor)) {
+        for (target in resolvedDependencies[descriptor]!!) {
           val targetGroup = candidateToGroup[target] as? RuntimeModuleGroupImpl ?: error("runtime module group not found for $target")
           if (targetGroup === group) {
             continue
@@ -400,7 +412,8 @@ private class PluginSetConstraintsResolver(
       groupToGroupDependencies[group] = groupDependencies
     }
 
-    val dfstBuilder = DFSTBuilder(RuntimeModuleGroupGraphAdapter(representativeToGroups.values, groupToGroupDependencies))
+    val groupToGroupDependents = groupToGroupDependencies.invertEdges()
+    val dfstBuilder = DFSTBuilder(RuntimeModuleGroupGraphAdapter(representativeToGroups.values, groupToGroupDependents))
     if (!dfstBuilder.isAcyclic) {
       for (component in dfstBuilder.components) {
         if (component.size <= 1) {
@@ -417,6 +430,7 @@ private class PluginSetConstraintsResolver(
     val runtimeModuleGroupGraph = RuntimeModuleGroupGraphImpl(
       sortedGroups = representativeToGroups.values.sortedWith(dfstBuilder.comparator()),
       dependencies = groupToGroupDependencies,
+      dependents = groupToGroupDependents,
       descriptorToGroup = candidateToGroup
     )
     return runtimeModuleGroupGraph
@@ -440,18 +454,21 @@ private class PluginSetConstraintsResolver(
     }
   }
 
-  private inner class DescriptorGraphAdapter(val remainingCandidates: List<IdeaPluginDescriptorImpl>) : OutboundSemiGraph<IdeaPluginDescriptorImpl> {
+  private class DescriptorGraphAdapter(
+    val remainingCandidates: List<IdeaPluginDescriptorImpl>,
+    val resolvedDependents: Map<IdeaPluginDescriptorImpl, List<IdeaPluginDescriptorImpl>>
+  ) : OutboundSemiGraph<IdeaPluginDescriptorImpl> {
     override fun getNodes(): Collection<IdeaPluginDescriptorImpl> = remainingCandidates
     override fun getOut(node: IdeaPluginDescriptorImpl): Iterator<IdeaPluginDescriptorImpl> {
-      return getResolvedFullDependenciesList(node).iterator()
+      return resolvedDependents[node]!!.iterator()
     }
   }
 
-  private class RuntimeModuleGroupGraphAdapter(val groups: Collection<RuntimeModuleGroup>, val dependencies: Map<RuntimeModuleGroup, List<RuntimeModuleGroup>>) :
+  private class RuntimeModuleGroupGraphAdapter(val groups: Collection<RuntimeModuleGroup>, val dependents: Map<RuntimeModuleGroup, List<RuntimeModuleGroup>>) :
     OutboundSemiGraph<RuntimeModuleGroup> {
     override fun getNodes(): Collection<RuntimeModuleGroup> = groups
     override fun getOut(node: RuntimeModuleGroup): Iterator<RuntimeModuleGroup> {
-      return dependencies[node]?.iterator() ?: emptyList<RuntimeModuleGroup>().iterator()
+      return dependents[node]!!.iterator()
     }
   }
 
@@ -462,19 +479,10 @@ private class PluginSetConstraintsResolver(
 
   private class RuntimeModuleGroupGraphImpl(
     override val sortedGroups: List<RuntimeModuleGroup>,
-    private val dependencies: HashMap<RuntimeModuleGroup, List<RuntimeModuleGroup>>,
-    private val descriptorToGroup: HashMap<IdeaPluginDescriptorImpl, RuntimeModuleGroup>,
+    private val dependencies: Map<RuntimeModuleGroup, List<RuntimeModuleGroup>>,
+    private val descriptorToGroup: Map<IdeaPluginDescriptorImpl, RuntimeModuleGroup>,
+    private val dependents: Map<RuntimeModuleGroup, List<RuntimeModuleGroup>>,
   ) : RuntimeModuleGroupGraph {
-    private val dependents by lazy {
-      val result = dependencies.mapValues { ArrayList<RuntimeModuleGroup>() }
-      for ((group, dependencies) in dependencies) {
-        for (dependency in dependencies) {
-          result[dependency]!!.add(group)
-        }
-      }
-      result
-    }
-
     override fun getRuntimeModuleGroup(resolvedDescriptor: IdeaPluginDescriptorImpl): RuntimeModuleGroup {
       return descriptorToGroup[resolvedDescriptor] ?: throw IllegalArgumentException("unknown descriptor: $resolvedDescriptor")
     }
@@ -496,17 +504,8 @@ private class PluginSetConstraintsResolver(
     override val runtimeModuleGroupGraph: RuntimeModuleGroupGraph,
     private val exclusions: Map<IdeaPluginDescriptorImpl, DescriptorExclusionReason?>,
     private val resolvedDependencies: Map<IdeaPluginDescriptorImpl, List<IdeaPluginDescriptorImpl>>,
+    private val resolvedDependents: Map<IdeaPluginDescriptorImpl, List<IdeaPluginDescriptorImpl>>,
   ) : ResolvedPluginSet {
-    private val resolvedDependents by lazy {
-      val result = resolvedDependencies.mapValues { ArrayList<IdeaPluginDescriptorImpl>() }
-      for ((resolvedDescriptor, dependencies) in resolvedDependencies) {
-        for (dependency in dependencies) {
-          result[dependency]!!.add(resolvedDescriptor)
-        }
-      }
-      result
-    }
-
     override fun getExclusionReason(descriptor: IdeaPluginDescriptorImpl): DescriptorExclusionReason? {
       require(descriptor in exclusions.keys) { "unknown descriptor: $descriptor" }
       return exclusions[descriptor]
@@ -538,4 +537,15 @@ private fun UnambiguousPluginSet.sequenceAllDescriptors(): Sequence<IdeaPluginDe
       yieldAllDescriptors(plugin)
     }
   }
+}
+
+/** preserves the key set */
+private fun <T> Map<T, List<T>>.invertEdges(): Map<T, List<T>> {
+  val result = mapValues { ArrayList<T>() }
+  for ((node, edgeTarget) in this) {
+    for (target in edgeTarget) {
+      result[target]!!.add(node)
+    }
+  }
+  return result
 }

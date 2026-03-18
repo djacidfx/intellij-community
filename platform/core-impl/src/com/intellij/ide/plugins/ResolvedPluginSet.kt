@@ -27,6 +27,8 @@ interface ResolvedPluginSet {
    * e.g., the content module loading depends on the main plugin descriptor loading; all dependencies are resolved too; etc.
    *
    * If a descriptor from the [originalPluginSet] is not resolved, [getExclusionReason] returns a non-null reason for such a descriptor.
+   *
+   * The rule of thumb for the ordering is that the descriptor's dependencies come before the descriptor.
    */
   val sortedResolvedDescriptors: Set<IdeaPluginDescriptorImpl>
 
