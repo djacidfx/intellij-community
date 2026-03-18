@@ -193,7 +193,7 @@ private class PluginSetConstraintsResolver(
     val resolvedDependencies = ArrayList<IdeaPluginDescriptorImpl>()
     val seenDependencies = HashMap<IdeaPluginDescriptorImpl, Boolean>()
     fun tryAddDependency(dependency: IdeaPluginDescriptorImpl): Boolean {
-      if (seenDependencies.putIfAbsent(dependency, true) == null) {
+      if (dependency !== candidate && seenDependencies.putIfAbsent(dependency, true) == null) {
         resolvedDependencies.add(dependency)
         return true
       }
