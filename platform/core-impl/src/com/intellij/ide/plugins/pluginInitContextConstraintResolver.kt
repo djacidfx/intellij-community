@@ -31,13 +31,14 @@ private class PluginSetConstraintsResolver(
     }
   }
 
-  private val candidates: HashMap<IdeaPluginDescriptorImpl, CandidateState>
+  // LinkedHashMap ensures stable order
+  private val candidates: LinkedHashMap<IdeaPluginDescriptorImpl, CandidateState>
 
   private fun IdeaPluginDescriptorImpl.getState(): CandidateState = candidates[this] ?: error("Unknown descriptor: $this")
 
   init {
     val allDescriptors = pluginSet.sequenceAllDescriptors().toList()
-    candidates = HashMap(allDescriptors.size)
+    candidates = LinkedHashMap(allDescriptors.size)
     for (descriptor in allDescriptors) {
       candidates[descriptor] = Candidate()
     }
@@ -182,8 +183,10 @@ private class PluginSetConstraintsResolver(
    *
    * For `<depends>` dependencies **does not** include edges to the content modules of the target plugin
    * (the accurate set of such dependencies can only be determined after all exclusions are settled).
+   *
+   * LinkedHashMap is used to preserve iteration order.
    */
-  private val resolvedDependenciesLists: HashMap<IdeaPluginDescriptorImpl, List<IdeaPluginDescriptorImpl>> = HashMap()
+  private val resolvedDependenciesLists: LinkedHashMap<IdeaPluginDescriptorImpl, List<IdeaPluginDescriptorImpl>> = LinkedHashMap()
 
   /**
    * For all strict dependencies and implicit dependencies provided by [PluginInitializationContext.provideCompatibilityDependencies]:
