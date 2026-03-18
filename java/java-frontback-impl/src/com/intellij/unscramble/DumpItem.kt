@@ -219,7 +219,9 @@ internal class JavaThreadDumpItem(private val threadState: ThreadState) : Mergea
 
   private val isServiceThread: Boolean =
     name.startsWith("Coroutines Debugger Cleaner") ||
-    name.startsWith("IntelliJ Suspend Helper")
+    // obsolete
+    name.startsWith("IntelliJ Suspend Helper") ||
+    name.startsWith("IntelliJ Debugger Helper Thread")
 
   override val interestLevel: Int = when {
     threadState.isEmptyStackTrace -> -10
