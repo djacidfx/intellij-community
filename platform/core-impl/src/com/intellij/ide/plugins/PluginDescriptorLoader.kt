@@ -1370,6 +1370,14 @@ private fun loadPluginDependencyDescriptors(
     }
 
     // because of https://youtrack.jetbrains.com/issue/IDEA-206274, configFile maybe not only for optional dependencies
+
+    if (dependency.isOptional && dependency.configFile == null && context.createEmptyDependsDescriptorForOptionalDependsWithoutConfigFile) {
+      // generate an empty "depends" descriptor; this is needed so that new plugin set resolver can associate the dependency with the sub-descriptor
+      val subDescriptor = descriptor.createDependsSubDescriptor(PluginDescriptorBuilder.builder(), "", dependsTargetId = dependency.pluginId)
+      dependency.setSubDescriptor(subDescriptor)
+      continue
+    }
+
     val configFile = dependency.configFile ?: continue
     if (pathResolver.isFlat && context.checkOptionalConfigShortName(configFile, descriptor)) {
       continue
