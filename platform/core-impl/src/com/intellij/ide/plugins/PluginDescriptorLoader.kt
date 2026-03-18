@@ -1362,16 +1362,16 @@ private fun loadPluginDependencyDescriptors(
   visitedFiles: MutableList<String>,
 ) {
   for (dependency in descriptor.pluginDependencies) {
-    // because of https://youtrack.jetbrains.com/issue/IDEA-206274, configFile maybe not only for optional dependencies
-    val configFile = dependency.configFile ?: continue
-    if (pathResolver.isFlat && context.checkOptionalConfigShortName(configFile, descriptor)) {
+    if (isKotlinPlugin(dependency.pluginId) && isIncompatibleWithKotlinPlugin(descriptor)) {
+      LOG.warn("Plugin ${descriptor} depends on Kotlin plugin via `${dependency.configFile}` " +
+               "but the plugin is not compatible with the Kotlin plugin in the  ${if (isKotlinPluginK1Mode()) "K1" else "K2"} mode. " +
+               "So, the `${dependency.configFile}` was not loaded")
       continue
     }
 
-    if (isKotlinPlugin(dependency.pluginId) && isIncompatibleWithKotlinPlugin(descriptor)) {
-      LOG.warn("Plugin ${descriptor} depends on Kotlin plugin via `${configFile}` " +
-               "but the plugin is not compatible with the Kotlin plugin in the  ${if (isKotlinPluginK1Mode()) "K1" else "K2"} mode. " +
-               "So, the `${configFile}` was not loaded")
+    // because of https://youtrack.jetbrains.com/issue/IDEA-206274, configFile maybe not only for optional dependencies
+    val configFile = dependency.configFile ?: continue
+    if (pathResolver.isFlat && context.checkOptionalConfigShortName(configFile, descriptor)) {
       continue
     }
 
