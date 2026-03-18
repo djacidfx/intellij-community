@@ -12,8 +12,15 @@ import com.intellij.platform.pluginSystem.parser.impl.PluginDescriptorBuilder
 import com.intellij.platform.pluginSystem.parser.impl.PluginDescriptorFromXmlStreamConsumer
 import com.intellij.platform.pluginSystem.parser.impl.PluginDescriptorReaderContext
 import com.intellij.platform.pluginSystem.parser.impl.consume
+import com.intellij.platform.pluginSystem.testFramework.PluginSetTestBuilder
 import com.intellij.platform.pluginSystem.testFramework.PseudoProductTestPluginInitContext
 import com.intellij.platform.runtime.product.ProductMode
+import com.intellij.platform.testFramework.plugins.buildDir
+import com.intellij.platform.testFramework.plugins.content
+import com.intellij.platform.testFramework.plugins.dependencies
+import com.intellij.platform.testFramework.plugins.module
+import com.intellij.platform.testFramework.plugins.plugin
+import com.intellij.platform.testFramework.plugins.pluginAlias
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.TestDataPath
 import com.intellij.testFramework.UsefulTestCase
@@ -170,25 +177,49 @@ class PluginManagerTest {
     doPluginSortTest("simplePluginSort", false)
   }
 
-  /*
-   Actual result:
-   HTTP Client (main)
-   Endpoints (main)
-   HTTP Client (intellij.restClient.microservicesUI, depends on Endpoints)
-
-   Expected:
-   Endpoints (main)
-   HTTP Client (main)
-   HTTP Client (intellij.restClient.microservicesUI, depends on Endpoints)
-
-   But the graph is correct - HTTP Client (main) it is a node that doesn't depend on Endpoints (main),
-   so no reason for DFSTBuilder to put it after.
-   See CachingSemiGraph.getSortedPlugins for a solution.
-  */
   @Test
   @Throws(Exception::class)
   fun moduleSort() {
-    doPluginSortTest("moduleSort", true)
+    val pluginsDir = tempDir.newDirectory("plugins").toPath()
+
+    plugin("com.intellij") {
+      pluginAlias("com.intellij.modules.microservices")
+    }.buildDir(pluginsDir.resolve("com.intellij"))
+
+    plugin("com.intellij.microservices.ui") {
+      name = "Endpoints"
+      vendor = "JetBrains"
+      category = "Microservices"
+      dependencies {
+        plugin("com.intellij.modules.microservices")
+      }
+    }.buildDir(pluginsDir.resolve("com.intellij.microservices.ui"))
+
+    plugin("com.jetbrains.restClient") {
+      name = "HTTP Client"
+      category = "Other Tools"
+      vendor = "JetBrains"
+      dependencies {
+        plugin("com.intellij.modules.microservices")
+      }
+      content {
+        module("intellij.restClient.microservicesUI") {
+          dependencies {
+            plugin("com.intellij.microservices.ui")
+          }
+        }
+      }
+    }.buildDir(pluginsDir.resolve("com.jetbrains.restClient"))
+
+    val loadPluginResult = PluginSetTestBuilder.fromPath(pluginsDir).buildState()
+    assertThat(PluginManagerCore.getAndClearPluginLoadingErrors()).isEmpty()
+    assertThat(loadPluginResult.pluginSet.getEnabledModules().map { it.getPluginId().idString + ":" + it.contentModuleName })
+      .isEqualTo(listOf(
+        "com.intellij:null",
+        "com.jetbrains.restClient:null",
+        "com.intellij.microservices.ui:null",
+        "com.jetbrains.restClient:intellij.restClient.microservicesUI"
+      ))
   }
 
   @Test
