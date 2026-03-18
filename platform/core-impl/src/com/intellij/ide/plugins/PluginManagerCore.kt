@@ -531,6 +531,10 @@ object PluginManagerCore {
   }
 
   @Internal
+  @VisibleForTesting
+  fun fallbackToOldPluginSetResolution(): Boolean = System.getProperty("revert.IJPL236591") == "true"
+
+  @Internal
   fun initializePlugins(
     descriptorLoadingErrors: List<PluginDescriptorLoadingError>,
     initContext: PluginInitializationContext,
