@@ -48,34 +48,8 @@ class PluginSetBuilder(initContext: PluginInitializationContext, @JvmField val u
         plugin.isMarkedForLoading = false
       }
 
-      val pluginString =
-        component.joinToString(separator = ", ") { "'${it.name} (${it.pluginId.idString}${if (it.contentModuleName != null) ":" + it.contentModuleName else ""})'" }
-      errors.add(PluginLoadingError(
-        reason = null,
-        htmlMessageSupplier = Supplier {
-          val message = CoreBundle.message("plugin.loading.error.plugins.cannot.be.loaded.because.they.form.a.dependency.cycle", pluginString)
-          HtmlChunk.text(message)
-        },
-        error = null,
-      ))
-      val detailedMessage = StringBuilder()
-      val pluginToString: (IdeaPluginDescriptorImpl) -> String = { "id = ${it.pluginId.idString}@${it.contentModuleName} (${it.name})" }
-      detailedMessage.append("Detected plugin dependencies cycle details (only related dependencies are included):\n")
-      component
-        .asSequence()
-        .map { Pair(it, pluginToString(it)) }
-        .sortedWith(Comparator.comparing({ it.second }, String.CASE_INSENSITIVE_ORDER))
-        .forEach {
-          detailedMessage.append("  ").append(it.second).append(" depends on:\n")
-          moduleGraph.getIn(it.first).asSequence()
-            .filter { o: IdeaPluginDescriptorImpl -> component.contains(o) }
-            .map(pluginToString)
-            .sortedWith(java.lang.String.CASE_INSENSITIVE_ORDER)
-            .forEach { dep: String? ->
-              detailedMessage.append("    ").append(dep).append("\n")
-            }
-        }
-      PluginManagerCore.logger.info(detailedMessage.toString())
+      val error = createCyclePluginLoadingError(component) { moduleGraph.getIn(it) }
+      errors.add(error)
     }
     return errors
   }
@@ -395,6 +369,37 @@ class PluginSetBuilder(initContext: PluginInitializationContext, @JvmField val u
         }
         PluginModuleVisibilityCheckOption.DISABLED -> null
       }
+    }
+
+    internal fun createCyclePluginLoadingError(component: Collection<PluginModuleDescriptor>, getDependencies: (PluginModuleDescriptor) -> Iterator<PluginModuleDescriptor>): PluginLoadingError {
+      val pluginString =
+        component.joinToString(separator = ", ") { "'${it.name} (${it.pluginId.idString}${if (it.contentModuleName != null) ":" + it.contentModuleName else ""})'" }
+      val detailedMessage = StringBuilder()
+      val pluginToString: (IdeaPluginDescriptorImpl) -> String = { "id = ${it.pluginId.idString}@${it.contentModuleName} (${it.name})" }
+      detailedMessage.append("Detected plugin dependencies cycle details (only related dependencies are included):\n")
+      component
+        .asSequence()
+        .map { Pair(it, pluginToString(it)) }
+        .sortedWith(Comparator.comparing({ it.second }, String.CASE_INSENSITIVE_ORDER))
+        .forEach {
+          detailedMessage.append("  ").append(it.second).append(" depends on:\n")
+          getDependencies(it.first).asSequence()
+            .filter { o: IdeaPluginDescriptorImpl -> component.contains(o) }
+            .map(pluginToString)
+            .sortedWith(java.lang.String.CASE_INSENSITIVE_ORDER)
+            .forEach { dep: String? ->
+              detailedMessage.append("    ").append(dep).append("\n")
+            }
+        }
+      PluginManagerCore.logger.info(detailedMessage.toString())
+      return PluginLoadingError(
+        reason = null,
+        htmlMessageSupplier = Supplier {
+          val message = CoreBundle.message("plugin.loading.error.plugins.cannot.be.loaded.because.they.form.a.dependency.cycle", pluginString)
+          HtmlChunk.text(message)
+        },
+        error = null,
+      )
     }
   }
 }
