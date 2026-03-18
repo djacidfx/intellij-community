@@ -426,10 +426,11 @@ private class PluginSetConstraintsResolver(
           continue
         }
         val groupDependencyCycle = component.toList()
-        val descriptors = groupDependencyCycle.flatMap { it.sortedDescriptors }
-        // try to exclude only non-essential at first (e.g., it may be possible to eliminate cycles by dropping some optional `depends` descriptors first)
-        val toExclude = descriptors.filter { !it.isEssential() }.takeIf { it.isNotEmpty() } ?: descriptors
-        batchExclude(toExclude) { PartOfRuntimeModuleGroupDependencyCycle(it, groupDependencyCycle) }
+        val descriptors = groupDependencyCycle.asSequence().flatMap { it.sortedDescriptors }
+          // Exclusion of a "depends" sub-descriptor due to a dependency cycle historically led to exclusion of the corresponding plugin. That behavior is preserved, though it isn't necessary
+          .map { if (it is DependsSubDescriptor) it.getMainDescriptor() else it }
+          .toList()
+        batchExclude(descriptors) { PartOfRuntimeModuleGroupDependencyCycle(it, groupDependencyCycle) }
       }
       return null
     }
