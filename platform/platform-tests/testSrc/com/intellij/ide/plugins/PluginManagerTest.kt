@@ -12,6 +12,7 @@ import com.intellij.platform.pluginSystem.parser.impl.PluginDescriptorBuilder
 import com.intellij.platform.pluginSystem.parser.impl.PluginDescriptorFromXmlStreamConsumer
 import com.intellij.platform.pluginSystem.parser.impl.PluginDescriptorReaderContext
 import com.intellij.platform.pluginSystem.parser.impl.consume
+import com.intellij.platform.pluginSystem.testFramework.EmptyTestPluginInitializationContext
 import com.intellij.platform.runtime.product.ProductMode
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.TestDataPath
@@ -296,18 +297,10 @@ class PluginManagerTest {
       val loadingContext = PluginDescriptorLoadingContext(
         getBuildNumberForDefaultDescriptorVersion = { buildNumber }
       )
-      val initContext = PluginInitializationContext.buildForTest(
-        getProductBuildNumber = { buildNumber },
-        essentialPlugins = emptySet(),
-        disabledPlugins = emptySet(),
-        expiredPlugins = emptySet(),
-        brokenPluginVersions = emptyMap(),
-        requirePlatformAliasDependencyForLegacyPlugins = false,
-        checkEssentialPlugins = false,
-        explicitPluginSubsetToLoad = null,
-        disablePluginLoadingCompletely = false,
-        currentProductModeId = ProductMode.MONOLITH.id,
-      )
+      val initContext = object : EmptyTestPluginInitializationContext() {
+        override val productBuildNumber: BuildNumber = buildNumber
+        override val currentProductModeId: String = ProductMode.MONOLITH.id
+      }
       val root = readXmlAsModel(Files.newInputStream(file))
       val autoGenerateModuleDescriptor = Ref<Boolean>(false)
       val moduleMap = HashMap<String, XmlElement>()

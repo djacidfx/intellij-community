@@ -3,14 +3,11 @@ package com.intellij.ide.plugins
 
 import com.intellij.core.CoreBundle
 import com.intellij.ide.plugins.PluginDependencyAnalysis.DependencyRef
-import com.intellij.ide.plugins.ProductPluginInitContext.Companion.configureProductModeModules
-import com.intellij.ide.plugins.ProductPluginInitContext.Companion.defaultProductCompatibilityDependenciesProvider
 import com.intellij.ide.plugins.ProductRulesImposedExclusion.ProductRulesImposedExclusionReason
 import com.intellij.idea.AppMode
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.util.BuildNumber
 import org.jetbrains.annotations.ApiStatus
-import org.jetbrains.annotations.TestOnly
 
 @ApiStatus.Internal
 interface PluginInitializationContext {
@@ -72,43 +69,7 @@ interface PluginInitializationContext {
 
   fun provideModuleExclusionsImposedByProductRules(pluginSet: UnambiguousPluginSet): Sequence<Pair<PluginModuleDescriptor, ProductRulesImposedExclusionReason>>
 
-  @ApiStatus.Internal
-  companion object {
-    @TestOnly
-    fun buildForTest(
-      getProductBuildNumber: () -> BuildNumber,
-      essentialPlugins: Set<PluginId>,
-      disabledPlugins: Set<PluginId>,
-      expiredPlugins: Set<PluginId>,
-      brokenPluginVersions: Map<PluginId, Set<String?>>,
-      requirePlatformAliasDependencyForLegacyPlugins: Boolean,
-      checkEssentialPlugins: Boolean,
-      explicitPluginSubsetToLoad: Set<PluginId>?,
-      disablePluginLoadingCompletely: Boolean,
-      currentProductModeId: String,
-    ): PluginInitializationContext =
-      object : PluginInitializationContext {
-        override val productBuildNumber: BuildNumber get() = getProductBuildNumber()
-        override val essentialPlugins: Set<PluginId> = essentialPlugins
-        override fun isPluginDisabled(id: PluginId): Boolean = id in disabledPlugins
-        override fun isPluginExpired(id: PluginId): Boolean = id in expiredPlugins
-        override fun isPluginBroken(id: PluginId, version: String?): Boolean = brokenPluginVersions[id]?.contains(version) == true
-        override val requirePlatformAliasDependencyForLegacyPlugins: Boolean = requirePlatformAliasDependencyForLegacyPlugins
-        override val checkEssentialPlugins: Boolean = checkEssentialPlugins
-        override val explicitPluginSubsetToLoad: Set<PluginId>? = explicitPluginSubsetToLoad
-        override val disablePluginLoadingCompletely: Boolean = disablePluginLoadingCompletely
-        override val pluginsPerProjectConfig: PluginsPerProjectConfig? = null
-        override val currentProductModeId: String = currentProductModeId
-        override val environmentConfiguredModules: Map<PluginModuleId, EnvironmentConfiguredModuleData> = buildMap {
-          configureProductModeModules(currentProductModeId)
-        }
-
-        override fun provideCompatibilityDependencies(descriptor: IdeaPluginDescriptorImpl, pluginSet: UnambiguousPluginSet): Sequence<DependencyRef> =
-          defaultProductCompatibilityDependenciesProvider(descriptor, pluginSet)
-
-        override fun provideModuleExclusionsImposedByProductRules(pluginSet: UnambiguousPluginSet): Sequence<Pair<PluginModuleDescriptor, ProductRulesImposedExclusionReason>> = emptySequence()
-      }
-  }
+  companion object
 }
 
 @ApiStatus.Internal
