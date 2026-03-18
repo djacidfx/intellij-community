@@ -11,7 +11,7 @@ sealed interface DescriptorExclusionReason {
 }
 
 sealed interface ChainedExclusion {
-  val previousExcludedDescriptor: IdeaPluginDescriptorImpl
+  val precedingExcludedDescriptor: IdeaPluginDescriptorImpl
 }
 
 class DependencyIsNotResolved(
@@ -23,7 +23,7 @@ class DependencyIsExcluded(
   override val descriptor: IdeaPluginDescriptorImpl,
   val dependencyModule: PluginModuleDescriptor,
 ) : DescriptorExclusionReason, ChainedExclusion {
-  override val previousExcludedDescriptor: IdeaPluginDescriptorImpl get() = dependencyModule
+  override val precedingExcludedDescriptor: IdeaPluginDescriptorImpl get() = dependencyModule
 }
 
 class DependencyIsNotVisible(
@@ -50,14 +50,14 @@ class PartOfRuntimeModuleGroupDependencyCycle(
 class DependsParentIsExcluded(
   override val descriptor: DependsSubDescriptor,
 ) : DescriptorExclusionReason, ChainedExclusion {
-  override val previousExcludedDescriptor: IdeaPluginDescriptorImpl
+  override val precedingExcludedDescriptor: IdeaPluginDescriptorImpl
     get() = descriptor.parent
 }
 
 class ContentModuleParentIsExcluded(
   override val descriptor: ContentModuleDescriptor,
 ) : DescriptorExclusionReason, ChainedExclusion {
-  override val previousExcludedDescriptor: IdeaPluginDescriptorImpl
+  override val precedingExcludedDescriptor: IdeaPluginDescriptorImpl
     get() = descriptor.parent
 }
 
@@ -65,7 +65,7 @@ class RequiredContentModuleIsExcluded(
   override val descriptor: PluginMainDescriptor,
   val excludedContentModule: ContentModuleDescriptor,
 ) : DescriptorExclusionReason, ChainedExclusion {
-  override val previousExcludedDescriptor: IdeaPluginDescriptorImpl
+  override val precedingExcludedDescriptor: IdeaPluginDescriptorImpl
     get() = excludedContentModule
 }
 
@@ -86,8 +86,8 @@ class ProductRulesImposedExclusion(
   interface ProductRulesImposedExclusionReason
 }
 
-fun DescriptorExclusionReason.getPreviousLinkInExclusionChain(): IdeaPluginDescriptorImpl? =
-  (this as? ChainedExclusion)?.previousExcludedDescriptor
+fun DescriptorExclusionReason.getPrecedingLinkInExclusionChain(): IdeaPluginDescriptorImpl? =
+  (this as? ChainedExclusion)?.precedingExcludedDescriptor
 
 fun IdeaPluginDescriptorImpl.sequenceDescriptorExclusionChain(
   getExclusionReason: (IdeaPluginDescriptorImpl) -> DescriptorExclusionReason?,
@@ -98,7 +98,7 @@ fun IdeaPluginDescriptorImpl.sequenceDescriptorExclusionChain(
       val reason = getExclusionReason(current)
                    ?: break
       yield(current)
-      current = reason.getPreviousLinkInExclusionChain()
+      current = reason.getPrecedingLinkInExclusionChain()
     }
   }
 }
