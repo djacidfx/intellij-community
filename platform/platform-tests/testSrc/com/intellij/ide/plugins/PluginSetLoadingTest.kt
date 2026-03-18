@@ -587,6 +587,48 @@ class PluginSetLoadingTest {
     assertThat(pluginSet).hasExactlyEnabledPlugins(PluginManagerCore.CORE_PLUGIN_ID, *ids.map { "intellij.textmate.$it" }.toTypedArray())
   }
 
+  @Test
+  fun `getEnabledModules honors module dependencies`() {
+    plugin("com.intellij") {
+      pluginAlias("com.intellij.modules.microservices")
+    }.buildDir(pluginsDirPath.resolve("com.intellij"))
+
+    plugin("com.intellij.microservices.ui") {
+      name = "Endpoints"
+      vendor = "JetBrains"
+      category = "Microservices"
+      dependencies {
+        plugin("com.intellij.modules.microservices")
+      }
+    }.buildDir(pluginsDirPath.resolve("com.intellij.microservices.ui"))
+
+    plugin("com.jetbrains.restClient") {
+      name = "HTTP Client"
+      category = "Other Tools"
+      vendor = "JetBrains"
+      dependencies {
+        plugin("com.intellij.modules.microservices")
+      }
+      content {
+        module("intellij.restClient.microservicesUI") {
+          dependencies {
+            plugin("com.intellij.microservices.ui")
+          }
+        }
+      }
+    }.buildDir(pluginsDirPath.resolve("com.jetbrains.restClient"))
+
+    val pluginSet = buildPluginSet()
+    assertThat(PluginManagerCore.getAndClearPluginLoadingErrors()).isEmpty()
+    assertThat(pluginSet.getEnabledModules().map { it.getPluginId().idString + ":" + it.contentModuleName })
+      .isEqualTo(listOf(
+        "com.intellij:null",
+        "com.jetbrains.restClient:null",
+        "com.intellij.microservices.ui:null",
+        "com.jetbrains.restClient:intellij.restClient.microservicesUI"
+      ))
+  }
+
   private fun writeDescriptor(id: String, @Language("xml") data: String) {
     pluginsDirPath.resolve(id)
       .resolve(PluginManagerCore.PLUGIN_XML_PATH)
