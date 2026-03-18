@@ -391,7 +391,8 @@ private class PluginSetConstraintsResolver(
     sortedCandidates: List<IdeaPluginDescriptorImpl>,
     resolvedDependencies: Map<IdeaPluginDescriptorImpl, List<IdeaPluginDescriptorImpl>>
   ): RuntimeModuleGroupGraphImpl? {
-    val representativeToGroups = HashMap<RepresentativeModule, RuntimeModuleGroupImpl>(sortedCandidates.size)
+    // should preserve iteration order, so DFSTBuilder is stable
+    val representativeToGroups = LinkedHashMap<RepresentativeModule, RuntimeModuleGroupImpl>(sortedCandidates.size)
     val candidateToGroup = HashMap<IdeaPluginDescriptorImpl, RuntimeModuleGroup>(sortedCandidates.size)
     for (candidate in sortedCandidates) {
       val representative = getRuntimeModuleGroupRepresentative(candidate)
