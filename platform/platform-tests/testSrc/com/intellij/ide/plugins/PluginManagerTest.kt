@@ -300,6 +300,7 @@ class PluginManagerTest {
       val initContext = object : PseudoProductTestPluginInitContext() {
         override val productBuildNumber: BuildNumber = buildNumber
         override val currentProductModeId: String = ProductMode.MONOLITH.id
+        override val environmentConfiguredModules: Map<PluginModuleId, PluginInitializationContext.EnvironmentConfiguredModuleData> get() = emptyMap()
       }
       val root = readXmlAsModel(Files.newInputStream(file))
       val autoGenerateModuleDescriptor = Ref<Boolean>(false)
