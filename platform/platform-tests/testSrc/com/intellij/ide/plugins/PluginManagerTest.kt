@@ -297,11 +297,11 @@ class PluginManagerTest {
         getBuildNumberForDefaultDescriptorVersion = { buildNumber }
       )
       val initContext = PluginInitializationContext.buildForTest(
+        getProductBuildNumber = { buildNumber },
         essentialPlugins = emptySet(),
         disabledPlugins = emptySet(),
         expiredPlugins = emptySet(),
         brokenPluginVersions = emptyMap(),
-        getProductBuildNumber = { buildNumber },
         requirePlatformAliasDependencyForLegacyPlugins = false,
         checkEssentialPlugins = false,
         explicitPluginSubsetToLoad = null,

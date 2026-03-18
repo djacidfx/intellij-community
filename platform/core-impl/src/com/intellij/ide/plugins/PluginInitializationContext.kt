@@ -76,11 +76,11 @@ interface PluginInitializationContext {
   companion object {
     @TestOnly
     fun buildForTest(
+      getProductBuildNumber: () -> BuildNumber,
       essentialPlugins: Set<PluginId>,
       disabledPlugins: Set<PluginId>,
       expiredPlugins: Set<PluginId>,
       brokenPluginVersions: Map<PluginId, Set<String?>>,
-      getProductBuildNumber: () -> BuildNumber,
       requirePlatformAliasDependencyForLegacyPlugins: Boolean,
       checkEssentialPlugins: Boolean,
       explicitPluginSubsetToLoad: Set<PluginId>?,

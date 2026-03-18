@@ -53,11 +53,11 @@ class PluginInitializationSelectPluginsToLoadTest {
     disablePluginLoadingCompletely: Boolean = false,
   ): PluginInitializationContext {
     return PluginInitializationContext.buildForTest(
+      getProductBuildNumber = { productBuildNumber },
       essentialPlugins = essentialPlugins,
       disabledPlugins = disabledPlugins,
       expiredPlugins = emptySet(),
       brokenPluginVersions = emptyMap(),
-      getProductBuildNumber = { productBuildNumber },
       requirePlatformAliasDependencyForLegacyPlugins = false,
       checkEssentialPlugins = false,
       explicitPluginSubsetToLoad = explicitPluginSubsetToLoad,

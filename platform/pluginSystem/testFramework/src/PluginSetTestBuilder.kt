@@ -84,11 +84,11 @@ class PluginSetTestBuilder private constructor(
     // copy just in case
     val buildNumber = productBuildNumber
     return PluginInitializationContext.buildForTest(
+      getProductBuildNumber = { buildNumber },
       essentialPlugins = emptySet(),
       disabledPlugins = disabledPluginIds.toSet(),
       expiredPlugins = expiredPluginIds.toSet(),
       brokenPluginVersions = brokenPlugins.mapValues { it.value.toSet() }.toMap(),
-      getProductBuildNumber = { buildNumber },
       requirePlatformAliasDependencyForLegacyPlugins = false,
       checkEssentialPlugins = false,
       explicitPluginSubsetToLoad = explicitPluginSubsetToLoad,
