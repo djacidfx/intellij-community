@@ -12,7 +12,7 @@ import com.intellij.platform.pluginSystem.parser.impl.PluginDescriptorBuilder
 import com.intellij.platform.pluginSystem.parser.impl.PluginDescriptorFromXmlStreamConsumer
 import com.intellij.platform.pluginSystem.parser.impl.PluginDescriptorReaderContext
 import com.intellij.platform.pluginSystem.parser.impl.consume
-import com.intellij.platform.pluginSystem.testFramework.EmptyTestPluginInitializationContext
+import com.intellij.platform.pluginSystem.testFramework.PseudoProductTestPluginInitContext
 import com.intellij.platform.runtime.product.ProductMode
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.TestDataPath
@@ -297,7 +297,7 @@ class PluginManagerTest {
       val loadingContext = PluginDescriptorLoadingContext(
         getBuildNumberForDefaultDescriptorVersion = { buildNumber }
       )
-      val initContext = object : EmptyTestPluginInitializationContext() {
+      val initContext = object : PseudoProductTestPluginInitContext() {
         override val productBuildNumber: BuildNumber = buildNumber
         override val currentProductModeId: String = ProductMode.MONOLITH.id
       }

@@ -7,14 +7,12 @@ import com.intellij.ide.plugins.PluginInitializationContext
 import com.intellij.ide.plugins.PluginModuleDescriptor
 import com.intellij.ide.plugins.PluginModuleId
 import com.intellij.ide.plugins.PluginsPerProjectConfig
-import com.intellij.ide.plugins.ProductPluginInitContext.Companion.configureProductModeModules
-import com.intellij.ide.plugins.ProductPluginInitContext.Companion.defaultProductCompatibilityDependenciesProvider
 import com.intellij.ide.plugins.ProductRulesImposedExclusion.ProductRulesImposedExclusionReason
 import com.intellij.ide.plugins.UnambiguousPluginSet
 import com.intellij.openapi.extensions.PluginId
 
 
-abstract class EmptyTestPluginInitializationContext : PluginInitializationContext {
+abstract class EmptyTestPluginInitContext : PluginInitializationContext {
   override val essentialPlugins: Set<PluginId> = emptySet()
   override fun isPluginDisabled(id: PluginId): Boolean = false
   override fun isPluginExpired(id: PluginId): Boolean = false
@@ -24,13 +22,13 @@ abstract class EmptyTestPluginInitializationContext : PluginInitializationContex
   override val explicitPluginSubsetToLoad: Set<PluginId>? = null
   override val disablePluginLoadingCompletely: Boolean = false
   override val pluginsPerProjectConfig: PluginsPerProjectConfig? = null
-  override val environmentConfiguredModules: Map<PluginModuleId, PluginInitializationContext.EnvironmentConfiguredModuleData> by lazy {
-    buildMap {
-      configureProductModeModules(currentProductModeId)
-    }
-  }
-  override fun provideCompatibilityDependencies(descriptor: IdeaPluginDescriptorImpl, pluginSet: UnambiguousPluginSet): Sequence<DependencyRef> =
-    defaultProductCompatibilityDependenciesProvider(descriptor, pluginSet)
+  override val environmentConfiguredModules: Map<PluginModuleId, PluginInitializationContext.EnvironmentConfiguredModuleData> = emptyMap()
+
+  override fun provideCompatibilityDependencies(
+    descriptor: IdeaPluginDescriptorImpl,
+    pluginSet: UnambiguousPluginSet,
+  ): Sequence<DependencyRef> = emptySequence()
+
   override fun provideModuleExclusionsImposedByProductRules(pluginSet: UnambiguousPluginSet): Sequence<Pair<PluginModuleDescriptor, ProductRulesImposedExclusionReason>> =
     emptySequence()
 }

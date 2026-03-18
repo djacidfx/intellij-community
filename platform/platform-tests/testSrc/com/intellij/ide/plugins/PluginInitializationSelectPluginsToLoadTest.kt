@@ -5,8 +5,8 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.util.BuildNumber
 import com.intellij.platform.pluginSystem.parser.impl.elements.ModuleLoadingRuleValue
-import com.intellij.platform.pluginSystem.testFramework.EmptyTestPluginInitializationContext
 import com.intellij.platform.pluginSystem.testFramework.PluginSetTestBuilder
+import com.intellij.platform.pluginSystem.testFramework.PseudoProductTestPluginInitContext
 import com.intellij.platform.testFramework.plugins.buildDir
 import com.intellij.platform.testFramework.plugins.content
 import com.intellij.platform.testFramework.plugins.depends
@@ -53,7 +53,7 @@ class PluginInitializationSelectPluginsToLoadTest {
     explicitPluginSubsetToLoad: Set<PluginId>? = null,
     disablePluginLoadingCompletely: Boolean = false,
   ): PluginInitializationContext {
-    return object : EmptyTestPluginInitializationContext() {
+    return object : PseudoProductTestPluginInitContext() {
       override val productBuildNumber: BuildNumber = productBuildNumber
       override val essentialPlugins: Set<PluginId> = essentialPlugins
       override fun isPluginDisabled(id: PluginId): Boolean = id in disabledPlugins
