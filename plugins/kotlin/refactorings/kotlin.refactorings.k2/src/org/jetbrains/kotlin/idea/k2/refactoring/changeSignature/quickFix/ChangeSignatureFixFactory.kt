@@ -1,6 +1,7 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.kotlin.idea.k2.refactoring.changeSignature.quickFix
 
+import com.intellij.codeInsight.intention.PriorityAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
@@ -93,8 +94,8 @@ object ChangeSignatureFixFactory {
 
     private class ParameterQuickFix(
         element: PsiElement,
-        input: ChangeSignatureFixFactory.Input,
-    ) : KotlinApplicatorBasedQuickFix<PsiElement, Input>(element, input) {
+        private val quickFixInput: ChangeSignatureFixFactory.Input,
+    ) : KotlinApplicatorBasedQuickFix<PsiElement, Input>(element, quickFixInput), PriorityAction {
 
         override fun getFamilyName(): String = KotlinBundle.message("fix.change.signature.family")
 
@@ -121,6 +122,10 @@ object ChangeSignatureFixFactory {
         }
 
         override fun startInWriteAction(): Boolean = false
+
+        override fun getPriority(): PriorityAction.Priority {
+            return if (quickFixInput.type == ChangeType.CHANGE_FUNCTIONAL) PriorityAction.Priority.HIGH else PriorityAction.Priority.LOW
+        }
     }
 
     val addParameterFactory = KotlinQuickFixFactory.IntentionBased { diagnostic: KaFirDiagnostic.TooManyArguments ->
