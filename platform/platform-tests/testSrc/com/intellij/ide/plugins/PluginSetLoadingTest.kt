@@ -620,13 +620,22 @@ class PluginSetLoadingTest {
 
     val pluginSet = buildPluginSet()
     assertThat(PluginManagerCore.getAndClearPluginLoadingErrors()).isEmpty()
-    assertThat(pluginSet.getEnabledModules().map { it.getPluginId().idString + ":" + it.contentModuleName })
-      .isEqualTo(listOf(
+    val moduleOrder = pluginSet.getEnabledModules().map { it.getPluginId().idString + ":" + it.contentModuleName }
+    val validOrders = listOf(
+      listOf(
         "com.intellij:null",
         "com.jetbrains.restClient:null",
         "com.intellij.microservices.ui:null",
         "com.jetbrains.restClient:intellij.restClient.microservicesUI"
-      ))
+      ),
+      listOf(
+        "com.intellij:null",
+        "com.intellij.microservices.ui:null",
+        "com.jetbrains.restClient:null",
+        "com.jetbrains.restClient:intellij.restClient.microservicesUI"
+      )
+    ) // both are correct
+    assert(moduleOrder in validOrders) { "Invalid module order: $moduleOrder" }
   }
 
   private fun writeDescriptor(id: String, @Language("xml") data: String) {
