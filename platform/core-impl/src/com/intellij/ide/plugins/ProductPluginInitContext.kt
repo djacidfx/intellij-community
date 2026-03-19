@@ -230,6 +230,10 @@ class ProductPluginInitContext(
           }
         }
 
+        if (!PluginManagerCore.fallbackToOldPluginSetResolution() && descriptor.pluginId == PluginManagerCore.CORE_ID && descriptor is ContentModuleDescriptor) {
+          yieldIfResolves(DependencyRef.of(PluginManagerCore.CORE_ID)) // all content modules of CORE are expected to be registered after its main module
+        }
+
         // Check modules as well, for example, intellij.diagram.impl.vcs.
         // We are not yet ready to recommend adding a dependency on extracted VCS modules since the coordinates are not finalized.
         if ((descriptor is PluginMainDescriptor && descriptor.pluginId != PluginManagerCore.CORE_ID) || descriptor is ContentModuleDescriptor) {

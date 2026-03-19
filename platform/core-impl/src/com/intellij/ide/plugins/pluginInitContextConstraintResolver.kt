@@ -232,14 +232,7 @@ private class PluginSetConstraintsResolver(
     }
     // handle implicit dependencies
     when (candidate) {
-      is PluginMainDescriptor -> {
-        // TODO: if we don't set up dependencies from main to embedded modules, embedded modules may be registered after main. Does main expect that EPs from embedded modules are available?
-        for (contentModule in candidate.contentModules) {
-          if (contentModule.moduleLoadingRule == ModuleLoadingRule.EMBEDDED) {
-            tryAddDependency(contentModule)
-          }
-        }
-      }
+      is PluginMainDescriptor -> {}
       is ContentModuleDescriptor -> {
         if (candidate.moduleLoadingRule == ModuleLoadingRule.OPTIONAL) {
           // there is an implicit dependency on main
@@ -455,6 +448,10 @@ private class PluginSetConstraintsResolver(
 
   /** finds a representative module for the runtime module group current [candidate] belongs to */
   private tailrec fun getRuntimeModuleGroupRepresentative(candidate: IdeaPluginDescriptorImpl): PluginModuleDescriptor {
+    if (candidate is ContentModuleDescriptor && candidate.moduleId.name == "intellij.platform.backend") {
+      // FIXME this should not exist IJPL-201428
+      return getRuntimeModuleGroupRepresentative(candidate.parent)
+    }
     return when (candidate) {
       is PluginMainDescriptor -> candidate
       is ContentModuleDescriptor -> {
