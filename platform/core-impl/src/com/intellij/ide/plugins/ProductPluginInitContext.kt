@@ -5,6 +5,7 @@ import com.intellij.core.CoreBundle
 import com.intellij.diagnostic.Activity
 import com.intellij.ide.plugins.PluginDependencyAnalysis.DependencyRef
 import com.intellij.ide.plugins.PluginInitializationContext.EnvironmentConfiguredModuleData
+import com.intellij.ide.plugins.PluginManagerCore.CORE_ID
 import com.intellij.ide.plugins.PluginManagerCore.JAVA_PLUGIN_ALIAS_ID
 import com.intellij.ide.plugins.PluginManagerCore.getPluginNameAndVendor
 import com.intellij.ide.plugins.PluginManagerCore.logger
@@ -216,7 +217,9 @@ class ProductPluginInitContext(
         }
       }
       return sequence {
-        // TODO: add dependency on com.intellij for everything but content modules of core (?)
+        if (!PluginManagerCore.fallbackToOldPluginSetResolution() && descriptor.pluginId != CORE_ID) {
+          yieldIfResolves(DependencyRef.of(CORE_ID))
+        }
 
         // If a plugin does not include any module dependency tags in its plugin.xml, it's assumed to be a legacy plugin
         // and is loaded only in IntelliJ IDEA, so it may use classes from Java plugin.
