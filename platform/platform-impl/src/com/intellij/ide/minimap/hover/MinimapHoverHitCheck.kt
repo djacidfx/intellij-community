@@ -25,7 +25,7 @@ class MinimapHoverHitCheck(private val editor: Editor) {
 
   fun hitCheck(snapshot: MinimapSnapshot, point: Point?): MinimapHoverHitCheckResult? {
     if (point == null) return null
-    val entries = snapshot.entries
+    val entries = snapshot.structureEntries
     if (entries.isEmpty()) return null
 
     val context = snapshot.context
@@ -87,10 +87,11 @@ class MinimapHoverHitCheck(private val editor: Editor) {
     val y1 = lineTop(startLine, baseLineHeight)
     val y2 = lineTop(endLineExclusive, baseLineHeight)
 
-    val height = (y2 - y1 - lineGap).coerceAtLeast(1.0)
-    val y = y1 - geometry.areaStart + lineGap / 2.0
+    val heightPx = (y2 - y1 - lineGap).toInt().coerceAtLeast(1)
+    val y = (y1 - geometry.areaStart + lineGap / 2.0).toInt()
 
-    return Rectangle(0, y.toInt(), context.panelWidth.coerceAtLeast(1), height.toInt().coerceAtLeast(1))
+    val width = context.panelWidth.coerceAtLeast(1)
+    return Rectangle(0, y, width, heightPx)
   }
 
   private fun resolveHoverData(entry: MinimapRenderEntry): HoverData? {

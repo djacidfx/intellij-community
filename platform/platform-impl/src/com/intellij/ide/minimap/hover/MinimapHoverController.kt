@@ -74,7 +74,7 @@ class MinimapHoverController(
       return
     }
 
-    if (!isDocumentCommitted() || snapshot.entries.isEmpty()) {
+    if (!isDocumentCommitted() || snapshot.structureEntries.isEmpty()) {
       hoverStateMachine.updateTarget(null)
       return
     }
@@ -95,14 +95,14 @@ class MinimapHoverController(
   private fun updateActiveTargetForSnapshot(snapshot: MinimapSnapshot) {
     if (!hoverEnabled) return
 
-    if (!isDocumentCommitted() || snapshot.entries.isEmpty()) {
+    if (!isDocumentCommitted() || snapshot.structureEntries.isEmpty()) {
       hoverStateMachine.updateTarget(null)
       return
     }
 
     val active = hoverStateMachine.activeTarget() ?: return
 
-    val updatedEntry = snapshot.entries.firstOrNull { it.isSameEntry(active.entry) } ?: run {
+    val updatedEntry = snapshot.structureEntries.firstOrNull { it.isSameEntry(active.entry) } ?: run {
       hoverStateMachine.updateTarget(null)
       return
     }

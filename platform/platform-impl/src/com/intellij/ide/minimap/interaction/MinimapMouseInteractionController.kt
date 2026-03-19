@@ -20,7 +20,6 @@ class MinimapMouseInteractionController(
   private var interactionState: MinimapMouseInteractionState = MinimapMouseInteractionState.IDLE
   private var dragAnimationDisabled = false
   private var dragOffset = 0
-  private var dragUsesThumb = false
 
   fun install() {
     panel.addMouseListener(this)
@@ -29,6 +28,14 @@ class MinimapMouseInteractionController(
   }
 
   override fun dispose() {
+    if (dragAnimationDisabled) {
+      editor.scrollingModel.enableAnimation()
+      dragAnimationDisabled = false
+    }
+
+    interactionState = MinimapMouseInteractionState.IDLE
+    dragOffset = 0
+
     panel.removeMouseListener(this)
     panel.removeMouseWheelListener(this)
     panel.removeMouseMotionListener(this)
@@ -36,15 +43,16 @@ class MinimapMouseInteractionController(
 
   override fun mousePressed(e: MouseEvent) {
     if (e.button != MouseEvent.BUTTON1) return
-    interactionState = MinimapMouseInteractionState.DRAGGING
-    dragAnimationDisabled = false
-    dragUsesThumb = false
-    val geometry = panel.currentSnapshot()?.geometry
 
-    if (geometry == null || geometry.thumbHeight == 0) {
+    val geometry = panel.currentSnapshot()?.geometry
+    if (geometry == null || geometry.thumbHeight <= 0 || geometry.minimapHeight <= 0) {
+      interactionState = MinimapMouseInteractionState.IDLE
       dragOffset = 0
       return
     }
+
+    interactionState = MinimapMouseInteractionState.DRAGGING
+    dragAnimationDisabled = false
 
     val thumbTop = geometry.thumbStart - geometry.areaStart
     val thumbBottom = thumbTop + geometry.thumbHeight
@@ -55,19 +63,17 @@ class MinimapMouseInteractionController(
     else {
       geometry.thumbHeight / 2
     }
-
-    dragUsesThumb = true
   }
 
   override fun mouseReleased(e: MouseEvent) {
     if (e.button != MouseEvent.BUTTON1) return
 
-    if (interactionState == MinimapMouseInteractionState.DRAGGING && dragAnimationDisabled) {
+    if (dragAnimationDisabled) {
       editor.scrollingModel.enableAnimation()
+      dragAnimationDisabled = false
     }
 
     interactionState = MinimapMouseInteractionState.IDLE
-    dragUsesThumb = false
     dragOffset = 0
   }
 
@@ -85,12 +91,7 @@ class MinimapMouseInteractionController(
       dragAnimationDisabled = true
     }
 
-    if (dragUsesThumb) {
-      panel.scrollThumbTo(e.y, dragOffset)
-    }
-    else {
-      panel.scrollTo(e.y)
-    }
+    panel.scrollThumbTo(e.y, dragOffset)
   }
 
   override fun mouseClicked(e: MouseEvent) {

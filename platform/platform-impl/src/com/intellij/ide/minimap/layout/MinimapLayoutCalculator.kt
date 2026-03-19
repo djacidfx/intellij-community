@@ -18,14 +18,15 @@ class MinimapLayoutCalculator(private val editor: Editor) {
   private data class LayoutBuildState(
     val layout: MinimapLayoutContext,
     val documentLength: Int,
-    val result: ArrayList<MinimapRenderEntry>,
+    val tokenEntries: ArrayList<MinimapRenderEntry>,
+    val structureEntries: ArrayList<MinimapRenderEntry>,
   )
 
   fun buildLayout(
     context: MinimapRenderContext,
     structureMarkers: List<MinimapStructureMarker>,
     mode: MinimapLayoutMode,
-  ): List<MinimapRenderEntry> = when (mode) {
+  ): MinimapLayoutBuildResult = when (mode) {
     MinimapLayoutMode.EXACT -> buildExactLayout(context, structureMarkers)
     MinimapLayoutMode.DENSE -> buildDenseLayout(context, structureMarkers)
   }
@@ -33,21 +34,21 @@ class MinimapLayoutCalculator(private val editor: Editor) {
   private fun buildExactLayout(
     context: MinimapRenderContext,
     structureMarkers: List<MinimapStructureMarker>,
-  ): List<MinimapRenderEntry> {
-    val prepared = prepareLayout(context, structureMarkers) ?: return emptyList()
+  ): MinimapLayoutBuildResult {
+    val prepared = prepareLayout(context, structureMarkers) ?: return MinimapLayoutBuildResult.EMPTY
     appendTokenFillers(prepared)
     appendStructureMarkers(prepared, structureMarkers)
-    return prepared.result
+    return buildResult(prepared)
   }
 
   private fun buildDenseLayout(
     context: MinimapRenderContext,
     structureMarkers: List<MinimapStructureMarker>,
-  ): List<MinimapRenderEntry> {
-    val prepared = prepareLayout(context, structureMarkers) ?: return emptyList()
+  ): MinimapLayoutBuildResult {
+    val prepared = prepareLayout(context, structureMarkers) ?: return MinimapLayoutBuildResult.EMPTY
     appendDenseFillers(prepared)
     appendStructureMarkers(prepared, structureMarkers)
-    return prepared.result
+    return buildResult(prepared)
   }
 
   private fun prepareLayout(
@@ -68,14 +69,23 @@ class MinimapLayoutCalculator(private val editor: Editor) {
     val lineCount = metrics.lineCount
     if (lineCount == 0) return null
 
-    val result = ArrayList<MinimapRenderEntry>(structureMarkers.size)
+    val tokenEntries = ArrayList<MinimapRenderEntry>()
+    val structureEntries = ArrayList<MinimapRenderEntry>(structureMarkers.size)
     val visibleLines = MinimapLayoutUtil.visibleLines(geometry, lineCount)
     val layout = MinimapLayoutContext(document, metrics, panelWidth, geometry.areaStart.toDouble(), visibleLines)
-    return LayoutBuildState(layout, documentLength, result)
+    return LayoutBuildState(layout, documentLength, tokenEntries, structureEntries)
+  }
+
+  private fun buildResult(prepared: LayoutBuildState): MinimapLayoutBuildResult {
+    return MinimapLayoutBuildResult(
+      tokenEntries = prepared.tokenEntries,
+      structureEntries = prepared.structureEntries,
+      metrics = prepared.layout.metrics,
+    )
   }
 
   private fun appendTokenFillers(prepared: LayoutBuildState) {
-    val result = prepared.result
+    val result = prepared.tokenEntries
     val context = prepared.layout
     val pxPerColumn = context.metrics.pxPerColumn
     val document = context.document
@@ -118,7 +128,7 @@ class MinimapLayoutCalculator(private val editor: Editor) {
   }
 
   private fun appendDenseFillers(prepared: LayoutBuildState) {
-    val result = prepared.result
+    val result = prepared.tokenEntries
     val context = prepared.layout
     val visibleLines = context.visibleLines
     if (visibleLines.isEmpty()) return
@@ -191,10 +201,9 @@ class MinimapLayoutCalculator(private val editor: Editor) {
 
   private fun appendStructureMarkers(prepared: LayoutBuildState,
                                      structureMarkers: List<MinimapStructureMarker>) {
-    // todo: some logic can be shared with appendTokenFillers
     if (structureMarkers.isEmpty()) return
 
-    val result = prepared.result
+    val result = prepared.structureEntries
     val context = prepared.layout
     val documentLength = prepared.documentLength
     val document = context.document

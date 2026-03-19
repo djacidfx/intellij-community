@@ -34,7 +34,7 @@ class MinimapSceneBuilder(
     )
 
     if (isLegacy) {
-      return MinimapSnapshot(context, geometry, emptyList(), MinimapLayoutMode.EXACT)
+      return MinimapSnapshot(context, geometry, emptyList(), emptyList(), null, MinimapLayoutMode.EXACT)
     }
 
     val isCommitted = model.isDocumentCommitted()
@@ -46,8 +46,9 @@ class MinimapSceneBuilder(
     }
 
     val layoutMode = MinimapLayoutModeSelector.selectMode(context, scaleMode)
-    val entries = layoutCalculator.buildLayout(context, structureMarkers, layoutMode)
-    return MinimapSnapshot(context, geometry, entries, layoutMode)
+    val layout = layoutCalculator.buildLayout(context, structureMarkers, layoutMode)
+
+    return MinimapSnapshot(context, geometry, layout.tokenEntries, layout.structureEntries, layout.metrics, layoutMode)
   }
 
   fun clear() {

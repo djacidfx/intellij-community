@@ -27,7 +27,7 @@ import javax.swing.JPanel
 import kotlin.math.roundToInt
 
 class MinimapPanel(
-  private val parentDisposable: Disposable,
+  parentDisposable: Disposable,
   coroutineScope: CoroutineScope,
   val editor: Editor,
   val container: JPanel,
@@ -46,6 +46,14 @@ class MinimapPanel(
   private var snapshot: MinimapSnapshot? = null
 
   private var initialized = false
+
+  private val panelDisposable = Disposer.newDisposable("MinimapPanel").also {
+    Disposer.register(parentDisposable, it)
+    Disposer.register(it) {
+      uninstallSettingsListeners()
+      legacyPreview.clear()
+    }
+  }
 
   private val minimapController = registerDisposable(
     MinimapController(
@@ -116,9 +124,9 @@ class MinimapPanel(
       legacyPreview.paint(g2d, editor, width, snapshot.geometry)
     }
     else {
-      renderer.paint(g2d, snapshot.context, snapshot.entries)
+      renderer.paint(g2d, snapshot.context, snapshot.tokenEntries, snapshot.layoutMetrics)
+      selectionPainter.paint(g2d, snapshot.context, snapshot.layoutMetrics)
       hoverController.paint(g2d)
-      selectionPainter.paint(g2d, snapshot.context, snapshot.entries)
     }
 
     minimapController.paintCaret(g2d)
@@ -139,16 +147,23 @@ class MinimapPanel(
   }
 
   fun onClose() {
-    uninstallSettingsListeners()
-    legacyPreview.clear()
+    if (!Disposer.isDisposed(panelDisposable)) {
+      Disposer.dispose(panelDisposable)
+    }
   }
 
   fun scrollTo(y: Int) {
     val geometry = currentSnapshot()?.geometry ?: return
-    val percentage = (y + geometry.areaStart) / geometry.minimapHeight.toFloat()
-    val offset = editor.component.size.height / 2
+    val minimapHeight = geometry.minimapHeight
+    if (minimapHeight <= 0) return
 
-    editor.scrollingModel.scrollVertically((percentage * editor.contentComponent.size.height - offset).toInt())
+    val contentHeight = editor.contentComponent.size.height
+    if (contentHeight <= 0) return
+
+    val areaY = (y + geometry.areaStart).coerceIn(0, minimapHeight)
+    val percentage = areaY.toDouble() / minimapHeight.toDouble()
+    val viewportHalf = editor.component.size.height / 2
+    editor.scrollingModel.scrollVertically((percentage * contentHeight - viewportHalf).roundToInt())
   }
 
   fun scrollThumbTo(y: Int, dragOffset: Int) {
@@ -217,7 +232,7 @@ class MinimapPanel(
 
 
   private fun <T : Disposable> registerDisposable(disposable: T): T {
-    Disposer.register(parentDisposable, disposable)
+    Disposer.register(panelDisposable, disposable)
     return disposable
   }
 

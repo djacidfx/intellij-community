@@ -11,7 +11,6 @@ import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.fileTypes.PlainTextFileType
 import com.intellij.openapi.fileEditor.FileDocumentManager
-import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDocumentManager
@@ -97,11 +96,6 @@ class MinimapService(private val scope: CoroutineScope) : Disposable {
 
     panel.add(minimapPanel, where)
     textEditor.putUserData(MINI_MAP_PANEL_KEY, minimapPanel)
-
-    Disposer.register(textEditor.disposable) {
-      textEditor.getUserData(MINI_MAP_PANEL_KEY)?.onClose()
-      textEditor.putUserData(MINI_MAP_PANEL_KEY, null)
-    }
 
     panel.revalidate()
     panel.repaint()
