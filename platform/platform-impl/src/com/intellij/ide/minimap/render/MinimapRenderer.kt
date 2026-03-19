@@ -1,7 +1,6 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.minimap.render
 
-import com.intellij.ide.minimap.render.MinimapRenderEntry
 import com.intellij.ide.minimap.layout.MinimapLayoutUtil
 import com.intellij.util.ui.GraphicsUtil
 import java.awt.Graphics2D
@@ -20,6 +19,7 @@ class MinimapRenderer {
     try {
       GraphicsUtil.paintWithAlpha(graphics, TOKEN_FILLER_ALPHA) {
         for (entry in entries) {
+          if (entry.element != null) continue
           graphics.color = colorContext.colorFor(entry)
           graphics.fill(entry.rect2d)
         }

@@ -4,6 +4,7 @@ package com.intellij.ide.minimap.layout
 import com.intellij.ide.minimap.model.MinimapStructureMarker
 import com.intellij.ide.minimap.render.MinimapRenderContext
 import com.intellij.ide.minimap.render.MinimapRenderEntry
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.TextRange
 import java.awt.geom.Rectangle2D
@@ -137,38 +138,63 @@ class MinimapLayoutCalculator(private val editor: Editor) {
     while (line < endLineExclusive) {
       val bandEndLine = (line + lineStride).coerceAtMost(endLineExclusive)
       val band = getLineBand(line, bandEndLine, context)
-      if (band != null) {
-        var sampleLine = line
-        var lineStartOffset = 0
-        var trimmedStartOffset = 0
-        var trimmedEndOffset = 0
-        var hasSample = false
-
-        while (sampleLine < bandEndLine) {
-          lineStartOffset = document.getLineStartOffset(sampleLine)
-          val lineEndOffset = document.getLineEndOffset(sampleLine)
-          if (lineEndOffset > lineStartOffset) {
-            trimmedEndOffset = trimLineEnd(chars, lineStartOffset, lineEndOffset)
-            if (trimmedEndOffset > lineStartOffset) {
-              trimmedStartOffset = trimLineStart(chars, lineStartOffset, trimmedEndOffset)
-              if (trimmedStartOffset < trimmedEndOffset) {
-                hasSample = true
-                break
-              }
-            }
-          }
-          sampleLine++
-        }
-
-        if (hasSample) {
-          val startColumn = (trimmedStartOffset - lineStartOffset).coerceAtLeast(0)
-          val endColumn = (trimmedEndOffset - lineStartOffset).coerceAtLeast(startColumn + 1)
-          val rect2d = rectForColumns(startColumn, endColumn, band, context, pxPerColumn)
-          result.add(MinimapRenderEntry(null, rect2d, sampleOffset = trimmedStartOffset))
-        }
+      if (band == null) {
+        line = bandEndLine
+        continue
       }
+      appendDenseBandFillers(result, context, band, line, bandEndLine, pxPerColumn, document, chars)
       line = bandEndLine
     }
+  }
+
+  private fun appendDenseBandFillers(result: MutableList<MinimapRenderEntry>,
+                                     context: MinimapLayoutContext,
+                                     band: LineBand,
+                                     startLine: Int,
+                                     endLineExclusive: Int,
+                                     pxPerColumn: Double,
+                                     document: Document,
+                                     chars: CharSequence) {
+    val lineCount = endLineExclusive - startLine
+    if (lineCount <= 0) return
+
+    appendDenseSampleForLine(result, context, band, startLine, pxPerColumn, document, chars)
+
+    if (lineCount > 2) {
+      appendDenseSampleForLine(result, context, band, startLine + lineCount / 2, pxPerColumn, document, chars)
+    }
+
+    if (lineCount > 1) {
+      appendDenseSampleForLine(result, context, band, endLineExclusive - 1, pxPerColumn, document, chars)
+    }
+  }
+
+  private fun appendDenseSampleForLine(result: MutableList<MinimapRenderEntry>,
+                                       context: MinimapLayoutContext,
+                                       band: LineBand,
+                                       line: Int,
+                                       pxPerColumn: Double,
+                                       document: Document,
+                                       chars: CharSequence) {
+    val lineStartOffset = document.getLineStartOffset(line)
+    val lineEndOffset = document.getLineEndOffset(line)
+    if (lineEndOffset <= lineStartOffset) return
+
+    val trimmedEndOffset = trimLineEnd(chars, lineStartOffset, lineEndOffset)
+    if (trimmedEndOffset <= lineStartOffset) return
+
+    val trimmedStartOffset = trimLineStart(chars, lineStartOffset, trimmedEndOffset)
+    if (trimmedStartOffset >= trimmedEndOffset) return
+
+    val startColumn = (trimmedStartOffset - lineStartOffset).coerceAtLeast(0)
+    val endColumn = (trimmedEndOffset - lineStartOffset).coerceAtLeast(startColumn + 1)
+    val rect2d = rectForColumns(startColumn, endColumn, band, context, pxPerColumn)
+    val sampleOffset = denseSampleOffset(trimmedStartOffset, trimmedEndOffset)
+    result.add(MinimapRenderEntry(null, rect2d, sampleOffset = sampleOffset))
+  }
+
+  private fun denseSampleOffset(startOffset: Int, endOffsetExclusive: Int): Int {
+    return startOffset + (endOffsetExclusive - startOffset) / 2
   }
 
   private fun appendStructureMarkers(result: MutableList<MinimapRenderEntry>,
