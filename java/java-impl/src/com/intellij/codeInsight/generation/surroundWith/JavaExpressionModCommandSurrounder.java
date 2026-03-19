@@ -40,6 +40,16 @@ public abstract class JavaExpressionModCommandSurrounder extends ModCommandSurro
     return ModCommand.psiUpdate(context, updater -> surroundExpression(context, ElementToWorkOn.getWritable(expr, updater), updater));
   }
 
+  @Override
+  public void surroundElements(@NotNull ActionContext context,
+                               @NotNull PsiElement @NotNull [] elementsInCopy,
+                               @NotNull ModPsiUpdater updater) {
+    if (elementsInCopy.length != 1 || !(elementsInCopy[0] instanceof PsiExpression expr)) {
+      throw new IllegalArgumentException(Arrays.toString(elementsInCopy));
+    }
+    surroundExpression(context, ElementToWorkOn.getWritable(expr, updater), updater);
+  }
+
   /**
    * Performs the surrounding on non-physical copy, replacing some parent nodes.
    * <p>

@@ -1,22 +1,34 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.codeInsight.template.postfix.completion;
 
+import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo;
+import com.intellij.codeInsight.intention.preview.IntentionPreviewUtils;
+import com.intellij.codeInsight.lookup.LookupElementCustomPreviewHolder;
 import com.intellij.codeInsight.template.CustomTemplateCallback;
 import com.intellij.codeInsight.template.postfix.settings.PostfixTemplatesSettings;
-import com.intellij.codeInsight.template.postfix.templates.*;
+import com.intellij.codeInsight.template.postfix.templates.LanguagePostfixTemplate;
+import com.intellij.codeInsight.template.postfix.templates.PostfixLiveTemplate;
+import com.intellij.codeInsight.template.postfix.templates.PostfixTemplate;
+import com.intellij.codeInsight.template.postfix.templates.PostfixTemplateProvider;
+import com.intellij.codeInsight.template.postfix.templates.PostfixTemplatesUtils;
 import com.intellij.icons.AllIcons;
 import com.intellij.modcommand.ActionContext;
 import com.intellij.modcommand.ModCommand;
-import com.intellij.modcompletion.*;
+import com.intellij.modcompletion.ModCompletionItem;
+import com.intellij.modcompletion.ModCompletionItemPresentation;
+import com.intellij.modcompletion.ModCompletionItemProvider;
+import com.intellij.modcompletion.ModCompletionResult;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.openapi.util.registry.Registry;
 import com.intellij.openapi.util.text.MarkupText;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.util.PsiUtilCore;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import java.util.Set;
 
@@ -25,7 +37,7 @@ import java.util.Set;
  * Discovers applicable postfix templates at the current offset and emits a completion item
  * for each template that supports {@link PostfixTemplate#expandMod}.
  */
-final class PostfixTemplateModCompletionItemProvider implements ModCompletionItemProvider {
+public final class PostfixTemplateModCompletionItemProvider implements ModCompletionItemProvider {
 
   @Override
   public void provideItems(@NotNull CompletionContext context, @NotNull ModCompletionResult sink) {
@@ -57,10 +69,11 @@ final class PostfixTemplateModCompletionItemProvider implements ModCompletionIte
       for (PostfixTemplate template : PostfixTemplatesUtils.getAvailableTemplates(provider)) {
         ProgressManager.checkCanceled();
         if (!isDumbEnough(template, copyContext)) continue;
+        if (!template.getKey().startsWith(key)) continue;
         if (!template.isEnabled(provider)) continue;
         if (!template.isApplicable(copyContext, copyDocument, newOffset)) continue;
-        if (!template.isApplicableForModCommand(copyContext, copyDocument, newOffset)) continue;
-        sink.accept(new PostfixModCompletionItem(template));
+        if (!template.isApplicableForModCommand()) continue;
+        sink.accept(new PostfixModCompletionItem(provider, template, key));
       }
     }
   }
@@ -70,11 +83,18 @@ final class PostfixTemplateModCompletionItemProvider implements ModCompletionIte
     return dumbService.isUsableInCurrentContext(template);
   }
 
-  private static final class PostfixModCompletionItem implements ModCompletionItem {
+  @VisibleForTesting
+  public static final class PostfixModCompletionItem implements ModCompletionItem, LookupElementCustomPreviewHolder {
     private final @NotNull PostfixTemplate myTemplate;
+    private final @NotNull PostfixTemplateProvider myProvider;
+    private final @NotNull String myKey;
 
-    private PostfixModCompletionItem(@NotNull PostfixTemplate template) {
+    private PostfixModCompletionItem(@NotNull PostfixTemplateProvider provider,
+                                     @NotNull PostfixTemplate template,
+                                     @NotNull String key) {
       myTemplate = template;
+      myProvider = provider;
+      myKey = key;
     }
 
     @Override
@@ -94,20 +114,35 @@ final class PostfixTemplateModCompletionItemProvider implements ModCompletionIte
 
     @Override
     public @NotNull ModCompletionItemPresentation presentation() {
+      //temporary
+      //noinspection HardCodedStringLiteral
       return new ModCompletionItemPresentation(MarkupText.plainText(myTemplate.getPresentableName()))
         .withMainIcon(() -> AllIcons.Nodes.Template)
-        .withDetailText(MarkupText.plainText(myTemplate.getExample()));
+        .withDetailText(MarkupText.plainText(myTemplate.getExample() + " (MC)"));
     }
 
     @Override
     public @NotNull ModCommand perform(@NotNull ActionContext actionContext, @NotNull InsertionContext insertionContext) {
-      ModCommand command = myTemplate.expandMod(actionContext);
-      return command;
+      TextRange keyRange = PostfixTemplatesUtils.computeKeyRange(actionContext, myKey, myTemplate.getKey());
+      return myTemplate.expandMod(actionContext, myProvider, keyRange);
+    }
+
+    @Override
+    public @NotNull IntentionPreviewInfo preview(@NotNull ActionContext ctx) {
+      if (myTemplate.isApplicableForModCommand()) {
+        String key = PostfixLiveTemplate.computeTemplateKeyWithoutContextChecking(
+          myProvider, ctx.file().getFileDocument().getCharsSequence(), ctx.offset());
+        if (key == null) return IntentionPreviewInfo.EMPTY;
+        TextRange keyRange = PostfixTemplatesUtils.computeKeyRange(ctx, key, myTemplate.getKey());
+        ModCommand command = myTemplate.expandMod(ctx, myProvider, keyRange);
+        return IntentionPreviewUtils.getModCommandPreview(command, ctx);
+      }
+      return IntentionPreviewInfo.EMPTY;
     }
   }
 
   @Override
   public boolean isEnabled() {
-    return false;
+    return Registry.is("postfix.template.mod.completion.enabled", false);
   }
 }

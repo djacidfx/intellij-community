@@ -4,7 +4,6 @@ package com.intellij.codeInsight.template.postfix.templates;
 import com.intellij.codeInsight.template.Template;
 import com.intellij.codeInsight.template.impl.TextExpression;
 import com.intellij.codeInsight.template.postfix.util.JavaPostfixTemplatesUtils;
-import com.intellij.openapi.editor.Document;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiExpression;
 import org.jetbrains.annotations.NotNull;
@@ -33,7 +32,7 @@ public class ForDescendingPostfixTemplate extends ForIndexedPostfixTemplate {
   }
 
   @Override
-  public boolean isApplicableForModCommand(@NotNull PsiElement context, @NotNull Document copyDocument, int newOffset) {
+  public boolean isApplicableForModCommand() {
     return true;
   }
 }

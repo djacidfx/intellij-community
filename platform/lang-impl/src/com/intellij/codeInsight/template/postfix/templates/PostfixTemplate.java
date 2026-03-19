@@ -178,14 +178,10 @@ public abstract class PostfixTemplate implements PossiblyDumbAware {
   /**
    * Determines whether this template can be used in the given context specified by the parameters for ModCompletion.
    *
-   * @param context      PSI element before the template key
-   * @param copyDocument copy of the document that contains changes introduced
-   *                     in {@link PostfixTemplateProvider#preCheck(PsiFile, Editor, int)} method
-   * @param newOffset    offset before the template key
    * @return {@code true} if template is applicable in the given context, {@code false} otherwise
    */
   @ApiStatus.Experimental
-  public boolean isApplicableForModCommand(@NotNull PsiElement context, @NotNull Document copyDocument, int newOffset) {
+  public boolean isApplicableForModCommand() {
     return false;
   }
 

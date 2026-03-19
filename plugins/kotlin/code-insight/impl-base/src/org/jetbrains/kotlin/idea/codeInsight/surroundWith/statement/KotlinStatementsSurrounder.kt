@@ -5,12 +5,14 @@ import com.intellij.lang.surroundWith.ModCommandSurrounder
 import com.intellij.modcommand.ActionContext
 import com.intellij.modcommand.ModCommand
 import com.intellij.modcommand.ModPsiUpdater
+import com.intellij.openapi.editor.Document
 import com.intellij.psi.PsiElement
 import com.intellij.util.IncorrectOperationException
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
 import org.jetbrains.kotlin.psi.KtExpression
+import java.util.function.Consumer
 
 abstract class KotlinStatementsSurrounder : ModCommandSurrounder() {
     @OptIn(KaAllowAnalysisOnEdt::class)
@@ -44,6 +46,15 @@ abstract class KotlinStatementsSurrounder : ModCommandSurrounder() {
                 updater
             )
         }
+    }
+
+    final override fun surroundElements(
+        context: ActionContext,
+        elementsInCopy: Array<out PsiElement>,
+        updater: ModPsiUpdater
+    ) {
+        val container = elementsInCopy[0].parent
+        surroundStatements(context, container, elementsInCopy.map { it }.toTypedArray(), updater)
     }
 
     protected abstract fun surroundStatements(

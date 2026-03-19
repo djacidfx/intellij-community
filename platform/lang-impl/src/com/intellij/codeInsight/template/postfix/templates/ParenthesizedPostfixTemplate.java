@@ -1,6 +1,8 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.codeInsight.template.postfix.templates;
 
+import com.intellij.modcommand.ActionContext;
+import com.intellij.modcommand.ModPsiUpdater;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.psi.PsiElement;
 import org.jetbrains.annotations.NotNull;
@@ -30,5 +32,10 @@ public class ParenthesizedPostfixTemplate extends PostfixTemplateWithExpressionS
   @Override
   protected void expandForChooseExpression(@NotNull PsiElement expression, @NotNull Editor editor) {
     expression.replace(myPsiInfo.createExpression(expression, "(", ")"));
+  }
+
+  @Override
+  public void expandModForChooseExpression(@NotNull ActionContext ctx, @NotNull ModPsiUpdater updater, @NotNull PsiElement elementInCopy) {
+    elementInCopy.replace(myPsiInfo.createExpression(elementInCopy, "(", ")"));
   }
 }

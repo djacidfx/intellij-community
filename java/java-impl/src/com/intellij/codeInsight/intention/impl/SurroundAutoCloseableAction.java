@@ -69,7 +69,7 @@ public final class SurroundAutoCloseableAction extends PsiUpdateModCommandAction
   }
 
   @Override
-  protected void invoke(@NotNull ActionContext context, @NotNull PsiElement element, @NotNull ModPsiUpdater updater) {
+  public void invoke(@NotNull ActionContext context, @NotNull PsiElement element, @NotNull ModPsiUpdater updater) {
     PsiLocalVariable variable = findVariable(element);
     if (variable != null) {
       processVariable(context.project(), updater, variable);
@@ -321,6 +321,14 @@ public final class SurroundAutoCloseableAction extends PsiUpdateModCommandAction
         return new SurroundAutoCloseableAction().perform(context, elements[0]);
       }
       return ModCommand.nop();
+    }
+
+    @Override
+    public void surroundElements(@NotNull ActionContext context, @NotNull PsiElement @NotNull [] elementsInCopy, @NotNull ModPsiUpdater updater) {
+      if (elementsInCopy.length == 1) {
+        SurroundAutoCloseableAction action = new SurroundAutoCloseableAction();
+        action.invoke(context, elementsInCopy[0], updater);
+      }
     }
   }
 }

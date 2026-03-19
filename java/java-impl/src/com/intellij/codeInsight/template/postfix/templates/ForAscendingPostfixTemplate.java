@@ -1,8 +1,6 @@
 // Copyright 2000-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
 package com.intellij.codeInsight.template.postfix.templates;
 
-import com.intellij.openapi.editor.Document;
-import com.intellij.psi.PsiElement;
 import org.jetbrains.annotations.NotNull;
 
 public class ForAscendingPostfixTemplate extends ForIndexedPostfixTemplate {
@@ -12,7 +10,7 @@ public class ForAscendingPostfixTemplate extends ForIndexedPostfixTemplate {
   }
 
   @Override
-  public boolean isApplicableForModCommand(@NotNull PsiElement context, @NotNull Document copyDocument, int newOffset) {
+  public boolean isApplicableForModCommand() {
     return true;
   }
 }

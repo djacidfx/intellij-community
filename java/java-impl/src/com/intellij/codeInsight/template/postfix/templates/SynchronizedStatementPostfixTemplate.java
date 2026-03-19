@@ -33,7 +33,7 @@ public class SynchronizedStatementPostfixTemplate extends JavaEditablePostfixTem
   }
 
   @Override
-  public boolean isApplicableForModCommand(@NotNull PsiElement context, @NotNull Document copyDocument, int newOffset) {
+  public boolean isApplicableForModCommand() {
     return true;
   }
 }

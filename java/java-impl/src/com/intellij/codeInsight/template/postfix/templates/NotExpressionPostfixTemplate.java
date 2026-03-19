@@ -16,6 +16,8 @@
 package com.intellij.codeInsight.template.postfix.templates;
 
 import com.intellij.codeInspection.LambdaCanBeMethodReferenceInspection;
+import com.intellij.modcommand.ActionContext;
+import com.intellij.modcommand.ModPsiUpdater;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.DumbService;
@@ -62,6 +64,20 @@ public class NotExpressionPostfixTemplate extends PostfixTemplateWithExpressionS
 
   @Override
   protected void expandForChooseExpression(@NotNull PsiElement expression, @NotNull Editor editor) {
+    doTemplate(expression);
+  }
+
+  @Override
+  public boolean isApplicableForModCommand() {
+    return true;
+  }
+
+  @Override
+  public void expandModForChooseExpression(@NotNull ActionContext ctx, @NotNull ModPsiUpdater updater, @NotNull PsiElement elementInCopy) {
+    doTemplate(elementInCopy);
+  }
+
+  private static void doTemplate(@NotNull PsiElement expression) {
     Project project = expression.getProject();
     DumbService.getInstance(project)
       .runWithAlternativeResolveEnabled(() -> {

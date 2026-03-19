@@ -91,6 +91,7 @@ public interface PostfixTemplateProvider {
   /**
    * Prepares a copy of the file and processes it for checking availability of a template,
    * applying necessary modifications or validations based on the current offset.
+   * It is not called during extend call
    *
    * @param copyFile a copy of the original {@link PsiFile} that can be modified during the process
    * @param currentOffset the current offset within the file at which the method should operate

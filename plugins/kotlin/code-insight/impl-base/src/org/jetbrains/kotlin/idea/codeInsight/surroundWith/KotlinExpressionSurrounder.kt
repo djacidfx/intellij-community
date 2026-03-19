@@ -5,6 +5,7 @@ import com.intellij.lang.surroundWith.ModCommandSurrounder
 import com.intellij.modcommand.ActionContext
 import com.intellij.modcommand.ModCommand
 import com.intellij.modcommand.ModPsiUpdater
+import com.intellij.openapi.editor.Document
 import com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
@@ -13,6 +14,7 @@ import org.jetbrains.kotlin.analysis.api.types.KaErrorType
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtQualifiedExpression
+import java.util.function.Consumer
 
 abstract class KotlinExpressionSurrounder : ModCommandSurrounder() {
     final override fun isApplicable(elements: Array<PsiElement>): Boolean {
@@ -51,6 +53,17 @@ abstract class KotlinExpressionSurrounder : ModCommandSurrounder() {
                 updater
             )
         }
+    }
+
+    final override fun surroundElements(
+        context: ActionContext,
+        elementsInCopy: Array<out PsiElement>,
+        updater: ModPsiUpdater
+    ) {
+        assert(elementsInCopy.size == 1) { "KotlinExpressionSurrounder should be applicable only for 1 expression: " + elementsInCopy.size }
+        val element = elementsInCopy[0]
+        assert(element is KtExpression) { "KotlinExpressionSurrounder should be applicable only for expression" }
+        surroundExpression(context, element as KtExpression, updater)
     }
 
     protected abstract fun surroundExpression(context: ActionContext, expression: KtExpression, updater: ModPsiUpdater)

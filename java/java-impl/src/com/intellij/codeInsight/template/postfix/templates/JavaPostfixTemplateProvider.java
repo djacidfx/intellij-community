@@ -73,8 +73,8 @@ public class JavaPostfixTemplateProvider implements PostfixTemplateProvider {
     new IfStatementPostfixTemplate(),
     new InstanceofExpressionPostfixTemplate(),
     new InstanceofExpressionPostfixTemplate("inst"),
-    new IntroduceFieldPostfixTemplate(),
-    new IntroduceVariablePostfixTemplate(),
+    new IntroduceFieldPostfixTemplate(), //todo
+    new IntroduceVariablePostfixTemplate(), //todo reuse from lsp
     new IsNullCheckPostfixTemplate(),
     new NotExpressionPostfixTemplate(),
     new NotExpressionPostfixTemplate("!"),
@@ -170,6 +170,7 @@ public class JavaPostfixTemplateProvider implements PostfixTemplateProvider {
     Document document = copyFile.getFileDocument();
     if (JavaCompletionContributor.semicolonNeeded(copyFile, currentOffset)) {
       document.insertString(currentOffset, ";");
+      PsiDocumentManager.getInstance(copyFile.getProject()).commitDocument(document);
     }
   }
 

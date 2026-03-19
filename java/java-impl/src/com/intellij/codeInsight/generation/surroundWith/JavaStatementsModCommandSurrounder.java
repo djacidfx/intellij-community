@@ -42,6 +42,13 @@ public abstract class JavaStatementsModCommandSurrounder extends ModCommandSurro
       updater));
   }
 
+  @Override
+  public void surroundElements(@NotNull ActionContext context, @NotNull PsiElement @NotNull [] elementsInCopy, @NotNull ModPsiUpdater updater) {
+    PsiElement container = elementsInCopy[0].getParent();
+    if (container == null) return;
+    surroundStatements(context, container, elementsInCopy, updater);
+  }
+
   protected abstract void surroundStatements(@NotNull ActionContext context,
                                              @NotNull PsiElement container,
                                              @NotNull PsiElement @NotNull [] statements,

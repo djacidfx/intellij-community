@@ -5,6 +5,7 @@ import com.intellij.modcommand.ActionContext;
 import com.intellij.modcommand.ModCommand;
 import com.intellij.modcommand.ModCommandExecutor;
 import com.intellij.modcommand.ModNavigate;
+import com.intellij.modcommand.ModPsiUpdater;
 import com.intellij.openapi.application.WriteAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
@@ -37,6 +38,19 @@ public abstract class ModCommandSurrounder implements Surrounder {
    * @return ModCommand, which when executed, will perform the surrounding. It may also modify the caret position.
    */
   public abstract @NotNull ModCommand surroundElements(@NotNull ActionContext context, @NotNull PsiElement @NotNull [] elements);
+
+  /**
+   * Surrounds the given elements with specific code, using the provided context and updater
+   * to modify the PSI structure accordingly.
+   * If it is impossible to surround elements with updater, it does nothing
+   *
+   * @param context  the context in which the action is invoked, including the project, file, caret position, and other contextual information
+   * @param elementsInCopy the elements to be surrounded
+   * @param updater  the updater used to modify PSI elements during the surrounding operation
+   */
+  public void surroundElements(@NotNull ActionContext context, @NotNull PsiElement @NotNull [] elementsInCopy, @NotNull ModPsiUpdater updater) {
+
+  }
 
   @Override
   public final @Nullable TextRange surroundElements(@NotNull Project project, @NotNull Editor editor, PsiElement @NotNull [] elements) {

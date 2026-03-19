@@ -37,6 +37,7 @@ import org.jetbrains.annotations.TestOnly;
 import org.jetbrains.annotations.Unmodifiable;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 import static com.intellij.psi.util.PsiTreeUtil.skipParentsOfType;
 
@@ -263,6 +264,11 @@ public final class CustomFoldingSurroundDescriptor implements SurroundDescriptor
     @Override
     public @NotNull ModCommand surroundElements(@NotNull ActionContext context, @NotNull PsiElement @NotNull [] elements) {
       return ModCommand.psiUpdate(context, updater -> doSurround(context, ContainerUtil.map(elements, updater::getWritable), updater));
+    }
+
+    @Override
+    public void surroundElements(@NotNull ActionContext context, @NotNull PsiElement @NotNull [] elementsInCopy, @NotNull ModPsiUpdater updater) {
+      doSurround(context, ContainerUtil.map(elementsInCopy, updater::getWritable), updater);
     }
 
     private void doSurround(@NotNull ActionContext context, @NotNull List<@NotNull PsiElement> elements, @NotNull ModPsiUpdater updater) {

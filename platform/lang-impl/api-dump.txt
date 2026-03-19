@@ -466,6 +466,10 @@ f:com.intellij.codeInsight.template.impl.ListTemplatesHandler
 - s:filterTemplatesByPrefix(java.util.Collection,com.intellij.openapi.editor.Document,I,Z,Z):java.util.Map
 f:com.intellij.codeInsight.template.impl.TemplateManagerImpl
 - s:updateTemplate(com.intellij.codeInsight.template.impl.TemplateImpl,com.intellij.modcommand.ModPsiUpdater):V
+c:com.intellij.codeInsight.template.postfix.completion.PostfixTemplateLookupElement
+- com.intellij.codeInsight.lookup.LookupElementCustomPreviewHolder
+c:com.intellij.codeInsight.template.postfix.templates.ParenthesizedPostfixTemplate
+- expandModForChooseExpression(com.intellij.modcommand.ActionContext,com.intellij.modcommand.ModPsiUpdater,com.intellij.psi.PsiElement):V
 c:com.intellij.codeInsight.template.postfix.templates.PostfixLiveTemplate
 - s:positiveOffset(I):I
 com.intellij.codeInsight.template.postfix.templates.PostfixTemplateExpressionSelector
@@ -483,6 +487,12 @@ com.intellij.codeInsight.template.postfix.templates.PostfixTemplateProvider
 - a:preExpand(com.intellij.psi.PsiFile,com.intellij.openapi.editor.Editor):V
 - readExternalTemplate(java.lang.String,java.lang.String,org.jdom.Element):com.intellij.codeInsight.template.postfix.templates.PostfixTemplate
 - writeExternalTemplate(com.intellij.codeInsight.template.postfix.templates.PostfixTemplate,org.jdom.Element):V
+a:com.intellij.codeInsight.template.postfix.templates.PostfixTemplateWithExpressionSelector
+- expandMod(com.intellij.modcommand.ActionContext,com.intellij.codeInsight.template.postfix.templates.PostfixTemplateProvider,com.intellij.openapi.util.TextRange):com.intellij.modcommand.ModCommand
+f:com.intellij.codeInsight.template.postfix.templates.PostfixTemplatesUtils
+- s:computeKeyRange(com.intellij.modcommand.ActionContext,java.lang.String,java.lang.String):com.intellij.openapi.util.TextRange
+a:com.intellij.codeInsight.template.postfix.templates.StringBasedPostfixTemplate
+- expandModForChooseExpression(com.intellij.modcommand.ActionContext,com.intellij.modcommand.ModPsiUpdater,com.intellij.psi.PsiElement):V
 com.intellij.codeInsight.template.postfix.templates.editable.PostfixTemplateEditor
 - com.intellij.openapi.Disposable
 - a:createTemplate(java.lang.String,java.lang.String):com.intellij.codeInsight.template.postfix.templates.PostfixTemplate

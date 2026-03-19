@@ -1,12 +1,16 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.codeInsight.template.postfix.templates;
 
+import com.intellij.lang.surroundWith.ModCommandSurrounder;
 import com.intellij.lang.surroundWith.Surrounder;
+import com.intellij.modcommand.ActionContext;
+import com.intellij.modcommand.ModPsiUpdater;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.util.NlsSafe;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.PsiElement;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,6 +41,22 @@ public abstract class SurroundPostfixTemplateBase extends PostfixTemplateWithExp
                                         @Nullable PostfixTemplateProvider provider) {
     super(null, name, descr, selector, provider);
     myPsiInfo = psiInfo;
+  }
+
+  @Override
+  @ApiStatus.Experimental
+  public void expandModForChooseExpression(@NotNull ActionContext ctx,
+                                           @NotNull ModPsiUpdater updater,
+                                           @NotNull PsiElement elementInCopy) {
+    Surrounder surrounder = getSurrounder();
+    if (!(surrounder instanceof ModCommandSurrounder modCommandSurrounder)) {
+      return;
+    }
+    PsiElement expression = getReplacedExpression(elementInCopy);
+    if (!modCommandSurrounder.isApplicable(new PsiElement[]{expression})) {
+      return;
+    }
+    modCommandSurrounder.surroundElements(ctx, new PsiElement[]{expression}, updater);
   }
 
   @Override

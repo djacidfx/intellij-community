@@ -8,6 +8,10 @@ import com.intellij.codeInsight.completion.JavaPsiClassReferenceElement;
 import com.intellij.codeInsight.completion.OffsetMap;
 import com.intellij.codeInsight.lookup.Lookup;
 import com.intellij.codeInsight.lookup.LookupElement;
+import com.intellij.java.completion.modcommand.ClassReferenceCompletionItem;
+import com.intellij.modcommand.ActionContext;
+import com.intellij.modcommand.ModPsiUpdater;
+import com.intellij.modcompletion.ModCompletionItem;
 import com.intellij.openapi.application.WriteAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
@@ -72,30 +76,70 @@ public class NewExpressionPostfixTemplate extends StringBasedPostfixTemplate imp
     return element instanceof PsiMethodCallExpression ? "new $expr$" : "new $expr$($END$)";
   }
 
+
+  @Override
+  public boolean isApplicableForModCommand() {
+    return true;
+  }
+
   @Override
   public void expandForChooseExpression(@NotNull PsiElement expression, @NotNull Editor editor) {
     if (expression instanceof PsiReferenceExpression ref) {
-      JavaResolveResult result = DumbService.getInstance(expression.getProject())
-        .withAlternativeResolveEnabled(() -> ref.advancedResolve(true));
-      PsiElement element = result.getElement();
-      
-      if (element == null) {
-        String name = ref.getReferenceName();
-        if (name != null && ref.getQualifierExpression() == null) {
-          PsiClass[] classes = DumbModeAccessType.RELIABLE_DATA_ONLY.ignoreDumbMode(
-            () -> PsiShortNamesCache.getInstance(ref.getProject()).getClassesByName(name, ref.getResolveScope()));
-          if (classes.length == 1) {
-            element = classes[0];
-          }
-        }
-      }
-
-      if (element instanceof PsiClass psiClass) {
+      PsiClass psiClass = resolveClass(ref);
+      if (psiClass != null) {
         WriteAction.run(() -> insertConstructorCallWithSmartBraces(expression, editor, psiClass));
         return;
       }
     }
     super.expandForChooseExpression(expression, editor);
+  }
+
+  @Override
+  public void expandModForChooseExpression(@NotNull ActionContext ctx,
+                                           @NotNull ModPsiUpdater updater,
+                                           @NotNull PsiElement elementInCopy) {
+    if (elementInCopy instanceof PsiReferenceExpression writableExpr) {
+      PsiClass psiClass = resolveClass(writableExpr);
+      if (psiClass != null) {
+        String shortName = psiClass.getName();
+        if (shortName != null) {
+          TextRange range = writableExpr.getTextRange();
+          Document document = updater.getDocument();
+
+          String newText = "new " + shortName + "()";
+          document.replaceString(range.getStartOffset(), range.getEndOffset(), newText);
+
+          int classNameEnd = range.getStartOffset() + 4 + shortName.length();
+          updater.moveCaretTo(classNameEnd);
+
+          ClassReferenceCompletionItem classItem = new ClassReferenceCompletionItem(psiClass);
+          classItem.update(ctx.withOffset(classNameEnd), ModCompletionItem.DEFAULT_INSERTION_CONTEXT, updater);
+
+          updater.moveCaretTo(updater.getCaretOffset() + 1);
+          return;
+        }
+      }
+    }
+    super.expandModForChooseExpression(ctx, updater, elementInCopy);
+  }
+
+  private static @Nullable PsiClass resolveClass(@NotNull PsiReferenceExpression ref) {
+    JavaResolveResult result = DumbService.getInstance(ref.getProject())
+      .withAlternativeResolveEnabled(() -> ref.advancedResolve(true));
+    PsiElement element = result.getElement();
+
+    if (element == null) {
+      String name = ref.getReferenceName();
+      if (name != null && ref.getQualifierExpression() == null) {
+        PsiClass[] classes = DumbModeAccessType.RELIABLE_DATA_ONLY.ignoreDumbMode(
+          () -> PsiShortNamesCache.getInstance(ref.getProject()).getClassesByName(name, ref.getResolveScope()));
+        if (classes.length == 1) {
+          element = classes[0];
+        }
+      }
+    }
+
+    return element instanceof PsiClass psiClass ? psiClass : null;
   }
 
   @Override

@@ -24,7 +24,7 @@ public class ReturnStatementPostfixTemplate extends JavaEditablePostfixTemplate 
 
 
   @Override
-  public boolean isApplicableForModCommand(@NotNull PsiElement context, @NotNull Document copyDocument, int newOffset) {
+  public boolean isApplicableForModCommand() {
     return true;
   }
 
