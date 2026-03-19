@@ -376,6 +376,8 @@ jvm_library(
     "//platform/testRunner:testRunner_test_lib",
     "//plugins/groovy:groovy-tests",
     "//plugins/groovy:groovy-tests_test_lib",
+    "//platform/statistics",
+    "//platform/statistics:statistics_test_lib",
   ],
   exports = [
     "//platform/external-system-api/testFramework",

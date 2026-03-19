@@ -107,6 +107,8 @@ jvm_library(
     "@lib//:junit5",
     "//libraries/fastutil",
     "//libraries/fastutil:fastutil_test_lib",
+    "//platform/util/base",
+    "//platform/util/base:base_test_lib",
   ],
   runtime_deps = [":jps-tests"]
 )

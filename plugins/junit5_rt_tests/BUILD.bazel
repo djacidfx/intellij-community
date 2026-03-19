@@ -93,6 +93,8 @@ jvm_library(
     "//platform/code-style-api:codeStyle_test_lib",
     "//platform/testRunner",
     "//platform/testRunner:testRunner_test_lib",
+    "//platform/statistics",
+    "//platform/statistics:statistics_test_lib",
   ],
   runtime_deps = [
     ":junit-v5-rt-tests",

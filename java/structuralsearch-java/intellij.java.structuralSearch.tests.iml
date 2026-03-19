@@ -30,6 +30,7 @@
     <orderEntry type="module" module-name="intellij.platform.jps.model" scope="TEST" />
     <orderEntry type="module" module-name="intellij.java.structuralSearch" scope="TEST" />
     <orderEntry type="module" module-name="intellij.java.psi" scope="TEST" />
+    <orderEntry type="module" module-name="intellij.platform.lang" scope="TEST" />
   </component>
   <component name="TestModuleProperties" production-module="intellij.java.structuralSearch" />
 </module>

@@ -23,5 +23,6 @@
     <orderEntry type="module" module-name="intellij.platform.indexing" scope="PROVIDED" />
     <orderEntry type="module" module-name="intellij.platform.core.impl" scope="PROVIDED" />
     <orderEntry type="module" module-name="intellij.libraries.kotlinx.collections.immutable" />
+    <orderEntry type="module" module-name="intellij.platform.util.ui" />
   </component>
 </module>

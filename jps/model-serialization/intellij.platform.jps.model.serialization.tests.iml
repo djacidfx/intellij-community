@@ -22,5 +22,6 @@
     <orderEntry type="module" module-name="intellij.platform.projectModel.impl" />
     <orderEntry type="module" module-name="intellij.platform.workspace.jps" scope="RUNTIME" />
     <orderEntry type="module" module-name="intellij.platform.jps.model.testFramework" scope="TEST" />
+    <orderEntry type="module" module-name="intellij.platform.util.base" scope="TEST" />
   </component>
 </module>

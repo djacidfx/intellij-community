@@ -36,6 +36,8 @@ jvm_library(
     "//java/java-syntax:syntax_test_lib",
     "//java/java-psi-api:psi",
     "//java/java-psi-api:psi_test_lib",
+    "//platform/editor-ui-api:editor-ui",
+    "//platform/editor-ui-api:editor-ui_test_lib",
   ],
   runtime_deps = [":groovy-tests"]
 )

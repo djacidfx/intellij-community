@@ -31,6 +31,8 @@ jvm_library(
     "//xml/xml-psi-api:psi",
     "@lib//:kotlin-stdlib",
     "//platform/execution",
+    "//platform/ide-core",
+    "//platform/util/base",
   ],
   exports = ["//platform/xdebugger-api:debugger"],
   runtime_deps = ["//platform/backend"]
@@ -64,6 +66,8 @@ jvm_library(
     "//xml/xml-psi-api:psi_test_lib",
     "//platform/execution:execution_test_lib",
     "//platform/backend:backend_test_lib",
+    "//platform/ide-core:ide-core_test_lib",
+    "//platform/util/base:base_test_lib",
   ]
 )
 ### auto-generated section `build intellij.java.debugger` end

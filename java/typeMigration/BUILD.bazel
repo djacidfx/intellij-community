@@ -33,6 +33,7 @@ jvm_library(
     "//libraries/fastutil",
     "//libraries/kotlinx/collections-immutable:libraries-kotlinx-collections-immutable",
     "//jps/model-api:model",
+    "//platform/core-impl",
   ]
 )
 
@@ -72,6 +73,7 @@ jvm_library(
     "//libraries/fastutil:fastutil_test_lib",
     "//libraries/kotlinx/collections-immutable:libraries-kotlinx-collections-immutable_test_lib",
     "//jps/model-api:model_test_lib",
+    "//platform/core-impl:core-impl_test_lib",
   ]
 )
 ### auto-generated section `build intellij.java.typeMigration` end

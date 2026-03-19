@@ -30,5 +30,6 @@
     <orderEntry type="module" module-name="intellij.platform.execution" />
     <orderEntry type="module" module-name="intellij.platform.ide.core" />
     <orderEntry type="module" module-name="intellij.platform.testRunner" />
+    <orderEntry type="module" module-name="intellij.platform.statistics" />
   </component>
 </module>

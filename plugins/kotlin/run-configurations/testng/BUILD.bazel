@@ -36,6 +36,7 @@ jvm_library(
     "//platform/execution",
     "//platform/ide-core",
     "//platform/testRunner",
+    "//platform/statistics",
   ]
 )
 
@@ -66,6 +67,7 @@ jvm_library(
     "//platform/execution:execution_test_lib",
     "//platform/ide-core:ide-core_test_lib",
     "//platform/testRunner:testRunner_test_lib",
+    "//platform/statistics:statistics_test_lib",
   ]
 )
 ### auto-generated section `build intellij.kotlin.runConfigurations.testng` end

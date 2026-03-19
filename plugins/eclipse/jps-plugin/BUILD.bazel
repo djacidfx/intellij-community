@@ -20,6 +20,7 @@ jvm_library(
     "//jps/model-serialization",
     "//plugins/eclipse/common-eclipse-util:common",
     "//platform/util/jdom",
+    "//platform/util/base",
   ]
 )
 
@@ -36,6 +37,7 @@ jvm_library(
     "//jps/model-serialization:model-serialization_test_lib",
     "//plugins/eclipse/common-eclipse-util:common_test_lib",
     "//platform/util/jdom:jdom_test_lib",
+    "//platform/util/base:base_test_lib",
   ]
 )
 ### auto-generated section `build intellij.eclipse.jps` end

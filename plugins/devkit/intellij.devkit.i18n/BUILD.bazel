@@ -155,6 +155,8 @@ jvm_library(
     "//plugins/grazie/src:core_test_lib",
     "//platform/core-ui",
     "//platform/core-ui:core-ui_test_lib",
+    "//platform/editor-ui-api:editor-ui",
+    "//platform/editor-ui-api:editor-ui_test_lib",
   ],
   runtime_deps = [
     ":i18n-tests",

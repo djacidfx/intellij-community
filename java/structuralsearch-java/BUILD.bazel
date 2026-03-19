@@ -141,6 +141,8 @@ jvm_library(
     "//jps/model-api:model_test_lib",
     "//java/java-psi-api:psi",
     "//java/java-psi-api:psi_test_lib",
+    "//platform/lang-api:lang",
+    "//platform/lang-api:lang_test_lib",
   ],
   runtime_deps = [":structuralSearch-tests"]
 )

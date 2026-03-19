@@ -123,6 +123,7 @@ jvm_library(
     "//platform/code-style-api:codeStyle",
     "//platform/util:util-ui",
     "//platform/util/jdom",
+    "//jps/model-api:model",
   ]
 )
 
@@ -159,6 +160,7 @@ jvm_library(
     "//platform/code-style-api:codeStyle_test_lib",
     "//platform/util:util-ui_test_lib",
     "//platform/util/jdom:jdom_test_lib",
+    "//jps/model-api:model_test_lib",
   ]
 )
 ### auto-generated section `build intellij.platform.polySymbols.testFramework` end

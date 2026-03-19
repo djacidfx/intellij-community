@@ -55,6 +55,7 @@ jvm_library(
     "@lib//:kotlinc-kotlin-scripting-compiler-impl",
     "//platform/forms_rt:java-guiForms-rt",
     "//platform/util/concurrency",
+    "//platform/statistics",
   ]
 )
 
@@ -101,6 +102,7 @@ jvm_library(
     "//plugins/kotlin/base/scripting/scripting.shared:scripting.shared_test_lib",
     "//platform/forms_rt:java-guiForms-rt_test_lib",
     "//platform/util/concurrency:concurrency_test_lib",
+    "//platform/statistics:statistics_test_lib",
   ]
 )
 ### auto-generated section `build intellij.kotlin.runConfigurations.jvm` end

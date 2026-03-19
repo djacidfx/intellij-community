@@ -18,5 +18,6 @@
     <orderEntry type="module" module-name="intellij.junit.testFramework" scope="TEST" />
     <orderEntry type="module" module-name="intellij.java.syntax" scope="TEST" />
     <orderEntry type="module" module-name="intellij.java.psi" scope="TEST" />
+    <orderEntry type="module" module-name="intellij.platform.editor.ui" scope="TEST" />
   </component>
 </module>

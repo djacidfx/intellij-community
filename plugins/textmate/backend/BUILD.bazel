@@ -73,6 +73,7 @@ jvm_library(
     "@lib//:kotlin-stdlib-provided",
     "//platform/ide-core",
     "//libraries/kotlinx/collections-immutable:libraries-kotlinx-collections-immutable",
+    "//platform/util:util-ui",
     ":plugins_textmate_common_provided",
     ":spellchecker_provided",
     ":platform_core_provided",
@@ -120,6 +121,7 @@ jvm_library(
     "//platform/core-impl",
     "//platform/core-impl:core-impl_test_lib",
     "//libraries/kotlinx/collections-immutable:libraries-kotlinx-collections-immutable_test_lib",
+    "//platform/util:util-ui_test_lib",
   ]
 )
 ### auto-generated section `build intellij.textmate.backend` end

@@ -17,6 +17,7 @@ jvm_library(
   deps = [
     "//platform/util",
     "//jps/jps-builders:build",
+    "//platform/util/base",
   ]
 )
 
@@ -30,6 +31,7 @@ jvm_library(
     ":java-jps",
     "//platform/util:util_test_lib",
     "//jps/jps-builders:build_test_lib",
+    "//platform/util/base:base_test_lib",
   ]
 )
 ### auto-generated section `build intellij.space.java.jps` end

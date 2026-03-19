@@ -98,6 +98,8 @@ jvm_library(
     "//platform/projectModel-impl:projectModel-impl_test_lib",
     "//jps/model-test-framework:model-testFramework",
     "//jps/model-test-framework:model-testFramework_test_lib",
+    "//platform/util/base",
+    "//platform/util/base:base_test_lib",
   ],
   runtime_deps = [
     ":model-serialization-tests",

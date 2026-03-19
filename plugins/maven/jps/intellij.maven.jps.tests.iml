@@ -21,6 +21,7 @@
     <orderEntry type="library" scope="TEST" name="JUnit5" level="project" />
     <orderEntry type="module" module-name="intellij.libraries.fastutil" scope="TEST" />
     <orderEntry type="module" module-name="intellij.maven.jps" scope="TEST" />
+    <orderEntry type="module" module-name="intellij.platform.util.base" scope="TEST" />
   </component>
   <component name="TestModuleProperties" production-module="intellij.maven.jps" />
 </module>

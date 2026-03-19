@@ -13,6 +13,7 @@ jvm_library(
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
   runtime_deps = [
+    "@lib//:kotlin-stdlib",
     "//platform/util/trove",
     "//jps/jps-builders:build-tests",
     "//libraries/kotlin/reflect",
@@ -26,6 +27,7 @@ jvm_library(
   srcs = glob(["tests/**/*.kt", "tests/**/*.java", "tests/**/*.form"], allow_empty = True),
   resources = [":graphImplementationTests_test_resources"],
   deps = [
+    "@lib//:kotlin-stdlib",
     "//platform/util",
     "//platform/util:util_test_lib",
     "@lib//:kotlinc-kotlin-jps-plugin-classpath-bootstrap-for-tests",

@@ -185,6 +185,10 @@ jvm_library(
     "//platform/util-ex:util-ex_test_lib",
     "//java/java-syntax:syntax",
     "//java/java-syntax:syntax_test_lib",
+    "//platform/editor-ui-api:editor-ui",
+    "//platform/editor-ui-api:editor-ui_test_lib",
+    "//platform/lang-api:lang",
+    "//platform/lang-api:lang_test_lib",
   ],
   runtime_deps = [
     ":build-tests",

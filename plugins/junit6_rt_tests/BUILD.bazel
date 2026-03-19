@@ -71,6 +71,8 @@ jvm_library(
     "//platform/xdebugger-impl:debugger-impl-tests_test_lib",
     "//platform/testRunner",
     "//platform/testRunner:testRunner_test_lib",
+    "//platform/statistics",
+    "//platform/statistics:statistics_test_lib",
   ],
   runtime_deps = [
     ":junit-v6-rt-tests",

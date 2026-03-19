@@ -155,6 +155,8 @@ jvm_library(
     "@lib//:junit4",
     "//libraries/kotlinx/collections-immutable:libraries-kotlinx-collections-immutable",
     "//libraries/kotlinx/collections-immutable:libraries-kotlinx-collections-immutable_test_lib",
+    "//platform/editor-ui-api:editor-ui",
+    "//platform/editor-ui-api:editor-ui_test_lib",
   ],
   runtime_deps = [
     ":groovy-tests",

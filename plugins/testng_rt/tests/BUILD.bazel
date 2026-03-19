@@ -58,6 +58,12 @@ jvm_library(
     "//platform/ide-core",
     "//platform/testRunner",
     "//platform/testRunner:testRunner_test_lib",
+    "//platform/editor-ui-api:editor-ui",
+    "//platform/editor-ui-api:editor-ui_test_lib",
+    "//platform/lang-api:lang",
+    "//platform/lang-api:lang_test_lib",
+    "//platform/statistics",
+    "//platform/statistics:statistics_test_lib",
   ],
   runtime_deps = [
     ":tests",

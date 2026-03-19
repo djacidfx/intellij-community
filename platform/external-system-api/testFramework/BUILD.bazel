@@ -28,6 +28,8 @@ jvm_library(
     "//platform/workspace/jps",
     "//platform/util-ex",
     "//libraries/fastutil",
+    "//platform/editor-ui-api:editor-ui",
+    "//platform/lang-api:lang",
   ]
 )
 
@@ -58,6 +60,8 @@ jvm_library(
     "//platform/workspace/jps:jps_test_lib",
     "//platform/util-ex:util-ex_test_lib",
     "//libraries/fastutil:fastutil_test_lib",
+    "//platform/editor-ui-api:editor-ui_test_lib",
+    "//platform/lang-api:lang_test_lib",
   ]
 )
 ### auto-generated section `build intellij.platform.externalSystem.testFramework` end

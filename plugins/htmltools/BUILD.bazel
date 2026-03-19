@@ -140,6 +140,8 @@ jvm_library(
     "//platform/util/concurrency",
     "//platform/util/concurrency:concurrency_test_lib",
     "//platform/ide-core",
+    "//platform/util:util-ui",
+    "//platform/util:util-ui_test_lib",
   ],
   runtime_deps = [
     ":html-tools-tests",

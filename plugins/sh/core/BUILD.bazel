@@ -160,6 +160,8 @@ jvm_library(
     "//platform/code-style-api:codeStyle",
     "//platform/code-style-api:codeStyle_test_lib",
     "//platform/ide-core",
+    "//platform/util:util-ui",
+    "//platform/util:util-ui_test_lib",
   ],
   runtime_deps = [
     ":tests",

@@ -86,6 +86,8 @@ jvm_library(
     "//platform/execution:execution_test_lib",
     "//platform/testRunner",
     "//platform/testRunner:testRunner_test_lib",
+    "//platform/statistics",
+    "//platform/statistics:statistics_test_lib",
   ],
   runtime_deps = [
     ":java-tests",
