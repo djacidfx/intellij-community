@@ -1140,7 +1140,7 @@ private fun ResolvedPluginSet.logExclusionTree() {
   val logBuilder = StringBuilder()
 
   fun StringBuilder.appendIndentString(indent: Int) {
-    repeat(indent - 1) { append("  ") }
+    repeat(indent) { append("  ") }
     if (indent > 0) append("└ ")
   }
 
