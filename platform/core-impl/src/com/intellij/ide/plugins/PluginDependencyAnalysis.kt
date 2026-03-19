@@ -47,8 +47,31 @@ object PluginDependencyAnalysis {
 
   @ApiStatus.Internal
   sealed class DependencyRef {
-    class Plugin(val pluginId: PluginId) : DependencyRef()
-    class ContentModule(val moduleId: PluginModuleId) : DependencyRef()
+    class Plugin(val pluginId: PluginId) : DependencyRef() {
+      override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Plugin
+
+        return pluginId == other.pluginId
+      }
+
+      override fun hashCode(): Int = pluginId.hashCode()
+    }
+
+    class ContentModule(val moduleId: PluginModuleId) : DependencyRef() {
+      override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as ContentModule
+
+        return moduleId == other.moduleId
+      }
+
+      override fun hashCode(): Int = moduleId.hashCode()
+    }
 
     companion object {
       fun of(pluginId: PluginId): Plugin = Plugin(pluginId)
