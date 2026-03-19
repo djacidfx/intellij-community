@@ -3,6 +3,7 @@ package com.intellij.ide.minimap.hover
 
 import com.intellij.ide.minimap.MinimapPanel
 import com.intellij.openapi.Disposable
+import com.intellij.platform.util.coroutines.childScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -15,10 +16,11 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class MinimapHoverStateMachine(
-  private val scope: CoroutineScope,
+  parentScope: CoroutineScope,
   private val panel: MinimapPanel,
   private val onStateChanged: (MinimapHoverTarget?) -> Unit
 ): Disposable {
+  private val scope = parentScope.childScope("MinimapHoverStateMachine")
   private val hoverEvents = MutableSharedFlow<MinimapHoverEvent>(extraBufferCapacity = 1)
   private var activeTarget: MinimapHoverTarget? = null
 

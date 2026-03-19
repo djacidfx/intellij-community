@@ -15,6 +15,7 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.Gray
 import com.intellij.ui.PopupHandler
@@ -27,11 +28,10 @@ import javax.swing.JPanel
 import kotlin.math.roundToInt
 
 class MinimapPanel(
-  parentDisposable: Disposable,
   coroutineScope: CoroutineScope,
   val editor: Editor,
   val container: JPanel,
-) : JPanel() {
+) : JPanel(), Disposable {
   private val renderer = MinimapRenderer()
 
   val settings: MinimapSettings = MinimapSettings.getInstance()
@@ -47,36 +47,25 @@ class MinimapPanel(
 
   private var initialized = false
 
-  private val panelDisposable = Disposer.newDisposable("MinimapPanel").also {
-    Disposer.register(parentDisposable, it)
-    Disposer.register(it) {
-      uninstallSettingsListeners()
-      legacyPreview.clear()
-    }
-  }
+  @Volatile
+  private var disposed = false
 
-  private val minimapController = registerDisposable(
-    MinimapController(
-      coroutineScope,
-      this,
-      container,
-    )
-  )
+  private val minimapController = MinimapController(
+    coroutineScope,
+    this,
+    container,
+  ).also { Disposer.register(this, it) }
 
-  private val hoverController = registerDisposable(
-    MinimapHoverController(
-      coroutineScope,
-      this,
-      minimapController::isDocumentCommitted
-    )
-  )
+  private val hoverController = MinimapHoverController(
+    coroutineScope,
+    this,
+    minimapController::isDocumentCommitted,
+  ).also { Disposer.register(this, it) }
 
-  private val interactionController = registerDisposable(
-    MinimapMouseInteractionController(
-      this,
-      hoverController
-    )
-  )
+  private val interactionController = MinimapMouseInteractionController(
+    this,
+    hoverController,
+  ).also { Disposer.register(this, it) }
 
   private val onSettingsChange = { _: MinimapSettings.SettingsChangeType ->
     updatePreferredSize()
@@ -86,6 +75,10 @@ class MinimapPanel(
   }
 
   init {
+    // Tie the panel's lifetime to the editor: when the editor is closed,
+    // this panel (and all its children) are disposed automatically.
+    EditorUtil.disposeWithEditor(editor, this)
+
     PopupHandler.installPopupMenu(this, createPopupActionGroup(), "MinimapPopup")
     installSettingsListeners()
     updatePreferredSize()
@@ -98,12 +91,31 @@ class MinimapPanel(
     interactionController.install()
   }
 
-  override fun addNotify() {
-    super.addNotify()
+  // Called by Disposer after all children (controllers) have been disposed.
+  // Settings listener is removed here — not earlier — so it cannot fire
+  // after the panel is gone but before the controllers are cleaned up.
+  override fun dispose() {
+    disposed = true
+    uninstallSettingsListeners()
+    legacyPreview.clear()
+    snapshot = null
+    container.remove(this)
+    container.revalidate()
+    container.repaint()
+  }
+
+  fun onClose() {
+    if (!disposed) {
+      Disposer.dispose(this)
+    }
   }
 
   override fun removeNotify() {
-    hoverController.hideBalloon()
+    // Guard: hoverController is already disposed when removeNotify is triggered
+    // as part of our own dispose() → container.remove(this) call.
+    if (!disposed) {
+      hoverController.hideBalloon()
+    }
     super.removeNotify()
   }
 
@@ -143,12 +155,6 @@ class MinimapPanel(
 
     if (initialized && MinimapRegistry.isLegacy()) {
       legacyPreview.update(editor, currentSnapshot()?.geometry?.minimapHeight ?: 0, true)
-    }
-  }
-
-  fun onClose() {
-    if (!Disposer.isDisposed(panelDisposable)) {
-      Disposer.dispose(panelDisposable)
     }
   }
 
@@ -221,7 +227,6 @@ class MinimapPanel(
     return MinimapScaleUtil.contentHeight(editor, settingsState.scaleMode)
   }
 
-
   private fun installSettingsListeners() {
     settings.settingsChangeCallback += onSettingsChange
   }
@@ -230,13 +235,6 @@ class MinimapPanel(
     settings.settingsChangeCallback -= onSettingsChange
   }
 
-
-  private fun <T : Disposable> registerDisposable(disposable: T): T {
-    Disposer.register(panelDisposable, disposable)
-    return disposable
-  }
-
   private fun createPopupActionGroup() = CustomActionsSchema.getInstance().getCorrectedAction("MinimapActionsGroup") as? ActionGroup
                                          ?: DefaultActionGroup()
-
 }

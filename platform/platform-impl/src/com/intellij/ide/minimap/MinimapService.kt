@@ -91,8 +91,7 @@ class MinimapService(private val scope: CoroutineScope) : Disposable {
     val borderLayout = panel.layout as? BorderLayout ?: return
     if (borderLayout.getLayoutComponent(where) != null) return
 
-    val disposable = textEditor.disposable
-    val minimapPanel = MinimapPanel(disposable, scope, textEditor, panel)
+    val minimapPanel = MinimapPanel(scope, textEditor, panel)
 
     panel.add(minimapPanel, where)
     textEditor.putUserData(MINI_MAP_PANEL_KEY, minimapPanel)
@@ -103,14 +102,8 @@ class MinimapService(private val scope: CoroutineScope) : Disposable {
 
   private fun removeMinimap(editor: EditorImpl) {
     val minimapPanel = editor.getUserData(MINI_MAP_PANEL_KEY) ?: return
-    minimapPanel.onClose()
     editor.putUserData(MINI_MAP_PANEL_KEY, null)
-
-    minimapPanel.parent?.apply {
-      remove(minimapPanel)
-      revalidate()
-      repaint()
-    }
+    minimapPanel.onClose()
   }
 
   companion object {
