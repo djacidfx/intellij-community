@@ -5,6 +5,7 @@ import com.intellij.codeInsight.template.postfix.templates.editable.JavaEditable
 import com.intellij.codeInsight.template.postfix.templates.editable.JavaPostfixTemplateExpressionCondition;
 import com.intellij.codeInsight.template.postfix.util.JavaPostfixTemplatesUtils;
 import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.pom.java.LanguageLevel;
 import com.intellij.psi.PsiElement;
@@ -19,6 +20,11 @@ public class SoutPostfixTemplate extends JavaEditablePostfixTemplate implements 
           "System.out.println(expr)",
           Collections.singleton(new JavaPostfixTemplateExpressionCondition.JavaPostfixTemplateNonVoidExpressionCondition()),
           LanguageLevel.JDK_1_3, true, provider);
+  }
+
+  @Override
+  public boolean isApplicableForModCommand(@NotNull PsiElement context, @NotNull Document copyDocument, int newOffset) {
+    return true;
   }
 
   @Override

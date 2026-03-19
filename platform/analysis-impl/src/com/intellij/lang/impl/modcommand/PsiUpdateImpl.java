@@ -806,6 +806,16 @@ final class PsiUpdateImpl {
     private @NotNull ModCommand getNavigateCommand() {
       if (!myPositionUpdated || myRenameSymbol != null || myTracker == null) return nop();
       int length = myTracker.myTargetFile.getFileDocument().getTextLength();
+      ModCommand command = myTracker.getUpdateCommand();
+      if (command instanceof ModNothing) {
+        List<FileTracker> list = myChangedFiles.values().stream()
+          .filter(fileTracker -> fileTracker.myOrigFile.getOriginalFile().getVirtualFile()
+            .equals(myTracker.myOrigFile.getOriginalFile().getVirtualFile()))
+          .toList();
+        if (list.size() == 1) {
+          length = list.getFirst().myTargetFile.getFileDocument().getTextLength();
+        }
+      }
       int start = -1, end = -1, caret = -1;
       if (mySelection.getEndOffset() <= length) {
         start = mySelection.getStartOffset();

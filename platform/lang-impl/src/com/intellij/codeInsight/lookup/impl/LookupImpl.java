@@ -1276,10 +1276,14 @@ public class LookupImpl extends LightweightHint implements LookupEx, Disposable,
       PsiFile file = getPsiFile();
       if (file != null) {
         ActionContext actionContext = ActionContext.from(editor, file);
-        int start = actionContext.offset() - getPrefixLength(currentItem);
+        int offset = actionContext.offset();
+        int start = offset - getPrefixLength(currentItem);
+        if (start > offset) {
+          offset = start;
+        }
         ActionContext finalActionContext = actionContext
           .withOffset(start)
-          .withSelection(TextRange.create(start, actionContext.offset()));
+          .withSelection(TextRange.create(start, offset));
         // Cache current item result
         ReadAction.nonBlocking(
           () -> wrapper.computeCommand(finalActionContext, ModCompletionItem.DEFAULT_INSERTION_CONTEXT))

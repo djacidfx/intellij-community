@@ -4,6 +4,8 @@ package com.intellij.codeInsight.template.postfix.templates;
 import com.intellij.codeInsight.CodeInsightBundle;
 import com.intellij.codeInsight.template.postfix.settings.PostfixTemplateMetaData;
 import com.intellij.codeInsight.template.postfix.settings.PostfixTemplatesSettings;
+import com.intellij.modcommand.ActionContext;
+import com.intellij.modcommand.ModCommand;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.PossiblyDumbAware;
@@ -12,6 +14,7 @@ import com.intellij.openapi.util.NlsSafe;
 import com.intellij.openapi.util.NotNullLazyValue;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -157,6 +160,34 @@ public abstract class PostfixTemplate implements PossiblyDumbAware {
    * @param editor  current editor
    */
   public abstract void expand(@NotNull PsiElement context, @NotNull Editor editor);
+
+  /**
+   * Expands the template as a {@link ModCommand}, suitable for use in ModCompletion and preview/batch modes.
+   * Override this method to provide a non-editor-based expansion of the template.
+   * It will be with the suffix inside selection.
+   *
+   * @param actionContext action context for the expansion
+   * @return a {@link ModCommand} that performs the expansion, or {@code null} if this template does not support ModCommand expansion
+   */
+  @ApiStatus.Experimental
+  public @NotNull ModCommand expandMod(@NotNull ActionContext actionContext) {
+    return ModCommand.nop();
+  }
+
+
+  /**
+   * Determines whether this template can be used in the given context specified by the parameters for ModCompletion.
+   *
+   * @param context      PSI element before the template key
+   * @param copyDocument copy of the document that contains changes introduced
+   *                     in {@link PostfixTemplateProvider#preCheck(PsiFile, Editor, int)} method
+   * @param newOffset    offset before the template key
+   * @return {@code true} if template is applicable in the given context, {@code false} otherwise
+   */
+  @ApiStatus.Experimental
+  public boolean isApplicableForModCommand(@NotNull PsiElement context, @NotNull Document copyDocument, int newOffset) {
+    return false;
+  }
 
   /**
    * @return the {@link PostfixTemplateProvider} that provided this template

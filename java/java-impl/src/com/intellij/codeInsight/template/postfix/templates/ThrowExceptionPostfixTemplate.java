@@ -3,6 +3,7 @@ package com.intellij.codeInsight.template.postfix.templates;
 
 import com.intellij.codeInsight.template.postfix.templates.editable.JavaEditablePostfixTemplate;
 import com.intellij.codeInsight.template.postfix.templates.editable.JavaPostfixTemplateExpressionCondition;
+import com.intellij.openapi.editor.Document;
 import com.intellij.codeInsight.template.postfix.util.JavaPostfixTemplatesUtils;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.DumbAware;
@@ -21,6 +22,11 @@ public class ThrowExceptionPostfixTemplate extends JavaEditablePostfixTemplate i
           Collections.singleton(
             new JavaPostfixTemplateExpressionCondition.JavaPostfixTemplateExpressionFqnCondition(CommonClassNames.JAVA_LANG_THROWABLE)),
           LanguageLevel.JDK_1_3, true, provider);
+  }
+
+  @Override
+  public boolean isApplicableForModCommand(@NotNull PsiElement context, @NotNull Document copyDocument, int newOffset) {
+    return true;
   }
 
   @Override

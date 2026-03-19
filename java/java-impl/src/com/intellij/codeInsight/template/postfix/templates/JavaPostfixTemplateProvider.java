@@ -165,6 +165,14 @@ public class JavaPostfixTemplateProvider implements PostfixTemplateProvider {
     return copyFile;
   }
 
+  @Override
+  public void preCheckModCommand(@NotNull PsiFile copyFile, int currentOffset) {
+    Document document = copyFile.getFileDocument();
+    if (JavaCompletionContributor.semicolonNeeded(copyFile, currentOffset)) {
+      document.insertString(currentOffset, ";");
+    }
+  }
+
   private static boolean isSemicolonNeeded(@NotNull PsiFile file, @NotNull Editor editor) {
     int startOffset = CompletionInitializationContext.calcStartOffset(editor.getCaretModel().getCurrentCaret());
     return JavaCompletionContributor.semicolonNeeded(file, startOffset);

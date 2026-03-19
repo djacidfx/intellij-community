@@ -571,6 +571,18 @@ f:com.intellij.codeInsight.navigation.UtilKt
 *:com.intellij.codeInspection.actions.RunInspectionDialogExtension
 - com.intellij.codeInspection.options.OptionContainer
 - beforeInspectionRun(com.intellij.openapi.project.Project):V
+c:com.intellij.codeInsight.template.postfix.templates.PostfixLiveTemplate
+- com.intellij.codeInsight.template.CustomLiveTemplateBase
+- *s:computeTemplateKeyWithoutContextChecking(com.intellij.codeInsight.template.postfix.templates.PostfixTemplateProvider,java.lang.CharSequence,I):java.lang.String
+a:com.intellij.codeInsight.template.postfix.templates.PostfixTemplate
+- com.intellij.openapi.project.PossiblyDumbAware
+- *:expandMod(com.intellij.modcommand.ActionContext):com.intellij.modcommand.ModCommand
+- *:isApplicableForModCommand(com.intellij.psi.PsiElement,com.intellij.openapi.editor.Document,I):Z
+com.intellij.codeInsight.template.postfix.templates.PostfixTemplateProvider
+- *:preCheckModCommand(com.intellij.psi.PsiFile,I):V
+a:com.intellij.codeInsight.template.postfix.templates.editable.EditablePostfixTemplate
+- com.intellij.codeInsight.template.postfix.templates.PostfixTemplate
+- *:expandMod(com.intellij.modcommand.ActionContext):com.intellij.modcommand.ModCommand
 *f:com.intellij.codeInspection.ui.OptPaneUtils
 - <init>():V
 - s:editOptions(com.intellij.openapi.project.Project,com.intellij.codeInspection.options.OptionContainer,com.intellij.codeInspection.options.OptPane,java.lang.String,java.lang.Runnable):V

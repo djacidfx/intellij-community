@@ -672,6 +672,8 @@
       implementation="com.intellij.codeInsight.ExternalAnnotationsNonProjectFileWritingAccessExtension"/>
     <codeInsight.template.postfixTemplateProvider language="JAVA"
                                                   implementationClass="com.intellij.codeInsight.template.postfix.templates.JavaPostfixTemplateProvider"/>
+    <modcompletion.completionItemProvider language="JAVA"
+                                          implementationClass="com.intellij.codeInsight.template.postfix.completion.PostfixTemplateModCompletionItemProvider"/>
     <codeInsight.folding.collapseBlockHandler language="JAVA"
                                               implementationClass="com.intellij.codeInsight.folding.impl.JavaCollapseBlockHandler"/>
     <spellchecker.support language="JAVA" implementationClass="com.intellij.spellchecker.JavaSpellcheckingStrategy"/>

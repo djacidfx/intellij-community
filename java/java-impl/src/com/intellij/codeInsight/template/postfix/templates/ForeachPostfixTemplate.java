@@ -43,6 +43,13 @@ public class ForeachPostfixTemplate extends JavaEditablePostfixTemplate implemen
     return true;
   }
 
+
+  @Override
+  public boolean isApplicableForModCommand(@NotNull PsiElement context, @NotNull Document copyDocument, int newOffset) {
+    return true;
+  }
+
+
   @Override
   protected void addTemplateVariables(@NotNull PsiElement element, @NotNull Template template) {
     MacroCallNode type = new MacroCallNode(new IterableComponentTypeMacro());
