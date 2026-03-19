@@ -1111,6 +1111,7 @@ object PluginManagerCore {
 
 private fun ResolvedPluginSet.logExclusionTree() {
   val exclusionChildren = LinkedHashMap<IdeaPluginDescriptorImpl, ArrayList<IdeaPluginDescriptorImpl>>()
+  val roots = LinkedHashSet<IdeaPluginDescriptorImpl>()
   for (plugin in originalPluginSet.plugins) {
     for (descriptor in plugin.sequenceAllDescriptors()) {
       if (isResolved(descriptor)) continue
@@ -1119,15 +1120,20 @@ private fun ResolvedPluginSet.logExclusionTree() {
         val precedingExclusion = chain[1]
         val precedingReason = getExclusionReason(precedingExclusion)
         if (precedingReason is PartOfDependencyCycle || precedingReason is PartOfRuntimeModuleGroupDependencyCycle) {
-          val key = precedingReason.asSafely<PartOfDependencyCycle>()?.dependencyCycle?.nodesWithDependenciesOnCycle?.keys?.first()
-                    ?: precedingReason.asSafely<PartOfRuntimeModuleGroupDependencyCycle>()?.dependencyCycle?.nodesWithDependenciesOnCycle?.keys?.first()?.representativeModule!!
-          exclusionChildren.getOrPut(key) { ArrayList() }.add(descriptor) // attach chained exclusions to a cycle representative only, so they all are groupped up
+          val key = precedingReason.getDependencyCycleRepresentative()
+          exclusionChildren.getOrPut(key) { ArrayList() }.add(descriptor) // attach chained exclusions to a cycle representative only, so they all are grouped up
         }
         else {
           exclusionChildren.getOrPut(precedingExclusion) { ArrayList() }.add(descriptor)
         }
       } else if (chain.size == 1) {
-        exclusionChildren.getOrPut(descriptor) { ArrayList() }
+        val exclusionReason = getExclusionReason(descriptor)
+        val shouldAddRoot = if (exclusionReason is PartOfDependencyCycle || exclusionReason is PartOfRuntimeModuleGroupDependencyCycle) {
+          exclusionReason.getDependencyCycleRepresentative() == descriptor
+        } else {
+          true
+        }
+        if (shouldAddRoot) roots.add(descriptor)
       }
     }
   }
@@ -1154,12 +1160,17 @@ private fun ResolvedPluginSet.logExclusionTree() {
   }
   logBuilder.apply {
     appendLine("Plugin set resolution:")
-    for (root in exclusionChildren.keys) {
+    for (root in roots) {
       writeExclusionTree(root, 0)
     }
   }
   PluginManagerCore.logger.warn(logBuilder.toString())
 }
+
+private fun DescriptorExclusionReason.getDependencyCycleRepresentative(): IdeaPluginDescriptorImpl =
+  asSafely<PartOfDependencyCycle>()?.dependencyCycle?.nodesWithDependenciesOnCycle?.keys?.first()
+  ?: asSafely<PartOfRuntimeModuleGroupDependencyCycle>()?.dependencyCycle?.nodesWithDependenciesOnCycle?.keys?.first()?.representativeModule
+  ?: error("$this is not a cycle exclusion reason")
 
 private fun DescriptorExclusionReason.logMessage(): String {
   val logDescr = descriptor.getLogDescription()
