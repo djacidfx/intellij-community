@@ -347,7 +347,7 @@ private class PluginSetConstraintsResolver(
     val remainingCandidates = candidates.keys.filterTo(ArrayList()) { it.getState() is Candidate }
     val resolvedDependencies = resolvedDependenciesLists.filterKeys { it.getState() is Candidate }
     val resolvedDependents = resolvedDependencies.invertEdges()
-    val sortedCandidates = sortRemainingCandidatesTopologicallyOrExcludeCycles(remainingCandidates, resolvedDependents)
+    val sortedCandidates = sortRemainingCandidatesTopologicallyOrExcludeCycles(remainingCandidates, resolvedDependencies, resolvedDependents)
                            ?: return null
     val runtimeModuleGroupGraph = buildAcyclicRuntimeModuleGroupGraphOrExcludeCycles(sortedCandidates, resolvedDependencies)
                                   ?: return null
@@ -368,6 +368,7 @@ private class PluginSetConstraintsResolver(
 
   private fun sortRemainingCandidatesTopologicallyOrExcludeCycles(
     remainingCandidates: ArrayList<IdeaPluginDescriptorImpl>,
+    resolvedDependencies: Map<IdeaPluginDescriptorImpl, List<IdeaPluginDescriptorImpl>>,
     resolvedDependents: Map<IdeaPluginDescriptorImpl, List<IdeaPluginDescriptorImpl>>
   ): List<IdeaPluginDescriptorImpl>? {
     val descriptorGraph = DFSTBuilder(DescriptorGraphAdapter(remainingCandidates, resolvedDependents))
@@ -376,8 +377,12 @@ private class PluginSetConstraintsResolver(
         if (component.size <= 1) {
           continue
         }
-        val dependencyCycle = component.toList()
-        batchExclude(dependencyCycle) { PartOfDependencyCycle(it, dependencyCycle) }
+        val cycleNodesWithDependencies = component.associateWith { ArrayList<IdeaPluginDescriptorImpl>() }
+        for (descriptor in component) {
+          cycleNodesWithDependencies[descriptor]!!.addAll(resolvedDependencies[descriptor]!!.filter { it in cycleNodesWithDependencies.keys })
+        }
+        val cycleInfo = DependencyCycleInfo(cycleNodesWithDependencies)
+        batchExclude(cycleNodesWithDependencies.keys) { PartOfDependencyCycle(it, cycleInfo) }
       }
       return null
     }
@@ -426,12 +431,16 @@ private class PluginSetConstraintsResolver(
         if (component.size <= 1) {
           continue
         }
-        val groupDependencyCycle = component.toList()
-        val descriptors = groupDependencyCycle.asSequence().flatMap { it.sortedDescriptors }
+        val cycleNodesWithDependencies = component.associateWith { ArrayList<RuntimeModuleGroup>() }
+        for (group in component) {
+          cycleNodesWithDependencies[group]!!.addAll(groupToGroupDependencies[group]!!.filter { it in cycleNodesWithDependencies.keys })
+        }
+        val cycleInfo = DependencyCycleInfo(cycleNodesWithDependencies)
+        val descriptors = cycleNodesWithDependencies.keys.asSequence().flatMap { it.sortedDescriptors }
           // Exclusion of a "depends" sub-descriptor due to a dependency cycle historically led to exclusion of the corresponding plugin. That behavior is preserved, though it isn't necessary
           .map { if (it is DependsSubDescriptor) it.getMainDescriptor() else it }
           .toList()
-        batchExclude(descriptors) { PartOfRuntimeModuleGroupDependencyCycle(it, groupDependencyCycle) }
+        batchExclude(descriptors) { PartOfRuntimeModuleGroupDependencyCycle(it, cycleInfo) }
       }
       return null
     }

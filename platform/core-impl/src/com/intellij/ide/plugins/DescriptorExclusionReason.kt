@@ -39,12 +39,12 @@ class IncompatibleWithAnotherModule(
 
 class PartOfDependencyCycle(
   override val descriptor: IdeaPluginDescriptorImpl,
-  val dependencyCycle: List<IdeaPluginDescriptorImpl>,
+  val dependencyCycle: DependencyCycleInfo<IdeaPluginDescriptorImpl>,
 ) : DescriptorExclusionReason
 
 class PartOfRuntimeModuleGroupDependencyCycle(
   override val descriptor: IdeaPluginDescriptorImpl,
-  val dependencyCycle: List<RuntimeModuleGroup>,
+  val dependencyCycle: DependencyCycleInfo<RuntimeModuleGroup>,
 ) : DescriptorExclusionReason
 
 class DependsParentIsExcluded(
@@ -102,3 +102,7 @@ fun IdeaPluginDescriptorImpl.sequenceDescriptorExclusionChain(
     }
   }
 }
+
+class DependencyCycleInfo<N>(
+  val nodesWithDependenciesOnCycle: Map<N, List<N>>
+)
