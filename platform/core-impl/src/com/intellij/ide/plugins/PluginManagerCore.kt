@@ -1158,8 +1158,23 @@ private fun ResolvedPluginSet.logExclusionTree() {
       writeExclusionTree(child, indent + 1)
     }
   }
+  val dependencyIsNotResolvedRoots = roots.asSequence().filter { getExclusionReason(it) is DependencyIsNotResolved }.toSet()
+  roots.removeAll(dependencyIsNotResolvedRoots)
   logBuilder.apply {
     appendLine("Plugin set resolution:")
+    dependencyIsNotResolvedRoots.map { getExclusionReason(it) as DependencyIsNotResolved }.groupBy { it.dependency }
+      .forEach { (ref, roots) ->
+        appendLine("${ref.getIdString()} is not resolved (or is disabled)")
+        // a bit of duplication, but I guess it's alright for this code
+        val (childFreeExclusions, otherRoots) = roots.partition { (exclusionChildren[it.descriptor]?.size ?: 0) == 0 }
+        if (childFreeExclusions.isNotEmpty()) {
+          appendIndentString(1)
+          appendLine("dependent ${childFreeExclusions.joinToString(", ") { it.descriptor.getLogDescription() }} excluded")
+        }
+        for (root in otherRoots) {
+          writeExclusionTree(root.descriptor, 1)
+        }
+      }
     for (root in roots) {
       writeExclusionTree(root, 0)
     }
@@ -1181,7 +1196,7 @@ private fun DescriptorExclusionReason.logMessage(): String {
     is DependencyIsExcluded -> "dependent $logDescr excluded"
     is DependsParentIsExcluded -> "dependent $logDescr excluded"
     // root:
-    is DependencyIsNotResolved -> "$logDescr depends on ${dependency.getIdString()} which is not resolved (or disabled)" // TODO
+    is DependencyIsNotResolved -> "dependent $logDescr excluded" // special handling in logExclusionTree
     is DependencyIsNotVisible -> "$logDescr depends on ${dependencyModule.getLogDescription()} which is not visible"
     is ExcludedByEnvironmentConfiguration -> "$logDescr is excluded: ${reason.logMessage}"
     is IncompatibleWithAnotherModule -> "$logDescr is incompatible with ${preferredIncompatibleModule.getLogDescription()}"
@@ -1214,8 +1229,8 @@ private fun <N> StringBuilder.explainCycle(cycle: DependencyCycleInfo<N>, fmtNod
 private fun IdeaPluginDescriptorImpl.getLogDescription(): String {
   return when (this) {
     is PluginMainDescriptor -> "plugin '$name' ($pluginId, $version)"
-    is DependsSubDescriptor -> "<depends> config ${descriptorPath} of plugin ${pluginId}"
-    is ContentModuleDescriptor -> "content module ${moduleId}" //  of plugin ${pluginId}
+    is DependsSubDescriptor -> "<depends> config '${descriptorPath}' of plugin ${pluginId}"
+    is ContentModuleDescriptor -> "module ${moduleId}"
   }
 }
 
