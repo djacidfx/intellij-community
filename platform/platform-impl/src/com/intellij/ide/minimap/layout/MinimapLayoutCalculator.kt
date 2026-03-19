@@ -4,7 +4,6 @@ package com.intellij.ide.minimap.layout
 import com.intellij.ide.minimap.model.MinimapStructureMarker
 import com.intellij.ide.minimap.render.MinimapRenderContext
 import com.intellij.ide.minimap.render.MinimapRenderEntry
-import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.TextRange
 import java.awt.geom.Rectangle2D
@@ -16,7 +15,7 @@ class MinimapLayoutCalculator(private val editor: Editor) {
     val height: Double,
   )
 
-  private data class PreparedLayout(
+  private data class LayoutBuildState(
     val layout: MinimapLayoutContext,
     val documentLength: Int,
     val result: ArrayList<MinimapRenderEntry>,
@@ -26,11 +25,9 @@ class MinimapLayoutCalculator(private val editor: Editor) {
     context: MinimapRenderContext,
     structureMarkers: List<MinimapStructureMarker>,
     mode: MinimapLayoutMode,
-  ): List<MinimapRenderEntry> {
-    return when (mode) {
-      MinimapLayoutMode.EXACT -> buildExactLayout(context, structureMarkers)
-      MinimapLayoutMode.DENSE -> buildDenseLayout(context, structureMarkers)
-    }
+  ): List<MinimapRenderEntry> = when (mode) {
+    MinimapLayoutMode.EXACT -> buildExactLayout(context, structureMarkers)
+    MinimapLayoutMode.DENSE -> buildDenseLayout(context, structureMarkers)
   }
 
   private fun buildExactLayout(
@@ -38,8 +35,8 @@ class MinimapLayoutCalculator(private val editor: Editor) {
     structureMarkers: List<MinimapStructureMarker>,
   ): List<MinimapRenderEntry> {
     val prepared = prepareLayout(context, structureMarkers) ?: return emptyList()
-    appendTokenFillers(prepared.result, prepared.layout)
-    appendStructureMarkers(prepared.result, prepared.layout, structureMarkers, prepared.documentLength)
+    appendTokenFillers(prepared)
+    appendStructureMarkers(prepared, structureMarkers)
     return prepared.result
   }
 
@@ -48,15 +45,15 @@ class MinimapLayoutCalculator(private val editor: Editor) {
     structureMarkers: List<MinimapStructureMarker>,
   ): List<MinimapRenderEntry> {
     val prepared = prepareLayout(context, structureMarkers) ?: return emptyList()
-    appendDenseFillers(prepared.result, prepared.layout)
-    appendStructureMarkers(prepared.result, prepared.layout, structureMarkers, prepared.documentLength)
+    appendDenseFillers(prepared)
+    appendStructureMarkers(prepared, structureMarkers)
     return prepared.result
   }
 
   private fun prepareLayout(
     context: MinimapRenderContext,
     structureMarkers: List<MinimapStructureMarker>,
-  ): PreparedLayout? {
+  ): LayoutBuildState? {
     val geometry = context.geometry
     val panelWidth = context.panelWidth
     val minimapHeight = geometry.minimapHeight
@@ -74,11 +71,12 @@ class MinimapLayoutCalculator(private val editor: Editor) {
     val result = ArrayList<MinimapRenderEntry>(structureMarkers.size)
     val visibleLines = MinimapLayoutUtil.visibleLines(geometry, lineCount)
     val layout = MinimapLayoutContext(document, metrics, panelWidth, geometry.areaStart.toDouble(), visibleLines)
-    return PreparedLayout(layout, documentLength, result)
+    return LayoutBuildState(layout, documentLength, result)
   }
 
-  private fun appendTokenFillers(result: MutableList<MinimapRenderEntry>,
-                                 context: MinimapLayoutContext) {
+  private fun appendTokenFillers(prepared: LayoutBuildState) {
+    val result = prepared.result
+    val context = prepared.layout
     val pxPerColumn = context.metrics.pxPerColumn
     val document = context.document
     val chars = document.charsSequence
@@ -119,19 +117,17 @@ class MinimapLayoutCalculator(private val editor: Editor) {
     }
   }
 
-  private fun appendDenseFillers(result: MutableList<MinimapRenderEntry>,
-                                 context: MinimapLayoutContext) {
+  private fun appendDenseFillers(prepared: LayoutBuildState) {
+    val result = prepared.result
+    val context = prepared.layout
     val visibleLines = context.visibleLines
     if (visibleLines.isEmpty()) return
 
-    val pxPerColumn = context.metrics.pxPerColumn
     val baseLineHeight = context.metrics.baseLineHeight
     if (baseLineHeight <= 0.0) return
 
     val linesPerPixel = 1.0 / baseLineHeight
     val lineStride = ceil(linesPerPixel).toInt().coerceAtLeast(1)
-    val document = context.document
-    val chars = document.charsSequence
 
     var line = visibleLines.first
     val endLineExclusive = visibleLines.last + 1
@@ -142,7 +138,7 @@ class MinimapLayoutCalculator(private val editor: Editor) {
         line = bandEndLine
         continue
       }
-      appendDenseBandFillers(result, context, band, line, bandEndLine, pxPerColumn, document, chars)
+      appendDenseBandFillers(result, context, band, line, bandEndLine)
       line = bandEndLine
     }
   }
@@ -151,31 +147,27 @@ class MinimapLayoutCalculator(private val editor: Editor) {
                                      context: MinimapLayoutContext,
                                      band: LineBand,
                                      startLine: Int,
-                                     endLineExclusive: Int,
-                                     pxPerColumn: Double,
-                                     document: Document,
-                                     chars: CharSequence) {
+                                     endLineExclusive: Int) {
     val lineCount = endLineExclusive - startLine
     if (lineCount <= 0) return
 
-    appendDenseSampleForLine(result, context, band, startLine, pxPerColumn, document, chars)
+    appendDenseSampleForLine(result, context, band, startLine)
 
     if (lineCount > 2) {
-      appendDenseSampleForLine(result, context, band, startLine + lineCount / 2, pxPerColumn, document, chars)
+      appendDenseSampleForLine(result, context, band, startLine + lineCount / 2)
     }
 
     if (lineCount > 1) {
-      appendDenseSampleForLine(result, context, band, endLineExclusive - 1, pxPerColumn, document, chars)
+      appendDenseSampleForLine(result, context, band, endLineExclusive - 1)
     }
   }
 
   private fun appendDenseSampleForLine(result: MutableList<MinimapRenderEntry>,
                                        context: MinimapLayoutContext,
                                        band: LineBand,
-                                       line: Int,
-                                       pxPerColumn: Double,
-                                       document: Document,
-                                       chars: CharSequence) {
+                                       line: Int) {
+    val document = context.document
+    val chars = document.charsSequence
     val lineStartOffset = document.getLineStartOffset(line)
     val lineEndOffset = document.getLineEndOffset(line)
     if (lineEndOffset <= lineStartOffset) return
@@ -188,7 +180,7 @@ class MinimapLayoutCalculator(private val editor: Editor) {
 
     val startColumn = (trimmedStartOffset - lineStartOffset).coerceAtLeast(0)
     val endColumn = (trimmedEndOffset - lineStartOffset).coerceAtLeast(startColumn + 1)
-    val rect2d = rectForColumns(startColumn, endColumn, band, context, pxPerColumn)
+    val rect2d = rectForColumns(startColumn, endColumn, band, context, context.metrics.pxPerColumn)
     val sampleOffset = denseSampleOffset(trimmedStartOffset, trimmedEndOffset)
     result.add(MinimapRenderEntry(null, rect2d, sampleOffset = sampleOffset))
   }
@@ -197,13 +189,14 @@ class MinimapLayoutCalculator(private val editor: Editor) {
     return startOffset + (endOffsetExclusive - startOffset) / 2
   }
 
-  private fun appendStructureMarkers(result: MutableList<MinimapRenderEntry>,
-                                     context: MinimapLayoutContext,
-                                     structureMarkers: List<MinimapStructureMarker>,
-                                     documentLength: Int) {
+  private fun appendStructureMarkers(prepared: LayoutBuildState,
+                                     structureMarkers: List<MinimapStructureMarker>) {
     // todo: some logic can be shared with appendTokenFillers
     if (structureMarkers.isEmpty()) return
 
+    val result = prepared.result
+    val context = prepared.layout
+    val documentLength = prepared.documentLength
     val document = context.document
     val pxPerColumn = context.metrics.pxPerColumn
     val lineCount = context.metrics.lineCount
