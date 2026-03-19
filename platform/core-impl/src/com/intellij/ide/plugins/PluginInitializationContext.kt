@@ -69,6 +69,11 @@ interface PluginInitializationContext {
 
   fun provideModuleExclusionsImposedByProductRules(pluginSet: UnambiguousPluginSet): Sequence<Pair<PluginModuleDescriptor, ProductRulesImposedExclusionReason>>
 
+  /**
+   * Tells the plugin set resolver that [module] should belong to the same [RuntimeModuleGroup] (the same classloader) as the returned result (if not null).
+   */
+  fun provideCustomRuntimeModuleGroupAffiliation(module: PluginModuleDescriptor, pluginSet: UnambiguousPluginSet): PluginModuleDescriptor?
+
   companion object
 }
 

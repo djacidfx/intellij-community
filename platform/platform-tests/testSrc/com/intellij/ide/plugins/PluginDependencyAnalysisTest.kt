@@ -7,6 +7,7 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.util.BuildNumber
 import com.intellij.platform.pluginSystem.parser.impl.elements.ModuleLoadingRuleValue
+import com.intellij.platform.pluginSystem.testFramework.EmptyTestPluginInitContext
 import com.intellij.platform.pluginSystem.testFramework.PluginSetTestBuilder
 import com.intellij.platform.testFramework.plugins.buildDir
 import com.intellij.platform.testFramework.plugins.content
@@ -43,17 +44,9 @@ class PluginDependencyAnalysisTest {
     essentialPlugins: Set<PluginId> = emptySet(),
     environmentConfiguredModules: Map<PluginModuleId, PluginInitializationContext.EnvironmentConfiguredModuleData> = emptyMap(),
   ): PluginInitializationContext {
-    return object : PluginInitializationContext {
+    return object : EmptyTestPluginInitContext() {
       override val productBuildNumber: BuildNumber = BuildNumber.fromString("241.0")!!
       override val essentialPlugins: Set<PluginId> = essentialPlugins
-      override fun isPluginDisabled(id: PluginId): Boolean = false
-      override fun isPluginExpired(id: PluginId): Boolean = false
-      override fun isPluginBroken(id: PluginId, version: String?): Boolean = false
-      override val requirePlatformAliasDependencyForLegacyPlugins: Boolean = false
-      override val checkEssentialPlugins: Boolean = false
-      override val explicitPluginSubsetToLoad: Set<PluginId>? = null
-      override val disablePluginLoadingCompletely: Boolean = false
-      override val pluginsPerProjectConfig: PluginsPerProjectConfig? = null
       override val currentProductModeId: String = "test"
       override val environmentConfiguredModules: Map<PluginModuleId, PluginInitializationContext.EnvironmentConfiguredModuleData> = environmentConfiguredModules
       override fun provideCompatibilityDependencies(descriptor: IdeaPluginDescriptorImpl, pluginSet: UnambiguousPluginSet): Sequence<PluginDependencyAnalysis.DependencyRef> =

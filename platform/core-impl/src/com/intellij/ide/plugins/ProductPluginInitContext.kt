@@ -118,6 +118,9 @@ class ProductPluginInitContext(
     }
   }
 
+  override fun provideCustomRuntimeModuleGroupAffiliation(module: PluginModuleDescriptor, pluginSet: UnambiguousPluginSet): PluginModuleDescriptor? =
+    defaultRuntimeModuleGroupAffiliation(module, pluginSet)
+
   data class ThirdPartyPluginsWithoutConsentCheckResult(
     /** null if wasn't asked */
     val privacyNoteAccepted: Boolean?,
@@ -304,6 +307,15 @@ class ProductPluginInitContext(
         }
       }
     }
+
+    @VisibleForTesting
+    fun defaultRuntimeModuleGroupAffiliation(module: PluginModuleDescriptor, pluginSet: UnambiguousPluginSet): PluginModuleDescriptor? {
+      if (module is ContentModuleDescriptor && module.moduleId.name == "intellij.platform.backend") {
+        return module.parent // FIXME this should not exist IJPL-201428
+      }
+      return null
+    }
+
   }
 }
 
