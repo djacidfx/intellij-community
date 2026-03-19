@@ -73,7 +73,7 @@ class KotlinMPPGradleModelBuilder : AbstractModelBuilderService() {
             val coroutinesState = getCoroutinesState(project)
             val kotlinNativeHome = KotlinNativeHomeEvaluator.getKotlinNativeHome(project) ?: NO_KOTLIN_NATIVE_HOME
             val swiftExportModel = buildSwiftExportModel(kotlinExtensionReflection)
-            val swiftPMImportModel = kotlinExtensionReflection.swiftPMImportIdeContext?.let { KotlinSwiftPMImportModelImpl(
+            val swiftPMImportModel = kotlinExtensionReflection.swiftPMImportIdeModel?.let { KotlinSwiftPMImportModelImpl(
                 it.hasSwiftPMDependencies,
                 it.integrateLinkagePackageTaskPath,
                 it.magicPackageName,
