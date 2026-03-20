@@ -122,7 +122,6 @@ f:com.intellij.collaboration.api.httpclient.HttpClientUtil
 - f:checkStatusCodeWithLogging(com.intellij.openapi.diagnostic.Logger,java.lang.String,I,java.io.InputStream):V
 - f:getUserAgentValue(java.lang.String):java.lang.String
 - f:inflateAndReadWithErrorHandlingAndLogging(com.intellij.openapi.diagnostic.Logger,java.net.http.HttpRequest,kotlin.jvm.functions.Function2):java.net.http.HttpResponse$BodyHandler
-- f:readSuccessResponseWithLogging(com.intellij.openapi.diagnostic.Logger,java.net.http.HttpRequest,java.net.http.HttpResponse$ResponseInfo,java.io.InputStream,kotlin.jvm.functions.Function1):java.lang.Object
 com.intellij.collaboration.api.httpclient.HttpRequestConfigurer
 - a:configure(java.net.http.HttpRequest$Builder):java.net.http.HttpRequest$Builder
 f:com.intellij.collaboration.api.httpclient.InflatedStreamReadingBodyHandler
