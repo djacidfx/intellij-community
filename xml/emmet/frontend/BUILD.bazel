@@ -8,8 +8,18 @@ resourcegroup(
 )
 
 jvm_provided_library(
+  name = "platform_core_provided",
+  lib = "//platform/core-api:core"
+)
+
+jvm_provided_library(
   name = "xml_emmet_provided",
   lib = "//xml/emmet"
+)
+
+jvm_provided_library(
+  name = "platform_remote-topics_rpc-topics_provided",
+  lib = "//platform/remote-topics/shared:rpc-topics"
 )
 
 jvm_library(
@@ -19,8 +29,11 @@ jvm_library(
   srcs = glob(["src/**/*.kt", "src/**/*.java", "src/**/*.form"], allow_empty = True),
   resources = [":frontend_resources"],
   deps = [
+    "@lib//:kotlin-stdlib-provided",
     "@lib//:jetbrains-annotations-provided",
+    ":platform_core_provided",
     ":xml_emmet_provided",
+    ":platform_remote-topics_rpc-topics_provided",
   ]
 )
 
@@ -31,9 +44,14 @@ jvm_library(
   srcs = glob([], allow_empty = True),
   runtime_deps = [
     ":frontend",
+    "@lib//:kotlin-stdlib-provided",
+    "//platform/core-api:core",
+    "//platform/core-api:core_test_lib",
     "//xml/emmet",
     "//xml/emmet:emmet_test_lib",
     "@lib//:jetbrains-annotations-provided",
+    "//platform/remote-topics/shared:rpc-topics",
+    "//platform/remote-topics/shared:rpc-topics_test_lib",
   ]
 )
 ### auto-generated section `build intellij.xml.emmet.frontend` end

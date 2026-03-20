@@ -69,6 +69,7 @@ jvm_library(
   srcs = glob(["src/**/*.kt", "src/**/*.java", "src/**/*.form"], allow_empty = True),
   resources = [":backend_resources"],
   deps = [
+    "@lib//:kotlin-stdlib-provided",
     "@lib//:jetbrains-annotations-provided",
     ":xml_emmet_provided",
     ":platform_ide-core_provided",
@@ -91,6 +92,7 @@ jvm_library(
   srcs = glob([], allow_empty = True),
   runtime_deps = [
     ":backend",
+    "@lib//:kotlin-stdlib-provided",
     "//xml/emmet",
     "//xml/emmet:emmet_test_lib",
     "@lib//:jetbrains-annotations-provided",

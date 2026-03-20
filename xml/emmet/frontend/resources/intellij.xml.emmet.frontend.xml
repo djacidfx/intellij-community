@@ -1,2 +1,11 @@
 <idea-plugin visibility="public">
+  <dependencies>
+    <module name="intellij.xml.emmet"/>
+    <module name="intellij.platform.frontend"/>
+  </dependencies>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <platform.rpc.projectRemoteTopicListener
+      implementation="com.intellij.codeInsight.template.emmet.EmmetAbbreviationBalloonListener"/>
+  </extensions>
 </idea-plugin>
