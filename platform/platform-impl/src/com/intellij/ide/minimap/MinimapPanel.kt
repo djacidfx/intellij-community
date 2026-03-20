@@ -10,6 +10,7 @@ import com.intellij.ide.minimap.scene.MinimapSnapshot
 import com.intellij.ide.minimap.render.MinimapRenderer
 import com.intellij.ide.minimap.settings.MinimapSettings
 import com.intellij.ide.minimap.settings.MinimapSettingsState
+import com.intellij.ide.minimap.thumb.MinimapThumb
 import com.intellij.ide.ui.customization.CustomActionsSchema
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionGroup
@@ -17,14 +18,13 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.util.Disposer
-import com.intellij.ui.Gray
 import com.intellij.ui.PopupHandler
 import kotlinx.coroutines.CoroutineScope
-import java.awt.AlphaComposite
 import java.awt.Dimension
 import java.awt.Graphics
 import java.awt.Graphics2D
 import javax.swing.JPanel
+import kotlin.math.min
 import kotlin.math.roundToInt
 
 class MinimapPanel(
@@ -111,8 +111,6 @@ class MinimapPanel(
   }
 
   override fun removeNotify() {
-    // Guard: hoverController is already disposed when removeNotify is triggered
-    // as part of our own dispose() → container.remove(this) call.
     if (!disposed) {
       hoverController.hideBalloon()
     }
@@ -142,12 +140,7 @@ class MinimapPanel(
     }
 
     minimapController.paintCaret(g2d)
-
-    g2d.color = Gray._161
-    val oldComposite = g2d.composite
-    g2d.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.35f)
-    g2d.fillRect(0, geometry.thumbStart - geometry.areaStart, width, geometry.thumbHeight)
-    g2d.composite = oldComposite
+    MinimapThumb.paint(g2d, width, geometry)
   }
 
   override fun updateUI() {
@@ -179,29 +172,14 @@ class MinimapPanel(
     val thumbHeight = geometry.thumbHeight
     if (panelHeight <= 0 || minimapHeight <= 0 || thumbHeight <= 0) return
 
-    val visibleSpan = when {
-      minimapHeight <= panelHeight -> (minimapHeight - thumbHeight)
-      else -> (panelHeight - thumbHeight)
-    }.coerceAtLeast(0)
-    val desiredTop = (y - dragOffset).coerceIn(0, visibleSpan)
-
-    val thumbStart = when {
-      minimapHeight <= thumbHeight -> 0
-      minimapHeight <= panelHeight -> desiredTop
-      panelHeight <= thumbHeight -> 0
-      else -> {
-        val maxScroll = (minimapHeight - thumbHeight).toFloat()
-        val denominator = (panelHeight - thumbHeight).toFloat()
-        (desiredTop * maxScroll / denominator).roundToInt()
-      }
-    }
+    val thumbStart = MinimapThumb.computeStartFromDrag(y, dragOffset, panelHeight, minimapHeight, thumbHeight)
 
     val contentHeight = contentHeight()
     if (contentHeight <= 0) return
-    val proportion = minimapHeight.toDouble() / contentHeight
-    if (proportion <= 0.0) return
-
-    editor.scrollingModel.scrollVertically((thumbStart / proportion).roundToInt())
+    val visibleHeight = min(editor.scrollingModel.visibleArea.height, contentHeight).coerceAtLeast(0)
+    val scrollRange = (contentHeight - visibleHeight).coerceAtLeast(0)
+    val targetScrollOffset = MinimapThumb.mapThumbStartToScrollOffset(thumbStart, scrollRange, minimapHeight, thumbHeight)
+    editor.scrollingModel.scrollVertically(targetScrollOffset)
   }
 
   fun currentSnapshot(): MinimapSnapshot? = snapshot

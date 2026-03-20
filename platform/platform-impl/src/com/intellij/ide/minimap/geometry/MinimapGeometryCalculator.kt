@@ -3,6 +3,7 @@ package com.intellij.ide.minimap.geometry
 
 import com.intellij.ide.minimap.layout.MinimapLayoutUtil
 import com.intellij.ide.minimap.settings.MinimapScaleMode
+import com.intellij.ide.minimap.thumb.MinimapThumb
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import kotlin.math.min
@@ -24,10 +25,10 @@ class MinimapGeometryCalculator(private val editor: Editor) {
       (contentHeight * minimapWidth / logicalWidth.toDouble()).toInt().coerceAtLeast(0)
     }
 
-    val proportion = if (contentHeight > 0) minimapHeight.toDouble() / contentHeight else 0.0
-    val visibleHeight = min(visibleArea.height, contentHeight)
-    val thumbStart = (visibleArea.y * proportion).toInt()
-    val thumbHeight = (visibleHeight * proportion).toInt()
+    val visibleHeight = min(visibleArea.height, contentHeight).coerceAtLeast(0)
+    val scrollRange = (contentHeight - visibleHeight).coerceAtLeast(0)
+    val thumbHeight = MinimapThumb.computeHeight(visibleHeight, contentHeight, minimapHeight)
+    val thumbStart = MinimapThumb.computeStart(visibleArea.y, scrollRange, minimapHeight, thumbHeight)
 
     val areaStart = if (minimapHeight > thumbHeight) {
       val maxScroll = (minimapHeight - thumbHeight).coerceAtLeast(1)
