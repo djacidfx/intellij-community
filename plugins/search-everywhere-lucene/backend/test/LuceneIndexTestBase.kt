@@ -80,7 +80,7 @@ ${searcher.explain(query, score.doc).toString().trim().prependIndent(">   ")}
             "Score: ${explanation.value}\n" +
             explanation.toString().trim().prependIndent(">   ")
           }
-          .let { if (it.isEmpty()) "(index is empty)" else it }
+          .let { it.ifEmpty { "(index is empty)" } }
           .prependIndent("  ")
       }
     }

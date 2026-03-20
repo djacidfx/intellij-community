@@ -111,7 +111,7 @@ internal class FileNameTokenFilter(input: TokenStream) : TokenFilter(input) {
     }
 
     // Extension last (highest offset)
-    if (ext != null && ext.isNotEmpty()) {
+    if (!ext.isNullOrEmpty()) {
       pending.add(PartInfo(ext.lowercase(), TOKEN_TYPE_FILETYPE, extStart, extStart + ext.length))
     }
 
