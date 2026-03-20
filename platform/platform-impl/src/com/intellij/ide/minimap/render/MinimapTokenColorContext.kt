@@ -110,7 +110,7 @@ class MinimapTokenColorContext(
     if (metrics.pxPerColumn <= 0.0 || metrics.baseLineHeight <= 0.0) return null
 
     val line = ((entry.rect2d.y + areaStart) / metrics.baseLineHeight).toInt().coerceIn(0, metrics.lineCount - 1)
-    val column = (entry.rect2d.x / metrics.pxPerColumn).toInt().coerceAtLeast(0)
+    val column = ((entry.rect2d.x - metrics.contentStartX) / metrics.pxPerColumn).toInt().coerceAtLeast(0)
     val lineStart = document.getLineStartOffset(line)
     val lineEnd = document.getLineEndOffset(line)
     return (lineStart + column).coerceIn(lineStart, lineEnd)

@@ -62,6 +62,7 @@ class MinimapController(
     caretController = caretController,
     scheduleStructureMarkersUpdate = ::scheduleStructureMarkersUpdate,
     scheduleDiagnosticsUpdate = ::scheduleDiagnosticsUpdate,
+    scheduleBreakpointsUpdate = ::scheduleDiagnosticsUpdate,
     updateParameters = ::refreshSnapshot,
     repaint = panel::repaint,
   )

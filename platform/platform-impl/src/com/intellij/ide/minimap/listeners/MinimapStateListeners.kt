@@ -2,10 +2,13 @@
 package com.intellij.ide.minimap.listeners
 
 import com.intellij.ide.minimap.MinimapRegistry
+import com.intellij.ide.minimap.breakpoints.MinimapBreakpointUtil
 import com.intellij.ide.minimap.caret.MinimapCaretController
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.EditorMarkupModel
+import com.intellij.openapi.editor.ex.EditorEx
+import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.ErrorStripeEvent
 import com.intellij.openapi.editor.ex.ErrorStripeListener
 import com.intellij.openapi.editor.event.CaretEvent
@@ -16,6 +19,7 @@ import com.intellij.openapi.editor.event.SelectionEvent
 import com.intellij.openapi.editor.event.SelectionListener
 import com.intellij.openapi.editor.event.VisibleAreaEvent
 import com.intellij.openapi.editor.event.VisibleAreaListener
+import com.intellij.openapi.editor.impl.event.MarkupModelListener
 import java.awt.Rectangle
 
 class MinimapStateListeners(
@@ -24,6 +28,7 @@ class MinimapStateListeners(
   private val caretController: MinimapCaretController,
   private val scheduleStructureMarkersUpdate: () -> Unit,
   private val scheduleDiagnosticsUpdate: () -> Unit,
+  private val scheduleBreakpointsUpdate: () -> Unit,
   private val updateParameters: () -> Unit,
   private val repaint: () -> Unit,
 ) {
@@ -70,11 +75,36 @@ class MinimapStateListeners(
     }
   }
 
+  private val breakpointMarkupListener = object : MarkupModelListener {
+    override fun afterAdded(highlighter: RangeHighlighterEx) {
+      onHighlighterChanged(highlighter)
+    }
+
+    override fun afterRemoved(highlighter: RangeHighlighterEx) {
+      onHighlighterChanged(highlighter)
+    }
+
+    override fun attributesChanged(highlighter: RangeHighlighterEx, renderersChanged: Boolean, fontStyleOrColorChanged: Boolean) {
+      if (!renderersChanged && !fontStyleOrColorChanged) return
+      onHighlighterChanged(highlighter)
+    }
+
+    private fun onHighlighterChanged(highlighter: RangeHighlighterEx) {
+      if (MinimapRegistry.isLegacy()) return
+      if (!MinimapBreakpointUtil.isBreakpointHighlighter(highlighter)) return
+      scheduleBreakpointsUpdate()
+    }
+  }
+
   fun install() {
     editor.scrollingModel.addVisibleAreaListener(visibleAreaListener, parentDisposable)
     editor.selectionModel.addSelectionListener(selectionListener, parentDisposable)
     editor.caretModel.addCaretListener(caretListener, parentDisposable)
     editor.document.addDocumentListener(documentListener, parentDisposable)
     (editor.markupModel as? EditorMarkupModel)?.addErrorMarkerListener(errorStripeListener, parentDisposable)
+    (editor as? EditorEx)?.let { editorEx ->
+      editorEx.markupModel.addMarkupModelListener(parentDisposable, breakpointMarkupListener)
+      editorEx.filteredDocumentMarkupModel.addMarkupModelListener(parentDisposable, breakpointMarkupListener)
+    }
   }
 }

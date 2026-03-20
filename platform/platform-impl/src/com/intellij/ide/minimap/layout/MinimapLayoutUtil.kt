@@ -18,16 +18,24 @@ object MinimapLayoutUtil {
     if (lineCount <= 0) return null
 
     val baseLineHeight = context.geometry.minimapHeight.toDouble() / lineCount
+    val contentStartX = getContentStartX(context.panelWidth)
+    val contentWidth = (context.panelWidth.toDouble() - contentStartX).coerceAtLeast(1.0)
     val rightMargin = getRightMarginChars(editor)
     val visibleWidth = editor.scrollingModel.visibleArea.width
     val charWidth = EditorUtil.getPlainSpaceWidth(editor)
 
     val logicalWidth = computeLogicalWidth(rightMargin, charWidth, visibleWidth)
-    val scaleX = if (logicalWidth > 0) context.panelWidth / logicalWidth.toDouble() else 0.0
+    val scaleX = if (logicalWidth > 0) contentWidth / logicalWidth.toDouble() else 0.0
 
-    val pxPerColumn = getPxPerColumn(context.panelWidth, rightMargin, charWidth, scaleX)
+    val pxPerColumn = getPxPerColumn(contentWidth, rightMargin, charWidth, scaleX)
     if (pxPerColumn <= 0.0) return null
-    return MinimapLayoutMetrics(lineCount, baseLineHeight, pxPerColumn)
+    return MinimapLayoutMetrics(
+      lineCount = lineCount,
+      baseLineHeight = baseLineHeight,
+      pxPerColumn = pxPerColumn,
+      contentStartX = contentStartX,
+      contentWidth = contentWidth,
+    )
   }
 
   fun computeLogicalWidth(rightMargin: Int, charWidth: Int, visibleWidth: Int): Int {
@@ -80,11 +88,20 @@ object MinimapLayoutUtil {
     return editor.settings.getRightMargin(project)
   }
 
-  private fun getPxPerColumn(width: Int, rightMargin: Int, charWidth: Int, scaleX: Double): Double {
+  private fun getPxPerColumn(width: Double, rightMargin: Int, charWidth: Int, scaleX: Double): Double {
     return if (rightMargin > 0) {
-      width / rightMargin.toDouble()
+      width / rightMargin
     } else {
       charWidth * scaleX
     }
   }
+
+  private fun getContentStartX(panelWidth: Int): Double {
+    if (panelWidth <= MIN_CONTENT_WIDTH_PX) return 0.0
+    val maxInset = (panelWidth - MIN_CONTENT_WIDTH_PX).toDouble()
+    return CONTENT_LEFT_INSET_PX.coerceAtMost(maxInset)
+  }
+
+  private const val CONTENT_LEFT_INSET_PX: Double = 6.0
+  private const val MIN_CONTENT_WIDTH_PX: Int = 1
 }

@@ -72,7 +72,7 @@ class MinimapLayoutCalculator(private val editor: Editor) {
     val tokenEntries = ArrayList<MinimapRenderEntry>()
     val structureEntries = ArrayList<MinimapRenderEntry>(structureMarkers.size)
     val visibleLines = MinimapLayoutUtil.visibleLines(geometry, lineCount)
-    val layout = MinimapLayoutContext(document, metrics, panelWidth, geometry.areaStart.toDouble(), visibleLines)
+    val layout = MinimapLayoutContext(document, metrics, geometry.areaStart.toDouble(), visibleLines)
     return LayoutBuildState(layout, documentLength, tokenEntries, structureEntries)
   }
 
@@ -235,9 +235,10 @@ class MinimapLayoutCalculator(private val editor: Editor) {
   }
 
   private fun getRectForLineBand(x1: Double, x2: Double, band: LineBand, context: MinimapLayoutContext): Rectangle2D.Double {
-    val maxWidth = context.panelWidth.toDouble()
-    val clampedX1 = x1.coerceIn(0.0, maxWidth)
-    val clampedX2 = x2.coerceIn(clampedX1, maxWidth)
+    val contentStartX = context.metrics.contentStartX
+    val contentEndX = contentStartX + context.metrics.contentWidth
+    val clampedX1 = x1.coerceIn(contentStartX, contentEndX - 1.0)
+    val clampedX2 = x2.coerceIn(clampedX1 + 1.0, contentEndX)
     val width = (clampedX2 - clampedX1).coerceAtLeast(1.0)
 
     return Rectangle2D.Double(clampedX1, band.yOffset, width, band.height)
@@ -248,10 +249,17 @@ class MinimapLayoutCalculator(private val editor: Editor) {
                              band: LineBand,
                              context: MinimapLayoutContext,
                              perChar: Double): Rectangle2D.Double {
+    val contentStartX = context.metrics.contentStartX
+    val contentEndX = contentStartX + context.metrics.contentWidth
     return if (perChar < 0) {
-      getRectForLineBand(0.0, context.panelWidth.toDouble(), band, context)
+      getRectForLineBand(contentStartX, contentEndX, band, context)
     } else {
-      getRectForLineBand(startColumn * perChar, endColumn * perChar, band, context)
+      getRectForLineBand(
+        contentStartX + startColumn * perChar,
+        contentStartX + endColumn * perChar,
+        band,
+        context,
+      )
     }
   }
 

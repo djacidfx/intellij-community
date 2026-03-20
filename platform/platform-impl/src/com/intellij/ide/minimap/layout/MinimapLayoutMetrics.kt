@@ -5,5 +5,7 @@ package com.intellij.ide.minimap.layout
 data class MinimapLayoutMetrics(
   val lineCount: Int,
   val baseLineHeight: Double,
-  val pxPerColumn: Double
+  val pxPerColumn: Double,
+  val contentStartX: Double,
+  val contentWidth: Double,
 )

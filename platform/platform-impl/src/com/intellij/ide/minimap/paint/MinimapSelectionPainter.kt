@@ -29,7 +29,8 @@ class MinimapSelectionPainter(private val editor: Editor) {
     if (baseLineHeight <= 0.0) return
 
     val lineHeight = baseLineHeight.coerceAtLeast(1.0)
-    val maxWidth = context.panelWidth.toDouble()
+    val contentStartX = metrics.contentStartX
+    val contentEndX = contentStartX + metrics.contentWidth
     val maxYOffset = context.panelHeight.toDouble()
     val pxPerColumn = metrics.pxPerColumn
     val style = selectionRenderStyle()
@@ -60,21 +61,21 @@ class MinimapSelectionPainter(private val editor: Editor) {
         val startColumn = (segmentStart - lineStartOffset).coerceAtLeast(0)
         val endColumn = (segmentEndExclusive - lineStartOffset).coerceAtLeast(startColumn + 1)
 
-        val x = if (pxPerColumn > 0.0) startColumn * pxPerColumn else 0.0
+        val x = if (pxPerColumn > 0.0) contentStartX + startColumn * pxPerColumn else contentStartX
         val width = if (pxPerColumn > 0.0) {
           ((endColumn - startColumn) * pxPerColumn).coerceAtLeast(1.0)
         }
         else {
-          maxWidth
+          metrics.contentWidth
         }
 
         val y = line * baseLineHeight - context.geometry.areaStart
         if (y > maxYOffset || y + lineHeight < 0.0) continue
 
-        val rect = clampSelectionRect(line, x, y, width, lineHeight, maxWidth, style.horizontalPaddingPx) ?: continue
+        val rect = clampSelectionRect(line, x, y, width, lineHeight, contentStartX, contentEndX, style.horizontalPaddingPx) ?: continue
         previousRect?.let { prev ->
           if (prev.line + 1 == line) {
-            fillConnector(graphics, prev, rect, maxWidth, maxYOffset, style.connectorHeightPx)
+            fillConnector(graphics, prev, rect, contentStartX, contentEndX, maxYOffset, style.connectorHeightPx)
           }
         }
 
@@ -110,12 +111,13 @@ class MinimapSelectionPainter(private val editor: Editor) {
                                  y: Double,
                                  width: Double,
                                  height: Double,
-                                 maxWidth: Double,
+                                 minX: Double,
+                                 maxX: Double,
                                  horizontalPaddingPx: Double): SelectionRect? {
-    val paddedX = (x - horizontalPaddingPx).coerceIn(0.0, maxWidth)
-    if (paddedX >= maxWidth) return null
+    val paddedX = (x - horizontalPaddingPx).coerceIn(minX, maxX)
+    if (paddedX >= maxX) return null
 
-    val maxDrawableWidth = (maxWidth - paddedX).coerceAtLeast(1.0)
+    val maxDrawableWidth = (maxX - paddedX).coerceAtLeast(1.0)
     val paddedWidth = (width + horizontalPaddingPx * 2.0).coerceAtLeast(1.0)
     val clampedWidth = paddedWidth.coerceAtMost(maxDrawableWidth).coerceAtLeast(1.0)
     return SelectionRect(line = line, x = paddedX, y = y, width = clampedWidth, height = height)
@@ -124,7 +126,8 @@ class MinimapSelectionPainter(private val editor: Editor) {
   private fun fillConnector(graphics: Graphics2D,
                             previousRect: SelectionRect,
                             currentRect: SelectionRect,
-                            maxWidth: Double,
+                            minX: Double,
+                            maxX: Double,
                             maxYOffset: Double,
                             connectorHeightPx: Double) {
     if (connectorHeightPx <= 0.0) return
@@ -132,8 +135,8 @@ class MinimapSelectionPainter(private val editor: Editor) {
     val connectorY = currentRect.y - connectorHeightPx / 2.0
     if (connectorY > maxYOffset || connectorY + connectorHeightPx < 0.0) return
 
-    val connectorStartX = min(previousRect.x, currentRect.x).coerceIn(0.0, maxWidth)
-    val connectorEndX = max(previousRect.x + previousRect.width, currentRect.x + currentRect.width).coerceIn(connectorStartX, maxWidth)
+    val connectorStartX = min(previousRect.x, currentRect.x).coerceIn(minX, maxX)
+    val connectorEndX = max(previousRect.x + previousRect.width, currentRect.x + currentRect.width).coerceIn(connectorStartX, maxX)
     val connectorWidth = (connectorEndX - connectorStartX).coerceAtLeast(1.0)
     graphics.fill(Rectangle2D.Double(connectorStartX, connectorY, connectorWidth, connectorHeightPx))
   }

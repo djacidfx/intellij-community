@@ -126,25 +126,29 @@ class MinimapDiagnosticsCollector(private val editor: Editor) {
     segmentStart: Int,
     segmentEndExclusive: Int,
   ) = if (highlighter.targetArea == HighlighterTargetArea.LINES_IN_RANGE || metrics.pxPerColumn <= 0.0) {
+    val contentStartX = metrics.contentStartX
+    val contentEndX = contentStartX + metrics.contentWidth
     MinimapLayoutUtil.rectFromDoubles(
-      x1 = 0.0,
-      x2 = context.panelWidth.toDouble(),
+      x1 = contentStartX,
+      x2 = contentEndX,
       y1 = line * metrics.baseLineHeight,
       y2 = (line + 1) * metrics.baseLineHeight,
       areaStart = context.geometry.areaStart.toDouble(),
-      maxWidth = context.panelWidth.toDouble(),
+      maxWidth = contentEndX,
     )
   }
   else {
+    val contentStartX = metrics.contentStartX
+    val contentEndX = contentStartX + metrics.contentWidth
     val startColumn = (segmentStart - lineStartOffset).coerceAtLeast(0)
     val endColumn = (segmentEndExclusive - lineStartOffset).coerceAtLeast(startColumn + 1)
     MinimapLayoutUtil.rectFromDoubles(
-      x1 = startColumn * metrics.pxPerColumn,
-      x2 = endColumn * metrics.pxPerColumn,
+      x1 = contentStartX + startColumn * metrics.pxPerColumn,
+      x2 = contentStartX + endColumn * metrics.pxPerColumn,
       y1 = line * metrics.baseLineHeight,
       y2 = (line + 1) * metrics.baseLineHeight,
       areaStart = context.geometry.areaStart.toDouble(),
-      maxWidth = context.panelWidth.toDouble(),
+      maxWidth = contentEndX,
     )
   }
 

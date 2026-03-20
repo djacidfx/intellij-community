@@ -1,6 +1,7 @@
 // Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.minimap
 
+import com.intellij.ide.minimap.breakpoints.MinimapBreakpointPainter
 import com.intellij.ide.minimap.legacy.MinimapLegacyPreview
 import com.intellij.ide.minimap.geometry.MinimapScaleUtil
 import com.intellij.ide.minimap.hover.MinimapHoverController
@@ -42,6 +43,7 @@ class MinimapPanel(
 
   private val selectionPainter = MinimapSelectionPainter(editor)
   private val diagnosticsPainter = MinimapDiagnosticsPainter(editor)
+  private val breakpointPainter = MinimapBreakpointPainter()
 
   private val legacyPreview = MinimapLegacyPreview { repaint() }
 
@@ -139,6 +141,7 @@ class MinimapPanel(
       renderer.paint(g2d, snapshot.context, snapshot.tokenEntries, snapshot.layoutMetrics)
       selectionPainter.paint(g2d, snapshot.context, snapshot.layoutMetrics)
       diagnosticsPainter.paint(g2d, snapshot.diagnosticEntries)
+      breakpointPainter.paint(g2d, snapshot.breakpointEntries)
       hoverController.paint(g2d)
     }
 
