@@ -13,6 +13,7 @@ import com.intellij.psi.PsiNameIdentifierOwner
 import java.awt.Point
 import java.awt.Rectangle
 import javax.swing.Icon
+import kotlin.math.ceil
 
 class MinimapHoverHitCheck(private val editor: Editor) {
   private val structureMarkerPolicy = MinimapStructureMarkerPolicy.forEditor(editor)
@@ -87,7 +88,7 @@ class MinimapHoverHitCheck(private val editor: Editor) {
     val y1 = lineTop(startLine, baseLineHeight)
     val y2 = lineTop(endLineExclusive, baseLineHeight)
 
-    val heightPx = (y2 - y1 - lineGap).toInt().coerceAtLeast(1)
+    val heightPx = ceil(y2 - y1 - lineGap).toInt().coerceAtLeast(1)
     val y = (y1 - geometry.areaStart + lineGap / 2.0).toInt()
 
     val width = context.panelWidth.coerceAtLeast(1)
