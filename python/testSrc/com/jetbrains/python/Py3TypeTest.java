@@ -2903,6 +2903,33 @@ public class Py3TypeTest extends PyTestCase {
              """);
   }
 
+  // PY-77611
+  public void testClassDunderNewResultInPresenceOfInit1() {
+    doTest("int",
+           """
+             class C:
+                 def __new__(cls) -> int: ...
+             
+                 def __init__(self): ...
+             
+             expr = C()
+             """);
+  }
+
+  // PY-77611
+  public void testClassDunderNewResultInPresenceOfInit2() {
+    doTest("Derived", // TODO (PY-87329): Expected type `Base`
+           """
+           class Base:
+               def __new__(cls, x: int) -> Base: ...
+           
+           class Derived(Base):
+               def __init__(self, x: int): ...
+           
+           expr = Derived(1)
+           """);
+  }
+
   public void testObjectDunderNewResult() {
     doTest("Self@C",
            """
