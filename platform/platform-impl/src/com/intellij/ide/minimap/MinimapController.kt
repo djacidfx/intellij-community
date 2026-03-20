@@ -11,20 +11,23 @@ import com.intellij.ide.minimap.model.MinimapModel
 import com.intellij.ide.minimap.scene.MinimapSceneBuilder
 import com.intellij.ide.minimap.settings.MinimapSettings
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.ReadAction
+import com.intellij.openapi.application.asContextElement
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.Disposer
 import com.intellij.platform.util.coroutines.childScope
 import com.intellij.util.concurrency.AppExecutorUtil
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.awt.Graphics2D
 import javax.swing.JPanel
 import kotlin.math.max
@@ -35,6 +38,9 @@ class MinimapController(
   private val panel: MinimapPanel,
   private val container: JPanel,
 ): Disposable {
+  @Volatile
+  private var disposed = false
+
   private val scope = coroutineScope.childScope("MinimapController")
   private val structureUpdates = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
   private val diagnosticsUpdates = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
@@ -78,6 +84,7 @@ class MinimapController(
   }
 
   override fun dispose() {
+    disposed = true
     sceneBuilder.clear()
     scope.cancel()
   }
@@ -92,7 +99,7 @@ class MinimapController(
 
   fun refreshSnapshot() {
     val state = settings.state
-    val panelHeight = max(panel.height, 0)
+    val panelHeight = max(if (panel.height > 0) panel.height else container.height, 0)
     val scaleData = MinimapScaleUtil.computeScale(editor, panelHeight, state.width, state.scaleMode)
     if (!updatePanelVisibility(scaleData.width)) {
       return
@@ -140,17 +147,17 @@ class MinimapController(
 
   private fun initDiagnosticsFlow() = scope.launch {
     diagnosticsUpdates.debounce(DIAGNOSTICS_DEBOUNCE_MS).collect {
-      ApplicationManager.getApplication().invokeLater({
-        if (Disposer.isDisposed(this@MinimapController)) return@invokeLater
+      withContext(Dispatchers.EDT + ModalityState.any().asContextElement()) {
+        if (disposed) return@withContext
         refreshSnapshot()
         panel.repaint()
-      }, ModalityState.any())
+      }
     }
   }
 
   companion object {
     private const val STRUCTURE_MARKERS_DEBOUNCE_MS: Long = 125
-    private const val DIAGNOSTICS_DEBOUNCE_MS: Long = 75
+    private const val DIAGNOSTICS_DEBOUNCE_MS: Long = 125
     private const val HIDE_MINIMAP_EDITOR_WIDTH_MULTIPLIER: Long = 2
   }
 }
