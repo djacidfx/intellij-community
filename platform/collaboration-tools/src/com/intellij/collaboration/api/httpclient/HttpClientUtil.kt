@@ -4,7 +4,6 @@ package com.intellij.collaboration.api.httpclient
 import com.intellij.collaboration.api.HttpStatusErrorException
 import com.intellij.collaboration.api.httpclient.HttpClientUtil.CONTENT_ENCODING_GZIP
 import com.intellij.collaboration.api.httpclient.HttpClientUtil.CONTENT_ENCODING_HEADER
-import com.intellij.collaboration.api.httpclient.HttpClientUtil.inflateAndReadWithErrorHandlingAndLogging
 import com.intellij.collaboration.api.logName
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ApplicationManager
@@ -147,7 +146,7 @@ class LazyBodyHandler<T>(
       override fun onError(throwable: Throwable?) = delegateSubscriber.onError(throwable)
       override fun onComplete() = delegateSubscriber.onComplete()
 
-      override fun getBody(): CompletionStage<(suspend () -> T)?>? =
+      override fun getBody(): CompletionStage<(suspend () -> T)?> =
         CompletableFuture.completedFuture {
           delegateSubscriber.body.await()
         }

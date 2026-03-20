@@ -72,7 +72,7 @@ private val defaultRequestConfigurer = CompoundRequestConfigurer(listOf(
 
 private class BlockingMappingBodyHttpResponse<T, R>(
   private val response: HttpResponse<T>,
-  private val body: R
+  private val body: R?,
 ): HttpResponse<R> {
   override fun statusCode(): Int = response.statusCode()
   override fun request(): HttpRequest? = response.request()
@@ -104,7 +104,8 @@ private class HttpApiHelperImpl(
     return try {
       logger.debug(request.logName())
       val response = client.sendAsync(request, cancellableBodyHandler).await()
-      BlockingMappingBodyHttpResponse(response, response.body().invoke())
+      val body = response.body()?.invoke()
+      BlockingMappingBodyHttpResponse(response, body)
     }
     catch (ce: CancellationException) {
       cancellableBodyHandler.cancel()
