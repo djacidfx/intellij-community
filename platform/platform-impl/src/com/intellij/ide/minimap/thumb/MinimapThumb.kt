@@ -77,7 +77,7 @@ internal object MinimapThumb {
     graphics.composite = oldComposite
   }
 
-  private val MIN_THUMB_HEIGHT: Int = JBUI.scale(6)
-  private val THUMB_COLOR = JBColor.DARK_GRAY
-  private const val THUMB_ALPHA: Float = 0.5f
+  private val MIN_THUMB_HEIGHT: Int = JBUI.scale(6)  // necessary in case >10 LoC file in fit mode
+  private val THUMB_COLOR = JBColor.GRAY
+  private const val THUMB_ALPHA: Float = 0.2f
 }

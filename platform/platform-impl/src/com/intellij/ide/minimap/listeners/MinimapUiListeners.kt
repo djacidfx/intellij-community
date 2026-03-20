@@ -1,7 +1,11 @@
 // Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.minimap.listeners
 
+import com.intellij.ide.ui.LafManagerListener
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.editor.colors.EditorColorsListener
+import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.util.Disposer
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
@@ -15,6 +19,8 @@ class MinimapUiListeners(
   private val revalidate: () -> Unit,
   private val repaint: () -> Unit
 ) {
+  private val appConnection = ApplicationManager.getApplication().messageBus.connect(parentDisposable)
+
   private val componentListener = object : ComponentAdapter() {
     private var lastHeight = -1
 
@@ -36,6 +42,14 @@ class MinimapUiListeners(
     }
   }
 
+  private val lafManagerListener = LafManagerListener {
+    onAppearanceChanged()
+  }
+
+  private val editorColorsListener = EditorColorsListener { _ ->
+    onAppearanceChanged()
+  }
+
   init {
     Disposer.register(parentDisposable) {
       container.removeComponentListener(componentListener)
@@ -46,5 +60,13 @@ class MinimapUiListeners(
   fun install() {
     container.addComponentListener(componentListener)
     contentComponent.addComponentListener(contentComponentListener)
+    appConnection.subscribe(LafManagerListener.TOPIC, lafManagerListener)
+    appConnection.subscribe(EditorColorsManager.TOPIC, editorColorsListener)
+  }
+
+  private fun onAppearanceChanged() {
+    updateParameters()
+    revalidate()
+    repaint()
   }
 }

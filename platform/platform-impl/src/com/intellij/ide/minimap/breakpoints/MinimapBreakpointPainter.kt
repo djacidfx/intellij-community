@@ -50,6 +50,6 @@ class MinimapBreakpointPainter {
     private const val DOT_VERTICAL_PADDING_PX: Double = 0.4
     private const val MAX_DOT_DIAMETER_PX: Double = 5.0
     private const val DOT_BORDER_STROKE_WIDTH: Float = 0.8f
-    private val DOT_BORDER_COLOR = JBColor.GRAY
+    private val DOT_BORDER_COLOR = JBColor.LIGHT_GRAY
   }
 }
