@@ -12,6 +12,7 @@ import com.intellij.openapi.project.PossiblyDumbAware;
 import com.intellij.openapi.util.NlsContexts;
 import com.intellij.openapi.util.NlsSafe;
 import com.intellij.openapi.util.NotNullLazyValue;
+import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.ApiStatus;
@@ -167,10 +168,14 @@ public abstract class PostfixTemplate implements PossiblyDumbAware {
    * It will be with the suffix inside selection.
    *
    * @param actionContext action context for the expansion
+   * @param provider      the provider that provided this template
+   * @param keyRange      the range of the template key in the document
    * @return a {@link ModCommand} that performs the expansion, or {@code null} if this template does not support ModCommand expansion
    */
   @ApiStatus.Experimental
-  public @NotNull ModCommand expandMod(@NotNull ActionContext actionContext) {
+  public @NotNull ModCommand expandMod(@NotNull ActionContext actionContext,
+                                       @NotNull PostfixTemplateProvider provider,
+                                       @NotNull TextRange keyRange) {
     return ModCommand.nop();
   }
 
@@ -178,10 +183,14 @@ public abstract class PostfixTemplate implements PossiblyDumbAware {
   /**
    * Determines whether this template can be used in the given context specified by the parameters for ModCompletion.
    *
+   * @param context      PSI element before the template key
+   * @param copyDocument copy of the document that contains changes introduced
+   *                     in {@link PostfixTemplateProvider#preCheck(PsiFile, Editor, int)} method
+   * @param newOffset    offset before the template key
    * @return {@code true} if template is applicable in the given context, {@code false} otherwise
    */
   @ApiStatus.Experimental
-  public boolean isApplicableForModCommand() {
+  public boolean isApplicableForModCommand(@NotNull PsiElement context, @NotNull Document copyDocument, int newOffset) {
     return false;
   }
 

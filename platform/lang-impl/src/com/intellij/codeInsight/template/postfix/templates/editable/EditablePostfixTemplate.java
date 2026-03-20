@@ -130,18 +130,17 @@ public abstract class EditablePostfixTemplate extends PostfixTemplate {
 
   @ApiStatus.Experimental
   @Override
-  public @NotNull ModCommand expandMod(@NotNull ActionContext actionContext,
-                                       @NotNull PostfixTemplateProvider provider,
-                                       @NotNull TextRange keyRange) {
+  public @NotNull ModCommand expandMod(@NotNull ActionContext actionContext) {
     Project project = actionContext.project();
+    TextRange selection = actionContext.selection();
     List<PsiElement> virtualExpressions = PostprocessReformattingAspect.getInstance(project).disablePostprocessFormattingInside(() -> {
       PsiFile copyFile = (PsiFile)actionContext.file().copy();
       Document copyDocument = copyFile.getFileDocument();
-      int startOffset = keyRange.getStartOffset();
+      int startOffset = selection.getStartOffset();
       startOffset = PostfixLiveTemplate.positiveOffset(startOffset);
-      copyDocument.deleteString(startOffset, keyRange.getEndOffset());
+      copyDocument.deleteString(startOffset, selection.getEndOffset());
       PsiDocumentManager.getInstance(project).commitDocument(copyDocument);
-      provider.preCheckModCommand(copyFile, startOffset);
+      getProvider().preCheckModCommand(copyFile, startOffset);
       PsiDocumentManager.getInstance(project).commitDocument(copyDocument);
       PsiElement context = CustomTemplateCallback.getContext(copyFile, PostfixLiveTemplate.positiveOffset(startOffset));
       return getExpressions(context, context.getContainingFile().getFileDocument(), startOffset);
@@ -151,12 +150,12 @@ public abstract class EditablePostfixTemplate extends PostfixTemplate {
     }
 
     if (virtualExpressions.size() == 1) {
-      return createModCommand(actionContext, keyRange, virtualExpressions.getFirst(), provider);
+      return createModCommand(actionContext, selection, virtualExpressions.getFirst());
     }
 
     List<ModCommandAction> actions = ContainerUtil.mapNotNull(
       virtualExpressions,
-      expr -> buildExpandModAction(expr, getElementRenderer().fun(expr), new TextRange(keyRange.getStartOffset(), keyRange.getStartOffset()), provider));
+      expr -> buildExpandModAction(expr, getElementRenderer().fun(expr), new TextRange(selection.getStartOffset(), selection.getStartOffset())));
     if (actions.isEmpty()) {
       return ModCommand.nop();
     }
@@ -166,8 +165,7 @@ public abstract class EditablePostfixTemplate extends PostfixTemplate {
   @SuppressWarnings("HardCodedStringLiteral") // expression text is used as chooser item title
   private @NotNull ModCommandAction buildExpandModAction(@NotNull PsiElement virtualExpression,
                                                          @NotNull String title,
-                                                         @NotNull TextRange key,
-                                                         @NotNull PostfixTemplateProvider provider) {
+                                                         @NotNull TextRange key) {
 
     return new ModCommandAction() {
       @Override
@@ -177,7 +175,7 @@ public abstract class EditablePostfixTemplate extends PostfixTemplate {
 
       @Override
       public @NotNull ModCommand perform(@NotNull ActionContext ctx) {
-        return createModCommand(ctx, key, virtualExpression, provider);
+        return createModCommand(ctx, key, virtualExpression);
       }
 
       @Override
@@ -187,14 +185,14 @@ public abstract class EditablePostfixTemplate extends PostfixTemplate {
     };
   }
 
-  private @NotNull ModCommand createModCommand(@NotNull ActionContext ctx, @NotNull TextRange key, @NotNull PsiElement virtualExpression, @NotNull PostfixTemplateProvider provider) {
-    return ModCommand.psiUpdate(ctx.withSelection(new TextRange(key.getStartOffset(), key.getStartOffset())).withOffset(key.getStartOffset()), document -> {
-                                  document.deleteString(ctx.selection().getStartOffset(), ctx.selection().getEndOffset());
+  private @NotNull ModCommand createModCommand(@NotNull ActionContext ctx, @NotNull TextRange key, @NotNull PsiElement virtualExpression) {
+    return ModCommand.psiUpdate(ctx.withSelection(new TextRange(key.getStartOffset(), key.getStartOffset())), document -> {
+                                  document.deleteString(key.getStartOffset(), key.getEndOffset());
                                 },
                                 updater -> {
-                                  updater.getDocument().deleteString(PostfixLiveTemplate.positiveOffset(key.getStartOffset()), ctx.selection().getStartOffset());
+                                  updater.getDocument().deleteString(key.getStartOffset() - 1, key.getStartOffset());
                                   PsiDocumentManager.getInstance(ctx.project()).commitDocument(updater.getDocument());
-                                  provider.preCheckModCommand(updater.getPsiFile(), PostfixLiveTemplate.positiveOffset(key.getStartOffset()));
+                                  getProvider().preCheckModCommand(updater.getPsiFile(), key.getStartOffset() - 1);
                                   String exprText = virtualExpression.getText();
                                   PsiElement expression = PsiTreeUtil.findSameElementInCopy(virtualExpression, updater.getPsiFile());
                                   TextRange rangeToRemove = getRangeToRemove(expression);

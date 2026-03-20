@@ -58,9 +58,7 @@ public class IntroduceVariablePostfixTemplate extends PostfixTemplateWithExpress
   }
 
   @Override
-  public @NotNull ModCommand expandMod(@NotNull ActionContext actionContext,
-                                       @NotNull PostfixTemplateProvider provider,
-                                       @NotNull TextRange keyRange) {
+  public @NotNull ModCommand expandMod(@NotNull ActionContext actionContext, @NotNull PostfixTemplateProvider provider, @NotNull TextRange keyRange) {
     Project project = actionContext.project();
     List<PsiElement> expressions = PostprocessReformattingAspect.getInstance(project).disablePostprocessFormattingInside(() -> {
       PsiFile copyFile = (PsiFile)actionContext.file().copy();
@@ -76,7 +74,7 @@ public class IntroduceVariablePostfixTemplate extends PostfixTemplateWithExpress
     if (expressions.isEmpty()) return ModCommand.nop();
 
     if (expressions.size() == 1) {
-      return buildCommandWithOccurrenceChoice(actionContext, keyRange, expressions.getFirst(), provider, true);
+      return buildCommandWithOccurrenceChoice(actionContext, keyRange, expressions.getFirst(), provider);
     }
 
     List<ModCommandAction> actions = ContainerUtil.mapNotNull(expressions, expr -> {
@@ -90,7 +88,8 @@ public class IntroduceVariablePostfixTemplate extends PostfixTemplateWithExpress
 
         @Override
         public @NotNull ModCommand perform(@NotNull ActionContext ctx) {
-          return buildCommandWithOccurrenceChoice(ctx, new TextRange(keyRange.getStartOffset(), keyRange.getStartOffset()), expr, provider, false);
+          return buildCommandWithOccurrenceChoice(actionContext.withSelection(new TextRange(keyRange.getStartOffset(), keyRange.getStartOffset())),
+                                                  new TextRange(keyRange.getStartOffset(), keyRange.getStartOffset()), expr, provider);
         }
 
         @Override
@@ -106,11 +105,10 @@ public class IntroduceVariablePostfixTemplate extends PostfixTemplateWithExpress
   private static @NotNull ModCommand buildCommandWithOccurrenceChoice(@NotNull ActionContext ctx,
                                                                       @NotNull TextRange keyRange,
                                                                       @NotNull PsiElement virtualExpr,
-                                                                      @NotNull PostfixTemplateProvider provider,
-                                                                      boolean chooseReplace) {
+                                                                      @NotNull PostfixTemplateProvider provider) {
     JavaIntroduceVariableService service = JavaIntroduceVariableService.getInstance();
     List<TextRange> ranges = service.getOccurrences((PsiExpression)virtualExpr);
-    if (ranges.size() <= 1 || !chooseReplace) {
+    if (ranges.size() <= 1) {
       return createIntroduceCommand(ctx, keyRange, virtualExpr, false, provider);
     }
     return ModCommand.chooseAction(
@@ -137,10 +135,9 @@ public class IntroduceVariablePostfixTemplate extends PostfixTemplateWithExpress
                                                 document.deleteString(ctx.selection().getStartOffset(), ctx.selection().getEndOffset());
                                               },
                                               updater -> {
-                                                updater.getDocument()
-                                                  .deleteString(PostfixLiveTemplate.positiveOffset(keyRange.getStartOffset()), ctx.selection().getStartOffset());
+                                                updater.getDocument().deleteString(keyRange.getStartOffset() - 1, ctx.selection().getStartOffset());
                                                 PsiDocumentManager.getInstance(ctx.project()).commitDocument(updater.getDocument());
-                                                provider.preCheckModCommand(updater.getPsiFile(), PostfixLiveTemplate.positiveOffset(keyRange.getStartOffset()));
+                                                provider.preCheckModCommand(updater.getPsiFile(), keyRange.getStartOffset() - 1);
                                                 PsiElement expression =
                                                   PsiTreeUtil.findSameElementInCopy(virtualExpr, updater.getPsiFile());
                                                 expression = ElementToWorkOn.getWritable(expression, updater);
@@ -181,17 +178,15 @@ public class IntroduceVariablePostfixTemplate extends PostfixTemplateWithExpress
   }
 
   @Override
-  public boolean isApplicableForModCommand() {
+  public boolean isApplicableForModCommand(@NotNull PsiElement context, @NotNull Document copyDocument, int newOffset) {
     return true;
   }
 
   @Override
   public boolean isApplicable(@NotNull PsiElement context,
                               @NotNull Document copyDocument, int newOffset) {
-    // Non-inplace mode would require a modal dialog, which is not allowed under postfix templates
-    EditorSettingsExternalizable editorSettingsExternalizable = EditorSettingsExternalizable.getInstance();
-    return (editorSettingsExternalizable == null ||
-            editorSettingsExternalizable.isVariableInplaceRenameEnabled()) &&
+    // Non-inplace mode would require a modal dialog, which is not allowed under postfix templates 
+    return EditorSettingsExternalizable.getInstance().isVariableInplaceRenameEnabled() &&
            super.isApplicable(context, copyDocument, newOffset) &&
            !JavaPostfixTemplatesUtils.isInExpressionFile(context);
   }

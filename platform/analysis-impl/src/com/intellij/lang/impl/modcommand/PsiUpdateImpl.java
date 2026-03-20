@@ -807,6 +807,7 @@ final class PsiUpdateImpl {
     private @NotNull ModCommand getNavigateCommand() {
       if (!myPositionUpdated || myRenameSymbol != null || myTracker == null) return nop();
       int length = myTracker.myTargetFile.getFileDocument().getTextLength();
+      ModCommand command = myTracker.getUpdateCommand();
       int start = -1, end = -1, caret = -1;
       if (mySelection.getEndOffset() <= length) {
         start = mySelection.getStartOffset();

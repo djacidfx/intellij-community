@@ -6,7 +6,6 @@ import com.intellij.codeInsight.template.postfix.templates.editable.JavaEditable
 import com.intellij.codeInsight.template.postfix.templates.editable.JavaPostfixTemplateExpressionCondition;
 import com.intellij.codeInsight.template.postfix.util.JavaPostfixTemplatesUtils;
 import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.pom.java.LanguageLevel;
 import com.intellij.psi.PsiElement;

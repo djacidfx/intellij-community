@@ -153,7 +153,9 @@ public abstract class PostfixTemplateWithExpressionSelector extends PostfixTempl
 
           @Override
           public @NotNull ModCommand perform(@NotNull ActionContext ctx) {
-            return prepareAndExpandModForChooseExpression(ctx, new TextRange(keyRange.getStartOffset(), keyRange.getStartOffset()), expr, provider);
+            return prepareAndExpandModForChooseExpression(actionContext
+                                                            .withSelection(new TextRange(keyRange.getStartOffset(), keyRange.getStartOffset())),
+                                                          new TextRange(keyRange.getStartOffset(), keyRange.getStartOffset()), expr, provider);
           }
 
           @Override
@@ -176,11 +178,10 @@ public abstract class PostfixTemplateWithExpressionSelector extends PostfixTempl
     ModCommand command = ModCommand.psiUpdate(updatedContext, document -> {
                                                 document.deleteString(ctx.selection().getStartOffset(), ctx.selection().getEndOffset());
                                               },
-
                                               updater -> {
-                                                updater.getDocument().deleteString(PostfixLiveTemplate.positiveOffset(key.getStartOffset()), ctx.selection().getStartOffset());
+                                                updater.getDocument().deleteString(key.getStartOffset() - 1, ctx.selection().getStartOffset());
                                                 PsiDocumentManager.getInstance(ctx.project()).commitDocument(updater.getDocument());
-                                                provider.preCheckModCommand(updater.getPsiFile(), PostfixLiveTemplate.positiveOffset(key.getStartOffset()));
+                                                provider.preCheckModCommand(updater.getPsiFile(), key.getStartOffset() - 1);
                                                 PsiElement elementInCopy =
                                                   PsiTreeUtil.findSameElementInCopy(virtualExpression, updater.getPsiFile());
                                                 expandModForChooseExpression(updatedContext, updater, elementInCopy);

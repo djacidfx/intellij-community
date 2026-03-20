@@ -436,7 +436,7 @@ public class TemplateImpl extends TemplateBase implements SchemeElement {
       }
       return new MarkerInfo(segment, marker);
     }));
-    // Resolve non-editable (isAlwaysStopAt=false) variables upfront so their computed values
+    // resolve non-editable (isAlwaysStopAt=false) variables firstly, so their computed values
     // can be substituted into the document before the interactive template session starts.
     Map<String, String> calculatedValues =
       preCalculateNonEditableVariables(variableMap, markers, manager, updater);
@@ -462,7 +462,7 @@ public class TemplateImpl extends TemplateBase implements SchemeElement {
     if (isToReformat()) {
       adjustEndLineIndent(document, endMarker, project, updater);
     }
-    // Pass 2: create template fields for editable variables.
+    // Create template fields for editable variables.
     // Done after formatting so that field ranges match the final document state.
     ModTemplateBuilder builder = null;
     for (MarkerInfo info : markers) {
@@ -584,8 +584,6 @@ public class TemplateImpl extends TemplateBase implements SchemeElement {
       return calculatedValues;
     }
     manager.commitDocument(updater.getDocument());
-    // Insert placeholder "a" for editable variables to ensure syntactically valid PSI
-    // (e.g., resource variable name in try-with-resources must be present for catch parameter resolution).
     Document document = updater.getDocument();
     List<MarkerInfo> editablePlaceholders = new ArrayList<>();
     for (MarkerInfo info : markers) {
@@ -623,9 +621,6 @@ public class TemplateImpl extends TemplateBase implements SchemeElement {
         }
       }
       if (calculatedValues.size() == resolvedBefore) break;
-      // Substitute newly resolved values into the document so the next pass sees correct PSI.
-      // Also insert placeholder "a" for unresolved non-editable variables so the PSI tree
-      // is syntactically valid (e.g., catch parameter needs both type and name for proper parsing).
       Document doc = updater.getDocument();
       // Group zero-length non-editable markers by their current offset.
       // Combined insertion avoids marker interaction issues when multiple markers share the same offset.

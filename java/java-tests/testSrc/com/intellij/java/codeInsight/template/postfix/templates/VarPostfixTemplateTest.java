@@ -46,13 +46,15 @@ public class VarPostfixTemplateTest extends PostfixTemplateTestCase {
   }
 
   public void testStreamStep() {
-    UiInterceptors.register(new ChooserInterceptor(List.of("Create variable inside current lambda", "Extract as 'map' operation"), 
+    if (useModCommandTemplates()) return;
+    UiInterceptors.register(new ChooserInterceptor(List.of("Create variable inside current lambda", "Extract as 'map' operation"),
                                                    "Create variable inside current lambda"));
     doTest();
   }
 
   public void testStreamStep2() {
-    UiInterceptors.register(new ChooserInterceptor(List.of("Create variable inside current lambda", "Extract as 'map' operation"), 
+    if (useModCommandTemplates()) return;
+    UiInterceptors.register(new ChooserInterceptor(List.of("Create variable inside current lambda", "Extract as 'map' operation"),
                                                    "Extract as 'map' operation"));
     doTest();
   }

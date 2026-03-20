@@ -140,8 +140,7 @@ public abstract class TemplateBase extends Template {
     return myBuildingTemplateTrace;
   }
 
-  //todo
-  public int getVariableSegmentNumber(String variableName) {
+  int getVariableSegmentNumber(String variableName) {
     parseSegments();
     synchronized (mySegments) {
       for (int i = 0; i < mySegments.size(); i++) {
