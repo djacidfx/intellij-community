@@ -5,6 +5,9 @@ import com.intellij.ide.minimap.MinimapRegistry
 import com.intellij.ide.minimap.caret.MinimapCaretController
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.ex.EditorMarkupModel
+import com.intellij.openapi.editor.ex.ErrorStripeEvent
+import com.intellij.openapi.editor.ex.ErrorStripeListener
 import com.intellij.openapi.editor.event.CaretEvent
 import com.intellij.openapi.editor.event.CaretListener
 import com.intellij.openapi.editor.event.DocumentEvent
@@ -20,6 +23,7 @@ class MinimapStateListeners(
   private val editor: Editor,
   private val caretController: MinimapCaretController,
   private val scheduleStructureMarkersUpdate: () -> Unit,
+  private val scheduleDiagnosticsUpdate: () -> Unit,
   private val updateParameters: () -> Unit,
   private val repaint: () -> Unit,
 ) {
@@ -59,10 +63,18 @@ class MinimapStateListeners(
     }
   }
 
+  private val errorStripeListener = object : ErrorStripeListener {
+    override fun errorMarkerChanged(e: ErrorStripeEvent) {
+      if (MinimapRegistry.isLegacy()) return
+      scheduleDiagnosticsUpdate()
+    }
+  }
+
   fun install() {
     editor.scrollingModel.addVisibleAreaListener(visibleAreaListener, parentDisposable)
     editor.selectionModel.addSelectionListener(selectionListener, parentDisposable)
     editor.caretModel.addCaretListener(caretListener, parentDisposable)
     editor.document.addDocumentListener(documentListener, parentDisposable)
+    (editor.markupModel as? EditorMarkupModel)?.addErrorMarkerListener(errorStripeListener, parentDisposable)
   }
 }

@@ -5,6 +5,7 @@ import com.intellij.ide.minimap.legacy.MinimapLegacyPreview
 import com.intellij.ide.minimap.geometry.MinimapScaleUtil
 import com.intellij.ide.minimap.hover.MinimapHoverController
 import com.intellij.ide.minimap.interaction.MinimapMouseInteractionController
+import com.intellij.ide.minimap.diagnostics.MinimapDiagnosticsPainter
 import com.intellij.ide.minimap.paint.MinimapSelectionPainter
 import com.intellij.ide.minimap.scene.MinimapSnapshot
 import com.intellij.ide.minimap.render.MinimapRenderer
@@ -40,6 +41,7 @@ class MinimapPanel(
     get() = settings.state
 
   private val selectionPainter = MinimapSelectionPainter(editor)
+  private val diagnosticsPainter = MinimapDiagnosticsPainter(editor)
 
   private val legacyPreview = MinimapLegacyPreview { repaint() }
 
@@ -136,6 +138,7 @@ class MinimapPanel(
     else {
       renderer.paint(g2d, snapshot.context, snapshot.tokenEntries, snapshot.layoutMetrics)
       selectionPainter.paint(g2d, snapshot.context, snapshot.layoutMetrics)
+      diagnosticsPainter.paint(g2d, snapshot.diagnosticEntries)
       hoverController.paint(g2d)
     }
 

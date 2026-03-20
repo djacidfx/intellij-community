@@ -1,6 +1,7 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.minimap.scene
 
+import com.intellij.ide.minimap.diagnostics.MinimapDiagnosticsCollector
 import com.intellij.ide.minimap.geometry.MinimapGeometryCalculator
 import com.intellij.ide.minimap.geometry.MinimapScaleData
 import com.intellij.ide.minimap.layout.MinimapLayoutCalculator
@@ -16,8 +17,9 @@ class MinimapSceneBuilder(
   private val editor: Editor,
   private val model: MinimapModel,
   private val layoutCalculator: MinimapLayoutCalculator,
-  private val geometryCalculator: MinimapGeometryCalculator
+  private val geometryCalculator: MinimapGeometryCalculator,
 ) {
+  private val diagnosticsCollector = MinimapDiagnosticsCollector(editor)
   private var lastStructureMarkers: List<MinimapStructureMarker> = emptyList()
 
   fun buildSnapshot(panelWidth: Int,
@@ -34,7 +36,7 @@ class MinimapSceneBuilder(
     )
 
     if (isLegacy) {
-      return MinimapSnapshot(context, geometry, emptyList(), emptyList(), null, MinimapLayoutMode.EXACT)
+      return MinimapSnapshot(context, geometry, emptyList(), emptyList(), emptyList(), null, MinimapLayoutMode.EXACT)
     }
 
     val isCommitted = model.isDocumentCommitted()
@@ -47,8 +49,9 @@ class MinimapSceneBuilder(
 
     val layoutMode = MinimapLayoutModeSelector.selectMode(context, scaleMode)
     val layout = layoutCalculator.buildLayout(context, structureMarkers, layoutMode)
+    val diagnosticEntries = diagnosticsCollector.buildEntries(context, layout.metrics)
 
-    return MinimapSnapshot(context, geometry, layout.tokenEntries, layout.structureEntries, layout.metrics, layoutMode)
+    return MinimapSnapshot(context, geometry, layout.tokenEntries, layout.structureEntries, diagnosticEntries, layout.metrics, layoutMode)
   }
 
   fun clear() {

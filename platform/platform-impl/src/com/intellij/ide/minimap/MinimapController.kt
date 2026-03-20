@@ -11,6 +11,7 @@ import com.intellij.ide.minimap.model.MinimapModel
 import com.intellij.ide.minimap.scene.MinimapSceneBuilder
 import com.intellij.ide.minimap.settings.MinimapSettings
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.editor.Editor
@@ -35,7 +36,8 @@ class MinimapController(
   private val container: JPanel,
 ): Disposable {
   private val scope = coroutineScope.childScope("MinimapController")
-  private val updates = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+  private val structureUpdates = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+  private val diagnosticsUpdates = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
   private val settings = MinimapSettings.getInstance()
   private val editor: Editor = panel.editor
 
@@ -53,6 +55,7 @@ class MinimapController(
     editor = editor,
     caretController = caretController,
     scheduleStructureMarkersUpdate = ::scheduleStructureMarkersUpdate,
+    scheduleDiagnosticsUpdate = ::scheduleDiagnosticsUpdate,
     updateParameters = ::refreshSnapshot,
     repaint = panel::repaint,
   )
@@ -71,6 +74,7 @@ class MinimapController(
     uiListeners.install()
     refreshSnapshot()
     initStructureMarkersFlow()
+    initDiagnosticsFlow()
   }
 
   override fun dispose() {
@@ -82,7 +86,9 @@ class MinimapController(
 
   fun paintCaret(graphics: Graphics2D): Unit = caretController.paint(graphics)
 
-  fun scheduleStructureMarkersUpdate(): Boolean = updates.tryEmit(Unit)
+  fun scheduleStructureMarkersUpdate(): Boolean = structureUpdates.tryEmit(Unit)
+
+  fun scheduleDiagnosticsUpdate(): Boolean = diagnosticsUpdates.tryEmit(Unit)
 
   fun refreshSnapshot() {
     val state = settings.state
@@ -127,13 +133,24 @@ class MinimapController(
   }
 
   private fun initStructureMarkersFlow() = scope.launch {
-    updates.debounce(STRUCTURE_MARKERS_DEBOUNCE_MS).collect {
+    structureUpdates.debounce(STRUCTURE_MARKERS_DEBOUNCE_MS).collect {
       updateStructureMarkersNow()
+    }
+  }
+
+  private fun initDiagnosticsFlow() = scope.launch {
+    diagnosticsUpdates.debounce(DIAGNOSTICS_DEBOUNCE_MS).collect {
+      ApplicationManager.getApplication().invokeLater({
+        if (Disposer.isDisposed(this@MinimapController)) return@invokeLater
+        refreshSnapshot()
+        panel.repaint()
+      }, ModalityState.any())
     }
   }
 
   companion object {
     private const val STRUCTURE_MARKERS_DEBOUNCE_MS: Long = 125
+    private const val DIAGNOSTICS_DEBOUNCE_MS: Long = 75
     private const val HIDE_MINIMAP_EDITOR_WIDTH_MULTIPLIER: Long = 2
   }
 }
