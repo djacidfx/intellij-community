@@ -10,7 +10,6 @@ import com.intellij.openapi.util.Ref;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
-import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.util.containers.ContainerUtil;
 import com.jetbrains.python.PyNames;
 import com.jetbrains.python.PyPsiBundle;
@@ -34,8 +33,8 @@ import com.jetbrains.python.psi.PyComprehensionForComponent;
 import com.jetbrains.python.psi.PyEllipsisLiteralExpression;
 import com.jetbrains.python.psi.PyExpression;
 import com.jetbrains.python.psi.PyForStatement;
-import com.jetbrains.python.psi.PyKeywordArgument;
 import com.jetbrains.python.psi.PyFunction;
+import com.jetbrains.python.psi.PyKeywordArgument;
 import com.jetbrains.python.psi.PyNamedParameter;
 import com.jetbrains.python.psi.PyParameterList;
 import com.jetbrains.python.psi.PyQualifiedExpression;
@@ -762,7 +761,7 @@ public class PyTypeCheckerInspection extends PyInspection {
                                                 @NotNull List<UnexpectedArgumentForParamSpec> unexpectedArgs) {
       for (PyExpression argument : arguments) {
         if (argument instanceof PyStarArgument starArg) {
-          PyExpression innerExpr = PsiTreeUtil.getChildOfType(starArg, PyExpression.class);
+          PyExpression innerExpr = starArg.getExpression();
           if (innerExpr != null && isParamSpecContainerForwarding(innerExpr, paramSpec, !starArg.isKeyword())) {
             continue;
           }
