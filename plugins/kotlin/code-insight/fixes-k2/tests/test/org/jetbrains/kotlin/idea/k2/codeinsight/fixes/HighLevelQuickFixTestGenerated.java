@@ -11482,6 +11482,11 @@ public abstract class HighLevelQuickFixTestGenerated extends AbstractHighLevelQu
             runTest("../../../idea/tests/testData/quickfix/primitiveCastToConversion/charToShort.kt");
         }
 
+        @TestMetadata("intLiteralToInt.kt")
+        public void testIntLiteralToInt() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/primitiveCastToConversion/intLiteralToInt.kt");
+        }
+
         @TestMetadata("intToByte.kt")
         public void testIntToByte() throws Exception {
             runTest("../../../idea/tests/testData/quickfix/primitiveCastToConversion/intToByte.kt");

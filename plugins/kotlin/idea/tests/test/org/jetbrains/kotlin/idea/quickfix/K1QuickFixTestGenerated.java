@@ -14216,6 +14216,11 @@ public abstract class K1QuickFixTestGenerated extends AbstractK1QuickFixTest {
             runTest("testData/quickfix/primitiveCastToConversion/charToShort.kt");
         }
 
+        @TestMetadata("intLiteralToInt.kt")
+        public void testIntLiteralToInt() throws Exception {
+            runTest("testData/quickfix/primitiveCastToConversion/intLiteralToInt.kt");
+        }
+
         @TestMetadata("intToByte.kt")
         public void testIntToByte() throws Exception {
             runTest("testData/quickfix/primitiveCastToConversion/intToByte.kt");
