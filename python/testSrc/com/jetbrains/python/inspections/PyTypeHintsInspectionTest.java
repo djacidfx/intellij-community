@@ -3452,7 +3452,7 @@ public class PyTypeHintsInspectionTest extends PyInspectionTestCase {
   // PY-76850
   public void testParamSpecComponentOnRegularParam() {
     doTestByText("""
-                   def misplaced[**P](x: <warning descr="'P' can only be used to annotate '*args' or '**kwargs' parameters">P.args</warning>) -> None:
+                   def misplaced[**P](x: <warning descr="ParamSpec component can only be used to annotate '*args' or '**kwargs' parameters">P.args</warning>) -> None:
                        pass
                    """);
   }
@@ -3460,7 +3460,7 @@ public class PyTypeHintsInspectionTest extends PyInspectionTestCase {
   // PY-76850
   public void testParamSpecComponentSameForBoth() {
     doTestByText("""
-                   def bad[**P](*args: <warning descr="'P.args' and 'P.kwargs' must both be present in the same function signature">P.args</warning>, **kwargs: <warning descr="'P.args' can only be used to annotate '*args' parameters">P.args</warning>) -> None:
+                   def bad[**P](*args: P.args, **kwargs: <warning descr="'P.args' can only be used to annotate '*args' parameters">P.args</warning>) -> None:
                        pass
                    """);
   }
@@ -3469,7 +3469,7 @@ public class PyTypeHintsInspectionTest extends PyInspectionTestCase {
   public void testParamSpecComponentMissingKwargs() {
     doTestByText("""
                    from typing import Any
-                   def bad[**P](*args: P.args, **kwargs: <warning descr="ParamSpec component 'kwargs' was expected">Any</warning>) -> None:
+                   def bad[**P](*args: <warning descr="'P.args' and 'P.kwargs' must both be present in the same function signature">P.args</warning>, **kwargs: Any) -> None:
                        pass
                    """);
   }
@@ -3479,7 +3479,7 @@ public class PyTypeHintsInspectionTest extends PyInspectionTestCase {
     doTestByText("""
                    from typing import ParamSpec
                    P = ParamSpec("P")
-                   def out_of_scope(*args: <warning descr="ParamSpec 'P' is out of scope">P</warning>.args, **kwargs: P.kwargs) -> None:
+                   def out_of_scope(*args: <warning descr="ParamSpec 'P' is out of scope">P</warning>.args, **kwargs: <warning descr="ParamSpec 'P' is out of scope">P</warning>.kwargs) -> None:
                        pass
                    """);
   }
@@ -3488,8 +3488,8 @@ public class PyTypeHintsInspectionTest extends PyInspectionTestCase {
   public void testParamSpecComponentAsVariableAnnotation() {
     doTestByText("""
                    def foo[**P]() -> None:
-                       stored_args: <warning descr="'P.args' can only be used to annotate '*args' or '**kwargs' parameters">P.args</warning>
-                       stored_kwargs: <warning descr="'P.kwargs' can only be used to annotate '*args' or '**kwargs' parameters">P.kwargs</warning>
+                       stored_args: <warning descr="ParamSpec component can only be used to annotate '*args' or '**kwargs' parameters">P.args</warning>
+                       stored_kwargs: <warning descr="ParamSpec component can only be used to annotate '*args' or '**kwargs' parameters">P.kwargs</warning>
                    """);
   }
 
@@ -3512,7 +3512,7 @@ public class PyTypeHintsInspectionTest extends PyInspectionTestCase {
   // PY-76850
   public void testParamSpecComponentKeywordOnlyBetween() {
     doTestByText("""
-                   def bar[**P](*args: P.args, <warning descr="No keyword-only parameters allowed between 'P.args' and 'P.kwargs'">s: str</warning>, **kwargs: P.kwargs) -> None:
+                   def bar[**P](*args: P.args, <warning descr="No parameters allowed between 'P.args' and 'P.kwargs'">s: str</warning>, **kwargs: P.kwargs) -> None:
                        pass
                    """);
   }
@@ -3553,7 +3553,7 @@ public class PyTypeHintsInspectionTest extends PyInspectionTestCase {
                    from typing import ParamSpec
                    P = ParamSpec("P")
                    class NoParamSpec:
-                       def call(self, *args: <warning descr="ParamSpec 'P' is out of scope">P</warning>.args, **kwargs: P.kwargs) -> None:
+                       def call(self, *args: <warning descr="ParamSpec 'P' is out of scope">P</warning>.args, **kwargs: <warning descr="ParamSpec 'P' is out of scope">P</warning>.kwargs) -> None:
                            pass
                    """);
   }
@@ -3572,6 +3572,41 @@ public class PyTypeHintsInspectionTest extends PyInspectionTestCase {
 
                    def twice(f: Callable[P, int], *args: P.args, **kwargs: P.kwargs) -> int:
                        return f(*args, **kwargs)
+                   """);
+  }
+
+  // PY-76850
+  public void testOldStyleParamSpecProperlyBoundForArgsKwargs() {
+    doTestByText("""
+                   from typing import ParamSpec, TypeVar, Callable
+                   P = ParamSpec("P")
+                   T = TypeVar("T")
+                   
+                   def invoke(fn: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> T:
+                       pass
+                   """);
+  }
+
+  // PY-76850
+  public void testAfterParamSpecArgsKwargsParamWithoutAnnotation() {
+    doTestByText("""
+                   from typing import ParamSpec, TypeVar, Callable
+                   P = ParamSpec("P")
+                   T = TypeVar("T")
+                   
+                   def invoke(fn: Callable[P, T], *args: <warning descr="'P.args' and 'P.kwargs' must both be present in the same function signature">P.args</warning>, **kwargs) -> T:
+                       pass
+                   """);
+  }
+
+  // PY-76850
+  public void testIllegalParamSpecUsageForKwargs() {
+    doTestByText("""
+                   from typing import ParamSpec, TypeVar, Callable
+                   P = ParamSpec("P")
+                   
+                   def invoke(**kwargs: <warning descr="'P.args' and 'P.kwargs' must both be present in the same function signature"><warning descr="ParamSpec 'P' is out of scope">P</warning>.kwargs</warning>) -> None:
+                       pass
                    """);
   }
 
