@@ -654,8 +654,7 @@ public class PyTypeCheckerInspection extends PyInspection {
           if (paramSpec != null) {
             if (argumentRightBound < firstExpectedTypes.size()) {
               // Not enough positional arguments to satisfy the Concatenate prefix, e.g., int, str in Concatenate[int, str, P]
-              PyCallableParameterListType paramSpecSubst =
-                as(substitutions.getParamSpecs().get(paramSpec), PyCallableParameterListType.class);
+              PyCallableParameterListType paramSpecSubst = getParamSpecSubstitution(paramSpec, substitutions);
               if (paramSpecSubst == null) {
                 for (PyExpression arg : restArguments) {
                   if (arg instanceof PyStarArgument) {
@@ -687,8 +686,7 @@ public class PyTypeCheckerInspection extends PyInspection {
       if (paramSpecType != null) {
         // Keyword arguments for positional parameters preceding *args: P.args
         // might shadow the values in ParamSpec, causing runtime errors. Report them when P is unsubstituted.
-        PyCallableParameterListType paramSpecSubst =
-          as(substitutions.getParamSpecs().get(paramSpecType), PyCallableParameterListType.class);
+        PyCallableParameterListType paramSpecSubst = getParamSpecSubstitution(paramSpecType, substitutions);
         if (paramSpecSubst == null) {
           for (var entry : regularMappedParameters.entrySet()) {
             if (entry.getKey() instanceof PyKeywordArgument) {
@@ -733,7 +731,7 @@ public class PyTypeCheckerInspection extends PyInspection {
                                   @NotNull List<AnalyzeArgumentResult> result,
                                   @NotNull List<UnexpectedArgumentForParamSpec> unexpectedArgumentForParamSpecs,
                                   @NotNull List<UnfilledParameterFromParamSpec> unfilledParameterFromParamSpecs) {
-      PyCallableParameterListType paramSpecSubst = as(substitutions.getParamSpecs().get(paramSpec), PyCallableParameterListType.class);
+      PyCallableParameterListType paramSpecSubst = getParamSpecSubstitution(paramSpec, substitutions);
       if (paramSpecSubst == null) {
         analyzeUnsubstitutedParamSpec(paramSpec, arguments, unexpectedArgumentForParamSpecs);
         return;
@@ -771,6 +769,11 @@ public class PyTypeCheckerInspection extends PyInspection {
         }
         unexpectedArgs.add(new UnexpectedArgumentForParamSpec(argument, paramSpec));
       }
+    }
+
+    private static @Nullable PyCallableParameterListType getParamSpecSubstitution(@NotNull PyParamSpecType paramSpecType,
+                                                                                  @NotNull PyTypeChecker.GenericSubstitutions substitutions) {
+      return as(substitutions.getParamSpecs().get(paramSpecType), PyCallableParameterListType.class);
     }
 
     private boolean isParamSpecContainerForwarding(@NotNull PyExpression expr,
