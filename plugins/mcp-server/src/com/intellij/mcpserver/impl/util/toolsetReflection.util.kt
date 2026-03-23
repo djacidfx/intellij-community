@@ -6,6 +6,7 @@ import com.intellij.mcpserver.McpToolset
 import com.intellij.mcpserver.annotations.McpDescription
 import com.intellij.mcpserver.annotations.McpTool
 import com.intellij.mcpserver.impl.ReflectionCallableMcpTool
+import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import kotlinx.serialization.json.Json
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
@@ -97,6 +98,7 @@ inline fun <reified T : McpToolset> T.asToolsByInterface(json: Json = McpServerJ
 
  * @see [asTool]
  */
+@RequiresBackgroundThread
 fun <T : McpToolset> KClass<out T>.asTools(json: Json = McpServerJson, thisRef: T? = null): List<ReflectionCallableMcpTool> {
     val category = McpToolCategory(
       shortName = this.simpleName ?: "Unknown",
