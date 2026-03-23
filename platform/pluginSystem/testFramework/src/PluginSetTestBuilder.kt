@@ -81,9 +81,9 @@ class PluginSetTestBuilder private constructor(
 
   fun buildInitContext(): PluginInitializationContext {
     return object : PseudoProductTestPluginInitContext() {
+      override val expiredPlugins: Set<PluginId> = this@PluginSetTestBuilder.expiredPluginIds
       override val productBuildNumber: BuildNumber = this@PluginSetTestBuilder.productBuildNumber
       override fun isPluginDisabled(id: PluginId): Boolean = id in disabledPluginIds
-      override fun isPluginExpired(id: PluginId): Boolean = id in expiredPluginIds
       override fun isPluginBroken(id: PluginId, version: String?): Boolean {
         brokenPlugins[id]?.let { return version in it }
         return false

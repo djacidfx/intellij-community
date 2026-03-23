@@ -60,6 +60,7 @@ class PluginInitializationSelectPluginsToLoadTest {
       override val explicitPluginSubsetToLoad: Set<PluginId>? = explicitPluginSubsetToLoad
       override val disablePluginLoadingCompletely: Boolean = disablePluginLoadingCompletely
       override val currentProductModeId: String = "test"
+      override val expiredPlugins: Set<PluginId> = emptySet()
     }
   }
 

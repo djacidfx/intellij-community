@@ -8,15 +8,27 @@ import com.intellij.ide.plugins.PluginModuleDescriptor
 import com.intellij.ide.plugins.PluginModuleId
 import com.intellij.ide.plugins.ProductPluginInitContext.Companion.configureProductModeModules
 import com.intellij.ide.plugins.ProductPluginInitContext.Companion.defaultProductCompatibilityDependenciesProvider
+import com.intellij.ide.plugins.ProductPluginInitContext.Companion.defaultProductRulesImposedExclusions
 import com.intellij.ide.plugins.ProductPluginInitContext.Companion.defaultRuntimeModuleGroupAffiliation
+import com.intellij.ide.plugins.ProductRulesImposedExclusion
 import com.intellij.ide.plugins.UnambiguousPluginSet
+import com.intellij.openapi.extensions.PluginId
 
 abstract class PseudoProductTestPluginInitContext : EmptyTestPluginInitContext() {
+  abstract val expiredPlugins: Set<PluginId>
+
+  override fun isPluginExpired(id: PluginId): Boolean = id in expiredPlugins
+
   override val environmentConfiguredModules: Map<PluginModuleId, PluginInitializationContext.EnvironmentConfiguredModuleData> by lazy {
     buildMap {
       configureProductModeModules(currentProductModeId)
     }
   }
+
+  override fun provideModuleExclusionsImposedByProductRules(
+    pluginSet: UnambiguousPluginSet
+  ): Sequence<Pair<PluginModuleDescriptor, ProductRulesImposedExclusion.ProductRulesImposedExclusionReason>> =
+    defaultProductRulesImposedExclusions(pluginSet, expiredPlugins, thirdPartyPluginsWithoutConsentCheckResult = null)
 
   override fun provideCompatibilityDependencies(
     descriptor: IdeaPluginDescriptorImpl,

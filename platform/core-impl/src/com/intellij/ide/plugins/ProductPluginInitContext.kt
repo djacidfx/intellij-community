@@ -103,20 +103,8 @@ class ProductPluginInitContext(
   override fun provideCompatibilityDependencies(descriptor: IdeaPluginDescriptorImpl, pluginSet: UnambiguousPluginSet): Sequence<DependencyRef> =
     defaultProductCompatibilityDependenciesProvider(descriptor, pluginSet)
 
-  override fun provideModuleExclusionsImposedByProductRules(pluginSet: UnambiguousPluginSet): Sequence<Pair<PluginModuleDescriptor, ProductRulesImposedExclusionReason>> {
-    return sequence {
-      for (expiredPluginId in expiredPlugins) {
-        val plugin = pluginSet.resolvePluginId(expiredPluginId)
-                     ?: continue
-        yield(plugin to PluginHasExpiredLicense())
-      }
-      thirdPartyPluginsWithoutConsentCheckResult?.let {
-        for (plugin in it.pluginsToExcludeFromLoading) {
-          yield(plugin to ThirdPartyPrivacyNoticeIsNotAccepted())
-        }
-      }
-    }
-  }
+  override fun provideModuleExclusionsImposedByProductRules(pluginSet: UnambiguousPluginSet): Sequence<Pair<PluginModuleDescriptor, ProductRulesImposedExclusionReason>> =
+    defaultProductRulesImposedExclusions(pluginSet, expiredPlugins, thirdPartyPluginsWithoutConsentCheckResult)
 
   override fun provideCustomRuntimeModuleGroupAffiliation(module: PluginModuleDescriptor, pluginSet: UnambiguousPluginSet): PluginModuleDescriptor? =
     defaultRuntimeModuleGroupAffiliation(module, pluginSet)
@@ -316,6 +304,25 @@ class ProductPluginInitContext(
       return null
     }
 
+    @VisibleForTesting
+    fun defaultProductRulesImposedExclusions(
+      pluginSet: UnambiguousPluginSet,
+      expiredPlugins: Set<PluginId>,
+      thirdPartyPluginsWithoutConsentCheckResult: ThirdPartyPluginsWithoutConsentCheckResult?,
+    ): Sequence<Pair<PluginModuleDescriptor, ProductRulesImposedExclusionReason>> {
+      return sequence {
+        for (expiredPluginId in expiredPlugins) {
+          val plugin = pluginSet.resolvePluginId(expiredPluginId)
+                       ?: continue
+          yield(plugin to PluginHasExpiredLicense())
+        }
+        thirdPartyPluginsWithoutConsentCheckResult?.let {
+          for (plugin in it.pluginsToExcludeFromLoading) {
+            yield(plugin to ThirdPartyPrivacyNoticeIsNotAccepted())
+          }
+        }
+      }
+    }
   }
 }
 
