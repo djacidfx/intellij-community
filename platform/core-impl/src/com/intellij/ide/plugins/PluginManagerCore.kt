@@ -731,6 +731,14 @@ object PluginManagerCore {
       val exclusionReason = resolvedPluginSet.getExclusionReason(plugin)
       if (exclusionReason != null) {
         adaptExclusionReasonAsNonLoadReason(exclusionReason, plugin, resolvedPluginSet, registerLoadingError, broadResolveContext)
+      } else {
+        // TODO do we want to somehow report conflicts for optional content modules? or message in the log is enough?
+        for (contentModule in plugin.contentModules) {
+          val contentModuleExclusionReason = resolvedPluginSet.getExclusionReason(contentModule)
+          if (contentModuleExclusionReason is PackagePrefixConflictWithAnotherModule) {
+            registerLoadingError(PluginPackagePrefixConflict(plugin, contentModuleExclusionReason.descriptor, contentModuleExclusionReason.preferredConflictingModule))
+          }
+        }
       }
     }
     // module -> index
@@ -842,7 +850,7 @@ object PluginManagerCore {
           registerLoadingError(PluginIsIncompatibleWithAnotherPlugin(plugin, exclusionReason.preferredIncompatibleModule, shouldNotifyUser))
         }
         is PackagePrefixConflictWithAnotherModule -> {
-          registerLoadingError(PluginPackagePrefixConflict(plugin, plugin, exclusionReason.preferredConflictingModule))
+          registerLoadingError(PluginPackagePrefixConflict(plugin, exclusionReason.descriptor, exclusionReason.preferredConflictingModule))
         }
         is ProductRulesImposedExclusion -> {
           val productReason = exclusionReason.productReason as? IntellijImposedModuleExclusionReason
