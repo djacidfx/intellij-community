@@ -2,11 +2,14 @@
 package com.intellij.codeInsight.template.emmet;
 
 import com.intellij.codeInsight.template.CustomTemplateCallback;
+import com.intellij.codeInsight.template.emmet.rpc.EmmetAbbreviationBaloonTopic;
+import com.intellij.codeInsight.template.emmet.rpc.ShowAbbreviationBaloonUiEvent;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.WriteIntentReadAction;
+import com.intellij.openapi.editor.impl.EditorIdKt;
 import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.ui.popup.JBPopupListener;
@@ -34,6 +37,7 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.function.Supplier;
 
+import static com.intellij.codeInsight.template.emmet.EmmetAbbreviationBalloon.EmmetContextHelp.createHelpLabel;
 import static com.intellij.util.ObjectUtils.doIfNotNull;
 
 public class EmmetAbbreviationBalloon {
@@ -77,13 +81,29 @@ public class EmmetAbbreviationBalloon {
       return;
     }
 
+    EmmetAbbreviationBaloonUi.showBaloon(customTemplateCallback,
+                                         new ShowAbbreviationBaloonUiEvent(
+                                           EmmetAbbreviationBaloonTopic.nextTransactionId(),
+                                           EditorIdKt.editorId(customTemplateCallback.getEditor()),
+                                           myAbbreviationsHistoryKey,
+                                           myLastAbbreviationKey,
+                                           myContextHelp.getLinkText(),
+                                           myContextHelp.getLinkUrl(),
+                                           myContextHelp.getDescription()),
+                                         myCallback
+    );
+  }
+
+  private static void showBaloon(@NotNull CustomTemplateCallback customTemplateCallback,
+                                 @NotNull ShowAbbreviationBaloonUiEvent showEvent,
+                                 @NotNull Callback callback) {
     JPanel panel = new JPanel(new BorderLayout());
-    final TextFieldWithStoredHistory field = new TextFieldWithStoredHistory(myAbbreviationsHistoryKey);
+    final TextFieldWithStoredHistory field = new TextFieldWithStoredHistory(showEvent.getHistoryKey());
     final Dimension fieldPreferredSize = field.getPreferredSize();
     field.setPreferredSize(new Dimension(Math.max(220, fieldPreferredSize.width), fieldPreferredSize.height));
     field.setHistorySize(10);
 
-    ContextHelpLabel label = myContextHelp.createHelpLabel();
+    ContextHelpLabel label = createHelpLabel(showEvent.getLinkText(), showEvent.getLinkUrl(), showEvent.getDescription());
     label.setBorder(JBUI.Borders.empty(0, 3, 0, 1));
 
     panel.add(field, BorderLayout.CENTER);
@@ -126,8 +146,8 @@ public class EmmetAbbreviationBalloon {
               WriteIntentReadAction.run(() -> {
                 final String abbreviation = field.getText();
                 if (validateTemplateKey(field, balloon, abbreviation, customTemplateCallback)) {
-                  myCallback.onEnter(abbreviation);
-                  PropertiesComponent.getInstance().setValue(myLastAbbreviationKey, abbreviation);
+                  callback.onEnter(abbreviation);
+                  PropertiesComponent.getInstance().setValue(showEvent.getLastAbbreviationKey(), abbreviation);
                   field.addCurrentTextToHistory();
                   balloon.hide();
                 }
@@ -143,7 +163,7 @@ public class EmmetAbbreviationBalloon {
     balloon.addListener(new JBPopupListener() {
       @Override
       public void beforeShown(@NotNull LightweightWindowEvent event) {
-        field.setText(PropertiesComponent.getInstance().getValue(myLastAbbreviationKey, ""));
+        field.setText(PropertiesComponent.getInstance().getValue(showEvent.getLastAbbreviationKey(), ""));
       }
 
       @Override
@@ -178,9 +198,9 @@ public class EmmetAbbreviationBalloon {
   }
 
   public static class EmmetContextHelp {
-    private final @NotNull Supplier<@Tooltip String> myDescription;
+    private final @NotNull Supplier<@NotNull @Tooltip String> myDescription;
 
-    private @Nullable Supplier<@LinkLabel String> myLinkText = null;
+    private @Nullable Supplier<@Nullable @LinkLabel String> myLinkText = null;
 
     private @Nullable String myLinkUrl = null;
 
@@ -197,12 +217,28 @@ public class EmmetAbbreviationBalloon {
     }
 
     public @NotNull ContextHelpLabel createHelpLabel() {
-      String linkText = doIfNotNull(myLinkText, Supplier::get);
-      String description = myDescription.get();
-      if (StringUtil.isEmpty(linkText) || StringUtil.isEmpty(myLinkUrl)) {
+      return createHelpLabel(getLinkText(), myLinkUrl, getDescription());
+    }
+
+    public static @NotNull ContextHelpLabel createHelpLabel(@Nullable @Tooltip String linkText,
+                                                            @Nullable String linkUrl,
+                                                            @NotNull @Tooltip String description) {
+      if (StringUtil.isEmpty(linkText) || StringUtil.isEmpty(linkUrl)) {
         return ContextHelpLabel.create(description);
       }
-      return ContextHelpLabel.createWithLink(null, description, linkText, () -> BrowserUtil.browse(myLinkUrl));
+      return ContextHelpLabel.createWithLink(null, description, linkText, () -> BrowserUtil.browse(linkUrl));
+    }
+
+    private @Nullable @Tooltip String getLinkText() {
+      return doIfNotNull(myLinkText, Supplier::get);
+    }
+
+    private @NotNull @Tooltip String getDescription() {
+      return myDescription.get();
+    }
+
+    public @Nullable String getLinkUrl() {
+      return myLinkUrl;
     }
   }
 
