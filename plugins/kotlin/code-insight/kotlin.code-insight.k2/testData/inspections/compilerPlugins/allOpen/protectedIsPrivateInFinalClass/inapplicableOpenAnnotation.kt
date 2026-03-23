@@ -1,5 +1,4 @@
-// "'protected' visibility is effectively 'private' in a final class" "true"
-// FIX: "Make private"
+// PROBLEM: none
 
 @Open
 class Test {
