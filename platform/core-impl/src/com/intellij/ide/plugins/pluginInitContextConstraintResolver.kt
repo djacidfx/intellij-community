@@ -3,6 +3,7 @@ package com.intellij.ide.plugins
 
 import com.intellij.ide.plugins.PluginSetConstraintsResolver.CandidateState.Candidate
 import com.intellij.ide.plugins.PluginSetConstraintsResolver.CandidateState.Excluded
+import com.intellij.openapi.extensions.PluginId
 import com.intellij.util.graph.DFSTBuilder
 import com.intellij.util.graph.OutboundSemiGraph
 import org.jetbrains.annotations.ApiStatus
@@ -336,9 +337,8 @@ private class PluginSetConstraintsResolver(
    * DFSTBuilder expects edge to represent `<` relation, but in our case dependents of a descriptor should come first, so we need dependents, not dependencies
    */
   private fun tryBuildRuntimeModuleGroupDAGOrExcludeCycles(): ResolvedPluginSet? {
-    // TODO handle implicit deps on content modules from `<depends>`
     val remainingCandidates = candidates.keys.filterTo(ArrayList()) { it.getState() is Candidate }
-    val resolvedDependencies = resolvedDependenciesLists.filterKeys { it.getState() is Candidate }
+    val resolvedDependencies = populateDependsEdges(resolvedDependenciesLists.filterKeys { it.getState() is Candidate })
     val resolvedDependents = resolvedDependencies.invertEdges()
     val sortedCandidates = sortRemainingCandidatesTopologicallyOrExcludeCycles(remainingCandidates, resolvedDependencies, resolvedDependents)
                            ?: return null
@@ -357,6 +357,54 @@ private class PluginSetConstraintsResolver(
       resolvedDependents = resolvedDependents,
     )
     return resolvedPluginSet
+  }
+
+
+  /**
+   * To preserve compatibility, all "active" "depends"-edges, in fact, should be treated as a dependency on all loaded modules of the target plugin, so we
+   * add try to process them at the end of the resolution attempt when all other exclusions are settled.
+   */
+  private fun populateDependsEdges(
+    remainingCandidatesDependencies: Map<IdeaPluginDescriptorImpl, List<IdeaPluginDescriptorImpl>>
+  ): Map<IdeaPluginDescriptorImpl, List<IdeaPluginDescriptorImpl>> {
+    return remainingCandidatesDependencies.mapValues { (descriptor, dependencies) ->
+      var populatedList: ArrayList<IdeaPluginDescriptorImpl>? = null
+      fun contributeDependencies(extra: List<IdeaPluginDescriptorImpl>) {
+        if (populatedList == null) {
+          populatedList = ArrayList(dependencies)
+        }
+        populatedList.addAll(extra)
+      }
+      fun contributeContentModulesFromTarget(targetId: PluginId) {
+        val target = pluginSet.resolvePluginId(targetId)
+                     ?: return
+        assert(target in remainingCandidatesDependencies.keys) {
+          "dependency target is excluded, but the descriptor is still a candidate:\ncandidate=$descriptor\ntarget=$target"
+        }
+        if (target is PluginMainDescriptor) {
+          val remainingContentModules = target.contentModules.filter { it in remainingCandidatesDependencies.keys }
+          if (remainingContentModules.isNotEmpty()) {
+            contributeDependencies(remainingContentModules)
+          }
+        }
+        // if target is a content module, it is already accounted for, and we don't need to include other content modules from the same plugin
+      }
+      for (depends in descriptor.pluginDependencies) {
+        if (depends.subDescriptor != null) {
+          // this case is covered by the statement under this `for` loop;
+          // technically it might be that `isOptional` could be `false` here, that's okay;
+          // also, `config-file` might be unspecified when `isOptional` is `true`, but for such cases we generate an empty [DependsSubDescriptor],
+          // see [PluginDescriptorLoader.loadPluginDependencyDescriptors]
+          continue
+        }
+        assert(!depends.isOptional) { "It is expected that all optional <depends> statements have a config-file" }
+        contributeContentModulesFromTarget(targetId = depends.pluginId)
+      }
+      if (descriptor is DependsSubDescriptor) {
+        contributeContentModulesFromTarget(targetId = descriptor.dependsTargetId)
+      }
+      populatedList?.distinct() ?: dependencies
+    }
   }
 
   private fun sortRemainingCandidatesTopologicallyOrExcludeCycles(
