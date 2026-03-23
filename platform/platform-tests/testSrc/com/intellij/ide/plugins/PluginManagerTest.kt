@@ -225,7 +225,12 @@ class PluginManagerTest {
       for (html in PluginManagerCore.getAndClearPluginLoadingErrors()) {
         text.append(html.htmlMessage.toString().replace("<br/>", "\n").replace("&#39;", "")).append('\n')
       }
-      UsefulTestCase.assertSameLinesWithFile(File(testDataPath, "$testDataName.txt").path, text.toString())
+      val expectedResultFilename = if (PluginManagerCore.fallbackToOldPluginSetResolution()) {
+        "$testDataName.txt"
+      } else {
+        "$testDataName.txt.2"
+      }
+      UsefulTestCase.assertSameLinesWithFile(File(testDataPath, expectedResultFilename).path, text.toString())
     }
 
     private fun assertConvertsTo(untilBuild: String?, result: String?) {
