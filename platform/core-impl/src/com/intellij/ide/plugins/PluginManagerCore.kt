@@ -735,7 +735,7 @@ object PluginManagerCore {
     for (pluginId in resolvedPluginSet.originalPluginSet.sequenceAllPluginIds()) {
       val module = resolvedPluginSet.originalPluginSet.resolvePluginId(pluginId)!!
       if (resolvedPluginSet.isResolved(module)) {
-        enabledPluginAndV1ModuleMap[module.pluginId] = module
+        enabledPluginAndV1ModuleMap[pluginId] = module
       }
     }
     val pluginSet = PluginSet(
