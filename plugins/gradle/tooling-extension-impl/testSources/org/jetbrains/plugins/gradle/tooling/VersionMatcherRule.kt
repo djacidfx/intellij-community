@@ -33,6 +33,17 @@ class VersionMatcherRule : TestWatcher() {
     }
   }
 
+  /**
+   * Returns true iff gradleVersion is a boundary version of [SUPPORTED_GRADLE_VERSIONS]
+   * (after applying targetVersions filter on it if it's not null)
+   */
+  private fun isBoundarySupportedGradleVersion(gradleVersion: GradleVersion, targetVersions: TargetVersions?): Boolean {
+    val allTargetedVersions = SUPPORTED_GRADLE_VERSIONS
+      .filter { targetVersions == null || VersionMatcher(GradleVersion.version(it)).isVersionMatch(targetVersions) }
+
+    return allTargetedVersions.firstOrNull() == gradleVersion.version || allTargetedVersions.lastOrNull() == gradleVersion.version
+  }
+
   companion object {
     /**
      * Note: When adding new versions here, change also lists:
@@ -62,25 +73,13 @@ class VersionMatcherRule : TestWatcher() {
           SUPPORTED_GRADLE_VERSIONS.takeLast(last)
         }
         else if (gradleVersionsString == "FIRST_LAST") {
-          SUPPORTED_GRADLE_VERSIONS // filtering done later with `isMajorBoundaryVersion`
+          SUPPORTED_GRADLE_VERSIONS // filtering done later
         }
         else {
           gradleVersionsString.split(",")
         }
       }
       else SUPPORTED_GRADLE_VERSIONS
-    }
-
-    /**
-     * Returns true iff gradleVersion is a boundary version of [SUPPORTED_GRADLE_VERSIONS]
-     * (after applying targetVersions filter on it if it's not null)
-     */
-    @JvmStatic
-    fun isBoundarySupportedGradleVersion(gradleVersion: GradleVersion, targetVersions: TargetVersions?): Boolean {
-      val allTargetedVersions = SUPPORTED_GRADLE_VERSIONS
-        .filter { targetVersions == null || VersionMatcher(GradleVersion.version(it)).isVersionMatch(targetVersions) }
-
-      return allTargetedVersions.firstOrNull() == gradleVersion.version || allTargetedVersions.lastOrNull() == gradleVersion.version
     }
   }
 }

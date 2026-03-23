@@ -1,74 +1,37 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package org.jetbrains.plugins.gradle.testFramework.annotations.processors;
+package org.jetbrains.plugins.gradle.testFramework.annotations.processors
 
-import com.intellij.util.ArrayUtil;
-import org.gradle.util.GradleVersion;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.plugins.gradle.testFramework.annotations.ArgumentsProcessor;
-import org.jetbrains.plugins.gradle.testFramework.annotations.CsvCrossProductSource;
-import org.jetbrains.plugins.gradle.testFramework.annotations.GradleTestSource;
-import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions;
-import org.jetbrains.plugins.gradle.tooling.util.VersionMatcher;
-import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.params.provider.Arguments;
+import com.intellij.util.containers.orNull
+import org.gradle.util.GradleVersion
+import org.jetbrains.plugins.gradle.testFramework.annotations.ArgumentsProcessor
+import org.jetbrains.plugins.gradle.testFramework.annotations.GradleTestSource
+import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
+import org.jetbrains.plugins.gradle.tooling.util.VersionMatcher
+import org.junit.jupiter.api.extension.ExtensionContext
+import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.support.ParameterDeclarations
+import java.util.stream.Stream
 
-import java.lang.annotation.Annotation;
-import java.util.ArrayList;
-import java.util.Collections;
+class GradleTestArgumentsProcessor : ArgumentsProcessor<GradleTestSource> {
 
-public class GradleTestArgumentsProcessor extends DelegateArgumentsProcessor<GradleTestSource, CsvCrossProductSource> {
+  private lateinit var annotation: GradleTestSource
 
-  @Override
-  public @NotNull ArgumentsProcessor<CsvCrossProductSource> createArgumentsProcessor() {
-    return new CsvCrossProductArgumentsProcessor();
+  override fun accept(annotation: GradleTestSource) {
+    this.annotation = annotation
   }
 
-  @Override
-  public @NotNull CsvCrossProductSource convertAnnotation(@NotNull GradleTestSource annotation) {
-    return new CsvCrossProductSource() {
+  override fun provideArguments(parameters: ParameterDeclarations, context: ExtensionContext): Stream<out Arguments> {
+    val targetVersions = context.testMethod.orNull()?.getAnnotation(TargetVersions::class.java)
+    val gradleVersions = annotation.value.split(",")
+      .map { GradleVersion.version(it.trim()) }
+      .filter { VersionMatcher(it).isVersionMatch(targetVersions) }
 
-      @Override
-      public Class<? extends Annotation> annotationType() {
-        return CsvCrossProductSource.class;
-      }
-
-      @Override
-      public String[] value() {
-        return ArrayUtil.prepend(annotation.value(), annotation.values());
-      }
-
-      @Override
-      public char separator() {
-        return annotation.separator();
-      }
-
-      @Override
-      public char delimiter() {
-        return annotation.delimiter();
-      }
-    };
+    return crossProductArguments(gradleVersions, annotation.values.toList())
   }
 
-  @Override
-  public @NotNull Arguments convertArguments(@NotNull Arguments arguments, @NotNull ExtensionContext context) {
-    var collection = new ArrayList<>();
-    Collections.addAll(collection, arguments.get());
-    collection.set(0, GradleVersion.version(collection.get(0).toString()));
-    return Arguments.of(collection.toArray());
-  }
-
-  @Override
-  public boolean filterArguments(@NotNull Arguments arguments, @NotNull ExtensionContext context) {
-    var gradleVersion = (GradleVersion)arguments.get()[0];
-    var versionMatcher = new VersionMatcher(gradleVersion);
-    return context.getTestMethod()
-      .map(it -> it.getAnnotation(TargetVersions.class))
-      .map(it -> versionMatcher.isVersionMatch(it))
-      .orElse(true);
-  }
-
-  @Override
-  public void accept(@NotNull GradleTestSource annotation) {
-    super.accept(annotation);
+  companion object {
+    internal fun crossProductArguments(gradleVersions: List<GradleVersion>, values: List<String>): Stream<out Arguments> {
+      return CsvCrossProductArgumentsProcessor.crossProduct(gradleVersions, values, ',', ':')
+    }
   }
 }

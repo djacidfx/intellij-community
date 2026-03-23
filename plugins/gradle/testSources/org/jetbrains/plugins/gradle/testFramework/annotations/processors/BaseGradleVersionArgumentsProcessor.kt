@@ -1,53 +1,34 @@
-// Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package org.jetbrains.plugins.gradle.testFramework.annotations.processors;
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+package org.jetbrains.plugins.gradle.testFramework.annotations.processors
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.plugins.gradle.testFramework.annotations.ArgumentsProcessor;
-import org.jetbrains.plugins.gradle.testFramework.annotations.BaseGradleVersionSource;
-import org.jetbrains.plugins.gradle.testFramework.annotations.GradleTestSource;
-import org.jetbrains.plugins.gradle.tooling.VersionMatcherRule;
+import com.intellij.util.containers.orNull
+import org.gradle.util.GradleVersion
+import org.jetbrains.plugins.gradle.testFramework.annotations.ArgumentsProcessor
+import org.jetbrains.plugins.gradle.testFramework.annotations.BaseGradleVersionSource
+import org.jetbrains.plugins.gradle.tooling.VersionMatcherRule
+import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
+import org.jetbrains.plugins.gradle.tooling.util.VersionMatcher
+import org.junit.jupiter.api.extension.ExtensionContext
+import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.support.ParameterDeclarations
+import java.util.stream.Stream
 
-import java.lang.annotation.Annotation;
+class BaseGradleVersionArgumentsProcessor : ArgumentsProcessor<BaseGradleVersionSource> {
 
-public class BaseGradleVersionArgumentsProcessor extends DelegateArgumentsProcessor<BaseGradleVersionSource, GradleTestSource> {
+  private lateinit var annotation: BaseGradleVersionSource
 
-  @Override
-  public @NotNull ArgumentsProcessor<GradleTestSource> createArgumentsProcessor() {
-    return new GradleTestArgumentsProcessor();
+  override fun accept(annotation: BaseGradleVersionSource) {
+    this.annotation = annotation
   }
 
-  @Override
-  public @NotNull GradleTestSource convertAnnotation(@NotNull BaseGradleVersionSource annotation) {
-    return new GradleTestSource() {
-      @Override
-      public Class<? extends Annotation> annotationType() {
-        return GradleTestSource.class;
-      }
+  override fun provideArguments(parameters: ParameterDeclarations, context: ExtensionContext): Stream<out Arguments> {
+    val targetVersions = context.testMethod.orNull()?.getAnnotation(TargetVersions::class.java)
+    val gradleVersion = GradleVersion.version(VersionMatcherRule.BASE_GRADLE_VERSION)
 
-      @Override
-      public String[] values() {
-        return annotation.value();
-      }
+    if (!VersionMatcher(gradleVersion).isVersionMatch(targetVersions)) {
+      return Stream.empty()
+    }
 
-      @Override
-      public String value() {
-        return VersionMatcherRule.BASE_GRADLE_VERSION;
-      }
-
-      @Override
-      public char separator() {
-        return ',';
-      }
-
-      @Override
-      public char delimiter() {
-        return ':';
-      }
-    };
-  }
-
-  @Override
-  public void accept(@NotNull BaseGradleVersionSource annotation) {
-    super.accept(annotation);
+    return CsvCrossProductArgumentsProcessor.crossProduct(listOf(gradleVersion), annotation.value.toList(), ',', ':')
   }
 }

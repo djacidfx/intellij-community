@@ -1,88 +1,48 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package org.jetbrains.plugins.gradle.testFramework.annotations.processors;
+package org.jetbrains.plugins.gradle.testFramework.annotations.processors
 
-import org.gradle.util.GradleVersion;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource;
-import org.jetbrains.plugins.gradle.testFramework.annotations.ArgumentsProcessor;
-import org.jetbrains.plugins.gradle.testFramework.annotations.GradleTestSource;
-import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions;
-import org.jetbrains.plugins.gradle.tooling.util.VersionMatcher;
-import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.params.provider.Arguments;
+import com.intellij.util.containers.orNull
+import org.gradle.util.GradleVersion
+import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
+import org.jetbrains.plugins.gradle.testFramework.annotations.ArgumentsProcessor
+import org.jetbrains.plugins.gradle.tooling.VersionMatcherRule
+import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
+import org.jetbrains.plugins.gradle.tooling.util.VersionMatcher
+import org.junit.jupiter.api.extension.ExtensionContext
+import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.support.ParameterDeclarations
+import java.util.stream.Stream
 
-import java.lang.annotation.Annotation;
-import java.util.Objects;
-import java.util.stream.Collectors;
+class AllGradleVersionArgumentsProcessor : ArgumentsProcessor<AllGradleVersionsSource> {
 
-import static org.jetbrains.plugins.gradle.tooling.VersionMatcherRule.getSupportedGradleVersions;
-import static org.jetbrains.plugins.gradle.tooling.VersionMatcherRule.isBoundarySupportedGradleVersion;
+  private lateinit var annotation: AllGradleVersionsSource
 
-public class AllGradleVersionArgumentsProcessor extends DelegateArgumentsProcessor<AllGradleVersionsSource, GradleTestSource> {
-
-  @Override
-  public @NotNull ArgumentsProcessor<GradleTestSource> createArgumentsProcessor() {
-    return new GradleTestArgumentsProcessor();
+  override fun accept(annotation: AllGradleVersionsSource) {
+    this.annotation = annotation
   }
 
-  @Override
-  public @NotNull GradleTestSource convertAnnotation(@NotNull AllGradleVersionsSource annotation) {
-    return new GradleTestSource() {
-      @Override
-      public Class<? extends Annotation> annotationType() {
-        return GradleTestSource.class;
+  override fun provideArguments(parameters: ParameterDeclarations, context: ExtensionContext): Stream<out Arguments> {
+    val targetVersions = context.testMethod.orNull()?.getAnnotation(TargetVersions::class.java)
+    val allGradleVersions = VersionMatcherRule.SUPPORTED_GRADLE_VERSIONS
+      .map { GradleVersion.version(it) }
+      .filter { VersionMatcher(it).isVersionMatch(targetVersions) }
+
+    val gradleVersionsToRunProp = System.getProperty("gradle.versions.to.run")
+    val gradleVersionsToRun = when {
+      gradleVersionsToRunProp.isNullOrBlank() -> allGradleVersions
+      gradleVersionsToRunProp == "FIRST_LAST" -> listOfNotNull(
+        allGradleVersions.firstOrNull(),
+        allGradleVersions.lastOrNull()
+      )
+      gradleVersionsToRunProp.startsWith("LAST:") -> {
+        val last = gradleVersionsToRunProp.removePrefix("LAST:").toInt()
+        allGradleVersions.takeLast(last)
       }
-
-      @Override
-      public String[] values() {
-        return annotation.value();
+      else -> {
+        gradleVersionsToRunProp.split(",").map { GradleVersion.version(it) }
       }
-
-      @Override
-      public String value() {
-        return getSupportedGradleVersions().stream()
-          .map(Objects::toString)
-          .collect(Collectors.joining(","));
-      }
-
-      @Override
-      public char separator() {
-        return ',';
-      }
-
-      @Override
-      public char delimiter() {
-        return ':';
-      }
-    };
-  }
-
-  @Override
-  public boolean filterArguments(@NotNull Arguments arguments, @NotNull ExtensionContext context) {
-    var gradleVersion = (GradleVersion)arguments.get()[0];
-    var targetVersions = context.getTestMethod()
-      .map(it -> it.getAnnotation(TargetVersions.class))
-      .orElse(null);
-
-    if (!matchesTargetVersions(gradleVersion, targetVersions)) return false;
-
-    String gradleVersionsToRunProp = System.getProperty("gradle.versions.to.run");
-    if (gradleVersionsToRunProp == null || !gradleVersionsToRunProp.equals("FIRST_LAST")) {
-      return true;
     }
-    else {
-      return isBoundarySupportedGradleVersion(gradleVersion, targetVersions);
-    }
-  }
 
-  private static boolean matchesTargetVersions(@NotNull GradleVersion gradleVersion, @Nullable TargetVersions targetVersions) {
-    if (targetVersions == null) return true;
-    return new VersionMatcher(gradleVersion).isVersionMatch(targetVersions);
-  }
-
-  @Override
-  public void accept(@NotNull AllGradleVersionsSource annotation) {
-    super.accept(annotation);
+    return GradleTestArgumentsProcessor.crossProductArguments(gradleVersionsToRun, annotation.value.toList())
   }
 }
