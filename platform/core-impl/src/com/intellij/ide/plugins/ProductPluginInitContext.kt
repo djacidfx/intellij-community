@@ -109,6 +109,9 @@ class ProductPluginInitContext(
   override fun provideCustomRuntimeModuleGroupAffiliation(module: PluginModuleDescriptor, pluginSet: UnambiguousPluginSet): PluginModuleDescriptor? =
     defaultRuntimeModuleGroupAffiliation(module, pluginSet)
 
+  override fun shouldIncludeContentModulesForDependsEdgeTarget(resolvedTarget: PluginMainDescriptor): Boolean =
+    defaultShouldIncludeContentModulesForDependsEdgeTarget(resolvedTarget)
+
   data class ThirdPartyPluginsWithoutConsentCheckResult(
     /** null if wasn't asked */
     val privacyNoteAccepted: Boolean?,
@@ -322,6 +325,11 @@ class ProductPluginInitContext(
           }
         }
       }
+    }
+
+    @VisibleForTesting
+    fun defaultShouldIncludeContentModulesForDependsEdgeTarget(target: PluginMainDescriptor): Boolean {
+      return target.pluginId != CORE_ID // `com.intellij` is handled by compatibility dependencies provider
     }
   }
 }

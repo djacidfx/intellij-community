@@ -4,6 +4,7 @@ package com.intellij.platform.pluginSystem.testFramework
 import com.intellij.ide.plugins.IdeaPluginDescriptorImpl
 import com.intellij.ide.plugins.PluginDependencyAnalysis.DependencyRef
 import com.intellij.ide.plugins.PluginInitializationContext
+import com.intellij.ide.plugins.PluginMainDescriptor
 import com.intellij.ide.plugins.PluginModuleDescriptor
 import com.intellij.ide.plugins.PluginModuleId
 import com.intellij.ide.plugins.PluginsPerProjectConfig
@@ -33,4 +34,6 @@ abstract class EmptyTestPluginInitContext : PluginInitializationContext {
     emptySequence()
 
   override fun provideCustomRuntimeModuleGroupAffiliation(module: PluginModuleDescriptor, pluginSet: UnambiguousPluginSet): PluginModuleDescriptor? = null
+
+  override fun shouldIncludeContentModulesForDependsEdgeTarget(resolvedTarget: PluginMainDescriptor): Boolean = true
 }

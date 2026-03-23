@@ -381,7 +381,7 @@ private class PluginSetConstraintsResolver(
         assert(target in remainingCandidatesDependencies.keys) {
           "dependency target is excluded, but the descriptor is still a candidate:\ncandidate=$descriptor\ntarget=$target"
         }
-        if (target is PluginMainDescriptor) {
+        if (target is PluginMainDescriptor && initContext.shouldIncludeContentModulesForDependsEdgeTarget(target)) {
           val remainingContentModules = target.contentModules.filter { it in remainingCandidatesDependencies.keys }
           if (remainingContentModules.isNotEmpty()) {
             contributeDependencies(remainingContentModules)

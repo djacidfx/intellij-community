@@ -74,6 +74,13 @@ interface PluginInitializationContext {
    */
   fun provideCustomRuntimeModuleGroupAffiliation(module: PluginModuleDescriptor, pluginSet: UnambiguousPluginSet): PluginModuleDescriptor?
 
+  /**
+   * To preserve compatibility, all "active" `<depends>` dependencies imply extra dependencies on all "active" content modules of the target.
+   * This method allows controlling this mechanism.
+   * @return `false` if additional edges to content modules should not be generated when there is a `<depends>` edge to the [resolvedTarget].
+   */
+  fun shouldIncludeContentModulesForDependsEdgeTarget(resolvedTarget: PluginMainDescriptor): Boolean
+
   companion object
 }
 
