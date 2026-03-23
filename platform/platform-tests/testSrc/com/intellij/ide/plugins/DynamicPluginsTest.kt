@@ -680,60 +680,56 @@ class DynamicPluginsTest {
   @Test
   @TestFor(issues = ["IDEA-287123"])
   fun testModulesConfiguration() {
-    val foo = plugin("com.intellij.foo") {
-      packagePrefix = "com.intellij.foo"
+    val foo = plugin("foo") {
+      packagePrefix = "foo"
     }
-    val bar = plugin("com.intellij.bar") {
-      packagePrefix = "com.intellij.bar"
+    val bar = plugin("bar") {
+      packagePrefix = "bar"
       content {
-        module("intellij.bar.foo") {
-          packagePrefix = "com.intellij.bar.foo"
+        module("bar.foo") {
+          packagePrefix = "bar.foo"
           moduleVisibility = ModuleVisibilityValue.PUBLIC
           dependencies { plugin(foo.id!!) }
-          extensions("""<multiHostInjector implementation="com.intellij.bar.foo.InjectorImpl"/>""")
+          extensions("""<multiHostInjector implementation="bar.foo.InjectorImpl"/>""")
         }
       }
     }
-    val baz = plugin("com.intellij.baz") {
-      packagePrefix = "com.intellij.baz"
+    val baz = plugin("baz") {
+      packagePrefix = "baz"
       dependsIntellijModulesLang()
       content {
-        module("intellij.baz.bar") {
-          packagePrefix = "com.intellij.baz.bar"
+        module("baz.bar") {
+          packagePrefix = "baz.bar"
           dependencies { plugin(bar.id!!) }
         }
-        module("intellij.baz.bar.foo") {
-          packagePrefix = "com.intellij.baz.bar.foo"
+        module("baz.bar.foo") {
+          packagePrefix = "baz.bar.foo"
           dependencies {
             plugin(foo.id!!)
-            module("intellij.bar.foo")
-            module("intellij.baz.bar")
+            module("bar.foo")
+            module("baz.bar")
           }
-          extensions("""<multiHostInjector implementation="com.intellij.baz.bar.foo.InjectorImpl"/>""")
+          extensions("""<multiHostInjector implementation="baz.bar.foo.InjectorImpl"/>""")
         }
       }
     }
 
     fun assertForModules(assertion: (String) -> Unit) {
       listOf(
-        "intellij.bar.foo",
-        "intellij.baz.bar",
-        "intellij.baz.bar.foo",
+        "bar.foo",
+        "baz.bar",
+        "baz.bar.foo",
       ).forEach(assertion)
     }
 
     val ep = MultiHostInjector.MULTIHOST_INJECTOR_EP_NAME.getPoint(projectRule.project) as ExtensionPointImpl<MultiHostInjector>
     val coreInjectorsCount = ep.size()
 
-    loadPluginWithText(
-      pluginSpec = baz,
-    ).use {
+    loadPluginWithText(pluginSpec = baz).use {
       assertForModules(::assertModuleIsNotLoaded)
       assertThat(ep.size()).isEqualTo(coreInjectorsCount)
 
-      loadPluginWithText(
-        pluginSpec = foo,
-      ).use {
+      loadPluginWithText(pluginSpec = foo).use {
         assertForModules(::assertModuleIsNotLoaded)
         assertThat(ep.size()).isEqualTo(coreInjectorsCount)
 
