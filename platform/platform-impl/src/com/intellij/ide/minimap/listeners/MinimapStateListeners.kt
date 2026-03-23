@@ -11,6 +11,8 @@ import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.ErrorStripeEvent
 import com.intellij.openapi.editor.ex.ErrorStripeListener
+import com.intellij.openapi.editor.ex.FoldingListener
+import com.intellij.openapi.editor.ex.FoldingModelEx
 import com.intellij.openapi.editor.event.CaretEvent
 import com.intellij.openapi.editor.event.CaretListener
 import com.intellij.openapi.editor.event.DocumentEvent
@@ -29,12 +31,15 @@ class MinimapStateListeners(
   private val scheduleStructureMarkersUpdate: () -> Unit,
   private val scheduleDiagnosticsUpdate: () -> Unit,
   private val scheduleBreakpointsUpdate: () -> Unit,
+  private val scheduleFoldingUpdate: () -> Unit,
+  private val invalidateLineProjection: () -> Unit,
   private val updateParameters: () -> Unit,
   private val repaint: () -> Unit,
 ) {
   private val documentListener = object : DocumentListener {
     override fun documentChanged(event: DocumentEvent) {
       if (MinimapRegistry.isLegacy()) return
+      invalidateLineProjection()
       scheduleStructureMarkersUpdate()
     }
   }
@@ -96,12 +101,21 @@ class MinimapStateListeners(
     }
   }
 
+  private val foldingListener = object : FoldingListener {
+    override fun onFoldProcessingEnd() {
+      if (MinimapRegistry.isLegacy()) return
+      invalidateLineProjection()
+      scheduleFoldingUpdate()
+    }
+  }
+
   fun install() {
     editor.scrollingModel.addVisibleAreaListener(visibleAreaListener, parentDisposable)
     editor.selectionModel.addSelectionListener(selectionListener, parentDisposable)
     editor.caretModel.addCaretListener(caretListener, parentDisposable)
     editor.document.addDocumentListener(documentListener, parentDisposable)
     (editor.markupModel as? EditorMarkupModel)?.addErrorMarkerListener(errorStripeListener, parentDisposable)
+    (editor.foldingModel as? FoldingModelEx)?.addListener(foldingListener, parentDisposable)
     (editor as? EditorEx)?.let { editorEx ->
       editorEx.markupModel.addMarkupModelListener(parentDisposable, breakpointMarkupListener)
       editorEx.filteredDocumentMarkupModel.addMarkupModelListener(parentDisposable, breakpointMarkupListener)

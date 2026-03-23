@@ -23,8 +23,10 @@ class MinimapCaretPainter(private val editor: Editor, private val panel: Minimap
   }
 
   fun caretRectForOffset(offset: Int): Rectangle? {
-    val lineCount = editor.document.lineCount
-    val context = panel.currentSnapshot()?.context ?: return null
+    val snapshot = panel.currentSnapshot() ?: return null
+    val context = snapshot.context
+    val lineProjection = context.lineProjection
+    val lineCount = lineProjection.projectedLineCount
     val geometry = context.geometry
 
     if (offset < 0 || lineCount == 0 || geometry.minimapHeight <= 0 || context.panelWidth <= 0) {
@@ -37,8 +39,9 @@ class MinimapCaretPainter(private val editor: Editor, private val panel: Minimap
     val document = editor.document
     val safeOffset = offset.coerceIn(0, document.textLength)
     val lineNumber = document.getLineNumber(safeOffset)
+    val projectedLine = lineProjection.logicalToProjectedLine(lineNumber) ?: return null
 
-    val lineStartY = getLineTop(lineNumber, baseLineHeight) - geometry.areaStart + lineGap / 2.0
+    val lineStartY = getLineTop(projectedLine, baseLineHeight) - geometry.areaStart + lineGap / 2.0
     val lineHeight = getLineHeight(baseLineHeight, lineGap)
 
     if (lineHeight <= 0.0 || lineStartY > context.panelHeight || lineStartY + lineHeight < 0) {

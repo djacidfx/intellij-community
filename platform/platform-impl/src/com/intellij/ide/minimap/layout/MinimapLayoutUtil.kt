@@ -3,6 +3,7 @@ package com.intellij.ide.minimap.layout
 
 import com.intellij.ide.minimap.geometry.MinimapGeometryData
 import com.intellij.ide.minimap.render.MinimapRenderContext
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import java.awt.geom.Rectangle2D
@@ -13,8 +14,7 @@ object MinimapLayoutUtil {
   fun getLineGap(baseLineHeight: Double): Double = (baseLineHeight * 0.5).coerceAtMost(2.0)
 
   fun computeLayoutMetrics(editor: Editor, context: MinimapRenderContext): MinimapLayoutMetrics? {
-    val document = editor.document
-    val lineCount = document.lineCount
+    val lineCount = context.lineProjection.projectedLineCount
     if (lineCount <= 0) return null
 
     val baseLineHeight = context.geometry.minimapHeight.toDouble() / lineCount
@@ -51,6 +51,31 @@ object MinimapLayoutUtil {
       .toInt()
       .coerceIn(startLine + 1, lineCount)
     return startLine until endLineExclusive
+  }
+
+  fun visibleOffsetRange(
+    context: MinimapRenderContext,
+    metrics: MinimapLayoutMetrics,
+    document: Document,
+  ): MinimapVisibleOffsetRange? {
+    if (metrics.lineCount <= 0) return null
+    if (document.textLength <= 0) return null
+
+    val visibleLines = visibleLines(context.geometry, metrics.lineCount)
+    if (visibleLines.isEmpty()) return null
+
+    val lineProjection = context.lineProjection
+    val visibleStartLine = lineProjection.projectedToLogicalLine(visibleLines.first) ?: return null
+    val visibleEndLine = lineProjection.projectedToLogicalLine(visibleLines.last) ?: return null
+    val visibleStartOffset = document.getLineStartOffset(visibleStartLine)
+    val visibleEndOffset = if (visibleEndLine + 1 < document.lineCount) {
+      document.getLineStartOffset(visibleEndLine + 1)
+    }
+    else {
+      document.textLength
+    }
+    if (visibleEndOffset <= visibleStartOffset) return null
+    return MinimapVisibleOffsetRange(visibleStartOffset, visibleEndOffset)
   }
 
   fun lineBandRect(startLine: Int,

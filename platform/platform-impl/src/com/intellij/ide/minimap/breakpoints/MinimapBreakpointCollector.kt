@@ -24,23 +24,16 @@ class MinimapBreakpointCollector(private val editor: Editor) {
     val metrics = metrics ?: return emptyList()
     val editorEx = editor as? EditorEx ?: return emptyList()
     val document = editor.document
+    val lineProjection = context.lineProjection
     val textLength = document.textLength
     if (textLength <= 0 || context.geometry.minimapHeight <= 0 || metrics.lineCount <= 0) return emptyList()
 
     val gutterWidth = metrics.contentStartX
     if (gutterWidth <= 0.0) return emptyList()
 
-    val visibleLines = MinimapLayoutUtil.visibleLines(context.geometry, metrics.lineCount)  // TODO: fix code dup, must be commoditized
-    if (visibleLines.isEmpty()) return emptyList()
-
-    val visibleStartOffset = document.getLineStartOffset(visibleLines.first)
-    val visibleEndOffset = if (visibleLines.last + 1 < metrics.lineCount) {
-      document.getLineStartOffset(visibleLines.last + 1)
-    }
-    else {
-      textLength
-    }
-    if (visibleEndOffset <= visibleStartOffset) return emptyList()
+    val visibleOffsetRange = MinimapLayoutUtil.visibleOffsetRange(context, metrics, document) ?: return emptyList()
+    val visibleStartOffset = visibleOffsetRange.startOffset
+    val visibleEndOffset = visibleOffsetRange.endOffsetExclusive
 
     val entries = ArrayList<MinimapBreakpointEntry>()
     val processedLines = HashSet<Int>()
@@ -53,18 +46,26 @@ class MinimapBreakpointCollector(private val editor: Editor) {
         val highlighter = iterator.next()
         if (!MinimapBreakpointUtil.isBreakpointHighlighter(highlighter)) continue
 
-        val line = lineForHighlighter(highlighter, document, visibleStartOffset, visibleEndOffset) ?: continue
-        if (!processedLines.add(line)) continue
+        val logicalLine = lineForHighlighter(highlighter, document, visibleStartOffset, visibleEndOffset) ?: continue
+        if (lineProjection.isLineInCollapsedRegion(logicalLine)) continue
+        val projectedLine = lineProjection.logicalToProjectedLine(logicalLine) ?: continue
+        if (!processedLines.add(projectedLine)) continue
 
         val rect = MinimapLayoutUtil.rectFromDoubles(
           x1 = 0.0,
           x2 = gutterWidth,
-          y1 = line * metrics.baseLineHeight,
-          y2 = (line + 1) * metrics.baseLineHeight,
+          y1 = projectedLine * metrics.baseLineHeight,
+          y2 = (projectedLine + 1) * metrics.baseLineHeight,
           areaStart = context.geometry.areaStart.toDouble(),
           maxWidth = gutterWidth,
         )
-        entries.add(MinimapBreakpointEntry(rect, colorFor(highlighter)))
+        entries.add(
+          MinimapBreakpointEntry(
+            projectedLine = projectedLine,
+            rect2d = rect,
+            color = colorFor(highlighter),
+          ),
+        )
       }
     }
 
@@ -98,7 +99,7 @@ class MinimapBreakpointCollector(private val editor: Editor) {
 
   companion object {
     private const val MAX_BREAKPOINT_ENTRIES = 2_000
-    private val ACTIVE_BREAKPOINT_COLOR = JBColor(0xE53935, 0xFF6B6B)
-    private val INACTIVE_BREAKPOINT_COLOR = JBColor(0xC38D00, 0xFFD24D)
+    private val ACTIVE_BREAKPOINT_COLOR = JBColor.RED
+    private val INACTIVE_BREAKPOINT_COLOR = JBColor.GRAY
   }
 }

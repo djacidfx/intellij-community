@@ -9,9 +9,12 @@ import com.intellij.openapi.editor.ex.util.EditorUtil
 import kotlin.math.min
 
 class MinimapGeometryCalculator(private val editor: Editor) {
-  fun compute(panelHeight: Int, scaleData: MinimapScaleData, scaleMode: MinimapScaleMode): MinimapGeometryData {
+  fun compute(panelHeight: Int,
+              scaleData: MinimapScaleData,
+              scaleMode: MinimapScaleMode,
+              projectedLineCount: Int): MinimapGeometryData {
     val visibleArea = editor.scrollingModel.visibleArea
-    val contentHeight = MinimapScaleUtil.contentHeight(editor, scaleMode)
+    val contentHeight = MinimapScaleUtil.contentHeight(editor, projectedLineCount)
 
     val rightMargin = MinimapLayoutUtil.getRightMarginChars(editor)
     val charWidth = EditorUtil.getPlainSpaceWidth(editor)

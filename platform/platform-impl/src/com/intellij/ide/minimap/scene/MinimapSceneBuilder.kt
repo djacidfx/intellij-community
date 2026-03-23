@@ -3,6 +3,7 @@ package com.intellij.ide.minimap.scene
 
 import com.intellij.ide.minimap.breakpoints.MinimapBreakpointCollector
 import com.intellij.ide.minimap.diagnostics.MinimapDiagnosticsCollector
+import com.intellij.ide.minimap.folding.MinimapFoldMarkerCollector
 import com.intellij.ide.minimap.geometry.MinimapGeometryCalculator
 import com.intellij.ide.minimap.geometry.MinimapScaleData
 import com.intellij.ide.minimap.layout.MinimapLayoutCalculator
@@ -22,6 +23,7 @@ class MinimapSceneBuilder(
 ) {
   private val diagnosticsCollector = MinimapDiagnosticsCollector(editor)
   private val breakpointCollector = MinimapBreakpointCollector(editor)
+  private val foldCollector = MinimapFoldMarkerCollector()
   private var lastStructureMarkers: List<MinimapStructureMarker> = emptyList()
 
   fun buildSnapshot(panelWidth: Int,
@@ -29,12 +31,14 @@ class MinimapSceneBuilder(
                     scaleData: MinimapScaleData,
                     scaleMode: MinimapScaleMode,
                     isLegacy: Boolean): MinimapSnapshot {
-    val geometry = geometryCalculator.compute(panelHeight, scaleData, scaleMode)
+    val lineProjection = model.getLineProjection()
+    val geometry = geometryCalculator.compute(panelHeight, scaleData, scaleMode, lineProjection.projectedLineCount)
     val context = MinimapRenderContext(
       editor = editor,
       panelWidth = panelWidth,
       panelHeight = panelHeight,
-      geometry = geometry
+      geometry = geometry,
+      lineProjection = lineProjection,
     )
 
     if (isLegacy) {
@@ -45,6 +49,7 @@ class MinimapSceneBuilder(
         structureEntries = emptyList(),
         diagnosticEntries = emptyList(),
         breakpointEntries = emptyList(),
+        foldEntries = emptyList(),
         layoutMetrics = null,
         layoutMode = MinimapLayoutMode.EXACT,
       )
@@ -62,6 +67,7 @@ class MinimapSceneBuilder(
     val layout = layoutCalculator.buildLayout(context, structureMarkers, layoutMode)
     val diagnosticEntries = diagnosticsCollector.buildEntries(context, layout.metrics)
     val breakpointEntries = breakpointCollector.buildEntries(context, layout.metrics, layoutMode)
+    val foldEntries = foldCollector.buildEntries(context, layout.metrics)
 
     return MinimapSnapshot(
       context = context,
@@ -70,6 +76,7 @@ class MinimapSceneBuilder(
       structureEntries = layout.structureEntries,
       diagnosticEntries = diagnosticEntries,
       breakpointEntries = breakpointEntries,
+      foldEntries = foldEntries,
       layoutMetrics = layout.metrics,
       layoutMode = layoutMode,
     )

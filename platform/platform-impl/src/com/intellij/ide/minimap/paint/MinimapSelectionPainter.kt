@@ -28,6 +28,7 @@ class MinimapSelectionPainter(private val editor: Editor) {
     val baseLineHeight = metrics.baseLineHeight
     if (baseLineHeight <= 0.0) return
 
+    val lineProjection = context.lineProjection
     val lineHeight = baseLineHeight.coerceAtLeast(1.0)
     val contentStartX = metrics.contentStartX
     val contentEndX = contentStartX + metrics.contentWidth
@@ -52,6 +53,7 @@ class MinimapSelectionPainter(private val editor: Editor) {
       var previousRect: SelectionRect? = null
 
       for (line in startLine..endLine) {
+        val projectedLine = lineProjection.logicalToVisibleProjectedLine(line) ?: continue
         val lineStartOffset = document.getLineStartOffset(line)
         val lineEndOffset = document.getLineEndOffset(line)
         val segmentStart = if (line == startLine) selectionStart else lineStartOffset
@@ -69,12 +71,12 @@ class MinimapSelectionPainter(private val editor: Editor) {
           metrics.contentWidth
         }
 
-        val y = line * baseLineHeight - context.geometry.areaStart
+        val y = projectedLine * baseLineHeight - context.geometry.areaStart
         if (y > maxYOffset || y + lineHeight < 0.0) continue
 
-        val rect = clampSelectionRect(line, x, y, width, lineHeight, contentStartX, contentEndX, style.horizontalPaddingPx) ?: continue
+        val rect = clampSelectionRect(projectedLine, x, y, width, lineHeight, contentStartX, contentEndX, style.horizontalPaddingPx) ?: continue
         previousRect?.let { prev ->
-          if (prev.line + 1 == line) {
+          if (prev.line + 1 == projectedLine) {
             fillConnector(graphics, prev, rect, contentStartX, contentEndX, maxYOffset, style.connectorHeightPx)
           }
         }

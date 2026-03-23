@@ -1,10 +1,12 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.minimap.hover
 
+import com.intellij.ide.minimap.layout.MinimapLayoutUtil.lineTop
 import com.intellij.ide.minimap.render.MinimapRenderEntry
 import com.intellij.ide.minimap.model.MinimapStructureMarkerPolicy
 import com.intellij.ide.minimap.render.MinimapRenderContext
 import com.intellij.ide.minimap.scene.MinimapSnapshot
+import com.intellij.navigation.ItemPresentation
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.TextRange
@@ -71,21 +73,25 @@ class MinimapHoverHitCheck(private val editor: Editor) {
 
   private fun computeHoverRect(range: TextRange, context: MinimapRenderContext): Rectangle? {
     val document = editor.document
-    val lineCount = document.lineCount
+    val lineProjection = context.lineProjection
+    val lineCount = lineProjection.projectedLineCount
     val geometry = context.geometry
 
     if (lineCount <= 0 || geometry.minimapHeight <= 0 || context.panelWidth <= 0) return null
 
     val startLine = document.getLineNumber(range.startOffset.coerceAtLeast(0))
+    val projectedStartLine = lineProjection.logicalToProjectedLine(startLine) ?: return null
 
-    val endLineExclusive = (document.getLineNumber(range.endOffset.coerceAtLeast(range.startOffset)) + 1)
+    val endLine = document.getLineNumber(range.endOffset.coerceAtLeast(range.startOffset))
+    val projectedEndLine = lineProjection.logicalToProjectedLine(endLine) ?: projectedStartLine
+    val endLineExclusive = (projectedEndLine + 1)
       .coerceAtMost(lineCount)
-      .coerceAtLeast(startLine + 1)
+      .coerceAtLeast(projectedStartLine + 1)
 
     val baseLineHeight = baseLineHeight(lineCount, geometry.minimapHeight)
     val lineGap = (baseLineHeight * 0.5).coerceAtMost(2.0)
 
-    val y1 = lineTop(startLine, baseLineHeight)
+    val y1 = lineTop(projectedStartLine, baseLineHeight)
     val y2 = lineTop(endLineExclusive, baseLineHeight)
 
     val heightPx = ceil(y2 - y1 - lineGap).toInt().coerceAtLeast(1)
@@ -109,17 +115,22 @@ class MinimapHoverHitCheck(private val editor: Editor) {
       } ?: return@computeBlocking null
 
       val presentation = element.presentation
-      val text = presentation.presentableText?.takeIf { it.isNotBlank() }
-        ?: (value as? PsiNameIdentifierOwner)?.name?.takeIf { it.isNotBlank() }
+      val text = getText(presentation, value)
       val icon = if (text != null) presentation.getIcon(false) else null
 
       HoverData(range, text, icon)
     }
   }
 
+  private fun getText(presentation: ItemPresentation, value: Any): String? {
+    val presentableText = presentation.presentableText?.takeUnless { it.isBlank() }
+    if (presentableText != null) return presentableText
+
+    val owner = value as? PsiNameIdentifierOwner ?: return null
+    return owner.name?.takeUnless { it.isBlank() }
+  }
+
   private fun baseLineHeight(lineCount: Int, minimapHeight: Int): Double {
     return minimapHeight.toDouble() / lineCount
   }
-
-  private fun lineTop(line: Int, baseLineHeight: Double): Double = line * baseLineHeight
 }

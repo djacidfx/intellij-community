@@ -2,6 +2,7 @@
 package com.intellij.ide.minimap
 
 import com.intellij.ide.minimap.breakpoints.MinimapBreakpointPainter
+import com.intellij.ide.minimap.folding.MinimapFoldMarkerPainter
 import com.intellij.ide.minimap.legacy.MinimapLegacyPreview
 import com.intellij.ide.minimap.geometry.MinimapScaleUtil
 import com.intellij.ide.minimap.hover.MinimapHoverController
@@ -43,6 +44,7 @@ class MinimapPanel(
 
   private val selectionPainter = MinimapSelectionPainter(editor)
   private val diagnosticsPainter = MinimapDiagnosticsPainter(editor)
+  private val foldPainter = MinimapFoldMarkerPainter()
   private val breakpointPainter = MinimapBreakpointPainter()
 
   private val legacyPreview = MinimapLegacyPreview { repaint() }
@@ -141,6 +143,7 @@ class MinimapPanel(
       renderer.paint(g2d, snapshot.context, snapshot.tokenEntries, snapshot.layoutMetrics)
       selectionPainter.paint(g2d, snapshot.context, snapshot.layoutMetrics)
       diagnosticsPainter.paint(g2d, snapshot.diagnosticEntries)
+      foldPainter.paint(g2d, snapshot.foldEntries, snapshot.breakpointEntries, snapshot.layoutMetrics)
       breakpointPainter.paint(g2d, snapshot.breakpointEntries)
       hoverController.paint(g2d)
     }
@@ -208,7 +211,8 @@ class MinimapPanel(
   }
 
   private fun contentHeight(): Int {
-    return MinimapScaleUtil.contentHeight(editor, settingsState.scaleMode)
+    val projectedLineCount = currentSnapshot()?.context?.lineProjection?.projectedLineCount ?: editor.document.lineCount
+    return MinimapScaleUtil.contentHeight(editor, projectedLineCount)
   }
 
   private fun installSettingsListeners() {

@@ -61,8 +61,10 @@ class MinimapController(
     editor = editor,
     caretController = caretController,
     scheduleStructureMarkersUpdate = ::scheduleStructureMarkersUpdate,
-    scheduleDiagnosticsUpdate = ::scheduleDiagnosticsUpdate,
-    scheduleBreakpointsUpdate = ::scheduleDiagnosticsUpdate,
+    scheduleDiagnosticsUpdate = { scheduleDiagnosticsUpdate() },
+    scheduleBreakpointsUpdate = { scheduleDiagnosticsUpdate() },
+    scheduleFoldingUpdate = { scheduleDiagnosticsUpdate() },
+    invalidateLineProjection = model::invalidateLineProjection,
     updateParameters = ::refreshSnapshot,
     repaint = panel::repaint,
   )

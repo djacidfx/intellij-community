@@ -4,6 +4,7 @@ package com.intellij.ide.minimap.diagnostics
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.ide.minimap.layout.MinimapLayoutMetrics
 import com.intellij.ide.minimap.layout.MinimapLayoutUtil
+import com.intellij.ide.minimap.model.MinimapLineProjection
 import com.intellij.ide.minimap.render.MinimapRenderContext
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.editor.Document
@@ -12,28 +13,22 @@ import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.ex.MarkupIterator
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.markup.HighlighterTargetArea
+import java.awt.geom.Rectangle2D
 
 class MinimapDiagnosticsCollector(private val editor: Editor) {
   fun buildEntries(context: MinimapRenderContext, metrics: MinimapLayoutMetrics?): List<MinimapDiagnosticEntry> {
     val metrics = metrics ?: return emptyList()
     val editorEx = editor as? EditorEx ?: return emptyList()
     val document = editor.document
+    val lineProjection = context.lineProjection
     val textLength = document.textLength
     if (textLength <= 0 || context.panelWidth <= 0 || context.geometry.minimapHeight <= 0 || metrics.lineCount <= 0) {
       return emptyList()
     }
 
-    val visibleLines = MinimapLayoutUtil.visibleLines(context.geometry, metrics.lineCount)
-    if (visibleLines.isEmpty()) return emptyList()
-
-    val visibleStartOffset = document.getLineStartOffset(visibleLines.first)
-    val visibleEndOffset = if (visibleLines.last + 1 < metrics.lineCount) {
-      document.getLineStartOffset(visibleLines.last + 1)
-    }
-    else {
-      textLength
-    }
-    if (visibleEndOffset <= visibleStartOffset) return emptyList()
+    val visibleOffsetRange = MinimapLayoutUtil.visibleOffsetRange(context, metrics, document) ?: return emptyList()
+    val visibleStartOffset = visibleOffsetRange.startOffset
+    val visibleEndOffset = visibleOffsetRange.endOffsetExclusive
 
     val entries = ArrayList<MinimapDiagnosticEntry>()
     MarkupIterator.mergeIterators(
@@ -53,6 +48,7 @@ class MinimapDiagnosticsCollector(private val editor: Editor) {
           context = context,
           metrics = metrics,
           document = document,
+          lineProjection = lineProjection,
           textLength = textLength,
           visibleStartOffset = visibleStartOffset,
           visibleEndOffset = visibleEndOffset,
@@ -80,6 +76,7 @@ class MinimapDiagnosticsCollector(private val editor: Editor) {
     context: MinimapRenderContext,
     metrics: MinimapLayoutMetrics,
     document: Document,
+    lineProjection: MinimapLineProjection,
     textLength: Int,
     visibleStartOffset: Int,
     visibleEndOffset: Int,
@@ -104,11 +101,13 @@ class MinimapDiagnosticsCollector(private val editor: Editor) {
       }
       if (segmentEndExclusive <= segmentStart) continue
 
+      if (lineProjection.isLineInCollapsedRegion(line)) continue
+      val projectedLine = lineProjection.logicalToProjectedLine(line) ?: continue
       val rect = lineRect(
         highlighter = highlighter,
         context = context,
         metrics = metrics,
-        line = line,
+        projectedLine = projectedLine,
         lineStartOffset = lineStartOffset,
         segmentStart = segmentStart,
         segmentEndExclusive = segmentEndExclusive,
@@ -121,35 +120,37 @@ class MinimapDiagnosticsCollector(private val editor: Editor) {
     highlighter: RangeHighlighterEx,
     context: MinimapRenderContext,
     metrics: MinimapLayoutMetrics,
-    line: Int,
+    projectedLine: Int,
     lineStartOffset: Int,
     segmentStart: Int,
     segmentEndExclusive: Int,
-  ) = if (highlighter.targetArea == HighlighterTargetArea.LINES_IN_RANGE || metrics.pxPerColumn <= 0.0) {
-    val contentStartX = metrics.contentStartX
-    val contentEndX = contentStartX + metrics.contentWidth
-    MinimapLayoutUtil.rectFromDoubles(
-      x1 = contentStartX,
-      x2 = contentEndX,
-      y1 = line * metrics.baseLineHeight,
-      y2 = (line + 1) * metrics.baseLineHeight,
-      areaStart = context.geometry.areaStart.toDouble(),
-      maxWidth = contentEndX,
-    )
-  }
-  else {
-    val contentStartX = metrics.contentStartX
-    val contentEndX = contentStartX + metrics.contentWidth
-    val startColumn = (segmentStart - lineStartOffset).coerceAtLeast(0)
-    val endColumn = (segmentEndExclusive - lineStartOffset).coerceAtLeast(startColumn + 1)
-    MinimapLayoutUtil.rectFromDoubles(
-      x1 = contentStartX + startColumn * metrics.pxPerColumn,
-      x2 = contentStartX + endColumn * metrics.pxPerColumn,
-      y1 = line * metrics.baseLineHeight,
-      y2 = (line + 1) * metrics.baseLineHeight,
-      areaStart = context.geometry.areaStart.toDouble(),
-      maxWidth = contentEndX,
-    )
+  ):  Rectangle2D.Double {
+    return if (highlighter.targetArea == HighlighterTargetArea.LINES_IN_RANGE || metrics.pxPerColumn <= 0.0) {
+      val contentStartX = metrics.contentStartX
+      val contentEndX = contentStartX + metrics.contentWidth
+      MinimapLayoutUtil.rectFromDoubles(
+        x1 = contentStartX,
+        x2 = contentEndX,
+        y1 = projectedLine * metrics.baseLineHeight,
+        y2 = (projectedLine + 1) * metrics.baseLineHeight,
+        areaStart = context.geometry.areaStart.toDouble(),
+        maxWidth = contentEndX,
+      )
+    }
+    else {
+      val contentStartX = metrics.contentStartX
+      val contentEndX = contentStartX + metrics.contentWidth
+      val startColumn = (segmentStart - lineStartOffset).coerceAtLeast(0)
+      val endColumn = (segmentEndExclusive - lineStartOffset).coerceAtLeast(startColumn + 1)
+      MinimapLayoutUtil.rectFromDoubles(
+        x1 = contentStartX + startColumn * metrics.pxPerColumn,
+        x2 = contentStartX + endColumn * metrics.pxPerColumn,
+        y1 = projectedLine * metrics.baseLineHeight,
+        y2 = (projectedLine + 1) * metrics.baseLineHeight,
+        areaStart = context.geometry.areaStart.toDouble(),
+        maxWidth = contentEndX,
+      )
+    }
   }
 
   companion object {

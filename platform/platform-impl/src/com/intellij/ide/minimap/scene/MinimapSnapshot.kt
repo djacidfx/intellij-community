@@ -3,6 +3,7 @@ package com.intellij.ide.minimap.scene
 
 import com.intellij.ide.minimap.breakpoints.MinimapBreakpointEntry
 import com.intellij.ide.minimap.diagnostics.MinimapDiagnosticEntry
+import com.intellij.ide.minimap.folding.MinimapFoldMarkerEntry
 import com.intellij.ide.minimap.geometry.MinimapGeometryData
 import com.intellij.ide.minimap.layout.MinimapLayoutMetrics
 import com.intellij.ide.minimap.layout.MinimapLayoutMode
@@ -16,6 +17,7 @@ data class MinimapSnapshot(
   val structureEntries: List<MinimapRenderEntry>,
   val diagnosticEntries: List<MinimapDiagnosticEntry>,
   val breakpointEntries: List<MinimapBreakpointEntry>,
+  val foldEntries: List<MinimapFoldMarkerEntry>,
   val layoutMetrics: MinimapLayoutMetrics?,
   val layoutMode: MinimapLayoutMode,
 )

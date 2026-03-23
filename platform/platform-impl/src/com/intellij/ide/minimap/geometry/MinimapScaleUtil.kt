@@ -6,19 +6,12 @@ import com.intellij.ide.minimap.settings.MinimapScaleMode
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.util.ui.JBUI
-import kotlin.math.min
 
 object MinimapScaleUtil {
   private val MIN_FIT_WIDTH: Int = JBUI.scale(60)
 
-  fun contentHeight(editor: Editor, scaleMode: MinimapScaleMode): Int {
-    val documentHeight = documentHeight(editor)
-    return if (scaleMode == MinimapScaleMode.FIT) {
-      documentHeight
-    }
-    else {
-      min(editor.contentComponent.height.toLong(), documentHeight.toLong()).toInt()
-    }
+  fun contentHeight(editor: Editor, projectedLineCount: Int = editor.document.lineCount): Int {
+    return documentHeight(editor, projectedLineCount)
   }
 
   fun computeScale(editor: Editor,
@@ -30,7 +23,7 @@ object MinimapScaleUtil {
       return MinimapScaleData(width = maxWidth, fitToHeight = false)
     }
 
-    val documentHeight = documentHeight(editor)
+    val documentHeight = documentHeight(editor, editor.document.lineCount)
     if (documentHeight <= 0 || panelHeight <= 0) {
       return MinimapScaleData(width = maxWidth, fitToHeight = false)
     }
@@ -51,8 +44,7 @@ object MinimapScaleUtil {
     return computeScale(editor, panelHeight, fixedWidth, scaleMode).width
   }
 
-  private fun documentHeight(editor: Editor): Int {
-    val lineCount = editor.document.lineCount
+  private fun documentHeight(editor: Editor, lineCount: Int): Int {
     if (lineCount <= 0) return 0
     val height = lineCount.toLong() * editor.lineHeight.toLong()
     return height.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()

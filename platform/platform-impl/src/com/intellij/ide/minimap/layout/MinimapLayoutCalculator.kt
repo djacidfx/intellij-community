@@ -2,6 +2,7 @@
 package com.intellij.ide.minimap.layout
 
 import com.intellij.ide.minimap.model.MinimapStructureMarker
+import com.intellij.ide.minimap.model.MinimapLineProjection
 import com.intellij.ide.minimap.render.MinimapRenderContext
 import com.intellij.ide.minimap.render.MinimapRenderEntry
 import com.intellij.openapi.editor.Editor
@@ -72,7 +73,13 @@ class MinimapLayoutCalculator(private val editor: Editor) {
     val tokenEntries = ArrayList<MinimapRenderEntry>()
     val structureEntries = ArrayList<MinimapRenderEntry>(structureMarkers.size)
     val visibleLines = MinimapLayoutUtil.visibleLines(geometry, lineCount)
-    val layout = MinimapLayoutContext(document, metrics, geometry.areaStart.toDouble(), visibleLines)
+    val layout = MinimapLayoutContext(
+      document = document,
+      metrics = metrics,
+      areaStart = geometry.areaStart.toDouble(),
+      visibleLines = visibleLines,
+      lineProjection = context.lineProjection,
+    )
     return LayoutBuildState(layout, documentLength, tokenEntries, structureEntries)
   }
 
@@ -87,15 +94,18 @@ class MinimapLayoutCalculator(private val editor: Editor) {
   private fun appendTokenFillers(prepared: LayoutBuildState) {
     val result = prepared.tokenEntries
     val context = prepared.layout
+    val lineProjection = context.lineProjection
     val pxPerColumn = context.metrics.pxPerColumn
     val document = context.document
     val chars = document.charsSequence
     if (context.visibleLines.isEmpty()) return
-    val iterator = editor.highlighter.createIterator(document.getLineStartOffset(context.visibleLines.first))
+    val firstLogicalLine = lineProjection.projectedToLogicalLine(context.visibleLines.first) ?: return
+    val iterator = editor.highlighter.createIterator(document.getLineStartOffset(firstLogicalLine))
 
-    for (line in context.visibleLines) {
-      val lineStartOffset = document.getLineStartOffset(line)
-      val lineEndOffset = document.getLineEndOffset(line)
+    for (projectedLine in context.visibleLines) {
+      val logicalLine = lineProjection.projectedToLogicalLine(projectedLine) ?: continue
+      val lineStartOffset = document.getLineStartOffset(logicalLine)
+      val lineEndOffset = document.getLineEndOffset(logicalLine)
       while (!iterator.atEnd() && iterator.end <= lineStartOffset) {
         iterator.advance()
       }
@@ -104,7 +114,7 @@ class MinimapLayoutCalculator(private val editor: Editor) {
       val trimmedEndOffset = trimLineEnd(chars, lineStartOffset, lineEndOffset)
       if (trimmedEndOffset <= lineStartOffset) continue
 
-      val band = getLineBand(line, line + 1, context) ?: continue
+      val band = getLineBand(projectedLine, projectedLine + 1, context) ?: continue
 
       while (!iterator.atEnd() && iterator.start < trimmedEndOffset) {
         val tokenStart = iterator.start.coerceAtLeast(lineStartOffset)
@@ -130,6 +140,7 @@ class MinimapLayoutCalculator(private val editor: Editor) {
   private fun appendDenseFillers(prepared: LayoutBuildState) {
     val result = prepared.tokenEntries
     val context = prepared.layout
+    val lineProjection = context.lineProjection
     val visibleLines = context.visibleLines
     if (visibleLines.isEmpty()) return
 
@@ -148,7 +159,7 @@ class MinimapLayoutCalculator(private val editor: Editor) {
         line = bandEndLine
         continue
       }
-      appendDenseBandFillers(result, context, band, line, bandEndLine)
+      appendDenseBandFillers(result, context, band, lineProjection, line, bandEndLine)
       line = bandEndLine
     }
   }
@@ -156,30 +167,33 @@ class MinimapLayoutCalculator(private val editor: Editor) {
   private fun appendDenseBandFillers(result: MutableList<MinimapRenderEntry>,
                                      context: MinimapLayoutContext,
                                      band: LineBand,
+                                     lineProjection: MinimapLineProjection,
                                      startLine: Int,
                                      endLineExclusive: Int) {
     val lineCount = endLineExclusive - startLine
     if (lineCount <= 0) return
 
-    appendDenseSampleForLine(result, context, band, startLine)
+    appendDenseSampleForLine(result, context, band, lineProjection, startLine)
 
     if (lineCount > 2) {
-      appendDenseSampleForLine(result, context, band, startLine + lineCount / 2)
+      appendDenseSampleForLine(result, context, band, lineProjection, startLine + lineCount / 2)
     }
 
     if (lineCount > 1) {
-      appendDenseSampleForLine(result, context, band, endLineExclusive - 1)
+      appendDenseSampleForLine(result, context, band, lineProjection, endLineExclusive - 1)
     }
   }
 
   private fun appendDenseSampleForLine(result: MutableList<MinimapRenderEntry>,
                                        context: MinimapLayoutContext,
                                        band: LineBand,
-                                       line: Int) {
+                                       lineProjection: MinimapLineProjection,
+                                       projectedLine: Int) {
+    val logicalLine = lineProjection.projectedToLogicalLine(projectedLine) ?: return
     val document = context.document
     val chars = document.charsSequence
-    val lineStartOffset = document.getLineStartOffset(line)
-    val lineEndOffset = document.getLineEndOffset(line)
+    val lineStartOffset = document.getLineStartOffset(logicalLine)
+    val lineEndOffset = document.getLineEndOffset(logicalLine)
     if (lineEndOffset <= lineStartOffset) return
 
     val trimmedEndOffset = trimLineEnd(chars, lineStartOffset, lineEndOffset)
@@ -207,8 +221,9 @@ class MinimapLayoutCalculator(private val editor: Editor) {
     val context = prepared.layout
     val documentLength = prepared.documentLength
     val document = context.document
+    val lineProjection = context.lineProjection
     val pxPerColumn = context.metrics.pxPerColumn
-    val lineCount = context.metrics.lineCount
+    val projectedLineCount = context.metrics.lineCount
 
     for (marker in structureMarkers) {
       val range = resolveRange(marker) ?: continue
@@ -216,8 +231,9 @@ class MinimapLayoutCalculator(private val editor: Editor) {
       val startOffset = range.startOffset.coerceIn(0, documentLength)
       val endOffset = range.endOffset.coerceIn(startOffset, documentLength)
       val startLine = document.getLineNumber(startOffset)
-      val endLine = (startLine + 1).coerceAtMost(lineCount)
-      val band = getLineBand(startLine, endLine, context) ?: continue
+      val projectedStartLine = lineProjection.logicalToProjectedLine(startLine) ?: continue
+      val projectedEndLine = (projectedStartLine + 1).coerceAtMost(projectedLineCount)
+      val band = getLineBand(projectedStartLine, projectedEndLine, context) ?: continue
 
       val lineStartOffset = document.getLineStartOffset(startLine)
       val lineEndOffset = document.getLineEndOffset(startLine)
