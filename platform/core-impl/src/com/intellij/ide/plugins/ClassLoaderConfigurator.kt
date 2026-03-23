@@ -64,7 +64,7 @@ class ClassLoaderConfigurator(
   }
 
   fun configure() {
-    for (module in pluginSet.getEnabledModules()) {
+    for (module in pluginSet.classloaderConfigurationOrderOverride ?: pluginSet.getEnabledModules()) {
       configureModule(module)
     }
   }
@@ -167,13 +167,23 @@ class ClassLoaderConfigurator(
   private fun getSortedDependencies(module: PluginModuleDescriptor): Array<PluginModuleDescriptor> {
     val dependenciesList = pluginSet.getSortedDependencies(module)
     var mutableDependenciesList: MutableList<PluginModuleDescriptor>? = null
+    fun contributeDependencies(dependencies: Collection<PluginModuleDescriptor>) {
+      if (mutableDependenciesList == null) {
+        mutableDependenciesList = dependenciesList.toMutableList()
+      }
+      mutableDependenciesList.addAll(dependencies)
+    }
     if (module is PluginMainDescriptor) {
       for (module in module.contentModules) {
         if (module.moduleLoadingRule == ModuleLoadingRule.EMBEDDED) {
-          if (mutableDependenciesList == null) {
-            mutableDependenciesList = dependenciesList.toMutableList()
-          }
-          mutableDependenciesList.addAll(pluginSet.getSortedDependencies(module))
+          contributeDependencies(pluginSet.getSortedDependencies(module))
+        }
+      }
+      if (!PluginManagerCore.fallbackToOldPluginSetResolution()) {
+        // new resolver does not automatically treat "depends" sub-descriptor's dependencies as dependencies of the main module
+        for (descriptor in sequence { yieldAllDependsSubDescriptors(module) }) {
+          if (!descriptor.isEnabled) continue
+          contributeDependencies(pluginSet.getSortedDependencies(descriptor))
         }
       }
     }

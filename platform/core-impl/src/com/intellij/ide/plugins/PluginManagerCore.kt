@@ -626,11 +626,20 @@ object PluginManagerCore {
         logger.warn("========= Plugin Set Resolution Diff =========")
         val (oldEnabledModules, newEnabledModules) = oldSet.getEnabledModules() to adaptedPluginSet.getEnabledModules()
         if (oldEnabledModules != newEnabledModules) {
-          logger.warn("!!! Old enabled modules:\n" + oldEnabledModules.joinToString("\n") + "\n\n")
-          logger.warn("!!! New enabled modules:\n" + newEnabledModules.joinToString("\n") + "\n\n")
+          logger.warn("!!! Old enabled modules:\n" + oldEnabledModules.joinToString("\n") + "\n")
+          logger.warn("!!! New enabled modules:\n" + newEnabledModules.joinToString("\n") + "\n")
         }
         else {
           logger.warn("Enabled modules are identical")
+        }
+
+        val newClassloaderConfOrder = adaptedPluginSet.classloaderConfigurationOrderOverride ?: adaptedPluginSet.getEnabledModules()
+        val oldClassloaderOrder = oldSet.classloaderConfigurationOrderOverride ?: oldSet.getEnabledModules()
+        if (newClassloaderConfOrder != oldClassloaderOrder) {
+          logger.warn("!!! Old classloader configuration order:\n" + oldClassloaderOrder.joinToString("\n") + "\n")
+          logger.warn("!!! New classloader configuration order:\n" + newClassloaderConfOrder.joinToString("\n") + "\n")
+        } else {
+          logger.warn("Classloader configuration order is identical")
         }
         logger.warn("==============================================")
       }
@@ -751,7 +760,16 @@ object PluginManagerCore {
       enabledModuleMap = resolvedModules.keys.asSequence().filterIsInstance<ContentModuleDescriptor>().associateBy { it.moduleId },
       enabledPluginAndV1ModuleMap = enabledPluginAndV1ModuleMap,
       enabledModules = resolvedModules.keys.toList(),
+      classloaderConfigurationOrderOverride = resolvedPluginSet.runtimeModuleGroupGraph.sortedGroups.asSequence()
+        .flatMap { it.sortedDescriptors }.filterIsInstance<PluginModuleDescriptor>().toList(),
       topologicalComparator = topologicalComparator,
+      dependsDirectDependencies = resolvedPluginSet.sortedResolvedDescriptors.filterIsInstance<DependsSubDescriptor>()
+        .associateWith { depends ->
+          val main = depends.getMainDescriptor()
+          resolvedPluginSet.getDirectResolvedDependencies(depends)
+            .filterIsInstance<PluginModuleDescriptor>()
+            .filter { it !== main }
+        }
     )
     return pluginSet to cycleErrors
   }

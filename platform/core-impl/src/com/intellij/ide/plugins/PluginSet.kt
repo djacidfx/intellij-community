@@ -18,13 +18,21 @@ class PluginSet internal constructor(
   private val enabledPluginAndV1ModuleMap: Map<PluginId, PluginModuleDescriptor>,
   private val enabledModules: List<PluginModuleDescriptor>,
   private val topologicalComparator: Comparator<PluginModuleDescriptor>,
+  val classloaderConfigurationOrderOverride: List<PluginModuleDescriptor>?,
+  val dependsDirectDependencies: Map<DependsSubDescriptor, List<PluginModuleDescriptor>>?,
 ) {
   /**
    * You must not use this method before [ClassLoaderConfigurator.configure].
    */
   fun getEnabledModules(): List<PluginModuleDescriptor> = enabledModules
 
-  internal fun getSortedDependencies(moduleDescriptor: PluginModuleDescriptor): List<PluginModuleDescriptor> {
+  internal fun getSortedDependencies(moduleDescriptor: IdeaPluginDescriptorImpl): List<PluginModuleDescriptor> {
+    if (moduleDescriptor is DependsSubDescriptor) {
+      if (PluginManagerCore.fallbackToOldPluginSetResolution() || dependsDirectDependencies == null) {
+        return Collections.emptyList()
+      }
+      return dependsDirectDependencies[moduleDescriptor] ?: Collections.emptyList()
+    }
     return sortedModulesWithDependencies.directDependencies.getOrDefault(moduleDescriptor, Collections.emptyList())
   }
 

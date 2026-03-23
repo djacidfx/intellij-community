@@ -286,6 +286,8 @@ class PluginSetBuilder(initContext: PluginInitializationContext, @JvmField val u
         }
       },
       topologicalComparator = topologicalComparator,
+      classloaderConfigurationOrderOverride = null,
+      dependsDirectDependencies = null, // dependencies from "depends" are already accounted in main plugin descriptors
     )
   }
 
