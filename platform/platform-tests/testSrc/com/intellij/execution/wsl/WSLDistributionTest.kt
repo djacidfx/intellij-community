@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 @file:Suppress("ClassName")
 
 package com.intellij.execution.wsl
@@ -59,6 +59,7 @@ import org.junit.jupiter.api.extension.TestTemplateInvocationContext
 import org.junit.jupiter.api.extension.TestTemplateInvocationContextProvider
 import java.io.File
 import java.nio.file.FileSystems
+import java.util.UUID
 import java.util.stream.Stream
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.isAccessible
@@ -555,6 +556,8 @@ private class MockIjentApi(private val adapter: GeneralCommandLine, val rootUser
   override val fs: IjentFileSystemPosixApi get() = throw UnsupportedOperationException()
 
   override val tunnels: IjentTunnelsPosixApi get() = throw UnsupportedOperationException()
+
+  override suspend fun requestHyperVTransports(vmId: UUID): Boolean = false
 }
 
 private class MockIjentExecApi(private val adapter: GeneralCommandLine, private val rootUser: Boolean) : EelExecPosixApi {

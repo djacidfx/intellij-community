@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.platform.ijent
 
 import com.intellij.platform.eel.EelApi
@@ -8,6 +8,7 @@ import com.intellij.platform.eel.EelWindowsApi
 import com.intellij.platform.ijent.fs.IjentFileSystemApi
 import com.intellij.platform.ijent.fs.IjentFileSystemPosixApi
 import com.intellij.platform.ijent.fs.IjentFileSystemWindowsApi
+import java.util.UUID
 
 /**
  * Provides access to an IJent process running on some machine.
@@ -58,6 +59,8 @@ sealed interface IjentApi : EelApi, AutoCloseable {
 interface IjentPosixApi : IjentApi, EelPosixApi {
   override val fs: IjentFileSystemPosixApi
   override val tunnels: IjentTunnelsPosixApi
+
+  suspend fun requestHyperVTransports(vmId: UUID): Boolean
 }
 
 interface IjentWindowsApi : IjentApi, EelWindowsApi {
