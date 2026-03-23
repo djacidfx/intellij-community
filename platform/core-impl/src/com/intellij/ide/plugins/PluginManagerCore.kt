@@ -709,6 +709,7 @@ object PluginManagerCore {
     registerLoadingError: (PluginNonLoadReason) -> Unit,
   ): Pair<PluginSet, List<PluginLoadingError>> {
     val cycleErrors = ArrayList<PluginLoadingError>()
+    val broadResolveContext = lazy { AmbiguousPluginSet.build(resolvedPluginSet.originalPluginSet.plugins + incompletePlugins.values) }
     for (plugin in resolvedPluginSet.originalPluginSet.plugins) {
       for (descriptor in plugin.sequenceAllDescriptors()) {
         descriptor.isMarkedForLoading = resolvedPluginSet.isResolved(descriptor)
@@ -718,7 +719,7 @@ object PluginManagerCore {
       }
       val exclusionReason = resolvedPluginSet.getExclusionReason(plugin)
       if (exclusionReason != null) {
-        adaptExclusionReasonAsNonLoadReason(exclusionReason, plugin, resolvedPluginSet, registerLoadingError)
+        adaptExclusionReasonAsNonLoadReason(exclusionReason, plugin, resolvedPluginSet, registerLoadingError, broadResolveContext)
       }
     }
     // module -> index
@@ -787,58 +788,78 @@ object PluginManagerCore {
     plugin: PluginMainDescriptor,
     resolvedPluginSet: ResolvedPluginSet,
     registerLoadingError: (PluginNonLoadReason) -> Unit,
+    broadResolveContext: Lazy<AmbiguousPluginSet>,
   ) {
     val shouldNotifyUser = !plugin.isImplementationDetail && !pluginRequiresUltimatePluginButItsDisabled(
       initContext = resolvedPluginSet.initContext,
       ambiguousPluginSet = resolvedPluginSet.originalPluginSet.asAmbiguousPluginSet(),
       plugin
     )
-    when (exclusionReason) {
-      is DependencyIsNotResolved -> {
-        // TODO disabled plugins are not in originalPluginSet, so an unresolved dependency may actually mean a dependency on a disabled plugin
-        //     I guess it would be better to exclude disabled plugins in resolution stage so that resolve works. We need to change the way id conflict resolution chooses which plugin to preserve
-        registerLoadingError(PluginDependencyIsNotInstalled(plugin, exclusionReason.dependency.getIdString(), shouldNotifyUser))
-      }
-      is DependencyIsNotVisible -> {
-        // TODO bad mapping
-        registerLoadingError(PluginDependencyIsNotInstalled(plugin, exclusionReason.dependencyModule.pluginId.idString, shouldNotifyUser))
-      }
-      is ExcludedByEnvironmentConfiguration -> {
-        logger.warn("Unexpected exclusion reason for a plugin: ${exclusionReason.javaClass.simpleName} $plugin")
-      }
-      is IncompatibleWithAnotherModule -> {
-        registerLoadingError(PluginIsIncompatibleWithAnotherPlugin(plugin, exclusionReason.preferredIncompatibleModule, shouldNotifyUser))
-      }
-      is PackagePrefixConflictWithAnotherModule -> {
-        registerLoadingError(PluginPackagePrefixConflict(plugin, plugin, exclusionReason.preferredConflictingModule))
-      }
-      is ProductRulesImposedExclusion -> {
-        val productReason = exclusionReason.productReason as? IntellijImposedModuleExclusionReason
-        if (productReason == null) {
-          logger.warn("Unexpected product-based exclusion of plugin: ${exclusionReason.productReason} $plugin")
-        } else when (productReason) {
-          is PluginHasExpiredLicense -> {
-            // not handled in old init, FIXME later
-            logger.warn("Plugin $plugin has expired license")
+
+    fun processRootCause(exclusionReason: DescriptorExclusionReason) {
+      when (exclusionReason) {
+        is DependencyIsNotResolved -> {
+          // TODO maybe leave disabled plugins in the [originalPluginSet] so we don't have to do this here
+          val dependency = exclusionReason.dependency
+          val possibleDependencies = broadResolveContext.value.resolveReference(dependency)
+          val initContext = resolvedPluginSet.initContext
+          val disabledPlugin = possibleDependencies.firstOrNull { initContext.isPluginDisabled(it.pluginId) }
+          if (disabledPlugin != null) {
+            registerLoadingError(PluginDependencyIsDisabled(plugin, disabledPlugin.pluginId, shouldNotifyUser))
           }
-          is ThirdPartyPrivacyNoticeIsNotAccepted -> {
-            logger.warn("Plugin $plugin is excluded because the third-party privacy notice is not accepted")
+          else {
+            registerLoadingError(PluginDependencyIsNotInstalled(plugin, exclusionReason.dependency.getIdString(), shouldNotifyUser))
           }
         }
+        is DependencyIsNotVisible -> {
+          // TODO bad mapping
+          registerLoadingError(PluginDependencyIsNotInstalled(plugin, exclusionReason.dependencyModule.pluginId.idString, shouldNotifyUser))
+        }
+        is ExcludedByEnvironmentConfiguration -> {
+          logger.warn("Unexpected exclusion reason for a plugin: ${exclusionReason.javaClass.simpleName} $plugin")
+        }
+        is IncompatibleWithAnotherModule -> {
+          registerLoadingError(PluginIsIncompatibleWithAnotherPlugin(plugin, exclusionReason.preferredIncompatibleModule, shouldNotifyUser))
+        }
+        is PackagePrefixConflictWithAnotherModule -> {
+          registerLoadingError(PluginPackagePrefixConflict(plugin, plugin, exclusionReason.preferredConflictingModule))
+        }
+        is ProductRulesImposedExclusion -> {
+          val productReason = exclusionReason.productReason as? IntellijImposedModuleExclusionReason
+          if (productReason == null) {
+            logger.warn("Unexpected product-based exclusion of plugin: ${exclusionReason.productReason} $plugin")
+          }
+          else when (productReason) {
+            is PluginHasExpiredLicense -> {
+              // not handled in old init, FIXME later
+              logger.warn("Plugin $plugin has expired license")
+            }
+            is ThirdPartyPrivacyNoticeIsNotAccepted -> {
+              logger.warn("Plugin $plugin is excluded because the third-party privacy notice is not accepted")
+            }
+          }
+        }
+        is PartOfDependencyCycle -> {} // logged elsewhere
+        is PartOfRuntimeModuleGroupDependencyCycle -> {} // logged elsewhere
+        is ChainedExclusion -> error("expected a root cause: $exclusionReason")
       }
-      is PartOfDependencyCycle -> {
-        // logged elsewhere
+    }
+
+    if (exclusionReason is ChainedExclusion) {
+      val exclusionChain = exclusionReason.descriptor.sequenceDescriptorExclusionChain(resolvedPluginSet::getExclusionReason)
+      val boundaryExclusion = exclusionChain.windowed(2).firstOrNull { (pluginModule, other) -> other.pluginId != pluginModule.pluginId }
+      if (boundaryExclusion != null) {
+        val excludedRequiredDescriptor = boundaryExclusion[1]
+        registerLoadingError(PluginDependencyCannotBeLoaded(plugin, excludedRequiredDescriptor, shouldNotifyUser))
       }
-      is PartOfRuntimeModuleGroupDependencyCycle -> {
-        // logged elsewhere
+      else {
+        val rootCauseDescriptor = exclusionChain.last()
+        val rootCause = resolvedPluginSet.getExclusionReason(rootCauseDescriptor)!!
+        processRootCause(rootCause)
       }
-      is ChainedExclusion -> {
-        val nextInLineDescriptor =
-          exclusionReason.descriptor.sequenceDescriptorExclusionChain(resolvedPluginSet::getExclusionReason)
-            .firstOrNull { it.pluginId != exclusionReason.descriptor.pluginId }
-          ?: exclusionReason.precedingExcludedDescriptor
-        registerLoadingError(PluginDependencyCannotBeLoaded(plugin, nextInLineDescriptor, shouldNotifyUser))
-      }
+    }
+    else {
+      processRootCause(exclusionReason)
     }
   }
 

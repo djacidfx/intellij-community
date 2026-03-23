@@ -101,6 +101,14 @@ fun UnambiguousPluginSet.resolveReference(ref: DependencyRef): PluginModuleDescr
 }
 
 @ApiStatus.Internal
+fun AmbiguousPluginSet.resolveReference(ref: DependencyRef): Sequence<PluginModuleDescriptor> {
+  return when (ref) {
+    is DependencyRef.Plugin -> resolvePluginId(ref.pluginId)
+    is DependencyRef.ContentModule -> resolveContentModuleId(ref.moduleId)
+  }
+}
+
+@ApiStatus.Internal
 fun UnambiguousPluginSet.asAmbiguousPluginSet(): AmbiguousPluginSet = object : AmbiguousPluginSet {
   override val plugins: List<PluginMainDescriptor> get() = this@asAmbiguousPluginSet.plugins
   override fun resolvePluginId(id: PluginId): Sequence<PluginModuleDescriptor> = sequenceOfNotNull(this@asAmbiguousPluginSet.resolvePluginId(id))
