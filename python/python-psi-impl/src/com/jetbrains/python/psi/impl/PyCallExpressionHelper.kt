@@ -47,8 +47,6 @@ import com.jetbrains.python.psi.PySubscriptionExpression
 import com.jetbrains.python.psi.PyTupleParameter
 import com.jetbrains.python.psi.PyTypedElement
 import com.jetbrains.python.psi.PyUtil
-import com.jetbrains.python.psi.impl.PyCallExpressionHelper.getCalleeType
-import com.jetbrains.python.psi.impl.PyCallExpressionHelper.mapArguments
 import com.jetbrains.python.psi.impl.references.PyReferenceImpl
 import com.jetbrains.python.psi.resolve.PyResolveContext
 import com.jetbrains.python.psi.resolve.PyResolveUtil
@@ -63,18 +61,17 @@ import com.jetbrains.python.psi.types.PyCallableTypeImpl
 import com.jetbrains.python.psi.types.PyClassLikeType
 import com.jetbrains.python.psi.types.PyClassType
 import com.jetbrains.python.psi.types.PyClassTypeImpl
-import com.jetbrains.python.psi.types.PyCollectionType
-import com.jetbrains.python.psi.types.PyCollectionTypeImpl
 import com.jetbrains.python.psi.types.PyConcatenateType
 import com.jetbrains.python.psi.types.PyFunctionType
+import com.jetbrains.python.psi.types.PyInstantiableType
 import com.jetbrains.python.psi.types.PyModuleType
 import com.jetbrains.python.psi.types.PyNeverType
 import com.jetbrains.python.psi.types.PyParamSpecType
 import com.jetbrains.python.psi.types.PySelfType
 import com.jetbrains.python.psi.types.PyStructuralType
-import com.jetbrains.python.psi.types.PyTupleType
 import com.jetbrains.python.psi.types.PyType
 import com.jetbrains.python.psi.types.PyTypeChecker
+import com.jetbrains.python.psi.types.PyTypeInferenceCspFactory
 import com.jetbrains.python.psi.types.PyTypeMember
 import com.jetbrains.python.psi.types.PyTypeUtil.components
 import com.jetbrains.python.psi.types.PyTypeUtil.toStream
@@ -352,7 +349,7 @@ object PyCallExpressionHelper {
   }
 
   private fun toCallableType(
-    expression: PyCallSiteExpression,
+    callExpression: PyCallExpression,
     resolveResult: ClarifiedResolveResult,
     inferredType: PyType?,
     context: TypeEvalContext,
@@ -377,16 +374,19 @@ object PyCallExpressionHelper {
       val resolvedImplicitOffset =
         getImplicitArgumentCount(clarifiedResolved, resolvedModifier, isConstructorCall, isByInstance, isByClass)
 
-      val clarifiedConstructorCallType =
-        if (PyUtil.isInitOrNewMethod(clarifiedResolved)) clarifyConstructorCallType(resolveResult, expression, context) else PyAnyType.unknown
-
-      if (callableType.modifier == resolvedModifier && callableType.implicitOffset == resolvedImplicitOffset && clarifiedConstructorCallType.isUnknown) {
+      if (callableType.modifier == resolvedModifier && callableType.implicitOffset == resolvedImplicitOffset && !isConstructorCall) {
         return callableType
       }
 
+      val originalResolved = resolveResult.originalResolveResult.element
+      val returnType = if (isConstructorCall && originalResolved is PyClass && clarifiedResolved is PyFunction)
+        getConstructorCallType(originalResolved, clarifiedResolved, callExpression, context)
+      else
+        callableType.getCallType(context, callExpression)
+
       return PyCallableTypeImpl(
         callableType.getParametersType(context),
-        clarifiedConstructorCallType ?: callableType.getCallType(context, expression),
+        returnType,
         clarifiedResolved,
         resolvedModifier,
         max(0, resolvedImplicitOffset)) // wrong source can trigger strange behaviour
@@ -603,7 +603,7 @@ object PyCallExpressionHelper {
   private fun getSameScopeCallablesCallTypes(
     types: List<PyCallableType>,
     callSite: PyCallSiteExpression,
-    context: TypeEvalContext
+    context: TypeEvalContext,
   ): List<PyType?> {
     val firstCallable = types[0].callable
     if (firstCallable != null && PyiUtil.isOverload(firstCallable, context)) {
@@ -634,39 +634,51 @@ object PyCallExpressionHelper {
     return matchingOverloads.firstOrNull()?.getCallType(context, callSite) ?: PyAnyType.unknown
   }
 
-  private fun clarifyConstructorCallType(
-    result: ClarifiedResolveResult,
-    callSite: PyCallSiteExpression,
-    context: TypeEvalContext
+  // `cls` is a class being constructed
+  // `method` is either the metaclass `__call__` method or the class `__new__`/`__init__` method
+  private fun getConstructorCallType(
+    cls: PyClass,
+    method: PyFunction,
+    callSite: PyCallExpression,
+    context: TypeEvalContext,
   ): PyType? {
-    val initOrNewMethod = result.clarifiedResolved as PyFunction
-    val initOrNewClass = initOrNewMethod.containingClass
+    val methodName = method.name
+    if (methodName != PyNames.INIT && methodName != PyNames.NEW) {
+      return method.getCallType(context, callSite)
+    }
 
-    val receiverClass = result.originalResolveResult.element as? PyClass ?: initOrNewClass!!
-
-    val initOrNewCallType = initOrNewMethod.getCallType(context, callSite)
-    if (receiverClass !== initOrNewClass) {
-      if (initOrNewCallType is PyTupleType) {
-        return PyTupleType(receiverClass, initOrNewCallType.elementTypes, initOrNewCallType.isHomogeneous)
+    var unknownType = false
+    if (methodName == PyNames.NEW) {
+      val newMethodCallType = method.getCallType(context, callSite)
+      if (!newMethodCallType.isUnknown) {
+        return newMethodCallType
       }
+      unknownType = true
+    }
 
-      if (initOrNewCallType is PyCollectionType) {
-        val elementTypes = initOrNewCallType.elementTypes
-        return PyCollectionTypeImpl(receiverClass, false, elementTypes)
+    var callType: PyType? = PyAnyType.unknown
+    val genericType = PyTypeChecker.findGenericDefinitionType(cls, context)
+    if (genericType != null) {
+      val receiver = callSite.callee
+      val mappedArguments = mapArguments(receiver, callSite, method, context)
+      val callableType = context.getType(method) as? PyCallableType
+      val substitutions = PyTypeInferenceCspFactory.unifyGenericCall(callSite, receiver, callableType, mappedArguments, context)
+      if (substitutions != null) {
+        callType = PyTypeChecker.substitute(genericType, substitutions, context)
       }
-
-      return PyClassTypeImpl(receiverClass, false)
+    }
+    else {
+      val type = context.getType(cls)
+      if (type is PyInstantiableType<*>) {
+        callType = type.toInstance()
+      }
     }
 
-    if (initOrNewCallType is PyCollectionType) {
-      return initOrNewCallType
+    if (unknownType) {
+      // Requires weak union. See PyUnresolvedReferencesInspectionTest.testCustomNewReturnInAnotherModule
+      callType = PyUnionType.createWeakType(callType)
     }
-    if (initOrNewCallType.isUnknown) {
-      // TODO requires weak union. See PyUnresolvedReferencesInspectionTest.testCustomNewReturnInAnotherModule
-      return PyUnionType.createWeakType(PyClassTypeImpl(receiverClass, false))
-    }
-
-    return PyAnyType.unknown
+    return callType
   }
 
   private fun getSuperCallType(expression: PyCallExpression, context: TypeEvalContext): Maybe<PyType?> {
@@ -853,6 +865,21 @@ object PyCallExpressionHelper {
     }
   }
 
+  @JvmStatic
+  fun mapArguments(
+    receiver: PyExpression?,
+    callSite: PyCallSiteExpression,
+    callable: PyCallable,
+    context: TypeEvalContext,
+  ): Map<PyExpression, PyCallableParameter> {
+    val mapping = mapArguments(callSite, callable, context)
+    val firstImplicit = mapping.implicitParameters.firstOrNull()
+    return if (receiver != null && firstImplicit != null)
+      mapOf(receiver to firstImplicit) + mapping.mappedParameters
+    else
+      mapping.mappedParameters
+  }
+
   /**
    * Tries to infer implicit offset from the `callSite` and `callable`.
    *
@@ -934,14 +961,13 @@ object PyCallExpressionHelper {
     call: PyCallExpression,
     context: TypeEvalContext,
   ): List<PyCallableType> {
-    val cls = type.pyClass
     return implicitlyInvokedMethods
       .map {
         ClarifiedResolveResult(
-          QualifiedRatedResolveResult(cls, listOf(), RatedResolveResult.RATE_NORMAL, false),
+          QualifiedRatedResolveResult(type.pyClass, listOf(), RatedResolveResult.RATE_NORMAL, false),
           it,
           null,
-          PyUtil.isInitOrNewMethod(it)
+          type.isDefinition
         )
       }
       .mapNotNull {
@@ -1467,7 +1493,7 @@ object PyCallExpressionHelper {
   fun selectMatchingOverload(
     function: PyFunction,
     callExpression: PyCallExpression,
-    context: TypeEvalContext
+    context: TypeEvalContext,
   ): PyFunction? {
     val overloads = PyiUtil.getOverloads(function, context)
     if (overloads.isEmpty()) return null

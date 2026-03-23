@@ -3077,9 +3077,9 @@ public class PyTypeTest extends PyTestCase {
              expr = A.B()""");
   }
 
-  // PY-26992
+  // PY-26992 PY-87449
   public void testInitializingInnerCallableClassThroughExplicitDunderInit() {
-    doTest("B",
+    doTest("None",
            """
              class A:
                  class B:
@@ -3089,7 +3089,7 @@ public class PyTypeTest extends PyTestCase {
                          pass
                  def __init__(self):
                      pass
-             expr = A.B.__init__()""");
+             expr = A.B.__init__(object.__new__(A.B))""");
   }
 
   // PY-26992

@@ -81,6 +81,7 @@ import com.jetbrains.python.psi.types.PyCollectionType;
 import com.jetbrains.python.psi.types.PyCollectionTypeImpl;
 import com.jetbrains.python.psi.types.PyDynamicallyEvaluatedType;
 import com.jetbrains.python.psi.types.PyFunctionTypeImpl;
+import com.jetbrains.python.psi.types.PyInstantiableType;
 import com.jetbrains.python.psi.types.PyNarrowedType;
 import com.jetbrains.python.psi.types.PyNeverType;
 import com.jetbrains.python.psi.types.PySelfType;
@@ -97,14 +98,12 @@ import javax.swing.Icon;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
 import static com.intellij.openapi.util.text.StringUtil.notNullize;
-import static com.intellij.util.containers.ContainerUtil.getFirstItem;
 import static com.intellij.util.containers.ContainerUtil.map;
 import static com.jetbrains.python.ast.PyAstFunction.Modifier.CLASSMETHOD;
 import static com.jetbrains.python.ast.PyAstFunction.Modifier.STATICMETHOD;
@@ -248,17 +247,7 @@ public class PyFunctionImpl extends PyBaseElementImpl<PyFunctionStub> implements
     }
 
     final PyExpression receiver = callSite.getReceiver(this);
-    final PyCallExpression.PyArgumentsMapping fullMapping = PyCallExpressionHelper.mapArguments(callSite, this, context);
-    final Map<PyExpression, PyCallableParameter> mappedExplicitParameters = fullMapping.getMappedParameters();
-
-    final Map<PyExpression, PyCallableParameter> allMappedParameters = new LinkedHashMap<>();
-    final PyCallableParameter firstImplicit = getFirstItem(fullMapping.getImplicitParameters());
-    if (receiver != null && firstImplicit != null) {
-      allMappedParameters.put(receiver, firstImplicit);
-    }
-    allMappedParameters.putAll(mappedExplicitParameters);
-
-    return getCallType(receiver, callSite, allMappedParameters, context);
+    return getCallType(receiver, callSite, PyCallExpressionHelper.mapArguments(receiver, callSite, this, context), context);
   }
 
   private static @Nullable PyType derefType(@NotNull Ref<PyType> typeRef, @NotNull PyTypeProvider typeProvider) {
@@ -274,14 +263,7 @@ public class PyFunctionImpl extends PyBaseElementImpl<PyFunctionStub> implements
                                       @Nullable PyCallSiteExpression callSiteExpression,
                                       @NotNull Map<PyExpression, PyCallableParameter> parameters,
                                       @NotNull TypeEvalContext context) {
-    return analyzeCallType(PyUtil.getReturnTypeToAnalyzeAsCallType(this, context), receiver, callSiteExpression, parameters, context);
-  }
-
-  private @Nullable PyType analyzeCallType(@Nullable PyType type,
-                                           @Nullable PyExpression receiver,
-                                           @Nullable PyCallSiteExpression callSiteExpression,
-                                           @NotNull Map<PyExpression, PyCallableParameter> parameters,
-                                           @NotNull TypeEvalContext context) {
+    @Nullable PyType type = context.getReturnType(this);
     if (PyTypeChecker.hasGenerics(type, context)) {
       PyType callableType = context.getType(this);
       PyCallableType callableTypeCasted = callableType instanceof PyCallableType ? (PyCallableType)callableType : null;
