@@ -614,7 +614,7 @@ object PluginManagerCore {
     }
     else {
       val resolvedPluginSet = initContext.resolveConstraints(pluginsToLoad)
-      resolvedPluginSet.logExclusionTree()
+      resolvedPluginSet.logExclusionTree(incompletePlugins)
       val (adaptedPluginSet, cycleErrors) = adaptResolvedPluginSetAsOldPluginSet(
         resolvedPluginSet = resolvedPluginSet,
         incompletePlugins = incompletePlugins,
@@ -1158,7 +1158,8 @@ object PluginManagerCore {
   //</editor-fold>
 }
 
-private fun ResolvedPluginSet.logExclusionTree() {
+private fun ResolvedPluginSet.logExclusionTree(incompletePlugins: HashMap<PluginId, PluginMainDescriptor>) {
+  val broadResolveContext by lazy { AmbiguousPluginSet.build(this.originalPluginSet.plugins + incompletePlugins.values) }
   val exclusionChildren = LinkedHashMap<IdeaPluginDescriptorImpl, ArrayList<IdeaPluginDescriptorImpl>>()
   val roots = LinkedHashSet<IdeaPluginDescriptorImpl>()
   for (plugin in originalPluginSet.plugins) {
@@ -1213,7 +1214,13 @@ private fun ResolvedPluginSet.logExclusionTree() {
     append(logHeader)
     dependencyIsNotResolvedRoots.map { getExclusionReason(it) as DependencyIsNotResolved }.groupBy { it.dependency }
       .forEach { (ref, roots) ->
-        appendLine("${ref.getIdString()} is not resolved (or is disabled)")
+        val disabledPlugin = broadResolveContext.resolveReference(ref).firstOrNull { initContext.isPluginDisabled(it.pluginId) }
+        if (disabledPlugin != null) {
+          appendLine("${disabledPlugin.getLogDescription()} is marked disabled")
+        } else {
+          appendLine("${ref.getIdString()} is not resolved")
+        }
+
         // a bit of duplication, but I guess it's alright for this code
         val (childFreeExclusions, otherRoots) = roots.partition { (exclusionChildren[it.descriptor]?.size ?: 0) == 0 }
         if (childFreeExclusions.isNotEmpty()) {
