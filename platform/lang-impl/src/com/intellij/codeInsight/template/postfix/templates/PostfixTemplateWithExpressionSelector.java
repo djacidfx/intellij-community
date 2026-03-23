@@ -153,9 +153,7 @@ public abstract class PostfixTemplateWithExpressionSelector extends PostfixTempl
 
           @Override
           public @NotNull ModCommand perform(@NotNull ActionContext ctx) {
-            return prepareAndExpandModForChooseExpression(actionContext
-                                                            .withSelection(new TextRange(keyRange.getStartOffset(), keyRange.getStartOffset())),
-                                                          new TextRange(keyRange.getStartOffset(), keyRange.getStartOffset()), expr, provider);
+            return prepareAndExpandModForChooseExpression(actionContext.withSelection(new TextRange(keyRange.getStartOffset(), keyRange.getStartOffset())), new TextRange(keyRange.getStartOffset(), keyRange.getStartOffset()), expressions.getFirst(), provider);
           }
 
           @Override

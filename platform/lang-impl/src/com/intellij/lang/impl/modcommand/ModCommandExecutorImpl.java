@@ -352,16 +352,17 @@ public class ModCommandExecutorImpl extends ModCommandBatchExecutorImpl {
       for (ModStartTemplate.TemplateField field : template.fields()) {
         switch (field) {
           case ModStartTemplate.ExpressionField(TextRange range, String varName, Expression expression) -> {
+            TextRange shiftedRange = range.shiftLeft(templateStart);
             if (varName != null && !seenVarNames.add(varName)) {
               // Second (or later) occurrence of the same variable — add as a linked reference
               // so it mirrors edits from the primary occurrence without creating a duplicate variable.
-              builder.addVariableOccurrence(templateElement, range.shiftLeft(templateStart), varName);
+              builder.addVariableOccurrence(templateElement, shiftedRange, varName);
             }
             else if (varName != null) {
-              builder.replaceElement(templateElement, range.shiftLeft(templateStart), varName, expression, true);
+              builder.replaceElement(templateElement, shiftedRange, varName, expression, true);
             }
             else {
-              builder.replaceElement(templateElement, range.shiftLeft(templateStart), expression);
+              builder.replaceElement(templateElement, shiftedRange, expression);
             }
           }
           case ModStartTemplate.DependantVariableField(TextRange range, String varName, String variableName, boolean alwaysStopAt) ->

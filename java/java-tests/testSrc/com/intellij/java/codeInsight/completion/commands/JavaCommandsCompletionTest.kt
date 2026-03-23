@@ -9,7 +9,9 @@ import com.intellij.codeInsight.completion.command.configuration.CommandCompleti
 import com.intellij.codeInsight.hint.HintManager
 import com.intellij.codeInsight.hint.HintManagerImpl
 import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
+import com.intellij.codeInsight.lookup.LookupElementCustomPreviewHolder
 import com.intellij.codeInsight.lookup.LookupElementPresentation
+import com.intellij.codeInsight.template.impl.LiveTemplateCompletionContributor
 import com.intellij.codeInsight.template.impl.TemplateManagerImpl
 import com.intellij.codeInspection.deadCode.UnusedDeclarationInspection
 import com.intellij.codeInspection.numeric.RemoveLiteralUnderscoresInspection
@@ -129,6 +131,36 @@ class JavaCommandsCompletionTest : LightFixtureCompletionTestCase() {
         } 
       }
     """.trimIndent()
+    assertEquals(preview.modifiedText(), expected)
+  }
+
+  fun testPostfixPreview() {
+    LiveTemplateCompletionContributor.setShowTemplatesInTests(true, getTestRootDisposable())
+    myFixture.configureByText(JavaFileType.INSTANCE, """
+      class A { 
+        void foo() {
+          "string".soutv<caret>
+        } 
+      }
+      """.trimIndent())
+    val elements = myFixture.completeBasic()
+    val item = elements.first { element -> element.lookupString.contains("sout", ignoreCase = true) }
+      .`as`(LookupElementCustomPreviewHolder::class.java)
+    if (item == null) {
+      fail()
+      return
+    }
+    val preview = item.preview(ActionContext.from(myFixture.editor, myFixture.file))
+    if (preview !is IntentionPreviewInfo.CustomDiff) {
+      fail()
+      return
+    }
+    val expected = """
+      class A { 
+        void foo() {
+            System.out.println("\"string\" = " + "string");
+        } 
+      }""".trimIndent()
     assertEquals(preview.modifiedText(), expected)
   }
 

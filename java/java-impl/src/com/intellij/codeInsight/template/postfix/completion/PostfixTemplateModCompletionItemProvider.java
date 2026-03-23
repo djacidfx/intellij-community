@@ -84,7 +84,6 @@ public final class PostfixTemplateModCompletionItemProvider implements ModComple
     private final @NotNull PostfixTemplate myTemplate;
     private final @NotNull PostfixTemplateProvider myProvider;
     private final @NotNull String myKey;
-
     private PostfixModCompletionItem(@NotNull PostfixTemplateProvider provider,
                                      @NotNull PostfixTemplate template,
                                      @NotNull String key) {
@@ -92,6 +91,7 @@ public final class PostfixTemplateModCompletionItemProvider implements ModComple
       myProvider = provider;
       myKey = key;
     }
+
 
     @Override
     public @NotNull String mainLookupString() {
@@ -110,8 +110,6 @@ public final class PostfixTemplateModCompletionItemProvider implements ModComple
 
     @Override
     public @NotNull ModCompletionItemPresentation presentation() {
-      //temporary
-      //noinspection HardCodedStringLiteral
       return new ModCompletionItemPresentation(MarkupText.plainText(myTemplate.getPresentableName()))
         .withMainIcon(() -> AllIcons.Nodes.Template)
         .withDetailText(MarkupText.plainText(myTemplate.getExample() + " (MC)"));
@@ -123,9 +121,6 @@ public final class PostfixTemplateModCompletionItemProvider implements ModComple
       TextRange keyRange;
       if (actionContext.file().getFileDocument().getText().substring(0, selectionEndOffset).endsWith(myKey)) {
         keyRange = new TextRange(selectionEndOffset - myKey.length() + 1, selectionEndOffset);
-      }
-      else if (actionContext.file().getFileDocument().getText().substring(0, selectionEndOffset).endsWith(myTemplate.getKey())) {
-        keyRange = new TextRange(selectionEndOffset - myTemplate.getKey().length() + 1, selectionEndOffset);
       }
       else {
         keyRange = new TextRange(selectionEndOffset, selectionEndOffset);

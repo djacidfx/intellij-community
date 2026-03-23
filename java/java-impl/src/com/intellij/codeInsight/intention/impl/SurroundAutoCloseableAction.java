@@ -5,11 +5,10 @@ import com.intellij.codeInsight.CodeInsightUtilCore;
 import com.intellij.codeInsight.template.impl.ConstantNode;
 import com.intellij.java.JavaBundle;
 import com.intellij.lang.java.JavaLanguage;
-import com.intellij.lang.surroundWith.ModCommandSurrounder;
+import com.intellij.lang.surroundWith.PsiUpdateModCommandSurrounder;
 import com.intellij.lang.surroundWith.SurroundDescriptor;
 import com.intellij.lang.surroundWith.Surrounder;
 import com.intellij.modcommand.ActionContext;
-import com.intellij.modcommand.ModCommand;
 import com.intellij.modcommand.ModPsiUpdater;
 import com.intellij.modcommand.Presentation;
 import com.intellij.modcommand.PsiUpdateModCommandAction;
@@ -281,7 +280,7 @@ public final class SurroundAutoCloseableAction extends PsiUpdateModCommandAction
     return JavaBundle.message("intention.surround.resource.with.ARM.block");
   }
 
-  public static final class Template extends ModCommandSurrounder implements SurroundDescriptor {
+  public static final class Template extends PsiUpdateModCommandSurrounder implements SurroundDescriptor {
     private final Surrounder[] mySurrounders = {this};
 
     @Override
@@ -313,14 +312,6 @@ public final class SurroundAutoCloseableAction extends PsiUpdateModCommandAction
     @Override
     public boolean isApplicable(PsiElement @NotNull [] elements) {
       return elements.length == 1 && (findExpression(elements[0]) != null || findVariable(elements[0]) != null);
-    }
-
-    @Override
-    public @NotNull ModCommand surroundElements(@NotNull ActionContext context, @NotNull PsiElement @NotNull [] elements) {
-      if (elements.length == 1) {
-        return new SurroundAutoCloseableAction().perform(context, elements[0]);
-      }
-      return ModCommand.nop();
     }
 
     @Override

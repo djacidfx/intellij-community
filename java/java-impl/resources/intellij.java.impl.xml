@@ -100,7 +100,9 @@
 
   <extensions defaultExtensionNs="com.intellij">
     <applicationService
-      serviceInterface="com.intellij.refactoring.introduceVariable.JavaIntroduceVariableService"
+      open="true"
       serviceImplementation="com.intellij.refactoring.introduceVariable.JavaIntroduceVariableService"/>
+
+    <registryKey defaultValue="true" description="Enable postfix mod completion" key="postfix.template.mod.completion.enabled"/>
   </extensions>
 </idea-plugin>

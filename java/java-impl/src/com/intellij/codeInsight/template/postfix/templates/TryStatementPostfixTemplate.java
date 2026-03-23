@@ -52,28 +52,28 @@ public class TryStatementPostfixTemplate extends PostfixTemplate implements Dumb
   }
 
   @Override
-  public boolean isApplicableForModCommand() {
+  public boolean isApplicableForModCommand(@NotNull PsiElement context, @NotNull Document copyDocument, int newOffset) {
     return true;
   }
 
   @Override
-  public @NotNull ModCommand expandMod(@NotNull ActionContext actionContext, @NotNull PostfixTemplateProvider provider, @NotNull TextRange keyRange) {
+  public @NotNull ModCommand expandMod(@NotNull ActionContext actionContext, @NotNull PostfixTemplateProvider provider, TextRange keyRange) {
     TextRange key = actionContext.selection();
     return ModCommand.psiUpdate(actionContext.withSelection(new TextRange(keyRange.getStartOffset(), keyRange.getStartOffset()))
                                   .withOffset(keyRange.getStartOffset()), document -> {
                                   document.deleteString(actionContext.selection().getStartOffset(), actionContext.selection().getEndOffset());
                                 },
                                 updater -> {
-                                  updater.getDocument().deleteString(PostfixLiveTemplate.positiveOffset(keyRange.getStartOffset()), actionContext.selection().getStartOffset());
+                                  updater.getDocument().deleteString(keyRange.getStartOffset() - 1, actionContext.selection().getStartOffset());
                                   PsiDocumentManager.getInstance(actionContext.project()).commitDocument(updater.getDocument());
                                   PsiFile file = updater.getPsiFile();
-                                  provider.preCheckModCommand(file, PostfixLiveTemplate.positiveOffset(keyRange.getStartOffset()));
+                                  provider.preCheckModCommand(file, key.getStartOffset() - 1);
                                   PsiElement context =
-                                    CustomTemplateCallback.getContext(file, PostfixLiveTemplate.positiveOffset(keyRange.getStartOffset() - 1));
+                                    CustomTemplateCallback.getContext(file, PostfixLiveTemplate.positiveOffset(key.getStartOffset() - 1));
                                   PsiStatement statement = PsiTreeUtil.getNonStrictParentOfType(context, PsiStatement.class);
                                   JavaWithTryCatchSurrounder surrounder = new JavaWithTryCatchSurrounder();
                                   surrounder.doSurround(actionContext, statement, updater);
-                                  updater.select(new TextRange(keyRange.getStartOffset(), keyRange.getStartOffset()));
+                                  updater.select(new TextRange(key.getStartOffset(), key.getStartOffset()));
                                   PsiElement element = file.findElementAt(updater.getCaretOffset());
                                   PsiTryStatement tryStatement = PsiTreeUtil.getParentOfType(element, PsiTryStatement.class);
                                   assert tryStatement != null;

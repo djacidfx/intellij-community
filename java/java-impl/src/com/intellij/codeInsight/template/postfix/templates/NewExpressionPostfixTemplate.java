@@ -4,6 +4,7 @@ package com.intellij.codeInsight.template.postfix.templates;
 import com.intellij.codeInsight.completion.CompletionUtil;
 import com.intellij.codeInsight.completion.InsertionContext;
 import com.intellij.codeInsight.completion.JavaClassNameCompletionContributor;
+import com.intellij.codeInsight.completion.JavaCompletionUtil;
 import com.intellij.codeInsight.completion.JavaPsiClassReferenceElement;
 import com.intellij.codeInsight.completion.OffsetMap;
 import com.intellij.codeInsight.lookup.Lookup;
@@ -29,10 +30,12 @@ import com.intellij.psi.PsiExpression;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
+import com.intellij.psi.PsiNewExpression;
 import com.intellij.psi.PsiReferenceExpression;
 import com.intellij.psi.PsiResolveHelper;
 import com.intellij.psi.SmartPointerManager;
 import com.intellij.psi.SmartPsiElementPointer;
+import com.intellij.psi.codeStyle.JavaCodeStyleManager;
 import com.intellij.psi.search.PsiShortNamesCache;
 import com.intellij.util.containers.ContainerUtil;
 import com.intellij.util.indexing.DumbModeAccessType;
@@ -100,25 +103,54 @@ public class NewExpressionPostfixTemplate extends StringBasedPostfixTemplate imp
                                            @NotNull PsiElement elementInCopy) {
     if (elementInCopy instanceof PsiReferenceExpression writableExpr) {
       PsiClass psiClass = resolveClass(writableExpr);
-      if (psiClass != null) {
-        String shortName = psiClass.getName();
-        if (shortName != null) {
-          TextRange range = writableExpr.getTextRange();
-          Document document = updater.getDocument();
+      if (psiClass == null) {
+        super.expandModForChooseExpression(ctx, updater, elementInCopy);
+        return;
+      }
+      String expressionText = writableExpr.getText();
+      Document document = updater.getDocument();
+      boolean hasTypeParameters = psiClass.hasTypeParameters();
+      String diamond = hasTypeParameters ? "<>" : "";
 
-          String newText = "new " + shortName + "()";
-          document.replaceString(range.getStartOffset(), range.getEndOffset(), newText);
+      int classNameStart = replaceExpressionTextByNewExpression(writableExpr, document);
+      int classNameEnd = classNameStart + expressionText.length();
 
-          int classNameEnd = range.getStartOffset() + 4 + shortName.length();
-          updater.moveCaretTo(classNameEnd);
+      // Commit to resolve PsiNewExpression and check context (mirrors shouldInsertParentheses in the editor path)
+      PsiDocumentManager pdm = PsiDocumentManager.getInstance(ctx.project());
+      pdm.commitDocument(document);
+      PsiElement newKeyword = updater.getPsiFile().findElementAt(classNameStart - "new ".length());
+      PsiNewExpression newExpr = newKeyword != null ? (PsiNewExpression)newKeyword.getParent() : null;
+      boolean addParens = newExpr == null ||
+                          !DumbService.getInstance(ctx.project())
+                            .computeWithAlternativeResolveEnabled(
+                              () -> JavaCompletionUtil.isArrayTypeExpected(newExpr));
 
-          ClassReferenceCompletionItem classItem = new ClassReferenceCompletionItem(psiClass);
-          classItem.update(ctx.withOffset(classNameEnd), ModCompletionItem.DEFAULT_INSERTION_CONTEXT, updater);
+      if (addParens) {
+        document.insertString(classNameEnd, diamond + "()");
+      }
 
+      updater.moveCaretTo(classNameEnd);
+
+      ClassReferenceCompletionItem classItem = new ClassReferenceCompletionItem(psiClass);
+      classItem.update(ctx.withOffset(classNameEnd), ModCompletionItem.DEFAULT_INSERTION_CONTEXT, updater);
+
+      pdm.commitDocument(document);
+      JavaCodeStyleManager.getInstance(ctx.project())
+        .shortenClassReferences(updater.getPsiFile(), classNameStart, updater.getCaretOffset());
+
+      if (addParens) {
+        if (hasTypeParameters) {
           updater.moveCaretTo(updater.getCaretOffset() + 1);
-          return;
+          int caretInDiamond = updater.getCaretOffset();
+          updater.registerTabOut(TextRange.create(caretInDiamond, caretInDiamond), caretInDiamond + 2);
+        }
+        else {
+          boolean hasArgConstructor = ContainerUtil.exists(psiClass.getConstructors(),
+                                                           c -> c.getParameterList().getParametersCount() > 0);
+          updater.moveCaretTo(updater.getCaretOffset() + (hasArgConstructor ? 1 : 2));
         }
       }
+      return;
     }
     super.expandModForChooseExpression(ctx, updater, elementInCopy);
   }
@@ -155,7 +187,8 @@ public class NewExpressionPostfixTemplate extends StringBasedPostfixTemplate imp
     Project project = expression.getProject();
 
     SmartPsiElementPointer<PsiClass> pointer = SmartPointerManager.getInstance(project).createSmartPsiElementPointer(javaClass);
-    int startOffset = replaceExpressionTextByNewExpressionInDocument(project, expression, document);
+    int startOffset = replaceExpressionTextByNewExpression(expression, document);
+    PsiDocumentManager.getInstance(project).commitDocument(document);
 
     if (!javaClass.isValid()) {
       javaClass = pointer.getElement();
@@ -183,14 +216,11 @@ public class NewExpressionPostfixTemplate extends StringBasedPostfixTemplate imp
     return CompletionUtil.newContext(insertionContext, item, startOffset, offset);
   }
 
-  private static int replaceExpressionTextByNewExpressionInDocument(@NotNull Project project,
-                                                                    @NotNull PsiElement expression,
-                                                                    @NotNull Document document) {
+  private static int replaceExpressionTextByNewExpression(@NotNull PsiElement expression,
+                                                          @NotNull Document document) {
     TextRange range = expression.getTextRange();
     String newPrefix = "new ";
     document.replaceString(range.getStartOffset(), range.getEndOffset(), newPrefix + expression.getText());
-
-    PsiDocumentManager.getInstance(project).commitDocument(document);
     return range.getStartOffset() + newPrefix.length();
   }
 }

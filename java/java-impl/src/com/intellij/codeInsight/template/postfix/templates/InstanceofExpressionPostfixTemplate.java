@@ -74,7 +74,7 @@ public class InstanceofExpressionPostfixTemplate extends PostfixTemplate impleme
   }
 
   @Override
-  public boolean isApplicableForModCommand() {
+  public boolean isApplicableForModCommand(@NotNull PsiElement context, @NotNull Document copyDocument, int newOffset) {
     return true;
   }
 
@@ -88,7 +88,7 @@ public class InstanceofExpressionPostfixTemplate extends PostfixTemplate impleme
                                   document.deleteString(selection.getStartOffset(), selection.getEndOffset());
                                 },
                                 updater -> {
-                                  updater.getDocument().deleteString(PostfixLiveTemplate.positiveOffset(keyRange.getStartOffset()), selection.getStartOffset());
+                                  updater.getDocument().deleteString(keyRange.getStartOffset() - 1, selection.getStartOffset());
                                   PsiDocumentManager.getInstance(updater.getProject()).commitDocument(updater.getDocument());
                                   PsiElement context =
                                     CustomTemplateCallback.getContext(updater.getPsiFile(), PostfixLiveTemplate.positiveOffset(keyRange.getStartOffset() - 1));

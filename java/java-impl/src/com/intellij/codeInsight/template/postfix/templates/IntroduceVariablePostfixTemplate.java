@@ -58,7 +58,7 @@ public class IntroduceVariablePostfixTemplate extends PostfixTemplateWithExpress
   }
 
   @Override
-  public @NotNull ModCommand expandMod(@NotNull ActionContext actionContext, @NotNull PostfixTemplateProvider provider, @NotNull TextRange keyRange) {
+  public @NotNull ModCommand expandMod(@NotNull ActionContext actionContext, @NotNull PostfixTemplateProvider provider, TextRange keyRange) {
     Project project = actionContext.project();
     List<PsiElement> expressions = PostprocessReformattingAspect.getInstance(project).disablePostprocessFormattingInside(() -> {
       PsiFile copyFile = (PsiFile)actionContext.file().copy();
@@ -88,8 +88,7 @@ public class IntroduceVariablePostfixTemplate extends PostfixTemplateWithExpress
 
         @Override
         public @NotNull ModCommand perform(@NotNull ActionContext ctx) {
-          return buildCommandWithOccurrenceChoice(actionContext.withSelection(new TextRange(keyRange.getStartOffset(), keyRange.getStartOffset())),
-                                                  new TextRange(keyRange.getStartOffset(), keyRange.getStartOffset()), expr, provider);
+          return buildCommandWithOccurrenceChoice(actionContext.withSelection(new TextRange(keyRange.getStartOffset(), keyRange.getStartOffset())), new TextRange(keyRange.getStartOffset(), keyRange.getStartOffset()), expr, provider);
         }
 
         @Override
@@ -115,10 +114,10 @@ public class IntroduceVariablePostfixTemplate extends PostfixTemplateWithExpress
       RefactoringBundle.message("replace.multiple.occurrences.found"),
       List.of(
         createReplaceAction(RefactoringBundle.message("replace.this.occurrence.only"), ctx,
-                            keyRange, virtualExpr,
+                            new TextRange(keyRange.getStartOffset(), keyRange.getStartOffset()), virtualExpr,
                             List.of(virtualExpr.getTextRange()), provider),
-        createReplaceAction(RefactoringBundle.message("replace.all.occurrences", ranges.size()), ctx,
-                            keyRange,
+        createReplaceAction(RefactoringBundle.message("replace.all.occurences", ranges.size()), ctx,
+                            new TextRange(keyRange.getStartOffset(), keyRange.getStartOffset()),
                             virtualExpr, ranges, provider)
       ));
   }
@@ -167,7 +166,7 @@ public class IntroduceVariablePostfixTemplate extends PostfixTemplateWithExpress
 
       @Override
       public @NotNull ModCommand perform(@NotNull ActionContext c) {
-        return createIntroduceCommand(c, key, virtualExpr, ranges.size() > 1, provider);
+        return createIntroduceCommand(ctx, key, virtualExpr, ranges.size() > 1, provider);
       }
 
       @Override

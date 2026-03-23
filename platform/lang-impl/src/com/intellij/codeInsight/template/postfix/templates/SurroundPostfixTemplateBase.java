@@ -1,7 +1,7 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.codeInsight.template.postfix.templates;
 
-import com.intellij.lang.surroundWith.ModCommandSurrounder;
+import com.intellij.lang.surroundWith.PsiUpdateModCommandSurrounder;
 import com.intellij.lang.surroundWith.Surrounder;
 import com.intellij.modcommand.ActionContext;
 import com.intellij.modcommand.ModPsiUpdater;
@@ -49,7 +49,7 @@ public abstract class SurroundPostfixTemplateBase extends PostfixTemplateWithExp
                                            @NotNull ModPsiUpdater updater,
                                            @NotNull PsiElement elementInCopy) {
     Surrounder surrounder = getSurrounder();
-    if (!(surrounder instanceof ModCommandSurrounder modCommandSurrounder)) {
+    if (!(surrounder instanceof PsiUpdateModCommandSurrounder modCommandSurrounder)) {
       return;
     }
     PsiElement expression = getReplacedExpression(elementInCopy);

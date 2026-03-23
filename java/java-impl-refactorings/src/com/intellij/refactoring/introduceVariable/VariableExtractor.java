@@ -115,6 +115,7 @@ public final class VariableExtractor {
   private final boolean myReplaceSelf;
   private final @NotNull FieldConflictsResolver myFieldConflictsResolver;
   private final @Nullable LogicalPosition myPosition;
+  private boolean myAllowReadAction = false;
 
   VariableExtractor(final @NotNull Project project,
                     final @NotNull PsiExpression expression,
@@ -137,7 +138,7 @@ public final class VariableExtractor {
   }
 
   @NotNull VariableExtractor.ExtractionResultPointers extractVariable() {
-    if (!IntentionPreviewUtils.isPreviewElement(myExpression) && myExpression.isPhysical()) {
+    if (!IntentionPreviewUtils.isPreviewElement(myExpression) && !myAllowReadAction) {
       ApplicationManager.getApplication().assertWriteAccessAllowed();
     }
     final PsiExpression newExpr = myFieldConflictsResolver.fixInitializer(myExpression);
@@ -507,9 +508,16 @@ public final class VariableExtractor {
                                                             final PsiExpression @NotNull [] occurrences,
                                                             final @NotNull IntroduceVariableSettings settings) {
     SmartPsiElementPointer<PsiVariable> pointer =
-      new VariableExtractor(project, expr, null, anchorStatement, occurrences, settings).extractVariable().first;
+      new VariableExtractor(project, expr, null, anchorStatement, occurrences, settings)
+        .allowReadAction()
+        .extractVariable().first;
     PsiVariable var = pointer.getElement();
     return var;
+  }
+
+  public VariableExtractor allowReadAction() {
+    myAllowReadAction = true;
+    return this;
   }
 
   /**

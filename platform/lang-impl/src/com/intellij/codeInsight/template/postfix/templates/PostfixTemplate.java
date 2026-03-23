@@ -169,7 +169,7 @@ public abstract class PostfixTemplate implements PossiblyDumbAware {
    *
    * @param actionContext action context for the expansion
    * @param provider      the provider that provided this template
-   * @param keyRange      the range of the template key in the document
+   * @param keyRange
    * @return a {@link ModCommand} that performs the expansion, or {@code null} if this template does not support ModCommand expansion
    */
   @ApiStatus.Experimental
