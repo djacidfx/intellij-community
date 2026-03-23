@@ -110,10 +110,18 @@ class ConditionalModuleLoadingRuleValueTest {
     assertThat(pluginSetFrontend).hasExactlyEnabledPlugins("foo")
 
     val pluginSetMonolith = buildPluginSet { withProductMode(ProductMode.findById("monolith")!!) }
-    assertThat(pluginSetMonolith).doesNotHaveEnabledPlugins()
-    val errors = PluginManagerCore.getAndClearPluginLoadingErrors()
-    assertThat(errors).hasSizeGreaterThan(0)
-    assertThat(errors[0].htmlMessage.toString()).contains("foo", "cannot be loaded", "form a dependency cycle")
+    if (PluginManagerCore.fallbackToOldPluginSetResolution()) {
+      assertThat(pluginSetMonolith).doesNotHaveEnabledPlugins()
+      val errors = PluginManagerCore.getAndClearPluginLoadingErrors()
+      assertThat(errors).hasSizeGreaterThan(0)
+      assertThat(errors[0].htmlMessage.toString()).contains("foo", "cannot be loaded", "form a dependency cycle")
+    } else {
+      // now there is no artificial edge foo -> foo.maybe.req, so foo.maybe.req -> foo.optional -> foo is allowed
+      assertThat(pluginSetMonolith).hasExactlyEnabledPlugins("foo")
+      assertThat(pluginSetMonolith.getEnabledModules()).hasSize(3)
+      val errors = PluginManagerCore.getAndClearPluginLoadingErrors()
+      assertThat(errors).isEmpty()
+    }
   }
 
   private fun buildPluginSet(builder: PluginSetTestBuilder.() -> Unit = {}): PluginSet = PluginSetTestBuilder.fromPath(pluginsDirPath).apply(builder).build()
