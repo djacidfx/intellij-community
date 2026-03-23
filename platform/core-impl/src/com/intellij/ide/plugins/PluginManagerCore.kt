@@ -1137,7 +1137,6 @@ private fun ResolvedPluginSet.logExclusionTree() {
       }
     }
   }
-  val logBuilder = StringBuilder()
 
   fun StringBuilder.appendIndentString(indent: Int) {
     repeat(indent) { append("  ") }
@@ -1160,8 +1159,9 @@ private fun ResolvedPluginSet.logExclusionTree() {
   }
   val dependencyIsNotResolvedRoots = roots.asSequence().filter { getExclusionReason(it) is DependencyIsNotResolved }.toSet()
   roots.removeAll(dependencyIsNotResolvedRoots)
-  logBuilder.apply {
-    appendLine("Plugin set resolution:")
+  val logHeader = "Plugin set resolution:\n"
+  val logBuilder = StringBuilder().apply {
+    append(logHeader)
     dependencyIsNotResolvedRoots.map { getExclusionReason(it) as DependencyIsNotResolved }.groupBy { it.dependency }
       .forEach { (ref, roots) ->
         appendLine("${ref.getIdString()} is not resolved (or is disabled)")
@@ -1178,6 +1178,12 @@ private fun ResolvedPluginSet.logExclusionTree() {
     for (root in roots) {
       writeExclusionTree(root, 0)
     }
+  }
+  if (logBuilder.last() == '\n') {
+    logBuilder.setLength(logBuilder.length - 1)
+  }
+  if (logBuilder.length == logHeader.length - 1) {
+    logBuilder.append(" no exclusions")
   }
   PluginManagerCore.logger.warn(logBuilder.toString())
 }
@@ -1222,7 +1228,7 @@ private fun <N> StringBuilder.explainCycle(cycle: DependencyCycleInfo<N>, fmtNod
   cycle.nodesWithDependenciesOnCycle.forEach { (node, dependencies) ->
     if (endLine) appendLine()
     else endLine = true
-    append("  | ${fmtNode(node)} depends on: ${fmtDeps(dependencies)}")
+    append("    | ${fmtNode(node)} depends on: ${fmtDeps(dependencies)}")
   }
 }
 
