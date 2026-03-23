@@ -418,6 +418,7 @@ private class PluginSetConstraintsResolver(
         if (component.size <= 1) {
           continue
         }
+        val component = component.sortedWith(compareBy { it.pluginId }) // makes result stable
         val cycleNodesWithDependencies = component.associateWith { ArrayList<IdeaPluginDescriptorImpl>() }
         for (descriptor in component) {
           cycleNodesWithDependencies[descriptor]!!.addAll(resolvedDependencies[descriptor]!!.filter { it in cycleNodesWithDependencies.keys })
@@ -472,6 +473,7 @@ private class PluginSetConstraintsResolver(
         if (component.size <= 1) {
           continue
         }
+        val component = component.sortedWith(compareBy { it.representativeModule.pluginId }) // make result stable
         val cycleNodesWithDependencies = component.associateWith { ArrayList<RuntimeModuleGroup>() }
         for (group in component) {
           cycleNodesWithDependencies[group]!!.addAll(groupToGroupDependencies[group]!!.filter { it in cycleNodesWithDependencies.keys })
