@@ -187,7 +187,9 @@ class ClassLoaderConfigurator(
         }
       }
     }
-    val dependencies = (mutableDependenciesList ?: dependenciesList).toTypedArray()
+    val dependencies = (mutableDependenciesList ?: dependenciesList)
+      .filter { it.pluginClassLoader !== coreLoader } // `coreLoader` is added implicitly to every PluginClassLoader, and it comes the last in the list of parent classloaders
+      .toTypedArray()
     sortDependenciesInPlace(dependencies)
     return dependencies
   }
