@@ -22,6 +22,7 @@ import org.jetbrains.kotlin.idea.k2.hints.AbstractKtLambdasHintsProvider
 import org.jetbrains.kotlin.idea.k2.hints.AbstractKtParameterHintsProviderTest
 import org.jetbrains.kotlin.idea.k2.hints.AbstractKtReferenceTypeHintsProviderTest
 import org.jetbrains.kotlin.idea.k2.hints.AbstractKtValuesHintsProviderTest
+import org.jetbrains.kotlin.idea.k2.hints.compilerPlugins.AbstractAllOpenInspectionTest
 import org.jetbrains.kotlin.idea.k2.hints.compilerPlugins.AbstractCompilerPluginDeclarationHighlighterTest
 import org.jetbrains.kotlin.idea.k2.hints.compilerPlugins.AbstractKtCompilerDeclarationsHintProviderTest
 import org.jetbrains.kotlin.idea.k2.hints.compilerPlugins.AbstractKtCompilerPluginModalityHintProviderTest
@@ -218,6 +219,10 @@ internal fun MutableTWorkspace.generateK2CodeInsightTests() {
 
         testClass<AbstractKotlinCodeVisionProviderTest>(generatedClassName = "org.jetbrains.kotlin.idea.k2.codeInsight.codeVision.KotlinCodeVisionProviderTestGenerated") {
             model("../../../idea/tests/testData/codeInsight/codeVision")
+        }
+
+        testClass<AbstractAllOpenInspectionTest> {
+            model("inspections/compilerPlugins/allOpen")
         }
 
         testClass<AbstractFirRenderingKDocTest> {
