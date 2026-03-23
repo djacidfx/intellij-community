@@ -1129,77 +1129,77 @@ jvm_import(
 )
 
 copy_file(
-  name = "commons-cli/commons-cli-1.10.0.jar_copy",
-  src = "@commons-cli-commons-cli-1_10_0_http//file",
-  out = "commons-cli/commons-cli-1.10.0.jar",
+  name = "commons-cli/commons-cli-1.11.0.jar_copy",
+  src = "@commons-cli-commons-cli-1_11_0_http//file",
+  out = "commons-cli/commons-cli-1.11.0.jar",
   allow_symlink = True,
   visibility = ["//visibility:public"]
 )
 
 jvm_import(
   name = "commons-cli",
-  jar = "@commons-cli-commons-cli-1_10_0_http//file",
-  source_jar = "@commons-cli-commons-cli-1_10_0-sources_http//file",
+  jar = "@commons-cli-commons-cli-1_11_0_http//file",
+  source_jar = "@commons-cli-commons-cli-1_11_0-sources_http//file",
   visibility = ["//visibility:public"]
 )
 
 copy_file(
-  name = "commons-codec/commons-codec-1.18.0.jar_copy",
-  src = "@commons-codec-commons-codec-1_18_0_http//file",
-  out = "commons-codec/commons-codec-1.18.0.jar",
+  name = "commons-codec/commons-codec-1.21.0.jar_copy",
+  src = "@commons-codec-commons-codec-1_21_0_http//file",
+  out = "commons-codec/commons-codec-1.21.0.jar",
   allow_symlink = True,
   visibility = ["//visibility:public"]
 )
 
 jvm_import(
   name = "commons-codec",
-  jar = "@commons-codec-commons-codec-1_18_0_http//file",
-  source_jar = "@commons-codec-commons-codec-1_18_0-sources_http//file",
+  jar = "@commons-codec-commons-codec-1_21_0_http//file",
+  source_jar = "@commons-codec-commons-codec-1_21_0-sources_http//file",
   visibility = ["//visibility:public"]
 )
 
 copy_file(
-  name = "org.apache.commons/commons-compress-1.27.1.jar_copy",
-  src = "@org_apache_commons-commons-compress-1_27_1_http//file",
-  out = "org.apache.commons/commons-compress-1.27.1.jar",
+  name = "org.apache.commons/commons-compress-1.28.0.jar_copy",
+  src = "@org_apache_commons-commons-compress-1_28_0_http//file",
+  out = "org.apache.commons/commons-compress-1.28.0.jar",
   allow_symlink = True,
   visibility = ["//visibility:public"]
 )
 
 jvm_import(
   name = "commons-compress",
-  jar = "@org_apache_commons-commons-compress-1_27_1_http//file",
-  source_jar = "@org_apache_commons-commons-compress-1_27_1-sources_http//file",
+  jar = "@org_apache_commons-commons-compress-1_28_0_http//file",
+  source_jar = "@org_apache_commons-commons-compress-1_28_0-sources_http//file",
   visibility = ["//visibility:public"]
 )
 
 copy_file(
-  name = "commons-io/commons-io-2.18.0.jar_copy",
-  src = "@commons-io-commons-io-2_18_0_http//file",
-  out = "commons-io/commons-io-2.18.0.jar",
+  name = "commons-io/commons-io-2.21.0.jar_copy",
+  src = "@commons-io-commons-io-2_21_0_http//file",
+  out = "commons-io/commons-io-2.21.0.jar",
   allow_symlink = True,
   visibility = ["//visibility:public"]
 )
 
 jvm_import(
   name = "commons-io",
-  jar = "@commons-io-commons-io-2_18_0_http//file",
-  source_jar = "@commons-io-commons-io-2_18_0-sources_http//file",
+  jar = "@commons-io-commons-io-2_21_0_http//file",
+  source_jar = "@commons-io-commons-io-2_21_0-sources_http//file",
   visibility = ["//visibility:public"]
 )
 
 copy_file(
-  name = "org.apache.commons/commons-lang3-3.18.0.jar_copy",
-  src = "@org_apache_commons-commons-lang3-3_18_0_http//file",
-  out = "org.apache.commons/commons-lang3-3.18.0.jar",
+  name = "org.apache.commons/commons-lang3-3.20.0.jar_copy",
+  src = "@org_apache_commons-commons-lang3-3_20_0_http//file",
+  out = "org.apache.commons/commons-lang3-3.20.0.jar",
   allow_symlink = True,
   visibility = ["//visibility:public"]
 )
 
 jvm_import(
   name = "commons-lang3",
-  jar = "@org_apache_commons-commons-lang3-3_18_0_http//file",
-  source_jar = "@org_apache_commons-commons-lang3-3_18_0-sources_http//file",
+  jar = "@org_apache_commons-commons-lang3-3_20_0_http//file",
+  source_jar = "@org_apache_commons-commons-lang3-3_20_0-sources_http//file",
   visibility = ["//visibility:public"]
 )
 
@@ -5376,6 +5376,14 @@ copy_file(
   name = "javax.xml.bind/jaxb-api-2.3.1.jar_copy",
   src = "@javax_xml_bind-jaxb-api-2_3_1_http//file",
   out = "javax.xml.bind/jaxb-api-2.3.1.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "org.apache.commons/commons-lang3-3.18.0.jar_copy",
+  src = "@org_apache_commons-commons-lang3-3_18_0_http//file",
+  out = "org.apache.commons/commons-lang3-3.18.0.jar",
   allow_symlink = True,
   visibility = ["//visibility:public"]
 )
@@ -11338,17 +11346,17 @@ jvm_import(
 )
 
 copy_file(
-  name = "org.apache.commons/commons-text-1.14.0.jar_copy",
-  src = "@org_apache_commons-commons-text-1_14_0_http//file",
-  out = "org.apache.commons/commons-text-1.14.0.jar",
+  name = "org.apache.commons/commons-text-1.15.0.jar_copy",
+  src = "@org_apache_commons-commons-text-1_15_0_http//file",
+  out = "org.apache.commons/commons-text-1.15.0.jar",
   allow_symlink = True,
   visibility = ["//visibility:public"]
 )
 
 jvm_import(
   name = "libraries-commons-text-commons-text",
-  jar = "@org_apache_commons-commons-text-1_14_0_http//file",
-  source_jar = "@org_apache_commons-commons-text-1_14_0-sources_http//file",
+  jar = "@org_apache_commons-commons-text-1_15_0_http//file",
+  source_jar = "@org_apache_commons-commons-text-1_15_0-sources_http//file",
   visibility = ["//visibility:public"]
 )
 
@@ -12153,17 +12161,17 @@ jvm_import(
 )
 
 copy_file(
-  name = "com.dynatrace.hash4j/hash4j-0.29.0.jar_copy",
-  src = "@com_dynatrace_hash4j-hash4j-0_29_0_http//file",
-  out = "com.dynatrace.hash4j/hash4j-0.29.0.jar",
+  name = "com.dynatrace.hash4j/hash4j-0.30.0.jar_copy",
+  src = "@com_dynatrace_hash4j-hash4j-0_30_0_http//file",
+  out = "com.dynatrace.hash4j/hash4j-0.30.0.jar",
   allow_symlink = True,
   visibility = ["//visibility:public"]
 )
 
 jvm_import(
   name = "libraries-hash4j-hash4j",
-  jar = "@com_dynatrace_hash4j-hash4j-0_29_0_http//file",
-  source_jar = "@com_dynatrace_hash4j-hash4j-0_29_0-sources_http//file",
+  jar = "@com_dynatrace_hash4j-hash4j-0_30_0_http//file",
+  source_jar = "@com_dynatrace_hash4j-hash4j-0_30_0-sources_http//file",
   visibility = ["//visibility:public"]
 )
 
@@ -17290,6 +17298,14 @@ copy_file(
   name = "org.slf4j/slf4j-api-2.0.17.jar_copy",
   src = "@org_slf4j-slf4j-api-2_0_17_http//file",
   out = "org.slf4j/slf4j-api-2.0.17.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "commons-cli/commons-cli-1.10.0.jar_copy",
+  src = "@commons-cli-commons-cli-1_10_0_http//file",
+  out = "commons-cli/commons-cli-1.10.0.jar",
   allow_symlink = True,
   visibility = ["//visibility:public"]
 )
