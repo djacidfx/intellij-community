@@ -796,7 +796,7 @@ internal class PluginDependenciesTest {
     assertThat(barSub)
       .hasExactDirectParentClassloaders(foo)
       .doesNotHaveTransitiveParentClassloaders(baz, bazModule)
-    assertThat(barSub.moduleDependencies.modules).hasSize(1)
+    assertThat(barSub.moduleDependencies.modules).isEmpty()
     assertThat(err).hasMessageContainingAll("'depends' sub-descriptor", "bar", "<dependencies><module>")
   }
 

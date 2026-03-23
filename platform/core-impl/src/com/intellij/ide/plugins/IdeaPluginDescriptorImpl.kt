@@ -157,7 +157,7 @@ class DependsSubDescriptor(
     get() = parent.useCoreClassLoader
   override val isIndependentFromCoreClassLoader: Boolean = raw.isIndependentFromCoreClassLoader
 
-  override val moduleDependencies: ModuleDependencies = convertDependencies(raw.dependencies, null)
+  override val moduleDependencies: ModuleDependencies = ModuleDependencies.EMPTY
 
   private val rawResourceBundleBaseName: String? = raw.resourceBundleBaseName
 
