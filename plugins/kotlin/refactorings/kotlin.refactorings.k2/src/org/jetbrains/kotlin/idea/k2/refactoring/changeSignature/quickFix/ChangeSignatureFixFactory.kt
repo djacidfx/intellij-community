@@ -6,6 +6,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiMethod
+import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.util.TypeConversionUtil
 import com.intellij.psi.util.parentOfType
 import com.intellij.refactoring.changeSignature.ChangeInfo
@@ -14,13 +15,13 @@ import com.intellij.refactoring.changeSignature.JavaChangeInfo
 import com.intellij.refactoring.changeSignature.JavaChangeInfoImpl
 import com.intellij.refactoring.changeSignature.ParameterInfoImpl
 import com.intellij.refactoring.util.CanonicalTypes
+import com.intellij.usageView.UsageInfo
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.components.asPsiType
 import org.jetbrains.kotlin.analysis.api.components.buildClassType
 import org.jetbrains.kotlin.analysis.api.components.buildSubstitutor
 import org.jetbrains.kotlin.analysis.api.components.containingDeclaration
-import org.jetbrains.kotlin.analysis.api.components.createInheritanceTypeSubstitutor
 import org.jetbrains.kotlin.analysis.api.components.expressionType
 import org.jetbrains.kotlin.analysis.api.components.functionTypeKind
 import org.jetbrains.kotlin.analysis.api.components.isSubtypeOf
@@ -42,7 +43,6 @@ import org.jetbrains.kotlin.analysis.api.types.KaFlexibleType
 import org.jetbrains.kotlin.analysis.api.types.KaFunctionType
 import org.jetbrains.kotlin.analysis.api.types.KaType
 import org.jetbrains.kotlin.analysis.api.types.KaTypeMappingMode
-import org.jetbrains.kotlin.analysis.api.types.KaTypeParameterType
 import org.jetbrains.kotlin.builtins.StandardNames.IMPLICIT_LAMBDA_PARAMETER_NAME
 import org.jetbrains.kotlin.builtins.functions.FunctionTypeKind
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.analyzeInModalWindow
@@ -54,6 +54,7 @@ import org.jetbrains.kotlin.idea.base.codeInsight.KotlinNameSuggestionProvider
 import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
 import org.jetbrains.kotlin.idea.codeinsight.api.applicators.fixes.KotlinApplicatorBasedQuickFix
 import org.jetbrains.kotlin.idea.codeinsight.api.applicators.fixes.KotlinQuickFixFactory
+import org.jetbrains.kotlin.idea.codeinsight.utils.removeExplicitParameterTypes
 import org.jetbrains.kotlin.idea.k2.refactoring.changeSignature.KotlinChangeInfo
 import org.jetbrains.kotlin.idea.k2.refactoring.changeSignature.KotlinChangeSignatureProcessor
 import org.jetbrains.kotlin.idea.k2.refactoring.changeSignature.KotlinMethodDescriptor
@@ -110,12 +111,33 @@ object ChangeSignatureFixFactory {
             project: Project,
             editor: Editor?,
         ) {
+
             val changeInfo = analyzeInModalWindow(element as KtElement, KotlinBundle.message("fix.change.signature.prepare")) {
                 prepareChangeInfo(element, input)
             } ?: return
 
             when (changeInfo) {
-                is KotlinChangeInfo -> KotlinChangeSignatureProcessor(project, changeInfo).run()
+                is KotlinChangeInfo -> {
+                    val lambdaExpression = element as? KtLambdaExpression
+                    val shouldRemoveExplicitParameterTypes = lambdaExpression?.valueParameters?.none { it.typeReference != null } == true
+                    val lambdaPointer = lambdaExpression?.let(SmartPointerManager::createPointer)
+
+                    val kotlinChangeSignatureProcessor =
+                        if (input.type == ChangeType.CHANGE_FUNCTIONAL) {
+                            object : KotlinChangeSignatureProcessor(project, changeInfo) {
+                                override fun performRefactoring(usages: Array<out UsageInfo?>) {
+                                    super.performRefactoring(usages)
+                                    if (shouldRemoveExplicitParameterTypes) {
+                                        lambdaPointer?.element?.removeExplicitParameterTypes()
+                                    }
+                                }
+                            }
+                        } else {
+                            KotlinChangeSignatureProcessor(project, changeInfo)
+                        }
+                    kotlinChangeSignatureProcessor.run()
+                }
+
                 is JavaChangeInfo -> ChangeSignatureProcessor(project, changeInfo).run()
             }
 
