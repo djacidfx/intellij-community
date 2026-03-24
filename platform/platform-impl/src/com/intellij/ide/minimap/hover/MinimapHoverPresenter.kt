@@ -1,6 +1,7 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.minimap.hover
 
+import com.intellij.ide.minimap.geometry.MinimapLineGeometryUtil
 import com.intellij.ide.minimap.MinimapPanel
 import com.intellij.ide.minimap.render.MinimapRenderContext
 import java.awt.Graphics2D
@@ -45,9 +46,9 @@ class MinimapHoverPresenter(private val panel: MinimapPanel) {
   private fun computeLineHeight(context: MinimapRenderContext): Int {
     val lineCount = panel.editor.document.lineCount
     if (lineCount <= 0) return 1
-    val baseLineHeight = context.geometry.minimapHeight.toDouble() / lineCount
-    val lineGap = (baseLineHeight * 0.5).coerceAtMost(2.0)
+    val baseLineHeight = MinimapLineGeometryUtil.baseLineHeight(lineCount, context.geometry.minimapHeight)
+    val lineGap = MinimapLineGeometryUtil.lineGap(baseLineHeight)
 
-    return (baseLineHeight - lineGap).roundToInt().coerceAtLeast(1)
+    return MinimapLineGeometryUtil.lineHeight(baseLineHeight, lineGap).roundToInt().coerceAtLeast(1)
   }
 }

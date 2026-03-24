@@ -1,6 +1,7 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.minimap.hover
 
+import com.intellij.ide.minimap.geometry.MinimapLineGeometryUtil
 import com.intellij.ide.minimap.layout.MinimapLayoutUtil.lineTop
 import com.intellij.ide.minimap.render.MinimapRenderEntry
 import com.intellij.ide.minimap.model.MinimapStructureMarkerPolicy
@@ -88,8 +89,8 @@ class MinimapHoverHitCheck(private val editor: Editor) {
       .coerceAtMost(lineCount)
       .coerceAtLeast(projectedStartLine + 1)
 
-    val baseLineHeight = baseLineHeight(lineCount, geometry.minimapHeight)
-    val lineGap = (baseLineHeight * 0.5).coerceAtMost(2.0)
+    val baseLineHeight = MinimapLineGeometryUtil.baseLineHeight(lineCount, geometry.minimapHeight)
+    val lineGap = MinimapLineGeometryUtil.lineGap(baseLineHeight)
 
     val y1 = lineTop(projectedStartLine, baseLineHeight)
     val y2 = lineTop(endLineExclusive, baseLineHeight)
@@ -130,7 +131,4 @@ class MinimapHoverHitCheck(private val editor: Editor) {
     return owner.name?.takeUnless { it.isBlank() }
   }
 
-  private fun baseLineHeight(lineCount: Int, minimapHeight: Int): Double {
-    return minimapHeight.toDouble() / lineCount
-  }
 }

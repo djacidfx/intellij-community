@@ -725,6 +725,9 @@
     <extensionPoint name="minimapStructureMarkerPolicy"
                     interface="com.intellij.ide.minimap.model.MinimapStructureMarkerPolicy"
                     dynamic="true"/>
+    <extensionPoint name="minimapLayerFactory"
+                    interface="com.intellij.ide.minimap.layers.MinimapLayerFactory"
+                    dynamic="true"/>
 
     <extensionPoint name="fileChooserCustomizer"
                     interface="com.intellij.openapi.fileChooser.FileChooserCustomizer"

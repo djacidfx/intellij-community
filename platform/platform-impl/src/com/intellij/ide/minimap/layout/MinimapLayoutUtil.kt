@@ -2,6 +2,7 @@
 package com.intellij.ide.minimap.layout
 
 import com.intellij.ide.minimap.geometry.MinimapGeometryData
+import com.intellij.ide.minimap.geometry.MinimapLineGeometryUtil
 import com.intellij.ide.minimap.render.MinimapRenderContext
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
@@ -9,15 +10,15 @@ import com.intellij.openapi.editor.ex.util.EditorUtil
 import java.awt.geom.Rectangle2D
 
 object MinimapLayoutUtil {
-  fun lineTop(line: Int, baseLineHeight: Double): Double = line * baseLineHeight
+  fun lineTop(line: Int, baseLineHeight: Double): Double = MinimapLineGeometryUtil.lineTop(line, baseLineHeight)
 
-  fun getLineGap(baseLineHeight: Double): Double = (baseLineHeight * 0.5).coerceAtMost(2.0)
+  fun getLineGap(baseLineHeight: Double): Double = MinimapLineGeometryUtil.lineGap(baseLineHeight)
 
   fun computeLayoutMetrics(editor: Editor, context: MinimapRenderContext): MinimapLayoutMetrics? {
     val lineCount = context.lineProjection.projectedLineCount
     if (lineCount <= 0) return null
 
-    val baseLineHeight = context.geometry.minimapHeight.toDouble() / lineCount
+    val baseLineHeight = MinimapLineGeometryUtil.baseLineHeight(lineCount, context.geometry.minimapHeight)
     val contentStartX = getContentStartX(context.panelWidth)
     val contentWidth = (context.panelWidth.toDouble() - contentStartX).coerceAtLeast(1.0)
     val rightMargin = getRightMarginChars(editor)

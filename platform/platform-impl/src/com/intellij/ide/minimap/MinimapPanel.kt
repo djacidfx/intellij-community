@@ -1,19 +1,15 @@
 // Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.minimap
 
-import com.intellij.ide.minimap.breakpoints.MinimapBreakpointPainter
-import com.intellij.ide.minimap.folding.MinimapFoldMarkerPainter
-import com.intellij.ide.minimap.legacy.MinimapLegacyPreview
 import com.intellij.ide.minimap.geometry.MinimapScaleUtil
 import com.intellij.ide.minimap.hover.MinimapHoverController
 import com.intellij.ide.minimap.interaction.MinimapMouseInteractionController
-import com.intellij.ide.minimap.diagnostics.MinimapDiagnosticsPainter
-import com.intellij.ide.minimap.paint.MinimapSelectionPainter
+import com.intellij.ide.minimap.layers.MinimapLayerFactory
+import com.intellij.ide.minimap.layers.MinimapLayerPipeline
+import com.intellij.ide.minimap.layers.MinimapLayerRenderState
 import com.intellij.ide.minimap.scene.MinimapSnapshot
-import com.intellij.ide.minimap.render.MinimapRenderer
 import com.intellij.ide.minimap.settings.MinimapSettings
 import com.intellij.ide.minimap.settings.MinimapSettingsState
-import com.intellij.ide.minimap.thumb.MinimapThumb
 import com.intellij.ide.ui.customization.CustomActionsSchema
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionGroup
@@ -27,27 +23,16 @@ import java.awt.Dimension
 import java.awt.Graphics
 import java.awt.Graphics2D
 import javax.swing.JPanel
-import kotlin.math.min
-import kotlin.math.roundToInt
 
 class MinimapPanel(
   coroutineScope: CoroutineScope,
   val editor: Editor,
   val container: JPanel,
 ) : JPanel(), Disposable {
-  private val renderer = MinimapRenderer()
-
   val settings: MinimapSettings = MinimapSettings.getInstance()
 
   private val settingsState: MinimapSettingsState
     get() = settings.state
-
-  private val selectionPainter = MinimapSelectionPainter(editor)
-  private val diagnosticsPainter = MinimapDiagnosticsPainter(editor)
-  private val foldPainter = MinimapFoldMarkerPainter()
-  private val breakpointPainter = MinimapBreakpointPainter()
-
-  private val legacyPreview = MinimapLegacyPreview { repaint() }
 
   private var snapshot: MinimapSnapshot? = null
 
@@ -72,6 +57,17 @@ class MinimapPanel(
     this,
     hoverController,
   ).also { Disposer.register(this, it) }
+
+  internal val layerPainter = MinimapLayerPainter(
+    editor = editor,
+    minimapController = minimapController,
+    hoverController = hoverController,
+    repaintRequest = ::repaint,
+  )
+
+  private val layerPipeline = MinimapLayerPipeline(
+    layers = MinimapLayerFactory.createLayers(this),
+  )
 
   private val onSettingsChange = { _: MinimapSettings.SettingsChangeType ->
     updatePreferredSize()
@@ -103,7 +99,7 @@ class MinimapPanel(
   override fun dispose() {
     disposed = true
     uninstallSettingsListeners()
-    legacyPreview.clear()
+    layerPainter.clear()
     snapshot = null
     container.remove(this)
     container.revalidate()
@@ -134,60 +130,43 @@ class MinimapPanel(
     g2d.fillRect(0, 0, width, height)
 
     val snapshot = currentSnapshot() ?: return
-    val geometry = snapshot.geometry
-
-    if (MinimapRegistry.isLegacy()) {
-      legacyPreview.paint(g2d, editor, width, snapshot.geometry)
-    }
-    else {
-      renderer.paint(g2d, snapshot.context, snapshot.tokenEntries, snapshot.layoutMetrics)
-      selectionPainter.paint(g2d, snapshot.context, snapshot.layoutMetrics)
-      diagnosticsPainter.paint(g2d, snapshot.diagnosticEntries)
-      foldPainter.paint(g2d, snapshot.foldEntries, snapshot.breakpointEntries, snapshot.layoutMetrics)
-      breakpointPainter.paint(g2d, snapshot.breakpointEntries)
-      hoverController.paint(g2d)
-    }
-
-    minimapController.paintCaret(g2d)
-    MinimapThumb.paint(g2d, width, geometry)
+    val layerState = MinimapLayerRenderState(
+      snapshot = snapshot,
+      panelWidth = width,
+      isLegacyMode = MinimapRegistry.isLegacy(),
+    )
+    layerPipeline.paint(g2d, layerState)
   }
 
   override fun updateUI() {
     super.updateUI()
 
     if (initialized && MinimapRegistry.isLegacy()) {
-      legacyPreview.update(editor, currentSnapshot()?.geometry?.minimapHeight ?: 0, true)
+      layerPainter.updateLegacyPreview(currentSnapshot()?.geometry?.minimapHeight ?: 0)
     }
   }
 
   fun scrollTo(y: Int) {
     val geometry = currentSnapshot()?.geometry ?: return
-    val minimapHeight = geometry.minimapHeight
-    if (minimapHeight <= 0) return
-
-    val contentHeight = editor.contentComponent.size.height
-    if (contentHeight <= 0) return
-
-    val areaY = (y + geometry.areaStart).coerceIn(0, minimapHeight)
-    val percentage = areaY.toDouble() / minimapHeight.toDouble()
-    val viewportHalf = editor.component.size.height / 2
-    editor.scrollingModel.scrollVertically((percentage * contentHeight - viewportHalf).roundToInt())
+    val targetScrollOffset = MinimapScrollUtil.targetScrollOffsetForPoint(
+      y = y,
+      geometry = geometry,
+      contentHeight = editor.contentComponent.size.height,
+      viewportHeight = editor.component.size.height,
+    ) ?: return
+    editor.scrollingModel.scrollVertically(targetScrollOffset)
   }
 
   fun scrollThumbTo(y: Int, dragOffset: Int) {
     val geometry = currentSnapshot()?.geometry ?: return
-    val panelHeight = height
-    val minimapHeight = geometry.minimapHeight
-    val thumbHeight = geometry.thumbHeight
-    if (panelHeight <= 0 || minimapHeight <= 0 || thumbHeight <= 0) return
-
-    val thumbStart = MinimapThumb.computeStartFromDrag(y, dragOffset, panelHeight, minimapHeight, thumbHeight)
-
-    val contentHeight = contentHeight()
-    if (contentHeight <= 0) return
-    val visibleHeight = min(editor.scrollingModel.visibleArea.height, contentHeight).coerceAtLeast(0)
-    val scrollRange = (contentHeight - visibleHeight).coerceAtLeast(0)
-    val targetScrollOffset = MinimapThumb.mapThumbStartToScrollOffset(thumbStart, scrollRange, minimapHeight, thumbHeight)
+    val targetScrollOffset = MinimapScrollUtil.targetScrollOffsetForThumbDrag(
+      y = y,
+      dragOffset = dragOffset,
+      panelHeight = height,
+      geometry = geometry,
+      contentHeight = contentHeight(),
+      visibleHeight = editor.scrollingModel.visibleArea.height,
+    ) ?: return
     editor.scrollingModel.scrollVertically(targetScrollOffset)
   }
 

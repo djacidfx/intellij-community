@@ -2,6 +2,7 @@
 package com.intellij.ide.minimap.paint
 
 import com.intellij.ide.minimap.MinimapPanel
+import com.intellij.ide.minimap.geometry.MinimapLineGeometryUtil
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.ui.JBColor
@@ -33,16 +34,16 @@ class MinimapCaretPainter(private val editor: Editor, private val panel: Minimap
       return null
     }
 
-    val baseLineHeight = geometry.minimapHeight.toDouble() / lineCount
-    val lineGap = (baseLineHeight * 0.5).coerceAtMost(2.0)
+    val baseLineHeight = MinimapLineGeometryUtil.baseLineHeight(lineCount, geometry.minimapHeight)
+    val lineGap = MinimapLineGeometryUtil.lineGap(baseLineHeight)
 
     val document = editor.document
     val safeOffset = offset.coerceIn(0, document.textLength)
     val lineNumber = document.getLineNumber(safeOffset)
     val projectedLine = lineProjection.logicalToProjectedLine(lineNumber) ?: return null
 
-    val lineStartY = getLineTop(projectedLine, baseLineHeight) - geometry.areaStart + lineGap / 2.0
-    val lineHeight = getLineHeight(baseLineHeight, lineGap)
+    val lineStartY = MinimapLineGeometryUtil.lineTop(projectedLine, baseLineHeight) - geometry.areaStart + lineGap / 2.0
+    val lineHeight = MinimapLineGeometryUtil.lineHeight(baseLineHeight, lineGap)
 
     if (lineHeight <= 0.0 || lineStartY > context.panelHeight || lineStartY + lineHeight < 0) {
       return null
@@ -58,14 +59,6 @@ class MinimapCaretPainter(private val editor: Editor, private val panel: Minimap
 
   private fun caretColor(): Color {
     return editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR) ?: CARET_FALLBACK_COLOR
-  }
-
-  private fun getLineTop(line: Int, baseLineHeight: Double): Double {
-    return line * baseLineHeight
-  }
-
-  private fun getLineHeight(baseLineHeight: Double, lineGap: Double): Double {
-    return (baseLineHeight - lineGap).coerceAtLeast(1.0)
   }
 
   companion object {
