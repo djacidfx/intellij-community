@@ -1,13 +1,9 @@
-package com.intellij.searchEverywhereLucene.backend.providers.files
+package com.intellij.searchEverywhereLucene.backend.providers.files.analysis
 
 import com.intellij.searchEverywhereLucene.backend.AnalyzersTestBase
 import com.intellij.searchEverywhereLucene.backend.providers.files.FileIndex.Companion.FILE_RELATIVE_PATH
 import com.intellij.searchEverywhereLucene.backend.providers.files.FileIndex.Companion.FILE_TYPE
 import com.intellij.searchEverywhereLucene.backend.providers.files.FileIndex.Companion.getIndexingAnalyzer
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FileNameAnalyzer
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FilePathAnalyzer
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FileTokenType
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FileTypeAnalyzer
 import org.junit.jupiter.api.Test
 
 /**

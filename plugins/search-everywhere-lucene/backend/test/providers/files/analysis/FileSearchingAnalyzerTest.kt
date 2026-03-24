@@ -1,9 +1,6 @@
-package com.intellij.searchEverywhereLucene.backend.providers.files
+package com.intellij.searchEverywhereLucene.backend.providers.files.analysis
 
 import com.intellij.searchEverywhereLucene.backend.AnalyzersTestBase
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FileNameAnalyzer
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FileSearchAnalyzer
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FileTokenType
 import org.junit.jupiter.api.Test
 
 /**
