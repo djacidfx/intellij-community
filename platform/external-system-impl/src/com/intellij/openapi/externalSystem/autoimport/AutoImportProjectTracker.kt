@@ -10,6 +10,7 @@ import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.components.StoragePathMacros.CACHE_FILE
+import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectTracker.Util.bindIsPassThrough
 import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectTracker.Util.bindMergingTimeSpan
@@ -43,10 +44,13 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.platform.backend.observation.trackActivityBlocking
+import com.intellij.platform.backend.workspace.WorkspaceModelCache
+import com.intellij.platform.backend.workspace.workspaceModel
 import com.intellij.util.application
 import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.ui.update.MergingUpdateQueue
 import com.intellij.util.ui.update.queueTracked
+import com.intellij.workspaceModel.ide.impl.WorkspaceModelImpl
 import kotlinx.serialization.Serializable
 import org.jetbrains.annotations.ApiStatus.Internal
 import org.jetbrains.annotations.TestOnly
@@ -403,13 +407,22 @@ class AutoImportProjectTracker(
   private fun loadState(projectId: ExternalSystemProjectId, projectData: ProjectData) {
     val projectState = projectDataStates.remove(projectId)
     val settingsTrackerState = projectState?.settingsTracker
-    if (settingsTrackerState == null || projectState.isDirty) {
+    if (settingsTrackerState == null || projectState.isDirty || isWorkspaceModelCacheAbsentOrInvalid()) {
       projectData.status.markDirty(Stamp.nextStamp(), EXTERNAL)
       scheduleChangeProcessing()
       return
     }
     projectData.settingsTracker.loadState(settingsTrackerState)
     projectData.settingsTracker.refreshChanges()
+  }
+
+  private fun isWorkspaceModelCacheAbsentOrInvalid(): Boolean {
+    // Unknown WorkspaceModel implementation (e.g. in Rider) -> unknown state
+    val workspaceModel = project.workspaceModel as? WorkspaceModelImpl ?: return false
+    // Cache disabled (e.g. in tests) -> unknown state
+    if (!project.service<WorkspaceModelCache>().enabled) return false
+    // WorkspaceModel isn't loaded from cache if it was never saved or invalidated
+    return !workspaceModel.loadedFromCache
   }
 
   @TestOnly
