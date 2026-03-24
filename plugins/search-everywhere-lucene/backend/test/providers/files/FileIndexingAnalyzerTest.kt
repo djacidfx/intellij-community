@@ -6,13 +6,8 @@ import com.intellij.searchEverywhereLucene.backend.providers.files.FileIndex.Com
 import com.intellij.searchEverywhereLucene.backend.providers.files.FileIndex.Companion.getIndexingAnalyzer
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FileNameAnalyzer
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FilePathAnalyzer
+import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FileTokenType
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FileTypeAnalyzer
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_FILENAME
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_FILENAME_ABBREVIATION
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_FILENAME_PART
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_FILETYPE
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_PATH
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_PATH_SEGMENT
 import org.junit.jupiter.api.Test
 
 /**
@@ -30,19 +25,19 @@ class FileIndexingAnalyzerTest : AnalyzersTestBase() {
   @Test
   fun `test FileNameAnalyzer`() {
 
-    // The file Name Analyzer should produce the same tokens given a filename than the FileSearchAnalyzer.
+    // The file Name Analyzer should produce the same tokens given a filename as the FileSearchAnalyzer.
     tokenizing(indexingAnalyzer, "SearchEveryWhereUI.java")
       .print()
       .noDuplicateTokens()
       .producesSameTokensAs(FileNameAnalyzer())
-      .producesToken("SearchEveryWhereUI.java", TOKEN_TYPE_PATH)
-      .producesToken("java", TOKEN_TYPE_FILETYPE, 19, 23)
-      .producesToken("searcheverywhereui", TOKEN_TYPE_FILENAME, 0, 18)
-      .producesToken("search", TOKEN_TYPE_FILENAME_PART, 0, 6)
-      .producesToken("every", TOKEN_TYPE_FILENAME_PART, 6, 11)
-      .producesToken("where", TOKEN_TYPE_FILENAME_PART, 11, 16)
-      .producesToken("sewui", TOKEN_TYPE_FILENAME_ABBREVIATION, 0, 18)
-      .producesToken("ui", TOKEN_TYPE_FILENAME_PART, 16, 18)
+      .producesToken("SearchEveryWhereUI.java", FileTokenType.PATH.type)
+      .producesToken("java", FileTokenType.FILETYPE.type, 19, 23)
+      .producesToken("searcheverywhereui", FileTokenType.FILENAME.type, 0, 18)
+      .producesToken("search", FileTokenType.FILENAME_PART.type, 0, 6)
+      .producesToken("every", FileTokenType.FILENAME_PART.type, 6, 11)
+      .producesToken("where", FileTokenType.FILENAME_PART.type, 11, 16)
+      .producesToken("sewui", FileTokenType.FILENAME_ABBREVIATION.type, 0, 18)
+      .producesToken("ui", FileTokenType.FILENAME_PART.type, 16, 18)
       .noDuplicateTokens()
   }
 
@@ -52,16 +47,16 @@ class FileIndexingAnalyzerTest : AnalyzersTestBase() {
     tokenizing(indexingAnalyzer, "foo/bar/Readme.md",FILE_RELATIVE_PATH )
       .print()
       .producesSameTokensAs(FilePathAnalyzer())
-      .producesToken("foo", TOKEN_TYPE_PATH_SEGMENT)
-      .producesToken("bar", TOKEN_TYPE_PATH_SEGMENT)
-      .producesToken("Readme.md", TOKEN_TYPE_PATH_SEGMENT)
+      .producesToken("foo", FileTokenType.PATH_SEGMENT.type)
+      .producesToken("bar", FileTokenType.PATH_SEGMENT.type)
+      .producesToken("Readme.md", FileTokenType.PATH_SEGMENT.type)
 
     tokenizing(indexingAnalyzer, "test/providers/files/FileIndexingAnalyzerTest.kt",FILE_RELATIVE_PATH )
       .print()
-      .producesToken("test", TOKEN_TYPE_PATH_SEGMENT)
-      .producesToken("providers", TOKEN_TYPE_PATH_SEGMENT)
-      .producesToken("files", TOKEN_TYPE_PATH_SEGMENT)
-      .producesToken("FileIndexingAnalyzerTest.kt", TOKEN_TYPE_PATH_SEGMENT)
+      .producesToken("test", FileTokenType.PATH_SEGMENT.type)
+      .producesToken("providers", FileTokenType.PATH_SEGMENT.type)
+      .producesToken("files", FileTokenType.PATH_SEGMENT.type)
+      .producesToken("FileIndexingAnalyzerTest.kt", FileTokenType.PATH_SEGMENT.type)
 
   }
 
@@ -70,21 +65,21 @@ class FileIndexingAnalyzerTest : AnalyzersTestBase() {
     tokenizing(indexingAnalyzer, "java", FILE_TYPE)
       .print()
       .producesSameTokensAs(FileTypeAnalyzer())
-      .producesToken("java", TOKEN_TYPE_FILETYPE)
+      .producesToken("java", FileTokenType.FILETYPE.type)
 
     tokenizing(indexingAnalyzer, "md", FILE_TYPE)
       .print()
       .producesSameTokensAs(FileTypeAnalyzer())
-      .producesToken("md", TOKEN_TYPE_FILETYPE)
+      .producesToken("md", FileTokenType.FILETYPE.type)
 
     tokenizing(indexingAnalyzer, "kt", FILE_TYPE)
       .print()
       .producesSameTokensAs(FileTypeAnalyzer())
-      .producesToken("kt", TOKEN_TYPE_FILETYPE)
+      .producesToken("kt", FileTokenType.FILETYPE.type)
 
     tokenizing(indexingAnalyzer, "gitignore", FILE_TYPE)
       .print()
       .producesSameTokensAs(FileTypeAnalyzer())
-      .producesToken("gitignore", TOKEN_TYPE_FILETYPE)
+      .producesToken("gitignore", FileTokenType.FILETYPE.type)
   }
 }

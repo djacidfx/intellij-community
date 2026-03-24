@@ -1,8 +1,15 @@
 package com.intellij.searchEverywhereLucene.backend.providers.files.analysis
 
-const val TOKEN_TYPE_FILENAME: String = "filename"
-const val TOKEN_TYPE_FILENAME_PART: String = "filenamePart"
-const val TOKEN_TYPE_FILENAME_ABBREVIATION: String = "filenameAbbreviation"
-const val TOKEN_TYPE_PATH: String = "path"
-const val TOKEN_TYPE_PATH_SEGMENT: String = "pathSegment"
-const val TOKEN_TYPE_FILETYPE: String = "filetype"
+enum class FileTokenType(val type: String) {
+  PATH("path"),
+  PATH_SEGMENT("pathSegment"),
+  PATH_SEGMENT_PREFIX("pathSegmentPrefix"),
+  FILENAME("filename"),
+  FILENAME_PART("filenamePart"),
+  FILENAME_ABBREVIATION("filenameAbbreviation"),
+  FILETYPE("filetype");
+
+  companion object {
+    private val byType = entries.associateBy { it.type }
+  }
+}

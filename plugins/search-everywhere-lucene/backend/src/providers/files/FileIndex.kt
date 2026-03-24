@@ -20,13 +20,9 @@ import com.intellij.searchEverywhereLucene.backend.SearchEverywhereLucenePluginD
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FileNameAnalyzer
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FilePathAnalyzer
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FileSearchAnalyzer
+import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FileTokenType
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FileTypeAnalyzer
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_FILENAME
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_FILENAME_ABBREVIATION
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_FILENAME_PART
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_FILETYPE
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_PATH
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_PATH_SEGMENT
+import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.MultiTypeAttribute
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.WordAttribute
 import com.intellij.searchEverywhereLucene.common.SearchEverywhereLuceneProviderIdUtils
 import kotlinx.coroutines.CompletableDeferred
@@ -47,7 +43,6 @@ import kotlinx.coroutines.selects.select
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
-import org.apache.lucene.analysis.tokenattributes.TypeAttribute
 import org.apache.lucene.document.Document
 import org.apache.lucene.document.Field
 import org.apache.lucene.document.FieldType
@@ -331,28 +326,26 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
     fun buildQuery(params: SeParams, analyzer: Analyzer = FileSearchAnalyzer()): Query {
       val tokenStream = analyzer.tokenStream("", params.inputQuery)
       val termAttr = tokenStream.addAttribute(CharTermAttribute::class.java)
-      val typeAttr = tokenStream.addAttribute(TypeAttribute::class.java)
       val wordAttr = tokenStream.addAttribute(WordAttribute::class.java)
+      val multiTypeAttr = tokenStream.addAttribute(MultiTypeAttribute::class.java)
 
       val wordQueries = mutableMapOf<Int, MutableList<Query>>()
 
       tokenStream.reset()
       while (tokenStream.incrementToken()) {
         val termString = termAttr.toString()
-        val type = typeAttr.type()
         val wordIndex = wordAttr.wordIndex
 
-        val query = when (type) {
-          TOKEN_TYPE_PATH -> PrefixQuery(Term(FILE_RELATIVE_PATH, termString))
-          TOKEN_TYPE_PATH_SEGMENT -> PrefixQuery(Term(FILE_RELATIVE_PATH, termString))
-          TOKEN_TYPE_FILENAME -> PrefixQuery(Term(FILE_NAME, termString))
-          TOKEN_TYPE_FILENAME_PART -> PrefixQuery(Term(FILE_NAME, termString))
-          TOKEN_TYPE_FILENAME_ABBREVIATION -> PrefixQuery(Term(FILE_NAME, termString))
-          TOKEN_TYPE_FILETYPE -> TermQuery(Term(FILE_TYPE, termString))
-          else -> null
-        }
-
-        if (query != null) {
+        val typesToProcess = multiTypeAttr.activeTypes()
+        for (tokenType in typesToProcess) {
+          val query = when (tokenType) {
+            FileTokenType.PATH, FileTokenType.PATH_SEGMENT, FileTokenType.PATH_SEGMENT_PREFIX ->
+              PrefixQuery(Term(FILE_RELATIVE_PATH, termString))
+            FileTokenType.FILENAME, FileTokenType.FILENAME_PART, FileTokenType.FILENAME_ABBREVIATION ->
+              PrefixQuery(Term(FILE_NAME, termString))
+            FileTokenType.FILETYPE ->
+              TermQuery(Term(FILE_TYPE, termString))
+          }
           wordQueries.computeIfAbsent(wordIndex) { mutableListOf() }.add(query)
         }
       }

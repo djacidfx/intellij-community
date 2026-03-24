@@ -1,12 +1,12 @@
 package com.intellij.searchEverywhereLucene.backend.util
 
+import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.MultiTypeAttribute
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.WordAttribute
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.TokenFilter
 import org.apache.lucene.analysis.TokenStream
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute
-import org.apache.lucene.analysis.tokenattributes.TypeAttribute
 
 /**
  * A flexible token filter that allows filtering tokens based on various predicates.
@@ -20,20 +20,21 @@ class TokenAttributeFilter(
   private val termPredicate: ((String) -> Boolean)? = null,
 ) : TokenFilter(input) {
   private val termAttr = addAttribute(CharTermAttribute::class.java)
-  private val typeAttr = addAttribute(TypeAttribute::class.java)
   private val offsetAttr = addAttribute(OffsetAttribute::class.java)
   private val wordAttr = addAttribute(WordAttribute::class.java)
+  private val multiTypeAttr = addAttribute(MultiTypeAttribute::class.java)
 
   override fun incrementToken(): Boolean {
     while (input.incrementToken()) {
-      val type = typeAttr.type()
       val wordIndex = wordAttr.wordIndex
       val startOffset = offsetAttr.startOffset()
       val endOffset = offsetAttr.endOffset()
       val term = termAttr.toString()
 
-      // Check all predicates
-      if (typePredicate != null && !typePredicate.invoke(type)) continue
+      if (typePredicate != null) {
+        val effectiveTypes = multiTypeAttr.activeTypes().map { it.type }
+        if (effectiveTypes.none { typePredicate.invoke(it) }) continue
+      }
       if (wordIndexPredicate != null && !wordIndexPredicate.invoke(wordIndex)) continue
       if (offsetPredicate != null && !offsetPredicate.invoke(startOffset, endOffset)) continue
       if (termPredicate != null && !termPredicate.invoke(term)) continue

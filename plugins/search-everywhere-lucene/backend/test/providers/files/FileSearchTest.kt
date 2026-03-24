@@ -9,12 +9,7 @@ import com.intellij.platform.searchEverywhere.SeFilterState
 import com.intellij.platform.searchEverywhere.SeParams
 import com.intellij.searchEverywhereLucene.backend.LuceneIndexTestBase
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FileSearchAnalyzer
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_FILENAME
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_FILENAME_ABBREVIATION
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_FILENAME_PART
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_FILETYPE
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_PATH
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TOKEN_TYPE_PATH_SEGMENT
+import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FileTokenType
 import com.intellij.searchEverywhereLucene.backend.util.TokenTypeFilteringAnalyzer
 import com.intellij.testFramework.junit5.TestApplication
 import kotlinx.coroutines.runBlocking
@@ -162,7 +157,6 @@ class FileSearchTest : LuceneIndexTestBase() {
       index.assertSearch("SECT") {
         findsNothing()
       }
-
     }
   }
 
@@ -176,21 +170,21 @@ class FileSearchTest : LuceneIndexTestBase() {
       // Search using only FILENAME tokens
       index.assertSearch(
         input = "Pet.java",
-        buildQuery = { buildQueryOnlyUsingTokenTypes(it, TOKEN_TYPE_FILENAME) }
+        buildQuery = { buildQueryOnlyUsingTokenTypes(it, FileTokenType.FILENAME.type) }
       ) {
         findsAllOf(pet)
       }
 
       index.assertSearch(
         input = "PetController.java",
-        buildQuery = { buildQueryOnlyUsingTokenTypes(it, TOKEN_TYPE_FILENAME) }
+        buildQuery = { buildQueryOnlyUsingTokenTypes(it, FileTokenType.FILENAME.type) }
       ) {
         findsAllOf(petController)
       }
 
       index.assertSearch(
         input = "Readme.md",
-        buildQuery = { buildQueryOnlyUsingTokenTypes(it, TOKEN_TYPE_FILENAME) }
+        buildQuery = { buildQueryOnlyUsingTokenTypes(it, FileTokenType.FILENAME.type) }
       ) {
         findsAllOf(readme)
       }
@@ -206,7 +200,7 @@ class FileSearchTest : LuceneIndexTestBase() {
       // Search using only FILENAME_PART tokens (camelCase parts)
       index.assertSearch(
         input = "Controller",
-        buildQuery = { buildQueryOnlyUsingTokenTypes(it, TOKEN_TYPE_FILENAME_PART) }
+        buildQuery = { buildQueryOnlyUsingTokenTypes(it, FileTokenType.FILENAME_PART.type) }
       ) {
         findsAllOf(petController)
       }
@@ -214,14 +208,14 @@ class FileSearchTest : LuceneIndexTestBase() {
 
       index.assertSearch(
         input = "Pet",
-        buildQuery = { buildQueryOnlyUsingTokenTypes(it, TOKEN_TYPE_FILENAME_PART) }
+        buildQuery = { buildQueryOnlyUsingTokenTypes(it, FileTokenType.FILENAME_PART.type) }
       ) {
         findsAllOf(petController)
       }
 
       index.assertSearch(
         input = "Everywhere",
-        buildQuery = { buildQueryOnlyUsingTokenTypes(it, TOKEN_TYPE_FILENAME_PART) }
+        buildQuery = { buildQueryOnlyUsingTokenTypes(it, FileTokenType.FILENAME_PART.type) }
       ) {
         findsAllOf(searchEverywhereUI)
       }
@@ -237,14 +231,14 @@ class FileSearchTest : LuceneIndexTestBase() {
       // Search using only FILENAME_ABBREVIATION tokens (initials)
       index.assertSearch(
         input = "SearchEverywhereUI.java",
-        buildQuery = { buildQueryOnlyUsingTokenTypes(it, TOKEN_TYPE_FILENAME_ABBREVIATION) }
+        buildQuery = { buildQueryOnlyUsingTokenTypes(it, FileTokenType.FILENAME_ABBREVIATION.type) }
       ) {
         findsAllOf(searchEverywhereUI)
       }
 
       index.assertSearch(
         input = "PetController",
-        buildQuery = { buildQueryOnlyUsingTokenTypes(it, TOKEN_TYPE_FILENAME_ABBREVIATION) }
+        buildQuery = { buildQueryOnlyUsingTokenTypes(it, FileTokenType.FILENAME_ABBREVIATION.type) }
       ) {
         findsAllOf(petController)
       }
@@ -260,14 +254,14 @@ class FileSearchTest : LuceneIndexTestBase() {
       // Search using only PATH tokens (full path)
       index.assertSearch(
         input = "foo/bar/Readme.md",
-        buildQuery = { buildQueryOnlyUsingTokenTypes(it, TOKEN_TYPE_PATH) }
+        buildQuery = { buildQueryOnlyUsingTokenTypes(it, FileTokenType.PATH.type) }
       ) {
         findsAllOf(fooReadme)
       }
 
       index.assertSearch(
         input = "baz/qux/Readme.md",
-        buildQuery = { buildQueryOnlyUsingTokenTypes(it, TOKEN_TYPE_PATH) }
+        buildQuery = { buildQueryOnlyUsingTokenTypes(it, FileTokenType.PATH.type) }
       ) {
         findsAllOf(bazReadme)
       }
@@ -283,7 +277,7 @@ class FileSearchTest : LuceneIndexTestBase() {
       // Search using only PATH_SEGMENT tokens (individual path components)
       index.assertSearch(
         input = "foo",
-        buildQuery = { buildQueryOnlyUsingTokenTypes(it, TOKEN_TYPE_PATH_SEGMENT) }
+        buildQuery = { buildQueryOnlyUsingTokenTypes(it, FileTokenType.PATH_SEGMENT.type) }
       ) {
         findsAllOf(fooReadme)
         findsNoneOf(bazReadme)
@@ -291,14 +285,14 @@ class FileSearchTest : LuceneIndexTestBase() {
 
       index.assertSearch(
         input = "bar",
-        buildQuery = { buildQueryOnlyUsingTokenTypes(it, TOKEN_TYPE_PATH_SEGMENT) }
+        buildQuery = { buildQueryOnlyUsingTokenTypes(it, FileTokenType.PATH_SEGMENT.type) }
       ) {
         findsAllOf(fooReadme, bazReadme)
       }
 
       index.assertSearch(
         input = "baz",
-        buildQuery = { buildQueryOnlyUsingTokenTypes(it, TOKEN_TYPE_PATH_SEGMENT) }
+        buildQuery = { buildQueryOnlyUsingTokenTypes(it, FileTokenType.PATH_SEGMENT.type) }
       ) {
         findsAllOf(bazReadme)
         findsNoneOf(fooReadme)
@@ -316,7 +310,7 @@ class FileSearchTest : LuceneIndexTestBase() {
       // Search using only FILETYPE tokens
       index.assertSearch(
         input = "java",
-        buildQuery = { buildQueryOnlyUsingTokenTypes(it, TOKEN_TYPE_FILETYPE) }
+        buildQuery = { buildQueryOnlyUsingTokenTypes(it, FileTokenType.FILETYPE.type) }
       ) {
         findsAllOf(javaFile)
         findsNoneOf(kotlinFile, markdownFile)
@@ -324,7 +318,7 @@ class FileSearchTest : LuceneIndexTestBase() {
 
       index.assertSearch(
         input = "kt",
-        buildQuery = { buildQueryOnlyUsingTokenTypes(it, TOKEN_TYPE_FILETYPE) }
+        buildQuery = { buildQueryOnlyUsingTokenTypes(it, FileTokenType.FILETYPE.type) }
       ) {
         findsAllOf(kotlinFile)
         findsNoneOf(javaFile, markdownFile)
@@ -332,10 +326,22 @@ class FileSearchTest : LuceneIndexTestBase() {
 
       index.assertSearch(
         input = "md",
-        buildQuery = { buildQueryOnlyUsingTokenTypes(it, TOKEN_TYPE_FILETYPE) }
+        buildQuery = { buildQueryOnlyUsingTokenTypes(it, FileTokenType.FILETYPE.type) }
       ) {
         findsAllOf(markdownFile)
         findsNoneOf(javaFile, kotlinFile)
+      }
+    }
+  }
+
+  @TestFactory
+  fun `IJPL-220105 path matching`(): List<DynamicNode> {
+    val clarify_agent = file("deepresearch/clarify_agent.py")
+
+    return indexWith(listOf(clarify_agent)) { index ->
+      // Search using only PATH_SEGMENT tokens (individual path components)
+      index.assertSearch("clde") {
+        findsAllOf(clarify_agent)
       }
     }
   }
