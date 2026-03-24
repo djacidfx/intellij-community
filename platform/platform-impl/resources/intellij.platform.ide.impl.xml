@@ -88,6 +88,11 @@
   <extensions defaultExtensionNs="com.intellij">
     <ApplicationLoadListener implementation="com.intellij.util.imageio.ImageReaderWriterSpiRegistrar"/>
     <registryKey
+      key="universal.file.chooser.is.enabled"
+      defaultValue="false"
+      description="Enable the universal file chooser dialog"
+    />
+    <registryKey
       key="ide.project.frame.auto.fix.size.windows.interval"
       defaultValue="60"
       description="The interval between too-small window size checks on Windows and attempts to restore the size. Set to zero to disable"

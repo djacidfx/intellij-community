@@ -2102,6 +2102,8 @@
                  restartRequired="true"/>
 
     <statistics.counterUsagesCollector implementationClass="com.intellij.execution.impl.EditorHyperlinkUsageCollector"/>
+
+    <universalFileChooserContributor implementation="com.intellij.openapi.fileChooser.universal.LocalFileChooserContributor"/>
   </extensions>
 
   <applicationListeners>

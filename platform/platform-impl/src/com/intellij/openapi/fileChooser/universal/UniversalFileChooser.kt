@@ -1,0 +1,272 @@
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+package com.intellij.openapi.fileChooser.universal
+
+import com.intellij.icons.AllIcons
+import com.intellij.ide.IdeBundle
+import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ActionToolbar
+import com.intellij.openapi.actionSystem.ActionUpdateThread
+import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.fileChooser.FileChooserDescriptor
+import com.intellij.openapi.fileChooser.FileChooserDialog
+import com.intellij.openapi.fileChooser.PathChooserDialog
+import com.intellij.openapi.fileChooser.ex.FileSystemTreeImpl
+import com.intellij.openapi.fileChooser.tree.FileTreeModel
+import com.intellij.openapi.observable.util.whenDisposed
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.ProjectManager
+import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.openapi.ui.getUserData
+import com.intellij.openapi.ui.putUserData
+import com.intellij.openapi.util.Key
+import com.intellij.openapi.util.registry.Registry
+import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.platform.eel.provider.asEelPath
+import com.intellij.platform.eel.provider.asNioPath
+import com.intellij.platform.eel.provider.toEelApi
+import com.intellij.platform.util.coroutines.childScope
+import com.intellij.ui.ScrollPaneFactory
+import com.intellij.ui.UIBundle
+import com.intellij.ui.components.JBLabel
+import com.intellij.ui.components.JBTabbedPane
+import com.intellij.ui.dsl.builder.AlignX
+import com.intellij.ui.dsl.builder.AlignY
+import com.intellij.ui.dsl.builder.panel
+import com.intellij.ui.tree.AsyncTreeModel
+import com.intellij.ui.treeStructure.Tree
+import com.intellij.util.Consumer
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.jetbrains.annotations.ApiStatus
+import java.awt.BorderLayout
+import java.awt.CardLayout
+import java.awt.Cursor
+import java.awt.Dimension
+import java.awt.Toolkit
+import java.nio.file.Path
+import java.util.function.Predicate
+import javax.swing.JComponent
+import javax.swing.JPanel
+import javax.swing.SwingConstants
+import javax.swing.tree.TreeSelectionModel
+
+@ApiStatus.Internal
+object UniversalFileChooser {
+  @JvmStatic
+  fun canUseIn(project: Project?): Boolean {
+    return Registry.`is`("universal.file.chooser.is.enabled")
+  }
+
+  @JvmStatic
+  fun create(project: Project?, descriptor: FileChooserDescriptor): Dialog {
+    val currProject = project ?: ProjectManager.getInstance().defaultProject
+    return Dialog(currProject, descriptor)
+  }
+
+  /**
+   * Capable of choosing files in a local file system and in Docker/WSL containers.
+   */
+  class Dialog(
+    val project: Project,
+    private val descriptor: FileChooserDescriptor,
+  ) : DialogWrapper(project), FileChooserDialog, PathChooserDialog {
+    private lateinit var mainPanel: Panel
+
+    init {
+      init()
+      title = descriptor.title ?: UIBundle.message("file.chooser.default.title")
+    }
+
+    override fun choose(project: Project?, vararg toSelect: VirtualFile?): Array<out VirtualFile?> {
+      this.showAndGet()
+      return emptyArray()
+    }
+
+    override fun choose(toSelect: VirtualFile?, callback: Consumer<in MutableList<VirtualFile>>) {
+      if (showAndGet()) {
+        val mutableList = mutableListOf<VirtualFile>()
+        mutableList.addAll(mainPanel.getSelectedFiles())
+        callback.consume(mutableList)
+      }
+    }
+
+    override fun createCenterPanel(): JComponent {
+      mainPanel = Panel(this.disposable, descriptor, project, ::doOKAction)
+      return mainPanel
+    }
+  }
+
+  class Panel(
+    disposable: Disposable,
+    descriptor: FileChooserDescriptor,
+    project: Project,
+    okAction: Runnable,
+  ) : JPanel() {
+
+    companion object {
+      private val FILE_VIEW_KEY: Key<FileView?> = Key.create<FileView>("universalFileChooser.fileView")
+    }
+
+    private val tabbedPane: JBTabbedPane
+
+    init {
+      layout = BorderLayout()
+      val screenSize = Toolkit.getDefaultToolkit().screenSize
+      preferredSize = Dimension(screenSize.width / 2, screenSize.height / 2)
+      tabbedPane = JBTabbedPane()
+      for (contributor in UniversalFileChooserContributor.EP_NAME.extensionList) {
+        val fileView = FileView(contributor, descriptor, disposable, project, okAction)
+        tabbedPane.addTab(contributor.tabTitle, fileView.topComponent)
+      }
+
+      add(tabbedPane, BorderLayout.CENTER)
+    }
+
+    fun getSelectedFiles(): List<VirtualFile> {
+      val fileView = (tabbedPane.selectedComponent as JComponent).getUserData(FILE_VIEW_KEY)
+      return fileView?.getSelectedFiles() ?: emptyList()
+    }
+
+
+    class FileView(
+      private val contributor: UniversalFileChooserContributor,
+      descriptor: FileChooserDescriptor,
+      disposable: Disposable,
+      project: Project,
+      okAction: Runnable,
+    ) {
+      val topComponent: JComponent
+      val fileTree: FileSystemTreeImpl
+      private val roots: MutableList<Path> = mutableListOf()
+
+      companion object {
+        private const val LOADING_CARD = "loading"
+        private const val TREE_CARD = "tree"
+      }
+
+      @Suppress("OPT_IN_USAGE")
+      private val scope = GlobalScope.childScope("FileWatcher")
+
+      private val cardLayout = CardLayout()
+      private val contentPanel = JPanel(cardLayout)
+      private val tree = Tree()
+
+      init {
+
+        val descriptorCopy = FileChooserDescriptor(descriptor)
+        descriptorCopy.putUserData(FileTreeModel.SYSTEM_ROOTS_FILTER,
+                                   Predicate { path: Path? -> roots.contains(path) })
+
+        tree.isRootVisible = false
+        tree.showsRootHandles = true
+        tree.selectionModel.selectionMode = TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION
+        fileTree = FileSystemTreeImpl(project, descriptorCopy, tree, null, null, null)
+        fileTree.addOkAction(okAction)
+        val scrollPane = ScrollPaneFactory.createScrollPane(fileTree.tree)
+
+        val toolbar = createToolbar()
+
+
+        val loadingLabel = JBLabel(IdeBundle.message("universal.file.chooser.label.loading"), SwingConstants.CENTER)
+        contentPanel.add(loadingLabel, LOADING_CARD)
+        contentPanel.add(scrollPane, TREE_CARD)
+
+        val tabPanel = panel {
+          row {
+            cell(toolbar.component)
+          }
+          row {
+            cell(contentPanel)
+              .align(AlignX.FILL)
+              .align(AlignY.FILL)
+              .resizableColumn()
+          }.resizableRow()
+        }
+
+        toolbar.targetComponent = tabPanel
+        topComponent = tabPanel
+        topComponent.putUserData(FILE_VIEW_KEY, this)
+
+        loadRoots()
+
+        disposable.whenDisposed {
+          scope.cancel()
+        }
+      }
+
+      private fun loadRoots() {
+        cardLayout.show(contentPanel, LOADING_CARD)
+        scope.launch {
+          withContext(Dispatchers.IO) {
+            val elements = contributor.getRoots()
+            runOnEdt {
+              roots.clear()
+              roots.addAll(elements)
+              ((tree.model as AsyncTreeModel).model as FileTreeModel).resetRoots()
+              cardLayout.show(contentPanel, TREE_CARD)
+            }
+          }
+        }
+      }
+
+      private fun createToolbar(): ActionToolbar {
+        val homeAction = object : AnAction(
+          IdeBundle.message("universal.file.chooser.action.home.text"),
+          IdeBundle.message("universal.file.chooser.action.home.description"),
+          AllIcons.Nodes.HomeFolder
+        ) {
+          override fun actionPerformed(e: AnActionEvent) {
+            fileTree.selectedFile?.toNioPath()?.let { selectedPath ->
+              topComponent.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR))
+              scope.launch {
+                withContext(Dispatchers.IO) {
+                  val homePath = selectedPath.asEelPath().descriptor.toEelApi().userInfo.home.asNioPath()
+                  val vFile = VfsUtil.findFile(homePath, true)
+                  runOnEdt {
+                    fileTree.select(vFile) { fileTree.expand(vFile, null) }
+                    topComponent.setCursor(Cursor.getDefaultCursor())
+                  }
+                }
+              }
+            }
+          }
+
+          override fun update(e: AnActionEvent) {
+            e.presentation.isEnabled = fileTree.selectedFile != null
+          }
+
+          override fun getActionUpdateThread(): ActionUpdateThread {
+            return ActionUpdateThread.BGT
+          }
+        }
+
+        val actionGroup = DefaultActionGroup().apply {
+          add(homeAction)
+        }
+
+        return ActionManager.getInstance().createActionToolbar("UniversalFileChooserToolbar", actionGroup, true)
+      }
+
+      fun getSelectedFiles(): List<VirtualFile> {
+        return fileTree.selectedFiles.asList()
+      }
+    }
+  }
+
+  @Suppress("ForbiddenInSuspectContextMethod") // ModalityState.any() is required.
+  private fun runOnEdt(runnable: Runnable) {
+    ApplicationManager.getApplication().invokeLater(runnable, ModalityState.any())
+  }
+}
+
+
+

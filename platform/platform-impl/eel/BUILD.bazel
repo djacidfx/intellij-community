@@ -31,6 +31,7 @@ jvm_library(
     "//platform/util/coroutines",
     "//platform/eel-impl",
     "//platform/projectModel-api:projectModel",
+    "//platform/ide-core",
   ]
 )
 
@@ -56,6 +57,7 @@ jvm_library(
     "//platform/util/coroutines:coroutines_test_lib",
     "//platform/eel-impl:eel-impl_test_lib",
     "//platform/projectModel-api:projectModel_test_lib",
+    "//platform/ide-core:ide-core_test_lib",
   ]
 )
 ### auto-generated section `build intellij.platform.ide.impl.wsl` end

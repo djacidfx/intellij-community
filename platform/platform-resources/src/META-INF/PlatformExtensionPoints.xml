@@ -736,6 +736,10 @@
                     interface="com.intellij.openapi.fileChooser.FileChooserCustomizer"
                     dynamic="true"/>
 
+    <extensionPoint qualifiedName="com.intellij.universalFileChooserContributor"
+                    interface="com.intellij.openapi.fileChooser.universal.UniversalFileChooserContributor"
+                    dynamic="true"/>
+
 
     <extensionPoint name="openAnotherToolHandler" interface="com.intellij.openapi.updateSettings.impl.pluginsAdvertisement.OpenAnotherToolHandler" dynamic="true"/>
   </extensionPoints>

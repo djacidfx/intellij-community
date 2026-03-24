@@ -476,4 +476,11 @@ public final class FileTreeModel extends AbstractTreeModel implements InvokerSup
       }).collect(Collectors.toList()));
     }
   }
+
+  public void resetRoots() {
+    invoker.invoke(() -> {
+      roots = null;
+      treeStructureChanged(state.path, null, null);
+    });
+  }
 }
