@@ -297,6 +297,7 @@ a:com.intellij.openapi.projectRoots.impl.SdkAdditionalDataBase
 c:com.intellij.openapi.roots.AnnotationOrderRootType
 - com.intellij.openapi.roots.PersistentOrderRootType
 - sf:ANNOTATIONS_ID:java.lang.String
+- sf:SDK_ROOT_NAME:java.lang.String
 - s:getFiles(com.intellij.openapi.roots.OrderEntry):com.intellij.openapi.vfs.VirtualFile[]
 - s:getInstance():com.intellij.openapi.roots.OrderRootType
 - skipWriteIfEmpty():Z
