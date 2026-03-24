@@ -21,7 +21,7 @@ import com.intellij.util.EmptyQuery
 import com.intellij.util.Query
 import com.intellij.util.codeInsight.CommentUtilCore
 
-private class PsiUsageWithUsageType(val psiUsage: PsiUsage, override val usageType: UsageType) : PsiUsage by psiUsage {
+private class PsiUsageWithUsageType(private val psiUsage: PsiUsage, override val usageType: UsageType) : PsiUsage by psiUsage {
   override fun createPointer(): Pointer<out PsiUsageWithUsageType> {
     // Intentional local variable; avoids holding onto a reference to `this` in the pointer
     val type = usageType
@@ -82,8 +82,8 @@ private fun getTextOccurrenceType(occurrence: TextOccurrence, searchStringLength
     if (hasDeclarationsOrReferences(element, offsetInElement, searchStringLength)) {
       return null
     }
-    isComment = isComment || CommentUtilCore.isCommentTextElement(element)
-    isString = isString || TextOccurrencesUtilBase.isStringLiteralElement(element)
+    isComment = isComment || (!isString && CommentUtilCore.isCommentTextElement(element))
+    isString = isString || (!isComment && TextOccurrencesUtilBase.isStringLiteralElement(element))
   }
 
   return when {
