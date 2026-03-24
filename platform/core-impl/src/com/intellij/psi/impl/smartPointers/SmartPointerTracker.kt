@@ -19,6 +19,12 @@ import java.util.Arrays
 
 /**
  * Tracks smart pointers for a single file.
+ *
+ * ** GC **
+ *
+ * Instances of [SmartPsiElementPointerImpl] are stored on weak references.
+ * Corresponding [SelfElementInfo] instances are stored in [MarkerCache] on hard references.
+ * Once [SmartPsiElementPointerImpl] is garbage-collected, the corresponding [SelfElementInfo] is removed from [MarkerCache].
  */
 @ApiStatus.Internal
 class SmartPointerTracker {
