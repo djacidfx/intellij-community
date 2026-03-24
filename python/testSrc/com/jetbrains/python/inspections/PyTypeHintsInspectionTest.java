@@ -3479,7 +3479,7 @@ public class PyTypeHintsInspectionTest extends PyInspectionTestCase {
     doTestByText("""
                    from typing import ParamSpec
                    P = ParamSpec("P")
-                   def out_of_scope(*args: <warning descr="ParamSpec 'P' is out of scope">P</warning>.args, **kwargs: <warning descr="ParamSpec 'P' is out of scope">P</warning>.kwargs) -> None:
+                   def out_of_scope(*args: <warning descr="ParamSpec 'P' must be a type parameter of the enclosing callable or class">P</warning>.args, **kwargs: <warning descr="ParamSpec 'P' must be a type parameter of the enclosing callable or class">P</warning>.kwargs) -> None:
                        pass
                    """);
   }
@@ -3553,7 +3553,7 @@ public class PyTypeHintsInspectionTest extends PyInspectionTestCase {
                    from typing import ParamSpec
                    P = ParamSpec("P")
                    class NoParamSpec:
-                       def call(self, *args: <warning descr="ParamSpec 'P' is out of scope">P</warning>.args, **kwargs: <warning descr="ParamSpec 'P' is out of scope">P</warning>.kwargs) -> None:
+                       def call(self, *args: <warning descr="ParamSpec 'P' must be a type parameter of the enclosing callable or class">P</warning>.args, **kwargs: <warning descr="ParamSpec 'P' must be a type parameter of the enclosing callable or class">P</warning>.kwargs) -> None:
                            pass
                    """);
   }
@@ -3604,8 +3604,7 @@ public class PyTypeHintsInspectionTest extends PyInspectionTestCase {
     doTestByText("""
                    from typing import ParamSpec, TypeVar, Callable
                    P = ParamSpec("P")
-                   
-                   def invoke(**kwargs: <warning descr="'P.args' and 'P.kwargs' must both be present in the same function signature"><warning descr="ParamSpec 'P' is out of scope">P</warning>.kwargs</warning>) -> None:
+                   def invoke(**kwargs: <warning descr="'P.args' and 'P.kwargs' must both be present in the same function signature"><warning descr="ParamSpec 'P' must be a type parameter of the enclosing callable or class">P</warning>.kwargs</warning>) -> None:
                        pass
                    """);
   }
