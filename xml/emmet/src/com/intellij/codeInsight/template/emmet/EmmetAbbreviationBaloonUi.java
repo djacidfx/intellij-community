@@ -2,6 +2,7 @@
 package com.intellij.codeInsight.template.emmet;
 
 import com.intellij.codeInsight.template.CustomTemplateCallback;
+import com.intellij.codeInsight.template.emmet.rpc.EmmetAbbreviationBaloonRpcFrontendHandler;
 import com.intellij.codeInsight.template.emmet.rpc.ShowAbbreviationBaloonUiEvent;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.application.WriteIntentReadAction;
@@ -14,6 +15,7 @@ import com.intellij.ui.ContextHelpLabel;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.TextFieldWithStoredHistory;
 import com.intellij.util.ui.JBUI;
+import kotlin.Unit;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.JPanel;
@@ -78,10 +80,11 @@ final class EmmetAbbreviationBaloonUi {
               WriteIntentReadAction.run(() -> {
                 final String abbreviation = field.getText();
                 if (EmmetAbbreviationBalloon.validateTemplateKey(field, balloon, abbreviation, customTemplateCallback)) {
-                  callback.onEnter(abbreviation);
-                  PropertiesComponent.getInstance().setValue(showEvent.getLastAbbreviationKey(), abbreviation);
-                  field.addCurrentTextToHistory();
-                  balloon.hide();
+                  EmmetAbbreviationBaloonRpcFrontendHandler.enter(showEvent, abbreviation, () -> {
+                    PropertiesComponent.getInstance().setValue(showEvent.getLastAbbreviationKey(), abbreviation);
+                    field.addCurrentTextToHistory();
+                    balloon.hide();
+                  });
                 }
               });
             }

@@ -4,8 +4,10 @@ package com.intellij.codeInsight.template.emmet.rpc
 import com.intellij.codeInsight.template.CustomTemplateCallback
 import com.intellij.codeInsight.template.emmet.EmmetAbbreviationBalloon
 import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.impl.EditorId
 import com.intellij.openapi.editor.impl.findEditorOrNull
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.NlsContexts.Tooltip
 import com.intellij.platform.rpc.topics.ProjectRemoteTopic
@@ -25,7 +27,12 @@ data class ShowAbbreviationBaloonUiEvent(
   val linkText: @Tooltip String?,
   val linkUrl: String?,
   val description: @Tooltip String,
-)
+) {
+  fun editor(): Editor? = editorId.findEditorOrNull()
+
+  fun project(): Project? = editorId.findEditorOrNull()?.project
+
+}
 
 /**
  * The context we preserve in the editor to handle response. For now we assume that only one action can be performed in the editor at a time.

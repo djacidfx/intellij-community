@@ -74,6 +74,7 @@ public class EmmetAbbreviationBalloon {
       myContextHelp.getLinkUrl(),
       myContextHelp.getDescription());
 
+    //EmmetAbbreviationBaloonTopic.invokeUi(invocationEvent, myCallback, customTemplateCallback);
     EmmetAbbreviationBaloonUi.showBaloon(customTemplateCallback, invocationEvent, myCallback);
   }
 
