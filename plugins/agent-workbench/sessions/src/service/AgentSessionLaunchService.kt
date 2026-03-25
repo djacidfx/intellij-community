@@ -339,6 +339,8 @@ class AgentSessionLaunchService internal constructor(
     updateGeneralProviderPreferences: Boolean = true,
     launchModalityState: ModalityState? = null,
     threadTitle: String? = null,
+    extraEnvVariables: Map<String, String> = emptyMap(),
+    extraCommandArgs: List<String> = emptyList(),
   ) {
     val normalizedPath = normalizeAgentWorkbenchPath(path)
     AgentSessionProviders.find(provider)?.onConversationOpened()
@@ -378,12 +380,23 @@ class AgentSessionLaunchService internal constructor(
                                    ?.let(descriptor::buildInitialMessagePlan)
                                  ?: AgentInitialMessagePlan.EMPTY
         val baseLaunchSpec = descriptor.buildNewSessionLaunchSpec(mode)
-        val launchSpec = AgentSessionLaunchSpecs.augment(
+        val augmentedSpec = AgentSessionLaunchSpecs.augment(
           projectPath = normalizedPath,
           provider = provider,
           launchSpec = baseLaunchSpec,
         )
-        val identity = buildAgentSessionNewIdentity(provider)
+        val launchSpec = if (extraEnvVariables.isNotEmpty() || extraCommandArgs.isNotEmpty()) {
+          augmentedSpec.copy(
+            command = if (extraCommandArgs.isNotEmpty()) augmentedSpec.command + extraCommandArgs else augmentedSpec.command,
+            envVariables = if (extraEnvVariables.isNotEmpty()) augmentedSpec.envVariables + extraEnvVariables else augmentedSpec.envVariables,
+          )
+        }
+        else {
+          augmentedSpec
+        }
+        val identity = baseLaunchSpec.containerSessionId?.let { sessionId ->
+          buildAgentSessionIdentity(provider, sessionId)
+        } ?: buildAgentSessionNewIdentity(provider)
         val initialMessageDispatchPlan = buildInitialMessageDispatchPlan(
           descriptor = descriptor,
           baseLaunchSpec = launchSpec,
@@ -578,6 +591,8 @@ class AgentSessionLaunchService internal constructor(
             initialMessageRequest = request.initialMessageRequest,
             preferredDedicatedFrame = request.preferredDedicatedFrame,
             promptLaunchResolved = ::reportPromptLaunchResolved,
+            extraEnvVariables = request.containerSessionEnvVariables,
+            extraCommandArgs = request.containerSessionExtraArgs,
           )
         }
         else {

@@ -55,6 +55,7 @@ class AgentSessionUiPreferencesStateService
       providerId = state.lastUsedProvider,
       launchMode = state.launchMode,
       providerOptionsByProviderId = state.providerOptionsByProviderId,
+      containerModeEnabled = state.containerModeEnabled,
     )
   }
 
@@ -64,6 +65,7 @@ class AgentSessionUiPreferencesStateService
         lastUsedProvider = preferences.providerId ?: current.lastUsedProvider,
         launchMode = preferences.launchMode,
         providerOptionsByProviderId = preferences.providerOptionsByProviderId,
+        containerModeEnabled = preferences.containerModeEnabled,
       )
     }
     val provider = preferences.providerId?.let(AgentSessionProvider::fromOrNull)
@@ -88,6 +90,7 @@ class AgentSessionUiPreferencesStateService
       providerId = provider.value,
       launchMode = launchMode,
       providerOptionsByProviderId = updatedOptions,
+      containerModeEnabled = state.containerModeEnabled,
     ))
   }
 
@@ -115,5 +118,6 @@ class AgentSessionUiPreferencesStateService
     @JvmField val providerOptionsByProviderId: Map<String, Set<String>> = emptyMap(),
     @JvmField val lastUsedVcsMergeProvider: String? = null,
     @JvmField val lastUsedVcsMergeLaunchMode: AgentSessionLaunchMode? = null,
+    @JvmField val containerModeEnabled: Boolean = false,
   )
 }

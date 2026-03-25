@@ -2,7 +2,15 @@
 
 import {buildProxyToolingData} from './registry'
 import {shouldApplyWorkaround} from '../workarounds'
-import type {AnalysisCapabilities, ReadCapabilities, SearchCapabilities, ToolArgs, ToolSpecLike, UpstreamToolCaller} from './types'
+import type {
+  AnalysisCapabilities,
+  ContainerSessionConfig,
+  ReadCapabilities,
+  SearchCapabilities,
+  ToolArgs,
+  ToolSpecLike,
+  UpstreamToolCaller
+} from './types'
 
 const DISABLE_NEW_SEARCH_ENV = 'JETBRAINS_MCP_PROXY_DISABLE_NEW_SEARCH'
 
@@ -85,17 +93,21 @@ export function resolveAnalysisCapabilities(
 export function createProxyTooling({
   projectPath,
   callUpstreamTool,
+  callUpstreamToolRaw,
   searchCapabilities,
   analysisCapabilities,
   readCapabilities,
-  ideVersion
+  ideVersion,
+  containerSession
 }: {
   projectPath: string
   callUpstreamTool: UpstreamToolCaller
+  callUpstreamToolRaw?: UpstreamToolCaller
   searchCapabilities: SearchCapabilities
   analysisCapabilities: AnalysisCapabilities
   readCapabilities: ReadCapabilities
   ideVersion?: string | null
+  containerSession?: ContainerSessionConfig | null
 }): {
   proxyToolSpecs: ToolSpecLike[]
   proxyToolNames: Set<string>
@@ -105,10 +117,12 @@ export function createProxyTooling({
   const {proxyToolSpecs, proxyToolNames, handlers} = buildProxyToolingData({
     projectPath,
     callUpstreamTool,
+    callUpstreamToolRaw: callUpstreamToolRaw ?? callUpstreamTool,
     searchCapabilities,
     analysisCapabilities,
     readCapabilities,
-    shouldApplyWorkaround: (key) => shouldApplyWorkaround(key, boundVersion)
+    shouldApplyWorkaround: (key) => shouldApplyWorkaround(key, boundVersion),
+    containerSession: containerSession ?? null
   })
 
   async function runProxyToolCall(toolName: string, args: ToolArgs): Promise<unknown> {

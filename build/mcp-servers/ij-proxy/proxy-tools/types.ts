@@ -76,3 +76,5 @@ export interface ToolSpecLike {
   annotations?: ToolAnnotationsLike
   [key: string]: unknown
 }
+
+export type {ContainerSessionConfig} from '../container-session'

@@ -31,6 +31,7 @@ internal data class AgentPromptUiDraft(
     @JvmField val selectedExistingTaskId: String? = null,
     @JvmField val taskDrafts: Map<String, String> = emptyMap(),
     @JvmField val providerOptionsByProviderId: Map<String, Set<String>> = emptyMap(),
+    @JvmField val containerModeEnabled: Boolean = false,
 )
 
 internal data class AgentPromptUiContextRestoreSnapshot(

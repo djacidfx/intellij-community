@@ -5,6 +5,7 @@ package com.intellij.agent.workbench.prompt.ui
 // @spec community/plugins/agent-workbench/spec/actions/global-prompt-suggestions.spec.md
 // @spec community/plugins/agent-workbench/spec/agent-workbench-telemetry.spec.md
 
+import com.intellij.agent.workbench.common.session.AgentSessionProvider
 import com.intellij.agent.workbench.prompt.core.AGENT_PROMPT_INITIAL_TEXT_DATA_KEY
 import com.intellij.agent.workbench.prompt.core.AgentPromptContextItem
 import com.intellij.agent.workbench.prompt.core.AgentPromptContextResolverService
@@ -92,6 +93,8 @@ internal class AgentPromptPaletteSessionController(
       updateProviderOptionsVisibility = ::updateProviderOptionsVisibility,
       setTargetMode = ::setTargetMode,
       resolveTaskKey = ::resolveTaskKey,
+      getContainerModeSelected = { view.containerModeCheckBox.isSelected },
+      setContainerModeSelected = { view.containerModeCheckBox.isSelected = it },
     )
     submitController = AgentPromptPaletteSubmitController(
       project = project,
@@ -108,6 +111,7 @@ internal class AgentPromptPaletteSessionController(
       onWorkingProjectPathSelected = { _ -> handleWorkingProjectPathSelected() },
       onSubmitBlocked = ::showError,
       onSubmitSucceeded = ::closeAfterSuccessfulSubmit,
+      isContainerModeSelected = { view.containerModeCheckBox.isSelected },
     )
     submitControllerRef = submitController
   }
@@ -279,6 +283,12 @@ internal class AgentPromptPaletteSessionController(
     providerOptionsPanel.isVisible = contextState.activeExtensionTab == null && providerOptionsPanel.componentCount > 0
     providerOptionsPanel.revalidate()
     providerOptionsPanel.repaint()
+
+    // Container mode only supported for providers with --disallowedTools (currently Claude only).
+    // Not applicable on AI Review (and other extension tabs) — they use a different launch path.
+    val supportsContainer = providerSelector.selectedProvider?.bridge?.provider == AgentSessionProvider.CLAUDE
+    val isExtensionTab = contextState.activeExtensionTab != null
+    view.containerModeCheckBox.isVisible = supportsContainer && !isExtensionTab
   }
 
   private fun reloadExistingTasks() {

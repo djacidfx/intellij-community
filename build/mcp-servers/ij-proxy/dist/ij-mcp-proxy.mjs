@@ -6546,9 +6546,9 @@ var require_picomatch2 = __commonJS((exports, module) => {
 });
 
 // ij-mcp-proxy.ts
-import path8 from "path";
-import { cwd, env } from "process";
-import { fileURLToPath } from "url";
+import path10 from "path";
+import { cwd as cwd2, env as env2 } from "process";
+import { fileURLToPath as fileURLToPath2 } from "url";
 
 // node_modules/zod/v4/core/index.js
 var exports_core2 = {};
@@ -22169,7 +22169,8 @@ class Client extends Protocol {
 // project-path.ts
 function createProjectPathManager({
   projectPath,
-  defaultProjectPathKey = "project_path"
+  defaultProjectPathKey = "projectPath",
+  forceInject = !1
 }) {
   let projectPathKey = null, hasSeenToolsList = !1, hasProjectPathTools = !1, toolProjectPathKeyByName = /* @__PURE__ */ new Map;
   function normalizeProjectPathArgs(args, desiredKey) {
@@ -22189,6 +22190,8 @@ function createProjectPathManager({
     }
   }
   function shouldInjectProjectPath(toolName) {
+    if (forceInject)
+      return !0;
     if (!hasSeenToolsList)
       return !0;
     if (!hasProjectPathTools)
@@ -24534,6 +24537,319 @@ async function handleSearchSymbolTool(args, projectPath, callUpstreamTool, capab
   }
   throw Error("symbol search is not supported by this IDE version");
 }
+// proxy-tools/container-handlers.ts
+import path8 from "path";
+
+// container-session.ts
+import { readFileSync } from "fs";
+import path7 from "path";
+import { cwd, env } from "process";
+import { fileURLToPath } from "url";
+var CONTAINER_SESSION_FILE = ".container-sessions.jsonl";
+function scriptDir() {
+  try {
+    return path7.dirname(fileURLToPath(import.meta.url));
+  } catch {
+    return cwd();
+  }
+}
+function detectContainerSession(projectPath) {
+  let currentDir = cwd(), sessionId = env.AGENT_CONTAINER_SESSION_ID, ownDir = scriptDir(), config2 = readSessionFromFile(ownDir, sessionId);
+  if (config2)
+    return config2;
+  if (sessionId) {
+    let workspacePath = env.AGENT_CONTAINER_WORKSPACE_PATH || "/workspace";
+    return { sessionId, workspacePath };
+  }
+  return null;
+}
+function readSessionFromFile(dir, targetSessionId) {
+  let filePath = path7.join(dir, CONTAINER_SESSION_FILE);
+  try {
+    let lines = readFileSync(filePath, "utf-8").split(`
+`).filter((l) => l.trim()), lastConfig = null;
+    for (let line of lines)
+      try {
+        let data = JSON.parse(line);
+        if (typeof data.sessionId !== "string" || !data.sessionId)
+          continue;
+        let config2 = {
+          sessionId: data.sessionId,
+          workspacePath: typeof data.workspacePath === "string" ? data.workspacePath : "/workspace"
+        };
+        if (typeof data.mcpStreamUrl === "string")
+          config2.mcpStreamUrl = data.mcpStreamUrl;
+        if (typeof data.projectPath === "string")
+          config2.projectPath = data.projectPath.replace(/\\/g, "/");
+        if (typeof data.buildCommand === "string")
+          config2.buildCommand = data.buildCommand;
+        if (targetSessionId && data.sessionId === targetSessionId)
+          return config2;
+        lastConfig = config2;
+      } catch {}
+    if (!targetSessionId && lastConfig)
+      return lastConfig;
+  } catch {}
+  return null;
+}
+function toContainerPath(workspacePath, relativePath) {
+  if (relativePath.startsWith("/"))
+    return relativePath;
+  return `${workspacePath}/${relativePath}`;
+}
+
+// proxy-tools/container-handlers.ts
+function toPosix(p) {
+  return p.replace(/\\/g, "/");
+}
+function resolveContainerFilePath(filePath, session, projectPath) {
+  let posixFilePath = toPosix(filePath), posixProjectPath = toPosix(projectPath);
+  if (posixFilePath.startsWith(session.workspacePath))
+    return posixFilePath;
+  if (posixFilePath.startsWith(posixProjectPath + "/"))
+    return session.workspacePath + "/" + posixFilePath.substring(posixProjectPath.length + 1);
+  if (posixFilePath === posixProjectPath)
+    return session.workspacePath;
+  if (!path8.isAbsolute(filePath))
+    return toContainerPath(session.workspacePath, posixFilePath);
+  throw Error(`Refusing to resolve absolute path '${filePath}' \u2014 not under session workspace '${session.workspacePath}' or project path '${projectPath}'. In container mode all writes must land inside the overlayfs mount.`);
+}
+function tagContainer(session, text) {
+  return `[container:${session.sessionId}] ${text}`;
+}
+function parseExitCode(text) {
+  let match = text.match(/^exit_code:\s*(\d+)/m);
+  return match ? parseInt(match[1], 10) : null;
+}
+function extractText(result) {
+  if (typeof result === "string")
+    return result;
+  if (result && typeof result === "object") {
+    let r = result;
+    if (typeof r.text === "string")
+      return r.text;
+    if (Array.isArray(r.content)) {
+      for (let item of r.content)
+        if (item && typeof item.text === "string")
+          return item.text;
+    }
+  }
+  return "";
+}
+async function handleContainerReadFile(args, projectPath, callUpstreamTool, session) {
+  let filePath = requireString(args.file_path, "file_path"), containerPath = resolveContainerFilePath(filePath, session, projectPath), result = await callUpstreamTool("container_read_file", {
+    sessionId: session.sessionId,
+    path: containerPath
+  }), text = extractText(result);
+  if (!text)
+    throw Error(`[container:${session.sessionId}] File not found: ${containerPath}`);
+  let lines = text.split(`
+`), offset = typeof args.offset === "number" ? args.offset : 1, limit = typeof args.limit === "number" ? args.limit : lines.length, sliced = lines.slice(offset - 1, offset - 1 + limit), maxLineNo = offset + sliced.length - 1, numWidth = String(maxLineNo).length, numbered = sliced.map((line, i) => {
+    return `${String(offset + i).padStart(numWidth, " ")}	${line}`;
+  }).join(`
+`);
+  return tagContainer(session, numbered);
+}
+async function handleContainerApplyPatch(args, projectPath, callUpstreamTool, session) {
+  if (!projectPath)
+    throw Error(`[container:${session.sessionId}] apply_patch requires a project path. Ensure '.container-sessions.jsonl' includes 'projectPath'.`);
+  let patch = requireString(args.input ?? args.patch, "input");
+  patch = patch.replaceAll(projectPath, session.workspacePath);
+  let posixProjectPath = toPosix(projectPath);
+  if (posixProjectPath !== projectPath)
+    patch = patch.replaceAll(posixProjectPath, session.workspacePath);
+  await callUpstreamTool("container_write_file", {
+    sessionId: session.sessionId,
+    path: `${session.workspacePath}/.agent-patch.diff`,
+    content: patch
+  });
+  let gitResult = extractText(await callUpstreamTool("container_exec", {
+    sessionId: session.sessionId,
+    command: ["bash", "-c", `cd ${session.workspacePath} && git apply .agent-patch.diff 2>&1; EXIT=$?; rm -f .agent-patch.diff; exit $EXIT`]
+  }));
+  if (parseExitCode(gitResult) === 0)
+    return tagContainer(session, "Patch applied successfully.");
+  await callUpstreamTool("container_write_file", {
+    sessionId: session.sessionId,
+    path: `${session.workspacePath}/.agent-patch.diff`,
+    content: patch
+  });
+  let patchResult = extractText(await callUpstreamTool("container_exec", {
+    sessionId: session.sessionId,
+    command: ["bash", "-c", `cd ${session.workspacePath} && patch -p1 --no-backup-if-mismatch < .agent-patch.diff 2>&1; EXIT=$?; rm -f .agent-patch.diff; exit $EXIT`]
+  }));
+  if (parseExitCode(patchResult) === 0)
+    return tagContainer(session, "Patch applied successfully.");
+  if (await callUpstreamTool("container_exec", {
+    sessionId: session.sessionId,
+    command: ["rm", "-f", `${session.workspacePath}/.agent-patch.diff`]
+  }), patch.includes("*** Update File:") || patch.includes("*** Add File:"))
+    return tagContainer(session, await applyPatchByWritingFiles(patch, projectPath, callUpstreamTool, session));
+  if (patch.startsWith("---") || patch.startsWith("diff "))
+    return tagContainer(session, await applyUnifiedDiffDirectly(patch, projectPath, callUpstreamTool, session));
+  throw Error(`[container:${session.sessionId}] Failed to apply patch: ${gitResult}`);
+}
+async function readContainerFile(callUpstreamTool, session, containerPath) {
+  let result = await callUpstreamTool("container_read_file", {
+    sessionId: session.sessionId,
+    path: containerPath
+  });
+  return extractText(result);
+}
+async function writeContainerFile(callUpstreamTool, session, containerPath, content) {
+  await callUpstreamTool("container_write_file", {
+    sessionId: session.sessionId,
+    path: containerPath,
+    content
+  });
+}
+async function applyPatchByWritingFiles(patch, projectPath, callUpstreamTool, session) {
+  let fileBlocks = patch.split(/^\*\*\* (?:Update|Add) File: /m).slice(1);
+  if (fileBlocks.length === 0)
+    throw Error("Failed to apply patch in container (git apply failed and no file blocks found)");
+  let touchedFiles = 0;
+  for (let block of fileBlocks) {
+    let newlineIdx = block.indexOf(`
+`);
+    if (newlineIdx === -1)
+      continue;
+    let filePath = block.substring(0, newlineIdx).trim(), containerPath = resolveContainerFilePath(filePath, session, projectPath), currentContent = await readContainerFile(callUpstreamTool, session, containerPath), newContent = applyHunksToContent(currentContent, block.substring(newlineIdx + 1));
+    await writeContainerFile(callUpstreamTool, session, containerPath, newContent), touchedFiles++;
+  }
+  return `Applied patch to ${touchedFiles} file(s) in container.`;
+}
+async function applyUnifiedDiffDirectly(patch, projectPath, callUpstreamTool, session) {
+  let files = parseUnifiedDiff(patch);
+  if (files.length === 0)
+    throw Error("Failed to apply patch: could not parse unified diff");
+  let touchedFiles = 0;
+  for (let file2 of files) {
+    let containerPath = resolveContainerFilePath(file2.path, session, projectPath), currentContent = await readContainerFile(callUpstreamTool, session, containerPath), newContent = applyUnifiedHunks(currentContent, file2.hunks);
+    await writeContainerFile(callUpstreamTool, session, containerPath, newContent), touchedFiles++;
+  }
+  return `Applied patch to ${touchedFiles} file(s) in container.`;
+}
+function parseUnifiedDiff(patch) {
+  let files = [], lines = patch.split(`
+`), currentFile = null;
+  for (let line of lines)
+    if (line.startsWith("+++ b/") || line.startsWith("+++ "))
+      currentFile = { path: line.replace(/^\+\+\+ [ab]\//, "").replace(/^\+\+\+ /, "").trim(), hunks: [] }, files.push(currentFile);
+    else if (line.startsWith("--- "))
+      ;
+    else if (line.startsWith("diff "))
+      ;
+    else if (currentFile)
+      currentFile.hunks.push(line);
+  return files;
+}
+function applyUnifiedHunks(original, hunkLines) {
+  let origLines = original.split(`
+`), result = [], origIdx = 0, inHunk = !1;
+  for (let line of hunkLines) {
+    if (line.startsWith("@@")) {
+      let match = line.match(/@@ -(\d+)/);
+      if (match) {
+        let startLine = parseInt(match[1], 10) - 1;
+        while (origIdx < startLine && origIdx < origLines.length)
+          result.push(origLines[origIdx]), origIdx++;
+      }
+      inHunk = !0;
+      continue;
+    }
+    if (!inHunk)
+      continue;
+    if (line.startsWith("-"))
+      origIdx++;
+    else if (line.startsWith("+"))
+      result.push(line.substring(1));
+    else
+      result.push(origLines[origIdx] ?? line.substring(1)), origIdx++;
+  }
+  while (origIdx < origLines.length)
+    result.push(origLines[origIdx]), origIdx++;
+  return result.join(`
+`);
+}
+function applyHunksToContent(original, hunkBlock) {
+  let lines = original.split(`
+`), result = [], hunkLines = hunkBlock.split(`
+`), origIdx = 0, inHunk = !1;
+  for (let hLine of hunkLines) {
+    if (hLine.startsWith("@@") || hLine === "*** End Patch") {
+      inHunk = !0;
+      continue;
+    }
+    if (!inHunk)
+      continue;
+    if (hLine.startsWith("-"))
+      origIdx++;
+    else if (hLine.startsWith("+"))
+      result.push(hLine.substring(1));
+    else if (hLine.startsWith(" "))
+      result.push(lines[origIdx] ?? hLine.substring(1)), origIdx++;
+  }
+  while (origIdx < lines.length)
+    result.push(lines[origIdx]), origIdx++;
+  return result.join(`
+`);
+}
+function resolveSearchPath(args, session, projectPath) {
+  let rawPath = typeof args.searchPath === "string" ? args.searchPath : typeof args.path === "string" ? args.path : void 0;
+  if (!rawPath)
+    return session.workspacePath;
+  return resolveContainerFilePath(rawPath, session, projectPath);
+}
+async function handleContainerSearchText(args, projectPath, callUpstreamTool, session) {
+  let query = requireString(args.q ?? args.query, "q"), limit = typeof args.limit === "number" ? args.limit : 50, searchPath = resolveSearchPath(args, session, projectPath);
+  return tagContainer(session, extractText(await callUpstreamTool("container_search_text", {
+    sessionId: session.sessionId,
+    q: query,
+    searchPath,
+    limit
+  })));
+}
+async function handleContainerSearchRegex(args, projectPath, callUpstreamTool, session) {
+  let pattern = requireString(args.pattern ?? args.q, "pattern"), limit = typeof args.limit === "number" ? args.limit : 50, searchPath = resolveSearchPath(args, session, projectPath);
+  return tagContainer(session, extractText(await callUpstreamTool("container_search_regex", {
+    sessionId: session.sessionId,
+    pattern,
+    searchPath,
+    limit
+  })));
+}
+async function handleContainerSearchFile(args, projectPath, callUpstreamTool, session) {
+  let pattern = requireString(args.pattern ?? args.glob, "pattern"), limit = typeof args.limit === "number" ? args.limit : 100, searchPath = resolveSearchPath(args, session, projectPath);
+  return tagContainer(session, extractText(await callUpstreamTool("container_search_file", {
+    sessionId: session.sessionId,
+    pattern,
+    searchPath,
+    limit
+  })));
+}
+async function handleContainerListDir(args, projectPath, callUpstreamTool, session) {
+  let dirPath = typeof args.dir_path === "string" ? args.dir_path : typeof args.path === "string" ? args.path : ".", containerPath = resolveContainerFilePath(dirPath, session, projectPath);
+  return tagContainer(session, extractText(await callUpstreamTool("container_list_dir", {
+    sessionId: session.sessionId,
+    path: containerPath
+  })));
+}
+async function handleContainerBash(args, projectPath, callUpstreamTool, session) {
+  let command = requireString(args.command, "command");
+  if (projectPath) {
+    command = command.replaceAll(projectPath, session.workspacePath);
+    let posixProjectPath = toPosix(projectPath);
+    if (posixProjectPath !== projectPath)
+      command = command.replaceAll(posixProjectPath, session.workspacePath);
+  }
+  let timeoutMs = typeof args.timeout === "number" ? args.timeout * 1000 : 900000, result = extractText(await callUpstreamTool("container_exec", {
+    sessionId: session.sessionId,
+    command: ["bash", "-c", `cd '${session.workspacePath}' && ${command}`],
+    timeoutMs
+  }));
+  return tagContainer(session, result);
+}
+
 // proxy-tools/schemas.ts
 function objectSchema(properties, required2) {
   return {
@@ -24734,37 +25050,53 @@ var TOOL_VARIANTS = [
     name: "read_file",
     description: "Reads a local file and returns numbered lines (1-indexed) as text. Supports slice, lines, line_columns, offsets, and indentation modes.",
     schemaFactory: () => createReadSchema(!0),
-    handlerFactory: ({ projectPath, callUpstreamTool, readCapabilities }) => (args) => handleReadTool(args, projectPath, callUpstreamTool, readCapabilities, { format: "numbered" }),
+    handlerFactory: ({ projectPath, callUpstreamTool, callUpstreamToolRaw, readCapabilities, containerSession }) => {
+      if (containerSession)
+        return (args) => handleContainerReadFile(args, projectPath, callUpstreamToolRaw, containerSession);
+      return (args) => handleReadTool(args, projectPath, callUpstreamTool, readCapabilities, { format: "numbered" });
+    },
     annotations: READ_ONLY_TOOL_ANNOTATIONS,
     upstreamNames: ["get_file_text_by_path"],
-    expose: ({ readCapabilities }) => !readCapabilities.hasReadFile
+    expose: ({ readCapabilities, containerSession }) => containerSession != null || !readCapabilities.hasReadFile
   },
   {
     name: "search_text",
     description: "Search for a text substring in project files.",
     schemaFactory: () => createSearchTextSchema(),
-    handlerFactory: ({ projectPath, callUpstreamTool, searchCapabilities }) => (args) => handleSearchTextTool(args, projectPath, callUpstreamTool, searchCapabilities),
+    handlerFactory: ({ projectPath, callUpstreamTool, callUpstreamToolRaw, searchCapabilities, containerSession }) => {
+      if (containerSession)
+        return (args) => handleContainerSearchText(args, projectPath, callUpstreamToolRaw, containerSession);
+      return (args) => handleSearchTextTool(args, projectPath, callUpstreamTool, searchCapabilities);
+    },
     annotations: READ_ONLY_TOOL_ANNOTATIONS,
     upstreamNames: ["search_text"],
-    expose: ({ searchCapabilities }) => !searchCapabilities.hasSearchText && searchCapabilities.supportsText
+    expose: ({ searchCapabilities, containerSession }) => containerSession != null || !searchCapabilities.hasSearchText && searchCapabilities.supportsText
   },
   {
     name: "search_regex",
     description: "Search for a regular expression in project files.",
     schemaFactory: () => createSearchRegexSchema(),
-    handlerFactory: ({ projectPath, callUpstreamTool, searchCapabilities, shouldApplyWorkaround: shouldApplyWorkaround2 }) => (args) => handleSearchRegexTool(args, projectPath, callUpstreamTool, searchCapabilities, shouldApplyWorkaround2),
+    handlerFactory: ({ projectPath, callUpstreamTool, callUpstreamToolRaw, searchCapabilities, shouldApplyWorkaround: shouldApplyWorkaround2, containerSession }) => {
+      if (containerSession)
+        return (args) => handleContainerSearchRegex(args, projectPath, callUpstreamToolRaw, containerSession);
+      return (args) => handleSearchRegexTool(args, projectPath, callUpstreamTool, searchCapabilities, shouldApplyWorkaround2);
+    },
     annotations: READ_ONLY_TOOL_ANNOTATIONS,
     upstreamNames: ["search_regex"],
-    expose: ({ searchCapabilities }) => !searchCapabilities.hasSearchRegex && searchCapabilities.supportsRegex
+    expose: ({ searchCapabilities, containerSession }) => containerSession != null || !searchCapabilities.hasSearchRegex && searchCapabilities.supportsRegex
   },
   {
     name: "search_file",
     description: "Search for files using a glob pattern.",
     schemaFactory: () => createSearchFileSchema(),
-    handlerFactory: ({ projectPath, callUpstreamTool, searchCapabilities }) => (args) => handleSearchFileTool(args, projectPath, callUpstreamTool, searchCapabilities),
+    handlerFactory: ({ projectPath, callUpstreamTool, callUpstreamToolRaw, searchCapabilities, containerSession }) => {
+      if (containerSession)
+        return (args) => handleContainerSearchFile(args, projectPath, callUpstreamToolRaw, containerSession);
+      return (args) => handleSearchFileTool(args, projectPath, callUpstreamTool, searchCapabilities);
+    },
     annotations: READ_ONLY_TOOL_ANNOTATIONS,
     upstreamNames: ["search_file"],
-    expose: ({ searchCapabilities }) => !searchCapabilities.hasSearchFile && searchCapabilities.supportsFile
+    expose: ({ searchCapabilities, containerSession }) => containerSession != null || !searchCapabilities.hasSearchFile && searchCapabilities.supportsFile
   },
   {
     name: "search_symbol",
@@ -24788,7 +25120,11 @@ var TOOL_VARIANTS = [
     name: "list_dir",
     description: "Lists entries in a local directory with 1-indexed entry numbers and simple type labels.",
     schemaFactory: () => createListDirSchema(),
-    handlerFactory: ({ projectPath, callUpstreamTool }) => (args) => handleListDirTool(args, projectPath, callUpstreamTool),
+    handlerFactory: ({ projectPath, callUpstreamTool, callUpstreamToolRaw, containerSession }) => {
+      if (containerSession)
+        return (args) => handleContainerListDir(args, projectPath, callUpstreamToolRaw, containerSession);
+      return (args) => handleListDirTool(args, projectPath, callUpstreamTool);
+    },
     annotations: READ_ONLY_TOOL_ANNOTATIONS,
     upstreamNames: ["list_directory_tree"]
   },
@@ -24796,9 +25132,13 @@ var TOOL_VARIANTS = [
     name: "apply_patch",
     description: "Apply a patch using the Codex apply_patch format or unified git diff format.",
     schemaFactory: () => createApplyPatchSchema(),
-    handlerFactory: ({ projectPath, callUpstreamTool }) => (args) => handleApplyPatchTool(args, projectPath, callUpstreamTool),
+    handlerFactory: ({ projectPath, callUpstreamTool, callUpstreamToolRaw, containerSession }) => {
+      if (containerSession)
+        return (args) => handleContainerApplyPatch(args, projectPath, callUpstreamToolRaw, containerSession);
+      return (args) => handleApplyPatchTool(args, projectPath, callUpstreamTool);
+    },
     upstreamNames: ["get_file_text_by_path"],
-    expose: ({ readCapabilities }) => !readCapabilities.hasApplyPatch
+    expose: ({ readCapabilities, containerSession }) => containerSession != null || !readCapabilities.hasApplyPatch
   },
   {
     name: "rename",
@@ -24806,6 +25146,24 @@ var TOOL_VARIANTS = [
     schemaFactory: () => createRenameSchema(),
     handlerFactory: ({ projectPath, callUpstreamTool }) => (args) => handleRenameTool(args, projectPath, callUpstreamTool),
     upstreamNames: ["rename_refactoring"]
+  },
+  {
+    name: "bash",
+    description: "Execute a bash command in the project workspace (runs inside Docker container when container session is active).",
+    schemaFactory: () => ({
+      type: "object",
+      properties: {
+        command: { type: "string", description: "The bash command to execute" },
+        timeout: { type: "number", description: "Timeout in seconds (default: 900). Use 1200+ for build commands." }
+      },
+      required: ["command"]
+    }),
+    handlerFactory: ({ projectPath, callUpstreamToolRaw, containerSession }) => {
+      if (!containerSession)
+        throw Error("bash tool is only available in container mode");
+      return (args) => handleContainerBash(args, projectPath, callUpstreamToolRaw, containerSession);
+    },
+    expose: ({ containerSession }) => containerSession != null
   }
 ];
 function isExposedVariant(tool, context) {
@@ -24895,18 +25253,22 @@ function resolveAnalysisCapabilities(upstreamTools) {
 function createProxyTooling({
   projectPath,
   callUpstreamTool,
+  callUpstreamToolRaw,
   searchCapabilities,
   analysisCapabilities,
   readCapabilities,
-  ideVersion
+  ideVersion,
+  containerSession
 }) {
   let boundVersion = ideVersion ?? null, { proxyToolSpecs, proxyToolNames, handlers } = buildProxyToolingData({
     projectPath,
     callUpstreamTool,
+    callUpstreamToolRaw: callUpstreamToolRaw ?? callUpstreamTool,
     searchCapabilities,
     analysisCapabilities,
     readCapabilities,
-    shouldApplyWorkaround: (key) => shouldApplyWorkaround(key, boundVersion)
+    shouldApplyWorkaround: (key) => shouldApplyWorkaround(key, boundVersion),
+    containerSession: containerSession ?? null
   });
   async function runProxyToolCall(toolName, args) {
     let handler = handlers.get(toolName);
@@ -24936,6 +25298,7 @@ class UpstreamConnection {
   _transport;
   _projectPathManager;
   _defaultProjectPathKey;
+  _forceInjectProjectPath;
   _toolCallTimeoutMs;
   _buildTimeoutMs;
   _warn;
@@ -24947,9 +25310,10 @@ class UpstreamConnection {
   ideVersion = null;
   onStateChange;
   constructor(options) {
-    this._transport = options.transport, this._toolCallTimeoutMs = options.toolCallTimeoutMs, this._buildTimeoutMs = options.buildTimeoutMs, this._warn = options.warn, this._defaultProjectPathKey = options.defaultProjectPathKey, this._projectPathManager = createProjectPathManager({
+    this._transport = options.transport, this._toolCallTimeoutMs = options.toolCallTimeoutMs, this._buildTimeoutMs = options.buildTimeoutMs, this._warn = options.warn, this._defaultProjectPathKey = options.defaultProjectPathKey, this._forceInjectProjectPath = options.forceInjectProjectPath ?? !1, this._projectPathManager = createProjectPathManager({
       projectPath: options.projectPath,
-      defaultProjectPathKey: options.defaultProjectPathKey
+      defaultProjectPathKey: options.defaultProjectPathKey,
+      forceInject: this._forceInjectProjectPath
     }), this.client = new Client({ name: "ij-mcp-proxy", version: "1.0.0" }), this.client.onerror = (error48) => {
       this._warn(`Upstream client error: ${error48.message}`);
     }, this.client.onclose = () => {
@@ -24959,8 +25323,20 @@ class UpstreamConnection {
   updateProjectPath(newProjectPath) {
     this._projectPathManager = createProjectPathManager({
       projectPath: newProjectPath,
-      defaultProjectPathKey: this._defaultProjectPathKey
-    });
+      defaultProjectPathKey: this._defaultProjectPathKey,
+      forceInject: this._forceInjectProjectPath
+    }), this._reapplyToolScan();
+  }
+  setForceInjectProjectPath(projectPath, forceInject) {
+    this._forceInjectProjectPath = forceInject, this._projectPathManager = createProjectPathManager({
+      projectPath,
+      defaultProjectPathKey: this._defaultProjectPathKey,
+      forceInject
+    }), this._reapplyToolScan();
+  }
+  _reapplyToolScan() {
+    if (this._tools)
+      this._projectPathManager.updateProjectPathKeys(this._tools);
   }
   async connect() {
     if (!this.client.transport)
@@ -25003,6 +25379,18 @@ class UpstreamConnection {
       await this.refreshTools();
     return this._tools ?? [];
   }
+  async callToolRaw(toolName, args) {
+    return await this.withReconnect(`tools/call ${toolName}`, async () => {
+      await this.connect(), await this.getTools();
+      let callArgs = this._forceInjectProjectPath ? { ...args } : args;
+      if (this._forceInjectProjectPath)
+        this._projectPathManager.injectProjectPathArgs(toolName, callArgs);
+      let timeoutMs = this._resolveTimeoutMs(toolName), options = timeoutMs > 0 ? { timeout: timeoutMs } : void 0, result = normalizeToolResult(await this.client.callTool({ name: toolName, arguments: callArgs }, void 0, options));
+      if (result?.isError)
+        throw Error(extractTextFromResult(result) || "Upstream tool error");
+      return result;
+    });
+  }
   async callTool(toolName, args) {
     return await this.withReconnect(`tools/call ${toolName}`, async () => {
       await this.connect(), await this.getTools();
@@ -25033,7 +25421,7 @@ class UpstreamConnection {
       }
     });
   }
-  static _LONG_TIMEOUT_TOOLS = /* @__PURE__ */ new Set(["build_project", "lint_files", "open_file_in_editor"]);
+  static _LONG_TIMEOUT_TOOLS = /* @__PURE__ */ new Set(["build_project", "lint_files", "open_file_in_editor", "container_exec"]);
   _resolveTimeoutMs(toolName) {
     return UpstreamConnection._LONG_TIMEOUT_TOOLS.has(toolName) ? this._buildTimeoutMs : this._toolCallTimeoutMs;
   }
@@ -25092,7 +25480,7 @@ async function findReachablePorts(options) {
 }
 
 // routing.ts
-import path7 from "path";
+import path9 from "path";
 var RIDER_PROJECT_SUBPATH = "dotnet", MERGE_TOOL_NAMES = /* @__PURE__ */ new Set([
   "search_text",
   "search_regex",
@@ -25145,10 +25533,10 @@ function resolveIdeForPath(args, projectRoot) {
 function isRiderPath(filePath, projectRoot) {
   if (!filePath)
     return !1;
-  let absolute = path7.isAbsolute(filePath) ? path7.normalize(filePath) : path7.resolve(projectRoot, filePath), relative = path7.relative(projectRoot, absolute);
-  if (relative.startsWith("..") || path7.isAbsolute(relative))
+  let absolute = path9.isAbsolute(filePath) ? path9.normalize(filePath) : path9.resolve(projectRoot, filePath), relative = path9.relative(projectRoot, absolute);
+  if (relative.startsWith("..") || path9.isAbsolute(relative))
     return !1;
-  return relative === RIDER_PROJECT_SUBPATH || relative.startsWith(RIDER_PROJECT_SUBPATH + path7.sep);
+  return relative === RIDER_PROJECT_SUBPATH || relative.startsWith(RIDER_PROJECT_SUBPATH + path9.sep);
 }
 function splitPathListArgsByIde(args, projectRoot, argName = "file_paths") {
   let rawPaths = args[argName];
@@ -25183,13 +25571,13 @@ function extractPathArg(args) {
 }
 
 // ij-mcp-proxy.ts
-var explicitMcpUrl = env.JETBRAINS_MCP_STREAM_URL || env.MCP_STREAM_URL || env.JETBRAINS_MCP_URL || env.MCP_URL, defaultHost = "127.0.0.1", defaultPort = 64342, defaultPath = "/stream", defaultScanLimit = 10, portScanStartEnv = env.JETBRAINS_MCP_PORT_START, portScanStart = parseEnvInt("JETBRAINS_MCP_PORT_START", defaultPort), portScanLimit = parseEnvInt("JETBRAINS_MCP_PORT_SCAN_LIMIT", defaultScanLimit), preferredPorts = portScanStartEnv ? [portScanStart] : [defaultPort, 64344], connectTimeoutMs = parseEnvSeconds("JETBRAINS_MCP_CONNECT_TIMEOUT_S", 10), scanTimeoutMs = parseEnvSeconds("JETBRAINS_MCP_SCAN_TIMEOUT_S", 1), queueLimit = parseEnvNonNegativeInt("JETBRAINS_MCP_QUEUE_LIMIT", 100), toolCallTimeoutMs = parseEnvSeconds("JETBRAINS_MCP_TOOL_CALL_TIMEOUT_S", 60), buildTimeoutMs = parseEnvSeconds("JETBRAINS_MCP_BUILD_TIMEOUT_S", 1200), queueWaitTimeoutMs = parseEnvSeconds("JETBRAINS_MCP_QUEUE_WAIT_TIMEOUT_S", toolCallTimeoutMs > 0 ? Math.round(toolCallTimeoutMs / 1000) : 0), STREAM_RETRY_ATTEMPTS = 3, STREAM_RETRY_BASE_DELAY_MS = 200, PROJECT_MATCH_PROBE_TOOLS = [
+var explicitMcpUrl = env2.JETBRAINS_MCP_STREAM_URL || env2.MCP_STREAM_URL || env2.JETBRAINS_MCP_URL || env2.MCP_URL, defaultHost = "127.0.0.1", defaultPort = 64342, defaultPath = "/stream", defaultScanLimit = 10, portScanStartEnv = env2.JETBRAINS_MCP_PORT_START, portScanStart = parseEnvInt("JETBRAINS_MCP_PORT_START", defaultPort), portScanLimit = parseEnvInt("JETBRAINS_MCP_PORT_SCAN_LIMIT", defaultScanLimit), preferredPorts = portScanStartEnv ? [portScanStart] : [defaultPort, 64344], connectTimeoutMs = parseEnvSeconds("JETBRAINS_MCP_CONNECT_TIMEOUT_S", 10), scanTimeoutMs = parseEnvSeconds("JETBRAINS_MCP_SCAN_TIMEOUT_S", 1), queueLimit = parseEnvNonNegativeInt("JETBRAINS_MCP_QUEUE_LIMIT", 100), toolCallTimeoutMs = parseEnvSeconds("JETBRAINS_MCP_TOOL_CALL_TIMEOUT_S", 60), buildTimeoutMs = parseEnvSeconds("JETBRAINS_MCP_BUILD_TIMEOUT_S", 1200), queueWaitTimeoutMs = parseEnvSeconds("JETBRAINS_MCP_QUEUE_WAIT_TIMEOUT_S", toolCallTimeoutMs > 0 ? Math.round(toolCallTimeoutMs / 1000) : 0), STREAM_RETRY_ATTEMPTS = 3, STREAM_RETRY_BASE_DELAY_MS = 200, PROJECT_MATCH_PROBE_TOOLS = [
   { toolName: "get_all_open_file_paths", args: {} },
   { toolName: "get_project_dependencies", args: {} },
   { toolName: "get_project_modules", args: {} }
 ], PROJECT_MISMATCH_RE = /\bdoesn['\u2019]t correspond to any open project\b|\bNo exact project is specified while multiple projects are opened\b|\bCurrently open projects:\b/i;
 function parseEnvInt(name, fallback) {
-  let raw = env[name];
+  let raw = env2[name];
   if (!raw)
     return fallback;
   let parsed = Number.parseInt(raw, 10);
@@ -25198,7 +25586,7 @@ function parseEnvInt(name, fallback) {
   return parsed;
 }
 function parseEnvNonNegativeInt(name, fallback) {
-  let raw = env[name];
+  let raw = env2[name];
   if (raw === void 0 || raw === null || raw === "")
     return fallback;
   let parsed = Number.parseInt(raw, 10);
@@ -25214,20 +25602,25 @@ function buildStreamUrl(port) {
 }
 function resolveProjectPath(rawValue) {
   if (!rawValue)
-    return { projectPath: path8.resolve(cwd()) };
+    return { projectPath: path10.resolve(cwd2()) };
   if (rawValue.startsWith("file://"))
     try {
-      return { projectPath: path8.resolve(fileURLToPath(new URL(rawValue))) };
+      return { projectPath: path10.resolve(fileURLToPath2(new URL(rawValue))) };
     } catch (error48) {
       let message = error48 instanceof Error ? error48.message : String(error48);
       return {
-        projectPath: path8.resolve(rawValue),
+        projectPath: path10.resolve(rawValue),
         warning: `Failed to parse JETBRAINS_MCP_PROJECT_PATH as a file URI (${message}); falling back to path resolution.`
       };
     }
-  return { projectPath: path8.resolve(rawValue) };
+  return { projectPath: path10.resolve(rawValue) };
 }
-var explicitProjectPath = env.JETBRAINS_MCP_PROJECT_PATH, projectPathResolution = resolveProjectPath(explicitProjectPath), projectPath = projectPathResolution.projectPath, defaultProjectPathKey = "project_path", REPLACED_TOOL_NAMES = getReplacedToolNames(), BASE_BLOCKED_TOOL_NAMES = /* @__PURE__ */ new Set([...BLOCKED_TOOL_NAMES, ...REPLACED_TOOL_NAMES]);
+var explicitProjectPath = env2.JETBRAINS_MCP_PROJECT_PATH, projectPathResolution = resolveProjectPath(explicitProjectPath), projectPath = projectPathResolution.projectPath, defaultProjectPathKey = "projectPath", containerSession = detectContainerSession(projectPath), explicitMcpUrlOverride;
+if (containerSession?.mcpStreamUrl)
+  explicitMcpUrlOverride = containerSession.mcpStreamUrl;
+if (containerSession?.projectPath)
+  projectPath = containerSession.projectPath;
+var REPLACED_TOOL_NAMES = getReplacedToolNames(), BASE_BLOCKED_TOOL_NAMES = /* @__PURE__ */ new Set([...BLOCKED_TOOL_NAMES, ...REPLACED_TOOL_NAMES]);
 function blockedToolMessage(toolName) {
   if (toolName === "create_new_file")
     return `Tool '${toolName}' is not exposed by ij-proxy. Use 'apply_patch' instead.`;
@@ -25241,28 +25634,42 @@ function primaryUpstream() {
   return upstream;
 }
 function updateProxyTooling() {
+  if (!containerSession) {
+    if (containerSession = detectContainerSession(projectPath), containerSession) {
+      if (note(`Container session detected (lazy): id=${containerSession.sessionId}, workspace=${containerSession.workspacePath}`), containerSession.projectPath)
+        projectPath = containerSession.projectPath;
+      if (containerSession.mcpStreamUrl && containerSession.mcpStreamUrl !== explicitMcpUrlOverride)
+        explicitMcpUrlOverride = containerSession.mcpStreamUrl, note(`MCP stream URL override: ${explicitMcpUrlOverride} \u2014 reconnecting upstream`), ideaUpstream = null, riderUpstream = null, discoveryPromise = null;
+      if (ideaUpstream?.setForceInjectProjectPath(projectPath, !0), riderUpstream)
+        riderUpstream.setForceInjectProjectPath(path10.join(projectPath, RIDER_PROJECT_SUBPATH), !0);
+    }
+  }
   let ideaSpecs = [], ideaNames = /* @__PURE__ */ new Set;
   if (ideaUpstream) {
     let tooling = createProxyTooling({
       projectPath,
       callUpstreamTool: (name, args) => ideaUpstream.callTool(name, args),
+      callUpstreamToolRaw: (name, args) => ideaUpstream.callToolRaw(name, args),
       searchCapabilities: ideaUpstream.searchCapabilities,
       analysisCapabilities: ideaUpstream.analysisCapabilities,
       readCapabilities: ideaUpstream.readCapabilities,
-      ideVersion: ideaUpstream.ideVersion
+      ideVersion: ideaUpstream.ideVersion,
+      containerSession
     });
     ideaSpecs = tooling.proxyToolSpecs, ideaNames = tooling.proxyToolNames, ideaProxyToolNames = tooling.proxyToolNames, ideaProxyToolCall = tooling.runProxyToolCall;
   } else
     ideaProxyToolNames = /* @__PURE__ */ new Set, ideaProxyToolCall = null;
   let riderSpecs = [], riderNames = /* @__PURE__ */ new Set;
   if (riderUpstream) {
-    let riderProjectPath = path8.join(projectPath, RIDER_PROJECT_SUBPATH), tooling = createProxyTooling({
+    let riderProjectPath = path10.join(projectPath, RIDER_PROJECT_SUBPATH), tooling = createProxyTooling({
       projectPath: riderProjectPath,
       callUpstreamTool: (name, args) => riderUpstream.callTool(name, args),
+      callUpstreamToolRaw: (name, args) => riderUpstream.callToolRaw(name, args),
       searchCapabilities: riderUpstream.searchCapabilities,
       analysisCapabilities: riderUpstream.analysisCapabilities,
       readCapabilities: riderUpstream.readCapabilities,
-      ideVersion: riderUpstream.ideVersion
+      ideVersion: riderUpstream.ideVersion,
+      containerSession
     });
     riderSpecs = tooling.proxyToolSpecs, riderNames = tooling.proxyToolNames, riderProxyToolNames = tooling.proxyToolNames, riderProxyToolCall = tooling.runProxyToolCall;
   } else
@@ -25285,13 +25692,21 @@ function buildInstructions() {
     let name = riderUpstream.client.getServerVersion()?.name ?? "JetBrains Rider", version2 = riderUpstream.ideVersion;
     ides.push(version2 ? `${name} ${version2}` : name);
   }
-  if (ides.length === 0)
+  if (ides.length === 0 && !containerSession)
     return;
-  return `Connected IDEs: ${ides.join(", ")}.`;
+  let parts = [];
+  if (ides.length > 0)
+    parts.push(`Connected IDEs: ${ides.join(", ")}.`);
+  if (containerSession)
+    parts.push(`CONTAINER MODE ACTIVE: This session operates on a Docker container (session ${containerSession.sessionId}).`, "All file and search operations (read_file, apply_patch, search_text, search_regex, search_file, list_dir) are routed to the container.", "Semantic tools (search_symbol, lint_files, get_file_problems, rename) use the host IDE index.", 'Use the "bash" tool for ALL shell commands \u2014 it executes inside the container. Do NOT use your built-in Bash tool or execute_terminal_command, as they run on the host, not in the container.', "The container has: git, curl, ripgrep (rg), patch, java (JBR 21), bazel (via Bazelisk). All tools are in PATH.", `IMPORTANT: Before completing your task, verify your changes compile by running the build command inside the container${containerSession.buildCommand ? `: \`${containerSession.buildCommand}\`` : ""}. Fix any compilation errors before finishing.`);
+  return parts.join(`
+`);
 }
 clearLogFile();
 if (projectPathResolution.warning)
   warn(projectPathResolution.warning);
+if (containerSession)
+  note(`Container session detected: id=${containerSession.sessionId}, workspace=${containerSession.workspacePath}`);
 function createUpstreamForUrl(url2) {
   let transport = createStreamTransport({
     explicitUrl: url2,
@@ -25311,6 +25726,7 @@ function createUpstreamForUrl(url2) {
     transport,
     projectPath,
     defaultProjectPathKey,
+    forceInjectProjectPath: containerSession != null,
     toolCallTimeoutMs,
     buildTimeoutMs,
     warn
@@ -25401,12 +25817,13 @@ async function ensureDiscovered() {
 }
 async function performDiscovery() {
   try {
-    if (explicitMcpUrl) {
-      let conn = createUpstreamForUrl(explicitMcpUrl);
+    let effectiveMcpUrl = explicitMcpUrlOverride ?? explicitMcpUrl;
+    if (effectiveMcpUrl) {
+      let conn = createUpstreamForUrl(effectiveMcpUrl);
       await conn.connect();
       let name = conn.client.getServerVersion()?.name ?? "";
       if (isRiderServerName(name))
-        conn.updateProjectPath(path8.join(projectPath, RIDER_PROJECT_SUBPATH)), riderUpstream = conn;
+        conn.updateProjectPath(path10.join(projectPath, RIDER_PROJECT_SUBPATH)), riderUpstream = conn;
       else
         ideaUpstream = conn;
       setupUpstreamClientHandlers(conn), updateProxyTooling();
@@ -25426,7 +25843,7 @@ async function performDiscovery() {
         await conn.connect();
         let name = conn.client.getServerVersion()?.name ?? "", candidate = { conn, url: url2, name };
         if (isRiderServerName(name))
-          conn.updateProjectPath(path8.join(projectPath, RIDER_PROJECT_SUBPATH)), riderCandidates.push(candidate);
+          conn.updateProjectPath(path10.join(projectPath, RIDER_PROJECT_SUBPATH)), riderCandidates.push(candidate);
         else
           ideaCandidates.push(candidate);
       } catch (error48) {
@@ -25434,7 +25851,7 @@ async function performDiscovery() {
         warn(`Failed to connect to ${url2}: ${message}`);
       }
     }
-    let selectedIdea = await chooseUpstreamForProject(ideaCandidates, "IDEA", projectPath), selectedRider = await chooseUpstreamForProject(riderCandidates, "Rider", path8.join(projectPath, RIDER_PROJECT_SUBPATH));
+    let selectedIdea = await chooseUpstreamForProject(ideaCandidates, "IDEA", projectPath), selectedRider = await chooseUpstreamForProject(riderCandidates, "Rider", path10.join(projectPath, RIDER_PROJECT_SUBPATH));
     if (await closeUnusedUpstreams(ideaCandidates, selectedIdea), await closeUnusedUpstreams(riderCandidates, selectedRider), selectedIdea)
       ideaUpstream = selectedIdea.conn, setupUpstreamClientHandlers(selectedIdea.conn), note(`IDEA upstream: ${formatUpstream(selectedIdea)}`);
     if (selectedRider)
@@ -25456,11 +25873,11 @@ var serverInfo = { name: "ij-mcp-proxy", version: "1.0.0" }, serverCapabilities 
 }, proxyServer = new Server(serverInfo, { capabilities: serverCapabilities });
 proxyServer.setRequestHandler(InitializeRequestSchema, async () => {
   await performDiscovery();
-  let instructions = buildInstructions();
+  let instructions = buildInstructions(), effectiveServerInfo = containerSession ? { name: `ij-mcp-proxy [container:${containerSession.sessionId}]`, version: "1.0.0" } : serverInfo;
   return {
     protocolVersion: LATEST_PROTOCOL_VERSION,
     capabilities: serverCapabilities,
-    serverInfo,
+    serverInfo: effectiveServerInfo,
     ...instructions && { instructions }
   };
 });
@@ -25472,7 +25889,14 @@ proxyServer.setRequestHandler(ListToolsRequestSchema, async () => {
   };
 });
 proxyServer.setRequestHandler(CallToolRequestSchema, async (request) => {
+  if (!containerSession) {
+    let detected = detectContainerSession(projectPath);
+    if (detected)
+      containerSession = detected, note(`Container session detected on tool call: id=${detected.sessionId}`), updateProxyTooling(), await ensureDiscovered(), await proxyServer.sendToolListChanged();
+  }
   let toolName = typeof request.params?.name === "string" ? request.params.name : "", rawArgs = request.params?.arguments, args = rawArgs && typeof rawArgs === "object" ? { ...rawArgs } : {};
+  if (containerSession)
+    note(`Tool call: ${toolName} [container:${containerSession.sessionId}, proxy:${proxyToolNames.has(toolName)}, hasUpstream:${!!ideaUpstream}]`);
   if (!toolName)
     return makeToolError("Tool name is required");
   if (BASE_BLOCKED_TOOL_NAMES.has(toolName))

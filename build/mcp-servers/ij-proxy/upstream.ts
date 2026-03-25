@@ -12,6 +12,13 @@ export interface UpstreamConnectionOptions {
   transport: McpStreamTransport
   projectPath: string
   defaultProjectPathKey: 'project_path' | 'projectPath'
+  /**
+   * When true, `project_path` / `projectPath` is injected into every upstream tool call —
+   * including container-scoped tools that carry their own `sessionId` — so the IDE MCP
+   * server's project dispatcher can bind the request to a specific open project. Used
+   * in container mode where `.container-sessions.jsonl` is the source of truth.
+   */
+  forceInjectProjectPath?: boolean
   toolCallTimeoutMs: number
   buildTimeoutMs: number
   warn: (message: string) => void
@@ -39,6 +46,7 @@ export class UpstreamConnection {
   private readonly _transport: McpStreamTransport
   private _projectPathManager: ReturnType<typeof createProjectPathManager>
   private readonly _defaultProjectPathKey: 'project_path' | 'projectPath'
+  private _forceInjectProjectPath: boolean
   private readonly _toolCallTimeoutMs: number
   private readonly _buildTimeoutMs: number
   private readonly _warn: (message: string) => void
@@ -60,9 +68,11 @@ export class UpstreamConnection {
     this._buildTimeoutMs = options.buildTimeoutMs
     this._warn = options.warn
     this._defaultProjectPathKey = options.defaultProjectPathKey
+    this._forceInjectProjectPath = options.forceInjectProjectPath ?? false
     this._projectPathManager = createProjectPathManager({
       projectPath: options.projectPath,
-      defaultProjectPathKey: options.defaultProjectPathKey
+      defaultProjectPathKey: options.defaultProjectPathKey,
+      forceInject: this._forceInjectProjectPath
     })
 
     this.client = new Client({name: 'ij-mcp-proxy', version: '1.0.0'})
@@ -78,8 +88,32 @@ export class UpstreamConnection {
   updateProjectPath(newProjectPath: string): void {
     this._projectPathManager = createProjectPathManager({
       projectPath: newProjectPath,
-      defaultProjectPathKey: this._defaultProjectPathKey
+      defaultProjectPathKey: this._defaultProjectPathKey,
+      forceInject: this._forceInjectProjectPath
     })
+    this._reapplyToolScan()
+  }
+
+  setForceInjectProjectPath(projectPath: string, forceInject: boolean): void {
+    this._forceInjectProjectPath = forceInject
+    this._projectPathManager = createProjectPathManager({
+      projectPath,
+      defaultProjectPathKey: this._defaultProjectPathKey,
+      forceInject
+    })
+    this._reapplyToolScan()
+  }
+
+  /**
+   * Re-run the `project_path` / `projectPath` tool-schema scan on the already-known
+   * tool list. Recreating the project-path manager loses its scan state, which would
+   * otherwise force every injection to fall back to `defaultProjectPathKey` even when
+   * the upstream IDE has been observed to use the other key on specific tools.
+   */
+  private _reapplyToolScan(): void {
+    if (this._tools) {
+      this._projectPathManager.updateProjectPathKeys(this._tools)
+    }
   }
 
   async connect(): Promise<void> {
@@ -148,6 +182,38 @@ export class UpstreamConnection {
     return this._tools ?? []
   }
 
+  /**
+   * Call upstream tool with MINIMAL projectPath injection.
+   *
+   * Container tools (`container_exec`, `container_read_file`, …) are application-scoped
+   * and don't care about `project_path` as an argument. But the IDE's MCP server still
+   * uses `project_path` to bind the incoming request to one of multiple open projects,
+   * and without it falls back to prompting the user. So when the upstream was configured
+   * with `forceInjectProjectPath` (i.e. we're in container mode, and the session file
+   * names the project), we inject `project_path` here too — the target tool ignores
+   * the extra arg but the IDE's dispatcher gets what it needs.
+   */
+  async callToolRaw(toolName: string, args: ToolArgs): Promise<unknown> {
+    return await this.withReconnect(`tools/call ${toolName}`, async () => {
+      await this.connect()
+      await this.getTools()
+      const callArgs = this._forceInjectProjectPath ? {...args} : args
+      if (this._forceInjectProjectPath) {
+        this._projectPathManager.injectProjectPathArgs(toolName, callArgs)
+      }
+      const timeoutMs = this._resolveTimeoutMs(toolName)
+      const options = timeoutMs > 0 ? {timeout: timeoutMs} : undefined
+      const result = normalizeToolResult(
+        await this.client.callTool({name: toolName, arguments: callArgs}, undefined, options)
+      )
+
+      if (result?.isError) {
+        throw new Error(extractTextFromResult(result) || 'Upstream tool error')
+      }
+      return result
+    })
+  }
+
   /** Call upstream tool for internal proxy use. Throws on upstream error. */
   async callTool(toolName: string, args: ToolArgs): Promise<unknown> {
     return await this.withReconnect(`tools/call ${toolName}`, async () => {
@@ -196,7 +262,7 @@ export class UpstreamConnection {
     })
   }
 
-  private static readonly _LONG_TIMEOUT_TOOLS = new Set(['build_project', 'lint_files', 'open_file_in_editor'])
+  private static readonly _LONG_TIMEOUT_TOOLS = new Set(['build_project', 'lint_files', 'open_file_in_editor', 'container_exec'])
 
   private _resolveTimeoutMs(toolName: string): number {
     return UpstreamConnection._LONG_TIMEOUT_TOOLS.has(toolName) ? this._buildTimeoutMs : this._toolCallTimeoutMs

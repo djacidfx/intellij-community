@@ -27,6 +27,8 @@ internal class AgentPromptPaletteDraftController(
   private val updateProviderOptionsVisibility: () -> Unit,
   private val setTargetMode: (PromptTargetMode) -> Unit,
   private val resolveTaskKey: (JPanel?) -> String?,
+  private val getContainerModeSelected: () -> Boolean = { false },
+  private val setContainerModeSelected: (Boolean) -> Unit = {},
 ) {
   fun restoreDraft(): AgentPromptUiDraft {
     val draft = uiStateService.loadDraft()
@@ -45,6 +47,7 @@ internal class AgentPromptPaletteDraftController(
     providerSelector.selectProvider(persistedProvider, providerPrefs.launchMode)
     updateProviderOptionsVisibility()
 
+    setContainerModeSelected(providerPrefs.containerModeEnabled || draft.containerModeEnabled)
     setTargetMode(draft.targetMode)
     draftState.existingTaskSearchQuery = draft.existingTaskSearch
     existingTaskController.selectedExistingTaskId = draft.selectedExistingTaskId
@@ -115,6 +118,7 @@ internal class AgentPromptPaletteDraftController(
         providerId = providerSelector.selectedProvider?.bridge?.provider?.value,
         launchMode = providerSelector.selectedLaunchMode,
         providerOptionsByProviderId = providerSelector.providerOptionSelections(),
+        containerModeEnabled = getContainerModeSelected(),
       )
     )
   }
@@ -153,6 +157,7 @@ internal class AgentPromptPaletteDraftController(
         selectedExistingTaskId = existingTaskController.selectedExistingTaskId,
         taskDrafts = allTaskDrafts,
         providerOptionsByProviderId = providerSelector.providerOptionSelections(),
+        containerModeEnabled = getContainerModeSelected(),
       )
     )
     uiStateService.saveContextRestoreSnapshot(
