@@ -5,39 +5,23 @@ import com.intellij.codeInsight.template.CustomTemplateCallback;
 import com.intellij.codeInsight.template.emmet.rpc.EmmetAbbreviationBaloonTopic;
 import com.intellij.codeInsight.template.emmet.rpc.ShowAbbreviationBaloonUiEvent;
 import com.intellij.ide.BrowserUtil;
-import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.WriteIntentReadAction;
 import com.intellij.openapi.editor.impl.EditorIdKt;
 import com.intellij.openapi.ui.popup.Balloon;
-import com.intellij.openapi.ui.popup.JBPopupFactory;
-import com.intellij.openapi.ui.popup.JBPopupListener;
-import com.intellij.openapi.ui.popup.LightweightWindowEvent;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.util.NlsContexts.LinkLabel;
 import com.intellij.openapi.util.NlsContexts.Tooltip;
 import com.intellij.openapi.util.text.StringUtil;
-import com.intellij.openapi.wm.IdeFocusManager;
 import com.intellij.ui.ContextHelpLabel;
-import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.LightColors;
 import com.intellij.ui.TextFieldWithHistory;
-import com.intellij.ui.TextFieldWithStoredHistory;
-import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.TestOnly;
 
-import javax.swing.JPanel;
-import javax.swing.event.DocumentEvent;
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
 import java.util.function.Supplier;
 
-import static com.intellij.codeInsight.template.emmet.EmmetAbbreviationBalloon.EmmetContextHelp.createHelpLabel;
 import static com.intellij.util.ObjectUtils.doIfNotNull;
 
 public class EmmetAbbreviationBalloon {
@@ -94,94 +78,7 @@ public class EmmetAbbreviationBalloon {
     );
   }
 
-  private static void showBaloon(@NotNull CustomTemplateCallback customTemplateCallback,
-                                 @NotNull ShowAbbreviationBaloonUiEvent showEvent,
-                                 @NotNull Callback callback) {
-    JPanel panel = new JPanel(new BorderLayout());
-    final TextFieldWithStoredHistory field = new TextFieldWithStoredHistory(showEvent.getHistoryKey());
-    final Dimension fieldPreferredSize = field.getPreferredSize();
-    field.setPreferredSize(new Dimension(Math.max(220, fieldPreferredSize.width), fieldPreferredSize.height));
-    field.setHistorySize(10);
-
-    ContextHelpLabel label = createHelpLabel(showEvent.getLinkText(), showEvent.getLinkUrl(), showEvent.getDescription());
-    label.setBorder(JBUI.Borders.empty(0, 3, 0, 1));
-
-    panel.add(field, BorderLayout.CENTER);
-    panel.add(label, BorderLayout.EAST);
-    final JBPopupFactory popupFactory = JBPopupFactory.getInstance();
-    final Balloon balloon = popupFactory.createBalloonBuilder(panel)
-      .setCloseButtonEnabled(false)
-      .setBlockClicksThroughBalloon(true)
-      .setAnimationCycle(0)
-      .setHideOnKeyOutside(true)
-      .setHideOnClickOutside(true)
-      .setFillColor(panel.getBackground())
-      .createBalloon();
-
-    final DocumentAdapter documentListener = new DocumentAdapter() {
-      @Override
-      protected void textChanged(@NotNull DocumentEvent e) {
-        WriteIntentReadAction.run(() -> {
-          if (!isValid(customTemplateCallback)) {
-            balloon.hide();
-            return;
-          }
-          validateTemplateKey(field, balloon, field.getText(), customTemplateCallback);
-        });
-      }
-    };
-    field.addDocumentListener(documentListener);
-
-    final KeyAdapter keyListener = new KeyAdapter() {
-      @Override
-      public void keyPressed(@NotNull KeyEvent e) {
-        if (!field.isPopupVisible()) {
-          if (!isValid(customTemplateCallback)) {
-            balloon.hide();
-            return;
-          }
-
-          switch (e.getKeyCode()) {
-            case KeyEvent.VK_ENTER -> {
-              WriteIntentReadAction.run(() -> {
-                final String abbreviation = field.getText();
-                if (validateTemplateKey(field, balloon, abbreviation, customTemplateCallback)) {
-                  callback.onEnter(abbreviation);
-                  PropertiesComponent.getInstance().setValue(showEvent.getLastAbbreviationKey(), abbreviation);
-                  field.addCurrentTextToHistory();
-                  balloon.hide();
-                }
-              });
-            }
-            case KeyEvent.VK_ESCAPE -> balloon.hide(false);
-          }
-        }
-      }
-    };
-    field.addKeyboardListener(keyListener);
-
-    balloon.addListener(new JBPopupListener() {
-      @Override
-      public void beforeShown(@NotNull LightweightWindowEvent event) {
-        field.setText(PropertiesComponent.getInstance().getValue(showEvent.getLastAbbreviationKey(), ""));
-      }
-
-      @Override
-      public void onClosed(@NotNull LightweightWindowEvent event) {
-        field.removeKeyListener(keyListener);
-        field.removeDocumentListener(documentListener);
-      }
-    });
-    balloon.show(popupFactory.guessBestPopupLocation(customTemplateCallback.getEditor()), Balloon.Position.below);
-
-    final IdeFocusManager focusManager = IdeFocusManager.getInstance(customTemplateCallback.getProject());
-    focusManager.doWhenFocusSettlesDown(() -> {
-      focusManager.requestFocus(field, true);
-      field.selectText();
-    });
-  }
-
-  private static boolean validateTemplateKey(@NotNull TextFieldWithHistory field,
+  static boolean validateTemplateKey(@NotNull TextFieldWithHistory field,
                                              @Nullable Balloon balloon,
                                              @NotNull String abbreviation,
                                              @NotNull CustomTemplateCallback callback) {
@@ -193,7 +90,7 @@ public class EmmetAbbreviationBalloon {
     return correct;
   }
 
-  private static boolean isValid(CustomTemplateCallback callback) {
+  static boolean isValid(CustomTemplateCallback callback) {
     return !callback.getEditor().isDisposed();
   }
 
