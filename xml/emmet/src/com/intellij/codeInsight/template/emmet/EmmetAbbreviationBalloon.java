@@ -65,17 +65,16 @@ public class EmmetAbbreviationBalloon {
       return;
     }
 
-    EmmetAbbreviationBaloonUi.showBaloon(customTemplateCallback,
-                                         new ShowAbbreviationBaloonUiEvent(
-                                           EmmetAbbreviationBaloonTopic.nextTransactionId(),
-                                           EditorIdKt.editorId(customTemplateCallback.getEditor()),
-                                           myAbbreviationsHistoryKey,
-                                           myLastAbbreviationKey,
-                                           myContextHelp.getLinkText(),
-                                           myContextHelp.getLinkUrl(),
-                                           myContextHelp.getDescription()),
-                                         myCallback
-    );
+    var invocationEvent = new ShowAbbreviationBaloonUiEvent(
+      EmmetAbbreviationBaloonTopic.nextTransactionId(),
+      EditorIdKt.editorId(customTemplateCallback.getEditor()),
+      myAbbreviationsHistoryKey,
+      myLastAbbreviationKey,
+      myContextHelp.getLinkText(),
+      myContextHelp.getLinkUrl(),
+      myContextHelp.getDescription());
+
+    EmmetAbbreviationBaloonUi.showBaloon(customTemplateCallback, invocationEvent, myCallback);
   }
 
   static boolean validateTemplateKey(@NotNull TextFieldWithHistory field,
