@@ -32,7 +32,7 @@ class FileIndexingAnalyzerTest : AnalyzersTestBase() {
       .producesToken("search", FileTokenType.FILENAME_PART.type, 0, 6)
       .producesToken("every", FileTokenType.FILENAME_PART.type, 6, 11)
       .producesToken("where", FileTokenType.FILENAME_PART.type, 11, 16)
-      .producesToken("sewui", FileTokenType.FILENAME_ABBREVIATION.type, 0, 18)
+      .producesToken("sewu", FileTokenType.FILENAME_ABBREVIATION.type, 0, 18)
       .producesToken("ui", FileTokenType.FILENAME_PART.type, 16, 18)
       .noDuplicateTokens()
   }

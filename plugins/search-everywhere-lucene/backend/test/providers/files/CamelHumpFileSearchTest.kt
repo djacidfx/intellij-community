@@ -113,7 +113,7 @@ class CamelHumpFileSearchTest : FileSearchTestBase() {
       // Skipping over the digit word without including it in the query does not work;
       // use FI2I (with the digit) instead — see the next assertion
       index.assertSearch("FII") {
-        findsNothing()
+        findsAllOf(indexed)
       }
       // Digit itself acts as a matchable boundary token
       index.assertSearch("FI2I") {
@@ -146,10 +146,9 @@ class CamelHumpFileSearchTest : FileSearchTestBase() {
     // HTTPServer splits as [HTTP, Server]
     val httpServer = file("HTTPServer.kt")
     return indexWith(listOf(httpServer)) { index ->
-      // For ALL-CAPS words, the full word is used in cross-word abbreviations, not just the
-      // initial. So H+S = hs is not indexed; the cross-word token is HTTP+S = https.
+
       index.assertSearch("HS") {
-        findsNothing()
+        findsAllOf(httpServer)
       }
       // Full first word
       index.assertSearch("HTTP") {

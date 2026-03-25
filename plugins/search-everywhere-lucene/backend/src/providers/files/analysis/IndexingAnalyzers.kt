@@ -1,5 +1,6 @@
 package com.intellij.searchEverywhereLucene.backend.providers.files.analysis
 
+import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.splitting.PathSplittingRule
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.LowerCaseFilter
 import org.apache.lucene.analysis.TokenFilter
@@ -7,160 +8,87 @@ import org.apache.lucene.analysis.TokenStream
 import org.apache.lucene.analysis.core.KeywordTokenizer
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute
-import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute
-
-
-internal data class PartInfo(val term: String, val type: FileTokenType, val start: Int, val end: Int)
 
 /**
- * Breaks a filename stem into camelCase / numeric-boundary parts with offsets relative to the stem start.
- */
-internal fun breakFilenameIntoParts(text: String): List<PartInfo> {
-  val result = mutableListOf<PartInfo>()
-  if (text.isEmpty()) return result
-
-  var start = 0
-  for (i in 1 until text.length) {
-    val prev = text[i - 1]
-    val curr = text[i]
-    if ((prev.isLowerCase() && curr.isUpperCase()) ||
-        (prev.isUpperCase() && curr.isUpperCase() && (i + 1 < text.length && text[i + 1].isLowerCase())) ||
-        (prev.isLetter() && curr.isDigit()) ||
-        (prev.isDigit() && curr.isLetter())) {
-      result.add(PartInfo(text.substring(start, i), FileTokenType.FILENAME_PART, start, i))
-      start = i
-    }
-  }
-  result.add(PartInfo(text.substring(start), FileTokenType.FILENAME_PART, start, text.length))
-  return result
-}
-
-/**
- * Builds all filename sub-tokens for a given name stem, offsetting by [baseOffset].
- * Emits: FILENAME token, FILENAME_ABBREVIATION (if initials.length > 1), and FILENAME_PART tokens.
- * All returned offsets are absolute (baseOffset-relative).
- */
-internal fun buildFilenameSubTokens(name: String, baseOffset: Int): List<PartInfo> {
-  val result = mutableListOf<PartInfo>()
-  result.add(PartInfo(name.lowercase(), FileTokenType.FILENAME, baseOffset, baseOffset + name.length))
-
-  val parts = breakFilenameIntoParts(name)
-  val initialsBuilder = StringBuilder()
-  for (part in parts) {
-    if (part.term.isNotEmpty()) {
-      initialsBuilder.append(part.term[0].lowercaseChar())
-      for (j in 1 until part.term.length) {
-        if (part.term[j].isUpperCase()) initialsBuilder.append(part.term[j].lowercaseChar())
-      }
-    }
-  }
-  val initials = initialsBuilder.toString()
-  if (initials.length > 1) {
-    result.add(PartInfo(initials, FileTokenType.FILENAME_ABBREVIATION, baseOffset, baseOffset + name.length))
-  }
-
-  for (part in parts) {
-    result.add(PartInfo(part.term.lowercase(), FileTokenType.FILENAME_PART, baseOffset + part.start, baseOffset + part.end))
-  }
-  return result
-}
-
-
-/**
- * Merges a flat list of [PartInfo] entries into a deduplicated list where entries sharing
- * the same (term, start, end) are collapsed into one [Pair] carrying all their types.
- * Insertion order (first occurrence) is preserved for correct Lucene offset ordering.
- */
-internal fun buildMergedPending(parts: List<PartInfo>): List<Pair<PartInfo, Set<FileTokenType>>> {
-  val map = LinkedHashMap<Triple<String, Int, Int>, Pair<PartInfo, MutableSet<FileTokenType>>>()
-  for (part in parts) {
-    val key = Triple(part.term, part.start, part.end)
-    map.getOrPut(key) { Pair(part, mutableSetOf()) }.second.add(part.type)
-  }
-  return map.values.map { (part, types) -> Pair(part, types as Set<FileTokenType>) }
-}
-
-
-/**
- * Tokenizes a single filename (no path separators) into:
- *  - TOKEN_TYPE_PATH — full original text (case-preserved)
- *  - TOKEN_TYPE_FILENAME + TOKEN_TYPE_FILENAME_ABBREVIATION + TOKEN_TYPE_FILENAME_PART — name stem analysis
- *  - TOKEN_TYPE_FILETYPE — extension (lowercase)
+ * Detects the PATH, FILENAME (stem, original case), and FILETYPE (extension, lowercase) of a raw
+ * keyword token and emits them as separate typed tokens.
  *
- * Tokens are emitted in non-decreasing offset order as required by Lucene.
+ * The FILENAME term is kept in original case so that [AbbreviationTokenFilter] can correctly
+ * derive camelCase abbreviations. Lowercasing of FILENAME is deferred to that filter.
  */
-internal class FileNameTokenFilter(input: TokenStream) : TokenFilter(input) {
+internal class PathAndFilenameTypeFilter(input: TokenStream) : TokenFilter(input) {
   private val termAttr = addAttribute(CharTermAttribute::class.java)
   private val multiTypeAttr = addAttribute(MultiTypeAttribute::class.java)
   private val offsetAttr = addAttribute(OffsetAttribute::class.java)
-  private val posIncrAttr = addAttribute(PositionIncrementAttribute::class.java)
 
-  private val pending = ArrayDeque<Pair<PartInfo, Set<FileTokenType>>>()
-  private var lastStartOffset = -1
+  private data class TypedToken(val term: String, val types: Set<FileTokenType>, val start: Int, val end: Int)
+  private val pending = ArrayDeque<TypedToken>()
 
   override fun incrementToken(): Boolean {
     if (pending.isNotEmpty()) {
-      val (part, types) = pending.removeFirst()
-      emitPending(part, types)
+      val token = pending.removeFirst()
+      termAttr.setEmpty().append(token.term)
+      multiTypeAttr.clearTypes().setTypes(token.types)
+      offsetAttr.setOffset(token.start, token.end)
       return true
     }
 
     if (!input.incrementToken()) return false
 
     val fullText = termAttr.toString()
-    lastStartOffset = -1
 
-    val parts = mutableListOf<PartInfo>()
-
-    // Full text as PATH token (case-preserved)
-    parts.add(PartInfo(fullText, FileTokenType.PATH, 0, fullText.length))
+    // PATH: full text, case-preserved
+    pending.addLast(TypedToken(fullText, setOf(FileTokenType.PATH), 0, fullText.length))
 
     val dotIndex = fullText.lastIndexOf('.')
-    val (nameStem, ext, nameStart, extStart) = when {
-      dotIndex < 0  -> Quadruple(fullText, null, 0, -1)
-      dotIndex == 0 -> Quadruple(fullText, fullText.substring(1), 0, 1)
-      else          -> Quadruple(fullText.substring(0, dotIndex), fullText.substring(dotIndex + 1), 0, dotIndex + 1)
+    val nameStem: String
+    val ext: String?
+    val extStart: Int
+    when {
+      dotIndex < 0  -> { nameStem = fullText;                       ext = null;                         extStart = -1 }
+      dotIndex == 0 -> { nameStem = fullText;                       ext = fullText.substring(1);         extStart = 1 }
+      else          -> { nameStem = fullText.substring(0, dotIndex); ext = fullText.substring(dotIndex + 1); extStart = dotIndex + 1 }
     }
 
-    // Filename sub-tokens first (offsets at/near 0 must precede FILETYPE to stay non-decreasing)
-    parts.addAll(buildFilenameSubTokens(nameStem, nameStart))
+    // FILENAME: stem, original case (lowercasing deferred to AbbreviationTokenFilter)
+    pending.addLast(TypedToken(nameStem, setOf(FileTokenType.FILENAME), 0, nameStem.length))
 
-    // Extension last (highest offset)
+    // FILETYPE: extension, lowercase, highest offset
     if (!ext.isNullOrEmpty()) {
-      parts.add(PartInfo(ext.lowercase(), FileTokenType.FILETYPE, extStart, extStart + ext.length))
+      pending.addLast(TypedToken(ext.lowercase(), setOf(FileTokenType.FILETYPE), extStart, extStart + ext.length))
     }
 
-    for (merged in buildMergedPending(parts)) {
-      pending.add(merged)
-    }
-
-    val (part, types) = pending.removeFirst()
-    emitPending(part, types)
+    val first = pending.removeFirst()
+    termAttr.setEmpty().append(first.term)
+    multiTypeAttr.clearTypes().setTypes(first.types)
+    offsetAttr.setOffset(first.start, first.end)
     return true
-  }
-
-  private fun emitPending(part: PartInfo, types: Set<FileTokenType>) {
-    termAttr.setEmpty().append(part.term)
-    multiTypeAttr.clearTypes().setTypes(types)
-    offsetAttr.setOffset(part.start, part.end)
-    posIncrAttr.positionIncrement = if (lastStartOffset == -1 || part.start != lastStartOffset) 1 else 0
-    lastStartOffset = part.start
   }
 
   override fun reset() {
     super.reset()
     pending.clear()
-    lastStartOffset = -1
   }
-
-  private data class Quadruple(val name: String, val ext: String?, val nameStart: Int, val extStart: Int)
 }
 
 
 class FileNameAnalyzer : Analyzer() {
   override fun createComponents(fieldName: String): TokenStreamComponents {
     val tokenizer = KeywordTokenizer()
-    return TokenStreamComponents(tokenizer, FileNameTokenFilter(tokenizer))
+    var stream: TokenStream = PathAndFilenameTypeFilter(tokenizer)
+    stream = WordSplittingTokenFilter(stream,
+      inputTypes = setOf(FileTokenType.FILENAME),
+      outputType = FileTokenType.FILENAME_PART,
+      passThrough = PassthroughOptions.PassthroughLast)
+    stream = AbbreviationTokenFilter(stream,
+      sourceTypes = setOf(FileTokenType.FILENAME_PART),
+      outputType = FileTokenType.FILENAME_ABBREVIATION,
+      allowedSkip = 1,
+      passThrough = PassthroughOptions.PassthroughLast,
+      skipOutputType = FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS)
+    stream = TokenMergingFilter(stream)
+    stream = PositionIncrementFromOffsetFilter(stream)
+    return TokenStreamComponents(tokenizer, stream)
   }
 
   override fun normalize(fieldName: String, inStream: TokenStream): TokenStream =
@@ -171,69 +99,57 @@ class FileNameAnalyzer : Analyzer() {
 class FilePathAnalyzer : Analyzer() {
   override fun createComponents(fieldName: String): TokenStreamComponents {
     val tokenizer = KeywordTokenizer()
-    return TokenStreamComponents(tokenizer, PathSegmentTokenFilter(tokenizer))
+    var stream: TokenStream = TypeSettingTokenFilter(tokenizer, FileTokenType.PATH)
+    stream = PathSegmentSplittingFilter(stream)
+    stream = PositionIncrementFromOffsetFilter(stream)
+    return TokenStreamComponents(tokenizer, stream)
   }
 }
 
-private class PathSegmentTokenFilter(input: TokenStream) : TokenFilter(input) {
+/** Splits PATH tokens on '/' into PATH_SEGMENT sub-tokens, keeping the original PATH as passthrough. */
+private class PathSegmentSplittingFilter(input: TokenStream) : TokenFilter(input) {
   private val termAttr = addAttribute(CharTermAttribute::class.java)
   private val multiTypeAttr = addAttribute(MultiTypeAttribute::class.java)
   private val offsetAttr = addAttribute(OffsetAttribute::class.java)
-  private val posIncrAttr = addAttribute(PositionIncrementAttribute::class.java)
 
-  private val pending = ArrayDeque<Pair<PartInfo, Set<FileTokenType>>>()
-  private var lastStartOffset = -1
-
+  private data class BufferedToken(val term: String, val types: Set<FileTokenType>, val start: Int, val end: Int)
+  private val pending = ArrayDeque<BufferedToken>()
   override fun incrementToken(): Boolean {
     if (pending.isNotEmpty()) {
-      val (part, types) = pending.removeFirst()
-      emitPending(part, types)
+      val token = pending.removeFirst()
+      termAttr.setEmpty().append(token.term)
+      multiTypeAttr.clearTypes().setTypes(token.types)
+      offsetAttr.setOffset(token.start, token.end)
       return true
     }
 
     if (!input.incrementToken()) return false
 
-    val fullPath = termAttr.toString()
-    lastStartOffset = -1
+    val path = termAttr.toString()
+    val pathStart = offsetAttr.startOffset()
 
-    val parts = mutableListOf<PartInfo>()
-
-    // Full path as PATH token first (co-positional with first segment)
-    parts.add(PartInfo(fullPath, FileTokenType.PATH, 0, fullPath.length))
-
-    // Individual segments as PATH_SEGMENT tokens
-
-    //TODO are we guaranteed to have / as delimiter?
-    val pathParts = fullPath.split('/')
-    var offset = 0
-    for (pathPart in pathParts) {
-      if (pathPart.isNotEmpty()) {
-        parts.add(PartInfo(pathPart, FileTokenType.PATH_SEGMENT, offset, offset + pathPart.length))
-      }
-      offset += pathPart.length + 1
+    // Passthrough first: emit the original PATH token
+    pending.addLast(BufferedToken(path, setOf(FileTokenType.PATH), pathStart, pathStart + path.length))
+    // Then emit each segment
+    for (span in PathSplittingRule(path).split()) {
+      pending.addLast(BufferedToken(
+        path.substring(span.first, span.last + 1),
+        setOf(FileTokenType.PATH_SEGMENT),
+        pathStart + span.first,
+        pathStart + span.last + 1,
+      ))
     }
 
-    for (merged in buildMergedPending(parts)) {
-      pending.add(merged)
-    }
-
-    val (part, types) = pending.removeFirst()
-    emitPending(part, types)
+    val first = pending.removeFirst()
+    termAttr.setEmpty().append(first.term)
+    multiTypeAttr.clearTypes().setTypes(first.types)
+    offsetAttr.setOffset(first.start, first.end)
     return true
-  }
-
-  private fun emitPending(part: PartInfo, types: Set<FileTokenType>) {
-    termAttr.setEmpty().append(part.term)
-    multiTypeAttr.clearTypes().setTypes(types)
-    offsetAttr.setOffset(part.start, part.end)
-    posIncrAttr.positionIncrement = if (lastStartOffset == -1 || part.start != lastStartOffset) 1 else 0
-    lastStartOffset = part.start
   }
 
   override fun reset() {
     super.reset()
     pending.clear()
-    lastStartOffset = -1
   }
 }
 

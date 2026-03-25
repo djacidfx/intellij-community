@@ -7,6 +7,7 @@ enum class FileTokenType(val type: String) {
   FILENAME("filename"),
   FILENAME_PART("filenamePart"),
   FILENAME_ABBREVIATION("filenameAbbreviation"),
+  FILENAME_ABBREVIATION_WITH_SKIPS("filenameAbbreviationWithSkips"),
   FILETYPE("filetype");
 
   companion object {

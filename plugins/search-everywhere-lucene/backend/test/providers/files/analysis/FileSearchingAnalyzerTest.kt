@@ -12,13 +12,12 @@ class FileSearchingAnalyzerTest : AnalyzersTestBase() {
   fun testFileSearchAnalyzer() {
     tokenizing(FileSearchAnalyzer(), "SearchEveryWhereUI.java")
       .print()
-      .producesSameTokensAs(FileNameAnalyzer())
       .producesToken("SearchEveryWhereUI.java", FileTokenType.PATH.type)
       .producesToken("java", FileTokenType.FILETYPE.type, 19, 23)
       .producesToken("searcheverywhereui", FileTokenType.FILENAME.type, 0, 18)
       .producesToken("search", FileTokenType.FILENAME_PART.type, 0, 6)
       .producesToken("every", FileTokenType.FILENAME_PART.type, 6, 11)
-      .producesToken("sewui", FileTokenType.FILENAME_ABBREVIATION.type, 0, 18)
+      .producesToken("sewu", FileTokenType.FILENAME_ABBREVIATION.type, 0, 18)
       .producesToken("ui", FileTokenType.FILENAME_PART.type, 16, 18)
       .noDuplicateTokens()
 
@@ -94,7 +93,7 @@ class FileSearchingAnalyzerTest : AnalyzersTestBase() {
       .producesToken("java", FileTokenType.FILETYPE.type, 19, 23)
       .producesToken("search", FileTokenType.FILENAME_PART.type, 0, 6)
       .producesToken("every", FileTokenType.FILENAME_PART.type, 6, 11)
-      .producesToken("sewui", FileTokenType.FILENAME_ABBREVIATION.type, 0, 18)
+      .producesToken("sewu", FileTokenType.FILENAME_ABBREVIATION.type, 0, 18)
       .producesToken("ui", FileTokenType.FILENAME_PART.type, 16, 18)
       .producesToken("com/intellij/Test.txt", FileTokenType.PATH.type)
       .producesToken("com", FileTokenType.PATH_SEGMENT.type)

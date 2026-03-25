@@ -343,6 +343,7 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
               PrefixQuery(Term(FILE_RELATIVE_PATH, termString))
             FileTokenType.FILENAME, FileTokenType.FILENAME_PART, FileTokenType.FILENAME_ABBREVIATION ->
               PrefixQuery(Term(FILE_NAME, termString))
+            FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS -> TermQuery(Term(FILE_NAME, termString))
             FileTokenType.FILETYPE ->
               TermQuery(Term(FILE_TYPE, termString))
           }

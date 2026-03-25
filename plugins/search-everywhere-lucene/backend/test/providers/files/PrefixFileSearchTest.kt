@@ -47,7 +47,7 @@ class PrefixFileSearchTest : FileSearchTestBase() {
         findsAllOf(clarify_agent)
       }
       index.assertSearch("aclde") {
-        findsAllOf(clarify_agent)
+        findsNothing()
       }
     }
   }
