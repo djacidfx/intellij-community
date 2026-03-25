@@ -745,3 +745,159 @@ compileKotlin.kotlinOptions {
             }
         }
     }
+
+internal val WITH_KOTLIN_OPTIONS_WITH_OPTIONS_BEFORE_DOT_FIXTURE =
+    GradleTestFixtureBuilder.create("with-kotlin-options-with-options-before-dot") { gradleVersion ->
+        withSettingsFile(gradleVersion, gradleDsl = GradleDsl.KOTLIN) {
+            setProjectName("with-kotlin-options-with-options-before-dot")
+        }
+        withBuildFile(gradleVersion, gradleDsl = GradleDsl.KOTLIN) {
+            addImport("org.jetbrains.kotlin.gradle.dsl.JvmTarget")
+            addImport("org.jetbrains.kotlin.gradle.tasks.KotlinCompile")
+            withKotlinJvmPlugin()
+            withRepository { mavenCentral() }
+            withPrefix {
+                code(
+                    """
+tasks.withType<KotlinCompile>().configureEach {
+    kotlinOptions { options.jvmTarget.set(JvmTarget.JVM_11) }
+}
+                    """.trimIndent()
+                )
+            }
+        }
+    }
+
+internal val WITH_KOTLIN_OPTIONS_WITH_OPTIONS_BEFORE_DOT_IN_DOT_QUALIFIED_EXPRESSION_FIXTURE =
+    GradleTestFixtureBuilder.create("with-kotlin-options-with-options-before-dot-in-dot-qualified-expression") { gradleVersion ->
+        withSettingsFile(gradleVersion, gradleDsl = GradleDsl.KOTLIN) {
+            setProjectName("with-kotlin-options-with-options-before-dot-in-dot-qualified-expression")
+        }
+        withBuildFile(gradleVersion, gradleDsl = GradleDsl.KOTLIN) {
+            addImport("org.jetbrains.kotlin.gradle.dsl.JvmTarget")
+            addImport("org.jetbrains.kotlin.gradle.tasks.KotlinCompile")
+            withKotlinJvmPlugin()
+            withRepository { mavenCentral() }
+            withPrefix {
+                code(
+                    """
+tasks.withType<KotlinCompile>().configureEach {
+    kotlinOptions.options.jvmTarget.set(JvmTarget.JVM_11)
+}
+                    """.trimIndent()
+                )
+            }
+        }
+    }
+
+internal val WITH_KOTLIN_OPTIONS_IN_SETTINGS_FILE_FIXTURE =
+    GradleTestFixtureBuilder.create("with-kotlin-options-in-settings-file") { gradleVersion ->
+        withSettingsFile(gradleVersion, gradleDsl = GradleDsl.KOTLIN) {
+            setProjectName("with-kotlin-options-in-settings-file")
+            addCode("""
+val kotlinOptions = mapOf("jvmTarget" to "")
+kotlinOptions["jvmTarget"]
+            """.trimIndent())
+        }
+        withBuildFile(gradleVersion, gradleDsl = GradleDsl.KOTLIN) {
+            withKotlinJvmPlugin()
+            withRepository { mavenCentral() }
+        }
+    }
+
+internal val WITH_KOTLIN_OPTIONS_IN_SUBPROJECTS_FIXTURE =
+    GradleTestFixtureBuilder.create("with-kotlin-options-in-subprojects") { gradleVersion ->
+            withSettingsFile(gradleVersion, gradleDsl = GradleDsl.KOTLIN) {
+                setProjectName("with-kotlin-options-in-subprojects")
+            }
+            withBuildFile(gradleVersion, gradleDsl = GradleDsl.KOTLIN) {
+                addImport("org.jetbrains.kotlin.gradle.tasks.KotlinCompile")
+                withKotlinJvmPlugin()
+                withRepository { mavenCentral() }
+                withPrefix {
+                    code(
+                        """
+subprojects {
+    apply(plugin = "org.jetbrains.kotlin.jvm")
+
+    dependencies {
+        implementation(kotlin("stdlib-jdk8"))
+    }
+
+    tasks.withType<KotlinCompile>().all {
+        kotlinOptions {
+            freeCompilerArgs = listOf("-Xjsr305=strict")
+            jvmTarget = "11"
+        }
+    }
+}
+                    """.trimIndent()
+                    )
+                }
+            }
+        }
+
+internal val WITH_KOTLIN_OPTIONS_GET_BY_NAME_FIXTURE =
+    GradleTestFixtureBuilder.create("with-kotlin-options-get-by-name") { gradleVersion ->
+        withSettingsFile(gradleVersion, gradleDsl = GradleDsl.KOTLIN) {
+            setProjectName("with-kotlin-options-get-by-name")
+        }
+        withBuildFile(gradleVersion, gradleDsl = GradleDsl.KOTLIN) {
+            addImport("org.jetbrains.kotlin.gradle.tasks.KotlinCompile")
+            withKotlinJvmPlugin()
+            withRepository { mavenCentral() }
+            withPrefix {
+                code(
+                    """
+tasks.getByName<KotlinCompile>("compileKotlin") {
+    kotlinOptions.allWarningsAsErrors = true
+}
+                    """.trimIndent()
+                )
+            }
+        }
+    }
+
+internal val WITH_KOTLIN_OPTIONS_GET_BY_NAME_AND_DOT_REFERENCED_FIXTURE =
+    GradleTestFixtureBuilder.create("with-kotlin-options-get-by-name-and-dot-referenced") { gradleVersion ->
+        withSettingsFile(gradleVersion, gradleDsl = GradleDsl.KOTLIN) {
+            setProjectName("with-kotlin-options-get-by-name-and-dot-referenced")
+        }
+        withBuildFile(gradleVersion, gradleDsl = GradleDsl.KOTLIN) {
+            withKotlinJvmPlugin()
+            withRepository { mavenCentral() }
+            withPrefix {
+                code(
+                    """
+tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java) {
+    kotlinOptions {
+        languageVersion = "1.9"
+    }
+}
+                    """.trimIndent()
+                )
+            }
+        }
+    }
+
+internal val WITH_KOTLIN_OPTIONS_GET_BY_NAME_AND_LAMBDA_FIXTURE =
+    GradleTestFixtureBuilder.create("with-kotlin-options-get-by-name-and-lambda") { gradleVersion ->
+        withSettingsFile(gradleVersion, gradleDsl = GradleDsl.KOTLIN) {
+            setProjectName("with-kotlin-options-get-by-name-and-lambda")
+        }
+        withBuildFile(gradleVersion, gradleDsl = GradleDsl.KOTLIN) {
+            withKotlinJvmPlugin()
+            withRepository { mavenCentral() }
+            withPrefix {
+                code(
+                    """
+tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java) {
+    kotlinOptions {
+        languageVersion = "1.9"
+    }
+}
+                    """.trimIndent()
+                )
+            }
+        }
+    }

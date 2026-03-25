@@ -190,6 +190,21 @@ fun main() {
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    fun testDontReplaceInSettingsGradle(gradleVersion: GradleVersion) {
+        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_IN_SETTINGS_FILE_FIXTURE) {
+            testNoIntentions(
+                "settings.gradle.kts".trimIndent(),
+                """
+val kotlinOptions = mapOf("jvmTarget" to "")
+<caret>kotlinOptions["jvmTarget"]
+                """.trimIndent(),
+                "Replace 'kotlinOptions' with 'compilerOptions'"
+            )
+        }
+    }
+
+    @ParameterizedTest
+    @AllGradleVersionsSource
     fun testDontReplaceWithMinusOperator1(gradleVersion: GradleVersion) {
         runTest(gradleVersion, WITH_KOTLIN_OPTIONS_AND_MINUS_OPERATOR_1_FIXTURE) {
             testNoIntentions(
@@ -907,5 +922,162 @@ compileKotlin.compilerOptions {
         }
     }
 
+    @Ignore("KTIJ-38181") // The "After" part should be fixed don't know yet how
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testOptionsBeforeDot(gradleVersion: GradleVersion) {
+        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_WITH_OPTIONS_BEFORE_DOT_FIXTURE) {
+            testIntention(
+                """
+tasks.withType<KotlinCompile>().configureEach {
+    <caret>kotlinOptions { options.jvmTarget.set(JvmTarget.JVM_11) }
+}
+                """.trimIndent(),
+                """
+tasks.withType<KotlinCompile>().configureEach {
+    compilerOptions { options.jvmTarget.set(JvmTarget.JVM_11) }
+}
+                """.trimIndent(),
+                "Replace 'kotlinOptions' with 'compilerOptions'"
+            )
+        }
+    }
+
+    @Ignore("KTIJ-38181") // The "After" part should be fixed don't know yet how
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testOptionsBeforeDotInDotQualifiedExpression(gradleVersion: GradleVersion) {
+        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_WITH_OPTIONS_BEFORE_DOT_IN_DOT_QUALIFIED_EXPRESSION_FIXTURE) {
+            testIntention(
+                """
+tasks.withType<KotlinCompile>().configureEach {
+    <caret>kotlinOptions.options.jvmTarget.set(JvmTarget.JVM_11)
+}
+                """.trimIndent(),
+                """
+tasks.withType<KotlinCompile>().configureEach {
+    compilerOptions.options.jvmTarget.set(JvmTarget.JVM_11)
+}
+                """.trimIndent(),
+                "Replace 'kotlinOptions' with 'compilerOptions'"
+            )
+        }
+    }
+
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testWithSubprojects(gradleVersion: GradleVersion) {
+        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_IN_SUBPROJECTS_FIXTURE) {
+            testIntention(
+                """
+subprojects {
+    apply(plugin = "org.jetbrains.kotlin.jvm")
+
+    dependencies {
+        implementation(kotlin("stdlib-jdk8"))
+    }
+
+    tasks.withType<KotlinCompile>().all {
+        <caret>kotlinOptions {
+            freeCompilerArgs = listOf("-Xjsr305=strict")
+            jvmTarget = "11"
+        }
+    }
+}
+                """.trimIndent(),
+                """
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
+subprojects {
+    apply(plugin = "org.jetbrains.kotlin.jvm")
+
+    dependencies {
+        implementation(kotlin("stdlib-jdk8"))
+    }
+
+    tasks.withType<KotlinCompile>().all {
+        compilerOptions {
+            freeCompilerArgs.set(listOf("-Xjsr305=strict"))
+            jvmTarget.set(JvmTarget.JVM_11)
+        }
+    }
+}
+                """.trimIndent(),
+                "Replace 'kotlinOptions' with 'compilerOptions'"
+            )
+        }
+    }
+
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testGetByName(gradleVersion: GradleVersion) {
+        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_GET_BY_NAME_FIXTURE) {
+            testIntention(
+                """
+tasks.getByName<KotlinCompile>("compileKotlin") {
+    <caret>kotlinOptions.allWarningsAsErrors = true
+}
+                """.trimIndent(),
+                """
+tasks.getByName<KotlinCompile>("compileKotlin") {
+    compilerOptions.allWarningsAsErrors.set(true)
+}
+                """.trimIndent(),
+                "Replace 'kotlinOptions' with 'compilerOptions'"
+            )
+        }
+    }
+
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testGetByNameAndDotReferenced(gradleVersion: GradleVersion) {
+        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_GET_BY_NAME_AND_DOT_REFERENCED_FIXTURE) {
+            testIntention(
+                """
+tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java) {
+    <caret>kotlinOptions {
+        languageVersion = "1.9"
+    }
+}
+                """.trimIndent(),
+                """
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+
+tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java) {
+    compilerOptions {
+        languageVersion.set(KotlinVersion.KOTLIN_1_9)
+    }
+}
+                """.trimIndent(),
+                "Replace 'kotlinOptions' with 'compilerOptions'"
+            )
+        }
+    }
+
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testGetByNameAndLambda(gradleVersion: GradleVersion) {
+        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_GET_BY_NAME_AND_LAMBDA_FIXTURE) {
+            testIntention(
+                """
+tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java) {
+    <caret>kotlinOptions {
+        languageVersion = "1.9"
+    }
+}
+                """.trimIndent(),
+                """
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+
+tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java) {
+    compilerOptions {
+        languageVersion.set(KotlinVersion.KOTLIN_1_9)
+    }
+}
+                """.trimIndent(),
+                "Replace 'kotlinOptions' with 'compilerOptions'"
+            )
+        }
+    }
 
 }
