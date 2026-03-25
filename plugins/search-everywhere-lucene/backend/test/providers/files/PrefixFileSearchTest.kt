@@ -15,6 +15,13 @@ class PrefixFileSearchTest : FileSearchTestBase() {
       "Readme.md",
       "shell.nix",
       "temp.out.bc.exe",
+      "File2Index.kt",
+      "some-file-index.kt",
+      "another_file.kt",
+      "mix_of-both.md",
+      "what-even++.txt",
+      "my test.md",
+      "[bracket].md",
       ".gitignore"
     )
       .flatMap { fileName ->
@@ -37,6 +44,9 @@ class PrefixFileSearchTest : FileSearchTestBase() {
     return indexWith(listOf(clarify_agent)) { index ->
       // Search using only PATH_SEGMENT tokens (individual path components)
       index.assertSearch("clde") {
+        findsAllOf(clarify_agent)
+      }
+      index.assertSearch("aclde") {
         findsAllOf(clarify_agent)
       }
     }
