@@ -42,7 +42,6 @@ import com.intellij.workspaceModel.ide.legacyBridge.impl.java.JAVA_MODULE_ENTITY
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import org.jetbrains.annotations.Nls
 import org.jetbrains.annotations.TestOnly
 import org.jetbrains.idea.devkit.dom.index.PluginIdDependenciesIndex
 import org.jetbrains.idea.devkit.util.DescriptorUtil
@@ -111,7 +110,7 @@ internal data class NewIjModuleCreationContext(
 
 private class NewIjModulePopupPanel(private val popupContext: NewIjModuleCreationContext) :
   CreateWithTemplatesDialogPanel(IjModuleKind.matchingTemplate(popupContext.suggestedNamePrefix).templateName,
-                                 IjModuleKind.entries.map { it.presentation }) {
+                                 IjModuleKind.entries.map { TemplatePresentation(message(it.titleKey), it.icon, it.templateName) }) {
 
   private val suggestionsByKind = IjModuleKind.entries.associateWithTo(LinkedHashMap()) { kind ->
     kind.defaultSuggestion(popupContext.suggestedNamePrefix)
@@ -186,7 +185,7 @@ private class NewIjModuleKindRenderer(
     append(value.kind())
 
     val moduleKind = IjModuleKind.fromTemplateName(value.templateName())
-    if (moduleKind != IjModuleKind.EMPTY && !contentModuleRegistrationPluginId.isNullOrBlank()) {
+    if (moduleKind.isContentModule && !contentModuleRegistrationPluginId.isNullOrBlank()) {
       append(" (target plugin ID=", SimpleTextAttributes.GRAYED_ATTRIBUTES)
       append("`$contentModuleRegistrationPluginId`", SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES)
       append(")", SimpleTextAttributes.GRAYED_ATTRIBUTES)
@@ -242,40 +241,48 @@ internal suspend fun createIjModule(
 ): CreatedIjModule {
   val normalizedRequest = request.normalized()
   val directoryName = computeDirectoryNameForModule(normalizedRequest.moduleName, newModuleParentDirectory, project)
-  val createdModule = when (normalizedRequest.kind) {
-    IjModuleKind.EMPTY -> {
-      val files = prepareEmptyModuleFiles(newModuleParentDirectory.toNioPath(), normalizedRequest.moduleName, directoryName)
-      val vFiles = files.toVFiles()
-                   ?: error("Failed to locate created module files in VFS")
-      backgroundWriteAction {
-        val module =
-          ModuleManager.getInstance(project).newModule(
-            files.moduleRoot.resolve("${normalizedRequest.moduleName}.iml"),
-            JAVA_MODULE_ENTITY_TYPE_ID_NAME,
-          )
-        val rootModel = ModuleRootManager.getInstance(module).modifiableModel
-        rootModel.inheritSdk()
-        rootModel.addContentEntry(vFiles.vModuleRoot).also { contentEntry ->
-          contentEntry.addSourceFolder(vFiles.vSrc, JavaSourceRootType.SOURCE).also {
-            it.packagePrefix = "com.${normalizedRequest.moduleName}"
-          }
-          contentEntry.addSourceFolder(vFiles.vResources, JavaResourceRootType.RESOURCE)
-        }
-        rootModel.commit()
-      }
-      CreatedIjModule(normalizedRequest.moduleName, files.moduleRoot, normalizedRequest.kind, existedBefore = false)
-    }
-    else -> {
-      val moduleRoot =
-        prepareTemplateModuleFiles(project, newModuleParentDirectory, normalizedRequest.moduleName, directoryName, normalizedRequest.kind)
-      CreatedIjModule(normalizedRequest.moduleName, moduleRoot.moduleRoot, normalizedRequest.kind, existedBefore = moduleRoot.existedBefore)
-    }
+  val createdModule = if (!normalizedRequest.kind.isTemplateBased) {
+    createEmptyModule(newModuleParentDirectory, normalizedRequest, directoryName, project)
   }
-  if (normalizedRequest.kind != IjModuleKind.EMPTY && targetPlugin != null) {
+  else {
+    val moduleRoot =
+      prepareTemplateModuleFiles(project, newModuleParentDirectory, normalizedRequest.moduleName, directoryName, normalizedRequest.kind)
+    CreatedIjModule(normalizedRequest.moduleName, moduleRoot.moduleRoot, normalizedRequest.kind, existedBefore = moduleRoot.existedBefore)
+  }
+  if (normalizedRequest.kind.isContentModule && targetPlugin != null) {
     addModuleToEnclosingPluginIfPresent(project, targetPlugin, createdModule)
   }
   project.scheduleSave() // to write changes in modules.xml to the disk
   return createdModule
+}
+
+// original pre-remdev action behaviour preserved untouched
+private suspend fun createEmptyModule(
+  newModuleParentDirectory: VirtualFile,
+  normalizedRequest: NewIjModuleRequest,
+  directoryName: String,
+  project: Project,
+): CreatedIjModule {
+  val files = prepareEmptyModuleFiles(newModuleParentDirectory.toNioPath(), normalizedRequest.moduleName, directoryName)
+  val vFiles = files.toVFiles()
+               ?: error("Failed to locate created module files in VFS")
+  backgroundWriteAction {
+    val module =
+      ModuleManager.getInstance(project).newModule(
+        files.moduleRoot.resolve("${normalizedRequest.moduleName}.iml"),
+        JAVA_MODULE_ENTITY_TYPE_ID_NAME,
+      )
+    val rootModel = ModuleRootManager.getInstance(module).modifiableModel
+    rootModel.inheritSdk()
+    rootModel.addContentEntry(vFiles.vModuleRoot).also { contentEntry ->
+      contentEntry.addSourceFolder(vFiles.vSrc, JavaSourceRootType.SOURCE).also {
+        it.packagePrefix = "com.${normalizedRequest.moduleName}"
+      }
+      contentEntry.addSourceFolder(vFiles.vResources, JavaResourceRootType.RESOURCE)
+    }
+    rootModel.commit()
+  }
+  return CreatedIjModule(normalizedRequest.moduleName, files.moduleRoot, normalizedRequest.kind, existedBefore = false)
 }
 
 @TestOnly
@@ -408,7 +415,7 @@ internal fun notifyModuleAlreadyExists(project: Project, createdModule: CreatedI
     .getNotificationGroup("DevKit Errors")
     .createNotification(
       message("scaffolding.module.kind.already.exists.title"),
-      message("scaffolding.module.kind.already.exists.message", createdModule.moduleKind.displayName, createdModule.moduleName),
+      message("scaffolding.module.kind.already.exists.message", message(createdModule.moduleKind.titleKey), createdModule.moduleName),
       NotificationType.INFORMATION,
     )
     .notify(project)
@@ -439,25 +446,49 @@ internal data class NewIjModuleRequest(
 
 internal enum class IjModuleKind(
   val templateName: String,
-  private val titleKey: String,
-  private val sampleSuffix: String? = null,
+  val titleKey: String,
+  val moduleSuffix: String?,
+  val isContentModule: Boolean,
+  val templateDirectoryName: String?,
 ) {
-  EMPTY("empty", "scaffolding.new.ij.module.kind.empty"),
-  FRONTEND("frontend", "scaffolding.new.ij.module.kind.frontend", "frontend"),
-  BACKEND("backend", "scaffolding.new.ij.module.kind.backend", "backend"),
-  SHARED("shared", "scaffolding.new.ij.module.kind.shared", "shared");
+  EMPTY(
+    templateName = "empty",
+    titleKey = "scaffolding.new.ij.module.kind.empty",
+    moduleSuffix = null,
+    isContentModule = false,
+    templateDirectoryName = null
+  ),
+  ROOT_PLUGIN_MODULE(
+    templateName = "rootPluginModule",
+    titleKey = "scaffolding.new.ij.module.kind.root.plugin.module",
+    moduleSuffix = null,
+    isContentModule = false,
+    templateDirectoryName = TEMPLATE_MODULE_IN_MONOREPO_NAME
+  ),
+  FRONTEND(
+    templateName = "frontend",
+    titleKey = "scaffolding.new.ij.module.kind.frontend",
+    moduleSuffix = "frontend",
+    isContentModule = true,
+    templateDirectoryName = "$TEMPLATE_MODULE_IN_MONOREPO_NAME.frontend",
+  ),
+  BACKEND(
+    templateName = "backend",
+    titleKey = "scaffolding.new.ij.module.kind.backend",
+    moduleSuffix = "backend",
+    isContentModule = true,
+    templateDirectoryName = "$TEMPLATE_MODULE_IN_MONOREPO_NAME.backend",
+  ),
+  SHARED(
+    templateName = "shared",
+    titleKey = "scaffolding.new.ij.module.kind.shared",
+    moduleSuffix = "shared",
+    isContentModule = true,
+    templateDirectoryName = "$TEMPLATE_MODULE_IN_MONOREPO_NAME.shared",
+  );
 
-  val presentation: CreateWithTemplatesDialogPanel.TemplatePresentation
-    get() = CreateWithTemplatesDialogPanel.TemplatePresentation(message(titleKey), icon, templateName)
-
-  val displayName: @Nls String
-    get() = message(titleKey)
-
-  val sampleDirectoryName: String?
-    get() = sampleSuffix?.let { "$SAMPLE_MODULE_STEM.$it" }
-
-  val moduleSuffix: String?
-    get() = sampleSuffix
+  val isTemplateBased: Boolean
+    get() = templateDirectoryName != null
 
   fun applyToModuleName(moduleName: String): @NlsSafe String {
     if (moduleSuffix == null) return moduleName.trim()
@@ -471,11 +502,7 @@ internal enum class IjModuleKind(
   }
 
   fun defaultSuggestion(moduleName: String): @NlsSafe String {
-    val baseSuggestion = moduleName.baseSuggestion()
-    return when (this) {
-      EMPTY -> baseSuggestion
-      else -> applyToModuleName(baseSuggestion)
-    }
+    return applyToModuleName(moduleName.baseSuggestion())
   }
 
   companion object {
@@ -514,6 +541,7 @@ private fun String.baseSuggestion(): String {
 private val IjModuleKind.icon
   get() = when (this) {
     IjModuleKind.EMPTY -> AllIcons.Nodes.Module
+    IjModuleKind.ROOT_PLUGIN_MODULE -> AllIcons.Nodes.Plugin
     IjModuleKind.FRONTEND -> AllIcons.Nodes.Plugin
     IjModuleKind.BACKEND -> AllIcons.Nodes.Plugin
     IjModuleKind.SHARED -> AllIcons.Nodes.Plugin
@@ -531,8 +559,16 @@ private data class ReplacementContext(private val replacements: List<Pair<String
       moduleName: String,
       kind: IjModuleKind,
     ): ReplacementContext {
-      val templateSuffix = kind.moduleSuffix ?: error("Replacement context is only available for template-backed module kinds")
-      val shortModuleName = moduleName.removePrefix(INTELLIJ_PREFIX)
+      val shortModuleName = moduleName.removePrefix("intellij.")
+      val templateSuffix = kind.moduleSuffix
+      if (templateSuffix == null) {
+        return ReplacementContext(
+          listOf(
+            "intellij.$TEMPLATE_MODULE_IN_MONOREPO_NAME" to moduleName,
+            TEMPLATE_MODULE_IN_MONOREPO_NAME to shortModuleName,
+          ),
+        )
+      }
       val familyShortName = shortModuleName.removeSuffix(".$templateSuffix")
       val sharedShortName = if (kind == IjModuleKind.SHARED) shortModuleName else "$familyShortName.shared"
       val sharedModuleName = if (kind == IjModuleKind.SHARED) moduleName else qualifyModuleName(sharedShortName, moduleName)
@@ -541,11 +577,11 @@ private data class ReplacementContext(private val replacements: List<Pair<String
 
       return ReplacementContext(
         listOf(
-          "//.remdev/$SAMPLE_MODULE_STEM.shared" to sharedLabel,
-          "intellij.$SAMPLE_MODULE_STEM.$templateSuffix" to moduleName,
-          "$SAMPLE_MODULE_STEM.$templateSuffix" to shortModuleName,
-          "intellij.$SAMPLE_MODULE_STEM.shared" to sharedModuleName,
-          "$SAMPLE_MODULE_STEM.shared" to sharedShortName,
+          "//.remdev/$TEMPLATE_MODULE_IN_MONOREPO_NAME.shared" to sharedLabel,
+          "intellij.$TEMPLATE_MODULE_IN_MONOREPO_NAME.$templateSuffix" to moduleName,
+          "$TEMPLATE_MODULE_IN_MONOREPO_NAME.$templateSuffix" to shortModuleName,
+          "intellij.$TEMPLATE_MODULE_IN_MONOREPO_NAME.shared" to sharedModuleName,
+          "$TEMPLATE_MODULE_IN_MONOREPO_NAME.shared" to sharedShortName,
         ),
       )
     }
@@ -553,7 +589,7 @@ private data class ReplacementContext(private val replacements: List<Pair<String
 }
 
 private fun qualifyModuleName(shortModuleName: String, moduleName: String): String {
-  return if (moduleName.startsWith(INTELLIJ_PREFIX)) "$INTELLIJ_PREFIX$shortModuleName" else shortModuleName
+  return if (moduleName.startsWith("intellij.")) "intellij.$shortModuleName" else shortModuleName
 }
 
 private fun Project.toBazelLabel(moduleRoot: Path): String {
@@ -566,7 +602,7 @@ private fun Project.toBazelLabel(moduleRoot: Path): String {
 
 private fun Project.templateRoot(kind: IjModuleKind): Path {
   val projectBasePath = basePath ?: error("Project base path is unavailable")
-  val templateDirectoryName = kind.sampleDirectoryName ?: error("Template root is only available for template-backed module kinds")
+  val templateDirectoryName = kind.templateDirectoryName ?: error("Template root is only available for template-backed module kinds")
   return Path.of(projectBasePath).resolve(TEMPLATE_MODULES_ROOT).resolve(templateDirectoryName)
 }
 
@@ -588,6 +624,7 @@ private suspend fun addModuleToEnclosingPluginIfPresent(
           moduleEntry.name.stringValue = createdModule.moduleName
           when (createdModule.moduleKind) {
             IjModuleKind.EMPTY -> {}
+            IjModuleKind.ROOT_PLUGIN_MODULE -> {}
             IjModuleKind.SHARED -> {
               moduleEntry.loading.stringValue = ModuleLoadingRule.REQUIRED.name.lowercase()
             }
@@ -751,8 +788,7 @@ internal data class ContentModuleRegistrationTarget(
 
 private val LOG = logger<NewIjModuleAction>()
 
-private const val SAMPLE_MODULE_STEM = "remDevFeatureSample"
+private const val TEMPLATE_MODULE_IN_MONOREPO_NAME = "remDevFeatureSample"
 private const val TEMPLATE_MODULES_ROOT = "plugins/.remdev"
-private const val INTELLIJ_PREFIX = "intellij."
 private const val PLATFORM_FRONTEND_MODULE = "intellij.platform.frontend"
 private const val PLATFORM_BACKEND_MODULE = "intellij.platform.backend"
