@@ -6,6 +6,8 @@ import com.intellij.ide.actions.newclass.CreateWithTemplatesDialogPanel
 import com.intellij.ide.plugins.ModuleLoadingRule
 import com.intellij.ide.ui.newItemPopup.NewItemPopupUtil
 import com.intellij.lang.LangBundle
+import com.intellij.notification.NotificationGroupManager
+import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.application.ApplicationManager
@@ -15,6 +17,7 @@ import com.intellij.openapi.application.readAction
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.diagnostic.thisLogger
+import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.module.ModuleUtil
 import com.intellij.openapi.project.IntelliJProjectUtil.isIntelliJPlatformProject
@@ -39,6 +42,7 @@ import com.intellij.workspaceModel.ide.legacyBridge.impl.java.JAVA_MODULE_ENTITY
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import org.jetbrains.annotations.Nls
 import org.jetbrains.annotations.TestOnly
 import org.jetbrains.idea.devkit.dom.index.PluginIdDependenciesIndex
 import org.jetbrains.idea.devkit.util.DescriptorUtil
@@ -105,7 +109,7 @@ internal data class NewIjModuleCreationContext(
   val targetPlugin: ContentModuleRegistrationTarget?,
 )
 
-private class NewIjModulePopupPanel(popupContext: NewIjModuleCreationContext) :
+private class NewIjModulePopupPanel(private val popupContext: NewIjModuleCreationContext) :
   CreateWithTemplatesDialogPanel(IjModuleKind.matchingTemplate(popupContext.suggestedNamePrefix).templateName,
                                  IjModuleKind.entries.map { it.presentation }) {
 
@@ -259,12 +263,12 @@ internal suspend fun createIjModule(
         }
         rootModel.commit()
       }
-      CreatedIjModule(normalizedRequest.moduleName, files.moduleRoot, normalizedRequest.kind)
+      CreatedIjModule(normalizedRequest.moduleName, files.moduleRoot, normalizedRequest.kind, existedBefore = false)
     }
     else -> {
       val moduleRoot =
         prepareTemplateModuleFiles(project, newModuleParentDirectory, normalizedRequest.moduleName, directoryName, normalizedRequest.kind)
-      CreatedIjModule(normalizedRequest.moduleName, moduleRoot, normalizedRequest.kind)
+      CreatedIjModule(normalizedRequest.moduleName, moduleRoot.moduleRoot, normalizedRequest.kind, existedBefore = moduleRoot.existedBefore)
     }
   }
   if (normalizedRequest.kind != IjModuleKind.EMPTY && targetPlugin != null) {
@@ -287,7 +291,7 @@ suspend fun addModuleToEnclosingPluginIfPresentForTests(
   addModuleToEnclosingPluginIfPresent(
     project,
     targetPlugin,
-    CreatedIjModule(moduleName, root.toNioPath(), IjModuleKind.fromTemplateName(kindTemplateName)),
+    CreatedIjModule(moduleName, root.toNioPath(), IjModuleKind.fromTemplateName(kindTemplateName), existedBefore = false),
   )
 }
 
@@ -328,18 +332,18 @@ private suspend fun prepareTemplateModuleFiles(
   moduleName: String,
   directoryName: String,
   kind: IjModuleKind,
-): Path {
+): PreparedTemplateModule {
   return withContext(Dispatchers.IO) {
     val templateRoot = project.templateRoot(kind)
     val maybeExistingModule = ModuleManager.getInstance(project).findModuleByName(moduleName)
     if (maybeExistingModule != null) {
       thisLogger().warn("Target module already exists: $moduleName")
-      return@withContext maybeExistingModule.moduleFile!!.parent.toNioPath()
+      return@withContext PreparedTemplateModule(maybeExistingModule.moduleFile!!.parent.toNioPath(), existedBefore = true)
     }
     val targetModulePath = vRoot.toNioPath().resolve(directoryName)
     if (targetModulePath.exists()) {
       thisLogger().warn("Target module path already exists: $targetModulePath")
-      return@withContext targetModulePath
+      return@withContext PreparedTemplateModule(targetModulePath, existedBefore = false)
     }
     val moduleRoot = targetModulePath.createDirectory()
     val replacementContext = ReplacementContext.create(project, vRoot, moduleName, kind)
@@ -366,7 +370,7 @@ private suspend fun prepareTemplateModuleFiles(
       ModuleManager.getInstance(project).loadModule(moduleFile)
     }
 
-    moduleRoot
+    PreparedTemplateModule(moduleRoot, existedBefore = false)
   }
 }
 
@@ -376,11 +380,39 @@ private class ModuleFiles(
   val resources: Path,
 )
 
+private class PreparedTemplateModule(
+  val moduleRoot: Path,
+  val existedBefore: Boolean,
+)
+
 internal data class CreatedIjModule(
   val moduleName: String,
   val moduleRoot: Path,
   val moduleKind: IjModuleKind,
+  val existedBefore: Boolean,
 )
+
+internal suspend fun openXmlDescriptorIfPresent(project: Project, createdModule: CreatedIjModule) {
+  val descriptor = readAction {
+    findXmlDescriptor(project, createdModule.moduleName)
+    ?: findXmlDescriptor(project, createdModule.moduleRoot, createdModule.moduleName)
+  } ?: return
+
+  withContext(Dispatchers.EDT) {
+    OpenFileDescriptor(project, descriptor.virtualFile).navigate(true)
+  }
+}
+
+internal fun notifyModuleAlreadyExists(project: Project, createdModule: CreatedIjModule) {
+  NotificationGroupManager.getInstance()
+    .getNotificationGroup("DevKit Errors")
+    .createNotification(
+      message("scaffolding.module.kind.already.exists.title"),
+      message("scaffolding.module.kind.already.exists.message", createdModule.moduleKind.displayName, createdModule.moduleName),
+      NotificationType.INFORMATION,
+    )
+    .notify(project)
+}
 
 private suspend fun ModuleFiles.toVFiles(): ModuleVFiles? = withContext(Dispatchers.IO) {
   ModuleVFiles(
@@ -417,6 +449,9 @@ internal enum class IjModuleKind(
 
   val presentation: CreateWithTemplatesDialogPanel.TemplatePresentation
     get() = CreateWithTemplatesDialogPanel.TemplatePresentation(message(titleKey), icon, templateName)
+
+  val displayName: @Nls String
+    get() = message(titleKey)
 
   val sampleDirectoryName: String?
     get() = sampleSuffix?.let { "$SAMPLE_MODULE_STEM.$it" }
@@ -655,6 +690,45 @@ private fun findPluginXmlsIncludingContentModule(project: Project, moduleDescrip
 private fun XmlFile.toContentModuleRegistrationTarget(): ContentModuleRegistrationTarget? {
   val ideaPlugin = DescriptorUtil.getIdeaPlugin(this) ?: return null
   return ContentModuleRegistrationTarget(this, ideaPlugin.pluginId ?: "no plugin id")
+}
+
+private fun findXmlDescriptor(project: Project, moduleName: String): XmlFile? {
+  val module = ModuleManager.getInstance(project).findModuleByName(moduleName) ?: return null
+  val psiManager = PsiManager.getInstance(project)
+  for (sourceRoot in ModuleRootManager.getInstance(module).getSourceRoots(false)) {
+    val moduleXml = sourceRoot.findChild("$moduleName.xml")
+    if (moduleXml != null && !moduleXml.isDirectory) {
+      val psiFile = psiManager.findFile(moduleXml)
+      if (psiFile is XmlFile) return psiFile
+    }
+
+    val pluginXml = sourceRoot.findChild("META-INF")?.findChild("plugin.xml")
+    if (pluginXml != null && !pluginXml.isDirectory) {
+      val psiFile = psiManager.findFile(pluginXml)
+      if (psiFile is XmlFile) return psiFile
+    }
+  }
+  return null
+}
+
+private fun findXmlDescriptor(project: Project, moduleRoot: Path, moduleName: String): XmlFile? {
+  val psiManager = PsiManager.getInstance(project)
+  val moduleRootFile = VfsUtil.findFile(moduleRoot, true) ?: return null
+  val resourcesRoot = moduleRootFile.findChild("resources") ?: return null
+
+  val moduleXml = resourcesRoot.findChild("$moduleName.xml")
+  if (moduleXml != null && !moduleXml.isDirectory) {
+    val psiFile = psiManager.findFile(moduleXml)
+    if (psiFile is XmlFile) return psiFile
+  }
+
+  val pluginXml = resourcesRoot.findChild("META-INF")?.findChild("plugin.xml")
+  if (pluginXml != null && !pluginXml.isDirectory) {
+    val psiFile = psiManager.findFile(pluginXml)
+    if (psiFile is XmlFile) return psiFile
+  }
+
+  return null
 }
 
 private fun VirtualFile.findPluginXml(project: Project): XmlFile? {

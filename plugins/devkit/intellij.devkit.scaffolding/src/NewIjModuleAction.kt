@@ -45,7 +45,11 @@ private suspend fun actionPerformed(dc: DataContext) {
   val request = withContext(Dispatchers.EDT) {
     askForModule(project, popupContext)
   }
-  withModalProgress(project, message("scaffolding.creating.module")) {
+  val createdModule = withModalProgress(project, message("scaffolding.creating.module")) {
     createIjModule(project, newModuleParentDirectory, request.moduleName, request.kind, popupContext.targetPlugin)
   }
+  if (createdModule.existedBefore) {
+    notifyModuleAlreadyExists(project, createdModule)
+  }
+  openXmlDescriptorIfPresent(project, createdModule)
 }
