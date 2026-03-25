@@ -70,6 +70,8 @@ jvm_library(
     "//xml/xml-analysis-impl:analysis-impl",
     "//xml/xml-analysis-impl:analysis-impl_test_lib",
     "//platform/ide-core-impl",
+    "//plugins/devkit/intellij.devkit.scaffolding:scaffolding",
+    "//plugins/devkit/intellij.devkit.scaffolding:scaffolding_test_lib",
     "//platform/ide-core",
     "//java/execution/openapi:java-execution",
     "//java/execution/openapi:java-execution_test_lib",
