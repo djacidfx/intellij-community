@@ -4531,6 +4531,40 @@ public class Py3TypeTest extends PyTestCase {
       """);
   }
 
+  // PY-88691
+  public void testSelfSubstitutedForClassMethod1() {
+    doTest("Derived",
+           """
+             from typing import Self
+             
+             class Base[T]:
+                 @classmethod
+                 def foo(cls) -> Self:
+                     return cls()
+             
+             class Derived(Base[int]): ...
+             
+             expr = Derived.foo()
+             """);
+  }
+
+  // PY-88691
+  public void testSelfSubstitutedForClassMethod2() {
+    doTest("Derived[int]",
+           """
+             from typing import Self
+             
+             class Base[T]:
+                 @classmethod
+                 def foo(cls) -> Self:
+                     return cls()
+             
+             class Derived[T](Base[T]): ...
+             
+             expr = Derived[int].foo()
+             """);
+  }
+
   // PY-76855
   public void testCallableWithSelfSubstitutedWithQualifierTypeWithDefault() {
     doTest("(self: Foo7[int], /) -> Foo7[int]", """
