@@ -69,7 +69,7 @@ object EmmetAbbreviationBaloonTopic {
     }
   }
 
-  fun cancelInvocation(transactionId: Int, editorId: EditorId) {
+  fun dropInvocationContext(transactionId: Int, editorId: EditorId) {
     editorId.findEditorOrNull()?.putUserData(BALLOON_CONTEXT_KEY, null)
   }
 

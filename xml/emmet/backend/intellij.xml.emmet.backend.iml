@@ -21,5 +21,7 @@
     <orderEntry type="module" module-name="intellij.platform.core" scope="PROVIDED" />
     <orderEntry type="module" module-name="intellij.platform.ide" scope="PROVIDED" />
     <orderEntry type="module" module-name="intellij.platform.core.ui" scope="PROVIDED" />
+    <orderEntry type="module" module-name="intellij.platform.ide.impl" scope="PROVIDED" />
+    <orderEntry type="module" module-name="intellij.platform.rpc.backend" />
   </component>
 </module>
