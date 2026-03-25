@@ -721,3 +721,27 @@ compileTestKotlin.kotlinOptions {
                     """.trimIndent()
         )
     }
+
+internal val WITH_KOTLIN_OPTIONS_WITH_API_VERSION_AS_STRING_FIXTURE =
+    GradleTestFixtureBuilder.create("with-kotlin-options-with-api-version-as-string") { gradleVersion ->
+        withSettingsFile(gradleVersion, gradleDsl = GradleDsl.KOTLIN) {
+            setProjectName("with-kotlin-options-with-api-version-as-string")
+        }
+        withBuildFile(gradleVersion, gradleDsl = GradleDsl.KOTLIN) {
+            addImport("org.jetbrains.kotlin.gradle.tasks.KotlinCompile")
+            withKotlinJvmPlugin()
+            withRepository { mavenCentral() }
+            withPrefix {
+                code(
+                    """
+val compileKotlin: KotlinCompile by tasks
+compileKotlin.kotlinOptions {
+    jvmTarget = "9"
+    freeCompilerArgs += listOf("-module-name", "TheName")
+    apiVersion = "1.9"
+}
+                    """.trimIndent()
+                )
+            }
+        }
+    }

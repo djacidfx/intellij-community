@@ -878,5 +878,34 @@ compileTestKotlin.kotlinOptions {
         }
     }
 
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testApiVersionAsString(gradleVersion: GradleVersion) {
+        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_WITH_API_VERSION_AS_STRING_FIXTURE) {
+            testIntention(
+                """
+val compileKotlin: KotlinCompile by tasks
+compileKotlin.<caret>kotlinOptions {
+    jvmTarget = "9"
+    freeCompilerArgs += listOf("-module-name", "TheName")
+    apiVersion = "1.9"
+}
+                """.trimIndent(),
+                """
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+
+val compileKotlin: KotlinCompile by tasks
+compileKotlin.compilerOptions {
+    jvmTarget.set(JvmTarget.JVM_9)
+    freeCompilerArgs.addAll(listOf("-module-name", "TheName"))
+    apiVersion.set(KotlinVersion.KOTLIN_1_9)
+}
+                """.trimIndent(),
+                "Replace 'kotlinOptions' with 'compilerOptions'"
+            )
+        }
+    }
+
 
 }
