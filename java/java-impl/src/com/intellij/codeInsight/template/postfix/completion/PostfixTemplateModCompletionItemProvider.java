@@ -1,6 +1,9 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.codeInsight.template.postfix.completion;
 
+import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo;
+import com.intellij.codeInsight.intention.preview.IntentionPreviewUtils;
+import com.intellij.codeInsight.lookup.LookupElementCustomPreviewHolder;
 import com.intellij.codeInsight.template.CustomTemplateCallback;
 import com.intellij.codeInsight.template.postfix.settings.PostfixTemplatesSettings;
 import com.intellij.codeInsight.template.postfix.templates.LanguagePostfixTemplate;
@@ -32,7 +35,7 @@ import java.util.Set;
 /**
  * Provides postfix templates as {@link ModCompletionItem}s for use in ModCompletion.
  * Discovers applicable postfix templates at the current offset and emits a completion item
- * for each template that supports {@link PostfixTemplate#expandMod}.
+ * for each template that supports {@link PostfixTemplate#createModExpander()}.
  */
 public final class PostfixTemplateModCompletionItemProvider implements ModCompletionItemProvider {
 
@@ -66,9 +69,11 @@ public final class PostfixTemplateModCompletionItemProvider implements ModComple
       for (PostfixTemplate template : PostfixTemplatesUtils.getAvailableTemplates(provider)) {
         ProgressManager.checkCanceled();
         if (!isDumbEnough(template, copyContext)) continue;
+        if (!template.getKey().startsWith(key)) continue;
         if (!template.isEnabled(provider)) continue;
         if (!template.isApplicable(copyContext, copyDocument, newOffset)) continue;
-        if (!template.isApplicableForModCommand(copyContext, copyDocument, newOffset)) continue;
+        if (!template.isApplicableForModCommand()) continue;
+        if (template.createModExpander() == null) continue;
         sink.accept(new PostfixModCompletionItem(provider, template, key));
       }
     }
@@ -80,18 +85,18 @@ public final class PostfixTemplateModCompletionItemProvider implements ModComple
   }
 
   @VisibleForTesting
-  public static final class PostfixModCompletionItem implements ModCompletionItem {
+  public static final class PostfixModCompletionItem implements ModCompletionItem, LookupElementCustomPreviewHolder {
     private final @NotNull PostfixTemplate myTemplate;
     private final @NotNull PostfixTemplateProvider myProvider;
     private final @NotNull String myKey;
-    private PostfixModCompletionItem(@NotNull PostfixTemplateProvider provider,
+
+    PostfixModCompletionItem(@NotNull PostfixTemplateProvider provider,
                                      @NotNull PostfixTemplate template,
                                      @NotNull String key) {
       myTemplate = template;
       myProvider = provider;
       myKey = key;
     }
-
 
     @Override
     public @NotNull String mainLookupString() {
@@ -110,6 +115,8 @@ public final class PostfixTemplateModCompletionItemProvider implements ModComple
 
     @Override
     public @NotNull ModCompletionItemPresentation presentation() {
+      //temporary
+      //noinspection HardCodedStringLiteral
       return new ModCompletionItemPresentation(MarkupText.plainText(myTemplate.getPresentableName()))
         .withMainIcon(() -> AllIcons.Nodes.Template)
         .withDetailText(MarkupText.plainText(myTemplate.getExample() + " (MC)"));
@@ -117,16 +124,23 @@ public final class PostfixTemplateModCompletionItemProvider implements ModComple
 
     @Override
     public @NotNull ModCommand perform(@NotNull ActionContext actionContext, @NotNull InsertionContext insertionContext) {
-      int selectionEndOffset = actionContext.selection().getEndOffset();
-      TextRange keyRange;
-      if (actionContext.file().getFileDocument().getText().substring(0, selectionEndOffset).endsWith(myKey)) {
-        keyRange = new TextRange(selectionEndOffset - myKey.length() + 1, selectionEndOffset);
+      TextRange keyRange = PostfixTemplatesUtils.computeKeyRange(actionContext, myKey, myTemplate.getKey());
+      var expander = myTemplate.createModExpander();
+      return expander != null ? expander.expand(actionContext, myProvider, keyRange) : ModCommand.nop();
+    }
+
+    @Override
+    public @NotNull IntentionPreviewInfo preview(@NotNull ActionContext ctx) {
+      if (myTemplate.isApplicableForModCommand()) {
+        String key = PostfixLiveTemplate.computeTemplateKeyWithoutContextChecking(
+        myProvider, ctx.file().getFileDocument().getCharsSequence(), ctx.offset());
+        if (key == null) return IntentionPreviewInfo.EMPTY;
+        TextRange keyRange = PostfixTemplatesUtils.computeKeyRange(ctx, key, myTemplate.getKey());
+        var expander = myTemplate.createModExpander();
+        ModCommand command = expander != null ? expander.expand(ctx, myProvider, keyRange) : ModCommand.nop();
+        return IntentionPreviewUtils.getModCommandPreview(command, ctx);
       }
-      else {
-        keyRange = new TextRange(selectionEndOffset, selectionEndOffset);
-      }
-      ModCommand command = myTemplate.expandMod(actionContext, myProvider, keyRange);
-      return command;
+      return IntentionPreviewInfo.EMPTY;
     }
   }
 

@@ -2,34 +2,25 @@
 package com.intellij.codeInsight.template.postfix.templates.editable;
 
 import com.intellij.codeInsight.CodeInsightBundle;
-import com.intellij.codeInsight.template.CustomTemplateCallback;
 import com.intellij.codeInsight.template.Template;
 import com.intellij.codeInsight.template.TemplateManager;
 import com.intellij.codeInsight.template.impl.TemplateImpl;
-import com.intellij.codeInsight.template.impl.TemplateManagerImpl;
 import com.intellij.codeInsight.template.impl.TextExpression;
 import com.intellij.codeInsight.template.postfix.templates.PostfixLiveTemplate;
+import com.intellij.codeInsight.template.postfix.templates.PostfixModExpander;
 import com.intellij.codeInsight.template.postfix.templates.PostfixTemplate;
 import com.intellij.codeInsight.template.postfix.templates.PostfixTemplateProvider;
 import com.intellij.codeInsight.template.postfix.templates.PostfixTemplatesUtils;
 import com.intellij.codeInsight.unwrap.ScopeHighlighter;
-import com.intellij.modcommand.ActionContext;
-import com.intellij.modcommand.ModCommand;
-import com.intellij.modcommand.ModCommandAction;
-import com.intellij.modcommand.Presentation;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.CommandProcessor;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Pass;
-import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.util.text.StringUtil;
-import com.intellij.psi.PsiDocumentManager;
+import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.impl.source.PostprocessReformattingAspect;
-import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.refactoring.IntroduceTargetChooser;
 import com.intellij.util.Function;
 import com.intellij.util.containers.ContainerUtil;
@@ -130,80 +121,8 @@ public abstract class EditablePostfixTemplate extends PostfixTemplate {
 
   @ApiStatus.Experimental
   @Override
-  public @NotNull ModCommand expandMod(@NotNull ActionContext actionContext,
-                                       @NotNull PostfixTemplateProvider provider,
-                                       @NotNull TextRange keyRange) {
-    Project project = actionContext.project();
-    List<PsiElement> virtualExpressions = PostprocessReformattingAspect.getInstance(project).disablePostprocessFormattingInside(() -> {
-      PsiFile copyFile = (PsiFile)actionContext.file().copy();
-      Document copyDocument = copyFile.getFileDocument();
-      int startOffset = keyRange.getStartOffset();
-      startOffset = PostfixLiveTemplate.positiveOffset(startOffset);
-      copyDocument.deleteString(startOffset, keyRange.getEndOffset());
-      PsiDocumentManager.getInstance(project).commitDocument(copyDocument);
-      provider.preCheckModCommand(copyFile, startOffset);
-      PsiDocumentManager.getInstance(project).commitDocument(copyDocument);
-      PsiElement context = CustomTemplateCallback.getContext(copyFile, PostfixLiveTemplate.positiveOffset(startOffset));
-      return getExpressions(context, context.getContainingFile().getFileDocument(), startOffset);
-    });
-    if (virtualExpressions.isEmpty()) {
-      return ModCommand.nop();
-    }
-
-    if (virtualExpressions.size() == 1) {
-      return createModCommand(actionContext, keyRange, virtualExpressions.getFirst(), provider);
-    }
-
-    List<ModCommandAction> actions = ContainerUtil.mapNotNull(
-      virtualExpressions,
-      expr -> buildExpandModAction(expr, getElementRenderer().fun(expr), new TextRange(keyRange.getStartOffset(), keyRange.getStartOffset()), provider));
-    if (actions.isEmpty()) {
-      return ModCommand.nop();
-    }
-    return ModCommand.chooseAction(CodeInsightBundle.message("dialog.title.expressions"), actions);
-  }
-
-  @SuppressWarnings("HardCodedStringLiteral") // expression text is used as chooser item title
-  private @NotNull ModCommandAction buildExpandModAction(@NotNull PsiElement virtualExpression,
-                                                         @NotNull String title,
-                                                         @NotNull TextRange key,
-                                                         @NotNull PostfixTemplateProvider provider) {
-
-    return new ModCommandAction() {
-      @Override
-      public @NotNull Presentation getPresentation(@NotNull ActionContext ctx) {
-        return Presentation.of(title).withHighlighting(virtualExpression.getTextRange());
-      }
-
-      @Override
-      public @NotNull ModCommand perform(@NotNull ActionContext ctx) {
-        return createModCommand(ctx.withSelection(new TextRange(key.getStartOffset(), key.getStartOffset())), key, virtualExpression, provider);
-      }
-
-      @Override
-      public @NotNull String getFamilyName() {
-        return title;
-      }
-    };
-  }
-
-  private @NotNull ModCommand createModCommand(@NotNull ActionContext ctx, @NotNull TextRange key, @NotNull PsiElement virtualExpression, @NotNull PostfixTemplateProvider provider) {
-    return ModCommand.psiUpdate(ctx.withSelection(new TextRange(key.getStartOffset(), key.getStartOffset())).withOffset(key.getStartOffset()), document -> {
-                                  document.deleteString(ctx.selection().getStartOffset(), ctx.selection().getEndOffset());
-                                },
-                                updater -> {
-                                  updater.getDocument().deleteString(key.getStartOffset() - 1, ctx.selection().getStartOffset());
-                                  PsiDocumentManager.getInstance(ctx.project()).commitDocument(updater.getDocument());
-                                  provider.preCheckModCommand(updater.getPsiFile(), key.getStartOffset() - 1);
-                                  String exprText = virtualExpression.getText();
-                                  PsiElement expression = PsiTreeUtil.findSameElementInCopy(virtualExpression, updater.getPsiFile());
-                                  TextRange rangeToRemove = getRangeToRemove(expression);
-                                  TemplateImpl template = myLiveTemplate.copy();
-                                  updater.getDocument().deleteString(rangeToRemove.getStartOffset(), rangeToRemove.getEndOffset());
-                                  template.addVariable("EXPR", new TextExpression(exprText), false);
-                                  addTemplateVariables(expression, template);
-                                  TemplateManagerImpl.updateTemplate(template, updater);
-                                });
+  public @NotNull PostfixModExpander createModExpander() {
+    return new EditableTemplateModExpander(this);
   }
 
   protected void addTemplateVariables(@NotNull PsiElement element, @NotNull Template template) {

@@ -488,11 +488,11 @@ com.intellij.codeInsight.template.postfix.templates.PostfixTemplateProvider
 - readExternalTemplate(java.lang.String,java.lang.String,org.jdom.Element):com.intellij.codeInsight.template.postfix.templates.PostfixTemplate
 - writeExternalTemplate(com.intellij.codeInsight.template.postfix.templates.PostfixTemplate,org.jdom.Element):V
 a:com.intellij.codeInsight.template.postfix.templates.PostfixTemplateWithExpressionSelector
-- expandMod(com.intellij.modcommand.ActionContext,com.intellij.codeInsight.template.postfix.templates.PostfixTemplateProvider,com.intellij.openapi.util.TextRange):com.intellij.modcommand.ModCommand
 f:com.intellij.codeInsight.template.postfix.templates.PostfixTemplatesUtils
 - s:computeKeyRange(com.intellij.modcommand.ActionContext,java.lang.String,java.lang.String):com.intellij.openapi.util.TextRange
 a:com.intellij.codeInsight.template.postfix.templates.StringBasedPostfixTemplate
 - expandModForChooseExpression(com.intellij.modcommand.ActionContext,com.intellij.modcommand.ModPsiUpdater,com.intellij.psi.PsiElement):V
+a:com.intellij.codeInsight.template.postfix.templates.editable.EditablePostfixTemplate
 com.intellij.codeInsight.template.postfix.templates.editable.PostfixTemplateEditor
 - com.intellij.openapi.Disposable
 - a:createTemplate(java.lang.String,java.lang.String):com.intellij.codeInsight.template.postfix.templates.PostfixTemplate

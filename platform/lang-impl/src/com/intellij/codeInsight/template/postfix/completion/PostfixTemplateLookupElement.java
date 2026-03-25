@@ -9,10 +9,10 @@ import com.intellij.codeInsight.template.CustomTemplateCallback;
 import com.intellij.codeInsight.template.impl.CustomLiveTemplateLookupElement;
 import com.intellij.codeInsight.template.postfix.templates.PostfixLiveTemplate;
 import com.intellij.codeInsight.template.postfix.templates.PostfixTemplate;
+import com.intellij.codeInsight.template.postfix.templates.PostfixModExpander;
 import com.intellij.codeInsight.template.postfix.templates.PostfixTemplateProvider;
 import com.intellij.codeInsight.template.postfix.templates.PostfixTemplatesUtils;
 import com.intellij.modcommand.ActionContext;
-import com.intellij.modcommand.ModCommand;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.util.text.StringUtil;
@@ -60,12 +60,13 @@ public class PostfixTemplateLookupElement extends CustomLiveTemplateLookupElemen
   @ApiStatus.Experimental
   @Override
   public @NotNull IntentionPreviewInfo preview(@NotNull ActionContext ctx) {
-    if (myTemplate.isApplicableForModCommand()) {
+    PostfixModExpander expander = myTemplate.createModExpander();
+    if (myTemplate.isApplicableForModCommand() && expander != null) {
       String key = PostfixLiveTemplate.computeTemplateKeyWithoutContextChecking(
         myProvider, ctx.file().getFileDocument().getCharsSequence(), ctx.offset());
       if (key == null) return IntentionPreviewInfo.EMPTY;
       TextRange keyRange = PostfixTemplatesUtils.computeKeyRange(ctx, key, myTemplate.getKey());
-      ModCommand command = myTemplate.expandMod(ctx, myProvider, keyRange);
+      var command = expander.expand(ctx, myProvider, keyRange);
       return IntentionPreviewUtils.getModCommandPreview(command, ctx);
     }
     return IntentionPreviewInfo.EMPTY;

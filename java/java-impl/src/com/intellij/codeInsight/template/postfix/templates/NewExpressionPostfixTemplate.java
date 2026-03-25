@@ -4,7 +4,7 @@ package com.intellij.codeInsight.template.postfix.templates;
 import com.intellij.codeInsight.completion.CompletionUtil;
 import com.intellij.codeInsight.completion.InsertionContext;
 import com.intellij.codeInsight.completion.JavaClassNameCompletionContributor;
-import com.intellij.codeInsight.completion.JavaCompletionUtil;
+import com.intellij.codeInsight.completion.JavaClassNameInsertHandler;
 import com.intellij.codeInsight.completion.JavaPsiClassReferenceElement;
 import com.intellij.codeInsight.completion.OffsetMap;
 import com.intellij.codeInsight.lookup.Lookup;
@@ -81,7 +81,7 @@ public class NewExpressionPostfixTemplate extends StringBasedPostfixTemplate imp
 
 
   @Override
-  public boolean isApplicableForModCommand() {
+  public boolean isApplicableForModCommand(@NotNull PsiElement context, @NotNull Document copyDocument, int newOffset) {
     return true;
   }
 
@@ -123,7 +123,7 @@ public class NewExpressionPostfixTemplate extends StringBasedPostfixTemplate imp
       boolean addParens = newExpr == null ||
                           !DumbService.getInstance(ctx.project())
                             .computeWithAlternativeResolveEnabled(
-                              () -> JavaCompletionUtil.isArrayTypeExpected(newExpr));
+                              () -> JavaClassNameInsertHandler.isArrayTypeExpected(newExpr));
 
       if (addParens) {
         document.insertString(classNameEnd, diamond + "()");

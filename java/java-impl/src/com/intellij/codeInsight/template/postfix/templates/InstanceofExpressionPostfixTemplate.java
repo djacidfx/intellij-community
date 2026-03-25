@@ -74,33 +74,32 @@ public class InstanceofExpressionPostfixTemplate extends PostfixTemplate impleme
   }
 
   @Override
-  public boolean isApplicableForModCommand(@NotNull PsiElement context, @NotNull Document copyDocument, int newOffset) {
+  public boolean isApplicableForModCommand() {
     return true;
   }
 
   @Override
-  public @NotNull ModCommand expandMod(@NotNull ActionContext actionContext, @NotNull PostfixTemplateProvider provider,
-                                       @NotNull TextRange keyRange) {
-    TextRange selection = actionContext.selection();
-    return ModCommand.psiUpdate(actionContext.withSelection(new TextRange(keyRange.getStartOffset(), keyRange.getStartOffset()))
-                                  .withOffset(keyRange.getStartOffset()),
-                                document -> {
-                                  document.deleteString(selection.getStartOffset(), selection.getEndOffset());
-                                },
-                                updater -> {
-                                  updater.getDocument().deleteString(keyRange.getStartOffset() - 1, selection.getStartOffset());
-                                  PsiDocumentManager.getInstance(updater.getProject()).commitDocument(updater.getDocument());
-                                  PsiElement context =
-                                    CustomTemplateCallback.getContext(updater.getPsiFile(), PostfixLiveTemplate.positiveOffset(keyRange.getStartOffset() - 1));
-                                  PsiExpression expr = JavaPostfixTemplatesUtils.getTopmostExpression(context);
-                                  if (!JavaPostfixTemplatesUtils.isNotPrimitiveTypeExpression(expr)) return;
-                                  Template template = getTemplate(updater.getProject(), expr);
-                                  if (!(template instanceof TemplateImpl templateImpl)) return;
-                                  TextRange range = expr.getTextRange();
-                                  updater.getDocument().deleteString(range.getStartOffset(), range.getEndOffset());
-                                  updater.moveCaretTo(range.getStartOffset());
-                                  TemplateManagerImpl.updateTemplate(templateImpl, updater);
-                                });
+  public PostfixModExpander createModExpander() {
+    return (ActionContext actionContext, PostfixTemplateProvider provider, TextRange keyRange) -> {
+      TextRange selection = actionContext.selection();
+      return ModCommand.psiUpdate(actionContext.withSelection(new TextRange(keyRange.getStartOffset(), keyRange.getStartOffset()))
+                                    .withOffset(keyRange.getStartOffset()),
+                                  document -> document.deleteString(selection.getStartOffset(), selection.getEndOffset()),
+                                  updater -> {
+                                    updater.getDocument().deleteString(PostfixLiveTemplate.positiveOffset(keyRange.getStartOffset()), selection.getStartOffset());
+                                    PsiDocumentManager.getInstance(updater.getProject()).commitDocument(updater.getDocument());
+                                    PsiElement context =
+                                      CustomTemplateCallback.getContext(updater.getPsiFile(), PostfixLiveTemplate.positiveOffset(keyRange.getStartOffset() - 1));
+                                    PsiExpression expr = JavaPostfixTemplatesUtils.getTopmostExpression(context);
+                                    if (!JavaPostfixTemplatesUtils.isNotPrimitiveTypeExpression(expr)) return;
+                                    Template template = getTemplate(updater.getProject(), expr);
+                                    if (!(template instanceof TemplateImpl templateImpl)) return;
+                                    TextRange range = expr.getTextRange();
+                                    updater.getDocument().deleteString(range.getStartOffset(), range.getEndOffset());
+                                    updater.moveCaretTo(range.getStartOffset());
+                                    TemplateManagerImpl.updateTemplate(templateImpl, updater);
+                                  });
+    };
   }
 
   @Override

@@ -576,24 +576,35 @@ c:com.intellij.codeInsight.template.postfix.completion.PostfixTemplateLookupElem
 - com.intellij.codeInsight.template.impl.CustomLiveTemplateLookupElement
 - com.intellij.codeInsight.lookup.LookupElementCustomPreviewHolder
 - *:preview(com.intellij.modcommand.ActionContext):com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
+*c:com.intellij.codeInsight.template.postfix.templates.ExpressionSelectorModExpander
+- com.intellij.codeInsight.template.postfix.templates.PostfixModExpander
+- <init>(com.intellij.codeInsight.template.postfix.templates.PostfixTemplateWithExpressionSelector,com.intellij.codeInsight.template.postfix.templates.PostfixTemplateExpressionSelector):V
+- expand(com.intellij.modcommand.ActionContext,com.intellij.codeInsight.template.postfix.templates.PostfixTemplateProvider,com.intellij.openapi.util.TextRange):com.intellij.modcommand.ModCommand
 c:com.intellij.codeInsight.template.postfix.templates.PostfixLiveTemplate
 - com.intellij.codeInsight.template.CustomLiveTemplateBase
 - *s:computeTemplateKeyWithoutContextChecking(com.intellij.codeInsight.template.postfix.templates.PostfixTemplateProvider,java.lang.CharSequence,I):java.lang.String
+*:com.intellij.codeInsight.template.postfix.templates.PostfixModExpander
+- a:expand(com.intellij.modcommand.ActionContext,com.intellij.codeInsight.template.postfix.templates.PostfixTemplateProvider,com.intellij.openapi.util.TextRange):com.intellij.modcommand.ModCommand
 a:com.intellij.codeInsight.template.postfix.templates.PostfixTemplate
 - com.intellij.openapi.project.PossiblyDumbAware
-- *:expandMod(com.intellij.modcommand.ActionContext,com.intellij.codeInsight.template.postfix.templates.PostfixTemplateProvider,com.intellij.openapi.util.TextRange):com.intellij.modcommand.ModCommand
+- *:createModExpander():com.intellij.codeInsight.template.postfix.templates.PostfixModExpander
 - *:isApplicableForModCommand():Z
 com.intellij.codeInsight.template.postfix.templates.PostfixTemplateProvider
 - *:preCheckModCommand(com.intellij.psi.PsiFile,I):V
 a:com.intellij.codeInsight.template.postfix.templates.PostfixTemplateWithExpressionSelector
 - com.intellij.codeInsight.template.postfix.templates.PostfixTemplate
+- *:createModExpander():com.intellij.codeInsight.template.postfix.templates.PostfixModExpander
 - *:expandModForChooseExpression(com.intellij.modcommand.ActionContext,com.intellij.modcommand.ModPsiUpdater,com.intellij.psi.PsiElement):V
 a:com.intellij.codeInsight.template.postfix.templates.SurroundPostfixTemplateBase
 - com.intellij.codeInsight.template.postfix.templates.PostfixTemplateWithExpressionSelector
 - *:expandModForChooseExpression(com.intellij.modcommand.ActionContext,com.intellij.modcommand.ModPsiUpdater,com.intellij.psi.PsiElement):V
 a:com.intellij.codeInsight.template.postfix.templates.editable.EditablePostfixTemplate
 - com.intellij.codeInsight.template.postfix.templates.PostfixTemplate
-- *:expandMod(com.intellij.modcommand.ActionContext,com.intellij.codeInsight.template.postfix.templates.PostfixTemplateProvider,com.intellij.openapi.util.TextRange):com.intellij.modcommand.ModCommand
+- *:createModExpander():com.intellij.codeInsight.template.postfix.templates.PostfixModExpander
+*c:com.intellij.codeInsight.template.postfix.templates.editable.EditableTemplateModExpander
+- com.intellij.codeInsight.template.postfix.templates.PostfixModExpander
+- <init>(com.intellij.codeInsight.template.postfix.templates.editable.EditablePostfixTemplate):V
+- expand(com.intellij.modcommand.ActionContext,com.intellij.codeInsight.template.postfix.templates.PostfixTemplateProvider,com.intellij.openapi.util.TextRange):com.intellij.modcommand.ModCommand
 *f:com.intellij.codeInspection.ui.OptPaneUtils
 - <init>():V
 - s:editOptions(com.intellij.openapi.project.Project,com.intellij.codeInspection.options.OptionContainer,com.intellij.codeInspection.options.OptPane,java.lang.String,java.lang.Runnable):V

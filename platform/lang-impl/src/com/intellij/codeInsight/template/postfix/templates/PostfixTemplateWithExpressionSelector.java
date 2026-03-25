@@ -2,26 +2,16 @@
 package com.intellij.codeInsight.template.postfix.templates;
 
 import com.intellij.codeInsight.CodeInsightBundle;
-import com.intellij.codeInsight.template.CustomTemplateCallback;
 import com.intellij.codeInsight.unwrap.ScopeHighlighter;
 import com.intellij.modcommand.ActionContext;
-import com.intellij.modcommand.ModCommand;
-import com.intellij.modcommand.ModCommandAction;
 import com.intellij.modcommand.ModPsiUpdater;
-import com.intellij.modcommand.Presentation;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.CommandProcessor;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.NlsSafe;
 import com.intellij.openapi.util.Pass;
-import com.intellij.openapi.util.TextRange;
-import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.impl.source.PostprocessReformattingAspect;
-import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.refactoring.IntroduceTargetChooser;
 import com.intellij.util.containers.ContainerUtil;
 import org.jetbrains.annotations.ApiStatus;
@@ -115,76 +105,10 @@ public abstract class PostfixTemplateWithExpressionSelector extends PostfixTempl
     );
   }
 
+  @ApiStatus.Experimental
   @Override
-  public @NotNull ModCommand expandMod(@NotNull ActionContext actionContext,
-                                       @NotNull PostfixTemplateProvider provider,
-                                       @NotNull TextRange keyRange) {
-    Project project = actionContext.project();
-    List<PsiElement> expressions = PostprocessReformattingAspect.getInstance(project).disablePostprocessFormattingInside(() -> {
-      PsiFile copyFile = (PsiFile)actionContext.file().copy();
-      Document copyDocument = copyFile.getFileDocument();
-      int startOffset = keyRange.getStartOffset();
-      startOffset = PostfixLiveTemplate.positiveOffset(startOffset);
-      copyDocument.deleteString(startOffset, keyRange.getEndOffset());
-      PsiDocumentManager.getInstance(project).commitDocument(copyDocument);
-      provider.preCheckModCommand(copyFile, startOffset);
-      PsiDocumentManager.getInstance(project).commitDocument(copyDocument);
-      PsiElement context = CustomTemplateCallback.getContext(copyFile, PostfixLiveTemplate.positiveOffset(startOffset));
-      return mySelector.getExpressions(context, copyFile.getFileDocument(), startOffset);
-    });
-    if (expressions.isEmpty()) {
-      return ModCommand.nop();
-    }
-
-    if (expressions.size() == 1) {
-      return prepareAndExpandModForChooseExpression(actionContext, keyRange, expressions.getFirst(), provider);
-    }
-
-    List<ModCommandAction> actions = ContainerUtil.mapNotNull(
-      expressions,
-      expr -> {
-        //noinspection HardCodedStringLiteral -- expression text is used as chooser item title
-        String title = mySelector.getRenderer().fun(expr);
-        return new ModCommandAction() {
-          @Override
-          public @NotNull Presentation getPresentation(@NotNull ActionContext ctx) {
-            return Presentation.of(title).withHighlighting(expr.getTextRange());
-          }
-
-          @Override
-          public @NotNull ModCommand perform(@NotNull ActionContext ctx) {
-            return prepareAndExpandModForChooseExpression(actionContext.withSelection(new TextRange(keyRange.getStartOffset(), keyRange.getStartOffset())), new TextRange(keyRange.getStartOffset(), keyRange.getStartOffset()), expressions.getFirst(), provider);
-          }
-
-          @Override
-          public @NotNull String getFamilyName() {
-            return title;
-          }
-        };
-      }
-    );
-    if (actions.isEmpty()) return ModCommand.nop();
-    return ModCommand.chooseAction(CodeInsightBundle.message("dialog.title.expressions"), actions);
-  }
-
-  private @NotNull ModCommand prepareAndExpandModForChooseExpression(@NotNull ActionContext ctx,
-                                                                     @NotNull TextRange key,
-                                                                     @NotNull PsiElement virtualExpression,
-                                                                     @NotNull PostfixTemplateProvider provider) {
-    TextRange selection = new TextRange(key.getStartOffset(), key.getStartOffset());
-    ActionContext updatedContext = ctx.withSelection(selection).withOffset(key.getStartOffset());
-    ModCommand command = ModCommand.psiUpdate(updatedContext, document -> {
-                                                document.deleteString(ctx.selection().getStartOffset(), ctx.selection().getEndOffset());
-                                              },
-                                              updater -> {
-                                                updater.getDocument().deleteString(key.getStartOffset() - 1, ctx.selection().getStartOffset());
-                                                PsiDocumentManager.getInstance(ctx.project()).commitDocument(updater.getDocument());
-                                                provider.preCheckModCommand(updater.getPsiFile(), key.getStartOffset() - 1);
-                                                PsiElement elementInCopy =
-                                                  PsiTreeUtil.findSameElementInCopy(virtualExpression, updater.getPsiFile());
-                                                expandModForChooseExpression(updatedContext, updater, elementInCopy);
-                                              });
-    return command;
+  public @NotNull PostfixModExpander createModExpander() {
+    return new ExpressionSelectorModExpander(this, mySelector);
   }
 
   /**

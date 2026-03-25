@@ -45,9 +45,7 @@ import static com.intellij.codeInsight.template.postfix.templates.PostfixTemplat
 
 public class JavaPostfixTemplateProvider implements PostfixTemplateProvider {
   private static final @NonNls String LANGUAGE_LEVEL_ATTR = "language-level";
-//todo tests
-// preview
-// vscode?
+  
   private final Set<PostfixTemplate> myBuiltinTemplates = ContainerUtil.newHashSet(
     new AssertStatementPostfixTemplate(this),
     new SynchronizedStatementPostfixTemplate(this),

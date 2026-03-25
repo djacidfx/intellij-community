@@ -66,67 +66,38 @@ public class TryWithResourcesPostfixTemplate extends PostfixTemplate implements 
   }
 
   @Override
-  public boolean isApplicableForModCommand(@NotNull PsiElement context, @NotNull Document copyDocument, int newOffset) {
+  public boolean isApplicableForModCommand() {
     return true;
   }
 
 
   @Override
-  public @NotNull ModCommand expandMod(@NotNull ActionContext actionContext, @NotNull PostfixTemplateProvider provider, TextRange keyRange) {
-    TextRange key = actionContext.selection();
-    return ModCommand.psiUpdate(actionContext.withSelection(new TextRange(keyRange.getStartOffset(), keyRange.getStartOffset()))
-                                  .withOffset(keyRange.getStartOffset()), document -> {
-                                  document.deleteString(actionContext.selection().getStartOffset(), actionContext.selection().getEndOffset());
-                                },
-                                updater -> {
-                                  updater.getDocument().deleteString(keyRange.getStartOffset() - 1, actionContext.selection().getStartOffset());
-                                  PsiDocumentManager.getInstance(actionContext.project()).commitDocument(updater.getDocument());
-                                  PsiFile file = updater.getPsiFile();
-                                  provider.preCheckModCommand(file, key.getStartOffset() - 1);
-                                  PsiElement context =
-                                    CustomTemplateCallback.getContext(file, PostfixLiveTemplate.positiveOffset(key.getStartOffset() - 1));
+  public PostfixModExpander createModExpander() {
+    return (ActionContext actionContext, PostfixTemplateProvider provider, TextRange keyRange) ->
+      ModCommand.psiUpdate(actionContext.withSelection(new TextRange(keyRange.getStartOffset(), keyRange.getStartOffset()))
+                             .withOffset(keyRange.getStartOffset()),
+                           document -> document.deleteString(actionContext.selection().getStartOffset(), actionContext.selection().getEndOffset()),
+                           updater -> {
+                             updater.getDocument().deleteString(PostfixLiveTemplate.positiveOffset(keyRange.getStartOffset()), actionContext.selection().getStartOffset());
+                             PsiDocumentManager.getInstance(actionContext.project()).commitDocument(updater.getDocument());
+                             PsiFile file = updater.getPsiFile();
+                             provider.preCheckModCommand(file, PostfixLiveTemplate.positiveOffset(keyRange.getStartOffset()));
+                             PsiElement context =
+                               CustomTemplateCallback.getContext(file, PostfixLiveTemplate.positiveOffset(keyRange.getStartOffset() - 1));
 
-                                  PsiExpression expression = JavaPostfixTemplatesUtils.getTopmostExpression(context);
-                                  assert expression != null;
+                             PsiExpression expression = JavaPostfixTemplatesUtils.getTopmostExpression(context);
+                             assert expression != null;
 
-                                  Project project = context.getProject();
+                             Project project = context.getProject();
 
-                                  updater.getDocument().deleteString(expression.getTextRange().getStartOffset(), expression.getTextRange().getEndOffset());
+                             updater.getDocument().deleteString(expression.getTextRange().getStartOffset(), expression.getTextRange().getEndOffset());
 
-                                  TemplateManager manager = TemplateManager.getInstance(project);
-                                  TemplateImpl template = (TemplateImpl)manager.createTemplate("", "");
+                             TemplateManager manager = TemplateManager.getInstance(project);
+                             TemplateImpl template = (TemplateImpl)manager.createTemplate("", "");
 
-                                  template.setToReformat(true);
-                                  template.addTextSegment("try (");
-                                  MacroCallNode name = new MacroCallNode(new SuggestVariableNameMacro());
-
-                                  DumbService dumbService = DumbService.getInstance(project);
-                                  if (Boolean.TRUE.equals(JavaRefactoringSettings.getInstance().INTRODUCE_LOCAL_CREATE_VAR_TYPE) &&
-                                      PsiUtil.isAvailable(JavaFeature.LVTI, expression)) {
-                                    template.addVariable("type", new TextExpression(JavaKeywords.VAR), false);
-                                  } else {
-                                    PsiType type = dumbService.computeWithAlternativeResolveEnabled(expression::getType);
-                                    template.addVariable("type", new TypeExpression(project, new PsiType[]{type}), false);
-                                  }
-                                  template.addTextSegment(" ");
-                                  template.addVariable("name", name, name, true);
-                                  template.addTextSegment(" = ");
-                                  template.addVariable("variable", new TextExpression(expression.getText()), false);
-                                  template.addTextSegment(") {\n");
-                                  template.addEndVariable();
-                                  template.addTextSegment("\n}");
-
-                                  Collection<PsiClassType> unhandled = dumbService.computeWithAlternativeResolveEnabled(() -> getUnhandled(expression));
-                                  for (PsiClassType exception : unhandled) {
-                                    MacroCallNode variable = new MacroCallNode(new SuggestVariableNameMacro());
-                                    template.addTextSegment("catch(");
-                                    template.addVariable("type " + exception.getClassName(), new TypeExpression(project, new PsiType[]{exception}), false);
-                                    template.addTextSegment(" ");
-                                    template.addVariable("name " + exception.getClassName(), variable, variable, false);
-                                    template.addTextSegment(") {}");
-                                  }
-                                  TemplateManagerImpl.updateTemplate(template, updater);
-                                });
+                             buildTemplate(template, expression, project);
+                             TemplateManagerImpl.updateTemplate(template, updater);
+                           });
   }
 
   @Override
@@ -140,6 +111,14 @@ public class TryWithResourcesPostfixTemplate extends PostfixTemplate implements 
 
     TemplateManager manager = TemplateManager.getInstance(project);
     Template template = manager.createTemplate("", "");
+    buildTemplate(template, expression, project);
+
+    manager.startTemplate(editor, template);
+  }
+
+  private static void buildTemplate(@NotNull Template template,
+                                    @NotNull PsiExpression expression,
+                                    @NotNull Project project) {
     template.setToReformat(true);
     template.addTextSegment("try (");
     MacroCallNode name = new MacroCallNode(new SuggestVariableNameMacro());
@@ -148,7 +127,8 @@ public class TryWithResourcesPostfixTemplate extends PostfixTemplate implements 
     if (Boolean.TRUE.equals(JavaRefactoringSettings.getInstance().INTRODUCE_LOCAL_CREATE_VAR_TYPE) &&
         PsiUtil.isAvailable(JavaFeature.LVTI, expression)) {
       template.addVariable("type", new TextExpression(JavaKeywords.VAR), false);
-    } else {
+    }
+    else {
       PsiType type = dumbService.computeWithAlternativeResolveEnabled(expression::getType);
       template.addVariable("type", new TypeExpression(project, new PsiType[]{type}), false);
     }
@@ -169,8 +149,6 @@ public class TryWithResourcesPostfixTemplate extends PostfixTemplate implements 
       template.addVariable("name " + exception.getClassName(), variable, variable, false);
       template.addTextSegment(") {}");
     }
-
-    manager.startTemplate(editor, template);
   }
 
   private static @NotNull Collection<PsiClassType> getUnhandled(@NotNull PsiExpression expression) {

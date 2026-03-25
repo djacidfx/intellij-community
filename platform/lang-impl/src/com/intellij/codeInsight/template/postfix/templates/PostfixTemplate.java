@@ -4,15 +4,12 @@ package com.intellij.codeInsight.template.postfix.templates;
 import com.intellij.codeInsight.CodeInsightBundle;
 import com.intellij.codeInsight.template.postfix.settings.PostfixTemplateMetaData;
 import com.intellij.codeInsight.template.postfix.settings.PostfixTemplatesSettings;
-import com.intellij.modcommand.ActionContext;
-import com.intellij.modcommand.ModCommand;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.PossiblyDumbAware;
 import com.intellij.openapi.util.NlsContexts;
 import com.intellij.openapi.util.NlsSafe;
 import com.intellij.openapi.util.NotNullLazyValue;
-import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.ApiStatus;
@@ -163,34 +160,23 @@ public abstract class PostfixTemplate implements PossiblyDumbAware {
   public abstract void expand(@NotNull PsiElement context, @NotNull Editor editor);
 
   /**
-   * Expands the template as a {@link ModCommand}, suitable for use in ModCompletion and preview/batch modes.
-   * Override this method to provide a non-editor-based expansion of the template.
-   * It will be with the suffix inside selection.
+   * Creates a {@link PostfixModExpander} strategy for ModCommand-based expansion.
+   * Returns {@code null} if this template does not support ModCommand expansion.
+   * <p>
+   * Override this method to provide ModCommand-based expansion of the template.
+   * Use {@link #isApplicableForModCommand()} to control whether the expander is actually used.
    *
-   * @param actionContext action context for the expansion
-   * @param provider      the provider that provided this template
-   * @param keyRange
-   * @return a {@link ModCommand} that performs the expansion, or {@code null} if this template does not support ModCommand expansion
+   * @return a {@link PostfixModExpander}, or {@code null} if not supported
    */
   @ApiStatus.Experimental
-  public @NotNull ModCommand expandMod(@NotNull ActionContext actionContext,
-                                       @NotNull PostfixTemplateProvider provider,
-                                       @NotNull TextRange keyRange) {
-    return ModCommand.nop();
-  }
-
+  public @Nullable PostfixModExpander createModExpander() { return null; }
 
   /**
-   * Determines whether this template can be used in the given context specified by the parameters for ModCompletion.
-   *
-   * @param context      PSI element before the template key
-   * @param copyDocument copy of the document that contains changes introduced
-   *                     in {@link PostfixTemplateProvider#preCheck(PsiFile, Editor, int)} method
-   * @param newOffset    offset before the template key
-   * @return {@code true} if template is applicable in the given context, {@code false} otherwise
+   * Determines whether this template is enabled for ModCommand-based expansion.
+   * Templates override this to return {@code true} after manual verification.
    */
   @ApiStatus.Experimental
-  public boolean isApplicableForModCommand(@NotNull PsiElement context, @NotNull Document copyDocument, int newOffset) {
+  public boolean isApplicableForModCommand() {
     return false;
   }
 
