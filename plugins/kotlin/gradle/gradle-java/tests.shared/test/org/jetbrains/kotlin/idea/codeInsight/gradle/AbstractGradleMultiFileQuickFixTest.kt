@@ -19,6 +19,7 @@ import com.intellij.testFramework.TemporaryDirectory
 import com.intellij.testFramework.common.timeoutRunBlocking
 import com.intellij.testFramework.utils.vfs.refreshAndGetVirtualDirectory
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.withContext
 import org.jetbrains.kotlin.idea.configuration.KotlinProjectConfigurationService
 import org.jetbrains.kotlin.idea.core.util.toPsiFile
@@ -30,6 +31,7 @@ import org.jetbrains.kotlin.psi.KtFile
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.io.path.CopyActionResult
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.copyToRecursively

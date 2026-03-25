@@ -3,6 +3,8 @@ package org.jetbrains.kotlin.idea.configuration
 
 import com.intellij.jarRepository.JarRepositoryManager
 import com.intellij.jarRepository.RepositoryLibraryType
+import com.intellij.openapi.application.readAction
+import com.intellij.openapi.application.writeAction
 import com.intellij.openapi.externalSystem.util.ExternalSystemApiUtil
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
@@ -14,13 +16,16 @@ import com.intellij.openapi.roots.libraries.Library
 import com.intellij.openapi.roots.libraries.LibraryTable
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.platform.backend.observation.launchTracked
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.idea.maven.utils.library.RepositoryLibraryProperties
 import org.jetbrains.kotlin.idea.base.util.isGradleModule
 import org.jetbrains.kotlin.idea.base.util.isMavenModule
 
 @ApiStatus.Internal
-class JpsKotlinBuildSystemDependencyManager : KotlinBuildSystemDependencyManager {
+class JpsKotlinBuildSystemDependencyManager(val coroutineScope: CoroutineScope) : KotlinBuildSystemDependencyManager {
     override fun isApplicable(module: Module): Boolean {
         return !module.isGradleModule && !module.isMavenModule && ExternalSystemApiUtil.getExternalProjectPath(module) == null
     }
@@ -38,26 +43,33 @@ class JpsKotlinBuildSystemDependencyManager : KotlinBuildSystemDependencyManager
         return null
     }
 
-    private fun Project.createNewLibrary(libraryDescriptor: ExternalLibraryDescriptor): Library? {
+    private fun Module.addLibrary(library: Library, scope: DependencyScope) {
+        with(ModuleRootManager.getInstance(this).modifiableModel) {
+            addLibraryEntries(listOf(library), scope, /* exported = */ false)
+            commit()
+        }
+    }
+
+    private suspend fun Project.createNewLibraryAndAddToModule(
+        libraryDescriptor: ExternalLibraryDescriptor,
+        scope: DependencyScope,
+        module: Module
+    ): Library? {
         val version = libraryDescriptor.preferredVersion ?: libraryDescriptor.maxVersion ?: libraryDescriptor.minVersion ?: return null
         val projectLibraryTable = LibraryTablesRegistrar.getInstance().getLibraryTable(this)
 
-        // Attempt to find a name that is not being used yet
-        val nameToUse = libraryDescriptor.suggestNameForLibrary(projectLibraryTable) ?: return null
-        val library = projectLibraryTable.createLibrary(nameToUse) as? LibraryEx ?: return null
-
-        library.modifiableModel.apply {
-            kind = RepositoryLibraryType.REPOSITORY_LIBRARY_KIND
-            val repositoryProperties = RepositoryLibraryProperties(
+        val repositoryProperties =
+            RepositoryLibraryProperties(
                 libraryDescriptor.libraryGroupId,
                 libraryDescriptor.libraryArtifactId,
                 version,
                 /* includeTransitiveDependencies = */ true,
                 /* excludedDependencies = */ emptyList()
             )
-            properties = repositoryProperties
-            val dependencies = JarRepositoryManager.loadDependenciesModal(
-                /* project = */ this@createNewLibrary,
+
+        val dependencies =
+            JarRepositoryManager.loadDependenciesModal(
+                /* project = */ this@createNewLibraryAndAddToModule,
                 /* libraryProps = */ repositoryProperties,
                 /* loadSources = */ true,
                 /* loadJavadoc = */ true,
@@ -65,12 +77,24 @@ class JpsKotlinBuildSystemDependencyManager : KotlinBuildSystemDependencyManager
                 /* repositories = */ null
             )
 
-            dependencies.forEach {
-                addRoot(it.file, it.type)
-            }
-        }.commit()
+        // Attempt to find a name that is not being used yet
 
-        return library
+        return writeAction {
+            val nameToUse = libraryDescriptor.suggestNameForLibrary(projectLibraryTable) ?: return@writeAction null
+            val library = projectLibraryTable.createLibrary(nameToUse) as? LibraryEx ?: return@writeAction null
+            library.modifiableModel.apply {
+                kind = RepositoryLibraryType.REPOSITORY_LIBRARY_KIND
+                properties = repositoryProperties
+
+                dependencies.forEach {
+                    addRoot(it.file, it.type)
+                }
+            }.commit()
+
+            module.addLibrary(library, scope)
+
+            library
+        }
     }
 
     private fun Project.findExistingLibrary(libraryDescriptor: ExternalLibraryDescriptor): Library? {
@@ -85,16 +109,21 @@ class JpsKotlinBuildSystemDependencyManager : KotlinBuildSystemDependencyManager
         }
     }
 
-    override fun addDependency(module: Module, libraryDescriptor: ExternalLibraryDescriptor) {
+    override fun addDependency(module: Module, libraryDescriptor: ExternalLibraryDescriptor): Job {
+        val project = module.project
         val scope = libraryDescriptor.preferredScope ?: DependencyScope.COMPILE
 
         // Allow for reusing the library if it already exists
-        val library =
-            module.project.findExistingLibrary(libraryDescriptor) ?: module.project.createNewLibrary(libraryDescriptor) ?: return
+        return coroutineScope.launchTracked {
+            readAction { project.findExistingLibrary(libraryDescriptor) } ?.let {
+                writeAction {
+                    module.addLibrary(it, scope)
+                }
+                return@launchTracked
+            }
 
-        val modifiableModule = ModuleRootManager.getInstance(module).modifiableModel
-        modifiableModule.addLibraryEntries(listOf(library), scope, /* exported = */ false)
-        modifiableModule.commit()
+            project.createNewLibraryAndAddToModule(libraryDescriptor, scope, module)
+        }
     }
 
     override fun getBuildScriptFile(module: Module): VirtualFile? {

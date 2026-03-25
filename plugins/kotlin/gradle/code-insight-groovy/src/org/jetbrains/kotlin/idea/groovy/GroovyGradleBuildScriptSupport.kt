@@ -9,6 +9,7 @@ import com.intellij.openapi.roots.ExternalLibraryDescriptor
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.idea.base.codeInsight.CliArgumentStringBuilder.buildArgumentString
@@ -342,18 +343,19 @@ class GroovyBuildScriptManipulator(
             libraryDescriptor.preferredVersion ?: libraryDescriptor.maxVersion ?: libraryDescriptor.minVersion
         )
 
-        if (targetModule != null && usesNewMultiplatform()) {
+        val dependenciesBlock = if (targetModule != null && usesNewMultiplatform()) {
             scriptFile
                 .getKotlinBlock()
                 .getSourceSetsBlock()
                 .getBlockOrCreate(targetModule.name.takeLastWhile { it != '.' })
                 .getDependenciesBlock()
-                .addLastExpressionInBlockIfNeeded(dependencyString)
         } else {
-            scriptFile.getDependenciesBlock().apply {
-                addLastExpressionInBlockIfNeeded(dependencyString)
-            }
+            scriptFile.getDependenciesBlock()
         }
+
+        dependenciesBlock.addLastExpressionInBlockIfNeeded(dependencyString)
+        val codeStyleManager = CodeStyleManager.getInstance(scriptFile.project)
+        codeStyleManager.reformat(dependenciesBlock.parent, true)
     }
 
     override fun getKotlinStdlibVersion(): String? {

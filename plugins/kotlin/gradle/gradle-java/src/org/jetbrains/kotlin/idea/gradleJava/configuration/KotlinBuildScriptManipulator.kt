@@ -9,8 +9,10 @@ import com.intellij.openapi.roots.ExternalLibraryDescriptor
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.childrenOfType
+import com.intellij.psi.util.parentOfType
 import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.idea.base.codeInsight.CliArgumentStringBuilder.buildArgumentString
 import org.jetbrains.kotlin.idea.base.codeInsight.CliArgumentStringBuilder.replaceLanguageFeature
@@ -253,13 +255,19 @@ class KotlinBuildScriptManipulator(
         scope: DependencyScope,
         libraryDescriptor: ExternalLibraryDescriptor
     ) {
+        val codeStyleManager = CodeStyleManager.getInstance(scriptFile.project)
+
         if (targetModule != null && targetModule.isMultiPlatformModule) {
-            if (addKotlinMultiplatformDependencyWithConventionSourceSets(
-                    targetModule, scope,
-                    libraryDescriptor.libraryGroupId, libraryDescriptor.libraryArtifactId,
-                    libraryDescriptor.preferredVersion ?: libraryDescriptor.maxVersion ?: libraryDescriptor.minVersion,
-                )
-            ) return
+            val blockExpression = addKotlinMultiplatformDependencyWithConventionSourceSets(
+                targetModule, scope,
+                libraryDescriptor.libraryGroupId, libraryDescriptor.libraryArtifactId,
+                libraryDescriptor.preferredVersion ?: libraryDescriptor.maxVersion ?: libraryDescriptor.minVersion,
+            )
+            if (blockExpression != null) {
+                val elementToReformat = blockExpression.parentOfType<KtBlockExpression>() ?: blockExpression
+                codeStyleManager.reformat(elementToReformat, true)
+                return
+            }
         }
 
         val dependencyText = getCompileDependencySnippet(
@@ -269,15 +277,19 @@ class KotlinBuildScriptManipulator(
             scope.toGradleCompileScope(targetModule)
         )
 
-        if (targetModule != null && usesNewMultiplatform()) {
+        val dependenciesBlock = if (targetModule != null && usesNewMultiplatform()) {
             val findOrCreateTargetSourceSet = scriptFile
                 .getKotlinBlock()
                 ?.getSourceSetsBlock()
                 ?.findOrCreateTargetSourceSet(targetModule.name.takeLastWhile { it != '.' })
-            val dependenciesBlock = findOrCreateTargetSourceSet?.getDependenciesBlock()
-            dependenciesBlock?.addExpressionIfMissing(dependencyText)
+            findOrCreateTargetSourceSet?.getDependenciesBlock()
         } else {
-            scriptFile.getDependenciesBlock()?.addExpressionIfMissing(dependencyText)
+            scriptFile.getDependenciesBlock()
+        }
+
+        dependenciesBlock?.let {
+            it.addExpressionIfMissing(dependencyText)
+            codeStyleManager.reformat(it.parent, true)
         }
     }
 

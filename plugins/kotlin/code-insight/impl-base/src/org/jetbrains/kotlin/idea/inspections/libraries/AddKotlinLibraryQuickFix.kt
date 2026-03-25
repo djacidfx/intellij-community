@@ -2,14 +2,12 @@
 package org.jetbrains.kotlin.idea.inspections.libraries
 
 import com.intellij.codeInsight.intention.HighPriorityAction
-import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.codeInspection.util.IntentionName
-import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.fileEditor.FileEditorManager
-import com.intellij.openapi.project.Project
+import com.intellij.modcommand.ActionContext
+import com.intellij.modcommand.ModCommand
+import com.intellij.modcommand.ModCommandAction
+import com.intellij.modcommand.Presentation
 import com.intellij.openapi.roots.ExternalLibraryDescriptor
-import com.intellij.psi.PsiFile
 import org.jetbrains.kotlin.idea.base.util.module
 import org.jetbrains.kotlin.idea.configuration.KotlinBuildSystemDependencyManager
 import org.jetbrains.kotlin.idea.configuration.isProjectSyncPendingOrInProgress
@@ -19,30 +17,23 @@ class AddKotlinLibraryQuickFix(
     private val libraryDescriptor: ExternalLibraryDescriptor,
     @IntentionName
     private val quickFixText: String
-) : IntentionAction, HighPriorityAction {
-    override fun getText(): String = quickFixText
-    override fun getFamilyName(): String = quickFixText
-    override fun startInWriteAction(): Boolean = false
-    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean {
-        val module = file?.module ?: return false
-        return dependencyManager.isApplicable(module) && !dependencyManager.isProjectSyncPendingOrInProgress()
+) : ModCommandAction, HighPriorityAction {
+    override fun getPresentation(context: ActionContext): Presentation? {
+        val file = context.file
+        val module = file.module ?: return null
+        return quickFixText
+            .takeIf { dependencyManager.isApplicable(module) && !dependencyManager.isProjectSyncPendingOrInProgress() }
+            ?.let(Presentation::of)
     }
+    override fun getFamilyName(): String = quickFixText
 
-    override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        if (editor == null && !ApplicationManager.getApplication().isHeadlessEnvironment) return
-        if (file == null) return
-        val psiFile = file.originalFile
-        val module = psiFile.module ?: return
+    override fun perform(context: ActionContext): ModCommand {
+        val element = context.file
+            .takeIf {
+                val module = it.module
+                module != null && dependencyManager.isApplicable(module) && !dependencyManager.isProjectSyncPendingOrInProgress()
+            } ?: return ModCommand.nop()
 
-        ApplicationManager.getApplication().runWriteAction {
-            dependencyManager.addDependency(module, libraryDescriptor)
-        }
-
-        dependencyManager.startProjectSync()
-
-        val buildScriptFile = dependencyManager.getBuildScriptFile(module)
-        if (buildScriptFile != null) {
-            FileEditorManager.getInstance(module.project).openFile(buildScriptFile, false)
-        }
+        return ModCommand.updateOption(element, "KotlinDependencyProvider.library", libraryDescriptor)
     }
 }

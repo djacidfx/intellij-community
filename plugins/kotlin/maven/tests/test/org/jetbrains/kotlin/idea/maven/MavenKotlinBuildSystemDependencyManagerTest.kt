@@ -2,12 +2,12 @@
 package org.jetbrains.kotlin.idea.maven
 
 import com.intellij.openapi.application.runReadAction
-import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.project.modules
 import com.intellij.openapi.roots.DependencyScope
 import com.intellij.openapi.roots.ExternalLibraryDescriptor
 import com.intellij.openapi.vfs.findPsiFile
 import com.intellij.psi.xml.XmlFile
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.kotlin.idea.configuration.KotlinBuildSystemDependencyManager
@@ -32,7 +32,7 @@ class MavenKotlinBuildSystemDependencyManagerTest : AbstractKotlinMavenImporterT
 
     override fun setUp() {
         super.setUp()
-        mavenDependencyManager = MavenKotlinBuildSystemDependencyManager(project)
+        mavenDependencyManager = KotlinBuildSystemDependencyManager.findConfigurator<MavenKotlinBuildSystemDependencyManager>(project)
     }
 
     @Test
@@ -101,22 +101,22 @@ class MavenKotlinBuildSystemDependencyManagerTest : AbstractKotlinMavenImporterT
 
     private fun doAddingDependencyTest(moduleName: String, libraryDescriptor: ExternalLibraryDescriptor, expectedScope: String? = null) {
         val module = project.modules.find { it.name == moduleName }!!
-        WriteCommandAction.writeCommandAction(project).run<Throwable> {
-            mavenDependencyManager.addDependency(module, libraryDescriptor)
-        }
-        runReadAction {
-            val buildScript = mavenDependencyManager.getBuildScriptFile(module)
-            assertNotNull(buildScript)
-            val xmlFile = buildScript?.findPsiFile(project) as XmlFile
-            val pomFile = PomFile.forFileOrNull(xmlFile)!!
-            val foundDependency = pomFile.domModel.dependencies.dependencies.firstOrNull {
-                it.artifactId.stringValue == libraryDescriptor.libraryArtifactId &&
-                        it.groupId.stringValue == libraryDescriptor.libraryGroupId &&
-                        it.version.stringValue == libraryDescriptor.preferredVersion &&
-                        it.scope.stringValue == expectedScope
+        mavenDependencyManager.addDependency(module, libraryDescriptor)
+        mavenDependencyManager.coroutineScope.launch {
+            runReadAction {
+                val buildScript = mavenDependencyManager.getBuildScriptFile(module)
+                assertNotNull(buildScript)
+                val xmlFile = buildScript?.findPsiFile(project) as XmlFile
+                val pomFile = PomFile.forFileOrNull(xmlFile)!!
+                val foundDependency = pomFile.domModel.dependencies.dependencies.firstOrNull {
+                    it.artifactId.stringValue == libraryDescriptor.libraryArtifactId &&
+                            it.groupId.stringValue == libraryDescriptor.libraryGroupId &&
+                            it.version.stringValue == libraryDescriptor.preferredVersion &&
+                            it.scope.stringValue == expectedScope
 
+                }
+                assertNotNull("Did not find expected dependency in pom.xml", foundDependency)
             }
-            assertNotNull("Did not find expected dependency in pom.xml", foundDependency)
         }
     }
 

@@ -37,30 +37,30 @@ import org.jetbrains.kotlin.tooling.core.KotlinToolingVersion
 internal fun KotlinBuildScriptManipulator.addKotlinMultiplatformDependencyWithConventionSourceSets(
     module: Module, scope: DependencyScope,
     libraryGroupId: String, libraryArtifactId: String, libraryVersion: String?,
-): Boolean {
+): KtBlockExpression? {
     /* Guards */
-    if (!module.isMultiPlatformModule) return false
-    val kotlinGradlePluginVersion = module.kotlinGradlePluginVersion ?: return false
-    val sourceSetName = KotlinBuildSystemFacade.getInstance().findSourceSet(module)?.name ?: return false
-    val knownSince = isStaticallyAccessibleSince(sourceSetName) ?: return false
-    if (kotlinGradlePluginVersion >= knownSince) {
-        return addKotlinMultiplatformDependencyToKnownSourceSet(
+    if (!module.isMultiPlatformModule) return null
+    val kotlinGradlePluginVersion = module.kotlinGradlePluginVersion ?: return null
+    val sourceSetName = KotlinBuildSystemFacade.getInstance().findSourceSet(module)?.name ?: return null
+    val knownSince = isStaticallyAccessibleSince(sourceSetName) ?: return null
+    return if (kotlinGradlePluginVersion >= knownSince) {
+        addKotlinMultiplatformDependencyToKnownSourceSet(
             sourceSetName, scope,
             libraryGroupId, libraryArtifactId, libraryVersion,
         )
+    } else {
+        null
     }
-
-    return false
 }
 
 private fun KotlinBuildScriptManipulator.addKotlinMultiplatformDependencyToKnownSourceSet(
     sourceSetName: String, scope: DependencyScope,
     libraryGroupId: String, libraryArtifactId: String, libraryVersion: String?,
-): Boolean {
-    val kotlinBlock = scriptFile.getKotlinBlock() ?: return false
+): KtBlockExpression? {
+    val kotlinBlock = scriptFile.getKotlinBlock() ?: return null
 
     val dependenciesBlock = findSourceSetDependenciesBlock(kotlinBlock, sourceSetName)
-        ?: createSourceSetDependenciesBlock(kotlinBlock, sourceSetName) ?: return false
+        ?: createSourceSetDependenciesBlock(kotlinBlock, sourceSetName) ?: return null
 
     val dependencyExpression = getCompileDependencySnippet(
         libraryGroupId, libraryArtifactId, libraryVersion, when (scope) {
@@ -72,7 +72,7 @@ private fun KotlinBuildScriptManipulator.addKotlinMultiplatformDependencyToKnown
     )
 
     dependenciesBlock.addExpressionIfMissing(dependencyExpression)
-    return true
+    return dependenciesBlock
 }
 
 private fun KotlinBuildScriptManipulator.findSourceSetDependenciesBlock(
