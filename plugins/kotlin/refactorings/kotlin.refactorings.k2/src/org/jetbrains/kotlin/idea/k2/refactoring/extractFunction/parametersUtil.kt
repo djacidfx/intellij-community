@@ -8,7 +8,6 @@ import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.parentOfType
 import com.intellij.util.text.UniqueNameGenerator
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
-import org.jetbrains.kotlin.analysis.api.KaImplementationDetail
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.analyzeCopy
@@ -19,7 +18,6 @@ import org.jetbrains.kotlin.analysis.api.components.callableSymbol
 import org.jetbrains.kotlin.analysis.api.components.containingDeclaration
 import org.jetbrains.kotlin.analysis.api.components.expectedType
 import org.jetbrains.kotlin.analysis.api.components.expressionType
-import org.jetbrains.kotlin.analysis.api.components.render
 import org.jetbrains.kotlin.analysis.api.components.resolveToCall
 import org.jetbrains.kotlin.analysis.api.components.type
 import org.jetbrains.kotlin.analysis.api.components.typeCreator
@@ -85,7 +83,6 @@ import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtOperationReferenceExpression
 import org.jetbrains.kotlin.psi.KtParameter
 import org.jetbrains.kotlin.psi.KtProperty
-import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtQualifiedExpression
 import org.jetbrains.kotlin.psi.KtReferenceExpression
 import org.jetbrains.kotlin.psi.KtSimpleNameExpression
@@ -102,7 +99,6 @@ import org.jetbrains.kotlin.psi.psiUtil.getParentOfTypeAndBranch
 import org.jetbrains.kotlin.psi.psiUtil.getQualifiedExpressionForSelector
 import org.jetbrains.kotlin.psi.psiUtil.getQualifiedExpressionForSelectorOrThis
 import org.jetbrains.kotlin.psi.psiUtil.isInsideOf
-import org.jetbrains.kotlin.types.Variance
 import org.jetbrains.kotlin.types.expressions.OperatorConventions
 
 /**
@@ -476,43 +472,27 @@ private fun getReferencedClassifierSymbol(
 }
 
 context(session: KaSession)
-@OptIn(KaExperimentalApi::class, KaImplementationDetail::class)
 private fun createOriginalType(
     extractFunctionRef: Boolean,
     originalDeclaration: PsiNamedElement,
     parameterExpression: KtExpression?,
     receiverToExtract: KaReceiverValue?
-): KaType = (if (extractFunctionRef) {
-    val functionSymbol = (originalDeclaration as KtNamedFunction).symbol as KaNamedFunctionSymbol
-    val typeString =
-        buildString { //todo rewrite as soon as functional type can be created by api call: https://youtrack.jetbrains.com/issue/KT-66566
-            functionSymbol.receiverParameter?.returnType?.render(position = Variance.INVARIANT)?.let {
-                append(it)
-                append(".")
-            }
-            functionSymbol.valueParameters.joinTo(
-                this,
-                ", ",
-                "(",
-                ")"
-            ) { //names provided here are removed due to https://youtrack.jetbrains.com/issue/KT-65846
-                it.name.asString() + ": " + it.returnType.render(position = Variance.INVARIANT)
-            }
+): KaType = when {
+        extractFunctionRef -> analyze(originalDeclaration as KtNamedFunction) {
+            val functionSymbol = originalDeclaration.symbol as KaNamedFunctionSymbol
+            @OptIn(KaExperimentalApi::class)
+            typeCreator.functionType {
+                receiverType = functionSymbol.receiverParameter?.returnType
 
-            append(" -> ")
-            append(functionSymbol.returnType.render(position = Variance.INVARIANT))
+                functionSymbol.valueParameters.forEach { parameter ->
+                    valueParameter(parameter.name, parameter.returnType)
+                }
+
+                returnType = functionSymbol.returnType
+            }
         }
-
-    val contentElement =
-        KtPsiFactory(originalDeclaration.project).createTypeCodeFragment(typeString, originalDeclaration).getContentElement()
-    if (contentElement != null) {
-        analyze(contentElement) { contentElement.type.createPointer() }.restore(session)
-    } else null
-
-} else {
-    parameterExpression?.expressionType ?: receiverToExtract?.type
-}) ?: builtinTypes.nullableAny
-
+        else -> parameterExpression?.expressionType ?: receiverToExtract?.type
+    } ?: builtinTypes.nullableAny
 
 @OptIn(KaExperimentalApi::class)
 private fun ExtractionData.getBrokenReferencesInfo(body: KtBlockExpression): List<ResolvedReferenceInfo<PsiNamedElement, KtReferenceExpression, KaType>> {

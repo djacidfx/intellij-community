@@ -19,7 +19,6 @@ import com.intellij.usageView.UsageInfo
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.components.asPsiType
-import org.jetbrains.kotlin.analysis.api.components.buildClassType
 import org.jetbrains.kotlin.analysis.api.components.buildSubstitutor
 import org.jetbrains.kotlin.analysis.api.components.containingDeclaration
 import org.jetbrains.kotlin.analysis.api.components.expressionType
@@ -28,6 +27,7 @@ import org.jetbrains.kotlin.analysis.api.components.isSubtypeOf
 import org.jetbrains.kotlin.analysis.api.components.render
 import org.jetbrains.kotlin.analysis.api.components.resolveToCall
 import org.jetbrains.kotlin.analysis.api.components.returnType
+import org.jetbrains.kotlin.analysis.api.components.typeCreator
 import org.jetbrains.kotlin.analysis.api.fir.diagnostics.KaFirDiagnostic
 import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
 import org.jetbrains.kotlin.analysis.api.resolution.KaErrorCallInfo
@@ -45,6 +45,7 @@ import org.jetbrains.kotlin.analysis.api.types.KaType
 import org.jetbrains.kotlin.analysis.api.types.KaTypeMappingMode
 import org.jetbrains.kotlin.builtins.StandardNames.IMPLICIT_LAMBDA_PARAMETER_NAME
 import org.jetbrains.kotlin.builtins.functions.FunctionTypeKind
+import org.jetbrains.kotlin.builtins.functions.isSuspendOrKSuspendFunction
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.analyzeInModalWindow
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.approximateAnonymousObjectToSupertypeOrSelf
 import org.jetbrains.kotlin.idea.base.codeInsight.KotlinDeclarationNameValidator
@@ -413,20 +414,16 @@ object ChangeSignatureFixFactory {
     context(_: KaSession)
     fun KaType.toFunctionType(): KaType? {
         val typeKind = functionTypeKind
-        when (typeKind) {
-            FunctionTypeKind.KFunction -> typeKind.nonReflectKind()
-            FunctionTypeKind.KSuspendFunction -> typeKind.nonReflectKind()
-            else -> null
-        }?.let {
-            val functionalType = this as KaFunctionType
-            return buildClassType(it.numberedClassId((functionalType).parameters.size)) {
-                functionalType.parameterTypes.forEach { arg ->
-                    argument(arg)
-                }
-                argument(functionalType.returnType)
+        if (typeKind != FunctionTypeKind.KSuspendFunction && typeKind != FunctionTypeKind.KFunction) return null
+
+        val functionalType = this as KaFunctionType
+        return typeCreator.functionType {
+            isSuspend = typeKind.isSuspendOrKSuspendFunction
+            functionalType.parameters.forEach { originalParameter ->
+                valueParameter(originalParameter.name, originalParameter.type)
             }
+            returnType = functionalType.returnType
         }
-        return null
     }
 
     context(_: KaSession)
