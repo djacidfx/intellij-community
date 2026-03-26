@@ -111,7 +111,8 @@ abstract class KotlinWithGradleConfigurator : BaseKotlinProjectConfigurator() {
 
     override suspend fun queueSyncAndWaitForProjectToBeConfigured(project: Project) {
         blockingContextScope {
-            queueSyncIfNeeded(project)
+            val configurationService = KotlinProjectConfigurationService.getInstance(project)
+            configurationService.queueSyncIfPossible()
         }
     }
 

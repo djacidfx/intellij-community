@@ -5,6 +5,7 @@ package org.jetbrains.kotlin.idea.maven.configuration
 import com.intellij.codeInsight.CodeInsightUtilCore
 import com.intellij.codeInsight.daemon.impl.quickfix.OrderEntryFix
 import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.externalSystem.autoimport.ExternalSystemProjectTrackerSettings
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtilCore
@@ -196,8 +197,12 @@ abstract class KotlinMavenConfigurator protected constructor(
     }
 
     override suspend fun queueSyncAndWaitForProjectToBeConfigured(project: Project) {
-        queueSyncIfNeeded(project)
-        Observation.awaitConfiguration(project)
+        val projectSettings = ExternalSystemProjectTrackerSettings.getInstance(project)
+        if (projectSettings.autoReloadType != ExternalSystemProjectTrackerSettings.AutoReloadType.NONE) {
+            val configurationService = KotlinProjectConfigurationService.getInstance(project)
+            configurationService.queueSync()
+            Observation.awaitConfiguration(project)
+        }
     }
 
     override fun calculateAutoConfigSettingsReadAction(module: Module): AutoConfigurationSettings? {

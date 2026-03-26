@@ -73,6 +73,6 @@ class GradleKotlinBuildSystemDependencyManager(private val project: Project, pri
     }
 
     override fun startProjectSync() {
-        KotlinProjectConfigurationService.getInstance(project).queueSync()
+        KotlinProjectConfigurationService.getInstance(project).queueSyncIfPossible()
     }
 }

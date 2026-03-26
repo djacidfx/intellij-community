@@ -96,10 +96,6 @@ interface KotlinProjectConfigurator {
     @JvmSuppressWildcards
     fun configure(project: Project, excludeModules: Collection<Module>)
 
-    fun queueSyncIfNeeded(project: Project) {
-        // Do nothing here. Stub for not breaking external API implementations
-    }
-
     suspend fun queueSyncAndWaitForProjectToBeConfigured(project: Project) {
         // Do nothing here. Stub for not breaking external API implementations
     }
@@ -161,9 +157,10 @@ interface KotlinProjectConfigurator {
     ) {
         // Auto-config only ever works on a single module
         val theOnlyModule = modules.takeIf { isAutoConfig }?.singleOrNull()
+        val configurationService = KotlinProjectConfigurationService.getInstance(project)
         UndoManager.getInstance(project).undoableActionPerformed(object : BasicUndoableAction() {
             override fun undo() {
-                queueSyncIfNeeded(project)
+                configurationService.queueSyncIfPossible()
                 theOnlyModule?.let {
                     notificationHolder.showAutoConfigurationUndoneNotification(it)
                 }
@@ -171,7 +168,7 @@ interface KotlinProjectConfigurator {
             }
 
             override fun redo() {
-                queueSyncIfNeeded(project)
+                configurationService.queueSyncIfPossible()
                 theOnlyModule?.let {
                     notificationHolder.reshowAutoConfiguredNotification(it)
                 }

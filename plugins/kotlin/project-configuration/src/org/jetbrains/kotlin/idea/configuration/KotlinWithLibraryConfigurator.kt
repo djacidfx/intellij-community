@@ -164,11 +164,6 @@ abstract class KotlinWithLibraryConfigurator<P : LibraryProperties<*>> protected
         return configuredModules
     }
 
-    override fun queueSyncIfNeeded(project: Project) {
-        // Do nothing; we queue syncs for Gradle and Maven projects for Kotlin stdlib to be loaded before Java to Kotlin conversion.
-        // In the case of JPS, it immediately loads Kotlin
-    }
-
     fun getOrCreateKotlinLibrary(
         project: Project,
         collector: NotificationMessageCollector

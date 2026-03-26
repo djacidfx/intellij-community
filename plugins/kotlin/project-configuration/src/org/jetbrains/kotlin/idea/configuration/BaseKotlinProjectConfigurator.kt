@@ -52,10 +52,6 @@ abstract class BaseKotlinProjectConfigurator : KotlinProjectConfigurator {
     @RequiresReadLock
     protected abstract fun calculateAutoConfigSettingsReadAction(module: Module): AutoConfigurationSettings?
 
-    override fun queueSyncIfNeeded(project: Project) {
-        KotlinProjectConfigurationService.getInstance(project).queueSync()
-    }
-
     override suspend fun runAutoConfig(settings: AutoConfigurationSettings) {
         val module = settings.module
         val project = module.project
@@ -85,7 +81,8 @@ abstract class BaseKotlinProjectConfigurator : KotlinProjectConfigurator {
         val result = resultBuilder.build()
         val error = result.error
         if (error == null) {
-            queueSyncIfNeeded(project)
+            val configurationService = KotlinProjectConfigurationService.getInstance(project)
+            configurationService.queueSyncIfPossible()
 
             val changes = readAction { result.changedFiles.calculateChanges() }
             notificationHolder
@@ -142,7 +139,8 @@ abstract class BaseKotlinProjectConfigurator : KotlinProjectConfigurator {
 
         val projectPath = project.basePath?.let { Path.of(it) }
 
-        queueSyncIfNeeded(project)
+        val configurationService = KotlinProjectConfigurationService.getInstance(project)
+        configurationService.queueSyncIfPossible()
 
         for (file in configurationResult.changedFiles.getChangedFiles()) {
             val virtualFile = file.virtualFile ?: continue

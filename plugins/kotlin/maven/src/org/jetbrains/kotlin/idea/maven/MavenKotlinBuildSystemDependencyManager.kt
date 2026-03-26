@@ -6,7 +6,6 @@ import com.intellij.modcommand.ModCommand
 import com.intellij.openapi.application.writeAction
 import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.externalSystem.autoimport.ExternalSystemProjectNotificationAware
-import com.intellij.openapi.externalSystem.autoimport.ExternalSystemProjectTracker
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.DependencyScope
@@ -104,6 +103,6 @@ class MavenKotlinBuildSystemDependencyManager(
     }
 
     override fun startProjectSync() {
-        ExternalSystemProjectTracker.getInstance(project).scheduleProjectRefresh()
+        KotlinProjectConfigurationService.getInstance(project).queueSyncIfPossible()
     }
 }
