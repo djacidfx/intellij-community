@@ -3,6 +3,7 @@ package com.intellij.codeInsight.template.emmet.rpc
 
 import com.intellij.openapi.application.invokeLater
 import kotlinx.coroutines.launch
+import java.util.function.Consumer
 
 /**
  * This is a proxy between the legacy code and the rpc approach
@@ -27,6 +28,21 @@ object EmmetAbbreviationBaloonRpcFrontendHandler {
         EmmetAbbreviationBaloonRpc.instance().cancel(showEvent.transactionId, showEvent.editorId)
         invokeLater {
           callback.run()
+        }
+      }
+    }
+  }
+
+  /**
+   * This method probably could be removed, but it is more about the business logic and i don't want to change it now
+   */
+  @JvmStatic
+  fun isValid(showEvent: ShowAbbreviationBaloonUiEvent, handler: Consumer<Boolean>) {
+    showEvent.project()?.let { project ->
+      EmmetFrontendRpcService.scope(project).launch {
+        val isvalid = EmmetAbbreviationBaloonRpc.instance().isValid(showEvent.transactionId, showEvent.editorId)
+        invokeLater {
+          handler.accept(isvalid)
         }
       }
     }

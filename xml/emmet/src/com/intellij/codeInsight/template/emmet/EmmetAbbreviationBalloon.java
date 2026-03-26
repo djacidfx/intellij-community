@@ -90,10 +90,6 @@ public class EmmetAbbreviationBalloon {
     return correct;
   }
 
-  static boolean isValid(CustomTemplateCallback callback) {
-    return !callback.getEditor().isDisposed();
-  }
-
   public static class EmmetContextHelp {
     private final @NotNull Supplier<@NotNull @Tooltip String> myDescription;
 

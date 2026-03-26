@@ -54,12 +54,14 @@ final class EmmetAbbreviationBaloonUi {
     final DocumentAdapter documentListener = new DocumentAdapter() {
       @Override
       protected void textChanged(@NotNull DocumentEvent e) {
-        WriteIntentReadAction.run(() -> {
-          if (!EmmetAbbreviationBalloon.isValid(customTemplateCallback)) {
-            balloon.hide();
-            return;
-          }
-          EmmetAbbreviationBalloon.validateTemplateKey(field, balloon, field.getText(), customTemplateCallback);
+        EmmetAbbreviationBaloonRpcFrontendHandler.isValid(showEvent, (isValid) -> {
+          WriteIntentReadAction.run(() -> {
+            if (!isValid) {
+              balloon.hide();
+              return;
+            }
+            EmmetAbbreviationBalloon.validateTemplateKey(field, balloon, field.getText(), customTemplateCallback);
+          });
         });
       }
     };
@@ -68,8 +70,11 @@ final class EmmetAbbreviationBaloonUi {
     final KeyAdapter keyListener = new KeyAdapter() {
       @Override
       public void keyPressed(@NotNull KeyEvent e) {
-        if (!field.isPopupVisible()) {
-          if (!EmmetAbbreviationBalloon.isValid(customTemplateCallback)) {
+        if (field.isPopupVisible()) {
+          return;
+        }
+        EmmetAbbreviationBaloonRpcFrontendHandler.isValid(showEvent, (isValid) -> {
+          if (!isValid) {
             balloon.hide();
             return;
           }
@@ -89,7 +94,7 @@ final class EmmetAbbreviationBaloonUi {
             }
             case KeyEvent.VK_ESCAPE -> EmmetAbbreviationBaloonRpcFrontendHandler.cancel(showEvent, () -> balloon.hide(false));
           }
-        }
+        });
       }
     };
     field.addKeyboardListener(keyListener);
