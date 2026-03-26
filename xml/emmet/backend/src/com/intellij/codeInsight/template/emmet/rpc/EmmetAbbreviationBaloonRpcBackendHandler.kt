@@ -35,6 +35,7 @@ internal class EmmetAbbreviationBaloonRpcBackendHandler : EmmetAbbreviationBaloo
         return@writeIntentReadAction
       }
       invocationContext.callback.onEnter(abbreviation)
+      EmmetAbbreviationBaloonTopic.dropInvocationContext(transactionId, editorId)
     }
   }
 
