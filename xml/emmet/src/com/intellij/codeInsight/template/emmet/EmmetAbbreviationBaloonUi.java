@@ -60,7 +60,8 @@ final class EmmetAbbreviationBaloonUi {
               balloon.hide();
               return;
             }
-            EmmetAbbreviationBalloon.validateTemplateKey(field, balloon, field.getText(), customTemplateCallback);
+            EmmetAbbreviationBaloonRpcFrontendHandler.validateTemplateKey(showEvent, field, balloon, (isCorrect) -> {
+            });
           });
         });
       }
@@ -81,15 +82,18 @@ final class EmmetAbbreviationBaloonUi {
 
           switch (e.getKeyCode()) {
             case KeyEvent.VK_ENTER -> {
-              WriteIntentReadAction.run(() -> {
-                final String abbreviation = field.getText();
-                if (EmmetAbbreviationBalloon.validateTemplateKey(field, balloon, abbreviation, customTemplateCallback)) {
+              EmmetAbbreviationBaloonRpcFrontendHandler.validateTemplateKey(showEvent, field, balloon, (isCorrect) -> {
+                WriteIntentReadAction.run(() -> {
+                  if (!isCorrect) {
+                    return;
+                  }
+                  final String abbreviation = field.getText();
                   EmmetAbbreviationBaloonRpcFrontendHandler.enter(showEvent, abbreviation, () -> {
                     PropertiesComponent.getInstance().setValue(showEvent.getLastAbbreviationKey(), abbreviation);
                     field.addCurrentTextToHistory();
                     balloon.hide();
                   });
-                }
+                });
               });
             }
             case KeyEvent.VK_ESCAPE -> EmmetAbbreviationBaloonRpcFrontendHandler.cancel(showEvent, () -> balloon.hide(false));

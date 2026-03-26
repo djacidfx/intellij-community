@@ -8,14 +8,11 @@ import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.impl.EditorIdKt;
-import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.util.NlsContexts.LinkLabel;
 import com.intellij.openapi.util.NlsContexts.Tooltip;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.ContextHelpLabel;
-import com.intellij.ui.LightColors;
-import com.intellij.ui.TextFieldWithHistory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.TestOnly;
@@ -76,18 +73,6 @@ public class EmmetAbbreviationBalloon {
 
     //EmmetAbbreviationBaloonTopic.invokeUi(invocationEvent, myCallback, customTemplateCallback);
     EmmetAbbreviationBaloonUi.showBaloon(customTemplateCallback, invocationEvent, myCallback);
-  }
-
-  static boolean validateTemplateKey(@NotNull TextFieldWithHistory field,
-                                             @Nullable Balloon balloon,
-                                             @NotNull String abbreviation,
-                                             @NotNull CustomTemplateCallback callback) {
-    final boolean correct = ZenCodingTemplate.checkTemplateKey(abbreviation, callback);
-    field.getTextEditor().setBackground(correct ? LightColors.SLIGHTLY_GREEN : LightColors.RED);
-    if (balloon != null && !balloon.isDisposed()) {
-      balloon.revalidate();
-    }
-    return correct;
   }
 
   public static class EmmetContextHelp {

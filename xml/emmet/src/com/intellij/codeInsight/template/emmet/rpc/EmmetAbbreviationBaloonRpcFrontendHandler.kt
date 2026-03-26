@@ -2,6 +2,9 @@
 package com.intellij.codeInsight.template.emmet.rpc
 
 import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.ui.popup.Balloon
+import com.intellij.ui.LightColors
+import com.intellij.ui.TextFieldWithHistory
 import kotlinx.coroutines.launch
 import java.util.function.Consumer
 
@@ -16,6 +19,35 @@ object EmmetAbbreviationBaloonRpcFrontendHandler {
         EmmetAbbreviationBaloonRpc.instance().enter(showEvent.transactionId, showEvent.editorId, abbreviation)
         invokeLater {
           callback.run()
+        }
+      }
+    }
+  }
+
+  @JvmStatic
+  fun validateTemplateKey(
+    showEvent: ShowAbbreviationBaloonUiEvent,
+    field: TextFieldWithHistory,
+    balloon: Balloon?,
+    handler: Consumer<Boolean>,
+  ) {
+    val abbreviation = field.text
+    showEvent.project()?.let { project ->
+      EmmetFrontendRpcService.scope(project).launch {
+        val isCorrect = EmmetAbbreviationBaloonRpc.instance().isValidTemplateKey(
+          showEvent.transactionId, showEvent.editorId, abbreviation)
+
+        invokeLater {
+          if (!abbreviation.equals(field.text)) {
+            // text changed while we were checking it
+            validateTemplateKey(showEvent, field, balloon, handler)
+            return@invokeLater
+          }
+          field.textEditor.setBackground(if (isCorrect) LightColors.SLIGHTLY_GREEN else LightColors.RED)
+          if (balloon != null && !balloon.isDisposed()) {
+            balloon.revalidate()
+          }
+          handler.accept(isCorrect)
         }
       }
     }
