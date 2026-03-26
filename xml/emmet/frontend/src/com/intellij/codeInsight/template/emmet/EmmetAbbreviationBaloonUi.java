@@ -1,7 +1,6 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.codeInsight.template.emmet;
 
-import com.intellij.codeInsight.template.CustomTemplateCallback;
 import com.intellij.codeInsight.template.emmet.rpc.EmmetAbbreviationBaloonRpcFrontendHandler;
 import com.intellij.codeInsight.template.emmet.rpc.ShowAbbreviationBaloonUiEvent;
 import com.intellij.ide.util.PropertiesComponent;
@@ -30,9 +29,7 @@ import static com.intellij.codeInsight.template.emmet.EmmetAbbreviationBalloon.E
 final class EmmetAbbreviationBaloonUi {
   private static final Logger LOG = Logger.getInstance(EmmetAbbreviationBaloonUi.class);
 
-  static void showBaloon(@NotNull CustomTemplateCallback customTemplateCallback,
-                         @NotNull ShowAbbreviationBaloonUiEvent showEvent,
-                         @NotNull EmmetAbbreviationBalloon.Callback callback) {
+  static void showBaloon(@NotNull ShowAbbreviationBaloonUiEvent showEvent) {
     var editor = showEvent.editor();
     if (editor == null) {
       LOG.warn("Cannot find frontend editor for the: " + showEvent);

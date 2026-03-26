@@ -2,6 +2,7 @@
 package com.intellij.codeInsight.template.emmet
 
 import com.intellij.codeInsight.template.emmet.rpc.ShowAbbreviationBaloonUiEvent
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.project.Project
 import com.intellij.platform.rpc.topics.ProjectRemoteTopicListener
 
@@ -10,7 +11,5 @@ internal class EmmetAbbreviationBalloonListener : ProjectRemoteTopicListener<Sho
   override fun handleEvent(
     project: Project,
     event: ShowAbbreviationBaloonUiEvent,
-  ) {
-  }
-
+  ) = invokeLater { EmmetAbbreviationBaloonUi.showBaloon(event) }
 }
