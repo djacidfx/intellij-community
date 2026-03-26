@@ -7,7 +7,7 @@ import org.jetbrains.plugins.gradle.testFramework.GradleTestFixtureBuilder
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
 import org.jetbrains.plugins.gradle.testFramework.util.assumeThatGradleIsAtLeast
 import org.jetbrains.plugins.gradle.testFramework.util.assumeThatGradleIsOlderThan
-import org.junit.Ignore
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.params.ParameterizedTest
 
 internal class KotlinOptionsToCompilerOptionsInspectionTest : K2GradleCodeInsightTestCase() {
@@ -251,7 +251,7 @@ subprojects {
         }
     }
 
-    @Ignore("KTIJ-38171")
+    @Disabled("KTIJ-38171")
     @ParameterizedTest
     @AllGradleVersionsSource
     fun testDontReplaceWithMinusOperatorAndExpressionOnTheRightSide1(gradleVersion: GradleVersion) {
@@ -299,7 +299,7 @@ subprojects {
         }
     }
 
-    @Ignore("KTIJ-38171")
+    @Disabled("KTIJ-38171")
     @ParameterizedTest
     @AllGradleVersionsSource
     fun testDontReplaceWithMinusOperatorAndExpressionOnTheRightSide2(gradleVersion: GradleVersion) {
@@ -477,7 +477,7 @@ subprojects {
         }
     }
 
-    @Ignore("KTIJ-38174")
+    @Disabled("KTIJ-38174")
     @ParameterizedTest
     @AllGradleVersionsSource
     fun testFreeCompilerArgsMultipleAddition4(gradleVersion: GradleVersion) {
@@ -922,7 +922,7 @@ compileKotlin.compilerOptions {
         }
     }
 
-    @Ignore("KTIJ-38181") // The "After" part should be fixed don't know yet how
+    @Disabled("KTIJ-38181") // The "After" part should be fixed don't know yet how
     @ParameterizedTest
     @AllGradleVersionsSource
     fun testOptionsBeforeDot(gradleVersion: GradleVersion) {
@@ -943,7 +943,7 @@ tasks.withType<KotlinCompile>().configureEach {
         }
     }
 
-    @Ignore("KTIJ-38181") // The "After" part should be fixed don't know yet how
+    @Disabled("KTIJ-38181") // The "After" part should be fixed don't know yet how
     @ParameterizedTest
     @AllGradleVersionsSource
     fun testOptionsBeforeDotInDotQualifiedExpression(gradleVersion: GradleVersion) {
