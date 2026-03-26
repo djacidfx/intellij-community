@@ -1,6 +1,6 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
-package org.jetbrains.kotlin.idea.k2.hints.compilerPlugins;
+package org.jetbrains.kotlin.idea.k2.inspections.tests;
 
 import com.intellij.testFramework.TestDataPath;
 import org.jetbrains.kotlin.idea.base.plugin.KotlinPluginMode;
@@ -15,14 +15,14 @@ import org.junit.runner.RunWith;
  * DO NOT MODIFY MANUALLY.
  */
 @SuppressWarnings("all")
-@TestRoot("code-insight/kotlin.code-insight.k2")
+@TestRoot("code-insight/inspections-k2/tests")
 @TestDataPath("$CONTENT_ROOT")
 @RunWith(JUnit3RunnerWithInners.class)
-@TestMetadata("testData/inspections/compilerPlugins/allOpen")
-public abstract class AllOpenInspectionTestGenerated extends AbstractAllOpenInspectionTest {
+@TestMetadata("../../../idea/tests/testData/inspectionsPlugins/allOpen/local")
+public abstract class AllOpenLocalInspectionTestGenerated extends AbstractAllOpenLocalInspectionTest {
     @RunWith(JUnit3RunnerWithInners.class)
-    @TestMetadata("testData/inspections/compilerPlugins/allOpen/protectedIsPrivateInFinalClass")
-    public static class ProtectedIsPrivateInFinalClass extends AbstractAllOpenInspectionTest {
+    @TestMetadata("../../../idea/tests/testData/inspectionsPlugins/allOpen/local/protectedIsPrivateInFinalClass")
+    public static class ProtectedIsPrivateInFinalClass extends AbstractAllOpenLocalInspectionTest {
         @java.lang.Override
         @org.jetbrains.annotations.NotNull
         public final KotlinPluginMode getPluginMode() {
@@ -35,22 +35,22 @@ public abstract class AllOpenInspectionTestGenerated extends AbstractAllOpenInsp
 
         @TestMetadata("applicableIrrelevantAnnotation.kt")
         public void testApplicableIrrelevantAnnotation() throws Exception {
-            runTest("testData/inspections/compilerPlugins/allOpen/protectedIsPrivateInFinalClass/applicableIrrelevantAnnotation.kt");
+            runTest("../../../idea/tests/testData/inspectionsPlugins/allOpen/local/protectedIsPrivateInFinalClass/applicableIrrelevantAnnotation.kt");
         }
 
         @TestMetadata("inapplicableOpenAnnotation.kt")
         public void testInapplicableOpenAnnotation() throws Exception {
-            runTest("testData/inspections/compilerPlugins/allOpen/protectedIsPrivateInFinalClass/inapplicableOpenAnnotation.kt");
+            runTest("../../../idea/tests/testData/inspectionsPlugins/allOpen/local/protectedIsPrivateInFinalClass/inapplicableOpenAnnotation.kt");
         }
 
         @TestMetadata("makeOpen.kt")
         public void testMakeOpen() throws Exception {
-            runTest("testData/inspections/compilerPlugins/allOpen/protectedIsPrivateInFinalClass/makeOpen.kt");
+            runTest("../../../idea/tests/testData/inspectionsPlugins/allOpen/local/protectedIsPrivateInFinalClass/makeOpen.kt");
         }
 
         @TestMetadata("makePrivate.kt")
         public void testMakePrivate() throws Exception {
-            runTest("testData/inspections/compilerPlugins/allOpen/protectedIsPrivateInFinalClass/makePrivate.kt");
+            runTest("../../../idea/tests/testData/inspectionsPlugins/allOpen/local/protectedIsPrivateInFinalClass/makePrivate.kt");
         }
     }
 }
