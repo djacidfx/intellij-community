@@ -6,6 +6,7 @@ import com.intellij.codeInsight.template.emmet.rpc.EmmetAbbreviationBaloonRpcFro
 import com.intellij.codeInsight.template.emmet.rpc.ShowAbbreviationBaloonUiEvent;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.application.WriteIntentReadAction;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.ui.popup.JBPopupListener;
@@ -27,9 +28,21 @@ import java.awt.event.KeyEvent;
 import static com.intellij.codeInsight.template.emmet.EmmetAbbreviationBalloon.EmmetContextHelp.createHelpLabel;
 
 final class EmmetAbbreviationBaloonUi {
+  private static final Logger LOG = Logger.getInstance(EmmetAbbreviationBaloonUi.class);
+
   static void showBaloon(@NotNull CustomTemplateCallback customTemplateCallback,
                          @NotNull ShowAbbreviationBaloonUiEvent showEvent,
                          @NotNull EmmetAbbreviationBalloon.Callback callback) {
+    var editor = showEvent.editor();
+    if (editor == null) {
+      LOG.warn("Cannot find frontend editor for the: " + showEvent);
+      return;
+    }
+    var project = showEvent.project();
+    if (project == null) {
+      LOG.warn("Cannot find frontend project for the: " + showEvent);
+      return;
+    }
     JPanel panel = new JPanel(new BorderLayout());
     final TextFieldWithStoredHistory field = new TextFieldWithStoredHistory(showEvent.getHistoryKey());
     final Dimension fieldPreferredSize = field.getPreferredSize();
@@ -115,9 +128,9 @@ final class EmmetAbbreviationBaloonUi {
         field.removeDocumentListener(documentListener);
       }
     });
-    balloon.show(popupFactory.guessBestPopupLocation(customTemplateCallback.getEditor()), Balloon.Position.below);
+    balloon.show(popupFactory.guessBestPopupLocation(editor), Balloon.Position.below);
 
-    final IdeFocusManager focusManager = IdeFocusManager.getInstance(customTemplateCallback.getProject());
+    final IdeFocusManager focusManager = IdeFocusManager.getInstance(project);
     focusManager.doWhenFocusSettlesDown(() -> {
       focusManager.requestFocus(field, true);
       field.selectText();
