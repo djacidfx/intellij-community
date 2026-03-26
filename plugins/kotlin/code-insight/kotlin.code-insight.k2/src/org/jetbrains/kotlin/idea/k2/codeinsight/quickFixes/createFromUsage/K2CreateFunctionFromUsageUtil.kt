@@ -19,7 +19,6 @@ import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.components.asKaType
 import org.jetbrains.kotlin.analysis.api.components.asPsiType
-import org.jetbrains.kotlin.analysis.api.components.buildTypeParameterType
 import org.jetbrains.kotlin.analysis.api.components.builtinTypes
 import org.jetbrains.kotlin.analysis.api.components.containingDeclaration
 import org.jetbrains.kotlin.analysis.api.components.defaultType
@@ -272,7 +271,7 @@ object K2CreateFunctionFromUsageUtil {
             classLikeSymbol.typeParameters.zip(typeArguments).forEach { (typeParameter, typeArgument) ->
                 val argType = typeArgument.type
                 if (argType != null && expectedArgumentType.semanticallyEquals(argType)) {
-                    return buildTypeParameterType(typeParameter)
+                    return typeCreator.typeParameterType(typeParameter)
                 }
             }
         }

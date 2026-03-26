@@ -666,7 +666,8 @@ interface FirKotlinUastResolveProviderService : BaseKotlinUastResolveProviderSer
                 }
 
                 is KtTypeParameter -> {
-                    val ktType = buildTypeParameterType(resolvedTargetElement.symbol)
+                    @OptIn(KaExperimentalApi::class)
+                    val ktType = typeCreator.typeParameterType(resolvedTargetElement.symbol)
                     toPsiClass(
                         ktType,
                         ktExpression.toUElement(),
