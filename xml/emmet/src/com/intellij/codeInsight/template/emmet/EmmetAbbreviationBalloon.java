@@ -93,10 +93,6 @@ public class EmmetAbbreviationBalloon {
       myLinkUrl = linkUrl;
     }
 
-    public @NotNull ContextHelpLabel createHelpLabel() {
-      return createHelpLabel(getLinkText(), myLinkUrl, getDescription());
-    }
-
     public static @NotNull ContextHelpLabel createHelpLabel(@Nullable @Tooltip String linkText,
                                                             @Nullable String linkUrl,
                                                             @NotNull @Tooltip String description) {
