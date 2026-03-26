@@ -15,7 +15,6 @@ import com.intellij.ui.ContextHelpLabel;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.TextFieldWithStoredHistory;
 import com.intellij.util.ui.JBUI;
-import kotlin.Unit;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.JPanel;
@@ -88,7 +87,7 @@ final class EmmetAbbreviationBaloonUi {
                 }
               });
             }
-            case KeyEvent.VK_ESCAPE -> balloon.hide(false);
+            case KeyEvent.VK_ESCAPE -> EmmetAbbreviationBaloonRpcFrontendHandler.cancel(showEvent, () -> balloon.hide(false));
           }
         }
       }
