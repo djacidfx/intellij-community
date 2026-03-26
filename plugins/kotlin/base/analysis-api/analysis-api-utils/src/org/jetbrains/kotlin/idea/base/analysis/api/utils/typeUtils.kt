@@ -4,9 +4,7 @@ package org.jetbrains.kotlin.idea.base.analysis.api.utils
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.components.approximateToDenotableSupertypeOrSelf
-import org.jetbrains.kotlin.analysis.api.components.buildClassType
-import org.jetbrains.kotlin.analysis.api.components.buildStarTypeProjection
-import org.jetbrains.kotlin.analysis.api.components.defaultType
+import org.jetbrains.kotlin.analysis.api.components.defaultTypeWithStarProjections
 import org.jetbrains.kotlin.analysis.api.components.expandedSymbol
 import org.jetbrains.kotlin.analysis.api.components.hasCommonSubtypeWith
 import org.jetbrains.kotlin.analysis.api.components.isNullable
@@ -46,13 +44,7 @@ private fun buildClassTypeWithStarProjections(symbol: KaClassSymbol, nullability
 
 context(_: KaSession)
 @OptIn(KaExperimentalApi::class)
-fun buildClassTypeWithStarProjections(symbol: KaClassLikeSymbol): KaType =
-    buildClassType(symbol) {
-        @OptIn(KaExperimentalApi::class)
-        repeat((symbol.defaultType as? KaClassType)?.qualifiers?.sumOf { it.typeArguments.size } ?: 0) {
-            argument(buildStarTypeProjection())
-        }
-    }
+fun buildClassTypeWithStarProjections(symbol: KaClassLikeSymbol): KaType = symbol.defaultTypeWithStarProjections
 
 /**
  * Approximates anonymous object types to their denotable supertypes.

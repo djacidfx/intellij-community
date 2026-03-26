@@ -9,9 +9,7 @@ import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.base.KaConstantValue
 import org.jetbrains.kotlin.analysis.api.components.allOverriddenSymbols
-import org.jetbrains.kotlin.analysis.api.components.buildClassType
-import org.jetbrains.kotlin.analysis.api.components.buildStarTypeProjection
-import org.jetbrains.kotlin.analysis.api.components.defaultType
+import org.jetbrains.kotlin.analysis.api.components.defaultTypeWithStarProjections
 import org.jetbrains.kotlin.analysis.api.components.evaluate
 import org.jetbrains.kotlin.analysis.api.components.expandedSymbol
 import org.jetbrains.kotlin.analysis.api.components.isSubtypeOf
@@ -28,7 +26,6 @@ import org.jetbrains.kotlin.analysis.api.symbols.classSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.findClass
 import org.jetbrains.kotlin.analysis.api.symbols.receiverType
 import org.jetbrains.kotlin.analysis.api.symbols.symbol
-import org.jetbrains.kotlin.analysis.api.types.KaClassType
 import org.jetbrains.kotlin.analysis.api.types.KaType
 import org.jetbrains.kotlin.idea.codeinsight.api.applicable.fixes.AbstractKotlinApplicableQuickFix
 import org.jetbrains.kotlin.idea.compilerPlugin.parcelize.KotlinParcelizeBundle
@@ -93,15 +90,9 @@ internal class K2ParcelMigrateToParcelizeQuickFix(clazz: KtClass) : AbstractKotl
                         && (symbol.backingFieldSymbol?.annotations?.contains(JvmAbi.JVM_FIELD_ANNOTATION_CLASS_ID) == true)
             }
 
-        context(_: KaSession)
         @OptIn(KaExperimentalApi::class)
-        private fun KaClassLikeSymbol.buildStarProjectedType(): KaType =
-            buildClassType(this@buildStarProjectedType) {
-                @OptIn(KaExperimentalApi::class)
-                repeat((this@buildStarProjectedType.defaultType as? KaClassType)?.qualifiers?.sumOf { it.typeArguments.size } ?: 0) {
-                    argument(buildStarTypeProjection())
-                }
-            }
+        context(_: KaSession)
+        private fun KaClassLikeSymbol.buildStarProjectedType(): KaType = this.defaultTypeWithStarProjections
 
         context(_: KaSession)
         private fun KaType.hasSuperTypeClassId(superTypeClassId: ClassId): Boolean {

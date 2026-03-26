@@ -30,7 +30,7 @@ fun JavaCodeInsightTestFixture.configureByK2ModeCodeFragment(filePath: String) {
     file.putCopyableUserData(KotlinK2CodeFragmentUtils.RUNTIME_TYPE_EVALUATOR_K2) { expression ->
         if (typeStr != null) {
             analyze(expression) {
-                val kaType = buildClassType(ClassId.topLevel(FqName(typeStr)))
+                val kaType = typeCreator.classType(ClassId.topLevel(FqName(typeStr)))
                 kaType.createPointer()
             }
         } else {

@@ -13,7 +13,6 @@ import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.analyzeCopy
 import org.jetbrains.kotlin.analysis.api.components.KaDiagnosticCheckerFilter
-import org.jetbrains.kotlin.analysis.api.components.buildClassType
 import org.jetbrains.kotlin.analysis.api.components.buildSubstitutor
 import org.jetbrains.kotlin.analysis.api.components.builtinTypes
 import org.jetbrains.kotlin.analysis.api.components.callableSymbol
@@ -23,6 +22,7 @@ import org.jetbrains.kotlin.analysis.api.components.expressionType
 import org.jetbrains.kotlin.analysis.api.components.render
 import org.jetbrains.kotlin.analysis.api.components.resolveToCall
 import org.jetbrains.kotlin.analysis.api.components.type
+import org.jetbrains.kotlin.analysis.api.components.typeCreator
 import org.jetbrains.kotlin.analysis.api.fir.diagnostics.KaFirDiagnostic
 import org.jetbrains.kotlin.analysis.api.projectStructure.KaDanglingFileResolutionMode
 import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
@@ -441,7 +441,8 @@ private fun ExtractionData.registerQualifierReplacements(
             val fqNameChild = if (name != null) fqName.child(Name.identifier(name)) else fqName
             parametersInfo.replacementMap.putValue(originalRef, FqNameReplacement(fqNameChild))
         } else {
-            parametersInfo.nonDenotableTypes.add(buildClassType(referencedClassifierSymbol))
+            @OptIn(KaExperimentalApi::class)
+            parametersInfo.nonDenotableTypes.add(typeCreator.classType(referencedClassifierSymbol))
         }
     }
 }

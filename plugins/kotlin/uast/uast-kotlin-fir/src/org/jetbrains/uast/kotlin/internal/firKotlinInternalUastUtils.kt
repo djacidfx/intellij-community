@@ -21,7 +21,6 @@ import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.annotations.KaAnnotationValue
 import org.jetbrains.kotlin.analysis.api.components.asPsiType
-import org.jetbrains.kotlin.analysis.api.components.buildClassType
 import org.jetbrains.kotlin.analysis.api.components.containingDeclaration
 import org.jetbrains.kotlin.analysis.api.components.containingJvmClassName
 import org.jetbrains.kotlin.analysis.api.components.expandedSymbol
@@ -32,6 +31,7 @@ import org.jetbrains.kotlin.analysis.api.components.isMarkedNullable
 import org.jetbrains.kotlin.analysis.api.components.isNullable
 import org.jetbrains.kotlin.analysis.api.components.isUnitType
 import org.jetbrains.kotlin.analysis.api.components.originalConstructorIfTypeAliased
+import org.jetbrains.kotlin.analysis.api.components.typeCreator
 import org.jetbrains.kotlin.analysis.api.getModule
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisFromWriteAction
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
@@ -373,7 +373,7 @@ private fun toPsiMethodForDeserialized(
         ?: functionSymbol.callableId?.classId
     if (classId != null) {
         toPsiClass(
-            buildClassType(classId),
+            typeCreator.classType(classId),
             source = null,
             context,
             TypeOwnerKind.DECLARATION,

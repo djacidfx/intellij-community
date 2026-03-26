@@ -11,7 +11,6 @@ import com.intellij.lang.jvm.types.JvmType
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiPackage
 import com.intellij.psi.PsiType
 import com.intellij.psi.util.PsiTreeUtil
@@ -20,7 +19,6 @@ import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.components.asKaType
 import org.jetbrains.kotlin.analysis.api.components.asPsiType
-import org.jetbrains.kotlin.analysis.api.components.buildClassType
 import org.jetbrains.kotlin.analysis.api.components.buildTypeParameterType
 import org.jetbrains.kotlin.analysis.api.components.builtinTypes
 import org.jetbrains.kotlin.analysis.api.components.containingDeclaration
@@ -30,6 +28,7 @@ import org.jetbrains.kotlin.analysis.api.components.expectedType
 import org.jetbrains.kotlin.analysis.api.components.expressionType
 import org.jetbrains.kotlin.analysis.api.components.returnType
 import org.jetbrains.kotlin.analysis.api.components.semanticallyEquals
+import org.jetbrains.kotlin.analysis.api.components.typeCreator
 import org.jetbrains.kotlin.analysis.api.components.withNullability
 import org.jetbrains.kotlin.analysis.api.renderer.types.KaTypeRenderer
 import org.jetbrains.kotlin.analysis.api.renderer.types.impl.KaTypeRendererForSource
@@ -153,9 +152,10 @@ object K2CreateFunctionFromUsageUtil {
                     val symbol = variable.symbol as? KaCallableSymbol
                     val parameterType = symbol?.receiverType ?: (variable.symbol
                         .containingDeclaration as? KaNamedClassSymbol)?.defaultType ?: builtinTypes.nullableAny
-                    buildClassType(ClassId.fromString("kotlin/properties/$delegateClassName")) {
-                        argument(parameterType)
-                        argument(ktType)
+                    @OptIn(KaExperimentalApi::class)
+                    typeCreator.classType(ClassId.fromString("kotlin/properties/$delegateClassName")) {
+                        invariantTypeArgument(parameterType)
+                        invariantTypeArgument(ktType)
                     }
                 }
                 parent is KtParameter && parent.defaultValue == current -> parent.returnType // KT-77254
@@ -278,11 +278,7 @@ object K2CreateFunctionFromUsageUtil {
         }
         if (expectedArgumentType is KaClassType && expectedArgumentType.symbol == classLikeSymbol &&
             expectedArgumentType.typeArguments.any { it.type is KaTypeParameterType }) {
-            return buildClassType(classLikeSymbol) {
-                classLikeSymbol.typeParameters.forEach {
-                    argument(buildTypeParameterType(it))
-                }
-            }
+            return classLikeSymbol.defaultType
         }
         return expectedArgumentType
     }

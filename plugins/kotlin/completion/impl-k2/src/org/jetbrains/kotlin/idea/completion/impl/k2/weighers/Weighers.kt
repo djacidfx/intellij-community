@@ -6,17 +6,18 @@ import com.intellij.codeInsight.completion.CompletionSorter
 import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.parentsOfType
+import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.components.KaImplicitReceiver
 import org.jetbrains.kotlin.analysis.api.components.KaScopeContext
 import org.jetbrains.kotlin.analysis.api.components.allOverriddenSymbols
-import org.jetbrains.kotlin.analysis.api.components.buildClassType
 import org.jetbrains.kotlin.analysis.api.components.expressionType
 import org.jetbrains.kotlin.analysis.api.components.fakeOverrideOriginal
 import org.jetbrains.kotlin.analysis.api.components.importingScopeContext
 import org.jetbrains.kotlin.analysis.api.components.resolveToCall
 import org.jetbrains.kotlin.analysis.api.components.resolveToSymbol
 import org.jetbrains.kotlin.analysis.api.components.scopeContext
+import org.jetbrains.kotlin.analysis.api.components.typeCreator
 import org.jetbrains.kotlin.analysis.api.components.withNullability
 import org.jetbrains.kotlin.analysis.api.lifetime.KaLifetimeOwner
 import org.jetbrains.kotlin.analysis.api.lifetime.KaLifetimeToken
@@ -192,7 +193,8 @@ internal class WeighingContext private constructor(
                     val typeReferenceOwner = positionContext.typeReference?.parent
                     if (typeReferenceOwner?.parent?.parent is KtCatchClause) {
                         // Prefer Throwables in catch clauses
-                        buildClassType(StandardClassIds.Throwable) as? KaClassType
+                        @OptIn(KaExperimentalApi::class)
+                        typeCreator.classType(StandardClassIds.Throwable) as? KaClassType
                     } else {
                         val leftHandExpression = when (typeReferenceOwner) {
                             is KtIsExpression -> typeReferenceOwner.leftHandSide
