@@ -9,7 +9,11 @@ data class MinimapRenderEntry(
     val element: StructureViewTreeElement?,
     val rect2d: Rectangle2D.Double,
     val color: Color? = null,
-    val sampleOffset: Int? = null,
+    val sampleOffset: Int = NO_SAMPLE_OFFSET,
 ) {
   fun isSameEntry(other: MinimapRenderEntry?): Boolean = element === other?.element
+
+  companion object {
+    const val NO_SAMPLE_OFFSET: Int = -1
+  }
 }

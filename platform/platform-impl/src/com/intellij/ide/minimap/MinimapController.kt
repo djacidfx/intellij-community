@@ -8,6 +8,7 @@ import com.intellij.ide.minimap.layout.MinimapLayoutCalculator
 import com.intellij.ide.minimap.listeners.MinimapStateListeners
 import com.intellij.ide.minimap.listeners.MinimapUiListeners
 import com.intellij.ide.minimap.model.MinimapModel
+import com.intellij.ide.minimap.scene.MinimapSnapshot
 import com.intellij.ide.minimap.scene.MinimapSceneBuilder
 import com.intellij.ide.minimap.settings.MinimapSettings
 import com.intellij.openapi.Disposable
@@ -16,6 +17,7 @@ import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.application.asContextElement
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.platform.util.coroutines.childScope
 import com.intellij.util.concurrency.AppExecutorUtil
@@ -46,6 +48,13 @@ class MinimapController(
   private val diagnosticsUpdates = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
   private val settings = MinimapSettings.getInstance()
   private val editor: Editor = panel.editor
+  private var snapshotSequence: Long = 0
+  private var maxTokenEntries: Int = 0
+  private var maxStructureEntries: Int = 0
+  private var maxDiagnosticEntries: Int = 0
+  private var maxBreakpointEntries: Int = 0
+  private var maxFoldEntries: Int = 0
+  private var maxEstimatedSnapshotBytes: Long = 0
 
   private val model = MinimapModel(editor).also {
     Disposer.register(this, it)
@@ -88,6 +97,12 @@ class MinimapController(
 
   override fun dispose() {
     disposed = true
+    // println(
+    //   "Minimap disposed for ${editorDebugName()}: snapshots=$snapshotSequence, " +
+    //   "maxTokenEntries=$maxTokenEntries, maxStructureEntries=$maxStructureEntries, " +
+    //   "maxDiagnosticEntries=$maxDiagnosticEntries, maxBreakpointEntries=$maxBreakpointEntries, " +
+    //   "maxFoldEntries=$maxFoldEntries, maxEstimatedSnapshotBytes=$maxEstimatedSnapshotBytes"
+    // )
     sceneBuilder.clear()
     scope.cancel()
   }
@@ -114,6 +129,7 @@ class MinimapController(
     val panelWidth = max(panel.width, scaleData.width)
     val snapshot = sceneBuilder.buildSnapshot(panelWidth, panelHeight, scaleData, state.scaleMode, MinimapRegistry.isLegacy())
     panel.updateSnapshot(snapshot)
+    updateDebugSnapshotStats(snapshot)
   }
 
   private fun updatePanelVisibility(minimapWidth: Int): Boolean {
@@ -158,9 +174,77 @@ class MinimapController(
     }
   }
 
+  private fun updateDebugSnapshotStats(snapshot: MinimapSnapshot) {
+    snapshotSequence++
+    val tokenEntries = snapshot.tokenEntries.size
+    val structureEntries = snapshot.structureEntries.size
+    val diagnosticEntries = snapshot.diagnosticEntries.size
+    val breakpointEntries = snapshot.breakpointEntries.size
+    val foldEntries = snapshot.foldEntries.size
+    val estimatedBytes = estimateSnapshotBytes(
+      tokenEntries = tokenEntries,
+      structureEntries = structureEntries,
+      diagnosticEntries = diagnosticEntries,
+      breakpointEntries = breakpointEntries,
+      foldEntries = foldEntries,
+    )
+
+    val maxChanged = tokenEntries > maxTokenEntries ||
+                     structureEntries > maxStructureEntries ||
+                     diagnosticEntries > maxDiagnosticEntries ||
+                     breakpointEntries > maxBreakpointEntries ||
+                     foldEntries > maxFoldEntries ||
+                     estimatedBytes > maxEstimatedSnapshotBytes
+
+    if (tokenEntries > maxTokenEntries) maxTokenEntries = tokenEntries
+    if (structureEntries > maxStructureEntries) maxStructureEntries = structureEntries
+    if (diagnosticEntries > maxDiagnosticEntries) maxDiagnosticEntries = diagnosticEntries
+    if (breakpointEntries > maxBreakpointEntries) maxBreakpointEntries = breakpointEntries
+    if (foldEntries > maxFoldEntries) maxFoldEntries = foldEntries
+    if (estimatedBytes > maxEstimatedSnapshotBytes) maxEstimatedSnapshotBytes = estimatedBytes
+
+    if (!maxChanged && snapshotSequence > INITIAL_SNAPSHOT_DEBUG_LOGS && snapshotSequence % SNAPSHOT_DEBUG_LOG_PERIOD != 0L) {
+      return
+    }
+
+    // println(
+    //   "Minimap snapshot #$snapshotSequence for ${editorDebugName()}: " +
+    //   "layoutMode=${snapshot.layoutMode}, projectedLines=${snapshot.context.lineProjection.projectedLineCount}, " +
+    //   "panel=${snapshot.context.panelWidth}x${snapshot.context.panelHeight}, " +
+    //   "tokenEntries=$tokenEntries, structureEntries=$structureEntries, diagnosticEntries=$diagnosticEntries, " +
+    //   "breakpointEntries=$breakpointEntries, foldEntries=$foldEntries, " +
+    //   "estimatedSnapshotBytes=$estimatedBytes, maxEstimatedSnapshotBytes=$maxEstimatedSnapshotBytes"
+    // )
+  }
+
+  private fun estimateSnapshotBytes(
+    tokenEntries: Int,
+    structureEntries: Int,
+    diagnosticEntries: Int,
+    breakpointEntries: Int,
+    foldEntries: Int,
+  ): Long {
+    val renderEntries = tokenEntries + structureEntries
+    return renderEntries * ESTIMATED_RENDER_ENTRY_BYTES +
+           diagnosticEntries * ESTIMATED_DIAGNOSTIC_ENTRY_BYTES +
+           breakpointEntries * ESTIMATED_BREAKPOINT_ENTRY_BYTES +
+           foldEntries * ESTIMATED_FOLD_ENTRY_BYTES
+  }
+
+  private fun editorDebugName(): String {
+    val fileName = FileDocumentManager.getInstance().getFile(editor.document)?.name ?: "unknown"
+    return "$fileName#${System.identityHashCode(editor)}"
+  }
+
   companion object {
     private const val STRUCTURE_MARKERS_DEBOUNCE_MS: Long = 125
     private const val DIAGNOSTICS_DEBOUNCE_MS: Long = 125
     private const val HIDE_MINIMAP_EDITOR_WIDTH_MULTIPLIER: Long = 2
+    private const val INITIAL_SNAPSHOT_DEBUG_LOGS: Long = 3
+    private const val SNAPSHOT_DEBUG_LOG_PERIOD: Long = 200
+    private const val ESTIMATED_RENDER_ENTRY_BYTES: Long = 96
+    private const val ESTIMATED_DIAGNOSTIC_ENTRY_BYTES: Long = 64
+    private const val ESTIMATED_BREAKPOINT_ENTRY_BYTES: Long = 64
+    private const val ESTIMATED_FOLD_ENTRY_BYTES: Long = 64
   }
 }

@@ -45,7 +45,12 @@ class MinimapTokenColorContext(
   }
 
   private fun resolveEntryColor(entry: MinimapRenderEntry, metrics: MinimapLayoutMetrics): Color {
-    val offset = entry.sampleOffset ?: offsetFromRect(entry, metrics) ?: return defaultForeground
+    val offset = if (entry.sampleOffset != MinimapRenderEntry.NO_SAMPLE_OFFSET) {
+      entry.sampleOffset
+    }
+    else {
+      offsetFromRect(entry, metrics) ?: return defaultForeground
+    }
     return colorAtOffset(offset)
   }
 
