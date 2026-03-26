@@ -174,6 +174,19 @@ class MergeConflictModel(
     }
   }
 
+  fun acceptRevisionForSide(side: Side) {
+    val affected = getAllChanges().mapTo(IntArrayList()) { it.index }
+
+    executeMergeCommand(commandName = DiffBundle.message("merge.dialog.resolve.conflict.command"),
+                        commandGroupId = null,
+                        undoConfirmationPolicy = UndoConfirmationPolicy.DEFAULT,
+                        bulkUpdate = true,
+                        affectedIndexes = affected) {
+      resetAllChanges()
+      replaceAllChanges(side)
+    }
+  }
+
   fun markReviewed() {
     wasReviewed = true
   }
