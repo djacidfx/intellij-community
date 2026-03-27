@@ -236,7 +236,7 @@ public class ModifierFix extends PsiBasedModCommandAction<PsiModifierListOwner> 
       }
     }
     else {
-      if (owner instanceof PsiMethod method && PsiModifier.STATIC.equals(myModifier)) {
+      if (owner instanceof PsiMethod method && PsiModifier.STATIC.equals(myModifier) && method.hasModifierProperty(PsiModifier.PUBLIC)) {
         PsiClass containingClass = method.getContainingClass();
         if (containingClass != null && containingClass.isInterface()) {
           modifierList.setModifierProperty(PsiModifier.DEFAULT, true);
