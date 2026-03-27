@@ -17,7 +17,6 @@ import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.application.asContextElement
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.platform.util.coroutines.childScope
 import com.intellij.util.concurrency.AppExecutorUtil
@@ -97,12 +96,6 @@ class MinimapController(
 
   override fun dispose() {
     disposed = true
-    // println(
-    //   "Minimap disposed for ${editorDebugName()}: snapshots=$snapshotSequence, " +
-    //   "maxTokenEntries=$maxTokenEntries, maxStructureEntries=$maxStructureEntries, " +
-    //   "maxDiagnosticEntries=$maxDiagnosticEntries, maxBreakpointEntries=$maxBreakpointEntries, " +
-    //   "maxFoldEntries=$maxFoldEntries, maxEstimatedSnapshotBytes=$maxEstimatedSnapshotBytes"
-    // )
     sceneBuilder.clear()
     scope.cancel()
   }
@@ -207,15 +200,6 @@ class MinimapController(
     if (!maxChanged && snapshotSequence > INITIAL_SNAPSHOT_DEBUG_LOGS && snapshotSequence % SNAPSHOT_DEBUG_LOG_PERIOD != 0L) {
       return
     }
-
-    // println(
-    //   "Minimap snapshot #$snapshotSequence for ${editorDebugName()}: " +
-    //   "layoutMode=${snapshot.layoutMode}, projectedLines=${snapshot.context.lineProjection.projectedLineCount}, " +
-    //   "panel=${snapshot.context.panelWidth}x${snapshot.context.panelHeight}, " +
-    //   "tokenEntries=$tokenEntries, structureEntries=$structureEntries, diagnosticEntries=$diagnosticEntries, " +
-    //   "breakpointEntries=$breakpointEntries, foldEntries=$foldEntries, " +
-    //   "estimatedSnapshotBytes=$estimatedBytes, maxEstimatedSnapshotBytes=$maxEstimatedSnapshotBytes"
-    // )
   }
 
   private fun estimateSnapshotBytes(
@@ -230,11 +214,6 @@ class MinimapController(
            diagnosticEntries * ESTIMATED_DIAGNOSTIC_ENTRY_BYTES +
            breakpointEntries * ESTIMATED_BREAKPOINT_ENTRY_BYTES +
            foldEntries * ESTIMATED_FOLD_ENTRY_BYTES
-  }
-
-  private fun editorDebugName(): String {
-    val fileName = FileDocumentManager.getInstance().getFile(editor.document)?.name ?: "unknown"
-    return "$fileName#${System.identityHashCode(editor)}"
   }
 
   companion object {

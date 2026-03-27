@@ -9,6 +9,7 @@ import com.intellij.openapi.fileTypes.impl.FileTypeManagerImpl
 import com.intellij.openapi.options.BoundConfigurable
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
+import com.intellij.openapi.util.NlsSafe
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.dsl.builder.bind
 import com.intellij.ui.dsl.builder.bindSelected
@@ -149,7 +150,8 @@ class MinimapConfigurable : BoundConfigurable(MiniMessagesBundle.message("settin
 
       if (index == -1) {
         checkBox.isVisible = false
-        text = fileTypes.joinToString(",")
+        @NlsSafe val fileTypesJoined = fileTypes.joinToString(",")
+        text = fileTypesJoined
         return container
       }
       checkBox.isVisible = true
