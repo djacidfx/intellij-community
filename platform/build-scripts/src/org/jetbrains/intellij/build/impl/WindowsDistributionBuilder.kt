@@ -25,6 +25,7 @@ import org.jetbrains.intellij.build.NativeBinaryDownloader
 import org.jetbrains.intellij.build.OsFamily
 import org.jetbrains.intellij.build.WindowsDistributionCustomizer
 import org.jetbrains.intellij.build.WindowsLibcImpl
+import org.jetbrains.intellij.build.add64IfNeeded
 import org.jetbrains.intellij.build.executeStep
 import org.jetbrains.intellij.build.impl.OsSpecificDistributionBuilder.Companion.suffix
 import org.jetbrains.intellij.build.impl.client.createFrontendContextForLaunchers
@@ -231,7 +232,7 @@ internal class WindowsDistributionBuilder(
     val fullName = context.applicationInfo.fullProductName
     val baseName = context.productProperties.baseFileName
     val scriptName = "${baseName}.bat"
-    val vmOptionsFileName = "${baseName}64.exe"
+    val vmOptionsFileName = "${context.add64IfNeeded(baseName)}.exe"
 
     val classPathJars = context.bootClassPathJarNames
     var classPath = ""
@@ -345,7 +346,7 @@ internal class WindowsDistributionBuilder(
     spanBuilder("build Windows executable").use {
       val communityHome = context.paths.communityHomeDir
       val appInfo = context.applicationInfo
-      val executableBaseName = "${context.productProperties.baseFileName}64"
+      val executableBaseName = context.add64IfNeeded(context.productProperties.baseFileName)
       val launcherPropertiesPath = context.paths.tempDir.resolve("launcher-${arch.dirName}.properties")
       val icoFile =
         if (context.isLanguageServer) null
@@ -502,7 +503,7 @@ internal class WindowsDistributionBuilder(
 }
 
 private fun writeWindowsVmOptions(distBinDir: Path, context: BuildContext): Path {
-  val vmOptionsFile = distBinDir.resolve("${context.productProperties.baseFileName}64.exe.vmoptions")
+  val vmOptionsFile = distBinDir.resolve("${context.add64IfNeeded(context.productProperties.baseFileName)}.exe.vmoptions")
   val vmOptions = generateVmOptions(context)
   writeVmOptions(file = vmOptionsFile, vmOptions = vmOptions, separator = "\r\n")
   return vmOptionsFile
@@ -510,6 +511,9 @@ private fun writeWindowsVmOptions(distBinDir: Path, context: BuildContext): Path
 
 
 private suspend fun writeProductJsonFile(targetDir: Path, arch: JvmArchitecture, withRuntime: Boolean, context: BuildContext): Path {
+  val baseName = context.productProperties.baseFileName
+  val baseName64 = context.add64IfNeeded(baseName)
+
   val json = generateProductInfoJson(
     relativePathToBin = "bin",
     builtinModules = context.builtinModule,
@@ -517,16 +521,16 @@ private suspend fun writeProductJsonFile(targetDir: Path, arch: JvmArchitecture,
       ProductInfoLaunchData.create(
         os = OsFamily.WINDOWS.osName,
         arch = arch.dirName,
-        launcherPath = "bin/${context.productProperties.baseFileName}64.exe",
+        launcherPath = "bin/${baseName64}.exe",
         javaExecutablePath = if (withRuntime) "jbr/bin/java.exe" else null,
-        vmOptionsFilePath = "bin/${context.productProperties.baseFileName}64.exe.vmoptions",
+        vmOptionsFilePath = "bin/${baseName64}.exe.vmoptions",
         bootClassPathJarNames = context.bootClassPathJarNames,
         additionalJvmArguments = context.getAdditionalJvmArguments(OsFamily.WINDOWS, arch),
         mainClass = context.ideMainClassName,
         customCommands = run {
           val base = listOfNotNull(
             generateEmbeddedFrontendLaunchData(arch, OsFamily.WINDOWS, context) {
-              "bin/${it.productProperties.baseFileName}64.exe.vmoptions"
+              "bin/${it.add64IfNeeded(it.productProperties.baseFileName)}.exe.vmoptions"
             },
             generateQodanaLaunchData(context, arch, OsFamily.WINDOWS),
             generateStdioMcpRunnerLaunchData(context, OsFamily.WINDOWS)

@@ -42,6 +42,7 @@ import org.jetbrains.intellij.build.PluginDistribution
 import org.jetbrains.intellij.build.SoftwareBillOfMaterials
 import org.jetbrains.intellij.build.VmProperties
 import org.jetbrains.intellij.build.WindowsLibcImpl
+import org.jetbrains.intellij.build.add64IfNeeded
 import org.jetbrains.intellij.build.buildSearchableOptions
 import org.jetbrains.intellij.build.classPath.PluginBuildDescriptor
 import org.jetbrains.intellij.build.executeStep
@@ -823,6 +824,7 @@ private fun logFreeDiskSpace(phase: String, context: CompilationContext) {
 
 private suspend fun buildCrossPlatformZip(distResults: List<DistributionForOsTaskResult>, context: BuildContext): Path {
   val executableName = context.productProperties.baseFileName
+  val executableName64 = context.add64IfNeeded(executableName)
 
   val productJson = generateProductInfoJson(
     relativePathToBin = "bin",
@@ -834,7 +836,7 @@ private suspend fun buildCrossPlatformZip(distResults: List<DistributionForOsTas
           arch = arch.dirName,
           launcherPath = "bin/${executableName}.bat",
           javaExecutablePath = null,
-          vmOptionsFilePath = "bin/win/${executableName}64.exe.vmoptions",
+          vmOptionsFilePath = "bin/win/${executableName64}.exe.vmoptions",
           bootClassPathJarNames = context.bootClassPathJarNames,
           additionalJvmArguments = context.getAdditionalJvmArguments(os = OsFamily.WINDOWS, arch = arch, isPortableDist = true),
           mainClass = context.ideMainClassName,
@@ -844,7 +846,7 @@ private suspend fun buildCrossPlatformZip(distResults: List<DistributionForOsTas
           arch = arch.dirName,
           launcherPath = "bin/${executableName}.sh",
           javaExecutablePath = null,
-          vmOptionsFilePath = "bin/linux/${executableName}64.vmoptions",
+          vmOptionsFilePath = "bin/linux/${executableName64}.vmoptions",
           bootClassPathJarNames = context.bootClassPathJarNames,
           additionalJvmArguments = context.getAdditionalJvmArguments(os = OsFamily.LINUX, arch = arch, isPortableDist = true),
           mainClass = context.ideMainClassName,
@@ -892,7 +894,6 @@ private suspend fun buildCrossPlatformZip(distResults: List<DistributionForOsTas
   crossPlatformZip(
     distResults = distResults.filter { it.libc != LinuxLibcImpl.MUSL },
     targetFile = targetFile,
-    executableName = executableName,
     productJson = productJson,
     extraFiles = extraFiles,
     crossPlatformPluginsDir = crossPlatformPluginsDir,
@@ -1015,13 +1016,15 @@ internal fun getLinuxFrameClass(context: BuildContext): String {
 private suspend fun crossPlatformZip(
   distResults: List<DistributionForOsTaskResult>,
   targetFile: Path,
-  executableName: String,
   productJson: String,
   extraFiles: Map<String, Path>,
   crossPlatformPluginsDir: Path?,
   crossPlatformBuiltPlugins: List<PluginBuildDescriptor>,
   context: BuildContext,
 ) {
+  val executableName = context.productProperties.baseFileName
+  val executableName64 = context.add64IfNeeded(executableName)
+
   val winX64DistDir = distResults.first { it.builder.targetOs == OsFamily.WINDOWS && it.arch == JvmArchitecture.x64 }.outDir
   val macArm64DistDir = distResults.first { it.builder.targetOs == OsFamily.MACOS && it.arch == JvmArchitecture.aarch64 }.outDir
   val linuxX64DistDir = distResults.first { it.builder.targetOs == OsFamily.LINUX && it.arch == JvmArchitecture.x64 && it.libc == LinuxLibcImpl.GLIBC }.outDir
@@ -1074,9 +1077,9 @@ private suspend fun crossPlatformZip(
       out.entryToDir(macArm64DistDir.resolve("bin/idea.properties"), "bin/mac")
       out.entryToDir(linuxX64DistDir.resolve("bin/idea.properties"), "bin/linux")
 
-      out.entryToDir(winX64DistDir.resolve("bin/${executableName}64.exe.vmoptions"), "bin/win")
+      out.entryToDir(winX64DistDir.resolve("bin/${executableName64}.exe.vmoptions"), "bin/win")
       out.entryToDir(macArm64DistDir.resolve("bin/${executableName}.vmoptions"), "bin/mac")
-      out.entryToDir(linuxX64DistDir.resolve("bin/${executableName}64.vmoptions"), "bin/linux")
+      out.entryToDir(linuxX64DistDir.resolve("bin/${executableName64}.vmoptions"), "bin/linux")
 
       val zipFileUniqueGuard = HashMap<String, DistFileContent>()
 

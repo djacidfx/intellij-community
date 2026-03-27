@@ -199,6 +199,10 @@ interface BuildContext : CompilationContext {
 internal val BuildContext.isLanguageServer: Boolean
   get() = productProperties.platformPrefix == "LanguageServer"
 
+// To be removed
+internal fun BuildContext.add64IfNeeded(s: String): String =
+  if (isLanguageServer) s else "${s}64"
+
 suspend inline fun <T> CompilationContext.executeStep(
   spanBuilder: SpanBuilder,
   stepId: String,
