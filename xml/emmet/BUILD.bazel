@@ -113,11 +113,6 @@ jvm_provided_library(
 )
 
 jvm_provided_library(
-  name = "libraries_kotlinx_libraries-kotlinx-collections-immutable_provided",
-  lib = "//libraries/kotlinx/collections-immutable:libraries-kotlinx-collections-immutable"
-)
-
-jvm_provided_library(
   name = "platform_remote-topics_rpc-topics_provided",
   lib = "//platform/remote-topics/shared:rpc-topics"
 )
@@ -152,6 +147,7 @@ jvm_library(
     "//platform/kernel/shared:kernel",
     "@lib//:jetbrains-annotations",
     "@lib//:kotlin-stdlib-provided",
+    "//libraries/kotlinx/collections-immutable:libraries-kotlinx-collections-immutable",
     ":platform_core_provided",
     ":platform_analysis-impl_provided",
     ":xml_psi_provided",
@@ -173,7 +169,6 @@ jvm_library(
     ":platform_refactoring_provided",
     ":platform_util-ui_provided",
     ":platform_java-guiForms-rt_provided",
-    ":libraries_kotlinx_libraries-kotlinx-collections-immutable_provided",
     ":platform_remote-topics_rpc-topics_provided",
     ":platform_project_project_provided",
     ":libraries_kotlinx_serialization_core_provided",
@@ -233,7 +228,6 @@ jvm_library(
     "//platform/util:util-ui_test_lib",
     "//platform/forms_rt:java-guiForms-rt",
     "//platform/forms_rt:java-guiForms-rt_test_lib",
-    "//libraries/kotlinx/collections-immutable:libraries-kotlinx-collections-immutable",
     "//libraries/kotlinx/collections-immutable:libraries-kotlinx-collections-immutable_test_lib",
     "//platform/remote-topics/shared:rpc-topics",
     "//platform/remote-topics/shared:rpc-topics_test_lib",

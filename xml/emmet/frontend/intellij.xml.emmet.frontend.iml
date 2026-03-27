@@ -11,7 +11,8 @@
     <orderEntry type="module" module-name="intellij.platform.util" scope="PROVIDED" />
     <orderEntry type="library" scope="PROVIDED" name="kotlin-stdlib" level="project" />
     <orderEntry type="module" module-name="intellij.platform.core" scope="PROVIDED" />
-    <orderEntry type="module" module-name="intellij.xml.emmet" scope="PROVIDED" />
+    <orderEntry type="module" module-name="intellij.xml.emmet" />
+    <orderEntry type="module" module-name="intellij.platform.frontend" />
     <orderEntry type="library" scope="PROVIDED" name="jetbrains-annotations" level="project" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="intellij.platform.rpc.topics" scope="PROVIDED" />
