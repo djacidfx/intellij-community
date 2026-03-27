@@ -11,6 +11,9 @@ import com.intellij.ide.minimap.paint.MinimapSelectionPainter
 import com.intellij.ide.minimap.render.MinimapRenderer
 import com.intellij.ide.minimap.thumb.MinimapThumb
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.colors.EditorColors
+import com.intellij.ui.components.ScrollBarPainter
+import java.awt.Color
 import java.awt.Graphics2D
 
 internal class MinimapLayerPainter(
@@ -54,7 +57,7 @@ internal class MinimapLayerPainter(
 
   fun paintFoldMarkersLayer(graphics: Graphics2D, state: MinimapLayerRenderState) {
     val snapshot = state.snapshot
-    foldPainter.paint(graphics, snapshot.foldEntries, snapshot.breakpointEntries, snapshot.layoutMetrics)
+    foldPainter.paint(graphics, snapshot.foldEntries, snapshot.breakpointEntries, snapshot.layoutMetrics, foldMarkerColor())
   }
 
   fun paintBreakpointsLayer(graphics: Graphics2D, state: MinimapLayerRenderState) {
@@ -70,6 +73,18 @@ internal class MinimapLayerPainter(
   }
 
   fun paintThumbLayer(graphics: Graphics2D, state: MinimapLayerRenderState) {
-    MinimapThumb.paint(graphics, state.panelWidth, state.snapshot.geometry)
+    MinimapThumb.paint(graphics, state.panelWidth, state.snapshot.geometry, thumbColor())
+  }
+
+  private fun foldMarkerColor(): Color {
+    val scheme = editor.colorsScheme
+    return scheme.getColor(EditorColors.LINE_NUMBERS_COLOR) ?: scheme.defaultForeground
+  }
+
+  private fun thumbColor(): Color {
+    val scheme = editor.colorsScheme
+    return scheme.getColor(ScrollBarPainter.THUMB_OPAQUE_BACKGROUND)
+           ?: scheme.getColor(EditorColors.LINE_NUMBERS_COLOR)
+           ?: scheme.defaultForeground
   }
 }

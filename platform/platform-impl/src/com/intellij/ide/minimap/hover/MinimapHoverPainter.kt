@@ -1,8 +1,8 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.minimap.hover
 
-import com.intellij.ui.JBColor
 import com.intellij.util.ui.JBUI
+import java.awt.Color
 import java.awt.Graphics2D
 import java.awt.Rectangle
 import kotlin.math.max
@@ -19,9 +19,9 @@ import kotlin.math.min
  * |= - a little hook at the very bottom
  */
 class MinimapHoverPainter {
-  fun paint(graphics: Graphics2D, rect: Rectangle, lineHeight: Int) {
+  fun paint(graphics: Graphics2D, rect: Rectangle, lineHeight: Int, color: Color) {
     val topHeight = lineHeight.coerceIn(1, rect.height)
-    graphics.color = HOVER_COLOR
+    graphics.color = color
     // top bar, todo: consider making it shorter, like the structure element itself
     graphics.fillRect(rect.x, rect.y, rect.width, topHeight)
 
@@ -45,6 +45,5 @@ class MinimapHoverPainter {
     private val VERTICAL_LINE_WIDTH = JBUI.scale(1)
     private val HOOK_HEIGHT = JBUI.scale(2)
     private val MIN_HOOK_WIDTH = JBUI.scale(6)
-    private val HOVER_COLOR = JBColor.BLUE  // TODO: consider using a standard editor color scheme
   }
 }

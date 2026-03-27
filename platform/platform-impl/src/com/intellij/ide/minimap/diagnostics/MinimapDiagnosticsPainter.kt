@@ -3,7 +3,6 @@ package com.intellij.ide.minimap.diagnostics
 
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.colors.CodeInsightColors
-import com.intellij.ui.JBColor
 import java.awt.AlphaComposite
 import java.awt.BasicStroke
 import java.awt.Graphics2D
@@ -40,14 +39,18 @@ class MinimapDiagnosticsPainter(private val editor: Editor) {
     val scheme = editor.colorsScheme
     return when (severity) {
       MinimapDiagnosticSeverity.WARNING -> MinimapDiagnosticRenderStyle(
-        color = scheme.getAttributes(CodeInsightColors.WARNINGS_ATTRIBUTES)?.errorStripeColor ?: WARNING_COLOR_FALLBACK,
+        color = scheme.getAttributes(CodeInsightColors.WARNINGS_ATTRIBUTES)?.errorStripeColor
+                ?: scheme.getAttributes(CodeInsightColors.WARNINGS_ATTRIBUTES)?.effectColor
+                ?: scheme.defaultForeground,
         alpha = WARNING_ALPHA,
         stroke = BasicStroke(WARNING_STROKE_WIDTH, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND),
         padding = WARNING_PADDING,
       )
 
       MinimapDiagnosticSeverity.ERROR -> MinimapDiagnosticRenderStyle(
-        color = scheme.getAttributes(CodeInsightColors.ERRORS_ATTRIBUTES)?.errorStripeColor ?: ERROR_COLOR_FALLBACK,
+        color = scheme.getAttributes(CodeInsightColors.ERRORS_ATTRIBUTES)?.errorStripeColor
+                ?: scheme.getAttributes(CodeInsightColors.ERRORS_ATTRIBUTES)?.effectColor
+                ?: scheme.defaultForeground,
         alpha = ERROR_ALPHA,
         stroke = BasicStroke(ERROR_STROKE_WIDTH, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND),
         padding = ERROR_PADDING,
@@ -74,8 +77,5 @@ class MinimapDiagnosticsPainter(private val editor: Editor) {
 
     private const val WARNING_PADDING: Double = 0.5
     private const val ERROR_PADDING: Double = 0.7
-
-    private val WARNING_COLOR_FALLBACK = JBColor(0xA66B00, 0xF1C15D)
-    private val ERROR_COLOR_FALLBACK = JBColor(0xCF2B2B, 0xFF6F6F)
   }
 }

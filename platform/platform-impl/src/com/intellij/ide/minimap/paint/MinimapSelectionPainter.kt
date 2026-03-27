@@ -5,7 +5,6 @@ import com.intellij.ide.minimap.layout.MinimapLayoutMetrics
 import com.intellij.ide.minimap.render.MinimapRenderContext
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.colors.EditorColors
-import com.intellij.ui.JBColor
 import java.awt.AlphaComposite
 import java.awt.Color
 import java.awt.Graphics2D
@@ -94,10 +93,13 @@ class MinimapSelectionPainter(private val editor: Editor) {
     val hasFocus = editor.contentComponent.hasFocus()
     val activeSelection = colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
     val inactiveSelection = colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR_INACTIVE)
+    val selectionFallback = colorsScheme.getColor(EditorColors.SELECTION_FOREGROUND_COLOR)
+                            ?: colorsScheme.getColor(EditorColors.CARET_COLOR)
+                            ?: colorsScheme.defaultForeground
 
     val color = when {
-      hasFocus -> activeSelection ?: inactiveSelection ?: SELECTION_FALLBACK_COLOR
-      else -> inactiveSelection ?: activeSelection ?: SELECTION_FALLBACK_COLOR
+      hasFocus -> activeSelection ?: inactiveSelection ?: selectionFallback
+      else -> inactiveSelection ?: activeSelection ?: selectionFallback
     }
 
     return SelectionRenderStyle(
@@ -162,6 +164,5 @@ class MinimapSelectionPainter(private val editor: Editor) {
     private const val SELECTION_ALPHA: Float = 0.9f
     private const val SELECTION_HORIZONTAL_PADDING_PX: Double = 0.5
     private const val SELECTION_CONNECTOR_HEIGHT_PX: Double = 1.0
-    private val SELECTION_FALLBACK_COLOR = JBColor.BLUE
   }
 }

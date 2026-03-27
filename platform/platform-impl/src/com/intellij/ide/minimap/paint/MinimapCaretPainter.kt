@@ -5,7 +5,6 @@ import com.intellij.ide.minimap.MinimapPanel
 import com.intellij.ide.minimap.geometry.MinimapLineGeometryUtil
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.colors.EditorColors
-import com.intellij.ui.JBColor
 import java.awt.AlphaComposite
 import java.awt.Color
 import java.awt.Graphics2D
@@ -58,11 +57,13 @@ class MinimapCaretPainter(private val editor: Editor, private val panel: Minimap
   }
 
   private fun caretColor(): Color {
-    return editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR) ?: CARET_FALLBACK_COLOR
+    val scheme = editor.colorsScheme
+    return scheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
+           ?: scheme.getColor(EditorColors.CARET_COLOR)
+           ?: scheme.defaultForeground
   }
 
   companion object {
     private const val CARET_ALPHA: Float = 0.6f
-    private val CARET_FALLBACK_COLOR = JBColor.BLUE
   }
 }

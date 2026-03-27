@@ -1,10 +1,13 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.minimap.hover
 
-import com.intellij.ide.minimap.geometry.MinimapLineGeometryUtil
 import com.intellij.ide.minimap.MinimapPanel
 import com.intellij.ide.minimap.MinimapUsageCollector
+import com.intellij.ide.minimap.geometry.MinimapLineGeometryUtil
 import com.intellij.ide.minimap.render.MinimapRenderContext
+import com.intellij.openapi.editor.colors.EditorColors
+import com.intellij.ui.JBColor
+import java.awt.Color
 import java.awt.Graphics2D
 import kotlin.math.roundToInt
 
@@ -13,7 +16,6 @@ class MinimapHoverPresenter(private val panel: MinimapPanel) {
   private val balloonController = MinimapBalloonController(panel)
   private var activeTarget: MinimapHoverTarget? = null
   private var lastContext: MinimapRenderContext? = null
-  //private val editorScheme = panel.editor.colorsScheme
 
   fun setContext(context: MinimapRenderContext?) {
     lastContext = context
@@ -39,10 +41,7 @@ class MinimapHoverPresenter(private val panel: MinimapPanel) {
     val context = lastContext ?: return
 
     val lineHeight = computeLineHeight(context)
-    //val hoverColor = editorScheme.getAttributes(EditorColors.SEARCH_RESULT_ATTRIBUTES)?.foregroundColor
-    //                 ?: editorScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
-    //                 ?: JBColor.BLUE
-    hoverPainter.paint(graphics, target.rect, lineHeight)
+    hoverPainter.paint(graphics, target.rect, lineHeight, hoverColor())
   }
 
   fun hide() {
@@ -62,5 +61,12 @@ class MinimapHoverPresenter(private val panel: MinimapPanel) {
   private fun hoverTargetType(target: MinimapHoverTarget): MinimapUsageCollector.HoverTargetType {
     return if (target.entry.element != null) MinimapUsageCollector.HoverTargetType.STRUCTURE
     else MinimapUsageCollector.HoverTargetType.UNKNOWN
+  }
+
+  private fun hoverColor(): Color {
+    val scheme = panel.editor.colorsScheme
+    return scheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
+           ?: scheme.getAttributes(EditorColors.REFERENCE_HYPERLINK_COLOR)?.foregroundColor
+           ?: JBColor.BLUE
   }
 }

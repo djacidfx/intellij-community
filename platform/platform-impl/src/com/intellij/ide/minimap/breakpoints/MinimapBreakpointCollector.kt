@@ -7,10 +7,12 @@ import com.intellij.ide.minimap.layout.MinimapLayoutUtil
 import com.intellij.ide.minimap.render.MinimapRenderContext
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.ex.MarkupIterator
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
-import com.intellij.ui.JBColor
+import com.intellij.ui.ColorUtil
+import com.intellij.util.IconUtil
 import java.awt.Color
 
 class MinimapBreakpointCollector(private val editor: Editor) {
@@ -88,18 +90,21 @@ class MinimapBreakpointCollector(private val editor: Editor) {
   }
 
   private fun colorFor(highlighter: RangeHighlighterEx): Color {
-    val rendererClassName = highlighter.gutterIconRenderer?.javaClass?.simpleName.orEmpty()
-    if (rendererClassName.contains("disabled", ignoreCase = true) ||
-        rendererClassName.contains("muted", ignoreCase = true) ||
-        rendererClassName.contains("inactive", ignoreCase = true)) {
-      return INACTIVE_BREAKPOINT_COLOR
+    val iconColor = highlighter.gutterIconRenderer?.icon?.let { IconUtil.mainColor(it, true) }
+    if (iconColor != null && iconColor.alpha > 0) {
+      return ColorUtil.toAlpha(iconColor, 255)
     }
-    return ACTIVE_BREAKPOINT_COLOR
+
+    val scheme = editor.colorsScheme
+    val resolvedColor = highlighter.getErrorStripeMarkColor(scheme)
+                        ?: highlighter.getTextAttributes(scheme)?.errorStripeColor
+                        ?: scheme.getColor(EditorColors.CARET_COLOR)
+                        ?: scheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
+                        ?: scheme.defaultForeground
+    return ColorUtil.toAlpha(resolvedColor, 255)
   }
 
   companion object {
     private const val MAX_BREAKPOINT_ENTRIES = 2_000
-    private val ACTIVE_BREAKPOINT_COLOR = JBColor.RED
-    private val INACTIVE_BREAKPOINT_COLOR = JBColor.GRAY
   }
 }

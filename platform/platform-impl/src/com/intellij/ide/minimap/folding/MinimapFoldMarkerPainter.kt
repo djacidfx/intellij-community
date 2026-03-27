@@ -3,9 +3,9 @@ package com.intellij.ide.minimap.folding
 
 import com.intellij.ide.minimap.breakpoints.MinimapBreakpointEntry
 import com.intellij.ide.minimap.layout.MinimapLayoutMetrics
-import com.intellij.ui.JBColor
 import java.awt.AlphaComposite
 import java.awt.BasicStroke
+import java.awt.Color
 import java.awt.Graphics2D
 
 class MinimapFoldMarkerPainter {
@@ -14,6 +14,7 @@ class MinimapFoldMarkerPainter {
     entries: List<MinimapFoldMarkerEntry>,
     breakpointEntries: List<MinimapBreakpointEntry>,
     metrics: MinimapLayoutMetrics?,
+    markerColor: Color,
   ) {
     if (entries.isEmpty()) return
 
@@ -24,8 +25,8 @@ class MinimapFoldMarkerPainter {
     try {
       for (entry in entries) {
         if (linesWithBreakpoints.contains(entry.projectedLine)) continue
-        drawGutterMarker(graphics, entry)
-        drawContentLine(graphics, entry, metrics)
+        drawGutterMarker(graphics, entry, markerColor)
+        drawContentLine(graphics, entry, metrics, markerColor)
       }
     }
     finally {
@@ -35,7 +36,7 @@ class MinimapFoldMarkerPainter {
     }
   }
 
-  private fun drawGutterMarker(graphics: Graphics2D, entry: MinimapFoldMarkerEntry) {
+  private fun drawGutterMarker(graphics: Graphics2D, entry: MinimapFoldMarkerEntry, markerColor: Color) {
     val rect = entry.rect2d
     if (rect.width <= 0.0 || rect.height <= 0.0) return
 
@@ -46,14 +47,14 @@ class MinimapFoldMarkerPainter {
 
     graphics.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, MARKER_ALPHA)
     graphics.stroke = BasicStroke(MARKER_STROKE_WIDTH, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
-    graphics.color = MARKER_COLOR
+    graphics.color = markerColor
     val chevronTopY = centerY - CHEVRON_HALF_HEIGHT
     val chevronBottomY = centerY + CHEVRON_HALF_HEIGHT
     graphics.drawLine(leftX.toInt(), chevronTopY.toInt(), rightX.toInt(), centerY.toInt())
     graphics.drawLine(leftX.toInt(), chevronBottomY.toInt(), rightX.toInt(), centerY.toInt())
   }
 
-  private fun drawContentLine(graphics: Graphics2D, entry: MinimapFoldMarkerEntry, metrics: MinimapLayoutMetrics?) {
+  private fun drawContentLine(graphics: Graphics2D, entry: MinimapFoldMarkerEntry, metrics: MinimapLayoutMetrics?, markerColor: Color) {
     val metrics = metrics ?: return
 
     val rect = entry.rect2d
@@ -64,7 +65,7 @@ class MinimapFoldMarkerPainter {
 
     graphics.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, CONTENT_LINE_ALPHA)
     graphics.stroke = BasicStroke(CONTENT_LINE_STROKE_WIDTH, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
-    graphics.color = MARKER_COLOR
+    graphics.color = markerColor
     graphics.drawLine(contentStartX.toInt(), centerY.toInt(), contentEndX.toInt(), centerY.toInt())
   }
 
@@ -77,6 +78,5 @@ class MinimapFoldMarkerPainter {
     private const val CONTENT_LINE_ALPHA: Float = 0.5f
     private const val CONTENT_LINE_STROKE_WIDTH: Float = 0.9f
     private const val CONTENT_LINE_SIDE_PADDING: Double = 0.8
-    private val MARKER_COLOR = JBColor.GRAY
   }
 }
