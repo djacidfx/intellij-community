@@ -287,7 +287,6 @@ class RunContentManagerImpl(private val project: Project) : RunContentManager {
 
     val contentManager = getContentManagerForRunner(executor, descriptor)
     val toolWindowId = getToolWindowIdForRunner(executor, descriptor)
-    updateToolWindowDecoration(toolWindowId, executor)
     val oldDescriptor = chooseReuseContentForDescriptor(contentManager, descriptor, null, executionId, descriptor.displayName, getReuseCondition(toolWindowId))
     val content: Content?
     if (oldDescriptor == null) {
@@ -506,12 +505,6 @@ class RunContentManagerImpl(private val project: Project) : RunContentManager {
   }
 
   private fun getContentManagerForRunner(executor: Executor, descriptor: RunContentDescriptor?): ContentManager {
-    // When contentToolWindowId is explicitly set, it takes priority over the attachedContent.manager shortcut.
-    // The attached content may come from a different toolwindow via contentToReuse (e.g., a terminated Run tab
-    // reused for a Profiler run), so blindly returning its manager would route content to the wrong toolwindow.
-    if (descriptor?.contentToolWindowId != null) {
-      return getOrCreateContentManagerForToolWindow(descriptor.contentToolWindowId!!, executor)
-    }
     return descriptor?.attachedContent?.manager
            ?: getOrCreateContentManagerForToolWindow(getToolWindowIdForRunner(executor, descriptor), executor)
   }
@@ -520,6 +513,7 @@ class RunContentManagerImpl(private val project: Project) : RunContentManager {
     val dashboardManager = RunDashboardUiManager.getInstance(project) // initialize RunDashboardContentManager before getting content manger
     val contentManager = getContentManagerByToolWindowId(id)
     if (contentManager != null) {
+      updateToolWindowDecoration(id, executor)
       return contentManager
     }
 
@@ -527,16 +521,9 @@ class RunContentManagerImpl(private val project: Project) : RunContentManager {
       initToolWindow(null, dashboardManager.toolWindowId, dashboardManager.toolWindowIcon, dashboardManager.dashboardContentManager)
       return dashboardManager.dashboardContentManager
     }
-
-    // Handle external toolwindows: if a toolwindow with this ID exists but wasn't registered
-    // by RunContentManagerImpl, initialize its content manager and return it.
-    // This supports contentToolWindowId routing to any external toolwindow (e.g., Profiler).
-    val existingToolWindow = getToolWindowManager().getToolWindow(id)
-    if (existingToolWindow != null && id != executor.toolWindowId) {
-      return existingToolWindow.contentManager
+    else {
+      return registerToolWindow(executor)
     }
-
-    return registerToolWindow(executor)
   }
 
   override fun getToolWindowByDescriptor(descriptor: RunContentDescriptor): ToolWindow? {
@@ -553,12 +540,6 @@ class RunContentManagerImpl(private val project: Project) : RunContentManager {
 
   private fun updateToolWindowDecoration(id: String, executor: Executor) {
     if (RunDashboardUiManager.getInstanceIfCreated(project)?.toolWindowId == id) {
-      return
-    }
-
-    // Skip toolwindows not initialized by RunContentManagerImpl (e.g., Profiler).
-    // Without this guard, executor.toolWindowIcon overwrites the original icon of externally-registered toolwindows.
-    if (!toolWindowIdToBaseIcon.containsKey(id)) {
       return
     }
 
@@ -582,18 +563,9 @@ class RunContentManagerImpl(private val project: Project) : RunContentManager {
 
     RunDashboardUiManager.getInstanceIfCreated(project)?.let {
       val toolWindowId = it.toolWindowId
-      processedToolWindowIds.add(toolWindowId)
       if (toolWindowIdToBaseIcon.contains(toolWindowId)) {
         processor(toolWindowManager.getToolWindow(toolWindowId) ?: return, it.dashboardContentManager)
       }
-    }
-
-    // Include external toolwindows that received content via contentToolWindowId (e.g., Profiler).
-    val externalIds = descriptors.values.mapNotNullTo(HashSet()) { it.contentToolWindowId }
-    externalIds.removeAll(processedToolWindowIds)
-    for (id in externalIds) {
-      val toolWindow = toolWindowManager.getToolWindow(id) ?: continue
-      processor(toolWindow, toolWindow.contentManagerIfCreated ?: continue)
     }
   }
 
@@ -658,14 +630,6 @@ class RunContentManagerImpl(private val project: Project) : RunContentManager {
     }
     find(getContentManagerByToolWindowId(RunDashboardUiManager.getInstanceIfCreated(project)?.toolWindowId ?: return null) ?: return null)?.let {
       return it
-    }
-    // Search external toolwindows that received content via contentToolWindowId (e.g., Profiler).
-    val toolWindowManager = getToolWindowManager()
-    for (descriptor in descriptors.values) {
-      val twId = descriptor.contentToolWindowId ?: continue
-      find(toolWindowManager.getToolWindow(twId)?.contentManagerIfCreated)?.let {
-        return it
-      }
     }
     return null
   }
