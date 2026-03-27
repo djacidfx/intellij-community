@@ -33,22 +33,21 @@ class MinimapBreakpointCollector(private val editor: Editor) {
     val gutterWidth = metrics.contentStartX
     if (gutterWidth <= 0.0) return emptyList()
 
-    val visibleOffsetRange = MinimapLayoutUtil.visibleOffsetRange(context, metrics, document) ?: return emptyList()
-    val visibleStartOffset = visibleOffsetRange.startOffset
-    val visibleEndOffset = visibleOffsetRange.endOffsetExclusive
+    val startOffset = 0
+    val endOffset = textLength
 
     val entries = ArrayList<MinimapBreakpointEntry>()
     val processedLines = HashSet<Int>()
     MarkupIterator.mergeIterators(
-      editorEx.markupModel.overlappingGutterIterator(visibleStartOffset, visibleEndOffset),
-      editorEx.filteredDocumentMarkupModel.overlappingGutterIterator(visibleStartOffset, visibleEndOffset),
+      editorEx.markupModel.overlappingGutterIterator(startOffset, endOffset),
+      editorEx.filteredDocumentMarkupModel.overlappingGutterIterator(startOffset, endOffset),
       RangeHighlighterEx.BY_AFFECTED_START_OFFSET,
     ).use { iterator ->
       while (iterator.hasNext() && entries.size < MAX_BREAKPOINT_ENTRIES) {
         val highlighter = iterator.next()
         if (!MinimapBreakpointUtil.isBreakpointHighlighter(highlighter)) continue
 
-        val logicalLine = lineForHighlighter(highlighter, document, visibleStartOffset, visibleEndOffset) ?: continue
+        val logicalLine = lineForHighlighter(highlighter, document, startOffset, endOffset) ?: continue
         if (lineProjection.isLineInCollapsedRegion(logicalLine)) continue
         val projectedLine = lineProjection.logicalToProjectedLine(logicalLine) ?: continue
         if (!processedLines.add(projectedLine)) continue
@@ -58,7 +57,6 @@ class MinimapBreakpointCollector(private val editor: Editor) {
           x2 = gutterWidth,
           y1 = projectedLine * metrics.baseLineHeight,
           y2 = (projectedLine + 1) * metrics.baseLineHeight,
-          areaStart = context.geometry.areaStart.toDouble(),
           maxWidth = gutterWidth,
         )
         entries.add(

@@ -1,6 +1,7 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.minimap.diagnostics
 
+import com.intellij.ide.minimap.render.MinimapRenderContext
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.colors.CodeInsightColors
 import java.awt.AlphaComposite
@@ -9,7 +10,7 @@ import java.awt.Graphics2D
 import java.awt.geom.Rectangle2D
 
 class MinimapDiagnosticsPainter(private val editor: Editor) {
-  fun paint(graphics: Graphics2D, entries: List<MinimapDiagnosticEntry>) {
+  fun paint(graphics: Graphics2D, context: MinimapRenderContext, entries: List<MinimapDiagnosticEntry>) {
     if (entries.isEmpty()) return
 
     val warningStyle = styleFor(MinimapDiagnosticSeverity.WARNING)
@@ -17,6 +18,11 @@ class MinimapDiagnosticsPainter(private val editor: Editor) {
 
     val oldComposite = graphics.composite
     val oldStroke = graphics.stroke
+    val savedTransform = graphics.transform
+    val savedClip = graphics.clip
+    graphics.setClip(0, 0, context.panelWidth, context.panelHeight)
+    graphics.translate(0.0, -context.geometry.areaStart.toDouble())
+
     try {
       for (entry in entries) {
         val style = when (entry.severity) {
@@ -32,6 +38,8 @@ class MinimapDiagnosticsPainter(private val editor: Editor) {
     finally {
       graphics.stroke = oldStroke
       graphics.composite = oldComposite
+      graphics.transform = savedTransform
+      graphics.clip = savedClip
     }
   }
 

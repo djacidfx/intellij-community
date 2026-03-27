@@ -72,12 +72,10 @@ class MinimapLayoutCalculator(private val editor: Editor) {
 
     val tokenEntries = ArrayList<MinimapRenderEntry>()
     val structureEntries = ArrayList<MinimapRenderEntry>(structureMarkers.size)
-    val visibleLines = MinimapLayoutUtil.visibleLines(geometry, lineCount)
     val layout = MinimapLayoutContext(
       document = document,
       metrics = metrics,
-      areaStart = geometry.areaStart.toDouble(),
-      visibleLines = visibleLines,
+      visibleLines = 0 until lineCount,
       lineProjection = context.lineProjection,
     )
     return LayoutBuildState(layout, documentLength, tokenEntries, structureEntries)
@@ -246,7 +244,7 @@ class MinimapLayoutCalculator(private val editor: Editor) {
   }
 
   private fun getLineBand(startLine: Int, endLine: Int, context: MinimapLayoutContext): LineBand? {
-    val band = MinimapLayoutUtil.lineBandRect(startLine, endLine, context.metrics.baseLineHeight, context.areaStart)
+    val band = MinimapLayoutUtil.lineBandRect(startLine, endLine, context.metrics.baseLineHeight)
     return if (band.height <= 0.0) null else LineBand(band.y, band.height)
   }
 

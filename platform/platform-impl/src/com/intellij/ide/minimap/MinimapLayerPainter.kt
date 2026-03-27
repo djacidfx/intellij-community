@@ -52,16 +52,18 @@ internal class MinimapLayerPainter(
   }
 
   fun paintDiagnosticsLayer(graphics: Graphics2D, state: MinimapLayerRenderState) {
-    diagnosticsPainter.paint(graphics, state.snapshot.diagnosticEntries)
+    val snapshot = state.snapshot
+    diagnosticsPainter.paint(graphics, snapshot.context, snapshot.diagnosticEntries)
   }
 
   fun paintFoldMarkersLayer(graphics: Graphics2D, state: MinimapLayerRenderState) {
     val snapshot = state.snapshot
-    foldPainter.paint(graphics, snapshot.foldEntries, snapshot.breakpointEntries, snapshot.layoutMetrics, foldMarkerColor())
+    foldPainter.paint(graphics, snapshot.context, snapshot.foldEntries, snapshot.breakpointEntries, snapshot.layoutMetrics, foldMarkerColor())
   }
 
   fun paintBreakpointsLayer(graphics: Graphics2D, state: MinimapLayerRenderState) {
-    breakpointPainter.paint(graphics, state.snapshot.breakpointEntries)
+    val snapshot = state.snapshot
+    breakpointPainter.paint(graphics, snapshot.context, snapshot.breakpointEntries)
   }
 
   fun paintHoverLayer(graphics: Graphics2D) {

@@ -44,7 +44,6 @@ class MinimapController(
   private val scope = coroutineScope.childScope("MinimapController")
   private val structureUpdates = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
   private val diagnosticsUpdates = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
-  private val scrollUpdates = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
   private val settings = MinimapSettings.getInstance()
   private val editor: Editor = panel.editor
 
@@ -86,8 +85,6 @@ class MinimapController(
     refreshSnapshot()
     initStructureMarkersFlow()
     initDiagnosticsFlow()
-    // TODO: scroll optimization — re-enable once the fast-path approach is validated
-    // initScrollUpdatesFlow()
   }
 
   override fun dispose() {
@@ -123,13 +120,8 @@ class MinimapController(
   /**
    * Fast scroll update path. Called on every pure vertical scroll event (width/height unchanged).
    *
-   * When `areaStart` hasn't changed (the minimap fits entirely in the panel — the common case),
-   * the stored token/diagnostic/fold/breakpoint entries are still valid because their y-coordinates
-   * are computed relative to `areaStart`. We just copy the snapshot with updated geometry (O(1)).
-   *
-   * When `areaStart` changes (large file where the minimap itself scrolls), we immediately apply
-   * a geometry-only copy so the thumb tracks correctly, then schedule a debounced full rebuild
-   * to recompute entries for the new visible window.
+   * Entries store absolute minimap y-coordinates (not panel-relative), so they stay valid for any
+   * scroll position. A geometry-only snapshot copy (O(1)) is all that's needed — no layout rebuild.
    */
   fun refreshOnScroll() {
     val state = settings.state
@@ -144,21 +136,9 @@ class MinimapController(
     val lineProjection = model.getLineProjection()
     val newGeometry = geometryCalculator.compute(panelHeight, scaleData, state.scaleMode, lineProjection.projectedLineCount)
 
-    val current = panel.currentSnapshot()
-    if (current != null && newGeometry.areaStart == current.geometry.areaStart) {
-      // Fast path: visible window didn't shift, only thumb position changed.
-      val newContext = current.context.copy(panelWidth = panelWidth, panelHeight = panelHeight, geometry = newGeometry)
-      panel.updateSnapshot(current.copy(context = newContext, geometry = newGeometry))
-      return
-    }
-
-    // areaStart changed — the visible set of lines shifted. Apply geometry immediately so the
-    // thumb moves correctly, then schedule a full layout rebuild via debounced flow.
-    if (current != null) {
-      val newContext = current.context.copy(panelWidth = panelWidth, panelHeight = panelHeight, geometry = newGeometry)
-      panel.updateSnapshot(current.copy(context = newContext, geometry = newGeometry))
-    }
-    scrollUpdates.tryEmit(Unit)
+    val current = panel.currentSnapshot() ?: return
+    val newContext = current.context.copy(panelWidth = panelWidth, panelHeight = panelHeight, geometry = newGeometry)
+    panel.updateSnapshot(current.copy(context = newContext, geometry = newGeometry))
   }
 
   private fun updatePanelVisibility(minimapWidth: Int): Boolean {
@@ -204,20 +184,9 @@ class MinimapController(
     }
   }
 
-  private fun initScrollUpdatesFlow() = scope.launch {
-    scrollUpdates.debounce(SCROLL_LAYOUT_DEBOUNCE_MS).collect {
-      withContext(Dispatchers.EDT + ModalityState.any().asContextElement()) {
-        if (disposed) return@withContext
-        refreshSnapshot()
-        panel.repaint()
-      }
-    }
-  }
-
   companion object {
     private const val STRUCTURE_MARKERS_DEBOUNCE_MS: Long = 125
     private const val DIAGNOSTICS_DEBOUNCE_MS: Long = 125
-    private const val SCROLL_LAYOUT_DEBOUNCE_MS: Long = 50
     private const val HIDE_MINIMAP_EDITOR_WIDTH_MULTIPLIER: Long = 2
   }
 }

@@ -7,7 +7,6 @@ import com.intellij.openapi.editor.Document
 internal class MinimapLayoutContext(
   val document: Document,
   val metrics: MinimapLayoutMetrics,
-  val areaStart: Double,
   val visibleLines: IntRange,
   val lineProjection: MinimapLineProjection,
 )

@@ -81,12 +81,11 @@ object MinimapLayoutUtil {
 
   fun lineBandRect(startLine: Int,
                    endLine: Int,
-                   baseLineHeight: Double,
-                   areaStart: Double): Rectangle2D.Double {
+                   baseLineHeight: Double): Rectangle2D.Double {
     val y1 = lineTop(startLine, baseLineHeight)
     val y2 = lineTop(endLine, baseLineHeight)
 
-    val snapped = rectFromDoubles(0.0, 1.0, y1, y2, areaStart)
+    val snapped = rectFromDoubles(0.0, 1.0, y1, y2)
     val lineGap = getLineGap(baseLineHeight)
     val height = (snapped.height - lineGap).coerceAtLeast(1.0)
     val yOffset = snapped.y + lineGap / 2.0
@@ -98,15 +97,12 @@ object MinimapLayoutUtil {
                       x2: Double,
                       y1: Double,
                       y2: Double,
-                      areaStart: Double,
                       maxWidth: Double = Double.MAX_VALUE): Rectangle2D.Double {
-    val sy1 = y1 - areaStart
-    val sy2 = y2 - areaStart
     val clampedX1 = x1.coerceIn(0.0, maxWidth)
     val clampedX2 = x2.coerceIn(clampedX1, maxWidth)
     val width = (clampedX2 - clampedX1).coerceAtLeast(1.0)
-    val height = (sy2 - sy1).coerceAtLeast(1.0)
-    return Rectangle2D.Double(clampedX1, sy1, width, height)
+    val height = (y2 - y1).coerceAtLeast(1.0)
+    return Rectangle2D.Double(clampedX1, y1, width, height)
   }
 
   fun getRightMarginChars(editor: Editor): Int {

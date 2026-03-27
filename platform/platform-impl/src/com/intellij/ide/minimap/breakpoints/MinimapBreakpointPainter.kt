@@ -1,6 +1,7 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.minimap.breakpoints
 
+import com.intellij.ide.minimap.render.MinimapRenderContext
 import java.awt.AlphaComposite
 import java.awt.Graphics2D
 import java.awt.RenderingHints
@@ -9,15 +10,18 @@ import java.awt.geom.Rectangle2D
 import kotlin.math.min
 
 class MinimapBreakpointPainter {
-  fun paint(graphics: Graphics2D, entries: List<MinimapBreakpointEntry>) {
+  fun paint(graphics: Graphics2D, context: MinimapRenderContext, entries: List<MinimapBreakpointEntry>) {
     if (entries.isEmpty()) return
 
-    val clipBounds = graphics.clipBounds
-    val lineHighlightX = clipBounds?.x?.toDouble() ?: 0.0
-    val lineHighlightWidth = clipBounds?.width?.toDouble() ?: 0.0
+    val lineHighlightX = 0.0
+    val lineHighlightWidth = context.panelWidth.toDouble()
 
     val oldComposite = graphics.composite
     val oldAntialiasing = graphics.getRenderingHint(RenderingHints.KEY_ANTIALIASING)
+    val savedTransform = graphics.transform
+    val savedClip = graphics.clip
+    graphics.setClip(0, 0, context.panelWidth, context.panelHeight)
+    graphics.translate(0.0, -context.geometry.areaStart.toDouble())
 
     try {
       graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
@@ -46,6 +50,8 @@ class MinimapBreakpointPainter {
     finally {
       graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, oldAntialiasing)
       graphics.composite = oldComposite
+      graphics.transform = savedTransform
+      graphics.clip = savedClip
     }
   }
 

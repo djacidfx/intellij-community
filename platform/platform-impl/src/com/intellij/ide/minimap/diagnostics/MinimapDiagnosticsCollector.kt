@@ -26,14 +26,12 @@ class MinimapDiagnosticsCollector(private val editor: Editor) {
       return emptyList()
     }
 
-    val visibleOffsetRange = MinimapLayoutUtil.visibleOffsetRange(context, metrics, document) ?: return emptyList()
-    val visibleStartOffset = visibleOffsetRange.startOffset
-    val visibleEndOffset = visibleOffsetRange.endOffsetExclusive
-
     val entries = ArrayList<MinimapDiagnosticEntry>()
+    val startOffset = 0
+    val endOffset = textLength
     MarkupIterator.mergeIterators(
-      editorEx.markupModel.overlappingErrorStripeIterator(visibleStartOffset, visibleEndOffset),
-      editorEx.filteredDocumentMarkupModel.overlappingErrorStripeIterator(visibleStartOffset, visibleEndOffset),
+      editorEx.markupModel.overlappingErrorStripeIterator(startOffset, endOffset),
+      editorEx.filteredDocumentMarkupModel.overlappingErrorStripeIterator(startOffset, endOffset),
       RangeHighlighterEx.BY_AFFECTED_START_OFFSET,
     ).use { iterator ->
       while (iterator.hasNext() && entries.size < MAX_DIAGNOSTIC_ENTRIES) {
@@ -50,8 +48,8 @@ class MinimapDiagnosticsCollector(private val editor: Editor) {
           document = document,
           lineProjection = lineProjection,
           textLength = textLength,
-          visibleStartOffset = visibleStartOffset,
-          visibleEndOffset = visibleEndOffset,
+          startOffset = startOffset,
+          endOffset = endOffset,
         )
       }
     }
@@ -78,12 +76,12 @@ class MinimapDiagnosticsCollector(private val editor: Editor) {
     document: Document,
     lineProjection: MinimapLineProjection,
     textLength: Int,
-    visibleStartOffset: Int,
-    visibleEndOffset: Int,
+    startOffset: Int,
+    endOffset: Int,
   ) {
-    val startOffset = highlighter.startOffset.coerceIn(visibleStartOffset, visibleEndOffset)
-    val rawEndOffset = highlighter.endOffset.coerceIn(startOffset, visibleEndOffset)
-    val endOffsetExclusive = if (rawEndOffset > startOffset) rawEndOffset else (startOffset + 1).coerceAtMost(visibleEndOffset)
+    val startOffset = highlighter.startOffset.coerceIn(startOffset, endOffset)
+    val rawEndOffset = highlighter.endOffset.coerceIn(startOffset, endOffset)
+    val endOffsetExclusive = if (rawEndOffset > startOffset) rawEndOffset else (startOffset + 1).coerceAtMost(endOffset)
     if (endOffsetExclusive <= startOffset) return
 
     val startLine = document.getLineNumber(startOffset)
@@ -133,7 +131,6 @@ class MinimapDiagnosticsCollector(private val editor: Editor) {
         x2 = contentEndX,
         y1 = projectedLine * metrics.baseLineHeight,
         y2 = (projectedLine + 1) * metrics.baseLineHeight,
-        areaStart = context.geometry.areaStart.toDouble(),
         maxWidth = contentEndX,
       )
     }
@@ -147,7 +144,6 @@ class MinimapDiagnosticsCollector(private val editor: Editor) {
         x2 = contentStartX + endColumn * metrics.pxPerColumn,
         y1 = projectedLine * metrics.baseLineHeight,
         y2 = (projectedLine + 1) * metrics.baseLineHeight,
-        areaStart = context.geometry.areaStart.toDouble(),
         maxWidth = contentEndX,
       )
     }

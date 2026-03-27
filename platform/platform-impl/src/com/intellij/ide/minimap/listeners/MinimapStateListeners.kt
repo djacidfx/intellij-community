@@ -69,8 +69,14 @@ class MinimapStateListeners(
           visibleArea.width == newArea.width) {
         return
       }
+      val isPureVerticalScroll = visibleArea.width == newArea.width && visibleArea.height == newArea.height
       visibleArea = newArea
-      updateParameters()
+      if (isPureVerticalScroll) {
+        onScrolled()
+      }
+      else {
+        updateParameters()
+      }
       repaint()
     }
   }

@@ -3,6 +3,7 @@ package com.intellij.ide.minimap.folding
 
 import com.intellij.ide.minimap.breakpoints.MinimapBreakpointEntry
 import com.intellij.ide.minimap.layout.MinimapLayoutMetrics
+import com.intellij.ide.minimap.render.MinimapRenderContext
 import java.awt.AlphaComposite
 import java.awt.BasicStroke
 import java.awt.Color
@@ -11,6 +12,7 @@ import java.awt.Graphics2D
 class MinimapFoldMarkerPainter {
   fun paint(
     graphics: Graphics2D,
+    context: MinimapRenderContext,
     entries: List<MinimapFoldMarkerEntry>,
     breakpointEntries: List<MinimapBreakpointEntry>,
     metrics: MinimapLayoutMetrics?,
@@ -22,6 +24,10 @@ class MinimapFoldMarkerPainter {
     val oldComposite = graphics.composite
     val oldStroke = graphics.stroke
     val oldColor = graphics.color
+    val savedTransform = graphics.transform
+    val savedClip = graphics.clip
+    graphics.setClip(0, 0, context.panelWidth, context.panelHeight)
+    graphics.translate(0.0, -context.geometry.areaStart.toDouble())
     try {
       for (entry in entries) {
         if (linesWithBreakpoints.contains(entry.projectedLine)) continue
@@ -33,6 +39,8 @@ class MinimapFoldMarkerPainter {
       graphics.color = oldColor
       graphics.stroke = oldStroke
       graphics.composite = oldComposite
+      graphics.transform = savedTransform
+      graphics.clip = savedClip
     }
   }
 

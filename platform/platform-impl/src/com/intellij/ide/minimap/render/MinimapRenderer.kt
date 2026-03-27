@@ -17,6 +17,10 @@ class MinimapRenderer {
     }
 
     val colorContext = MinimapTokenColorContext(context, metrics)
+    val savedTransform = graphics.transform
+    val savedClip = graphics.clip
+    graphics.setClip(0, 0, context.panelWidth, context.panelHeight)
+    graphics.translate(0.0, -context.geometry.areaStart.toDouble())
 
     try {
       GraphicsUtil.paintWithAlpha(graphics, TOKEN_FILLER_ALPHA) {
@@ -27,6 +31,8 @@ class MinimapRenderer {
       }
     }
     finally {
+      graphics.transform = savedTransform
+      graphics.clip = savedClip
       config.restore()
     }
   }
