@@ -24,6 +24,7 @@ class MinimapSceneBuilder(
   private val diagnosticsCollector = MinimapDiagnosticsCollector(editor)
   private val breakpointCollector = MinimapBreakpointCollector(editor)
   private val foldCollector = MinimapFoldMarkerCollector()
+  @Volatile
   private var lastStructureMarkers: List<MinimapStructureMarker> = emptyList()
 
   fun buildSnapshot(panelWidth: Int,

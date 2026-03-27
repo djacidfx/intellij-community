@@ -34,6 +34,8 @@ class MinimapStateListeners(
   private val scheduleFoldingUpdate: () -> Unit,
   private val invalidateLineProjection: () -> Unit,
   private val updateParameters: () -> Unit,
+  /** Fast path for pure vertical scrolls (width/height unchanged). */
+  private val onScrolled: () -> Unit,
   private val repaint: () -> Unit,
 ) {
   private val documentListener = object : DocumentListener {

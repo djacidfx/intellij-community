@@ -8,7 +8,6 @@ import com.intellij.ide.minimap.layout.MinimapLayoutCalculator
 import com.intellij.ide.minimap.listeners.MinimapStateListeners
 import com.intellij.ide.minimap.listeners.MinimapUiListeners
 import com.intellij.ide.minimap.model.MinimapModel
-import com.intellij.ide.minimap.scene.MinimapSnapshot
 import com.intellij.ide.minimap.scene.MinimapSceneBuilder
 import com.intellij.ide.minimap.settings.MinimapSettings
 import com.intellij.openapi.Disposable
@@ -45,15 +44,9 @@ class MinimapController(
   private val scope = coroutineScope.childScope("MinimapController")
   private val structureUpdates = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
   private val diagnosticsUpdates = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+  private val scrollUpdates = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
   private val settings = MinimapSettings.getInstance()
   private val editor: Editor = panel.editor
-  private var snapshotSequence: Long = 0
-  private var maxTokenEntries: Int = 0
-  private var maxStructureEntries: Int = 0
-  private var maxDiagnosticEntries: Int = 0
-  private var maxBreakpointEntries: Int = 0
-  private var maxFoldEntries: Int = 0
-  private var maxEstimatedSnapshotBytes: Long = 0
 
   private val model = MinimapModel(editor).also {
     Disposer.register(this, it)
@@ -74,6 +67,7 @@ class MinimapController(
     scheduleFoldingUpdate = { scheduleDiagnosticsUpdate() },
     invalidateLineProjection = model::invalidateLineProjection,
     updateParameters = ::refreshSnapshot,
+    onScrolled = ::refreshOnScroll,
     repaint = panel::repaint,
   )
 
@@ -92,6 +86,8 @@ class MinimapController(
     refreshSnapshot()
     initStructureMarkersFlow()
     initDiagnosticsFlow()
+    // TODO: scroll optimization — re-enable once the fast-path approach is validated
+    // initScrollUpdatesFlow()
   }
 
   override fun dispose() {
@@ -122,7 +118,47 @@ class MinimapController(
     val panelWidth = max(panel.width, scaleData.width)
     val snapshot = sceneBuilder.buildSnapshot(panelWidth, panelHeight, scaleData, state.scaleMode, MinimapRegistry.isLegacy())
     panel.updateSnapshot(snapshot)
-    updateDebugSnapshotStats(snapshot)
+  }
+
+  /**
+   * Fast scroll update path. Called on every pure vertical scroll event (width/height unchanged).
+   *
+   * When `areaStart` hasn't changed (the minimap fits entirely in the panel — the common case),
+   * the stored token/diagnostic/fold/breakpoint entries are still valid because their y-coordinates
+   * are computed relative to `areaStart`. We just copy the snapshot with updated geometry (O(1)).
+   *
+   * When `areaStart` changes (large file where the minimap itself scrolls), we immediately apply
+   * a geometry-only copy so the thumb tracks correctly, then schedule a debounced full rebuild
+   * to recompute entries for the new visible window.
+   */
+  fun refreshOnScroll() {
+    val state = settings.state
+    val panelHeight = max(if (panel.height > 0) panel.height else container.height, 0)
+    val scaleData = MinimapScaleUtil.computeScale(editor, panelHeight, state.width, state.scaleMode)
+    if (!updatePanelVisibility(scaleData.width)) return
+    if (panel.updatePreferredWidth(scaleData.width)) {
+      panel.revalidate()
+    }
+
+    val panelWidth = max(panel.width, scaleData.width)
+    val lineProjection = model.getLineProjection()
+    val newGeometry = geometryCalculator.compute(panelHeight, scaleData, state.scaleMode, lineProjection.projectedLineCount)
+
+    val current = panel.currentSnapshot()
+    if (current != null && newGeometry.areaStart == current.geometry.areaStart) {
+      // Fast path: visible window didn't shift, only thumb position changed.
+      val newContext = current.context.copy(panelWidth = panelWidth, panelHeight = panelHeight, geometry = newGeometry)
+      panel.updateSnapshot(current.copy(context = newContext, geometry = newGeometry))
+      return
+    }
+
+    // areaStart changed — the visible set of lines shifted. Apply geometry immediately so the
+    // thumb moves correctly, then schedule a full layout rebuild via debounced flow.
+    if (current != null) {
+      val newContext = current.context.copy(panelWidth = panelWidth, panelHeight = panelHeight, geometry = newGeometry)
+      panel.updateSnapshot(current.copy(context = newContext, geometry = newGeometry))
+    }
+    scrollUpdates.tryEmit(Unit)
   }
 
   private fun updatePanelVisibility(minimapWidth: Int): Boolean {
@@ -168,63 +204,20 @@ class MinimapController(
     }
   }
 
-  private fun updateDebugSnapshotStats(snapshot: MinimapSnapshot) {
-    snapshotSequence++
-    val tokenEntries = snapshot.tokenEntries.size
-    val structureEntries = snapshot.structureEntries.size
-    val diagnosticEntries = snapshot.diagnosticEntries.size
-    val breakpointEntries = snapshot.breakpointEntries.size
-    val foldEntries = snapshot.foldEntries.size
-    val estimatedBytes = estimateSnapshotBytes(
-      tokenEntries = tokenEntries,
-      structureEntries = structureEntries,
-      diagnosticEntries = diagnosticEntries,
-      breakpointEntries = breakpointEntries,
-      foldEntries = foldEntries,
-    )
-
-    val maxChanged = tokenEntries > maxTokenEntries ||
-                     structureEntries > maxStructureEntries ||
-                     diagnosticEntries > maxDiagnosticEntries ||
-                     breakpointEntries > maxBreakpointEntries ||
-                     foldEntries > maxFoldEntries ||
-                     estimatedBytes > maxEstimatedSnapshotBytes
-
-    if (tokenEntries > maxTokenEntries) maxTokenEntries = tokenEntries
-    if (structureEntries > maxStructureEntries) maxStructureEntries = structureEntries
-    if (diagnosticEntries > maxDiagnosticEntries) maxDiagnosticEntries = diagnosticEntries
-    if (breakpointEntries > maxBreakpointEntries) maxBreakpointEntries = breakpointEntries
-    if (foldEntries > maxFoldEntries) maxFoldEntries = foldEntries
-    if (estimatedBytes > maxEstimatedSnapshotBytes) maxEstimatedSnapshotBytes = estimatedBytes
-
-    if (!maxChanged && snapshotSequence > INITIAL_SNAPSHOT_DEBUG_LOGS && snapshotSequence % SNAPSHOT_DEBUG_LOG_PERIOD != 0L) {
-      return
+  private fun initScrollUpdatesFlow() = scope.launch {
+    scrollUpdates.debounce(SCROLL_LAYOUT_DEBOUNCE_MS).collect {
+      withContext(Dispatchers.EDT + ModalityState.any().asContextElement()) {
+        if (disposed) return@withContext
+        refreshSnapshot()
+        panel.repaint()
+      }
     }
-  }
-
-  private fun estimateSnapshotBytes(
-    tokenEntries: Int,
-    structureEntries: Int,
-    diagnosticEntries: Int,
-    breakpointEntries: Int,
-    foldEntries: Int,
-  ): Long {
-    val renderEntries = tokenEntries + structureEntries
-    return renderEntries * ESTIMATED_RENDER_ENTRY_BYTES +
-           diagnosticEntries * ESTIMATED_DIAGNOSTIC_ENTRY_BYTES +
-           breakpointEntries * ESTIMATED_BREAKPOINT_ENTRY_BYTES +
-           foldEntries * ESTIMATED_FOLD_ENTRY_BYTES
   }
 
   companion object {
     private const val STRUCTURE_MARKERS_DEBOUNCE_MS: Long = 125
     private const val DIAGNOSTICS_DEBOUNCE_MS: Long = 125
+    private const val SCROLL_LAYOUT_DEBOUNCE_MS: Long = 50
     private const val HIDE_MINIMAP_EDITOR_WIDTH_MULTIPLIER: Long = 2
-    private const val INITIAL_SNAPSHOT_DEBUG_LOGS: Long = 3
-    private const val SNAPSHOT_DEBUG_LOG_PERIOD: Long = 200
-    private const val ESTIMATED_RENDER_ENTRY_BYTES: Long = 96
-    private const val ESTIMATED_DIAGNOSTIC_ENTRY_BYTES: Long = 64
-    private const val ESTIMATED_BREAKPOINT_ENTRY_BYTES: Long = 64
-    private const val ESTIMATED_FOLD_ENTRY_BYTES: Long = 64
   }
 }
