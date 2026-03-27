@@ -1,6 +1,7 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.minimap.actions
 
+import com.intellij.ide.minimap.MinimapUsageCollector
 import com.intellij.ide.minimap.settings.MinimapSettings
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
@@ -17,8 +18,15 @@ class EnableMinimapAction : AnAction() {
 
   override fun actionPerformed(e: AnActionEvent) {
     val settings = MinimapSettings.getInstance()
-    if (settings.state.enabled) return
-    settings.state.enabled = true
+    val currentState = settings.state
+    if (currentState.enabled) return
+    currentState.enabled = true
+    MinimapUsageCollector.logToggled(
+      enabled = true,
+      source = MinimapUsageCollector.ToggleSource.ACTION_ENABLE,
+      scaleMode = currentState.scaleMode,
+      rightAligned = currentState.rightAligned,
+    )
     settings.settingsChangeCallback.notify(MinimapSettings.SettingsChangeType.WithUiRebuild)
   }
 }

@@ -1,6 +1,7 @@
 // Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.minimap.actions
 
+import com.intellij.ide.minimap.MinimapUsageCollector
 import com.intellij.ide.minimap.settings.MinimapSettings
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -13,7 +14,15 @@ class ToggleMinimapAction : DumbAwareToggleAction(), RightAlignedToolbarAction, 
   override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
   override fun setSelected(e: AnActionEvent, state: Boolean) {
     val settings = MinimapSettings.getInstance()
-    settings.state.enabled = state
+    val currentState = settings.state
+    if (currentState.enabled == state) return
+    currentState.enabled = state
+    MinimapUsageCollector.logToggled(
+      enabled = state,
+      source = MinimapUsageCollector.ToggleSource.ACTION_TOGGLE,
+      scaleMode = currentState.scaleMode,
+      rightAligned = currentState.rightAligned,
+    )
     settings.settingsChangeCallback.notify(MinimapSettings.SettingsChangeType.WithUiRebuild)
   }
 }

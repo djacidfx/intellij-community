@@ -133,7 +133,8 @@ class MinimapController(
   }
 
   private fun updatePanelVisibility(minimapWidth: Int): Boolean {
-    val shouldBeVisible = !shouldHideForNarrowEditor(minimapWidth)
+    val hiddenForNarrowEditor = shouldHideForNarrowEditor(minimapWidth)
+    val shouldBeVisible = !hiddenForNarrowEditor
     if (panel.isVisible == shouldBeVisible) return shouldBeVisible
     panel.isVisible = shouldBeVisible
     container.revalidate()

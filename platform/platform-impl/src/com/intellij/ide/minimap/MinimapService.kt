@@ -123,7 +123,15 @@ class MinimapService(private val scope: CoroutineScope) : Disposable {
     val where = if (settings.state.rightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
 
     val borderLayout = panel.layout as? BorderLayout ?: return
-    if (borderLayout.getLayoutComponent(where) != null) return
+    val existingAtRequestedSide = borderLayout.getLayoutComponent(where) as? MinimapPanel
+    val existingAtOppositeSide = borderLayout.getLayoutComponent(oppositeSide(where)) as? MinimapPanel
+    val existingFromUserData = textEditor.getUserData(MINI_MAP_PANEL_KEY)
+    if (existingAtRequestedSide != null && existingAtOppositeSide == null && (existingFromUserData == null || existingFromUserData === existingAtRequestedSide)) {
+      textEditor.putUserData(MINI_MAP_PANEL_KEY, existingAtRequestedSide)
+      return
+    }
+
+    cleanupMinimapPanels(textEditor, panel)
 
     val minimapPanel = MinimapPanel(scope, textEditor, panel)
 
@@ -135,9 +143,21 @@ class MinimapService(private val scope: CoroutineScope) : Disposable {
   }
 
   private fun removeMinimap(editor: EditorImpl) {
-    val minimapPanel = editor.getUserData(MINI_MAP_PANEL_KEY) ?: return
+    val panel = getPanel(editor)
+    cleanupMinimapPanels(editor, panel)
+  }
+
+  private fun cleanupMinimapPanels(editor: EditorImpl, panel: JPanel?) {
+    val panelsToClose = mutableSetOf<MinimapPanel>()
+    editor.getUserData(MINI_MAP_PANEL_KEY)?.let { panelsToClose.add(it) }
+    panel?.components?.filterIsInstance<MinimapPanel>()?.forEach { panelsToClose.add(it) }
+
     editor.putUserData(MINI_MAP_PANEL_KEY, null)
-    minimapPanel.onClose()
+    panelsToClose.forEach { it.onClose() }
+  }
+
+  private fun oppositeSide(where: String): String {
+    return if (where == BorderLayout.LINE_END) BorderLayout.LINE_START else BorderLayout.LINE_END
   }
 
   companion object {

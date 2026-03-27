@@ -100,5 +100,6 @@
     />
 
     <statistics.counterUsagesCollector implementationClass="com.intellij.platform.ide.menu.MainMenuCollector"/>
+    <statistics.counterUsagesCollector implementationClass="com.intellij.ide.minimap.MinimapUsageCollector"/>
   </extensions>
 </idea-plugin>

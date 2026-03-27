@@ -1,6 +1,7 @@
 // Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.minimap.settings
 
+import com.intellij.ide.minimap.MinimapUsageCollector
 import com.intellij.ide.minimap.utils.MiniMessagesBundle
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.fileTypes.FileTypeManager
@@ -101,6 +102,14 @@ class MinimapConfigurable : BoundConfigurable(MiniMessagesBundle.message("settin
     val needToRebuildUI = currentState.rightAligned != state.rightAligned ||
                           currentState.enabled != state.enabled ||
                           currentState.fileTypes != state.fileTypes
+    if (currentState.enabled != state.enabled) {
+      MinimapUsageCollector.logToggled(
+        enabled = state.enabled,
+        source = MinimapUsageCollector.ToggleSource.SETTINGS,
+        scaleMode = state.scaleMode,
+        rightAligned = state.rightAligned,
+      )
+    }
 
     settings.state = state.copy()
     settings.settingsChangeCallback.notify(if (needToRebuildUI)

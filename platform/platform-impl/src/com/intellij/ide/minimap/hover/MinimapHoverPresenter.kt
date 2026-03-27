@@ -3,6 +3,7 @@ package com.intellij.ide.minimap.hover
 
 import com.intellij.ide.minimap.geometry.MinimapLineGeometryUtil
 import com.intellij.ide.minimap.MinimapPanel
+import com.intellij.ide.minimap.MinimapUsageCollector
 import com.intellij.ide.minimap.render.MinimapRenderContext
 import java.awt.Graphics2D
 import kotlin.math.roundToInt
@@ -19,11 +20,17 @@ class MinimapHoverPresenter(private val panel: MinimapPanel) {
   }
 
   fun setTarget(target: MinimapHoverTarget?) {
+    if (target == null && activeTarget == null) return
+    if (target != null && target.sameAs(activeTarget)) return
     activeTarget = target
     if (target == null) {
       balloonController.hide()
       return
     }
+    MinimapUsageCollector.logHoverShown(
+      scaleMode = panel.settings.state.scaleMode,
+      targetType = hoverTargetType(target),
+    )
     balloonController.show(target.text, target.rect, target.icon)
   }
 
@@ -50,5 +57,10 @@ class MinimapHoverPresenter(private val panel: MinimapPanel) {
     val lineGap = MinimapLineGeometryUtil.lineGap(baseLineHeight)
 
     return MinimapLineGeometryUtil.lineHeight(baseLineHeight, lineGap).roundToInt().coerceAtLeast(1)
+  }
+
+  private fun hoverTargetType(target: MinimapHoverTarget): MinimapUsageCollector.HoverTargetType {
+    return if (target.entry.element != null) MinimapUsageCollector.HoverTargetType.STRUCTURE
+    else MinimapUsageCollector.HoverTargetType.UNKNOWN
   }
 }

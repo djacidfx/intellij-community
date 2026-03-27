@@ -2,6 +2,7 @@
 package com.intellij.ide.minimap.interaction
 
 import com.intellij.ide.minimap.MinimapPanel
+import com.intellij.ide.minimap.MinimapUsageCollector
 import com.intellij.ide.minimap.hover.MinimapHoverController
 import com.intellij.openapi.Disposable
 import java.awt.Cursor
@@ -9,6 +10,8 @@ import java.awt.Point
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
+import kotlin.math.abs
+import kotlin.math.max
 
 class MinimapMouseInteractionController(
   private val panel: MinimapPanel,
@@ -20,6 +23,8 @@ class MinimapMouseInteractionController(
   private var interactionState: MinimapMouseInteractionState = MinimapMouseInteractionState.IDLE
   private var dragAnimationDisabled = false
   private var dragOffset = 0
+  private var dragStartY = 0
+  private var dragDistancePx = 0
 
   fun install() {
     panel.addMouseListener(this)
@@ -35,6 +40,8 @@ class MinimapMouseInteractionController(
 
     interactionState = MinimapMouseInteractionState.IDLE
     dragOffset = 0
+    dragStartY = 0
+    dragDistancePx = 0
 
     panel.removeMouseListener(this)
     panel.removeMouseWheelListener(this)
@@ -48,11 +55,15 @@ class MinimapMouseInteractionController(
     if (geometry == null || geometry.thumbHeight <= 0 || geometry.minimapHeight <= 0) {
       interactionState = MinimapMouseInteractionState.IDLE
       dragOffset = 0
+      dragStartY = 0
+      dragDistancePx = 0
       return
     }
 
     interactionState = MinimapMouseInteractionState.DRAGGING
     dragAnimationDisabled = false
+    dragStartY = e.y
+    dragDistancePx = 0
 
     val thumbTop = geometry.thumbStart - geometry.areaStart
     val thumbBottom = thumbTop + geometry.thumbHeight
@@ -68,6 +79,10 @@ class MinimapMouseInteractionController(
   override fun mouseReleased(e: MouseEvent) {
     if (e.button != MouseEvent.BUTTON1) return
 
+    if (interactionState == MinimapMouseInteractionState.DRAGGING && dragDistancePx > 0) {
+      logDragged()
+    }
+
     if (dragAnimationDisabled) {
       editor.scrollingModel.enableAnimation()
       dragAnimationDisabled = false
@@ -75,12 +90,18 @@ class MinimapMouseInteractionController(
 
     interactionState = MinimapMouseInteractionState.IDLE
     dragOffset = 0
+    dragStartY = 0
+    dragDistancePx = 0
   }
 
   override fun mouseWheelMoved(mouseWheelEvent: MouseWheelEvent) {
+    val preciseWheelRotation = mouseWheelEvent.preciseWheelRotation
+    if (preciseWheelRotation == 0.0) return
+    logWheelScrolled(mouseWheelEvent, preciseWheelRotation)
+
     editor.scrollingModel.scrollVertically(
       editor.scrollingModel.verticalScrollOffset +
-        (mouseWheelEvent.preciseWheelRotation * editor.lineHeight * WHEEL_SCROLL_LINES).toInt())
+        (preciseWheelRotation * editor.lineHeight * WHEEL_SCROLL_LINES).toInt())
   }
 
   override fun mouseDragged(e: MouseEvent) {
@@ -90,12 +111,14 @@ class MinimapMouseInteractionController(
       editor.scrollingModel.disableAnimation()
       dragAnimationDisabled = true
     }
+    dragDistancePx = max(dragDistancePx, abs(e.y - dragStartY))
 
     panel.scrollThumbTo(e.y, dragOffset)
   }
 
   override fun mouseClicked(e: MouseEvent) {
     if (e.button != MouseEvent.BUTTON1) return
+    logClicked()
     handleClick(e)
   }
 
@@ -115,6 +138,50 @@ class MinimapMouseInteractionController(
   private fun handleClick(e: MouseEvent) {
     // TODO: if clicked on structure view element -> scroll to the element
     panel.scrollTo(e.y)
+  }
+
+  private fun logClicked() {
+    val settings = panel.settings.state
+    MinimapUsageCollector.logClicked(
+      scaleMode = settings.scaleMode,
+      rightAligned = settings.rightAligned,
+      source = MinimapUsageCollector.InteractionSource.MOUSE,
+    )
+  }
+
+  private fun logDragged() {
+    val settings = panel.settings.state
+    MinimapUsageCollector.logDragged(
+      scaleMode = settings.scaleMode,
+      rightAligned = settings.rightAligned,
+      dragDistanceBucket = MinimapUsageCollector.toDragDistanceBucket(dragDistancePx),
+      source = MinimapUsageCollector.InteractionSource.MOUSE,
+    )
+  }
+
+  private fun logWheelScrolled(mouseWheelEvent: MouseWheelEvent, preciseWheelRotation: Double) {
+    val settings = panel.settings.state
+    MinimapUsageCollector.logWheelScrolled(
+      scaleMode = settings.scaleMode,
+      direction = if (preciseWheelRotation > 0) {
+        MinimapUsageCollector.ScrollDirection.DOWN
+      }
+      else {
+        MinimapUsageCollector.ScrollDirection.UP
+      },
+      source = wheelInteractionSource(mouseWheelEvent),
+    )
+  }
+
+  private fun wheelInteractionSource(mouseWheelEvent: MouseWheelEvent): MinimapUsageCollector.InteractionSource {
+    val absolutePreciseRotation = abs(mouseWheelEvent.preciseWheelRotation)
+    val absoluteWheelRotation = abs(mouseWheelEvent.wheelRotation.toDouble())
+    return if (absoluteWheelRotation == 0.0 || absolutePreciseRotation < absoluteWheelRotation) {
+      MinimapUsageCollector.InteractionSource.TOUCHPAD
+    }
+    else {
+      MinimapUsageCollector.InteractionSource.MOUSE
+    }
   }
 
   companion object {
