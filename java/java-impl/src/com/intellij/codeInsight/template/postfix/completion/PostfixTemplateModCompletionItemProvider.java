@@ -3,6 +3,7 @@ package com.intellij.codeInsight.template.postfix.completion;
 
 import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo;
 import com.intellij.codeInsight.intention.preview.IntentionPreviewUtils;
+import com.intellij.codeInsight.lookup.AutoCompletionPolicy;
 import com.intellij.codeInsight.lookup.LookupElementCustomPreviewHolder;
 import com.intellij.codeInsight.template.CustomTemplateCallback;
 import com.intellij.codeInsight.template.postfix.settings.PostfixTemplatesSettings;
@@ -24,6 +25,7 @@ import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.util.registry.Registry;
 import com.intellij.openapi.util.text.MarkupText;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.util.PsiUtilCore;
@@ -100,7 +102,12 @@ public final class PostfixTemplateModCompletionItemProvider implements ModComple
 
     @Override
     public @NotNull String mainLookupString() {
-      return myTemplate.getKey();
+      return StringUtil.trimStart(myTemplate.getKey(), ".");
+    }
+
+    @Override
+    public @NotNull AutoCompletionPolicy autoCompletionPolicy() {
+      return AutoCompletionPolicy.NEVER_AUTOCOMPLETE;
     }
 
     @Override

@@ -510,7 +510,7 @@ public final class VariableExtractor {
     SmartPsiElementPointer<PsiVariable> pointer =
       new VariableExtractor(project, expr, null, anchorStatement, occurrences, settings)
         .allowReadAction()
-        .extractVariable().first;
+        .extractVariable().variablePointer();
     PsiVariable var = pointer.getElement();
     return var;
   }

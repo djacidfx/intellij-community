@@ -428,55 +428,20 @@ public class TemplateImpl extends TemplateBase implements SchemeElement {
     Project project = updater.getProject();
     PsiDocumentManager manager = PsiDocumentManager.getInstance(project);
     List<Segment> segments = getSegments();
-    List<MarkerInfo> markers = ContainerUtil.map(segments, segment -> {
+    List<MarkerInfo> markers = new ArrayList<>(ContainerUtil.map(segments, segment -> {
       RangeMarker marker = document.createRangeMarker(start + segment.offset, start + segment.offset);
       if (!END.equals(segment.name)) {
         // can be a conflict if EXPR and END are together
         marker.setGreedyToRight(true);
       }
       return new MarkerInfo(segment, marker);
-    });
-    // Resolve non-editable (isAlwaysStopAt=false) variables upfront so their computed values
+    }));
+    // resolve non-editable (isAlwaysStopAt=false) variables firstly, so their computed values
     // can be substituted into the document before the interactive template session starts.
     Map<String, String> calculatedValues =
       preCalculateNonEditableVariables(variableMap, markers, manager, updater);
 
-    // Pass 1: substitute non-editable variables and resolve END marker.
-    RangeMarker endMarker = null;
-    for (MarkerInfo info : markers) {
-      Segment segment = info.segment;
-      if (segment.name.equals(END)) {
-        int endOffset = info.marker.getStartOffset();
-        // If the END marker landed at the start of a non-editable variable's range
-        // (happens when END and a non-editable variable share the same original template offset),
-        // move END to after that variable's substituted value.
-        for (MarkerInfo other : markers) {
-          if (other == info) continue;
-          Variable v = variableMap.get(other.segment.name);
-          if (v != null && !v.isAlwaysStopAt() && calculatedValues.containsKey(other.segment.name)) {
-            int otherStart = other.marker.getStartOffset();
-            int otherEnd = other.marker.getEndOffset();
-            if (otherStart <= endOffset && endOffset < otherEnd) {
-              endOffset = otherEnd;
-            }
-          }
-        }
-        TextRange range = processor.insertNewLineIndentMarker(updater.getPsiFile(), document, endOffset);
-        if (range != null) {
-          endMarker = document.createRangeMarker(range);
-        } else {
-          endMarker = document.createRangeMarker(endOffset, endOffset);
-        }
-        continue;
-      }
-      Variable variable = variableMap.get(segment.name);
-      if (variable != null && !variable.isAlwaysStopAt()) {
-        String value = calculatedValues.get(segment.name);
-        if (value != null) {
-          document.replaceString(info.marker.getStartOffset(), info.marker.getEndOffset(), value);
-        }
-      }
-    }
+    RangeMarker endMarker = resolveEndMarker(markers, variableMap, calculatedValues, document, processor, updater.getPsiFile());
     for (TemplateOptionalProcessor proc : DumbService.getDumbAwareExtensions(project, TemplateOptionalProcessor.EP_NAME)) {
       if (proc instanceof ModCommandAwareTemplateOptionalProcessor mcProcessor) {
         mcProcessor.processText(this, updater, wholeTemplate);
@@ -487,44 +452,17 @@ public class TemplateImpl extends TemplateBase implements SchemeElement {
       smartIndent(document, wholeTemplate.getStartOffset(), wholeTemplate.getEndOffset(), this, markers);
     }
     if (isToReformat()) {
-      List<MarkerInfo> emptyValues = new ArrayList<>();
-      for (MarkerInfo info : markers) {
-        if (END.equals(info.segment.name)) continue;
-        if (info.marker.getStartOffset() == info.marker.getEndOffset()) {
-          document.insertString(info.marker.getStartOffset(), "a");
-          emptyValues.add(info);
-        }
-      }
-      manager.commitDocument(document);
-      PsiFile psiFileForReformat = updater.getPsiFile();
-      int reformatStart = wholeTemplate.getStartOffset();
-      int reformatEnd = wholeTemplate.getEndOffset();
-      // Extend reformat range to include leading whitespace on the line so the formatter can adjust indentation
-      int lineStart = document.getLineStartOffset(document.getLineNumber(reformatStart));
-      if (document.getCharsSequence().subSequence(lineStart, reformatStart).toString().isBlank()) {
-        reformatStart = lineStart;
-      }
-      CodeStyleManager.getInstance(project)
-        .reformatText(psiFileForReformat, reformatStart, reformatEnd);
-      for (MarkerInfo value : emptyValues) {
-        document.deleteString(value.marker.getStartOffset(), value.marker.getEndOffset());
-      }
+      reformatTemplate(document, manager, project, updater, wholeTemplate, markers);
     }
     if (endMarker == null) {
       endMarker = document.createRangeMarker(wholeTemplate.getEndOffset(), wholeTemplate.getEndOffset());
     }
     document.deleteString(endMarker.getStartOffset(), endMarker.getEndOffset());
-    PsiDocumentManager.getInstance(project).commitDocument(document);
-    // if $END$ is at line start, put it at correct indentation
+    manager.commitDocument(document);
     if (isToReformat()) {
-      int offset = endMarker.getStartOffset();
-      int lineStart = document.getLineStartOffset(document.getLineNumber(offset));
-      if (document.getCharsSequence().subSequence(lineStart, offset).toString().trim().isEmpty()) {
-        CodeStyleManager style = CodeStyleManager.getInstance(updater.getProject());
-        style.adjustLineIndent(updater.getPsiFile(), offset);
-      }
+      adjustEndLineIndent(document, endMarker, project, updater);
     }
-    // Pass 2: create template fields for editable variables.
+    // Create template fields for editable variables.
     // Done after formatting so that field ranges match the final document state.
     ModTemplateBuilder builder = null;
     for (MarkerInfo info : markers) {
@@ -551,6 +489,71 @@ public class TemplateImpl extends TemplateBase implements SchemeElement {
       info.marker.dispose();
     }
     wholeTemplate.dispose();
+  }
+
+  private static @Nullable RangeMarker resolveEndMarker(
+    @NotNull List<MarkerInfo> markers,
+    @NotNull Map<String, Variable> variableMap,
+    @NotNull Map<String, String> calculatedValues,
+    @NotNull Document document,
+    @NotNull TemplateStateProcessor processor,
+    @NotNull PsiFile psiFile
+  ) {
+    for (MarkerInfo info : markers) {
+      if (!info.segment.name.equals(END)) continue;
+      int endOffset = info.marker.getStartOffset();
+      // If the END marker landed at the start of a non-editable variable's range
+      // (happens when END and a non-editable variable share the same original template offset),
+      // move END to after that variable's substituted value.
+      for (MarkerInfo other : markers) {
+        if (other == info) continue;
+        Variable v = variableMap.get(other.segment.name);
+        if (v != null && !v.isAlwaysStopAt() && calculatedValues.containsKey(other.segment.name)) {
+          if (other.marker.getStartOffset() <= endOffset && endOffset < other.marker.getEndOffset()) {
+            endOffset = other.marker.getEndOffset();
+          }
+        }
+      }
+      TextRange range = processor.insertNewLineIndentMarker(psiFile, document, endOffset);
+      return range != null
+             ? document.createRangeMarker(range)
+             : document.createRangeMarker(endOffset, endOffset);
+    }
+    return null;
+  }
+
+  private static void reformatTemplate(@NotNull Document document, @NotNull PsiDocumentManager manager,
+                                        @NotNull Project project, @NotNull ModPsiUpdater updater,
+                                        @NotNull RangeMarker wholeTemplate, @NotNull List<MarkerInfo> markers) {
+    List<MarkerInfo> emptyValues = new ArrayList<>();
+    for (MarkerInfo info : markers) {
+      if (END.equals(info.segment.name)) continue;
+      if (info.marker.getStartOffset() == info.marker.getEndOffset()) {
+        document.insertString(info.marker.getStartOffset(), "a");
+        emptyValues.add(info);
+      }
+    }
+    manager.commitDocument(document);
+    int reformatStart = wholeTemplate.getStartOffset();
+    int reformatEnd = wholeTemplate.getEndOffset();
+    // Extend reformat range to include leading whitespace on the line so the formatter can adjust indentation
+    int lineStart = document.getLineStartOffset(document.getLineNumber(reformatStart));
+    if (document.getCharsSequence().subSequence(lineStart, reformatStart).toString().isBlank()) {
+      reformatStart = lineStart;
+    }
+    CodeStyleManager.getInstance(project).reformatText(updater.getPsiFile(), reformatStart, reformatEnd);
+    for (MarkerInfo value : emptyValues) {
+      document.deleteString(value.marker.getStartOffset(), value.marker.getEndOffset());
+    }
+  }
+
+  private static void adjustEndLineIndent(@NotNull Document document, @NotNull RangeMarker endMarker,
+                                           @NotNull Project project, @NotNull ModPsiUpdater updater) {
+    int offset = endMarker.getStartOffset();
+    int lineStart = document.getLineStartOffset(document.getLineNumber(offset));
+    if (document.getCharsSequence().subSequence(lineStart, offset).toString().trim().isEmpty()) {
+      CodeStyleManager.getInstance(project).adjustLineIndent(updater.getPsiFile(), offset);
+    }
   }
 
   @Override
@@ -581,10 +584,8 @@ public class TemplateImpl extends TemplateBase implements SchemeElement {
       return calculatedValues;
     }
     manager.commitDocument(updater.getDocument());
-    // Insert placeholder "a" for editable variables to ensure syntactically valid PSI
-    // (e.g., resource variable name in try-with-resources must be present for catch parameter resolution).
     Document document = updater.getDocument();
-    boolean insertedEditablePlaceholders = false;
+    List<MarkerInfo> editablePlaceholders = new ArrayList<>();
     for (MarkerInfo info : markers) {
       String name = info.segment.name;
       if (INTERNAL_VARS_SET.contains(name)) continue;
@@ -595,9 +596,9 @@ public class TemplateImpl extends TemplateBase implements SchemeElement {
       info.marker.setGreedyToLeft(true);
       document.insertString(info.marker.getStartOffset(), "a");
       info.marker.setGreedyToLeft(false);
-      insertedEditablePlaceholders = true;
+      editablePlaceholders.add(info);
     }
-    if (insertedEditablePlaceholders) {
+    if (!editablePlaceholders.isEmpty()) {
       manager.commitDocument(document);
     }
     for (int pass = 0; pass < nonEditableVarNames.size(); pass++) {
@@ -620,24 +621,65 @@ public class TemplateImpl extends TemplateBase implements SchemeElement {
         }
       }
       if (calculatedValues.size() == resolvedBefore) break;
-      // Substitute newly resolved values into the document so the next pass sees correct PSI.
-      // Also insert placeholder "a" for unresolved non-editable variables so the PSI tree
-      // is syntactically valid (e.g., catch parameter needs both type and name for proper parsing).
       Document doc = updater.getDocument();
-      for (MarkerInfo info : markers) {
+      // Group zero-length non-editable markers by their current offset.
+      // Combined insertion avoids marker interaction issues when multiple markers share the same offset.
+      Map<Integer, List<Integer>> offsetToIndices = new LinkedHashMap<>();
+      for (int i = 0; i < markers.size(); i++) {
+        MarkerInfo info = markers.get(i);
         String name = info.segment.name;
         if (!nonEditableVarNames.contains(name)) continue;
         if (info.marker.getStartOffset() != info.marker.getEndOffset()) continue; // already has text
-        String value = calculatedValues.get(name);
-        String textToInsert = value != null ? value : "a";
-        info.marker.setGreedyToLeft(true);
-        doc.insertString(info.marker.getStartOffset(), textToInsert);
-        info.marker.setGreedyToLeft(false);
+        offsetToIndices.computeIfAbsent(info.marker.getStartOffset(), k -> new ArrayList<>()).add(i);
+      }
+      for (var entry : offsetToIndices.entrySet()) {
+        List<Integer> indices = entry.getValue();
+        // Use current marker offset — earlier insertions in this loop may have shifted it
+        int offset = markers.get(indices.getFirst()).marker.getStartOffset();
+        // Build combined text in template order (indices are already in template order)
+        StringBuilder combined = new StringBuilder();
+        int[] textStarts = new int[indices.size()];
+        int[] textEnds = new int[indices.size()];
+        for (int i = 0; i < indices.size(); i++) {
+          MarkerInfo info = markers.get(indices.get(i));
+          String value = calculatedValues.get(info.segment.name);
+          String textToInsert = value != null ? value : "a";
+          textStarts[i] = combined.length();
+          combined.append(textToInsert);
+          textEnds[i] = combined.length();
+        }
+        // Single combined insertion avoids marker interaction issues
+        doc.insertString(offset, combined.toString());
+        // Replace old zero-length markers with accurately-ranged new ones
+        for (int i = 0; i < indices.size(); i++) {
+          int idx = indices.get(i);
+          MarkerInfo old = markers.get(idx);
+          old.marker.dispose();
+          int newStart = offset + textStarts[i];
+          int newEnd = offset + textEnds[i];
+          RangeMarker newMarker = doc.createRangeMarker(newStart, newEnd);
+          if (!END.equals(old.segment.name)) {
+            newMarker.setGreedyToRight(true);
+          }
+          markers.set(idx, new MarkerInfo(old.segment, newMarker));
+        }
       }
       manager.commitDocument(doc);
     }
-    // Clean up placeholders for variables that were never resolved
+    // Substitute final resolved values for markers that still contain placeholders from earlier passes.
     Document doc = updater.getDocument();
+    for (MarkerInfo info : markers) {
+      String name = info.segment.name;
+      if (!nonEditableVarNames.contains(name)) continue;
+      String value = calculatedValues.get(name);
+      if (value == null) continue;
+      int markerStart = info.marker.getStartOffset();
+      int markerEnd = info.marker.getEndOffset();
+      if (markerStart != markerEnd) {
+        doc.replaceString(markerStart, markerEnd, value);
+      }
+    }
+    // Clean up placeholders for variables that were never resolved
     boolean cleaned = false;
     for (MarkerInfo info : markers) {
       String name = info.segment.name;
@@ -648,6 +690,15 @@ public class TemplateImpl extends TemplateBase implements SchemeElement {
       }
     }
     if (cleaned) {
+      manager.commitDocument(doc);
+    }
+    // Clean up placeholders inserted for editable variables
+    for (MarkerInfo info : editablePlaceholders) {
+      if (info.marker.getStartOffset() != info.marker.getEndOffset()) {
+        doc.deleteString(info.marker.getStartOffset(), info.marker.getEndOffset());
+      }
+    }
+    if (!editablePlaceholders.isEmpty()) {
       manager.commitDocument(doc);
     }
     return calculatedValues;

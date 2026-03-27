@@ -17,8 +17,12 @@ public abstract class PsiUpdateModCommandSurrounder extends ModCommandSurrounder
     return ModCommand.psiUpdate(context,
                                 updater ->
                                   surroundElements(context,
-                                                   ContainerUtil.map(elements, updater::getWritable).toArray(PsiElement.EMPTY_ARRAY),
+                                                   ContainerUtil.map(elements, element -> getWritable(updater, element)).toArray(PsiElement.EMPTY_ARRAY),
                                                    updater));
+  }
+
+  public @NotNull PsiElement getWritable(@NotNull ModPsiUpdater updater, @NotNull PsiElement element) {
+    return updater.getWritable(element);
   }
 
   /**

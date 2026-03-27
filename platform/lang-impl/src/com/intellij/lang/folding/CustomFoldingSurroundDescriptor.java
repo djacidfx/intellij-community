@@ -217,7 +217,7 @@ public final class CustomFoldingSurroundDescriptor implements SurroundDescriptor
   @Override
   public Surrounder @NotNull [] getSurrounders() {
     //noinspection TestOnlyProblems
-    return getAllSurrounders().toArray(new Surrounder[0]);
+    return getAllSurrounders().toArray(Surrounder.EMPTY_ARRAY);
   }
 
   @TestOnly

@@ -60,7 +60,6 @@ import com.intellij.openapi.client.ClientProjectSession;
 import com.intellij.openapi.client.ClientSessionsUtil;
 import com.intellij.openapi.command.CommandProcessor;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.editor.CaretModel;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorModificationUtilEx;
 import com.intellij.openapi.editor.ScrollType;
@@ -75,7 +74,6 @@ import com.intellij.openapi.editor.event.EditorMouseListener;
 import com.intellij.openapi.editor.event.SelectionEvent;
 import com.intellij.openapi.editor.event.SelectionListener;
 import com.intellij.openapi.editor.ex.EditorEx;
-import com.intellij.openapi.editor.impl.CaretModelImpl;
 import com.intellij.openapi.editor.impl.EditorImpl;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.DumbAwareAction;
@@ -1278,14 +1276,10 @@ public class LookupImpl extends LightweightHint implements LookupEx, Disposable,
       PsiFile file = getPsiFile();
       if (file != null) {
         ActionContext actionContext = ActionContext.from(editor, file);
-        int offset = actionContext.offset();
-        int start = offset - getPrefixLength(currentItem);
-        if (start > offset) {
-          offset = start;
-        }
+        int start = actionContext.offset() - getPrefixLength(currentItem);
         ActionContext finalActionContext = actionContext
           .withOffset(start)
-          .withSelection(TextRange.create(start, offset));
+          .withSelection(TextRange.create(start, actionContext.offset()));
         // Cache current item result
         ReadAction.nonBlocking(
           () -> wrapper.computeCommand(finalActionContext, ModCompletionItem.DEFAULT_INSERTION_CONTEXT))

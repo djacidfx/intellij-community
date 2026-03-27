@@ -138,9 +138,9 @@ public class IntroduceVariablePostfixTemplate extends PostfixTemplateWithExpress
                                               },
                                               updater -> {
                                                 updater.getDocument()
-                                                  .deleteString(keyRange.getStartOffset() - 1, ctx.selection().getStartOffset());
+                                                  .deleteString(PostfixLiveTemplate.positiveOffset(keyRange.getStartOffset()), ctx.selection().getStartOffset());
                                                 PsiDocumentManager.getInstance(ctx.project()).commitDocument(updater.getDocument());
-                                                provider.preCheckModCommand(updater.getPsiFile(), keyRange.getStartOffset() - 1);
+                                                provider.preCheckModCommand(updater.getPsiFile(), PostfixLiveTemplate.positiveOffset(keyRange.getStartOffset()));
                                                 PsiElement expression =
                                                   PsiTreeUtil.findSameElementInCopy(virtualExpr, updater.getPsiFile());
                                                 expression = ElementToWorkOn.getWritable(expression, updater);
@@ -181,7 +181,7 @@ public class IntroduceVariablePostfixTemplate extends PostfixTemplateWithExpress
   }
 
   @Override
-  public boolean isApplicableForModCommand(@NotNull PsiElement context, @NotNull Document copyDocument, int newOffset) {
+  public boolean isApplicableForModCommand() {
     return true;
   }
 
@@ -189,8 +189,9 @@ public class IntroduceVariablePostfixTemplate extends PostfixTemplateWithExpress
   public boolean isApplicable(@NotNull PsiElement context,
                               @NotNull Document copyDocument, int newOffset) {
     // Non-inplace mode would require a modal dialog, which is not allowed under postfix templates
-    return (EditorSettingsExternalizable.getInstance() == null ||
-            EditorSettingsExternalizable.getInstance().isVariableInplaceRenameEnabled()) &&
+    EditorSettingsExternalizable editorSettingsExternalizable = EditorSettingsExternalizable.getInstance();
+    return (editorSettingsExternalizable == null ||
+            editorSettingsExternalizable.isVariableInplaceRenameEnabled()) &&
            super.isApplicable(context, copyDocument, newOffset) &&
            !JavaPostfixTemplatesUtils.isInExpressionFile(context);
   }

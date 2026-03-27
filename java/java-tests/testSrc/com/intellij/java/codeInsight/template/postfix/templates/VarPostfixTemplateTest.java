@@ -16,6 +16,7 @@
 package com.intellij.java.codeInsight.template.postfix.templates;
 
 import com.intellij.testFramework.LightProjectDescriptor;
+import com.intellij.testFramework.NeedsIndex;
 import com.intellij.ui.ChooserInterceptor;
 import com.intellij.ui.UiInterceptors;
 import org.jetbrains.annotations.NotNull;
@@ -53,7 +54,7 @@ public class VarPostfixTemplateTest extends PostfixTemplateTestCase {
   }
 
   public void testStreamStep2() {
-    if(useModCommandTemplates()) return;
+    if (useModCommandTemplates()) return;
     UiInterceptors.register(new ChooserInterceptor(List.of("Create variable inside current lambda", "Extract as 'map' operation"),
                                                    "Extract as 'map' operation"));
     doTest();
@@ -61,5 +62,18 @@ public class VarPostfixTemplateTest extends PostfixTemplateTestCase {
 
   public void testAnonymous() {
     doTest();
+  }
+
+  public static class ModVarPostfixTemplateTest extends VarPostfixTemplateTest {
+    @Override
+    protected boolean useModCommandTemplates() {
+      return true;
+    }
+
+    @NeedsIndex.SmartMode(reason = "Requires resolving")
+    @Override
+    public void testStreamStep() {
+      doTest();
+    }
   }
 }

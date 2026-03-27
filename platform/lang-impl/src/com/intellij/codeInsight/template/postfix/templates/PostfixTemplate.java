@@ -164,7 +164,7 @@ public abstract class PostfixTemplate implements PossiblyDumbAware {
    * Returns {@code null} if this template does not support ModCommand expansion.
    * <p>
    * Override this method to provide ModCommand-based expansion of the template.
-   * Use {@link #isApplicableForModCommand()} to control whether the expander is actually used.
+   * Use together with {@link #isApplicableForModCommand()} to control whether the expander is actually used.
    *
    * @return a {@link PostfixModExpander}, or {@code null} if not supported
    */
@@ -173,7 +173,6 @@ public abstract class PostfixTemplate implements PossiblyDumbAware {
 
   /**
    * Determines whether this template is enabled for ModCommand-based expansion.
-   * Templates override this to return {@code true} after manual verification.
    */
   @ApiStatus.Experimental
   public boolean isApplicableForModCommand() {

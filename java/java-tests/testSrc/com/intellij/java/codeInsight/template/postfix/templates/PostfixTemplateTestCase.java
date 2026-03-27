@@ -80,6 +80,7 @@ abstract public class PostfixTemplateTestCase extends LightJavaCodeInsightFixtur
         WriteCommandAction.runWriteCommandAction(getProject(), () -> state.gotoEnd(false));
       }
     }
+    NonBlockingReadActionImpl.waitForAsyncTaskCompletion();
     myFixture.checkResultByFile(getTestName(true) + "_after.java", true);
   }
 

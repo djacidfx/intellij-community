@@ -38,7 +38,12 @@ public abstract class JavaExpressionModCommandSurrounder extends PsiUpdateModCom
     if (elementsInCopy.length != 1 || !(elementsInCopy[0] instanceof PsiExpression expr)) {
       throw new IllegalArgumentException(Arrays.toString(elementsInCopy));
     }
-    surroundExpression(context, ElementToWorkOn.getWritable(expr, updater), updater);
+    surroundExpression(context, expr, updater);
+  }
+
+  @Override
+  public @NotNull PsiElement getWritable(@NotNull ModPsiUpdater updater, @NotNull PsiElement element) {
+    return ElementToWorkOn.getWritable(element, updater);
   }
 
   /**
