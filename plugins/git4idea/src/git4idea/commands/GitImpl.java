@@ -867,7 +867,9 @@ public class GitImpl extends GitImplBase {
     handler.setSilent(false);
     handler.setStdoutSuppressed(false);
     handler.setStderrSuppressed(false);
-    handler.addParameters(asList("remove", tree.getPath().getPath(), "--force"));
+    handler.addParameters("remove");
+    handler.addAbsoluteFile(tree.getPath().getIOFile());
+    handler.addParameters("--force");
     return Git.getInstance().runCommand(handler);
   }
 
@@ -895,7 +897,8 @@ public class GitImpl extends GitImplBase {
     if (newBranchName != null) {
       handler.addParameters("-b", newBranchName);
     }
-    handler.addParameters(workingTreePath.getPath(), sourceBranch.getName());
+    handler.addAbsoluteFile(workingTreePath.getIOFile());
+    handler.addParameters(sourceBranch.getName());
     return Git.getInstance().runCommand(handler);
   }
 
