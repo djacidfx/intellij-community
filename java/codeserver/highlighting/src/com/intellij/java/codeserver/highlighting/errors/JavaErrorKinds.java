@@ -911,7 +911,15 @@ public final class JavaErrorKinds {
 
   public static final Parameterized<PsiElement, Collection<PsiClassType>> EXCEPTION_UNHANDLED =
     error(PsiElement.class, "exception.unhandled")
-      .withRange(JavaErrorFormatUtil::getRange)
+      .withRange(element -> {
+        if (element instanceof PsiMethodReferenceExpression ref) {
+          PsiElement nameElement = ref.getReferenceNameElement();
+          if (nameElement != null) {
+            return nameElement.getTextRangeInParent();
+          }
+        }
+        return getRange(element);
+      })
       .withHighlightType(JavaErrorHighlightType.UNHANDLED_EXCEPTION)
       .<Collection<PsiClassType>>parameterized()
       .withDescription((psi, unhandled) -> message("exception.unhandled", formatTypes(unhandled), unhandled.size()));
@@ -1422,9 +1430,8 @@ public final class JavaErrorKinds {
   public static final Simple<PsiMethodCallExpression> CALL_EXPECTED = error("call.expected");
   public static final Simple<PsiDeconstructionPattern> CALL_PARSED_AS_DECONSTRUCTION_PATTERN =
     error("call.parsed.as.deconstruction.pattern");
-  public static final Simple<PsiJavaCodeReferenceElement> CALL_STATIC_INTERFACE_METHOD_QUALIFIER =
-    error(PsiJavaCodeReferenceElement.class, "call.static.interface.method.qualifier")
-      .withRange(JavaErrorFormatUtil::getRange);
+  public static final Simple<PsiElement> CALL_STATIC_INTERFACE_METHOD_QUALIFIER =
+    error(PsiElement.class, "call.static.interface.method.qualifier");
   public static final Parameterized<PsiCall, PsiClass> CALL_FORMAL_VARARGS_ELEMENT_TYPE_INACCESSIBLE_HERE =
     parameterized(PsiCall.class, PsiClass.class, "call.formal.varargs.element.type.inaccessible.here")
       .withAnchor(call -> requireNonNullElse(call.getArgumentList(), call))

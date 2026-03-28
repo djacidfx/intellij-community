@@ -1525,8 +1525,8 @@ public final class DefaultJavaErrorFixProvider extends AbstractJavaErrorFixProvi
       return myFactory.createExtendsListFix(error.context(), type, false);
     });
     fix(CALL_STATIC_INTERFACE_METHOD_QUALIFIER,
-        error -> error.psi() instanceof PsiReferenceExpression ref ?
-                 myFactory.createAccessStaticViaInstanceFix(ref, ref.advancedResolve(true)) : null);
+        error -> error.psi().getParent() instanceof PsiReferenceExpression ref
+                 ? myFactory.createAccessStaticViaInstanceFix(ref, ref.advancedResolve(true)) : null);
   }
 
   private void createRecordFixes() {

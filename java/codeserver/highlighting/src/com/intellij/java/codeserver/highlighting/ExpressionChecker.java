@@ -1208,7 +1208,8 @@ final class ExpressionChecker {
       if (classes.size() == 1 && classes.contains(containingClass)) return;
     }
 
-    myVisitor.report(JavaErrorKinds.CALL_STATIC_INTERFACE_METHOD_QUALIFIER.create(referenceToMethod));
+    PsiElement nameElement = referenceToMethod.getReferenceNameElement();
+    if (nameElement != null) myVisitor.report(JavaErrorKinds.CALL_STATIC_INTERFACE_METHOD_QUALIFIER.create(nameElement));
   }
 
   private static boolean shouldHighlightUnhandledException(@NotNull PsiElement element) {
