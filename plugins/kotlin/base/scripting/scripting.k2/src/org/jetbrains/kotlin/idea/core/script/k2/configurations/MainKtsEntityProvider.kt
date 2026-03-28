@@ -15,6 +15,7 @@ import com.intellij.platform.util.progress.ProgressReporter
 import com.intellij.platform.util.progress.reportProgressScope
 import com.intellij.platform.workspace.storage.EntitySource
 import com.intellij.platform.workspace.storage.MutableEntityStorage
+import com.intellij.platform.workspace.storage.url.VirtualFileUrl
 import kotlinx.coroutines.CoroutineScope
 import org.jetbrains.kotlin.idea.core.script.k2.getOrCreateScriptConfigurationId
 import org.jetbrains.kotlin.idea.core.script.k2.highlighting.KotlinScriptResolutionService
@@ -42,9 +43,6 @@ class MainKtsEntityProvider(
     val coroutineScope: CoroutineScope
 ) : KotlinScriptEntityProvider(project) {
     private val visitedScripts = TreeMultimap.create(COMPARATOR, COMPARATOR)
-    private val visitedScriptsTraverser = Traverser.forTree<VirtualFile> { visitedScripts.get(it) }
-
-    fun getImportedScripts(mainKts: VirtualFile): List<VirtualFile> = visitedScriptsTraverser.breadthFirst(mainKts) - mainKts
 
     var reporter: ProgressReporter? = null
         private set
@@ -62,10 +60,15 @@ class MainKtsEntityProvider(
         if (project.workspaceModel.currentSnapshot.containsScriptEntity(scriptUrl)) return
 
         val mainKtsConfiguration = resolveMainKtsConfiguration(virtualFile, definition)
-        val scriptsToResolve = mainKtsConfiguration.importedScripts - visitedScripts.keys()
-        if (scriptsToResolve.isNotEmpty()) {
-            visitedScripts.putAll(virtualFile, scriptsToResolve)
-            KotlinScriptResolutionService.getInstance(project).process(scriptsToResolve)
+        val importedScripts = mainKtsConfiguration.importedScripts
+
+        importedScripts.forEach { importedScript ->
+            val importedScriptDefinition = findScriptDefinition(project, VirtualFileScriptSource(importedScript))
+            val entityProvider = importedScriptDefinition.getScriptEntityProvider(project)
+            val importedScriptEntity = entityProvider.getKotlinScriptEntity(virtualFile)
+            if (importedScriptEntity == null) {
+                entityProvider.updateWorkspaceModel(importedScript, importedScriptDefinition)
+            }
         }
 
         fun updateStorage(storage: MutableEntityStorage) {

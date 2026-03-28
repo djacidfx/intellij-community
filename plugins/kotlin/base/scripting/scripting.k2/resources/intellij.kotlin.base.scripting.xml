@@ -7,14 +7,6 @@
               class="org.jetbrains.kotlin.idea.core.script.k2.highlighting.KotlinScriptEditorListener"/>
   </applicationListeners>
 
-  <extensionPoints>
-    <extensionPoint
-            qualifiedName="org.jetbrains.kotlin.k2IdeScriptAdditionalIdeaDependenciesProvider"
-            interface="org.jetbrains.kotlin.idea.core.script.k2.modules.K2IdeScriptAdditionalIdeaDependenciesProvider"
-            dynamic="true"/>
-
-  </extensionPoints>
-
   <extensions defaultExtensionNs="com.intellij">
     <problemHighlightFilter implementation="org.jetbrains.kotlin.idea.core.script.k2.highlighting.ScriptProblemHighlightFilter"/>
 
@@ -74,9 +66,6 @@
             id="StandardScriptDefinitionContributor"
             order="last"
             implementation="org.jetbrains.kotlin.idea.core.script.k2.definitions.BundledScriptDefinitionSource"/>
-
-    <k2IdeScriptAdditionalIdeaDependenciesProvider
-            implementation="org.jetbrains.kotlin.idea.core.script.k2.modules.MainKtsScriptDependenciesProvider"/>
 
     <scriptDefinitionsSource implementation="org.jetbrains.kotlin.idea.core.script.k2.definitions.MainKtsScriptDefinitionSource"/>
     <scriptDefinitionsSource
