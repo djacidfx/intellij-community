@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.java.codeserver.highlighting;
 
 import com.intellij.codeInsight.ExceptionUtil;
@@ -817,20 +817,23 @@ final class ExpressionChecker {
 
   void checkVariableExpected(@NotNull PsiExpression expression) {
     PsiExpression lValue;
+    JavaErrorKind.Simple<PsiExpression> errorKind;
     if (expression instanceof PsiAssignmentExpression assignment) {
       lValue = assignment.getLExpression();
+      errorKind = JavaErrorKinds.LVALUE_VARIABLE_EXPECTED;
     }
     else if (PsiUtil.isIncrementDecrementOperation(expression)) {
       lValue = ((PsiUnaryExpression)expression).getOperand();
+      errorKind = JavaErrorKinds.UNARY_OPERATION_VARIABLE_EXPECTED;
     }
     else {
-      lValue = null;
+      return;
     }
     if (lValue != null && !TypeConversionUtil.isLValue(lValue) && !PsiTreeUtil.hasErrorElements(expression) &&
         !(myVisitor.isIncompleteModel() &&
           PsiUtil.skipParenthesizedExprDown(lValue) instanceof PsiReferenceExpression ref &&
           IncompleteModelUtil.canBePendingReference(ref))) {
-      myVisitor.report(JavaErrorKinds.LVALUE_VARIABLE_EXPECTED.create(lValue));
+      myVisitor.report(errorKind.create(lValue));
     }
   }
 

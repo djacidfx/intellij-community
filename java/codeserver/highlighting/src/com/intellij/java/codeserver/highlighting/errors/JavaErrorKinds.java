@@ -1209,15 +1209,16 @@ public final class JavaErrorKinds {
     error(PsiJavaCodeReferenceElement.class, "expression.qualified.class.expected");
   public static final Simple<PsiTypeElement> EXPRESSION_CLASS_TYPE_PARAMETER = error("expression.class.type.parameter");
   public static final Simple<PsiTypeElement> EXPRESSION_CLASS_PARAMETERIZED_TYPE = error("expression.class.parameterized.type");
-  
+
   public static final Parameterized<PsiExpression, PsiVariable> ASSIGNMENT_DECLARED_OUTSIDE_GUARD =
     parameterized(PsiExpression.class, PsiVariable.class, "assignment.declared.outside.guard")
       .withDescription((expr, variable) -> message("assignment.declared.outside.guard", variable.getName()));
   public static final Parameterized<PsiReferenceExpression, PsiVariable> ASSIGNMENT_TO_FINAL_VARIABLE =
     parameterized(PsiReferenceExpression.class, PsiVariable.class, "assignment.to.final.variable")
       .withDescription((expr, variable) -> message("assignment.to.final.variable", variable.getName()));
-  public static final Simple<PsiExpression> LVALUE_VARIABLE_EXPECTED = error("lvalue.variable.expected"); 
-  
+  public static final Simple<PsiExpression> LVALUE_VARIABLE_EXPECTED = error("lvalue.variable.expected");
+  public static final Simple<PsiExpression> UNARY_OPERATION_VARIABLE_EXPECTED = error("unary.operation.variable.expected");
+
   public static final Parameterized<PsiJavaToken, JavaIncompatibleTypeErrorContext> BINARY_OPERATOR_NOT_APPLICABLE =
     parameterized(PsiJavaToken.class, JavaIncompatibleTypeErrorContext.class, "binary.operator.not.applicable")
       .withAnchor(token -> TypeConversionUtil.convertEQtoOperation(token.getTokenType()) == null ? token.getParent() : token)
