@@ -5,6 +5,7 @@ package com.intellij.agent.workbench.chat
 
 import com.intellij.agent.workbench.common.AgentWorkbenchActionIds
 import com.intellij.agent.workbench.common.session.AgentSessionProvider
+import com.intellij.agent.workbench.common.session.isClaudeMenuCommandPrompt
 import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessageDispatchCompletionPolicy
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProviders
 import com.intellij.openapi.actionSystem.ActionGroup
@@ -273,7 +274,14 @@ internal class AgentChatFileEditor(
     val dispatch = file.acquireInitialMessageDispatch() ?: return AgentChatInitialMessageSendResult.NO_PROGRESS
     val readinessCheckpoint = createdTab.captureOutputCheckpoint()
     try {
-      createdTab.sendText(dispatch.message, shouldExecute = true)
+      createdTab.sendText(
+        dispatch.message,
+        shouldExecute = true,
+        useBracketedPasteMode = shouldUseBracketedPasteModeForInitialMessage(
+          provider = file.provider,
+          text = dispatch.message,
+        ),
+      )
     }
     catch (e: CancellationException) {
       file.cancelInitialMessageDispatch(dispatch)
@@ -361,7 +369,7 @@ internal interface AgentChatTerminalTab {
     checkpoint: AgentChatTerminalOutputCheckpoint? = null,
   ): AgentChatTerminalInputReadiness
 
-  fun sendText(text: String, shouldExecute: Boolean)
+  fun sendText(text: String, shouldExecute: Boolean, useBracketedPasteMode: Boolean = true)
 }
 
 internal data class AgentChatTerminalOutputCheckpoint(
@@ -501,17 +509,24 @@ private class ToolWindowAgentChatTerminalTab(
     )
   }
 
-  override fun sendText(text: String, shouldExecute: Boolean) {
+  override fun sendText(text: String, shouldExecute: Boolean, useBracketedPasteMode: Boolean) {
     val normalizedText = text.trim()
     if (normalizedText.isEmpty()) {
       return
     }
-    val sendTextBuilder = delegate.view.createSendTextBuilder().useBracketedPasteMode()
+    val sendTextBuilder = delegate.view.createSendTextBuilder()
+    if (useBracketedPasteMode) {
+      sendTextBuilder.useBracketedPasteMode()
+    }
     if (shouldExecute) {
       sendTextBuilder.shouldExecute()
     }
     sendTextBuilder.send(normalizedText)
   }
+}
+
+private fun shouldUseBracketedPasteModeForInitialMessage(provider: AgentSessionProvider?, text: String): Boolean {
+  return provider != AgentSessionProvider.CLAUDE || !text.isClaudeMenuCommandPrompt()
 }
 
 internal class AgentChatTerminalCommandTracker {

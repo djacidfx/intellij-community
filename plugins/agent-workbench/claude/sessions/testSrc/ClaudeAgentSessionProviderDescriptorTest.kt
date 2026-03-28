@@ -190,6 +190,29 @@ class ClaudeAgentSessionProviderDescriptorTest {
   }
 
   @Test
+  fun menuCommandsUsePostStartDeliveryWithoutContextEnvelope() {
+    val plan = bridge.buildInitialMessagePlan(
+      AgentPromptInitialMessageRequest(
+        prompt = "  /model sonnet  ",
+        planModeEnabled = true,
+        providerOptionIds = setOf(AGENT_PROMPT_PROVIDER_OPTION_PLAN_MODE),
+        contextItems = listOf(
+          AgentPromptContextItem(
+            rendererId = AgentPromptContextRendererIds.PATHS,
+            title = "Project Selection",
+            body = "file: /tmp/demo.kt",
+            source = "projectView",
+          )
+        ),
+      )
+    )
+
+    assertThat(plan.message).isEqualTo("/model sonnet")
+    assertThat(plan.startupPolicy).isEqualTo(AgentInitialMessageStartupPolicy.POST_START_ONLY)
+    assertThat(plan.timeoutPolicy).isEqualTo(AgentInitialMessageTimeoutPolicy.ALLOW_TIMEOUT_FALLBACK)
+  }
+
+  @Test
   fun promptOptionsUseSharedPlanModeOption() {
     assertThat(bridge.promptOptions).containsExactly(AGENT_PROMPT_PROVIDER_PLAN_MODE_OPTION)
   }

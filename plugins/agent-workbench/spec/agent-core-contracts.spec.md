@@ -3,10 +3,12 @@ name: Agent Workbench Core Contracts
 description: Canonical cross-cutting contracts shared by Sessions, Chat Editor, Dedicated Frame routing, and new-thread actions.
 targets:
   - ../common/src/*.kt
+  - ../common/src/session/ClaudeMenuCommands.kt
   - ../common/src/icons/*.java
   - ../sessions/src/AgentSessionCli.kt
   - ../sessions/src/AgentSessionModels.kt
   - ../chat/src/AgentChatEditorTabActionContext.kt
+  - ../claude/sessions/src/ClaudeAgentSessionProviderDescriptor.kt
   - ../sessions/src/service/AgentSessionLaunchService.kt
   - ../sessions/src/AgentSessionsToolWindow.kt
   - ../sessions/src/SessionTree.kt
@@ -16,6 +18,7 @@ targets:
   - ../chat/resources/messages/AgentChatBundle.properties
   - ../sessions/testSrc/*.kt
   - ../chat/testSrc/*.kt
+  - ../claude/sessions/testSrc/*.kt
   - ../codex/sessions/testSrc/*.kt
 ---
 
@@ -91,7 +94,10 @@ Define the single source of truth for cross-feature behavior that must stay cons
 - If readiness signal is missing, timeout fallback dispatch may proceed after bounded timeout except for Codex `/plan` dispatch steps, which must continue waiting for explicit readiness.
 - Codex `/plan <prompt>` must not use startup prompt injection: Workbench must keep it on post-start dispatch as two steps (`/plan`, then stripped prompt body), because the Codex TUI startup prompt is plain input text rather than slash-command parsing.
 - The Codex `/plan` step must retry when post-send terminal output contains `'/plan' is disabled while a task is in progress.` and must not advance to the prompt-body step until that retry condition clears.
+- Recognized Claude menu commands from the canonical Claude menu-command set must not use startup prompt injection. They must remain post-start dispatch so the Claude TUI receives them as slash commands after the session is running.
+- Claude menu-command post-start dispatch must send the raw command text as typed terminal input with execute semantics and without bracketed paste mode, so commands such as `/mcp`, `/model`, or `/memory` execute immediately instead of remaining as pasted prompt text.
   [@test] ../chat/testSrc/AgentChatFileEditorLifecycleTest.kt
+  [@test] ../claude/sessions/testSrc/ClaudeAgentSessionProviderDescriptorTest.kt
 
 - Editor-tab popup contract for a selected Agent chat tab must expose exactly these actions with this placement:
   - `Archive Thread` appears before built-in close actions.

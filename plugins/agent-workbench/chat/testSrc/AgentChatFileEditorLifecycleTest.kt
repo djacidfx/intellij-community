@@ -219,6 +219,30 @@ class AgentChatFileEditorLifecycleTest {
   }
 
   @Test
+  fun claudeMenuCommandInitialMessageUsesTypedInputInsteadOfBracketedPaste() {
+    val terminalTabs = FakeAgentChatTerminalTabs()
+    val file = testFile(
+      threadIdentity = "CLAUDE:session-1",
+      shellCommand = listOf("claude", "--resume", "session-1"),
+    ).also {
+      it.updateInitialMessageMetadata(
+        initialComposedMessage = "/mcp",
+        initialMessageToken = "token-menu",
+        initialMessageSent = false,
+      )
+    }
+    val editor = testEditor(file = file, terminalTabs = terminalTabs)
+
+    editor.selectNotify()
+    terminalTabs.tab.setSessionState(TerminalViewSessionState.Running)
+    waitForCondition { terminalTabs.tab.sentTexts.size == 1 }
+
+    assertThat(file.initialMessageSent).isTrue()
+    assertThat(terminalTabs.tab.sentTexts)
+      .containsExactly(SentTerminalText("/mcp", shouldExecute = true, useBracketedPasteMode = false))
+  }
+
+  @Test
   fun codexPlanModeTimeoutReadinessWaitsWithoutSending() {
     val terminalTabs = FakeAgentChatTerminalTabs()
     terminalTabs.tab.readinessResult = AgentChatTerminalInputReadiness.TIMEOUT
@@ -533,8 +557,8 @@ private class FakeAgentChatTerminalTab : AgentChatTerminalTab {
     )
   }
 
-  override fun sendText(text: String, shouldExecute: Boolean) {
-    sentTexts += SentTerminalText(text, shouldExecute)
+  override fun sendText(text: String, shouldExecute: Boolean, useBracketedPasteMode: Boolean) {
+    sentTexts += SentTerminalText(text, shouldExecute, useBracketedPasteMode)
     postSendOutputQueue.pollFirst()?.let(::emitMeaningfulOutput)
   }
 
@@ -572,6 +596,7 @@ private data class EmittedOutputChunk(
 private data class SentTerminalText(
   @JvmField val text: String,
   @JvmField val shouldExecute: Boolean,
+  @JvmField val useBracketedPasteMode: Boolean = true,
 )
 
 private fun testFile(
