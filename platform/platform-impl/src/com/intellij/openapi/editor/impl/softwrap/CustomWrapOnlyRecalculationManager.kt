@@ -223,8 +223,14 @@ internal class CustomWrapOnlyRecalculationManager(
 
 private val LOG = logger<CustomWrapOnlyRecalculationManager>()
 
+/**
+ * @param customWrap [CustomWrap.offset] must be `>=` to all custom wraps already in the list
+ */
 private fun MutableList<CustomWrapToSoftWrapAdapter>.addLastIfNotFoldedOrDuplicated(customWrap: CustomWrap, editor: EditorImpl) {
-  if (editor.foldingModel.isOffsetCollapsed(customWrap.offset)) {
+  val offset = customWrap.offset
+  val foldingModel = editor.foldingModel
+  val foldRegion = foldingModel.getCollapsedRegionAtOffset(customWrap.offset)
+  if (foldRegion != null && foldRegion.startOffset != offset) {
     return
   }
   val lastAdded: SoftWrapEx? = this.lastOrNull()
