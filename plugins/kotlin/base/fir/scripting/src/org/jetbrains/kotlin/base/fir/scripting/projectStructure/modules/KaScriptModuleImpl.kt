@@ -14,7 +14,7 @@ import org.jetbrains.kotlin.idea.base.projectStructure.toKaLibraryModules
 import org.jetbrains.kotlin.idea.base.projectStructure.toKaSourceModuleForProduction
 import org.jetbrains.kotlin.idea.base.projectStructure.toKaSourceModuleForTest
 import org.jetbrains.kotlin.idea.core.script.k2.asCompilationConfiguration
-import org.jetbrains.kotlin.idea.core.script.k2.getVirtualFileUrl
+import org.jetbrains.kotlin.idea.core.script.k2.getVirtualFile
 import org.jetbrains.kotlin.idea.core.script.k2.modules.KotlinScriptEntity
 import org.jetbrains.kotlin.idea.core.script.v1.ScriptAdditionalIdeaDependenciesProvider
 import org.jetbrains.kotlin.psi.KtFile
@@ -31,8 +31,11 @@ internal class KaScriptModuleImpl(
     override val snapshot: ImmutableEntityStorage,
 ) : KaScriptModuleBase(project, virtualFile) {
     val kotlinScriptEntity by lazy(LazyThreadSafetyMode.PUBLICATION) {
-        snapshot.getVirtualFileUrlIndex().findEntitiesByUrl(virtualFile.toVirtualFileUrl(virtualFileUrlManager))
-            .filterIsInstance<KotlinScriptEntity>().singleOrNull()
+        snapshot.scriptEntitiesByUrl(virtualFile.toVirtualFileUrl(virtualFileUrlManager)).singleOrNull()
+    }
+
+    private val importedScriptUrls: List<VirtualFileUrl> by lazy(LazyThreadSafetyMode.PUBLICATION) {
+        kotlinScriptEntity?.let { getImportedScripts(it) }.orEmpty()
     }
 
     override val file: KtFile
@@ -57,7 +60,7 @@ internal class KaScriptModuleImpl(
                 addIfNotNull(it.toKaSourceModuleForProduction(project))
             }
 
-            kotlinScriptEntity?.let { getImportedScripts(it) }.orEmpty().mapNotNull { it.virtualFile }.forEach {
+            importedScriptUrls.mapNotNull { it.virtualFile }.forEach {
                 add(KaScriptModuleImpl(project, it, snapshot))
             }
 
@@ -68,18 +71,31 @@ internal class KaScriptModuleImpl(
         }
     }
 
-    private fun getImportedScripts(entity: KotlinScriptEntity): List<VirtualFileUrl> {
+    private fun importedScriptLibraries() =
+        importedScriptUrls.asSequence()
+            .flatMap { snapshot.scriptEntitiesByUrl(it) }
+            .flatMap { it.dependencies }
+            .mapNotNull { snapshot.resolve(it) }
+            .distinct()
+
+    private fun ImmutableEntityStorage.scriptEntitiesByUrl(url: VirtualFileUrl): Sequence<KotlinScriptEntity> =
+        getVirtualFileUrlIndex().findEntitiesByUrl(url).filterIsInstance<KotlinScriptEntity>()
+
+    private fun getImportedScripts(
+        entity: KotlinScriptEntity,
+        visited: MutableSet<VirtualFileUrl> = mutableSetOf(),
+    ): List<VirtualFileUrl> {
         val importedScriptUrls = entity.configurationId?.let {
             snapshot.resolve(it)
         }?.data?.asCompilationConfiguration()?.let {
             it[ScriptCompilationConfiguration.resolvedImportScripts] ?: it[ScriptCompilationConfiguration.importScripts]
         }.orEmpty().mapNotNull {
-            getVirtualFileUrl(it)?.toVirtualFileUrl(virtualFileUrlManager)
-        }
+            getVirtualFile(it)?.toVirtualFileUrl(virtualFileUrlManager)
+        }.filter { visited.add(it) }
 
         return importedScriptUrls + importedScriptUrls.flatMap {
-            snapshot.getVirtualFileUrlIndex().findEntitiesByUrl(it).filterIsInstance<KotlinScriptEntity>()
-        }.flatMap { getImportedScripts(it) }
+            snapshot.scriptEntitiesByUrl(it).flatMap { entity -> getImportedScripts(entity, visited) }
+        }
     }
 
     override val directRegularDependencies: List<KaModule> by lazy(LazyThreadSafetyMode.PUBLICATION) {
@@ -97,10 +113,7 @@ internal class KaScriptModuleImpl(
 
             addRegularDependencies()
 
-            kotlinScriptEntity?.let { getImportedScripts(it) }.orEmpty().asSequence().flatMap { importedScriptUrl ->
-                snapshot.getVirtualFileUrlIndex().findEntitiesByUrl(importedScriptUrl).filterIsInstance<KotlinScriptEntity>()
-                    .flatMap { it.dependencies }
-            }.mapNotNull { snapshot.resolve(it) }.distinct().forEach {
+            importedScriptLibraries().forEach {
                 addAll(project.ideProjectStructureProvider.getKaScriptLibraryModules(it))
             }
         }.toList()

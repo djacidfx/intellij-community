@@ -8,6 +8,11 @@
   </applicationListeners>
 
   <extensions defaultExtensionNs="com.intellij">
+    <notificationGroup id="KotlinScriptNotificationGroup"
+                       displayType="STICKY_BALLOON"
+                       bundle="messages.KotlinBaseScriptingBundle"
+                       key="notification.group.kotlin.script"/>
+
     <problemHighlightFilter implementation="org.jetbrains.kotlin.idea.core.script.k2.highlighting.ScriptProblemHighlightFilter"/>
 
     <highlightVisitor implementation="org.jetbrains.kotlin.idea.core.script.k2.highlighting.KotlinScriptHighlightingVisitor"/>
@@ -57,7 +62,16 @@
             id="ScriptConfigurationFloatingToolbarProvider"/>
   </extensions>
 
+  <extensionPoints>
+    <extensionPoint
+            qualifiedName="org.jetbrains.kotlin.scriptEntityProvider"
+            interface="org.jetbrains.kotlin.idea.core.script.k2.modules.KotlinScriptEntityProvider"
+            area="IDEA_PROJECT"
+            dynamic="true"/>
+  </extensionPoints>
+
   <extensions defaultExtensionNs="org.jetbrains.kotlin">
+
     <scriptAdditionalIdeaDependenciesProvider implementation="org.jetbrains.kotlin.idea.core.script.k2.dependencies.ModuleScriptAdditionalIdeaDependenciesProvider"/>
 
     <scriptAfterRunCallbackProvider implementation="org.jetbrains.kotlin.idea.core.script.k2.MainKtsAfterRunCallbackProvider"/>
@@ -73,7 +87,7 @@
   </extensions>
 
   <projectListeners>
-    <listener class="org.jetbrains.kotlin.idea.core.script.k2.highlighting.KotlinScriptResolutionService$KotlinScriptWorkspaceModelListener"
+    <listener class="org.jetbrains.kotlin.idea.core.script.k2.configurations.KotlinScriptService$KotlinScriptWorkspaceModelListener"
               topic="com.intellij.platform.backend.workspace.WorkspaceModelChangeListener"/>
   </projectListeners>
 

@@ -3,10 +3,8 @@ package org.jetbrains.kotlin.idea.core.script.k2
 
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.platform.backend.workspace.toVirtualFileUrl
 import com.intellij.platform.workspace.storage.EntitySource
 import com.intellij.platform.workspace.storage.MutableEntityStorage
-import com.intellij.platform.workspace.storage.url.VirtualFileUrl
 import com.intellij.util.lang.Xxh3
 import org.jetbrains.kotlin.idea.core.script.k2.modules.ScriptCompilationConfigurationData
 import org.jetbrains.kotlin.idea.core.script.k2.modules.ScriptCompilationConfigurationEntity
@@ -14,7 +12,6 @@ import org.jetbrains.kotlin.idea.core.script.k2.modules.ScriptCompilationConfigu
 import org.jetbrains.kotlin.idea.core.script.k2.modules.ScriptEvaluationConfigurationEntity
 import org.jetbrains.kotlin.idea.core.script.k2.modules.ScriptingHostConfigurationEntity
 import org.jetbrains.kotlin.scripting.definitions.isNonScript
-import org.jetbrains.kotlin.scripting.resolve.ScriptCompilationConfigurationWrapper
 import org.jetbrains.kotlin.scripting.resolve.VirtualFileScriptSource
 import org.jetbrains.kotlin.utils.exceptions.errorWithAttachment
 import java.io.ByteArrayInputStream
@@ -150,7 +147,7 @@ fun ScriptCompilationConfiguration.getOrCreateScriptConfigurationId(
 }
 
 @Suppress("IO_FILE_USAGE")
-fun getVirtualFileUrl(scriptSourceCode: SourceCode): VirtualFile? = when (scriptSourceCode) {
+fun getVirtualFile(scriptSourceCode: SourceCode): VirtualFile? = when (scriptSourceCode) {
     is VirtualFileScriptSource -> scriptSourceCode.virtualFile
     is FileScriptSource -> VfsUtil.findFileByIoFile(scriptSourceCode.file, false)
     else -> null
