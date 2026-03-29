@@ -1,20 +1,27 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.kotlin.idea.codeInsight.gradle
 
+import com.intellij.modcommand.ActionContext
+import com.intellij.modcommand.ModCommandExecutor
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.readAction
 import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.command.writeCommandAction
 import com.intellij.openapi.project.modules
 import com.intellij.openapi.roots.DependencyScope
 import com.intellij.openapi.roots.ExternalLibraryDescriptor
+import com.intellij.psi.PsiManager
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.runInEdtAndWait
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.jetbrains.kotlin.idea.configuration.KotlinBuildSystemDependencyManager
+import org.jetbrains.kotlin.idea.configuration.KotlinDependencyProvider
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.GradleKotlinBuildSystemDependencyManager
 import org.junit.Test
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.io.path.invariantSeparatorsPathString
 
 class GradleKotlinBuildSystemDependencyManagerTest : KotlinGradleImportingTestCase() {
@@ -74,11 +81,30 @@ class GradleKotlinBuildSystemDependencyManagerTest : KotlinGradleImportingTestCa
         val testLibraryDescriptor = ExternalLibraryDescriptor("org.test", "artifact", "1.2.3", "1.2.3", "1.2.3", scope)
 
         importProjectFromTestData()
-        val module = myProject.modules.firstOrNull { it.name == moduleName }
-        assertNotNull(module)
+        val module = myProject.modules.firstOrNull { it.name == moduleName } ?: error("No module '$moduleName' found")
 
-        gradleDependencyManager.addDependency(module!!, testLibraryDescriptor)
-            .join()
+        val dependencyProvider = KotlinDependencyProvider.getInstance()
+        val jobReference = AtomicReference<Job>()
+        dependencyProvider.jobReference = jobReference
+
+        val buildScript = readAction { gradleDependencyManager.getBuildScriptFile(module) }
+            ?: error("No pom.xml for module $moduleName")
+
+        val contextFile = readAction { PsiManager.getInstance(myProject).findFile(buildScript) }
+            ?: error("No pom.xml for module $moduleName")
+
+        val actionContext = ActionContext.from(null, contextFile)
+
+        val modCommand =
+            readAction {
+                gradleDependencyManager.addDependencyModCommand(contextFile, module, testLibraryDescriptor)
+            }
+
+        writeCommandAction(myProject, "") {
+            ModCommandExecutor.getInstance().executeInteractively(actionContext, modCommand, null)
+        }
+
+        jobReference.getAndSet(null)!!.join()
 
         withContext(Dispatchers.EDT) {
             PlatformTestUtil.dispatchAllEventsInIdeEventQueue()

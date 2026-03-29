@@ -3,6 +3,7 @@ package org.jetbrains.kotlin.idea.configuration
 
 import com.intellij.codeInspection.options.OptionController
 import com.intellij.codeInspection.options.OptionControllerProvider
+import com.intellij.modcommand.ModCommand
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -14,6 +15,7 @@ import com.intellij.openapi.roots.ExternalLibraryDescriptor
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.backend.observation.launchTracked
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -50,7 +52,11 @@ interface KotlinBuildSystemDependencyManager {
      * @return a [Job] that completes when the dependency is added.
      */
     @RequiresBackgroundThread
+    @Deprecated("Use addDependencyModCommand instead", ReplaceWith("addDependencyModCommand(context, module, libraryDescriptor)"))
     fun addDependency(module: Module, libraryDescriptor: ExternalLibraryDescriptor): Job
+
+    fun addDependencyModCommand(contextFile: PsiFile, module: Module, libraryDescriptor: ExternalLibraryDescriptor): ModCommand =
+        ModCommand.nop()
 
     /**
      * Returns the build script file for the [module] if the build system has build script files.
@@ -92,6 +98,7 @@ fun KotlinBuildSystemDependencyManager.isProjectSyncPendingOrInProgress(): Boole
 class KotlinDependencyProvider : OptionControllerProvider {
     override fun forContext(context: PsiElement): OptionController {
         val project = context.project
+        val configurationService = KotlinProjectConfigurationService.getInstance(project)
         return OptionController.empty()
             .onValue<ExternalLibraryDescriptor>(
                 "library",
@@ -104,7 +111,6 @@ class KotlinDependencyProvider : OptionControllerProvider {
                         KotlinBuildSystemDependencyManager.findApplicableConfigurator(module)
                             ?.takeUnless { it.isProjectSyncPendingOrInProgress() } ?: return@setter
 
-                    val configurationService = KotlinProjectConfigurationService.getInstance(project)
                     val job = configurationService.coroutineScope.launchTracked {
                         val addDependencyJob = dependencyManager.addDependency(module, libraryDescriptor)
                         addDependencyJob.join()
@@ -119,10 +125,43 @@ class KotlinDependencyProvider : OptionControllerProvider {
                     }
                     jobReference?.set(job)
                 })
+            .onValue<Boolean>(
+                "sync",
+                {
+                    false
+                },
+                setter@{
+                    val module = ModuleUtilCore.findModuleForPsiElement(context) ?: return@setter
+                    val dependencyManager =
+                        KotlinBuildSystemDependencyManager.findApplicableConfigurator(module) ?: return@setter
+                    val job = configurationService.coroutineScope.launchTracked {
+                        dependencyManager.startProjectSync()
+                    }
+                    jobReference?.set(job)
+                }
+            )
     }
 
-    override fun name(): @NonNls String = "KotlinDependencyProvider"
+    override fun name(): @NonNls String = NAME
 
     @VisibleForTesting
     var jobReference: AtomicReference<Job>? = null
+
+    companion object {
+        const val NAME: String = "KotlinDependencyProvider"
+
+        @TestOnly
+        @JvmStatic
+        fun getInstance(): KotlinDependencyProvider =
+            (OptionControllerProvider.EP_NAME.extensionList.firstOrNull { it.name() == NAME } as? KotlinDependencyProvider
+                ?: error("KotlinDependencyProvider is not found"))
+
+        @JvmStatic
+        fun syncModCommand(element: PsiElement): ModCommand =
+            ModCommand.updateOption(element, "$NAME.sync", true)
+
+        @JvmStatic
+        fun addLibraryModCommand(element: PsiElement, libraryDescriptor: ExternalLibraryDescriptor): ModCommand =
+            ModCommand.updateOption(element, "$NAME.library", libraryDescriptor)
+    }
 }

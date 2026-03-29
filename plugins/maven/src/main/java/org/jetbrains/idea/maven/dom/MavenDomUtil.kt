@@ -308,6 +308,13 @@ object MavenDomUtil {
   }
 
   @JvmStatic
+  inline fun <reified T : MavenDomElement?> getMavenDomModel(file: PsiFile): T? {
+    val xmlFile = file as? XmlFile ?: return null
+    val fileElement = DomManager.getDomManager(xmlFile.getProject()).getFileElement(xmlFile, T::class.java)
+    return fileElement?.getRootElement()
+  }
+
+  @JvmStatic
   fun <T : MavenDomElement?> getMavenDomModel(file: PsiFile, clazz: Class<T>): T? {
     val fileElement = getMavenDomFile<T>(file, clazz)
     return fileElement?.getRootElement()

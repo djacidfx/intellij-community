@@ -1,9 +1,13 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.kotlin.idea.configuration
 
+import com.intellij.codeInspection.options.OptionControllerProvider
+import com.intellij.modcommand.ActionContext
+import com.intellij.modcommand.ModCommandExecutor
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.runReadActionBlocking
 import com.intellij.openapi.application.runWriteActionAndWait
+import com.intellij.openapi.command.writeCommandAction
 import com.intellij.openapi.module.JavaModuleType
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
@@ -14,12 +18,17 @@ import com.intellij.openapi.roots.LibraryOrderEntry
 import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.roots.impl.libraries.LibraryEx
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar
+import com.intellij.psi.PsiDirectory
+import com.intellij.psi.PsiFile
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.junit5.TestApplication
 import com.intellij.testFramework.junit5.fixture.TestFixture
 import com.intellij.testFramework.junit5.fixture.moduleFixture
 import com.intellij.testFramework.junit5.fixture.projectFixture
+import com.intellij.testFramework.junit5.fixture.psiFileFixture
+import com.intellij.testFramework.junit5.fixture.sourceRootFixture
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.jetbrains.idea.maven.utils.library.RepositoryLibraryProperties
@@ -29,6 +38,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import java.util.concurrent.atomic.AtomicReference
 
 @UseK1PluginMode
 @TestApplication
@@ -42,6 +52,10 @@ class JpsKotlinBuildSystemDependencyManagerTest {
     // the module is recreated after each test to clean up module libraries
     val moduleFixture: TestFixture<Module> = projectFixture.moduleFixture("main")
 
+    val sourceRootFixture: TestFixture<PsiDirectory> = moduleFixture.sourceRootFixture()
+
+    val contextFileFixture: TestFixture<PsiFile> = sourceRootFixture.psiFileFixture("context.kt", "fun foo() {}")
+
     val submoduleFixture: TestFixture<Module> = projectFixture.moduleFixture("submodule", JavaModuleType.getModuleType().id)
 
     val project: Project
@@ -50,7 +64,10 @@ class JpsKotlinBuildSystemDependencyManagerTest {
     val module: Module
         get() = moduleFixture.get()
 
-    val jpsDependencyManager = 
+    val contextFile: PsiFile
+        get() = contextFileFixture.get()
+
+    val jpsDependencyManager =
         KotlinBuildSystemDependencyManager.findConfigurator<JpsKotlinBuildSystemDependencyManager>(project)
 
     @AfterEach
@@ -130,7 +147,22 @@ class JpsKotlinBuildSystemDependencyManagerTest {
 
     private suspend fun addAndTestDependency(module: Module, libraryDependencyScope: DependencyScope) {
         val testLibraryDescriptor = getTestLibraryDescriptor(libraryDependencyScope)
-        jpsDependencyManager.addDependency(module, testLibraryDescriptor).join()
+
+        val dependencyProvider =
+            (OptionControllerProvider.EP_NAME.extensionList.firstOrNull { it.name() == JpsDependencyProvider.NAME } as? JpsDependencyProvider
+                ?: error("JpsDependencyProvider is not found"))
+        val jobReference = AtomicReference<Job>()
+        dependencyProvider.jobReference = jobReference
+
+        val actionContext = ActionContext.from(null, contextFile)
+
+        val modCommand = jpsDependencyManager.addDependencyModCommand(contextFile, module, testLibraryDescriptor)
+
+        writeCommandAction(project, "") {
+            ModCommandExecutor.getInstance().executeInteractively(actionContext, modCommand, null)
+        }
+
+        jobReference.getAndSet(null)?.join()
 
         launchOnEdtAndDispatchAllEvents()
 

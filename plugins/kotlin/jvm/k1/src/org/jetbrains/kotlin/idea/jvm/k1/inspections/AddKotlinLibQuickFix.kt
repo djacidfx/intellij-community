@@ -160,11 +160,18 @@ abstract class AddKotlinLibQuickFix(
     }
 
     override fun perform(context: ActionContext): ModCommand {
-        val element = context.file.takeIf { it.module != null } ?: return ModCommand.nop()
+        val file = context.file
+        val element = file.takeIf { it.module != null } ?: return ModCommand.nop()
 
-        val module = ProjectRootManager.getInstance(element.project).fileIndex.getModuleForFile(element.containingFile.virtualFile) ?: return ModCommand.nop()
+        val module =
+            ProjectRootManager.getInstance(element.project).fileIndex
+                .getModuleForFile(element.containingFile.virtualFile) ?: return ModCommand.nop()
+        val configurator =
+            KotlinBuildSystemDependencyManager.findApplicableConfigurator(module)
+                ?: return ModCommand.nop()
+
         val libraryDescriptor = getLibraryDescriptor(module).withScope(scope)
 
-        return ModCommand.updateOption(element, "KotlinDependencyProvider.library", libraryDescriptor)
+        return configurator.addDependencyModCommand(file, module, libraryDescriptor)
     }
 }

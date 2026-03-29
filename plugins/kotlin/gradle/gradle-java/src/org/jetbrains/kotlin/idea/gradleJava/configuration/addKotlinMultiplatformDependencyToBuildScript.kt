@@ -14,6 +14,7 @@ import org.jetbrains.kotlin.idea.gradleTooling.compareTo
 import org.jetbrains.kotlin.psi.KtBlockExpression
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
+import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.psiUtil.findDescendantOfType
 import org.jetbrains.kotlin.tooling.core.KotlinToolingVersion
 
@@ -35,7 +36,9 @@ import org.jetbrains.kotlin.tooling.core.KotlinToolingVersion
  * Will return `false` if the dependency can't be added using a static accessor
  */
 internal fun KotlinBuildScriptManipulator.addKotlinMultiplatformDependencyWithConventionSourceSets(
-    module: Module, scope: DependencyScope,
+    file: KtFile,
+    module: Module,
+    scope: DependencyScope,
     libraryGroupId: String, libraryArtifactId: String, libraryVersion: String?,
 ): KtBlockExpression? {
     /* Guards */
@@ -45,6 +48,7 @@ internal fun KotlinBuildScriptManipulator.addKotlinMultiplatformDependencyWithCo
     val knownSince = isStaticallyAccessibleSince(sourceSetName) ?: return null
     return if (kotlinGradlePluginVersion >= knownSince) {
         addKotlinMultiplatformDependencyToKnownSourceSet(
+            file,
             sourceSetName, scope,
             libraryGroupId, libraryArtifactId, libraryVersion,
         )
@@ -54,10 +58,14 @@ internal fun KotlinBuildScriptManipulator.addKotlinMultiplatformDependencyWithCo
 }
 
 private fun KotlinBuildScriptManipulator.addKotlinMultiplatformDependencyToKnownSourceSet(
-    sourceSetName: String, scope: DependencyScope,
-    libraryGroupId: String, libraryArtifactId: String, libraryVersion: String?,
+    file: KtFile,
+    sourceSetName: String,
+    scope: DependencyScope,
+    libraryGroupId: String,
+    libraryArtifactId: String,
+    libraryVersion: String?,
 ): KtBlockExpression? {
-    val kotlinBlock = scriptFile.getKotlinBlock() ?: return null
+    val kotlinBlock = file.getKotlinBlock() ?: return null
 
     val dependenciesBlock = findSourceSetDependenciesBlock(kotlinBlock, sourceSetName)
         ?: createSourceSetDependenciesBlock(kotlinBlock, sourceSetName) ?: return null

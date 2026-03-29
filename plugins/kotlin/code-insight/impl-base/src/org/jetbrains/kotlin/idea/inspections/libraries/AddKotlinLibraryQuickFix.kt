@@ -10,6 +10,7 @@ import com.intellij.modcommand.Presentation
 import com.intellij.openapi.roots.ExternalLibraryDescriptor
 import org.jetbrains.kotlin.idea.base.util.module
 import org.jetbrains.kotlin.idea.configuration.KotlinBuildSystemDependencyManager
+import org.jetbrains.kotlin.idea.configuration.KotlinDependencyProvider
 import org.jetbrains.kotlin.idea.configuration.isProjectSyncPendingOrInProgress
 
 class AddKotlinLibraryQuickFix(
@@ -28,12 +29,19 @@ class AddKotlinLibraryQuickFix(
     override fun getFamilyName(): String = quickFixText
 
     override fun perform(context: ActionContext): ModCommand {
-        val element = context.file
-            .takeIf {
-                val module = it.module
-                module != null && dependencyManager.isApplicable(module) && !dependencyManager.isProjectSyncPendingOrInProgress()
-            } ?: return ModCommand.nop()
+        val file = context.file
+        val module = file.module ?: return ModCommand.nop()
+        val element = file
+            .takeIf { dependencyManager.isApplicable(module) && !dependencyManager.isProjectSyncPendingOrInProgress() } ?:
+            return ModCommand.nop()
 
-        return ModCommand.updateOption(element, "KotlinDependencyProvider.library", libraryDescriptor)
+        val addDependencyModCommand =
+            dependencyManager.addDependencyModCommand(file, module, libraryDescriptor)
+
+        return if (addDependencyModCommand != ModCommand.nop()) {
+            addDependencyModCommand
+        } else {
+            KotlinDependencyProvider.addLibraryModCommand(element, libraryDescriptor)
+        }
     }
 }
