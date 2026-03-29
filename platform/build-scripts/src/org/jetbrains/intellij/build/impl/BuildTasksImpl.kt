@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 @file:Suppress("ReplacePutWithAssignment")
 
 package org.jetbrains.intellij.build.impl
@@ -420,10 +420,12 @@ internal suspend fun createDistributionState(context: BuildContext): Distributio
     val builtinModuleData = spanBuilder("build provided module list").use {
       Files.deleteIfExists(providedModuleFile)
       // start the product in headless mode using com.intellij.ide.plugins.BundledPluginsLister
-      context.createProductRunner().runProduct(
-        args = listOf("listBundledPlugins", providedModuleFile.toString()),
-        additionalVmProperties = additionalProperties(),
-      )
+      spanBuilder("run BundledPluginsLister").use {
+        context.createProductRunner().runProduct(
+          args = listOf("listBundledPlugins", providedModuleFile.toString()),
+          additionalVmProperties = additionalProperties(),
+        )
+      }
 
       context.productProperties.customizeBuiltinModules(context = context, builtinModulesFile = providedModuleFile)
       try {
@@ -442,8 +444,11 @@ internal suspend fun createDistributionState(context: BuildContext): Distributio
       collectCompatiblePluginsToPublish(builtinModuleData = builtinModuleData, pluginsToPublish = pluginsToPublish, context = context)
       filterPluginsToPublish(pluginsToPublish, context)
 
-      // update enabledPluginModules to reflect changes in pluginsToPublish - used for buildProjectArtifacts
-      distributionState(pluginsToPublish = pluginsToPublish, projectLibrariesUsedByPlugins = projectLibrariesUsedByPlugins, context = context)
+      DistributionBuilderState(
+        platformLayout = createPlatformLayout(projectLibrariesUsedByPlugins = projectLibrariesUsedByPlugins, context = context),
+        pluginsToPublish = pluginsToPublish,
+        context = context,
+      )
     }
     else {
       val platform = createPlatformLayout(context)

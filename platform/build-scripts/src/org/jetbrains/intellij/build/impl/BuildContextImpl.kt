@@ -50,6 +50,8 @@ import org.jetbrains.intellij.build.jarCache.LocalDiskJarCacheManager
 import org.jetbrains.intellij.build.jarCache.NonCachingJarCacheManager
 import org.jetbrains.intellij.build.productRunner.IntellijProductRunner
 import org.jetbrains.intellij.build.productRunner.createDevModeProductRunner
+import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
+import org.jetbrains.intellij.build.telemetry.use
 import org.jetbrains.jps.model.JpsProject
 import org.jetbrains.jps.model.module.JpsModule
 import java.io.InputStream
@@ -514,10 +516,14 @@ class BuildContextImpl internal constructor(
   }
 
   override suspend fun createProductRunner(additionalPluginModules: List<String>): IntellijProductRunner {
-    return when {
-      additionalPluginModules.isEmpty() -> devModeProductRunner.await()
-      else -> createDevModeProductRunner(additionalPluginModules = additionalPluginModules, context = this)
-    }
+    return spanBuilder("create product runner")
+      .setAttribute("additional.plugin.module.count", additionalPluginModules.size.toLong())
+      .use {
+        when {
+          additionalPluginModules.isEmpty() -> devModeProductRunner.await()
+          else -> createDevModeProductRunner(additionalPluginModules = additionalPluginModules, context = this@BuildContextImpl)
+        }
+      }
   }
 
   override suspend fun runProcess(

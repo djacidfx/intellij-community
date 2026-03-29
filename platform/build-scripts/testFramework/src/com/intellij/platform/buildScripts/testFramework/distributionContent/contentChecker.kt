@@ -7,7 +7,6 @@ import com.intellij.platform.distributionContent.testFramework.FileEntry
 import com.intellij.platform.distributionContent.testFramework.ModuleEntry
 import com.intellij.platform.distributionContent.testFramework.PluginContentReport
 import com.intellij.platform.distributionContent.testFramework.deserializeContentData
-import com.intellij.platform.distributionContent.testFramework.deserializeModuleList
 import com.intellij.platform.distributionContent.testFramework.deserializePluginData
 import com.intellij.platform.distributionContent.testFramework.serializeContentEntries
 import com.intellij.platform.testFramework.core.FileComparisonFailedError
@@ -40,7 +39,6 @@ data class ParsedContentReport(
   @JvmField val productModules: List<PluginContentReport>,
   @JvmField val bundled: List<PluginContentReport>,
   @JvmField val nonBundled: List<PluginContentReport>,
-  @JvmField val moduleSets: Map<String, List<String>>,
 )
 
 @Internal
@@ -70,26 +68,11 @@ fun readContentReportZip(reportFile: Path): ParsedContentReport {
       }
     }
 
-    val moduleSets = zip.entries
-      .asSequence()
-      .filter { it.name.startsWith("moduleSets/") && it.name.endsWith(".yaml") }
-      .associate { entry ->
-        val moduleSetName = entry.name.removePrefix("moduleSets/").removeSuffix(".yaml")
-        val yamlData = entry.getData(zip).decodeToString()
-        moduleSetName to try {
-          deserializeModuleList(yamlData)
-        }
-        catch (e: SerializationException) {
-          throw RuntimeException("Cannot parse module set $moduleSetName in $reportFile\ndata:$yamlData", e)
-        }
-      }
-
     return ParsedContentReport(
       platform = readPlatformEntries("platform.yaml"),
       productModules = readPluginEntries("product-modules.yaml"),
       bundled = readPluginEntries("bundled-plugins.yaml"),
       nonBundled = readPluginEntries("non-bundled-plugins.yaml"),
-      moduleSets = moduleSets,
     )
   }
 }

@@ -13,6 +13,7 @@ import io.opentelemetry.api.trace.TracerProvider
 import io.opentelemetry.context.Context
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
@@ -62,12 +63,12 @@ private data class TaskResult<T>(
 
 private data class ValidationTask(
   @JvmField val spec: PackagingSuiteValidationSpec,
-  @JvmField val resultDeferred: kotlinx.coroutines.Deferred<TaskResult<List<PackagingCheckFailure>>>,
+  @JvmField val resultDeferred: Deferred<TaskResult<List<PackagingCheckFailure>>>,
 )
 
 private data class PackagingTask(
   @JvmField val spec: PackagingTargetSpec,
-  @JvmField val resultDeferred: kotlinx.coroutines.Deferred<TaskResult<PackageResult>>,
+  @JvmField val resultDeferred: Deferred<TaskResult<PackageResult>>,
 )
 
 typealias PackagingSuiteValidator = suspend (context: PackagingSuiteContext) -> List<PackagingCheckFailure>
@@ -89,6 +90,7 @@ data class PackagingSuiteValidationSpec(
   @JvmField val threshold: Int = 50,
   @JvmField val isBlocking: Boolean = false,
   @JvmField val alwaysCreateSuccessTest: Boolean = false,
+  @JvmField val requiresCompilation: Boolean = true,
   @JvmField val skipIfAborted: Boolean = true,
   @JvmField val validator: PackagingSuiteValidator,
 )
@@ -130,7 +132,7 @@ class PackagingSuiteFixture private constructor(
   private val tempDir: Path,
   private val telemetry: PackagingSuiteTelemetry?,
   private val tracerOverride: AutoCloseable?,
-  private val suiteContextDeferred: kotlinx.coroutines.Deferred<PackagingSuiteContext>,
+  private val suiteContextDeferred: Deferred<PackagingSuiteContext>,
   private val validationTasks: List<ValidationTask>,
   private val packagingTasks: List<PackagingTask>,
 ) : AutoCloseable {
@@ -345,8 +347,8 @@ abstract class PackagingSuiteTestBase {
 private fun createValidationTasks(
   scope: CoroutineScope,
   spec: PackagingSuiteSpec,
-  suiteContextDeferred: kotlinx.coroutines.Deferred<PackagingSuiteContext>,
-  compileProductionModulesDeferred: kotlinx.coroutines.Deferred<Unit>,
+  suiteContextDeferred: Deferred<PackagingSuiteContext>,
+  compileProductionModulesDeferred: Deferred<Unit>,
   telemetry: PackagingSuiteTelemetry?,
 ): List<ValidationTask> {
   val blockingTasks = ArrayList<ValidationTask>()
@@ -367,7 +369,7 @@ private fun createValidationTasks(
                 span.setAttribute("packaging.validation.name", validation.name)
               },
             ) {
-              compileProductionModulesDeferred.await()
+              awaitPackagingSuiteValidationCompilationIfRequired(validation = validation, compileProductionModulesDeferred = compileProductionModulesDeferred)
               validation.validator(suiteContextDeferred.await())
             }
           }
@@ -397,7 +399,7 @@ private fun createValidationTasks(
               },
             ) {
               ensureBlockingValidationsSucceededOrAbort(blockingTasks)
-              compileProductionModulesDeferred.await()
+              awaitPackagingSuiteValidationCompilationIfRequired(validation = validation, compileProductionModulesDeferred = compileProductionModulesDeferred)
               validation.validator(suiteContextDeferred.await())
             }
           }
@@ -408,11 +410,21 @@ private fun createValidationTasks(
   return result
 }
 
+@Internal
+suspend fun awaitPackagingSuiteValidationCompilationIfRequired(
+  validation: PackagingSuiteValidationSpec,
+  compileProductionModulesDeferred: Deferred<Unit>,
+) {
+  if (validation.requiresCompilation) {
+    compileProductionModulesDeferred.await()
+  }
+}
+
 private fun createPackagingTasks(
   scope: CoroutineScope,
   spec: PackagingSuiteSpec,
-  suiteContextDeferred: kotlinx.coroutines.Deferred<PackagingSuiteContext>,
-  compileProductionModulesDeferred: kotlinx.coroutines.Deferred<Unit>,
+  suiteContextDeferred: Deferred<PackagingSuiteContext>,
+  compileProductionModulesDeferred: Deferred<Unit>,
   validationTasks: List<ValidationTask>,
   telemetry: PackagingSuiteTelemetry?,
 ): List<PackagingTask> {
