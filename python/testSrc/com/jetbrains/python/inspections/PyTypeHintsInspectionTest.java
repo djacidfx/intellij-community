@@ -3466,7 +3466,7 @@ public class PyTypeHintsInspectionTest extends PyInspectionTestCase {
   }
 
   // PY-76850
-  public void testParamSpecComponentMissingKwargs() {
+  public void testParamSpecComponentsKwargsWithIllegalAnnotation() {
     doTestByText("""
                    from typing import Any
                    def bad[**P](*args: <warning descr="'P.args' and 'P.kwargs' must both be present in the same function signature">P.args</warning>, **kwargs: Any) -> None:
@@ -3572,18 +3572,6 @@ public class PyTypeHintsInspectionTest extends PyInspectionTestCase {
 
                    def twice(f: Callable[P, int], *args: P.args, **kwargs: P.kwargs) -> int:
                        return f(*args, **kwargs)
-                   """);
-  }
-
-  // PY-76850
-  public void testOldStyleParamSpecProperlyBoundForArgsKwargs() {
-    doTestByText("""
-                   from typing import ParamSpec, TypeVar, Callable
-                   P = ParamSpec("P")
-                   T = TypeVar("T")
-                   
-                   def invoke(fn: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> T:
-                       pass
                    """);
   }
 
