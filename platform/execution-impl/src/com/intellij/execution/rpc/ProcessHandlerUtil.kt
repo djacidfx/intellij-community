@@ -25,7 +25,7 @@ import org.jetbrains.annotations.ApiStatus
  * @param coroutineScope provides the lifetime for given [ProcessHandlerDto] and its [ProcessHandlerDto.processHandlerId]
  */
 @ApiStatus.Internal
-suspend fun createProcessHandlerDto(coroutineScope: CoroutineScope, processHandler: ProcessHandler): ProcessHandlerDto {
+fun createProcessHandlerDto(coroutineScope: CoroutineScope, processHandler: ProcessHandler): ProcessHandlerDto {
   val processHandlerId = processHandler.storeGlobally(coroutineScope)
   val flow = channelFlow {
     val listener = object : ProcessListener {
@@ -83,7 +83,7 @@ suspend fun createProcessHandlerDto(coroutineScope: CoroutineScope, processHandl
   return ProcessHandlerDto(
     processHandlerId,
     processHandler.detachIsDefault(),
-    flow.toRpc(),
+    flow.toRpc(coroutineScope.coroutineContext),
     processHandler.nativePid?.asDeferred(),
     killableProcessInfo,
     processHandler,
