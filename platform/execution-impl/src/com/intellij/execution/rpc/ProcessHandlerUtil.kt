@@ -2,6 +2,7 @@
 package com.intellij.execution.rpc
 
 
+import com.intellij.build.process.BuildProcessHandler
 import com.intellij.execution.KillableProcess
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessHandler
@@ -82,6 +83,7 @@ fun createProcessHandlerDto(coroutineScope: CoroutineScope, processHandler: Proc
 
   return ProcessHandlerDto(
     processHandlerId,
+    (processHandler as? BuildProcessHandler)?.executionName,
     processHandler.detachIsDefault(),
     flow.toRpc(coroutineScope.coroutineContext),
     processHandler.nativePid?.asDeferred(),

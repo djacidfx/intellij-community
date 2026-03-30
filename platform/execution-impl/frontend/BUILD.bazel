@@ -32,6 +32,7 @@ jvm_library(
     "//platform/lang-impl",
     "//platform/util/coroutines",
     "//fleet/rhizomedb",
+    "//platform/lang-api:lang",
   ]
 )
 
@@ -59,6 +60,7 @@ jvm_library(
     "//platform/lang-impl:lang-impl_test_lib",
     "//platform/util/coroutines:coroutines_test_lib",
     "//fleet/rhizomedb:rhizomedb_test_lib",
+    "//platform/lang-api:lang_test_lib",
   ]
 )
 ### auto-generated section `build intellij.platform.execution.impl.frontend` end

@@ -1,6 +1,7 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.platform.execution.impl.frontend
 
+import com.intellij.build.process.BuildProcessHandler
 import com.intellij.execution.KillableProcess
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessHandler
@@ -54,7 +55,7 @@ fun createFrontendProcessHandler(
 open class FrontendSessionProcessHandler(
   private val project: Project,
   protected val processHandlerDto: ProcessHandlerDto,
-) : ProcessHandler() {
+) : BuildProcessHandler() {
   protected val cs: CoroutineScope = project.service<FrontendSessionProcessHandlerCoroutineScope>().cs.childScope("FrontendProcessHandler")
 
   protected val handlerId: ProcessHandlerId = processHandlerDto.processHandlerId
@@ -87,6 +88,8 @@ open class FrontendSessionProcessHandler(
       }
     }
   }
+
+  override fun getExecutionName() = processHandlerDto.buildExecutionName ?: ""
 
   override fun waitFor(): Boolean {
     return runBlockingMaybeCancellable {
