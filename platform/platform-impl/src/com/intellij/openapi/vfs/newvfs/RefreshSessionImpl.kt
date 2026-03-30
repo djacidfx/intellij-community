@@ -16,7 +16,6 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.util.ProgressIndicatorWithDelayedPresentation
 import com.intellij.openapi.progress.withWriteActionTitle
 import com.intellij.openapi.util.text.StringUtil
-import com.intellij.openapi.vfs.AsyncFileListener
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
@@ -240,7 +239,7 @@ internal class RefreshSessionImpl internal constructor(
   @RequiresWriteLock
   fun fireEvents(
     events: List<CompoundVFileEvent>,
-    appliers: List<AsyncFileListener.ChangeApplier>,
+    appliers: AsyncEventSupport.ChangeAppliers,
     excludeAsyncListeners: Boolean,
   ) {
     try {
@@ -268,7 +267,7 @@ internal class RefreshSessionImpl internal constructor(
   @RequiresWriteLock
   private fun fireEventsInWriteAction(
     events: List<CompoundVFileEvent>,
-    appliers: List<AsyncFileListener.ChangeApplier>,
+    appliers: AsyncEventSupport.ChangeAppliers,
     excludeAsyncListeners: Boolean,
   ) {
     val manager = VirtualFileManager.getInstance() as VirtualFileManagerImpl
@@ -314,7 +313,7 @@ internal class RefreshSessionImpl internal constructor(
   @RequiresBackgroundThread
   fun fireEventsInBackgroundWriteAction(
     events: List<CompoundVFileEvent>,
-    appliers: List<AsyncFileListener.ChangeApplier>,
+    appliers: AsyncEventSupport.ChangeAppliers,
     excludeAsyncListeners: Boolean,
   ) {
     try {
@@ -336,7 +335,7 @@ internal class RefreshSessionImpl internal constructor(
   }
 
   @RequiresWriteLock
-  private fun doFireEvents(events: List<CompoundVFileEvent>, appliers: List<AsyncFileListener.ChangeApplier>, excludeAsyncListeners: Boolean) {
+  private fun doFireEvents(events: List<CompoundVFileEvent>, appliers: AsyncEventSupport.ChangeAppliers, excludeAsyncListeners: Boolean) {
     var t = System.nanoTime()
     fireEventsInWriteAction(events, appliers, excludeAsyncListeners)
     t = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t)

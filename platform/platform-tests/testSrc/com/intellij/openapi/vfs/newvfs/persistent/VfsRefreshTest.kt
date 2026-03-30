@@ -6,6 +6,7 @@ import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.backgroundWriteAction
 import com.intellij.openapi.application.contextModality
+import com.intellij.openapi.application.edtWriteAction
 import com.intellij.openapi.application.impl.AsyncExecutionServiceImpl
 import com.intellij.openapi.application.impl.concurrencyTest
 import com.intellij.openapi.application.readAction
@@ -288,10 +289,29 @@ class VfsRefreshTest {
       }
     })
 
+
+    application.messageBus.connect(disposable).subscribe(VirtualFileManager.VFS_CHANGES_BG, object : BulkFileListenerBackgroundable {
+      override fun before(events: List<VFileEvent>) {
+        assertThat(EDT.isCurrentThreadEdt()).isFalse
+        counter.incrementAndGet()
+      }
+
+      override fun after(events: List<VFileEvent>) {
+        assertThat(EDT.isCurrentThreadEdt()).isFalse
+        counter.incrementAndGet()
+      }
+    })
+
     backgroundWriteAction {
       FileContentUtilCore.reparseFiles(virtualFile)
     }
-    assertThat(counter.get()).isEqualTo(2)
+    assertThat(counter.get()).isEqualTo(4)
+
+
+    edtWriteAction {
+      FileContentUtilCore.reparseFiles(virtualFile)
+    }
+    assertThat(counter.get()).isEqualTo(8)
   }
 
   @Test

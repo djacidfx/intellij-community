@@ -16,7 +16,6 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.NlsContexts
 import com.intellij.openapi.util.registry.Registry
-import com.intellij.openapi.vfs.AsyncFileListener
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.newvfs.events.VFileCreateEvent
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
@@ -232,13 +231,13 @@ class RefreshQueueImpl(coroutineScope: CoroutineScope) : RefreshQueue(), Disposa
     evTimeInQueue: AtomicLong,
     evRetries: AtomicLong,
     evListenerTime: AtomicLong,
-  ): Pair<List<CompoundVFileEvent>, List<AsyncFileListener.ChangeApplier>> {
+  ): Pair<List<CompoundVFileEvent>, AsyncEventSupport.ChangeAppliers> {
     if (LOG.isDebugEnabled()) LOG.debug("Start non-blocking action for session with id=" + session.hashCode())
     evTimeInQueue.compareAndSet(-1, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - evQueuedAt))
     evRetries.incrementAndGet()
     val t = System.nanoTime()
     try {
-      val result: Pair<List<CompoundVFileEvent>, List<AsyncFileListener.ChangeApplier>> = runAsyncListeners(events)
+      val result: Pair<List<CompoundVFileEvent>, AsyncEventSupport.ChangeAppliers> = runAsyncListeners(events)
       if (LOG.isDebugEnabled()) LOG.debug("Successful finish of non-blocking read action for session with id=" + session.hashCode())
       return result
     }
@@ -255,7 +254,7 @@ class RefreshQueueImpl(coroutineScope: CoroutineScope) : RefreshQueue(), Disposa
     evListenerTime: AtomicLong,
     evRetries: AtomicLong,
     events: List<CompoundVFileEvent>,
-    changeAppliers: List<AsyncFileListener.ChangeApplier>,
+    changeAppliers: AsyncEventSupport.ChangeAppliers,
     backgroundWriteAction: Boolean,
   ) {
     var t = System.nanoTime()
@@ -277,12 +276,12 @@ class RefreshQueueImpl(coroutineScope: CoroutineScope) : RefreshQueue(), Disposa
       val evRetries = AtomicLong(0)
       startIndicator(IdeCoreBundle.message("async.events.progress"))
       ReadAction
-        .nonBlocking<Pair<List<CompoundVFileEvent>, List<AsyncFileListener.ChangeApplier>>> {
+        .nonBlocking<Pair<List<CompoundVFileEvent>, AsyncEventSupport.ChangeAppliers>> {
           collectChangeAppliersInReadAction(session, events, evQueuedAt, evTimeInQueue, evRetries, evListenerTime)
         }
         .expireWith(this)
         .wrapProgress(myRefreshIndicator)
-        .finishOnUiThread(modality) { data: Pair<List<CompoundVFileEvent>, List<AsyncFileListener.ChangeApplier>> ->
+        .finishOnUiThread(modality) { data: Pair<List<CompoundVFileEvent>, AsyncEventSupport.ChangeAppliers> ->
           doFireEvents(session, evTimeInQueue, evListenerTime, evRetries, data.first, data.second, false)
         }
         .submit {
@@ -356,16 +355,16 @@ class RefreshQueueImpl(coroutineScope: CoroutineScope) : RefreshQueue(), Disposa
       var t = System.nanoTime()
       val compoundEvents = events.map { event: VFileEvent -> CompoundVFileEvent(event) }
       if (EDT.isCurrentThreadEdt()) {
-        session.fireEvents(compoundEvents, listOf(), excludeAsyncListeners = false)
+        session.fireEvents(compoundEvents, AsyncEventSupport.ChangeAppliers.EMPTY, excludeAsyncListeners = false)
       }
       else {
-        session.fireEventsInBackgroundWriteAction(compoundEvents, listOf(), excludeAsyncListeners = false)
+        session.fireEventsInBackgroundWriteAction(compoundEvents, AsyncEventSupport.ChangeAppliers.EMPTY, excludeAsyncListeners = false)
       }
       t = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t)
       VfsUsageCollector.logEventProcessing(-1L, -1L, -1, t, compoundEvents.size)
     }
 
-    private fun runAsyncListeners(events: Collection<VFileEvent>): Pair<List<CompoundVFileEvent>, List<AsyncFileListener.ChangeApplier>> {
+    private fun runAsyncListeners(events: Collection<VFileEvent>): Pair<List<CompoundVFileEvent>, AsyncEventSupport.ChangeAppliers> {
       val compoundEvents = events.mapNotNull { e: VFileEvent? ->
         val file = if (e is VFileCreateEvent) e.parent else e!!.getFile()
         if (file == null || file.isValid()) CompoundVFileEvent(

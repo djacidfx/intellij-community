@@ -14,8 +14,18 @@ import java.util.List;
 /**
  * An alternative to {@link com.intellij.openapi.vfs.newvfs.BulkFileListener} that allows
  * for moving parts of VFS event processing to background thread and thus reduce the duration
- * of UI freezes. Asynchronous listeners should preferably be registered as {@code com.intellij.vfs.asyncListenerBackgroundable} extensions.
- * If that's too inconvenient, manual registration via {@link VirtualFileManager#addAsyncFileListenerBackgroundable} is possible.<p></p>
+ * of UI freezes.
+ *
+ * <h3>Threading contract:</h3>
+ * {@link prepareChange} is always called in a read-action on a background thread.
+ * <p>
+ * The thread of execution of {@link ChangeApplier} is determined by the method of registration.
+ * <ul>
+ *   <li> (Recommended) Appliers runs on <b>background thread</b> if it was registed with {@code com.intellij.vfs.asyncListenerBackgroundable} or {@link VirtualFileManager#addAsyncFileListenerBackgroundable}</li>
+ *
+ *   <li> Appliers runs on the <b>EDT</b> if it was registed with {@code com.intellij.vfs.asyncListener} or {@link VirtualFileManager#addAsyncFileListener}</li>
+ * </ul>
+ * In the future versions of IntelliJ Platform, this listener may start running on background threads unconditionally.
  *
  * <h3>Migration of synchronous listeners:</h3>
  *
@@ -82,17 +92,13 @@ public interface AsyncFileListener {
      * it can be changed by this moment as well.
      */
     @RequiresWriteLock
-    // can be executed on any thread
+    // the thread of execution depends on method of registration
     default void beforeVfsChange() {}
 
     /**
      * This method is called in write action after the VFS events are delivered and applied, and allows
      * to apply modifications based on the information calculated during {@link #prepareChange}.
      * The implementations should be as fast as possible.<p></p>
-     * <p>
-     * <b> In the future versions of IntelliJ Platform, this listener may start running on background threads.
-     * You can use {@link VirtualFileManager#addAsyncFileListenerBackgroundable} to run this listener on background thread unconditionally.
-     * </b>
      * <p>
      * If you process events passed into {@link #prepareChange} here, remember that an event might be superseded by further events
      * from the same list. For example, the {@link VFileEvent#getFile()} may be invalid (if it was deleted by that further event),
@@ -104,7 +110,7 @@ public interface AsyncFileListener {
      * Otherwise, excluded files might be added to the VFS which may lead to performance problems.</p>
      */
     @RequiresWriteLock
-    // can be executed on any thread
+    // the thread of execution depends on method of registration
     default void afterVfsChange() {}
   }
 }
