@@ -33,6 +33,7 @@ jvm_library(
     "//platform/execution-impl",
     "//platform/util:util-ui",
     "//fleet/rhizomedb",
+    "//platform/execution-impl/frontend",
   ]
 )
 
@@ -61,6 +62,7 @@ jvm_library(
     "//platform/execution-impl:execution-impl_test_lib",
     "//platform/util:util-ui_test_lib",
     "//fleet/rhizomedb:rhizomedb_test_lib",
+    "//platform/execution-impl/frontend:frontend_test_lib",
   ]
 )
 ### auto-generated section `build intellij.platform.buildView.frontend` end
