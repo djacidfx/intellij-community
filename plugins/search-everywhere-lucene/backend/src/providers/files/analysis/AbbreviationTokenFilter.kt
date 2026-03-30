@@ -6,7 +6,7 @@ import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute
 
 /**
- * Derives abbreviation tokens from groups of [sourceTypes] sub-tokens (e.g. FILENAME_PART).
+ * Derives abbreviation tokens from groups of [sourceTypes] sub-tokens (e.g., FILENAME_PART).
  *
  * Tokens of [sourceTypes] are buffered. When a non-source token arrives (or the stream ends),
  * the buffer is flushed: abbreviation tokens are emitted, then (depending on [passThrough]) the
@@ -108,7 +108,7 @@ class AbbreviationTokenFilter(
         if (abbrev.length >= minLength && seen.add(abbrev)) {
           result.add(BufferedToken(abbrev, setOf(type), abbrevStart, abbrevEnd))
         }
-        // Progressive abbreviations: extend last part with 2, 3, ... chars
+        // Progressive abbreviations: extend the last part with 2, 3, ... chars
         // so that e.g. "MHT" can match "MyHTTP" via 'm'+'ht'.
         val prefix = buildAbbreviation(subParts.dropLast(1))
         val lastTerm = subParts.last().term.lowercase()

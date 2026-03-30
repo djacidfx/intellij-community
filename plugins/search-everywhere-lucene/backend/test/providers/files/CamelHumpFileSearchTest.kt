@@ -238,7 +238,7 @@ class CamelHumpFileSearchTest : FileSearchTestBase() {
     val seaEverContr = file("SearchEverywhereContributor.kt")
     val httpServer = file("HTTPServer.kt")
     return indexWith(listOf(seaEverContr, httpServer)) { index ->
-      // Note: lowercase queries are decomposed into 2-char n-grams by the analyzer,
+      // Note: analyzer decompose lowercase queries into 2-char n-grams,
       // so 'search' also generates se*, ar*, ch* — which can match unrelated words.
       // Only positive assertions are used here to avoid n-gram cross-matches.
       index.assertSearch("search") {

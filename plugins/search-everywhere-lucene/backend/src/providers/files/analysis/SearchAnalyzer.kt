@@ -42,7 +42,7 @@ class FileSearchAnalyzer : Analyzer() {
  *   - FILENAME: last-component stem, original case (lowercasing deferred to AbbreviationTokenFilter)
  *   - FILETYPE: extension or hidden-file body, lowercase
  *
- * Hidden files (leading dot, e.g. ".gitignore"): whole token is FILENAME; body after dot is FILETYPE.
+ * Hidden files (leading dot, e.g. ".gitignore"): the whole token is FILENAME; body after dot is FILETYPE.
  * Extension-less single-component: additionally emits PATH_SEGMENT and FILETYPE (lowercased whole term).
  * Both '/' and '\' are treated as path separators.
  */
@@ -74,7 +74,7 @@ class SearchPathTypeFilter(input: TokenStream) : TokenFilter(input) {
 
     pending.add(PendingToken(segment, setOf(FileTokenType.PATH), segmentStart, segmentEnd))
 
-    // Normalise '\' to '/' so PathSplittingRule (which only splits on '/') handles both separators.
+    // Normalize '\' to '/' so PathSplittingRule (which only splits on '/') handles both separators.
     // Character positions are unchanged since both are single chars.
     val normalizedSegment = segment.replace('\\', '/')
     val pathSpans = PathSplittingRule(normalizedSegment).split().toList()
@@ -116,7 +116,7 @@ class SearchPathTypeFilter(input: TokenStream) : TokenFilter(input) {
         }
       }
       dotIndex == 0 -> {
-        // Hidden file, e.g. ".gitignore": whole token is FILENAME, body after dot is FILETYPE
+        // Hidden file, e.g. ".gitignore": the whole token is FILENAME, body after dot is FILETYPE
         pending.add(PendingToken(lastPart, setOf(FileTokenType.FILENAME), partStart, partEnd))
         val filetype = lastPart.substring(1)
         if (filetype.isNotEmpty()) {
@@ -224,7 +224,7 @@ class FilenameNgramFilter(input: TokenStream) : TokenFilter(input) {
  * Assigns [WordAttribute.wordIndex] by incrementing a counter each time
  * [PositionIncrementAttribute.positionIncrement] > 0 (set by the preceding
  * [PositionIncrementFromOffsetFilter]). The counter starts at -1, so the first token
- * (which always has posIncr = 1) gets wordIndex = 0.
+ * (which always has posIncr = 1) gets the wordIndex = 0.
  */
 class WordIndexFilter(input: TokenStream) : TokenFilter(input) {
   private val posIncrAttr = addAttribute(PositionIncrementAttribute::class.java)

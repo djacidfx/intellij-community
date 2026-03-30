@@ -21,7 +21,7 @@ class AbbreviationTokenFilterTest : AnalyzersTestBase() {
     override fun createComponents(fieldName: String): TokenStreamComponents {
       val tokenizer = KeywordTokenizer()
       var stream: TokenStream = tokenizer
-      // Tag the raw token as FILENAME so downstream filters recognise it
+      // Tag the raw token as FILENAME so downstream filters recognize it
       stream = object : org.apache.lucene.analysis.TokenFilter(stream) {
         private val multiTypeAttr = addAttribute(MultiTypeAttribute::class.java)
         override fun incrementToken(): Boolean {

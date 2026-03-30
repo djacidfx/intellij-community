@@ -112,32 +112,5 @@ abstract class AnalyzersTestBase {
       return this
     }
 
-    fun producesSameTokensAs(otherAnalyzer: Analyzer): TokenAssertion {
-      val otherTokens = mutableListOf<TokenInfo>()
-      val tokenStream = otherAnalyzer.tokenStream(fieldName, text)
-      val termAttr = tokenStream.addAttribute(CharTermAttribute::class.java)
-      val offsetAttr = tokenStream.addAttribute(OffsetAttribute::class.java)
-      val wordAttr = tokenStream.addAttribute(WordAttribute::class.java)
-      val multiTypeAttr = tokenStream.addAttribute(MultiTypeAttribute::class.java)
-      tokenStream.reset()
-      while (tokenStream.incrementToken()) {
-        otherTokens.add(TokenInfo(termAttr.toString(),
-                                  multiTypeAttr.activeTypes(),
-                                  offsetAttr.startOffset(),
-                                  offsetAttr.endOffset(),
-                                  wordAttr.wordIndex))
-      }
-      tokenStream.end()
-      tokenStream.close()
-      val thisSet = tokens.toSet()
-      val otherSet = otherTokens.toSet()
-      val only1 = thisSet - otherSet
-      val only2 = otherSet - thisSet
-      assertTrue(thisSet == otherSet,
-                 "Tokens differ for \"$text\".\n" +
-                 "Only in ${analyzer::class.simpleName}: $only1\n" +
-                 "Only in ${otherAnalyzer::class.simpleName}: $only2")
-      return this
-    }
   }
 }

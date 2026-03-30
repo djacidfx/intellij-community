@@ -11,7 +11,7 @@ import org.apache.lucene.analysis.tokenattributes.OffsetAttribute
 
 /**
  * Splits input tokens whose [MultiTypeAttribute] intersects [inputTypes] into sub-tokens.
- * Each sub-token is emitted with [outputType]; its offsets are absolute (input token start + span offset).
+ * Each sub-token is emitted with [outputType]; its offsets are absolute (input token start and span offset).
  *
  * [passThrough] controls if and how the original tokens are also emitted with their original type unchanged.
  *

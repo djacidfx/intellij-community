@@ -9,8 +9,4 @@ enum class FileTokenType(val type: String) {
   FILENAME_ABBREVIATION("filenameAbbreviation"),
   FILENAME_ABBREVIATION_WITH_SKIPS("filenameAbbreviationWithSkips"),
   FILETYPE("filetype");
-
-  companion object {
-    private val byType = entries.associateBy { it.type }
-  }
 }

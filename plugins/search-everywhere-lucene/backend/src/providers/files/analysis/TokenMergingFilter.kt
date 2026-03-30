@@ -12,7 +12,7 @@ import org.apache.lucene.analysis.tokenattributes.OffsetAttribute
  * Tokens are then emitted in non-decreasing [startOffset] order (stable sort, preserving
  * insertion order within a group of equal startOffsets). This satisfies Lucene's requirement
  * that stored-field offsets never go backwards, even if upstream filters produce tokens
- * out of offset order (e.g. a FILETYPE token at offset 1 interleaved with FILENAME_PART
+ * out of offset order (e.g., a FILETYPE token at offset 1 interleaved with FILENAME_PART
  * tokens at offset 0 for hidden files like ".SomeLongFile").
  *
  * This filter reads ALL remaining tokens from its input on the first call to [incrementToken]
