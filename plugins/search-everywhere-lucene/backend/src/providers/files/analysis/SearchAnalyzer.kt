@@ -24,8 +24,6 @@ class FileSearchAnalyzer : Analyzer() {
       stream,
       sourceTypes = setOf(FileTokenType.FILENAME_PART),
       outputType = FileTokenType.FILENAME_ABBREVIATION,
-      allowedSkip = 1,
-      skipOutputType = FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS,
       passThrough = PassthroughOptions.PassthroughLast,
     )
     stream = FilenameNgramFilter(stream)

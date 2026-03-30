@@ -64,7 +64,6 @@ class AbbreviationTokenFilterTest : AnalyzersTestBase() {
       .producesToken("readme", FileTokenType.FILENAME)
       // abbreviation "r" should NOT be present
       .noDuplicateTokens()
-      .producesNoTokenThat { it.types.contains(FileTokenType.FILENAME_ABBREVIATION) }
   }
 
   @Test

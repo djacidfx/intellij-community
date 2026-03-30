@@ -23,7 +23,7 @@ class AbbreviationTokenFilter(
   private val outputType: FileTokenType,
   private val minLength: Int = 2,
   private val allowedSkip: Int = 0,
-  private val skipOutputType: FileTokenType,
+  private val skipOutputType: FileTokenType = FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS,
   private val passThrough: PassthroughOptions = PassthroughOptions.PassthroughLast,
 ) : TokenFilter(input) {
 
@@ -110,14 +110,12 @@ class AbbreviationTokenFilter(
         }
         // Progressive abbreviations: extend last part with 2, 3, ... chars
         // so that e.g. "MHT" can match "MyHTTP" via 'm'+'ht'.
-        if (subParts.size >= 2) {
-          val prefix = buildAbbreviation(subParts.dropLast(1))
-          val lastTerm = subParts.last().term.lowercase()
-          for (len in 2..lastTerm.length) {
-            val progressive = prefix + lastTerm.substring(0, len)
-            if (progressive.length >= minLength && seen.add(progressive)) {
-              result.add(BufferedToken(progressive, setOf(type), abbrevStart, abbrevEnd))
-            }
+        val prefix = buildAbbreviation(subParts.dropLast(1))
+        val lastTerm = subParts.last().term.lowercase()
+        for (len in 2..lastTerm.length) {
+          val progressive = prefix + lastTerm.substring(0, len)
+          if (progressive.length >= minLength && seen.add(progressive)) {
+            result.add(BufferedToken(progressive, setOf(type), abbrevStart, abbrevEnd))
           }
         }
       }

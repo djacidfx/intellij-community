@@ -41,7 +41,6 @@ import kotlinx.coroutines.selects.onTimeout
 import kotlinx.coroutines.selects.select
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.TokenStream
-import org.apache.lucene.analysis.core.KeywordAnalyzer
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
 import org.apache.lucene.document.Document
 import org.apache.lucene.document.Field
@@ -50,7 +49,9 @@ import org.apache.lucene.document.TextField
 import org.apache.lucene.index.Term
 import org.apache.lucene.search.BooleanClause
 import org.apache.lucene.search.BooleanQuery
+import org.apache.lucene.search.BoostQuery
 import org.apache.lucene.search.DisjunctionMaxQuery
+import org.apache.lucene.search.FuzzyQuery
 import org.apache.lucene.search.PrefixQuery
 import org.apache.lucene.search.Query
 import org.jetbrains.annotations.TestOnly
@@ -62,7 +63,7 @@ import kotlin.time.Duration.Companion.seconds
 class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposable {
   private val indexingEnabled = isIndexingEnabled()
   private val luceneIndex by lazy(LazyThreadSafetyMode.NONE) {
-    LuceneIndex(project, SearchEverywhereLuceneProviderIdUtils.LUCENE_FILES, LOG, KeywordAnalyzer())
+    LuceneIndex(project, SearchEverywhereLuceneProviderIdUtils.LUCENE_FILES, LOG)
   }
   private val scheduledIndexingOps = Channel<LuceneFileIndexOperation>(capacity = Channel.UNLIMITED)
   val initialIndexingCompleted: CompletableDeferred<Unit> = CompletableDeferred()
@@ -318,15 +319,36 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
 
       tokenStream.reset()
       while (tokenStream.incrementToken()) {
-        val termString = termAttr.toString()
         val wordIndex = wordAttr.wordIndex
-
+        val termString = termAttr.toString()
         val typesToProcess = multiTypeAttr.activeTypes()
+
+        val wordQuery = wordQueries.computeIfAbsent(wordIndex) { mutableListOf() }
+
         for (tokenType in typesToProcess) {
 
-          val term = Term(tokenType.type, termString)
-          val query = PrefixQuery(term)
-          wordQueries.computeIfAbsent(wordIndex) { mutableListOf() }.add(query)
+
+
+
+
+          when (tokenType) {
+            FileTokenType.PATH,
+            FileTokenType.PATH_SEGMENT,
+            FileTokenType.PATH_SEGMENT_PREFIX,
+            FileTokenType.FILENAME,
+            FileTokenType.FILENAME_PART,
+            FileTokenType.FILETYPE,
+              -> wordQuery.add(PrefixQuery(Term(tokenType.type, termString)))
+
+
+            FileTokenType.FILENAME_ABBREVIATION -> {
+              wordQuery.add(PrefixQuery(Term(FileTokenType.FILENAME_ABBREVIATION.type, termString)))
+              wordQuery.add(BoostQuery(FuzzyQuery(Term(FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS.type, termString),2,termString.length,1,false), .5f))
+
+            }
+            FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS -> throw IllegalStateException("The FileSearchAnalyzer must not create file abbreviations with Skips")
+          }
+
         }
       }
       tokenStream.end()
