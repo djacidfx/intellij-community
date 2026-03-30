@@ -47,7 +47,6 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -87,7 +86,6 @@ import org.jetbrains.jewel.ui.theme.tooltipStyle
 import org.jetbrains.jewel.ui.util.isDark
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
-import java.io.File
 import java.util.ArrayDeque
 import javax.swing.KeyStroke
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -97,6 +95,9 @@ import com.intellij.devkit.compose.showcase.util.KodeeDance2D
 import com.intellij.devkit.compose.showcase.util.KodeeNoticeMe2D
 import com.intellij.devkit.compose.showcase.util.KodeeSitDown2D
 import com.intellij.devkit.compose.showcase.util.KodeeStanding2D
+import java.nio.file.Path
+import kotlin.io.path.exists
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 @Preview
@@ -317,14 +318,14 @@ private fun TextFieldWithButton() {
   var fileExists by remember { mutableStateOf(true) }
 
   LaunchedEffect(textFieldState) {
-    delay(300)
+    delay(300.milliseconds)
     withContext(IO) {
-      fileExists = textFieldState.text.isEmpty() || File(textFieldState.text.toString()).exists()
+      fileExists = textFieldState.text.isEmpty() || Path.of(textFieldState.text.toString()).exists()
     }
   }
 
   fun chooseFile() {
-    val descriptor = FileChooserDescriptorFactory.createSingleFileOrFolderDescriptor()
+    val descriptor = FileChooserDescriptorFactory.singleFileOrDir()
     descriptor.title = UIBundle.message("file.chooser.default.title")
     FileChooser.chooseFile(descriptor, null, null) {
       textFieldState.edit { replace(0, textFieldState.text.length, it.path) }
