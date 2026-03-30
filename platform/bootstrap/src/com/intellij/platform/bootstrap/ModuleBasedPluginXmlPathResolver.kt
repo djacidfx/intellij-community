@@ -12,6 +12,7 @@ import com.intellij.platform.pluginSystem.parser.impl.PluginDescriptorFromXmlStr
 import com.intellij.platform.pluginSystem.parser.impl.PluginDescriptorReaderContext
 import com.intellij.platform.pluginSystem.parser.impl.consume
 import com.intellij.platform.pluginSystem.parser.impl.elements.DependenciesElement
+import com.intellij.platform.pluginSystem.parser.impl.elements.ModuleVisibilityValue
 import com.intellij.platform.runtime.repository.IncludedRuntimeModule
 import com.intellij.platform.runtime.repository.RuntimeModuleId
 import java.nio.file.Path
@@ -48,6 +49,7 @@ internal class ModuleBasedPluginXmlPathResolver(
       if (moduleId in optionalModuleIds) {
         // TODO here we should restore the actual content module "header" with dependency information
         return PluginDescriptorBuilder.builder().apply {
+          visibility = ModuleVisibilityValue.PUBLIC
           `package` = "unresolved.$moduleName"
 
           val reasonsWhyNotLoaded = notLoadedModuleIds[moduleId] ?: emptyList()

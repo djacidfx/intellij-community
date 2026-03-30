@@ -48,7 +48,9 @@ internal class ContentModuleDependencyResolutionTest {
     val pluginSet = buildPluginSet {
       plugin("core") {
         content(namespace = "jetbrains") {
-          module("platform") {}
+          module("platform") {
+            moduleVisibility = ModuleVisibilityValue.PUBLIC
+          }
         }
       }
       plugin("foo") {

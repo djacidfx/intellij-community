@@ -417,7 +417,7 @@ private val pluginModuleVisibilityCheck by lazy {
     "warning" -> PluginModuleVisibilityCheckOption.REPORT_WARNING
     "error" -> PluginModuleVisibilityCheckOption.REPORT_ERROR
     "disabled" -> PluginModuleVisibilityCheckOption.DISABLED
-    else -> PluginModuleVisibilityCheckOption.REPORT_WARNING
+    else -> PluginModuleVisibilityCheckOption.REPORT_ERROR
   }
 }
 
