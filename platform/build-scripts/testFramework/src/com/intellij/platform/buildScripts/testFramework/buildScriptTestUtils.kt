@@ -4,7 +4,6 @@ package com.intellij.platform.buildScripts.testFramework
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.io.NioFiles
 import com.intellij.platform.buildScripts.testFramework.binaryReproducibility.BuildArtifactsReproducibilityTest
-import com.intellij.platform.runtime.product.ProductMode
 import com.intellij.platform.testFramework.core.FileComparisonFailedError
 import com.intellij.testFramework.TestLoggerFactory
 import com.intellij.util.ExceptionUtilRt
@@ -14,6 +13,7 @@ import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -30,7 +30,6 @@ import org.jetbrains.intellij.build.dependencies.TeamCityHelper.isUnderTeamCity
 import org.jetbrains.intellij.build.getDevModeOrTestBuildDateInSeconds
 import org.jetbrains.intellij.build.impl.buildDistributions
 import org.jetbrains.intellij.build.impl.createBuildContext
-import org.jetbrains.intellij.build.impl.loadRawProductModules
 import org.jetbrains.intellij.build.telemetry.JaegerJsonSpanExporterManager
 import org.jetbrains.intellij.build.telemetry.TraceManager
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
@@ -274,26 +273,15 @@ internal suspend fun <T> doRunTestBuild(
         val result = build(context)
 
         val softly = SoftAssertions()
-        if (checkIntegrityOfEmbeddedFrontend) {
-          val frontendRootModule = context.productProperties.embeddedFrontendRootModule
-          if (frontendRootModule != null && context.generateRuntimeModuleRepository) {
-            RuntimeModuleRepositoryChecker.checkProductModules(productModulesModule = frontendRootModule, context = context, softly = softly)
-            if (checkThatBundledPluginInFrontendArePresent) {
-              RuntimeModuleRepositoryChecker.checkBundledPluginsArePresent(productModulesModule = frontendRootModule, context = context, isEmbeddedVariant = true, softly = softly)
-            }
-            coroutineScope {
-              launch {
-                RuntimeModuleRepositoryChecker.checkIntegrityOfEmbeddedFrontend(frontendRootModule, context, softly)
+        coroutineScope {
+          if (checkIntegrityOfEmbeddedFrontend && context.generateRuntimeModuleRepository) {
+            checkEmbeddedFrontendIntegrity(checkThatBundledPluginInFrontendArePresent = checkThatBundledPluginInFrontendArePresent, softly = softly, context = context)
               }
-              launch {
-                checkKeymapPluginsAreBundledWithFrontend(frontendRootModule, context, softly)
-              }
+          if (checkPrivatePluginModulesAreNotPublic) {
+            launch {
+              checkPrivatePluginModulesAreNotPublic(context, softly)
             }
           }
-        }
-
-        if (checkPrivatePluginModulesAreNotPublic) {
-          checkPrivatePluginModulesAreNotPublic(context, softly)
         }
         softly.assertAll()
 
@@ -345,12 +333,30 @@ internal suspend fun <T> doRunTestBuild(
   }
 }
 
+private fun CoroutineScope.checkEmbeddedFrontendIntegrity(
+  checkThatBundledPluginInFrontendArePresent: Boolean,
+  softly: SoftAssertions,
+  context: BuildContext,
+) {
+  val frontendRootModule = context.productProperties.embeddedFrontendRootModule ?: return
+  RuntimeModuleRepositoryChecker.checkProductModules(productModulesModule = frontendRootModule, context = context, softly = softly)
+  if (checkThatBundledPluginInFrontendArePresent) {
+    RuntimeModuleRepositoryChecker.checkBundledPluginsArePresent(productModulesModule = frontendRootModule, context = context, isEmbeddedVariant = true, softly = softly)
+  }
+  launch {
+    RuntimeModuleRepositoryChecker.checkIntegrityOfEmbeddedFrontend(frontendRootModule, context, softly)
+  }
+  launch {
+    checkKeymapPluginsAreBundledWithFrontend(frontendRootModule, context, softly)
+  }
+}
+
 private fun checkKeymapPluginsAreBundledWithFrontend(
   jetBrainsClientMainModule: String,
   context: BuildContext,
   softly: SoftAssertions,
 ) {
-  val productModules = loadRawProductModules(jetBrainsClientMainModule, ProductMode.FRONTEND, context)
+  val productModules = loadRawProductModulesFromOutput(jetBrainsClientMainModule, context)
   val keymapPluginModulePrefix = "intellij.keymap."
   val keymapPluginsBundledWithFrontend = productModules.bundledPluginMainModules
     .asSequence()
