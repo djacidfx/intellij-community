@@ -20,7 +20,7 @@ class MinimapDiagnosticsPainter(private val editor: Editor) {
     val oldStroke = graphics.stroke
     val savedTransform = graphics.transform
     val savedClip = graphics.clip
-    graphics.setClip(0, 0, context.panelWidth, context.panelHeight)
+    graphics.clipRect(0,0,context.panelWidth,context.panelHeight)
     graphics.translate(0.0, -context.geometry.areaStart.toDouble())
 
     try {
@@ -39,7 +39,7 @@ class MinimapDiagnosticsPainter(private val editor: Editor) {
       graphics.stroke = oldStroke
       graphics.composite = oldComposite
       graphics.transform = savedTransform
-      graphics.clip = savedClip
+      graphics.clip(savedClip)
     }
   }
 

@@ -1,10 +1,8 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.minimap.layout
 
-import com.intellij.ide.minimap.geometry.MinimapGeometryData
 import com.intellij.ide.minimap.geometry.MinimapLineGeometryUtil
 import com.intellij.ide.minimap.render.MinimapRenderContext
-import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import java.awt.geom.Rectangle2D
@@ -41,42 +39,6 @@ object MinimapLayoutUtil {
 
   fun computeLogicalWidth(rightMargin: Int, charWidth: Int, visibleWidth: Int): Int {
     return if (rightMargin > 0) rightMargin * charWidth else visibleWidth
-  }
-
-  fun visibleLines(geometry: MinimapGeometryData, lineCount: Int): IntRange {
-    val lastLineIndex = (lineCount - 1).coerceAtLeast(0)
-    val startLine = ((geometry.areaStart.toDouble() / geometry.minimapHeight) * lineCount)
-      .toInt()
-      .coerceIn(0, lastLineIndex)
-    val endLineExclusive = ((geometry.areaEnd.toDouble() / geometry.minimapHeight) * lineCount)
-      .toInt()
-      .coerceIn(startLine + 1, lineCount)
-    return startLine until endLineExclusive
-  }
-
-  fun visibleOffsetRange(
-    context: MinimapRenderContext,
-    metrics: MinimapLayoutMetrics,
-    document: Document,
-  ): MinimapVisibleOffsetRange? {
-    if (metrics.lineCount <= 0) return null
-    if (document.textLength <= 0) return null
-
-    val visibleLines = visibleLines(context.geometry, metrics.lineCount)
-    if (visibleLines.isEmpty()) return null
-
-    val lineProjection = context.lineProjection
-    val visibleStartLine = lineProjection.projectedToLogicalLine(visibleLines.first) ?: return null
-    val visibleEndLine = lineProjection.projectedToLogicalLine(visibleLines.last) ?: return null
-    val visibleStartOffset = document.getLineStartOffset(visibleStartLine)
-    val visibleEndOffset = if (visibleEndLine + 1 < document.lineCount) {
-      document.getLineStartOffset(visibleEndLine + 1)
-    }
-    else {
-      document.textLength
-    }
-    if (visibleEndOffset <= visibleStartOffset) return null
-    return MinimapVisibleOffsetRange(visibleStartOffset, visibleEndOffset)
   }
 
   fun lineBandRect(startLine: Int,

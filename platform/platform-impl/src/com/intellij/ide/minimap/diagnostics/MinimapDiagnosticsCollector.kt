@@ -28,10 +28,9 @@ class MinimapDiagnosticsCollector(private val editor: Editor) {
 
     val entries = ArrayList<MinimapDiagnosticEntry>()
     val startOffset = 0
-    val endOffset = textLength
     MarkupIterator.mergeIterators(
-      editorEx.markupModel.overlappingErrorStripeIterator(startOffset, endOffset),
-      editorEx.filteredDocumentMarkupModel.overlappingErrorStripeIterator(startOffset, endOffset),
+      editorEx.markupModel.overlappingErrorStripeIterator(startOffset, textLength),
+      editorEx.filteredDocumentMarkupModel.overlappingErrorStripeIterator(startOffset, textLength),
       RangeHighlighterEx.BY_AFFECTED_START_OFFSET,
     ).use { iterator ->
       while (iterator.hasNext() && entries.size < MAX_DIAGNOSTIC_ENTRIES) {
@@ -43,13 +42,12 @@ class MinimapDiagnosticsCollector(private val editor: Editor) {
           entries = entries,
           highlighter = highlighter,
           severity = severity,
-          context = context,
           metrics = metrics,
           document = document,
           lineProjection = lineProjection,
           textLength = textLength,
           startOffset = startOffset,
-          endOffset = endOffset,
+          endOffset = textLength,
         )
       }
     }
@@ -71,7 +69,6 @@ class MinimapDiagnosticsCollector(private val editor: Editor) {
     entries: MutableList<MinimapDiagnosticEntry>,
     highlighter: RangeHighlighterEx,
     severity: MinimapDiagnosticSeverity,
-    context: MinimapRenderContext,
     metrics: MinimapLayoutMetrics,
     document: Document,
     lineProjection: MinimapLineProjection,
@@ -103,7 +100,6 @@ class MinimapDiagnosticsCollector(private val editor: Editor) {
       val projectedLine = lineProjection.logicalToProjectedLine(line) ?: continue
       val rect = lineRect(
         highlighter = highlighter,
-        context = context,
         metrics = metrics,
         projectedLine = projectedLine,
         lineStartOffset = lineStartOffset,
@@ -116,7 +112,6 @@ class MinimapDiagnosticsCollector(private val editor: Editor) {
 
   private fun lineRect(
     highlighter: RangeHighlighterEx,
-    context: MinimapRenderContext,
     metrics: MinimapLayoutMetrics,
     projectedLine: Int,
     lineStartOffset: Int,

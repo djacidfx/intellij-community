@@ -65,8 +65,7 @@ class MinimapHoverPresenter(private val panel: MinimapPanel) {
 
   private fun hoverColor(): Color {
     val scheme = panel.editor.colorsScheme
-    return scheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
-           ?: scheme.getAttributes(EditorColors.REFERENCE_HYPERLINK_COLOR)?.foregroundColor
+    return scheme.getAttributes(EditorColors.REFERENCE_HYPERLINK_COLOR)?.foregroundColor
            ?: JBColor.BLUE
   }
 }
