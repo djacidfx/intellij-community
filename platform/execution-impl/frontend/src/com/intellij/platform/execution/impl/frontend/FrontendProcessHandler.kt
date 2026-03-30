@@ -13,6 +13,8 @@ import com.intellij.execution.rpc.ProcessHandlerEvent
 import com.intellij.execution.rpc.ProcessHandlerId
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.EDT
+import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.application.asContextElement
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.fileLogger
@@ -63,7 +65,7 @@ open class FrontendSessionProcessHandler(
   private val nativePidFuture: CompletableFuture<Long?>? by lazy { processHandlerDto.nativePid?.asCompletableFuture() }
 
   init {
-    cs.launch(Dispatchers.EDT) {
+    cs.launch(Dispatchers.EDT + ModalityState.any().asContextElement()) {
       processHandlerDto.processHandlerEvents.toFlow().collect { event ->
         when (event) {
           is ProcessHandlerEvent.StartNotified -> {
