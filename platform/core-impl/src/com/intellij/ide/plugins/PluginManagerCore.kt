@@ -1254,7 +1254,7 @@ private fun DescriptorExclusionReason.logMessage(): String {
   return when (this) {
     // chained:
     is ContentModuleParentIsExcluded -> "dependent $logDescr excluded"
-    is RequiredContentModuleIsExcluded -> "dependent ${this.excludedContentModule.getLogDescription()} excluded"
+    is RequiredContentModuleIsExcluded -> "dependent $logDescr excluded"
     is DependencyIsExcluded -> "dependent $logDescr excluded"
     is DependsParentIsExcluded -> "dependent $logDescr excluded"
     // root:
