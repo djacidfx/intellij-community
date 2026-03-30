@@ -68,7 +68,8 @@ internal class TokenTypeFilteringAnalyzer(
   override fun createComponents(fieldName: String): TokenStreamComponents {
     val tokenizer = WhitespaceTokenizer()
     var stream: TokenStream = SearchPathTypeFilter(tokenizer)
-    stream = WordSplittingTokenFilter(stream, setOf(FileTokenType.FILENAME), FileTokenType.FILENAME_PART, PassthroughOptions.PassthroughLast)
+    stream =
+      WordSplittingTokenFilter(stream, setOf(FileTokenType.FILENAME), FileTokenType.FILENAME_PART, PassthroughOptions.PassthroughLast)
     stream = AbbreviationTokenFilter(
       stream,
       sourceTypes = setOf(FileTokenType.FILENAME_PART),

@@ -22,6 +22,7 @@ internal class PathAndFilenameTypeFilter(input: TokenStream) : TokenFilter(input
   private val offsetAttr = addAttribute(OffsetAttribute::class.java)
 
   private data class TypedToken(val term: String, val types: Set<FileTokenType>, val start: Int, val end: Int)
+
   private val pending = ArrayDeque<TypedToken>()
 
   override fun incrementToken(): Boolean {
@@ -45,9 +46,15 @@ internal class PathAndFilenameTypeFilter(input: TokenStream) : TokenFilter(input
     val ext: String?
     val extStart: Int
     when {
-      dotIndex < 0  -> { nameStem = fullText;                       ext = null;                         extStart = -1 }
-      dotIndex == 0 -> { nameStem = fullText;                       ext = fullText.substring(1);         extStart = 1 }
-      else          -> { nameStem = fullText.substring(0, dotIndex); ext = fullText.substring(dotIndex + 1); extStart = dotIndex + 1 }
+      dotIndex < 0 -> {
+        nameStem = fullText; ext = null; extStart = -1
+      }
+      dotIndex == 0 -> {
+        nameStem = fullText; ext = fullText.substring(1); extStart = 1
+      }
+      else -> {
+        nameStem = fullText.substring(0, dotIndex); ext = fullText.substring(dotIndex + 1); extStart = dotIndex + 1
+      }
     }
 
     // FILENAME: stem, original case (lowercasing deferred to AbbreviationTokenFilter)
@@ -77,15 +84,15 @@ class FileNameAnalyzer : Analyzer() {
     val tokenizer = KeywordTokenizer()
     var stream: TokenStream = PathAndFilenameTypeFilter(tokenizer)
     stream = WordSplittingTokenFilter(stream,
-      inputTypes = setOf(FileTokenType.FILENAME),
-      outputType = FileTokenType.FILENAME_PART,
-      passThrough = PassthroughOptions.PassthroughLast)
+                                      inputTypes = setOf(FileTokenType.FILENAME),
+                                      outputType = FileTokenType.FILENAME_PART,
+                                      passThrough = PassthroughOptions.PassthroughLast)
     stream = AbbreviationTokenFilter(stream,
-      sourceTypes = setOf(FileTokenType.FILENAME_PART),
-      outputType = FileTokenType.FILENAME_ABBREVIATION,
-      allowedSkip = 1,
-      passThrough = PassthroughOptions.PassthroughLast,
-      skipOutputType = FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS)
+                                     sourceTypes = setOf(FileTokenType.FILENAME_PART),
+                                     outputType = FileTokenType.FILENAME_ABBREVIATION,
+                                     allowedSkip = 1,
+                                     passThrough = PassthroughOptions.PassthroughLast,
+                                     skipOutputType = FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS)
     stream = TokenMergingFilter(stream)
     stream = PositionIncrementFromOffsetFilter(stream)
     return TokenStreamComponents(tokenizer, stream)
@@ -113,6 +120,7 @@ private class PathSegmentSplittingFilter(input: TokenStream) : TokenFilter(input
   private val offsetAttr = addAttribute(OffsetAttribute::class.java)
 
   private data class BufferedToken(val term: String, val types: Set<FileTokenType>, val start: Int, val end: Int)
+
   private val pending = ArrayDeque<BufferedToken>()
   override fun incrementToken(): Boolean {
     if (pending.isNotEmpty()) {

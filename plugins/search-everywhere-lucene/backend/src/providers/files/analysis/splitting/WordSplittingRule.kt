@@ -17,30 +17,27 @@ abstract class WordSplittingRule(protected val text: String) {
  *
  * Example: SymbolSplittingRule("foo/bar/baz").split() returns [0 until 3, 4 until 7, 8 until 11]
  */
-open class SymbolSplittingRule(text: String, val isSymbol: (Char)-> Boolean): WordSplittingRule(text) {
+open class SymbolSplittingRule(text: String, val isSymbol: (Char) -> Boolean) : WordSplittingRule(text) {
   override fun split(span: Span): Sequence<Span> = sequence {
-      var start = -1
-      for (i in span) {
-        if (!isSymbol(text[i])) {
-          if (start == -1) start = i
-        } else {
-          if (start != -1) {
-            yield(start until i)
-            start = -1
-          }
+    var start = -1
+    for (i in span) {
+      if (!isSymbol(text[i])) {
+        if (start == -1) start = i
+      }
+      else {
+        if (start != -1) {
+          yield(start until i)
+          start = -1
         }
       }
-      if (start != -1) yield(start until span.last + 1)
+    }
+    if (start != -1) yield(start until span.last + 1)
   }
 }
 
 
-class LetterAndDigitSplittingRule(text: String): SymbolSplittingRule(text, {c -> !c.isLetterOrDigit()})
-class PathSplittingRule(text: String): SymbolSplittingRule(text, { it == '/'})
-
-
-
-
+class LetterAndDigitSplittingRule(text: String) : SymbolSplittingRule(text, { c -> !c.isLetterOrDigit() })
+class PathSplittingRule(text: String) : SymbolSplittingRule(text, { it == '/' })
 
 
 /**
@@ -86,14 +83,15 @@ class CamelCaseSplittingRule(text: String) : WordSplittingRule(text) {
       val prev = text[i - 1]
       val curr = text[i]
       val isAcronymBoundary = i < span.last &&
-          prev.isUpperCase() && curr.isUpperCase() && text[i + 1].isLowerCase()
+                              prev.isUpperCase() && curr.isUpperCase() && text[i + 1].isLowerCase()
       val isBoundary = (prev.isLowerCase() && curr.isUpperCase()) || isAcronymBoundary
       if (isBoundary) {
         val subSpan = start until i
         if (isAcronymBoundary && subSpan.count() <= 2) {
           // Short acronym (≤ 2 chars): emit each letter individually
           for (j in subSpan) yield(j..j)
-        } else {
+        }
+        else {
           yield(subSpan)
         }
         start = i

@@ -22,12 +22,17 @@ class MultiTypeAttributeImpl : AttributeImpl(), MultiTypeAttribute {
   override fun isEmpty(): Boolean = typeFlags.none { it }
   override fun activeTypes(): List<FileTokenType> =
     FileTokenType.entries.filter { typeFlags[it.ordinal] }
-  override fun clear() { clearTypes() }
+
+  override fun clear() {
+    clearTypes()
+  }
+
   override fun copyTo(target: AttributeImpl) {
     val t = target as MultiTypeAttribute
     t.clearTypes()
     t.setTypes(activeTypes())
   }
+
   override fun reflectWith(reflector: AttributeReflector) {
     reflector.reflect(MultiTypeAttribute::class.java, "types",
                       activeTypes().joinToString(",") { it.name })

@@ -13,13 +13,13 @@ import org.apache.lucene.util.AttributeImpl
 import org.apache.lucene.util.AttributeReflector
 
 
-
 class FileSearchAnalyzer : Analyzer() {
   override fun createComponents(fieldName: String): TokenStreamComponents {
     val tokenizer = WhitespaceTokenizer()
     var stream: TokenStream = WordIndexFilter(tokenizer)
     stream = SearchPathTypeFilter(stream)
-    stream = WordSplittingTokenFilter(stream, setOf(FileTokenType.FILENAME), FileTokenType.FILENAME_PART, PassthroughOptions.PassthroughLast)
+    stream =
+      WordSplittingTokenFilter(stream, setOf(FileTokenType.FILENAME), FileTokenType.FILENAME_PART, PassthroughOptions.PassthroughLast)
     stream = AbbreviationTokenFilter(
       stream,
       sourceTypes = setOf(FileTokenType.FILENAME_PART),

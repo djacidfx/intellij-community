@@ -8,7 +8,7 @@ import com.intellij.openapi.project.Project
 /**
  * The service is intended to be used instead of a project/application as a parent disposable.
  */
-@Service( Service.Level.PROJECT)
+@Service(Service.Level.PROJECT)
 internal class SearchEverywhereLucenePluginDisposable : Disposable {
   override fun dispose() {
   }

@@ -29,7 +29,7 @@ import kotlin.io.path.div
 /**
  * Ensures that the chosen approach of manual tokenization is never sidestepped.
  */
-class UnusedAnalyzer: Analyzer() {
+class UnusedAnalyzer : Analyzer() {
   override fun createComponents(fieldName: String?): TokenStreamComponents? {
     throw UnsupportedOperationException("The stored analyzer should not be used, we expect manual tokenization")
   }
@@ -146,6 +146,7 @@ class LuceneIndex(val project: Project, indexName: String, val log: Logger) : Di
       }
     }.buffer(0, onBufferOverflow = BufferOverflow.SUSPEND)
   }
+
   fun <T> withSearcher(block: (IndexSearcher) -> T): T {
     val searcherManager = atomicIndexRW.load().searcherManager
     val searcher = searcherManager.acquire()

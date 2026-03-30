@@ -13,7 +13,7 @@ import kotlinx.coroutines.runBlocking
 import org.apache.lucene.document.Document
 import org.apache.lucene.search.Query
 
-abstract class FileSearchTestBase: LuceneIndexTestBase() {
+abstract class FileSearchTestBase : LuceneIndexTestBase() {
 
   override val log: Logger = logger<FileSearchTest>()
 
@@ -44,10 +44,10 @@ abstract class FileSearchTestBase: LuceneIndexTestBase() {
 
   fun file(path: String): Document {
     return runBlocking {
-        readAction {
-            val fileIndex = FileIndex.getInstance(project)
-            fileIndex.getDocument(buildMockVirtualFile(path)).second
-        }
+      readAction {
+        val fileIndex = FileIndex.getInstance(project)
+        fileIndex.getDocument(buildMockVirtualFile(path)).second
+      }
     }
   }
 }

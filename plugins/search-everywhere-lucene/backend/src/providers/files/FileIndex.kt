@@ -154,8 +154,8 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
         val fileIndex = ProjectFileIndex.getInstance(project)
         val filesToReindex = mutableListOf<VirtualFile>()
         val urlsToDelete = mutableListOf<Term>()
-        
-        
+
+
         // The reindexing Op may point to directories that should be reindexed, so we must reindex the contents of the dir, as these paths have changed.
         readAction {
           val virtualFiles = mutableListOf<VirtualFile>()
@@ -165,7 +165,7 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
             val virtualFile = VirtualFileManager.getInstance().findFileByUrl(url) ?: let {
               urlsToDelete.add(getPrimaryKeyTerm(url))
               return@forEach
-            } 
+            }
             virtualFiles.add(virtualFile)
           }
 
@@ -179,7 +179,8 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
             }
             if (!virtualFile.isDirectory) {
               filesToReindex.add(virtualFile)
-            } else {
+            }
+            else {
               // Should be used from readAction
               fileIndex.iterateContentUnderDirectory(virtualFile) { file ->
                 if (!file.isDirectory) {
@@ -192,7 +193,7 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
         }
 
         if (filesToReindex.isEmpty() && urlsToDelete.isEmpty()) return
-        LOG.debug {"Reindexing ${filesToReindex.size} files, deleting ${urlsToDelete.size} files" }
+        LOG.debug { "Reindexing ${filesToReindex.size} files, deleting ${urlsToDelete.size} files" }
 
         val termsAndDocs = readAction { filesToReindex.map { getDocument(it) } }
 
@@ -242,7 +243,12 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
       //We could track the deleted files in the FilesProvider instead, but this would make the FileIndex interface more complex.
       //The debouncing/merging logic in place should be enough to handle this anyway.
       if (deletedFilesToRemoveFromIndex.isNotEmpty()) {
-        LOG.debug { "Scheduling deletion of ${deletedFilesToRemoveFromIndex.size} files from index: ${deletedFilesToRemoveFromIndex.joinToString(", ", limit = 10)}" }
+        LOG.debug {
+          "Scheduling deletion of ${deletedFilesToRemoveFromIndex.size} files from index: ${
+            deletedFilesToRemoveFromIndex.joinToString(", ",
+                                                       limit = 10)
+          }"
+        }
         scheduleIndexingOp(LuceneFileIndexOperation.ReindexFiles(changedUrls = deletedFilesToRemoveFromIndex))
       }
     }
@@ -255,8 +261,8 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
     val document = Document()
     document.add(StringField(FILE_URL, virtualFile.url, Field.Store.YES))
     //TODO does virtualFile include the extension?
-    analyzeString(FileNameAnalyzer(),virtualFile.name).forEach { document.add(it) }
-    analyzeString(FilePathAnalyzer(),getRelativePathForFile(virtualFile)).forEach { document.add(it) }
+    analyzeString(FileNameAnalyzer(), virtualFile.name).forEach { document.add(it) }
+    analyzeString(FilePathAnalyzer(), getRelativePathForFile(virtualFile)).forEach { document.add(it) }
     val term = getPrimaryKeyTerm(virtualFile.url)
     return Pair(term, document)
   }
@@ -327,10 +333,6 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
 
         for (tokenType in typesToProcess) {
 
-
-
-
-
           when (tokenType) {
             FileTokenType.PATH,
             FileTokenType.PATH_SEGMENT,
@@ -383,7 +385,8 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
 
 sealed class LuceneFileIndexOperation {
   data object IndexAll : LuceneFileIndexOperation()
-  data class ReindexFiles(val changedFiles: Set<VirtualFile> = emptySet(), val changedUrls: Set<String> = emptySet()) : LuceneFileIndexOperation()
+  data class ReindexFiles(val changedFiles: Set<VirtualFile> = emptySet(), val changedUrls: Set<String> = emptySet()) :
+    LuceneFileIndexOperation()
 }
 
 /** Pre-tokenized stream that replays a fixed list of string terms. */
@@ -396,7 +399,10 @@ class ListTokenStream(private val tokens: List<String>) : TokenStream() {
     termAttr.setEmpty().append(tokens[index++])
     return true
   }
-  override fun reset() { super.reset(); index = 0 }
+
+  override fun reset() {
+    super.reset(); index = 0
+  }
 }
 
 

@@ -46,7 +46,7 @@ class FileSearchingAnalyzerTest : AnalyzersTestBase() {
       .print()
       .producesToken("test", FileTokenType.FILENAME)
       .producesToken(".git/test", FileTokenType.PATH)
-      
+
     tokenizing(FileSearchAnalyzer(), ".hidden").print()
       .producesToken("hidden", FileTokenType.FILETYPE)
       .producesToken(".hidden", FileTokenType.PATH)
@@ -123,7 +123,7 @@ class FileSearchingAnalyzerTest : AnalyzersTestBase() {
   fun `produces NO filenameAbbreviation with Skip tokens`() {
     tokenizing(FileSearchAnalyzer(), "sec")
       .print()
-      .producesNoTokenThat {it.types.contains(FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS)}
+      .producesNoTokenThat { it.types.contains(FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS) }
 
   }
 

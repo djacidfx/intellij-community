@@ -8,7 +8,6 @@ import org.junit.jupiter.api.TestFactory
 class FileSearchTest : FileSearchTestBase() {
 
 
-
   @TestFactory
   fun `ensure each part must match`(): List<DynamicNode> {
 
@@ -34,7 +33,7 @@ class FileSearchTest : FileSearchTestBase() {
 
       index.assertSearch("md bar") {
         findsAllOf(bar)
-        findsNoneOf(foo,baz)
+        findsNoneOf(foo, baz)
       }
 
       index.assertSearch("bar baz") {
@@ -48,9 +47,9 @@ class FileSearchTest : FileSearchTestBase() {
     val pet = file("Pet.java")
     val petC = file("PetController.java")
 
-    return indexWith(listOf(pet,petC)) { index ->
+    return indexWith(listOf(pet, petC)) { index ->
       index.assertSearch("Pet.java") {
-        findsWithOrdering(listOf(pet,petC))
+        findsWithOrdering(listOf(pet, petC))
       }
     }
   }

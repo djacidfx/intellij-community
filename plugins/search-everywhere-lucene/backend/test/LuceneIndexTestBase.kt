@@ -34,7 +34,9 @@ abstract class LuceneIndexTestBase {
 
   @BeforeEach
   fun setupLogging() {
-    TestLoggerFactory.enableDebugLogging(projectModel.disposableRule.disposable, "#com.intellij.searchEverywhereLucene.backend", "#${this::class.java.name}")
+    TestLoggerFactory.enableDebugLogging(projectModel.disposableRule.disposable,
+                                         "#com.intellij.searchEverywhereLucene.backend",
+                                         "#${this::class.java.name}")
     val rootLogger = java.util.logging.Logger.getLogger("")
     if (rootLogger.handlers.none { it is TestLoggerFactory.LogToStdoutJulHandler }) {
       val handler = TestLoggerFactory.LogToStdoutJulHandler()
@@ -46,7 +48,12 @@ abstract class LuceneIndexTestBase {
   }
 
 
-  inner class SearchFlowAssert(val index: LuceneIndex, val query: Query, val results: List<Pair<ScoreDoc, Document>>, val isEquivalent: (Document, Document) -> Boolean) {
+  inner class SearchFlowAssert(
+    val index: LuceneIndex,
+    val query: Query,
+    val results: List<Pair<ScoreDoc, Document>>,
+    val isEquivalent: (Document, Document) -> Boolean,
+  ) {
     private fun log(message: String) {
       this@LuceneIndexTestBase.log.info("[DEBUG_LOG] $message")
     }
@@ -94,7 +101,8 @@ ${searcher.explain(query, score.doc).toString().trim().prependIndent(">   ")}
     }
 
     fun findsAllOf(vararg expectedDocs: Document) {
-      val expectedDocsString: String = expectedDocs.joinToString("", limit = 3, truncated = "... (total ${expectedDocs.size})", transform = { it.asMap().toString() })
+      val expectedDocsString: String =
+        expectedDocs.joinToString("", limit = 3, truncated = "... (total ${expectedDocs.size})", transform = { it.asMap().toString() })
       log("finds all of $expectedDocsString")
       for (expectedDoc in expectedDocs) {
         if (results.none { isEquivalent(it.second, expectedDoc) }) {
@@ -114,7 +122,8 @@ ${searcher.explain(query, score.doc).toString().trim().prependIndent(">   ")}
     }
 
     fun findsNoneOf(vararg expectedDocs: Document) {
-      val expectedDocsString: String = expectedDocs.joinToString("", limit = 3, truncated = "... (total ${expectedDocs.size})", transform = { it.asMap().toString() })
+      val expectedDocsString: String =
+        expectedDocs.joinToString("", limit = 3, truncated = "... (total ${expectedDocs.size})", transform = { it.asMap().toString() })
       log("finds none of $expectedDocsString")
       for (expectedDoc in expectedDocs) {
         val found = results.filter { isEquivalent(it.second, expectedDoc) }
@@ -131,7 +140,8 @@ ${searcher.explain(query, score.doc).toString().trim().prependIndent(">   ")}
 
     fun findsWithOrdering(expectedOrder: List<Document>, containsAll: Boolean = true) {
       val all = if (containsAll) " all" else ""
-      val expectedDocsString: String = expectedOrder.joinToString("", limit = 3, truncated = "... (total ${expectedOrder.size})", transform = { it.asMap().toString() })
+      val expectedDocsString: String =
+        expectedOrder.joinToString("", limit = 3, truncated = "... (total ${expectedOrder.size})", transform = { it.asMap().toString() })
       log("finds$all in order: $expectedDocsString")
 
       val foundDocs = expectedOrder.map { expected ->
@@ -190,19 +200,19 @@ ${searcher.explain(query, score.doc).toString().trim().prependIndent(">   ")}
     }
   }
 
-  private fun logIndexedDocuments(doc:Document): String = buildString {
-      appendLine("Document:")
-      for (field in doc.fields) {
-        val value = field.stringValue() ?: continue
-        appendLine("  - \"${field.name()}\": \"$value\"")
-      }
-      appendLine("  Tokenized to:")
-      for (field in doc.fields) {
-        if (!field.fieldType().tokenized()) continue
-        val tField = field as TextField
-        appendLine("    - \"${tField.name()}\": ${getTokensWithTypes(tField.tokenStreamValue()).joinToString()}")
-      }
-    }.trimEnd()
+  private fun logIndexedDocuments(doc: Document): String = buildString {
+    appendLine("Document:")
+    for (field in doc.fields) {
+      val value = field.stringValue() ?: continue
+      appendLine("  - \"${field.name()}\": \"$value\"")
+    }
+    appendLine("  Tokenized to:")
+    for (field in doc.fields) {
+      if (!field.fieldType().tokenized()) continue
+      val tField = field as TextField
+      appendLine("    - \"${tField.name()}\": ${getTokensWithTypes(tField.tokenStreamValue()).joinToString()}")
+    }
+  }.trimEnd()
 
 
   private fun getTokensWithTypes(stream: TokenStream): List<String> {
@@ -221,7 +231,7 @@ ${searcher.explain(query, score.doc).toString().trim().prependIndent(">   ")}
   fun Document.asMap(): Map<String, String> {
     return fields.associate { it.name() to it.stringValue() }
   }
-  
+
   open fun buildSimpleQuery(pattern: String): Query {
     throw UnsupportedOperationException("Override buildSimpleQuery or pass a buildQuery lambda to assertSearch")
   }
@@ -234,7 +244,7 @@ ${searcher.explain(query, score.doc).toString().trim().prependIndent(">   ")}
     input: T,
     buildQuery: (T) -> Query = { input -> buildSimpleQuery(input.toString()) },
     isEquivalent: (Document, Document) -> Boolean = this@LuceneIndexTestBase.isEquivalent,
-    block: SearchFlowAssert.() -> Unit
+    block: SearchFlowAssert.() -> Unit,
   ) {
     val query = buildQuery(input)
     dynamicNodes.add(dynamicTest("Searching for `$input`") {
@@ -253,7 +263,14 @@ ${searcher.explain(query, score.doc).toString().trim().prependIndent(">   ")}
     val luceneIndex = LuceneIndex(project, indexName, log)
     Disposer.register(projectModel.disposableRule.disposable, luceneIndex)
 
-    log.info("Indexing ${docs.size} documents: \n ${docs.joinToString(limit = 2, postfix = "\n", prefix = "\n", separator = "\n", truncated = "... remaining Documents omitted", transform = { logIndexedDocuments(it) })}")
+    log.info("Indexing ${docs.size} documents: \n ${
+      docs.joinToString(limit = 2,
+                        postfix = "\n",
+                        prefix = "\n",
+                        separator = "\n",
+                        truncated = "... remaining Documents omitted",
+                        transform = { logIndexedDocuments(it) })
+    }")
 
     luceneIndex.processChanges { writer ->
       writer.deleteAll()

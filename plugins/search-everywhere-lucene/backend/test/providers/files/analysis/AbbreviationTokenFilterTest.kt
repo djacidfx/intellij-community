@@ -31,13 +31,13 @@ class AbbreviationTokenFilterTest : AnalyzersTestBase() {
         }
       }
       stream = WordSplittingTokenFilter(stream,
-        inputTypes = setOf(FileTokenType.FILENAME),
-        outputType = FileTokenType.FILENAME_PART,
-        passThrough = PassthroughOptions.PassthroughLast)
+                                        inputTypes = setOf(FileTokenType.FILENAME),
+                                        outputType = FileTokenType.FILENAME_PART,
+                                        passThrough = PassthroughOptions.PassthroughLast)
       stream = AbbreviationTokenFilter(stream,
-        sourceTypes = setOf(FileTokenType.FILENAME_PART),
-        outputType = FileTokenType.FILENAME_ABBREVIATION,
-        skipOutputType = FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS)
+                                       sourceTypes = setOf(FileTokenType.FILENAME_PART),
+                                       outputType = FileTokenType.FILENAME_ABBREVIATION,
+                                       skipOutputType = FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS)
       return TokenStreamComponents(tokenizer, stream)
     }
   }
@@ -101,14 +101,14 @@ class AbbreviationTokenFilterTest : AnalyzersTestBase() {
         }
       }
       stream = WordSplittingTokenFilter(stream,
-        inputTypes = setOf(FileTokenType.FILENAME),
-        outputType = FileTokenType.FILENAME_PART,
-        passThrough = PassthroughOptions.PassthroughLast)
+                                        inputTypes = setOf(FileTokenType.FILENAME),
+                                        outputType = FileTokenType.FILENAME_PART,
+                                        passThrough = PassthroughOptions.PassthroughLast)
       stream = AbbreviationTokenFilter(stream,
-        sourceTypes = setOf(FileTokenType.FILENAME_PART),
-        outputType = FileTokenType.FILENAME_ABBREVIATION,
-        allowedSkip = allowedSkip,
-        skipOutputType = FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS)
+                                       sourceTypes = setOf(FileTokenType.FILENAME_PART),
+                                       outputType = FileTokenType.FILENAME_ABBREVIATION,
+                                       allowedSkip = allowedSkip,
+                                       skipOutputType = FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS)
       return TokenStreamComponents(tokenizer, stream)
     }
   }

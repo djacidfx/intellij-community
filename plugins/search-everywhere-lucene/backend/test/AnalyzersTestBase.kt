@@ -25,7 +25,11 @@ abstract class AnalyzersTestBase {
 
     tokenStream.reset()
     while (tokenStream.incrementToken()) {
-      tokens.add(TokenInfo(termAttr.toString(), multiTypeAttr.activeTypes(), offsetAttr.startOffset(), offsetAttr.endOffset(), wordAttr.wordIndex))
+      tokens.add(TokenInfo(termAttr.toString(),
+                           multiTypeAttr.activeTypes(),
+                           offsetAttr.startOffset(),
+                           offsetAttr.endOffset(),
+                           wordAttr.wordIndex))
 
     }
     tokenStream.end()
@@ -33,9 +37,20 @@ abstract class AnalyzersTestBase {
     return TokenAssertion(analyzer, text, tokens, fieldName)
   }
 
-  protected data class TokenInfo(val term: String, val types: List<FileTokenType>, val startOffset: Int, val endOffset: Int, val wordIndex: Int)
+  protected data class TokenInfo(
+    val term: String,
+    val types: List<FileTokenType>,
+    val startOffset: Int,
+    val endOffset: Int,
+    val wordIndex: Int,
+  )
 
-  protected class TokenAssertion(private val analyzer: Analyzer, private val text: String, private val tokens: List<TokenInfo>, private val fieldName: String = "content") {
+  protected class TokenAssertion(
+    private val analyzer: Analyzer,
+    private val text: String,
+    private val tokens: List<TokenInfo>,
+    private val fieldName: String = "content",
+  ) {
     fun producesToken(term: String, type: FileTokenType, startOffset: Int? = null, endOffset: Int? = null): TokenAssertion {
       val found = tokens.any {
         it.term == term && it.types.contains(type) &&
@@ -47,7 +62,7 @@ abstract class AnalyzersTestBase {
       return this
     }
 
-    fun producesNoTokenThat(bloc: (TokenInfo)->Boolean): TokenAssertion {
+    fun producesNoTokenThat(bloc: (TokenInfo) -> Boolean): TokenAssertion {
       val found = tokens.find { bloc(it) }
       assertNull(found, "There should be no such token as $found in $tokens")
       return this
@@ -106,7 +121,11 @@ abstract class AnalyzersTestBase {
       val multiTypeAttr = tokenStream.addAttribute(MultiTypeAttribute::class.java)
       tokenStream.reset()
       while (tokenStream.incrementToken()) {
-        otherTokens.add(TokenInfo(termAttr.toString(), multiTypeAttr.activeTypes(), offsetAttr.startOffset(), offsetAttr.endOffset(), wordAttr.wordIndex))
+        otherTokens.add(TokenInfo(termAttr.toString(),
+                                  multiTypeAttr.activeTypes(),
+                                  offsetAttr.startOffset(),
+                                  offsetAttr.endOffset(),
+                                  wordAttr.wordIndex))
       }
       tokenStream.end()
       tokenStream.close()
@@ -115,9 +134,9 @@ abstract class AnalyzersTestBase {
       val only1 = thisSet - otherSet
       val only2 = otherSet - thisSet
       assertTrue(thisSet == otherSet,
-        "Tokens differ for \"$text\".\n" +
-        "Only in ${analyzer::class.simpleName}: $only1\n" +
-        "Only in ${otherAnalyzer::class.simpleName}: $only2")
+                 "Tokens differ for \"$text\".\n" +
+                 "Only in ${analyzer::class.simpleName}: $only1\n" +
+                 "Only in ${otherAnalyzer::class.simpleName}: $only2")
       return this
     }
   }

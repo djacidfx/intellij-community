@@ -21,7 +21,7 @@ class WordSplittingTokenFilter(
   input: TokenStream,
   private val inputTypes: Set<FileTokenType>,
   private val outputType: FileTokenType,
-  private val passThrough: PassthroughOptions = PassthroughOptions.PassthroughFirst
+  private val passThrough: PassthroughOptions = PassthroughOptions.PassthroughFirst,
 ) : TokenFilter(input) {
 
   private val termAttr = addAttribute(CharTermAttribute::class.java)
@@ -104,7 +104,6 @@ fun split(text: String): List<Span> {
     .distinct()
     .toList()
 }
-
 
 
 /** Emits each original element AND all elements produced by [block] for it. */
