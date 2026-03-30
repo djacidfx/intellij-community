@@ -24,12 +24,14 @@ class TokenMergingFilter(input: TokenStream) : TokenFilter(input) {
   private val termAttr = addAttribute(CharTermAttribute::class.java)
   private val multiTypeAttr = addAttribute(MultiTypeAttribute::class.java)
   private val offsetAttr = addAttribute(OffsetAttribute::class.java)
+  private val wordAttr = addAttribute(WordAttribute::class.java)
 
   private data class MergedToken(
     val term: String,
     val types: MutableSet<FileTokenType>,
     val startOffset: Int,
     val endOffset: Int,
+    val wordIndex: Int,
   )
 
   private val merged = ArrayDeque<MergedToken>()
@@ -47,6 +49,7 @@ class TokenMergingFilter(input: TokenStream) : TokenFilter(input) {
     termAttr.setEmpty().append(token.term)
     multiTypeAttr.clearTypes().setTypes(token.types)
     offsetAttr.setOffset(token.startOffset, token.endOffset)
+    wordAttr.wordIndex = token.wordIndex
     return true
   }
 
@@ -58,7 +61,7 @@ class TokenMergingFilter(input: TokenStream) : TokenFilter(input) {
       val end = offsetAttr.endOffset()
       val key = Triple(term, start, end)
       val existing = map.getOrPut(key) {
-        MergedToken(term, mutableSetOf(), start, end)
+        MergedToken(term, mutableSetOf(), start, end, wordAttr.wordIndex)
       }
       existing.types.addAll(multiTypeAttr.activeTypes())
     }

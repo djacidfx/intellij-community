@@ -9,7 +9,6 @@ import com.intellij.testFramework.junit5.SystemProperty
 import com.intellij.testFramework.rules.ProjectModelExtension
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
-import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.TokenStream
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
 import org.apache.lucene.document.Document
@@ -32,7 +31,6 @@ abstract class LuceneIndexTestBase {
   protected val project: Project get() = projectModel.project
 
   abstract val log: Logger
-  abstract val analyzer: Analyzer
 
   @BeforeEach
   fun setupLogging() {
@@ -249,10 +247,10 @@ ${searcher.explain(query, score.doc).toString().trim().prependIndent(">   ")}
   }
 
 
-  fun indexWith(docs: List<Document>, a: Analyzer = analyzer, block: suspend (LuceneIndex) -> Unit): List<DynamicNode> = runBlocking {
+  fun indexWith(docs: List<Document>, block: suspend (LuceneIndex) -> Unit): List<DynamicNode> = runBlocking {
     val indexName = "test-index-${UUID.randomUUID()}"
 
-    val luceneIndex = LuceneIndex(project, indexName, log, a)
+    val luceneIndex = LuceneIndex(project, indexName, log)
     Disposer.register(projectModel.disposableRule.disposable, luceneIndex)
 
     log.info("Indexing ${docs.size} documents: \n ${docs.joinToString(limit = 2, postfix = "\n", prefix = "\n", separator = "\n", truncated = "... remaining Documents omitted", transform = { logIndexedDocuments(it) })}")

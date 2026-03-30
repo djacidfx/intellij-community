@@ -26,9 +26,17 @@ import kotlin.concurrent.atomics.AtomicReference
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.io.path.div
 
+/**
+ * Ensures that the chosen approach of manual tokenization is never sidestepped.
+ */
+class UnusedAnalyzer: Analyzer() {
+  override fun createComponents(fieldName: String?): TokenStreamComponents? {
+    throw UnsupportedOperationException("The stored analyzer should not be used, we expect manual tokenization")
+  }
+}
 
 @OptIn(ExperimentalAtomicApi::class)
-class LuceneIndex(val project: Project, indexName: String, val log: Logger, private val analyzer: Analyzer) : Disposable {
+class LuceneIndex(val project: Project, indexName: String, val log: Logger) : Disposable {
 
   // These are managed as one to ensure proper cleanup and synchronization.
   private data class IndexReaderWriter(val writer: IndexWriter, val searcherManager: SearcherManager)
@@ -44,7 +52,7 @@ class LuceneIndex(val project: Project, indexName: String, val log: Logger, priv
   //TODO implement operating in a read-only mode, that just hopes the other process will maintain the index properly. (Or even better, indicate some fallback flag so the fallback logic is used.)
   // Then it regularly checks if the index is still locked and once the lock can be acquired, we take ownership of the index and reindex everything once.
   private fun createIndexReaderWriter(): IndexReaderWriter {
-    val config = IndexWriterConfig(analyzer)
+    val config = IndexWriterConfig(UnusedAnalyzer())
     // When closing the writer, the IDE shuts down. Since we reindex on startup anyway, we do not need to persist any pending changes.
     config.setCommitOnClose(false)
 

@@ -4,7 +4,6 @@ import com.intellij.searchEverywhereLucene.backend.AnalyzersTestBase
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.TokenStream
 import org.apache.lucene.analysis.core.KeywordTokenizer
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 /**
@@ -48,12 +47,12 @@ class AbbreviationTokenFilterTest : AnalyzersTestBase() {
     // SearchEveryWhereUI -> Search+Every+Where+UI -> s+e+w+ui = "sewui"
     // SearchEveryWhereUI -> Search+Every+Where+UI -> s+e+w+u = "sewu"
     tokenizing(abbreviationAnalyzer(), "SearchEveryWhereUI")
-      .producesToken("sewu", FileTokenType.FILENAME_ABBREVIATION.type)
-      .producesToken("search", FileTokenType.FILENAME_PART.type, 0, 6)
-      .producesToken("every", FileTokenType.FILENAME_PART.type, 6, 11)
-      .producesToken("where", FileTokenType.FILENAME_PART.type, 11, 16)
-      .producesToken("ui", FileTokenType.FILENAME_PART.type, 16, 18)
-      .producesToken("searcheverywhereui", FileTokenType.FILENAME.type, 0, 18)
+      .producesToken("sewu", FileTokenType.FILENAME_ABBREVIATION)
+      .producesToken("search", FileTokenType.FILENAME_PART, 0, 6)
+      .producesToken("every", FileTokenType.FILENAME_PART, 6, 11)
+      .producesToken("where", FileTokenType.FILENAME_PART, 11, 16)
+      .producesToken("ui", FileTokenType.FILENAME_PART, 16, 18)
+      .producesToken("searcheverywhereui", FileTokenType.FILENAME, 0, 18)
       .noDuplicateTokens()
   }
 
@@ -61,20 +60,19 @@ class AbbreviationTokenFilterTest : AnalyzersTestBase() {
   fun `no abbreviation for single-part lowercase word`() {
     // "readme" -> single part -> abbreviation "r" (len 1) -> skipped
     tokenizing(abbreviationAnalyzer(), "readme")
-      .producesToken("readme", FileTokenType.FILENAME_PART.type)
-      .producesToken("readme", FileTokenType.FILENAME.type)
+      .producesToken("readme", FileTokenType.FILENAME_PART)
+      .producesToken("readme", FileTokenType.FILENAME)
       // abbreviation "r" should NOT be present
       .noDuplicateTokens()
-    val types = captureTokenTypes(abbreviationAnalyzer(), "readme")
-    assertTrue(types.none { it == FileTokenType.FILENAME_ABBREVIATION.type }, "No abbreviation expected for single-char abbrev")
+      .producesNoTokenThat { it.types.contains(FileTokenType.FILENAME_ABBREVIATION) }
   }
 
   @Test
   fun `abbreviation for two-part name`() {
     tokenizing(abbreviationAnalyzer(), "MyFile")
-      .producesToken("mf", FileTokenType.FILENAME_ABBREVIATION.type)
-      .producesToken("my", FileTokenType.FILENAME_PART.type, 0, 2)
-      .producesToken("file", FileTokenType.FILENAME_PART.type, 2, 6)
+      .producesToken("mf", FileTokenType.FILENAME_ABBREVIATION)
+      .producesToken("my", FileTokenType.FILENAME_PART, 0, 2)
+      .producesToken("file", FileTokenType.FILENAME_PART, 2, 6)
       .noDuplicateTokens()
   }
 
@@ -83,11 +81,11 @@ class AbbreviationTokenFilterTest : AnalyzersTestBase() {
     // SearchEveryWhereUI -> [Search, Every, Where, UI], allowedSkip=1, minLength=2
     // size=4: "sewu"; size=3: "sew"(skip UI), "seu"(skip Where), "swu"(skip Every), "ewu"(skip Search)
     tokenizing(abbreviationAnalyzerWithSkip(1), "SearchEveryWhereUI")
-      .producesToken("sewu", FileTokenType.FILENAME_ABBREVIATION.type)
-      .producesToken("sew", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS.type)
-      .producesToken("seu", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS.type)
-      .producesToken("swu", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS.type)
-      .producesToken("ewu", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS.type)
+      .producesToken("sewu", FileTokenType.FILENAME_ABBREVIATION)
+      .producesToken("sew", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS)
+      .producesToken("seu", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS)
+      .producesToken("swu", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS)
+      .producesToken("ewu", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS)
       .noDuplicateTokens()
   }
 
@@ -114,18 +112,5 @@ class AbbreviationTokenFilterTest : AnalyzersTestBase() {
         skipOutputType = FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS)
       return TokenStreamComponents(tokenizer, stream)
     }
-  }
-
-  private fun captureTokenTypes(analyzer: Analyzer, text: String): List<String> {
-    val tokenStream = analyzer.tokenStream("content", text)
-    val multiTypeAttr = tokenStream.addAttribute(MultiTypeAttribute::class.java)
-    tokenStream.reset()
-    val types = mutableListOf<String>()
-    while (tokenStream.incrementToken()) {
-      multiTypeAttr.activeTypes().forEach { types.add(it.type) }
-    }
-    tokenStream.end()
-    tokenStream.close()
-    return types
   }
 }

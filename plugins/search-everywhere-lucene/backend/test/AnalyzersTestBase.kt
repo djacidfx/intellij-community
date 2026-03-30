@@ -1,5 +1,6 @@
 package com.intellij.searchEverywhereLucene.backend
 
+import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FileTokenType
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.MultiTypeAttribute
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.WordAttribute
 import org.apache.lucene.analysis.Analyzer
@@ -7,6 +8,7 @@ import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.assertNull
 
 /**
  * Base class for analyzer tests providing common testing infrastructure.
@@ -23,21 +25,20 @@ abstract class AnalyzersTestBase {
 
     tokenStream.reset()
     while (tokenStream.incrementToken()) {
-      multiTypeAttr.activeTypes().forEach { t ->
-        tokens.add(TokenInfo(termAttr.toString(), t.type, offsetAttr.startOffset(), offsetAttr.endOffset(), wordAttr.wordIndex))
-      }
+      tokens.add(TokenInfo(termAttr.toString(), multiTypeAttr.activeTypes(), offsetAttr.startOffset(), offsetAttr.endOffset(), wordAttr.wordIndex))
+
     }
     tokenStream.end()
     tokenStream.close()
     return TokenAssertion(analyzer, text, tokens, fieldName)
   }
 
-  protected data class TokenInfo(val term: String, val type: String, val startOffset: Int, val endOffset: Int, val wordIndex: Int)
+  protected data class TokenInfo(val term: String, val types: List<FileTokenType>, val startOffset: Int, val endOffset: Int, val wordIndex: Int)
 
   protected class TokenAssertion(private val analyzer: Analyzer, private val text: String, private val tokens: List<TokenInfo>, private val fieldName: String = "content") {
-    fun producesToken(term: String, type: String, startOffset: Int? = null, endOffset: Int? = null): TokenAssertion {
+    fun producesToken(term: String, type: FileTokenType, startOffset: Int? = null, endOffset: Int? = null): TokenAssertion {
       val found = tokens.any {
-        it.term == term && it.type == type &&
+        it.term == term && it.types.contains(type) &&
         (startOffset == null || it.startOffset == startOffset) &&
         (endOffset == null || it.endOffset == endOffset)
       }
@@ -46,9 +47,15 @@ abstract class AnalyzersTestBase {
       return this
     }
 
-    fun producesTokenWithWordIndex(term: String, type: String, wordIndex: Int): TokenAssertion {
+    fun producesNoTokenThat(bloc: (TokenInfo)->Boolean): TokenAssertion {
+      val found = tokens.find { bloc(it) }
+      assertNull(found, "There should be no such token as $found in $tokens")
+      return this
+    }
+
+    fun producesTokenWithWordIndex(term: String, type: FileTokenType, wordIndex: Int): TokenAssertion {
       val found = tokens.any {
-        it.term == term && it.type == type && it.wordIndex == wordIndex
+        it.term == term && it.types.contains(type) && it.wordIndex == wordIndex
       }
       assertTrue(found, "Token with term \"$term\", type \"$type\" and wordIndex $wordIndex not found in $tokens")
       return this
@@ -99,9 +106,7 @@ abstract class AnalyzersTestBase {
       val multiTypeAttr = tokenStream.addAttribute(MultiTypeAttribute::class.java)
       tokenStream.reset()
       while (tokenStream.incrementToken()) {
-        multiTypeAttr.activeTypes().forEach { t ->
-          otherTokens.add(TokenInfo(termAttr.toString(), t.type, offsetAttr.startOffset(), offsetAttr.endOffset(), wordAttr.wordIndex))
-        }
+        otherTokens.add(TokenInfo(termAttr.toString(), multiTypeAttr.activeTypes(), offsetAttr.startOffset(), offsetAttr.endOffset(), wordAttr.wordIndex))
       }
       tokenStream.end()
       tokenStream.close()
