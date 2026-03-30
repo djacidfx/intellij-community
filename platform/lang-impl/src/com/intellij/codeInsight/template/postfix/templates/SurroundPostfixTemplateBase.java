@@ -1,10 +1,7 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.codeInsight.template.postfix.templates;
 
-import com.intellij.lang.surroundWith.PsiUpdateModCommandSurrounder;
 import com.intellij.lang.surroundWith.Surrounder;
-import com.intellij.modcommand.ActionContext;
-import com.intellij.modcommand.ModPsiUpdater;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.util.NlsSafe;
 import com.intellij.openapi.util.TextRange;
@@ -43,20 +40,10 @@ public abstract class SurroundPostfixTemplateBase extends PostfixTemplateWithExp
     myPsiInfo = psiInfo;
   }
 
-  @Override
   @ApiStatus.Experimental
-  public void expandModForChooseExpression(@NotNull ActionContext ctx,
-                                           @NotNull ModPsiUpdater updater,
-                                           @NotNull PsiElement elementInCopy) {
-    Surrounder surrounder = getSurrounder();
-    if (!(surrounder instanceof PsiUpdateModCommandSurrounder modCommandSurrounder)) {
-      return;
-    }
-    PsiElement expression = getReplacedExpression(elementInCopy);
-    if (!modCommandSurrounder.isApplicable(new PsiElement[]{expression})) {
-      return;
-    }
-    modCommandSurrounder.surroundElements(ctx, new PsiElement[]{expression}, updater);
+  @Override
+  public @NotNull PostfixModExpander createModExpander() {
+    return createModExpander(new SurroundModExpandAction(this));
   }
 
   @Override
@@ -95,4 +82,3 @@ public abstract class SurroundPostfixTemplateBase extends PostfixTemplateWithExp
 
   protected abstract @NotNull Surrounder getSurrounder();
 }
-

@@ -3,8 +3,6 @@ package com.intellij.codeInsight.template.postfix.templates;
 
 import com.intellij.codeInsight.CodeInsightBundle;
 import com.intellij.codeInsight.unwrap.ScopeHighlighter;
-import com.intellij.modcommand.ActionContext;
-import com.intellij.modcommand.ModPsiUpdater;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.CommandProcessor;
 import com.intellij.openapi.editor.Document;
@@ -108,23 +106,16 @@ public abstract class PostfixTemplateWithExpressionSelector extends PostfixTempl
   @ApiStatus.Experimental
   @Override
   public @NotNull PostfixModExpander createModExpander() {
-    return new ExpressionSelectorModExpander(this, mySelector);
+    return createModExpander((ctx, updater, element) -> {});
   }
 
   /**
-   * Expands a "choose expression" postfix template modification in the provided context.
-   *
-   * @param ctx           the action context in which the postfix template is being expanded. This provides
-   *                      information about the current file, project, caret offset, selection range, and context element.
-   * @param updater       updater from ModCommand
-   * @param elementInCopy the virtual PSI expression element to be expanded. It is from another copy of the original file.
+   * Creates a {@link PostfixModExpander} with expression selector logic and the given expand action.
    */
   @ApiStatus.Experimental
-  public void expandModForChooseExpression(@NotNull ActionContext ctx,
-                                                 @NotNull ModPsiUpdater updater,
-                                                 @NotNull PsiElement elementInCopy) {
+  protected final @NotNull PostfixModExpander createModExpander(@NotNull ExpressionSelectorModExpander.ModExpandAction expandAction) {
+    return new ExpressionSelectorModExpander(mySelector, expandAction);
   }
-
 
   protected void prepareAndExpandForChooseExpression(@NotNull PsiElement expression, @NotNull Editor editor) {
     ApplicationManager.getApplication().runWriteAction(() -> CommandProcessor.getInstance()

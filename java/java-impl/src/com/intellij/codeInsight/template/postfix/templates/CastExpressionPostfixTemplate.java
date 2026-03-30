@@ -16,12 +16,11 @@
 package com.intellij.codeInsight.template.postfix.templates;
 
 import com.intellij.codeInsight.generation.surroundWith.JavaWithCastSurrounder;
-import com.intellij.modcommand.ActionContext;
-import com.intellij.modcommand.ModPsiUpdater;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiExpression;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 import static com.intellij.codeInsight.template.postfix.util.JavaPostfixTemplatesUtils.IS_NON_VOID;
@@ -43,14 +42,15 @@ public class CastExpressionPostfixTemplate extends PostfixTemplateWithExpression
     PostfixTemplatesUtils.surround(new JavaWithCastSurrounder(), editor, expression);
   }
 
+  @ApiStatus.Experimental
   @Override
-  public void expandModForChooseExpression(@NotNull ActionContext ctx,
-                                                 @NotNull ModPsiUpdater updater,
-                                                 @NotNull PsiElement elementInCopy) {
-    JavaWithCastSurrounder surrounder = new JavaWithCastSurrounder();
-    PsiElement[] elements = {elementInCopy};
-    if (surrounder.isApplicable(elements) && elementInCopy instanceof PsiExpression expression) {
-      surrounder.surroundExpression(ctx, expression, updater);
-    }
+  public @NotNull PostfixModExpander createModExpander() {
+    return createModExpander((ctx, updater, elementInCopy) -> {
+      JavaWithCastSurrounder surrounder = new JavaWithCastSurrounder();
+      PsiElement[] elements = {elementInCopy};
+      if (surrounder.isApplicable(elements) && elementInCopy instanceof PsiExpression expression) {
+        surrounder.surroundExpression(ctx, expression, updater);
+      }
+    });
   }
 }

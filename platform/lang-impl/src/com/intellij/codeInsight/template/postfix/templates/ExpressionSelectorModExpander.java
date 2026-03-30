@@ -6,6 +6,7 @@ import com.intellij.codeInsight.template.CustomTemplateCallback;
 import com.intellij.modcommand.ActionContext;
 import com.intellij.modcommand.ModCommand;
 import com.intellij.modcommand.ModCommandAction;
+import com.intellij.modcommand.ModPsiUpdater;
 import com.intellij.modcommand.Presentation;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
@@ -23,12 +24,21 @@ import java.util.List;
 
 @ApiStatus.Experimental
 public class ExpressionSelectorModExpander implements PostfixModExpander {
-  private final @NotNull PostfixTemplateWithExpressionSelector myTemplate;
+  /**
+   * Action that performs the actual per-element expansion within a ModCommand context.
+   */
+  @ApiStatus.Experimental
+  @FunctionalInterface
+  public interface ModExpandAction {
+    void expand(@NotNull ActionContext ctx, @NotNull ModPsiUpdater updater, @NotNull PsiElement element);
+  }
+
+  private final @NotNull ModExpandAction myExpandAction;
   private final @NotNull PostfixTemplateExpressionSelector mySelector;
 
-  public ExpressionSelectorModExpander(@NotNull PostfixTemplateWithExpressionSelector template,
-                                       @NotNull PostfixTemplateExpressionSelector selector) {
-    myTemplate = template;
+  public ExpressionSelectorModExpander(@NotNull PostfixTemplateExpressionSelector selector,
+                                       @NotNull ModExpandAction expandAction) {
+    myExpandAction = expandAction;
     mySelector = selector;
   }
 
@@ -97,7 +107,7 @@ public class ExpressionSelectorModExpander implements PostfixModExpander {
                                   PsiDocumentManager.getInstance(ctx.project()).commitDocument(updater.getDocument());
                                   provider.preCheckModCommand(updater.getPsiFile(), PostfixLiveTemplate.positiveOffset(key.getStartOffset()));
                                   PsiElement elementInCopy = PsiTreeUtil.findSameElementInCopy(virtualExpression, updater.getPsiFile());
-                                  myTemplate.expandModForChooseExpression(updatedContext, updater, elementInCopy);
+                                  myExpandAction.expand(updatedContext, updater, elementInCopy);
                                 });
   }
 }

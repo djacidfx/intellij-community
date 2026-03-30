@@ -3,18 +3,14 @@ package com.intellij.codeInsight.template.postfix.templates;
 
 import com.intellij.codeInsight.template.Template;
 import com.intellij.codeInsight.template.TemplateManager;
-import com.intellij.codeInsight.template.impl.TemplateImpl;
-import com.intellij.codeInsight.template.impl.TemplateManagerImpl;
 import com.intellij.codeInsight.template.impl.TextExpression;
-import com.intellij.modcommand.ActionContext;
-import com.intellij.modcommand.ModPsiUpdater;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.ApiStatus;
 
 public abstract class StringBasedPostfixTemplate extends PostfixTemplateWithExpressionSelector {
 
@@ -66,26 +62,10 @@ public abstract class StringBasedPostfixTemplate extends PostfixTemplateWithExpr
     manager.startTemplate(editor, template);
   }
 
+  @ApiStatus.Experimental
   @Override
-  public void expandModForChooseExpression(@NotNull ActionContext ctx,
-                                           @NotNull ModPsiUpdater updater,
-                                           @NotNull PsiElement elementInCopy) {
-    String templateString = getTemplateString(elementInCopy);
-    if (templateString == null) {
-      return;
-    }
-    String exprText = elementInCopy.getText();
-    PsiElement writableExpr = updater.getWritable(elementInCopy);
-    PsiElement elementForRemoving = getElementToRemove(writableExpr);
-
-    TemplateImpl template = (TemplateImpl)createTemplate(TemplateManager.getInstance(ctx.project()), templateString);
-    template.addVariable(EXPR, new TextExpression(exprText), false);
-    setVariables(template, writableExpr);
-
-    TextRange range = elementForRemoving.getTextRange();
-    updater.getDocument().deleteString(range.getStartOffset(), range.getEndOffset());
-
-    TemplateManagerImpl.updateTemplate(template, updater);
+  public @NotNull PostfixModExpander createModExpander() {
+    return createModExpander(new StringBasedModExpandAction(this));
   }
 
   public Template createTemplate(TemplateManager manager, String templateString) {

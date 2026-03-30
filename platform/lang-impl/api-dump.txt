@@ -469,7 +469,6 @@ f:com.intellij.codeInsight.template.impl.TemplateManagerImpl
 c:com.intellij.codeInsight.template.postfix.completion.PostfixTemplateLookupElement
 - com.intellij.codeInsight.lookup.LookupElementCustomPreviewHolder
 c:com.intellij.codeInsight.template.postfix.templates.ParenthesizedPostfixTemplate
-- expandModForChooseExpression(com.intellij.modcommand.ActionContext,com.intellij.modcommand.ModPsiUpdater,com.intellij.psi.PsiElement):V
 c:com.intellij.codeInsight.template.postfix.templates.PostfixLiveTemplate
 - s:positiveOffset(I):I
 com.intellij.codeInsight.template.postfix.templates.PostfixTemplateExpressionSelector
@@ -491,7 +490,6 @@ a:com.intellij.codeInsight.template.postfix.templates.PostfixTemplateWithExpress
 f:com.intellij.codeInsight.template.postfix.templates.PostfixTemplatesUtils
 - s:computeKeyRange(com.intellij.modcommand.ActionContext,java.lang.String,java.lang.String):com.intellij.openapi.util.TextRange
 a:com.intellij.codeInsight.template.postfix.templates.StringBasedPostfixTemplate
-- expandModForChooseExpression(com.intellij.modcommand.ActionContext,com.intellij.modcommand.ModPsiUpdater,com.intellij.psi.PsiElement):V
 a:com.intellij.codeInsight.template.postfix.templates.editable.EditablePostfixTemplate
 com.intellij.codeInsight.template.postfix.templates.editable.PostfixTemplateEditor
 - com.intellij.openapi.Disposable

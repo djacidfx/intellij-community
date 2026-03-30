@@ -16,8 +16,6 @@
 package com.intellij.codeInsight.template.postfix.templates;
 
 import com.intellij.codeInspection.LambdaCanBeMethodReferenceInspection;
-import com.intellij.modcommand.ActionContext;
-import com.intellij.modcommand.ModPsiUpdater;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.DumbService;
@@ -35,6 +33,7 @@ import com.intellij.psi.infos.MethodCandidateInfo;
 import com.intellij.refactoring.util.LambdaRefactoringUtil;
 import com.siyeh.ig.psiutils.BoolUtils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.ApiStatus;
 
 import static com.intellij.codeInsight.template.postfix.util.JavaPostfixTemplatesUtils.IS_BOOLEAN;
 import static com.intellij.codeInsight.template.postfix.util.JavaPostfixTemplatesUtils.selectorAllExpressionsWithCurrentOffset;
@@ -72,9 +71,10 @@ public class NotExpressionPostfixTemplate extends PostfixTemplateWithExpressionS
     return true;
   }
 
+  @ApiStatus.Experimental
   @Override
-  public void expandModForChooseExpression(@NotNull ActionContext ctx, @NotNull ModPsiUpdater updater, @NotNull PsiElement elementInCopy) {
-    doTemplate(elementInCopy);
+  public @NotNull PostfixModExpander createModExpander() {
+    return createModExpander((ctx, updater, elementInCopy) -> doTemplate(elementInCopy));
   }
 
   private static void doTemplate(@NotNull PsiElement expression) {
