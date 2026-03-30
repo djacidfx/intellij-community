@@ -44,7 +44,7 @@ interface MinimapFileSupportPolicy {
         val level = policy.getSupportLevel(fileType)
         if (level != null) return level
       }
-      return DefaultMinimapFileSupportPolicy.getSupportLevel(fileType)!!
+      return DefaultMinimapFileSupportPolicy.getSupportLevel(fileType)
     }
   }
 }
