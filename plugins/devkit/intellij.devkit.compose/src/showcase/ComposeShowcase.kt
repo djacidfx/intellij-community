@@ -12,9 +12,11 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.TooltipArea
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -30,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,6 +47,8 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.intellij.icons.AllIcons
@@ -54,6 +59,7 @@ import com.intellij.ui.UIBundle
 import com.intellij.util.ui.JBUI
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.jewel.bridge.toComposeColor
 import org.jetbrains.jewel.foundation.modifier.onHover
@@ -82,8 +88,18 @@ import org.jetbrains.jewel.ui.util.isDark
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
 import java.io.File
+import java.util.ArrayDeque
 import javax.swing.KeyStroke
+import org.jetbrains.compose.ui.tooling.preview.Preview
+import com.intellij.devkit.compose.showcase.util.Kodee3DSpinning
+import com.intellij.devkit.compose.showcase.util.KodeeAngry2D
+import com.intellij.devkit.compose.showcase.util.KodeeDance2D
+import com.intellij.devkit.compose.showcase.util.KodeeNoticeMe2D
+import com.intellij.devkit.compose.showcase.util.KodeeSitDown2D
+import com.intellij.devkit.compose.showcase.util.KodeeStanding2D
+import kotlin.time.Duration.Companion.seconds
 
+@Preview
 @Composable
 internal fun ComposeShowcase() {
   Column(
@@ -110,6 +126,7 @@ internal fun ComposeShowcase() {
           TextFieldWithButton()
           TooltipAreaSimple()
           InfiniteAnimation()
+          KodeeShowcase()
         }
       }
     }
@@ -400,6 +417,62 @@ private fun TooltipSimple(modifier: Modifier = Modifier, content: @Composable ()
   ) {
     OverrideDarkMode(JewelTheme.tooltipStyle.colors.background.isDark()) {
       content()
+    }
+  }
+}
+
+@Composable
+private fun KodeeShowcase() {
+  var isLarge by remember { mutableStateOf(false) }
+  var is3DMode by remember { mutableStateOf(false) }
+  val clickTimes = remember { ArrayDeque<Long>() }
+  val scope = rememberCoroutineScope()
+  val kodeeSize = if (isLarge) 160.dp else 80.dp
+
+  Column(
+    verticalArrangement = Arrangement.spacedBy(8.dp),
+    modifier = Modifier.padding(bottom = if (isLarge) 36.dp else 18.dp),
+  ) {
+    Text("Kodee", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+    Row(
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+      Text("Size:")
+      OutlinedButton(enabled = isLarge, onClick = { isLarge = false }) { Text("−") }
+      OutlinedButton(enabled = !isLarge, onClick = { isLarge = true }) { Text("+") }
+    }
+
+    FlowRow(
+      modifier = Modifier
+        .fillMaxWidth()
+        .clickable {
+          if (is3DMode) return@clickable
+          val now = System.currentTimeMillis()
+          clickTimes.addLast(now)
+          while (clickTimes.size > 5) clickTimes.removeFirst()
+          if (clickTimes.size == 5 && now - clickTimes.first() < 1500L) {
+            clickTimes.clear()
+            is3DMode = true
+            scope.launch {
+              delay(10.seconds)
+              is3DMode = false
+            }
+          }
+        },
+      horizontalArrangement = Arrangement.spacedBy(8.dp),
+      verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+      if (is3DMode) {
+        Kodee3DSpinning(Modifier.size(kodeeSize))
+      }
+      else {
+        KodeeStanding2D(Modifier.size(kodeeSize))
+        KodeeDance2D(Modifier.size(kodeeSize))
+        KodeeSitDown2D(Modifier.size(kodeeSize))
+        KodeeNoticeMe2D(Modifier.size(kodeeSize))
+        KodeeAngry2D(Modifier.size(kodeeSize))
+      }
     }
   }
 }
