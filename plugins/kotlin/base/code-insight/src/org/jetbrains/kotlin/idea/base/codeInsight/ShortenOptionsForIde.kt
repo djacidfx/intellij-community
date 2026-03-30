@@ -11,9 +11,10 @@ import org.jetbrains.kotlin.analysis.api.components.ShortenOptions
 data class ShortenOptionsForIde(
     val removeThis: Boolean = false,
     val removeThisLabels: Boolean = false,
+    val removeContextSensitiveResolutionQualifiers: Boolean = false,
     val removeExplicitCompanionReferences: Boolean = true,
 ) {
-    fun toShortenOptions(): ShortenOptions = ShortenOptions(removeThis, removeThisLabels)
+    fun toShortenOptions(): ShortenOptions = ShortenOptions(removeThis, removeThisLabels, removeContextSensitiveResolutionQualifiers)
 
     companion object {
         val DEFAULT: ShortenOptionsForIde = ShortenOptionsForIde()
@@ -21,6 +22,7 @@ data class ShortenOptionsForIde(
         val ALL_ENABLED: ShortenOptionsForIde = ShortenOptionsForIde(
             removeThis = true,
             removeThisLabels = true,
+            removeContextSensitiveResolutionQualifiers = true,
             removeExplicitCompanionReferences = true,
         )
     }
