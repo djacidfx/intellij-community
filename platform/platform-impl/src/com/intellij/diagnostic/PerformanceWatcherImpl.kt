@@ -38,6 +38,7 @@ import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.concurrency.AppScheduledExecutorService
 import com.intellij.util.concurrency.ThreadingAssertions
 import com.intellij.util.containers.ContainerUtil
+import com.intellij.util.containers.UList
 import com.intellij.util.io.basicAttributesIfExists
 import com.intellij.util.io.blockingDispatcher
 import com.intellij.util.io.sanitizeFileName
@@ -481,6 +482,8 @@ internal class PerformanceWatcherImpl(private val coroutineScope: CoroutineScope
     SamplingTask(dumpInterval = dumpInterval, maxDurationMs = maxDumpDuration, coroutineScope = coroutineScope) {
 
     private val dumpTasks: MutableList<Job> = ContainerUtil.createConcurrentList()
+    var threadInfos: UList<Array<ThreadInfo>> = UList()
+      private set
 
     override suspend fun processDumpedThreads(infos: Array<ThreadInfo>) {
       // finish processing even after the freeze end
@@ -495,6 +498,8 @@ internal class PerformanceWatcherImpl(private val coroutineScope: CoroutineScope
     }
 
     private suspend fun dumpedThreads(threadDump: ThreadDump) {
+      threadInfos = threadInfos.add(threadDump.threadInfos)
+
       val file = dumpThreads(pathPrefix = "$freezeFolder/", appendMillisecondsToFileName = false, rawDump = threadDump.rawDump) ?: return
       try {
         val durationInSeconds = TimeUnit.SECONDS.convert(System.nanoTime() - taskStart, TimeUnit.NANOSECONDS)
@@ -644,7 +649,7 @@ private suspend fun postProcessReportFolder(durationMs: Long, task: MySamplingTa
   return reportDir
 }
 
-private fun getFreezePlaceSuffix(task: SamplingTask): String {
+private fun getFreezePlaceSuffix(task: MySamplingTask): String {
   var stacktraceCommonPart: List<StackTraceElement>? = null
   for (info in task.threadInfos.asIterable()) {
     val edt = info.firstOrNull(ThreadDumper::isEDT) ?: continue

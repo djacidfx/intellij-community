@@ -562,12 +562,10 @@ private fun isClassLoading(stackTraceElement: StackTraceElement): Boolean =
 
 private open class IdeaFreezeSamplingTask(maxDurationMs: Int, coroutineScope: CoroutineScope) :
   SamplingTask(dumpInterval = 100, maxDurationMs = maxDurationMs, coroutineScope = coroutineScope) {
+
   val causeThreads = ArrayList<ThreadInfo>()
   var sampleCount: Int = 0
     private set
-
-  override fun storeThreadInfos(infos: Array<ThreadInfo>) {
-  }
 
   override suspend fun processDumpedThreads(infos: Array<ThreadInfo>) {
     sampleCount++
