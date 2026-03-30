@@ -8,6 +8,7 @@ import com.intellij.openapi.editor.event.CaretEvent
 import com.intellij.openapi.editor.event.CaretListener
 import com.intellij.openapi.editor.ex.util.EditorScrollingPositionKeeper
 import com.intellij.openapi.editor.markup.RangeHighlighter
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.util.ConcurrencyUtil
 import com.intellij.util.messages.Topic
@@ -119,6 +120,7 @@ class DocRenderItemManagerImpl : DocRenderItemManager {
     else {
       val disposable = DocRenderItemUpdaterListeners.setupListeners(editor) ?: return
       editor.caretModel.addCaretListener(MyCaretListener, disposable)
+      Disposer.register(disposable) { removeAllItems(editor) }
     }
   }
 

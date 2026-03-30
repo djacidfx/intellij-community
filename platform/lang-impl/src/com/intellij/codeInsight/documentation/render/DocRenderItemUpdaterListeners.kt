@@ -66,7 +66,7 @@ object DocRenderItemUpdaterListeners {
       override fun editorReleased(event: EditorFactoryEvent) {
         if (event.editor == editor) {
           // this ensures renderers are not kept for the released editors
-          DocRenderItemManager.getInstance().removeAllItems(editor)
+          Disposer.dispose(connection)
         }
       }
     }, connection)
