@@ -15,6 +15,7 @@ import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.SoftAssertions
@@ -29,6 +30,7 @@ import org.jetbrains.intellij.build.dependencies.TeamCityHelper.isUnderTeamCity
 import org.jetbrains.intellij.build.getDevModeOrTestBuildDateInSeconds
 import org.jetbrains.intellij.build.impl.buildDistributions
 import org.jetbrains.intellij.build.impl.createBuildContext
+import org.jetbrains.intellij.build.impl.loadRawProductModules
 import org.jetbrains.intellij.build.telemetry.JaegerJsonSpanExporterManager
 import org.jetbrains.intellij.build.telemetry.TraceManager
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
@@ -279,8 +281,14 @@ internal suspend fun <T> doRunTestBuild(
             if (checkThatBundledPluginInFrontendArePresent) {
               RuntimeModuleRepositoryChecker.checkBundledPluginsArePresent(productModulesModule = frontendRootModule, context = context, isEmbeddedVariant = true, softly = softly)
             }
-            RuntimeModuleRepositoryChecker.checkIntegrityOfEmbeddedFrontend(frontendRootModule, context, softly)
-            checkKeymapPluginsAreBundledWithFrontend(frontendRootModule, context, softly)
+            coroutineScope {
+              launch {
+                RuntimeModuleRepositoryChecker.checkIntegrityOfEmbeddedFrontend(frontendRootModule, context, softly)
+              }
+              launch {
+                checkKeymapPluginsAreBundledWithFrontend(frontendRootModule, context, softly)
+              }
+            }
           }
         }
 
@@ -342,11 +350,13 @@ private fun checkKeymapPluginsAreBundledWithFrontend(
   context: BuildContext,
   softly: SoftAssertions,
 ) {
-  val productModules = context.loadRawProductModules(jetBrainsClientMainModule, ProductMode.FRONTEND)
+  val productModules = loadRawProductModules(jetBrainsClientMainModule, ProductMode.FRONTEND, context)
   val keymapPluginModulePrefix = "intellij.keymap."
   val keymapPluginsBundledWithFrontend = productModules.bundledPluginMainModules
+    .asSequence()
     .map { it.name }
     .filter { it.startsWith(keymapPluginModulePrefix) }
+    .toList()
   val keymapPluginsBundledWithMonolith = context.getBundledPluginModules().filter { it.startsWith(keymapPluginModulePrefix) }
   softly.assertThat(keymapPluginsBundledWithFrontend)
     .describedAs("Frontend variant of ${context.applicationInfo.productNameWithEdition} must bundle the same keymap plugins as the full IDE for consistency. " +

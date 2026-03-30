@@ -295,7 +295,7 @@ class BuildContextImpl internal constructor(
 
   private val bundledPluginModulesForModularLoader by lazy {
     productProperties.rootModuleForModularLoader?.let { rootModule ->
-      loadRawProductModules(rootModule, productProperties.productMode).bundledPluginMainModules.map {
+      loadRawProductModules(rootModule, productProperties.productMode, this@BuildContextImpl).bundledPluginMainModules.map {
         it.name
       }
     }
@@ -321,7 +321,7 @@ class BuildContextImpl internal constructor(
   private val _frontendModuleFilter = suspendingLazy("frontend module filter") {
     val rootModule = productProperties.embeddedFrontendRootModule
     if (rootModule != null && options.enableEmbeddedFrontend) {
-      val productModules = loadRawProductModules(rootModule, ProductMode.FRONTEND)
+      val productModules = loadRawProductModules(rootModule, ProductMode.FRONTEND, this@BuildContextImpl)
       FrontendModuleFilterImpl.createFrontendModuleFilter(project = project, productModules = productModules, outputProvider = outputProvider)
     }
     else {
@@ -496,21 +496,6 @@ class BuildContextImpl internal constructor(
     computeAppInfoXml(appInfo = applicationInfo, context = this)
   }
 
-  override fun loadRawProductModules(rootModuleName: String, productMode: ProductMode): RawProductModules {
-    val productModulesFile = findProductModulesFile(clientMainModuleName = rootModuleName, provider = outputProvider)
-                             ?: error("Cannot find product-modules.xml file in $rootModuleName")
-    val resolver = object : ResourceFileResolver {
-      override fun readResourceFile(moduleId: RuntimeModuleId, relativePath: String): InputStream? {
-        return findFileInModuleSources(findRequiredModule(moduleId.name), relativePath)?.inputStream()
-      }
-
-      override fun toString(): String {
-        return "source file based resolver for '${paths.projectHome}' project"
-      }
-    }
-    return ProductModulesSerialization.readProductModulesAndMergeIncluded(productModulesFile.inputStream(), productModulesFile.pathString, resolver)
-  }
-
   private val devModeProductRunner = suspendingLazy("dev mode product runner") {
     createDevModeProductRunner(this@BuildContextImpl)
   }
@@ -566,4 +551,24 @@ private fun createBuildOutputRootEvaluator(projectHome: Path, productProperties:
 
 private fun isNightly(buildNumber: String): Boolean {
   return buildNumber.count { it == '.' } <= 1
+}
+
+/**
+ * Loads raw data from product-modules.xml file located in module [rootModuleName], for a product running in [productMode].
+ * It doesn't use files from module output directories, so it works even if the modules aren't compiled yet.
+ */
+@Internal
+fun loadRawProductModules(rootModuleName: String, productMode: ProductMode, context: CompilationContext): RawProductModules {
+  val productModulesFile = findProductModulesFile(clientMainModuleName = rootModuleName, provider = context.outputProvider)
+                           ?: error("Cannot find product-modules.xml file in $rootModuleName")
+  val resolver = object : ResourceFileResolver {
+    override fun readResourceFile(moduleId: RuntimeModuleId, relativePath: String): InputStream? {
+      return context.findFileInModuleSources(context.findRequiredModule(moduleId.name), relativePath)?.inputStream()
+    }
+
+    override fun toString(): String {
+      return "source file based resolver for '${context.paths.projectHome}' project"
+    }
+  }
+  return ProductModulesSerialization.readProductModulesAndMergeIncluded(productModulesFile.inputStream(), productModulesFile.pathString, resolver)
 }
