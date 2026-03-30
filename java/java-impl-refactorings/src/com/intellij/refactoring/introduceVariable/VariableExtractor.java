@@ -532,19 +532,23 @@ public final class VariableExtractor {
     PsiFile file = expr.getContainingFile();
     ExtractionResultPointers result = ApplicationManager.getApplication().runWriteAction(computation);
 
-    PsiElement initialExpr = result.initialExprPointer() != null ? result.initialExprPointer().dereference() : null;
-    PsiVariable var = result.variablePointer().dereference();
-    if (var == null) {
-      throw new RuntimeExceptionWithAttachments("Refactoring is interrupted due to syntax errors in the file",
-                                                new Attachment("expression.txt", expr.getText()),
-                                                new Attachment("source.java", file.getText()));
-    }
-    return new VariableWithExpression(var, initialExpr);
+    return result.toVariableWithExpression(file, expr);
   }
 
   private record ExtractionResultPointers(
     @NotNull SmartPsiElementPointer<PsiVariable> variablePointer,
     @Nullable SmartPsiElementPointer<PsiElement> initialExprPointer) {
+
+    private @NotNull VariableWithExpression toVariableWithExpression(@NotNull PsiFile file, @NotNull PsiExpression expression) {
+      PsiElement initialExpr = initialExprPointer() != null ? initialExprPointer().dereference() : null;
+      PsiVariable var = variablePointer().dereference();
+      if (var == null) {
+        throw new RuntimeExceptionWithAttachments("Refactoring is interrupted due to syntax errors in the file",
+                                                  new Attachment("expression.txt", expression.getText()),
+                                                  new Attachment("source.java", file.getText()));
+      }
+      return new VariableWithExpression(var, initialExpr);
+    }
   }
 
   /**
