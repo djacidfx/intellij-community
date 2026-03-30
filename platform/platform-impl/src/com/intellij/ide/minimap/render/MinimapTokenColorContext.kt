@@ -14,6 +14,7 @@ class MinimapTokenColorContext(
   renderContext: MinimapRenderContext,
   private val metrics: MinimapLayoutMetrics?,
 ) {
+  private val areaStart = renderContext.geometry.areaStart.toDouble()
   private val document = renderContext.editor.document
   private val editorEx = renderContext.editor as? EditorEx
   private val highlighter = renderContext.editor.highlighter
@@ -113,7 +114,7 @@ class MinimapTokenColorContext(
   private fun offsetFromRect(entry: MinimapRenderEntry, metrics: MinimapLayoutMetrics): Int? {
     if (metrics.pxPerColumn <= 0.0 || metrics.baseLineHeight <= 0.0) return null
 
-    val line = (entry.rect2d.y / metrics.baseLineHeight).toInt().coerceIn(0, metrics.lineCount - 1)
+    val line = ((entry.rect2d.y + areaStart) / metrics.baseLineHeight).toInt().coerceIn(0, metrics.lineCount - 1)
     val column = ((entry.rect2d.x - metrics.contentStartX) / metrics.pxPerColumn).toInt().coerceAtLeast(0)
     val lineStart = document.getLineStartOffset(line)
     val lineEnd = document.getLineEndOffset(line)

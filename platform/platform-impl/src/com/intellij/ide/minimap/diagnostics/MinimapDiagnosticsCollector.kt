@@ -26,11 +26,14 @@ class MinimapDiagnosticsCollector(private val editor: Editor) {
       return emptyList()
     }
 
+    val visibleOffsetRange = MinimapLayoutUtil.visibleOffsetRange(context, metrics, document) ?: return emptyList()
+    val visibleStartOffset = visibleOffsetRange.startOffset
+    val visibleEndOffset = visibleOffsetRange.endOffsetExclusive
+
     val entries = ArrayList<MinimapDiagnosticEntry>()
-    val startOffset = 0
     MarkupIterator.mergeIterators(
-      editorEx.markupModel.overlappingErrorStripeIterator(startOffset, textLength),
-      editorEx.filteredDocumentMarkupModel.overlappingErrorStripeIterator(startOffset, textLength),
+      editorEx.markupModel.overlappingErrorStripeIterator(visibleStartOffset, visibleEndOffset),
+      editorEx.filteredDocumentMarkupModel.overlappingErrorStripeIterator(visibleStartOffset, visibleEndOffset),
       RangeHighlighterEx.BY_AFFECTED_START_OFFSET,
     ).use { iterator ->
       while (iterator.hasNext() && entries.size < MAX_DIAGNOSTIC_ENTRIES) {
@@ -42,12 +45,13 @@ class MinimapDiagnosticsCollector(private val editor: Editor) {
           entries = entries,
           highlighter = highlighter,
           severity = severity,
+          context = context,
           metrics = metrics,
           document = document,
           lineProjection = lineProjection,
           textLength = textLength,
-          startOffset = startOffset,
-          endOffset = textLength,
+          visibleStartOffset = visibleStartOffset,
+          visibleEndOffset = visibleEndOffset,
         )
       }
     }
@@ -69,16 +73,17 @@ class MinimapDiagnosticsCollector(private val editor: Editor) {
     entries: MutableList<MinimapDiagnosticEntry>,
     highlighter: RangeHighlighterEx,
     severity: MinimapDiagnosticSeverity,
+    context: MinimapRenderContext,
     metrics: MinimapLayoutMetrics,
     document: Document,
     lineProjection: MinimapLineProjection,
     textLength: Int,
-    startOffset: Int,
-    endOffset: Int,
+    visibleStartOffset: Int,
+    visibleEndOffset: Int,
   ) {
-    val startOffset = highlighter.startOffset.coerceIn(startOffset, endOffset)
-    val rawEndOffset = highlighter.endOffset.coerceIn(startOffset, endOffset)
-    val endOffsetExclusive = if (rawEndOffset > startOffset) rawEndOffset else (startOffset + 1).coerceAtMost(endOffset)
+    val startOffset = highlighter.startOffset.coerceIn(visibleStartOffset, visibleEndOffset)
+    val rawEndOffset = highlighter.endOffset.coerceIn(startOffset, visibleEndOffset)
+    val endOffsetExclusive = if (rawEndOffset > startOffset) rawEndOffset else (startOffset + 1).coerceAtMost(visibleEndOffset)
     if (endOffsetExclusive <= startOffset) return
 
     val startLine = document.getLineNumber(startOffset)
@@ -100,6 +105,7 @@ class MinimapDiagnosticsCollector(private val editor: Editor) {
       val projectedLine = lineProjection.logicalToProjectedLine(line) ?: continue
       val rect = lineRect(
         highlighter = highlighter,
+        context = context,
         metrics = metrics,
         projectedLine = projectedLine,
         lineStartOffset = lineStartOffset,
@@ -112,6 +118,7 @@ class MinimapDiagnosticsCollector(private val editor: Editor) {
 
   private fun lineRect(
     highlighter: RangeHighlighterEx,
+    context: MinimapRenderContext,
     metrics: MinimapLayoutMetrics,
     projectedLine: Int,
     lineStartOffset: Int,
@@ -126,6 +133,7 @@ class MinimapDiagnosticsCollector(private val editor: Editor) {
         x2 = contentEndX,
         y1 = projectedLine * metrics.baseLineHeight,
         y2 = (projectedLine + 1) * metrics.baseLineHeight,
+        areaStart = context.geometry.areaStart.toDouble(),
         maxWidth = contentEndX,
       )
     }
@@ -139,6 +147,7 @@ class MinimapDiagnosticsCollector(private val editor: Editor) {
         x2 = contentStartX + endColumn * metrics.pxPerColumn,
         y1 = projectedLine * metrics.baseLineHeight,
         y2 = (projectedLine + 1) * metrics.baseLineHeight,
+        areaStart = context.geometry.areaStart.toDouble(),
         maxWidth = contentEndX,
       )
     }

@@ -1,8 +1,10 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.minimap.layout
 
+import com.intellij.ide.minimap.geometry.MinimapGeometryData
 import com.intellij.ide.minimap.geometry.MinimapLineGeometryUtil
 import com.intellij.ide.minimap.render.MinimapRenderContext
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import java.awt.geom.Rectangle2D
@@ -41,13 +43,50 @@ object MinimapLayoutUtil {
     return if (rightMargin > 0) rightMargin * charWidth else visibleWidth
   }
 
+  fun visibleLines(geometry: MinimapGeometryData, lineCount: Int): IntRange {
+    val lastLineIndex = (lineCount - 1).coerceAtLeast(0)
+    val startLine = ((geometry.areaStart.toDouble() / geometry.minimapHeight) * lineCount)
+      .toInt()
+      .coerceIn(0, lastLineIndex)
+    val endLineExclusive = ((geometry.areaEnd.toDouble() / geometry.minimapHeight) * lineCount)
+      .toInt()
+      .coerceIn(startLine + 1, lineCount)
+    return startLine until endLineExclusive
+  }
+
+  fun visibleOffsetRange(
+    context: MinimapRenderContext,
+    metrics: MinimapLayoutMetrics,
+    document: Document,
+  ): MinimapVisibleOffsetRange? {
+    if (metrics.lineCount <= 0) return null
+    if (document.textLength <= 0) return null
+
+    val visibleLines = visibleLines(context.geometry, metrics.lineCount)
+    if (visibleLines.isEmpty()) return null
+
+    val lineProjection = context.lineProjection
+    val visibleStartLine = lineProjection.projectedToLogicalLine(visibleLines.first) ?: return null
+    val visibleEndLine = lineProjection.projectedToLogicalLine(visibleLines.last) ?: return null
+    val visibleStartOffset = document.getLineStartOffset(visibleStartLine)
+    val visibleEndOffset = if (visibleEndLine + 1 < document.lineCount) {
+      document.getLineStartOffset(visibleEndLine + 1)
+    }
+    else {
+      document.textLength
+    }
+    if (visibleEndOffset <= visibleStartOffset) return null
+    return MinimapVisibleOffsetRange(visibleStartOffset, visibleEndOffset)
+  }
+
   fun lineBandRect(startLine: Int,
                    endLine: Int,
-                   baseLineHeight: Double): Rectangle2D.Double {
+                   baseLineHeight: Double,
+                   areaStart: Double): Rectangle2D.Double {
     val y1 = lineTop(startLine, baseLineHeight)
     val y2 = lineTop(endLine, baseLineHeight)
 
-    val snapped = rectFromDoubles(0.0, 1.0, y1, y2)
+    val snapped = rectFromDoubles(0.0, 1.0, y1, y2, areaStart)
     val lineGap = getLineGap(baseLineHeight)
     val height = (snapped.height - lineGap).coerceAtLeast(1.0)
     val yOffset = snapped.y + lineGap / 2.0
@@ -59,12 +98,15 @@ object MinimapLayoutUtil {
                       x2: Double,
                       y1: Double,
                       y2: Double,
+                      areaStart: Double,
                       maxWidth: Double = Double.MAX_VALUE): Rectangle2D.Double {
+    val sy1 = y1 - areaStart
+    val sy2 = y2 - areaStart
     val clampedX1 = x1.coerceIn(0.0, maxWidth)
     val clampedX2 = x2.coerceIn(clampedX1, maxWidth)
     val width = (clampedX2 - clampedX1).coerceAtLeast(1.0)
-    val height = (y2 - y1).coerceAtLeast(1.0)
-    return Rectangle2D.Double(clampedX1, y1, width, height)
+    val height = (sy2 - sy1).coerceAtLeast(1.0)
+    return Rectangle2D.Double(clampedX1, sy1, width, height)
   }
 
   fun getRightMarginChars(editor: Editor): Int {
