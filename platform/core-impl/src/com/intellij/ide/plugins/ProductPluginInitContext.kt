@@ -43,7 +43,7 @@ class ProductPluginInitContext(
 ) : PluginInitializationContext {
   override val essentialPlugins: Set<PluginId> by lazy {
     buildSet {
-      add(PluginManagerCore.CORE_ID)
+      add(CORE_ID)
       addAll(ApplicationInfoImpl.getShadowInstance().getEssentialPluginIds())
     }
   }
@@ -55,7 +55,7 @@ class ProductPluginInitContext(
     get() = buildNumberOverride ?: PluginManagerCore.buildNumber
 
   override fun isPluginDisabled(id: PluginId): Boolean {
-    return PluginManagerCore.CORE_ID != id && disabledPlugins.contains(id)
+    return CORE_ID != id && disabledPlugins.contains(id)
   }
 
   override fun isPluginBroken(id: PluginId, version: String?): Boolean {
@@ -227,13 +227,13 @@ class ProductPluginInitContext(
           }
         }
 
-        if (!PluginManagerCore.fallbackToOldPluginSetResolution() && descriptor.pluginId == PluginManagerCore.CORE_ID && descriptor is ContentModuleDescriptor) {
-          yieldIfResolves(DependencyRef.of(PluginManagerCore.CORE_ID)) // all content modules of CORE are expected to be registered after its main module
+        if (!PluginManagerCore.fallbackToOldPluginSetResolution() && descriptor.pluginId == CORE_ID && descriptor is ContentModuleDescriptor) {
+          yieldIfResolves(DependencyRef.of(CORE_ID)) // all content modules of CORE are expected to be registered after its main module
         }
 
         // Check modules as well, for example, intellij.diagram.impl.vcs.
         // We are not yet ready to recommend adding a dependency on extracted VCS modules since the coordinates are not finalized.
-        if ((descriptor is PluginMainDescriptor && descriptor.pluginId != PluginManagerCore.CORE_ID) || descriptor is ContentModuleDescriptor) {
+        if ((descriptor is PluginMainDescriptor && descriptor.pluginId != CORE_ID) || descriptor is ContentModuleDescriptor) {
           val strictCheck = descriptor.isBundled || PluginManagerCore.isVendorJetBrains(descriptor.vendor ?: "")
           if (!strictCheck || doesDependOnPluginAlias(descriptor, VCS_ALIAS_ID)) {
             vcsApiContentModules.forEach { vcsModule ->
