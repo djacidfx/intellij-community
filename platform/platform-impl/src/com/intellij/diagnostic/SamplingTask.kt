@@ -5,6 +5,7 @@ import com.intellij.util.io.blockingDispatcher
 import com.sun.management.OperatingSystemMXBean
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
@@ -31,7 +32,8 @@ internal abstract class SamplingTask(@JvmField internal val dumpInterval: Int, p
     get() = gcCurrentTime - gcStartTime
 
   init {
-    job = coroutineScope.launch(CoroutineName("freeze dumper") + blockingDispatcher) {
+    // lazy start to avoid race with inheritor's constructors
+    job = coroutineScope.launch(CoroutineName("freeze dumper") + blockingDispatcher, start = CoroutineStart.LAZY) {
       dumpThreadsLoop()
     }
   }

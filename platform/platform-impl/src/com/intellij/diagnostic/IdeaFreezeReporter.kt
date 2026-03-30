@@ -555,6 +555,7 @@ private class IdeaFreezeSamplingTask(val reportDir: Path, maxDurationMs: Int, co
 
   init {
     fireStartEvent()
+    job.start()
   }
 
   override suspend fun processDumpedThreads(infos: Array<ThreadInfo>) {

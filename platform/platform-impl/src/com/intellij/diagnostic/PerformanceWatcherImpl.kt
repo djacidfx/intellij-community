@@ -485,6 +485,10 @@ internal class PerformanceWatcherImpl(private val coroutineScope: CoroutineScope
     var threadInfos: UList<Array<ThreadInfo>> = UList()
       private set
 
+    init {
+      job.start()
+    }
+
     override suspend fun processDumpedThreads(infos: Array<ThreadInfo>) {
       // finish processing even after the freeze end
       val processingTask = coroutineScope.launch(CoroutineName("async freeze dumper") + blockingDispatcher) {
