@@ -67,8 +67,7 @@ class MinimapController(
     scheduleFoldingUpdate = { scheduleDiagnosticsUpdate() },
     invalidateLineProjection = model::invalidateLineProjection,
     updateParameters = ::refreshSnapshot,
-    onScrolled = ::refreshOnScroll,
-    repaint = panel::repaint,
+      repaint = panel::repaint,
   )
 
   private val uiListeners = MinimapUiListeners(

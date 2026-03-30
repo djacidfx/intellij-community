@@ -5,6 +5,7 @@ import com.intellij.ide.minimap.MinimapRegistry
 import com.intellij.ide.minimap.breakpoints.MinimapBreakpointUtil
 import com.intellij.ide.minimap.caret.MinimapCaretController
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.EditorMarkupModel
 import com.intellij.openapi.editor.ex.EditorEx
@@ -34,8 +35,6 @@ class MinimapStateListeners(
   private val scheduleFoldingUpdate: () -> Unit,
   private val invalidateLineProjection: () -> Unit,
   private val updateParameters: () -> Unit,
-  /** Fast path for pure vertical scrolls (width/height unchanged). */
-  private val onScrolled: () -> Unit,
   private val repaint: () -> Unit,
 ) {
   private val documentListener = object : DocumentListener {
@@ -55,7 +54,13 @@ class MinimapStateListeners(
 
   private val caretListener = object : CaretListener {
     override fun caretPositionChanged(event: CaretEvent) {
-      caretController.caretMoved(event.caret.offset)
+      if (event.caret != editor.caretModel.primaryCaret) return
+
+      val newOffset = event.caret.offset
+      ApplicationManager.getApplication().invokeLater {
+        if (editor.isDisposed) return@invokeLater
+        caretController.caretMoved(newOffset)
+      }
     }
   }
 
