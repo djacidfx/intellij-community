@@ -1393,7 +1393,7 @@ private fun loadPluginDependencyDescriptors(
     }
 
     if (raw == null) {
-      val message = "Plugin $descriptor misses optional descriptor $configFile"
+      val message = "Plugin '${descriptor.name}' (${descriptor.pluginId}) misses optional descriptor '$configFile' ($descriptor)"
       if (context.isMissingSubDescriptorIgnored) {
         LOG.info(message)
         if (resolveError != null) {

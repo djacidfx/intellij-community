@@ -397,7 +397,10 @@ private class PluginSetConstraintsResolver(
           // see [PluginDescriptorLoader.loadPluginDependencyDescriptors]
           continue
         }
-        assert(!depends.isOptional) { "It is expected that all optional <depends> statements have a config-file" }
+        if (depends.isOptional) {
+          // optional config file that wasn't found, we may skip it
+          continue
+        }
         contributeContentModulesFromTarget(targetId = depends.pluginId)
       }
       if (descriptor is DependsSubDescriptor) {
