@@ -40,10 +40,10 @@ import com.intellij.util.io.ReadOnlyAttributeUtil;
 import com.intellij.util.ref.GCWatcher;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 
-@SuppressWarnings("ConstantConditions")
+@SuppressWarnings({"ConstantConditions", "FieldCanBeLocal", "unused"})
 @SkipSlowTestLocally
 public class PsiEventsTest extends JavaPsiTestCase {
   private VirtualFile myPrjDir1;
@@ -58,10 +58,10 @@ public class PsiEventsTest extends JavaPsiTestCase {
   protected void setUp() throws Exception {
     super.setUp();
 
-    File root = createTempDirectoryWithSuffix(null).toFile();
+    Path root = createTempDirectoryWithSuffix(null);
 
     ApplicationManager.getApplication().runWriteAction(() -> {
-      VirtualFile rootVFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(root);
+      VirtualFile rootVFile = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(root);
 
       myPrjDir1 = createChildDirectory(rootVFile, "prj1");
       mySrcDir1 = createChildDirectory(myPrjDir1, "src1");
