@@ -4070,6 +4070,172 @@ public abstract class K1QuickFixTestGenerated extends AbstractK1QuickFixTest {
     }
 
     @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("testData/quickfix/contextParameter")
+    public abstract static class ContextParameter extends AbstractK1QuickFixTest {
+        @RunWith(JUnit3RunnerWithInners.class)
+        @TestMetadata("testData/quickfix/contextParameter/addContext")
+        public static class AddContext extends AbstractK1QuickFixTest {
+            @java.lang.Override
+            @org.jetbrains.annotations.NotNull
+            public final KotlinPluginMode getPluginMode() {
+                return KotlinPluginMode.K1;
+            }
+
+            private void runTest(String testDataFilePath) throws Exception {
+                KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
+            }
+
+            @TestMetadata("addToExistingContext.kt")
+            public void testAddToExistingContext() throws Exception {
+                runTest("testData/quickfix/contextParameter/addContext/addToExistingContext.kt");
+            }
+
+            @TestMetadata("callWithArguments.kt")
+            public void testCallWithArguments() throws Exception {
+                runTest("testData/quickfix/contextParameter/addContext/callWithArguments.kt");
+            }
+
+            @TestMetadata("expressionBody.kt")
+            public void testExpressionBody() throws Exception {
+                runTest("testData/quickfix/contextParameter/addContext/expressionBody.kt");
+            }
+
+            @TestMetadata("genericFunction.kt")
+            public void testGenericFunction() throws Exception {
+                runTest("testData/quickfix/contextParameter/addContext/genericFunction.kt");
+            }
+
+            @TestMetadata("listStringType.kt")
+            public void testListStringType() throws Exception {
+                runTest("testData/quickfix/contextParameter/addContext/listStringType.kt");
+            }
+
+            @TestMetadata("memberFunction.kt")
+            public void testMemberFunction() throws Exception {
+                runTest("testData/quickfix/contextParameter/addContext/memberFunction.kt");
+            }
+
+            @TestMetadata("noContextArgument.kt")
+            public void testNoContextArgument() throws Exception {
+                runTest("testData/quickfix/contextParameter/addContext/noContextArgument.kt");
+            }
+
+            @TestMetadata("overrideModifier.kt")
+            public void testOverrideModifier() throws Exception {
+                runTest("testData/quickfix/contextParameter/addContext/overrideModifier.kt");
+            }
+
+            @TestMetadata("privateModifier.kt")
+            public void testPrivateModifier() throws Exception {
+                runTest("testData/quickfix/contextParameter/addContext/privateModifier.kt");
+            }
+        }
+
+        @RunWith(JUnit3RunnerWithInners.class)
+        @TestMetadata("testData/quickfix/contextParameter/surroundWithContext")
+        public static class SurroundWithContext extends AbstractK1QuickFixTest {
+            @java.lang.Override
+            @org.jetbrains.annotations.NotNull
+            public final KotlinPluginMode getPluginMode() {
+                return KotlinPluginMode.K1;
+            }
+
+            private void runTest(String testDataFilePath) throws Exception {
+                KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
+            }
+
+            @TestMetadata("addToExistingContext.kt")
+            public void testAddToExistingContext() throws Exception {
+                runTest("testData/quickfix/contextParameter/surroundWithContext/addToExistingContext.kt");
+            }
+
+            @TestMetadata("callWithArguments.kt")
+            public void testCallWithArguments() throws Exception {
+                runTest("testData/quickfix/contextParameter/surroundWithContext/callWithArguments.kt");
+            }
+
+            @TestMetadata("existingContext.kt")
+            public void testExistingContext() throws Exception {
+                runTest("testData/quickfix/contextParameter/surroundWithContext/existingContext.kt");
+            }
+
+            @TestMetadata("function.kt")
+            public void testFunction() throws Exception {
+                runTest("testData/quickfix/contextParameter/surroundWithContext/function.kt");
+            }
+
+            @TestMetadata("initBlock.kt")
+            public void testInitBlock() throws Exception {
+                runTest("testData/quickfix/contextParameter/surroundWithContext/initBlock.kt");
+            }
+
+            @TestMetadata("lambda.kt")
+            public void testLambda() throws Exception {
+                runTest("testData/quickfix/contextParameter/surroundWithContext/lambda.kt");
+            }
+
+            @TestMetadata("overrideFunction.kt")
+            public void testOverrideFunction() throws Exception {
+                runTest("testData/quickfix/contextParameter/surroundWithContext/overrideFunction.kt");
+            }
+
+            @TestMetadata("property.kt")
+            public void testProperty() throws Exception {
+                runTest("testData/quickfix/contextParameter/surroundWithContext/property.kt");
+            }
+        }
+
+        @RunWith(JUnit3RunnerWithInners.class)
+        @TestMetadata("testData/quickfix/contextParameter/surroundWithWith")
+        public static class SurroundWithWith extends AbstractK1QuickFixTest {
+            @java.lang.Override
+            @org.jetbrains.annotations.NotNull
+            public final KotlinPluginMode getPluginMode() {
+                return KotlinPluginMode.K1;
+            }
+
+            private void runTest(String testDataFilePath) throws Exception {
+                KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
+            }
+
+            @TestMetadata("callWithArguments.kt")
+            public void testCallWithArguments() throws Exception {
+                runTest("testData/quickfix/contextParameter/surroundWithWith/callWithArguments.kt");
+            }
+
+            @TestMetadata("existingWith.kt")
+            public void testExistingWith() throws Exception {
+                runTest("testData/quickfix/contextParameter/surroundWithWith/existingWith.kt");
+            }
+
+            @TestMetadata("function.kt")
+            public void testFunction() throws Exception {
+                runTest("testData/quickfix/contextParameter/surroundWithWith/function.kt");
+            }
+
+            @TestMetadata("initBlock.kt")
+            public void testInitBlock() throws Exception {
+                runTest("testData/quickfix/contextParameter/surroundWithWith/initBlock.kt");
+            }
+
+            @TestMetadata("lambda.kt")
+            public void testLambda() throws Exception {
+                runTest("testData/quickfix/contextParameter/surroundWithWith/lambda.kt");
+            }
+
+            @TestMetadata("overrideFunction.kt")
+            public void testOverrideFunction() throws Exception {
+                runTest("testData/quickfix/contextParameter/surroundWithWith/overrideFunction.kt");
+            }
+
+            @TestMetadata("property.kt")
+            public void testProperty() throws Exception {
+                runTest("testData/quickfix/contextParameter/surroundWithWith/property.kt");
+            }
+        }
+    }
+
+    @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("testData/quickfix/convertCollectionLiteralToIntArrayOf")
     public static class ConvertCollectionLiteralToIntArrayOf extends AbstractK1QuickFixTest {
         @java.lang.Override

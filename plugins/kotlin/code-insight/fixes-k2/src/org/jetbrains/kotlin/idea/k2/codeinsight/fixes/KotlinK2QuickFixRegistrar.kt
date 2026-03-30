@@ -704,6 +704,10 @@ class KotlinK2QuickFixRegistrar : KotlinQuickFixRegistrar() {
         registerPsiQuickFixes(KaFirDiagnostic.WrongExtensionFunctionTypeWarning::class, RemoveAnnotationFix.ExtensionFunctionType)
     }
 
+    private val contextParameters = KtQuickFixesListBuilder.registerPsiQuickFix {
+        registerFactory(NoContextParameterFixFactory.noContextArgument)
+    }
+
     override val list: KotlinQuickFixesList = KotlinQuickFixesList.createCombined(
         keywords,
         addAbstract,
@@ -733,6 +737,7 @@ class KotlinK2QuickFixRegistrar : KotlinQuickFixRegistrar() {
         multiplatform,
         superType,
         removeAnnotation,
+        contextParameters,
     )
 
     override val lazyList: KotlinQuickFixesList = KotlinQuickFixesList.createCombined(
@@ -744,4 +749,5 @@ class KotlinK2QuickFixRegistrar : KotlinQuickFixRegistrar() {
         registerFactory(ImportQuickFixFactories.unresolvedReferenceWrongReceiverFactory)
         registerFactory(ImportQuickFixFactories.invisibleReferenceFactory)
     }
+
 }
