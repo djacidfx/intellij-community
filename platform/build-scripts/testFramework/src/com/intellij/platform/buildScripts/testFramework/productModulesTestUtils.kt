@@ -8,20 +8,20 @@ import com.intellij.platform.runtime.repository.MalformedRepositoryException
 import com.intellij.platform.runtime.repository.RuntimeModuleId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
-import org.jetbrains.intellij.build.BuildContext
+import org.jetbrains.intellij.build.ModuleOutputProvider
 import java.io.IOException
 import java.io.InputStream
 
-internal fun loadRawProductModulesFromOutput(productModulesModule: String, context: BuildContext): RawProductModules {
+internal fun loadRawProductModulesFromOutput(productModulesModule: String, outputProvider: ModuleOutputProvider): RawProductModules {
   val relativePath = "META-INF/$productModulesModule/product-modules.xml"
   val debugName = "($relativePath file in $productModulesModule)"
-  val content = readFileContentFromModuleOutput(context = context, moduleName = productModulesModule, relativePath = relativePath)
+  val content = readFileContentFromModuleOutput(outputProvider = outputProvider, moduleName = productModulesModule, relativePath = relativePath)
                 ?: throw MalformedRepositoryException("File '$relativePath' is not found in module $productModulesModule output")
   try {
     return ProductModulesSerialization.readProductModulesAndMergeIncluded(
       content.inputStream(),
       debugName,
-      createModuleOutputResourceFileResolver(context),
+      createModuleOutputResourceFileResolver(outputProvider),
     )
   }
   catch (e: IOException) {
@@ -29,21 +29,19 @@ internal fun loadRawProductModulesFromOutput(productModulesModule: String, conte
   }
 }
 
-private fun createModuleOutputResourceFileResolver(context: BuildContext): ResourceFileResolver {
+private fun createModuleOutputResourceFileResolver(outputProvider: ModuleOutputProvider): ResourceFileResolver {
   return object : ResourceFileResolver {
     override fun readResourceFile(moduleId: RuntimeModuleId, relativePath: String): InputStream? {
-      return readFileContentFromModuleOutput(context = context, moduleName = moduleId.name, relativePath = relativePath)?.inputStream()
+      return readFileContentFromModuleOutput(outputProvider = outputProvider, moduleName = moduleId.name, relativePath = relativePath)?.inputStream()
     }
 
-    override fun toString(): String {
-      return "module output based resolver for '${context.paths.projectHome}' project"
-    }
+    override fun toString(): String = "module output based resolver for (outputProvider=$outputProvider)"
   }
 }
 
-private fun readFileContentFromModuleOutput(context: BuildContext, moduleName: String, relativePath: String): ByteArray? {
+private fun readFileContentFromModuleOutput(outputProvider: ModuleOutputProvider, moduleName: String, relativePath: String): ByteArray? {
   @Suppress("RAW_RUN_BLOCKING")
   return runBlocking(Dispatchers.IO) {
-    context.outputProvider.readFileContentFromModuleOutput(context.findRequiredModule(moduleName), relativePath)
+    outputProvider.readFileContentFromModuleOutput(outputProvider.findRequiredModule(moduleName), relativePath)
   }
 }

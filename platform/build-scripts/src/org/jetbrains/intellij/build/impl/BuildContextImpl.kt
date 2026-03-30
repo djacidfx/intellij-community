@@ -312,7 +312,7 @@ class BuildContextImpl internal constructor(
     return result
   }
 
-  override fun findApplicationInfoModule(): JpsModule = findRequiredModule(productProperties.applicationInfoModule)
+  override fun findApplicationInfoModule(): JpsModule = outputProvider.findRequiredModule(productProperties.applicationInfoModule)
 
   override fun notifyArtifactBuilt(artifactPath: Path) {
     compilationContext.notifyArtifactBuilt(artifactPath)
@@ -563,7 +563,7 @@ fun loadRawProductModules(rootModuleName: String, productMode: ProductMode, cont
                            ?: error("Cannot find product-modules.xml file in $rootModuleName")
   val resolver = object : ResourceFileResolver {
     override fun readResourceFile(moduleId: RuntimeModuleId, relativePath: String): InputStream? {
-      return context.findFileInModuleSources(context.findRequiredModule(moduleId.name), relativePath)?.inputStream()
+      return context.findFileInModuleSources(context.outputProvider.findRequiredModule(moduleId.name), relativePath)?.inputStream()
     }
 
     override fun toString(): String {

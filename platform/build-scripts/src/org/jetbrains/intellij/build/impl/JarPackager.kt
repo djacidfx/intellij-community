@@ -302,7 +302,7 @@ class JarPackager private constructor(
     val moduleName = item.moduleName
     val patchedContent = moduleOutputPatcher.getPatchedContent(moduleName)
 
-    val module = context.findRequiredModule(moduleName)
+    val module = context.outputProvider.findRequiredModule(moduleName)
     val useTestModuleOutput = helper.isTestPluginModule(moduleName, module)
     val moduleOutputRoots = context.outputProvider.getModuleOutputRoots(module, forTests = useTestModuleOutput)
     val extraExcludes = layout?.moduleExcludes?.get(moduleName) ?: emptyList()
@@ -578,7 +578,7 @@ class JarPackager private constructor(
 
   private fun computeModuleCustomLibrarySources(layout: BaseLayout) {
     for (item in layout.includedModuleLibraries) {
-      val library = context.findRequiredModule(item.moduleName).libraryCollection.libraries.find { getLibraryFileName(it) == item.libraryName }
+      val library = context.outputProvider.findRequiredModule(item.moduleName).libraryCollection.libraries.find { getLibraryFileName(it) == item.libraryName }
                     ?: throw IllegalArgumentException("Cannot find library ${item.libraryName} in '${item.moduleName}' module")
 
       var relativePath = item.relativeOutputPath
@@ -877,24 +877,6 @@ internal val commonModuleExcludes: List<PathMatcher> = FileSystems.getDefault().
     fs.getPathMatcher("glob:classpath.index"),
     fs.getPathMatcher("glob:module-info.class"),
   )
-}
-
-fun moduleOutputAsSource(module: JpsModule, excludes: List<PathMatcher> = commonModuleExcludes, outputProvider: ModuleOutputProvider): Source {
-  val outputs = outputProvider.getModuleOutputRoots(module)
-  if (outputs.size != 1) {
-    throw IllegalStateException("Supports only one module output for module '${module.name}', but got ${outputs.size}: $outputs")
-  }
-  val moduleOutput = outputs.single()
-  check(Files.exists(moduleOutput)) {
-    "${module.name} module output directory doesn't exist: $moduleOutput"
-  }
-
-  if (moduleOutput.toString().endsWith(".jar")) {
-    return ZipSource(file = moduleOutput, distributionFileEntryProducer = null, filter = createModuleSourcesNamesFilter(excludes), moduleName = module.name)
-  }
-  else {
-    return DirSource(dir = moduleOutput, excludes = excludes, moduleName = module.name)
-  }
 }
 
 internal fun createModuleSourcesNamesFilter(excludes: List<PathMatcher>): (String) -> Boolean {

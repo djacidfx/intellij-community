@@ -167,7 +167,7 @@ internal class RuntimeModuleRepositoryChecker private constructor(
   }
 
   private fun checkIntegrityOfEmbeddedFrontend(productModulesModule: String, softly: SoftAssertions) {
-    val productModules = loadProductModules(productModulesModule)
+    val productModules = loadProductModules(productModulesModule, context.outputProvider, repository)
 
     val allProductModules = LinkedHashMap<RuntimeModuleId, FList<String>>()
     allProductModules[RuntimeModuleId.module("intellij.platform.bootstrap")] = FList.singleton("bootstrap")
@@ -238,7 +238,7 @@ internal class RuntimeModuleRepositoryChecker private constructor(
   }
 
   private fun checkBundledPluginsArePresent(productModulesModule: String, softly: SoftAssertions, isEmbeddedVariant: Boolean) {
-    val rawProductModules = loadRawProductModulesFromOutput(productModulesModule, context)
+    val rawProductModules = loadRawProductModulesFromOutput(productModulesModule, context.outputProvider)
     val productName = context.applicationInfo.productNameWithEdition
     val currentDistributionName = if (isEmbeddedVariant) productName else "'$productName Frontend'"
     for (mainModuleId in rawProductModules.bundledPluginMainModules) {
@@ -286,8 +286,8 @@ internal class RuntimeModuleRepositoryChecker private constructor(
 
   override fun close() {
     if (osSpecificDistPath != null) {
-      osSpecificFilePaths.forEach {
-        commonDistPath.resolve(it).moveTo(osSpecificDistPath.resolve(it))
+      for (file in osSpecificFilePaths) {
+        commonDistPath.resolve(file).moveTo(osSpecificDistPath.resolve(file))
       }
     }
   }
@@ -300,8 +300,7 @@ private fun loadProductModules(productModulesModule: String, outputProvider: Mod
   @Suppress("RAW_RUN_BLOCKING")
   val content = runBlocking(Dispatchers.IO) {
     outputProvider.readFileContentFromModuleOutput(outputProvider.findRequiredModule(productModulesModule), relativePath)
-  }
-                ?: throw MalformedRepositoryException("File '$relativePath' is not found in module $productModulesModule output")
+  } ?: throw MalformedRepositoryException("File '$relativePath' is not found in module $productModulesModule output")
   try {
     return ProductModulesSerialization.loadProductModules(content.inputStream(), debugName, ProductMode.FRONTEND, repository)
   }

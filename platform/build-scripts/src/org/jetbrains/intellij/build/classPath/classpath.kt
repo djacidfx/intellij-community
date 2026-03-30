@@ -130,7 +130,7 @@ internal suspend fun getEmbeddedContentModulesOfPluginsWithUseIdeaClassloader(
   cacheContainer: ScopedCachedDescriptorContainer?,
   context: BuildContext,
 ): Set<String> {
-  val pluginModule = context.findRequiredModule(pluginMainModule)
+  val pluginModule = context.outputProvider.findRequiredModule(pluginMainModule)
   val pluginXmlBytes = cacheContainer?.getCachedFileData(PLUGIN_XML_RELATIVE_PATH) ?: getUnprocessedPluginXmlContent(pluginModule, context.outputProvider)
   val pluginXmlContent = pluginXmlBytes.decodeToString()
   val rootElement = JDOMUtil.load(pluginXmlContent)

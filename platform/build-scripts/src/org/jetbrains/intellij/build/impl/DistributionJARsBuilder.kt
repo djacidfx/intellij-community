@@ -389,7 +389,7 @@ internal suspend fun layoutPlatformDistribution(
       launch(CoroutineName("write patched app info")) {
         spanBuilder("write patched app info").use {
           val moduleName = "intellij.platform.core"
-          val module = context.findRequiredModule(moduleName)
+          val module = context.outputProvider.findRequiredModule(moduleName)
           val relativePath = "com/intellij/openapi/application/ApplicationNamesInfo.class"
           val sourceBytes = context.outputProvider.readFileContentFromModuleOutput(module, relativePath) ?: error("app info not found")
           val patchedBytes = injectAppInfo(inFileBytes = sourceBytes, newFieldValue = context.appInfoXml)
@@ -423,7 +423,7 @@ private suspend fun patchKeyMapWithAltClickReassignedToMultipleCarets(moduleOutp
 
   val moduleName = "intellij.platform.resources"
   val relativePath = $$"keymaps/$default.xml"
-  val sourceFileContent = context.outputProvider.readFileContentFromModuleOutput(module = context.findRequiredModule(moduleName), relativePath = relativePath)
+  val sourceFileContent = context.outputProvider.readFileContentFromModuleOutput(module = context.outputProvider.findRequiredModule(moduleName), relativePath = relativePath)
                           ?: error("Not found '$relativePath' in module $moduleName output")
   var text = String(sourceFileContent, StandardCharsets.UTF_8)
   text = text.replace("<mouse-shortcut keystroke=\"alt button1\"/>", "<mouse-shortcut keystroke=\"to be alt shift button1\"/>")

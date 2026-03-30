@@ -115,7 +115,8 @@ suspend fun collectPluginDescriptors(
           continue
         }
 
-        val pluginXml = findFileInModuleSources(module = context.findRequiredModule(moduleName), relativePath = "META-INF/plugin.xml", onlyProductionSources = true) ?: continue
+        val outputProvider = context.outputProvider
+        val pluginXml = findFileInModuleSources(module = outputProvider.findRequiredModule(moduleName), relativePath = "META-INF/plugin.xml", onlyProductionSources = true) ?: continue
 
         val xml = JDOMUtil.load(pluginXml)
         check(!xml.isEmpty) {
@@ -222,8 +223,8 @@ suspend fun collectPluginDescriptors(
             val contentModuleName = module.getAttributeValue("name")
             if (contentModuleName != null && !contentModuleName.isEmpty()) {
               val jpsModuleName = contentModuleName.take(contentModuleName.lastIndexOf('/').takeIf { it != -1 } ?: contentModuleName.length)
-              val fileName = contentModuleName.replace("/", ".")
-              val jpsContentModule = context.outputProvider.findModule(jpsModuleName)
+              val fileName = contentModuleName.replace('/', '.')
+              val jpsContentModule = outputProvider.findModule(jpsModuleName)
               if (jpsContentModule != null) {
                 val moduleFile = findFileInModuleSources(module = jpsContentModule, relativePath = "$fileName.xml", onlyProductionSources = true)
                 if (moduleFile != null) {
