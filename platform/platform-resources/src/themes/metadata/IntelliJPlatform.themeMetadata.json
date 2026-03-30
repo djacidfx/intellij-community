@@ -28,6 +28,12 @@
       "key": "Banner.successBorderColor"
     },
     {
+      "key": "Banner.aiBackground"
+    },
+    {
+      "key": "Banner.aiBorderColor"
+    },
+    {
       "key": "Banner.warningBackground",
       "description": "The background of banners (experimental UI only)"
     },

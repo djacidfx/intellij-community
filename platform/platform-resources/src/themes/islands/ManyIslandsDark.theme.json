@@ -191,6 +191,8 @@
     "accent-success-bg-secondary": "green-40",
     "accent-success-border-secondary": "green-60",
     "accent-neutral-bg": "gray-80",
+    "accent-ai-bg": "purple-20",
+    "accent-ai-border": "purple-50",
 
     "core-bg-transparent-hovered": "transparent-white-20",
     "core-bg-transparent-pressed": "transparent-white-40",
@@ -261,6 +263,8 @@
     "feedback-error-bg": "accent-error-bg-secondary",
     "feedback-error-border": "accent-error-border-secondary",
     "feedback-control-border": "control-border-over-accent",
+    "feedback-ai-bg": "accent-ai-bg",
+    "feedback-ai-border": "accent-ai-border",
 
     "selection-bg-active": "blue-50",
     "selection-bg-active-muted": "blue-40",
@@ -465,6 +469,8 @@
       "successBorderColor": "feedback-success-border",
       "infoBackground": "feedback-brand-bg",
       "infoBorderColor": "feedback-brand-border",
+      "aiBackground": "feedback-ai-bg",
+      "aiBorderColor": "feedback-ai-border",
       "arc": 12,
       "arc.compact": 8
     },
@@ -722,7 +728,7 @@
       "Panel.background": "popup-bg",
       "SearchField.background": "popup-bg"
     },
-    
+
     "NavBar.borderWidth": 0,
 
     "NewUiOnboarding.Dialog.background": "popup-bg",

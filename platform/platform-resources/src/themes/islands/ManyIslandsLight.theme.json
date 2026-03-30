@@ -191,6 +191,8 @@
     "accent-success-bg-secondary": "green-160",
     "accent-success-border-secondary": "green-130",
     "accent-neutral-bg": "gray-90",
+    "accent-ai-bg": "purple-150",
+    "accent-ai-border": "purple-100",
 
     "core-bg-transparent-hovered": "transparent-black-20",
     "core-bg-transparent-pressed": "transparent-black-30",
@@ -261,6 +263,8 @@
     "feedback-error-bg": "accent-error-bg-secondary",
     "feedback-error-border": "accent-error-border-secondary",
     "feedback-control-border": "control-border",
+    "feedback-ai-bg": "accent-ai-bg",
+    "feedback-ai-border": "accent-ai-border",
 
     "selection-bg-active": "blue-140",
     "selection-bg-active-muted": "blue-150",
@@ -463,6 +467,8 @@
       "successBorderColor": "feedback-success-border",
       "infoBackground": "feedback-brand-bg",
       "infoBorderColor": "feedback-brand-border",
+      "aiBackground": "feedback-ai-bg",
+      "aiBorderColor": "feedback-ai-border",
       "arc": 12,
       "arc.compact": 8
     },
