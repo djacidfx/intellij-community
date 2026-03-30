@@ -11,13 +11,13 @@ import com.intellij.database.datagrid.GridUtil
 import com.intellij.database.datagrid.ModelIndex
 import com.intellij.database.datagrid.isArrayCell
 import com.intellij.database.datagrid.mutating.CellMutation
+import com.intellij.database.run.actions.GridAction
 import com.intellij.database.run.ui.grid.CellAttributesKey
 import com.intellij.database.run.ui.grid.editors.GridCellEditorFactoryProvider
 import com.intellij.icons.AllIcons
-import com.intellij.openapi.actionSystem.ActionUpdateThread
-import com.intellij.database.run.actions.GridAction
-import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ActionUpdateThread
+import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.ui.IdeBorderFactory
@@ -125,7 +125,7 @@ class ArrayGridViewer(private val grid: DataGrid) : CellViewer {
     val row = rowIdx
     val column = columnIdx
     if (!row.isValid(grid) || !column.isValid(grid)) return false
-    val factory = GridCellEditorFactoryProvider.get(grid)?.getEditorFactory(grid, row, column) ?: return false
+    val factory = GridCellEditorFactoryProvider.get(grid)?.getEditorFactory(grid, row, column, value) ?: return false
     return factory.isEditableChecker.isEditable(value, grid, column)
   }
 
@@ -286,7 +286,7 @@ class ArrayGridViewer(private val grid: DataGrid) : CellViewer {
 }
 
 class ArrayGridCellViewerFactory : CellViewerFactory {
-  override fun getSuitability(grid: DataGrid, row: ModelIndex<GridRow>, column: ModelIndex<GridColumn>): Suitability {
+  override fun getSuitability(grid: DataGrid, row: ModelIndex<GridRow>, column: ModelIndex<GridColumn>, value: Any?): Suitability {
     if (!Registry.`is`("database.new.arrays.editor", false)) return Suitability.NONE
     if (GridUtil.getSettings(grid)?.isEditArrayAsText ?: false) return Suitability.NONE
     if (!row.isValid(grid) || !column.isValid(grid)) return Suitability.NONE
