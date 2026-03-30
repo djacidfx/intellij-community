@@ -1,15 +1,15 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.platform.execution.impl.backend
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+package com.intellij.execution.rpc
+
 
 import com.intellij.execution.KillableProcess
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.process.ProcessListener
-import com.intellij.execution.rpc.KillableProcessInfo
-import com.intellij.execution.rpc.ProcessHandlerDto
-import com.intellij.execution.rpc.ProcessHandlerEvent
-import com.intellij.execution.rpc.ProcessHandlerEventData
 import com.intellij.openapi.util.Key
+import com.intellij.platform.kernel.ids.BackendValueIdType
+import com.intellij.platform.kernel.ids.findValueById
+import com.intellij.platform.kernel.ids.storeValueGlobally
 import fleet.rpc.core.toRpc
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
@@ -93,3 +93,18 @@ suspend fun createProcessHandlerDto(coroutineScope: CoroutineScope, processHandl
 private fun ProcessEvent.toRpc(): ProcessHandlerEventData {
   return ProcessHandlerEventData(text, exitCode)
 }
+
+
+@ApiStatus.Internal
+fun ProcessHandlerId.findValue(): ProcessHandler? {
+  return findValueById(this, type = ProcessHandlerValueIdType)
+}
+
+@ApiStatus.Internal
+fun ProcessHandler.storeGlobally(coroutineScope: CoroutineScope): ProcessHandlerId {
+  return storeValueGlobally(coroutineScope, this, type = ProcessHandlerValueIdType)
+}
+
+
+@ApiStatus.Internal
+private object ProcessHandlerValueIdType : BackendValueIdType<ProcessHandlerId, ProcessHandler>(::ProcessHandlerId)
