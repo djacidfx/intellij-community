@@ -21,7 +21,6 @@ import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.File
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FilePathAnalyzer
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FileSearchAnalyzer
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FileTokenType
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FileTypeAnalyzer
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.MultiTypeAttribute
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.WordAttribute
 import com.intellij.searchEverywhereLucene.common.SearchEverywhereLuceneProviderIdUtils
@@ -41,21 +40,19 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.onTimeout
 import kotlinx.coroutines.selects.select
 import org.apache.lucene.analysis.Analyzer
-import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
+import org.apache.lucene.analysis.TokenStream
+import org.apache.lucene.analysis.core.KeywordAnalyzer
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
 import org.apache.lucene.document.Document
 import org.apache.lucene.document.Field
-import org.apache.lucene.document.FieldType
 import org.apache.lucene.document.StringField
 import org.apache.lucene.document.TextField
-import org.apache.lucene.index.IndexOptions
 import org.apache.lucene.index.Term
 import org.apache.lucene.search.BooleanClause
 import org.apache.lucene.search.BooleanQuery
 import org.apache.lucene.search.DisjunctionMaxQuery
 import org.apache.lucene.search.PrefixQuery
 import org.apache.lucene.search.Query
-import org.apache.lucene.search.TermQuery
 import org.jetbrains.annotations.TestOnly
 import java.io.IOException
 import kotlin.time.Duration
@@ -65,7 +62,7 @@ import kotlin.time.Duration.Companion.seconds
 class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposable {
   private val indexingEnabled = isIndexingEnabled()
   private val luceneIndex by lazy(LazyThreadSafetyMode.NONE) {
-    LuceneIndex(project, SearchEverywhereLuceneProviderIdUtils.LUCENE_FILES, LOG, ANALYZER)
+    LuceneIndex(project, SearchEverywhereLuceneProviderIdUtils.LUCENE_FILES, LOG, KeywordAnalyzer())
   }
   private val scheduledIndexingOps = Channel<LuceneFileIndexOperation>(capacity = Channel.UNLIMITED)
   val initialIndexingCompleted: CompletableDeferred<Unit> = CompletableDeferred()
@@ -165,7 +162,7 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
 
           op.changedUrls.forEach { url ->
             val virtualFile = VirtualFileManager.getInstance().findFileByUrl(url) ?: let {
-              urlsToDelete.add(getTerm(url))
+              urlsToDelete.add(getPrimaryKeyTerm(url))
               return@forEach
             } 
             virtualFiles.add(virtualFile)
@@ -176,7 +173,7 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
 
             if (!virtualFile.isValid) {
               LOG.info("Skipping indexing ${virtualFile.url}, because it is not valid. Scheduling for deletion instead. We assume the files scheduled for reindex are valid files.")
-              urlsToDelete.add(getTerm(virtualFile.url))
+              urlsToDelete.add(getPrimaryKeyTerm(virtualFile.url))
               return@forEach
             }
             if (!virtualFile.isDirectory) {
@@ -255,36 +252,33 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
   @Throws(IOException::class)
   fun getDocument(virtualFile: VirtualFile): Pair<Term, Document> {
     val document = Document()
-
-    val tokenizedField = FieldType()
-    tokenizedField.setStored(true)
-    tokenizedField.setTokenized(true)
-    tokenizedField.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS)
-
-    // Get the path relative to the project content root
-    val relativePath = getRelativePathForFile(virtualFile)
-
-    val fields = mutableListOf(
-      StringField(FILE_URL, virtualFile.url, Field.Store.YES),
-      TextField(FILE_NAME, virtualFile.name, Field.Store.NO),
-      TextField(FILE_RELATIVE_PATH, relativePath, Field.Store.NO),
-    )
-
-    if (virtualFile.extension != null) {
-      fields.add(TextField(FILE_TYPE, virtualFile.extension, Field.Store.NO))
-
-    }
-
-
-    virtualFile.fileType
-
-    fields.forEach { document.add(it) }
-
-    val term = getTerm(virtualFile.url)
-
+    document.add(StringField(FILE_URL, virtualFile.url, Field.Store.YES))
+    //TODO does virtualFile include the extension?
+    analyzeString(FileNameAnalyzer(),virtualFile.name).forEach { document.add(it) }
+    analyzeString(FilePathAnalyzer(),getRelativePathForFile(virtualFile)).forEach { document.add(it) }
+    val term = getPrimaryKeyTerm(virtualFile.url)
     return Pair(term, document)
   }
 
+  private fun analyzeString(analyzer: Analyzer, field: String): List<Field> {
+    val tokensByType = mutableMapOf<FileTokenType, MutableList<String>>()
+    analyzer.use { analyzer ->
+      val ts = analyzer.tokenStream("", field)
+      val termAttr = ts.addAttribute(CharTermAttribute::class.java)
+      val typeAttr = ts.addAttribute(MultiTypeAttribute::class.java)
+      ts.reset()
+      while (ts.incrementToken()) {
+        val term = termAttr.toString()
+        typeAttr.activeTypes().forEach { type ->
+          tokensByType.getOrPut(type) { mutableListOf() }.add(term)
+        }
+      }
+      ts.end()
+    }
+    return tokensByType.map { (type, tokens) ->
+      TextField(type.type, ListTokenStream(tokens))
+    }
+  }
 
   private fun getRelativePathForFile(virtualFile: VirtualFile): String {
     // Try to get path relative to content root; fall back to filename if not in a content root
@@ -312,16 +306,7 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
 
     val LOG: Logger = logger<FileIndex>()
     const val LUCENE_INDEX_ENABLED_REGISTRY_KEY: String = "search.everywhere.lucene.index.enabled"
-    const val FILE_NAME: String = "fileName"
-    const val FILE_RELATIVE_PATH: String = "fileRelativePath"
     const val FILE_URL: String = "uri"
-    const val FILE_TYPE: String = "type"
-
-
-    fun getIndexingAnalyzer() = PerFieldAnalyzerWrapper(FileNameAnalyzer(), mapOf(
-      FILE_RELATIVE_PATH to FilePathAnalyzer(),
-      FILE_TYPE to FileTypeAnalyzer()
-    ))
 
     fun buildQuery(params: SeParams, analyzer: Analyzer = FileSearchAnalyzer()): Query {
       val tokenStream = analyzer.tokenStream("", params.inputQuery)
@@ -338,15 +323,9 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
 
         val typesToProcess = multiTypeAttr.activeTypes()
         for (tokenType in typesToProcess) {
-          val query = when (tokenType) {
-            FileTokenType.PATH, FileTokenType.PATH_SEGMENT, FileTokenType.PATH_SEGMENT_PREFIX ->
-              PrefixQuery(Term(FILE_RELATIVE_PATH, termString))
-            FileTokenType.FILENAME, FileTokenType.FILENAME_PART, FileTokenType.FILENAME_ABBREVIATION ->
-              PrefixQuery(Term(FILE_NAME, termString))
-            FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS -> TermQuery(Term(FILE_NAME, termString))
-            FileTokenType.FILETYPE ->
-              TermQuery(Term(FILE_TYPE, termString))
-          }
+
+          val term = Term(tokenType.type, termString)
+          val query = PrefixQuery(term)
           wordQueries.computeIfAbsent(wordIndex) { mutableListOf() }.add(query)
         }
       }
@@ -373,7 +352,7 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
       return query
     }
 
-    private fun getTerm(url: String): Term {
+    private fun getPrimaryKeyTerm(url: String): Term {
       val term = Term(FILE_URL, url)
       return term
     }
@@ -383,6 +362,19 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
 sealed class LuceneFileIndexOperation {
   data object IndexAll : LuceneFileIndexOperation()
   data class ReindexFiles(val changedFiles: Set<VirtualFile> = emptySet(), val changedUrls: Set<String> = emptySet()) : LuceneFileIndexOperation()
+}
+
+/** Pre-tokenized stream that replays a fixed list of string terms. */
+class ListTokenStream(private val tokens: List<String>) : TokenStream() {
+  private val termAttr = addAttribute(CharTermAttribute::class.java)
+  private var index = 0
+  override fun incrementToken(): Boolean {
+    if (index >= tokens.size) return false
+    clearAttributes()
+    termAttr.setEmpty().append(tokens[index++])
+    return true
+  }
+  override fun reset() { super.reset(); index = 0 }
 }
 
 

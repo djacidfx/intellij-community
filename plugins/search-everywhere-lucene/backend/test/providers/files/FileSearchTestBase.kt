@@ -10,14 +10,12 @@ import com.intellij.searchEverywhereLucene.backend.LuceneIndexTestBase
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FileSearchAnalyzer
 import com.intellij.searchEverywhereLucene.backend.util.TokenTypeFilteringAnalyzer
 import kotlinx.coroutines.runBlocking
-import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.document.Document
 import org.apache.lucene.search.Query
 
 abstract class FileSearchTestBase: LuceneIndexTestBase() {
 
   override val log: Logger = logger<FileSearchTest>()
-  override val analyzer: Analyzer = FileIndex.getIndexingAnalyzer()
 
   override fun buildSimpleQuery(pattern: String): Query {
     return FileIndex.buildQuery(SeParams(pattern, SeFilterState.Empty))

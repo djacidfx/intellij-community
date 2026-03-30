@@ -265,4 +265,21 @@ class CamelHumpFileSearchTest : FileSearchTestBase() {
     }
   }
 
+  @TestFactory
+  fun `camel search - exact abbreviation scores higher than skip abbreviation`(): List<DynamicNode> {
+    // "sec" is an exact 3-part abbreviation for SearchEverywhereContributor (Search+Everywhere+Contributor)
+    // but only a skip abbreviation for SearchEverywhereContributorFactory (omits Factory).
+    val seaEverContr = file("SearchEverywhereContributor.kt")
+    val seaEverContrFactory = file("SearchEverywhereContributorFactory.kt")
+    return indexWith(listOf(seaEverContr, seaEverContrFactory)) { index ->
+      index.assertSearch("sec") {
+        findsAllOf(seaEverContr, seaEverContrFactory)
+        findsWithOrdering(listOf(seaEverContr, seaEverContrFactory))
+      }
+      index.assertSearch("SEC") {
+        findsAllOf(seaEverContr, seaEverContrFactory)
+        findsWithOrdering(listOf(seaEverContr, seaEverContrFactory))
+      }
+    }
+  }
 }

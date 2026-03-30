@@ -4,15 +4,16 @@ package com.intellij.searchEverywhereLucene.backend
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.MultiTypeAttribute
 import com.intellij.testFramework.TestLoggerFactory
 import com.intellij.testFramework.junit5.SystemProperty
 import com.intellij.testFramework.rules.ProjectModelExtension
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.apache.lucene.analysis.Analyzer
+import org.apache.lucene.analysis.TokenStream
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
 import org.apache.lucene.document.Document
+import org.apache.lucene.document.TextField
 import org.apache.lucene.search.Query
 import org.apache.lucene.search.ScoreDoc
 import org.apache.lucene.util.Bits
@@ -191,8 +192,7 @@ ${searcher.explain(query, score.doc).toString().trim().prependIndent(">   ")}
     }
   }
 
-  private fun logIndexedDocuments(analyzer: Analyzer): (Document) -> String = { doc ->
-    buildString {
+  private fun logIndexedDocuments(doc:Document): String = buildString {
       appendLine("Document:")
       for (field in doc.fields) {
         val value = field.stringValue() ?: continue
@@ -201,25 +201,19 @@ ${searcher.explain(query, score.doc).toString().trim().prependIndent(">   ")}
       appendLine("  Tokenized to:")
       for (field in doc.fields) {
         if (!field.fieldType().tokenized()) continue
-        val value = field.stringValue() ?: continue
-        val tokens = getTokensWithTypes(analyzer, field.name(), value)
-        if (tokens.isNotEmpty()) {
-          appendLine("    - \"${field.name()}\": ${tokens.joinToString()}")
-        }
+        val tField = field as TextField
+        appendLine("    - \"${tField.name()}\": ${getTokensWithTypes(tField.tokenStreamValue()).joinToString()}")
       }
     }.trimEnd()
-  }
 
-  private fun getTokensWithTypes(analyzer: Analyzer, fieldName: String, value: String): List<String> {
-    val stream = analyzer.tokenStream(fieldName, value)
+
+  private fun getTokensWithTypes(stream: TokenStream): List<String> {
     val termAttr = stream.addAttribute(CharTermAttribute::class.java)
-    val multiTypeAttr = runCatching { stream.addAttribute(MultiTypeAttribute::class.java) }.getOrNull()
     val result = mutableListOf<String>()
     stream.reset()
     while (stream.incrementToken()) {
       val term = termAttr.toString()
-      val types = multiTypeAttr?.activeTypes()?.joinToString(",") { it.name }
-      result.add(if (types != null) "$term[$types]" else term)
+      result.add(term)
     }
     stream.end()
     stream.close()
@@ -261,7 +255,7 @@ ${searcher.explain(query, score.doc).toString().trim().prependIndent(">   ")}
     val luceneIndex = LuceneIndex(project, indexName, log, a)
     Disposer.register(projectModel.disposableRule.disposable, luceneIndex)
 
-    log.info("Indexing ${docs.size} documents: \n ${docs.joinToString(limit = 2, postfix = "\n", prefix = "\n", separator = "\n", truncated = "... remaining Documents omitted", transform = logIndexedDocuments(a))}")
+    log.info("Indexing ${docs.size} documents: \n ${docs.joinToString(limit = 2, postfix = "\n", prefix = "\n", separator = "\n", truncated = "... remaining Documents omitted", transform = { logIndexedDocuments(it) })}")
 
     luceneIndex.processChanges { writer ->
       writer.deleteAll()
