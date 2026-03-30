@@ -105,23 +105,7 @@ internal class IdeaFreezeReporter : PerformanceListener {
         return
       }
 
-      dumpTask = object : IdeaFreezeSamplingTask(maxDumpDuration, coroutineScope) {
-        private val stopped = AtomicBoolean()
-        override fun stop() {
-          super.stop()
-          if (stopped.compareAndSet(false, true)) {
-            EP_NAME.forEachExtensionSafe { it.stop(reportDir) }
-          }
-        }
-
-        override suspend fun stopAndWait() {
-          super.stopAndWait()
-          if (stopped.compareAndSet(false, true)) {
-            EP_NAME.forEachExtensionSafe { it.stop(reportDir) }
-          }
-        }
-      }
-      EP_NAME.forEachExtensionSafe { it.start(reportDir) }
+      dumpTask = IdeaFreezeSamplingTask(reportDir, maxDumpDuration, coroutineScope)
     }
   }
 
@@ -560,17 +544,43 @@ private fun countClassLoading(causeThreads: List<ThreadInfo>): Int =
 private fun isClassLoading(stackTraceElement: StackTraceElement): Boolean =
   "loadClass" == stackTraceElement.methodName && "java.lang.ClassLoader" == stackTraceElement.className
 
-private open class IdeaFreezeSamplingTask(maxDurationMs: Int, coroutineScope: CoroutineScope) :
+private class IdeaFreezeSamplingTask(val reportDir: Path, maxDurationMs: Int, coroutineScope: CoroutineScope) :
   SamplingTask(dumpInterval = 100, maxDurationMs = maxDurationMs, coroutineScope = coroutineScope) {
 
   val causeThreads = ArrayList<ThreadInfo>()
   var sampleCount: Int = 0
     private set
 
+  private val stopped = AtomicBoolean()
+
+  init {
+    fireStartEvent()
+  }
+
   override suspend fun processDumpedThreads(infos: Array<ThreadInfo>) {
     sampleCount++
     getCauseThread(infos)?.let {
       causeThreads.add(it)
+    }
+  }
+
+  override fun stop() {
+    super.stop()
+    fireStopEvent()
+  }
+
+  override suspend fun stopAndWait() {
+    super.stopAndWait()
+    fireStopEvent()
+  }
+
+  private fun fireStartEvent() {
+    EP_NAME.forEachExtensionSafe { it.start(reportDir) }
+  }
+
+  private fun fireStopEvent() {
+    if (stopped.compareAndSet(false, true)) {
+      EP_NAME.forEachExtensionSafe { it.stop(reportDir) }
     }
   }
 
