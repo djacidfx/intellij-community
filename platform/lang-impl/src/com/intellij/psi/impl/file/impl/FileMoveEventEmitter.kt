@@ -35,7 +35,7 @@ internal class FileMoveEventEmitter(
     // find old directories before removing invalid ones
     val infos = prepareEventInfo()
 
-    fileManager.updatePsiAfterVfsMoveOrDelete(true)
+    fileManager.updatePsiAfterVfsMoveOrDelete()
 
     for (info in infos) {
       processSingleMoveEvent(info)

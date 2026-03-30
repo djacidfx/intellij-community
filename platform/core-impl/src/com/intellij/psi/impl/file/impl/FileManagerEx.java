@@ -41,7 +41,7 @@ public interface FileManagerEx extends FileManager {
    * Removes invalid files and directories from the cache after VFS move or delete.
    */
   @RequiresWriteLock
-  void updatePsiAfterVfsMoveOrDelete(boolean isMove);
+  void updatePsiAfterVfsMoveOrDelete();
 
   void reloadPsiAfterTextChange(@NotNull FileViewProvider viewProvider, @NotNull VirtualFile vFile);
 

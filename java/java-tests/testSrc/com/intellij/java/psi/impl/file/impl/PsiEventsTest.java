@@ -139,6 +139,91 @@ public class PsiEventsTest extends JavaPsiTestCase {
     assertEquals(psiFile.getName(), expected, string);
   }
 
+  public void testConsequentDeleteDeleteFile() {
+    VirtualFile file1 = createChildData(myPrjDir1, "a.txt");
+    VirtualFile file2 = createChildData(myPrjDir2, "b.txt");
+
+    FileManager fileManager = myPsiManager.getFileManager();
+    PsiFile psiFile1 = fileManager.findFile(file1);//it's important to hold the reference
+    PsiFile psiFile2 = fileManager.findFile(file2);//it's important to hold the reference
+
+    EventsTestListener listener = new EventsTestListener();
+    myPsiManager.addPsiTreeChangeListener(listener, getTestRootDisposable());
+
+    delete(file1);
+    delete(file2);
+
+    String string = listener.getEventsString();
+    String expected =
+      """
+        beforeChildRemoval
+        childRemoved
+        beforeChildRemoval
+        childRemoved
+        """;
+    assertEquals(expected, string);
+  }
+
+  public void testConsequentDeleteDirDeleteFile() {
+    VirtualFile file = createChildData(myPrjDir1, "a.txt");
+    VirtualFile dir = createChildDirectory(myPrjDir2, "dir");
+
+    FileManager fileManager = myPsiManager.getFileManager();
+    PsiFile psiFile = fileManager.findFile(file); //it's important to hold the reference
+    PsiDirectory psiDir = fileManager.findDirectory(dir); //it's important to hold the reference
+
+    EventsTestListener listener = new EventsTestListener();
+    myPsiManager.addPsiTreeChangeListener(listener, getTestRootDisposable());
+
+    delete(dir);
+    delete(file);
+
+    String string = listener.getEventsString();
+    String expectedCorrect = """
+      beforeChildRemoval
+      childRemoved
+      beforeChildRemoval
+      childRemoved
+      """;
+
+    // TODO is the correct result, see IJPL-241524,
+    // assertEquals(expectedCorrect, string);
+
+    String expectedDefacto = """
+      beforeChildRemoval
+      childRemoved
+      beforePropertyChange propUnloadedPsi
+      propertyChanged propUnloadedPsi
+      """;
+
+    // TODO is incorrect result, see IJPL-241524,
+    assertEquals(expectedDefacto, string);
+  }
+
+  public void testConsequentMoveDeleteFile() {
+    VirtualFile file1 = createChildData(myPrjDir1, "a.txt");
+    VirtualFile file2 = createChildData(myPrjDir2, "b.txt");
+
+    FileManager fileManager = myPsiManager.getFileManager();
+    PsiFile psiFile1 = fileManager.findFile(file1); //it's important to hold the reference
+    PsiFile psiFile2 = fileManager.findFile(file2); //it's important to hold the reference
+
+    EventsTestListener listener = new EventsTestListener();
+    myPsiManager.addPsiTreeChangeListener(listener, getTestRootDisposable());
+
+    move(file1, mySrcDir3);
+    delete(file2);
+
+    String string = listener.getEventsString();
+    String expected = """
+      beforeChildMovement
+      childMoved
+      beforeChildRemoval
+      childRemoved
+      """;
+    assertEquals(expected, string);
+  }
+
   public void testDeleteDirectory() {
     VirtualFile file = createChildDirectory(myPrjDir1, "aaa");
 
