@@ -1,6 +1,8 @@
 // Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.minimap
 
+import com.intellij.ide.minimap.model.MinimapFileSupportPolicy
+import com.intellij.ide.minimap.model.MinimapSupportLevel
 import com.intellij.ide.minimap.settings.MinimapSettings
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.Service
@@ -10,7 +12,6 @@ import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.ex.util.EditorUtil
-import com.intellij.openapi.fileTypes.PlainTextFileType
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VirtualFile
@@ -71,9 +72,7 @@ class MinimapService(private val scope: CoroutineScope) : Disposable {
                       ?: FileDocumentManager.getInstance().getFile(document)
                       ?: return false
 
-    val enabledFileTypes = settings.state.fileTypes.toSet()
-    if (enabledFileTypes.isEmpty()) return false
-    return isFileTypeEnabled(virtualFile, enabledFileTypes)
+    return MinimapFileSupportPolicy.forFileType(virtualFile.fileType) != MinimapSupportLevel.UNSUPPORTED
   }
 
   private fun updateMinimap(editorImpl: EditorImpl) {
@@ -100,17 +99,6 @@ class MinimapService(private val scope: CoroutineScope) : Disposable {
       editorImpl.contentComponent.removeHierarchyListener(listener)
       editorImpl.putUserData(MINI_MAP_VISIBILITY_LISTENER_KEY, null)
     })
-  }
-
-  private fun isFileTypeEnabled(virtualFile: VirtualFile, enabled: Set<String>): Boolean {
-    val ext = virtualFile.extension?.lowercase()
-    if (ext != null && ext in enabled) return true
-
-    // separate processing for plain text
-    if ("txt" !in enabled) return false
-    if (ext == "log") return true
-
-    return virtualFile.fileType == PlainTextFileType.INSTANCE
   }
 
   private fun getPanel(fileEditor: EditorImpl): JPanel? {
