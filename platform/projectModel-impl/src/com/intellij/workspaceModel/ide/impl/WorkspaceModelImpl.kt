@@ -1,6 +1,7 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.workspaceModel.ide.impl
 
+import com.intellij.concurrency.ThreadContextAwareReentrantLock
 import com.intellij.diagnostic.StartUpMeasurer
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.edtWriteAction
@@ -83,6 +84,7 @@ open class WorkspaceModelImpl : WorkspaceModelInternal {
 
   final override val entityStorage: VersionedEntityStorageImpl
   private val unloadedEntitiesStorage: VersionedEntityStorageImpl
+  private val lock = ThreadContextAwareReentrantLock()
 
   /** replay = 1 is needed to send the very first state when the subscription fo the flow happens.
   otherwise, the flow won't be emitted till the first update. Since we don't update the workspace model really often,
@@ -191,8 +193,7 @@ open class WorkspaceModelImpl : WorkspaceModelInternal {
   }
 
   @OptIn(EntityStorageInstrumentationApi::class)
-  @Synchronized
-  final override fun updateProjectModel(description: @NonNls String, updater: (MutableEntityStorage) -> Unit) {
+  final override fun updateProjectModel(description: @NonNls String, updater: (MutableEntityStorage) -> Unit): Unit = lock.withLock {
     ThreadingAssertions.assertWriteAccess()
     checkRecursiveUpdate()
 
@@ -314,8 +315,7 @@ open class WorkspaceModelImpl : WorkspaceModelInternal {
    */
   @OptIn(EntityStorageInstrumentationApi::class)
   @ApiStatus.Obsolete
-  @Synchronized
-  fun updateProjectModelSilent(description: @NonNls String, updater: (MutableEntityStorage) -> Unit) {
+  fun updateProjectModelSilent(description: @NonNls String, updater: (MutableEntityStorage) -> Unit): Unit = lock.withLock {
     checkRecursiveUpdate()
 
     val newStorage: ImmutableEntityStorage
@@ -358,8 +358,8 @@ open class WorkspaceModelImpl : WorkspaceModelInternal {
    */
   private fun checkRecursiveUpdate() = checkRecursiveUpdateTimeMs.addMeasuredTime {
     val stackStraceIterator = RuntimeException().stackTrace.iterator()
-    // Skip two methods of the current update
-    repeat(2) { stackStraceIterator.next() }
+    // Skip six methods of the current update
+    repeat(6) { stackStraceIterator.next() }
     while (stackStraceIterator.hasNext()) {
       val frame = stackStraceIterator.next()
       if ((frame.methodName == updateModelMethodName || frame.methodName == updateModelSilentMethodName)
@@ -439,11 +439,10 @@ open class WorkspaceModelImpl : WorkspaceModelInternal {
     return BuilderSnapshot(current.version, current.storage)
   }
 
-  @Synchronized
-  final override fun replaceWorkspaceModel(description: @NonNls String, replacement: StorageReplacement): Boolean {
+  final override fun replaceWorkspaceModel(description: @NonNls String, replacement: StorageReplacement): Boolean = lock.withLock {
     ThreadingAssertions.assertWriteAccess()
 
-    if (entityStorage.version != replacement.version) return false
+    if (entityStorage.version != replacement.version) return@withLock false
 
     replaceProjectModelTimeMs.addMeasuredTime {
       val builder = replacement.builder
@@ -451,7 +450,7 @@ open class WorkspaceModelImpl : WorkspaceModelInternal {
       entityStorage.replace(builder.toSnapshot(), replacement.changes, replacement.symbolicEntityIdChanges, this::onBeforeChanged, this::onChanged)
       log.info("Project model for project ${project.name} (locationHash=${project.locationHash}) updated to version ${entityStorage.pointer.version}: $description")
     }
-    return true
+    return@withLock true
   }
 
   @Synchronized
