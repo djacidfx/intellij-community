@@ -3,10 +3,13 @@ package org.jetbrains.kotlin.gradle.scripting.k2.inspections
 
 import org.gradle.util.GradleVersion
 import org.jetbrains.kotlin.gradle.K2GradleCodeInsightTestCase
+import org.jetbrains.plugins.gradle.frameworkSupport.GradleDsl
 import org.jetbrains.plugins.gradle.testFramework.GradleTestFixtureBuilder
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
 import org.jetbrains.plugins.gradle.testFramework.util.assumeThatGradleIsAtLeast
 import org.jetbrains.plugins.gradle.testFramework.util.assumeThatGradleIsOlderThan
+import org.jetbrains.plugins.gradle.testFramework.util.withBuildFile
+import org.jetbrains.plugins.gradle.testFramework.util.withSettingsFile
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.params.ParameterizedTest
 
@@ -25,18 +28,46 @@ internal class KotlinOptionsToCompilerOptionsInspectionTest : K2GradleCodeInsigh
         }
     }
 
+    private fun createFixture(projectName: String, imports: List<String>, prefixCode: String): GradleTestFixtureBuilder {
+        return GradleTestFixtureBuilder.create(projectName) { gradleVersion ->
+            withSettingsFile(gradleVersion, gradleDsl = GradleDsl.KOTLIN) {
+                setProjectName(projectName)
+            }
+            withBuildFile(gradleVersion, gradleDsl = GradleDsl.KOTLIN) {
+                for (import in imports) {
+                    addImport(import)
+                }
+                withKotlinJvmPlugin()
+                withRepository { mavenCentral() }
+                withPrefix {
+                    code(prefixCode)
+                }
+            }
+        }
+    }
+
+    private fun getBuildScriptPartAllProjects(placeCaret: Boolean): String =
+        """
+allprojects {
+    tasks.withType<KotlinCompile>().configureEach {
+        ${if (placeCaret) "<caret>" else ""}kotlinOptions.jvmTarget = "1.8"
+    }
+}
+                """.trimIndent()
+
     @ParameterizedTest
     @AllGradleVersionsSource
     fun testAllProjects(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_IN_ALL_PROJECTS_FIXTURE) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "all-projects",
+                listOf("org.jetbrains.kotlin.gradle.tasks.KotlinCompile"),
+                getBuildScriptPartAllProjects(placeCaret = false)
+            )
+        ) {
             testIntention(
-                """
-allprojects {
-    tasks.withType<KotlinCompile>().configureEach {
-        <caret>kotlinOptions.jvmTarget = "1.8"
-    }
-}
-                """.trimIndent(),
+                getBuildScriptPartAllProjects(placeCaret = true),
                 """
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -51,16 +82,26 @@ allprojects {
         }
     }
 
+    private fun getBuildScriptPartAssignmentOperation(placeCaret: Boolean): String =
+        """
+tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java) {
+    ${if (placeCaret) "<caret>" else ""}kotlinOptions.freeCompilerArgs += "-Xexport-kdoc"
+}
+                    """.trimIndent()
+
     @ParameterizedTest
     @AllGradleVersionsSource
     fun testAssignmentOperation(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_AND_ASSIGNMENT_OPERATION_FIXTURE) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "assignment-operation",
+                emptyList(),
+                getBuildScriptPartAssignmentOperation(false)
+            )
+        ) {
             testIntention(
-                """
-tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java) {
-    <caret>kotlinOptions.freeCompilerArgs += "-Xexport-kdoc"
-}
-                """.trimIndent(),
+                getBuildScriptPartAssignmentOperation(true),
                 """
 tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java) {
     compilerOptions.freeCompilerArgs.add("-Xexport-kdoc")
@@ -71,16 +112,26 @@ tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::cl
         }
     }
 
+    private fun getBuildScriptPartAssignmentOperationTwoParams(placeCaret: Boolean): String =
+        """
+tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java) {
+    ${if (placeCaret) "<caret>" else ""}kotlinOptions.freeCompilerArgs += "-Xexport-kdoc" + "-Xopt-in=kotlin.RequiresOptIn"
+}
+                    """.trimIndent()
+
     @ParameterizedTest
     @AllGradleVersionsSource
     fun testAssignmentOperationTwoParams(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_AND_ASSIGNMENT_OPERATION_TWO_PARAMS_FIXTURE) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "assignment-operation-two-params",
+                emptyList(),
+                getBuildScriptPartAssignmentOperationTwoParams(false)
+            )
+        ) {
             testIntention(
-                """
-tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java) {
-    <caret>kotlinOptions.freeCompilerArgs += "-Xexport-kdoc" + "-Xopt-in=kotlin.RequiresOptIn"
-}
-                """.trimIndent(),
+                getBuildScriptPartAssignmentOperationTwoParams(true),
                 """
 tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java) {
     compilerOptions.freeCompilerArgs.addAll("-Xexport-kdoc", "-Xopt-in=kotlin.RequiresOptIn")
@@ -91,19 +142,15 @@ tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::cl
         }
     }
 
-    @ParameterizedTest
-    @AllGradleVersionsSource
-    fun testDontMergeConvertedOptionsToAnotherCompilerOptions(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_AND_COMPILER_OPTIONS_FIXTURE) {
-            testIntention(
-                """
+    private fun getBuildScriptPartCompilerOptions(placeCaret: Boolean): String =
+        """
 tasks.withType<KotlinCompile>().configureEach {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_1_8
     }
 
     val overriddenLanguageVersion = project.properties["kotlin.language.version"]?.toString()?.takeIf { it.isNotEmpty() }
-    <caret>kotlinOptions {
+    ${if (placeCaret) "<caret>" else ""}kotlinOptions {
         if (overriddenLanguageVersion != null) {
             languageVersion = overriddenLanguageVersion
             // We replace statements even in children
@@ -111,7 +158,21 @@ tasks.withType<KotlinCompile>().configureEach {
         }
     }
 }
-                """.trimIndent(),
+                """.trimIndent()
+
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testDontMergeConvertedOptionsToAnotherCompilerOptions(gradleVersion: GradleVersion) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "compiler-options",
+                listOf("org.jetbrains.kotlin.gradle.dsl.JvmTarget", "org.jetbrains.kotlin.gradle.tasks.KotlinCompile"),
+                getBuildScriptPartCompilerOptions(false)
+            )
+        ) {
+            testIntention(
+                getBuildScriptPartCompilerOptions(true),
                 """
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
@@ -135,37 +196,81 @@ tasks.withType<KotlinCompile>().configureEach {
         }
     }
 
+    private fun getBuildScriptPartForbiddenOperation(placeCaret: Boolean): String =
+        """
+tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java) {
+    ${if (placeCaret) "<caret>" else ""}kotlinOptions.freeCompilerArgs -= "-Xexport-kdoc"
+}
+                """.trimIndent()
+
     @ParameterizedTest
     @AllGradleVersionsSource
     fun testDontReplaceIfForbiddenOperation(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_AND_FORBIDDEN_OPERATION_FIXTURE) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "forbidden-operation",
+                emptyList(),
+                getBuildScriptPartForbiddenOperation(false)
+            )
+        ) {
             testNoIntentions(
-                """
-tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java) {
-    <caret>kotlinOptions.freeCompilerArgs -= "-Xexport-kdoc"
-}
-                """.trimIndent(),
+                getBuildScriptPartForbiddenOperation(true),
                 "Replace 'kotlinOptions' with 'compilerOptions'"
             )
         }
     }
 
-    @ParameterizedTest
-    @AllGradleVersionsSource
-    fun testDontReplaceIfForbiddenOperation2(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_AND_FORBIDDEN_OPERATION_2_FIXTURE) {
-            testNoIntentions(
-                """
+    private fun getBuildScriptPartForbiddenOperation2(placeCaret: Boolean): String =
+        """
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-    <caret>kotlinOptions {
+    ${if (placeCaret) "<caret>" else ""}kotlinOptions {
         freeCompilerArgs -= "-Xexport-kdoc"
     }
 }
-                """.trimIndent(),
+                """.trimIndent()
+
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testDontReplaceIfForbiddenOperation2(gradleVersion: GradleVersion) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "forbidden-operation-2",
+                emptyList(),
+                getBuildScriptPartForbiddenOperation2(false)
+            )
+        ) {
+            testNoIntentions(
+                getBuildScriptPartForbiddenOperation2(true),
                 "Replace 'kotlinOptions' with 'compilerOptions'"
             )
         }
     }
+
+    private val EMPTY_BUILD_SCRIPT_FIXTURE =
+        GradleTestFixtureBuilder.create("empty-build-script") { gradleVersion ->
+            withSettingsFile(gradleVersion, gradleDsl = GradleDsl.KOTLIN) {
+                setProjectName("empty-build-script")
+            }
+            withBuildFile(gradleVersion, gradleDsl = GradleDsl.KOTLIN) {
+                withKotlinJvmPlugin()
+                withRepository { mavenCentral() }
+            }
+            withFile("src/main/kotlin/Test.kt", getKotlinFileContent(false))
+        }
+
+    private fun getKotlinFileContent(placeCaret: Boolean): String =
+        """
+class Test{
+    var parameter = 0
+}
+
+fun main() {
+    val kotlinOptions = Test()
+    ${if (placeCaret) "<caret>" else ""}kotlinOptions.parameter = 1
+}
+            """.trimIndent()
 
     @ParameterizedTest
     @AllGradleVersionsSource
@@ -173,42 +278,45 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
         runTest(gradleVersion, EMPTY_BUILD_SCRIPT_FIXTURE) {
             testNoIntentions(
                 "src/main/kotlin/Test.kt",
-                """
-class Test{
-    var parameter = 0
-}
-
-fun main() {
-    val kotlinOptions = Test()
-    <caret>kotlinOptions.parameter = 1
-}
-                """.trimIndent(),
+                getKotlinFileContent(true),
                 "Replace 'kotlinOptions' with 'compilerOptions'"
             )
         }
     }
+
+    private val WITH_KOTLIN_OPTIONS_IN_SETTINGS_FILE_FIXTURE =
+        GradleTestFixtureBuilder.create("with-kotlin-options-in-settings-file") { gradleVersion ->
+            withSettingsFile(gradleVersion, gradleDsl = GradleDsl.KOTLIN) {
+                addCode(getSettingsFileContent(false))
+            }
+            withBuildFile(gradleVersion, gradleDsl = GradleDsl.KOTLIN) {
+                withKotlinJvmPlugin()
+                withRepository { mavenCentral() }
+            }
+        }
+
+    private fun getSettingsFileContent(placeCaret: Boolean): String =
+        """
+rootProject.name = "with-kotlin-options-in-settings-file"
+
+val kotlinOptions = mapOf("jvmTarget" to "")
+${if (placeCaret) "<caret>" else ""}kotlinOptions["jvmTarget"]
+            """.trimIndent()
 
     @ParameterizedTest
     @AllGradleVersionsSource
     fun testDontReplaceInSettingsGradle(gradleVersion: GradleVersion) {
         runTest(gradleVersion, WITH_KOTLIN_OPTIONS_IN_SETTINGS_FILE_FIXTURE) {
             testNoIntentions(
-                "settings.gradle.kts".trimIndent(),
-                """
-val kotlinOptions = mapOf("jvmTarget" to "")
-<caret>kotlinOptions["jvmTarget"]
-                """.trimIndent(),
+                "settings.gradle.kts",
+                getSettingsFileContent(true),
                 "Replace 'kotlinOptions' with 'compilerOptions'"
             )
         }
     }
 
-    @ParameterizedTest
-    @AllGradleVersionsSource
-    fun testDontReplaceWithMinusOperator1(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_AND_MINUS_OPERATOR_1_FIXTURE) {
-            testNoIntentions(
-                """
+    private fun getBuildScriptPartMinusOperator1(placeCaret: Boolean): String =
+        """
 subprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
 
@@ -217,23 +325,33 @@ subprojects {
     }
 
     tasks.withType<KotlinCompile>().all {
-        <caret>kotlinOptions {
+        ${if (placeCaret) "<caret>" else ""}kotlinOptions {
             freeCompilerArgs = freeCompilerArgs - "-Xopt-in=kotlin.RequiresOptIn"
         }
     }
 }
-                """.trimIndent(),
+                """.trimIndent()
+
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testDontReplaceWithMinusOperator1(gradleVersion: GradleVersion) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "minus-operator-1",
+                listOf("org.jetbrains.kotlin.gradle.tasks.KotlinCompile"),
+                getBuildScriptPartMinusOperator1(false)
+            )
+        ) {
+            testNoIntentions(
+                getBuildScriptPartMinusOperator1(true),
                 "Replace 'kotlinOptions' with 'compilerOptions'"
             )
         }
     }
 
-    @ParameterizedTest
-    @AllGradleVersionsSource
-    fun testDontReplaceWithMinusOperator2(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_AND_MINUS_OPERATOR_2_FIXTURE) {
-            testNoIntentions(
-                """
+    private fun getBuildScriptPartMinusOperator2(placeCaret: Boolean, caretOnRightSide: Boolean = false): String =
+        """
 subprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
 
@@ -242,10 +360,24 @@ subprojects {
     }
 
     tasks.withType<KotlinCompile>().all {
-        <caret>kotlinOptions.freeCompilerArgs = kotlinOptions.freeCompilerArgs - "-Xopt-in=kotlin.RequiresOptIn"
+        ${if (placeCaret && !caretOnRightSide) "<caret>" else ""}kotlinOptions.freeCompilerArgs = ${if (placeCaret && caretOnRightSide) "<caret>" else ""}kotlinOptions.freeCompilerArgs - "-Xopt-in=kotlin.RequiresOptIn"
     }
 }
-                """.trimIndent(),
+                """.trimIndent()
+
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testDontReplaceWithMinusOperator2(gradleVersion: GradleVersion) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "minus-operator-2",
+                listOf("org.jetbrains.kotlin.gradle.tasks.KotlinCompile"),
+                getBuildScriptPartMinusOperator2(placeCaret = false)
+            )
+        ) {
+            testNoIntentions(
+                getBuildScriptPartMinusOperator2(placeCaret = true),
                 "Replace 'kotlinOptions' with 'compilerOptions'"
             )
         }
@@ -255,32 +387,23 @@ subprojects {
     @ParameterizedTest
     @AllGradleVersionsSource
     fun testDontReplaceWithMinusOperatorAndExpressionOnTheRightSide1(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_AND_MINUS_OPERATOR_2_FIXTURE) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "minus-operator-2",
+                listOf("org.jetbrains.kotlin.gradle.tasks.KotlinCompile"),
+                getBuildScriptPartMinusOperator2(placeCaret = false)
+            )
+        ) {
             testNoIntentions(
-                """
-subprojects {
-    apply(plugin = "org.jetbrains.kotlin.jvm")
-
-    dependencies {
-        implementation(kotlin("stdlib-jdk8"))
-    }
-
-    tasks.withType<KotlinCompile>().all {
-        kotlinOptions.freeCompilerArgs = <caret>kotlinOptions.freeCompilerArgs - "-Xopt-in=kotlin.RequiresOptIn"
-    }
-}
-                """.trimIndent(),
+                getBuildScriptPartMinusOperator2(placeCaret = true, caretOnRightSide = true),
                 "Replace 'kotlinOptions' with 'compilerOptions'"
             )
         }
     }
 
-    @ParameterizedTest
-    @AllGradleVersionsSource
-    fun testDontReplaceWithMinusOperator3(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_AND_MINUS_OPERATOR_3_FIXTURE) {
-            testNoIntentions(
-                """
+    private fun getBuildScriptPartMinusOperator3(placeCaret: Boolean, caretOnRightSide: Boolean = false): String =
+        """
 subprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
 
@@ -289,11 +412,25 @@ subprojects {
     }
 
     tasks.withType<KotlinCompile>().all {
-        <caret>kotlinOptions.freeCompilerArgs =
-            kotlinOptions.freeCompilerArgs - "-Xopt-in=kotlin.RequiresOptIn" + "-opt-in=androidx.compose.animation.ExperimentalAnimationApi"
+        ${if (placeCaret && !caretOnRightSide) "<caret>" else ""}kotlinOptions.freeCompilerArgs =
+            ${if (placeCaret && caretOnRightSide) "<caret>" else ""}kotlinOptions.freeCompilerArgs - "-Xopt-in=kotlin.RequiresOptIn" + "-opt-in=androidx.compose.animation.ExperimentalAnimationApi"
     }
 }
-                """.trimIndent(),
+                """.trimIndent()
+
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testDontReplaceWithMinusOperator3(gradleVersion: GradleVersion) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "minus-operator-3",
+                listOf("org.jetbrains.kotlin.gradle.tasks.KotlinCompile"),
+                getBuildScriptPartMinusOperator3(placeCaret = false)
+            )
+        ) {
+            testNoIntentions(
+                getBuildScriptPartMinusOperator3(placeCaret = true),
                 "Replace 'kotlinOptions' with 'compilerOptions'"
             )
         }
@@ -303,39 +440,43 @@ subprojects {
     @ParameterizedTest
     @AllGradleVersionsSource
     fun testDontReplaceWithMinusOperatorAndExpressionOnTheRightSide2(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_AND_MINUS_OPERATOR_3_FIXTURE) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "minus-operator-3",
+                listOf("org.jetbrains.kotlin.gradle.tasks.KotlinCompile"),
+                getBuildScriptPartMinusOperator3(placeCaret = false)
+            )
+        ) {
             testNoIntentions(
-                """
-subprojects {
-    apply(plugin = "org.jetbrains.kotlin.jvm")
-
-    dependencies {
-        implementation(kotlin("stdlib-jdk8"))
-    }
-
-    tasks.withType<KotlinCompile>().all {
-        kotlinOptions.freeCompilerArgs =
-            <caret>kotlinOptions.freeCompilerArgs - "-Xopt-in=kotlin.RequiresOptIn" + "-opt-in=androidx.compose.animation.ExperimentalAnimationApi"
-    }
-}
-                """.trimIndent(),
+                getBuildScriptPartMinusOperator3(placeCaret = true, caretOnRightSide = true),
                 "Replace 'kotlinOptions' with 'compilerOptions'"
             )
         }
     }
 
-    @ParameterizedTest
-    @AllGradleVersionsSource
-    fun testFreeCompilerArgsAddAllFromList(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_ADD_ALL_FROM_LIST_FIXTURE) {
-            testIntention(
-                """
+    private fun getBuildScriptPartAddAllFromList(placeCaret: Boolean): String =
+        """
 tasks.withType<KotlinCompile> {
-    <caret>kotlinOptions {
+    ${if (placeCaret) "<caret>" else ""}kotlinOptions {
         freeCompilerArgs += listOf("-module-name", "TheName")
     }
 }
-                """.trimIndent(),
+                """.trimIndent()
+
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testFreeCompilerArgsAddAllFromList(gradleVersion: GradleVersion) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "add-all-from-list",
+                listOf("org.jetbrains.kotlin.gradle.tasks.KotlinCompile"),
+                getBuildScriptPartAddAllFromList(false)
+            )
+        ) {
+            testIntention(
+                getBuildScriptPartAddAllFromList(true),
                 """
 tasks.withType<KotlinCompile> {
     compilerOptions {
@@ -348,12 +489,8 @@ tasks.withType<KotlinCompile> {
         }
     }
 
-    @ParameterizedTest
-    @AllGradleVersionsSource
-    fun testFreeCompilerArgsMultipleAddition1(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_MULTIPLE_ADDITION_1_FIXTURE) {
-            testIntention(
-                """
+    private fun getBuildScriptPartMultipleAddition1(placeCaret: Boolean): String =
+        """
 subprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
 
@@ -362,12 +499,26 @@ subprojects {
     }
 
     tasks.withType<KotlinCompile>().all {
-        <caret>kotlinOptions {
+        ${if (placeCaret) "<caret>" else ""}kotlinOptions {
             freeCompilerArgs = freeCompilerArgs + "-Xopt-in=kotlin.RequiresOptIn" + "-Xjvm-default=all"
         }
     }
 }
-                """.trimIndent(),
+                """.trimIndent()
+
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testFreeCompilerArgsMultipleAddition1(gradleVersion: GradleVersion) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "multiple-addition-1",
+                listOf("org.jetbrains.kotlin.gradle.tasks.KotlinCompile"),
+                getBuildScriptPartMultipleAddition1(false)
+            )
+        ) {
+            testIntention(
+                getBuildScriptPartMultipleAddition1(true),
                 """
 subprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
@@ -388,12 +539,8 @@ subprojects {
         }
     }
 
-    @ParameterizedTest
-    @AllGradleVersionsSource
-    fun testFreeCompilerArgsMultipleAddition2(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_MULTIPLE_ADDITION_2_FIXTURE) {
-            testIntention(
-                """
+    private fun getBuildScriptPartMultipleAddition2(placeCaret: Boolean): String =
+        """
 subprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
 
@@ -402,12 +549,26 @@ subprojects {
     }
 
     tasks.withType<KotlinCompile>().all {
-        <caret>kotlinOptions {
+        ${if (placeCaret) "<caret>" else ""}kotlinOptions {
             freeCompilerArgs = freeCompilerArgs + project.properties.get("A").toString() + project.properties.get("B").toString()
         }
     }
 }
-                """.trimIndent(),
+                """.trimIndent()
+
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testFreeCompilerArgsMultipleAddition2(gradleVersion: GradleVersion) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "multiple-addition-2",
+                listOf("org.jetbrains.kotlin.gradle.tasks.KotlinCompile"),
+                getBuildScriptPartMultipleAddition2(false)
+            )
+        ) {
+            testIntention(
+                getBuildScriptPartMultipleAddition2(true),
                 """
 subprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
@@ -428,12 +589,8 @@ subprojects {
         }
     }
 
-    @ParameterizedTest
-    @AllGradleVersionsSource
-    fun testFreeCompilerArgsMultipleAddition3(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_MULTIPLE_ADDITION_3_FIXTURE) {
-            testIntention(
-                """
+    private fun getBuildScriptPartMultipleAddition3(placeCaret: Boolean): String =
+        """
 subprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
 
@@ -442,7 +599,7 @@ subprojects {
     }
 
     tasks.withType<KotlinCompile>().all {
-        <caret>kotlinOptions {
+        ${if (placeCaret) "<caret>" else ""}kotlinOptions {
             freeCompilerArgs = freeCompilerArgs +
                     "-opt-in=androidx.compose.foundation.ExperimentalFoundationApi" +
                     "-opt-in=androidx.compose.animation.ExperimentalAnimationApi" +
@@ -451,7 +608,21 @@ subprojects {
         }
     }
 }
-                """.trimIndent(),
+                """.trimIndent()
+
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testFreeCompilerArgsMultipleAddition3(gradleVersion: GradleVersion) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "multiple-addition-3",
+                listOf("org.jetbrains.kotlin.gradle.tasks.KotlinCompile"),
+                getBuildScriptPartMultipleAddition3(false)
+            )
+        ) {
+            testIntention(
+                getBuildScriptPartMultipleAddition3(true),
                 """
 subprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
@@ -477,13 +648,8 @@ subprojects {
         }
     }
 
-    @Disabled("KTIJ-38174")
-    @ParameterizedTest
-    @AllGradleVersionsSource
-    fun testFreeCompilerArgsMultipleAddition4(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_MULTIPLE_ADDITION_4_FIXTURE) {
-            testIntention(
-                """
+    private fun getBuildScriptPartMultipleAddition4(placeCaret: Boolean): String =
+        """
 subprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
 
@@ -492,12 +658,27 @@ subprojects {
     }
 
     tasks.withType<KotlinCompile>().all {
-        <caret>kotlinOptions {
+        ${if (placeCaret) "<caret>" else ""}kotlinOptions {
             freeCompilerArgs += libraries.flatMap { listOf("-include-binary", it.path) } + "-include-binary, junit"
         }
     }
 }
-                """.trimIndent(),
+                """.trimIndent()
+
+    @Disabled("KTIJ-38174")
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testFreeCompilerArgsMultipleAddition4(gradleVersion: GradleVersion) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "multiple-addition-4",
+                listOf("org.jetbrains.kotlin.gradle.tasks.KotlinCompile"),
+                getBuildScriptPartMultipleAddition4(false)
+            )
+        ) {
+            testIntention(
+                getBuildScriptPartMultipleAddition4(true),
                 """
 subprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
@@ -518,12 +699,8 @@ subprojects {
         }
     }
 
-    @ParameterizedTest
-    @AllGradleVersionsSource
-    fun testFreeCompilerArgsMultipleAddition5(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_MULTIPLE_ADDITION_5_FIXTURE) {
-            testIntention(
-                """
+    private fun getBuildScriptPartMultipleAddition5(placeCaret: Boolean): String =
+        """
 subprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
 
@@ -532,7 +709,7 @@ subprojects {
     }
 
     tasks.withType<KotlinCompile>().all {
-        <caret>kotlinOptions {
+        ${if (placeCaret) "<caret>" else ""}kotlinOptions {
             freeCompilerArgs = freeCompilerArgs + listOf(
                 "-Xopt-in=kotlin.RequiresOptIn",
                 "-Xopt-in=kotlin.ExperimentalStdlibApi",
@@ -547,7 +724,21 @@ subprojects {
         }
     }
 }
-                """.trimIndent(),
+                """.trimIndent()
+
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testFreeCompilerArgsMultipleAddition5(gradleVersion: GradleVersion) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "multiple-addition-5",
+                listOf("org.jetbrains.kotlin.gradle.tasks.KotlinCompile"),
+                getBuildScriptPartMultipleAddition5(false)
+            )
+        ) {
+            testIntention(
+                getBuildScriptPartMultipleAddition5(true),
                 """
 subprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
@@ -580,18 +771,28 @@ subprojects {
         }
     }
 
-    @ParameterizedTest
-    @AllGradleVersionsSource
-    fun testFreeCompilerArgsPlusFreeCompilerArgs(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_FREE_COMPILER_ARGS_FIXTURE) {
-            testIntention(
-                """
+    private fun getBuildScriptPartFreeCompilerArgs(placeCaret: Boolean): String =
+        """
 tasks.withType<KotlinCompile> {
-    <caret>kotlinOptions {
+    ${if (placeCaret) "<caret>" else ""}kotlinOptions {
         freeCompilerArgs = freeCompilerArgs + "-Xopt-in=kotlin.RequiresOptIn"
     }
 }
-                """.trimIndent(),
+                """.trimIndent()
+
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testFreeCompilerArgsPlusFreeCompilerArgs(gradleVersion: GradleVersion) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "free-compiler-args",
+                listOf("org.jetbrains.kotlin.gradle.tasks.KotlinCompile"),
+                getBuildScriptPartFreeCompilerArgs(false)
+            )
+        ) {
+            testIntention(
+                getBuildScriptPartFreeCompilerArgs(true),
                 """
 tasks.withType<KotlinCompile> {
     compilerOptions {
@@ -604,18 +805,28 @@ tasks.withType<KotlinCompile> {
         }
     }
 
-    @ParameterizedTest
-    @AllGradleVersionsSource
-    fun testFreeCompilerArgsSetList(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_FREE_COMPILER_ARGS_SET_LIST_FIXTURE) {
-            testIntention(
-                """
+    private fun getBuildScriptPartFreeCompilerArgsSetList(placeCaret: Boolean): String =
+        """
 tasks.withType<KotlinCompile> {
-    <caret>kotlinOptions {
+    ${if (placeCaret) "<caret>" else ""}kotlinOptions {
         freeCompilerArgs = listOf("-Xjsr305=strict")
     }
 }
-                """.trimIndent(),
+                """.trimIndent()
+
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testFreeCompilerArgsSetList(gradleVersion: GradleVersion) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "free-compiler-args-set-list",
+                listOf("org.jetbrains.kotlin.gradle.tasks.KotlinCompile"),
+                getBuildScriptPartFreeCompilerArgsSetList(false)
+            )
+        ) {
+            testIntention(
+                getBuildScriptPartFreeCompilerArgsSetList(true),
                 """
 tasks.withType<KotlinCompile> {
     compilerOptions {
@@ -628,21 +839,31 @@ tasks.withType<KotlinCompile> {
         }
     }
 
-    @ParameterizedTest
-    @AllGradleVersionsSource
-    fun testFreeCompilerArgsWithSuppress(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_FREE_COMPILER_ARGS_WITH_SUPPRESS_FIXTURE) {
-            testIntention(
-                """
+    private fun getBuildScriptPartFreeCompilerArgsWithSuppress(placeCaret: Boolean): String =
+        """
 tasks.withType<KotlinCompile> {
-    <caret>kotlinOptions {
+    ${if (placeCaret) "<caret>" else ""}kotlinOptions {
         @Suppress("SuspiciousCollectionReassignment")
         freeCompilerArgs += listOf("-Xopt-in=kotlin.RequiresOptIn")
         // KtExpressionImpl performs replaceExpression() and there calls KtPsiUtil.areParenthesesNecessary(). Inside, innerPriority is calculated
         // for DOT_QUALIFIED_EXPRESSION and it's 14, parentPriority is calculated for ANNOTATED_EXPRESSION is 15, and that's why () are added
     }
 }
-                """.trimIndent(),
+                """.trimIndent()
+
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testFreeCompilerArgsWithSuppress(gradleVersion: GradleVersion) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "free-compiler-args-with-suppress",
+                listOf("org.jetbrains.kotlin.gradle.tasks.KotlinCompile"),
+                getBuildScriptPartFreeCompilerArgsWithSuppress(false)
+            )
+        ) {
+            testIntention(
+                getBuildScriptPartFreeCompilerArgsWithSuppress(true),
                 """
 tasks.withType<KotlinCompile> {
     compilerOptions {
@@ -658,17 +879,27 @@ tasks.withType<KotlinCompile> {
         }
     }
 
+    private fun getBuildScriptPartJava11(placeCaret: Boolean): String =
+        """
+val compileKotlin: KotlinCompile by tasks
+compileKotlin.${if (placeCaret) "<caret>" else ""}kotlinOptions {
+    jvmTarget = JavaVersion.VERSION_11.toString()
+}
+                """.trimIndent()
+
     @ParameterizedTest
     @AllGradleVersionsSource
     fun testJava11(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_WITH_JAVA_11_FIXTURE) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "java-11",
+                listOf("org.jetbrains.kotlin.gradle.tasks.KotlinCompile"),
+                getBuildScriptPartJava11(false)
+            )
+        ) {
             testIntention(
-                """
-val compileKotlin: KotlinCompile by tasks
-compileKotlin.<caret>kotlinOptions {
-    jvmTarget = JavaVersion.VERSION_11.toString()
-}
-                """.trimIndent(),
+                getBuildScriptPartJava11(true),
                 """
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -682,22 +913,32 @@ compileKotlin.compilerOptions {
         }
     }
 
-    @ParameterizedTest
-    @AllGradleVersionsSource
-    fun testJavaVersionDefinedSeparately(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_WITH_JAVA_VERSION_DEFINED_SEPARATELY_FIXTURE) {
-            testIntention(
-                """
+    private fun getBuildScriptPartJavaVersionDefinedSeparately(placeCaret: Boolean): String =
+        """
 val javaVersion = JavaVersion.VERSION_1_8
 tasks.withType(KotlinJvmCompile::class.java).configureEach {
-    <caret>kotlinOptions {
+    ${if (placeCaret) "<caret>" else ""}kotlinOptions {
         jvmTarget = javaVersion.toString()
         freeCompilerArgs += setOf(
             "-Xjvm-default=all",
         )
     }
 }
-                """.trimIndent(),
+                """.trimIndent()
+
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testJavaVersionDefinedSeparately(gradleVersion: GradleVersion) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "java-version-defined-separately",
+                listOf("org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile"),
+                getBuildScriptPartJavaVersionDefinedSeparately(false)
+            )
+        ) {
+            testIntention(
+                getBuildScriptPartJavaVersionDefinedSeparately(true),
                 """
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -718,16 +959,26 @@ tasks.withType(KotlinJvmCompile::class.java).configureEach {
         }
     }
 
+    private fun getBuildScriptPartJsSourceMapEmbedSources(placeCaret: Boolean): String =
+        """
+tasks.withType<Kotlin2JsCompile>().configureEach {
+    ${if (placeCaret) "<caret>" else ""}kotlinOptions.sourceMapEmbedSources = "inlining"
+}
+                """.trimIndent()
+
     @ParameterizedTest
     @AllGradleVersionsSource
     fun testJsSourceMapEmbedSources(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_WITH_JS_SOURCE_MAP_EMBED_SOURCES_FIXTURE) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "js-source-map-embed-sources",
+                listOf("org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile"),
+                getBuildScriptPartJsSourceMapEmbedSources(false)
+            )
+        ) {
             testIntention(
-                """
-tasks.withType<Kotlin2JsCompile>().configureEach {
-    <caret>kotlinOptions.sourceMapEmbedSources = "inlining"
-}
-                """.trimIndent(),
+                getBuildScriptPartJsSourceMapEmbedSources(true),
                 """
 import org.jetbrains.kotlin.gradle.dsl.JsSourceMapEmbedMode
 
@@ -740,16 +991,26 @@ tasks.withType<Kotlin2JsCompile>().configureEach {
         }
     }
 
+    private fun getBuildScriptPartJsSourceMapNamesPolicy(placeCaret: Boolean): String =
+        """
+tasks.withType<Kotlin2JsCompile>().configureEach {
+    ${if (placeCaret) "<caret>" else ""}kotlinOptions.sourceMapNamesPolicy = "fully-qualified-names"
+}
+                """.trimIndent()
+
     @ParameterizedTest
     @AllGradleVersionsSource
     fun testJsSourceMapNamesPolicy(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_WITH_JS_SOURCE_MAP_NAMES_POLICY_FIXTURE) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "js-source-map-names-policy",
+                listOf("org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile"),
+                getBuildScriptPartJsSourceMapNamesPolicy(false)
+            )
+        ) {
             testIntention(
-                """
-tasks.withType<Kotlin2JsCompile>().configureEach {
-    <caret>kotlinOptions.sourceMapNamesPolicy = "fully-qualified-names"
-}
-                """.trimIndent(),
+                getBuildScriptPartJsSourceMapNamesPolicy(true),
                 """
 import org.jetbrains.kotlin.gradle.dsl.JsSourceMapNamesPolicy
 
@@ -762,16 +1023,26 @@ tasks.withType<Kotlin2JsCompile>().configureEach {
         }
     }
 
+    private fun getBuildScriptPartTypeOfFqnAndConfigureEach(placeCaret: Boolean): String =
+        """
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile>().configureEach {
+    ${if (placeCaret) "<caret>" else ""}kotlinOptions.main = "noCall"
+}
+                """.trimIndent()
+
     @ParameterizedTest
     @AllGradleVersionsSource
     fun testJsTasksWithTypeOfFQNandConfigureEach(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_WITH_TYPE_OF_FQN_AND_CONFIGURE_EACH_FIXTURE) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "type-of-fqn-and-configure-each",
+                emptyList(),
+                getBuildScriptPartTypeOfFqnAndConfigureEach(false)
+            )
+        ) {
             testIntention(
-                """
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile>().configureEach {
-    <caret>kotlinOptions.main = "noCall"
-}
-                """.trimIndent(),
+                getBuildScriptPartTypeOfFqnAndConfigureEach(true),
                 """
 import org.jetbrains.kotlin.gradle.dsl.JsMainFunctionExecutionMode
 
@@ -784,16 +1055,26 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile>().configureEa
         }
     }
 
+    private fun getBuildScriptPartJsTestOrdinaryStringOption(placeCaret: Boolean): String =
+        """
+tasks.withType<Kotlin2JsCompile>().configureEach {
+    ${if (placeCaret) "<caret>" else ""}kotlinOptions.sourceMapPrefix = "myPrefix"
+}
+                """.trimIndent()
+
     @ParameterizedTest
     @AllGradleVersionsSource
     fun testJsTestOrdinaryStringOption(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_WITH_JS_TEST_ORDINARY_STRING_OPTION_FIXTURE) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "js-test-ordinary-string-option",
+                listOf("org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile"),
+                getBuildScriptPartJsTestOrdinaryStringOption(false)
+            )
+        ) {
             testIntention(
-                """
-tasks.withType<Kotlin2JsCompile>().configureEach {
-    <caret>kotlinOptions.sourceMapPrefix = "myPrefix"
-}
-                """.trimIndent(),
+                getBuildScriptPartJsTestOrdinaryStringOption(true),
                 """
 tasks.withType<Kotlin2JsCompile>().configureEach {
     compilerOptions.sourceMapPrefix.set("myPrefix")
@@ -804,17 +1085,27 @@ tasks.withType<Kotlin2JsCompile>().configureEach {
         }
     }
 
+    private fun getBuildScriptPartJvmTarget9(placeCaret: Boolean): String =
+        """
+val compileKotlin: KotlinCompile by tasks
+compileKotlin.${if (placeCaret) "<caret>" else ""}kotlinOptions {
+    jvmTarget = "9"
+}
+                """.trimIndent()
+
     @ParameterizedTest
     @AllGradleVersionsSource
     fun testJvmTarget9(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_WITH_JVM_TARGET_9_FIXTURE) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "jvm-target-9",
+                listOf("org.jetbrains.kotlin.gradle.tasks.KotlinCompile"),
+                getBuildScriptPartJvmTarget9(false)
+            )
+        ) {
             testIntention(
-                """
-val compileKotlin: KotlinCompile by tasks
-compileKotlin.<caret>kotlinOptions {
-    jvmTarget = "9"
-}
-                """.trimIndent(),
+                getBuildScriptPartJvmTarget9(true),
                 """
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -828,19 +1119,33 @@ compileKotlin.compilerOptions {
         }
     }
 
-    @ParameterizedTest
-    @AllGradleVersionsSource
-    fun testJvmTargetDefinedWithEnum(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_WITH_JVM_TARGET_DEFINED_WITH_ENUM_FIXTURE) {
-            testIntention(
-                """
+    private fun getBuildScriptPartJvmTargetDefinedWithEnum(placeCaret: Boolean): String =
+        """
 val compileKotlin: KotlinCompile by tasks
-compileKotlin.<caret>kotlinOptions {
+compileKotlin.${if (placeCaret) "<caret>" else ""}kotlinOptions {
     jvmTarget = JavaVersion.VERSION_1_8.toString()
     languageVersion = LanguageVersion.KOTLIN_2_1.toString()
     apiVersion = ApiVersion.KOTLIN_2_1.toString()
 }
-                """.trimIndent(),
+                """.trimIndent()
+
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testJvmTargetDefinedWithEnum(gradleVersion: GradleVersion) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "jvm-target-defined-with-enum",
+                listOf(
+                    "org.jetbrains.kotlin.gradle.tasks.KotlinCompile",
+                    "org.jetbrains.kotlin.config.ApiVersion",
+                    "org.jetbrains.kotlin.config.LanguageVersion"
+                ),
+                getBuildScriptPartJvmTargetDefinedWithEnum(false)
+            )
+        ) {
+            testIntention(
+                getBuildScriptPartJvmTargetDefinedWithEnum(true),
                 """
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
@@ -857,23 +1162,48 @@ compileKotlin.compilerOptions {
         }
     }
 
-    @ParameterizedTest
-    @AllGradleVersionsSource
-    fun testJvmTargetSettingWithProperties(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_WITH_JVM_TARGET_SETTING_WITH_PROPERTIES_FIXTURE) {
-            testIntention(
-                """
+    private val WITH_KOTLIN_OPTIONS_WITH_JVM_TARGET_SETTING_WITH_PROPERTIES_FIXTURE =
+        GradleTestFixtureBuilder.create("with-kotlin-options-with-jvm-target-setting-with-properties") { gradleVersion ->
+            withSettingsFile(gradleVersion, gradleDsl = GradleDsl.KOTLIN) {
+                setProjectName("with-kotlin-options-with-jvm-target-setting-with-properties")
+            }
+            withBuildFile(gradleVersion, gradleDsl = GradleDsl.KOTLIN) {
+                addImport("org.jetbrains.kotlin.gradle.tasks.KotlinCompile")
+                withKotlinJvmPlugin()
+                withRepository { mavenCentral() }
+                withPrefix {
+                    code(
+                        getBuildScriptPartWithCallingProperties(false)
+                    )
+                }
+            }
+            withFile(
+                "gradle.properties", /* language=TOML */ """
+                    javaVersion=1.8
+                    """.trimIndent()
+            )
+        }
+
+    private fun getBuildScriptPartWithCallingProperties(placeCaret: Boolean): String =
+        """
 fun properties(key: String) = project.findProperty(key).toString()
 
 val compileKotlin: KotlinCompile by tasks
-compileKotlin.<caret>kotlinOptions {
+compileKotlin.${if (placeCaret) "<caret>" else ""}kotlinOptions {
     jvmTarget = properties("javaVersion")
 }
 val compileTestKotlin: KotlinCompile by tasks
 compileTestKotlin.kotlinOptions {
     jvmTarget = properties("javaVersion")
 }
-                """.trimIndent(),
+                    """.trimIndent()
+
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testJvmTargetSettingWithProperties(gradleVersion: GradleVersion) {
+        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_WITH_JVM_TARGET_SETTING_WITH_PROPERTIES_FIXTURE) {
+            testIntention(
+                getBuildScriptPartWithCallingProperties(true),
                 """
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -893,19 +1223,29 @@ compileTestKotlin.kotlinOptions {
         }
     }
 
-    @ParameterizedTest
-    @AllGradleVersionsSource
-    fun testApiVersionAsString(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_WITH_API_VERSION_AS_STRING_FIXTURE) {
-            testIntention(
-                """
+    private fun getBuildScriptPartApiVersionAsString(placeCaret: Boolean): String =
+        """
 val compileKotlin: KotlinCompile by tasks
-compileKotlin.<caret>kotlinOptions {
+compileKotlin.${if (placeCaret) "<caret>" else ""}kotlinOptions {
     jvmTarget = "9"
     freeCompilerArgs += listOf("-module-name", "TheName")
     apiVersion = "1.9"
 }
-                """.trimIndent(),
+                """.trimIndent()
+
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testApiVersionAsString(gradleVersion: GradleVersion) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "api-version-as-string",
+                listOf("org.jetbrains.kotlin.gradle.tasks.KotlinCompile"),
+                getBuildScriptPartApiVersionAsString(false)
+            )
+        ) {
+            testIntention(
+                getBuildScriptPartApiVersionAsString(true),
                 """
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
@@ -922,17 +1262,27 @@ compileKotlin.compilerOptions {
         }
     }
 
+    private fun getBuildScriptPartOptionsBeforeDot(placeCaret: Boolean): String =
+        """
+tasks.withType<KotlinCompile>().configureEach {
+    ${if (placeCaret) "<caret>" else ""}kotlinOptions { options.jvmTarget.set(JvmTarget.JVM_11) }
+}
+                """.trimIndent()
+
     @Disabled("KTIJ-38181") // The "After" part should be fixed don't know yet how
     @ParameterizedTest
     @AllGradleVersionsSource
     fun testOptionsBeforeDot(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_WITH_OPTIONS_BEFORE_DOT_FIXTURE) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "options-before-dot",
+                listOf("org.jetbrains.kotlin.gradle.dsl.JvmTarget", "org.jetbrains.kotlin.gradle.tasks.KotlinCompile"),
+                getBuildScriptPartOptionsBeforeDot(false)
+            )
+        ) {
             testIntention(
-                """
-tasks.withType<KotlinCompile>().configureEach {
-    <caret>kotlinOptions { options.jvmTarget.set(JvmTarget.JVM_11) }
-}
-                """.trimIndent(),
+                getBuildScriptPartOptionsBeforeDot(true),
                 """
 tasks.withType<KotlinCompile>().configureEach {
     compilerOptions { options.jvmTarget.set(JvmTarget.JVM_11) }
@@ -943,17 +1293,27 @@ tasks.withType<KotlinCompile>().configureEach {
         }
     }
 
+    private fun getBuildScriptPartOptionsBeforeDotInDotQualifiedExpression(placeCaret: Boolean): String =
+        """
+tasks.withType<KotlinCompile>().configureEach {
+    ${if (placeCaret) "<caret>" else ""}kotlinOptions.options.jvmTarget.set(JvmTarget.JVM_11)
+}
+                """.trimIndent()
+
     @Disabled("KTIJ-38181") // The "After" part should be fixed don't know yet how
     @ParameterizedTest
     @AllGradleVersionsSource
     fun testOptionsBeforeDotInDotQualifiedExpression(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_WITH_OPTIONS_BEFORE_DOT_IN_DOT_QUALIFIED_EXPRESSION_FIXTURE) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "options-before-dot-in-dot-qualified-expression",
+                listOf("org.jetbrains.kotlin.gradle.dsl.JvmTarget", "org.jetbrains.kotlin.gradle.tasks.KotlinCompile"),
+                getBuildScriptPartOptionsBeforeDotInDotQualifiedExpression(false)
+            )
+        ) {
             testIntention(
-                """
-tasks.withType<KotlinCompile>().configureEach {
-    <caret>kotlinOptions.options.jvmTarget.set(JvmTarget.JVM_11)
-}
-                """.trimIndent(),
+                getBuildScriptPartOptionsBeforeDotInDotQualifiedExpression(true),
                 """
 tasks.withType<KotlinCompile>().configureEach {
     compilerOptions.options.jvmTarget.set(JvmTarget.JVM_11)
@@ -964,12 +1324,8 @@ tasks.withType<KotlinCompile>().configureEach {
         }
     }
 
-    @ParameterizedTest
-    @AllGradleVersionsSource
-    fun testWithSubprojects(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_IN_SUBPROJECTS_FIXTURE) {
-            testIntention(
-                """
+    private fun getBuildScriptPartWithSubprojects(placeCaret: Boolean): String =
+        """
 subprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
 
@@ -978,13 +1334,27 @@ subprojects {
     }
 
     tasks.withType<KotlinCompile>().all {
-        <caret>kotlinOptions {
+        ${if (placeCaret) "<caret>" else ""}kotlinOptions {
             freeCompilerArgs = listOf("-Xjsr305=strict")
             jvmTarget = "11"
         }
     }
 }
-                """.trimIndent(),
+                """.trimIndent()
+
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testWithSubprojects(gradleVersion: GradleVersion) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "subprojects",
+                listOf("org.jetbrains.kotlin.gradle.tasks.KotlinCompile"),
+                getBuildScriptPartWithSubprojects(false)
+            )
+        ) {
+            testIntention(
+                getBuildScriptPartWithSubprojects(true),
                 """
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -1008,16 +1378,26 @@ subprojects {
         }
     }
 
+    private fun getBuildScriptPartGetByName(placeCaret: Boolean): String =
+        """
+tasks.getByName<KotlinCompile>("compileKotlin") {
+    ${if (placeCaret) "<caret>" else ""}kotlinOptions.allWarningsAsErrors = true
+}
+                """.trimIndent()
+
     @ParameterizedTest
     @AllGradleVersionsSource
     fun testGetByName(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_GET_BY_NAME_FIXTURE) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "get-by-name",
+                listOf("org.jetbrains.kotlin.gradle.tasks.KotlinCompile"),
+                getBuildScriptPartGetByName(false)
+            )
+        ) {
             testIntention(
-                """
-tasks.getByName<KotlinCompile>("compileKotlin") {
-    <caret>kotlinOptions.allWarningsAsErrors = true
-}
-                """.trimIndent(),
+                getBuildScriptPartGetByName(true),
                 """
 tasks.getByName<KotlinCompile>("compileKotlin") {
     compilerOptions.allWarningsAsErrors.set(true)
@@ -1028,18 +1408,28 @@ tasks.getByName<KotlinCompile>("compileKotlin") {
         }
     }
 
-    @ParameterizedTest
-    @AllGradleVersionsSource
-    fun testGetByNameAndDotReferenced(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_GET_BY_NAME_AND_DOT_REFERENCED_FIXTURE) {
-            testIntention(
-                """
+    private fun getBuildScriptPartGetByNameAndDotReferenced(placeCaret: Boolean): String =
+        """
 tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java) {
-    <caret>kotlinOptions {
+    ${if (placeCaret) "<caret>" else ""}kotlinOptions {
         languageVersion = "1.9"
     }
 }
-                """.trimIndent(),
+                """.trimIndent()
+
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testGetByNameAndDotReferenced(gradleVersion: GradleVersion) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "get-by-name-and-dot-referenced",
+                emptyList(),
+                getBuildScriptPartGetByNameAndDotReferenced(false)
+            )
+        ) {
+            testIntention(
+                getBuildScriptPartGetByNameAndDotReferenced(true),
                 """
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
@@ -1054,18 +1444,28 @@ tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::cl
         }
     }
 
-    @ParameterizedTest
-    @AllGradleVersionsSource
-    fun testGetByNameAndLambda(gradleVersion: GradleVersion) {
-        runTest(gradleVersion, WITH_KOTLIN_OPTIONS_GET_BY_NAME_AND_LAMBDA_FIXTURE) {
-            testIntention(
-                """
+    private fun getBuildScriptPartGetByNameAndLambda(placeCaret: Boolean): String =
+        """
 tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java) {
-    <caret>kotlinOptions {
+    ${if (placeCaret) "<caret>" else ""}kotlinOptions {
         languageVersion = "1.9"
     }
 }
-                """.trimIndent(),
+                """.trimIndent()
+
+    @ParameterizedTest
+    @AllGradleVersionsSource
+    fun testGetByNameAndLambda(gradleVersion: GradleVersion) {
+        runTest(
+            gradleVersion,
+            createFixture(
+                "get-by-name-and-lambda",
+                emptyList(),
+                getBuildScriptPartGetByNameAndLambda(false)
+            )
+        ) {
+            testIntention(
+                getBuildScriptPartGetByNameAndLambda(true),
                 """
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
