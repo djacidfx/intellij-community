@@ -15,16 +15,20 @@ from contextlib import contextmanager
 
 import six
 
+python2_only = unittest.skipUnless(six.PY2, 'Python 2 only test')
+python3_only = unittest.skipUnless(six.PY3, 'Python 3 only test')
+
 if six.PY2:
     from io import open
 
 _this_file = os.path.abspath(__file__)
-_legacy_dir = os.path.dirname(_this_file)
-_helpers_tests = os.path.dirname(_legacy_dir)
+_helpers_tests = os.path.dirname(_this_file)
 _python = os.path.dirname(_helpers_tests)
 
 _helpers_root = os.path.join(_python, "helpers")
-_test_data_root = os.path.join(_python, "helpersTestResources", "data")
+_helpers_pycharm_root = os.path.join(_helpers_root, "pycharm")
+_helpers_test_resources_root = os.path.join(_python, "helpersTestResources")
+_test_data_root = os.path.join(_helpers_test_resources_root, "data")
 
 _override_test_data = False
 

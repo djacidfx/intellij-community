@@ -2,8 +2,11 @@ import os
 import sys
 import unittest
 
-_tests_dir = os.path.dirname(os.path.abspath(__file__))
-_helpers_dir = os.path.dirname(_tests_dir) + '/helpers'
+_base_dir = os.path.dirname(os.path.abspath(__file__))
+_tests_dir = os.path.join(_base_dir, 'tests')
+_python_dir = os.path.dirname(_base_dir)
+_helpers_dir = os.path.join(_python_dir, 'helpers')
+_helpers_pycharm_dir = os.path.join(_helpers_dir, 'pycharm')
 
 
 def run_specified_tests():
@@ -41,6 +44,7 @@ def get_test_runner():
 
 if __name__ == '__main__':
     sys.path.append(_helpers_dir)
+    sys.path.append(_helpers_pycharm_dir)
 
     if len(sys.argv) > 1:
         run_specified_tests()
