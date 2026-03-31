@@ -57,10 +57,10 @@ object EmmetAbbreviationBaloonRpcFrontendHandler {
   fun cancel(showEvent: ShowAbbreviationBaloonUiEvent, callback: Runnable) {
     showEvent.project()?.let { project ->
       EmmetFrontendRpcService.scope(project).launch {
-        EmmetAbbreviationBaloonRpc.instance().cancel(showEvent.transactionId, showEvent.editorId)
         invokeLater {
           callback.run()
         }
+        EmmetAbbreviationBaloonRpc.instance().cancel(showEvent.transactionId, showEvent.editorId)
       }
     }
   }
