@@ -201,7 +201,7 @@ private fun loadAppInUnitTestMode(isHeadless: Boolean) {
       // 40 seconds - tests maybe executed on cloud agents where I/O is very slow
       val timeout = System.getProperty("intellij.testFramework.modules.timeout.seconds", "40").toLong()
       val pluginSet = loadedModuleFuture.asCompletableFuture().get(timeout, TimeUnit.SECONDS)
-      app.registerComponents(modules = pluginSet.getEnabledModules(), app = app)
+      app.registerComponents(descriptors = pluginSet.sequenceResolvedSortedDescriptorsForRegistration(), app = app)
 
       val task = suspend {
         initConfigurationStore(app, emptyList())

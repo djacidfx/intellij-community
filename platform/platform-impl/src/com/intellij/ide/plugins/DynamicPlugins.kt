@@ -1293,16 +1293,22 @@ private fun loadModules(
   app: ApplicationImpl,
   listenerCallbacks: MutableList<ExtensionPointDeferredListenersNotification>,
 ) {
-  app.registerComponents(modules = modules, app = app, listenerCallbacks = listenerCallbacks)
+  val descriptors = sequence {
+    for (module in modules) {
+      yield(module)
+      sequenceSubDescriptorsForRegistration(module) // TODO migrate
+    }
+  }.toList().asSequence()
+  app.registerComponents(descriptors = descriptors, app = app, listenerCallbacks = listenerCallbacks)
   for (openProject in getOpenedProjects()) {
-    openProject.getComponentManagerImpl().registerComponents(modules = modules, app = app, listenerCallbacks = listenerCallbacks)
+    openProject.getComponentManagerImpl().registerComponents(descriptors = descriptors, app = app, listenerCallbacks = listenerCallbacks)
 
     for (module in ModuleManager.getInstance(openProject).modules) {
-      module.getComponentManagerImpl().registerComponents(modules = modules, app = app, listenerCallbacks = listenerCallbacks)
+      module.getComponentManagerImpl().registerComponents(descriptors = descriptors, app = app, listenerCallbacks = listenerCallbacks)
     }
   }
 
-  (ActionManager.getInstance() as ActionManagerImpl).registerActions(modules)
+  (ActionManager.getInstance() as ActionManagerImpl).registerActions(descriptors)
 }
 
 private fun analyzeSnapshot(hprofPath: String, pluginId: PluginId): String {

@@ -104,7 +104,6 @@ import com.intellij.platform.pluginSystem.parser.impl.elements.ActionElement.Act
 import com.intellij.platform.pluginSystem.parser.impl.elements.ActionElement.ActionElementName
 import com.intellij.platform.util.coroutines.childScope
 import com.intellij.serviceContainer.AlreadyDisposedException
-import com.intellij.serviceContainer.executeRegisterTaskForOldContent
 import com.intellij.ui.ClientProperty
 import com.intellij.ui.icons.IconLoadMeasurer
 import com.intellij.util.ArrayUtilRt
@@ -196,7 +195,7 @@ open class ActionManagerImpl protected constructor(private val coroutineScope: C
     val state = ActionManagerState()
     val actionPreInitRegistrar = ActionPreInitRegistrar(idToAction = idToAction, boundShortcuts = boundShortcuts, state = state)
     val keymapToOperations = HashMap<String, MutableList<KeymapShortcutOperation>>()
-    doRegisterActions(modules = PluginManagerCore.getPluginSet().getEnabledModules(),
+    doRegisterActions(descriptors = PluginManagerCore.getPluginSet().sequenceResolvedSortedDescriptorsForRegistration(),
                       keymapToOperations = keymapToOperations,
                       actionRegistrar = actionPreInitRegistrar)
 
@@ -279,9 +278,9 @@ open class ActionManagerImpl protected constructor(private val coroutineScope: C
   final override fun asActionRuntimeRegistrar(): ActionRuntimeRegistrar = actionPostInitRuntimeRegistrar
 
   // for dynamic plugins
-  internal fun registerActions(modules: Iterable<IdeaPluginDescriptorImpl>) {
+  internal fun registerActions(descriptors: Sequence<IdeaPluginDescriptorImpl>) {
     val keymapToOperations = HashMap<String, MutableList<KeymapShortcutOperation>>()
-    doRegisterActions(modules = modules, keymapToOperations = keymapToOperations, actionRegistrar = actionPostInitRegistrar)
+    doRegisterActions(descriptors = descriptors, keymapToOperations = keymapToOperations, actionRegistrar = actionPostInitRegistrar)
     if (keymapToOperations.isNotEmpty()) {
       val keymapManager = service<KeymapManager>()
       for ((keymapName, operations) in keymapToOperations) {
@@ -291,14 +290,11 @@ open class ActionManagerImpl protected constructor(private val coroutineScope: C
     }
   }
 
-  private fun doRegisterActions(modules: Iterable<IdeaPluginDescriptorImpl>,
+  private fun doRegisterActions(descriptors: Sequence<IdeaPluginDescriptorImpl>,
                                 keymapToOperations: MutableMap<String, MutableList<KeymapShortcutOperation>>,
                                 actionRegistrar: ActionRegistrar) {
-    for (module in modules) {
+    for (module in descriptors) {
       registerPluginActions(module = module, keymapToOperations = keymapToOperations, actionRegistrar = actionRegistrar)
-      executeRegisterTaskForOldContent(module) {
-        registerPluginActions(module = it, keymapToOperations = keymapToOperations, actionRegistrar = actionRegistrar)
-      }
     }
   }
 

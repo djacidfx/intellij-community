@@ -132,8 +132,50 @@ class PluginSet internal constructor(
       enabledModules.asSequence()
     }
   }
+
+  fun sequenceResolvedSortedDescriptorsForRegistration(): Sequence<IdeaPluginDescriptorImpl> {
+    return if (resolvedPluginSet != null) {
+      resolvedPluginSet.sortedResolvedDescriptors.asSequence()
+    } else {
+      sequence {
+        for (module in enabledModules) {
+          yield(module)
+          sequenceSubDescriptorsForRegistration(module)
+        }
+      }
+    }
+  }
 }
 
 private fun IdeaPluginDescriptorImpl.legacyEquals(other: Any?): Boolean {
   return this === other || other is IdeaPluginDescriptorImpl && pluginId == other.pluginId && descriptorPath == other.descriptorPath
+}
+
+@ApiStatus.Internal
+fun executeRegisterTaskForOldContent(mainPluginDescriptor: IdeaPluginDescriptorImpl, task: (IdeaPluginDescriptorImpl) -> Unit) {
+  sequence {
+    sequenceSubDescriptorsForRegistration(mainPluginDescriptor)
+  }.forEach {
+    task(it)
+  }
+}
+
+@ApiStatus.Internal
+suspend fun SequenceScope<IdeaPluginDescriptorImpl>.sequenceSubDescriptorsForRegistration(moduleDescriptor: IdeaPluginDescriptorImpl) {
+  for (dep in moduleDescriptor.dependencies) {
+    val subDescriptor = dep.subDescriptor
+    if (subDescriptor?.pluginClassLoader == null) {
+      continue
+    }
+
+    yield(subDescriptor)
+
+    for (subDep in subDescriptor.dependencies) {
+      val d = subDep.subDescriptor
+      if (d?.pluginClassLoader != null) {
+        yield(d)
+        assert(d.dependencies.isEmpty() || d.dependencies.all { it.subDescriptor == null })
+      }
+    }
+  }
 }

@@ -3,6 +3,7 @@ package com.intellij.workspaceModel.ide.impl.legacyBridge.module
 
 import com.intellij.ide.plugins.IdeaPluginDescriptorImpl
 import com.intellij.ide.plugins.PluginManagerCore
+import com.intellij.ide.plugins.executeRegisterTaskForOldContent
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.EDT
@@ -76,7 +77,6 @@ import com.intellij.platform.workspace.storage.query.entities
 import com.intellij.platform.workspace.storage.query.map
 import com.intellij.platform.workspace.storage.url.VirtualFileUrl
 import com.intellij.serviceContainer.PrecomputedExtensionModel
-import com.intellij.serviceContainer.executeRegisterTaskForOldContent
 import com.intellij.serviceContainer.precomputeModuleLevelExtensionModel
 import com.intellij.util.concurrency.ThreadingAssertions
 import com.intellij.util.concurrency.annotations.RequiresWriteLock

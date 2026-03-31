@@ -134,7 +134,7 @@ internal suspend fun loadApp(
       }
 
       span("app component registration") {
-        app.registerComponents(pluginSet.getEnabledModules(), app)
+        app.registerComponents(pluginSet.sequenceResolvedSortedDescriptorsForRegistration(), app)
       }
       // ApplicationManager.getApplication may be used in ApplicationInitializedListener constructor
       ApplicationManager.setApplication(app)

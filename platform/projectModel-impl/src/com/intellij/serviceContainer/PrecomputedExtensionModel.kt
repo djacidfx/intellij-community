@@ -7,6 +7,7 @@ import com.intellij.ide.plugins.IdeaPluginDescriptor
 import com.intellij.ide.plugins.IdeaPluginDescriptorImpl
 import com.intellij.ide.plugins.PluginMainDescriptor
 import com.intellij.ide.plugins.PluginManagerCore
+import com.intellij.ide.plugins.executeRegisterTaskForOldContent
 import com.intellij.openapi.components.ServiceDescriptor
 import com.intellij.openapi.extensions.ExtensionDescriptor
 import com.intellij.openapi.extensions.ExtensionPointDescriptor
@@ -73,25 +74,5 @@ private fun executeRegisterTask(plugins: List<PluginMainDescriptor>, task: (Idea
     }
 
     executeRegisterTaskForOldContent(plugin, task)
-  }
-}
-
-@ApiStatus.Internal
-fun executeRegisterTaskForOldContent(mainPluginDescriptor: IdeaPluginDescriptorImpl, task: (IdeaPluginDescriptorImpl) -> Unit) {
-  for (dep in mainPluginDescriptor.dependencies) {
-    val subDescriptor = dep.subDescriptor
-    if (subDescriptor?.pluginClassLoader == null) {
-      continue
-    }
-
-    task(subDescriptor)
-
-    for (subDep in subDescriptor.dependencies) {
-      val d = subDep.subDescriptor
-      if (d?.pluginClassLoader != null) {
-        task(d)
-        assert(d.dependencies.isEmpty() || d.dependencies.all { it.subDescriptor == null })
-      }
-    }
   }
 }

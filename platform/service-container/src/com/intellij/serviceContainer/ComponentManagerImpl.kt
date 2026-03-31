@@ -360,11 +360,14 @@ abstract class ComponentManagerImpl(
   final override fun getExtensionArea(): ExtensionsAreaImpl = extensionArea
 
   fun registerComponents() {
-    registerComponents(modules = PluginManagerCore.getPluginSet().getEnabledModules(), app = getApplication())
+    registerComponents(
+      descriptors = PluginManagerCore.getPluginSet().sequenceResolvedSortedDescriptorsForRegistration(),
+      app = getApplication()
+    )
   }
 
   open fun registerComponents(
-    modules: List<IdeaPluginDescriptorImpl>,
+    descriptors: Sequence<IdeaPluginDescriptorImpl>,
     app: Application?,
     listenerCallbacks: MutableList<ExtensionPointDeferredListenersNotification>? = null,
   ) {
@@ -379,32 +382,30 @@ abstract class ComponentManagerImpl(
     // register services before registering extensions because plugins can access services in their extensions,
     // which can be invoked right away if the plugin is loaded dynamically
     val extensionPoints = HashMap(extensionArea.nameToPointMap)
-    for (rootModule in modules) {
-      executeRegisterTask(rootModule) { module ->
-        val containerDescriptor = getContainerDescriptor(module)
-        registerServices(containerDescriptor.services, module)
-        registerComponents(pluginDescriptor = module, containerDescriptor = containerDescriptor, headless = isHeadless)
+    for (module in descriptors) {
+      val containerDescriptor = getContainerDescriptor(module)
+      registerServices(containerDescriptor.services, module)
+      registerComponents(pluginDescriptor = module, containerDescriptor = containerDescriptor, headless = isHeadless)
 
-        if (listenersByTopicName == null) {
-          listenersByTopicName = ConcurrentHashMap()
+      if (listenersByTopicName == null) {
+        listenersByTopicName = ConcurrentHashMap()
+      }
+      for (listener in containerDescriptor.listeners) {
+        if ((isUnitTestMode && !listener.activeInTestMode) || (isHeadless && !listener.activeInHeadlessMode)) {
+          continue
         }
-        for (listener in containerDescriptor.listeners) {
-          if ((isUnitTestMode && !listener.activeInTestMode) || (isHeadless && !listener.activeInHeadlessMode)) {
-            continue
-          }
-          if (listener.os != null && !listener.os!!.isSuitableForOs()) {
-            continue
-          }
-          listenersByTopicName.computeIfAbsent(listener.topicClassName) { ArrayList() }
-            .add(PluginListenerDescriptor(listener, module))
+        if (listener.os != null && !listener.os!!.isSuitableForOs()) {
+          continue
         }
+        listenersByTopicName.computeIfAbsent(listener.topicClassName) { ArrayList() }
+          .add(PluginListenerDescriptor(listener, module))
+      }
 
-        if (containerDescriptor.extensionPoints.isNotEmpty()) {
-          createExtensionPoints(points = containerDescriptor.extensionPoints,
-                                componentManager = this,
-                                result = extensionPoints,
-                                pluginDescriptor = module)
-        }
+      if (containerDescriptor.extensionPoints.isNotEmpty()) {
+        createExtensionPoints(points = containerDescriptor.extensionPoints,
+                              componentManager = this,
+                              result = extensionPoints,
+                              pluginDescriptor = module)
       }
     }
 
@@ -414,10 +415,8 @@ abstract class ComponentManagerImpl(
 
     extensionArea.reset(extensionPoints)
 
-    for (rootModule in modules) {
-      executeRegisterTask(rootModule) { module ->
-        extensionArea.registerExtensions(module.extensions, module, listenerCallbacks)
-      }
+    for (module in descriptors) {
+      extensionArea.registerExtensions(module.extensions, module, listenerCallbacks)
     }
 
     activity?.end()
@@ -1576,11 +1575,6 @@ internal fun doLoadClass(name: String, pluginDescriptor: PluginDescriptor, check
       throw e
     }
   }
-}
-
-private fun executeRegisterTask(mainPluginDescriptor: IdeaPluginDescriptorImpl, task: (IdeaPluginDescriptorImpl) -> Unit) {
-  task(mainPluginDescriptor)
-  executeRegisterTaskForOldContent(mainPluginDescriptor, task)
 }
 
 // Ask Core team approve before changing this set
