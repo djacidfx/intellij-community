@@ -219,14 +219,6 @@ public abstract class XLineBreakpointType<P extends XBreakpointProperties> exten
     return false;
   }
 
-  /**
-   * @return {@code false} if the line breakpoint type should forbid {@code setLine} event processing, {@code true} otherwise
-   */
-  @ApiStatus.Internal
-  public boolean lineShouldBeChanged(@NotNull XLineBreakpoint<P> breakpoint, int newLine, @NotNull Project project) {
-    return true;
-  }
-
   public abstract class XLineBreakpointVariant {
     public abstract @NotNull @Nls String getText();
 
