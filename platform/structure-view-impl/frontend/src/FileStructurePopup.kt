@@ -544,6 +544,7 @@ class FileStructurePopup(
       HierarchyListener { event ->
         if ((event.getChangeFlags() and HierarchyEvent.PARENT_CHANGED.toLong()) != 0L && event.getChanged() === chkPanel) {
           val topPanel = myCheckBoxesPanel.getParent()
+          topPanel.preferredSize = null
           val prefSize = topPanel.preferredSize
           if (singleRow) {
             prefSize.height = JBUI.CurrentTheme.Popup.toolbarHeight()
