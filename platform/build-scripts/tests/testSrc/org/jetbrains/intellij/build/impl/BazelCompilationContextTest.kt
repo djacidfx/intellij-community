@@ -1,6 +1,7 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.intellij.build.impl
 
+import kotlinx.coroutines.CoroutineScope
 import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.intellij.build.BuildMessages
 import org.jetbrains.intellij.build.BuildOptions
@@ -153,7 +154,7 @@ internal class BazelCompilationContextTest {
 
     override fun notifyArtifactBuilt(artifactPath: Path) = Unit
 
-    override fun createCopy(messages: BuildMessages, options: BuildOptions, paths: BuildPaths): CompilationContext {
+    override fun createCopy(messages: BuildMessages, options: BuildOptions, paths: BuildPaths, scope: CoroutineScope?): CompilationContext {
       return TestCompilationContext(
         messages = messages,
         options = options,

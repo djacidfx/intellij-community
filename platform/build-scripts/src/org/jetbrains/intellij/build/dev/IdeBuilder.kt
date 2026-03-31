@@ -20,6 +20,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.jetbrains.annotations.VisibleForTesting
 import org.jetbrains.intellij.build.BuildContext
 import org.jetbrains.intellij.build.BuildOptions
 import org.jetbrains.intellij.build.BuildPaths
@@ -45,8 +46,6 @@ import org.jetbrains.intellij.build.impl.BuildContextImpl
 import org.jetbrains.intellij.build.impl.ModuleOutputPatcher
 import org.jetbrains.intellij.build.impl.PLUGIN_CLASSPATH
 import org.jetbrains.intellij.build.impl.PlatformLayout
-import org.jetbrains.intellij.build.impl.asArchived
-import org.jetbrains.intellij.build.impl.asArchivedIfNeeded
 import org.jetbrains.intellij.build.impl.copyDistFiles
 import org.jetbrains.intellij.build.impl.createCompilationContext
 import org.jetbrains.intellij.build.impl.createIdeaPropertyFile
@@ -54,11 +53,12 @@ import org.jetbrains.intellij.build.impl.createPlatformLayout
 import org.jetbrains.intellij.build.impl.generateRuntimeModuleRepositoryForDevBuild
 import org.jetbrains.intellij.build.impl.getOsDistributionBuilder
 import org.jetbrains.intellij.build.impl.layoutPlatformDistribution
+import org.jetbrains.intellij.build.impl.normalizeCompilationContextForBuild
 import org.jetbrains.intellij.build.impl.productInfo.PRODUCT_INFO_FILE_NAME
 import org.jetbrains.intellij.build.impl.projectStructureMapping.ContentReport
 import org.jetbrains.intellij.build.impl.projectStructureMapping.DistributionFileEntry
-import org.jetbrains.intellij.build.impl.toBazelIfNeeded
 import org.jetbrains.intellij.build.jarCache.LocalDiskJarCacheManager
+import org.jetbrains.intellij.build.normalizeCompiledClassesOptions
 import org.jetbrains.intellij.build.productLayout.discovery.ProductConfiguration
 import org.jetbrains.intellij.build.readSearchableOptionIndex
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
@@ -73,7 +73,6 @@ import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.moveTo
-import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 
 private const val maxWindowsPathLengthForIDERootToBeAbleToRunRiderBackend: Int = 64
@@ -86,7 +85,7 @@ data class BuildRequest(
   @JvmField val baseIdePlatformPrefixForFrontend: String? = null,
   @JvmField val devRootDir: Path = System.getProperty("idea.dev.root.dir")?.let { Path.of(it).normalize().toAbsolutePath() } ?: projectDir.resolve("out/dev-run"),
   @JvmField val jarCacheDir: Path = devRootDir.resolve("jar-cache"),
-  @JvmField val productionClassOutput: Path = System.getenv("CLASSES_DIR")?.let { Path.of(it).normalize().toAbsolutePath() } ?: projectDir.resolve("out/classes/production"),
+  @JvmField val classesOutputDirectory: Path? = null,
   @JvmField val keepHttpClient: Boolean = true,
   @JvmField val platformClassPathConsumer: ((mainClass: String, classPath: Set<Path>, runDir: Path) -> Unit)? = null,
   /**
@@ -101,8 +100,6 @@ data class BuildRequest(
 
   @JvmField val writeCoreClasspath: Boolean = true,
 
-  @JvmField val buildOptionsTemplate: BuildOptions? = null,
-
   @JvmField val tracer: Tracer? = null,
 
   @JvmField val os: OsFamily = OsFamily.currentOs,
@@ -111,20 +108,47 @@ data class BuildRequest(
 ) {
   override fun toString(): String {
     return buildString {
-      append("BuildRequest(platformPrefix='$platformPrefix', ")
+      append("DevBuildRequest(platformPrefix='$platformPrefix', ")
       if (baseIdePlatformPrefixForFrontend != null) {
         append("baseIdePlatformPrefixForFrontend='$baseIdePlatformPrefixForFrontend', ")
       }
       append("additionalModules=$additionalModules, ")
-      append("productionClassOutput=$productionClassOutput, ")
+      if (classesOutputDirectory != null) {
+        append("classesOutputDirectory=$classesOutputDirectory, ")
+      }
       append("keepHttpClient=$keepHttpClient, ")
       append("generateRuntimeModuleRepository=$generateRuntimeModuleRepository")
     }
   }
 }
 
+private fun defaultClassesOutputDirectory(projectDir: Path): Path {
+  return System.getenv("CLASSES_DIR")?.let { Path.of(it).normalize().toAbsolutePath().parent } ?: projectDir.resolve("out/classes")
+}
+
+internal fun resolveProjectClassesOutputDirectory(request: BuildRequest, buildOptionsTemplate: BuildOptions): Path {
+  return request.classesOutputDirectory ?: buildOptionsTemplate.classOutDir?.let { Path.of(it) } ?: defaultClassesOutputDirectory(request.projectDir)
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
-internal suspend fun buildProduct(request: BuildRequest, createProductProperties: suspend (CompilationContext) -> ProductProperties): Path {
+internal suspend fun buildProductFromProject(
+  request: BuildRequest,
+  productConfiguration: ProductConfiguration,
+  buildOptionsTemplate: BuildOptions,
+): Path {
+  return buildProduct(request = request) { buildDir ->
+    createBuildContextFromProject(
+      productConfiguration = productConfiguration,
+      request = request,
+      buildDir = buildDir,
+      buildOptionsTemplate = buildOptionsTemplate,
+      scope = this,
+    )
+  }
+}
+
+@OptIn(ExperimentalCoroutinesApi::class)
+internal suspend fun buildProduct(request: BuildRequest, createBuildContext: suspend CoroutineScope.(buildDir: Path) -> BuildContext): Path {
   val rootDir = withContext(Dispatchers.IO) {
     val rootDir = request.devRootDir
     // if symlinked to RAM disk, use a real path for performance reasons and avoid any issues in ant/other code
@@ -176,15 +200,11 @@ internal suspend fun buildProduct(request: BuildRequest, createProductProperties
   var contextToClose: BuildContext? = null
   try {
     coroutineScope {
-      val context = createBuildContext(
-        createProductProperties = createProductProperties,
-        request = request,
-        runDir = runDir,
-        jarCacheDir = request.jarCacheDir,
-        buildDir = buildDir,
-        scope = this,
-      )
+      val context = createBuildContext(buildDir)
       contextToClose = context
+      launch(Dispatchers.IO + CoroutineName("cleanup jar cache")) {
+        context.cleanupJarCache()
+      }
       if (request.os != OsFamily.currentOs) {
         context.options.targetOs = persistentListOf(request.os)
         context.options.targetArch = JvmArchitecture.currentJvmArch
@@ -259,9 +279,9 @@ internal suspend fun buildProduct(request: BuildRequest, createProductProperties
         val pluginDistributionEntities = pluginDistributionEntriesDeferred.await().pluginEntries
         val platformLayoutAwaited = platformLayout.await()
         val coreClasspathFromPlugins = generateCoreClasspathFromPlugins(
-            platformLayout = platformLayoutAwaited,
-            pluginEntities = pluginDistributionEntities,
-            context = context
+          platformLayout = platformLayoutAwaited,
+          pluginEntities = pluginDistributionEntities,
+          context = context
         )
         val classPath = platformClasspath + coreClasspathFromPlugins
 
@@ -421,137 +441,131 @@ private suspend fun computeIdeFingerprint(
   Span.current().addEvent("IDE fingerprint: $fingerprint")
 }
 
-private suspend fun createBuildContext(
-  createProductProperties: suspend (CompilationContext) -> ProductProperties,
+private suspend fun createBuildContextFromProject(
+  productConfiguration: ProductConfiguration,
   request: BuildRequest,
-  runDir: Path,
-  jarCacheDir: Path,
   buildDir: Path,
+  buildOptionsTemplate: BuildOptions,
   scope: CoroutineScope,
 ): BuildContext {
-  return coroutineScope {
-    val buildOptionsTemplate = request.buildOptionsTemplate
-    val useCompiledClassesFromProjectOutput = buildOptionsTemplate == null ||
-                                              (buildOptionsTemplate.useCompiledClassesFromProjectOutput && buildOptionsTemplate.unpackCompiledClassesArchives)
-    val classOutDir = if (useCompiledClassesFromProjectOutput) {
-      request.productionClassOutput.parent
+  val options = createProjectDevBuildOptions(request = request, buildDir = buildDir, buildOptionsTemplate = buildOptionsTemplate)
+
+  val buildPaths = createDevBuildPaths(projectDir = request.projectDir, buildDir = buildDir, logDir = options.logDir!!)
+  val compilationContext = normalizeCompilationContextForBuild(
+    context = createCompilationContext(
+      projectHome = request.projectDir,
+      buildOutputRootEvaluator = { _ -> buildDir },
+      setupTracer = false,
+      // will be enabled later in [com.intellij.platform.ide.bootstrap.enableJstack] instead
+      enableCoroutinesDump = false,
+      options = options,
+      customBuildPaths = buildPaths,
+    ),
+    scope = scope,
+  )
+  val productProperties = createProductProperties(
+    productConfiguration = productConfiguration,
+    outputProvider = compilationContext.outputProvider,
+    projectDir = request.projectDir,
+    platformPrefix = request.platformPrefix,
+  )
+  return createDevBuildContext(
+    compilationContext = compilationContext,
+    productProperties = productProperties,
+    request = request,
+  )
+}
+
+@VisibleForTesting
+internal fun createProjectDevBuildOptions(request: BuildRequest, buildDir: Path, buildOptionsTemplate: BuildOptions): BuildOptions {
+  val classesOutputDirectory = resolveProjectClassesOutputDirectory(request, buildOptionsTemplate)
+  val options = buildOptionsTemplate.copy(
+    classOutDir = classesOutputDirectory.toString(),
+  ).normalizeCompiledClassesOptions(
+    defaultClassesOutputDirectory = classesOutputDirectory,
+  ).copy(
+    jarCacheDir = request.jarCacheDir,
+    buildDateInSeconds = getDevModeOrTestBuildDateInSeconds(),
+    printFreeSpace = false,
+    validateImplicitPlatformModule = false,
+    skipDependencySetup = true,
+    skipCheckOutputOfPluginModules = true,
+    validateModuleStructure = false,
+    cleanOutDir = false,
+    outRootDir = buildDir,
+    compilationLogEnabled = false,
+    logDir = buildDir.resolve("log"),
+    isUnpackedDist = request.isUnpackedDist,
+  )
+  configureDevModeBuildOptions(options = options, request = request, buildOptionsTemplate = buildOptionsTemplate)
+  return options
+}
+
+internal fun configureDevModeBuildOptions(options: BuildOptions, request: BuildRequest, buildOptionsTemplate: BuildOptions) {
+  options.setTargetOsAndArchToCurrent()
+  options.buildStepsToSkip += listOf(
+    BuildOptions.PREBUILD_SHARED_INDEXES,
+    BuildOptions.FUS_METADATA_BUNDLE_STEP,
+    BuildOptions.PROVIDED_MODULES_LIST_STEP,
+  )
+
+  if (request.isUnpackedDist && options.enableEmbeddedFrontend) {
+    options.enableEmbeddedFrontend = false
+  }
+
+  options.generateRuntimeModuleRepository = options.generateRuntimeModuleRepository && request.generateRuntimeModuleRepository
+  options.buildNumber = buildOptionsTemplate.buildNumber
+  options.isInDevelopmentMode = buildOptionsTemplate.isInDevelopmentMode
+  options.isTestBuild = buildOptionsTemplate.isTestBuild
+}
+
+internal fun createDevBuildPaths(projectDir: Path, buildDir: Path, logDir: Path): BuildPaths {
+  val tempDir = buildDir.resolve("temp")
+  Files.createDirectories(tempDir)
+
+  return BuildPaths(
+    communityHomeDirRoot = BuildPaths.COMMUNITY_ROOT,
+    buildOutputDir = buildDir,
+    logDir = logDir,
+    projectHome = projectDir,
+    tempDir = tempDir,
+    artifactDir = buildDir.resolve("artifacts"),
+    searchableOptionDir = projectDir.resolve("out/dev-data/searchable-options"),
+  ).also {
+    it.distAllDir = buildDir
+  }
+}
+
+internal fun createDevBuildContext(
+  compilationContext: CompilationContext,
+  productProperties: ProductProperties,
+  request: BuildRequest,
+): BuildContextImpl {
+  return BuildContextImpl(
+    compilationContext = compilationContext,
+    productProperties = productProperties,
+    windowsDistributionCustomizer = object : WindowsDistributionCustomizer() {},
+    linuxDistributionCustomizer = LinuxDistributionCustomizer(),
+    macDistributionCustomizer = MacDistributionCustomizer(),
+    proprietaryBuildTools = if (request.scrambleTool == null) {
+      ProprietaryBuildTools.DUMMY
     }
     else {
-      buildOptionsTemplate.classOutDir?.let { Path.of(it) }
-      ?: System.getProperty(BuildOptions.PROJECT_CLASSES_OUTPUT_DIRECTORY_PROPERTY)?.let { Path.of(it) }
-      ?: request.productionClassOutput.parent
-    }
-
-    // load project is executed as part of compilation context creation - ~1 second
-    val compilationContextDeferred = async(CoroutineName("create build context")) {
-      spanBuilder("create build context").use {
-        // we cannot inject a proper build time as it is a part of resources, so, set to the first day of the current month
-        val options = BuildOptions(
-          jarCacheDir = jarCacheDir,
-          buildDateInSeconds = getDevModeOrTestBuildDateInSeconds(),
-          printFreeSpace = false,
-          validateImplicitPlatformModule = false,
-          skipDependencySetup = true,
-          skipCheckOutputOfPluginModules = true,
-
-          useCompiledClassesFromProjectOutput = useCompiledClassesFromProjectOutput,
-          pathToCompiledClassesArchivesMetadata = buildOptionsTemplate?.pathToCompiledClassesArchivesMetadata?.takeIf { !useCompiledClassesFromProjectOutput },
-          pathToCompiledClassesArchive = buildOptionsTemplate?.pathToCompiledClassesArchive?.takeIf { !useCompiledClassesFromProjectOutput },
-          unpackCompiledClassesArchives = buildOptionsTemplate?.unpackCompiledClassesArchives?.takeIf { !useCompiledClassesFromProjectOutput } ?: true,
-          classOutDir = classOutDir.toString(),
-
-          validateModuleStructure = false,
-          cleanOutDir = false,
-          outRootDir = runDir,
-          compilationLogEnabled = false,
-          logDir = buildDir.resolve("log"),
-
-          isUnpackedDist = request.isUnpackedDist,
-          useTestCompilationOutput = buildOptionsTemplate?.useTestCompilationOutput ?: BuildOptions().useTestCompilationOutput,
-        )
-        options.setTargetOsAndArchToCurrent()
-        options.buildStepsToSkip += listOf(
-          BuildOptions.PREBUILD_SHARED_INDEXES,
-          BuildOptions.FUS_METADATA_BUNDLE_STEP,
-          BuildOptions.PROVIDED_MODULES_LIST_STEP,
-        )
-
-        if (request.isUnpackedDist && options.enableEmbeddedFrontend) {
-          options.enableEmbeddedFrontend = false
-        }
-
-        options.generateRuntimeModuleRepository = options.generateRuntimeModuleRepository && request.generateRuntimeModuleRepository
-
-        buildOptionsTemplate?.let { template ->
-          options.buildNumber = template.buildNumber
-          options.isInDevelopmentMode = template.isInDevelopmentMode
-          options.isTestBuild = template.isTestBuild
-        }
-
-        val tempDir = buildDir.resolve("temp")
-        val result = BuildPaths(
-          communityHomeDirRoot = BuildPaths.COMMUNITY_ROOT,
-          buildOutputDir = runDir,
-          logDir = options.logDir!!,
-          projectHome = request.projectDir,
-          tempDir = tempDir,
-          artifactDir = buildDir.resolve("artifacts"),
-          searchableOptionDir = request.projectDir.resolve("out/dev-data/searchable-options"),
-        )
-        result.distAllDir = runDir
-        Files.createDirectories(tempDir)
-
-        createCompilationContext(
-          projectHome = request.projectDir,
-          buildOutputRootEvaluator = { _ -> runDir },
-          setupTracer = false,
-          enableCoroutinesDump = false,  // will be enabled later in [com.intellij.platform.ide.bootstrap.enableJstack] instead
-          options = options,
-          customBuildPaths = result,
-        )
-          .toBazelIfNeeded(scope)
-          .let { if (options.unpackCompiledClassesArchives) it else it.asArchived }
-      }
-    }
-
-    val jarCacheManager = LocalDiskJarCacheManager(
+      ProprietaryBuildTools(
+        signTool = ProprietaryBuildTools.DUMMY_SIGN_TOOL,
+        scrambleTool = request.scrambleTool,
+        featureUsageStatisticsProperties = null,
+        artifactsServer = null,
+        licenseServerHost = null,
+      )
+    },
+    jarCacheManager = LocalDiskJarCacheManager(
       cacheDir = request.jarCacheDir,
-      productionClassOutDir = classOutDir.resolve("production"),
-      maxAccessTimeAge = buildOptionsTemplate?.jarCacheMaxAccessAge
-                         ?: (System.getProperty(BuildOptions.JAR_CACHE_MAX_ACCESS_AGE_DAYS_PROPERTY)?.toLong()?.days ?: 3.days),
+      classesOutputDirectory = compilationContext.classesOutputDirectory,
+      maxAccessTimeAge = compilationContext.options.jarCacheMaxAccessAge,
       cleanupInterval = 1.hours,
-    )
-    launch(Dispatchers.IO + CoroutineName("cleanup jar cache")) {
-      jarCacheManager.cleanup()
-    }
-
-    val compilationContext = compilationContextDeferred.await().asArchivedIfNeeded
-
-    val productProperties = async(CoroutineName("create product properties")) {
-      createProductProperties(compilationContext)
-    }
-
-    BuildContextImpl(
-      compilationContext = compilationContext,
-      productProperties = productProperties.await(),
-      windowsDistributionCustomizer = object : WindowsDistributionCustomizer() {},
-      linuxDistributionCustomizer = LinuxDistributionCustomizer(),
-      macDistributionCustomizer = MacDistributionCustomizer(),
-      proprietaryBuildTools = if (request.scrambleTool == null) {
-        ProprietaryBuildTools.DUMMY
-      }
-      else {
-        ProprietaryBuildTools(
-          signTool = ProprietaryBuildTools.DUMMY_SIGN_TOOL,
-          scrambleTool = request.scrambleTool,
-          featureUsageStatisticsProperties = null,
-          artifactsServer = null,
-          licenseServerHost = null,
-        )
-      },
-      jarCacheManager = jarCacheManager,
-    )
-  }
+    ),
+  )
 }
 
 internal suspend fun createProductProperties(
@@ -617,8 +631,8 @@ private fun doCreateProductProperties(
 private fun getBuildModules(productConfiguration: ProductConfiguration): Sequence<String> = sequenceOf("intellij.idea.community.build") + productConfiguration.modules.asSequence()
 
 private data class PlatformLayoutResult(
-  val distributionEntries: List<DistributionFileEntry>,
-  val coreClassPath: Set<Path>,
+  @JvmField val distributionEntries: List<DistributionFileEntry>,
+  @JvmField val coreClassPath: Set<Path>,
 )
 
 private suspend fun layoutPlatform(

@@ -20,6 +20,7 @@ import org.jetbrains.intellij.build.impl.isRunningFromBazelOut
 import org.jetbrains.intellij.build.jpsCache.isForceDownloadJpsCache
 import org.jetbrains.intellij.build.jpsCache.isPortableCompilationCacheEnabled
 import org.jetbrains.intellij.build.jpsCache.jpsCacheRemoteGitUrl
+import org.jetbrains.intellij.build.productionClassesOutputDirectory
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
 import org.jetbrains.intellij.build.telemetry.use
 import org.jetbrains.jps.api.CanceledStatus
@@ -105,7 +106,7 @@ internal fun checkCompilationOptions(context: CompilationContext) {
 }
 
 internal fun isCompilationRequired(options: BuildOptions): Boolean {
-  // Compilation is never required with Bazel
+  // compilation is never required with Bazel
   if (isRunningFromBazelOut()) {
     return false
   }
@@ -147,7 +148,7 @@ internal suspend fun reuseOrCompile(
       check(isBazelTestRun() || context.classesOutputDirectory.exists() || ArchivedCompilationContextUtil.archivedCompiledClassesMapping != null || isRunningFromBazelOut()) {
         "${BuildOptions.USE_COMPILED_CLASSES_PROPERTY} is enabled but the classes output directory ${context.classesOutputDirectory} doesn't exist"
       }
-      val production = context.classesOutputDirectory.resolve("production")
+      val production = context.productionClassesOutputDirectory
       if (!production.exists()) {
         val msg = "${BuildOptions.USE_COMPILED_CLASSES_PROPERTY} is enabled but the classes output directory $production doesn't exist " +
                   "which may cause issues like 'Error: Could not find or load main class'"

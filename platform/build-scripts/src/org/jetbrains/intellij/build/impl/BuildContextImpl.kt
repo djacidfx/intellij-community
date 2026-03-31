@@ -18,6 +18,7 @@ import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.currentCoroutineContext
 import org.jetbrains.annotations.ApiStatus.Experimental
 import org.jetbrains.annotations.ApiStatus.Internal
 import org.jetbrains.intellij.build.ApplicationInfoProperties
@@ -80,17 +81,17 @@ suspend fun createBuildContext(
   options: BuildOptions = BuildOptions(),
   scope: CoroutineScope? = null,
 ): BuildContext {
-  val compilationContext = createCompilationContext(
-    projectHome = projectHome,
-    buildOutputRootEvaluator = createBuildOutputRootEvaluator(projectHome, productProperties, options),
-    options = options,
-    setupTracer = setupTracer,
-  ).toBazelIfNeeded(scope).toArchivedIfNeeded(scope)
   val context = createBuildContext(
-    compilationContext = compilationContext,
+    compilationContext = createCompilationContext(
+      projectHome = projectHome,
+      buildOutputRootEvaluator = createBuildOutputRootEvaluator(projectHome, productProperties, options),
+      options = options,
+      setupTracer = setupTracer,
+    ),
     projectHome = projectHome,
     productProperties = productProperties,
     proprietaryBuildTools = proprietaryBuildTools,
+    scope = scope,
   )
   context.cleanupJarCache()
   return context
@@ -105,12 +106,29 @@ suspend fun createCompilationContext(
   scope: CoroutineScope,
   setupTracer: Boolean,
 ): CompilationContext {
-  return createCompilationContext(
+  return normalizeCompilationContextForBuild(
+    context = createCompilationContext(
     projectHome = projectHome,
     buildOutputRootEvaluator = createBuildOutputRootEvaluator(projectHome = projectHome, productProperties = productProperties, buildOptions = options),
     options = options,
     setupTracer = setupTracer,
-  ).toBazelIfNeeded(scope).toArchivedIfNeeded(scope)
+    ),
+    scope = scope,
+  )
+}
+
+@Internal
+fun normalizeCompilationContextForBuild(context: CompilationContext, scope: CoroutineScope?): CompilationContext {
+  val bazelAwareContext = when (context) {
+    is CompilationContextImpl -> context.toBazelIfNeeded(scope)
+    else -> context
+  }
+  return if (bazelAwareContext.options.unpackCompiledClassesArchives) {
+    bazelAwareContext.toArchivedIfNeeded(scope)
+  }
+  else {
+    bazelAwareContext.toArchivedContext(scope)
+  }
 }
 
 fun createBuildContext(
@@ -118,23 +136,25 @@ fun createBuildContext(
   projectHome: Path,
   productProperties: ProductProperties,
   proprietaryBuildTools: ProprietaryBuildTools = ProprietaryBuildTools.DUMMY,
+  scope: CoroutineScope? = null,
 ): BuildContextImpl {
+  val normalizedCompilationContext = normalizeCompilationContextForBuild(compilationContext, scope)
   val projectHomeAsString = projectHome.invariantSeparatorsPathString
-  val jarCacheManager = compilationContext.options.jarCacheDir?.let {
+  val jarCacheManager = normalizedCompilationContext.options.jarCacheDir?.let {
     LocalDiskJarCacheManager(
       cacheDir = it,
-      productionClassOutDir = compilationContext.classesOutputDirectory.resolve("production"),
-      maxAccessTimeAge = compilationContext.options.jarCacheMaxAccessAge,
+      classesOutputDirectory = normalizedCompilationContext.classesOutputDirectory,
+      maxAccessTimeAge = normalizedCompilationContext.options.jarCacheMaxAccessAge,
     )
   } ?: NonCachingJarCacheManager
   return BuildContextImpl(
-    compilationContext = compilationContext.asArchivedIfNeeded,
+    compilationContext = normalizedCompilationContext,
     productProperties = productProperties,
     windowsDistributionCustomizer = productProperties.createWindowsCustomizer(projectHome),
     linuxDistributionCustomizer = productProperties.createLinuxCustomizer(projectHomeAsString),
     macDistributionCustomizer = productProperties.createMacCustomizer(projectHome),
     proprietaryBuildTools = proprietaryBuildTools,
-    applicationInfo = ApplicationInfoPropertiesImpl(project = compilationContext.project, productProperties = productProperties, buildOptions = compilationContext.options),
+    applicationInfo = ApplicationInfoPropertiesImpl(project = normalizedCompilationContext.project, productProperties = productProperties, buildOptions = normalizedCompilationContext.options),
     jarCacheManager = jarCacheManager,
   )
 }
@@ -379,12 +399,18 @@ class BuildContextImpl internal constructor(
     val newAppInfo = ApplicationInfoPropertiesImpl(project = project, productProperties = productProperties, buildOptions = options)
 
     val buildOut = options.outRootDir ?: createBuildOutputRootEvaluator(paths.projectHome, productProperties, options)(project)
+
     @Suppress("DEPRECATION")
     val artifactDir = if (prepareForBuild) paths.artifactDir.resolve(productProperties.productCode ?: newAppInfo.productCode) else null
+    val copyContext = currentCoroutineContext()
+    val copyScope = object : CoroutineScope {
+      override val coroutineContext = copyContext
+    }
     val compilationContextCopy = compilationContext.createCopy(
       messages = messages,
       options = options,
-      paths = computeBuildPaths(options = options, buildOut = buildOut, projectHome = paths.projectHome, artifactDir = artifactDir)
+      paths = computeBuildPaths(options = options, buildOut = buildOut, projectHome = paths.projectHome, artifactDir = artifactDir),
+      scope = copyScope,
     )
     val copy = BuildContextImpl(
       compilationContext = compilationContextCopy,

@@ -34,7 +34,7 @@ class JpsCompilationData(
   var projectDependenciesResolved: Boolean = false
 
   internal fun isIncrementalCompilationDataAvailable(): Boolean {
-    val productionClasses = classesOutputDirectory.resolve("production")
+    val productionClasses = getProductionClassesOutputDirectory(classesOutputDirectory)
     return isNotEmptyDir(dataStorageRoot) && isNotEmptyDir(productionClasses)
   }
 

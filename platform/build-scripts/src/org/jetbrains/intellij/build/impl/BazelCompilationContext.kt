@@ -107,13 +107,18 @@ class BazelCompilationContext(
 
   override fun findFileInModuleSources(module: JpsModule, relativePath: String, forTests: Boolean): Path? = delegate.findFileInModuleSources(module, relativePath, forTests)
 
-  override fun notifyArtifactBuilt(artifactPath: Path): Unit = delegate.notifyArtifactBuilt(artifactPath)
-
-  override fun createCopy(messages: BuildMessages, options: BuildOptions, paths: BuildPaths): CompilationContext {
-    return BazelCompilationContext(delegate = delegate.createCopy(messages, options, paths), scope = scope, outputProviderState = outputProviderState)
+  override fun notifyArtifactBuilt(artifactPath: Path) {
+    delegate.notifyArtifactBuilt(artifactPath)
   }
 
-  override suspend fun prepareForBuild(): Unit = delegate.prepareForBuild()
+  override fun createCopy(messages: BuildMessages, options: BuildOptions, paths: BuildPaths, scope: CoroutineScope?): CompilationContext {
+    val effectiveScope = scope ?: this.scope
+    return BazelCompilationContext(delegate = delegate.createCopy(messages, options, paths, effectiveScope), scope = effectiveScope, outputProviderState = outputProviderState)
+  }
+
+  override suspend fun prepareForBuild() {
+    delegate.prepareForBuild()
+  }
 
   override suspend fun compileModules(moduleNames: Collection<String>?, includingTestsInModules: List<String>?) {
     // Be sure to call ./bazel-build-all.cmd

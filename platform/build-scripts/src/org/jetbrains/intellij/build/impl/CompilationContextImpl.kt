@@ -15,6 +15,7 @@ import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.trace.Span
 import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -115,10 +116,12 @@ suspend fun createCompilationContext(
   }
 
   if (options.printEnvironmentInfo) {
-    Span.current().addEvent("environment info", Attributes.of(
-      AttributeKey.stringKey("community home"), COMMUNITY_ROOT.communityRoot.toString(),
-      AttributeKey.stringKey("project home"), projectHome.toString(),
-    ))
+    Span.current().addEvent(
+      "environment info", Attributes.of(
+        AttributeKey.stringKey("community home"), COMMUNITY_ROOT.communityRoot.toString(),
+        AttributeKey.stringKey("project home"), projectHome.toString(),
+      )
+    )
     printEnvironmentDebugInfo()
   }
 
@@ -156,7 +159,7 @@ suspend fun createCompilationContext(
 
   messages.setDebugLogPath(context.paths.logDir.resolve("debug.log"))
   // this is not a proper place to initialize logging, but this is the only place called in most build scripts
-  BuildMessagesHandler.initLogging(messages)
+  BuildMessagesHandler.initLoggingIfNeeded(messages)
   return context
 }
 
@@ -166,11 +169,12 @@ class CompilationContextImpl internal constructor(
   override val messages: BuildMessages,
   override val paths: BuildPaths,
   override val options: BuildOptions,
+  @JvmField val outputProviderState: JpsModuleOutputProviderState = JpsModuleOutputProviderState(model.project),
 ) : CompilationContext {
   val global: JpsGlobal
     get() = model.global
 
-  override val outputProvider: ModuleOutputProvider = JpsModuleOutputProvider(project, useTestCompilationOutput = options.useTestCompilationOutput)
+  override val outputProvider: ModuleOutputProvider = outputProviderState.createProvider(useTestCompilationOutput = options.useTestCompilationOutput)
 
   override var classesOutputDirectory: Path
     get() = Path.of(JpsPathUtil.urlToPath(JpsJavaExtensionService.getInstance().getOrCreateProjectExtension(project).outputUrl))
@@ -226,11 +230,11 @@ class CompilationContextImpl internal constructor(
   private val originalModuleRepository = suspendingLazy("Build original module repository") {
     buildOriginalModuleRepository(this@CompilationContextImpl)
   }
-  
+
   override suspend fun getOriginalModuleRepository(): OriginalModuleRepository = originalModuleRepository.await()
 
-  override fun createCopy(messages: BuildMessages, options: BuildOptions, paths: BuildPaths): CompilationContext {
-    val copy = CompilationContextImpl(model = projectModel, messages = messages, paths = paths, options = options)
+  override fun createCopy(messages: BuildMessages, options: BuildOptions, paths: BuildPaths, scope: CoroutineScope?): CompilationContext {
+    val copy = CompilationContextImpl(model = projectModel, messages = messages, paths = paths, options = options, outputProviderState = outputProviderState)
     copy.compilationData = compilationData
     return copy
   }
@@ -269,9 +273,11 @@ class CompilationContextImpl internal constructor(
       cleanOutput(context = this@CompilationContextImpl, keepCompilationState(options))
     }
     else {
-      Span.current().addEvent("skip output cleaning", Attributes.of(
-        AttributeKey.stringKey("dir"), paths.buildOutputDir.toString(),
-      ))
+      Span.current().addEvent(
+        "skip output cleaning", Attributes.of(
+          AttributeKey.stringKey("dir"), paths.buildOutputDir.toString(),
+        )
+      )
     }
   }
 
@@ -342,7 +348,8 @@ class CompilationContextImpl internal constructor(
 private fun enableCoroutinesDump(span: Span) {
   try {
     enableCoroutineDump()
-    JBR.getJstack()?.includeInfoFrom { """
+    JBR.getJstack()?.includeInfoFrom {
+      """
 $COROUTINE_DUMP_HEADER
 ${dumpCoroutines()}
 """ // dumpCoroutines is multiline, trimIndent won't work

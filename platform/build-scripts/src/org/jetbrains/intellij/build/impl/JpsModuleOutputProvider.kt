@@ -5,6 +5,7 @@ package org.jetbrains.intellij.build.impl
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.jetbrains.annotations.ApiStatus.Internal
 import org.jetbrains.intellij.build.ModuleOutputProvider
 import org.jetbrains.jps.model.JpsProject
 import org.jetbrains.jps.model.java.JpsJavaExtensionService
@@ -13,12 +14,39 @@ import org.jetbrains.jps.model.module.JpsModule
 import java.nio.file.Files
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
-import kotlin.io.path.isRegularFile
 
-internal class JpsModuleOutputProvider(private val project: JpsProject, override val useTestCompilationOutput: Boolean) : ModuleOutputProvider {
+@Internal
+class JpsModuleOutputProviderState(
+  @JvmField val project: JpsProject,
+) {
   private val index = ModuleOutputProviderIndex(project.modules)
 
-  override fun getAllModules(): List<JpsModule> = index.modules
+  val modules: List<JpsModule>
+    get() = index.modules
+
+  fun findModule(name: String): JpsModule? = index.findModule(name)
+
+  fun findRequiredModule(name: String): JpsModule = index.findRequiredModule(name)
+
+  fun getProjectLibraryToModuleMap(): Map<String, String> = index.getProjectLibraryToModuleMap()
+
+  fun getModuleImlFile(module: JpsModule): Path = index.getModuleImlFile(module)
+
+  fun createProvider(useTestCompilationOutput: Boolean): ModuleOutputProvider {
+    return JpsModuleOutputProvider(state = this, useTestCompilationOutput = useTestCompilationOutput)
+  }
+}
+
+internal class JpsModuleOutputProvider(
+  private val state: JpsModuleOutputProviderState,
+  override val useTestCompilationOutput: Boolean,
+) : ModuleOutputProvider {
+  constructor(project: JpsProject, useTestCompilationOutput: Boolean) : this(
+    state = JpsModuleOutputProviderState(project),
+    useTestCompilationOutput = useTestCompilationOutput,
+  )
+
+  override fun getAllModules(): List<JpsModule> = state.modules
 
   override suspend fun readFileContentFromModuleOutput(module: JpsModule, relativePath: String, forTests: Boolean): ByteArray? {
     val outputDir = requireNotNull(JpsJavaExtensionService.getInstance().getOutputDirectoryPath(/* module = */ module, /* forTests = */ forTests)) {
@@ -33,24 +61,25 @@ internal class JpsModuleOutputProvider(private val project: JpsProject, override
     }
   }
 
-  override fun findModule(name: String): JpsModule? = index.findModule(name)
+  override fun findModule(name: String): JpsModule? = state.findModule(name)
 
-  override fun findRequiredModule(name: String): JpsModule = index.findRequiredModule(name)
+  override fun findRequiredModule(name: String): JpsModule = state.findRequiredModule(name)
 
   override fun findLibraryRoots(libraryName: String, moduleLibraryModuleName: String?): List<Path> {
+    val project = state.project
     val module = moduleLibraryModuleName?.let { findRequiredModule(it) }
-    val library = if (module != null) {
-      module.libraryCollection.findLibrary(libraryName) ?: error("Could not find module-level library $libraryName in module ${module.name}")
+    val library = if (module == null) {
+      project.libraryCollection.findLibrary(libraryName) ?: error("Could not find project-level library $libraryName")
     }
     else {
-      project.libraryCollection.findLibrary(libraryName) ?: error("Could not find project-level library $libraryName")
+      module.libraryCollection.findLibrary(libraryName) ?: error("Could not find module-level library $libraryName in module ${module.name}")
     }
 
     val libraryMoniker = "library '$libraryName' " + if (moduleLibraryModuleName == null) "(project level)" else "(in module '$moduleLibraryModuleName'"
 
     val paths = library.getPaths(JpsOrderRootType.COMPILED)
     for (path in paths) {
-      check(path.isRegularFile()) {
+      check(Files.isRegularFile(path)) {
         "Library file '$path' does not exists, required for $libraryMoniker"
       }
     }
@@ -67,7 +96,7 @@ internal class JpsModuleOutputProvider(private val project: JpsProject, override
 
   override suspend fun findFileInAnyModuleOutput(relativePath: String, moduleNamePrefix: String?, processedModules: MutableSet<String>?): ByteArray? {
     return findFileInAnyModuleOutput(
-      modules = index.modules,
+      modules = state.modules,
       relativePath = relativePath,
       provider = this,
       moduleNamePrefix = moduleNamePrefix,
@@ -75,7 +104,7 @@ internal class JpsModuleOutputProvider(private val project: JpsProject, override
     )
   }
 
-  override fun getProjectLibraryToModuleMap(): Map<String, String> = index.getProjectLibraryToModuleMap()
+  override fun getProjectLibraryToModuleMap(): Map<String, String> = state.getProjectLibraryToModuleMap()
 
-  override fun getModuleImlFile(module: JpsModule): Path = index.getModuleImlFile(module)
+  override fun getModuleImlFile(module: JpsModule): Path = state.getModuleImlFile(module)
 }
