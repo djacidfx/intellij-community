@@ -162,4 +162,45 @@ class PropertiesStatementUpDownMoverTest : BasePlatformTestCase() {
       a.b.c=first
     """.trimIndent())
   }
+
+  fun testMoveMultilineUpPastMultiline() {
+    myFixture.configureByText(PropertiesFileType.INSTANCE, """
+      a.b=first \
+        continued 1
+      c.d=second \
+        continued 2
+      e.f=third \
+        cont<caret>inued 3
+    """.trimIndent())
+    myFixture.performEditorAction(IdeActions.ACTION_MOVE_STATEMENT_UP_ACTION)
+    myFixture.checkResult("""
+      a.b=first \
+        continued 1
+      e.f=third \
+        continued 3
+      c.d=second \
+        continued 2
+      
+    """.trimIndent())
+  }
+
+  fun testMoveMultilineDownPastMultiline() {
+    myFixture.configureByText(PropertiesFileType.INSTANCE, """
+      a.b=first \
+        continued<caret> 1
+      c.d=second \
+        continued 2
+      e.f=third \
+        continued 3
+    """.trimIndent())
+    myFixture.performEditorAction(IdeActions.ACTION_MOVE_STATEMENT_DOWN_ACTION)
+    myFixture.checkResult("""
+      c.d=second \
+        continued 2
+      a.b=first \
+        continued 1
+      e.f=third \
+        continued 3
+    """.trimIndent())
+  }
 }
