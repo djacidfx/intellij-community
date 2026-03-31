@@ -14,11 +14,12 @@ def _fleet_plugin_services_resources_impl(ctx):
     )
     processor_classpath = ctx.attr._kernel_plugins_processor[JavaInfo].transitive_runtime_jars
     kotlin_toolchain = ctx.toolchains[KOTLIN_TOOLCHAIN]
+    module_name = ctx.attr.module_name if ctx.attr.module_name else ctx.attr.name
     args = ctx.actions.args()
     args.set_param_file_format("multiline")
     args.use_param_file("--flagfile=%s", use_always = True)
     args.add("generate-fleet-plugin-services-resources")
-    args.add("--module-name=%s" % ctx.attr.module_name)
+    args.add("--module-name=%s" % module_name)
     args.add_all(["--sources=%s" % s.path for s in ctx.files.srcs])
     args.add_all(["--classpath=%s" % c.path for c in compile_classpath.to_list()])
     args.add_all(["--processor-classpath=%s" % c.path for c in processor_classpath.to_list()])
@@ -44,7 +45,7 @@ def _fleet_plugin_services_resources_impl(ctx):
         ResourceGroupInfo(files = [resources_output_dir], strip_prefix = resources_output_dir.path, add_prefix = ""),
     ]
 
-_fleet_plugin_services_resources_rule = rule(
+fleet_plugin_services_resources = rule(
     implementation = _fleet_plugin_services_resources_impl,
     attrs = HAVEN_CLI_ATTR | {
         "srcs": attr.label_list(
@@ -57,7 +58,6 @@ _fleet_plugin_services_resources_rule = rule(
             doc = "Compile classpath for the analyzed sources.",
         ),
         "module_name": attr.string(
-            mandatory = True,
             doc = "Kotlin module name for the analyzed sources.",
         ),
         "_kernel_plugins_processor": attr.label(
@@ -68,11 +68,3 @@ _fleet_plugin_services_resources_rule = rule(
     toolchains = [KOTLIN_TOOLCHAIN],
 )
 
-def fleet_plugin_services_resources(name, srcs, deps = [], module_name = None, **kwargs):
-    _fleet_plugin_services_resources_rule(
-        name = name,
-        srcs = srcs,
-        deps = deps,
-        module_name = module_name if module_name != None else name,
-        **kwargs
-    )

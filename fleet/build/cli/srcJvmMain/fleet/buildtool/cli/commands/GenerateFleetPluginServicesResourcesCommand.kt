@@ -11,7 +11,6 @@ import com.google.devtools.ksp.processing.KSPConfig
 import com.google.devtools.ksp.processing.KSPJvmConfig
 import com.google.devtools.ksp.processing.KspGradleLogger
 import com.google.devtools.ksp.processing.SymbolProcessorProvider
-import kotlinx.coroutines.Dispatchers
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
@@ -25,7 +24,6 @@ import kotlin.io.path.copyTo
 import kotlin.io.path.createDirectories
 import kotlin.io.path.deleteRecursively
 import kotlin.io.path.exists
-import kotlin.system.exitProcess
 
 private const val PLUGIN_SERVICE_FQN = "fleet.kernel.plugins.Plugin"
 private val PLUGIN_SERVICE_RESOURCE = Path.of("META-INF", "services", PLUGIN_SERVICE_FQN)
@@ -33,7 +31,6 @@ private val GENERATED_RESOURCE_PATHS = listOf(
   Path.of("entityTypes.txt"),
   PLUGIN_SERVICE_RESOURCE,
 )
-private const val LOG_PREFIX = "[generate-fleet-plugin-services-resources]"
 
 class GenerateFleetPluginServicesResourcesCommand : CliktCommand(
   name = "generate-fleet-plugin-services-resources",
@@ -51,7 +48,7 @@ class GenerateFleetPluginServicesResourcesCommand : CliktCommand(
 
   @OptIn(ExperimentalPathApi::class, KaExperimentalApi::class)
   override fun run() {
-    val workDir = Files.createTempDirectory("fleet-plugin-services-ksp").toAbsolutePath().normalize()
+    val workDir = Files.createTempDirectory("fleet-plugin-services-resources-generator")
     try {
       val normalizedSources = sources.map { it.toAbsolutePath().normalize() }
       val normalizedClasspath = classpath.map { it.toAbsolutePath().normalize() }
@@ -91,29 +88,9 @@ class GenerateFleetPluginServicesResourcesCommand : CliktCommand(
         "KSP failed with exit code $kspExitCode"
       }
       copyGeneratedResources(resourceOutputDirPath, outputDir.toAbsolutePath().normalize())
-      awaitGlobalStandaloneApplicationServicesDisposed(processCode = 0)
-    }
-    catch (t: Throwable) {
-      awaitGlobalStandaloneApplicationServicesDisposed(processCode = 1)
-      throw t
     }
     finally {
-      try {
         workDir.deleteRecursively()
-      }
-      catch (t: Throwable) {
-        logger.error("${LOG_PREFIX} Failed to delete temporary directory: $workDir ; ${t.message}")
-      }
-    }
-  }
-
-  @OptIn(KaExperimentalApi::class)
-  private fun awaitGlobalStandaloneApplicationServicesDisposed(processCode: Int) {
-    try {
-      disposeGlobalStandaloneApplicationServices()
-    }
-    catch (t: Throwable) {
-      logger.error("${LOG_PREFIX} Failed to dispose global standalone application services: ${t.message}")
     }
   }
 

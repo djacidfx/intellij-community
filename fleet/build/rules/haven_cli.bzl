@@ -1,17 +1,12 @@
 load("@rules_java//java/common:java_common.bzl", "java_common")
 
-_HAVEN_CLI_JVM_FLAGS = [
-    "-Xms128m",
-    "-Xmx1g",
-]
-
 HAVEN_CLI_ATTR = {
     "_haven_cli_launcher": attr.label(
         default = "@rules_jvm//:rules/impl/MemoryLauncher.java",
         allow_single_file = True,
     ),
     "_haven_cli": attr.label(
-        default = "//fleet/build/cli:haven_deploy.jar",
+        default = "//fleet/build/cli-worker:haven-cli-worker_deploy.jar",
         allow_single_file = True,
         cfg = "exec",
     ),
@@ -36,7 +31,12 @@ def run_haven_cli(
         outputs = outputs,
         tools = [ctx.file._haven_cli_launcher, ctx.file._haven_cli, java_runtime.files] + tools,
         executable = java_runtime.java_executable_exec_path,
-        arguments = _HAVEN_CLI_JVM_FLAGS + [
+        execution_requirements = {
+            "supports-workers": "1",
+            "supports-worker-cancellation": "1",
+            "supports-path-mapping": "1",
+        },
+        arguments = [
             ctx.file._haven_cli_launcher.path,
             ctx.file._haven_cli.path,
         ] + arguments,
