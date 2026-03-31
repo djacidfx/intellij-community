@@ -12,6 +12,7 @@ import com.intellij.openapi.util.NlsContexts
 import com.intellij.ui.ExperimentalUI
 import com.intellij.ui.GroupHeaderSeparator
 import com.intellij.ui.SimpleColoredComponent
+import com.intellij.ui.components.OnOffButton
 import com.intellij.ui.dsl.UiDslException
 import com.intellij.ui.dsl.gridLayout.GridLayout
 import com.intellij.ui.dsl.gridLayout.HorizontalAlign
@@ -353,7 +354,9 @@ private class RendererPanel(key: RowKey) :
     for (component in cellsPanel.components) {
       val result = when (component) {
         is SimpleColoredComponent -> component.getCharSequence(true).toString()
-        is JLabel -> component.text // todo dead code?
+        is JLabel,
+        is OnOffButton,
+          -> null
         else -> throw UiDslException("Unsupported component type: ${component.javaClass.name}")
       }
 
