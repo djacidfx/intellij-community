@@ -1813,6 +1813,48 @@ http_file(
 )
 
 http_file(
+  name = "com_google_devtools_ksp-symbol-processing-aa-embeddable-2_3_6_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/google/devtools/ksp/symbol-processing-aa-embeddable/2.3.6/symbol-processing-aa-embeddable-2.3.6.jar",
+  sha256 = "7caea2d426680a6a77007bca60d40ea1c9218f3db6ae9d16c54f0ffefc4e1b5b",
+  downloaded_file_path = "symbol-processing-aa-embeddable-2.3.6.jar"
+)
+
+http_file(
+  name = "com_google_devtools_ksp-symbol-processing-aa-embeddable-2_3_6-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/google/devtools/ksp/symbol-processing-aa-embeddable/2.3.6/symbol-processing-aa-embeddable-2.3.6-sources.jar",
+  sha256 = "5c1542e273f217077d30fdcbbd4ce8343e6135327ab724bed6e5422e0b07e6ad",
+  downloaded_file_path = "symbol-processing-aa-embeddable-2.3.6-sources.jar"
+)
+
+http_file(
+  name = "com_google_devtools_ksp-symbol-processing-api-2_3_6_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/google/devtools/ksp/symbol-processing-api/2.3.6/symbol-processing-api-2.3.6.jar",
+  sha256 = "55df837d54b1bfdd7cdbe53bd84deeae374677ec4a729a9af154d3fee3c00230",
+  downloaded_file_path = "symbol-processing-api-2.3.6.jar"
+)
+
+http_file(
+  name = "com_google_devtools_ksp-symbol-processing-api-2_3_6-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/google/devtools/ksp/symbol-processing-api/2.3.6/symbol-processing-api-2.3.6-sources.jar",
+  sha256 = "fa550c668bc3df824e20a81b29800763a0c7062e7753ac9726abd0594ba9652a",
+  downloaded_file_path = "symbol-processing-api-2.3.6-sources.jar"
+)
+
+http_file(
+  name = "com_google_devtools_ksp-symbol-processing-common-deps-2_3_6_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/google/devtools/ksp/symbol-processing-common-deps/2.3.6/symbol-processing-common-deps-2.3.6.jar",
+  sha256 = "f75ece6d1d4a8978fc9cfe2c895c3232347ddbab5c084b04d0ce876b1d7c9604",
+  downloaded_file_path = "symbol-processing-common-deps-2.3.6.jar"
+)
+
+http_file(
+  name = "com_google_devtools_ksp-symbol-processing-common-deps-2_3_6-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/google/devtools/ksp/symbol-processing-common-deps/2.3.6/symbol-processing-common-deps-2.3.6-sources.jar",
+  sha256 = "899d38d22baffb64655570b735ce663f36ffb9d614ab919e58698992938b3cef",
+  downloaded_file_path = "symbol-processing-common-deps-2.3.6-sources.jar"
+)
+
+http_file(
   name = "io_github_pdvrieze_xmlutil-core-0_91_3_http",
   url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/io/github/pdvrieze/xmlutil/core/0.91.3/core-0.91.3.jar",
   sha256 = "4af1acef851d201c7bfe3fd579057197f71b3b6570a02d04fe63c32bc5b29e93",

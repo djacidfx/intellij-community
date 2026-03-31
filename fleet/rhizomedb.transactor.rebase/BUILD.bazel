@@ -1,5 +1,6 @@
 ### auto-generated section `build fleet.rhizomedb.transactor.rebase` start
 load("//build:compiler-options.bzl", "create_kotlinc_options")
+load("@community//fleet/build:fleet.bzl", "fleet_plugin_services_resources")
 load("@rules_jvm//:jvm.bzl", "jvm_library", "resourcegroup")
 
 create_kotlinc_options(
@@ -21,12 +22,36 @@ resourcegroup(
   strip_prefix = "resources"
 )
 
+fleet_plugin_services_resources(
+  name = "rhizomedb.transactor.rebase_fleet_plugin_services_resources",
+  srcs = glob(["srcCommonMain/**/*.kt", "srcCommonMain/**/*.java", "srcCommonMain/**/*.form"], allow_empty = True),
+  deps = [
+    "@lib//:kotlin-stdlib",
+    "//fleet/rhizomedb.transactor",
+    "//fleet/rhizomedb",
+    "@lib//:kotlinx-serialization-core",
+    "@lib//:kotlinx-serialization-json",
+    "//fleet/util/core",
+    "//fleet/rpc",
+    "@lib//:kotlinx-coroutines-core",
+    "//fleet/reporting/api",
+    "//fleet/reporting/shared",
+    "//fleet/multiplatform.shims",
+    "//libraries/fastutil",
+    "//fleet/bifurcan",
+    "//fleet/fastutil",
+  ]
+)
+
 jvm_library(
   name = "rhizomedb.transactor.rebase",
   module_name = "fleet.rhizomedb.transactor.rebase",
   visibility = ["//visibility:public"],
   srcs = glob(["srcCommonMain/**/*.kt", "srcCommonMain/**/*.java", "srcCommonMain/**/*.form"], allow_empty = True),
-  resources = [":rhizomedb.transactor.rebase_resources"],
+  resources = [
+    ":rhizomedb.transactor.rebase_resources",
+    ":rhizomedb.transactor.rebase_fleet_plugin_services_resources",
+  ],
   kotlinc_opts = ":custom_rhizomedb.transactor.rebase",
   deps = [
     "@lib//:kotlin-stdlib",

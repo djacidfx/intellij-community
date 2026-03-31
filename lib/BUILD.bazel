@@ -2409,6 +2409,51 @@ jvm_import(
 )
 
 copy_file(
+  name = "com.google.devtools.ksp/symbol-processing-aa-embeddable-2.3.6.jar_copy",
+  src = "@com_google_devtools_ksp-symbol-processing-aa-embeddable-2_3_6_http//file",
+  out = "com.google.devtools.ksp/symbol-processing-aa-embeddable-2.3.6.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "fleet-google-devtools-ksp-symbol-processing-aa-embeddable",
+  jar = "@com_google_devtools_ksp-symbol-processing-aa-embeddable-2_3_6_http//file",
+  source_jar = "@com_google_devtools_ksp-symbol-processing-aa-embeddable-2_3_6-sources_http//file",
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "com.google.devtools.ksp/symbol-processing-api-2.3.6.jar_copy",
+  src = "@com_google_devtools_ksp-symbol-processing-api-2_3_6_http//file",
+  out = "com.google.devtools.ksp/symbol-processing-api-2.3.6.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "fleet-google-devtools-ksp-symbol-processing-api",
+  jar = "@com_google_devtools_ksp-symbol-processing-api-2_3_6_http//file",
+  source_jar = "@com_google_devtools_ksp-symbol-processing-api-2_3_6-sources_http//file",
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "com.google.devtools.ksp/symbol-processing-common-deps-2.3.6.jar_copy",
+  src = "@com_google_devtools_ksp-symbol-processing-common-deps-2_3_6_http//file",
+  out = "com.google.devtools.ksp/symbol-processing-common-deps-2.3.6.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "fleet-google-devtools-ksp-symbol-processing-common-deps",
+  jar = "@com_google_devtools_ksp-symbol-processing-common-deps-2_3_6_http//file",
+  source_jar = "@com_google_devtools_ksp-symbol-processing-common-deps-2_3_6-sources_http//file",
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
   name = "io.github.pdvrieze.xmlutil/core-0.91.3.jar_copy",
   src = "@io_github_pdvrieze_xmlutil-core-0_91_3_http//file",
   out = "io.github.pdvrieze.xmlutil/core-0.91.3.jar",
