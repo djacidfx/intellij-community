@@ -38,7 +38,7 @@ fun readVSCBundle(plistReader: PlistReaderCore, resourceReader: TextMateResource
 private class VSCBundleReader(private val extension: VSCodeExtension,
                               private val plistReader: PlistReaderCore,
                               private val resourceReader: TextMateResourceReader) : TextMateBundleReader {
-  override val bundleName: String = extension.name
+  override val bundleName: String = extension.displayName ?: extension.name
 
   private val languages: Map<VSCodeExtensionLanguageId, VSCodeExtensionLanguage> by lazy {
     extension.contributes.languages.associateBy { language -> language.id }
@@ -50,7 +50,7 @@ private class VSCBundleReader(private val extension: VSCodeExtension,
 
   private val embeddedLanguages: Map<VSCodeExtensionLanguageId, Collection<TextMateScopeName>> by lazy {
     val map = HashMap<VSCodeExtensionLanguageId, MutableSet<TextMateScopeName>>()
-    extension.contributes.grammars.map { grammar ->
+    extension.contributes.grammars.forEach { grammar ->
       for ((scopeName, languageId) in grammar.embeddedLanguages) {
         map.getOrPut(languageId) { HashSet() }.add(scopeName)
       }
@@ -210,7 +210,9 @@ internal data class VSCodeExtensionContributes(
 )
 
 @Serializable
-internal data class VSCodeExtension(val name: String, val contributes: VSCodeExtensionContributes)
+internal data class VSCodeExtension(val name: String,
+                                    val displayName: String? = null,
+                                    val contributes: VSCodeExtensionContributes)
 
 @Serializable
 internal data class VSCodeExtensionLanguageConfiguration(
