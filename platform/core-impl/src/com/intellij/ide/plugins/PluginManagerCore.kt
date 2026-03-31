@@ -1218,6 +1218,10 @@ private fun ResolvedPluginSet.logExclusionTree(incompletePlugins: HashMap<Plugin
         if (disabledPlugin != null) {
           appendLine("${disabledPlugin.getLogDescription()} is marked disabled")
         } else {
+          when (ref) {
+            is DependencyRef.ContentModule -> append("module ")
+            is DependencyRef.Plugin -> append("plugin ")
+          }
           appendLine("${ref.getIdString()} is not resolved")
         }
 
