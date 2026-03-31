@@ -314,7 +314,7 @@ class AutoImportProjectTracker(
     val reloadOperation = AtomicOperationTrace(name = "Reload $projectId")
     val projectStatus = ProjectStatus(debugName = projectId.toString())
     val parentDisposable = Disposer.newDisposable(serviceDisposable, projectId.toString())
-    val settingsTracker = ProjectSettingsTracker(project, this, backgroundExecutor, projectAware, parentDisposable)
+    val settingsTracker = AutoImportProjectSettingsFilesTracker(project, this, backgroundExecutor, projectAware, parentDisposable)
     val projectData = ProjectData(projectStatus, activationProperty, reloadOperation, projectAware, settingsTracker, parentDisposable)
 
     projectDataMap[projectId] = projectData
@@ -463,7 +463,7 @@ class AutoImportProjectTracker(
     @JvmField val activationProperty: MutableBooleanProperty,
     @JvmField val reloadOperation: MutableOperationTrace,
     @JvmField val projectAware: ExternalSystemProjectAware,
-    @JvmField val settingsTracker: ProjectSettingsTracker,
+    @JvmField val settingsTracker: AutoImportProjectSettingsFilesTracker,
     @JvmField val parentDisposable: Disposable
   ) {
     var isActivated by activationProperty
@@ -483,7 +483,7 @@ class AutoImportProjectTracker(
   @Serializable
   data class ProjectDataState(
     @JvmField val isDirty: Boolean = false,
-    @JvmField val settingsTracker: ProjectSettingsTracker.State? = null
+    @JvmField val settingsTracker: AutoImportProjectSettingsFilesTracker.State? = null
   )
 
   private data class ProjectReloadContext(

@@ -38,7 +38,7 @@ import java.util.concurrent.Executor
 import java.util.concurrent.atomic.AtomicReference
 
 @ApiStatus.Internal
-class ProjectSettingsTracker(
+class AutoImportProjectSettingsFilesTracker(
   private val project: Project,
   private val projectTracker: AutoImportProjectTracker,
   private val backgroundExecutor: Executor,
