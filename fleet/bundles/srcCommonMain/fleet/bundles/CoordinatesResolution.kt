@@ -26,5 +26,5 @@ data class ModuleOnDisc(val path: String,
                         val serializedModuleDescriptor: String?)
 
 fun interface ResourceBundle {
-  operator fun get(key: String): ByteArray?
+  fun readResource(key: String): ByteArray?
 }
