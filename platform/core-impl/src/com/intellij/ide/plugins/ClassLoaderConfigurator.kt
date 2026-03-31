@@ -64,7 +64,7 @@ class ClassLoaderConfigurator(
   }
 
   fun configure() {
-    for (module in pluginSet.classloaderConfigurationOrderOverride ?: pluginSet.getEnabledModules()) {
+    for (module in pluginSet.getModulesOrderedForClassLoaderConfiguration()) {
       configureModule(module)
     }
   }

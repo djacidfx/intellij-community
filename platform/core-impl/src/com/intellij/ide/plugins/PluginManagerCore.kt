@@ -635,8 +635,8 @@ object PluginManagerCore {
           logger.warn("Enabled modules are identical")
         }
 
-        val newClassloaderConfOrder = adaptedPluginSet.classloaderConfigurationOrderOverride ?: adaptedPluginSet.getEnabledModules()
-        val oldClassloaderOrder = oldSet.classloaderConfigurationOrderOverride ?: oldSet.getEnabledModules()
+        val newClassloaderConfOrder = adaptedPluginSet.getModulesOrderedForClassLoaderConfiguration().toList()
+        val oldClassloaderOrder = oldSet.getModulesOrderedForClassLoaderConfiguration().toList()
         if (newClassloaderConfOrder != oldClassloaderOrder) {
           logger.warn("!!! Old classloader configuration order:\n" + oldClassloaderOrder.joinToString("\n") + "\n")
           logger.warn("!!! New classloader configuration order:\n" + newClassloaderConfOrder.joinToString("\n") + "\n")
@@ -770,8 +770,6 @@ object PluginManagerCore {
       enabledModuleMap = resolvedModules.keys.asSequence().filterIsInstance<ContentModuleDescriptor>().associateBy { it.moduleId },
       enabledPluginAndV1ModuleMap = enabledPluginAndV1ModuleMap,
       enabledModules = resolvedModules.keys.toList(),
-      classloaderConfigurationOrderOverride = resolvedPluginSet.runtimeModuleGroupGraph.sortedGroups.asSequence()
-        .flatMap { it.sortedDescriptors }.filterIsInstance<PluginModuleDescriptor>().toList(),
       topologicalComparator = topologicalComparator,
       dependsDirectDependencies = resolvedPluginSet.sortedResolvedDescriptors.filterIsInstance<DependsSubDescriptor>()
         .associateWith { depends ->

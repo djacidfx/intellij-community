@@ -18,7 +18,6 @@ class PluginSet internal constructor(
   private val enabledPluginAndV1ModuleMap: Map<PluginId, PluginModuleDescriptor>,
   private val enabledModules: List<PluginModuleDescriptor>,
   private val topologicalComparator: Comparator<PluginModuleDescriptor>,
-  val classloaderConfigurationOrderOverride: List<PluginModuleDescriptor>?,
   val dependsDirectDependencies: Map<DependsSubDescriptor, List<PluginModuleDescriptor>>?,
   val resolvedPluginSet: ResolvedPluginSet?,
 ) {
@@ -120,6 +119,15 @@ class PluginSet internal constructor(
       plugin.contentModules.associateByTo(result, ContentModuleDescriptor::moduleId)
     }
     return result
+  }
+
+  fun getModulesOrderedForClassLoaderConfiguration(): Sequence<PluginModuleDescriptor> {
+    return if (resolvedPluginSet != null) {
+      resolvedPluginSet.runtimeModuleGroupGraph.sortedGroups.asSequence()
+        .flatMap { it.sortedDescriptors }.filterIsInstance<PluginModuleDescriptor>()
+    } else {
+      enabledModules.asSequence()
+    }
   }
 }
 
