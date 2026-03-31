@@ -30,9 +30,11 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiErrorElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.impl.source.resolve.FileContextUtil;
+import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.util.ObjectUtils;
 import com.jetbrains.python.psi.PyElementVisitor;
 import com.jetbrains.python.psi.PyFile;
+import com.jetbrains.python.psi.PyTypedElement;
 import com.jetbrains.python.psi.resolve.PyResolveContext;
 import com.jetbrains.python.psi.types.TypeEvalContext;
 import org.jetbrains.annotations.ApiStatus;
@@ -40,6 +42,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public abstract class PyInspectionVisitor extends PyElementVisitor {
+  public static final String POPULATE_TYPE_EVAL_CONTEXT_ON_CREATION_PROPERTY = "python.populate.type.eval.context.on.creation";
+
   private final @Nullable ProblemsHolder myHolder;
   protected final TypeEvalContext myTypeEvalContext;
   /**
@@ -77,12 +81,23 @@ public abstract class PyInspectionVisitor extends PyElementVisitor {
         final PsiFile sessionFile = session.getFile();
         final PsiFile contextFile = FileContextUtil.getContextFile(sessionFile);
         final PsiFile file = ObjectUtils.chooseNotNull(contextFile, sessionFile);
-
         context = TypeEvalContext.codeAnalysis(file.getProject(), file);
+        if (Boolean.getBoolean(POPULATE_TYPE_EVAL_CONTEXT_ON_CREATION_PROPERTY)) {
+          populateContextCache(context, file);
+        }
         session.putUserData(INSPECTION_TYPE_EVAL_CONTEXT, context);
       }
     }
     return context;
+  }
+
+  private static void populateContextCache(@NotNull TypeEvalContext context, @NotNull PsiFile file) {
+    PsiTreeUtil.processElements(file, element -> {
+      if (element instanceof PyTypedElement typedElement) {
+        context.getType(typedElement);
+      }
+      return true;
+    });
   }
 
   protected PyResolveContext getResolveContext() {
