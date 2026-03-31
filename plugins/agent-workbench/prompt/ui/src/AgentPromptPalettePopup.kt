@@ -11,6 +11,7 @@ import com.intellij.agent.workbench.prompt.core.AgentPromptLauncherBridge
 import com.intellij.agent.workbench.prompt.core.AgentPromptLaunchers
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProviderDescriptor
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProviders
+import com.intellij.ide.FrameStateListener
 import com.intellij.openapi.application.UI
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
@@ -19,6 +20,7 @@ import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.ui.popup.JBPopupListener
 import com.intellij.openapi.ui.popup.LightweightWindowEvent
 import com.intellij.openapi.wm.IdeFocusManager
+import com.intellij.openapi.wm.IdeFrame
 import com.intellij.openapi.wm.ex.IdeFocusTraversalPolicy
 import com.intellij.util.ui.JBUI
 import kotlinx.coroutines.CoroutineScope
@@ -57,6 +59,7 @@ internal class AgentPromptPalettePopup(
       .setProject(project)
       .setModalContext(false)
       .setCancelOnClickOutside(true)
+      .setCancelOnWindowDeactivation(false)
       .setRequestFocus(true)
       .setCancelKeyEnabled(true)
       .setResizable(true)
@@ -67,6 +70,7 @@ internal class AgentPromptPalettePopup(
 
     popup = createdPopup
     popupActive = true
+    installFrameActivationRefocusListener(createdPopup)
     createdPopup.addListener(object : JBPopupListener {
       override fun onClosed(event: LightweightWindowEvent) {
         popupActive = false
@@ -94,6 +98,20 @@ internal class AgentPromptPalettePopup(
 
   override fun isVisible(): Boolean {
     return popup?.isVisible == true
+  }
+
+  private fun installFrameActivationRefocusListener(createdPopup: JBPopup) {
+    project.messageBus.connect(createdPopup).subscribe(FrameStateListener.TOPIC, object : FrameStateListener {
+      override fun onFrameActivated(ideFrame: IdeFrame) {
+        if (shouldRefocusPromptOnFrameActivated(
+            popupProject = project,
+            activatedProject = ideFrame.project,
+            isPopupVisible = isVisible(),
+          )) {
+          requestFocus()
+        }
+      }
+    })
   }
 
   private fun createContentPanel(): JPanel {

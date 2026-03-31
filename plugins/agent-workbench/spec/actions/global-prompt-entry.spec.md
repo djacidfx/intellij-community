@@ -60,6 +60,13 @@ Suggested prompt generation, rendering, and Codex polishing are specified separa
 - Re-focusing an already visible popup must preserve its live state, including prompt text, selected tab, provider selection, and context chips.
   [@test] ../../prompt/testSrc/ui/AgentPromptPalettePopupServiceTest.kt
 
+- When the IDE loses application focus because the user switches to another app, the main global prompt popup must remain open and preserve its live state until it is explicitly dismissed.
+
+- When the same project frame becomes active again while the main global prompt popup remains visible, whether after switching to another app or after switching to another IDE project frame, the popup must request focus again.
+  [@test] ../../prompt/testSrc/ui/AgentPromptPalettePopupActivationDecisionsTest.kt
+
+- Chooser popups opened from the main global prompt remain transient and may still close on application deactivation.
+
 - When both `AgentWorkbenchPrompt.OpenGlobalPalette` and `AIAssistant.Editor.AskAiAssistantInEditor` are applicable for `Cmd+\\` / `Ctrl+\\` in an editor context, `AgentWorkbenchPrompt.OpenGlobalPalette` must be executed first.
 
 - Global action id `AgentWorkbenchPrompt.OpenGlobalPaletteAutoSelect` must be available only when a project is open. It opens the same popup but with EP-driven extension tab auto-selection (see below).
