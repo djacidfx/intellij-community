@@ -4,8 +4,8 @@ package com.intellij.platform.eel.impl
 import com.intellij.openapi.diagnostic.fileLogger
 import com.intellij.platform.eel.EelExecApi
 import com.intellij.platform.eel.EelProcess
-import com.intellij.platform.eel.provider.utils.ProcessFunctions
-import com.intellij.platform.eel.provider.utils.bindProcessToScopeImpl
+import com.intellij.platform.eel.impl.provider.utils.ProcessFunctions
+import com.intellij.platform.eel.impl.provider.utils.bindProcessToScopeImpl
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import org.jetbrains.annotations.ApiStatus

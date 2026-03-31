@@ -1,5 +1,5 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.platform.eel.provider.utils
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+package com.intellij.platform.eel.impl.provider.utils
 
 import com.intellij.platform.eel.ReadResult
 import com.intellij.platform.eel.channels.EelDelicateApi
@@ -8,12 +8,13 @@ import com.intellij.platform.eel.channels.EelSendApi
 import com.intellij.platform.eel.channels.EelSendChannel
 import com.intellij.platform.eel.channels.EelSendChannelCustomSendWholeBuffer
 import com.intellij.platform.eel.channels.EelSendChannelException
-import com.intellij.platform.eel.provider.utils.EelPipeImpl.State.Closed
-import com.intellij.platform.eel.provider.utils.EelPipeImpl.State.Idle
-import com.intellij.platform.eel.provider.utils.EelPipeImpl.State.LastTransfer
-import com.intellij.platform.eel.provider.utils.EelPipeImpl.State.ReadyToTransfer
-import com.intellij.platform.eel.provider.utils.EelPipeImpl.State.TransferState
-import com.intellij.platform.eel.provider.utils.EelPipeImpl.State.TransferringNow
+import com.intellij.platform.eel.impl.provider.utils.EelPipeImpl.State.Closed
+import com.intellij.platform.eel.impl.provider.utils.EelPipeImpl.State.Idle
+import com.intellij.platform.eel.impl.provider.utils.EelPipeImpl.State.LastTransfer
+import com.intellij.platform.eel.impl.provider.utils.EelPipeImpl.State.ReadyToTransfer
+import com.intellij.platform.eel.impl.provider.utils.EelPipeImpl.State.TransferState
+import com.intellij.platform.eel.impl.provider.utils.EelPipeImpl.State.TransferringNow
+import com.intellij.platform.eel.provider.utils.EelPipe
 import kotlinx.coroutines.CompletableDeferred
 import java.io.IOException
 import java.nio.ByteBuffer

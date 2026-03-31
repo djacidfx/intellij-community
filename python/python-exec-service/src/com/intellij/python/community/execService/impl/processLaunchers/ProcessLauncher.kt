@@ -2,7 +2,7 @@
 package com.intellij.python.community.execService.impl.processLaunchers
 
 import com.intellij.openapi.diagnostic.fileLogger
-import com.intellij.platform.eel.provider.utils.ProcessFunctions
+import com.intellij.platform.eel.impl.provider.utils.ProcessFunctions
 import com.intellij.python.community.execService.Args
 import com.intellij.python.community.execService.ConcurrentProcessWeight
 import com.intellij.python.community.execService.DownloadConfig

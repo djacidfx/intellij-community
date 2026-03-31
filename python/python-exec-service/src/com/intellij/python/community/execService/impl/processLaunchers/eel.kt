@@ -9,7 +9,7 @@ import com.intellij.platform.eel.provider.asEelPath
 import com.intellij.platform.eel.provider.getEelDescriptor
 import com.intellij.platform.eel.provider.toEelApi
 import com.intellij.platform.eel.provider.utils.EelPathUtils
-import com.intellij.platform.eel.provider.utils.ProcessFunctions
+import com.intellij.platform.eel.impl.provider.utils.ProcessFunctions
 import com.intellij.platform.eel.spawnProcess
 import com.intellij.python.community.execService.BinOnEel
 import com.intellij.python.community.execService.TtySize

@@ -1,12 +1,14 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-@file:OptIn(IntellijInternalApi::class)
-
 package com.intellij.platform.eel.provider.utils
 
-import com.intellij.openapi.util.IntellijInternalApi
 import com.intellij.platform.eel.EelProcess
-import com.intellij.util.io.computeDetached
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import org.jetbrains.annotations.ApiStatus
@@ -71,5 +73,21 @@ suspend fun EelProcess.awaitProcessResult(): EelProcessExecutionResult {
         EelProcessExecutionResult(exitCode.await(), out.toByteArray(), err.toByteArray())
       }
     }
+  }
+}
+
+@OptIn(ExperimentalCoroutinesApi::class)
+private val unlimitedDispatcher = Dispatchers.IO.limitedParallelism(parallelism = Int.MAX_VALUE)
+
+// TODO: Move com.intellij.util.io.ProcessKt.computeDetached to intellij.platform.util.coroutines module, then remove this duplicate
+@DelicateCoroutinesApi
+private suspend fun <T> computeDetached(action: suspend CoroutineScope.() -> T): T {
+  val deferred = GlobalScope.async(unlimitedDispatcher, block = action)
+  try {
+    return deferred.await()
+  }
+  catch (ce: CancellationException) {
+    deferred.cancel(ce)
+    throw ce
   }
 }

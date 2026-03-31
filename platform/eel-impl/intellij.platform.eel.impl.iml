@@ -21,6 +21,7 @@
     <orderEntry type="library" name="jna" level="project" />
     <orderEntry type="module" module-name="intellij.libraries.pty4j" />
     <orderEntry type="module" module-name="intellij.platform.ide.core" />
+    <orderEntry type="module" module-name="intellij.platform.eel" />
     <orderEntry type="module" module-name="intellij.platform.eel.provider" />
     <orderEntry type="module" module-name="intellij.platform.core.nio.fs" />
     <orderEntry type="module" module-name="intellij.platform.core.impl" />

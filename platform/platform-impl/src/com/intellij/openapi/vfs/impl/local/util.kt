@@ -29,7 +29,7 @@ import com.intellij.platform.eel.provider.EelMountRoot
 import com.intellij.platform.eel.provider.LocalEelDescriptor
 import com.intellij.platform.eel.provider.asEelPath
 import com.intellij.platform.eel.provider.asNioPath
-import com.intellij.platform.eel.provider.canReadPermissionsDirectly
+import com.intellij.platform.eel.provider.utils.canReadPermissionsDirectly
 import com.intellij.platform.eel.provider.getEelDescriptor
 import com.intellij.platform.eel.provider.mountProvider
 import com.intellij.platform.eel.provider.toEelApi

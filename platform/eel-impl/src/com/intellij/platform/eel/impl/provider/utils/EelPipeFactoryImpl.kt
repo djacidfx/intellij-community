@@ -1,0 +1,9 @@
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+package com.intellij.platform.eel.impl.provider.utils
+
+import com.intellij.platform.eel.provider.utils.EelPipe
+import com.intellij.platform.eel.provider.utils.EelPipeFactory
+
+internal class EelPipeFactoryImpl : EelPipeFactory {
+  override fun create(debugLabel: String, prefersDirectBuffers: Boolean): EelPipe = EelPipeImpl(debugLabel, prefersDirectBuffers)
+}

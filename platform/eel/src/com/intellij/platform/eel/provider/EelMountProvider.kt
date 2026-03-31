@@ -39,8 +39,3 @@ fun EelMountRoot.transformPath(targetPath: EelPath): EelPath {
   require(targetRoot.startsWith(targetRoot))
   return targetPath.parts.drop(targetRoot.parts.size).fold(this.localRoot) { result, part -> result / part }
 }
-
-@ApiStatus.Internal
-suspend fun EelMountRoot.canReadPermissionsDirectly(options: EelMountRoot.DirectAccessOptions): Boolean {
-  return canReadPermissionsDirectly(targetRoot.descriptor.toEelApi().fs, localRoot.descriptor.toEelApi().fs, options)
-}

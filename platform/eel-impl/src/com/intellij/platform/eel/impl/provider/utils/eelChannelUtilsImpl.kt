@@ -1,5 +1,5 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.platform.eel.provider.utils
+package com.intellij.platform.eel.impl.provider.utils
 
 import com.intellij.platform.eel.EelLowLevelObjectsPool
 import com.intellij.platform.eel.ReadResult
@@ -10,6 +10,10 @@ import com.intellij.platform.eel.channels.EelSendApi
 import com.intellij.platform.eel.channels.EelSendChannel
 import com.intellij.platform.eel.channels.EelSendChannelException
 import com.intellij.platform.eel.channels.sendWholeBuffer
+import com.intellij.platform.eel.provider.utils.EelOutputChannel
+import com.intellij.platform.eel.provider.utils.EelPipe
+import com.intellij.platform.eel.provider.utils.asEelChannel
+import com.intellij.platform.eel.provider.utils.consumeAsEelChannel
 import com.intellij.util.io.blockingDispatcher
 import com.intellij.util.io.computeDetached
 import kotlinx.coroutines.CoroutineScope
@@ -211,7 +215,7 @@ internal class InputStreamAdapterImpl(
   @Suppress("checkedExceptions")
   override fun available(): Int {
     return when (receiveChannel) {
-      is EelPipeImpl, is EelOutputChannel -> {
+      is EelPipe, is EelOutputChannel -> {
         receiveChannel.available()
       }
       else -> 0
@@ -334,24 +338,6 @@ internal fun EelReceiveChannel.linesImpl(charset: Charset): Flow<String> = flow 
       result = ByteArrayOutputStream()
     }
   }
-}
-
-internal fun ByteBuffer.putPartially(src: ByteBuffer): Int {
-  val dst = this
-  val bytesBeforeRead = src.remaining()
-  // Choose the best approach:
-  if (src.remaining() <= dst.remaining()) {
-    // Bulk put the whole buffer
-    dst.put(src)
-  }
-  else {
-    // Slice, put, and set size back
-    val l = src.limit()
-    dst.put(src.limit(src.position() + dst.remaining()))
-    src.limit(l)
-  }
-  val bytesRead = bytesBeforeRead - src.remaining()
-  return bytesRead
 }
 
 private val selectorPool = EelLowLevelObjectsPool<Selector>(
