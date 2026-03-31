@@ -6,6 +6,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.debug
+import com.intellij.openapi.diagnostic.getOrLogException
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectFileIndex
@@ -14,8 +15,11 @@ import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.platform.ide.progress.TaskCancellation
+import com.intellij.platform.ide.progress.withBackgroundProgress
 import com.intellij.platform.searchEverywhere.SeParams
 import com.intellij.searchEverywhereLucene.backend.LuceneIndex
+import com.intellij.searchEverywhereLucene.backend.SearchEverywhereLuceneBackendBundle
 import com.intellij.searchEverywhereLucene.backend.SearchEverywhereLucenePluginDisposable
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FileNameAnalyzer
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FilePathAnalyzer
@@ -27,8 +31,11 @@ import com.intellij.searchEverywhereLucene.common.SearchEverywhereLuceneProvider
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.consumeAsFlow
@@ -57,6 +64,7 @@ import org.apache.lucene.search.Query
 import org.jetbrains.annotations.TestOnly
 import java.io.IOException
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 @Service(Service.Level.PROJECT)
@@ -115,8 +123,29 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
     processFileIndexOp(LuceneFileIndexOperation.IndexAll)
   }
 
-  // TODO somehow inform UI that indexing is in progress
   private suspend fun processFileIndexOp(op: LuceneFileIndexOperation) {
+    runCatching {
+      coroutineScope {
+        val task = async { doProcessFileIndexOp(op) }
+        val progressJob = launch {
+          delay(PROGRESS_DISPLAY_DELAY)
+          if (task.isActive) {
+            withBackgroundProgress(
+              project,
+              SearchEverywhereLuceneBackendBundle.message("searchEverywhereLucene.files.indexing.progress"),
+              TaskCancellation.nonCancellable(),
+            ) {
+              task.await()
+            }
+          }
+        }
+        task.await()
+        progressJob.cancel()
+      }
+    }.getOrLogException(LOG)
+  }
+
+  private suspend fun doProcessFileIndexOp(op: LuceneFileIndexOperation) {
     when (op) {
       LuceneFileIndexOperation.IndexAll -> {
         LOG.debug("Indexing all files")
@@ -311,8 +340,9 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
     fun getInstanceIfEnabled(project: Project): FileIndex? = if (isIndexingEnabled()) project.service() else null
     fun isIndexingEnabled(): Boolean = Registry.`is`(LUCENE_INDEX_ENABLED_REGISTRY_KEY, true)
 
-    val LOG: Logger = logger<FileIndex>()
+    val LOG: Logger = logger<FileIndex>() // #com.intellij.searchEverywhereLucene.backend.providers.files.FileIndex
     const val LUCENE_INDEX_ENABLED_REGISTRY_KEY: String = "search.everywhere.lucene.index.enabled"
+    val PROGRESS_DISPLAY_DELAY: Duration = 500.milliseconds
     const val FILE_URL: String = "uri"
 
     fun buildQuery(params: SeParams, analyzer: Analyzer = FileSearchAnalyzer()): Query {
