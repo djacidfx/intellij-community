@@ -17,7 +17,7 @@ import com.intellij.openapi.externalSystem.autoimport.ExternalSystemModification
 import com.intellij.openapi.externalSystem.autoimport.ExternalSystemModificationType.UNKNOWN
 import com.intellij.openapi.externalSystem.autoimport.ExternalSystemProjectTrackerSettings.AutoReloadType
 import com.intellij.openapi.externalSystem.autoimport.ExternalSystemRefreshStatus.SUCCESS
-import com.intellij.openapi.externalSystem.autoimport.ProjectStatus.Stamp
+import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.Stamp
 import com.intellij.openapi.externalSystem.autoimport.update.PriorityEatUpdate
 import com.intellij.openapi.externalSystem.model.ProjectSystemId
 import com.intellij.openapi.externalSystem.util.ExternalSystemActivityKey
@@ -312,7 +312,7 @@ class AutoImportProjectTracker(
     val projectId = projectAware.projectId
     val activationProperty = AtomicBooleanProperty(false)
     val reloadOperation = AtomicOperationTrace(name = "Reload $projectId")
-    val projectStatus = ProjectStatus(debugName = projectId.toString())
+    val projectStatus = AutoImportProjectStatus(debugName = projectId.toString())
     val parentDisposable = Disposer.newDisposable(serviceDisposable, projectId.toString())
     val settingsTracker = AutoImportProjectSettingsFilesTracker(project, this, backgroundExecutor, projectAware, parentDisposable)
     val projectData = ProjectData(projectStatus, activationProperty, reloadOperation, projectAware, settingsTracker, parentDisposable)
@@ -459,7 +459,7 @@ class AutoImportProjectTracker(
   }
 
   private data class ProjectData(
-    @JvmField val status: ProjectStatus,
+    @JvmField val status: AutoImportProjectStatus,
     @JvmField val activationProperty: MutableBooleanProperty,
     @JvmField val reloadOperation: MutableOperationTrace,
     @JvmField val projectAware: ExternalSystemProjectAware,
@@ -471,7 +471,7 @@ class AutoImportProjectTracker(
     fun isUpToDate() = status.isUpToDate() && settingsTracker.isUpToDate()
 
     fun getModificationType(): ExternalSystemModificationType {
-      return ProjectStatus.merge(status.getModificationType(), settingsTracker.getModificationType())
+      return AutoImportProjectStatus.merge(status.getModificationType(), settingsTracker.getModificationType())
     }
   }
 

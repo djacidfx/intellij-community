@@ -7,22 +7,22 @@ import com.intellij.openapi.externalSystem.autoimport.ExternalSystemModification
 import com.intellij.openapi.externalSystem.autoimport.ExternalSystemModificationType.HIDDEN
 import com.intellij.openapi.externalSystem.autoimport.ExternalSystemModificationType.INTERNAL
 import com.intellij.openapi.externalSystem.autoimport.ExternalSystemModificationType.UNKNOWN
-import com.intellij.openapi.externalSystem.autoimport.ProjectStatus.ProjectEvent.Break
-import com.intellij.openapi.externalSystem.autoimport.ProjectStatus.ProjectEvent.Invalidate
-import com.intellij.openapi.externalSystem.autoimport.ProjectStatus.ProjectEvent.Modify
-import com.intellij.openapi.externalSystem.autoimport.ProjectStatus.ProjectEvent.Revert
-import com.intellij.openapi.externalSystem.autoimport.ProjectStatus.ProjectEvent.Synchronize
-import com.intellij.openapi.externalSystem.autoimport.ProjectStatus.ProjectState.Broken
-import com.intellij.openapi.externalSystem.autoimport.ProjectStatus.ProjectState.Dirty
-import com.intellij.openapi.externalSystem.autoimport.ProjectStatus.ProjectState.Modified
-import com.intellij.openapi.externalSystem.autoimport.ProjectStatus.ProjectState.Reverted
-import com.intellij.openapi.externalSystem.autoimport.ProjectStatus.ProjectState.Synchronized
+import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.ProjectEvent.Break
+import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.ProjectEvent.Invalidate
+import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.ProjectEvent.Modify
+import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.ProjectEvent.Revert
+import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.ProjectEvent.Synchronize
+import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.ProjectState.Broken
+import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.ProjectState.Dirty
+import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.ProjectState.Modified
+import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.ProjectState.Reverted
+import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.ProjectState.Synchronized
 import org.jetbrains.annotations.ApiStatus
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 @ApiStatus.Internal
-class ProjectStatus(private val debugName: String? = null) {
+class AutoImportProjectStatus(private val debugName: String? = null) {
 
   private var state = AtomicReference(Synchronized(Stamp.NONE) as ProjectState)
 

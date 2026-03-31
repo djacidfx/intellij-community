@@ -4,21 +4,21 @@ package com.intellij.openapi.externalSystem.autoimport
 import com.intellij.openapi.externalSystem.autoimport.ExternalSystemModificationType.EXTERNAL
 import com.intellij.openapi.externalSystem.autoimport.ExternalSystemModificationType.INTERNAL
 import com.intellij.openapi.externalSystem.autoimport.ExternalSystemModificationType.UNKNOWN
-import com.intellij.openapi.externalSystem.autoimport.ProjectStatus.ProjectState.Broken
-import com.intellij.openapi.externalSystem.autoimport.ProjectStatus.ProjectState.Dirty
-import com.intellij.openapi.externalSystem.autoimport.ProjectStatus.ProjectState.Modified
-import com.intellij.openapi.externalSystem.autoimport.ProjectStatus.ProjectState.Reverted
-import com.intellij.openapi.externalSystem.autoimport.ProjectStatus.ProjectState.Synchronized
-import com.intellij.openapi.externalSystem.autoimport.ProjectStatus.Stamp
+import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.ProjectState.Broken
+import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.ProjectState.Dirty
+import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.ProjectState.Modified
+import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.ProjectState.Reverted
+import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.ProjectState.Synchronized
+import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.Stamp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class ProjectStatusTest {
+class AutoReloadProjectStatusTest {
   @Test
   fun `test open project with broken state`() {
-    val status = ProjectStatus()
+    val status = AutoImportProjectStatus()
     status.markDirty(Stamp.nextStamp()) as Dirty
     status.markModified(Stamp.nextStamp()) as Dirty
     assertFalse(status.isUpToDate())
@@ -28,7 +28,7 @@ class ProjectStatusTest {
 
   @Test
   fun `test generate project with broken state`() {
-    val status = ProjectStatus()
+    val status = AutoImportProjectStatus()
     status.markModified(Stamp.nextStamp()) as Modified
     status.markDirty(Stamp.nextStamp()) as Dirty
     assertFalse(status.isUpToDate())
@@ -42,7 +42,7 @@ class ProjectStatusTest {
     val stamp2 = Stamp.nextStamp()
     val stamp3 = Stamp.nextStamp()
 
-    val status = ProjectStatus()
+    val status = AutoImportProjectStatus()
     status.markDirty(stamp1) as Dirty
     assertFalse(status.isUpToDate())
     status.markSynchronized(stamp3) as Synchronized
@@ -56,7 +56,7 @@ class ProjectStatusTest {
     val stamp1 = Stamp.nextStamp()
     val stamp2 = Stamp.nextStamp()
 
-    val status = ProjectStatus()
+    val status = AutoImportProjectStatus()
     status.markSynchronized(stamp2) as Synchronized
     status.markModified(stamp1) as Synchronized
     assertTrue(status.isUpToDate())
@@ -67,7 +67,7 @@ class ProjectStatusTest {
     val stamp1 = Stamp.nextStamp()
     val stamp2 = Stamp.nextStamp()
 
-    val status = ProjectStatus()
+    val status = AutoImportProjectStatus()
     status.markSynchronized(stamp2) as Synchronized
     status.markDirty(stamp1) as Synchronized
     assertTrue(status.isUpToDate())
@@ -75,7 +75,7 @@ class ProjectStatusTest {
 
   @Test
   fun `test common sample`() {
-    val status = ProjectStatus()
+    val status = AutoImportProjectStatus()
     status.markModified(Stamp.nextStamp()) as Modified
     status.markModified(Stamp.nextStamp()) as Modified
     status.markModified(Stamp.nextStamp()) as Modified
@@ -86,7 +86,7 @@ class ProjectStatusTest {
 
   @Test
   fun `test revert changes`() {
-    val status = ProjectStatus()
+    val status = AutoImportProjectStatus()
     status.markModified(Stamp.nextStamp()) as Modified
     status.markReverted(Stamp.nextStamp()) as Reverted
     assertTrue(status.isUpToDate())
@@ -96,7 +96,7 @@ class ProjectStatusTest {
 
   @Test
   fun `test revert dirty changes`() {
-    val status = ProjectStatus()
+    val status = AutoImportProjectStatus()
     status.markModified(Stamp.nextStamp()) as Modified
     status.markDirty(Stamp.nextStamp()) as Dirty
     status.markReverted(Stamp.nextStamp()) as Dirty
@@ -107,7 +107,7 @@ class ProjectStatusTest {
 
   @Test
   fun `test modification after revert event`() {
-    val status = ProjectStatus()
+    val status = AutoImportProjectStatus()
     status.markModified(Stamp.nextStamp()) as Modified
     status.markReverted(Stamp.nextStamp()) as Reverted
     status.markModified(Stamp.nextStamp()) as Modified
@@ -118,7 +118,7 @@ class ProjectStatusTest {
 
   @Test
   fun `test modification types`() {
-    val status = ProjectStatus()
+    val status = AutoImportProjectStatus()
 
     status.markModified(Stamp.nextStamp(), INTERNAL) as Modified
     assertEquals(INTERNAL, status.getModificationType())
@@ -151,7 +151,7 @@ class ProjectStatusTest {
 
   @Test
   fun `test tracking status after failed import`() {
-    val status = ProjectStatus()
+    val status = AutoImportProjectStatus()
 
     status.markModified(Stamp.nextStamp(), INTERNAL) as Modified
     status.markSynchronized(Stamp.nextStamp()) as Synchronized

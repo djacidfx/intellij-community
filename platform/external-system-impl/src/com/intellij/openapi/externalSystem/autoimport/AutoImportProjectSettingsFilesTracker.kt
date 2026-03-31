@@ -8,11 +8,11 @@ import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectTracker.C
 import com.intellij.openapi.externalSystem.autoimport.ExternalSystemModificationType.EXTERNAL
 import com.intellij.openapi.externalSystem.autoimport.ExternalSystemSettingsFilesModificationContext.Event
 import com.intellij.openapi.externalSystem.autoimport.ExternalSystemSettingsFilesModificationContext.ReloadStatus
-import com.intellij.openapi.externalSystem.autoimport.ProjectStatus.ProjectEvent.Companion.externalInvalidate
-import com.intellij.openapi.externalSystem.autoimport.ProjectStatus.ProjectEvent.Companion.externalModify
-import com.intellij.openapi.externalSystem.autoimport.ProjectStatus.ProjectEvent.Revert
-import com.intellij.openapi.externalSystem.autoimport.ProjectStatus.ProjectEvent.Synchronize
-import com.intellij.openapi.externalSystem.autoimport.ProjectStatus.Stamp
+import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.ProjectEvent.Companion.externalInvalidate
+import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.ProjectEvent.Companion.externalModify
+import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.ProjectEvent.Revert
+import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.ProjectEvent.Synchronize
+import com.intellij.openapi.externalSystem.autoimport.AutoImportProjectStatus.Stamp
 import com.intellij.openapi.externalSystem.autoimport.changes.AsyncFileChangesListener.Companion.subscribeOnDocumentsAndVirtualFilesChanges
 import com.intellij.openapi.externalSystem.autoimport.changes.FilesChangesListener
 import com.intellij.openapi.externalSystem.autoimport.changes.NewFilesListener.Companion.whenNewFilesCreated
@@ -46,7 +46,7 @@ class AutoImportProjectSettingsFilesTracker(
   private val parentDisposable: Disposable
 ) {
 
-  private val projectStatus = ProjectStatus(debugName = "Settings ${projectAware.projectId}")
+  private val projectStatus = AutoImportProjectStatus(debugName = "Settings ${projectAware.projectId}")
 
   private val settingsFilesStatus = AtomicReference(SettingsFilesStatus())
 
@@ -220,8 +220,8 @@ class AutoImportProjectSettingsFilesTracker(
 
   private fun updateProjectStatus(
     operationStamp: Stamp,
-    syncEvent: ((Stamp) -> ProjectStatus.ProjectEvent)?,
-    changeEvent: ((Stamp) -> ProjectStatus.ProjectEvent)?,
+    syncEvent: ((Stamp) -> AutoImportProjectStatus.ProjectEvent)?,
+    changeEvent: ((Stamp) -> AutoImportProjectStatus.ProjectEvent)?,
     settingsFilesStatus: SettingsFilesStatus,
   ) {
     val event = when (settingsFilesStatus.hasChanges()) {
@@ -257,8 +257,8 @@ class AutoImportProjectSettingsFilesTracker(
     var reloadStatus: ReloadStatus,
     var isRefreshVfs: Boolean = false,
     var isInvalidateCache: Boolean = false,
-    var syncEvent: ((Stamp) -> ProjectStatus.ProjectEvent)? = null,
-    var changeEvent: ((Stamp) -> ProjectStatus.ProjectEvent)? = null,
+    var syncEvent: ((Stamp) -> AutoImportProjectStatus.ProjectEvent)? = null,
+    var changeEvent: ((Stamp) -> AutoImportProjectStatus.ProjectEvent)? = null,
     var callback: (() -> Unit)? = null,
   )
 
