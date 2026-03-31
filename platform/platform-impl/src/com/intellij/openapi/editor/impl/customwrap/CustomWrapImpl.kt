@@ -2,12 +2,11 @@
 package com.intellij.openapi.editor.impl.customwrap
 
 import com.intellij.openapi.editor.CustomWrap
+import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.ex.DocumentEx
 import com.intellij.openapi.editor.impl.CustomWrapModelImpl
-import com.intellij.openapi.editor.impl.DocumentImpl
-import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.impl.RangeMarkerImpl
-import org.jetbrains.annotations.ApiStatus
+import com.intellij.openapi.editor.impl.isValidCustomWrapOffset
 
 internal class CustomWrapImpl(
   offset: Int,
@@ -18,6 +17,10 @@ internal class CustomWrapImpl(
 ) : RangeMarkerImpl(document, offset, offset, false, true),
     CustomWrap {
 
+  init {
+    require(indent >= 0) { "Indent must be non-negative, got: $indent" }
+  }
+
   override val offset: Int
     get() = this.startOffset
 
@@ -25,5 +28,18 @@ internal class CustomWrapImpl(
 
   override fun dispose() {
     super.dispose()
+  }
+
+  override fun onReTarget(e: DocumentEvent) {
+    if (!isValidCustomWrapOffset(intervalStart(), document)) {
+      invalidate()
+    }
+  }
+
+  override fun changedUpdateImpl(e: DocumentEvent) {
+    super.changedUpdateImpl(e)
+    if (isValid && !isValidCustomWrapOffset(intervalStart(), document)) {
+      invalidate()
+    }
   }
 }

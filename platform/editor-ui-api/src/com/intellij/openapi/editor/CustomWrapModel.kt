@@ -13,6 +13,9 @@ import org.jetbrains.annotations.ApiStatus
  */
 @ApiStatus.Experimental
 interface CustomWrapModel {
+  /**
+   * @param indentInColumns non-negative number of columns to indent after the wrap
+   */
   fun addWrap(offset: Int, indentInColumns: Int, priority: Int = 0): CustomWrap?
   fun getWraps(): List<CustomWrap>
   fun getWrapsInRange(startOffset: Int, endOffset: Int): List<CustomWrap>

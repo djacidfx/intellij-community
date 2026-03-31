@@ -3,6 +3,7 @@ package com.intellij.openapi.editor.impl
 
 import com.intellij.diagnostic.Dumpable
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.CustomWrap
 import com.intellij.openapi.editor.CustomWrapModel
 import com.intellij.openapi.editor.Document
@@ -10,11 +11,15 @@ import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.ex.PrioritizedDocumentListener
 import com.intellij.openapi.editor.impl.customwrap.CustomWrapImpl
 import com.intellij.openapi.util.Disposer
+import com.intellij.util.DocumentUtil
 import com.intellij.util.containers.ContainerUtil
+import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.NonNls
+import org.jetbrains.annotations.TestOnly
 
 internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapModel, PrioritizedDocumentListener, Dumpable {
-  private val tree: CustomWrapTree = CustomWrapTree(editor.elfDocument)
+  private val document = editor.elfDocument
+  private val tree: CustomWrapTree = CustomWrapTree(document)
   private val listeners = ContainerUtil.createLockFreeCopyOnWriteList<CustomWrapModel.Listener>()
 
   fun addListener(listener: CustomWrapModel.Listener) {
@@ -49,7 +54,12 @@ internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapM
   }
 
   override fun addWrap(offset: Int, indentInColumns: Int, priority: Int): CustomWrap? {
-    val wrap = CustomWrapImpl(offset, editor.document, this, indentInColumns, priority)
+    val document = document
+    if (offset < 0 || offset > document.textLength) return null
+    if (!isValidCustomWrapOffset(offset, document)) {
+      return null
+    }
+    val wrap = CustomWrapImpl(offset, document, this, indentInColumns, priority)
     tree.addInterval(wrap, offset, offset, false, false, false, 0)
     notifyAdded(wrap)
     return wrap
@@ -88,7 +98,7 @@ internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapM
   private var wrapsAtCaret: List<CustomWrapImpl> = emptyList()
 
   override fun beforeDocumentChange(event: DocumentEvent) {
-    if (editor.elfDocument.isInBulkUpdate) return
+    if (document.isInBulkUpdate) return
     // todo check it did not change during bulk op
     val offset = event.offset
     if (event.getOldLength() == 0 && offset == editor.caretModel.offset) {
@@ -115,6 +125,13 @@ internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapM
 
   override fun dumpState(): @NonNls String {
     return "${getWraps()}"
+  }
+  
+  @TestOnly
+  fun validateState() {
+    for (wrap in getWraps()) {
+      LOG.assertTrue(isValidCustomWrapOffset(wrap.offset, document))
+    }
   }
 
   private class CustomWrapTree(document: Document) : HardReferencingRangeMarkerTree<CustomWrapImpl>(document) {
@@ -165,4 +182,12 @@ internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapM
   }
 }
 
+private val LOG = logger<CustomWrapModelImpl>()
+
 private val CUSTOM_WRAP_COMPARATOR = compareBy<CustomWrapImpl> { it.offset }.thenBy { it.priority }
+
+@ApiStatus.Internal
+fun isValidCustomWrapOffset(offset: Int, document: Document): Boolean =
+  !DocumentUtil.isInsideCharacterPair(document, offset)
+  && !DocumentUtil.isAtLineStart(offset, document)
+  && !DocumentUtil.isAtLineEnd(offset, document)

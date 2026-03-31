@@ -5530,6 +5530,9 @@ public final class EditorImpl extends UserDataHolderBase implements EditorEx, Hi
     myFoldingModel.validateState();
     myCaretModel.validateState();
     myInlayModel.validateState();
+    if (myCustomWrapModel instanceof CustomWrapModelImpl model) {
+      model.validateState();
+    }
   }
 
   @Override

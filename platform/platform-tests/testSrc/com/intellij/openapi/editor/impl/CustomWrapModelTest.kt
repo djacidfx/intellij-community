@@ -112,4 +112,86 @@ class CustomWrapModelTest : AbstractEditorTest() {
     assertEquals(1, removeCount)
     assertEquals(4, removedOffset)
   }
+
+  fun testAddWrapRejectsLineBoundaryOffsets() {
+    initText("ab\ncd")
+
+    val events = mutableListOf<String>()
+    addRecordingListener(events)
+
+    assertNull(customWrapModel.addWrap(2, 0, 0))
+    assertNull(customWrapModel.addWrap(3, 0, 0))
+
+    assertFalse(customWrapModel.hasWraps())
+    assertTrue(customWrapModel.getWraps().isEmpty())
+    assertTrue(events.isEmpty())
+  }
+
+  fun testAddWrapRejectsOffsetInsideSurrogatePair() {
+    initText("a${SURROGATE_PAIR}b")
+
+    assertNull(customWrapModel.addWrap(2, 0, 0))
+    assertFalse(customWrapModel.hasWraps())
+  }
+
+  fun testDeleteRemovesWrapThatBecomesLineEnd() {
+    initText("abc\ndef")
+
+    val events = mutableListOf<String>()
+    addRecordingListener(events)
+
+    addCustomWrap(2)
+
+    runWriteCommand {
+      editor.document.deleteString(2, 3)
+    }
+
+    assertTrue(customWrapModel.getWraps().isEmpty())
+    assertEquals(listOf("add:2", "remove:2"), events)
+  }
+
+  fun testDeleteRemovesWrapThatBecomesLineStart() {
+    initText("abc\ndef")
+
+    val events = mutableListOf<String>()
+    addRecordingListener(events)
+
+    addCustomWrap(5)
+
+    runWriteCommand {
+      editor.document.deleteString(4, 5)
+    }
+
+    assertTrue(customWrapModel.getWraps().isEmpty())
+    assertEquals(listOf("add:5", "remove:4"), events)
+  }
+
+  fun testMoveRemovesWrapThatBecomesLineStart() {
+    initText("abc\ndefghi")
+
+    val events = mutableListOf<String>()
+    addRecordingListener(events)
+
+    addCustomWrap(6)
+
+    runWriteCommand {
+      (editor.document as DocumentEx).moveText(6, 8, 4)
+    }
+
+    assertEquals("abc\nfgdehi", editor.document.text)
+    assertTrue(customWrapModel.getWraps().isEmpty())
+    assertEquals(listOf("add:6", "remove:4"), events)
+  }
+
+  private fun addRecordingListener(events: MutableList<String>) {
+    customWrapModel.addListener(object : CustomWrapModel.Listener {
+      override fun customWrapAdded(wrap: CustomWrap) {
+        events += "add:${wrap.offset}"
+      }
+
+      override fun customWrapRemoved(wrap: CustomWrap) {
+        events += "remove:${wrap.offset}"
+      }
+    }, getTestRootDisposable())
+  }
 }
