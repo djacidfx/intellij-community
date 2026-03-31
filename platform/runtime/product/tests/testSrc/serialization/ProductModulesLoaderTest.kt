@@ -150,9 +150,9 @@ class ProductModulesLoaderTest {
     val notLoadedPlugin = productModules.notLoadedBundledPluginModules.entries.single()
     assertThat(notLoadedPlugin.key.name).isEqualTo("plugin")
     assertThat(notLoadedPlugin.value).containsExactly(
-      RuntimeModuleId.raw("plugin"),
-      RuntimeModuleId.raw("plugin.util"),
-      RuntimeModuleId.raw("unresolved.module"),
+      RuntimeModuleId.raw("plugin", RuntimeModuleId.DEFAULT_NAMESPACE),
+      RuntimeModuleId.raw("plugin.util", RuntimeModuleId.DEFAULT_NAMESPACE),
+      RuntimeModuleId.raw("unresolved.module", RuntimeModuleId.DEFAULT_NAMESPACE),
     )
   }
 
