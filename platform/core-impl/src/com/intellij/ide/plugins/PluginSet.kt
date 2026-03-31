@@ -20,6 +20,7 @@ class PluginSet internal constructor(
   private val topologicalComparator: Comparator<PluginModuleDescriptor>,
   val classloaderConfigurationOrderOverride: List<PluginModuleDescriptor>?,
   val dependsDirectDependencies: Map<DependsSubDescriptor, List<PluginModuleDescriptor>>?,
+  val resolvedPluginSet: ResolvedPluginSet?,
 ) {
   /**
    * You must not use this method before [ClassLoaderConfigurator.configure].

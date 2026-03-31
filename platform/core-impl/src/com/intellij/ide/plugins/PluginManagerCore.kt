@@ -779,7 +779,8 @@ object PluginManagerCore {
           resolvedPluginSet.getDirectResolvedDependencies(depends)
             .filterIsInstance<PluginModuleDescriptor>()
             .filter { it !== main }
-        }
+        },
+      resolvedPluginSet = resolvedPluginSet,
     )
     return pluginSet to cycleErrors
   }
