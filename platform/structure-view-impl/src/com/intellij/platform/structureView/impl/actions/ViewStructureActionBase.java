@@ -18,7 +18,7 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-@ApiStatus.Experimental
+@ApiStatus.Internal
 public abstract class ViewStructureActionBase extends DumbAwareAction {
   protected ViewStructureActionBase() {
     setEnabledInModalContext(true);

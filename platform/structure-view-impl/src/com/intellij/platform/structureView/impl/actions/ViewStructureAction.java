@@ -15,6 +15,7 @@ import org.jetbrains.annotations.TestOnly;
 
 import java.util.Objects;
 
+@ApiStatus.Internal
 public final class ViewStructureAction extends ViewStructureActionBase {
 
   @Override

@@ -43,6 +43,7 @@ public final class ViewStructureAction extends DumbAwareAction {
   @Nullable
   private final Consumer<AbstractTreeNode<?>> myCallbackAfterNavigation;
 
+  @ApiStatus.Internal
   public ViewStructureAction() {
     setEnabledInModalContext(true);
     myCallbackAfterNavigation = null;
