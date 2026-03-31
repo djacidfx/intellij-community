@@ -72,6 +72,9 @@
     <extensionPoint qualifiedName="com.intellij.usageInfoFilter"
                     interface="com.intellij.find.impl.UsageInfoAdapterFilter"
                     dynamic="true"/>
+    <extensionPoint qualifiedName="com.intellij.runInspectionDialogExtension"
+                    interface="com.intellij.codeInspection.actions.RunInspectionDialogExtension"
+                    dynamic="true"/>
   </extensionPoints>
 
   <extensions defaultExtensionNs="com.intellij">
