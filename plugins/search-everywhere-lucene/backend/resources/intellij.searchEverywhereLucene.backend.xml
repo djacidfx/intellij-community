@@ -4,7 +4,6 @@
     <module name="intellij.libraries.lucene.common"/>
     <module name="intellij.platform.backend"/>
     <module name="intellij.platform.searchEverywhere"/>
-    <module name="intellij.platform.testFramework"/>
     <module name="intellij.searchEverywhereLucene.common"/>
   </dependencies>
   <!-- endregion -->
