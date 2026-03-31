@@ -1837,7 +1837,7 @@
     <editorFactoryListener implementation="com.intellij.ide.minimap.MinimapEditorFactoryListener"/>
     <applicationService serviceImplementation="com.intellij.ide.minimap.settings.MinimapSettings"/>
     <applicationConfigurable id="com.intellij.minimap" parentId="editor"
-                             provider="com.intellij.ide.minimap.settings.MinimapConfigurableProvider"
+                             provider="com.intellij.ide.minimap.settings.MinimapConfigurableProvider"/>
                              key="settings.name" bundle="messages.MinimapBundle"/>
     <minimapLayerFactory implementation="com.intellij.ide.minimap.layers.factories.LegacyPreviewLayerFactory"/>
     <minimapLayerFactory implementation="com.intellij.ide.minimap.layers.factories.TokenFillerLayerFactory"/>

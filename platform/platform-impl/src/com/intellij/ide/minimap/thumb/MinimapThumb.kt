@@ -23,7 +23,8 @@ internal object MinimapThumb {
       0
     }
 
-    return rawThumbHeight.coerceIn(MIN_THUMB_HEIGHT, minimapHeight)
+    val minThumbHeight = minOf(MIN_THUMB_HEIGHT, minimapHeight)
+    return rawThumbHeight.coerceIn(minThumbHeight, minimapHeight)
   }
 
   fun computeStart(scrollOffset: Int, scrollRange: Int, minimapHeight: Int, thumbHeight: Int): Int {
