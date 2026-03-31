@@ -674,16 +674,8 @@ public final class CreateFromUsageUtils {
                                               PsiUtil.skipParenthesizedExprDown(a.getRExpression()) instanceof PsiFunctionalExpression;
         PsiElement gParent = parent.getParent();
         PsiExpressionList expressionList = (assignsFunctionalExpression ? gParent : parent) instanceof PsiExpressionList l ? l : null;
-        boolean forCompletion;
-        if (expressionList != null) {
-          forCompletion = true;
-        }
-        else if (parent instanceof PsiPolyadicExpression) {
-          forCompletion = !(gParent instanceof PsiPolyadicExpression);
-        }
-        else {
-          forCompletion = gParent instanceof PsiPolyadicExpression && !(gParent.getParent() instanceof PsiPolyadicExpression);
-        }
+        boolean forCompletion = expressionList != null ||
+                                gParent instanceof PsiPolyadicExpression && !(gParent.getParent() instanceof PsiPolyadicExpression);
         ExpectedTypeInfo[] someExpectedTypes = ExpectedTypesProvider.getExpectedTypes(expr, forCompletion);
         if (someExpectedTypes.length > 0) {
           Comparator<ExpectedTypeInfo> comparator = expectedTypesComparator;

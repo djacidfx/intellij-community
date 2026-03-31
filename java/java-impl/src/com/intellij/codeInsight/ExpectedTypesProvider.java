@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.codeInsight;
 
 import com.intellij.codeInsight.completion.CompletionMemory;
@@ -326,6 +326,7 @@ public final class ExpectedTypesProvider {
     if (type.equals(PsiTypes.booleanType()) || type.equals(PsiTypes.voidType()) || type.equals(PsiTypes.nullType())) return;
 
     for (PsiPrimitiveType primitiveType : PsiTypes.primitiveTypes()) {
+      if (primitiveType.equals(PsiTypes.booleanType())) continue;
       processType(primitiveType, visitor, set);
       if (primitiveType.equals(type)) return;
     }
@@ -1061,14 +1062,17 @@ public final class ExpectedTypesProvider {
           op == JavaTokenType.GT ||
           op == JavaTokenType.LE ||
           op == JavaTokenType.GE) {
-        if (anotherType != null) {
-          myResult.add(createInfoImpl(PsiTypes.doubleType(), anotherType));
-        }
+        myResult.add(createInfoImpl(PsiTypes.doubleType(), anotherType != null ? anotherType : PsiTypes.intType()));
       }
       else if (op == JavaTokenType.PLUS) {
-        if (anotherType == null || anotherType.equalsToText(CommonClassNames.JAVA_LANG_STRING)) {
+        if (anotherType == null) {
+          PsiClassType stringType = PsiType.getJavaLangString(expr.getManager(), expr.getResolveScope());
+          myResult.add(createInfoImpl(stringType, stringType));
+          myResult.add(createInfoImpl(PsiTypes.doubleType(), PsiTypes.intType()));
+        }
+        else if (anotherType.equalsToText(CommonClassNames.JAVA_LANG_STRING)) {
           PsiClassType objectType = PsiType.getJavaLangObject(expr.getManager(), expr.getResolveScope());
-          myResult.add(createInfoImpl(objectType, anotherType != null ? anotherType : objectType));
+          myResult.add(createInfoImpl(objectType, anotherType));
         }
         else if (PsiTypes.doubleType().isAssignableFrom(anotherType)) {
           myResult.add(createInfoImpl(PsiTypes.doubleType(), anotherType));
