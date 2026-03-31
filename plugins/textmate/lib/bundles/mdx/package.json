@@ -1,6 +1,6 @@
 {
   "name": "vscode-mdx",
-  "version": "1.8.9",
+  "version": "1.8.17",
   "description": "Language support for MDX",
   "license": "MIT",
   "contributes": {
@@ -25,16 +25,32 @@
               "compact",
               "verbose"
             ],
+            "enumDescriptions": [
+              "Turn tracing off.",
+              "Trace messages only.",
+              "Compact message tracing.",
+              "Verbose message tracing."
+            ],
             "default": "off",
-            "description": "Trace MDX language server requests in the output console."
+            "description": "Trace MDX language server requests in the output console.",
+            "tags": [
+              "advanced"
+            ]
           },
           "mdx.trace.server.format": {
             "enum": [
               "text",
               "json"
             ],
+            "enumDescriptions": [
+              "Format as human friendly text",
+              "Format as raw JSON"
+            ],
             "default": "text",
-            "description": "How to format traced MDX language server requests."
+            "description": "How to format traced MDX language server requests.",
+            "tags": [
+              "advanced"
+            ]
           },
           "mdx.validate.validateReferences": {
             "enum": [

@@ -101,8 +101,6 @@ mkdir -p "$ROOT/lib/bundles/terraform"
 cp -r "LICENSE" "$ROOT/lib/bundles/terraform"
 cp -r "package.json" "$ROOT/lib/bundles/terraform"
 cp -r "language-configuration.json" "$ROOT/lib/bundles/terraform"
-cp -r "README.md" "$ROOT/lib/bundles/terraform"
-cp -r "snippets" "$ROOT/lib/bundles/terraform"
 
 cd ..
 

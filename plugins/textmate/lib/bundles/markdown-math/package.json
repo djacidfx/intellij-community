@@ -1,6 +1,6 @@
 {
   "name": "markdown-math",
-  "version": "1.0.0",
+  "version": "10.0.0",
   "description": "%description%",
   "license": "MIT",
   "contributes": {
@@ -35,6 +35,16 @@
         "embeddedLanguages": {
           "meta.embedded.math.markdown": "latex",
           "punctuation.definition.math.end.markdown": "latex"
+        }
+      },
+      {
+        "scopeName": "markdown.math.codeblock",
+        "path": "./syntaxes/md-math-fence.tmLanguage.json",
+        "injectTo": [
+          "text.html.markdown"
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.math.markdown": "latex"
         }
       }
     ],

@@ -1,9 +1,15 @@
 {
   "name": "terraform",
-  "version": "2.31.0",
+  "version": "2.39.2",
   "description": "Syntax highlighting and autocompletion for Terraform",
   "license": "MPL-2.0",
   "contributes": {
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "terraform.mcp.server",
+        "label": "HashiCorp Terraform MCP Server"
+      }
+    ],
     "languages": [
       {
         "id": "terraform",
@@ -29,12 +35,12 @@
           "Terraform Stack"
         ],
         "extensions": [
-          ".tfstack.hcl"
+          ".tfcomponent.hcl"
         ],
         "configuration": "./language-configuration.json",
         "icon": {
-          "dark": "assets/icons/terraform_stacks.svg",
-          "light": "assets/icons/terraform_stacks.svg"
+          "dark": "assets/icons/terraform_feature.svg",
+          "light": "assets/icons/terraform_feature.svg"
         }
       },
       {
@@ -47,8 +53,63 @@
         ],
         "configuration": "./language-configuration.json",
         "icon": {
-          "dark": "assets/icons/terraform_stacks.svg",
-          "light": "assets/icons/terraform_stacks.svg"
+          "dark": "assets/icons/terraform_feature.svg",
+          "light": "assets/icons/terraform_feature.svg"
+        }
+      },
+      {
+        "id": "terraform-version",
+        "aliases": [
+          "Terraform Version"
+        ],
+        "extensions": [
+          ".terraform-version"
+        ],
+        "icon": {
+          "light": "./assets/icons/HashiCorp_Icon_Black_RGB.svg",
+          "dark": "./assets/icons/HashiCorp_Icon_White_RGB.svg"
+        }
+      },
+      {
+        "id": "terraform-test",
+        "aliases": [
+          "Terraform Test"
+        ],
+        "extensions": [
+          ".tftest.hcl"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "dark": "assets/icons/terraform_feature.svg",
+          "light": "assets/icons/terraform_feature.svg"
+        }
+      },
+      {
+        "id": "terraform-mock",
+        "aliases": [
+          "Terraform Mock"
+        ],
+        "extensions": [
+          ".tfmock.hcl"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "dark": "assets/icons/terraform_feature.svg",
+          "light": "assets/icons/terraform_feature.svg"
+        }
+      },
+      {
+        "id": "terraform-search",
+        "aliases": [
+          "Terraform Search"
+        ],
+        "extensions": [
+          ".tfquery.hcl"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "dark": "assets/icons/terraform_feature.svg",
+          "light": "assets/icons/terraform_feature.svg"
         }
       },
       {
@@ -76,6 +137,21 @@
       },
       {
         "language": "terraform-deploy",
+        "scopeName": "source.hcl",
+        "path": "./syntaxes/hcl.tmGrammar.json"
+      },
+      {
+        "language": "terraform-test",
+        "scopeName": "source.hcl",
+        "path": "./syntaxes/hcl.tmGrammar.json"
+      },
+      {
+        "language": "terraform-mock",
+        "scopeName": "source.hcl",
+        "path": "./syntaxes/hcl.tmGrammar.json"
+      },
+      {
+        "language": "terraform-search",
         "scopeName": "source.hcl",
         "path": "./syntaxes/hcl.tmGrammar.json"
       }
@@ -263,12 +339,6 @@
         }
       }
     },
-    "snippets": [
-      {
-        "language": "terraform",
-        "path": "./snippets/terraform.json"
-      }
-    ],
     "configuration": [
       {
         "title": "General",
@@ -376,6 +446,13 @@
             "scope": "machine",
             "type": "string",
             "markdownDescription": "Path to a file (`TF_LOG_PATH`) for Terraform executions to be logged used by the the Terraform Language Server. Support for variables (e.g. timestamp, pid, ppid) via Go template syntax `{{varName}}`"
+          },
+          "terraform.mcp.server.enable": {
+            "order": 3,
+            "scope": "window",
+            "type": "boolean",
+            "default": false,
+            "description": "Enable HashiCorp Terraform MCP Server integration"
           }
         }
       },
@@ -410,6 +487,14 @@
       {
         "command": "terraform.disableLanguageServer",
         "title": "HashiCorp Terraform: Disable Language Server"
+      },
+      {
+        "command": "terraform.enableMcpServer",
+        "title": "HashiCorp Terraform: Enable MCP Server"
+      },
+      {
+        "command": "terraform.disableMcpServer",
+        "title": "HashiCorp Terraform: Disable MCP Server"
       },
       {
         "command": "terraform.init",
@@ -522,6 +607,14 @@
         {
           "command": "terraform.disableLanguageServer",
           "when": "config.terraform.languageServer.enable == true"
+        },
+        {
+          "command": "terraform.enableMcpServer",
+          "when": "config.terraform.mcp.server.enable == false"
+        },
+        {
+          "command": "terraform.disableMcpServer",
+          "when": "config.terraform.mcp.server.enable == true"
         },
         {
           "command": "terraform.init",

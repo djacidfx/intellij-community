@@ -1,6 +1,6 @@
 {
   "name": "coffeescript",
-  "version": "1.0.0",
+  "version": "10.0.0",
   "description": "%description%",
   "license": "MIT",
   "contributes": {
@@ -40,7 +40,8 @@
     ],
     "configurationDefaults": {
       "[coffeescript]": {
-        "diffEditor.ignoreTrimWhitespace": false
+        "diffEditor.ignoreTrimWhitespace": false,
+        "editor.defaultColorDecorators": "never"
       }
     }
   }

@@ -1,6 +1,6 @@
 {
   "name": "csharp",
-  "version": "1.0.0",
+  "version": "10.0.0",
   "description": "%description%",
   "license": "MIT",
   "contributes": {
@@ -28,7 +28,17 @@
       {
         "language": "csharp",
         "scopeName": "source.cs",
-        "path": "./syntaxes/csharp.tmLanguage.json"
+        "path": "./syntaxes/csharp.tmLanguage.json",
+        "tokenTypes": {
+          "meta.interpolation": "other"
+        },
+        "unbalancedBracketScopes": [
+          "keyword.operator.relational.cs",
+          "keyword.operator.arrow.cs",
+          "punctuation.accessor.pointer.cs",
+          "keyword.operator.bitwise.shift.cs",
+          "keyword.operator.assignment.compound.bitwise.cs"
+        ]
       }
     ],
     "snippets": [

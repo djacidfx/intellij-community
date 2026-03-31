@@ -1,6 +1,6 @@
 {
   "name": "language-viml",
-  "version": "1.2.1",
+  "version": "1.2.3",
   "description": "Vim Script language support for Atom",
   "license": "MIT",
   "contributes": {
@@ -14,7 +14,8 @@
           ".nvimrc",
           "_vimrc",
           ".vmb",
-          ".ideavimrc"
+          ".ideavimrc",
+          "vimrc"
         ],
         "aliases": [
           "vim",
