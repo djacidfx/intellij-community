@@ -216,6 +216,7 @@ internal class PsiSyntaxBuilderImpl(
 
     val compositeOptionalData = CompositeOptionalData()
 
+    @Suppress("UNCHECKED_CAST")
     val nodeData = NodeData(
       lexStarts = starts,
       offset = startOffset,
@@ -296,8 +297,8 @@ internal class PsiSyntaxBuilderImpl(
     lexTypes: Array<IElementType?>,
     originalLexTypes: Array<SyntaxElementType>,
   ) {
-    for (i in 0..<lexTypes.size) {
-      if (lexTypes[i] == null) {
+    for ((i, element) in lexTypes.withIndex()) {
+      if (element == null) {
         throw IllegalStateException("IElementType for token ${originalLexTypes[i]} is missing. TokenConverter = $tokenConverter")
       }
     }
