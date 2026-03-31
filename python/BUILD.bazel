@@ -1210,6 +1210,8 @@ jvm_library(
     "//platform/smRunner:smRunner-tests_test_lib",
     "//platform/testRunner",
     "//platform/testRunner:testRunner_test_lib",
+    "//platform/todo/backend",
+    "//platform/todo/backend:backend_test_lib",
   ],
   runtime_deps = [
     ":python-community-tests",

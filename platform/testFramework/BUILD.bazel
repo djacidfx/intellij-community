@@ -97,6 +97,7 @@ jvm_library(
     "//jps/model-impl",
     "//platform/util:util-ui",
     "//platform/util-ex",
+    "//platform/todo/backend",
     ":libraries_junit4_provided",
     ":libraries_junit5-launcher_provided",
   ],
@@ -230,6 +231,7 @@ jvm_library(
     "//jps/model-impl:model-impl_test_lib",
     "//platform/util:util-ui_test_lib",
     "//platform/util-ex:util-ex_test_lib",
+    "//platform/todo/backend:backend_test_lib",
   ]
 )
 ### auto-generated section `build intellij.platform.testFramework` end
