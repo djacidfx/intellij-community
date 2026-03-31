@@ -151,6 +151,42 @@ class CodexAppServerRefreshHintsProviderTest {
   }
 
   @Test
+  fun threadNameUpdatedNotificationsTriggerRefreshWithoutCreatingRebindCandidates(): Unit = runBlocking(Dispatchers.Default) {
+    val notifications = MutableSharedFlow<CodexAppServerNotification>(replay = 1, extraBufferCapacity = 16)
+    val provider = CodexAppServerRefreshHintsProvider(
+      readThreadActivitySnapshot = { threadId ->
+        snapshot(
+          threadId = threadId,
+          statusKind = CodexThreadStatusKind.IDLE,
+        )
+      },
+      notifications = notifications,
+    )
+
+    notifications.emit(
+      CodexAppServerNotification(
+        method = "thread/name/updated",
+        kind = CodexAppServerNotificationKind.THREAD_NAME_UPDATED,
+        threadId = "thread-rename",
+      )
+    )
+
+    withTimeout(2.seconds) {
+      provider.updates.first()
+    }
+
+    val hintsByPath = provider.prefetchRefreshHints(
+      paths = listOf("/work/project"),
+      knownThreadIdsByPath = mapOf("/work/project" to setOf("thread-rename")),
+    )
+
+    val hints = hintsByPath.getValue("/work/project")
+    assertThat(hints.rebindCandidates).isEmpty()
+    assertThat(hints.activities())
+      .containsExactlyEntriesOf(mapOf("thread-rename" to AgentThreadActivity.READY))
+  }
+
+  @Test
   fun threadStartedNotificationsEmitSnapshotBackedRebindCandidatesForUnknownThreadIds(): Unit = runBlocking(Dispatchers.Default) {
     val notifications = MutableSharedFlow<CodexAppServerNotification>(replay = 1, extraBufferCapacity = 16)
     val provider = CodexAppServerRefreshHintsProvider(
