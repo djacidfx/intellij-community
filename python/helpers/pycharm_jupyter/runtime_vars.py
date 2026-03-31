@@ -10,20 +10,16 @@ from debugpy._vendored.pydevd._pydevd_bundle.pydevd_resolver import (
     get_var_scope,
     sorted_attributes_key,
     TOO_LARGE_ATTR,
-    MoreItemsRange,
-    MoreItems
 )
 from debugpy._vendored.pydevd._pydevd_bundle.pydevd_vars import (
     eval_in_context,
     resolve_var_object,
     resolve_compound_var_object_fields,
-    table_like_struct_to_xml,
 )
 from debugpy._vendored.pydevd._pydevd_bundle.pydevd_xml import (
     get_type,
     get_variable_details,
     should_evaluate_full_value,
-    ExceptionOnEvaluate,
 )
 from debugpy._vendored.pydevd._pydevd_bundle.pydevd_utils import is_string
 from debugpy._vendored.pydevd._pydevd_bundle.pydevd_safe_repr import SafeRepr
@@ -111,7 +107,8 @@ def get_array(text):
     roffset, coffset, rows, cols, format, attrs = text.split('\t', 5)
     name = attrs.split("\t")[-1]
     var = eval_in_context(name, namespace, namespace)
-    xml = table_like_struct_to_xml(var, name, int(roffset), int(coffset),
+    from pycharm_tables.pydevd_tabular_to_xml import legacy_table_like_struct_to_xml
+    xml = legacy_table_like_struct_to_xml(var, name, int(roffset), int(coffset),
                                    int(rows), int(cols), format)
     print(xml)
 
