@@ -39,8 +39,11 @@ import com.intellij.psi.PsiManager
 import com.intellij.psi.impl.file.PsiDirectoryFactory
 import com.intellij.psi.util.PsiTreeUtil
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.jetbrains.annotations.ApiStatus
+import org.jetbrains.annotations.VisibleForTesting
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.idea.KotlinFileType
 import org.jetbrains.kotlin.idea.base.codeInsight.pathBeforeJavaToKotlinConversion
@@ -52,6 +55,7 @@ import org.jetbrains.kotlin.idea.core.util.toPsiDirectory
 import org.jetbrains.kotlin.idea.core.util.toPsiFile
 import org.jetbrains.kotlin.idea.statistics.ConversionType
 import org.jetbrains.kotlin.idea.statistics.J2KFusCollector
+import org.jetbrains.kotlin.idea.util.application.isUnitTestMode
 import org.jetbrains.kotlin.idea.util.getAllFilesRecursively
 import org.jetbrains.kotlin.j2k.ConverterSettings
 import org.jetbrains.kotlin.j2k.J2kConverterExtension
@@ -62,6 +66,7 @@ import org.jetbrains.kotlin.j2k.J2kPreprocessorExtension
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.psiUtil.findDescendantOfType
 import java.io.IOException
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.io.path.notExists
 import kotlin.time.measureTimedValue
 
@@ -81,6 +86,10 @@ class JavaToKotlinActionForGroup : JavaToKotlinAction() {
     }
 }
 
+@ApiStatus.Internal
+@VisibleForTesting
+var j2kJob: AtomicReference<Job>? = null
+
 open class JavaToKotlinAction : AnAction() {
     override fun actionPerformed(e: AnActionEvent) {
         val project = CommonDataKeys.PROJECT.getData(e.dataContext) ?: return
@@ -94,22 +103,25 @@ open class JavaToKotlinAction : AnAction() {
         val j2kConverterExtension = J2kConverterExtension.extension(j2kKind)
         if (shouldSkipConversionOfErroneousCode(javaFiles, project)) return
         if (j2kConverterExtension.doCheckBeforeConversion(project, module)) {
-            currentThreadCoroutineScope().launch {
+            val launch = currentThreadCoroutineScope().launch {
                 JavaToKotlinActionHandler.convertFiles(
                     files = javaFiles,
                     project = project,
                     module = module,
                 )
             }
+            j2kJob?.set(launch)
         } else {
             j2kConverterExtension.setUpAndConvert(project, module, javaFiles) { files, project, module ->
-                currentThreadCoroutineScope().launch {
+                val launch = currentThreadCoroutineScope().launch {
                     JavaToKotlinActionHandler.convertFiles(
                         files = files,
                         project = project,
                         module = module,
+                        askExternalCodeProcessing = !isUnitTestMode()
                     )
                 }
+                j2kJob?.set(launch)
             }
         }
     }
