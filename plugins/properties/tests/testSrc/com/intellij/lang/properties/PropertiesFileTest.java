@@ -1,4 +1,4 @@
-// Copyright 2000-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
+// Copyright 2000-2026 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
 package com.intellij.lang.properties;
 
 import com.intellij.lang.properties.psi.PropertiesElementFactory;
@@ -11,6 +11,8 @@ import com.intellij.psi.PsiFile;
 import com.intellij.testFramework.PsiTestUtil;
 import com.intellij.testFramework.fixtures.BasePlatformTestCase;
 import com.intellij.util.IncorrectOperationException;
+import com.intellij.util.indexing.FileBasedIndex;
+import com.intellij.util.indexing.FileBasedIndexImpl;
 import org.jetbrains.annotations.NonNls;
 
 import java.util.List;
@@ -179,5 +181,19 @@ public class PropertiesFileTest extends BasePlatformTestCase {
     assertEquals(':', delimiter);
     assertEquals("xxx:yyy", property.getPsiElement().getText());
     codeStyleSettings.KEY_VALUE_DELIMITER_CODE = 0;
+  }
+
+  public void testPropertyPresentationNonUniqueFilename() {
+    myFixture.addFileToProject("another/bundle.properties", "my.key=another value");
+    myFixture.configureByText("bundle.properties", "my.<caret>key=value");
+    Property property = assertInstanceOf(myFixture.getElementAtCaret(), Property.class);
+    
+    // Make sure that the files are visible by FilenameIndex.
+    // UniqueVFilePathBuilder just skips this update on EDT (and this test is run on EDT).
+    if (FileBasedIndex.getInstance() instanceof FileBasedIndexImpl index) {
+      index.getChangedFilesCollector().processFilesToUpdateInReadAction();
+    }
+
+    assertEquals("src/bundle.properties", property.getPresentation().getLocationString());
   }
 }
