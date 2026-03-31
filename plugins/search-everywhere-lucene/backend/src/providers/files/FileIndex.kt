@@ -139,8 +139,13 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
             }
           }
         }
-        task.await()
-        progressJob.cancel()
+
+        try {
+          task.await()
+        }
+        finally {
+          progressJob.cancel()
+        }
       }
     }.getOrLogException(LOG)
   }
