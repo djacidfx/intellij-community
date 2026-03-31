@@ -201,6 +201,9 @@ com.intellij.openapi.editor.FoldingModel
 - calcOffsetsToScroll(com.intellij.openapi.editor.Editor,java.awt.Point,com.intellij.openapi.editor.ScrollType,java.awt.Rectangle,javax.swing.JScrollPane):java.awt.Point
 - a:getHorizontalOffset(com.intellij.openapi.editor.Editor,java.awt.Point,com.intellij.openapi.editor.ScrollType,java.awt.Rectangle,javax.swing.JScrollPane):I
 - a:getVerticalOffset(com.intellij.openapi.editor.Editor,java.awt.Point,com.intellij.openapi.editor.ScrollType,java.awt.Rectangle,javax.swing.JScrollPane):I
+com.intellij.openapi.editor.SoftWrap
+- com.intellij.openapi.editor.TextChange
+- *:isCustomSoftWrap():Z
 com.intellij.openapi.editor.colors.EditorColors
 - *sf:SELECTION_BACKGROUND_COLOR_INACTIVE:com.intellij.openapi.editor.colors.ColorKey
 a:com.intellij.openapi.editor.colors.EditorColorsManager

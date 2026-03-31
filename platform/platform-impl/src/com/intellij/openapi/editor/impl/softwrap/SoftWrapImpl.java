@@ -81,9 +81,4 @@ public final class SoftWrapImpl implements SoftWrapEx {
   public String toString() {
     return myChange.toString();
   }
-
-  @Override
-  public boolean isPaintable() {
-    return true;
-  }
 }

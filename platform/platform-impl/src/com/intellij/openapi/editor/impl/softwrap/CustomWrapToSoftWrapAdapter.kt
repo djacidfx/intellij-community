@@ -33,9 +33,6 @@ internal class CustomWrapToSoftWrapAdapter(
     return
   }
 
-  override val isPaintable: Boolean
-    get() = false
-
   override fun getStart(): Int = when (type) {
     Type.PASS_THROUGH -> customWrap.offset
     Type.DEFAULT -> change.start
@@ -53,6 +50,8 @@ internal class CustomWrapToSoftWrapAdapter(
   override fun getIndentInColumns(): Int = customWrap.indent
 
   override fun getIndentInPixels(): Int = EditorUtil.getPlainSpaceWidth(editor) * indentInColumns
+
+  override fun isCustomSoftWrap(): Boolean = true
 
   enum class Type {
     DEFAULT,
