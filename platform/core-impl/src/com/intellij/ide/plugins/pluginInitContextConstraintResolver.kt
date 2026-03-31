@@ -1,6 +1,7 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.plugins
 
+import com.intellij.ide.plugins.PluginDependencyAnalysis.DependencyRef
 import com.intellij.ide.plugins.PluginSetConstraintsResolver.CandidateState.Candidate
 import com.intellij.ide.plugins.PluginSetConstraintsResolver.CandidateState.Excluded
 import com.intellij.openapi.extensions.PluginId
@@ -174,7 +175,7 @@ private class PluginSetConstraintsResolver(
     // TODO: do we want to support non-optional `depends` with a sub-descriptor?
   }
 
-  private fun sequenceAllDependenciesOfCandidateIncludingCompatibility(candidate: IdeaPluginDescriptorImpl): Sequence<PluginDependencyAnalysis.DependencyRef> {
+  private fun sequenceAllDependenciesOfCandidateIncludingCompatibility(candidate: IdeaPluginDescriptorImpl): Sequence<DependencyRef> {
     return PluginDependencyAnalysis.sequenceStrictDependencies(candidate) + initContext.provideCompatibilityDependencies(candidate, pluginSet)
   }
 
@@ -212,7 +213,7 @@ private class PluginSetConstraintsResolver(
         return
       }
       else if (tryAddDependency(target)) {
-        if (target is ContentModuleDescriptor) {
+        if (target is ContentModuleDescriptor && dependencyRef is DependencyRef.ContentModule) {
           val visibilityViolation = PluginSetBuilder.checkVisibilityAndReturnErrorMessage(
             candidate as? ContentModuleDescriptor ?: candidate.getMainDescriptor(),
             target
