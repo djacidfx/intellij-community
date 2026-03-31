@@ -90,7 +90,7 @@ internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapM
   private var wrapsAtCaret: List<CustomWrapImpl> = emptyList()
 
   override fun beforeDocumentChange(event: DocumentEvent) {
-    if (editor.document.isInBulkUpdate) return
+    if (editor.elfDocument.isInBulkUpdate) return
     // todo check it did not change during bulk op
     val offset = event.offset
     if (event.getOldLength() == 0 && offset == editor.caretModel.offset) {
