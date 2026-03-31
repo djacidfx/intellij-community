@@ -87,6 +87,8 @@
 
     <completion.contributor language="JAVA"
                             implementationClass="de.plushnikov.intellij.plugin.extension.LombokBuilderCompletionContributor" />
+    <completion.contributor language="JAVA"
+                            implementationClass="de.plushnikov.intellij.plugin.completion.LombokExtensionMethodCompletionContributor" />
 
     <modcompletion.completionItemFilter language="JAVA"
                             implementationClass="de.plushnikov.intellij.plugin.completion.LombokOnXCompletionContributorFilter"/>

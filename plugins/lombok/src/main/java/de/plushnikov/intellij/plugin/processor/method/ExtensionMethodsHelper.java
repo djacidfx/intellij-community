@@ -5,6 +5,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.JavaPsiFacade;
+import com.intellij.psi.PsiArrayType;
 import com.intellij.psi.JavaResolveResult;
 import com.intellij.psi.PsiAnnotation;
 import com.intellij.psi.PsiClass;
@@ -27,7 +28,9 @@ import com.intellij.psi.util.CachedValuesManager;
 import com.intellij.psi.util.MethodSignatureBackedByPsiMethod;
 import com.intellij.psi.util.PsiModificationTracker;
 import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.psi.util.PsiUtil;
 import com.intellij.psi.util.PsiTypesUtil;
+import com.intellij.psi.util.TypeConversionUtil;
 import com.intellij.util.containers.ContainerUtil;
 import de.plushnikov.intellij.plugin.LombokClassNames;
 import de.plushnikov.intellij.plugin.psi.LombokExtensionMethod;
@@ -46,6 +49,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @NotNullByDefault
@@ -216,4 +220,75 @@ public final class ExtensionMethodsHelper {
     return lightMethod;
   }
 
+  /// Collects extension methods that should be available in completion for the given method reference.
+  ///
+  /// @param referenceExpression reference being completed; its qualifier is used as the extension method receiver
+  /// @param nameFilter filters extension method names before compatibility checks
+  /// @return compatible extension methods or an empty list if the qualifier/target class cannot be resolved
+  public static List<PsiExtensionMethod> getExtensionMethodsForCompletion(PsiReferenceExpression referenceExpression,
+                                                                          Predicate<? super String> nameFilter) {
+    PsiExpression qualifierExpression = getExtensionMethodQualifier(referenceExpression);
+    if (qualifierExpression == null) {
+      return Collections.emptyList();
+    }
+    PsiClass targetClass = resolveExtensionMethodTargetClass(qualifierExpression.getType(), referenceExpression);
+    if (targetClass == null) {
+      return Collections.emptyList();
+    }
+    BiFunction<PsiClass, PsiMethod, @Nullable PsiExtensionMethod> function =
+      (PsiClass providerClass, PsiMethod extensionMethodImpl) -> createCompletionExtensionMethod(
+        extensionMethodImpl, targetClass, qualifierExpression, referenceExpression, nameFilter);
+    return collectExtensionMethods(targetClass, referenceExpression, function);
+  }
+
+  private static @Nullable PsiExpression getExtensionMethodQualifier(PsiReferenceExpression methodExpression) {
+    PsiExpression qualifierExpression = methodExpression.getQualifierExpression();
+    if (qualifierExpression == null ||
+        qualifierExpression instanceof PsiReferenceExpression &&
+        ((PsiReferenceExpression)qualifierExpression).resolve() instanceof PsiClass) {
+      return null;
+    }
+    return qualifierExpression;
+  }
+
+  private static @Nullable PsiClass resolveExtensionMethodTargetClass(@Nullable PsiType qualifierType,
+                                                                      PsiElement context) {
+    if (qualifierType == null) return null;
+    if (qualifierType instanceof PsiArrayType) {
+      return JavaPsiFacade.getElementFactory(context.getProject()).getArrayClass(PsiUtil.getLanguageLevel(context));
+    }
+    return PsiUtil.resolveClassInClassTypeOnly(qualifierType);
+  }
+
+  private static @Nullable PsiExtensionMethod createCompletionExtensionMethod(PsiMethod staticMethod,
+                                                                              PsiClass targetClass,
+                                                                              PsiExpression qualifierExpression,
+                                                                              PsiReferenceExpression referenceExpression,
+                                                                              Predicate<? super String> nameFilter) {
+    if (!nameFilter.test(staticMethod.getName())) return null;
+    PsiParameter receiverParameter = staticMethod.getParameterList().getParameter(0);
+    if (receiverParameter == null) return null;
+    PsiType qualifierType = qualifierExpression.getType();
+    if (qualifierType == null) return null;
+
+    PsiSubstitutor substitutor = inferReceiverSubstitutor(staticMethod, receiverParameter, qualifierType, referenceExpression);
+    PsiType receiverType = substitutor.substitute(receiverParameter.getType());
+    if (receiverType == null || !TypeConversionUtil.isAssignable(receiverType, qualifierType)) {
+      return null;
+    }
+    return createLightMethod(staticMethod, targetClass, substitutor);
+  }
+
+  private static PsiSubstitutor inferReceiverSubstitutor(PsiMethod staticMethod,
+                                                         PsiParameter receiverParameter,
+                                                         PsiType qualifierType,
+                                                         PsiReferenceExpression referenceExpression) {
+    PsiTypeParameter[] typeParameters = staticMethod.getTypeParameters();
+    if (typeParameters.length == 0) {
+      return PsiSubstitutor.EMPTY;
+    }
+    return JavaPsiFacade.getInstance(staticMethod.getProject()).getResolveHelper()
+      .inferTypeArguments(typeParameters, new PsiType[]{receiverParameter.getType()}, new PsiType[]{qualifierType},
+                          PsiUtil.getLanguageLevel(referenceExpression));
+  }
 }

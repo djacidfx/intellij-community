@@ -977,16 +977,7 @@ public final class JavaCompletionContributor extends CompletionContributor imple
         item.setTailType(TailTypes.noneType());
       }
       if (item instanceof JavaMethodCallElement call) {
-        PsiMethod method = call.getObject();
-        if (method.getTypeParameters().length > 0) {
-          PsiType returned = TypeConversionUtil.erasure(method.getReturnType());
-          ExpectedTypeInfo matchingExpectation = returned == null ? null : ContainerUtil.find(expectedTypes, info ->
-            info.getDefaultType().isAssignableFrom(returned) ||
-            AssignableFromFilter.isAcceptable(method, position, info.getDefaultType(), call.getSubstitutor()));
-          if (matchingExpectation != null) {
-            call.setInferenceSubstitutorFromExpectedType(position, matchingExpectation.getDefaultType());
-          }
-        }
+        prepareMethodCallForExpectedTypes(call, position, expectedTypes);
       }
       items.add(element);
 
@@ -1531,6 +1522,29 @@ public final class JavaCompletionContributor extends CompletionContributor imple
       return TailTypeDecorator.withTail(lookup, TailTypes.semicolonType());
     }
     return null;
+  }
+
+
+  /**
+   * Prepares a method call element with type inference based on the expected types provided.
+   *
+   * @param call The method call element to be prepared.
+   * @param position The PSI element representing the position in the code where the method call occurs.
+   * @param infos A collection of expected type information that the method call should satisfy.
+   */
+  public static void prepareMethodCallForExpectedTypes(@NotNull JavaMethodCallElement call,
+                                                       @NotNull PsiElement position,
+                                                       @NotNull Collection<? extends ExpectedTypeInfo> infos) {
+    PsiMethod method = call.getObject();
+    if (method.getTypeParameters().length > 0) {
+      PsiType returned = TypeConversionUtil.erasure(method.getReturnType());
+      ExpectedTypeInfo matchingExpectation = returned == null ? null : ContainerUtil.find(infos, info ->
+        info.getDefaultType().isAssignableFrom(returned) ||
+        AssignableFromFilter.isAcceptable(method, position, info.getDefaultType(), call.getSubstitutor()));
+      if (matchingExpectation != null) {
+        call.setInferenceSubstitutorFromExpectedType(position, matchingExpectation.getDefaultType());
+      }
+    }
   }
 
   static class IndentingDecorator extends LookupElementDecorator<LookupElement> {
