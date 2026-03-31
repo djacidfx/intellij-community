@@ -149,33 +149,30 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
     when (op) {
       LuceneFileIndexOperation.IndexAll -> {
         LOG.debug("Indexing all files")
+        val currentTime = System.currentTimeMillis()
 
         val fileIndex = ProjectFileIndex.getInstance(project)
 
-        //TODO there can be duplicate files in here, but I dont think its a problem?
-
-        val docs = mutableListOf<Document>()
-        readAction {
-          fileIndex.iterateContent { file ->
-            // also index Dirs as the current File Search can also find directories.
-            if (file.isValid) {
-              val (_, doc) = getDocument(file)
-              docs.add(doc)
-            }
-            else {
-              LOG.info("Skipping indexing ${file.path}, because it is not valid. But we assume fileIndex.iterateContent only returns valid files.")
-            }
-
-
-            true // continue iteration
+        // Collect lightweight VirtualFile references only; document creation happens per batch.
+        val files = mutableListOf<VirtualFile>()
+        fileIndex.iterateContent { file ->
+          if (file.isValid) {
+            files.add(file)
           }
+          true // continue iteration
         }
 
         luceneIndex.processChanges { writer ->
           writer.deleteAll()
-          writer.addDocuments(docs)
-          LOG.debug { "Registered all ${docs.size} files for the next lucene index commit." }
         }
+
+        for (batch in files.chunked(INDEX_BATCH_SIZE)) {
+          val docs = readAction { batch.filter { it.isValid }.map { getDocument(it).second } }
+          luceneIndex.processChanges { writer ->
+            writer.addDocuments(docs)
+          }
+        }
+        LOG.debug { "Indexed all ${files.size} files in ${System.currentTimeMillis() - currentTime} ms" }
         initialIndexingCompleted.complete(Unit)
       }
 
@@ -343,6 +340,7 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
     val LOG: Logger = logger<FileIndex>() // #com.intellij.searchEverywhereLucene.backend.providers.files.FileIndex
     const val LUCENE_INDEX_ENABLED_REGISTRY_KEY: String = "search.everywhere.lucene.index.enabled"
     val PROGRESS_DISPLAY_DELAY: Duration = 500.milliseconds
+    private const val INDEX_BATCH_SIZE: Int = 5000
     const val FILE_URL: String = "uri"
 
     fun buildQuery(params: SeParams, analyzer: Analyzer = FileSearchAnalyzer()): Query {
