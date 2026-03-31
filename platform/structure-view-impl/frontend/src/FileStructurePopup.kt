@@ -636,12 +636,11 @@ class FileStructurePopup(
     checkBox.setOpaque(false)
     UIUtil.applyStyle(UIUtil.ComponentStyle.SMALL, checkBox)
 
-    val selected = myModel.isActionEnabled(action)
+    val selected = myModel.isActionEnabled(action) != action.isReverted
     checkBox.setSelected(selected)
-    val isRevertedStructureFilter = action.isReverted
     checkBox.addActionListener {
       val state = checkBox.isSelected
-      myModel.setActionEnabled(action, isRevertedStructureFilter != state, myAutoClicked.contains(checkBox))
+      myModel.setActionEnabled(action, state, myAutoClicked.contains(checkBox))
       cs.launch(Dispatchers.UI) {
         rebuild(false)
         if (mySpeedSearch.isPopupActive) {
