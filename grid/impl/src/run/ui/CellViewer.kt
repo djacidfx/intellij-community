@@ -1,9 +1,9 @@
 package com.intellij.database.run.ui
 
 import com.intellij.database.datagrid.DataGrid
+import com.intellij.database.datagrid.GridCellRequest
 import com.intellij.database.datagrid.GridColumn
 import com.intellij.database.datagrid.GridRow
-import com.intellij.database.datagrid.ModelIndex
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.openapi.util.Key
@@ -34,7 +34,7 @@ interface CellViewer : Disposable {
  * Chooses and creates the Value Editor [CellViewer] implementation for the current cell.
  */
 interface CellViewerFactory {
-  fun getSuitability(grid: DataGrid, row: ModelIndex<GridRow>, column: ModelIndex<GridColumn>, value: Any?): Suitability
+  fun getSuitability(request: GridCellRequest<GridRow, GridColumn>): Suitability
   fun createViewer(grid: DataGrid): CellViewer
 
   companion object {

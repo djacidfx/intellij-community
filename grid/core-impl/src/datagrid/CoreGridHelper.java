@@ -10,20 +10,14 @@ public interface CoreGridHelper {
   void setFilterText(@NotNull CoreGrid<GridRow, GridColumn> grid, @NotNull String text, int caretPosition);
 
   @Nullable
-  Language getCellLanguage(@NotNull CoreGrid<GridRow, GridColumn> grid,
-                           @NotNull ModelIndex<GridRow> row,
-                           @NotNull ModelIndex<GridColumn> column,
-                           @Nullable Object value);
+  Language getCellLanguage(@NotNull GridCellRequest<GridRow, GridColumn> request);
 
   boolean canMutateColumns(@NotNull CoreGrid<GridRow, GridColumn> grid);
 
   @Nullable
   PsiCodeFragment createCellCodeFragment(@NotNull String text,
                                          @NotNull Project project,
-                                         @NotNull CoreGrid<GridRow, GridColumn> grid,
-                                         @NotNull ModelIndex<GridRow> row,
-                                         @NotNull ModelIndex<GridColumn> column,
-                                         @Nullable Object value);
+                                         @NotNull GridCellRequest<GridRow, GridColumn> request);
 
   /**
    * Creates a code fragment for expression mode editing.

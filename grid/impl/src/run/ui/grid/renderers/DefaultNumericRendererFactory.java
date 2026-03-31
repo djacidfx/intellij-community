@@ -1,15 +1,14 @@
 package com.intellij.database.run.ui.grid.renderers;
 
 import com.intellij.database.datagrid.DataGrid;
+import com.intellij.database.datagrid.GridCellRequest;
 import com.intellij.database.datagrid.GridColumn;
 import com.intellij.database.datagrid.GridRow;
 import com.intellij.database.datagrid.GridUtil;
-import com.intellij.database.datagrid.ModelIndex;
 import com.intellij.database.extractors.ObjectFormatterUtil;
 import com.intellij.openapi.editor.ex.EditorEx;
 import com.intellij.openapi.util.Disposer;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public class DefaultNumericRendererFactory implements GridCellRendererFactory {
   private final DataGrid myGrid;
@@ -20,12 +19,12 @@ public class DefaultNumericRendererFactory implements GridCellRendererFactory {
   }
 
   @Override
-  public boolean supports(@NotNull ModelIndex<GridRow> row, @NotNull ModelIndex<GridColumn> column, @Nullable Object value) {
-    return ObjectFormatterUtil.isNumericCell(myGrid, row, column, value);
+  public boolean supports(@NotNull GridCellRequest<GridRow, GridColumn> request) {
+    return ObjectFormatterUtil.isNumericCell(request);
   }
 
   @Override
-  public @NotNull GridCellRenderer getOrCreateRenderer(@NotNull ModelIndex<GridRow> row, @NotNull ModelIndex<GridColumn> column) {
+  public @NotNull GridCellRenderer getOrCreateRenderer(@NotNull GridCellRequest<GridRow, GridColumn> request) {
     if (myRenderer == null) {
       myRenderer = new NumericRenderer(myGrid);
       Disposer.register(myGrid, myRenderer);
@@ -52,7 +51,7 @@ public class DefaultNumericRendererFactory implements GridCellRendererFactory {
     }
 
     @Override
-    public int getSuitability(@NotNull ModelIndex<GridRow> row, @NotNull ModelIndex<GridColumn> column, @Nullable Object value) {
+    public int getSuitability(@NotNull GridCellRequest<GridRow, GridColumn> request) {
       return SUITABILITY_MIN + 1;
     }
   }

@@ -1,13 +1,14 @@
 package com.intellij.database.run.ui.treetable;
 
 import com.intellij.database.datagrid.DataGrid;
+import com.intellij.database.datagrid.GridCellRequest;
+import com.intellij.database.datagrid.GridCellRequestKt;
 import com.intellij.database.datagrid.GridColumn;
 import com.intellij.database.datagrid.GridRow;
 import com.intellij.database.datagrid.ModelIndex;
 import com.intellij.database.datagrid.SelectionModel;
 import com.intellij.database.datagrid.SelectionModelUtil;
 import com.intellij.database.datagrid.ViewIndex;
-import com.intellij.database.run.ui.DataAccessType;
 import com.intellij.database.run.ui.ResultViewWithCells;
 import com.intellij.database.run.ui.ResultViewWithRows;
 import com.intellij.database.run.ui.grid.GridColorsScheme;
@@ -288,7 +289,7 @@ public final class GridTreeTable extends JBTreeTable implements Disposable, Edit
                                                    boolean hasFocus,
                                                    int row,
                                                    int column) {
-      TableCellRenderer renderer = myRenderers.getRenderer(row, 1);
+      TableCellRenderer renderer = myRenderers.getRenderer(row, 1, value);
       renderer = renderer != null ? renderer : myDefaultRenderer;
       renderer = myTreeTable.myCellImageCache.wrapCellRenderer(renderer);
       Component component = renderer.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
@@ -323,15 +324,15 @@ public final class GridTreeTable extends JBTreeTable implements Disposable, Edit
       Disposer.register(grid, myJsonRenderer);
     }
 
-    public @Nullable TableCellRenderer getRenderer(int viewRow, int viewColumn) {
+    public @Nullable TableCellRenderer getRenderer(int viewRow, int viewColumn, @Nullable Object value) {
       Pair<Integer, Integer> rowAndColumn = myGrid.getRawIndexConverter().rowAndColumn2Model().fun(viewRow, viewColumn);
       int modelColumnIdx = rowAndColumn.second;
       ModelIndex<GridRow> row = ModelIndex.forRow(myGrid, rowAndColumn.first);
       ModelIndex<GridColumn> column = ModelIndex.forColumn(myGrid, modelColumnIdx);
-      Object value = myGrid.getDataModel(DataAccessType.DATA_WITH_MUTATIONS).getValueAt(row, column);
+      GridCellRequest<GridRow, GridColumn> request = GridCellRequestKt.overrideValue(GridCellRequestKt.request(myGrid, row, column), value);
       GridCellRenderer gridCellRenderer = myTreeTable.getTree().isExpanded(viewRow) ? myEmptyRenderer :
                                           modelColumnIdx == -1 ? myJsonRenderer :
-                                          GridCellRenderer.getRenderer(myGrid, row, column, value);
+                                          GridCellRenderer.getRenderer(request);
 
       TableCellRenderer renderer = myTableCellRenderers.get(gridCellRenderer);
       if (renderer == null) {

@@ -3,6 +3,7 @@ package com.intellij.database.run.ui.grid.editors;
 import com.intellij.codeInsight.lookup.LookupManager;
 import com.intellij.database.datagrid.DataGrid;
 import com.intellij.database.datagrid.DataGridListener;
+import com.intellij.database.datagrid.GridCellRequest;
 import com.intellij.database.datagrid.GridColumn;
 import com.intellij.database.datagrid.GridHelper;
 import com.intellij.database.datagrid.GridRow;
@@ -71,10 +72,7 @@ public class GridCellEditorTextField extends EditorTextField implements Disposab
   private final DataGrid myGrid;
 
   public GridCellEditorTextField(Project project,
-                                 @NotNull DataGrid grid,
-                                 @NotNull ModelIndex<GridRow> row,
-                                 @NotNull ModelIndex<GridColumn> column,
-                                 @Nullable Object value,
+                                 @NotNull GridCellRequest<GridRow, GridColumn> request,
                                  boolean multiline,
                                  EventObject initiator,
                                  TextCompletionProvider provider,
@@ -83,17 +81,18 @@ public class GridCellEditorTextField extends EditorTextField implements Disposab
     // Not passing multiline flag allows to reuse oneLineMode's initialization logic.
     // The editor is turned into a multiline editor via SettingsProvider, if needed.
     // We also set "JBListTable.isTableCellEditor" to Boolean.TRUE: see EditorTextField.updateBorder()
-    super(createDocument(DefaultTextRendererFactory.getLanguage(grid, row, column, value)), project, FileTypes.PLAIN_TEXT);
-    boolean clear = initiator instanceof KeyEvent && grid.isEditable();
-    if (!clear) setText(valueFormatter, grid, row, column, value);
+    super(createDocument(DefaultTextRendererFactory.getLanguage(request)), project, FileTypes.PLAIN_TEXT);
+    myGrid = (DataGrid)request.getGrid();
+    ModelIndex<GridColumn> columnIdx1 = request.getColumnIdx();
+    boolean clear = initiator instanceof KeyEvent && myGrid.isEditable();
+    if (!clear) setText(valueFormatter, request);
     putClientProperty("JBListTable.isTableCellEditor", Boolean.TRUE);
-    myGrid = grid;
     installEditorSettingsProvider(multiline);
     installCompletion(project, getDocument(), provider, autoPopup);
     myGrid.addDataGridListener(new DataGridListener() {
       @Override
       public void onCellLanguageChanged(@NotNull ModelIndex<GridColumn> columnIdx, @NotNull Language language) {
-        if (!columnIdx.equals(column)) return;
+        if (!columnIdx.equals(columnIdx1)) return;
         LightVirtualFile file = ObjectUtils.tryCast(FileDocumentManager.getInstance().getFile(getDocument()), LightVirtualFile.class);
         if (file == null) return;
         file.setLanguage(language);
@@ -105,10 +104,7 @@ public class GridCellEditorTextField extends EditorTextField implements Disposab
   }
 
   public void setText(@NotNull GridCellEditorFactory.ValueFormatter valueFormatter,
-                      @NotNull DataGrid grid,
-                      @NotNull ModelIndex<GridRow> row,
-                      @NotNull ModelIndex<GridColumn> column,
-                      @Nullable Object value) {
+                      @NotNull GridCellRequest<GridRow, GridColumn> request) {
     ApplicationManager.getApplication().runWriteAction(() -> {
       ValueFormatterResult result = valueFormatter.format();
       VirtualFile file = FileDocumentManager.getInstance().getFile(getDocument());
@@ -117,7 +113,7 @@ public class GridCellEditorTextField extends EditorTextField implements Disposab
         file.setBOM(result.bom);
       }
       setText(result.text);
-      PsiCodeFragment fragment = GridHelper.get(grid).createCellCodeFragment(getDocument().getText(), getProject(), grid, row, column, value);
+      PsiCodeFragment fragment = GridHelper.get(request.getGrid()).createCellCodeFragment(getDocument().getText(), getProject(), request);
       if (fragment != null) {
         GridUtilCore.associatePsiSafe(getDocument(), fragment);
       }

@@ -5,6 +5,8 @@ import com.intellij.database.actions.ShowEditMaximizedAction;
 import com.intellij.database.datagrid.DataGrid;
 import com.intellij.database.datagrid.DataGridListener;
 import com.intellij.database.datagrid.DataGridWithNestedTables;
+import com.intellij.database.datagrid.GridCellRequest;
+import com.intellij.database.datagrid.GridCellRequestKt;
 import com.intellij.database.datagrid.GridColumn;
 import com.intellij.database.datagrid.GridColumnLayout;
 import com.intellij.database.datagrid.GridHelper;
@@ -1488,7 +1490,7 @@ public final class TableResultView extends JBTableWithResizableCells
       int modelRowIdx = convertRowIndexToModel(row);
       var columnIndex = ModelIndex.forColumn(myResultPanel, modelColumnIdx);
       var rowIndex = ModelIndex.forRow(myResultPanel, modelRowIdx);
-      return isArrayCell(rowIndex, columnIndex, myResultPanel);
+      return isArrayCell(GridCellRequestKt.request(myResultPanel, rowIndex, columnIndex));
     }
     return false;
   }
@@ -2164,12 +2166,13 @@ public final class TableResultView extends JBTableWithResizableCells
   public TableCellEditor getCellEditor(int row, int column) {
     ModelIndex<GridRow> rowIdx = ViewIndex.forRow(myResultPanel, isTransposed() ? column : row).toModel(myResultPanel);
     ModelIndex<GridColumn> columnIdx = ViewIndex.forColumn(myResultPanel, isTransposed() ? row : column).toModel(myResultPanel);
+    GridCellRequest<GridRow, GridColumn> request = GridCellRequestKt.request(myResultPanel, rowIdx, columnIdx);
     Object currentValue = ClientProperty.get(this, GridTableCellEditor.CURRENT_VALUE_CLIENT_PROPERTY_KEY);
-    Object value = currentValue == null ? myResultPanel.getDataModel(DATA_WITH_MUTATIONS).getValueAt(rowIdx, columnIdx) : currentValue;
-    GridCellEditorFactoryProvider factoryProvider = GridCellEditorFactoryProvider.get(myResultPanel);
-    GridCellEditorFactory editorFactory =
-      factoryProvider == null ? null : factoryProvider.getEditorFactory(myResultPanel, rowIdx, columnIdx, value);
-    GridColumn dataColumn = myResultPanel.getDataModel(DATA_WITH_MUTATIONS).getColumn(columnIdx);
+    if (currentValue != null) {
+      request = GridCellRequestKt.overrideValue(request, currentValue);
+    }
+    GridCellEditorFactory editorFactory = GridCellEditorFactoryProvider.provideEditorFactory(request);
+    GridColumn dataColumn = request.getColumn();
     return dataColumn != null && !GridUtilCore.isRowId(dataColumn) && !GridUtilCore.isVirtualColumn(dataColumn) && editorFactory != null ?
            new GridTableCellEditor(myResultPanel, rowIdx, columnIdx, editorFactory) :
            null;
@@ -2338,8 +2341,8 @@ public final class TableResultView extends JBTableWithResizableCells
     public @NotNull TableCellRenderer getRenderer(int row, int column) {
       ModelIndex<GridRow> rowIdx = ViewIndex.forRow(myGrid, myResultView.isTransposed() ? column : row).toModel(myGrid);
       ModelIndex<GridColumn> columnIdx = ViewIndex.forColumn(myGrid, myResultView.isTransposed() ? row : column).toModel(myGrid);
-      Object value = myGrid.getDataModel(DATA_WITH_MUTATIONS).getValueAt(rowIdx, columnIdx);
-      GridCellRenderer gridCellRenderer = GridCellRenderer.getRenderer(myGrid, rowIdx, columnIdx, value);
+      GridCellRequest<GridRow, GridColumn> request = GridCellRequestKt.request(myGrid, rowIdx, columnIdx);
+      GridCellRenderer gridCellRenderer = GridCellRenderer.getRenderer(request);
 
       TableCellRenderer renderer = myTableCellRenderers.get(gridCellRenderer);
       if (renderer == null) {

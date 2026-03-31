@@ -1,6 +1,7 @@
 package com.intellij.database.run.ui.grid.renderers;
 
 import com.intellij.database.datagrid.DataGrid;
+import com.intellij.database.datagrid.GridCellRequest;
 import com.intellij.database.datagrid.GridColumn;
 import com.intellij.database.datagrid.GridRow;
 import com.intellij.database.datagrid.HierarchicalColumnsDataGridModel.ColumnNamesHierarchyNode;
@@ -28,12 +29,12 @@ public class NestedTableCellRendererFactory implements GridCellRendererFactory {
   }
 
   @Override
-  public boolean supports(@NotNull ModelIndex<GridRow> row, @NotNull ModelIndex<GridColumn> column, @Nullable Object value) {
-    return value instanceof NestedTable;
+  public boolean supports(@NotNull GridCellRequest<GridRow, GridColumn> request) {
+    return request.getValue() instanceof NestedTable;
   }
 
   @Override
-  public @NotNull GridCellRenderer getOrCreateRenderer(@NotNull ModelIndex<GridRow> row, @NotNull ModelIndex<GridColumn> column) {
+  public @NotNull GridCellRenderer getOrCreateRenderer(@NotNull GridCellRequest<GridRow, GridColumn> request) {
     if (textRenderer == null) {
       textRenderer = new NestedTableTextRenderer(myGrid);
       Disposer.register(myGrid, textRenderer);
@@ -86,8 +87,8 @@ public class NestedTableCellRendererFactory implements GridCellRendererFactory {
     }
 
     @Override
-    public int getSuitability(@NotNull ModelIndex<GridRow> row, @NotNull ModelIndex<GridColumn> column, @Nullable Object value) {
-      return value instanceof NestedTable ? SUITABILITY_MIN+1 : SUITABILITY_UNSUITABLE;
+    public int getSuitability(@NotNull GridCellRequest<GridRow, GridColumn> request) {
+      return request.getValue() instanceof NestedTable ? SUITABILITY_MIN+1 : SUITABILITY_UNSUITABLE;
     }
   }
 }

@@ -1,6 +1,8 @@
 package com.intellij.database.run.ui.grid.editors;
 
+import com.intellij.database.datagrid.CoreGrid;
 import com.intellij.database.datagrid.DataGrid;
+import com.intellij.database.datagrid.GridCellRequest;
 import com.intellij.database.datagrid.GridColumn;
 import com.intellij.database.datagrid.GridModel;
 import com.intellij.database.datagrid.GridRow;
@@ -35,29 +37,19 @@ public interface GridCellEditorFactory {
   int SUITABILITY_MIN = 1;
   int SUITABILITY_MAX = 10;
 
-  int getSuitability(@NotNull DataGrid grid, @NotNull ModelIndex<GridRow> row, @NotNull ModelIndex<GridColumn> column, @Nullable Object value);
+  int getSuitability(@NotNull GridCellRequest<GridRow, GridColumn> request);
 
   @NotNull
   IsEditableChecker getIsEditableChecker();
 
   @NotNull
-  GridCellEditorFactory.ValueParser getValueParser(@NotNull DataGrid grid,
-                                                   @NotNull ModelIndex<GridRow> rowIdx,
-                                                   @NotNull ModelIndex<GridColumn> columnIdx,
-                                                   @Nullable Object value);
+  GridCellEditorFactory.ValueParser getValueParser(@NotNull GridCellRequest<GridRow, GridColumn> request);
 
   @NotNull
-  GridCellEditorFactory.ValueFormatter getValueFormatter(@NotNull DataGrid grid,
-                                                         @NotNull ModelIndex<GridRow> rowIdx,
-                                                         @NotNull ModelIndex<GridColumn> columnIdx,
-                                                         @Nullable Object value);
+  GridCellEditorFactory.ValueFormatter getValueFormatter(@NotNull GridCellRequest<GridRow, GridColumn> request);
 
   @NotNull
-  GridCellEditor createEditor(@NotNull DataGrid grid,
-                              @NotNull ModelIndex<GridRow> row,
-                              @NotNull ModelIndex<GridColumn> column,
-                              @Nullable Object object,
-                              EventObject initiator);
+  GridCellEditor createEditor(@NotNull GridCellRequest<GridRow, GridColumn> request, EventObject initiator);
 
     /**
      * True when values produced by this factory evaluate per-row, so applying the same edited value across a multi-row
@@ -68,7 +60,7 @@ public interface GridCellEditorFactory {
     }
 
   interface IsEditableChecker {
-    boolean isEditable(@Nullable Object value, @NotNull DataGrid grid, @NotNull ModelIndex<GridColumn> column);
+    boolean isEditable(@Nullable Object value, @NotNull CoreGrid<GridRow, GridColumn> grid, @NotNull ModelIndex<GridColumn> column);
   }
 
   interface ValueParser {

@@ -1,6 +1,8 @@
 package com.intellij.database.run.ui;
 
 import com.intellij.database.datagrid.DataGrid;
+import com.intellij.database.datagrid.GridCellRequest;
+import com.intellij.database.datagrid.GridCellRequestKt;
 import com.intellij.database.datagrid.GridColumn;
 import com.intellij.database.datagrid.GridModel;
 import com.intellij.database.datagrid.GridRow;
@@ -89,10 +91,14 @@ public class GridTableCellEditor extends AbstractTableCellEditor {
 
     if (myEditor == null) {
       EventObject e = ClientProperty.get(table, EDITING_STARTER_CLIENT_PROPERTY_KEY);
+      GridCellRequest<GridRow, GridColumn> request = GridCellRequestKt.request(myGrid, myRowIdx, myColumnIdx);
       Object currentValue = ClientProperty.get(table, CURRENT_VALUE_CLIENT_PROPERTY_KEY);
       myShouldMoveFocus = !TRUE.equals(ClientProperty.get(table, SUPPRESS_MOVE_FOCUS_CLIENT_PROPERTY_KEY));
       myAllowUniqueMultiEdit = myEditorFactory.allowsUniqueMultiEdit();
-      myEditor = myEditorFactory.createEditor(myGrid, myRowIdx, myColumnIdx, currentValue == null ? value : currentValue, e);
+      if (currentValue != null) {
+        request = GridCellRequestKt.overrideValue(request, currentValue);
+      }
+      myEditor = myEditorFactory.createEditor(request, e);
       if (currentValue != null && !Comparing.equal(currentValue, value)) {
         myGrid.fireValueEdited(currentValue);
       }

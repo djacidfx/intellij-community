@@ -3,6 +3,7 @@ package com.intellij.database.run.ui
 import com.intellij.database.DataGridBundle
 import com.intellij.database.datagrid.CellColors
 import com.intellij.database.datagrid.DataGrid
+import com.intellij.database.datagrid.GridCellRequest
 import com.intellij.database.datagrid.GridColumn
 import com.intellij.database.datagrid.GridMutator
 import com.intellij.database.datagrid.GridRequestSource
@@ -11,6 +12,9 @@ import com.intellij.database.datagrid.GridUtil
 import com.intellij.database.datagrid.ModelIndex
 import com.intellij.database.datagrid.isArrayCell
 import com.intellij.database.datagrid.mutating.CellMutation
+import com.intellij.database.datagrid.overrideValue
+import com.intellij.database.datagrid.request
+import com.intellij.database.datagrid.selectedCellRequest
 import com.intellij.database.run.actions.GridAction
 import com.intellij.database.run.ui.grid.CellAttributesKey
 import com.intellij.database.run.ui.grid.editors.GridCellEditorFactoryProvider
@@ -89,9 +93,10 @@ class ArrayGridViewer(private val grid: DataGrid) : CellViewer {
   override val preferedFocusComponent: JComponent? = null
 
   override fun update(event: UpdateEvent?) {
-    rowIdx    = grid.selectionModel.leadSelectionRow
-    columnIdx = grid.selectionModel.leadSelectionColumn
-    if (!rowIdx.isValid(grid) || !columnIdx.isValid(grid) || !isArrayCell(rowIdx, columnIdx, grid)) {
+    val request = grid.selectedCellRequest()
+    rowIdx = request.rowIdx
+    columnIdx = request.columnIdx
+    if (!request.isValid() || !isArrayCell(request)) {
       showEmpty()
       return
     }
@@ -124,11 +129,10 @@ class ArrayGridViewer(private val grid: DataGrid) : CellViewer {
 
   private fun computeIsEditable(value: Any?): Boolean {
     if (!grid.isEditable) return false
-    val row = rowIdx
-    val column = columnIdx
-    if (!row.isValid(grid) || !column.isValid(grid)) return false
-    val factory = GridCellEditorFactoryProvider.get(grid)?.getEditorFactory(grid, row, column, value) ?: return false
-    return factory.isEditableChecker.isEditable(value, grid, column)
+    val request = grid.request(rowIdx, columnIdx).overrideValue(value)
+    if (!request.isValid()) return false
+    val factory = GridCellEditorFactoryProvider.provideEditorFactory(request) ?: return false
+    return factory.isEditableChecker.isEditable(value, grid, request.columnIdx)
   }
 
   private fun showTable(state: ArrayCellState, isEditable: Boolean) {
@@ -290,11 +294,11 @@ class ArrayGridViewer(private val grid: DataGrid) : CellViewer {
 }
 
 class ArrayGridCellViewerFactory : CellViewerFactory {
-  override fun getSuitability(grid: DataGrid, row: ModelIndex<GridRow>, column: ModelIndex<GridColumn>, value: Any?): Suitability {
+  override fun getSuitability(request: GridCellRequest<GridRow, GridColumn>): Suitability {
     if (!Registry.`is`("database.new.arrays.editor", false)) return Suitability.NONE
-    if (GridUtil.getSettings(grid)?.isEditArrayAsText ?: false) return Suitability.NONE
-    if (!row.isValid(grid) || !column.isValid(grid)) return Suitability.NONE
-    if (!isArrayCell(row, column, grid)) return Suitability.NONE
+    if (GridUtil.getSettings(request.grid as DataGrid)?.isEditArrayAsText ?: false) return Suitability.NONE
+    if (!request.isValid()) return Suitability.NONE
+    if (!isArrayCell(request)) return Suitability.NONE
     return Suitability.MAX
   }
 

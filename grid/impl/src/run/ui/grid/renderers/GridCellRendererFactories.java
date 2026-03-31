@@ -1,13 +1,12 @@
 package com.intellij.database.run.ui.grid.renderers;
 
 import com.intellij.database.datagrid.DataGrid;
+import com.intellij.database.datagrid.GridCellRequest;
 import com.intellij.database.datagrid.GridColumn;
 import com.intellij.database.datagrid.GridRow;
-import com.intellij.database.datagrid.ModelIndex;
 import com.intellij.openapi.util.Key;
 import com.intellij.util.containers.ContainerUtil;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
 
 import java.util.List;
@@ -37,7 +36,7 @@ public class GridCellRendererFactories {
   }
 
   @Unmodifiable
-  List<GridCellRendererFactory> getFactoriesFor(@NotNull ModelIndex<GridRow> row, @NotNull ModelIndex<GridColumn> column, @Nullable Object value) {
-    return ContainerUtil.filter(myDefaultFactories, factory -> factory.supports(row, column, value));
+  List<GridCellRendererFactory> getFactoriesFor(@NotNull GridCellRequest<GridRow, GridColumn> request) {
+    return ContainerUtil.filter(myDefaultFactories, factory -> factory.supports(request));
   }
 }

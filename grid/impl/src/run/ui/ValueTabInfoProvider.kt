@@ -2,6 +2,7 @@ package com.intellij.database.run.ui
 
 import com.intellij.database.DataGridBundle
 import com.intellij.database.datagrid.DataGrid
+import com.intellij.database.datagrid.selectedCellRequest
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.diagnostic.Logger
@@ -34,12 +35,10 @@ class ValueTabInfoProvider(private val grid: DataGrid) : TabInfoProvider(DataGri
   }
 
   private fun chooseViewerFactory(): CellViewerFactory {
-    val rowIdx = grid.selectionModel.leadSelectionRow
-    val columnIdx = grid.selectionModel.leadSelectionColumn
-    val value = grid.getDataModel(DataAccessType.DATA_WITH_MUTATIONS).getValueAt(rowIdx, columnIdx)
-    val factory = viewerFactories.maxByOrNull { it.getSuitability(grid, rowIdx, columnIdx, value) }
+    val request = grid.selectedCellRequest()
+    val factory = viewerFactories.maxByOrNull { it.getSuitability(request) }
     if (factory == null) {
-      LOG.error("Cannot find cell viewer factory for $rowIdx $columnIdx")
+      LOG.error("Cannot find cell viewer factory for ${request.rowIdx} ${request.columnIdx}")
     }
     return factory ?: EmptyCellViewerFactory
   }
