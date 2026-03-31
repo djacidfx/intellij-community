@@ -1,0 +1,1 @@
+Automatic-Module-Name: intellij.libraries.http.client
