@@ -1,7 +1,6 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.kotlin.idea.configuration.inspections
 
-import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
 import com.intellij.codeInspection.LocalInspectionTool
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemsHolder
@@ -25,6 +24,7 @@ import org.jetbrains.kotlin.idea.base.projectStructure.getKaModule
 import org.jetbrains.kotlin.idea.base.projectStructure.hasKotlinJvmRuntime
 import org.jetbrains.kotlin.idea.configuration.KotlinCompilerPluginProjectConfigurator
 import org.jetbrains.kotlin.idea.configuration.KotlinCompilerPluginProjectConfigurator.Companion.compilerPluginProjectConfigurators
+import org.jetbrains.kotlin.idea.configuration.KotlinCompilerPluginProvider
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtVisitor
 import org.jetbrains.kotlin.psi.KtVisitorVoid
@@ -65,17 +65,12 @@ abstract class AbstractKotlinCompilerPluginInspection(protected val kotlinCompil
         override fun getFamilyName(): @IntentionFamilyName String =
             this@AbstractKotlinCompilerPluginInspection.familyName
 
-        override fun generatePreview(project: Project, previewDescriptor: ProblemDescriptor): IntentionPreviewInfo =
-            IntentionPreviewInfo.EMPTY
-
         override fun perform(
             project: Project,
             descriptor: ProblemDescriptor
         ): ModCommand {
             val element = descriptor.psiElement
-            ModuleUtilCore.findModuleForPsiElement(element) ?: return ModCommand.nop()
-
-            return ModCommand.updateOption(element, "KotlinCompilerPlugin.compilerPluginId", kotlinCompilerPluginId)
+            return KotlinCompilerPluginProvider.addCompilerPluginModCommand(element, kotlinCompilerPluginId)
         }
     }
 
