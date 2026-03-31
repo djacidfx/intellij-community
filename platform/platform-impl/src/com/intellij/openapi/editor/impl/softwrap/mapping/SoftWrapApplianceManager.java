@@ -568,7 +568,12 @@ public final class SoftWrapApplianceManager implements Dumpable {
 
   private static int getIncrementalUpdateStartOffset(@NotNull EditorImpl editor, int eventStartOffset) {
     VisualLineInfo info = getVisualLineInfo(editor, eventStartOffset, false);
-    if (info.startsWithSoftWrap) {
+    if (info.startsWithSoftWrap()) {
+      info = getVisualLineInfo(editor, info.startOffset, true);
+    }
+    // cannot start recalculation from a custom wrap:
+    //   SoftWrapEngine relies on the first soft-wrap to indent subsequent ones within the same logical line
+    while (info.startsWithCustomSoftWrap()) {
       info = getVisualLineInfo(editor, info.startOffset, true);
     }
     return info.startOffset;
@@ -577,7 +582,7 @@ public final class SoftWrapApplianceManager implements Dumpable {
   private static VisualLineInfo getVisualLineInfo(@NotNull EditorImpl editor, int offset, boolean beforeSoftWrap) {
     Document document = editor.getElfDocument();
     int textLength = document.getTextLength();
-    if (offset <= 0 || textLength == 0) return new VisualLineInfo(0, false);
+    if (offset <= 0 || textLength == 0) return new VisualLineInfo(0, null);
     offset = Math.min(offset, textLength);
 
     // if the startOffset of the logical line is folded, then we find the startOffset corresponding to the start of that folding, recursively
@@ -595,16 +600,25 @@ public final class SoftWrapApplianceManager implements Dumpable {
 
     // the start of the visual line is then whichever is closer to the offset: some soft-wrap or the logical start of the line
     int visualLineStartOffset = prevSoftWrap == null ? startOffset : Math.max(startOffset, prevSoftWrap.getStart());
-    return new VisualLineInfo(visualLineStartOffset, prevSoftWrap != null && prevSoftWrap.getStart() == visualLineStartOffset);
+    return new VisualLineInfo(visualLineStartOffset,
+                              prevSoftWrap != null && prevSoftWrap.getStart() == visualLineStartOffset ? prevSoftWrap : null);
   }
 
   private static final class VisualLineInfo {
     private final int startOffset;
-    private final boolean startsWithSoftWrap;
+    private final SoftWrap startSoftWrap;
 
-    private VisualLineInfo(int startOffset, boolean wrap) {
+    private VisualLineInfo(int startOffset, SoftWrap wrap) {
       this.startOffset = startOffset;
-      startsWithSoftWrap = wrap;
+      startSoftWrap = wrap;
+    }
+
+    private boolean startsWithSoftWrap() {
+      return startSoftWrap != null;
+    }
+
+    private boolean startsWithCustomSoftWrap() {
+      return startSoftWrap != null && startSoftWrap.isCustomSoftWrap();
     }
   }
 }
