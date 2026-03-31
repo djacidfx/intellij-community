@@ -37,7 +37,8 @@ internal class ModuleBasedPluginXmlPathResolver(
     // it may happen that module descriptor is located in other JARs (e.g., in case of 'com.intellij.java.frontend' plugin),
     // so try loading it from the root of the corresponding module
     val moduleName = path.removeSuffix(".xml")
-    val moduleDescriptor = includedModules.find { it.moduleDescriptor.moduleId.stringId == moduleName }?.moduleDescriptor
+    val moduleId = RuntimeModuleId.contentModule(moduleName, PluginModuleId.JETBRAINS_NAMESPACE)
+    val moduleDescriptor = includedModules.find { it.moduleDescriptor.moduleId == moduleId }?.moduleDescriptor
     if (moduleDescriptor != null) {
       val input = moduleDescriptor.readFile(path) ?: error("Cannot resolve $path in $moduleDescriptor")
       val reader = PluginDescriptorFromXmlStreamConsumer(readContext, createXIncludeLoader(this@ModuleBasedPluginXmlPathResolver, dataLoader))
@@ -45,7 +46,6 @@ internal class ModuleBasedPluginXmlPathResolver(
       return reader.getBuilder()
     }
     else {
-      val moduleId = RuntimeModuleId.module(moduleName)
       if (moduleId in optionalModuleIds) {
         // TODO here we should restore the actual content module "header" with dependency information
         return PluginDescriptorBuilder.builder().apply {
@@ -55,7 +55,7 @@ internal class ModuleBasedPluginXmlPathResolver(
           val reasonsWhyNotLoaded = notLoadedModuleIds[moduleId] ?: emptyList()
           if (reasonsWhyNotLoaded.isNotEmpty()) {
             for (reason in reasonsWhyNotLoaded) {
-              addDependency(DependenciesElement.ModuleDependency(reason.stringId, null))
+              addDependency(DependenciesElement.ModuleDependency(reason.name, reason.namespace))
             }
           }
           else {
@@ -68,7 +68,8 @@ internal class ModuleBasedPluginXmlPathResolver(
   }
 
   override fun resolveCustomModuleClassesRoots(moduleId: PluginModuleId): List<Path> {
-    val moduleDescriptor = includedModules.find { it.moduleDescriptor.moduleId.stringId == moduleId.name }?.moduleDescriptor
+    val runtimeModuleId = RuntimeModuleId.contentModule(moduleId.name, moduleId.namespace)
+    val moduleDescriptor = includedModules.find { it.moduleDescriptor.moduleId == runtimeModuleId }?.moduleDescriptor
     return moduleDescriptor?.resourceRootPaths ?: emptyList()
   }
 

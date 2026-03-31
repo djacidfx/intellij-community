@@ -126,7 +126,7 @@ internal class RuntimeModuleRepositoryChecker private constructor(
       
       productModules.bundledPluginModuleGroups.forEach { group ->
         val allPluginModules = group.includedModules.map { it.moduleDescriptor } + serviceModuleMapping.getAdditionalModules(group)
-        if (group.mainModule.moduleId == RuntimeModuleId.module("intellij.performanceTesting.async") && context.applicationInfo.productCode == "IC") {
+        if (group.mainModule.moduleId == RuntimeModuleId.legacyJpsModule("intellij.performanceTesting.async") && context.applicationInfo.productCode == "IC") {
           //'intellij.performanceTesting.async' bundled with IDEA Community includes modules which are included in the core plugin for IDEA Ultimate, 
           //so it won't be loaded in IDEA Community, see IJPL-186414 
           return@forEach
@@ -170,7 +170,7 @@ internal class RuntimeModuleRepositoryChecker private constructor(
     val productModules = loadProductModules(productModulesModule, context.outputProvider, repository)
 
     val allProductModules = LinkedHashMap<RuntimeModuleId, FList<String>>()
-    allProductModules[RuntimeModuleId.module("intellij.platform.bootstrap")] = FList.singleton("bootstrap")
+    allProductModules[RuntimeModuleId.legacyJpsModule("intellij.platform.bootstrap")] = FList.singleton("bootstrap")
     val mainModuleGroupPath = FList.singleton("main module group")
     productModules.mainModuleGroup.includedModules.forEach { mainModule ->
       collectDependencies(repository, mainModule.moduleDescriptor, mainModuleGroupPath, allProductModules)
