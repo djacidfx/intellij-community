@@ -18,7 +18,6 @@ class PluginSet internal constructor(
   private val enabledPluginAndV1ModuleMap: Map<PluginId, PluginModuleDescriptor>,
   private val enabledModules: List<PluginModuleDescriptor>,
   private val topologicalComparator: Comparator<PluginModuleDescriptor>,
-  val dependsDirectDependencies: Map<DependsSubDescriptor, List<PluginModuleDescriptor>>?,
   val resolvedPluginSet: ResolvedPluginSet?,
 ) {
   /**
@@ -28,10 +27,14 @@ class PluginSet internal constructor(
 
   internal fun getSortedDependencies(moduleDescriptor: IdeaPluginDescriptorImpl): List<PluginModuleDescriptor> {
     if (moduleDescriptor is DependsSubDescriptor) {
-      if (PluginManagerCore.fallbackToOldPluginSetResolution() || dependsDirectDependencies == null) {
+      if (resolvedPluginSet == null || resolvedPluginSet.isExcluded(moduleDescriptor)) {
         return Collections.emptyList()
       }
-      return dependsDirectDependencies[moduleDescriptor] ?: Collections.emptyList()
+      val main = moduleDescriptor.getMainDescriptor()
+      return resolvedPluginSet.getDirectResolvedDependencies(moduleDescriptor).asSequence()
+        .filterIsInstance<PluginModuleDescriptor>()
+        .filter { it !== main }
+        .toList()
     }
     return sortedModulesWithDependencies.directDependencies.getOrDefault(moduleDescriptor, Collections.emptyList())
   }

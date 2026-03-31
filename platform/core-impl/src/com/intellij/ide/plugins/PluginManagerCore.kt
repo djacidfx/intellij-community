@@ -771,13 +771,6 @@ object PluginManagerCore {
       enabledPluginAndV1ModuleMap = enabledPluginAndV1ModuleMap,
       enabledModules = resolvedModules.keys.toList(),
       topologicalComparator = topologicalComparator,
-      dependsDirectDependencies = resolvedPluginSet.sortedResolvedDescriptors.filterIsInstance<DependsSubDescriptor>()
-        .associateWith { depends ->
-          val main = depends.getMainDescriptor()
-          resolvedPluginSet.getDirectResolvedDependencies(depends)
-            .filterIsInstance<PluginModuleDescriptor>()
-            .filter { it !== main }
-        },
       resolvedPluginSet = resolvedPluginSet,
     )
     return pluginSet to cycleErrors
