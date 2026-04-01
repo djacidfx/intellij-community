@@ -28,7 +28,6 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileFilter
 import com.intellij.openapi.vfs.VirtualFileVisitor
 import com.intellij.psi.PsiDocumentManager
-import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiLanguageInjectionHost
 import com.intellij.psi.SyntaxTraverser
 import com.intellij.psi.codeStyle.CodeStyleManager
@@ -47,7 +46,6 @@ import com.intellij.testFramework.fixtures.CompletionAutoPopupTester
 import com.intellij.testFramework.fixtures.impl.CodeInsightTestFixtureImpl
 import com.intellij.testFramework.runInEdtAndWait
 import com.intellij.testFramework.utils.io.createFile
-import com.intellij.usageView.UsageInfo
 import com.intellij.util.ui.UIUtil
 import org.editorconfig.Utils
 import org.editorconfig.configmanagement.extended.EditorConfigCodeStyleSettingsModifier
@@ -263,21 +261,33 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
   }
 
   protected fun doEditorTypingTest(
+    fileContents: String? = null,
     dir: Boolean = dirModeByDefault,
+    dirName: String = testName,
     extension: String = defaultExtension,
+    configureFile: Boolean = true,
     configureFileName: String = "$testName.$extension",
-    checkResult: Boolean = true,
     configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
+    additionalFiles: List<String> = emptyList(),
+    checkResult: Boolean = true,
+    editorConfigEnabled: Boolean = false,
+    configureCodeStyleSettings: (CodeStyleSettings.() -> Unit)? = null,
     before: CodeInsightTestFixture.() -> Unit = {},
     after: CodeInsightTestFixture.() -> Unit = {},
     test: EditorTypingTestFixture.() -> Unit,
   ) {
     doConfiguredTest(
+      fileContents = fileContents,
       dir = dir,
+      dirName = dirName,
       extension = extension,
+      configureFile = configureFile,
       configureFileName = configureFileName,
       checkResult = checkResult,
       configurators = configurators,
+      additionalFiles = additionalFiles,
+      editorConfigEnabled = editorConfigEnabled,
+      configureCodeStyleSettings = configureCodeStyleSettings,
     ) {
       before()
       val tester = CompletionAutoPopupTester(myFixture)
@@ -405,10 +415,13 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
   protected fun doLookupTest(
     fileContents: String? = null,
     dir: Boolean = dirModeByDefault,
+    dirName: String = testName,
     extension: String = defaultExtension,
     configureFileName: String = "$testName.$extension",
-    additionalFiles: List<String> = emptyList(),
     configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
+    additionalFiles: List<String> = emptyList(),
+    editorConfigEnabled: Boolean = false,
+    configureCodeStyleSettings: (CodeStyleSettings.() -> Unit)? = null,
     renderPriority: Boolean = true,
     renderTypeText: Boolean = true,
     renderTailText: Boolean = false,
@@ -424,10 +437,13 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     doConfiguredTest(
       fileContents = fileContents,
       dir = dir,
+      dirName = dirName,
       extension = extension,
       configureFileName = configureFileName,
       additionalFiles = additionalFiles,
       configurators = configurators,
+      editorConfigEnabled = editorConfigEnabled,
+      configureCodeStyleSettings = configureCodeStyleSettings,
       checkResult = typeToFinishLookup != null,
     ) {
       assert(typeToFinishLookup == null || locations.isEmpty())
@@ -454,20 +470,26 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
   }
 
   protected fun doFormattingTest(
+    fileContents: String? = null,
     dir: Boolean = dirModeByDefault,
+    dirName: String = testName,
     extension: String = defaultExtension,
     configureFileName: String = "$testName.$extension",
     editorConfigEnabled: Boolean = false,
     configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
+    additionalFiles: List<String> = emptyList(),
     configureCodeStyleSettings: CodeStyleSettings.() -> Unit = {},
   ) {
     doConfiguredTest(
+      fileContents = fileContents,
       dir = dir,
+      dirName = dirName,
       extension = extension,
       checkResult = true,
       configureFileName = configureFileName,
       configureCodeStyleSettings = configureCodeStyleSettings,
       configurators = configurators,
+      additionalFiles = additionalFiles,
       editorConfigEnabled = editorConfigEnabled,
     ) {
       val codeStyleManager = CodeStyleManager.getInstance(project)
@@ -487,9 +509,11 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
 
   protected fun doHighlightingTest(
     dir: Boolean = dirModeByDefault,
+    dirName: String = testName,
     extension: String = defaultExtension,
     configureFileName: String = "$testName.$extension",
     configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
+    additionalFiles: List<String> = emptyList(),
     inspections: Collection<Class<out LocalInspectionTool>> = emptyList(),
     checkSymbolNames: Boolean = false,
     checkWarnings: Boolean = true,
@@ -500,9 +524,11 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
   ) {
     doConfiguredTest(
       dir = dir,
+      dirName = dirName,
       extension = extension,
       configureFileName = configureFileName,
       configurators = configurators,
+      additionalFiles = additionalFiles,
     ) {
       enableInspections(inspections)
       setup()
@@ -538,11 +564,23 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
   }
 
   protected fun doParameterInfoTest(
+    fileContents: String? = null,
     dir: Boolean = dirModeByDefault,
+    dirName: String = testName,
     extension: String = defaultExtension,
+    configureFileName: String = "$testName.$extension",
     configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
+    additionalFiles: List<String> = emptyList(),
   ) {
-    doConfiguredTest(dir = dir, extension = extension, configurators = configurators) {
+    doConfiguredTest(
+      fileContents = fileContents,
+      dir = dir,
+      dirName = dirName,
+      extension = extension,
+      configureFileName = configureFileName,
+      configurators = configurators,
+      additionalFiles = additionalFiles
+    ) {
       val info = getParameterInfoAtCaret()
       assertNotNull("Parameter info was not provided", info)
       val fileName = if (dir) "$testName/param-info.html" else "$testName.param-info.html"
@@ -557,17 +595,21 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
 
   protected fun doGotoDeclarationTest(
     declarationSignature: String,
+    expectedFileName: String? = null,
     dir: Boolean = dirModeByDefault,
+    dirName: String = testName,
     extension: String = defaultExtension,
     configureFileName: String = "$testName.$extension",
-    expectedFileName: String? = null,
     configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
+    additionalFiles: List<String> = emptyList(),
   ) {
     doConfiguredTest(
       dir = dir,
+      dirName = dirName,
       extension = extension,
       configureFileName = configureFileName,
       configurators = configurators,
+      additionalFiles = additionalFiles,
     ) {
       checkGotoDeclaration(null, declarationSignature, expectedFileName = expectedFileName)
     }
@@ -575,46 +617,69 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
 
   protected fun doJumpToSourceTest(
     targetSignature: String,
+    expectedFileName: String? = null,
     dir: Boolean = dirModeByDefault,
+    dirName: String = testName,
     extension: String = defaultExtension,
     configureFileName: String = "$testName.$extension",
-    expectedFileName: String? = null,
     configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
+    additionalFiles: List<String> = emptyList(),
   ) {
-    doConfiguredTest(dir = dir, extension = extension, configureFileName = configureFileName, configurators = configurators) {
+    doConfiguredTest(
+      dir = dir,
+      dirName = dirName,
+      extension = extension,
+      configureFileName = configureFileName,
+      configurators = configurators,
+      additionalFiles = additionalFiles
+    ) {
       checkJumpToSource(null, targetSignature, expectedFileName = expectedFileName)
     }
   }
 
   protected fun doUsagesTest(
+    scope: SearchScope? = null,
+    dirName: String = testName,
     extension: String = defaultExtension,
     fileName: String = "$testName.$extension",
-    scope: SearchScope? = null,
     configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
   ) {
-    doConfiguredTest(dir = true, extension = extension, configureFileName = fileName, configurators = configurators) {
+    doConfiguredTest(dir = true, dirName = dirName, extension = extension, configureFileName = fileName, configurators = configurators) {
       checkGTDUOutcome(GotoDeclarationOrUsageHandler2.GTDUOutcome.SU)
       checkListByFile(usagesAtCaret(scope = scope, usagesTestHelper = usagesTestHelper), "${testName}/usages.txt", false)
     }
   }
 
   protected fun doFileUsagesTest(
+    scope: SearchScope? = null,
+    dirName: String = testName,
     extension: String = defaultExtension,
     fileName: String = "$testName.$extension",
-    scope: SearchScope? = null,
     configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
   ) {
-    doConfiguredTest(dir = true, extension = extension, configureFileName = fileName, configurators = configurators) {
+    doConfiguredTest(dir = true, dirName = dirName, extension = extension, configureFileName = fileName, configurators = configurators) {
       checkListByFile(fileUsages(scope = scope, usagesTestHelper = usagesTestHelper).sorted(), "${testName}/usages.txt", false)
     }
   }
 
   protected fun doUsageHighlightingTest(
-    extension: String = defaultExtension,
+    fileContents: String? = null,
     dir: Boolean = dirModeByDefault,
+    dirName: String = testName,
+    extension: String = defaultExtension,
+    configureFileName: String = "$testName.$extension",
     configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
+    additionalFiles: List<String> = emptyList(),
   ) {
-    doConfiguredTest(extension = extension, dir = dir, configurators = configurators) {
+    doConfiguredTest(
+      fileContents = fileContents,
+      dir = dir,
+      dirName = dirName,
+      extension = extension,
+      configureFileName = configureFileName,
+      configurators = configurators,
+      additionalFiles = additionalFiles
+    ) {
       val file = InjectedLanguageManager.getInstance(project).getTopLevelFile(file)
       val document = getDocument(file)
       val editor = (editor as? EditorWindow)?.delegate ?: editor
@@ -653,30 +718,52 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
   protected fun doSymbolRenameTest(
     newName: String,
     searchCommentsAndText: Boolean = false,
-    dir: Boolean = true,
     testDialog: TestDialog? = null,
+    dir: Boolean = true,
+    dirName: String = testName,
     extension: String = defaultExtension,
+    configureFileName: String = "$testName.$extension",
     configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
+    additionalFiles: List<String> = emptyList(),
+    editorConfigEnabled: Boolean = false,
+    configureCodeStyleSettings: (CodeStyleSettings.() -> Unit)? = null,
   ) {
-    doSymbolRenameTest("$testName.$extension", newName,
-                       searchCommentsAndText = searchCommentsAndText, dir = dir,
-                       testDialog = testDialog, configurators = configurators)
+    doSymbolRenameTest(
+      configureFileName,
+      newName,
+      searchCommentsAndText = searchCommentsAndText,
+      testDialog = testDialog,
+      dir = dir,
+      dirName = dirName,
+      configurators = configurators,
+      additionalFiles = additionalFiles,
+      editorConfigEnabled = editorConfigEnabled,
+      configureCodeStyleSettings = configureCodeStyleSettings,
+    )
   }
 
   protected fun doSymbolRenameTest(
     mainFile: String,
     newName: String,
     searchCommentsAndText: Boolean = false,
-    dir: Boolean = true,
     testDialog: TestDialog? = null,
+    dir: Boolean = true,
+    dirName: String = testName,
     configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
+    additionalFiles: List<String> = emptyList(),
+    editorConfigEnabled: Boolean = false,
+    configureCodeStyleSettings: (CodeStyleSettings.() -> Unit)? = null,
   ) {
     setTestDialog(testDialog)
     doConfiguredTest(
       dir = dir,
+      dirName = dirName,
       checkResult = true,
       configureFileName = mainFile,
       configurators = configurators,
+      additionalFiles = additionalFiles,
+      editorConfigEnabled = editorConfigEnabled,
+      configureCodeStyleSettings = configureCodeStyleSettings,
     ) {
       if (canRenamePolySymbolAtCaret()) {
         renamePolySymbol(newName)
@@ -694,9 +781,15 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     }
   }
 
-  protected fun doFileRenameTest(newName: String, mainFile: String, searchCommentsAndText: Boolean = true, testDialog: TestDialog? = null) {
+  protected fun doFileRenameTest(
+    newName: String,
+    mainFile: String,
+    searchCommentsAndText: Boolean = true,
+    testDialog: TestDialog? = null,
+    dirName: String = testName,
+  ) {
     setTestDialog(testDialog)
-    doConfiguredTest(dir = true, checkResult = true, configureFileName = mainFile) {
+    doConfiguredTest(dir = true, dirName = dirName, checkResult = true, configureFileName = mainFile) {
       renameElement(file, newName, searchCommentsAndText, searchCommentsAndText)
     }
   }
