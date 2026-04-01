@@ -2,8 +2,6 @@
 @file:JvmName("EelProviderUtil")
 package com.intellij.platform.eel.provider
 
-import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import com.intellij.openapi.project.Project
@@ -14,22 +12,12 @@ import com.intellij.platform.eel.EelDescriptor
 import com.intellij.platform.eel.EelMachine
 import com.intellij.platform.eel.EelOsFamily
 import com.intellij.platform.eel.EelPlatform
-import com.intellij.platform.eel.EelPosixApi
-import com.intellij.platform.eel.EelWindowsApi
-import com.intellij.platform.eel.LocalEelApi
 import com.intellij.platform.eel.annotations.MultiRoutingFileSystemPath
-import com.intellij.util.system.LowLevelLocalMachineAccess
 import com.intellij.util.system.OS
 import org.jetbrains.annotations.ApiStatus
 import java.nio.file.Path
 
-private val logger = logger<LocalEelMachine>()
-
-@ApiStatus.Experimental
-interface LocalWindowsEelApi : LocalEelApi, EelWindowsApi
-
-@ApiStatus.Experimental
-interface LocalPosixEelApi : LocalEelApi, EelPosixApi
+private val logger = logger<EelInitialization>()
 
 private val EEL_MACHINE_KEY: Key<EelMachine> = Key.create("com.intellij.platform.eel.machine")
 private val EEL_DESCRIPTOR_KEY: Key<EelDescriptor> = Key.create("com.intellij.platform.eel.descriptor")
@@ -118,13 +106,6 @@ fun Project.setEelDescriptor(descriptor: EelDescriptor) {
   putUserData(EEL_DESCRIPTOR_KEY, descriptor)
 }
 
-@get:ApiStatus.Experimental
-@OptIn(LowLevelLocalMachineAccess::class)
-val localEel: LocalEelApi by lazy {
-  if (OS.CURRENT == OS.Windows) ApplicationManager.getApplication().service<LocalWindowsEelApi>()
-  else ApplicationManager.getApplication().service<LocalPosixEelApi>()
-}
-
 @ApiStatus.Experimental
 fun EelMachine.toEelApiBlocking(descriptor: EelDescriptor): EelApi = runBlockingMaybeCancellable { toEelApi(descriptor) }
 
@@ -133,38 +114,6 @@ fun EelDescriptor.toEelApiBlocking(): EelApi {
   if (this === LocalEelDescriptor) return localEel
   return runBlockingMaybeCancellable { toEelApi() }
 }
-
-@ApiStatus.Experimental
-data object LocalEelMachine : EelMachine {
-  override val internalName: String = "Local"
-
-  override suspend fun toEelApi(descriptor: EelDescriptor): EelApi {
-    check(descriptor === LocalEelDescriptor) { "Wrong descriptor: $descriptor for machine: $this" }
-    return localEel
-  }
-
-  override fun ownsPath(path: Path): Boolean = path.getEelDescriptor() === LocalEelDescriptor
-}
-
-@ApiStatus.Experimental
-@OptIn(LowLevelLocalMachineAccess::class)
-data object LocalEelDescriptor : EelDescriptor {
-  private val LOG = logger<LocalEelDescriptor>()
-
-  override val name: String = "Local: ${System.getProperty("os.name")}"
-
-  override val osFamily: EelOsFamily by lazy {
-    when (OS.CURRENT) {
-      OS.Windows -> EelOsFamily.Windows
-      OS.macOS, OS.Linux, OS.FreeBSD -> EelOsFamily.Posix
-      else -> {
-        LOG.info("Eel is not supported on current platform")
-        EelOsFamily.Posix
-      }
-    }
-  }
-}
-
 
 @ApiStatus.Internal
 fun EelApi.systemOs(): OS {
