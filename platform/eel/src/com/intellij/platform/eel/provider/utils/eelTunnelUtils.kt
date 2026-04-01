@@ -1,11 +1,8 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 @file:JvmName("IjentTunnelsUtil")
-@file:OptIn(IntellijInternalApi::class)
+@file:Suppress("OPT_IN_USAGE")
 
 package com.intellij.platform.eel.provider.utils
-
-import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.util.IntellijInternalApi
 import com.intellij.platform.eel.EelConnectionError
 import com.intellij.platform.eel.EelTunnelsApi
 import com.intellij.platform.eel.ThrowsChecked
@@ -13,7 +10,6 @@ import com.intellij.platform.eel.channels.EelDelicateApi
 import com.intellij.platform.eel.eelProxy
 import com.intellij.platform.eel.getAcceptorForRemotePort
 import com.intellij.platform.eel.provider.localEel
-import com.intellij.util.io.toByteArray
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -25,9 +21,10 @@ import kotlinx.coroutines.runBlocking
 import org.jetbrains.annotations.ApiStatus
 import java.net.InetAddress
 import java.net.InetSocketAddress
+import java.util.logging.Logger
 import java.nio.ByteBuffer
 
-private val LOG: Logger = Logger.getInstance(EelTunnelsApi::class.java)
+private val LOG = Logger.getLogger(EelTunnelsApi::class.java.name)
 
 /**
  * A tunnel to a remote server (a.k.a. local port forwarding).
@@ -54,10 +51,10 @@ fun CoroutineScope.forwardLocalPort(tunnels: EelTunnelsApi, localPort: Int, addr
     }
     .onConnectionError {
       if (it is EelConnectionError.ConnectionProblem) {
-        LOG.debug("Failed to establish connection $connectionCounter ($localPort - $address: $it); closing socket")
+        LOG.fine("Failed to establish connection $connectionCounter ($localPort - $address: $it); closing socket")
       }
       else {
-        LOG.error("Failed to connect to remote port $localPort - $address: $it")
+        LOG.severe("Failed to connect to remote port $localPort - $address: $it")
       }
       connectionCounter++
     }
@@ -68,7 +65,7 @@ fun CoroutineScope.forwardLocalPort(tunnels: EelTunnelsApi, localPort: Int, addr
       runBlocking { eelProxyBuilder.eelIt() }
     }
     catch (e: EelConnectionError) {
-      LOG.error("Failed to start a server on $address (was forwarding $localPort): $e")
+      LOG.severe("Failed to start a server on $address (was forwarding $localPort): $e")
       return
     }
 
@@ -130,7 +127,7 @@ fun CoroutineScope.forwardLocalServer(tunnels: EelTunnelsApi, localPort: Int, ad
           .acceptOnTcpPort(tunnels, host = address.hostname, port = address.port)
           .connectToTcpPort(localEel.tunnels, port = localPort.toUShort())
           .onConnectionClosed { currentConnection ->
-            LOG.debug("Stopped forwarding remote connection $currentConnection to local server")
+            LOG.fine("Stopped forwarding remote connection $currentConnection to local server")
           }
           .eelIt()
 
@@ -146,7 +143,7 @@ fun CoroutineScope.forwardLocalServer(tunnels: EelTunnelsApi, localPort: Int, ad
       proxy.acceptor.boundAddress
     }
     catch (e: EelConnectionError) {
-      LOG.error("Failed to start a server on $address (was forwarding $localPort): $e")
+      LOG.severe("Failed to start a server on $address (was forwarding $localPort): $e")
       this@async.cancel()
       ensureActive()
       error("unreachable")
@@ -157,7 +154,7 @@ fun CoroutineScope.forwardLocalServer(tunnels: EelTunnelsApi, localPort: Int, ad
 @ApiStatus.Experimental
 fun EelTunnelsApi.ResolvedSocketAddress.asInetAddress(): InetSocketAddress {
   val inetAddress = when (this) {
-    is EelTunnelsApi.ResolvedSocketAddress.V4 -> InetAddress.getByAddress(ByteBuffer.allocate(4).putInt(bits.toInt()).toByteArray())
+    is EelTunnelsApi.ResolvedSocketAddress.V4 -> InetAddress.getByAddress(ByteBuffer.allocate(4).putInt(bits.toInt()).array())
     is EelTunnelsApi.ResolvedSocketAddress.V6 -> InetAddress.getByAddress(ByteBuffer.allocate(16).putLong(higherBits.toLong()).putLong(8, lowerBits.toLong()).array())
   }
   return InetSocketAddress(inetAddress, port.toInt())
