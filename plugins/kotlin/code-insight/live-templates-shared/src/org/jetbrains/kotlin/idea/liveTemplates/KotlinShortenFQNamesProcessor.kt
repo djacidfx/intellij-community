@@ -4,14 +4,12 @@ package org.jetbrains.kotlin.idea.liveTemplates
 
 import com.intellij.codeInsight.CodeInsightBundle
 import com.intellij.codeInsight.template.Template
+import com.intellij.codeInsight.template.impl.ModCommandAwareTemplateOptionalProcessor
 import com.intellij.codeInsight.template.impl.TemplateContext
-import com.intellij.codeInsight.template.impl.TemplateOptionalProcessor
 import com.intellij.injected.editor.DocumentWindow
 import com.intellij.lang.injection.InjectedLanguageManager
-import com.intellij.openapi.editor.Document
-import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.ModNavigator
 import com.intellij.openapi.editor.RangeMarker
-import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
@@ -19,13 +17,15 @@ import com.intellij.psi.util.PsiUtilBase
 import org.jetbrains.kotlin.idea.base.codeInsight.ShortenReferencesFacility
 import org.jetbrains.kotlin.psi.KtFile
 
-class KotlinShortenFQNamesProcessor : TemplateOptionalProcessor {
-    override fun processText(project: Project, template: Template, document: Document, templateRange: RangeMarker, editor: Editor) {
+class KotlinShortenFQNamesProcessor : ModCommandAwareTemplateOptionalProcessor {
+    override fun processText(template: Template, navigator: ModNavigator, templateRange: RangeMarker) {
         if (!template.isToShortenLongNames) return
 
+        val project = navigator.project
+        val document = navigator.document
         PsiDocumentManager.getInstance(project).commitDocument(document)
 
-        val file = PsiUtilBase.getPsiFileInEditor(editor, project)
+        val file = PsiUtilBase.getPsiFileInModNavigator(navigator)
         val (ktFile, range) = getMaybeInjectedRange(file, templateRange.textRange) ?: return
         ShortenReferencesFacility.getInstance().shorten(ktFile, range)
 

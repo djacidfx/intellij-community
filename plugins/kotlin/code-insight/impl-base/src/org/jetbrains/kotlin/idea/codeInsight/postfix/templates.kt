@@ -27,6 +27,7 @@ class KtIfExpressionPostfixTemplate(provider: PostfixTemplateProvider) : Surroun
     KtPostfixTemplatePsiInfo, createBooleanExpressionSelector(), provider
 ) {
     override fun getSurrounder(): KotlinWithIfExpressionSurrounder = KotlinWithIfExpressionSurrounder(withElse = false)
+    override fun isApplicableForModCommand(): Boolean = true
 }
 
 @ApiStatus.Internal
@@ -36,6 +37,7 @@ class KtElseExpressionPostfixTemplate(provider: PostfixTemplateProvider) : Surro
 ) {
     override fun getSurrounder(): KotlinWithIfExpressionSurrounder = KotlinWithIfExpressionSurrounder(withElse = false)
     override fun getWrappedExpression(expression: PsiElement?): KtExpression = (expression as KtExpression).negate()
+    override fun isApplicableForModCommand(): Boolean = true
 }
 
 

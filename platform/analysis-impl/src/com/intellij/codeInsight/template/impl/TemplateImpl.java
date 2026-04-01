@@ -2,6 +2,8 @@
 
 package com.intellij.codeInsight.template.impl;
 
+import com.intellij.codeInsight.lookup.LookupElement;
+import com.intellij.codeInsight.lookup.LookupFocusDegree;
 import com.intellij.codeInsight.template.Expression;
 import com.intellij.codeInsight.template.ExpressionContext;
 import com.intellij.codeInsight.template.Result;
@@ -474,8 +476,10 @@ public class TemplateImpl extends TemplateBase implements SchemeElement {
         PsiElement element = updater.getPsiFile().findElementAt(info.marker.getStartOffset());
         if (element != null) {
           if (builder == null) builder = updater.templateBuilder();
-          builder.field(element, info.marker.getTextRange().shiftLeft(element.getTextRange().getStartOffset()), segment.name,
-                        variable.getExpression());
+          //see `result = defaultValue.calculateResult(context)` in TemplateState.recalcSegment
+          Expression expression = withDefaultFallback(variable.getExpression(), variable.getDefaultValueExpression());
+          builder.field(element, info.marker.getTextRange().shiftLeft(element.getTextRange().getStartOffset()),
+                        segment.name, expression);
         }
       }
     }
@@ -489,6 +493,34 @@ public class TemplateImpl extends TemplateBase implements SchemeElement {
       info.marker.dispose();
     }
     wholeTemplate.dispose();
+  }
+
+  /**
+   * Wraps an expression so that when its {@link Expression#calculateResult} returns {@code null},
+   * the default-value expression is tried as a fallback.
+   * <p>
+   * This mirrors the fallback logic that {@code TemplateState.recalcSegment()} already applies
+   * for the interactive template session — the ModCommand/preview path needs the same behaviour.
+   */
+  private static @NotNull Expression withDefaultFallback(@NotNull Expression expression,
+                                                         @NotNull Expression defaultValue) {
+    return new Expression() {
+      @Override
+      public @Nullable Result calculateResult(ExpressionContext context) {
+        Result result = expression.calculateResult(context);
+        return result != null ? result : defaultValue.calculateResult(context);
+      }
+
+      @Override
+      public LookupElement @Nullable [] calculateLookupItems(ExpressionContext context) {
+        return expression.calculateLookupItems(context);
+      }
+
+      @Override
+      public @NotNull LookupFocusDegree getLookupFocusDegree() {
+        return expression.getLookupFocusDegree();
+      }
+    };
   }
 
   private static @Nullable RangeMarker resolveEndMarker(

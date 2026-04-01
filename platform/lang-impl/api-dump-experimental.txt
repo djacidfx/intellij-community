@@ -575,6 +575,9 @@ c:com.intellij.codeInsight.template.postfix.completion.PostfixTemplateLookupElem
 - expand(com.intellij.modcommand.ActionContext,com.intellij.codeInsight.template.postfix.templates.PostfixTemplateProvider,com.intellij.openapi.util.TextRange):com.intellij.modcommand.ModCommand
 *:com.intellij.codeInsight.template.postfix.templates.ExpressionSelectorModExpander$ModExpandAction
 - a:expand(com.intellij.modcommand.ActionContext,com.intellij.modcommand.ModPsiUpdater,com.intellij.psi.PsiElement):V
+c:com.intellij.codeInsight.template.postfix.templates.NotPostfixTemplate
+- com.intellij.codeInsight.template.postfix.templates.PostfixTemplateWithExpressionSelector
+- *:createModExpander():com.intellij.codeInsight.template.postfix.templates.PostfixModExpander
 c:com.intellij.codeInsight.template.postfix.templates.ParenthesizedPostfixTemplate
 - com.intellij.codeInsight.template.postfix.templates.PostfixTemplateWithExpressionSelector
 - *:createModExpander():com.intellij.codeInsight.template.postfix.templates.PostfixModExpander
