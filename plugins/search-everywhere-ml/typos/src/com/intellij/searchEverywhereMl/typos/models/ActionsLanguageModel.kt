@@ -27,6 +27,11 @@ internal class ActionsLanguageModel(val coroutineScope: CoroutineScope) {
     computeLanguageModelDictionary(corpus)
   }
 
+  val deferredPrefixIndex: Deferred<PhrasePrefixIndex> = coroutineScope.async {
+    val corpus = CorpusBuilder.getInstance()?.deferredCorpus?.await() ?: emptySet()
+    computePhrasePrefixIndex(corpus)
+  }
+
   // Accept any word that is between 3 and 45 characters long
   private val acceptableWordsPattern = Pattern.compile("^.{3,45}$")
 
@@ -42,6 +47,10 @@ internal class ActionsLanguageModel(val coroutineScope: CoroutineScope) {
       .let { SimpleLanguageModelDictionary(it) }
 
     return dictionary
+  }
+
+  private fun computePhrasePrefixIndex(corpus: Set<List<String>>): PhrasePrefixIndex {
+    return PhrasePrefixIndex.create(corpus.mapNotNull(::normalizeCorpusSentenceForPrefixLookup))
   }
 
 }

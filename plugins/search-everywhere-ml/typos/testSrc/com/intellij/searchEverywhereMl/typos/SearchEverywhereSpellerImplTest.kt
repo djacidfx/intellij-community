@@ -1,7 +1,10 @@
 package com.intellij.searchEverywhereMl.typos
 
 import com.intellij.ide.actions.searcheverywhere.SearchEverywhereSpellCheckResult
+import com.intellij.searchEverywhereMl.typos.models.PhrasePrefixIndex
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 internal class SearchEverywhereSpellerImplTest {
@@ -47,5 +50,36 @@ internal class SearchEverywhereSpellerImplTest {
     )
 
     assertEquals(corrections.take(2), actual)
+  }
+
+  @Test
+  fun `prefix index matches exact and partial phrase prefixes`() {
+    val index = PhrasePrefixIndex.create(listOf("show color picker", "runtime", "go to action"))
+
+    assertTrue(index.hasPrefix("runti"))
+    assertTrue(index.hasPrefix("runtime"))
+    assertTrue(index.hasPrefix("show col"))
+    assertTrue(index.hasPrefix("color"))
+    assertTrue(index.hasPrefix("go to"))
+  }
+
+  @Test
+  fun `prefix index rejects typos and mid-word substrings`() {
+    val index = PhrasePrefixIndex.create(listOf("show color picker", "runtime"))
+
+    assertFalse(index.hasPrefix("rantime"))
+    assertFalse(index.hasPrefix("olor"))
+    assertFalse(index.hasPrefix("show colr"))
+  }
+
+  @Test
+  fun `shouldSkipTypoCorrection normalizes separators and case`() {
+    val index = PhrasePrefixIndex.create(listOf("show color picker", "runtime"))
+
+    assertTrue(shouldSkipTypoCorrection("Show-Col", index))
+    assertTrue(shouldSkipTypoCorrection("color", index))
+    assertTrue(shouldSkipTypoCorrection("RUNTI", index))
+    assertFalse(shouldSkipTypoCorrection("123", index))
+    assertFalse(shouldSkipTypoCorrection("Show Colr", index))
   }
 }
