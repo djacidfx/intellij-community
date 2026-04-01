@@ -32,6 +32,7 @@ import com.intellij.openapi.editor.impl.softwrap.SoftWrapPainter;
 import com.intellij.openapi.editor.impl.softwrap.SoftWrapRecalculationManager;
 import com.intellij.openapi.editor.impl.softwrap.SoftWrappingEnabledRecalculationManager;
 import com.intellij.openapi.editor.impl.softwrap.SoftWrapsStorage;
+import com.intellij.openapi.editor.impl.softwrap.mapping.CachingSoftWrapDataMapper;
 import com.intellij.openapi.editor.impl.softwrap.mapping.SoftWrapApplianceManager;
 import com.intellij.openapi.editor.impl.softwrap.mapping.SoftWrapParsingListener;
 import com.intellij.openapi.fileEditor.impl.text.AsyncEditorLoader;
@@ -61,6 +62,7 @@ public final class ExperimentalSoftWrapModelImpl extends SoftWrapModelImpl {
   private static final Logger LOG = Logger.getInstance(ExperimentalSoftWrapModelImpl.class);
 
   private final SoftWrapNotifier mySoftWrapNotifier;
+  private final CachingSoftWrapDataMapper myDataMapper;
 
   /**
    * This model operates in two main modes: soft-wrapping is either on or off.
@@ -93,12 +95,14 @@ public final class ExperimentalSoftWrapModelImpl extends SoftWrapModelImpl {
     document = editor.getElfDocument();
     storage = new SoftWrapsStorage();
     mySoftWrapNotifier = new SoftWrapNotifier();
+    myDataMapper = new CachingSoftWrapDataMapper(editor, storage, mySoftWrapNotifier);
     myPainter = new CompositeSoftWrapPainter(editor);
     mySoftWrappingRecalculationManager = new SoftWrappingEnabledRecalculationManager(editor, storage, myPainter, mySoftWrapNotifier,
-                                                                                     () -> myBulkDocumentUpdateInProgress);
+                                                                                     myDataMapper, () -> myBulkDocumentUpdateInProgress);
     myCustomWrapOnlyRecalculationManager = new CustomWrapOnlyRecalculationManager(editor, storage, mySoftWrapNotifier,
                                                                                   () -> myBulkDocumentUpdateInProgress);
 
+    mySoftWrapNotifier.addFirstSoftWrapParsingListener(myDataMapper);
     mySoftWrapNotifier.addSoftWrapParsingListener(new SoftWrapParsingListener() {
       @Override
       public void onAllDirtyRegionsReparsed() {
@@ -121,14 +125,8 @@ public final class ExperimentalSoftWrapModelImpl extends SoftWrapModelImpl {
   }
 
   private void reinitRecalculationManager() {
-    if (myRecalculationManager instanceof SoftWrappingEnabledRecalculationManager manager) {
-      mySoftWrapNotifier.removeSoftWrapParsingListener(manager.myDataMapper);
-    }
     myRecalculationManager = myUseSoftWraps ? mySoftWrappingRecalculationManager : myCustomWrapOnlyRecalculationManager;
-    if (myRecalculationManager instanceof SoftWrappingEnabledRecalculationManager manager) {
-      // CachingSoftWrapDataMapper must be the first to run
-      mySoftWrapNotifier.addFirstSoftWrapParsingListener(manager.myDataMapper);
-    }
+    myDataMapper.setPreserveStartOffsetSoftWrap(myRecalculationManager instanceof SoftWrappingEnabledRecalculationManager);
   }
 
 
@@ -526,6 +524,11 @@ public final class ExperimentalSoftWrapModelImpl extends SoftWrapModelImpl {
   }
 
   @Override
+  public void beforeFoldRegionDisposed(@NotNull FoldRegion region) {
+    myRecalculationManager.beforeFoldRegionDisposed(region);
+  }
+
+  @Override
   public void onUpdated(@NotNull Inlay<?> inlay, int changeFlags) {
     myRecalculationManager.onUpdated(inlay, changeFlags);
   }
@@ -580,12 +583,14 @@ public final class ExperimentalSoftWrapModelImpl extends SoftWrapModelImpl {
                            soft-wrapping recalculation manager state: %s
                            custom-wrap-only recalculation manager state: %s
                            recalculation manager type: %s
+                           soft wraps mapping info: %s
                            soft wraps: %s""",
                          myUseSoftWraps, myTabWidth, myForceAdditionalColumns,
                          myBulkDocumentUpdateInProgress,
                          mySoftWrappingRecalculationManager.dumpState(),
                          myCustomWrapOnlyRecalculationManager.dumpState(),
                          myRecalculationManager.dumpName(),
+                         myDataMapper.dumpState(),
                          storage.dumpState());
   }
 
@@ -621,6 +626,7 @@ public final class ExperimentalSoftWrapModelImpl extends SoftWrapModelImpl {
                      foldingModel.isOffsetCollapsed(softWrapOffset - 1), "Soft wrap after line break");
       LOG.assertTrue(!DocumentUtil.isInsideCharacterPair(document, softWrapOffset),
                      "Soft wrap inside a surrogate pair or inside a line break");
+      LOG.assertTrue(!(wrap instanceof CustomWrapToSoftWrapAdapter adapter) || adapter.getCustomWrap().getOffset() == softWrapOffset);
       lastSoftWrapOffset = softWrapOffset;
     }
   }

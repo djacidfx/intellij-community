@@ -1,16 +1,16 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+@file:Suppress("UsePropertyAccessSyntax")
+
 package com.intellij.openapi.editor.impl.softwrap
 
-import com.intellij.openapi.diagnostic.AttachmentFactory
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.CustomWrap
 import com.intellij.openapi.editor.FoldRegion
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.impl.EditorImpl
-import com.intellij.openapi.editor.impl.softwrap.CustomWrapToSoftWrapAdapter.Type
+import com.intellij.openapi.editor.impl.softwrap.SoftWrapHelper.coerceToValidOffset
 import com.intellij.openapi.editor.impl.softwrap.mapping.IncrementalCacheUpdateEvent
 import com.intellij.openapi.util.Segment
-import com.intellij.util.DocumentEventUtil
 import org.jetbrains.annotations.NonNls
 import java.beans.PropertyChangeEvent
 import java.util.function.BooleanSupplier
@@ -22,12 +22,11 @@ internal class CustomWrapOnlyRecalculationManager(
   private val isBulkDocumentUpdateInProgress: BooleanSupplier,
 ) : SoftWrapRecalculationManager() {
   private var isDocumentUpdateInProgress: Boolean = false
+  private var documentUpdateStartOffset: Int = -1
+  private var documentUpdateEndOffset: Int = -1
+
   private var isFoldingUpdateInProgress: Boolean = false
   private val deferredFoldRegions: MutableList<Segment> = ArrayList()
-
-  private var customWrapsMerged: Boolean = false
-  private var customWrapsMoved: Boolean = false
-  private var customWrapRemovedByUpdate: Boolean = false
 
   override var isDirty: Boolean = false
     private set
@@ -47,7 +46,6 @@ internal class CustomWrapOnlyRecalculationManager(
   override fun dumpState(): @NonNls String = """
     document update in progress: $isDocumentUpdateInProgress, folding update in progress: $isFoldingUpdateInProgress, dirty: $isDirty, 
     deferred fold regions: $deferredFoldRegions,
-    customWrapsMerged: $customWrapsMerged, customWrapsMoved: $customWrapsMoved, customWrapRemovedByUpdate: $customWrapRemovedByUpdate
     """.trimIndent()
 
   override fun reset() {
@@ -78,32 +76,9 @@ internal class CustomWrapOnlyRecalculationManager(
       return
     }
     isDocumentUpdateInProgress = true
-    if (DocumentEventUtil.isMoveInsertion(event) && storageHasWraps()) {
-      // Custom wraps in the moved-from range will become out-of-order inside storage after the document change is applied.
-      // They must be moved now.
-      val srcStartOffset = DocumentEventUtil.getMoveOffsetBeforeInsertion(event)
-      val srcEndOffset = srcStartOffset + event.newLength
-      // points to the first custom-wrap with offset >= affectedStartOffset
-      val srcStartIndex = storage.getSoftWrapIndex(srcStartOffset).let { if (it >= 0) it else -it - 1 }
-      val srcEndIndex = storage.getSoftWrapIndex(srcEndOffset).let { if (it >= 0) it else -it - 1 }
-      if (srcStartIndex == srcEndIndex) {
-        // no custom wraps in the moved-from range
-        return
-      }
-      // Maybe we needn't move them in storage, but in relation to the document, they *will* be moved by the event.
-      // We should let listeners know about the change.
-      customWrapsMoved = true
-      val dstOffset = event.offset
-      val dstIndex = storage.getSoftWrapIndex(dstOffset).let { if (it >= 0) it else -it - 1 }
-      if (
-        dstIndex == srcStartIndex || // move to the left
-        dstIndex == srcEndIndex // move to the right
-      ) {
-        // no custom wraps between source and destination
-        return
-      }
-      storage.moveSegment(srcStartIndex, srcEndIndex, dstIndex)
-    }
+    SoftWrapHelper.removeCustomWrapsFromMoveInsertionSource(editor.customWrapModel, storage, event)
+    documentUpdateStartOffset = event.offset
+    documentUpdateEndOffset = event.offset + event.newLength
   }
 
   override fun documentChanged(event: DocumentEvent) {
@@ -111,21 +86,26 @@ internal class CustomWrapOnlyRecalculationManager(
       return
     }
     isDocumentUpdateInProgress = false
-    if (customWrapsMerged || customWrapRemovedByUpdate) {
-      recalculateCustomWraps(createEventForDocumentChange(event))
-    }
-    if (customWrapsMoved || customWrapsMerged || customWrapRemovedByUpdate) {
-      customWrapsMoved = false
-      customWrapsMerged = false
-      customWrapRemovedByUpdate = false
-      softWrapNotifier.notifyAllDirtyRegionsReparsed()
-    }
+    val cacheUpdateEvent = IncrementalCacheUpdateEvent(
+      coerceToValidOffset(documentUpdateStartOffset, event.document),
+      coerceToValidOffset(documentUpdateEndOffset, event.document),
+      event.newLength - event.oldLength
+    )
+    recalculateCustomWraps(cacheUpdateEvent)
+    softWrapNotifier.notifyAllDirtyRegionsReparsed()
   }
 
   override fun onBulkDocumentUpdateStarted() {}
 
   override fun onBulkDocumentUpdateFinished() {
     recalculate()
+  }
+
+  override fun beforeFoldRegionDisposed(region: FoldRegion) {
+    if (isDocumentUpdateInProgress && !isBulkDocumentUpdateInProgress.getAsBoolean()) {
+      documentUpdateStartOffset = minOf(documentUpdateStartOffset, region.startOffset)
+      documentUpdateEndOffset = maxOf(documentUpdateEndOffset, region.endOffset)
+    }
   }
 
   override fun onFoldRegionStateChange(region: FoldRegion) {
@@ -151,6 +131,7 @@ internal class CustomWrapOnlyRecalculationManager(
     if (isBulkDocumentUpdateInProgress.getAsBoolean()) {
       return
     }
+    LOG.assertTrue(!isDocumentUpdateInProgress, "CustomWrap added during document update")
     recalculateCustomWraps(createEventForVisualChange(wrap.offset, wrap.offset))
     softWrapNotifier.notifyAllDirtyRegionsReparsed()
   }
@@ -162,7 +143,8 @@ internal class CustomWrapOnlyRecalculationManager(
     }
     if (isDocumentUpdateInProgress) {
       // wrap was removed due to a document change, recalculation will be handled in #documentChanged
-      customWrapRemovedByUpdate = true
+      documentUpdateStartOffset = minOf(documentUpdateStartOffset, wrap.offset)
+      documentUpdateEndOffset = maxOf(documentUpdateEndOffset, wrap.offset)
       return
     }
     recalculateCustomWraps(createEventForVisualChange(wrap.offset, wrap.offset))
@@ -171,44 +153,20 @@ internal class CustomWrapOnlyRecalculationManager(
 
   private fun modelHasWraps(): Boolean = editor.customWrapModel.hasWraps()
 
-  private fun storageHasWraps(): Boolean = !storage.isEmpty
-
   private fun recalculateCustomWraps(event: IncrementalCacheUpdateEvent) {
     val startOffset = event.startOffset
     val endOffset = event.mandatoryEndOffset
 
     softWrapNotifier.notifyRegionReparseStart(event)
 
-    val actual: List<CustomWrap> = editor.customWrapModel
+    editor.customWrapModel
       .getWrapsInRange(startOffset, endOffset)
-    val replacement = ArrayList<CustomWrapToSoftWrapAdapter>()
-    actual.forEach {
-      replacement.addLastIfNotFoldedOrDuplicated(it, editor)
-    }
-    val startIndex = storage.getSoftWrapIndex(startOffset).let { if (it >= 0) it else -it - 1 }
-    val endIndex = run {
-      var index = storage.getSoftWrapIndex(endOffset).let { if (it >= 0) it + 1 else -it - 1 }
-      if (index < 0) {
-        (-index) - 1
+      .forEach {
+        storage.addLastIfNotFoldedOrDuplicated(it, editor)
       }
-      else {
-        // endIndex needs to point past wraps at endOffset
-        val wraps = storage.softWraps
-        while (index < wraps.size && wraps[index].start == endOffset) {
-          index++
-        }
-        index
-      }
-    }
-    storage.replaceSegment(startIndex, endIndex, replacement)
 
     event.actualEndOffset = endOffset
     softWrapNotifier.notifyRegionReparseEnd(event)
-  }
-
-  override fun customWrapsMerged() {
-    assert(isDocumentUpdateInProgress)
-    customWrapsMerged = true
   }
 }
 
@@ -217,26 +175,20 @@ private val LOG = logger<CustomWrapOnlyRecalculationManager>()
 /**
  * @param customWrap [CustomWrap.offset] must be `>=` to all custom wraps already in the list
  */
-private fun MutableList<CustomWrapToSoftWrapAdapter>.addLastIfNotFoldedOrDuplicated(customWrap: CustomWrap, editor: EditorImpl) {
+private fun SoftWrapsStorage.addLastIfNotFoldedOrDuplicated(customWrap: CustomWrap, editor: EditorImpl) {
   val offset = customWrap.offset
   val foldingModel = editor.foldingModel
   val foldRegion = foldingModel.getCollapsedRegionAtOffset(customWrap.offset)
   if (foldRegion != null && foldRegion.startOffset != offset) {
     return
   }
-  val lastAdded: SoftWrapEx? = this.lastOrNull()
-  if (lastAdded != null && lastAdded.getStart() == customWrap.offset) {
+  val lastAdded = getLast()
+  if (lastAdded != null && lastAdded.start == customWrap.offset) {
     return
   }
-  this.addLast(CustomWrapToSoftWrapAdapter(customWrap, Type.PASS_THROUGH, editor))
-}
-
-private fun createEventForDocumentChange(event: DocumentEvent): IncrementalCacheUpdateEvent {
-  return createIncrementalUpdateEvent(event.offset, event.offset + event.oldLength, event.offset + event.newLength)
+  this.addLast(CustomWrapToSoftWrapAdapter(customWrap, editor))
 }
 
 private fun createEventForVisualChange(startOffset: Int, endOffset: Int): IncrementalCacheUpdateEvent =
-  createIncrementalUpdateEvent(startOffset, endOffset, endOffset)
+  IncrementalCacheUpdateEvent(startOffset, endOffset, 0)
 
-private fun createIncrementalUpdateEvent(startOffset: Int, oldEndOffset: Int, newEndOffset: Int): IncrementalCacheUpdateEvent =
-  IncrementalCacheUpdateEvent(startOffset, newEndOffset, newEndOffset - oldEndOffset)

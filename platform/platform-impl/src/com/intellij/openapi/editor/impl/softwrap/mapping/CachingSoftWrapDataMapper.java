@@ -27,6 +27,7 @@ public final class CachingSoftWrapDataMapper implements SoftWrapParsingListener,
   private final EditorEx myEditor;
   private final SoftWrapsStorage myStorage;
   private final @NotNull SoftWrapChangeNotifier mySoftWrapChangeNotifier;
+  private boolean myPreserveStartOffsetSoftWrap = true;
 
   private static final Comparator<SoftWrapEx> SOFT_WRAP_COMPARATOR = (o1, o2) -> {
     int offsetDiff = o1.getStart() - o2.getStart();
@@ -81,7 +82,7 @@ public final class CachingSoftWrapDataMapper implements SoftWrapParsingListener,
     int startOffset = event.getStartOffset();
 
     myAffectedByUpdateSoftWraps.clear();
-    myAffectedByUpdateSoftWraps.addAll(myStorage.removeStartingFrom(startOffset + 1));
+    myAffectedByUpdateSoftWraps.addAll(myStorage.removeStartingFrom(startOffset + (myPreserveStartOffsetSoftWrap ? 1 : 0)));
   }
 
   @Override
@@ -102,7 +103,8 @@ public final class CachingSoftWrapDataMapper implements SoftWrapParsingListener,
     int recalcEndOffsetTranslated = event.getActualEndOffset() - lengthDiff;
 
     int firstIndex = -1;
-    boolean softWrapsChanged = myStorage.hasSoftWrapsInRange(event.getStartOffset() + 1, myEditor.getDocument().getTextLength());
+    boolean softWrapsChanged =
+      myStorage.hasSoftWrapsInRange((myPreserveStartOffsetSoftWrap ? 1 : 0), myEditor.getDocument().getTextLength());
     for (int i = 0; i < myAffectedByUpdateSoftWraps.size(); i++) {
       SoftWrapEx softWrap = myAffectedByUpdateSoftWraps.get(i);
       if (firstIndex < 0) {
@@ -141,5 +143,17 @@ public final class CachingSoftWrapDataMapper implements SoftWrapParsingListener,
   @Override
   public String toString() {
     return dumpState();
+  }
+
+  /**
+   * Soft-wrapping enabled recalculations events start either at a logical line start or a visual line start.
+   * In the visual line case, the soft wrap at the start offset serves as an anchor for the reparse and should be preserved.
+   * <p>
+   * Custom-wrap-only recalculations do not need to measure line width, so they do not ensure start at line start.
+   * Instead, the start offset of the event points exactly at the start of the affecting change,
+   * so any soft wrap at that offset needs to be reconsidered too by the recalculation.
+   */
+  public void setPreserveStartOffsetSoftWrap(boolean preserve) {
+    myPreserveStartOffsetSoftWrap = preserve;
   }
 }

@@ -39,8 +39,6 @@ public final class SoftWrappingEnabledRecalculationManager extends SoftWrapRecal
    */
   private final List<Segment> deferredFoldRegions = new ArrayList<>();
 
-  // visible for ExperimentalSoftWrapModelImpl#reinitRecalculationManager
-  public final CachingSoftWrapDataMapper myDataMapper;
   private final SoftWrapApplianceManager myApplianceManager;
   private final SoftWrapsStorage myStorage;
   private final @NotNull DocumentEx myDocument;
@@ -90,13 +88,13 @@ public final class SoftWrappingEnabledRecalculationManager extends SoftWrapRecal
                                                  @NotNull SoftWrapsStorage storage,
                                                  @NotNull SoftWrapPainter painter,
                                                  @NotNull SoftWrapNotifier softWrapNotifier,
+                                                 @NotNull CachingSoftWrapDataMapper dataMapper,
                                                  @NotNull BooleanSupplier bulkDocumentUpdateInProgress) {
     myEditor = editor;
     myDocument = editor.getElfDocument();
     myStorage = storage;
     mySoftWrapChangeNotifier = softWrapNotifier;
-    myDataMapper = new CachingSoftWrapDataMapper(editor, storage, softWrapNotifier);
-    myApplianceManager = new SoftWrapApplianceManager(storage, editor, painter, myDataMapper, softWrapNotifier);
+    myApplianceManager = new SoftWrapApplianceManager(storage, editor, painter, dataMapper, softWrapNotifier);
     myBulkDocumentUpdateInProgress = bulkDocumentUpdateInProgress;
   }
 
@@ -133,6 +131,7 @@ public final class SoftWrappingEnabledRecalculationManager extends SoftWrapRecal
       myDirty = true;
       return;
     }
+    SoftWrapHelper.removeCustomWrapsFromMoveInsertionSource(myEditor.getCustomWrapModel(), myStorage, event);
     myApplianceManager.beforeDocumentChange(event);
   }
 
@@ -142,16 +141,6 @@ public final class SoftWrappingEnabledRecalculationManager extends SoftWrapRecal
       return;
     }
     myDocumentUpdateInProgress = false;
-    if (myEditor.getCustomWrapModel().hasWraps() && DocumentEventUtil.isMoveInsertion(event)) {
-      int dstOffset = event.getOffset();
-      int srcOffset = event.getMoveOffset();
-      if (dstOffset < srcOffset) {
-        // offset before the insertion of the moved fragment, which corresponds to current state in storage
-        int srcOffsetBefore = srcOffset - event.getNewLength();
-        // they will be reinserted by recalculation for the following move deletion
-        myStorage.removeCustomWrapsInRange(srcOffsetBefore, srcOffset);
-      }
-    }
     myApplianceManager.documentChanged(event, myAfterLineEndInlayUpdated);
     if (DocumentEventUtil.isMoveInsertion(event)) {
       int dstOffset = event.getOffset();
@@ -170,6 +159,11 @@ public final class SoftWrappingEnabledRecalculationManager extends SoftWrapRecal
   @Override
   public void onBulkDocumentUpdateFinished() {
     recalculate();
+  }
+
+  @Override
+  public void beforeFoldRegionDisposed(@NotNull FoldRegion region) {
+    myApplianceManager.beforeFoldRegionDisposed(region);
   }
 
   @Override
@@ -300,11 +294,9 @@ public final class SoftWrappingEnabledRecalculationManager extends SoftWrapRecal
     return String.format(
       """
         document update in progress: %b, folding update in progress: %b, dirty: %b, deferred regions: %s
-        appliance manager state: %s
-        soft wraps mapping info: %s""",
+        appliance manager state: %s""",
       myDocumentUpdateInProgress, myFoldingUpdateInProgress, myDirty, deferredFoldRegions,
-      myApplianceManager.dumpState(),
-      myDataMapper.dumpState());
+      myApplianceManager.dumpState());
   }
 
   @Override

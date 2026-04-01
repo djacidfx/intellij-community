@@ -3,12 +3,13 @@ package com.intellij.openapi.editor.impl.softwrap
 
 import com.intellij.openapi.editor.SoftWrap
 import com.intellij.openapi.editor.VisualPosition
+import com.intellij.openapi.editor.event.DocumentEvent
+import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.editor.ex.DocumentEx
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.impl.AbstractEditorTest
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.impl.SoftWrapModelImpl
-import com.intellij.ui.DocumentAdapter
 import com.intellij.util.DocumentEventUtil
 import com.intellij.util.DocumentUtil
 import java.awt.Graphics
@@ -131,6 +132,42 @@ abstract class CustomWrapsTestBase : AbstractEditorTest() {
     (editor as EditorImpl).validateState()
   }
 
+  fun testMoveDeletionExpandingFoldRecalculatesWrapsInExpandedRange() {
+    initTextAndSoftWraps("abcd\n0123456789ABCDEFGHIJABCDEFGHIJ\nwxyz", charCountToSoftWrapAt = 16)
+    // fold second line
+    val foldRegion = addCustomFoldRegion(1, 1)
+    assertNotNull(foldRegion)
+    // wrap in the middle of the folded second line
+    assertNotNull(editor.customWrapModel.addWrap(15, 2, 0))
+    assertEmpty(registeredSoftWraps())
+
+    runWriteCommand {
+      // (move-)deletion overlapping with custom folding start
+      (editor.document as DocumentEx).moveText(2, 8, editor.document.textLength)
+    }
+
+    // ... invalidates the custom fold region
+    assertFalse(foldRegion!!.isValid)
+    // but not the wrap
+    assertEquals(listOf(9), editor.customWrapModel.getWraps().map { it.offset })
+
+    // custom wraps previously hidden should become visible (projected as soft wraps) as a consequence
+    val wraps = registeredSoftWrapsDesc()
+    if (useSoftWraps) {
+      // the now expanded long line should become soft-wrapped if enabled
+      assertEquals(listOf(9.custom, 23.auto), wraps)
+    }
+    else {
+      assertEquals(listOf(9.custom), wraps)
+    }
+    assertStorageConsistent()
+    (editor as EditorImpl).validateState()
+  }
+
+  protected fun registeredSoftWrapsDesc(): List<SoftWrapDescriptor> {
+    return registeredSoftWraps().map { SoftWrapDescriptor(it.start, it.isCustomSoftWrap) }
+  }
+
   protected fun registeredSoftWraps(): List<SoftWrap> {
     return (editor as EditorEx).softWrapModel.registeredSoftWraps
   }
@@ -207,6 +244,26 @@ abstract class CustomWrapsTestBase : AbstractEditorTest() {
     assertTrue(widthWithWrap < widthWithoutWrap)
   }
 
+  fun testCustomWrapInvalidatedOnMoveRightIsRemovedAfterInsertion() {
+    initTextAndSoftWraps("01234\n5678", charCountToSoftWrapAt = 10)
+    addCustomWrap(2)
+    assertSize(1, registeredSoftWraps())
+
+    editor.elfDocument.addDocumentListener(object : DocumentListener {
+      override fun documentChanged(event: DocumentEvent) {
+        if (DocumentEventUtil.isMoveInsertion(event)) {
+          assertEmpty(registeredSoftWraps())
+        }
+      }
+    }, testRootDisposable)
+    runWriteCommand {
+      (editor.document as DocumentEx).moveText(2, 3, 6)
+    }
+
+    assertEmpty(registeredSoftWraps())
+    (editor as EditorImpl).validateState()
+  }
+
   fun testCustomWrapChangesAreDeferredUntilBulkModeFinishes() {
     initTextAndSoftWraps("abcdef", charCountToSoftWrapAt = 100)
     val initialWrap = editor.customWrapModel.addWrap(2, 0, 0)!!
@@ -241,8 +298,50 @@ abstract class CustomWrapsTestBase : AbstractEditorTest() {
   }
 }
 
+class CustomWrapsOnlyTest : CustomWrapsTestBase() {
+  fun testMoveTextToRightReordersCustomWrapStorage() {
+    initTextAndSoftWraps("0123456789ABCDEFGHIJ")
+    addCustomWrap(6, indent = 1)
+    addCustomWrap(8, indent = 2)
+    addCustomWrap(10, indent = 3)
+    addCustomWrap(15, indent = 4)
 
-class CustomWrapsOnlyTest : CustomWrapsTestBase()
+    runWriteCommand {
+      (editor.document as DocumentEx).moveText(5, 9, 12)
+    }
+
+    assertEquals(listOf(6 to 3, 9 to 1, 11 to 2, 15 to 4), registeredCustomWraps())
+    assertEquals(listOf(6 to 3, 9 to 1, 11 to 2, 15 to 4), modelCustomWraps())
+    assertStorageConsistent()
+    (editor as EditorImpl).validateState()
+  }
+
+  fun testMoveTextToLeftReordersCustomWrapStorage() {
+    initTextAndSoftWraps("0123456789ABCDEFGHIJ")
+    addCustomWrap(2, indent = 1)
+    addCustomWrap(5, indent = 2)
+    addCustomWrap(12, indent = 3)
+    addCustomWrap(13, indent = 4)
+    addCustomWrap(16, indent = 5)
+
+    runWriteCommand {
+      (editor.document as DocumentEx).moveText(10, 14, 3)
+    }
+
+    assertEquals(listOf(2 to 1, 5 to 3, 6 to 4, 9 to 2, 16 to 5), registeredCustomWraps())
+    assertEquals(listOf(2 to 1, 5 to 3, 6 to 4, 9 to 2, 16 to 5), modelCustomWraps())
+    assertStorageConsistent()
+    (editor as EditorImpl).validateState()
+  }
+
+  private fun registeredCustomWraps(): List<Pair<Int, Int>> {
+    return registeredSoftWraps().map { it.start to it.indentInColumns }
+  }
+
+  private fun modelCustomWraps(): List<Pair<Int, Int>> {
+    return editor.customWrapModel.getWraps().map { it.offset to it.indent }
+  }
+}
 
 class CustomWrapsWithSoftWrapsEnabledTest : CustomWrapsTestBase() {
   override val useSoftWraps: Boolean = true
@@ -284,3 +383,8 @@ class CustomWrapsWithSoftWrapsEnabledTest : CustomWrapsTestBase() {
     doCheck()
   }
 }
+
+data class SoftWrapDescriptor(val offset: Int, val isCustom: Boolean)
+
+private val Int.custom get() = SoftWrapDescriptor(this, true)
+private val Int.auto get() = SoftWrapDescriptor(this, false)

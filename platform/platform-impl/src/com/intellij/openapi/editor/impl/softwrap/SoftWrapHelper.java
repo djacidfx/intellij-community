@@ -1,15 +1,19 @@
 // Copyright 2000-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
 package com.intellij.openapi.editor.impl.softwrap;
 
+import com.intellij.openapi.editor.CustomWrapModel;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.SoftWrap;
 import com.intellij.openapi.editor.SoftWrapModel;
 import com.intellij.openapi.editor.VisualPosition;
+import com.intellij.openapi.editor.event.DocumentEvent;
+import com.intellij.openapi.editor.event.DocumentListener;
 import com.intellij.openapi.editor.ex.util.EditorUtil;
 import com.intellij.openapi.editor.impl.CaretImpl;
 import com.intellij.openapi.editor.impl.EditorImpl;
 import com.intellij.openapi.editor.impl.softwrap.mapping.IncrementalCacheUpdateEvent;
+import com.intellij.util.DocumentEventUtil;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
@@ -64,5 +68,28 @@ public final class SoftWrapHelper {
     VisualPosition afterWrapPosition = editor.offsetToVisualPosition(offset, false, false);
     VisualPosition caretPosition = caret.getVisualPosition();
     return caretPosition.line == afterWrapPosition.line && caretPosition.column <= afterWrapPosition.column;
+  }
+
+  public static int coerceToValidOffset(int offset, Document document) {
+    //noinspection MathClampMigration
+    return Math.max(Math.min(offset, document.getTextLength() - 1), 0);
+  }
+
+  /**
+   * After move-insertion and before move-deletion events,
+   * custom wraps in {@link CustomWrapModel} and in {@link SoftWrapsStorage} are temporarily out-of-sync.
+   * <p>
+   * This method removes custom wraps from the moved-from portion of the text,
+   * so that other components observe consistent state between the two events of the moveText operation.
+   * <p>
+   * Must be called in {@link DocumentListener#beforeDocumentChange}
+   */
+  public static void removeCustomWrapsFromMoveInsertionSource(CustomWrapModel customWrapModel,
+                                                              SoftWrapsStorage storage,
+                                                              DocumentEvent event) {
+    if (customWrapModel.hasWraps() && DocumentEventUtil.isMoveInsertion(event)) {
+      int srcOffset = DocumentEventUtil.getMoveOffsetBeforeInsertion(event);
+      storage.removeCustomWrapsInRange(srcOffset, srcOffset + event.getNewLength() + /* end-inclusive */ 1);
+    }
   }
 }

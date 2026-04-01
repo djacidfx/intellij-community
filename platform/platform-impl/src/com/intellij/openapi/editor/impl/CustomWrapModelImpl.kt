@@ -140,9 +140,8 @@ internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapM
     val notCollapsedUniqueWraps: List<CustomWrap> = customWraps
       // only not collapsed
       .filter {
-        val lineStartOffset = DocumentUtil.getLineStartOffset(it.offset, document)
         val foldRegion = editor.foldingModel.getCollapsedRegionAtOffset(it.offset)
-        foldRegion == null || it.offset == lineStartOffset
+        foldRegion == null || it.offset == foldRegion.startOffset
       }
       // only one wrap per offset
       .fold(mutableListOf()) { acc, wrap ->
@@ -155,7 +154,6 @@ internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapM
     val softWraps = editor.softWrapModel.getRegisteredSoftWrapsEx()
     val customSoftWraps = softWraps.filter { it.isCustomSoftWrap }
     LOG.assertTrue(notCollapsedUniqueWraps.size == customSoftWraps.size)
-
   }
 
   private inner class CustomWrapTree(document: Document) : HardReferencingRangeMarkerTree<CustomWrapImpl>(document) {

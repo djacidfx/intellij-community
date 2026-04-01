@@ -24,8 +24,6 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static com.intellij.openapi.editor.impl.softwrap.CustomWrapToSoftWrapAdapter.Type;
-
 /**
  * Class that calculates soft wrap positions for a given text fragment and available visible width.
  */
@@ -109,7 +107,7 @@ public final class SoftWrapEngine {
         minWrapOffset = -1;
         maxWrapOffset = -1;
         CustomWrap customWrap = it.getCurrentCustomWrap();
-        var customWrapAdapter = new CustomWrapToSoftWrapAdapter(customWrap, Type.DEFAULT, myEditor);
+        var customWrapAdapter = new CustomWrapToSoftWrapAdapter(customWrap, myEditor);
         x = customWrapAdapter.getIndentInPixels();
         myStorage.storeOrReplace(customWrapAdapter);
       }

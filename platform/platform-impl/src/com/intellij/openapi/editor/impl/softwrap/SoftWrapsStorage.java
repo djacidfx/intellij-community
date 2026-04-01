@@ -186,25 +186,4 @@ public final class SoftWrapsStorage implements Dumpable {
   public @NotNull String dumpState() {
     return myWraps.toString();
   }
-
-  /**
-   * <ol>
-   *   <li>{@code 0 <= srcStartIndex <= srcEndIndex <= myWraps.size()}</li>
-   *   <li>{@code 0 <= dstIndex <= myWraps.size()}</li>
-   *   <li>{@code dstIndex ∉ [srcStartIndex; srcEndIndex)}</li>
-   * </ol>
-   */
-  public void moveSegment(int srcStartIndex, int srcEndIndex, int dstIndex) {
-    var segment = myWraps.subList(srcStartIndex, srcEndIndex);
-    myWraps.addAll(dstIndex, segment);
-    segment.clear();
-  }
-
-  /**
-   * @param values Must not be {@link #getSoftWraps()} or a view into it.
-   */
-  public void replaceSegment(int startIndex, int endIndex, @NotNull ArrayList<? extends SoftWrapEx> values) {
-    myWraps.subList(startIndex, endIndex).clear();
-    myWraps.addAll(startIndex, values);
-  }
 }
