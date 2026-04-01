@@ -418,6 +418,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     dirName: String = testName,
     extension: String = defaultExtension,
     configureFileName: String = "$testName.$extension",
+    caretPosSignature: String? = null,
     configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
     additionalFiles: List<String> = emptyList(),
     editorConfigEnabled: Boolean = false,
@@ -447,6 +448,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
       checkResult = typeToFinishLookup != null,
     ) {
       assert(typeToFinishLookup == null || locations.isEmpty())
+      caretPosSignature?.let { moveToOffsetBySignature(it) }
       checkLookupItems(
         renderPriority = renderPriority,
         renderTypeText = renderTypeText,
@@ -569,6 +571,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     dirName: String = testName,
     extension: String = defaultExtension,
     configureFileName: String = "$testName.$extension",
+    caretPosSignature: String? = null,
     configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
     additionalFiles: List<String> = emptyList(),
   ) {
@@ -581,6 +584,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
       configurators = configurators,
       additionalFiles = additionalFiles
     ) {
+      caretPosSignature?.let { moveToOffsetBySignature(it) }
       val info = getParameterInfoAtCaret()
       assertNotNull("Parameter info was not provided", info)
       val fileName = if (dir) "$testName/param-info.html" else "$testName.param-info.html"
@@ -595,6 +599,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
 
   protected fun doGotoDeclarationTest(
     declarationSignature: String,
+    fromSignature: String? = null,
     expectedFileName: String? = null,
     dir: Boolean = dirModeByDefault,
     dirName: String = testName,
@@ -611,12 +616,14 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
       configurators = configurators,
       additionalFiles = additionalFiles,
     ) {
+      fromSignature?.let { moveToOffsetBySignature(it) }
       checkGotoDeclaration(null, declarationSignature, expectedFileName = expectedFileName)
     }
   }
 
   protected fun doJumpToSourceTest(
     targetSignature: String,
+    fromSignature: String? = null,
     expectedFileName: String? = null,
     dir: Boolean = dirModeByDefault,
     dirName: String = testName,
@@ -633,20 +640,34 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
       configurators = configurators,
       additionalFiles = additionalFiles
     ) {
-      checkJumpToSource(null, targetSignature, expectedFileName = expectedFileName)
+      fromSignature?.let { moveToOffsetBySignature(it) }
+      checkJumpToSource(fromSignature, targetSignature, expectedFileName = expectedFileName)
     }
   }
 
-  protected fun doUsagesTest(
+  protected fun doFindUsagesTest(
     scope: SearchScope? = null,
+    expectedFileName: String = "${testName}/usages.txt",
+    gotoDeclarationOrUsageOutcome: GotoDeclarationOrUsageHandler2.GTDUOutcome? = GotoDeclarationOrUsageHandler2.GTDUOutcome.SU,
+    dir: Boolean = true,
     dirName: String = testName,
     extension: String = defaultExtension,
-    fileName: String = "$testName.$extension",
+    configureFileName: String = "$testName.$extension",
+    caretPosSignature: String? = null,
     configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
+    additionalFiles: List<String> = emptyList(),
   ) {
-    doConfiguredTest(dir = true, dirName = dirName, extension = extension, configureFileName = fileName, configurators = configurators) {
-      checkGTDUOutcome(GotoDeclarationOrUsageHandler2.GTDUOutcome.SU)
-      checkListByFile(usagesAtCaret(scope = scope, usagesTestHelper = usagesTestHelper), "${testName}/usages.txt", false)
+    doConfiguredTest(
+      dir = dir,
+      dirName = dirName,
+      extension = extension,
+      configureFileName = configureFileName,
+      configurators = configurators,
+      additionalFiles = additionalFiles
+    ) {
+      caretPosSignature?.let { moveToOffsetBySignature(it) }
+      checkGTDUOutcome(gotoDeclarationOrUsageOutcome)
+      checkListByFile(usagesAtCaret(scope = scope, usagesTestHelper = usagesTestHelper), expectedFileName, false)
     }
   }
 
@@ -656,9 +677,10 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     extension: String = defaultExtension,
     fileName: String = "$testName.$extension",
     configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
+    expectedFileName: String = "${testName}/usages.txt",
   ) {
     doConfiguredTest(dir = true, dirName = dirName, extension = extension, configureFileName = fileName, configurators = configurators) {
-      checkListByFile(fileUsages(scope = scope, usagesTestHelper = usagesTestHelper).sorted(), "${testName}/usages.txt", false)
+      checkListByFile(fileUsages(scope = scope, usagesTestHelper = usagesTestHelper).sorted(), expectedFileName, false)
     }
   }
 
@@ -668,6 +690,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     dirName: String = testName,
     extension: String = defaultExtension,
     configureFileName: String = "$testName.$extension",
+    caretPosSignature: String? = null,
     configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
     additionalFiles: List<String> = emptyList(),
   ) {
@@ -695,6 +718,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
         }
         PsiDocumentManager.getInstance(project).commitAllDocuments()
       }
+      caretPosSignature?.let { moveToOffsetBySignature(it) }
       testAction(HighlightUsagesAction())
       val highlighters = editor.getMarkupModel().getAllHighlighters()
       val usages = TreeMap<Int, Int>(Comparator.reverseOrder())
@@ -717,6 +741,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
 
   protected fun doSymbolRenameTest(
     newName: String,
+    signature: String? = null,
     searchCommentsAndText: Boolean = false,
     testDialog: TestDialog? = null,
     dir: Boolean = true,
@@ -731,6 +756,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     doSymbolRenameTest(
       configureFileName,
       newName,
+      signature = signature,
       searchCommentsAndText = searchCommentsAndText,
       testDialog = testDialog,
       dir = dir,
@@ -745,6 +771,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
   protected fun doSymbolRenameTest(
     mainFile: String,
     newName: String,
+    signature: String? = null,
     searchCommentsAndText: Boolean = false,
     testDialog: TestDialog? = null,
     dir: Boolean = true,
@@ -765,6 +792,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
       editorConfigEnabled = editorConfigEnabled,
       configureCodeStyleSettings = configureCodeStyleSettings,
     ) {
+      signature?.let { moveToOffsetBySignature(it) }
       if (canRenamePolySymbolAtCaret()) {
         renamePolySymbol(newName)
       }
