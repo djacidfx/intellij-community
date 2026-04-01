@@ -641,10 +641,10 @@ sealed class ExtensionPointImpl<T : Any>(@JvmField val name: String,
     for (listener in listeners) {
       if (listener is ExtensionPointAdapter<*>) {
         try {
-          (listener as ExtensionPointAdapter<T>).extensionListChanged()
+          listener.extensionListChanged()
         }
         catch (ce: CancellationException) {
-          LOG.warn("Cancellation while notifying `${listener}`", ce)
+          LOG.warn("Cancellation while notifying `${listener}` ($ce)", ce.cause)
         }
         catch (e: Throwable) {
           LOG.error("Exception while notifying `$listener`", e)
@@ -668,10 +668,10 @@ sealed class ExtensionPointImpl<T : Any>(@JvmField val name: String,
             }
           }
           catch (ce: CancellationException) {
-            LOG.warn("Cancellation while notifying `$listener`", ce)
+            LOG.warn("Cancellation while notifying `$listener` about $adapter ($ce)", ce.cause)
           }
           catch (e: Throwable) {
-            LOG.error("Exception while notifying `$listener`", e)
+            LOG.error("Exception while notifying `$listener`about $adapter", e)
           }
         }
       }
