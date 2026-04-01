@@ -13252,6 +13252,21 @@ jvm_import(
 )
 
 copy_file(
+  name = "com.google.protobuf/protobuf-java-3.25.5.jar_copy",
+  src = "@com_google_protobuf-protobuf-java-3_25_5_http//file",
+  out = "com.google.protobuf/protobuf-java-3.25.5.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "libraries-protobuf-protobuf",
+  jar = "@com_google_protobuf-protobuf-java-3_25_5_http//file",
+  source_jar = "@com_google_protobuf-protobuf-java-3_25_5-sources_http//file",
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
   name = "org.bidib.com.github.markusbernhardt/proxy-vole-1.1.6.jar_copy",
   src = "@org_bidib_com_github_markusbernhardt-proxy-vole-1_1_6_http//file",
   out = "org.bidib.com.github.markusbernhardt/proxy-vole-1.1.6.jar",
@@ -20006,21 +20021,6 @@ jvm_import(
   name = "platform-util-trove-trove",
   jar = "@org_jetbrains_intellij_deps-trove4j-1_0_20221201_http//file",
   source_jar = "@org_jetbrains_intellij_deps-trove4j-1_0_20221201-sources_http//file",
-  visibility = ["//visibility:public"]
-)
-
-copy_file(
-  name = "com.google.protobuf/protobuf-java-3.25.5.jar_copy",
-  src = "@com_google_protobuf-protobuf-java-3_25_5_http//file",
-  out = "com.google.protobuf/protobuf-java-3.25.5.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-jvm_import(
-  name = "protobuf",
-  jar = "@com_google_protobuf-protobuf-java-3_25_5_http//file",
-  source_jar = "@com_google_protobuf-protobuf-java-3_25_5-sources_http//file",
   visibility = ["//visibility:public"]
 )
 

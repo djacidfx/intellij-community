@@ -10374,6 +10374,20 @@ http_file(
 )
 
 http_file(
+  name = "com_google_protobuf-protobuf-java-3_25_5_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/google/protobuf/protobuf-java/3.25.5/protobuf-java-3.25.5.jar",
+  sha256 = "8540247fad9e06baefa8fb45eb313802d019f485f14300e0f9d6b556ed88e753",
+  downloaded_file_path = "protobuf-java-3.25.5.jar"
+)
+
+http_file(
+  name = "com_google_protobuf-protobuf-java-3_25_5-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/google/protobuf/protobuf-java/3.25.5/protobuf-java-3.25.5-sources.jar",
+  sha256 = "d686e802329e42954e72e9b3b148b67eeb4f6f3ed327abc4508b79fda4937c3b",
+  downloaded_file_path = "protobuf-java-3.25.5-sources.jar"
+)
+
+http_file(
   name = "org_bidib_com_github_markusbernhardt-proxy-vole-1_1_6_http",
   url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/bidib/com/github/markusbernhardt/proxy-vole/1.1.6/proxy-vole-1.1.6.jar",
   sha256 = "4b9fb2e5a13b37cf8bd62eebada8d3485c3dc17df752783b68d89d657bcc01fd",
@@ -15544,20 +15558,6 @@ http_file(
   url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/trove4j/1.0.20221201/trove4j-1.0.20221201-sources.jar",
   sha256 = "46ac3a1ede5be1e8f893da4f406b199570e2bed5842fbe5d5b1d107edde3cbac",
   downloaded_file_path = "trove4j-1.0.20221201-sources.jar"
-)
-
-http_file(
-  name = "com_google_protobuf-protobuf-java-3_25_5_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/google/protobuf/protobuf-java/3.25.5/protobuf-java-3.25.5.jar",
-  sha256 = "8540247fad9e06baefa8fb45eb313802d019f485f14300e0f9d6b556ed88e753",
-  downloaded_file_path = "protobuf-java-3.25.5.jar"
-)
-
-http_file(
-  name = "com_google_protobuf-protobuf-java-3_25_5-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/google/protobuf/protobuf-java/3.25.5/protobuf-java-3.25.5-sources.jar",
-  sha256 = "d686e802329e42954e72e9b3b148b67eeb4f6f3ed327abc4508b79fda4937c3b",
-  downloaded_file_path = "protobuf-java-3.25.5-sources.jar"
 )
 
 http_file(
