@@ -10,6 +10,7 @@ import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.ToggleAction
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
@@ -249,8 +250,23 @@ object UniversalFileChooser {
           }
         }
 
+        val showHiddenAction = object : ToggleAction(
+          IdeBundle.message("universal.file.chooser.action.show.hidden.text"),
+          IdeBundle.message("universal.file.chooser.action.show.hidden.description"),
+          AllIcons.Actions.ToggleVisibility
+        ) {
+          override fun isSelected(e: AnActionEvent): Boolean = fileTree.areHiddensShown()
+
+          override fun setSelected(e: AnActionEvent, state: Boolean) {
+            fileTree.showHiddens(state)
+          }
+
+          override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+        }
+
         val actionGroup = DefaultActionGroup().apply {
           add(homeAction)
+          add(showHiddenAction)
         }
 
         return ActionManager.getInstance().createActionToolbar("UniversalFileChooserToolbar", actionGroup, true)
