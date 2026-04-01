@@ -738,58 +738,6 @@ jvm_import(
 )
 
 copy_file(
-  name = "com.github.ben-manes.caffeine/caffeine-3.2.3.jar_copy",
-  src = "@com_github_ben-manes_caffeine-caffeine-3_2_3_http//file",
-  out = "com.github.ben-manes.caffeine/caffeine-3.2.3.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-copy_file(
-  name = "org.jspecify/jspecify-1.0.0.jar_copy",
-  src = "@org_jspecify-jspecify-1_0_0_http//file",
-  out = "org.jspecify/jspecify-1.0.0.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-copy_file(
-  name = "com.google.errorprone/error_prone_annotations-2.43.0.jar_copy",
-  src = "@com_google_errorprone-error_prone_annotations-2_43_0_http//file",
-  out = "com.google.errorprone/error_prone_annotations-2.43.0.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-java_library(
-  name = "caffeine",
-  exports = [
-    ":com_github_ben-manes_caffeine-caffeine-3_2_3_http_import",
-    ":org_jspecify-jspecify-1_0_0_http_import",
-    ":com_google_errorprone-error_prone_annotations-2_43_0_http_import",
-  ],
-  visibility = ["//visibility:public"]
-)
-
-jvm_import(
-  name = "com_github_ben-manes_caffeine-caffeine-3_2_3_http_import",
-  jar = "@com_github_ben-manes_caffeine-caffeine-3_2_3_http//file",
-  source_jar = "@com_github_ben-manes_caffeine-caffeine-3_2_3-sources_http//file"
-)
-
-jvm_import(
-  name = "org_jspecify-jspecify-1_0_0_http_import",
-  jar = "@org_jspecify-jspecify-1_0_0_http//file",
-  source_jar = "@org_jspecify-jspecify-1_0_0-sources_http//file"
-)
-
-jvm_import(
-  name = "com_google_errorprone-error_prone_annotations-2_43_0_http_import",
-  jar = "@com_google_errorprone-error_prone_annotations-2_43_0_http//file",
-  source_jar = "@com_google_errorprone-error_prone_annotations-2_43_0-sources_http//file"
-)
-
-copy_file(
   name = "com.github.ajalt.clikt/clikt-jvm-3.5.4.jar_copy",
   src = "@com_github_ajalt_clikt-clikt-jvm-3_5_4_http//file",
   out = "com.github.ajalt.clikt/clikt-jvm-3.5.4.jar",
@@ -8381,6 +8329,14 @@ jvm_import(
   visibility = ["//visibility:public"]
 )
 
+copy_file(
+  name = "org.jspecify/jspecify-1.0.0.jar_copy",
+  src = "@org_jspecify-jspecify-1_0_0_http//file",
+  out = "org.jspecify/jspecify-1.0.0.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
 jvm_import(
   name = "jspecify",
   jar = "@org_jspecify-jspecify-1_0_0_http//file",
@@ -8686,6 +8642,12 @@ jvm_import(
   name = "org_junit_platform-junit-platform-commons-6_0_0_http_import",
   jar = "@org_junit_platform-junit-platform-commons-6_0_0_http//file",
   source_jar = "@org_junit_platform-junit-platform-commons-6_0_0-sources_http//file"
+)
+
+jvm_import(
+  name = "org_jspecify-jspecify-1_0_0_http_import",
+  jar = "@org_jspecify-jspecify-1_0_0_http//file",
+  source_jar = "@org_jspecify-jspecify-1_0_0-sources_http//file"
 )
 
 java_library(
@@ -11119,6 +11081,44 @@ jvm_import(
   jar = "@org_jetbrains_intellij-blockmap-1_0_7_http//file",
   source_jar = "@org_jetbrains_intellij-blockmap-1_0_7-sources_http//file",
   visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "com.github.ben-manes.caffeine/caffeine-3.2.3.jar_copy",
+  src = "@com_github_ben-manes_caffeine-caffeine-3_2_3_http//file",
+  out = "com.github.ben-manes.caffeine/caffeine-3.2.3.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "com.google.errorprone/error_prone_annotations-2.43.0.jar_copy",
+  src = "@com_google_errorprone-error_prone_annotations-2_43_0_http//file",
+  out = "com.google.errorprone/error_prone_annotations-2.43.0.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+java_library(
+  name = "libraries-caffeine-caffeine",
+  exports = [
+    ":com_github_ben-manes_caffeine-caffeine-3_2_3_http_import",
+    ":org_jspecify-jspecify-1_0_0_http_import",
+    ":com_google_errorprone-error_prone_annotations-2_43_0_http_import",
+  ],
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "com_github_ben-manes_caffeine-caffeine-3_2_3_http_import",
+  jar = "@com_github_ben-manes_caffeine-caffeine-3_2_3_http//file",
+  source_jar = "@com_github_ben-manes_caffeine-caffeine-3_2_3-sources_http//file"
+)
+
+jvm_import(
+  name = "com_google_errorprone-error_prone_annotations-2_43_0_http_import",
+  jar = "@com_google_errorprone-error_prone_annotations-2_43_0_http//file",
+  source_jar = "@com_google_errorprone-error_prone_annotations-2_43_0-sources_http//file"
 )
 
 copy_file(
