@@ -23,6 +23,9 @@ single_version_override(
     version = "33.4",
 )
 
+bazel_dep(name = "aspect_rules_lint", version = "2.3.0")
+bazel_dep(name = "buildifier_prebuilt", version = "8.5.1")
+
 single_version_override(
     module_name = "rules_jvm_external",
     patches = [
