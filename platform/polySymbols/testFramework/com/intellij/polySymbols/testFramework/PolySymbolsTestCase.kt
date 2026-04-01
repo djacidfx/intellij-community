@@ -117,6 +117,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
     additionalFiles: List<String> = emptyList(),
     checkResult: Boolean = false,
+    goldFileName: String? = null,
     editorConfigEnabled: Boolean = false,
     configureCodeStyleSettings: (CodeStyleSettings.() -> Unit)? = null,
     test: CodeInsightTestFixture.() -> Unit,
@@ -232,7 +233,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
           else {
             val ext = InjectedLanguageManager.getInstance(project).getTopLevelFile(myFixture.file)
               .name.takeLastWhile { it != '.' }
-            myFixture.checkResultByFile("${testName}_after.$ext")
+            myFixture.checkResultByFile(goldFileName ?: "${testName}_after.$ext")
           }
         }
       }
@@ -270,6 +271,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
     additionalFiles: List<String> = emptyList(),
     checkResult: Boolean = true,
+    goldFileName: String? = null,
     editorConfigEnabled: Boolean = false,
     configureCodeStyleSettings: (CodeStyleSettings.() -> Unit)? = null,
     before: CodeInsightTestFixture.() -> Unit = {},
@@ -284,6 +286,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
       configureFile = configureFile,
       configureFileName = configureFileName,
       checkResult = checkResult,
+      goldFileName = goldFileName,
       configurators = configurators,
       additionalFiles = additionalFiles,
       editorConfigEnabled = editorConfigEnabled,
@@ -431,6 +434,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     checkDocumentation: Boolean = false,
     containsCheck: Boolean = false,
     typeToFinishLookup: String? = null,
+    goldFileName: String? = null,
     locations: List<String> = emptyList(),
     namedLocations: List<Pair<String, String>> = emptyList(),
     lookupItemFilter: (item: LookupElementInfo) -> Boolean = { true },
@@ -446,6 +450,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
       editorConfigEnabled = editorConfigEnabled,
       configureCodeStyleSettings = configureCodeStyleSettings,
       checkResult = typeToFinishLookup != null,
+      goldFileName = goldFileName,
     ) {
       assert(typeToFinishLookup == null || locations.isEmpty())
       caretPosSignature?.let { moveToOffsetBySignature(it) }
@@ -477,6 +482,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     dirName: String = testName,
     extension: String = defaultExtension,
     configureFileName: String = "$testName.$extension",
+    goldFileName: String? = null,
     editorConfigEnabled: Boolean = false,
     configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
     additionalFiles: List<String> = emptyList(),
@@ -488,6 +494,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
       dirName = dirName,
       extension = extension,
       checkResult = true,
+      goldFileName = goldFileName,
       configureFileName = configureFileName,
       configureCodeStyleSettings = configureCodeStyleSettings,
       configurators = configurators,
@@ -574,6 +581,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     caretPosSignature: String? = null,
     configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
     additionalFiles: List<String> = emptyList(),
+    goldFileName: String = if (dir) "$testName/param-info.html" else "$testName.param-info.html",
   ) {
     doConfiguredTest(
       fileContents = fileContents,
@@ -587,13 +595,12 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
       caretPosSignature?.let { moveToOffsetBySignature(it) }
       val info = getParameterInfoAtCaret()
       assertNotNull("Parameter info was not provided", info)
-      val fileName = if (dir) "$testName/param-info.html" else "$testName.param-info.html"
-      val testFilePath = Path.of("$testDataPath/$fileName")
+      val testFilePath = Path.of("$testDataPath/$goldFileName")
       if (!testFilePath.exists()) {
         testFilePath.createFile()
         thisLogger().warn("File $testFilePath has been created.")
       }
-      checkTextByFile(info!!, fileName)
+      checkTextByFile(info!!, goldFileName)
     }
   }
 
@@ -776,6 +783,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     testDialog: TestDialog? = null,
     dir: Boolean = true,
     dirName: String = testName,
+    goldFileName: String? = null,
     configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
     additionalFiles: List<String> = emptyList(),
     editorConfigEnabled: Boolean = false,
@@ -786,6 +794,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
       dir = dir,
       dirName = dirName,
       checkResult = true,
+      goldFileName = goldFileName,
       configureFileName = mainFile,
       configurators = configurators,
       additionalFiles = additionalFiles,
