@@ -286,14 +286,6 @@ internal fun runPerformanceScript(project: Project?, script: String?, mustExitOn
   registerOnFinishRunnables(scriptCallback, mustExitOnFailure)
 }
 
-internal fun generifyErrorMessage(originalMessage: String): String {
-  return originalMessage // text@3ba5aac, text => text<ID>, text
-    .replace("[$@#][A-Za-z0-9-_]+".toRegex(), "<ID>") // java-design-patterns-master.db451f59 => java-design-patterns-master.<HASH>
-    .replace("[.]([A-Za-z]+[0-9]|[0-9]+[A-Za-z])[A-Za-z0-9]*".toRegex(), ".<HASH>") // 0x01 => <HEX>
-    .replace("0x[0-9a-fA-F]+".toRegex(), "<HEX>") // text1234text => text<NUM>text
-    .replace("[0-9]+".toRegex(), "<NUM>")
-}
-
 fun reportErrorsFromMessagePool() {
   val messagePool = MessagePool.getInstance()
   val ideErrors = messagePool.getFatalErrors(false, true)
