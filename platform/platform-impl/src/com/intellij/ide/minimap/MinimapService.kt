@@ -89,6 +89,9 @@ class MinimapService(private val scope: CoroutineScope) : Disposable {
 
     val listener = HierarchyListener { event ->
       if (event.changeFlags and HierarchyEvent.SHOWING_CHANGED.toLong() == 0L) return@HierarchyListener
+      if (editorImpl.isDisposed) return@HierarchyListener
+      // Avoid mutating the component hierarchy while it is being hidden/closed.
+      if (!editorImpl.contentComponent.isShowing) return@HierarchyListener
       updateMinimap(editorImpl)
     }
 
