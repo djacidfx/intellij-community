@@ -168,7 +168,7 @@ Shared contracts remain in `spec/agent-core-contracts.spec.md`.
   [@test] ../sessions/testSrc/AgentSessionsGearActionsTest.kt
 
 - Thread and sub-agent open routing must follow mode policy defined in `spec/agent-dedicated-frame.spec.md`.
-  [@test] ../sessions/testSrc/AgentSessionsOpenModeRoutingTest.kt
+  [@test] ../sessions/testSrc/AgentSessionPromptLauncherBridgeTest.kt
 
 - Dedicated-frame project switching controls and window-order policy must follow `spec/agent-dedicated-frame-project-switching.spec.md`.
   [@test] ../sessions/testSrc/AgentSessionsGearActionsTest.kt
@@ -201,7 +201,6 @@ Shared contracts remain in `spec/agent-core-contracts.spec.md`.
   [@test] ../codex/sessions/testSrc/CodexSessionBackendSelectorTest.kt
 
 - Branch mismatch between thread origin and current worktree branch must show warning confirmation before opening chat.
-  [@test] ../sessions/testSrc/AgentSessionsOpenModeRoutingTest.kt
 
 - Batch archive must archive all targets whose providers support archive, while unsupported targets are skipped without blocking successful targets.
   [@test] ../sessions/testSrc/AgentSessionArchiveServiceIntegrationTest.kt

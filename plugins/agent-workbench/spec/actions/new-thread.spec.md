@@ -23,7 +23,7 @@ targets:
   - ../../sessions-toolwindow/testSrc/AgentSessionsTreePopupActionsTest.kt
   - ../../sessions-actions/testSrc/AgentSessionsEditorTabActionsTest.kt
   - ../../sessions-actions/testSrc/AgentSessionsGearActionsTest.kt
-  - ../../sessions/testSrc/AgentSessionCliTest.kt
+  - ../../claude/sessions/testSrc/ClaudeAgentSessionProviderDescriptorTest.kt
   - ../../sessions/testSrc/AgentSessionProjectCatalogTest.kt
   - ../../sessions/testSrc/AgentSessionRefreshCoordinatorTest.kt
   - ../../codex/sessions/testSrc/CodexAgentSessionProviderDescriptorTest.kt
@@ -72,7 +72,6 @@ Canonical command mapping is owned by `spec/agent-core-contracts.spec.md`.
 - Quick-provider action and provider-popup entries must follow the global dedicated-frame routing policy; they do not force the clicked source frame.
   [@test] ../../sessions-toolwindow/testSrc/AgentSessionsSwingNewSessionActionsTest.kt
   [@test] ../../sessions-actions/testSrc/AgentSessionsEditorTabActionsTest.kt
-  [@test] ../../sessions/testSrc/AgentSessionsOpenModeRoutingTest.kt
 
 - Quick-provider eligibility must require:
   - a non-null `lastUsedProvider`,
@@ -115,11 +114,15 @@ Canonical command mapping is owned by `spec/agent-core-contracts.spec.md`.
   [@test] ../../sessions/testSrc/AgentSessionRefreshCoordinatorTest.kt
 
 - Command selection for new-thread launches must follow canonical mapping in `spec/agent-core-contracts.spec.md`.
-  [@test] ../../sessions/testSrc/AgentSessionCliTest.kt
+  [@test] ../../claude/sessions/testSrc/ClaudeAgentSessionProviderDescriptorTest.kt
   [@test] ../../codex/sessions/testSrc/CodexAgentSessionProviderDescriptorTest.kt
 
-- Codex new-thread opens must start in pending identity state (`codex:new-*`) with `sessionId = null`.
+- Codex new-thread opens normally start in pending identity state (`codex:new-*`); the launch service allocates that pending identity before any concrete provider thread id exists.
+- Codex plan-mode launches with a non-empty stripped `/plan <prompt>` body must use the normal pending-tab PTY path and enqueue post-start dispatch steps `/plan`, then stripped prompt body.
   [@test] ../../chat/testSrc/AgentChatEditorServiceTest.kt
+  [@test] ../../sessions/testSrc/AgentSessionPromptLauncherBridgeTest.kt
+  [@test] ../../codex/sessions/testSrc/CodexAgentSessionProviderDescriptorTest.kt
+  [@test] ../../codex/sessions/testSrc/CodexNewThreadPromptLaunchIntegrationTest.kt
 
 - Pending Codex tabs must persist pending metadata (`pendingCreatedAtMs`, optional `pendingFirstInputAtMs`, optional `pendingLaunchMode`).
   - Note: rebind matching uses these timestamps for deterministic time windows.
@@ -158,7 +161,7 @@ Canonical command mapping is owned by `spec/agent-core-contracts.spec.md`.
   [@test] ../../sessions/testSrc/AgentSessionRefreshCoordinatorTest.kt
 
 - `Codex (Full Auto)` semantics are defined by command mapping and require no additional warning text in this flow.
-  [@test] ../../sessions/testSrc/AgentSessionCliTest.kt
+  [@test] ../../codex/sessions/testSrc/CodexAgentSessionProviderDescriptorTest.kt
 
 ## User Experience
 - Hovering a project/worktree row reveals new-thread controls without opening the project.
@@ -184,7 +187,7 @@ Canonical command mapping is owned by `spec/agent-core-contracts.spec.md`.
 - `./tests.cmd '-Dintellij.build.test.patterns=com.intellij.agent.workbench.sessions.AgentSessionsEditorTabActionsTest'`
 - `./tests.cmd '-Dintellij.build.test.patterns=com.intellij.agent.workbench.sessions.AgentSessionsGearActionsTest'`
 - `./tests.cmd '-Dintellij.build.test.patterns=com.intellij.agent.workbench.sessions.AgentSessionProjectCatalogTest'`
-- `./tests.cmd '-Dintellij.build.test.patterns=com.intellij.agent.workbench.sessions.AgentSessionCliTest'`
+- `./tests.cmd '-Dintellij.build.test.patterns=com.intellij.agent.workbench.claude.sessions.ClaudeAgentSessionProviderDescriptorTest'`
 - `./tests.cmd '-Dintellij.build.test.patterns=com.intellij.agent.workbench.sessions.AgentSessionRefreshCoordinatorTest'`
 - `./tests.cmd '-Dintellij.build.test.patterns=com.intellij.agent.workbench.codex.sessions.CodexAgentSessionProviderDescriptorTest'`
 

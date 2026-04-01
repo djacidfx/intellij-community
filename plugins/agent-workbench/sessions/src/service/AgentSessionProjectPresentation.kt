@@ -7,7 +7,7 @@ import com.intellij.agent.workbench.sessions.frame.AgentWorkbenchDedicatedFrameP
 import com.intellij.ide.RecentProjectsManager
 import com.intellij.ide.RecentProjectsManagerBase
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.ProjectManager
+import com.intellij.openapi.project.getOpenedProjects
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.io.FileUtilRt
 import java.nio.file.InvalidPathException
@@ -16,10 +16,17 @@ import kotlin.io.path.invariantSeparatorsPathString
 import kotlin.io.path.name
 
 fun buildAgentSessionProjectPathCandidates(paths: List<String>): List<AgentPromptProjectPathCandidate> {
-  val openProjectsByPath = collectOpenProjectsByPath(RecentProjectsManager.getInstance() as? RecentProjectsManagerBase)
+  val openProjectsByPath = collectOpenProjectsByPath(RecentProjectsManager.getInstance() as? RecentProjectsManagerBase).toMap()
   return buildAgentSessionProjectPathCandidates(paths) { path ->
     resolveAgentSessionProjectDisplayName(path = path, project = openProjectsByPath[path])
   }
+}
+
+fun collectOpenAgentSessionProjectPaths(): List<String> {
+  return collectOpenProjectsByPath(RecentProjectsManager.getInstance() as? RecentProjectsManagerBase)
+    .map { it.first }
+    .distinct()
+    .toList()
 }
 
 internal fun buildAgentSessionProjectPathCandidates(
@@ -83,8 +90,8 @@ internal fun resolveAgentSessionProjectDisplayNameWithoutManager(path: String, p
   return fileName ?: FileUtilRt.toSystemDependentName(path)
 }
 
-private fun collectOpenProjectsByPath(manager: RecentProjectsManagerBase?): Map<String, Project> {
-  return ProjectManager.getInstance().openProjects.asSequence()
+private fun collectOpenProjectsByPath(manager: RecentProjectsManagerBase?): Sequence<Pair<String, Project>> {
+  return getOpenedProjects()
     .filterNot(AgentWorkbenchDedicatedFrameProjectManager::isDedicatedProject)
     .mapNotNull { project ->
       val path = resolveOpenProjectPath(
@@ -93,5 +100,4 @@ private fun collectOpenProjectsByPath(manager: RecentProjectsManagerBase?): Map<
       ) ?: return@mapNotNull null
       path to project
     }
-    .toMap()
 }

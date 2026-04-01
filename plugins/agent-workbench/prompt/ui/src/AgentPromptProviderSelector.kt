@@ -5,7 +5,6 @@ import com.intellij.agent.workbench.common.session.AgentSessionLaunchMode
 import com.intellij.agent.workbench.common.session.AgentSessionProvider
 import com.intellij.agent.workbench.prompt.core.AgentPromptInvocationData
 import com.intellij.agent.workbench.prompt.ui.context.dataContextOrNull
-import com.intellij.agent.workbench.sessions.core.providers.AGENT_PROMPT_PROVIDER_OPTION_PLAN_MODE
 import com.intellij.agent.workbench.sessions.core.providers.AgentPromptProviderOption
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProviderDescriptor
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProviderMenuItem
@@ -16,11 +15,14 @@ import com.intellij.agent.workbench.sessions.core.providers.withYoloModeBadge
 import com.intellij.icons.AllIcons
 import com.intellij.ide.DataManager
 import com.intellij.ide.setToolTipText
+import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.Separator
+import com.intellij.openapi.project.DumbAware
+import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.text.HtmlChunk
 import com.intellij.ui.components.JBCheckBox
@@ -92,25 +94,6 @@ internal class AgentPromptProviderSelector(
       .associate { entry -> entry.bridge.provider.value to selectedOptionIds(entry.bridge.provider) }
   }
 
-  fun applyLegacyPlanModeSelection(provider: AgentSessionProvider?, enabled: Boolean) {
-    val entry = findProviderEntry(provider) ?: return
-    if (!entry.bridge.hasPromptOption(AGENT_PROMPT_PROVIDER_OPTION_PLAN_MODE)) {
-      return
-    }
-
-    val selectedOptionIds = optionSelectionState(entry.bridge)
-    if (enabled) {
-      selectedOptionIds.add(AGENT_PROMPT_PROVIDER_OPTION_PLAN_MODE)
-    }
-    else {
-      selectedOptionIds.remove(AGENT_PROMPT_PROVIDER_OPTION_PLAN_MODE)
-    }
-
-    if (selectedProvider?.bridge?.provider == provider) {
-      updateProviderOptionsPresentation()
-    }
-  }
-
   fun selectProvider(provider: AgentSessionProvider?, launchMode: AgentSessionLaunchMode? = null) {
     if (provider == null) {
       return
@@ -135,25 +118,10 @@ internal class AgentPromptProviderSelector(
   }
 
   fun showChooser(onUnavailable: (@Nls String) -> Unit, onSelected: (ProviderEntry) -> Unit) {
-    if (!providerMenuModel.hasEntries()) {
+    val group = buildChooserActionGroup(onSelected)
+    if (group == null) {
       onUnavailable(AgentPromptBundle.message("popup.error.no.providers"))
       return
-    }
-
-    val group = DefaultActionGroup()
-    providerMenuModel.standardItems.forEach { item ->
-      group.add(createProviderSelectionAction(item, onSelected))
-    }
-    if (providerMenuModel.yoloItems.isNotEmpty()) {
-      if (providerMenuModel.standardItems.isNotEmpty()) {
-        group.add(Separator.getInstance())
-      }
-      val yoloSectionName = sessionsMessageResolver.resolve("toolwindow.action.new.session.section.auto")
-                            ?: AgentPromptBundle.message("popup.provider.section.auto")
-      group.add(Separator.create(yoloSectionName))
-      providerMenuModel.yoloItems.forEach { item ->
-        group.add(createProviderSelectionAction(item, onSelected))
-      }
     }
 
     val chooserDataContext = invocationData.dataContextOrNull() ?: DataManager.getInstance().getDataContext(providerIconLabel)
@@ -168,6 +136,29 @@ internal class AgentPromptProviderSelector(
         Int.MAX_VALUE,
       )
       .showUnderneathOf(providerIconLabel)
+  }
+
+  internal fun buildChooserActionGroup(onSelected: (ProviderEntry) -> Unit): ActionGroup? {
+    if (!providerMenuModel.hasEntries()) {
+      return null
+    }
+
+    val group = DumbAwarePromptActionGroup()
+    providerMenuModel.standardItems.forEach { item ->
+      group.add(createProviderSelectionAction(item, onSelected))
+    }
+    if (providerMenuModel.yoloItems.isNotEmpty()) {
+      if (providerMenuModel.standardItems.isNotEmpty()) {
+        group.add(Separator.getInstance())
+      }
+      val yoloSectionName = sessionsMessageResolver.resolve("toolwindow.action.new.session.section.auto")
+                            ?: AgentPromptBundle.message("popup.provider.section.auto")
+      group.add(Separator.create(yoloSectionName))
+      providerMenuModel.yoloItems.forEach { item ->
+        group.add(createProviderSelectionAction(item, onSelected))
+      }
+    }
+    return group
   }
 
   private fun updatePresentation() {
@@ -207,7 +198,7 @@ internal class AgentPromptProviderSelector(
   private fun createProviderSelectionAction(item: AgentSessionProviderMenuItem, onSelected: (ProviderEntry) -> Unit): AnAction {
     val text = sessionsMessageResolver.resolve(item.labelKey, item.bridge) ?: item.displayNameFallback()
     val icon = getIcon(item)
-    return object : AnAction(text, null, icon) {
+    return object : DumbAwareAction(text, null, icon) {
       override fun update(e: AnActionEvent) {
         e.presentation.isEnabled = item.isEnabled
         e.presentation.description = if (item.isEnabled) null else disabledProviderReason(item)
@@ -289,8 +280,6 @@ internal class AgentPromptProviderSelector(
       .filter { optionId -> optionId in validIds }
       .toCollection(LinkedHashSet())
   }
-
-  private fun AgentSessionProviderDescriptor.hasPromptOption(optionId: String): Boolean {
-    return promptOptions.any { option -> option.id == optionId }
-  }
 }
+
+private class DumbAwarePromptActionGroup : DefaultActionGroup(), DumbAware

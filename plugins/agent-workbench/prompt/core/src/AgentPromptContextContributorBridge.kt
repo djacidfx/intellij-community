@@ -1,7 +1,6 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.agent.workbench.prompt.core
 
-import com.intellij.agent.workbench.common.extensions.OverridableValue
 import com.intellij.agent.workbench.common.extensions.SnapshotExtensionPointCache
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.extensions.ExtensionPointName
@@ -52,10 +51,6 @@ private val CONTRIBUTOR_SNAPSHOT_CACHE = SnapshotExtensionPointCache(
   buildSnapshot = ::buildAgentPromptContextContributorBridgeSnapshot,
 )
 
-interface AgentPromptContextContributorRegistry {
-  fun allBridges(): List<AgentPromptContextContributorBridge>
-}
-
 private fun buildAgentPromptContextContributorBridgeSnapshot(
   contributors: Iterable<AgentPromptContextContributorBridge>,
 ): AgentPromptContextContributorBridgeSnapshot {
@@ -64,37 +59,12 @@ private fun buildAgentPromptContextContributorBridgeSnapshot(
   )
 }
 
-private class EpBackedAgentPromptContextContributorRegistry : AgentPromptContextContributorRegistry {
-  override fun allBridges(): List<AgentPromptContextContributorBridge> {
-    return snapshotOrEmpty().orderedContributors
-  }
-}
-
 private fun snapshotOrEmpty(): AgentPromptContextContributorBridgeSnapshot {
   return CONTRIBUTOR_SNAPSHOT_CACHE.getSnapshotOrEmpty()
 }
 
-@Suppress("unused")
-class InMemoryAgentPromptContextContributorRegistry(
-  contributors: Iterable<AgentPromptContextContributorBridge>,
-) : AgentPromptContextContributorRegistry {
-  private val snapshot = buildAgentPromptContextContributorBridgeSnapshot(contributors)
-
-  override fun allBridges(): List<AgentPromptContextContributorBridge> {
-    return snapshot.orderedContributors
-  }
-}
-
 object AgentPromptContextContributors {
-  private val epRegistry: AgentPromptContextContributorRegistry = EpBackedAgentPromptContextContributorRegistry()
-  private val registryOverride = OverridableValue { epRegistry }
-
   fun allBridges(): List<AgentPromptContextContributorBridge> {
-    return registryOverride.value().allBridges()
-  }
-
-  @Suppress("unused")
-  fun <T> withRegistryForTest(registry: AgentPromptContextContributorRegistry, action: () -> T): T {
-    return registryOverride.withOverride(registry, action)
+    return snapshotOrEmpty().orderedContributors
   }
 }

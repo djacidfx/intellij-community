@@ -18,7 +18,7 @@
       class="com.intellij.agent.workbench.sessions.actions.AgentSessionsOpenDedicatedFrameAction">
       <add-to-group group-id="OpenProjectWindows" anchor="after" relative-to-action="PreviousProjectWindow"/>
     </action>
-    <group id="AgentWorkbenchSessions.ToolWindow.GearActions">
+    <group id="AgentWorkbenchSessions.ToolWindow.GearActions" class="com.intellij.agent.workbench.sessions.actions.DumbAwareDefaultActionGroup">
       <reference ref="OpenFile"/>
       <separator/>
       <action id="AgentWorkbenchSessions.ToggleDedicatedFrame" class="com.intellij.agent.workbench.sessions.actions.AgentSessionsDedicatedFrameToggleAction"/>
@@ -68,7 +68,7 @@
       class="com.intellij.agent.workbench.sessions.actions.AgentSessionsBindPendingThreadFromEditorTabAction">
       <add-to-group group-id="EditorTabPopupMenu" anchor="after" relative-to-action="AgentWorkbenchSessions.GoToSourceProjectFromEditorTab"/>
     </action>
-    <group id="AgentWorkbenchSessions.EditorTabPopup.SeparatorBeforeCloseActions">
+    <group id="AgentWorkbenchSessions.EditorTabPopup.SeparatorBeforeCloseActions" class="com.intellij.agent.workbench.sessions.actions.DumbAwareDefaultActionGroup">
       <separator/>
       <add-to-group group-id="EditorTabPopupMenu" anchor="before" relative-to-action="CloseEditorsGroup"/>
     </group>

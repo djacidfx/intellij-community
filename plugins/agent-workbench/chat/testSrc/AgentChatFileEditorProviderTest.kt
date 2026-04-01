@@ -9,7 +9,6 @@ import com.intellij.agent.workbench.common.session.AgentSessionThread
 import com.intellij.agent.workbench.common.withAgentThreadActivityBadge
 import com.intellij.agent.workbench.prompt.core.AgentPromptInitialMessageRequest
 import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessagePlan
-import com.intellij.agent.workbench.sessions.core.providers.AgentSessionLaunchSpec
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProviderDescriptor
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProviders
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSource
@@ -88,6 +87,55 @@ class AgentChatFileEditorProviderTest {
     assertThat(file.toSnapshot().runtime.shellCommand).containsExactly("codex", "resume", "thread-1")
     assertThat(file.toSnapshot().runtime.shellEnvVariables)
       .containsExactlyEntriesOf(mapOf("PATH" to "/usr/local/bin", "TERM" to "xterm-256color"))
+  }
+
+  @Test
+  fun startupLaunchSpecOverrideFallsBackToRemoteResumeCommandAndPersistsIt() {
+    val remoteCommand = listOf(
+      "codex",
+      "-c",
+      "check_for_update_on_startup=false",
+      "--remote",
+      "ws://127.0.0.1:31337",
+      "resume",
+      "thread-1",
+    )
+    val file = AgentChatVirtualFile(
+      projectPath = "/work/project-a",
+      threadIdentity = "CODEX:thread-1",
+      shellCommand = remoteCommand,
+      shellEnvVariables = mapOf("PATH" to "/usr/local/bin", "TERM" to "xterm-256color"),
+      threadId = "thread-1",
+      threadTitle = "Thread One",
+      subAgentId = null,
+    )
+    file.setStartupLaunchSpecOverride(
+      AgentSessionTerminalLaunchSpec(
+        command = listOf("codex", "--", "-run this"),
+        envVariables = mapOf("PATH" to "/custom/bin", "DISABLE_AUTOUPDATER" to "1"),
+      )
+    )
+
+    val startupLaunchSpec = file.consumeStartupLaunchSpec()
+    assertThat(startupLaunchSpec.command).containsExactly("codex", "--", "-run this")
+
+    val fallbackLaunchSpec = file.consumeStartupLaunchSpec()
+    assertThat(fallbackLaunchSpec.command).containsExactlyElementsOf(remoteCommand)
+    assertThat(fallbackLaunchSpec.envVariables)
+      .containsExactlyEntriesOf(mapOf("PATH" to "/usr/local/bin", "TERM" to "xterm-256color"))
+
+    val snapshot = file.toSnapshot()
+    assertThat(snapshot.runtime.shellCommand).containsExactlyElementsOf(remoteCommand)
+
+    val store = AgentChatTabsStateService(null)
+    store.upsert(snapshot)
+    try {
+      val loaded = store.load(snapshot.tabKey)
+      assertThat(loaded?.runtime?.shellCommand).containsExactlyElementsOf(remoteCommand)
+    }
+    finally {
+      store.delete(snapshot.tabKey)
+    }
   }
 
   @Test
@@ -478,17 +526,6 @@ private class ChatTestProviderBridge(
 
   override fun buildNewSessionLaunchSpec(mode: AgentSessionLaunchMode): AgentSessionTerminalLaunchSpec {
     return AgentSessionTerminalLaunchSpec(command = listOf("test", "new", mode.name))
-  }
-
-  override fun buildNewEntryLaunchSpec(): AgentSessionTerminalLaunchSpec {
-    return AgentSessionTerminalLaunchSpec(command = listOf("test"))
-  }
-
-  override suspend fun createNewSession(path: String, mode: AgentSessionLaunchMode): AgentSessionLaunchSpec {
-    return AgentSessionLaunchSpec(
-      sessionId = null,
-      launchSpec = AgentSessionTerminalLaunchSpec(command = listOf("test", "create", path, mode.name)),
-    )
   }
 
   override fun buildInitialMessagePlan(request: AgentPromptInitialMessageRequest): AgentInitialMessagePlan {

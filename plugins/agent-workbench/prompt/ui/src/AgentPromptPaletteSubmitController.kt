@@ -14,6 +14,7 @@ import com.intellij.agent.workbench.prompt.core.AgentPromptLauncherBridge
 import com.intellij.agent.workbench.prompt.core.AgentPromptProjectPathCandidate
 import com.intellij.agent.workbench.prompt.ui.context.buildExtensionActionDataContext
 import com.intellij.agent.workbench.prompt.ui.context.dataContextOrNull
+import com.intellij.agent.workbench.sessions.core.providers.isPlanModeBlockedForExistingThread
 import com.intellij.ide.DataManager
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionUiKind
@@ -88,6 +89,18 @@ internal class AgentPromptPaletteSubmitController(
   }
 
   fun submit() {
+    fun reportValidationFailure(validationErrorKey: String, selectedProviderEntry: ProviderEntry?) {
+      if (shouldRetrySubmitAfterWorkingProjectPathSelection(validationErrorKey) && launcherProvider()?.let(::promptWorkingProjectPathSelection) == true) {
+        return
+      }
+      reportPromptSubmitBlocked(
+        validationErrorKey = validationErrorKey,
+        provider = selectedProviderEntry?.bridge?.provider,
+        launchMode = providerSelector.selectedLaunchMode,
+      )
+      onSubmitBlocked(resolveValidationErrorMessage(validationErrorKey, selectedProviderEntry))
+    }
+
     val extensionTab = activeExtensionTab()
     if (extensionTab != null) {
       val actionId = extensionTab.extension.getSubmitActionId()
@@ -121,21 +134,33 @@ internal class AgentPromptPaletteSubmitController(
       selectedExistingTaskId = existingTaskController.selectedExistingTaskId,
     )
     if (validationErrorKey != null) {
-      if (shouldRetrySubmitAfterWorkingProjectPathSelection(validationErrorKey) && launcher != null && promptWorkingProjectPathSelection(launcher)) {
-        return
-      }
-      reportPromptSubmitBlocked(
-        validationErrorKey = validationErrorKey,
-        provider = selectedProviderEntry?.bridge?.provider,
-        launchMode = providerSelector.selectedLaunchMode,
-      )
-      onSubmitBlocked(resolveValidationErrorMessage(validationErrorKey, selectedProviderEntry))
+      reportValidationFailure(validationErrorKey, selectedProviderEntry)
       return
     }
 
     val prompt = promptArea.text.trim()
     val providerEntry = selectedProviderEntry ?: return
     val effectiveProjectPath = projectPath ?: return
+    val targetMode = currentTargetMode()
+    val selectedThreadActivity = existingTaskController.selectedEntry()?.activity
+    val effectiveProviderOptionIds = resolveEffectiveProviderOptionIds(
+      selectedProvider = providerEntry.bridge,
+      selectedOptionIds = providerSelector.selectedOptionIds(providerEntry.bridge.provider),
+      targetMode = targetMode,
+      selectedThreadActivity = selectedThreadActivity,
+    )
+    val initialMessageRequest = AgentPromptInitialMessageRequest(
+      prompt = prompt,
+      projectPath = effectiveProjectPath,
+      providerOptionIds = effectiveProviderOptionIds,
+    )
+    if (
+      targetMode == PromptTargetMode.EXISTING_TASK &&
+      providerEntry.bridge.isPlanModeBlockedForExistingThread(initialMessageRequest, selectedThreadActivity)
+    ) {
+      reportValidationFailure("popup.error.existing.plan.busy", selectedProviderEntry)
+      return
+    }
 
     val shouldStripContext = providerEntry.bridge.provider == AgentSessionProvider.CLAUDE && prompt.isClaudeMenuCommandPrompt()
     val contextSelection = if (shouldStripContext) {
@@ -149,23 +174,8 @@ internal class AgentPromptPaletteSubmitController(
 
     val targetThreadId = when {
       activeExtensionTab() != null -> null
-      currentTargetMode() == PromptTargetMode.NEW_TASK -> null
+      targetMode == PromptTargetMode.NEW_TASK -> null
       else -> existingTaskController.selectedExistingTaskId ?: return
-    }
-    val effectiveProviderOptionIds = resolveEffectiveProviderOptionIds(
-      selectedProvider = providerEntry.bridge,
-      selectedOptionIds = providerSelector.selectedOptionIds(providerEntry.bridge.provider),
-      targetMode = currentTargetMode(),
-      selectedThreadActivity = existingTaskController.selectedEntry()?.activity,
-    )
-    val effectivePlanModeEnabled = if (activeExtensionTab() != null) {
-      false
-    }
-    else {
-      resolveEffectivePlanModeEnabled(
-        selectedProvider = providerEntry.bridge,
-        effectiveProviderOptionIds = effectiveProviderOptionIds,
-      )
     }
 
     val request = AgentPromptLaunchRequest(
@@ -177,7 +187,6 @@ internal class AgentPromptPaletteSubmitController(
         projectPath = effectiveProjectPath,
         contextItems = contextSelection?.items ?: emptyList(),
         contextEnvelopeSummary = contextSelection?.summary,
-        planModeEnabled = effectivePlanModeEnabled,
         providerOptionIds = effectiveProviderOptionIds,
       ),
       targetThreadId = targetThreadId,
@@ -195,6 +204,7 @@ internal class AgentPromptPaletteSubmitController(
       AgentPromptLaunchError.PROVIDER_UNAVAILABLE -> AgentPromptBundle.message("popup.error.launch.provider")
       AgentPromptLaunchError.UNSUPPORTED_LAUNCH_MODE -> AgentPromptBundle.message("popup.error.launch.mode")
       AgentPromptLaunchError.TARGET_THREAD_NOT_FOUND -> AgentPromptBundle.message("popup.error.launch.thread.not.found")
+      AgentPromptLaunchError.TARGET_THREAD_BUSY_FOR_PLAN_MODE -> AgentPromptBundle.message("popup.error.existing.plan.busy")
       AgentPromptLaunchError.CANCELLED,
       AgentPromptLaunchError.DROPPED_DUPLICATE,
       AgentPromptLaunchError.INTERNAL_ERROR,

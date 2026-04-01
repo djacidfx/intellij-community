@@ -6,7 +6,6 @@ package com.intellij.agent.workbench.prompt.ui
 import com.intellij.agent.workbench.common.AgentThreadActivity
 import com.intellij.agent.workbench.common.session.AgentSessionLaunchMode
 import com.intellij.agent.workbench.common.session.AgentSessionProvider
-import com.intellij.agent.workbench.sessions.core.providers.AGENT_PROMPT_PROVIDER_OPTION_PLAN_MODE
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProviderDescriptor
 import com.intellij.agent.workbench.sessions.core.statistics.AgentWorkbenchTelemetry
 import com.intellij.openapi.project.Project
@@ -69,13 +68,6 @@ internal fun resolveEffectiveProviderOptionIds(
     }
     .map { option -> option.id }
     .toSet()
-}
-
-internal fun resolveEffectivePlanModeEnabled(
-  selectedProvider: AgentSessionProviderDescriptor?,
-  effectiveProviderOptionIds: Set<String>,
-): Boolean {
-  return selectedProvider?.supportsPlanMode == true && AGENT_PROMPT_PROVIDER_OPTION_PLAN_MODE in effectiveProviderOptionIds
 }
 
 internal fun resolveSubmitValidationErrorMessageKey(

@@ -49,7 +49,7 @@ This file does not redefine runtime behavior; it maps each contract area to requ
 - Mock-backend contract assertions must additionally validate deterministic fixture IDs, archive/unarchive mutation behavior, idle-timeout lazy restart, prompt-suggestion transport shape, streamed pre-completion notifications, unrelated-notification filtering, `turn/interrupt` cleanup on timeout or cancellation, interrupted or failed prompt-turn outcomes, and dedicated prompt-suggestion client reset when cleanup cannot confirm terminal completion.
 
 ## Requirement Ownership Matrix
-- Core contracts: `AgentSessionCliTest`, `AgentSessionsEditorTabActionsTest`, `AgentSessionArchiveServiceIntegrationTest`, `AgentSessionRefreshOnDemandIntegrationTest`
+- Core contracts: `ClaudeAgentSessionProviderDescriptorTest`, `CodexAgentSessionProviderDescriptorTest`, `AgentSessionsEditorTabActionsTest`, `AgentSessionArchiveServiceIntegrationTest`, `AgentSessionRefreshOnDemandIntegrationTest`
 - Sessions aggregation/loading: `AgentSessionLoadAggregationTest`, `AgentSessionRefreshServiceIntegrationTest`, `AgentSessionRefreshOnDemandIntegrationTest`, `AgentSessionRefreshConcurrencyIntegrationTest`
 - Swing tree rendering: `AgentSessionsSwingTreeRenderingTest`, `AgentSessionsSwingTreeCellRendererTest`
 - Swing tree interaction: `AgentSessionsSwingTreeInteractionTest`
@@ -59,7 +59,7 @@ This file does not redefine runtime behavior; it maps each contract area to requ
 - Shared UI preferences state: `AgentSessionUiPreferencesStateServiceTest`
 - New-thread flow: `AgentSessionsSwingNewSessionActionsTest`, `AgentSessionRefreshCoordinatorTest`, `AgentChatEditorServiceTest`
 - Tool-window factory wiring: `AgentSessionsToolWindowFactorySwingTest`, `AgentSessionsGearActionsTest`
-- Dedicated frame: `AgentSessionsGearActionsTest`, `AgentSessionsOpenModeRoutingTest`
+- Dedicated frame: `AgentSessionsGearActionsTest`, `AgentSessionPromptLauncherBridgeTest`
 - Quota hint gating: `AgentSessionsSwingQuotaHintTest`, `AgentSessionsClaudeQuotaWidgetActionRegistrationTest`
 - Chat tab lifecycle: `AgentChatEditorServiceTest`, `AgentChatFileEditorProviderTest`, `AgentChatTabSelectionServiceTest`
 - Codex rollout/app-server selection + hint wiring: `CodexRolloutSessionBackendTest`, `CodexRolloutSessionBackendFileWatchIntegrationTest`, `CodexRolloutSessionsWatcherTest`, `CodexSessionActivityResolverTest`, `CodexAppServerSessionBackendTest`, `CodexAppServerRefreshHintsProviderTest`, `CodexSessionSourceRefreshHintsTest`, `CodexSessionSourceRolloutIntegrationTest`, `CodexSessionSourceRealTuiIntegrationTest`, `CodexSessionBackendSelectorTest`, `CodexSessionsPagingLogicTest`, `AgentSessionRefreshCoordinatorTest`

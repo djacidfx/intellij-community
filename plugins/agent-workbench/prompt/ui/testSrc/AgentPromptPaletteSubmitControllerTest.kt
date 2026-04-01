@@ -1,21 +1,28 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.agent.workbench.prompt.ui
 
+import com.intellij.agent.workbench.common.AgentThreadActivity
 import com.intellij.agent.workbench.common.session.AgentSessionLaunchMode
 import com.intellij.agent.workbench.common.session.AgentSessionProvider
+import com.intellij.agent.workbench.common.session.AgentSessionThread
 import com.intellij.agent.workbench.prompt.core.AgentPromptContextEnvelopeSummary
 import com.intellij.agent.workbench.prompt.core.AgentPromptContextItem
 import com.intellij.agent.workbench.prompt.core.AgentPromptContextRendererIds
+import com.intellij.agent.workbench.prompt.core.AgentPromptExistingThreadsSnapshot
 import com.intellij.agent.workbench.prompt.core.AgentPromptInitialMessageRequest
 import com.intellij.agent.workbench.prompt.core.AgentPromptInvocationData
 import com.intellij.agent.workbench.prompt.core.AgentPromptLaunchRequest
 import com.intellij.agent.workbench.prompt.core.AgentPromptLaunchResult
 import com.intellij.agent.workbench.prompt.core.AgentPromptLauncherBridge
+import com.intellij.agent.workbench.sessions.core.providers.AGENT_PROMPT_PROVIDER_OPTION_PLAN_MODE
+import com.intellij.agent.workbench.sessions.core.providers.AGENT_PROMPT_PROVIDER_PLAN_MODE_OPTION
 import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessagePlan
-import com.intellij.agent.workbench.sessions.core.providers.AgentSessionLaunchSpec
+import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessageStartupPolicy
+import com.intellij.agent.workbench.sessions.core.providers.AgentPromptProviderOption
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProviderDescriptor
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSource
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionTerminalLaunchSpec
+import com.intellij.agent.workbench.sessions.core.providers.buildPlanModeInitialMessagePlan
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.testFramework.junit5.TestApplication
 import com.intellij.testFramework.runInEdtAndWait
@@ -119,6 +126,113 @@ class AgentPromptPaletteSubmitControllerTest {
     }
   }
 
+  @Test
+  fun submitKeepsPlanModeEnabledForNewTaskCodexLaunch() {
+    runInEdtAndWait {
+      val project = ProjectManager.getInstance().defaultProject
+      var capturedRequest: AgentPromptLaunchRequest? = null
+      val fixture = createFixture(
+        project = project,
+        launcherProvider = {
+          object : AgentPromptLauncherBridge {
+            override fun launch(request: AgentPromptLaunchRequest): AgentPromptLaunchResult {
+              capturedRequest = request
+              return AgentPromptLaunchResult.SUCCESS
+            }
+
+            override fun resolveWorkingProjectPath(invocationData: AgentPromptInvocationData): String = "/launcher/path"
+          }
+        },
+        providersProvider = {
+          listOf(
+            testProviderBridge(
+              provider = AgentSessionProvider.CODEX,
+              promptOptions = listOf(AGENT_PROMPT_PROVIDER_PLAN_MODE_OPTION),
+            )
+          )
+        },
+        currentTargetMode = { PromptTargetMode.NEW_TASK },
+      )
+      fixture.providerSelector.refresh()
+      fixture.providerSelector.selectProvider(AgentSessionProvider.CODEX)
+      fixture.promptArea.text = "Plan this refactor"
+      fixture.launchState.selectedWorkingProjectPath = "/repo"
+
+      fixture.controller.submit()
+
+      val request = checkNotNull(capturedRequest)
+      assertThat(request.provider).isEqualTo(AgentSessionProvider.CODEX)
+      assertThat(request.initialMessageRequest.prompt).isEqualTo("Plan this refactor")
+      assertThat(request.initialMessageRequest.providerOptionIds).containsExactly(AGENT_PROMPT_PROVIDER_OPTION_PLAN_MODE)
+      assertThat(request.targetThreadId).isNull()
+    }
+  }
+
+  @Test
+  fun submitBlocksManualPlanPromptForBusyExistingTask() {
+    runInEdtAndWait {
+      val project = ProjectManager.getInstance().defaultProject
+      var capturedRequest: AgentPromptLaunchRequest? = null
+      var blockedMessage: String? = null
+      val fixture = createFixture(
+        project = project,
+        launcherProvider = {
+          object : AgentPromptLauncherBridge {
+            override fun launch(request: AgentPromptLaunchRequest): AgentPromptLaunchResult {
+              capturedRequest = request
+              return AgentPromptLaunchResult.SUCCESS
+            }
+
+            override fun resolveWorkingProjectPath(invocationData: AgentPromptInvocationData): String = "/launcher/path"
+          }
+        },
+        providersProvider = {
+          listOf(
+            testProviderBridge(
+              provider = AgentSessionProvider.CODEX,
+              promptOptions = listOf(AGENT_PROMPT_PROVIDER_PLAN_MODE_OPTION),
+              initialMessagePlanBuilder = { request ->
+                buildPlanModeInitialMessagePlan(
+                  request = request,
+                  startupPolicyWhenPlanModeEnabled = AgentInitialMessageStartupPolicy.POST_START_ONLY,
+                )
+              },
+            )
+          )
+        },
+        onSubmitBlocked = { blockedMessage = it },
+      )
+      fixture.providerSelector.refresh()
+      fixture.providerSelector.selectProvider(AgentSessionProvider.CODEX)
+      fixture.promptArea.text = "/plan Investigate the flaky test"
+      fixture.launchState.selectedWorkingProjectPath = "/repo"
+      fixture.existingTaskController.applySnapshot(
+        AgentPromptExistingThreadsSnapshot(
+          threads = listOf(
+            AgentSessionThread(
+              id = "thread-1",
+              title = "Busy Thread",
+              updatedAt = 100,
+              archived = false,
+              provider = AgentSessionProvider.CODEX,
+              activity = AgentThreadActivity.PROCESSING,
+              subAgents = emptyList(),
+            )
+          ),
+          isLoading = false,
+          hasLoaded = true,
+          hasError = false,
+        )
+      )
+      fixture.existingTaskController.selectedExistingTaskId = "thread-1"
+
+      fixture.controller.submit()
+
+      assertThat(capturedRequest).isNull()
+      assertThat(blockedMessage).isEqualTo(AgentPromptBundle.message("popup.error.existing.plan.busy"))
+    }
+  }
+
   private fun createFixture(
     project: com.intellij.openapi.project.Project,
     launcherProvider: () -> AgentPromptLauncherBridge? = { null },
@@ -127,6 +241,9 @@ class AgentPromptPaletteSubmitControllerTest {
     resolveContextSelection: (List<AgentPromptContextItem>, String?) -> AgentPromptPaletteContextSelection? = { _, _ ->
       AgentPromptPaletteContextSelection(emptyList(), AgentPromptContextEnvelopeSummary())
     },
+    currentTargetMode: () -> PromptTargetMode = { PromptTargetMode.EXISTING_TASK },
+    onSubmitBlocked: (String) -> Unit = {},
+    onSubmitSucceeded: () -> Unit = {},
   ): SubmitControllerFixture {
     val promptArea = EditorTextField()
     val providerSelector = AgentPromptProviderSelector(
@@ -164,22 +281,27 @@ class AgentPromptPaletteSubmitControllerTest {
       existingTaskController = existingTaskController,
       launcherProvider = launcherProvider,
       launchState = launchState,
-      currentTargetMode = { PromptTargetMode.EXISTING_TASK },
+      currentTargetMode = currentTargetMode,
       activeExtensionTab = { null },
       buildVisibleContextEntries = buildVisibleContextEntries,
       resolveContextSelection = resolveContextSelection,
       onWorkingProjectPathSelected = {},
-      onSubmitBlocked = {},
-      onSubmitSucceeded = {},
+      onSubmitBlocked = onSubmitBlocked,
+      onSubmitSucceeded = onSubmitSucceeded,
     )
     return SubmitControllerFixture(controller, promptArea, providerSelector, existingTaskController, launchState)
   }
 
-  private fun testProviderBridge(provider: AgentSessionProvider = AgentSessionProvider.CODEX): AgentSessionProviderDescriptor {
+  private fun testProviderBridge(
+    provider: AgentSessionProvider = AgentSessionProvider.CODEX,
+    promptOptions: List<AgentPromptProviderOption> = emptyList(),
+    initialMessagePlanBuilder: (AgentPromptInitialMessageRequest) -> AgentInitialMessagePlan = { AgentInitialMessagePlan.EMPTY },
+  ): AgentSessionProviderDescriptor {
     return object : AgentSessionProviderDescriptor {
       override val provider: AgentSessionProvider = provider
       override val displayNameKey: String = if (provider == AgentSessionProvider.CLAUDE) "provider.claude" else "provider.codex"
       override val newSessionLabelKey: String = displayNameKey
+      override val promptOptions: List<AgentPromptProviderOption> = promptOptions
       override val sessionSource: AgentSessionSource
         get() = error("Not required for this test")
       override val cliMissingMessageKey: String = displayNameKey
@@ -195,19 +317,8 @@ class AgentPromptPaletteSubmitControllerTest {
         return AgentSessionTerminalLaunchSpec(command = emptyList())
       }
 
-      override fun buildNewEntryLaunchSpec(): AgentSessionTerminalLaunchSpec {
-        return AgentSessionTerminalLaunchSpec(command = emptyList())
-      }
-
-      override suspend fun createNewSession(path: String, mode: AgentSessionLaunchMode): AgentSessionLaunchSpec {
-        return AgentSessionLaunchSpec(
-          sessionId = null,
-          launchSpec = AgentSessionTerminalLaunchSpec(command = emptyList()),
-        )
-      }
-
       override fun buildInitialMessagePlan(request: AgentPromptInitialMessageRequest): AgentInitialMessagePlan {
-        return AgentInitialMessagePlan.EMPTY
+        return initialMessagePlanBuilder(request)
       }
     }
   }

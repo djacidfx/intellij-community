@@ -82,6 +82,10 @@ private data class PendingPromptSuggestionTurn(
 )
 
 private val DEFAULT_THREAD_LIST_SOURCE_KINDS = linkedSetOf("cli", "vscode", "appServer")
+private const val TEST_MODEL_ENV = "CODEX_MODEL"
+private const val TEST_REASONING_EFFORT_ENV = "CODEX_REASONING_EFFORT"
+private const val DEFAULT_TEST_MODEL = "gpt-4o-mini"
+private const val DEFAULT_TEST_REASONING_EFFORT = "low"
 
 internal object CodexTestAppServer {
   private val jsonFactory = JsonFactory()
@@ -148,10 +152,14 @@ internal object CodexTestAppServer {
         "initialize" -> writeResponse(writer, request.id, ::writeEmptyObject)
         "thread/start" -> {
           val startedThread = startThread(threads, request.params.cwd)
+          val model = readEnv(TEST_MODEL_ENV) ?: request.params.model ?: DEFAULT_TEST_MODEL
+          val reasoningEffort = readEnv(TEST_REASONING_EFFORT_ENV) ?: request.params.effort ?: DEFAULT_TEST_REASONING_EFFORT
           writeResponse(writer, request.id, resultWriter = { generator ->
             generator.writeStartObject()
             generator.writeFieldName("thread")
             writeThreadObject(generator, startedThread)
+            generator.writeStringField("model", model)
+            generator.writeStringField("reasoningEffort", reasoningEffort)
             generator.writeEndObject()
           })
         }

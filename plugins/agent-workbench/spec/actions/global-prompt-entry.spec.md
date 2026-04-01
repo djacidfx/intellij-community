@@ -166,12 +166,16 @@ Suggested prompt generation, rendering, and Codex polishing are specified separa
   [@test] ../../sessions/testSrc/AgentSessionPromptLauncherBridgeTest.kt
 
 - Plan mode toggle contract:
-  - Toggle is visible when selected provider's bridge has `supportsPlanMode == true`.
+  - Toggle is visible when selected provider's bridge exposes the `AGENT_PROMPT_PROVIDER_OPTION_PLAN_MODE` prompt option.
   - Toggle default is enabled and is persisted in per-project prompt draft state.
-  - When effective plan mode is enabled, submit must set `initialMessageRequest.planModeEnabled = true`.
+  - When effective plan mode is enabled, submit must include `AGENT_PROMPT_PROVIDER_OPTION_PLAN_MODE` in `initialMessageRequest.providerOptionIds`.
   - Effective plan mode must be forced off for `EXISTING_TASK` target when selected thread activity is `PROCESSING` or `REVIEWING`.
-  - Providers without `supportsPlanMode` must always submit with plan mode disabled.
+  - Manual prompts that resolve to effective plan mode (for example `/plan ...`) must obey the same `EXISTING_TASK` busy-task restriction as the toggle path.
+  - Existing-task prompt launch must reject effective plan-mode requests when the selected thread activity is `PROCESSING` or `REVIEWING`.
+  - Providers without the plan-mode prompt option must always submit with plan mode disabled.
   [@test] ../../prompt/testSrc/ui/AgentPromptPlanModeDecisionsTest.kt
+  [@test] ../../prompt/ui/testSrc/AgentPromptPaletteSubmitControllerTest.kt
+  [@test] ../../sessions/testSrc/AgentSessionPromptLauncherBridgeTest.kt
 
 - Context block soft-cap limit is `12_000` characters. When exceeded, user must explicitly choose send-full, auto-trim, or cancel before launch.
 

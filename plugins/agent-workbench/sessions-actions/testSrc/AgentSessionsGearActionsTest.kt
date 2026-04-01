@@ -14,6 +14,7 @@ import com.intellij.agent.workbench.sessions.actions.AgentSessionsOpenDedicatedF
 import com.intellij.agent.workbench.sessions.actions.AgentSessionsPreventSleepWhileWorkingToggleAction
 import com.intellij.agent.workbench.sessions.actions.AgentSessionsRefreshAction
 import com.intellij.agent.workbench.sessions.actions.AgentSessionsSelectThreadInToolWindowAction
+import com.intellij.agent.workbench.sessions.actions.DumbAwareDefaultActionGroup
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionGroup
@@ -22,6 +23,7 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.Separator
 import com.intellij.openapi.options.advanced.AdvancedSettings
 import com.intellij.openapi.options.advanced.AdvancedSettingsImpl
+import com.intellij.openapi.project.DumbService
 import com.intellij.testFramework.TestActionEvent
 import com.intellij.testFramework.junit5.TestApplication
 import com.intellij.testFramework.junit5.TestDisposable
@@ -235,6 +237,24 @@ class AgentSessionsGearActionsTest {
       .isInstanceOf(AgentSessionsEditorTabNewThreadPopupGroup::class.java)
     assertThat(actionManager.getAction(popupGroupId)?.templatePresentation?.icon)
       .isEqualTo(AllIcons.General.Add)
+  }
+
+  @Test
+  fun aggregateAgentWorkbenchGroupsAreDumbAware() {
+    val actionManager = ActionManager.getInstance()
+
+    listOf(
+      "AgentWorkbenchSessions.ToolWindow.GearActions",
+      "AgentWorkbenchSessions.TreePopup",
+      "AgentWorkbenchSessions.EditorTabPopup.SeparatorBeforeCloseActions",
+    ).forEach { groupId ->
+      val group = actionManager.getAction(groupId)
+
+      assertThat(group)
+        .withFailMessage("Action group '%s' is not registered", groupId)
+        .isInstanceOf(DumbAwareDefaultActionGroup::class.java)
+      assertThat(DumbService.isDumbAware(group)).isTrue()
+    }
   }
 
   @Test

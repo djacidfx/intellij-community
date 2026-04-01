@@ -8,17 +8,14 @@ import com.intellij.agent.workbench.common.session.AgentSubAgent
 import com.intellij.agent.workbench.prompt.core.AgentPromptContextItem
 import com.intellij.agent.workbench.prompt.core.AgentPromptInitialMessageRequest
 import com.intellij.agent.workbench.prompt.core.AgentPromptLaunchRequest
-import com.intellij.agent.workbench.sessions.core.providers.AGENT_PROMPT_PLAN_MODE_COMMAND
+import com.intellij.agent.workbench.prompt.core.AgentPromptLaunchResult
 import com.intellij.agent.workbench.sessions.core.providers.AGENT_PROMPT_PROVIDER_OPTION_PLAN_MODE
-import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessageDispatchCompletionPolicy
 import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessageDispatchPlan
 import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessageDispatchStep
-import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessagePlan
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProviderDescriptor
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProviders
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionTerminalLaunchSpec
 import com.intellij.agent.workbench.sessions.core.providers.InMemoryAgentSessionProviderRegistry
-import com.intellij.agent.workbench.sessions.core.providers.isPlanModeCommand
 import com.intellij.agent.workbench.sessions.service.AgentSessionChatOpenExecutor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -89,7 +86,7 @@ fun assertExistingThreadLaunchUsesPostStartDispatch(
 
         val openRequest = checkNotNull(chatOpenExecutor.lastOpenChatRequest.get())
         val initialMessagePlan = descriptor.buildInitialMessagePlan(request.initialMessageRequest)
-        val expectedSteps = expectedExistingThreadDispatchSteps(provider, initialMessagePlan)
+        val expectedSteps = descriptor.buildPostStartDispatchSteps(initialMessagePlan)
 
         assertThat(chatOpenExecutor.openNewChatCalls.get()).isZero()
         assertThat(openRequest.normalizedPath).isEqualTo(projectPath)
@@ -110,38 +107,55 @@ fun assertExistingThreadLaunchUsesPostStartDispatch(
   }
 }
 
-private fun expectedExistingThreadDispatchSteps(
-  provider: AgentSessionProvider,
-  initialMessagePlan: AgentInitialMessagePlan,
-): List<AgentInitialMessageDispatchStep> {
-  val message = checkNotNull(initialMessagePlan.message)
-  if (provider != AgentSessionProvider.CODEX || !message.isPlanModeCommand()) {
-    return listOf(
-      AgentInitialMessageDispatchStep(
-        text = message,
-        timeoutPolicy = initialMessagePlan.timeoutPolicy,
-      )
-    )
+fun assertNewThreadPromptLaunchOpensNewChat(
+  descriptor: AgentSessionProviderDescriptor,
+  request: AgentPromptLaunchRequest,
+  projectName: String = "Project A",
+): NewThreadPromptLaunchObservation {
+  require(request.targetThreadId == null) {
+    "New-thread prompt launch assertions require request.targetThreadId to be null"
   }
 
-  val strippedPrompt = message.removePrefix(AGENT_PROMPT_PLAN_MODE_COMMAND).trim()
-  return buildList {
-    add(
-      AgentInitialMessageDispatchStep(
-        text = AGENT_PROMPT_PLAN_MODE_COMMAND,
-        timeoutPolicy = initialMessagePlan.timeoutPolicy,
-        completionPolicy = AgentInitialMessageDispatchCompletionPolicy.RETRY_ON_CODEX_PLAN_BUSY,
-      )
-    )
-    if (strippedPrompt.isNotEmpty()) {
-      add(
-        AgentInitialMessageDispatchStep(
-          text = strippedPrompt,
-          timeoutPolicy = initialMessagePlan.timeoutPolicy,
+  val chatOpenExecutor = RecordingChatOpenExecutor()
+  var observation: NewThreadPromptLaunchObservation? = null
+
+  AgentSessionProviders.withRegistryForTest(InMemoryAgentSessionProviderRegistry(listOf(descriptor))) {
+    runBlocking(Dispatchers.Default) {
+      withTestServiceAndLaunch(
+        sessionSourcesProvider = { listOf(descriptor.sessionSource) },
+        projectEntriesProvider = { listOf(openTestProjectEntry(request.projectPath, projectName)) },
+        chatOpenExecutor = chatOpenExecutor,
+      ) { service, launchService ->
+        service.refresh()
+        waitForCondition {
+          service.state.value.projects.firstOrNull { project -> project.path == request.projectPath }?.hasLoaded == true
+        }
+
+        val result = launchService.launchPromptRequest(request)
+
+        assertThat(result.launched).isTrue()
+        assertThat(result.error).isNull()
+        waitForCondition {
+          chatOpenExecutor.openNewChatCalls.get() == 1
+        }
+
+        assertThat(chatOpenExecutor.openChatCalls.get()).isZero()
+        val openRequest = checkNotNull(chatOpenExecutor.lastOpenNewChatRequest.get())
+        observation = NewThreadPromptLaunchObservation(
+          launchResult = result,
+          normalizedPath = openRequest.normalizedPath,
+          identity = openRequest.identity,
+          launchSpec = openRequest.launchSpec,
+          startupLaunchSpecOverride = openRequest.startupLaunchSpecOverride,
+          postStartDispatchSteps = openRequest.postStartDispatchSteps,
+          initialMessageToken = openRequest.initialMessageToken,
+          preferredDedicatedFrame = openRequest.preferredDedicatedFrame,
         )
-      )
+      }
     }
   }
+
+  return checkNotNull(observation)
 }
 
 internal class RecordingChatOpenExecutor(
@@ -223,3 +237,14 @@ internal data class OpenNewChatRequest(
   val initialComposedMessage: String?
     get() = postStartDispatchSteps.singleOrNull()?.text
 }
+
+data class NewThreadPromptLaunchObservation(
+  @JvmField val launchResult: AgentPromptLaunchResult,
+  @JvmField val normalizedPath: String,
+  @JvmField val identity: String,
+  @JvmField val launchSpec: AgentSessionTerminalLaunchSpec,
+  @JvmField val startupLaunchSpecOverride: AgentSessionTerminalLaunchSpec?,
+  @JvmField val postStartDispatchSteps: List<AgentInitialMessageDispatchStep>,
+  @JvmField val initialMessageToken: String?,
+  @JvmField val preferredDedicatedFrame: Boolean?,
+)

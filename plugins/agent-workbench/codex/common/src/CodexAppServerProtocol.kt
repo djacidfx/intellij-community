@@ -125,13 +125,13 @@ internal class CodexAppServerProtocol {
     return ThreadListResult(threads, nextCursor)
   }
 
-  fun parseThreadStartResult(parser: JsonParser): CodexThread {
+  fun parseThreadStartResult(parser: JsonParser): CodexStartedThreadSession {
     if (parser.currentToken != JsonToken.START_OBJECT) {
       parser.skipChildren()
       throw CodexAppServerException("Codex app-server returned invalid thread/start result")
     }
 
-    return parseThreadFromResultObject(parser)
+    return parseStartedThreadSession(parser)
            ?: throw CodexAppServerException("Codex app-server returned thread/start result without thread data")
   }
 
@@ -298,7 +298,7 @@ private fun parseNotificationParams(parser: JsonParser): ParsedNotificationParam
 }
 
 private fun parseNotificationThreadObject(parser: JsonParser): ParsedNotificationThreadObject {
-  val payload = parseThreadPayload(parser, allowNestedThread = false)
+  val payload = parseThreadPayload(parser)
   return ParsedNotificationThreadObject(
     threadId = resolveThreadId(payload),
     startedThread = createStartedThread(payload),
@@ -366,7 +366,7 @@ private fun parseThreadArray(parser: JsonParser, archived: Boolean, threads: Mut
 }
 
 private fun parseThreadObject(parser: JsonParser, archived: Boolean, cwdFilter: String?): CodexThread? {
-  val payload = parseThreadPayload(parser, allowNestedThread = false)
+  val payload = parseThreadPayload(parser)
   if (!cwdFilter.isNullOrBlank()) {
     val normalizedCwd = payload.cwd?.let(::normalizeRootPath)
     if (normalizedCwd.isNullOrBlank() || normalizedCwd != cwdFilter) {
@@ -391,12 +391,6 @@ private fun createCodexThread(payload: ThreadPayload, archived: Boolean): CodexT
   )
 }
 
-private fun parseThreadFromResultObject(parser: JsonParser): CodexThread? {
-  val payload = parseThreadPayload(parser, allowNestedThread = true)
-  if (payload.nestedThread != null) return payload.nestedThread
-  return createCodexThread(payload = payload, archived = false)
-}
-
 private fun parseTurnFromResultObject(parser: JsonParser): CodexAppServerTurnStartResult? {
   var turnId: String? = null
   var status: String? = null
@@ -419,6 +413,36 @@ private fun parseTurnFromResultObject(parser: JsonParser): CodexAppServerTurnSta
   return CodexAppServerTurnStartResult(
     turnId = resolvedTurnId,
     status = status,
+  )
+}
+
+private fun parseStartedThreadSession(parser: JsonParser): CodexStartedThreadSession? {
+  var thread: CodexThread? = null
+  var model: String? = null
+  var reasoningEffort: String? = null
+  var rolloutPath: String? = null
+  forEachObjectField(parser) { fieldName ->
+    when (fieldName) {
+      "thread", "data" -> {
+        val payload = parseObjectOrNull(parser, ::parseThreadPayload)
+        if (payload != null) {
+          thread = createCodexThread(payload = payload, archived = false)
+          rolloutPath = payload.path?.trimToNull()
+        }
+      }
+      "model" -> model = readNonBlankStringOrNull(parser)
+      "reasoningEffort", "reasoning_effort" -> reasoningEffort = readNonBlankStringOrNull(parser)
+      else -> parser.skipChildren()
+    }
+    true
+  }
+  val resolvedThread = thread ?: return null
+  val resolvedModel = model ?: return null
+  return CodexStartedThreadSession(
+    thread = resolvedThread,
+    model = resolvedModel,
+    reasoningEffort = reasoningEffort,
+    rolloutPath = rolloutPath,
   )
 }
 
@@ -705,12 +729,12 @@ private data class ThreadPayload(
   @JvmField val updatedAtAlt: Long?,
   @JvmField val createdAt: Long?,
   @JvmField val createdAtAlt: Long?,
+  @JvmField val path: String?,
   @JvmField val preview: String?,
   @JvmField val title: String?,
   @JvmField val name: String?,
   @JvmField val summary: String?,
   @JvmField val cwd: String?,
-  @JvmField val nestedThread: CodexThread?,
   @JvmField val gitBranch: String?,
   @JvmField val sourceKind: CodexThreadSourceKind,
   @JvmField val parentThreadId: String?,
@@ -731,18 +755,18 @@ private data class ParsedThreadStatus(
 )
 
 @Suppress("DuplicatedCode")
-private fun parseThreadPayload(parser: JsonParser, allowNestedThread: Boolean): ThreadPayload {
+private fun parseThreadPayload(parser: JsonParser): ThreadPayload {
   var id: String? = null
   var updatedAt: Long? = null
   var updatedAtAlt: Long? = null
   var createdAt: Long? = null
   var createdAtAlt: Long? = null
+  var path: String? = null
   var preview: String? = null
   var title: String? = null
   var name: String? = null
   var summary: String? = null
   var cwd: String? = null
-  var nestedThread: CodexThread? = null
   var gitBranch: String? = null
   var sourceKind: CodexThreadSourceKind = CodexThreadSourceKind.UNKNOWN
   var parentThreadId: String? = null
@@ -754,18 +778,14 @@ private fun parseThreadPayload(parser: JsonParser, allowNestedThread: Boolean): 
   forEachObjectField(parser) { fieldName ->
     when (fieldName) {
       "thread", "data" -> {
-        if (allowNestedThread && parser.currentToken == JsonToken.START_OBJECT) {
-          nestedThread = parseThreadObject(parser, archived = false, cwdFilter = null)
-        }
-        else {
-          parser.skipChildren()
-        }
+        parser.skipChildren()
       }
       "id" -> id = readStringOrNull(parser)
       "updatedAt" -> updatedAt = readLongOrNull(parser)
       "updated_at" -> updatedAtAlt = readLongOrNull(parser)
       "createdAt" -> createdAt = readLongOrNull(parser)
       "created_at" -> createdAtAlt = readLongOrNull(parser)
+      "path" -> path = readStringOrNull(parser)
       "preview" -> preview = readStringOrNull(parser)
       "title" -> title = readStringOrNull(parser)
       "name" -> name = readStringOrNull(parser)
@@ -796,12 +816,12 @@ private fun parseThreadPayload(parser: JsonParser, allowNestedThread: Boolean): 
     updatedAtAlt = updatedAtAlt,
     createdAt = createdAt,
     createdAtAlt = createdAtAlt,
+    path = path,
     preview = preview,
     title = title,
     name = name,
     summary = summary,
     cwd = cwd,
-    nestedThread = nestedThread,
     gitBranch = gitBranch,
     sourceKind = sourceKind,
     parentThreadId = parentThreadId,

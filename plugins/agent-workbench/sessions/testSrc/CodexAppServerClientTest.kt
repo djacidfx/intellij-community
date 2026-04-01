@@ -15,6 +15,7 @@ import com.intellij.agent.workbench.codex.common.CodexPromptSuggestionResult
 import com.intellij.agent.workbench.codex.common.CodexThreadActiveFlag
 import com.intellij.agent.workbench.codex.common.CodexThreadSourceKind
 import com.intellij.agent.workbench.codex.common.CodexThreadStatusKind
+import com.intellij.agent.workbench.codex.common.CodexTurnCollaborationMode
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -401,6 +402,106 @@ class CodexAppServerClientTest {
     try {
       val snapshot = client.readThreadActivitySnapshot("thread-missing")
       assertThat(snapshot).isNull()
+    }
+    finally {
+      client.shutdown()
+    }
+  }
+
+  @Test
+  fun readThreadActivitySnapshotReturnsNullForUnmaterializedIncludeTurnsError(): Unit = runBlocking(Dispatchers.Default) {
+    val configPath = tempDir.resolve("codex-thread-read-unmaterialized.json")
+    writeConfig(path = configPath, threads = emptyList())
+
+    val backendDir = tempDir.resolve("backend-thread-read-unmaterialized")
+    Files.createDirectories(backendDir)
+    val client = createMockClient(
+      scope = this,
+      tempDir = backendDir,
+      configPath = configPath,
+      environmentOverrides = mapOf(
+        "CODEX_TEST_ERROR_METHOD" to "thread/read",
+        "CODEX_TEST_ERROR_MESSAGE" to "thread thr_123 is not materialized yet; includeTurns is unavailable before first user message",
+      ),
+    )
+    try {
+      assertThat(client.readThreadActivitySnapshot("thread-read-1")).isNull()
+    }
+    finally {
+      client.shutdown()
+    }
+  }
+
+  @Test
+  fun readThreadActivitySnapshotReturnsNullForEphemeralIncludeTurnsError(): Unit = runBlocking(Dispatchers.Default) {
+    val configPath = tempDir.resolve("codex-thread-read-ephemeral.json")
+    writeConfig(path = configPath, threads = emptyList())
+
+    val backendDir = tempDir.resolve("backend-thread-read-ephemeral")
+    Files.createDirectories(backendDir)
+    val client = createMockClient(
+      scope = this,
+      tempDir = backendDir,
+      configPath = configPath,
+      environmentOverrides = mapOf(
+        "CODEX_TEST_ERROR_METHOD" to "thread/read",
+        "CODEX_TEST_ERROR_MESSAGE" to "ephemeral threads do not support includeTurns",
+      ),
+    )
+    try {
+      assertThat(client.readThreadActivitySnapshot("thread-read-1")).isNull()
+    }
+    finally {
+      client.shutdown()
+    }
+  }
+
+  @Test
+  fun readThreadActivitySnapshotRethrowsUnexpectedThreadReadError(): Unit = runBlocking(Dispatchers.Default) {
+    val configPath = tempDir.resolve("codex-thread-read-error.json")
+    writeConfig(path = configPath, threads = emptyList())
+
+    val backendDir = tempDir.resolve("backend-thread-read-error")
+    Files.createDirectories(backendDir)
+    val client = createMockClient(
+      scope = this,
+      tempDir = backendDir,
+      configPath = configPath,
+      environmentOverrides = mapOf(
+        "CODEX_TEST_ERROR_METHOD" to "thread/read",
+        "CODEX_TEST_ERROR_MESSAGE" to "boom",
+      ),
+    )
+    try {
+      try {
+        client.readThreadActivitySnapshot("thread-read-1")
+        fail("Expected CodexAppServerException")
+      }
+      catch (e: CodexAppServerException) {
+        assertThat(e.message).contains("boom")
+      }
+    }
+    finally {
+      client.shutdown()
+    }
+  }
+
+  @Test
+  fun readThreadActivitySnapshotReturnsNullForUnmaterializedRealThreadBeforeFirstUserMessage(): Unit = runBlocking(Dispatchers.Default) {
+    val projectDir = tempDir.resolve("project-real-thread-read-unmaterialized")
+    Files.createDirectories(projectDir)
+
+    val backendDir = tempDir.resolve("backend-real-thread-read-unmaterialized")
+    Files.createDirectories(backendDir)
+    val client = createRealBackendDefinition().createClient(
+      scope = this,
+      tempDir = backendDir,
+      configPath = tempDir.resolve("unused-real-thread-read-config.json"),
+    )
+    try {
+      val session = client.createThreadSession(cwd = projectDir.toString())
+      assertThat(session.rolloutPath).isNotBlank()
+      assertThat(client.readThreadActivitySnapshot(session.thread.id)).isNull()
     }
     finally {
       client.shutdown()
@@ -1124,6 +1225,89 @@ class CodexAppServerClientTest {
     }
     finally {
       client.shutdown()
+    }
+  }
+
+  @Test
+  fun startTurnPassesPlanModePromptThrough(): Unit = runBlocking(Dispatchers.Default) {
+    val workingDir = tempDir.resolve("project-turn-start")
+    Files.createDirectories(workingDir)
+    val configPath = workingDir.resolve("codex-config.json")
+    writeConfig(path = configPath, threads = emptyList())
+
+    val backendDir = tempDir.resolve("backend-turn-start")
+    Files.createDirectories(backendDir)
+    val requestPayloadLogPath = backendDir.resolve("turn-start-requests.log")
+    val client = createMockClient(
+      scope = this,
+      tempDir = backendDir,
+      configPath = configPath,
+      environmentOverrides = mapOf(
+        "CODEX_TEST_REQUEST_PAYLOAD_LOG" to requestPayloadLogPath.toString(),
+      ),
+    )
+    try {
+      val created = client.createThreadSession(cwd = workingDir.toString())
+      val turnId = client.startTurn(
+        threadId = created.thread.id,
+        promptText = "Refactor this",
+        collaborationMode = CodexTurnCollaborationMode(
+          mode = "plan",
+          model = created.model,
+          reasoningEffort = created.reasoningEffort,
+        ),
+      )
+
+      assertThat(turnId).startsWith("turn-")
+
+      val payloadLog = Files.readString(requestPayloadLogPath)
+      assertThat(payloadLog).contains("\"method\":\"initialize\"")
+      assertThat(payloadLog).contains("\"capabilities\":{\"experimentalApi\":true}")
+      assertThat(payloadLog).contains("\"method\":\"turn/start\"")
+      assertThat(payloadLog).contains("\"threadId\":\"${created.thread.id}\"")
+      assertThat(payloadLog).contains("\"type\":\"text\"")
+      assertThat(payloadLog).contains("\"text\":\"Refactor this\"")
+      assertThat(payloadLog).contains("\"collaborationMode\":{\"mode\":\"plan\"")
+      assertThat(payloadLog).contains("\"settings\":{\"model\":\"${created.model}\"")
+      assertThat(payloadLog).contains("\"reasoning_effort\":\"${created.reasoningEffort}\"")
+      assertThat(payloadLog).contains("\"developer_instructions\":null")
+    }
+    finally {
+      client.shutdown()
+    }
+  }
+
+  @Test
+  fun startTurnWithPlanModeUsesRealCodexAppServer(): Unit = runBlocking(Dispatchers.Default) {
+    val backendDir = tempDir.resolve("backend-turn-start-real")
+    Files.createDirectories(backendDir)
+    createRealMockResponsesHarness(
+      scope = this,
+      tempDir = backendDir,
+      responsePlans = listOf(MockResponsesPlan.completedAssistantMessage("Done")),
+    ).use { harness ->
+      val created = harness.client.createThreadSession(cwd = harness.projectDir.toString())
+      assertThat(created.rolloutPath).isNotBlank()
+
+      val turnId = harness.client.startTurn(
+        threadId = created.thread.id,
+        promptText = "Refactor this",
+        collaborationMode = CodexTurnCollaborationMode(
+          mode = "plan",
+          model = created.model,
+          reasoningEffort = created.reasoningEffort,
+        ),
+      )
+
+      assertThat(turnId).isNotBlank()
+      withTimeout(5.seconds) {
+        while (harness.responsesServer.requests().isEmpty()) {
+          delay(10.milliseconds)
+        }
+      }
+      val requests = harness.responsesServer.requests()
+      assertThat(requests).hasSize(1)
+      assertThat(requests.single()).contains("Refactor this")
     }
   }
 

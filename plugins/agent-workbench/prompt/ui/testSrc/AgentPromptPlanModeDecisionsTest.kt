@@ -8,7 +8,6 @@ import com.intellij.agent.workbench.prompt.core.AgentPromptInitialMessageRequest
 import com.intellij.agent.workbench.sessions.core.providers.AGENT_PROMPT_PROVIDER_OPTION_PLAN_MODE
 import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessagePlan
 import com.intellij.agent.workbench.sessions.core.providers.AgentPromptProviderOption
-import com.intellij.agent.workbench.sessions.core.providers.AgentSessionLaunchSpec
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProviderDescriptor
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSource
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionTerminalLaunchSpec
@@ -28,8 +27,7 @@ class AgentPromptPlanModeDecisionsTest {
         )
 
         assertThat(effectiveOptionIds).containsExactly(AGENT_PROMPT_PROVIDER_OPTION_PLAN_MODE)
-        assertThat(resolveEffectivePlanModeEnabled(selectedProvider, effectiveOptionIds)).isTrue()
-    }
+      }
 
     @Test
     fun existingReadyTaskKeepsSelectedPlanModeOption() {
@@ -42,8 +40,7 @@ class AgentPromptPlanModeDecisionsTest {
         )
 
         assertThat(effectiveOptionIds).containsExactly(AGENT_PROMPT_PROVIDER_OPTION_PLAN_MODE)
-        assertThat(resolveEffectivePlanModeEnabled(selectedProvider, effectiveOptionIds)).isTrue()
-    }
+      }
 
     @Test
     fun activeExistingTaskClearsPlanModeOption() {
@@ -56,7 +53,6 @@ class AgentPromptPlanModeDecisionsTest {
             selectedThreadActivity = AgentThreadActivity.PROCESSING,
         )
         assertThat(processingOptionIds).isEmpty()
-        assertThat(resolveEffectivePlanModeEnabled(selectedProvider, processingOptionIds)).isFalse()
 
         val reviewingOptionIds = resolveEffectiveProviderOptionIds(
             selectedProvider = selectedProvider,
@@ -65,13 +61,11 @@ class AgentPromptPlanModeDecisionsTest {
             selectedThreadActivity = AgentThreadActivity.REVIEWING,
         )
         assertThat(reviewingOptionIds).isEmpty()
-        assertThat(resolveEffectivePlanModeEnabled(selectedProvider, reviewingOptionIds)).isFalse()
-    }
+      }
 
     @Test
     fun providerWithoutPlanModeOptionNeverEnablesPlanMode() {
         val selectedProvider = testPlanModeProviderBridge(
-            supportsPlanMode = false,
             promptOptions = emptyList(),
         )
         val effectiveOptionIds = resolveEffectiveProviderOptionIds(
@@ -82,8 +76,7 @@ class AgentPromptPlanModeDecisionsTest {
         )
 
         assertThat(effectiveOptionIds).isEmpty()
-        assertThat(resolveEffectivePlanModeEnabled(selectedProvider, effectiveOptionIds)).isFalse()
-    }
+      }
 
     @Test
     fun deselectedPlanModeOptionNeverEnablesPlanMode() {
@@ -96,20 +89,17 @@ class AgentPromptPlanModeDecisionsTest {
         )
 
         assertThat(effectiveOptionIds).isEmpty()
-        assertThat(resolveEffectivePlanModeEnabled(selectedProvider, effectiveOptionIds)).isFalse()
-    }
+      }
 }
 
 private fun testPlanModeProviderBridge(
     provider: AgentSessionProvider = AgentSessionProvider.CODEX,
-    supportsPlanMode: Boolean = true,
     promptOptions: List<AgentPromptProviderOption> = listOf(PLAN_MODE_OPTION),
 ): AgentSessionProviderDescriptor {
     return object : AgentSessionProviderDescriptor {
         override val provider: AgentSessionProvider = provider
         override val displayNameKey: String = provider.value
         override val newSessionLabelKey: String = provider.value
-        override val supportsPlanMode: Boolean = supportsPlanMode
         override val icon: Icon
             get() = error("Not required for this test")
         override val promptOptions: List<AgentPromptProviderOption> = promptOptions
@@ -125,14 +115,6 @@ private fun testPlanModeProviderBridge(
 
         override fun buildNewSessionLaunchSpec(mode: AgentSessionLaunchMode): AgentSessionTerminalLaunchSpec {
             return AgentSessionTerminalLaunchSpec(command = emptyList())
-        }
-
-        override fun buildNewEntryLaunchSpec(): AgentSessionTerminalLaunchSpec {
-            return AgentSessionTerminalLaunchSpec(command = emptyList())
-        }
-
-        override suspend fun createNewSession(path: String, mode: AgentSessionLaunchMode): AgentSessionLaunchSpec {
-            return AgentSessionLaunchSpec(sessionId = null, launchSpec = AgentSessionTerminalLaunchSpec(command = emptyList()))
         }
 
         override fun buildInitialMessagePlan(request: AgentPromptInitialMessageRequest): AgentInitialMessagePlan {

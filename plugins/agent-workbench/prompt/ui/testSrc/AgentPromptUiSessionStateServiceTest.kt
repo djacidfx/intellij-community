@@ -17,7 +17,6 @@ class AgentPromptUiSessionStateServiceTest {
             targetMode = PromptTargetMode.EXISTING_TASK,
             existingTaskSearch = "query",
             selectedExistingTaskId = "task-1",
-            planModeEnabled = false,
             taskDrafts = mapOf(PromptTargetMode.NEW_TASK.name to "fix"),
             providerOptionsByProviderId = mapOf("codex" to emptySet()),
         )
@@ -61,7 +60,6 @@ class AgentPromptUiSessionStateServiceTest {
                 targetMode = PromptTargetMode.EXISTING_TASK,
                 existingTaskSearch = "query",
                 selectedExistingTaskId = "task-1",
-                planModeEnabled = false,
                 taskDrafts = mapOf(PromptTargetMode.NEW_TASK.name to "fix"),
                 providerOptionsByProviderId = mapOf("codex" to emptySet()),
             )
@@ -97,7 +95,6 @@ class AgentPromptUiSessionStateServiceTest {
                 targetMode = PromptTargetMode.NEW_TASK,
                 existingTaskSearch = "",
                 selectedExistingTaskId = null,
-                planModeEnabled = true,
                 taskDrafts = mapOf(PromptTargetMode.NEW_TASK.name to "prompt"),
                 providerOptionsByProviderId = mapOf("codex" to setOf("plan_mode")),
             )

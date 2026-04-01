@@ -55,25 +55,26 @@ Define the single source of truth for cross-feature behavior that must stay cons
 - Resume command mapping is canonical:
   - Codex: `codex resume <threadId>`
   - Claude: `claude --resume <threadId>`
-  [@test] ../sessions/testSrc/AgentSessionCliTest.kt
+  [@test] ../claude/sessions/testSrc/ClaudeAgentSessionProviderDescriptorTest.kt
+  [@test] ../codex/sessions/testSrc/CodexAgentSessionProviderDescriptorTest.kt
 
 - New-thread command mapping is canonical:
   - Codex default: `codex`
   - Codex YOLO: `codex --full-auto`
   - Claude default: `claude`
   - Claude YOLO: `claude --dangerously-skip-permissions`
-  [@test] ../sessions/testSrc/AgentSessionCliTest.kt
+  [@test] ../claude/sessions/testSrc/ClaudeAgentSessionProviderDescriptorTest.kt
   [@test] ../codex/sessions/testSrc/CodexAgentSessionProviderDescriptorTest.kt
 
 - Canonical provider command mapping must keep bare executable names; executable lookup is resolved by terminal startup environment and provider mapping must not pre-resolve absolute executable paths.
-  [@test] ../sessions/testSrc/AgentSessionCliTest.kt
+  [@test] ../claude/sessions/testSrc/ClaudeAgentSessionProviderDescriptorTest.kt
   [@test] ../codex/sessions/testSrc/CodexAgentSessionProviderDescriptorTest.kt
 
 - New-thread prompt bootstrap — startup command format: provider bridges may build one-shot startup commands by appending `-- <prompt>` to canonical command.
   [@test] ../codex/sessions/testSrc/CodexAgentSessionProviderDescriptorTest.kt
   [@test] ../claude/sessions/testSrc/ClaudeAgentSessionProviderDescriptorTest.kt
 
-- Provider bridge policy may explicitly disable startup prompt command usage for a launch request (for example Codex Plan mode), forcing post-start dispatch.
+- Provider bridge policy may explicitly disable startup prompt command usage for a launch request (for example Codex Plan mode fallback cases), forcing post-start dispatch.
   [@test] ../sessions/testSrc/AgentSessionPromptLauncherBridgeTest.kt
 
 - Initial prompt handoff from Sessions to Chat must use one dispatch plan carrying:
@@ -92,8 +93,11 @@ Define the single source of truth for cross-feature behavior that must stay cons
 
 - Post-start initial message fallback must be terminal-readiness-gated for all providers: dispatch only after terminal session reaches `Running` and startup output readiness heuristic, never before process readiness.
 - If readiness signal is missing, timeout fallback dispatch may proceed after bounded timeout except for Codex `/plan` dispatch steps, which must continue waiting for explicit readiness.
-- Codex `/plan <prompt>` must not use startup prompt injection: Workbench must keep it on post-start dispatch as two steps (`/plan`, then stripped prompt body), because the Codex TUI startup prompt is plain input text rather than slash-command parsing.
+- Codex new-thread `/plan <prompt>` with a non-empty stripped body must use post-start dispatch on the normal pending PTY session: first `/plan`, then the stripped prompt body.
+- Existing-thread opens and bare `/plan` must use the same sequenced Codex post-start dispatch behavior.
 - The Codex `/plan` step must retry when post-send terminal output contains `'/plan' is disabled while a task is in progress.` and must not advance to the prompt-body step until that retry condition clears.
+  [@test] ../sessions/testSrc/AgentSessionPromptLauncherBridgeTest.kt
+  [@test] ../chat/testSrc/AgentChatFileEditorLifecycleTest.kt
 - Recognized Claude menu commands from the canonical Claude menu-command set must not use startup prompt injection. They must remain post-start dispatch so the Claude TUI receives them as slash commands after the session is running.
 - Claude menu-command post-start dispatch must send the raw command text as typed terminal input with execute semantics and without bracketed paste mode, so commands such as `/mcp`, `/model`, or `/memory` execute immediately instead of remaining as pasted prompt text.
   [@test] ../chat/testSrc/AgentChatFileEditorLifecycleTest.kt
@@ -150,7 +154,8 @@ Define the single source of truth for cross-feature behavior that must stay cons
 - Cross-surface action contracts must fail safely when required context is missing.
 
 ## Testing / Local Run
-- `./tests.cmd '-Dintellij.build.test.patterns=com.intellij.agent.workbench.sessions.AgentSessionCliTest'`
+- `./tests.cmd '-Dintellij.build.test.patterns=com.intellij.agent.workbench.claude.sessions.ClaudeAgentSessionProviderDescriptorTest'`
+- `./tests.cmd '-Dintellij.build.test.patterns=com.intellij.agent.workbench.codex.sessions.CodexAgentSessionProviderDescriptorTest'`
 - `./tests.cmd '-Dintellij.build.test.patterns=com.intellij.agent.workbench.sessions.AgentSessionsEditorTabActionsTest'`
 - `./tests.cmd '-Dintellij.build.test.patterns=com.intellij.agent.workbench.sessions.SessionTreeSelectionSyncTest'`
 - `./tests.cmd '-Dintellij.build.test.patterns=com.intellij.agent.workbench.chat.AgentChatFileEditorProviderTest'`

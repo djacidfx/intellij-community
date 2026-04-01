@@ -157,6 +157,50 @@ class AgentSessionChatOpenPayloadTest {
         .containsExactly(AGENT_WORKBENCH_TEST_PATH_PREPEND)
     }
   }
+
+  @Test
+  fun preservesRemoteResumeCommandFromResumeLaunchProvider() {
+    runBlocking(Dispatchers.Default) {
+      val thread = AgentSessionThread(
+        id = "thread-1",
+        title = "Parent title",
+        updatedAt = 1,
+        archived = false,
+        provider = AgentSessionProvider.CODEX,
+      )
+
+      val payload = resolveAgentSessionChatOpenPayload(
+        projectPath = PROJECT_PATH,
+        thread = thread,
+        subAgent = null,
+        launchSpecOverride = null,
+        resumeLaunchSpecProvider = { provider, sessionId ->
+          check(provider == AgentSessionProvider.CODEX)
+          AgentSessionTerminalLaunchSpec(
+            command = listOf(
+              "codex",
+              "-c",
+              "check_for_update_on_startup=false",
+              "--remote",
+              "ws://127.0.0.1:31337",
+              "resume",
+              sessionId,
+            ),
+          )
+        },
+      )
+
+      assertThat(payload.launchSpec.command).containsExactly(
+        "codex",
+        "-c",
+        "check_for_update_on_startup=false",
+        "--remote",
+        "ws://127.0.0.1:31337",
+        "resume",
+        "thread-1",
+      )
+    }
+  }
 }
 
 private fun testResumeLaunchSpec(

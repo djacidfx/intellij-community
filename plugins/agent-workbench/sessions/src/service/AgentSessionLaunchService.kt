@@ -20,7 +20,6 @@ import com.intellij.agent.workbench.prompt.core.AgentPromptLaunchRequest
 import com.intellij.agent.workbench.prompt.core.AgentPromptLaunchResult
 import com.intellij.agent.workbench.sessions.AgentSessionsBundle
 import com.intellij.agent.workbench.sessions.core.launch.AgentSessionLaunchSpecs
-import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessageDispatchCompletionPolicy
 import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessageDispatchPlan
 import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessageDispatchStep
 import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessagePlan
@@ -28,8 +27,7 @@ import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessageS
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProviderDescriptor
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProviders
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionTerminalLaunchSpec
-import com.intellij.agent.workbench.sessions.core.providers.isPlanModeCommand
-import com.intellij.agent.workbench.sessions.core.providers.stripPlanModePrefix
+import com.intellij.agent.workbench.sessions.core.providers.isBlockedForExistingThreadPlanMode
 import com.intellij.agent.workbench.sessions.core.statistics.AgentWorkbenchEntryPoint
 import com.intellij.agent.workbench.sessions.core.statistics.AgentWorkbenchTargetKind
 import com.intellij.agent.workbench.sessions.core.statistics.AgentWorkbenchTelemetry
@@ -187,6 +185,7 @@ class AgentSessionLaunchService internal constructor(
     currentProject: Project? = null,
     initialMessageDispatchPlan: AgentInitialMessageDispatchPlan = AgentInitialMessageDispatchPlan.EMPTY,
     initialMessageRequest: AgentPromptInitialMessageRequest? = null,
+    precomputedInitialMessagePlan: AgentInitialMessagePlan? = null,
     singleFlightPolicy: SingleFlightPolicy = SingleFlightPolicy.DROP,
     launchOrigin: OpenThreadLaunchOrigin = OpenThreadLaunchOrigin.USER_OPEN,
     promptLaunchResolved: ((AgentPromptLaunchResult) -> Unit)? = null,
@@ -201,8 +200,31 @@ class AgentSessionLaunchService internal constructor(
       policy = singleFlightPolicy,
     ) {
       try {
+        val effectiveInitialMessagePlan = when {
+          initialMessageRequest == null -> null
+          precomputedInitialMessagePlan != null -> precomputedInitialMessagePlan
+          else -> AgentSessionProviders.find(thread.provider)?.buildInitialMessagePlan(initialMessageRequest)
+        }
+        val effectiveThread = if (initialMessageRequest != null) {
+          val refreshedThread = findPromptTargetThread(
+            normalizedPath = normalizedPath,
+            provider = thread.provider,
+            threadId = thread.id,
+          ) ?: run {
+            promptLaunchResolved?.invoke(AgentPromptLaunchResult.failure(AgentPromptLaunchError.TARGET_THREAD_NOT_FOUND))
+            return@launchDropAction
+          }
+          if (effectiveInitialMessagePlan?.isBlockedForExistingThreadPlanMode(refreshedThread.activity) == true) {
+            promptLaunchResolved?.invoke(AgentPromptLaunchResult.failure(AgentPromptLaunchError.TARGET_THREAD_BUSY_FOR_PLAN_MODE))
+            return@launchDropAction
+          }
+          refreshedThread
+        }
+        else {
+          thread
+        }
         val worktreeBranch = stateStore.findWorktreeBranch(normalizedPath)
-        val originBranch = thread.originBranch
+        val originBranch = effectiveThread.originBranch
         if (worktreeBranch != null && originBranch != null && originBranch != worktreeBranch && !isBranchMismatchDialogSuppressed()) {
           val proceed = withContext(Dispatchers.EDT) {
             showBranchMismatchDialog(originBranch, worktreeBranch)
@@ -218,14 +240,15 @@ class AgentSessionLaunchService internal constructor(
         else {
           resolvePromptInitialMessageDispatchPlan(
             normalizedPath = normalizedPath,
-            thread = thread,
+            thread = effectiveThread,
             initialMessageRequest = initialMessageRequest,
+            precomputedInitialMessagePlan = effectiveInitialMessagePlan,
           )
         }
-        AgentWorkbenchTelemetry.logThreadOpenRequested(entryPoint, thread.provider, AgentWorkbenchTargetKind.THREAD)
+        AgentWorkbenchTelemetry.logThreadOpenRequested(entryPoint, effectiveThread.provider, AgentWorkbenchTargetKind.THREAD)
         chatOpenExecutor.openChat(
           normalizedPath = normalizedPath,
-          thread = thread,
+          thread = effectiveThread,
           subAgent = null,
           launchSpecOverride = null,
           initialMessageDispatchPlan = effectiveInitialMessageDispatchPlan,
@@ -303,18 +326,16 @@ class AgentSessionLaunchService internal constructor(
           return@launchDropAction
         }
 
-        val createSpec = descriptor.createNewSession(path = normalizedPath, mode = mode)
-        val launchSpec = AgentSessionLaunchSpecs.augment(
-          projectPath = normalizedPath,
-          provider = provider,
-          launchSpec = createSpec.launchSpec,
-        )
-        val identity = createSpec.sessionId?.let { sessionId ->
-          buildAgentSessionIdentity(provider, sessionId)
-        } ?: buildAgentSessionNewIdentity(provider)
         val initialMessagePlan = initialMessageRequest
           ?.let(descriptor::buildInitialMessagePlan)
           ?: AgentInitialMessagePlan.EMPTY
+        val baseLaunchSpec = descriptor.buildNewSessionLaunchSpec(mode)
+        val launchSpec = AgentSessionLaunchSpecs.augment(
+          projectPath = normalizedPath,
+          provider = provider,
+          launchSpec = baseLaunchSpec,
+        )
+        val identity = buildAgentSessionNewIdentity(provider)
         val initialMessageDispatchPlan = buildInitialMessageDispatchPlan(
           descriptor = descriptor,
           baseLaunchSpec = launchSpec,
@@ -326,7 +347,7 @@ class AgentSessionLaunchService internal constructor(
           provider = provider,
           projectPath = normalizedPath,
           identity = identity,
-          baseLaunchSpec = createSpec.launchSpec,
+          baseLaunchSpec = baseLaunchSpec,
           resolvedLaunchSpec = launchSpec,
           initialMessageDispatchPlan = initialMessageDispatchPlan,
         )
@@ -339,7 +360,7 @@ class AgentSessionLaunchService internal constructor(
           initialMessageDispatchPlan = initialMessageDispatchPlan,
           preferredDedicatedFrame = preferredDedicatedFrame,
         )
-        if (AgentSessionProviders.find(provider)?.refreshPathAfterCreateNewSession == true) {
+        if (descriptor.refreshPathAfterCreateNewSession) {
           syncService.refreshProviderForPath(path = normalizedPath, provider = provider)
         }
         promptLaunchResolved?.invoke(AgentPromptLaunchResult.SUCCESS)
@@ -391,6 +412,10 @@ class AgentSessionLaunchService internal constructor(
             provider = request.provider,
             threadId = targetThreadId,
           ) ?: return@run reportPromptLaunchResolved(AgentPromptLaunchResult.failure(AgentPromptLaunchError.TARGET_THREAD_NOT_FOUND))
+          val initialMessagePlan = bridge.buildInitialMessagePlan(request.initialMessageRequest)
+          if (initialMessagePlan.isBlockedForExistingThreadPlanMode(targetThread.activity)) {
+            return@run reportPromptLaunchResolved(AgentPromptLaunchResult.failure(AgentPromptLaunchError.TARGET_THREAD_BUSY_FOR_PLAN_MODE))
+          }
           uiPreferencesState.updateProviderPreferencesOnLaunch(request.provider, request.launchMode, request.initialMessageRequest)
 
           openChatThread(
@@ -398,6 +423,7 @@ class AgentSessionLaunchService internal constructor(
             thread = targetThread,
             entryPoint = AgentWorkbenchEntryPoint.PROMPT,
             initialMessageRequest = request.initialMessageRequest,
+            precomputedInitialMessagePlan = initialMessagePlan,
             singleFlightPolicy = SingleFlightPolicy.RESTART_LATEST,
             launchOrigin = OpenThreadLaunchOrigin.PROMPT_LAUNCH,
             promptLaunchResolved = ::reportPromptLaunchResolved,
@@ -533,10 +559,7 @@ private fun buildInitialMessageDispatchPlan(
     initialMessagePlan: AgentInitialMessagePlan,
     allowStartupPromptOverride: Boolean,
 ): AgentInitialMessageDispatchPlan {
-  val postStartDispatchSteps = buildPostStartDispatchSteps(
-    provider = descriptor.provider,
-    initialMessagePlan = initialMessagePlan,
-  )
+  val postStartDispatchSteps = descriptor.buildPostStartDispatchSteps(initialMessagePlan)
   if (postStartDispatchSteps.isEmpty()) {
     return AgentInitialMessageDispatchPlan.EMPTY
   }
@@ -565,14 +588,10 @@ private fun buildStartupLaunchSpecOverride(
   if (initialMessagePlan.startupPolicy != AgentInitialMessageStartupPolicy.TRY_STARTUP_COMMAND) {
     return null
   }
-  val prompt = initialMessagePlan.message ?: return null
-  if (descriptor.provider == AgentSessionProvider.CODEX && prompt.isPlanModeCommand()) {
-    LOG.debug {
-      "Skipped startup prompt command override for ${descriptor.provider.value}: plan-mode commands must stay on post-start dispatch"
-    }
-    return null
-  }
-  val startupLaunchSpec = descriptor.buildLaunchSpecWithInitialPrompt(baseLaunchSpec = baseLaunchSpec, prompt = prompt) ?: return null
+  val startupLaunchSpec = descriptor.buildLaunchSpecWithInitialMessage(
+    baseLaunchSpec = baseLaunchSpec,
+    initialMessagePlan = initialMessagePlan,
+  ) ?: return null
   val estimatedCommandSize = estimateCommandSizeBytes(startupLaunchSpec.command)
   if (estimatedCommandSize <= MAX_STARTUP_COMMAND_BYTES) {
     return startupLaunchSpec
@@ -607,37 +626,6 @@ private fun estimateCommandSizeBytes(command: List<String>): Int {
   return command.sumOf { part -> part.toByteArray().size + 1 }
 }
 
-private fun buildPostStartDispatchSteps(
-  provider: AgentSessionProvider,
-  initialMessagePlan: AgentInitialMessagePlan,
-): List<AgentInitialMessageDispatchStep> {
-  val message = initialMessagePlan.message ?: return emptyList()
-  if (provider != AgentSessionProvider.CODEX || !message.isPlanModeCommand()) {
-    return listOf(
-      AgentInitialMessageDispatchStep(
-        text = message,
-        timeoutPolicy = initialMessagePlan.timeoutPolicy,
-      )
-    )
-  }
-
-  val steps = mutableListOf(
-    AgentInitialMessageDispatchStep(
-      text = "/plan",
-      timeoutPolicy = initialMessagePlan.timeoutPolicy,
-      completionPolicy = AgentInitialMessageDispatchCompletionPolicy.RETRY_ON_CODEX_PLAN_BUSY,
-    )
-  )
-  val strippedPrompt = message.stripPlanModePrefix()
-  if (strippedPrompt.isNotEmpty()) {
-    steps += AgentInitialMessageDispatchStep(
-      text = strippedPrompt,
-      timeoutPolicy = initialMessagePlan.timeoutPolicy,
-    )
-  }
-  return steps
-}
-
 private fun buildInitialMessageToken(identity: String, steps: List<AgentInitialMessageDispatchStep>): String {
   val sequenceKey = steps.joinToString(separator = "\u0000") { step ->
     listOf(step.text, step.timeoutPolicy.name, step.completionPolicy.name).joinToString(separator = "\u0001")
@@ -649,6 +637,7 @@ private suspend fun resolvePromptInitialMessageDispatchPlan(
   normalizedPath: String,
   thread: AgentSessionThread,
   initialMessageRequest: AgentPromptInitialMessageRequest?,
+  precomputedInitialMessagePlan: AgentInitialMessagePlan? = null,
 ): AgentInitialMessageDispatchPlan {
   if (initialMessageRequest == null) {
     return AgentInitialMessageDispatchPlan.EMPTY
@@ -656,7 +645,7 @@ private suspend fun resolvePromptInitialMessageDispatchPlan(
 
   val descriptor = AgentSessionProviders.find(thread.provider)
                   ?: return AgentInitialMessageDispatchPlan.EMPTY
-  val initialMessagePlan = descriptor.buildInitialMessagePlan(initialMessageRequest)
+  val initialMessagePlan = precomputedInitialMessagePlan ?: descriptor.buildInitialMessagePlan(initialMessageRequest)
   val identity = buildAgentSessionIdentity(provider = thread.provider, sessionId = thread.id)
   val resumeLaunchSpec = AgentSessionLaunchSpecs.resolveResume(
     projectPath = normalizedPath,

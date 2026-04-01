@@ -1,9 +1,13 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.agent.workbench.chat
 
+import com.intellij.agent.workbench.common.AgentThreadActivity
 import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessageDispatchCompletionPolicy
 import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessageDispatchStep
 import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessageTimeoutPolicy
+import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.project.DumbAware
+import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.terminal.frontend.view.TerminalKeyEvent
@@ -28,6 +32,29 @@ import javax.swing.JComponent
 import javax.swing.JPanel
 
 class AgentChatFileEditorLifecycleTest {
+  @Test
+  fun editorTabActionGroupWrapperIsDumbAware() {
+    val firstAction = DumbAwareAction.create("First") { }
+    val secondAction = DumbAwareAction.create("Second") { }
+
+    val emptyGroup = buildAgentChatEditorTabActionGroup(emptyList())
+    val wrappedSingleActionGroup = buildAgentChatEditorTabActionGroup(listOf(firstAction))
+    val existingGroup = object : DefaultActionGroup(firstAction), DumbAware {}
+    val reusedGroup = buildAgentChatEditorTabActionGroup(listOf(existingGroup))
+    val wrappedMultiActionGroup = buildAgentChatEditorTabActionGroup(listOf(firstAction, secondAction))
+
+    assertThat(emptyGroup).isNull()
+    assertThat(wrappedSingleActionGroup).isNotNull
+    assertThat(checkNotNull(wrappedSingleActionGroup)).isInstanceOf(DumbAware::class.java)
+    assertThat((wrappedSingleActionGroup as DefaultActionGroup).getChildActionsOrStubs())
+      .containsExactly(firstAction)
+    assertThat(reusedGroup).isSameAs(existingGroup)
+    assertThat(wrappedMultiActionGroup).isNotNull
+    assertThat(checkNotNull(wrappedMultiActionGroup)).isInstanceOf(DumbAware::class.java)
+    assertThat((wrappedMultiActionGroup as DefaultActionGroup).getChildActionsOrStubs())
+      .containsExactly(firstAction, secondAction)
+  }
+
   @Test
   fun preferredFocusedComponentDoesNotStartTerminalInitialization() {
     val terminalTabs = FakeAgentChatTerminalTabs()
@@ -440,6 +467,87 @@ class AgentChatFileEditorLifecycleTest {
         SentTerminalText("/plan", shouldExecute = true),
         SentTerminalText("/plan", shouldExecute = true),
         SentTerminalText("Retry after delayed busy output", shouldExecute = true),
+      )
+  }
+
+  @Test
+  fun codexPlanModeBusyRetryWaitsForThreadActivityToLeaveBusyStateBeforeResendingPlan() {
+    val terminalTabs = FakeAgentChatTerminalTabs()
+    terminalTabs.tab.readinessResult = AgentChatTerminalInputReadiness.TIMEOUT
+    terminalTabs.tab.enqueuePostSendOutput("'/plan' is disabled while a task is in progress.")
+    val file = testFile().also {
+      it.updateInitialMessageMetadata(
+        initialMessageDispatchSteps = codexPlanDispatchSteps("Retry after activity clears"),
+        initialMessageDispatchStepIndex = 0,
+        initialMessageToken = "token-plan-busy-activity",
+        initialMessageSent = false,
+      )
+    }
+    val editor = testEditor(file = file, terminalTabs = terminalTabs)
+
+    editor.selectNotify()
+    terminalTabs.tab.setSessionState(TerminalViewSessionState.Running)
+    terminalTabs.tab.emitMeaningfulOutput("ready for first /plan")
+    waitForCondition { terminalTabs.tab.sentTexts.size == 1 }
+
+    file.updateThreadActivity(AgentThreadActivity.PROCESSING)
+    Thread.sleep(350)
+
+    assertThat(file.initialMessageDispatchStepIndex).isZero()
+    assertThat(terminalTabs.tab.sentTexts)
+      .containsExactly(SentTerminalText("/plan", shouldExecute = true))
+
+    file.updateThreadActivity(AgentThreadActivity.READY)
+    waitForCondition(timeoutMs = 5_000) {
+      file.initialMessageDispatchStepIndex == 1 &&
+      terminalTabs.tab.sentTexts.size == 2
+    }
+
+    terminalTabs.tab.emitMeaningfulOutput("ready for prompt")
+    waitForCondition { terminalTabs.tab.sentTexts.size == 3 }
+
+    assertThat(file.initialMessageSent).isTrue()
+    assertThat(terminalTabs.tab.sentTexts)
+      .containsExactly(
+        SentTerminalText("/plan", shouldExecute = true),
+        SentTerminalText("/plan", shouldExecute = true),
+        SentTerminalText("Retry after activity clears", shouldExecute = true),
+      )
+  }
+
+  @Test
+  fun codexPlanModeBusyResponseWithFormattingNoiseStillRetriesPlanStep() {
+    val terminalTabs = FakeAgentChatTerminalTabs()
+    terminalTabs.tab.readinessResult = AgentChatTerminalInputReadiness.TIMEOUT
+    terminalTabs.tab.enqueuePostSendOutput("\u001B[31m'/plan'\u001B[0m   is disabled while a\n task is in progress.")
+    val file = testFile().also {
+      it.updateInitialMessageMetadata(
+        initialMessageDispatchSteps = codexPlanDispatchSteps("Retry after formatted busy output"),
+        initialMessageDispatchStepIndex = 0,
+        initialMessageToken = "token-plan-busy-formatted",
+        initialMessageSent = false,
+      )
+    }
+    val editor = testEditor(file = file, terminalTabs = terminalTabs)
+
+    editor.selectNotify()
+    terminalTabs.tab.setSessionState(TerminalViewSessionState.Running)
+    terminalTabs.tab.emitMeaningfulOutput("ready for first /plan")
+
+    waitForCondition(timeoutMs = 6_000) {
+      file.initialMessageDispatchStepIndex == 1 &&
+      terminalTabs.tab.sentTexts.size == 2
+    }
+
+    terminalTabs.tab.emitMeaningfulOutput("ready for prompt")
+    waitForCondition { terminalTabs.tab.sentTexts.size == 3 }
+
+    assertThat(file.initialMessageSent).isTrue()
+    assertThat(terminalTabs.tab.sentTexts)
+      .containsExactly(
+        SentTerminalText("/plan", shouldExecute = true),
+        SentTerminalText("/plan", shouldExecute = true),
+        SentTerminalText("Retry after formatted busy output", shouldExecute = true),
       )
   }
 

@@ -4,7 +4,6 @@ description: Requirements for Codex thread discovery, activity derivation, backe
 targets:
   - ../codex/sessions/src/**/*.kt
   - ../codex/common/src/CodexAppServerClient.kt
-  - ../sessions/src/CodexSessionsCompatibility.kt
   - ../sessions/src/AgentSessionModels.kt
   - ../sessions/src/service/AgentSessionRefreshCoordinator.kt
   - ../codex/sessions/testSrc/**/*.kt

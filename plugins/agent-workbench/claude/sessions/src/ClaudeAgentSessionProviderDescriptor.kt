@@ -7,22 +7,20 @@ import com.intellij.agent.workbench.common.session.AgentSessionLaunchMode
 import com.intellij.agent.workbench.common.session.AgentSessionProvider
 import com.intellij.agent.workbench.common.session.isClaudeMenuCommandPrompt
 import com.intellij.agent.workbench.prompt.core.AgentPromptInitialMessageRequest
-import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessageDispatchPlan
 import com.intellij.agent.workbench.sessions.core.providers.AGENT_PROMPT_PROVIDER_PLAN_MODE_OPTION
+import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessageDispatchPlan
 import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessageDispatchStep
+import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessageMode
 import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessagePlan
 import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessageStartupPolicy
 import com.intellij.agent.workbench.sessions.core.providers.AgentPendingSessionMetadata
 import com.intellij.agent.workbench.sessions.core.providers.AgentPromptProviderOption
-import com.intellij.agent.workbench.sessions.core.providers.AgentSessionLaunchSpec
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProviderDescriptor
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSource
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionTerminalLaunchSpec
 import com.intellij.agent.workbench.sessions.core.providers.AgentThreadRenameContext
 import com.intellij.agent.workbench.sessions.core.providers.AgentThreadRenameHandler
 import com.intellij.agent.workbench.sessions.core.providers.buildPlanModeInitialMessagePlan
-import com.intellij.agent.workbench.sessions.core.providers.isPlanModeCommand
-import com.intellij.agent.workbench.sessions.core.providers.stripPlanModePrefix
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import javax.swing.Icon
@@ -67,9 +65,6 @@ internal class ClaudeAgentSessionProviderDescriptor(
   override val refreshPathAfterCreateNewSession: Boolean
     get() = true
 
-  override val supportsPlanMode: Boolean
-    get() = true
-
   override val threadRenameHandler: AgentThreadRenameHandler = object : AgentThreadRenameHandler.ChatDispatch {
     override val supportedContexts: Set<AgentThreadRenameContext>
       get() = setOf(AgentThreadRenameContext.TREE_POPUP, AgentThreadRenameContext.EDITOR_TAB)
@@ -100,20 +95,12 @@ internal class ClaudeAgentSessionProviderDescriptor(
     )
   }
 
-  override fun buildNewEntryLaunchSpec(): AgentSessionTerminalLaunchSpec {
-    return AgentSessionTerminalLaunchSpec(
-      command = listOf(ClaudeCliSupport.CLAUDE_COMMAND, PERMISSION_MODE_FLAG, PERMISSION_MODE_DEFAULT),
-      envVariables = mapOf(CLAUDE_DISABLE_AUTO_UPDATER_ENV to CLAUDE_DISABLE_AUTO_UPDATER_VALUE),
-    )
-  }
-
-  override fun buildLaunchSpecWithInitialPrompt(
+  override fun buildLaunchSpecWithInitialMessage(
     baseLaunchSpec: AgentSessionTerminalLaunchSpec,
-    prompt: String,
+    initialMessagePlan: AgentInitialMessagePlan,
   ): AgentSessionTerminalLaunchSpec {
-    val planMode = prompt.isPlanModeCommand()
-    val effectivePrompt = prompt.stripPlanModePrefix()
-    val permissionMode = if (planMode) PERMISSION_MODE_PLAN else PERMISSION_MODE_DEFAULT
+    val effectivePrompt = initialMessagePlan.message ?: return baseLaunchSpec
+    val permissionMode = if (initialMessagePlan.mode == AgentInitialMessageMode.PLAN) PERMISSION_MODE_PLAN else PERMISSION_MODE_DEFAULT
     val command = replaceOrAddPermissionMode(baseLaunchSpec.command, permissionMode) + listOf("--", effectivePrompt)
     return baseLaunchSpec.copy(command = command)
   }
@@ -155,13 +142,6 @@ internal class ClaudeAgentSessionProviderDescriptor(
 
   override fun createToolWindowNorthComponent(project: Project): JComponent {
     return ClaudeQuotaHintBanner()
-  }
-
-  override suspend fun createNewSession(path: String, mode: AgentSessionLaunchMode): AgentSessionLaunchSpec {
-    return AgentSessionLaunchSpec(
-      sessionId = null,
-      launchSpec = buildNewSessionLaunchSpec(mode),
-    )
   }
 }
 

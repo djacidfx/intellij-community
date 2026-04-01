@@ -14,6 +14,11 @@ enum class AgentInitialMessageStartupPolicy {
   POST_START_ONLY,
 }
 
+enum class AgentInitialMessageMode {
+  STANDARD,
+  PLAN,
+}
+
 enum class AgentInitialMessageTimeoutPolicy {
   ALLOW_TIMEOUT_FALLBACK,
   REQUIRE_EXPLICIT_READINESS,
@@ -43,6 +48,7 @@ sealed interface AgentThreadRenameHandler {
 
 data class AgentInitialMessagePlan(
   @JvmField val message: String?,
+  @JvmField val mode: AgentInitialMessageMode = AgentInitialMessageMode.STANDARD,
   @JvmField val startupPolicy: AgentInitialMessageStartupPolicy = AgentInitialMessageStartupPolicy.TRY_STARTUP_COMMAND,
   @JvmField val timeoutPolicy: AgentInitialMessageTimeoutPolicy = AgentInitialMessageTimeoutPolicy.ALLOW_TIMEOUT_FALLBACK,
 ) {
@@ -136,9 +142,6 @@ interface AgentSessionProviderDescriptor {
   val threadRenameHandler: AgentThreadRenameHandler?
     get() = null
 
-  val supportsPlanMode: Boolean
-    get() = false
-
   val supportsUnarchiveThread: Boolean
     get() = false
 
@@ -148,14 +151,30 @@ interface AgentSessionProviderDescriptor {
 
   fun buildNewSessionLaunchSpec(mode: AgentSessionLaunchMode): AgentSessionTerminalLaunchSpec
 
-  fun buildNewEntryLaunchSpec(): AgentSessionTerminalLaunchSpec
-
-  fun buildLaunchSpecWithInitialPrompt(
+  fun buildLaunchSpecWithInitialMessage(
     baseLaunchSpec: AgentSessionTerminalLaunchSpec,
-    prompt: String,
+    initialMessagePlan: AgentInitialMessagePlan,
   ): AgentSessionTerminalLaunchSpec? = null
 
-  suspend fun createNewSession(path: String, mode: AgentSessionLaunchMode): AgentSessionLaunchSpec
+  fun buildPostStartDispatchSteps(initialMessagePlan: AgentInitialMessagePlan): List<AgentInitialMessageDispatchStep> {
+    val message = initialMessagePlan.message ?: return emptyList()
+    if (initialMessagePlan.mode != AgentInitialMessageMode.PLAN) {
+      return listOf(
+        AgentInitialMessageDispatchStep(
+          text = message,
+          timeoutPolicy = initialMessagePlan.timeoutPolicy,
+        )
+      )
+    }
+
+    val planCommand = if (message.isEmpty()) AGENT_PROMPT_PLAN_MODE_COMMAND else "$AGENT_PROMPT_PLAN_MODE_COMMAND $message"
+    return listOf(
+      AgentInitialMessageDispatchStep(
+        text = planCommand,
+        timeoutPolicy = initialMessagePlan.timeoutPolicy,
+      )
+    )
+  }
 
   suspend fun archiveThread(path: String, threadId: String): Boolean = false
 
@@ -179,9 +198,4 @@ interface AgentSessionProviderDescriptor {
 data class AgentSessionTerminalLaunchSpec(
   @JvmField val command: List<String>,
   @JvmField val envVariables: Map<String, String> = emptyMap(),
-)
-
-data class AgentSessionLaunchSpec(
-  @JvmField val sessionId: String?,
-  @JvmField val launchSpec: AgentSessionTerminalLaunchSpec,
 )

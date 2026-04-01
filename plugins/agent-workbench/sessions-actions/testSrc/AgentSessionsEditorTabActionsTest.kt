@@ -14,6 +14,8 @@ import com.intellij.agent.workbench.sessions.actions.AgentSessionsEditorTabNewTh
 import com.intellij.agent.workbench.sessions.actions.AgentSessionsEditorTabRenameThreadAction
 import com.intellij.agent.workbench.sessions.actions.AgentSessionsGoToSourceProjectFromEditorTabAction
 import com.intellij.agent.workbench.sessions.actions.AgentSessionsSelectThreadInToolWindowAction
+import com.intellij.agent.workbench.sessions.actions.buildQuickStartProjectPopupGroup
+import com.intellij.agent.workbench.sessions.actions.collectProjectPathCandidates
 import com.intellij.agent.workbench.sessions.actions.providerIcon
 import com.intellij.agent.workbench.sessions.actions.resolveQuickStartProjectPopupAnchor
 import com.intellij.agent.workbench.sessions.core.SessionActionTarget
@@ -24,6 +26,8 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionUiKind
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformCoreDataKeys
+import com.intellij.openapi.actionSystem.Separator
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.testFramework.TestActionEvent
 import com.intellij.testFramework.junit5.TestApplication
@@ -224,6 +228,23 @@ class AgentSessionsEditorTabActionsTest {
   }
 
   @Test
+  fun collectProjectPathCandidatesUsesAllOpenProjectsForDedicatedFrameProject() {
+    val candidates = collectProjectPathCandidates(
+      project = ProjectManager.getInstance().defaultProject,
+      isDedicatedProject = { true },
+      openProjectPaths = {
+        listOf(
+          "/work/repo-a",
+          "/tmp/repo-a",
+        )
+      },
+    )
+
+    assertThat(checkNotNull(candidates).map(AgentPromptProjectPathCandidate::path))
+      .containsExactly("/work/repo-a", "/tmp/repo-a")
+  }
+
+  @Test
   fun quickNewThreadPopupAnchorPrefersInputEventComponent() {
     val action = AgentSessionsEditorTabNewThreadQuickAction(resolveContext = { null }, allBridges = { emptyList() })
     val inputComponent = JPanel()
@@ -264,6 +285,20 @@ class AgentSessionsEditorTabActionsTest {
     val event = TestActionEvent.createTestEvent(action)
 
     assertThat(resolveQuickStartProjectPopupAnchor(event)).isNull()
+  }
+
+  @Test
+  fun quickNewThreadProjectPopupActionsAreDumbAware() {
+    val candidates = listOf(
+      projectCandidate(path = "/work/repo-a", displayName = "Project A"),
+      projectCandidate(path = "/tmp/repo-a", displayName = "/tmp/repo-a"),
+    )
+
+    val group = buildQuickStartProjectPopupGroup(candidates) { }
+
+    assertThat(DumbService.isDumbAware(group)).isTrue()
+    assertThat(group.getChildren(TestActionEvent.createTestEvent()))
+      .allSatisfy { action -> assertThat(DumbService.isDumbAware(action)).isTrue() }
   }
 
   @Test
@@ -360,7 +395,10 @@ class AgentSessionsEditorTabActionsTest {
     assertThat(children.map { it.templatePresentation.text }).containsExactly("Project A", "/tmp/repo-a")
 
     val secondProjectGroup = children.last() as ActionGroup
+    assertThat(DumbService.isDumbAware(secondProjectGroup)).isTrue()
     val secondProjectChildren = secondProjectGroup.getChildren(event)
+    assertThat(secondProjectChildren.filterNot { action -> action is Separator })
+      .allSatisfy { action -> assertThat(DumbService.isDumbAware(action)).isTrue() }
     val yoloAction = secondProjectChildren.first { action ->
       action.templatePresentation.text == AgentSessionsBundle.message("toolwindow.action.new.session.codex.yolo")
     }

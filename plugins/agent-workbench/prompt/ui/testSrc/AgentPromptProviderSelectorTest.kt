@@ -8,11 +8,12 @@ import com.intellij.agent.workbench.prompt.core.AgentPromptInvocationData
 import com.intellij.agent.workbench.sessions.core.providers.AGENT_PROMPT_PROVIDER_OPTION_PLAN_MODE
 import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessagePlan
 import com.intellij.agent.workbench.sessions.core.providers.AgentPromptProviderOption
-import com.intellij.agent.workbench.sessions.core.providers.AgentSessionLaunchSpec
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProviderDescriptor
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSource
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionTerminalLaunchSpec
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.ProjectManager
+import com.intellij.testFramework.TestActionEvent
 import com.intellij.testFramework.junit5.TestApplication
 import com.intellij.testFramework.runInEdtAndWait
 import com.intellij.ui.components.JBCheckBox
@@ -30,7 +31,6 @@ class AgentPromptProviderSelectorTest {
     runInEdtAndWait {
       val provider = testProviderBridge(
         provider = AgentSessionProvider.CODEX,
-        supportsPlanMode = true,
         promptOptions = listOf(planModeOption()),
       )
       val fixture = createSelectorFixture(listOf(provider))
@@ -59,7 +59,6 @@ class AgentPromptProviderSelectorTest {
     runInEdtAndWait {
       val provider = testProviderBridge(
         provider = AgentSessionProvider.CLAUDE,
-        supportsPlanMode = false,
         promptOptions = emptyList(),
       )
       val fixture = createSelectorFixture(listOf(provider))
@@ -68,6 +67,50 @@ class AgentPromptProviderSelectorTest {
 
       assertThat(fixture.providerOptionsPanel.componentCount).isZero()
       assertThat(fixture.providerOptionsPanel.isVisible).isFalse()
+    }
+  }
+
+  @Test
+  fun chooserGroupAndProviderActionsAreDumbAware() {
+    runInEdtAndWait {
+      val provider = testProviderBridge(
+        provider = AgentSessionProvider.CODEX,
+        promptOptions = emptyList(),
+      )
+      val fixture = createSelectorFixture(listOf(provider))
+
+      fixture.selector.refresh()
+
+      val group = fixture.selector.buildChooserActionGroup { error("should not select provider during dumb-awareness test") }
+      assertThat(group).isNotNull
+      assertThat(DumbService.isDumbAware(group)).isTrue()
+
+      val child = checkNotNull(group).getChildren(TestActionEvent.createTestEvent()).single()
+      assertThat(DumbService.isDumbAware(child)).isTrue()
+    }
+  }
+
+  @Test
+  fun disabledProviderActionRetainsUnavailableDescription() {
+    runInEdtAndWait {
+      val provider = testProviderBridge(
+        provider = AgentSessionProvider.CODEX,
+        promptOptions = emptyList(),
+        cliAvailable = false,
+      )
+      val fixture = createSelectorFixture(listOf(provider))
+
+      fixture.selector.refresh()
+
+      val action = checkNotNull(fixture.selector.buildChooserActionGroup { error("should not select unavailable provider") })
+        .getChildren(TestActionEvent.createTestEvent())
+        .single()
+      val event = TestActionEvent.createTestEvent(action)
+
+      action.update(event)
+
+      assertThat(event.presentation.isEnabled).isFalse()
+      assertThat(event.presentation.description).isEqualTo("Codex CLI is unavailable.")
     }
   }
 
@@ -94,21 +137,20 @@ class AgentPromptProviderSelectorTest {
 
   private fun testProviderBridge(
     provider: AgentSessionProvider,
-    supportsPlanMode: Boolean,
     promptOptions: List<AgentPromptProviderOption>,
+    cliAvailable: Boolean = true,
   ): AgentSessionProviderDescriptor {
     return object : AgentSessionProviderDescriptor {
       override val provider: AgentSessionProvider = provider
       override val displayNameKey: String = "provider.${provider.value}"
       override val newSessionLabelKey: String = displayNameKey
-      override val supportsPlanMode: Boolean = supportsPlanMode
       override val promptOptions: List<AgentPromptProviderOption> = promptOptions
       override val sessionSource: AgentSessionSource
         get() = error("Not required for this test")
       override val cliMissingMessageKey: String = displayNameKey
       override val icon = EmptyIcon.ICON_16
 
-      override fun isCliAvailable(): Boolean = true
+      override fun isCliAvailable(): Boolean = cliAvailable
 
       override fun buildResumeLaunchSpec(sessionId: String): AgentSessionTerminalLaunchSpec {
         return AgentSessionTerminalLaunchSpec(command = emptyList())
@@ -116,17 +158,6 @@ class AgentPromptProviderSelectorTest {
 
       override fun buildNewSessionLaunchSpec(mode: AgentSessionLaunchMode): AgentSessionTerminalLaunchSpec {
         return AgentSessionTerminalLaunchSpec(command = emptyList())
-      }
-
-      override fun buildNewEntryLaunchSpec(): AgentSessionTerminalLaunchSpec {
-        return AgentSessionTerminalLaunchSpec(command = emptyList())
-      }
-
-      override suspend fun createNewSession(path: String, mode: AgentSessionLaunchMode): AgentSessionLaunchSpec {
-        return AgentSessionLaunchSpec(
-          sessionId = null,
-          launchSpec = AgentSessionTerminalLaunchSpec(command = emptyList()),
-        )
       }
 
       override fun buildInitialMessagePlan(request: AgentPromptInitialMessageRequest): AgentInitialMessagePlan {

@@ -29,7 +29,6 @@ internal data class AgentPromptUiDraft(
     @JvmField val sendMode: PromptSendMode = PromptSendMode.SEND_NOW,
     @JvmField val existingTaskSearch: String = "",
     @JvmField val selectedExistingTaskId: String? = null,
-    @JvmField val planModeEnabled: Boolean = true,
     @JvmField val taskDrafts: Map<String, String> = emptyMap(),
     @JvmField val providerOptionsByProviderId: Map<String, Set<String>> = emptyMap(),
 )

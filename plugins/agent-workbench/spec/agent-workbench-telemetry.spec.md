@@ -84,6 +84,7 @@ This spec covers only Agent Workbench-specific semantic telemetry. Generic actio
   - `PROVIDER_UNAVAILABLE`
   - `UNSUPPORTED_LAUNCH_MODE`
   - `TARGET_THREAD_NOT_FOUND`
+  - `TARGET_THREAD_BUSY_FOR_PLAN_MODE`
   - `CANCELLED`
   - `DROPPED_DUPLICATE`
   - `INTERNAL_ERROR`

@@ -7,7 +7,6 @@ import com.intellij.agent.workbench.prompt.core.AgentPromptContextItem
 import com.intellij.agent.workbench.prompt.core.AgentPromptInvocationData
 import com.intellij.agent.workbench.prompt.core.AgentPromptLauncherBridge
 import com.intellij.agent.workbench.prompt.core.AgentPromptPaletteExtensionContext
-import com.intellij.agent.workbench.sessions.core.providers.AGENT_PROMPT_PROVIDER_OPTION_PLAN_MODE
 import com.intellij.ui.EditorTextField
 import javax.swing.JPanel
 import javax.swing.JTabbedPane
@@ -44,9 +43,6 @@ internal class AgentPromptPaletteDraftController(
       availableProviders = providerSelector.availableProviders,
     )
     providerSelector.selectProvider(persistedProvider, providerPrefs.launchMode)
-    if (effectiveProviderOptions.isEmpty()) {
-      providerSelector.applyLegacyPlanModeSelection(providerSelector.selectedProvider?.bridge?.provider, draft.planModeEnabled)
-    }
     updateProviderOptionsVisibility()
 
     setTargetMode(draft.targetMode)
@@ -156,12 +152,6 @@ internal class AgentPromptPaletteDraftController(
         existingTaskSearch = draftState.existingTaskSearchQuery,
         selectedExistingTaskId = existingTaskController.selectedExistingTaskId,
         taskDrafts = allTaskDrafts,
-        planModeEnabled = providerSelector.selectedProvider
-                            ?.bridge
-                            ?.provider
-                            ?.let(providerSelector::selectedOptionIds)
-                            ?.contains(AGENT_PROMPT_PROVIDER_OPTION_PLAN_MODE)
-                          ?: true,
         providerOptionsByProviderId = providerSelector.providerOptionSelections(),
       )
     )
@@ -200,10 +190,6 @@ internal class AgentPromptPaletteDraftController(
       applySuggestedPromptToDraftState(state, promptText)
     }
     setPromptAreaTextProgrammatically(promptText)
-  }
-
-  fun removeTaskDraft(taskKey: String) {
-    draftState.taskPromptStates.remove(taskKey)
   }
 
   private fun syncLivePromptTextForSelectedTab(promptText: String) {

@@ -8,13 +8,18 @@ import com.intellij.agent.workbench.common.session.AgentSessionProvider
 import com.intellij.agent.workbench.common.session.isClaudeMenuCommandPrompt
 import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessageDispatchCompletionPolicy
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProviders
+import com.intellij.agent.workbench.sessions.core.providers.isBusyForExistingThreadPlanMode
+import com.intellij.ide.OccurenceNavigator
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ActionUpdateThread
+import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.components.serviceAsync
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorState
+import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.terminal.frontend.toolwindow.TerminalToolWindowTab
@@ -63,7 +68,9 @@ internal class AgentChatFileEditor(
   private val terminalTabs: AgentChatTerminalTabs = ToolWindowAgentChatTerminalTabs,
   private val tabSnapshotWriter: AgentChatTabSnapshotWriter = ApplicationAgentChatTabSnapshotWriter,
 ) : UserDataHolderBase(), FileEditor {
-  private val component = JPanel(BorderLayout())
+  private val component = AgentChatFileEditorComponent {
+    semanticRegionController?.occurrenceNavigator() ?: OccurenceNavigator.EMPTY
+  }
   private val editorTabActions: ActionGroup? by lazy {
     val actionManager = ActionManager.getInstance()
     val providerActionIds = file.provider
@@ -73,6 +80,8 @@ internal class AgentChatFileEditor(
       listOf(
         NEW_THREAD_QUICK_FROM_EDITOR_TAB_ACTION_ID,
         NEW_THREAD_POPUP_FROM_EDITOR_TAB_ACTION_ID,
+        PREVIOUS_PROPOSED_PLAN_FROM_EDITOR_TAB_ACTION_ID,
+        NEXT_PROPOSED_PLAN_FROM_EDITOR_TAB_ACTION_ID,
       ).forEach { actionId ->
         actionManager.getAction(actionId)?.let(::add)
       }
@@ -80,20 +89,14 @@ internal class AgentChatFileEditor(
         actionManager.getAction(actionId)?.let(::add)
       }
     }
-    if (actions.isEmpty()) {
-      return@lazy null
-    }
-    if (actions.size == 1) {
-      val singleAction = actions.single()
-      return@lazy singleAction as? ActionGroup ?: DefaultActionGroup(singleAction)
-    }
-    DefaultActionGroup(actions)
+    buildAgentChatEditorTabActionGroup(actions)
   }
   private var tab: AgentChatTerminalTab? = null
   private var initializationStarted: Boolean = false
   private var disposed: Boolean = false
   private var pendingInitialMessageJob: Job? = null
   private var codexTuiPatchFoldController: CodexTuiPatchFoldController? = null
+  private var semanticRegionController: AgentChatSemanticRegionController? = null
 
   private val providerBehavior
     get() = file.provider?.let(AgentSessionProviders::find)
@@ -128,6 +131,8 @@ internal class AgentChatFileEditor(
     disposed = true
     codexTuiPatchFoldController?.dispose()
     codexTuiPatchFoldController = null
+    semanticRegionController?.dispose()
+    semanticRegionController = null
     pendingInitialMessageJob?.cancel()
     pendingInitialMessageJob = null
     tab?.let { terminalTab ->
@@ -157,6 +162,22 @@ internal class AgentChatFileEditor(
             parentScope = createdTab.coroutineScope,
           )
         }
+      val semanticRegionDetector = if (shouldInstallAgentChatSemanticRegionNavigation(file.provider)) {
+        resolveAgentChatSemanticRegionDetector(file.provider)
+      }
+      else {
+        null
+      }
+      semanticRegionController = semanticRegionDetector?.let { detector ->
+        createdTab.terminalView?.let { terminalView ->
+          AgentChatSemanticRegionController(
+            terminalView = terminalView,
+            sessionState = createdTab.sessionState,
+            detector = detector,
+            parentScope = createdTab.coroutineScope,
+          )
+        }
+      }
       component.removeAll()
       component.add(createdTab.component, BorderLayout.CENTER)
       component.revalidate()
@@ -194,6 +215,14 @@ internal class AgentChatFileEditor(
   internal fun flushPendingInitialMessageIfInitialized() {
     val initializedTab = tab ?: return
     scheduleInitialMessageSend(initializedTab)
+  }
+
+  internal fun canNavigateProposedPlan(direction: AgentChatSemanticNavigationDirection): Boolean {
+    return semanticRegionController?.canNavigate(direction) == true
+  }
+
+  internal fun navigateProposedPlan(direction: AgentChatSemanticNavigationDirection): Boolean {
+    return semanticRegionController?.navigate(direction) == true
   }
 
   private fun subscribePendingFirstInput(createdTab: AgentChatTerminalTab) {
@@ -287,6 +316,18 @@ internal class AgentChatFileEditor(
       return AgentChatInitialMessageSendResult.NO_PROGRESS
     }
     val dispatch = file.acquireInitialMessageDispatch() ?: return AgentChatInitialMessageSendResult.NO_PROGRESS
+    if (
+      dispatch.completionPolicy == AgentInitialMessageDispatchCompletionPolicy.RETRY_ON_CODEX_PLAN_BUSY &&
+      codexPlanBusyRetryAttempt > 0 &&
+      file.threadActivity.isBusyForExistingThreadPlanMode()
+    ) {
+      file.cancelInitialMessageDispatch(dispatch)
+      delay(calculateCodexPlanModeRetryBackoffMs(codexPlanBusyRetryAttempt).milliseconds)
+      return AgentChatInitialMessageSendResult(
+        progressed = false,
+        retryCurrentStepWithoutReadiness = true,
+      )
+    }
     val readinessCheckpoint = createdTab.captureOutputCheckpoint()
     try {
       createdTab.sendText(
@@ -316,7 +357,7 @@ internal class AgentChatFileEditor(
         file.cancelInitialMessageDispatch(dispatch)
         return AgentChatInitialMessageSendResult.NO_PROGRESS
       }
-      if (observation.text.contains(CODEX_PLAN_MODE_BUSY_MESSAGE)) {
+      if (isCodexPlanModeBusyOutput(observation.text)) {
         file.cancelInitialMessageDispatch(dispatch)
         delay(calculateCodexPlanModeRetryBackoffMs(codexPlanBusyRetryAttempt).milliseconds)
         return AgentChatInitialMessageSendResult(
@@ -339,6 +380,24 @@ internal class AgentChatFileEditor(
   }
 }
 
+private class AgentChatFileEditorComponent(
+  private val navigatorProvider: () -> OccurenceNavigator,
+) : JPanel(BorderLayout()), OccurenceNavigator {
+  override fun hasNextOccurence(): Boolean = navigatorProvider().hasNextOccurence()
+
+  override fun hasPreviousOccurence(): Boolean = navigatorProvider().hasPreviousOccurence()
+
+  override fun goNextOccurence(): OccurenceNavigator.OccurenceInfo? = navigatorProvider().goNextOccurence()
+
+  override fun goPreviousOccurence(): OccurenceNavigator.OccurenceInfo? = navigatorProvider().goPreviousOccurence()
+
+  override fun getNextOccurenceActionName(): String = navigatorProvider().nextOccurenceActionName
+
+  override fun getPreviousOccurenceActionName(): String = navigatorProvider().previousOccurenceActionName
+
+  override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+}
+
 private data class AgentChatInitialMessageSendResult(
   @JvmField val progressed: Boolean,
   @JvmField val nextReadinessCheckpoint: AgentChatTerminalOutputCheckpoint? = null,
@@ -354,6 +413,25 @@ private fun calculateCodexPlanModeRetryBackoffMs(retryAttempt: Int): Long {
   return (CODEX_PLAN_MODE_RETRY_BACKOFF_MS * (1L shl cappedAttempt)).coerceAtMost(CODEX_PLAN_MODE_MAX_RETRY_BACKOFF_MS)
 }
 
+private fun isCodexPlanModeBusyOutput(text: String): Boolean {
+  return normalizeCodexTerminalOutput(text).contains(CODEX_PLAN_MODE_BUSY_MESSAGE, ignoreCase = true)
+}
+
+private fun normalizeCodexTerminalOutput(text: String): String {
+  val withoutAnsi = CODEX_TERMINAL_ANSI_ESCAPE_REGEX.replace(text, "")
+  val sanitized = buildString(withoutAnsi.length) {
+    withoutAnsi.forEach { char ->
+      append(
+        when {
+          char.isWhitespace() || char.isISOControl() -> ' '
+          else -> char
+        }
+      )
+    }
+  }
+  return sanitized.replace(CODEX_TERMINAL_WHITESPACE_REGEX, " ").trim()
+}
+
 internal fun interface AgentChatTabSnapshotWriter {
   suspend fun upsert(snapshot: AgentChatTabSnapshot)
 }
@@ -364,8 +442,28 @@ private object ApplicationAgentChatTabSnapshotWriter : AgentChatTabSnapshotWrite
   }
 }
 
+internal fun buildAgentChatEditorTabActionGroup(actions: List<AnAction>): ActionGroup? {
+  if (actions.isEmpty()) {
+    return null
+  }
+  if (actions.size == 1) {
+    val singleAction = actions.single()
+    return singleAction as? ActionGroup ?: DumbAwareAgentChatActionGroup(singleAction)
+  }
+  return DumbAwareAgentChatActionGroup(actions)
+}
+
+private class DumbAwareAgentChatActionGroup : DefaultActionGroup, DumbAware {
+  constructor(vararg actions: AnAction) : super(*actions)
+
+  constructor(actions: List<AnAction>) : super(actions)
+}
+
 private const val NEW_THREAD_QUICK_FROM_EDITOR_TAB_ACTION_ID: String = AgentWorkbenchActionIds.Sessions.EditorTab.NEW_THREAD_QUICK
 private const val NEW_THREAD_POPUP_FROM_EDITOR_TAB_ACTION_ID: String = AgentWorkbenchActionIds.Sessions.EditorTab.NEW_THREAD_POPUP
+private const val PREVIOUS_PROPOSED_PLAN_FROM_EDITOR_TAB_ACTION_ID: String =
+  AgentWorkbenchActionIds.Sessions.EditorTab.PREVIOUS_PROPOSED_PLAN
+private const val NEXT_PROPOSED_PLAN_FROM_EDITOR_TAB_ACTION_ID: String = AgentWorkbenchActionIds.Sessions.EditorTab.NEXT_PROPOSED_PLAN
 
 internal interface AgentChatTerminalTab {
   val component: JComponent
@@ -777,3 +875,5 @@ private const val CODEX_PLAN_MODE_MAX_RETRY_BACKOFF_MS: Long = 1_000
 private const val POST_SEND_SCAN_LIMIT_CHARS: Long = 8_192
 private const val READINESS_SCAN_LIMIT_CHARS: Long = 8_192
 private const val CODEX_PLAN_MODE_BUSY_MESSAGE: String = "'/plan' is disabled while a task is in progress."
+private val CODEX_TERMINAL_ANSI_ESCAPE_REGEX: Regex = Regex("\\u001B\\[[0-9;?]*[ -/]*[@-~]")
+private val CODEX_TERMINAL_WHITESPACE_REGEX: Regex = Regex(" +")

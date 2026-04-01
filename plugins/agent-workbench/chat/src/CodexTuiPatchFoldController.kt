@@ -2,7 +2,6 @@
 package com.intellij.agent.workbench.chat
 
 import com.intellij.agent.workbench.common.session.AgentSessionProvider
-import com.intellij.ide.DataManager
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.editor.CustomFoldRegion
 import com.intellij.openapi.editor.Editor
@@ -12,28 +11,20 @@ import com.intellij.openapi.editor.event.EditorMouseListener
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.registry.RegistryManager
-import com.intellij.terminal.actions.TerminalActionUtil
 import com.intellij.terminal.frontend.view.TerminalView
 import com.intellij.terminal.frontend.view.TerminalViewSessionState
 import com.intellij.terminal.frontend.view.activeOutputModel
-import com.intellij.util.asDisposable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.jetbrains.plugins.terminal.view.TerminalContentChangeEvent
 import org.jetbrains.plugins.terminal.view.TerminalLineIndex
-import org.jetbrains.plugins.terminal.view.TerminalOutputModel
-import org.jetbrains.plugins.terminal.view.TerminalOutputModelListener
 import org.jetbrains.plugins.terminal.view.TerminalOutputModelSnapshot
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -126,23 +117,7 @@ internal class CodexTuiPatchFoldController(
   }
 
   private suspend fun rebuildActiveEditorFolds() {
-    val request = withContext(Dispatchers.EDT) {
-      if (sessionState.value == TerminalViewSessionState.Terminated) {
-        foldState.clear()
-        null
-      }
-      else {
-        val editor = resolveTerminalEditor(terminalView)
-        if (editor == null || editor.isDisposed) {
-          foldState.clear()
-          null
-        }
-        else {
-          val model = terminalView.activeOutputModel()
-          ActiveTerminalSnapshot(model = model, snapshot = model.takeSnapshot())
-        }
-      }
-    } ?: return
+    val request = captureActiveTerminalSnapshot(terminalView, sessionState) { foldState.clear() } ?: return
 
     val matches = withContext(Dispatchers.Default) {
       detectCodexTuiPatchBlocks(request.snapshot)
@@ -170,10 +145,6 @@ internal class CodexTuiPatchFoldController(
     }
   }
 
-  private data class ActiveTerminalSnapshot(
-    val model: TerminalOutputModel,
-    val snapshot: TerminalOutputModelSnapshot,
-  )
 }
 
 internal class CodexTuiPatchFoldState {
@@ -388,32 +359,7 @@ private fun parseCodexTuiPatchBlock(
   )
 }
 
-private fun codexTuiPatchFoldRebuildFlow(terminalView: TerminalView): Flow<Unit> = callbackFlow {
-  val scope = this
-  withContext(Dispatchers.EDT) {
-    val listenerDisposable = scope.asDisposable()
-    val listener = object : TerminalOutputModelListener {
-      override fun afterContentChanged(event: TerminalContentChangeEvent) {
-        if (!scope.isActive || event.isTypeAhead) {
-          return
-        }
-        scope.trySend(Unit)
-      }
-    }
-    terminalView.outputModels.regular.addListener(listenerDisposable, listener)
-    terminalView.outputModels.alternative.addListener(listenerDisposable, listener)
-  }
-  awaitClose()
-}
-
-private fun resolveTerminalEditor(terminalView: TerminalView): Editor? {
-  val dataContext = DataManager.getInstance().getDataContext(terminalView.component)
-  return TerminalActionUtil.EDITOR_KEY.getData(dataContext)
-}
-
-private fun TerminalOutputModelSnapshot.lineText(line: TerminalLineIndex): String {
-  return getText(getStartOfLine(line), getEndOfLine(line)).toString()
-}
+private fun codexTuiPatchFoldRebuildFlow(terminalView: TerminalView): Flow<Unit> = terminalOutputModelChangeFlow(terminalView)
 
 private fun isCodexTuiPatchContinuationLine(text: String): Boolean {
   return text.isEmpty() || CODEX_TUI_PATCH_FILE_LINE_REGEX.matches(text) || CODEX_TUI_PATCH_INDENTED_LINE_REGEX.matches(text)

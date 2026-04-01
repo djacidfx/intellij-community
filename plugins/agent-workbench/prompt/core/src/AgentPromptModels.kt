@@ -75,7 +75,6 @@ data class AgentPromptInitialMessageRequest(
     @JvmField val projectPath: String? = null,
     @JvmField val contextItems: List<AgentPromptContextItem> = emptyList(),
     @JvmField val contextEnvelopeSummary: AgentPromptContextEnvelopeSummary? = null,
-    @JvmField val planModeEnabled: Boolean = false,
     @JvmField val providerOptionIds: Set<String> = emptySet(),
 )
 
@@ -103,6 +102,7 @@ enum class AgentPromptLaunchError {
     PROVIDER_UNAVAILABLE,
     UNSUPPORTED_LAUNCH_MODE,
     TARGET_THREAD_NOT_FOUND,
+    TARGET_THREAD_BUSY_FOR_PLAN_MODE,
     CANCELLED,
     DROPPED_DUPLICATE,
     INTERNAL_ERROR,
