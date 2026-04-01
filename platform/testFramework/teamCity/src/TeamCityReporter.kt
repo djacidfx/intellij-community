@@ -17,16 +17,13 @@ import java.util.UUID
 @ApiStatus.Internal
 object TeamCityReporter {
 
-  private const val TC_MAX_LENGTH = 7000
-
   /**
    * Truncates and escapes a string for safe inclusion in a TeamCity service message value.
    * Uses the same escaping as [ServiceMessage.asString] to guarantee consistency.
    */
   fun String.processedForTC(): String {
-    val truncated = take(TC_MAX_LENGTH)
     // Use ServiceMessage.asString to ensure identical escaping, then extract the escaped value.
-    val raw = ServiceMessage.asString("_", truncated)
+    val raw = ServiceMessage.asString("_", this)
     return raw.removePrefix("##teamcity[_ '").removeSuffix("']")
   }
 
@@ -44,7 +41,7 @@ object TeamCityReporter {
    * @return the formatted `##teamcity[…]` string
    */
   fun serviceMessage(messageName: String, attributes: Map<String, String>): String =
-    ServiceMessage.asString(messageName, attributes.mapValues { (_, v) -> v.take(TC_MAX_LENGTH) })
+    ServiceMessage.asString(messageName, attributes)
 
   /**
    * Prints a `##teamcity[testStarted …]`
