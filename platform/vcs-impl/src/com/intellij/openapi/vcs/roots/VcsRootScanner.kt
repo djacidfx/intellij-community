@@ -119,7 +119,7 @@ class VcsRootScanner(private val project: Project, coroutineScope: CoroutineScop
             return SKIP_CHILDREN
           }
 
-          if (ReadAction.compute<Boolean, RuntimeException> { project.isDisposed || !fileIndex.isInContent(file) }) {
+          if (ReadAction.computeBlocking<Boolean, RuntimeException> { project.isDisposed || !fileIndex.isInContent(file) }) {
             return SKIP_CHILDREN
           }
 
