@@ -25,6 +25,7 @@ import com.intellij.openapi.vcs.impl.VcsStartupActivity
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileVisitor
+import com.intellij.openapi.vfs.newvfs.NewVirtualFile
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.vcsUtil.VcsUtil
 import com.intellij.vfs.AsyncVfsEventsListener
@@ -93,11 +94,13 @@ class VcsRootScanner(private val project: Project, coroutineScope: CoroutineScop
       val fileIndex = ProjectRootManager.getInstance(project).fileIndex
       val depthLimit = VirtualFileVisitor.limit(Registry.intValue("vcs.root.detector.folder.depth"))
       val ignorePattern = parseDirIgnorePattern()
-      if (isUnderIgnoredDirectory(project, ignorePattern, if (visitIgnoredFoldersThemselves) root.parent else root)) {
+      // we don't want to load the whole world into VFS during scanning
+      val noCacheRoot = NewVirtualFile.asCacheAvoiding(root)
+      if (isUnderIgnoredDirectory(project, ignorePattern, if (visitIgnoredFoldersThemselves) noCacheRoot.parent else noCacheRoot)) {
         return
       }
 
-      VfsUtilCore.visitChildrenRecursively(root, object : VirtualFileVisitor<Unit?>(NO_FOLLOW_SYMLINKS, depthLimit) {
+      VfsUtilCore.visitChildrenRecursively(noCacheRoot, object : VirtualFileVisitor<Unit?>(NO_FOLLOW_SYMLINKS, depthLimit) {
         override fun visitFileEx(file: VirtualFile): Result {
           if (!file.isDirectory) {
             return CONTINUE
