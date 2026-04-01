@@ -3,7 +3,7 @@
 package com.intellij.mcpserver.toolsets
 
 import com.intellij.mcpserver.McpSessionInvocationMode
-import com.intellij.mcpserver.McpToolsetTestBase
+import com.intellij.mcpserver.GeneralMcpToolsetTestBase
 import com.intellij.mcpserver.settings.McpToolFilterSettings
 import com.intellij.mcpserver.toolsets.general.UniversalToolset
 import kotlinx.coroutines.Dispatchers
@@ -16,7 +16,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
-class UniversalToolsetTest : McpToolsetTestBase() {
+class UniversalToolsetTest : GeneralMcpToolsetTestBase() {
   private var oldInvocationMode = McpSessionInvocationMode.DIRECT
   private val json = Json { ignoreUnknownKeys = true }
 

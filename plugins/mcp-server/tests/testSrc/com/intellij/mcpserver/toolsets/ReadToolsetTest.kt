@@ -2,7 +2,7 @@
 
 package com.intellij.mcpserver.toolsets
 
-import com.intellij.mcpserver.McpToolsetTestBase
+import com.intellij.mcpserver.GeneralMcpToolsetTestBase
 import com.intellij.mcpserver.toolsets.general.ReadToolset
 import com.intellij.mcpserver.util.projectDirectory
 import com.intellij.mcpserver.util.relativizeIfPossible
@@ -14,7 +14,7 @@ import kotlinx.serialization.json.buildJsonObject
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
-class ReadToolsetTest : McpToolsetTestBase() {
+class ReadToolsetTest : GeneralMcpToolsetTestBase() {
   private val readFileFixture = sourceRootFixture.virtualFileFixture(
     "read_file_sample.txt",
     """

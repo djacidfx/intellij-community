@@ -2,7 +2,7 @@
 
 package com.intellij.mcpserver.toolsets
 
-import com.intellij.mcpserver.McpToolsetTestBase
+import com.intellij.mcpserver.GeneralMcpToolsetTestBase
 import com.intellij.mcpserver.toolsets.general.SearchToolset
 import com.intellij.mcpserver.util.awaitExternalChangesAndIndexing
 import com.intellij.openapi.application.edtWriteAction
@@ -23,7 +23,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import kotlin.io.path.Path
 
-class SearchToolsetTest : McpToolsetTestBase() {
+class SearchToolsetTest : GeneralMcpToolsetTestBase() {
   private val json = Json { ignoreUnknownKeys = true }
 
   private val searchFile by sourceRootFixture.virtualFileFixture(

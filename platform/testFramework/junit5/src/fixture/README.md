@@ -298,8 +298,8 @@ The base fixture framework does not automatically copy test data into temp direc
 Confirmed behavior:
 
 - `tempPathFixture()` only creates and deletes a temp directory
-- `projectFixture(...)` only creates or opens a project at the given path
-- the only built-in copy mechanism in the public API is `sourceRootFixture(..., blueprintResourcePath = ...)`
+- `projectFixture(...)` can optionally copy a project tree with `blueprintResourcePath`
+- `sourceRootFixture(..., blueprintResourcePath = ...)` can copy a directory tree into a source root
 
 Confirmed implementation references:
 
@@ -307,7 +307,7 @@ Confirmed implementation references:
 - project creation/opening: `community/platform/testFramework/junit5/src/fixture/fixtures.kt`
 - source-root copying via `copyToRecursively(...)`: `community/platform/testFramework/junit5/src/fixture/fixtures.kt`
 
-This means there are two separate recipes.
+This means there are two built-in recipes.
 
 ### Recipe A: Copy A Whole Project Tree, Then Open It
 
@@ -318,14 +318,10 @@ Use this for:
 - tests where files outside source roots matter
 
 ```kotlin
-private val projectPath = testFixture {
-  val tempDir = tempPathFixture().init()
-  val copiedProject = tempDir.resolve("myProject")
-  copyDirectory(testDataProjectRoot, copiedProject)
-  initialized(copiedProject) { }
-}
-
-private val project = projectFixture(projectPath, openAfterCreation = true)
+private val project = projectFixture(
+  openAfterCreation = true,
+  blueprintResourcePath = testDataProjectRoot,
+)
 ```
 
 Confirmed wrappers using this pattern:
@@ -361,7 +357,7 @@ Confirmed usages:
 
 Rule of thumb:
 
-- if you need a real project tree, copy it yourself into a temp dir before calling `projectFixture(...)`
+- if you need a real project tree, prefer `projectFixture(..., blueprintResourcePath = ...)`
 - if you only need source files under a module root, prefer `blueprintResourcePath`
 
 ## Where To Put `testData` And How To Resolve It
@@ -560,7 +556,7 @@ Important notes:
 - there is no public `contentRootFixture`
 - if you need rich content-root layout, prefer `multiverseProjectFixture`
 - `isTestSource = true` exists in the API, but repository usage is rare; when test/resource layout matters, teams more often use the multiverse DSL or local helpers
-- `blueprintResourcePath` is the built-in way to copy an existing directory tree into the created source root
+- `blueprintResourcePath` is the built-in way to copy an existing directory tree into a project fixture or source root
 
 Representative usages:
 

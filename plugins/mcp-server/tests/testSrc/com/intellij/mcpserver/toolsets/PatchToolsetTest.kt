@@ -2,7 +2,7 @@
 
 package com.intellij.mcpserver.toolsets
 
-import com.intellij.mcpserver.McpToolsetTestBase
+import com.intellij.mcpserver.GeneralMcpToolsetTestBase
 import com.intellij.mcpserver.toolsets.general.FileToolset
 import com.intellij.mcpserver.toolsets.general.PatchToolset
 import com.intellij.mcpserver.toolsets.general.ReadToolset
@@ -15,7 +15,7 @@ import kotlinx.serialization.json.buildJsonObject
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
-class PatchToolsetTest : McpToolsetTestBase() {
+class PatchToolsetTest : GeneralMcpToolsetTestBase() {
   @Test
   fun apply_patch_adds_file() = runBlocking(Dispatchers.Default) {
     val pathInProject = "src/notes.txt"

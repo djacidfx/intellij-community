@@ -2,7 +2,7 @@
 
 package com.intellij.mcpserver.toolsets
 
-import com.intellij.mcpserver.McpToolsetTestBase
+import com.intellij.mcpserver.GeneralMcpToolsetTestBase
 import com.intellij.mcpserver.toolsets.general.TextToolset
 import com.intellij.mcpserver.util.relativizeIfPossible
 import com.intellij.testFramework.junit5.fixture.virtualFileFixture
@@ -13,7 +13,7 @@ import kotlinx.serialization.json.buildJsonObject
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
-class TextToolsetTest : McpToolsetTestBase() {
+class TextToolsetTest : GeneralMcpToolsetTestBase() {
   private val emptyFileFixture = sourceRootFixture.virtualFileFixture("empty.txt", "")
   private val emptyFile by emptyFileFixture
 

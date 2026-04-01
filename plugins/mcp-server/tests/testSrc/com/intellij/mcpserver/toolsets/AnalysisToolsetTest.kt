@@ -3,7 +3,7 @@
 package com.intellij.mcpserver.toolsets
 
 import com.intellij.ide.plugins.PluginManagerCore
-import com.intellij.mcpserver.McpToolsetTestBase
+import com.intellij.mcpserver.GeneralMcpToolsetTestBase
 import com.intellij.mcpserver.toolsets.general.AnalysisToolset
 import com.intellij.mcpserver.util.relativizeIfPossible
 import com.intellij.openapi.extensions.PluginId
@@ -15,7 +15,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
-class AnalysisToolsetTest : McpToolsetTestBase() {
+class AnalysisToolsetTest : GeneralMcpToolsetTestBase() {
   @Test
   fun get_file_problems() = runBlocking(Dispatchers.Default) {
     // This test requires Java plugin to detect syntax errors in Java files
