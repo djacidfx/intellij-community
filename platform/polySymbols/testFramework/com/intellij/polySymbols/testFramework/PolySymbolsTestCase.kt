@@ -7,7 +7,6 @@ import com.intellij.codeInsight.navigation.actions.GotoDeclarationOrUsageHandler
 import com.intellij.codeInspection.LocalInspectionTool
 import com.intellij.injected.editor.EditorWindow
 import com.intellij.lang.injection.InjectedLanguageManager
-import com.intellij.mock.MockVirtualFile.file
 import com.intellij.openapi.actionSystem.IdeActions
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.WriteAction
@@ -96,13 +95,19 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
 
   protected open val coroutinesToWaitForAfterEdit: List<CoroutineScope> = emptyList()
 
-  protected open val usagesFilter: (usageInfo: UsageInfo, target: PsiElement) -> Boolean
-    get() = { _, _ -> true }
-
   protected open val directoriesCompareFileFilter: VirtualFileFilter
     get() = { true}
 
-  open fun doConfiguredTest(
+  protected open fun getExpectedItemsLocation(dir: Boolean): String =
+    getExpectedDataLocation(dir)
+
+  protected fun withTempCodeStyleSettings(test: CodeInsightTestFixture.(settings: CodeStyleSettings) -> Unit) {
+    myFixture.testWithTempCodeStyleSettings { t: CodeStyleSettings ->
+      myFixture.test(t)
+    }
+  }
+
+  fun doConfiguredTest(
     fileContents: String? = null,
     dir: Boolean = dirModeByDefault,
     dirName: String = testName,
@@ -399,9 +404,6 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
   private fun getExpectedDataLocation(dir: Boolean): String =
     if (dir) testName else ""
 
-  protected open fun getExpectedItemsLocation(dir: Boolean): String =
-    getExpectedDataLocation(dir)
-
   protected fun doLookupTest(
     fileContents: String? = null,
     dir: Boolean = dirModeByDefault,
@@ -453,12 +455,6 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     }
   }
 
-  protected fun withTempCodeStyleSettings(test: CodeInsightTestFixture.(settings: CodeStyleSettings) -> Unit) {
-    myFixture.testWithTempCodeStyleSettings { t: CodeStyleSettings ->
-      myFixture.test(t)
-    }
-  }
-
   protected fun doFormattingTest(
     dir: Boolean = dirModeByDefault,
     extension: String = defaultExtension,
@@ -491,7 +487,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     }
   }
 
-  protected fun checkHighlighting(
+  protected fun doHighlightingTest(
     dir: Boolean = dirModeByDefault,
     extension: String = defaultExtension,
     configureFileName: String = "$testName.$extension",
@@ -543,7 +539,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     (this as CodeInsightTestFixtureImpl).collectAndCheckHighlighting(data)
   }
 
-  protected fun checkParameterInfo(
+  protected fun doParameterInfoTest(
     dir: Boolean = dirModeByDefault,
     extension: String = defaultExtension,
     configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
@@ -559,7 +555,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     }
   }
 
-  protected fun checkGotoDeclaration(
+  protected fun doGotoDeclarationTest(
     declarationSignature: String,
     dir: Boolean = dirModeByDefault,
     extension: String = defaultExtension,
@@ -577,7 +573,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     }
   }
 
-  protected fun checkJumpToSource(
+  protected fun doJumpToSourceTest(
     targetSignature: String,
     dir: Boolean = dirModeByDefault,
     extension: String = defaultExtension,
@@ -613,7 +609,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     }
   }
 
-  protected fun checkUsageHighlighting(
+  protected fun doUsageHighlightingTest(
     extension: String = defaultExtension,
     dir: Boolean = dirModeByDefault,
     configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
@@ -654,7 +650,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     }
   }
 
-  protected fun checkSymbolRename(
+  protected fun doSymbolRenameTest(
     newName: String,
     searchCommentsAndText: Boolean = false,
     dir: Boolean = true,
@@ -662,12 +658,12 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     extension: String = defaultExtension,
     configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
   ) {
-    checkSymbolRename("$testName.$extension", newName,
-                      searchCommentsAndText = searchCommentsAndText, dir = dir,
-                      testDialog = testDialog, configurators = configurators)
+    doSymbolRenameTest("$testName.$extension", newName,
+                       searchCommentsAndText = searchCommentsAndText, dir = dir,
+                       testDialog = testDialog, configurators = configurators)
   }
 
-  protected fun checkSymbolRename(
+  protected fun doSymbolRenameTest(
     mainFile: String,
     newName: String,
     searchCommentsAndText: Boolean = false,
@@ -698,23 +694,18 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     }
   }
 
-  protected fun checkFileRename(newName: String, mainFile: String, searchCommentsAndText: Boolean = true, testDialog: TestDialog? = null) {
+  protected fun doFileRenameTest(newName: String, mainFile: String, searchCommentsAndText: Boolean = true, testDialog: TestDialog? = null) {
     setTestDialog(testDialog)
     doConfiguredTest(dir = true, checkResult = true, configureFileName = mainFile) {
       renameElement(file, newName, searchCommentsAndText, searchCommentsAndText)
     }
   }
 
-  private fun setTestDialog(testDialog: TestDialog? = null) {
-    testDialog?.let { TestDialogManager.setTestDialog(testDialog) }
-    Disposer.register(testRootDisposable) {
-      TestDialogManager.setTestDialog(TestDialog.DEFAULT)
-    }
-  }
+  protected open val usagesFilter: (usageInfo: UsageInfo, target: PsiElement) -> Boolean
+    get() = { _, _ -> true }
 
-  protected fun usagesAtCaret(scope: SearchScope? = null): List<String> {
-    return myFixture.usagesAtCaret(scope, usagesFilter)
-  }
+  protected fun usagesAtCaret(scope: SearchScope? = null): List<String> =
+    myFixture.usagesAtCaret(scope, usagesFilter)
 
   protected fun checkUsages(
     signature: String,
@@ -722,13 +713,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     strict: Boolean = true,
     scope: SearchScope? = null,
   ) {
-    myFixture.checkUsages(
-      signature,
-      goldFileName,
-      usagesFilter,
-      strict,
-      scope,
-    )
+    myFixture.checkUsages(signature, goldFileName, usagesFilter, strict, scope, )
   }
 
   protected fun checkFileUsages(
@@ -775,5 +760,12 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
   protected data class TestConfiguration(
     val configurators: List<PolySymbolsTestConfigurator>,
   )
+
+  private fun setTestDialog(testDialog: TestDialog? = null) {
+    testDialog?.let { TestDialogManager.setTestDialog(testDialog) }
+    Disposer.register(testRootDisposable) {
+      TestDialogManager.setTestDialog(TestDialog.DEFAULT)
+    }
+  }
 
 }
