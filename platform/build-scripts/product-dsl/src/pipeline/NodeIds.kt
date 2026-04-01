@@ -109,9 +109,6 @@ internal object NodeIds {
   /** Library module validation (auto-fixes .iml files) */
   @JvmField val LIBRARY_MODULE_VALIDATION = NodeId("libraryModuleValidation", NodeCategory.VALIDATION)
 
-  /** Library wrapper MANIFEST validation (auto-fixes resources/META-INF/MANIFEST.mf) */
-  @JvmField val LIBRARY_MODULE_MANIFEST_VALIDATION = NodeId("libraryModuleManifestValidation", NodeCategory.VALIDATION)
-
   /** Plugin content module JPS dependency validation */
   @JvmField val PLUGIN_CONTENT_MODULE_VALIDATION = NodeId("pluginContentModuleValidation", NodeCategory.VALIDATION)
 

@@ -17,10 +17,9 @@ Validation ensures module and plugin dependencies are resolvable at runtime and 
 | 9 | Duplicate plugin content modules | Product | [plugin-content-duplicates.md](validators/plugin-content-duplicates.md) |
 | 10 | Test plugin descriptor ID conflicts | Product | [plugin-descriptor-id-conflicts.md](validators/plugin-descriptor-id-conflicts.md) |
 | 11 | Library module replacement | Module | [library-module.md](validators/library-module.md) |
-| 12 | Library module manifest | Module | [library-module-manifest.md](validators/library-module-manifest.md) |
-| 13 | Test library scope | Module | [test-library-scope.md](validators/test-library-scope.md) |
-| 14 | Suppression config keys | Config | [suppression-config.md](validators/suppression-config.md) |
-| 15 | Plugin content structural validation | Plugin | [plugin-content-structure.md](validators/plugin-content-structure.md) |
+| 12 | Test library scope | Module | [test-library-scope.md](validators/test-library-scope.md) |
+| 13 | Suppression config keys | Config | [suppression-config.md](validators/suppression-config.md) |
+| 14 | Plugin content structural validation | Plugin | [plugin-content-structure.md](validators/plugin-content-structure.md) |
 
 ## When Validation Runs
 
