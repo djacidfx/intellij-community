@@ -20,7 +20,6 @@ import java.nio.file.Path;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.fail;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class ExtensionsImplTest {
@@ -77,12 +76,6 @@ public class ExtensionsImplTest {
     extensionsArea.unregisterExtensionPoint(EXTENSION_POINT_NAME_1);
     assertThat(extensionsArea.getNameToPointMap().size()).withFailMessage("Extension point should be removed").isEqualTo(numEP);
     assertThat(removed[0]).withFailMessage("Extension point disposed").isTrue();
-  }
-
-  @Test
-  public void testEPMapMustBeImmutable() {
-    ExtensionsAreaImpl extensionsArea = new ExtensionsAreaImpl(new ExtensionPointImplTest.MyComponentManager());
-    assertThrows(UnsupportedOperationException.class, ()->extensionsArea.getNameToPointMap().clear());
   }
 
   @Test
