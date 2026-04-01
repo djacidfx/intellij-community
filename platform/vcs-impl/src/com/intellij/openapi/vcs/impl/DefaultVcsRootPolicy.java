@@ -8,12 +8,14 @@ import com.intellij.openapi.vcs.VcsBundle;
 import com.intellij.openapi.vcs.ex.ProjectLevelVcsManagerEx;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.project.ProjectKt;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 import java.util.Objects;
 
+@ApiStatus.Internal
 public abstract class DefaultVcsRootPolicy {
   protected final @NotNull Project myProject;
 

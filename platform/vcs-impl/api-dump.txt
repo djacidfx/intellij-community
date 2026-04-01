@@ -2950,15 +2950,6 @@ a:com.intellij.openapi.vcs.impl.ContentRootChangeListener
 - changed(com.intellij.platform.workspace.storage.VersionedStorageChange):V
 - a:contentRootsChanged(java.util.List,java.util.List):V
 - f:getSkipFileChanges():Z
-a:com.intellij.openapi.vcs.impl.DefaultVcsRootPolicy
-- pf:myProject:com.intellij.openapi.project.Project
-- p:<init>(com.intellij.openapi.project.Project):V
-- a:getDefaultVcsRoots():java.util.Collection
-- s:getInstance(com.intellij.openapi.project.Project):com.intellij.openapi.vcs.impl.DefaultVcsRootPolicy
-- getProjectConfigurationMessage():java.lang.String
-- getProjectMappingInDialogDescription():java.lang.String
-- p:scheduleMappedRootsUpdate():V
-- p:scheduleRootsChangeProcessing(java.util.Collection,java.util.Collection):V
 a:com.intellij.openapi.vcs.impl.GenericNotifierImpl
 - pf:myProject:com.intellij.openapi.project.Project
 - <init>(com.intellij.openapi.project.Project,java.lang.String,java.lang.String,com.intellij.notification.NotificationType):V
