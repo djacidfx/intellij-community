@@ -10,6 +10,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.components.serviceAsync
 import com.intellij.openapi.diagnostic.debug
 import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.progress.checkCanceled
 import com.intellij.openapi.progress.coroutineToIndicator
 import com.intellij.openapi.project.InitialVfsRefreshService
 import com.intellij.openapi.project.Project
@@ -34,7 +35,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
@@ -44,7 +44,6 @@ import org.jetbrains.annotations.ApiStatus
 import java.util.MissingResourceException
 import java.util.regex.Pattern
 import java.util.regex.PatternSyntaxException
-import kotlin.coroutines.coroutineContext
 import kotlin.time.Duration.Companion.seconds
 
 private val LOG = logger<VcsRootScanner>()
@@ -173,7 +172,7 @@ class VcsRootScanner(private val project: Project, coroutineScope: CoroutineScop
     for (event in events) {
       val file = event.file
       if (file != null && file.isDirectory) {
-        coroutineContext.ensureActive()
+        checkCanceled()
         visitDirsRecursivelyWithoutExcluded(project = project, root = file, visitIgnoredFoldersThemselves = true) { dir ->
           if (isVcsDir(checkers, dir.name)) {
             scheduleScan()
