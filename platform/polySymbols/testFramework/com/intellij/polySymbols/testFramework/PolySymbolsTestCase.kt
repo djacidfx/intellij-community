@@ -46,15 +46,15 @@ import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.intellij.testFramework.fixtures.CompletionAutoPopupTester
 import com.intellij.testFramework.fixtures.impl.CodeInsightTestFixtureImpl
 import com.intellij.testFramework.runInEdtAndWait
-import com.intellij.testFramework.utils.coroutines.waitCoroutinesBlocking
+import com.intellij.testFramework.utils.io.createFile
 import com.intellij.usageView.UsageInfo
 import com.intellij.util.ui.UIUtil
-import kotlinx.coroutines.CoroutineScope
 import org.editorconfig.Utils
 import org.editorconfig.configmanagement.extended.EditorConfigCodeStyleSettingsModifier
-import java.io.File
 import java.io.FileNotFoundException
+import java.nio.file.Path
 import java.util.TreeMap
+import kotlin.io.path.exists
 import kotlin.time.Duration.Companion.minutes
 
 abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePlatform) : HybridTestCase(mode) {
@@ -93,10 +93,12 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     IndexingTestUtil.waitUntilIndexesAreReady(myFixture.getProject())
   }
 
-  protected open val coroutinesToWaitForAfterEdit: List<CoroutineScope> = emptyList()
+  protected open fun waitForAsyncOperationsToCompleteAfterEdit() {
+
+  }
 
   protected open val directoriesCompareFileFilter: VirtualFileFilter
-    get() = { true}
+    get() = { true }
 
   protected open fun getExpectedItemsLocation(dir: Boolean): String =
     getExpectedDataLocation(dir)
@@ -197,7 +199,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
             afterConfiguredTest(testConfiguration)
           }
         }
-        coroutinesToWaitForAfterEdit.forEach { waitCoroutinesBlocking(it) }
+        waitForAsyncOperationsToCompleteAfterEdit()
         if (checkResult) {
           WriteCommandAction.runWriteCommandAction(getProject()) {
             PostprocessReformattingAspect.getInstance(getProject()).doPostponedFormatting()
@@ -205,7 +207,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
           FileDocumentManager.getInstance().saveAllDocuments()
           if (dir) {
             val pathAfter = "$testDataPath/$dirName/after"
-            val rootAfter = LocalFileSystem.getInstance().findFileByPath(pathAfter.replace(File.separatorChar, '/'))
+            val rootAfter = LocalFileSystem.getInstance().findFileByPath(pathAfter)
                             ?: throw FileNotFoundException(pathAfter)
             val results = myFixture.tempDirFixture.findOrCreateDir(".")
 
@@ -299,7 +301,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
                     UIUtil.dispatchAllInvocationEvents()
                   }
                   WriteAction.runAndWait<Throwable> { PsiDocumentManager.getInstance(project).commitAllDocuments() }
-                  coroutinesToWaitForAfterEdit.forEach { waitCoroutinesBlocking(it) }
+                  waitForAsyncOperationsToCompleteAfterEdit()
                   tester.joinAutopopup()
                   tester.joinCompletion()
                   tester.joinCommit()
@@ -548,8 +550,10 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
       val info = getParameterInfoAtCaret()
       assertNotNull("Parameter info was not provided", info)
       val fileName = if (dir) "$testName/param-info.html" else "$testName.param-info.html"
-      if (File("$testDataPath/$fileName").let { !it.exists() && it.createNewFile() }) {
-        thisLogger().warn("File $file has been created.")
+      val testFilePath = Path.of("$testDataPath/$fileName")
+      if (!testFilePath.exists()) {
+        testFilePath.createFile()
+        thisLogger().warn("File $testFilePath has been created.")
       }
       checkTextByFile(info!!, fileName)
     }
@@ -713,9 +717,10 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     strict: Boolean = true,
     scope: SearchScope? = null,
   ) {
-    myFixture.checkUsages(signature, goldFileName, usagesFilter, strict, scope, )
+    myFixture.checkUsages(signature, goldFileName, usagesFilter, strict, scope)
   }
 
+  @Suppress("unused")
   protected fun checkFileUsages(
     goldFileName: String,
     strict: Boolean = true,
