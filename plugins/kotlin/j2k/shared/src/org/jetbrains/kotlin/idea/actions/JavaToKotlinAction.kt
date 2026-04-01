@@ -2,11 +2,9 @@
 package org.jetbrains.kotlin.idea.actions
 
 import com.intellij.codeInsight.navigation.activateFileWithPsiElement
-import com.intellij.icons.AllIcons
 import com.intellij.ide.highlighter.JavaFileType
 import com.intellij.ide.scratch.ScratchFileService
 import com.intellij.ide.scratch.ScratchRootType
-import com.intellij.openapi.actionSystem.ActionGroupUtil
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionPlaces.PROJECT_VIEW_POPUP
 import com.intellij.openapi.actionSystem.ActionUpdateThread
@@ -15,7 +13,6 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.PlatformCoreDataKeys
-import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.edtWriteAction
 import com.intellij.openapi.application.readAction
@@ -46,7 +43,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.idea.KotlinFileType
-import org.jetbrains.kotlin.idea.KotlinIcons
 import org.jetbrains.kotlin.idea.base.codeInsight.pathBeforeJavaToKotlinConversion
 import org.jetbrains.kotlin.idea.base.plugin.KotlinPluginModeProvider.Companion.isK2Mode
 import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
@@ -327,7 +323,8 @@ private fun isBuiltInActionEnabled(e: AnActionEvent): Boolean {
 
     fun isWritablePackageDirectory(file: VirtualFile): Boolean {
         val directory = file.toPsiDirectory(project) ?: return false
-        return PsiDirectoryFactory.getInstance(project).isPackage(directory) && file.isWritable
+        if (!PsiDirectoryFactory.getInstance(project).isPackage(directory) || !file.isWritable) return false
+        return file.children.any { it.isDirectory || it.extension == JavaFileType.DEFAULT_EXTENSION }
     }
 
     if (e.place != PROJECT_VIEW_POPUP && files.any(::isWritablePackageDirectory)) {
