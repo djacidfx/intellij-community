@@ -153,9 +153,9 @@ class ProductModulesLoaderTest {
     val notLoadedPlugin = productModules.notLoadedBundledPluginModules.entries.single()
     assertThat(notLoadedPlugin.key.name).isEqualTo("plugin")
     assertThat(notLoadedPlugin.value).containsExactly(
-      RuntimeModuleId.raw("plugin", RuntimeModuleId.DEFAULT_NAMESPACE),
-      RuntimeModuleId.raw("plugin.util", RuntimeModuleId.DEFAULT_NAMESPACE),
-      RuntimeModuleId.raw("unresolved.module", RuntimeModuleId.DEFAULT_NAMESPACE),
+      raw("plugin", DEFAULT_NAMESPACE),
+      raw("plugin.util", DEFAULT_NAMESPACE),
+      raw("unresolved.module", DEFAULT_NAMESPACE),
     )
   }
 
@@ -360,7 +360,7 @@ class ProductModulesLoaderTest {
     writePluginXml(resourcePath, """
         |<idea-plugin>
         |  <id>$pluginId</id>
-        |  <content>
+        |  <content namespace="jetbrains">
         |    ${contentModules.joinToString("\n    ") { "<module name=\"$it\"/>"}}
         |  </content>
         |</idea-plugin>

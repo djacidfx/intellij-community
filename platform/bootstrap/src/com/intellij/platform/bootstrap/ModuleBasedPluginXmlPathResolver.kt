@@ -38,7 +38,8 @@ internal class ModuleBasedPluginXmlPathResolver(
     // so try loading it from the root of the corresponding module
     val moduleName = path.removeSuffix(".xml")
     val moduleId = RuntimeModuleId.contentModule(moduleName, PluginModuleId.JETBRAINS_NAMESPACE)
-    val moduleDescriptor = includedModules.find { it.moduleDescriptor.moduleId == moduleId }?.moduleDescriptor
+    val legacyModuleId = RuntimeModuleId.legacyJpsModule(moduleName)
+    val moduleDescriptor = includedModules.find { it.moduleDescriptor.moduleId == moduleId || it.moduleDescriptor.moduleId == legacyModuleId }?.moduleDescriptor
     if (moduleDescriptor != null) {
       val input = moduleDescriptor.readFile(path) ?: error("Cannot resolve $path in $moduleDescriptor")
       val reader = PluginDescriptorFromXmlStreamConsumer(readContext, createXIncludeLoader(this@ModuleBasedPluginXmlPathResolver, dataLoader))
@@ -46,7 +47,7 @@ internal class ModuleBasedPluginXmlPathResolver(
       return reader.getBuilder()
     }
     else {
-      if (moduleId in optionalModuleIds) {
+      if (moduleId in optionalModuleIds || legacyModuleId in optionalModuleIds) {
         // TODO here we should restore the actual content module "header" with dependency information
         return PluginDescriptorBuilder.builder().apply {
           visibility = ModuleVisibilityValue.PUBLIC
@@ -69,7 +70,8 @@ internal class ModuleBasedPluginXmlPathResolver(
 
   override fun resolveCustomModuleClassesRoots(moduleId: PluginModuleId): List<Path> {
     val runtimeModuleId = RuntimeModuleId.contentModule(moduleId.name, moduleId.namespace)
-    val moduleDescriptor = includedModules.find { it.moduleDescriptor.moduleId == runtimeModuleId }?.moduleDescriptor
+    val legacyModuleId = RuntimeModuleId.legacyJpsModule(moduleId.name)
+    val moduleDescriptor = includedModules.find { it.moduleDescriptor.moduleId == runtimeModuleId || it.moduleDescriptor.moduleId == legacyModuleId }?.moduleDescriptor
     return moduleDescriptor?.resourceRootPaths ?: emptyList()
   }
 

@@ -1,16 +1,19 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.devkit.runtimeModuleRepository.generator.tests
 
+import com.intellij.devkit.runtimeModuleRepository.generator.ContentModuleDetector
+import com.intellij.devkit.runtimeModuleRepository.generator.ContentModuleRegistrationData
 import com.intellij.devkit.runtimeModuleRepository.generator.JpsCompilationResourcePathsSchema
-import com.intellij.devkit.runtimeModuleRepository.generator.NoContentModuleDetector
 import com.intellij.devkit.runtimeModuleRepository.generator.RuntimeModuleRepositoryGenerator
 import com.intellij.devkit.runtimeModuleRepository.generator.RuntimeModuleRepositoryValidator
 import com.intellij.platform.runtime.repository.RuntimeModuleId
+import com.intellij.platform.runtime.repository.RuntimeModuleVisibility
 import com.intellij.platform.runtime.repository.serialization.RawRuntimeModuleDescriptor
 import com.intellij.platform.runtime.repository.serialization.RawRuntimeModuleRepositoryData
 import com.intellij.platform.runtime.repository.serialization.RawRuntimePluginHeader
 import com.intellij.testFramework.UsefulTestCase
 import org.jetbrains.jps.model.JpsProject
+import org.jetbrains.jps.model.module.JpsModule
 import java.nio.file.Path
 
 private fun checkRuntimeModuleRepository(
@@ -35,10 +38,17 @@ internal fun generateAndCheck(project: JpsProject, basePath: Path, expected: Raw
 
 internal fun generateAndValidateRuntimeModuleRepository(project: JpsProject): List<RawRuntimeModuleDescriptor> {
   val resourcePathsSchema = JpsCompilationResourcePathsSchema(project)
+  val dummyContentModuleDetector = object : ContentModuleDetector {
+    override fun findContentModuleData(jpsModule: JpsModule): ContentModuleRegistrationData {
+      return ContentModuleRegistrationData(name = jpsModule.name,
+                                           namespace = RuntimeModuleId.DEFAULT_NAMESPACE,
+                                           visibility = RuntimeModuleVisibility.PUBLIC)
+    }
+  }
   val generatedDescriptors =
     RuntimeModuleRepositoryGenerator.generateRuntimeModuleDescriptorsForWholeProject(project,
                                                                                      resourcePathsSchema,
-                                                                                     NoContentModuleDetector)
+                                                                                     dummyContentModuleDetector)
   validate(generatedDescriptors)
   return generatedDescriptors
 }

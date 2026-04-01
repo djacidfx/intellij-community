@@ -117,6 +117,10 @@ private fun generateDescriptorsForModules(
         return RuntimeModuleId.raw(moduleName + "2")
       }
     }
+    val contentModuleData = contentModuleDetector.findContentModuleData(module)
+    if (contentModuleData != null) {
+      return RuntimeModuleId.contentModule(contentModuleData.name, contentModuleData.namespace)
+    }
     return RuntimeModuleId.legacyJpsModule(moduleName)
   }
 

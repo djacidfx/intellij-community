@@ -2,8 +2,10 @@
 package com.intellij.platform.runtime.repository
 
 import com.intellij.openapi.application.PathManager
+import com.intellij.platform.runtime.repository.RuntimeModuleId.raw
 import com.intellij.platform.runtime.repository.impl.RuntimeModuleRepositoryImpl
 import com.intellij.platform.runtime.repository.serialization.RawRuntimeModuleDescriptor
+import com.intellij.platform.runtime.repository.serialization.RawRuntimeModuleDescriptor.create
 import com.intellij.platform.runtime.repository.serialization.RawRuntimeModuleRepositoryData
 import com.intellij.platform.runtime.repository.serialization.RuntimeModuleRepositorySerialization
 import com.intellij.project.IntelliJProjectConfiguration.Companion.getLocalMavenRepo
@@ -160,9 +162,11 @@ class RepositoryTest {
     @CartesianTest.Values(strings = ["", "ij.foo", "ij.bar"]) storedBootstrapModule: String, 
     @CartesianTest.Values(booleans = [true, false]) loadFromCompact: Boolean
   ) {
+    val fooId = raw("ij.foo", RuntimeModuleId.LEGACY_JPS_MODULE_NAMESPACE)
     val descriptors = arrayOf(
-      createModuleDescriptor("ij.foo", listOf("foo.jar"), emptyList()),
-      createModuleDescriptor("ij.bar", listOf("bar.jar"), listOf("ij.foo")),
+      create(fooId, listOf("foo.jar"), emptyList()),
+      create(raw("ij.bar", RuntimeModuleId.LEGACY_JPS_MODULE_NAMESPACE), listOf("bar.jar"),
+      listOf(fooId)),
     )
     val basePath = tempDirectory.rootPath
     val bootstrapModuleName = storedBootstrapModule.takeIf { it.isNotEmpty() }

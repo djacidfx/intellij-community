@@ -114,6 +114,11 @@ public final class ProductModulesSerialization {
       RawProductModules includedModules = ProductModulesXmlSerializer.parseModuleXml(inputStream);
       var withoutIncluding = new HashSet<>(withoutModules);
       withoutIncluding.addAll(includedFromData.getWithoutModules());
+      for (RuntimeModuleId module : includedFromData.getWithoutModules()) {
+        if (module.getNamespace().equals(RuntimeModuleId.LEGACY_JPS_MODULE_NAMESPACE)) {
+          withoutIncluding.add(RuntimeModuleId.contentModule(module.getName(), RuntimeModuleId.DEFAULT_NAMESPACE));
+        }
+      }
       mergeIncludedFiles(includedModules, debugName, resolver, mainGroupModules, bundledPluginMainModules, withoutIncluding);
       for (RawIncludedRuntimeModule mainGroupModule : includedModules.getMainGroupModules()) {
         if (!withoutIncluding.contains(mainGroupModule.getModuleId())) {

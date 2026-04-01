@@ -60,7 +60,7 @@ class PluginXmlReaderTest {
               <dependencies>
                 <plugin id="com.intellij.modules.lang"/>
               </dependencies>
-              <content>
+              <content namespace="jetbrains">
                 <module name="plugin.main/subpackage"/>
                 <module name="plugin.optional"/>
                 <module name="plugin.optional.explicit" loading="optional"/>

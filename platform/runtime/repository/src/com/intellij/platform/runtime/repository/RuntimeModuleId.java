@@ -60,7 +60,7 @@ public final class RuntimeModuleId {
 
   @ApiStatus.Internal
   public static @NotNull RuntimeModuleId legacyJpsModule(@NotNull String moduleName) {
-    return new RuntimeModuleId(moduleName, "jps");
+    return new RuntimeModuleId(moduleName, LEGACY_JPS_MODULE_NAMESPACE);
   }
 
   /**
@@ -86,12 +86,12 @@ public final class RuntimeModuleId {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
-    return myName.equals(((RuntimeModuleId)o).myName);
+    return myName.equals(((RuntimeModuleId)o).myName) && myNamespace.equals(((RuntimeModuleId)o).myNamespace);
   }
 
   @Override
   public int hashCode() {
-    return myName.hashCode();
+    return myName.hashCode() * 31 + myNamespace.hashCode();
   }
 
   //<editor-fold desc="deprecated methods" defaultstate="collapsed">

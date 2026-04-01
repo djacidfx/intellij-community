@@ -43,12 +43,11 @@ public final class RawIncludedRuntimeModule {
   public @Nullable IncludedRuntimeModule resolve(@NotNull RuntimeModuleRepository repository) {
     RuntimeModuleDescriptor descriptor;
     RuntimeModuleId moduleId = getModuleId();
-    if (moduleId.getNamespace().equals(RuntimeModuleId.LEGACY_JPS_MODULE_NAMESPACE) &&
-        repository.resolveModule(moduleId).getResolvedModule() == null) {
-      /* we don't have syntax to specify namespace in product-modules.xml, so currently all elements from main-root-modules are supposed to
-         be from the LEGACY_JPS_MODULE_NAMESPACE.
-      */
-      moduleId = RuntimeModuleId.contentModule(moduleId.getName(), RuntimeModuleId.DEFAULT_NAMESPACE);
+    if (moduleId.getNamespace().equals(RuntimeModuleId.DEFAULT_NAMESPACE) && repository.resolveModule(moduleId).getResolvedModule() == null) {
+      /* there are cases when the same module is included as a content module in one product, and as JPS module to another,
+         e.g., `intellij.kotlin.base.codeInsight.minimal` is included as a content module in 'com.intellij.kotlin.frontend' and as a JPS
+         module in `org.jetbrains.kotlin` plugin; so until IJPL-240871 is implemented, let's try resolving with a different namespace */
+      moduleId = RuntimeModuleId.contentModule(moduleId.getName(), RuntimeModuleId.LEGACY_JPS_MODULE_NAMESPACE);
     }
     if (getLoadingRule() == RuntimeModuleLoadingRule.REQUIRED || getLoadingRule() == RuntimeModuleLoadingRule.EMBEDDED) {
       descriptor = repository.getModule(moduleId);
