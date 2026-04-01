@@ -1519,20 +1519,6 @@ http_file(
 )
 
 http_file(
-  name = "org_jetbrains_intellij_deps_fastutil-intellij-deps-fastutil-8_5_18-jb1_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/fastutil/intellij-deps-fastutil/8.5.18-jb1/intellij-deps-fastutil-8.5.18-jb1.jar",
-  sha256 = "fdb9053d8584253099300e0196fc0d3ec5b828535b0f39b0f97cf66f629df356",
-  downloaded_file_path = "intellij-deps-fastutil-8.5.18-jb1.jar"
-)
-
-http_file(
-  name = "org_jetbrains_intellij_deps_fastutil-intellij-deps-fastutil-8_5_18-jb1-sources_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/fastutil/intellij-deps-fastutil/8.5.18-jb1/intellij-deps-fastutil-8.5.18-jb1-sources.jar",
-  sha256 = "65223a891cb0b1ad3f444794a00ee458bf31780658b54c2d41192ad4cf3ece67",
-  downloaded_file_path = "intellij-deps-fastutil-8.5.18-jb1-sources.jar"
-)
-
-http_file(
   name = "org_jetbrains_intellij_deps_filePrediction_model-file-prediction-model-0_3_0_http",
   url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/filePrediction/model/file-prediction-model/0.3.0/file-prediction-model-0.3.0.jar",
   sha256 = "e506fd77462afcdb16f0ccfe7c96c1549443580a3be240c5dcff1ae2bfac0555",
@@ -9377,6 +9363,20 @@ http_file(
   url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/kotlinx/kotlinx-html-jvm/0.9.1/kotlinx-html-jvm-0.9.1-sources.jar",
   sha256 = "ef1195449de49153f96723e0a2e5e1a99b504d57a9b58482d03c98dbcf29cf18",
   downloaded_file_path = "kotlinx-html-jvm-0.9.1-sources.jar"
+)
+
+http_file(
+  name = "org_jetbrains_intellij_deps_fastutil-intellij-deps-fastutil-8_5_18-jb1_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/fastutil/intellij-deps-fastutil/8.5.18-jb1/intellij-deps-fastutil-8.5.18-jb1.jar",
+  sha256 = "fdb9053d8584253099300e0196fc0d3ec5b828535b0f39b0f97cf66f629df356",
+  downloaded_file_path = "intellij-deps-fastutil-8.5.18-jb1.jar"
+)
+
+http_file(
+  name = "org_jetbrains_intellij_deps_fastutil-intellij-deps-fastutil-8_5_18-jb1-sources_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/fastutil/intellij-deps-fastutil/8.5.18-jb1/intellij-deps-fastutil-8.5.18-jb1-sources.jar",
+  sha256 = "65223a891cb0b1ad3f444794a00ee458bf31780658b54c2d41192ad4cf3ece67",
+  downloaded_file_path = "intellij-deps-fastutil-8.5.18-jb1-sources.jar"
 )
 
 http_file(

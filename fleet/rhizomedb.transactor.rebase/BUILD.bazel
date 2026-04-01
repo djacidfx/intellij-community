@@ -40,7 +40,7 @@ jvm_library(
     "//fleet/reporting/api",
     "//fleet/reporting/shared",
     "//fleet/multiplatform.shims",
-    "@lib//:fastutil-min",
+    "//libraries/fastutil",
     "//fleet/bifurcan",
     "//fleet/fastutil",
   ],
@@ -74,6 +74,7 @@ jvm_library(
     "//fleet/reporting/api:api_test_lib",
     "//fleet/reporting/shared:shared_test_lib",
     "//fleet/multiplatform.shims:multiplatform.shims_test_lib",
+    "//libraries/fastutil:fastutil_test_lib",
     "//fleet/bifurcan:bifurcan_test_lib",
     "//fleet/fastutil:fastutil_test_lib",
   ]
