@@ -1,27 +1,27 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 @file:JvmName("EelMachineProviderUtil")
 
 package com.intellij.platform.eel.provider
 
-import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.platform.eel.EelApi
 import com.intellij.platform.eel.EelDescriptor
 import com.intellij.platform.eel.EelMachine
 import com.intellij.platform.eel.EelUnavailableException
 import org.jetbrains.annotations.ApiStatus
+import java.util.ServiceLoader
 
 @ApiStatus.Experimental
 @Throws(EelUnavailableException::class)
 suspend fun EelDescriptor.resolveEelMachine(): EelMachine {
   if (this === LocalEelDescriptor) return LocalEelMachine
-  return EelMachineResolver.EP_NAME.extensionList.firstNotNullOfOrNull { it.resolveEelMachine(this) }
+  return EelMachineResolver.getAll().firstNotNullOfOrNull { it.resolveEelMachine(this) }
          ?: throw IllegalStateException("No EelMachine found for descriptor: $this (${this.name})")
 }
 
 @ApiStatus.Experimental
 fun EelDescriptor.getResolvedEelMachine(): EelMachine? {
   if (this === LocalEelDescriptor) return LocalEelMachine
-  return EelMachineResolver.EP_NAME.extensionList.firstNotNullOfOrNull {
+  return EelMachineResolver.getAll().firstNotNullOfOrNull {
     it.getResolvedEelMachine(this)
   }
 }
@@ -38,16 +38,19 @@ suspend fun EelDescriptor.toEelApi(): EelApi {
 @ApiStatus.Experimental
 interface EelMachineResolver {
   companion object {
-    @ApiStatus.Internal
-    val EP_NAME: ExtensionPointName<EelMachineResolver> = ExtensionPointName("com.intellij.eelMachineResolver")
+    private val resolver = ServiceLoader.load(EelMachineResolverProvider::class.java, EelMachineResolverProvider::class.java.classLoader)
+      .firstOrNull()
+
+    fun getAll(): List<EelMachineResolver> {
+      return resolver?.getAll() ?: emptyList()
+    }
 
     @ApiStatus.Internal
     suspend fun getEelMachineByInternalName(internalName: String): EelMachine {
       if (internalName == LocalEelMachine.internalName) {
         return LocalEelMachine
       }
-
-      return EP_NAME.extensionList.firstNotNullOfOrNull {
+      return getAll().firstNotNullOfOrNull {
         it.resolveEelMachineByInternalName(internalName)
       } ?: throw IllegalStateException("No EelMachine found for internal name: $internalName")
     }
@@ -61,4 +64,12 @@ interface EelMachineResolver {
 
   @ApiStatus.Internal
   suspend fun resolveEelMachineByInternalName(internalName: String): EelMachine?
+}
+
+/**
+ * SPI for providing [EelMachineResolver] instances. Loaded via [ServiceLoader] from `eel-impl`.
+ */
+@ApiStatus.Internal
+fun interface EelMachineResolverProvider {
+  fun getAll(): List<EelMachineResolver>
 }

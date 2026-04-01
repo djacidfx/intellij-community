@@ -8,9 +8,6 @@
     <extensionPoint qualifiedName="com.intellij.eelRoutingPrefixProvider"
                     interface="com.intellij.platform.eel.provider.EelRoutingPrefixProvider" dynamic="true"/>
 
-    <extensionPoint qualifiedName="com.intellij.eelMachineResolver"
-                    interface="com.intellij.platform.eel.provider.EelMachineResolver" dynamic="true"/>
-
     <extensionPoint qualifiedName="com.intellij.languageBundle" beanClass="com.intellij.DynamicBundle$LanguageBundleEP" dynamic="true"/>
 
     <extensionPoint qualifiedName="com.intellij.multiverse.codeInsightContextProvider" interface="com.intellij.codeInsight.multiverse.CodeInsightContextProvider" dynamic="true"/>

@@ -17,6 +17,7 @@ import com.intellij.platform.eel.EelPlatform
 import com.intellij.platform.eel.annotations.MultiRoutingFileSystemPath
 import com.intellij.platform.eel.fs.createTemporaryDirectory
 import com.intellij.platform.eel.getOrThrow
+import com.intellij.platform.eel.impl.provider.EelMachineResolverEpBridge
 import com.intellij.platform.eel.provider.EelEnvironmentInitializer
 import com.intellij.platform.eel.provider.EelMachineResolver
 import com.intellij.platform.eel.provider.MultiRoutingFileSystemBackend
@@ -110,7 +111,7 @@ internal fun eelInitializer(os: EelPlatform): TestFixtureInitializer<IsolatedFil
     }
   }
 
-  EelMachineResolver.EP_NAME.point.registerExtension(object : EelMachineResolver {
+  EelMachineResolverEpBridge.EP_NAME.point.registerExtension(object : EelMachineResolver {
     override fun getResolvedEelMachine(eelDescriptor: EelDescriptor): EelMachine? {
       return if (eelDescriptor == descriptor) machine else null
     }
