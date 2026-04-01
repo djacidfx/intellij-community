@@ -51,7 +51,7 @@ private val LOG = logger<VcsRootScanner>()
 @ApiStatus.Internal
 @Service(Service.Level.PROJECT)
 class VcsRootScanner(private val project: Project, coroutineScope: CoroutineScope) {
-  private val rootProblemNotifier = VcsRootProblemNotifier.createInstance(project)
+  private val rootProblemNotifier = VcsRootErrorsHandler.createInstance(project)
 
   private val scanRequests = MutableSharedFlow<Unit>(replay = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
@@ -76,7 +76,8 @@ class VcsRootScanner(private val project: Project, coroutineScope: CoroutineScop
             project.service<InitialVfsRefreshService>().awaitInitialVfsRefreshFinished()
 
             coroutineToIndicator {
-              rootProblemNotifier.rescanAndNotifyIfNeeded()
+              val errors = VcsRootErrorsFinder.getInstance(project).find()
+              rootProblemNotifier.fixAndNotifyIfNeeded(errors)
             }
           }
         }

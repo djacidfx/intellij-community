@@ -17,12 +17,12 @@ import com.intellij.testFramework.VfsTestUtil
 import com.intellij.vcs.test.VcsPlatformTest
 import com.intellij.vcsUtil.VcsUtil
 
-class VcsRootProblemNotifierTest : VcsPlatformTest() {
+class VcsRootErrorsHandlerTest : VcsPlatformTest() {
   private lateinit var rootModule: Module
 
   private lateinit var checker: VcsRootChecker
   private lateinit var vcs: MockAbstractVcs
-  private lateinit var notifier: VcsRootProblemNotifier
+  private lateinit var notifier: VcsRootErrorsHandler
 
   override fun setUp() {
     super.setUp()
@@ -36,7 +36,7 @@ class VcsRootProblemNotifierTest : VcsPlatformTest() {
     VcsRootChecker.EXTENSION_POINT_NAME.point.registerExtension(checker, testRootDisposable)
     vcsManager.registerVcs(vcs)
 
-    notifier = VcsRootProblemNotifier.createInstance(myProject)
+    notifier = VcsRootErrorsHandler.createInstance(myProject)
     Registry.get("vcs.root.auto.add.nofity").setValue(true)
   }
 
@@ -60,7 +60,8 @@ class VcsRootProblemNotifierTest : VcsPlatformTest() {
   fun `test single root equal to project dir is auto-added silently`() {
     createRepoDir(projectRoot)
 
-    notifier.rescanAndNotifyIfNeeded()
+    val errors = VcsRootErrorsFinder.getInstance(myProject).find()
+    notifier.fixAndNotifyIfNeeded(errors)
 
     assertNoNotification()
     assertSameElements(vcsManager.allVersionedRoots, projectRoot)
@@ -71,7 +72,8 @@ class VcsRootProblemNotifierTest : VcsPlatformTest() {
     val deepRoot = VfsTestUtil.createDir(projectRoot, "lib")
     createRepoDir(deepRoot)
 
-    notifier.rescanAndNotifyIfNeeded()
+    val errors = VcsRootErrorsFinder.getInstance(myProject).find()
+    notifier.fixAndNotifyIfNeeded(errors)
 
     // "Root under project dir should be auto-added"
     assertSameElements(vcsManager.allVersionedRoots, deepRoot)
@@ -81,7 +83,8 @@ class VcsRootProblemNotifierTest : VcsPlatformTest() {
   fun `test two roots under project dir are auto-added and reported`() {
     val subRoot = createNestedRoots()
 
-    notifier.rescanAndNotifyIfNeeded()
+    val errors = VcsRootErrorsFinder.getInstance(myProject).find()
+    notifier.fixAndNotifyIfNeeded(errors)
 
     assertSameElements(vcsManager.allVersionedRoots, projectRoot, subRoot)
     assertSuccessfulNotification("mock Integration Enabled","""
@@ -95,7 +98,8 @@ class VcsRootProblemNotifierTest : VcsPlatformTest() {
     createRepoDir(aboveRoot)
     projectRoot
 
-    notifier.rescanAndNotifyIfNeeded()
+    val errors = VcsRootErrorsFinder.getInstance(myProject).find()
+    notifier.fixAndNotifyIfNeeded(errors)
 
     assertSameElements(vcsManager.allVersionedRoots, aboveRoot)
     assertSuccessfulNotification("mock Integration Enabled", notifier.getPresentableMapping(aboveRoot.path))
@@ -110,7 +114,8 @@ class VcsRootProblemNotifierTest : VcsPlatformTest() {
     val aboveRoot = testRoot
     createRepoDir(aboveRoot)
 
-    notifier.rescanAndNotifyIfNeeded()
+    val errors = VcsRootErrorsFinder.getInstance(myProject).find()
+    notifier.fixAndNotifyIfNeeded(errors)
 
     assertSameElements(vcsManager.allVersionedRoots, aboveRoot, shallowRoot, deepRoot)
     assertSuccessfulNotification("mock Integration Enabled", """
@@ -128,7 +133,8 @@ class VcsRootProblemNotifierTest : VcsPlatformTest() {
     val aboveRoot = testRoot
     createRepoDir(aboveRoot)
 
-    notifier.rescanAndNotifyIfNeeded()
+    val errors = VcsRootErrorsFinder.getInstance(myProject).find()
+    notifier.fixAndNotifyIfNeeded(errors)
 
     assertSameElements(vcsManager.allVersionedRoots, aboveRoot)
     assertSuccessfulNotification("mock Integration Enabled", """
@@ -140,7 +146,8 @@ class VcsRootProblemNotifierTest : VcsPlatformTest() {
     createRepoDir(testRoot)
     createRepoDir(projectRoot)
 
-    notifier.rescanAndNotifyIfNeeded()
+    val errors = VcsRootErrorsFinder.getInstance(myProject).find()
+    notifier.fixAndNotifyIfNeeded(errors)
 
     assertSameElements(vcsManager.allVersionedRoots, projectRoot)
     assertNoNotification()
@@ -156,7 +163,8 @@ class VcsRootProblemNotifierTest : VcsPlatformTest() {
     vcsManager.removeDirectoryMapping(mapping!!)
     VcsConfiguration.getInstance(project).addIgnoredUnregisteredRoots(listOf(projectPath))
 
-    notifier.rescanAndNotifyIfNeeded()
+    val errors = VcsRootErrorsFinder.getInstance(myProject).find()
+    notifier.fixAndNotifyIfNeeded(errors)
 
     assertNoNotification()
     assertFalse("The root shouldn't be auto-added after explicit removal", vcsManager.hasAnyMappings())
@@ -167,7 +175,8 @@ class VcsRootProblemNotifierTest : VcsPlatformTest() {
     val subRoot = createNestedRoots()
     VcsConfiguration.getInstance(project).addIgnoredUnregisteredRoots(listOf(FileUtil.toSystemIndependentName(subRoot.path)))
 
-    notifier.rescanAndNotifyIfNeeded()
+    val errors = VcsRootErrorsFinder.getInstance(myProject).find()
+    notifier.fixAndNotifyIfNeeded(errors)
 
     assertFalse("The root shouldn't be auto-added because it is not the only one", vcsManager.hasAnyMappings())
     assertSuccessfulNotification("mock Repository Found", notifier.getPresentableMapping(projectPath))
@@ -177,7 +186,8 @@ class VcsRootProblemNotifierTest : VcsPlatformTest() {
     Registry.get("vcs.root.auto.add.nofity").setValue(false)
 
     vcsManager.setDirectoryMapping(projectPath, vcs.name)
-    notifier.rescanAndNotifyIfNeeded()
+    val errors = VcsRootErrorsFinder.getInstance(myProject).find()
+    notifier.fixAndNotifyIfNeeded(errors)
 
     val rootError = VcsRootErrorImpl(EXTRA_MAPPING, VcsDirectoryMapping(projectPath, vcs.keyInstanceMethod.name))
     assertErrorNotification("Invalid VCS root mapping", notifier.getInvalidRootDescriptionItem(rootError, vcs.name))

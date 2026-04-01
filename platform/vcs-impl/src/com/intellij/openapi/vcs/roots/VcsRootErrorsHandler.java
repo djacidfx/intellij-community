@@ -53,11 +53,11 @@ import static com.intellij.util.containers.ContainerUtil.sorted;
 import static com.intellij.util.ui.UIUtil.BR;
 
 /**
- * Searches for Vcs roots problems via {@link VcsRootErrorsFinder} and notifies about them.
+ * Processes the {@link VcsRootError}s found via {@link VcsRootErrorsFinder} and notifies the user.
  */
 @ApiStatus.Internal
-public final class VcsRootProblemNotifier {
-  private static final Logger LOG = Logger.getInstance(VcsRootProblemNotifier.class);
+public final class VcsRootErrorsHandler {
+  private static final Logger LOG = Logger.getInstance(VcsRootErrorsHandler.class);
 
   private final @NotNull Project myProject;
   private final @NotNull VcsConfiguration mySettings;
@@ -73,11 +73,11 @@ public final class VcsRootProblemNotifier {
 
   private final @NotNull Function<VcsRootError, String> ROOT_TO_PRESENTABLE = rootError -> getPresentableMapping(rootError.getMapping());
 
-  public static VcsRootProblemNotifier createInstance(@NotNull Project project) {
-    return new VcsRootProblemNotifier(project);
+  public static VcsRootErrorsHandler createInstance(@NotNull Project project) {
+    return new VcsRootErrorsHandler(project);
   }
 
-  private VcsRootProblemNotifier(@NotNull Project project) {
+  private VcsRootErrorsHandler(@NotNull Project project) {
     myProject = project;
     mySettings = VcsConfiguration.getInstance(myProject);
     myChangeListManager = ChangeListManager.getInstance(project);
@@ -86,8 +86,10 @@ public final class VcsRootProblemNotifier {
     myReportedUnregisteredRoots = new HashSet<>();
   }
 
-  public void rescanAndNotifyIfNeeded() {
-    Collection<VcsRootError> errors = scan();
+  /**
+   * Registers the new roots (if enabled) and notifies the user
+   */
+  public void fixAndNotifyIfNeeded(@NotNull Collection<VcsRootError> errors) {
     if (errors.isEmpty()) {
       synchronized (NOTIFICATION_LOCK) {
         expireNotification();
@@ -169,7 +171,7 @@ public final class VcsRootProblemNotifier {
           ShowSettingsUtil.getInstance().showSettingsDialog(myProject, VcsMappingConfigurable.class);
 
           BackgroundTaskUtil.executeOnPooledThread(myProject, () -> {
-            Collection<VcsRootError> errorsAfterPossibleFix = new VcsRootProblemNotifier(myProject).scan();
+            Collection<VcsRootError> errorsAfterPossibleFix = VcsRootErrorsFinder.getInstance(myProject).find();
             if (errorsAfterPossibleFix.isEmpty() && !notification.isExpired()) {
               notification.expire();
             }
@@ -216,10 +218,6 @@ public final class VcsRootProblemNotifier {
 
       myNotification = null;
     }
-  }
-
-  private @NotNull Collection<VcsRootError> scan() {
-    return new VcsRootErrorsFinder(myProject).find();
   }
 
   private @NotNull @NlsContexts.NotificationContent String makeDescription(@NotNull Collection<? extends VcsRootError> unregisteredRoots,
