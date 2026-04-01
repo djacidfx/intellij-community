@@ -5,13 +5,13 @@ import com.intellij.platform.ml.impl.ngram.model.SimpleNGramModel
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 
-class NGramModelProvider {
+internal class NGramModelProvider(actionsLanguageModel: ActionsLanguageModel? = ActionsLanguageModel.getInstance()) {
 
   private var bigramModel: SimpleNGramModel<String>? = null
   private var trigramModel: SimpleNGramModel<String>? = null
   private var loadedDictionary: LanguageModelDictionary? = null
 
-  private val deferredModels: Deferred<Unit>? = ActionsLanguageModel.getInstance()?.let { model ->
+  private val deferredModels: Deferred<Unit>? = actionsLanguageModel?.let { model ->
     model.coroutineScope.async {
       val corpus = CorpusBuilder.getInstance()?.deferredCorpus?.await() ?: emptySet()
       loadedDictionary = model.deferredDictionary.await()

@@ -21,24 +21,19 @@ import com.intellij.openapi.util.registry.Registry
 import com.intellij.searchEverywhereMl.typos.models.ActionsLanguageModel
 import com.intellij.searchEverywhereMl.typos.models.CorpusBuilder
 import com.intellij.searchEverywhereMl.typos.models.LanguageModelDictionary
-import com.intellij.searchEverywhereMl.typos.models.PhrasePrefixIndex
-import com.intellij.searchEverywhereMl.typos.models.normalizeTextForPrefixLookup
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import java.io.InputStream
 
 class SearchEverywhereSpellerImpl : SearchEverywhereSpellingCorrector {
-  private val actionsLanguageModel: ActionsLanguageModel? = ActionsLanguageModel.getInstance()
-
-  private val deferredSpeller: Deferred<GrazieSpeller>? = actionsLanguageModel?.let { model ->
-    model.coroutineScope.async {
-      val dictionary = model.deferredDictionary.await()
-      createSpeller(dictionary)
+  private val deferredSpeller: Deferred<GrazieSpeller>? = ActionsLanguageModel.getInstance()
+    ?.let { model ->
+      model.coroutineScope.async {
+        val dictionary = model.deferredDictionary.await()
+        createSpeller(dictionary)
+      }
     }
-  }
-
-  private val deferredPrefixIndex: Deferred<PhrasePrefixIndex>? = actionsLanguageModel?.deferredPrefixIndex
 
   /**
    * Creates a GrazieSpeller object from the provided LanguageModelDictionary.
@@ -88,7 +83,6 @@ class SearchEverywhereSpellerImpl : SearchEverywhereSpellingCorrector {
   override fun getAllCorrections(query: String, maxCorrections: Int): List<SearchEverywhereSpellCheckResult.Correction> {
     // If the query is blank or the speller hasn't completed initialization, return an empty list.
     if (query.isBlank() || maxCorrections <= 0) return emptyList()
-    if (shouldSkipTypoCorrection(query)) return emptyList()
     if (deferredSpeller == null || !deferredSpeller.isCompleted) return emptyList()
 
     val speller = deferredSpeller.getCompleted()
@@ -187,16 +181,6 @@ class SearchEverywhereSpellerImpl : SearchEverywhereSpellingCorrector {
     service<CorpusBuilder>()
     service<ActionsLanguageModel>()
   }
-
-  @OptIn(ExperimentalCoroutinesApi::class)
-  private fun shouldSkipTypoCorrection(query: String): Boolean {
-    val prefixIndex = deferredPrefixIndex
-      ?.takeIf { it.isCompleted }
-      ?.getCompleted()
-      ?: return false
-
-    return shouldSkipTypoCorrection(query, prefixIndex)
-  }
 }
 
 internal const val MIN_CONFIDENCE_REGISTRY_KEY: String = "search.everywhere.ml.typos.min.confidence"
@@ -213,11 +197,6 @@ internal fun selectCorrections(query: String,
     .distinctBy { it.correction }
     .take(maxCorrections)
     .toList()
-}
-
-internal fun shouldSkipTypoCorrection(query: String, prefixIndex: PhrasePrefixIndex): Boolean {
-  val normalizedQuery = normalizeTextForPrefixLookup(query) ?: return false
-  return prefixIndex.hasPrefix(normalizedQuery)
 }
 
 internal class GrazieSpellingCorrectorFactoryImpl : SearchEverywhereSpellingCorrectorFactory {

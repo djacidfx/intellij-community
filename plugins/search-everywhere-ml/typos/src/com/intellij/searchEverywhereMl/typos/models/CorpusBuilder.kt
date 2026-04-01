@@ -18,11 +18,14 @@ import com.intellij.openapi.wm.IdeFrame
 import com.intellij.openapi.wm.WindowManager
 import com.intellij.openapi.wm.ex.WindowManagerEx
 import com.intellij.platform.ide.progress.withBackgroundProgress
+import com.intellij.searchEverywhereMl.typos.SearchEverywhereStringToken
 import com.intellij.searchEverywhereMl.typos.TyposBundle
 import com.intellij.searchEverywhereMl.typos.isTypoFixingEnabled
+import com.intellij.searchEverywhereMl.typos.splitText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
+import java.util.regex.Pattern
 
 @Service(Service.Level.APP)
 internal class CorpusBuilder(coroutineScope: CoroutineScope) {
@@ -135,10 +138,15 @@ internal class CorpusBuilder(coroutineScope: CoroutineScope) {
     return collectedTokens
   }
 
+  private val alphabeticPattern = Pattern.compile("^[a-zA-Z]+$")
   private val HTML_TAGS_REGEX = Regex("<[^>]*>")
 
   private fun tokenizeText(text: String): List<String>? =
-    tokenizeTextForTypoLookup(text)
+    splitText(text)
+      .filterIsInstance<SearchEverywhereStringToken.Word>()
+      .map { it.value.lowercase() }
+      .filter { alphabeticPattern.matcher(it).matches() }
+      .toList()
       .takeIf { it.isNotEmpty() }
 
   private suspend fun guessProject(): Project? {
