@@ -131,6 +131,18 @@ public class PropertiesFileTest extends BasePlatformTestCase {
     assertEquals("bc", propertiesFile.getProperties().get(0).getUnescapedValue());
   }
 
+  public void testAddEmptyPropertyAfter() throws IncorrectOperationException {
+    final PropertiesFile propertiesFile =
+      PropertiesImplUtil.getPropertiesFile(myFixture.configureByText(PropertiesFileType.INSTANCE, "a=b\nc=d\ne=f"));
+    final Property c = (Property)propertiesFile.findPropertyByKey("c");
+    WriteCommandAction.runWriteCommandAction(null, () -> {
+        propertiesFile.addPropertyAfter("key", "", c);
+      });
+    PsiTestUtil.checkFileStructure((PsiFile)propertiesFile);
+
+    assertEquals("a=b\nc=d\nkey=\ne=f", propertiesFile.getText());
+  }
+
   public void testAddPropertyAfter() throws IncorrectOperationException {
     final PropertiesFile propertiesFile =
       PropertiesImplUtil.getPropertiesFile(myFixture.configureByText(PropertiesFileType.INSTANCE, "a=b\nc=d\ne=f"));
