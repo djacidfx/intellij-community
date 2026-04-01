@@ -13683,6 +13683,21 @@ jvm_import(
 )
 
 copy_file(
+  name = "org.eclipse.xtext/org.eclipse.xtext.xbase.lib-2.40.0.jar_copy",
+  src = "@org_eclipse_xtext-org_eclipse_xtext_xbase_lib-2_40_0_http//file",
+  out = "org.eclipse.xtext/org.eclipse.xtext.xbase.lib-2.40.0.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "libraries-xtext-xbase-xtext-xbase",
+  jar = "@org_eclipse_xtext-org_eclipse_xtext_xbase_lib-2_40_0_http//file",
+  source_jar = "@org_eclipse_xtext-org_eclipse_xtext_xbase_lib-2_40_0-sources_http//file",
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
   name = "org.tukaani/xz-1.10.jar_copy",
   src = "@org_tukaani-xz-1_10_http//file",
   out = "org.tukaani/xz-1.10.jar",
@@ -21083,21 +21098,6 @@ java_library(
     ":org_apache_logging_log4j-log4j-to-slf4j-2_20_0_http_import",
     ":org_apache_logging_log4j-log4j-api-2_20_0_http_import",
   ],
-  visibility = ["//visibility:public"]
-)
-
-copy_file(
-  name = "org.eclipse.xtext/org.eclipse.xtext.xbase.lib-2.40.0.jar_copy",
-  src = "@org_eclipse_xtext-org_eclipse_xtext_xbase_lib-2_40_0_http//file",
-  out = "org.eclipse.xtext/org.eclipse.xtext.xbase.lib-2.40.0.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-jvm_import(
-  name = "xtext-xbase",
-  jar = "@org_eclipse_xtext-org_eclipse_xtext_xbase_lib-2_40_0_http//file",
-  source_jar = "@org_eclipse_xtext-org_eclipse_xtext_xbase_lib-2_40_0-sources_http//file",
   visibility = ["//visibility:public"]
 )
 
