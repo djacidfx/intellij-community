@@ -6435,21 +6435,6 @@ jvm_import(
 )
 
 copy_file(
-  name = "com.ibm.icu/icu4j-77.1.jar_copy",
-  src = "@com_ibm_icu-icu4j-77_1_http//file",
-  out = "com.ibm.icu/icu4j-77.1.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-jvm_import(
-  name = "icu4j",
-  jar = "@com_ibm_icu-icu4j-77_1_http//file",
-  source_jar = "@com_ibm_icu-icu4j-77_1-sources_http//file",
-  visibility = ["//visibility:public"]
-)
-
-copy_file(
   name = "com.jetbrains.intellij.documentation/tips-intellij-idea-community-241.62.jar_copy",
   src = "@com_jetbrains_intellij_documentation-tips-intellij-idea-community-241_62_http//file",
   out = "com.jetbrains.intellij.documentation/tips-intellij-idea-community-241.62.jar",
@@ -12187,6 +12172,21 @@ jvm_import(
   name = "libraries-hdr-histogram-_hdr_histogram",
   jar = "@org_hdrhistogram-HdrHistogram-2_2_2_http//file",
   source_jar = "@org_hdrhistogram-HdrHistogram-2_2_2-sources_http//file",
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "com.ibm.icu/icu4j-77.1.jar_copy",
+  src = "@com_ibm_icu-icu4j-77_1_http//file",
+  out = "com.ibm.icu/icu4j-77.1.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "libraries-icu4j-icu4j",
+  jar = "@com_ibm_icu-icu4j-77_1_http//file",
+  source_jar = "@com_ibm_icu-icu4j-77_1-sources_http//file",
   visibility = ["//visibility:public"]
 )
 

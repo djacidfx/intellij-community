@@ -5187,20 +5187,6 @@ http_file(
 )
 
 http_file(
-  name = "com_ibm_icu-icu4j-77_1_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/ibm/icu/icu4j/77.1/icu4j-77.1.jar",
-  sha256 = "b3640b9f416a4411fd33c59abbeea8fd57d024c23e1819bf9673220a97499fe3",
-  downloaded_file_path = "icu4j-77.1.jar"
-)
-
-http_file(
-  name = "com_ibm_icu-icu4j-77_1-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/ibm/icu/icu4j/77.1/icu4j-77.1-sources.jar",
-  sha256 = "2dd9da85182efca525aa269db573e0ed54943767d6af3afc50d0ede51e63d01a",
-  downloaded_file_path = "icu4j-77.1-sources.jar"
-)
-
-http_file(
   name = "com_jetbrains_intellij_documentation-tips-intellij-idea-community-241_62_http",
   url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/com/jetbrains/intellij/documentation/tips-intellij-idea-community/241.62/tips-intellij-idea-community-241.62.jar",
   sha256 = "e46de060e29f3d060de5a9dab21711ff4d376e4b2a7e96d332415df60b7d77c8",
@@ -9517,6 +9503,20 @@ http_file(
   url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/hdrhistogram/HdrHistogram/2.2.2/HdrHistogram-2.2.2-sources.jar",
   sha256 = "d3933c83a764994930f4477d4199539eaf413b42e32127ec2b68c61d711ac1a9",
   downloaded_file_path = "HdrHistogram-2.2.2-sources.jar"
+)
+
+http_file(
+  name = "com_ibm_icu-icu4j-77_1_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/ibm/icu/icu4j/77.1/icu4j-77.1.jar",
+  sha256 = "b3640b9f416a4411fd33c59abbeea8fd57d024c23e1819bf9673220a97499fe3",
+  downloaded_file_path = "icu4j-77.1.jar"
+)
+
+http_file(
+  name = "com_ibm_icu-icu4j-77_1-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/ibm/icu/icu4j/77.1/icu4j-77.1-sources.jar",
+  sha256 = "2dd9da85182efca525aa269db573e0ed54943767d6af3afc50d0ede51e63d01a",
+  downloaded_file_path = "icu4j-77.1-sources.jar"
 )
 
 http_file(
