@@ -114,7 +114,8 @@ internal class ConvertLambdaToReferenceIntention :
     }
 
     /**
-     * Overridden to not stop at [org.jetbrains.kotlin.psi.KtBlockExpression], making the intention available inside lambda bodies.
+     * Overridden to not stop at [org.jetbrains.kotlin.psi.KtBlockExpression], making the intention available at any position
+     * inside lambda bodies.
      * @see [org.jetbrains.kotlin.idea.codeinsight.api.applicable.intentions.KotlinApplicableModCommandAction.stopSearchAt]
      */
     override fun stopSearchAt(
