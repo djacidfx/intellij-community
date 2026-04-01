@@ -1,74 +1,72 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.openapi.vcs.impl;
+package com.intellij.openapi.vcs.impl
 
-import com.intellij.openapi.project.Project;
-import com.intellij.openapi.project.ProjectBundle;
-import com.intellij.openapi.util.text.StringUtil;
-import com.intellij.openapi.vcs.VcsBundle;
-import com.intellij.openapi.vcs.ex.ProjectLevelVcsManagerEx;
-import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.project.ProjectKt;
-import org.jetbrains.annotations.ApiStatus;
-import org.jetbrains.annotations.Nls;
-import org.jetbrains.annotations.NotNull;
-
-import java.util.Collection;
-import java.util.Objects;
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.ProjectBundle
+import com.intellij.openapi.util.text.StringUtil
+import com.intellij.openapi.vcs.VcsBundle
+import com.intellij.openapi.vcs.ex.ProjectLevelVcsManagerEx
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.project.isDirectoryBased
+import com.intellij.project.stateStore
+import org.jetbrains.annotations.ApiStatus
+import org.jetbrains.annotations.Nls
 
 @ApiStatus.Internal
-public abstract class DefaultVcsRootPolicy {
-  protected final @NotNull Project myProject;
-
-  protected DefaultVcsRootPolicy(@NotNull Project project) {
-    myProject = project;
-  }
-
-  public static DefaultVcsRootPolicy getInstance(Project project) {
-    return project.getService(DefaultVcsRootPolicy.class);
-  }
-
+abstract class DefaultVcsRootPolicy protected constructor(protected val myProject: Project) {
   /**
    * Return roots that belong to the project (ex: all content roots).
    * If 'Project' mapping is configured, all vcs roots for these roots will be put to the mappings.
    */
-  public abstract @NotNull Collection<VirtualFile> getDefaultVcsRoots();
+  abstract fun getDefaultVcsRoots(): Collection<VirtualFile>
 
-  public @Nls String getProjectConfigurationMessage() {
-    boolean isDirectoryBased = ProjectKt.isDirectoryBased(myProject);
-    if (isDirectoryBased) {
-      String fileName = Objects.requireNonNull(ProjectKt.getStateStore(myProject).getDirectoryStorePath()).getFileName().toString();
-      return VcsBundle.message("settings.vcs.mapping.project.description.with.idea.directory", fileName);
-    }
-    return VcsBundle.message("settings.vcs.mapping.project.description");
-  }
+  /**
+   * A message describing the <Project> mapping in the settings view
+   */
+  val projectMappingDescription: @Nls String
+    get() =
+      if (myProject.isDirectoryBased) {
+        val fileName = myProject.stateStore.directoryStorePath!!.fileName.toString()
+        VcsBundle.message("settings.vcs.mapping.project.description.with.idea.directory", fileName)
+      }
+      else {
+        VcsBundle.message("settings.vcs.mapping.project.description")
+      }
 
-  public @Nls String getProjectMappingInDialogDescription() {
-    boolean isDirectoryBased = ProjectKt.isDirectoryBased(myProject);
-    String message;
-    if (isDirectoryBased) {
-      String fileName = Objects.requireNonNull(ProjectKt.getStateStore(myProject).getDirectoryStorePath()).getFileName().toString();
-      message = VcsBundle.message("settings.vcs.mapping.project.in.dialog.description.with.idea.directory", fileName);
+  /**
+   * A message describing the <Project> mapping in the mapping configuration dialog
+   */
+  val projectMappingInDialogDescription: @Nls String
+    get() = if (myProject.isDirectoryBased) {
+      val fileName = myProject.stateStore.directoryStorePath!!.fileName.toString()
+      VcsBundle.message("settings.vcs.mapping.project.in.dialog.description.with.idea.directory", fileName)
     }
     else {
-      message = VcsBundle.message("settings.vcs.mapping.project.description");
+      VcsBundle.message("settings.vcs.mapping.project.description")
+    }.let {
+      @Suppress("HardCodedStringLiteral")
+      StringUtil.escapeXmlEntities(ProjectBundle.message("project.roots.project.display.name") + ": " + it.replace('\n', ' '))
     }
 
-    message = message.replace('\n', ' ');
-    return StringUtil.escapeXmlEntities(ProjectBundle.message("project.roots.project.display.name") + ": " + message);
-  }
-
-  protected void scheduleMappedRootsUpdate() {
-    ProjectLevelVcsManagerEx vcsManager = ProjectLevelVcsManagerEx.getInstanceEx(myProject);
-    if (StringUtil.isNotEmpty(vcsManager.haveDefaultMapping())) {
-      vcsManager.scheduleMappedRootsUpdate();
+  protected fun scheduleMappedRootsUpdate() {
+    val vcsManager = ProjectLevelVcsManagerEx.getInstanceEx(myProject)
+    if (!vcsManager.haveDefaultMapping().isNullOrEmpty()) {
+      vcsManager.scheduleMappedRootsUpdate()
     }
   }
 
   /**
    * Schedules new scan for vcs in content roots. Should be called
-   * when {@link DefaultVcsRootPolicy#getDefaultVcsRoots()} collection is changed
+   * when [DefaultVcsRootPolicy.getDefaultVcsRoots] collection is changed
    */
-  protected void scheduleRootsChangeProcessing(Collection<VirtualFile> removed, Collection<VirtualFile> added) {
-    myProject.getService(ModuleVcsDetector.class).scheduleScanForNewContentRoots(removed, added);
+  protected fun scheduleRootsChangeProcessing(removed: Collection<VirtualFile>, added: Collection<VirtualFile>) {
+    myProject.getService(ModuleVcsDetector::class.java).scheduleScanForNewContentRoots(removed, added)
+  }
+
+  companion object {
+    @JvmStatic
+    fun getInstance(project: Project): DefaultVcsRootPolicy {
+      return project.getService(DefaultVcsRootPolicy::class.java)
+    }
   }
 }
