@@ -169,7 +169,7 @@ fun executeRegisterTaskForOldContent(mainPluginDescriptor: IdeaPluginDescriptorI
 suspend fun SequenceScope<IdeaPluginDescriptorImpl>.sequenceSubDescriptorsForRegistration(moduleDescriptor: IdeaPluginDescriptorImpl) {
   for (dep in moduleDescriptor.dependencies) {
     val subDescriptor = dep.subDescriptor
-    if (subDescriptor?.pluginClassLoader == null) {
+    if (subDescriptor?.isMarkedForLoading != true) {
       continue
     }
 
@@ -177,7 +177,7 @@ suspend fun SequenceScope<IdeaPluginDescriptorImpl>.sequenceSubDescriptorsForReg
 
     for (subDep in subDescriptor.dependencies) {
       val d = subDep.subDescriptor
-      if (d?.pluginClassLoader != null) {
+      if (d?.isMarkedForLoading == true) {
         yield(d)
         assert(d.dependencies.isEmpty() || d.dependencies.all { it.subDescriptor == null })
       }
