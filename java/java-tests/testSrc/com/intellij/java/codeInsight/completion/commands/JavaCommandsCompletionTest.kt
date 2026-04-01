@@ -384,6 +384,39 @@ class JavaCommandsCompletionTest : LightFixtureCompletionTestCase() {
     assertTrue(elements.any { element -> element.lookupString.contains("Optimize im", ignoreCase = true) })
   }
 
+  fun testOptimizeImportWithMatchedSecondWord() {
+    Registry.get("ide.completion.command.force.enabled").setValue(true, getTestRootDisposable())
+    myFixture.configureByText(JavaFileType.INSTANCE, """
+      import java.util.ArrayList;
+      import java.util.List;
+      import java.util.List;
+      import java.util.List;
+      
+      public class MainClass {
+          public static void main(CharSequence args) {
+      
+              List<String> a = new ArrayList<>();
+          }
+      
+          ..im<caret>
+      }""".trimIndent())
+    val elements = myFixture.completeBasic()
+    selectItem(elements.first { element -> element.lookupString.contains("Optimize import", ignoreCase = true) })
+    NonBlockingReadActionImpl.waitForAsyncTaskCompletion()
+    myFixture.checkResult("""
+      import java.util.ArrayList;
+      import java.util.List;
+      
+      public class MainClass {
+          public static void main(CharSequence args) {
+      
+              List<String> a = new ArrayList<>();
+          }
+      
+          
+      }""".trimIndent())
+  }
+
   fun testGenerateGetter() {
     Registry.get("ide.completion.command.force.enabled").setValue(true, getTestRootDisposable())
     myFixture.configureByText(JavaFileType.INSTANCE, """
