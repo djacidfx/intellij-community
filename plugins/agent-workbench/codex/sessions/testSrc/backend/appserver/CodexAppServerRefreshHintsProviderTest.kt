@@ -10,6 +10,8 @@ import com.intellij.agent.workbench.codex.common.CodexThreadActivitySnapshot
 import com.intellij.agent.workbench.codex.common.CodexThreadStatusKind
 import com.intellij.agent.workbench.codex.sessions.backend.CodexRefreshHints
 import com.intellij.agent.workbench.common.AgentThreadActivity
+import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSourceUpdate
+import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSourceUpdateEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
@@ -171,9 +173,12 @@ class CodexAppServerRefreshHintsProviderTest {
       )
     )
 
-    withTimeout(2.seconds) {
-      provider.updates.first()
+    val updateEvent = withTimeout(2.seconds) {
+      provider.updateEvents.first()
     }
+    assertThat(updateEvent.type).isEqualTo(AgentSessionSourceUpdate.HINTS_CHANGED)
+    assertThat(updateEvent.scopedPaths).isNull()
+    assertThat(updateEvent.threadIds).containsExactly("thread-rename")
 
     val hintsByPath = provider.prefetchRefreshHints(
       paths = listOf("/work/project"),
@@ -220,9 +225,12 @@ class CodexAppServerRefreshHintsProviderTest {
       )
     )
 
-    withTimeout(2.seconds) {
-      provider.updates.first()
+    val updateEvent = withTimeout(2.seconds) {
+      provider.updateEvents.first()
     }
+    assertThat(updateEvent.type).isEqualTo(AgentSessionSourceUpdate.HINTS_CHANGED)
+    assertThat(updateEvent.scopedPaths).containsExactly("/work/project")
+    assertThat(updateEvent.threadIds).isNull()
 
     val hintsByPath = provider.prefetchRefreshHints(
       paths = listOf("/work/project"),
@@ -270,9 +278,10 @@ class CodexAppServerRefreshHintsProviderTest {
       )
     )
 
-    withTimeout(2.seconds) {
-      provider.updates.first()
+    val updateEvent = withTimeout(2.seconds) {
+      provider.updateEvents.first()
     }
+    assertThat(updateEvent.scopedPaths).containsExactly("/work/project")
 
     val hintsBeforeKnown = provider.prefetchRefreshHints(
       paths = listOf("/work/project"),
@@ -313,9 +322,10 @@ class CodexAppServerRefreshHintsProviderTest {
       )
     )
 
-    withTimeout(2.seconds) {
-      provider.updates.first()
+    val updateEvent = withTimeout(2.seconds) {
+      provider.updateEvents.first()
     }
+    assertThat(updateEvent.scopedPaths).containsExactly("/work/project")
 
     val hints = provider.prefetchRefreshHints(
       paths = listOf("/work/project"),
@@ -338,7 +348,7 @@ class CodexAppServerRefreshHintsProviderTest {
 
     val update = async {
       withTimeout(2.seconds) {
-        provider.updates.first()
+        provider.updateEvents.first()
       }
     }
 
@@ -349,8 +359,9 @@ class CodexAppServerRefreshHintsProviderTest {
         threadId = "thread-1",
       )
     )
-
-    update.await()
+    val updateEvent = update.await()
+    assertThat(updateEvent.type).isEqualTo(AgentSessionSourceUpdate.HINTS_CHANGED)
+    assertThat(updateEvent.threadIds).containsExactly("thread-1")
   }
 
   @Test
@@ -361,13 +372,16 @@ class CodexAppServerRefreshHintsProviderTest {
       notifications = notifications,
     )
 
-    val updates = Channel<Unit>(capacity = Channel.UNLIMITED)
+    val updates = Channel<AgentSessionSourceUpdateEvent>(capacity = Channel.UNLIMITED)
     val collectJob = launch {
-      provider.updates.collect {
-        updates.send(Unit)
+      provider.updateEvents.collect {
+        updates.send(it)
       }
     }
     try {
+      withTimeout(2.seconds) {
+        notifications.subscriptionCount.first { it > 0 }
+      }
       notifications.emit(
         CodexAppServerNotification(
           method = "item/commandExecution/outputDelta",
@@ -379,13 +393,15 @@ class CodexAppServerRefreshHintsProviderTest {
         CodexAppServerNotification(
           method = "item/commandExecution/outputDelta",
           kind = CodexAppServerNotificationKind.COMMAND_EXECUTION_OUTPUT_DELTA,
-          threadId = "thread-1",
+          threadId = "thread-2",
         )
       )
 
-      withTimeout(2.seconds) {
+      val updateEvent = withTimeout(2.seconds) {
         updates.receive()
       }
+      assertThat(updateEvent.type).isEqualTo(AgentSessionSourceUpdate.HINTS_CHANGED)
+      assertThat(updateEvent.threadIds).containsExactly("thread-1", "thread-2")
       val unexpectedSecond = withTimeoutOrNull(500.milliseconds) {
         updates.receive()
       }
