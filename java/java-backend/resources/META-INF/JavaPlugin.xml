@@ -1160,7 +1160,7 @@
                             implementationClass="com.intellij.codeInsight.completion.JavaClassReferenceCompletionContributor"/>
     <completion.contributor language="JAVA" id="javaLegacy" order="last, before legacy, before default, before javaClassName"
                             implementationClass="com.intellij.codeInsight.completion.JavaCompletionContributor"/>
-    <completion.contributor language="XML" id="basic2ClassName" order="after xml"
+    <completion.contributor language="XML" id="basic2ClassName" order="after xml, before javaClassReference"
                             implementationClass="com.intellij.codeInsight.completion.XmlBasicToClassNameDelegator"/>
     <completion.contributor language="JAVA" id="magicCompletion" order="after javaBasic2ClassName"
                             implementationClass="com.intellij.codeInspection.magicConstant.MagicCompletionContributor"/>
