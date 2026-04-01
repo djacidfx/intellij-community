@@ -21,6 +21,7 @@ import org.jetbrains.kotlin.idea.k2.codeinsight.intentions.branchedTransformatio
 import org.jetbrains.kotlin.idea.k2.codeinsight.intentions.branchedTransformations.convertToIfNullExpression
 import org.jetbrains.kotlin.idea.k2.codeinsight.intentions.branchedTransformations.introduceValueForCondition
 import org.jetbrains.kotlin.idea.k2.codeinsight.intentions.branchedTransformations.isPure
+import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.KtPostfixExpression
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtPsiUtil
@@ -31,7 +32,8 @@ import org.jetbrains.kotlin.psi.psiUtil.getQualifiedExpressionForReceiver
 internal class DoubleBangToIfThenIntention : SelfTargetingIntention<KtPostfixExpression>(
     KtPostfixExpression::class.java, { KotlinBundle.message("replace.expression.with.if.expression") }
 ) {
-    override fun isApplicableTo(element: KtPostfixExpression, caretOffset: Int): Boolean = true
+    override fun isApplicableTo(element: KtPostfixExpression, caretOffset: Int): Boolean =
+        element.operationToken == KtTokens.EXCLEXCL && element.baseExpression != null
 
     override fun startInWriteAction(): Boolean = false
 
