@@ -209,7 +209,7 @@ class KotlinMppCustomImportingTests : AbstractKotlinMppGradleImportingTest() {
         }
     }
 
-    @PluginTargetVersions(pluginVersion = "2.4.255-SNAPSHOT")
+    @PluginTargetVersions(pluginVersion = "2.4.0-dev-8449+")
     @Test
     fun testSwiftPMImportIdeModel() = doTest(runImport = false) {
         runAfterImport {
@@ -221,7 +221,7 @@ class KotlinMppCustomImportingTests : AbstractKotlinMppGradleImportingTest() {
         }
     }
 
-    @PluginTargetVersions(pluginVersion = "2.4.255-SNAPSHOT")
+    @PluginTargetVersions(pluginVersion = "2.4.0-dev-8449+")
     @Test
     fun testDisabledSwiftPMImportIdeModel() = doTest(runImport = false) {
         runAfterImport {
