@@ -255,4 +255,9 @@ public final class SmartPointerManagerImpl extends SmartPointerManagerEx {
   public PsiDocumentManagerEx getPsiDocumentManager() {
     return myPsiDocManager;
   }
+
+  @Override
+  public void possiblyInvalidate() {
+    // TODO
+  }
 }

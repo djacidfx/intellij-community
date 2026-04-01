@@ -12,6 +12,7 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.AbstractFileViewProvider
 import com.intellij.psi.FileViewProvider
+import com.intellij.psi.impl.smartPointers.SmartPointerManagerEx
 import com.intellij.testFramework.LightVirtualFile
 import com.intellij.util.AtomicMapCache
 import com.intellij.util.concurrency.annotations.RequiresReadLock
@@ -235,6 +236,7 @@ internal class MultiverseFileViewProviderCache(
 
   @RequiresWriteLock
   override fun markPossiblyInvalidated() {
+    SmartPointerManagerEx.getInstanceEx(project).possiblyInvalidate()
     doIfInitialized { map ->
       map.forEach { (_, map: FileProviderMap?) ->
         if (map != null) {

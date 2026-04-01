@@ -74,6 +74,8 @@ public abstract class SmartPointerManagerEx extends SmartPointerManager implemen
 
   public abstract @NotNull PsiDocumentManagerEx getPsiDocumentManager();
 
+  public abstract void possiblyInvalidate();
+
   public static @NotNull SmartPointerManagerEx getInstanceEx(@NotNull Project project) {
     return (SmartPointerManagerEx)getInstance(project);
   }

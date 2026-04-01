@@ -97,6 +97,10 @@ public class MockSmartPointerManager extends SmartPointerManagerEx {
   }
 
   @Override
+  public void possiblyInvalidate() {
+  }
+
+  @Override
   public void dispose() {
 
   }
