@@ -6671,20 +6671,6 @@ http_file(
 )
 
 http_file(
-  name = "org_jsoup-jsoup-1_21_2_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jsoup/jsoup/1.21.2/jsoup-1.21.2.jar",
-  sha256 = "f05496e255734759f0d4b5632da7b24f81313147c78c69e90ad045d096191344",
-  downloaded_file_path = "jsoup-1.21.2.jar"
-)
-
-http_file(
-  name = "org_jsoup-jsoup-1_21_2-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jsoup/jsoup/1.21.2/jsoup-1.21.2-sources.jar",
-  sha256 = "2cbf6a46b1af6bace17f25b3bedb1b0e5d56882083918c30c27608e188870a73",
-  downloaded_file_path = "jsoup-1.21.2-sources.jar"
-)
-
-http_file(
   name = "org_jspecify-jspecify-1_0_0_http",
   url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jspecify/jspecify/1.0.0/jspecify-1.0.0.jar",
   sha256 = "1fad6e6be7557781e4d33729d49ae1cdc8fdda6fe477bb0cc68ce351eafdfbab",
@@ -9832,6 +9818,20 @@ http_file(
   url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/jcraft/jsch.agentproxy.pageant/0.0.9/jsch.agentproxy.pageant-0.0.9-sources.jar",
   sha256 = "026dfa3cb0116e2781f22881ddee25c286bbad72887265ca120a8ef25018e355",
   downloaded_file_path = "jsch.agentproxy.pageant-0.0.9-sources.jar"
+)
+
+http_file(
+  name = "org_jsoup-jsoup-1_21_2_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jsoup/jsoup/1.21.2/jsoup-1.21.2.jar",
+  sha256 = "f05496e255734759f0d4b5632da7b24f81313147c78c69e90ad045d096191344",
+  downloaded_file_path = "jsoup-1.21.2.jar"
+)
+
+http_file(
+  name = "org_jsoup-jsoup-1_21_2-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jsoup/jsoup/1.21.2/jsoup-1.21.2-sources.jar",
+  sha256 = "2cbf6a46b1af6bace17f25b3bedb1b0e5d56882083918c30c27608e188870a73",
+  downloaded_file_path = "jsoup-1.21.2-sources.jar"
 )
 
 http_file(

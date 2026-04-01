@@ -8300,21 +8300,6 @@ jvm_import(
 )
 
 copy_file(
-  name = "org.jsoup/jsoup-1.21.2.jar_copy",
-  src = "@org_jsoup-jsoup-1_21_2_http//file",
-  out = "org.jsoup/jsoup-1.21.2.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-jvm_import(
-  name = "jsoup",
-  jar = "@org_jsoup-jsoup-1_21_2_http//file",
-  source_jar = "@org_jsoup-jsoup-1_21_2-sources_http//file",
-  visibility = ["//visibility:public"]
-)
-
-copy_file(
   name = "org.jspecify/jspecify-1.0.0.jar_copy",
   src = "@org_jspecify-jspecify-1_0_0_http//file",
   out = "org.jspecify/jspecify-1.0.0.jar",
@@ -12539,6 +12524,21 @@ jvm_import(
   name = "com_jcraft-jsch_agentproxy_pageant-0_0_9_http_import",
   jar = "@com_jcraft-jsch_agentproxy_pageant-0_0_9_http//file",
   source_jar = "@com_jcraft-jsch_agentproxy_pageant-0_0_9-sources_http//file"
+)
+
+copy_file(
+  name = "org.jsoup/jsoup-1.21.2.jar_copy",
+  src = "@org_jsoup-jsoup-1_21_2_http//file",
+  out = "org.jsoup/jsoup-1.21.2.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "libraries-jsoup-jsoup",
+  jar = "@org_jsoup-jsoup-1_21_2_http//file",
+  source_jar = "@org_jsoup-jsoup-1_21_2-sources_http//file",
+  visibility = ["//visibility:public"]
 )
 
 copy_file(
