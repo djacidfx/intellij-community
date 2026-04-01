@@ -22,5 +22,6 @@
     <orderEntry type="module" module-name="intellij.platform.ide" scope="PROVIDED" />
     <orderEntry type="module" module-name="intellij.platform.util.ui" scope="PROVIDED" />
     <orderEntry type="module" module-name="intellij.platform.editor.ui" scope="PROVIDED" />
+    <orderEntry type="module" module-name="intellij.platform.util.coroutines" />
   </component>
 </module>

@@ -40,6 +40,8 @@ final class EmmetAbbreviationBaloonUi {
       LOG.warn("Cannot find frontend project for the: " + showEvent);
       return;
     }
+    var rpcHandler = new EmmetAbbreviationBaloonRpcFrontendHandler(project, showEvent);
+
     JPanel panel = new JPanel(new BorderLayout());
     final TextFieldWithStoredHistory field = new TextFieldWithStoredHistory(showEvent.getHistoryKey());
     final Dimension fieldPreferredSize = field.getPreferredSize();
@@ -64,13 +66,13 @@ final class EmmetAbbreviationBaloonUi {
     final DocumentAdapter documentListener = new DocumentAdapter() {
       @Override
       protected void textChanged(@NotNull DocumentEvent e) {
-        EmmetAbbreviationBaloonRpcFrontendHandler.isValid(showEvent, (isValid) -> {
+        rpcHandler.isValid((isValid) -> {
           WriteIntentReadAction.run(() -> {
             if (!isValid) {
               balloon.hide();
               return;
             }
-            EmmetAbbreviationBaloonRpcFrontendHandler.validateTemplateKey(showEvent, field, balloon, (isCorrect) -> {
+            rpcHandler.validateTemplateKey(field, balloon, (isCorrect) -> {
             });
           });
         });
@@ -84,7 +86,7 @@ final class EmmetAbbreviationBaloonUi {
         if (field.isPopupVisible()) {
           return;
         }
-        EmmetAbbreviationBaloonRpcFrontendHandler.isValid(showEvent, (isValid) -> {
+        rpcHandler.isValid((isValid) -> {
           if (!isValid) {
             balloon.hide();
             return;
@@ -92,13 +94,13 @@ final class EmmetAbbreviationBaloonUi {
 
           switch (e.getKeyCode()) {
             case KeyEvent.VK_ENTER -> {
-              EmmetAbbreviationBaloonRpcFrontendHandler.validateTemplateKey(showEvent, field, balloon, (isCorrect) -> {
+              rpcHandler.validateTemplateKey(field, balloon, (isCorrect) -> {
                 WriteIntentReadAction.run(() -> {
                   if (!isCorrect) {
                     return;
                   }
                   final String abbreviation = field.getText();
-                  EmmetAbbreviationBaloonRpcFrontendHandler.enter(showEvent, abbreviation, () -> {
+                  rpcHandler.enter(abbreviation, () -> {
                     PropertiesComponent.getInstance().setValue(showEvent.getLastAbbreviationKey(), abbreviation);
                     field.addCurrentTextToHistory();
                     balloon.hide();
@@ -106,7 +108,7 @@ final class EmmetAbbreviationBaloonUi {
                 });
               });
             }
-            case KeyEvent.VK_ESCAPE -> EmmetAbbreviationBaloonRpcFrontendHandler.cancel(showEvent, () -> balloon.hide(false));
+            case KeyEvent.VK_ESCAPE -> rpcHandler.cancel(() -> balloon.hide(false));
           }
         });
       }

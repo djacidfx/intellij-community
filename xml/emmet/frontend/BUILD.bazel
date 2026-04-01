@@ -60,6 +60,7 @@ jvm_library(
     "//xml/emmet",
     "//platform/platform-frontend:frontend",
     "@lib//:jetbrains-annotations-provided",
+    "//platform/util/coroutines",
     ":platform_core-ui_provided",
     ":platform_util_provided",
     ":platform_core_provided",
@@ -100,6 +101,7 @@ jvm_library(
     "//platform/util:util-ui_test_lib",
     "//platform/editor-ui-api:editor-ui",
     "//platform/editor-ui-api:editor-ui_test_lib",
+    "//platform/util/coroutines:coroutines_test_lib",
   ]
 )
 ### auto-generated section `build intellij.xml.emmet.frontend` end
