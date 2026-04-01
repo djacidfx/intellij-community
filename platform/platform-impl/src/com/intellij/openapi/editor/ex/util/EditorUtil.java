@@ -1055,7 +1055,7 @@ public final class EditorUtil {
     });
   }
 
-  public static Font getEditorFont(int size) {
+  public static @NotNull Font getEditorFont(int size) {
     return EditorThreading.compute(() -> {
       EditorColorsScheme scheme = EditorColorsManager.getInstance().getGlobalScheme();
       Font font = scheme.getFont(EditorFontType.PLAIN).deriveFont((float)size);
