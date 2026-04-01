@@ -58,7 +58,10 @@ class VcsRootScanner(private val project: Project, coroutineScope: CoroutineScop
   init {
     AsyncVfsEventsPostProcessor.getInstance().addListener(object : AsyncVfsEventsListener {
       override suspend fun filesChanged(events: List<VFileEvent>) {
-        this@VcsRootScanner.filesChanged(events)
+        if (testShouldScheduleScan(events)) {
+          checkCanceled()
+          scheduleScan()
+        }
       }
     }, coroutineScope)
     VcsRootChecker.EXTENSION_POINT_NAME.addChangeListener(coroutineScope, ::scheduleScan)
@@ -163,25 +166,37 @@ class VcsRootScanner(private val project: Project, coroutineScope: CoroutineScop
     }
   }
 
-  private suspend fun filesChanged(events: List<VFileEvent>) {
+  /**
+   * Check whether scanning is enabled and whether a VFS change has affected potential VCS roots.
+   */
+  private suspend fun testShouldScheduleScan(events: List<VFileEvent>): Boolean {
     val checkers = VcsRootChecker.EXTENSION_POINT_NAME.extensionList
     if (checkers.isEmpty()) {
-      return
+      return false
     }
 
+    if (!VcsUtil.shouldDetectVcsMappingsFor(project)) {
+      return false
+    }
+
+    var potentialVcsRootFound = false
     for (event in events) {
       val file = event.file
       if (file != null && file.isDirectory) {
         checkCanceled()
         visitDirsRecursivelyWithoutExcluded(project = project, root = file, visitIgnoredFoldersThemselves = true) { dir ->
           if (isVcsDir(checkers, dir.name)) {
-            scheduleScan()
+            potentialVcsRootFound = true
             return@visitDirsRecursivelyWithoutExcluded VirtualFileVisitor.skipTo(file)
           }
           VirtualFileVisitor.CONTINUE
         }
+        if (potentialVcsRootFound) {
+          return true
+        }
       }
     }
+    return false
   }
 
   fun scheduleScan() {
