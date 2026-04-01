@@ -94,7 +94,7 @@ public final class SearchEverywhereManagerImpl implements SearchEverywhereManage
 
     Project project = initEvent.getProject();
 
-    List<SearchEverywhereContributor<?>> contributors = createContributors(initEvent, project, true);
+    List<SearchEverywhereContributor<?>> contributors = createContributors(initEvent, project, false, true);
     SearchEverywhereContributorValidationRule.updateContributorsMap(contributors);
     mySearchEverywhereUI = createView(myProject, contributors, SearchFieldStatisticsCollector.getStartMoment(initEvent));
     contributors.forEach(c -> Disposer.register(mySearchEverywhereUI, c));
@@ -193,7 +193,10 @@ public final class SearchEverywhereManagerImpl implements SearchEverywhereManage
   }
 
   @ApiStatus.Internal
-  public static List<SearchEverywhereContributor<?>> createContributors(@NotNull AnActionEvent initEvent, Project project, boolean shouldLinkFilesTabContributors) {
+  public static List<SearchEverywhereContributor<?>> createContributors(@NotNull AnActionEvent initEvent,
+                                                                        Project project,
+                                                                        boolean isSplitSearchEverywhere,
+                                                                        boolean shouldLinkFilesTabContributors) {
     SearchEverywhereMlContributorReplacement.saveInitEvent(initEvent);
     if (project == null) {
       ActionSearchEverywhereContributor.Factory factory = new ActionSearchEverywhereContributor.Factory();
@@ -202,7 +205,7 @@ public final class SearchEverywhereManagerImpl implements SearchEverywhereManage
 
     List<SearchEverywhereContributor<?>> res = new ArrayList<>();
     for (SearchEverywhereContributorFactory<?> factory : SearchEverywhereContributor.EP_NAME.getExtensionList()) {
-      if (factory.isAvailable(project)) {
+      if (factory.isAvailable(project, isSplitSearchEverywhere)) {
         SearchEverywhereContributor<?> contributor = factory.createContributor(initEvent);
         res.add(contributor);
       }

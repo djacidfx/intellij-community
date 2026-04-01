@@ -20,7 +20,6 @@ import com.intellij.platform.searchEverywhere.SeLegacyItemPresentationProvider
 import com.intellij.platform.searchEverywhere.SeProviderId
 import com.intellij.platform.searchEverywhere.SeProviderIdUtils
 import com.intellij.platform.searchEverywhere.SeSession
-import com.intellij.platform.searchEverywhere.providers.SeProvidersHolder.Companion.initialize
 import com.intellij.platform.searchEverywhere.toProviderId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -156,7 +155,7 @@ class SeProvidersHolder(
       separateTabContributors: MutableMap<SeProviderId, SearchEverywhereContributor<Any>>,
     ) {
       withContext(Dispatchers.EDT) {
-        SearchEverywhereManagerImpl.createContributors(initEvent, project, false)
+        SearchEverywhereManagerImpl.createContributors(initEvent, project, true, false)
       }.filterIsInstance<SearchEverywhereContributor<Any>>().forEach {
         allContributors[SeProviderId(it.searchProviderId)] = it
       }
