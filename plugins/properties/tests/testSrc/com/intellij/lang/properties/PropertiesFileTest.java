@@ -18,38 +18,35 @@ import org.jetbrains.annotations.NonNls;
 import java.util.List;
 
 public class PropertiesFileTest extends BasePlatformTestCase {
-  private Property myPropertyToAdd;
-
   @Override
   protected void setUp() throws Exception {
     super.setUp();
-    myPropertyToAdd = (Property)PropertiesElementFactory.createProperty(getProject(), "kkk", "vvv", null);
   }
 
   public void testAddPropertyAfterComment() {
     final PropertiesFile propertiesFile =
       PropertiesImplUtil.getPropertiesFile(myFixture.configureByText(PropertiesFileType.INSTANCE, "#xxxxx"));
     WriteCommandAction.runWriteCommandAction(getProject(), () -> {
-      propertiesFile.addProperty(myPropertyToAdd);
+      propertiesFile.addProperty("kkk", "vvv");
     });
     PsiTestUtil.checkFileStructure((PsiFile)propertiesFile);
 
     List<IProperty> properties = propertiesFile.getProperties();
-    IProperty added = properties.get(0);
-    assertPropertyEquals(added, myPropertyToAdd.getName(), myPropertyToAdd.getValue());
+    IProperty added = properties.getFirst();
+    assertPropertyEquals(added, "kkk", "vvv");
   }
 
   public void testAddPropertyAfterComment2() {
     final PropertiesFile propertiesFile =
       PropertiesImplUtil.getPropertiesFile(myFixture.configureByText(PropertiesFileType.INSTANCE, "#xxxxx\n"));
     WriteCommandAction.runWriteCommandAction(getProject(), () -> {
-      propertiesFile.addProperty(myPropertyToAdd);
+      propertiesFile.addProperty("kkk", "vvv");
     });
     PsiTestUtil.checkFileStructure((PsiFile)propertiesFile);
 
     List<IProperty> properties = propertiesFile.getProperties();
-    IProperty added = properties.get(0);
-    assertPropertyEquals(added, myPropertyToAdd.getName(), myPropertyToAdd.getValue());
+    IProperty added = properties.getFirst();
+    assertPropertyEquals(added, "kkk", "vvv");
   }
 
   private static void assertPropertyEquals(final IProperty property, @NonNls String name, @NonNls String value) {
@@ -61,15 +58,16 @@ public class PropertiesFileTest extends BasePlatformTestCase {
     final PropertiesFile propertiesFile =
       PropertiesImplUtil.getPropertiesFile(myFixture.configureByText(PropertiesFileType.INSTANCE, "xxx=yyy"));
     WriteCommandAction.runWriteCommandAction(null, () -> {
-      propertiesFile.addProperty(myPropertyToAdd);
+      propertiesFile.addProperty("kkk", "vvv");
     });
     PsiTestUtil.checkFileStructure((PsiFile)propertiesFile);
 
     List<IProperty> properties = propertiesFile.getProperties();
     assertEquals(2, properties.size());
     assertPropertyEquals(properties.get(1), "xxx", "yyy");
-    assertPropertyEquals(properties.get(0), myPropertyToAdd.getName(), myPropertyToAdd.getValue());
+    assertPropertyEquals(properties.get(0), "kkk", "vvv");
   }
+
   public void testDeleteProperty() {
     PropertiesFile propertiesFile =
       PropertiesImplUtil.getPropertiesFile(myFixture.configureByText(PropertiesFileType.INSTANCE, "xxx=yyy\n#s\nzzz=ttt\n\n"));
@@ -83,7 +81,7 @@ public class PropertiesFileTest extends BasePlatformTestCase {
 
     List<IProperty> propertiesAfter = propertiesFile.getProperties();
     assertEquals(1, propertiesAfter.size());
-    assertPropertyEquals(propertiesAfter.get(0), "xxx", "yyy");
+    assertPropertyEquals(propertiesAfter.getFirst(), "xxx", "yyy");
   }
 
   public void testDeletePropertyWhitespaceAround() {
@@ -96,6 +94,7 @@ public class PropertiesFileTest extends BasePlatformTestCase {
 
     assertEquals("xxx=yyy\nxxx3=ttt\n\n", propertiesFile.getContainingFile().getText());
   }
+
   public void testDeletePropertyWhitespaceAhead() {
     PropertiesFile propertiesFile =
       PropertiesImplUtil.getPropertiesFile(myFixture.configureByText(PropertiesFileType.INSTANCE, "xxx=yyy\nxxx2=tyrt\nxxx3=ttt\n\n"));
@@ -110,10 +109,10 @@ public class PropertiesFileTest extends BasePlatformTestCase {
   public void testAddToEnd() throws IncorrectOperationException {
     final PropertiesFile propertiesFile =
       PropertiesImplUtil.getPropertiesFile(myFixture.configureByText(PropertiesFileType.INSTANCE, "a=b\\nccc"));
-    assertEquals(1,propertiesFile.getProperties().size());
+    assertEquals(1, propertiesFile.getProperties().size());
     WriteCommandAction.runWriteCommandAction(null, () -> {
-        propertiesFile.addProperty(myPropertyToAdd);
-      });
+      propertiesFile.addProperty("kkk", "vvv");
+    });
     PsiTestUtil.checkFileStructure((PsiFile)propertiesFile);
 
     assertEquals("a=b\\nccc\nkkk=vvv", propertiesFile.getText());
@@ -122,13 +121,13 @@ public class PropertiesFileTest extends BasePlatformTestCase {
   public void testUnescapedValue() {
     PropertiesFile propertiesFile =
       PropertiesImplUtil.getPropertiesFile(myFixture.configureByText(PropertiesFileType.INSTANCE, "a=b\\nc\\u0063c"));
-    assertEquals("b\nccc", propertiesFile.getProperties().get(0).getUnescapedValue());
+    assertEquals("b\nccc", propertiesFile.getProperties().getFirst().getUnescapedValue());
   }
 
   public void testUnescapedLineBreak() {
     PropertiesFile propertiesFile =
       PropertiesImplUtil.getPropertiesFile(myFixture.configureByText(PropertiesFileType.INSTANCE, "a=b\\\n\t  c"));
-    assertEquals("bc", propertiesFile.getProperties().get(0).getUnescapedValue());
+    assertEquals("bc", propertiesFile.getProperties().getFirst().getUnescapedValue());
   }
 
   public void testAddEmptyPropertyAfter() throws IncorrectOperationException {
@@ -136,8 +135,8 @@ public class PropertiesFileTest extends BasePlatformTestCase {
       PropertiesImplUtil.getPropertiesFile(myFixture.configureByText(PropertiesFileType.INSTANCE, "a=b\nc=d\ne=f"));
     final Property c = (Property)propertiesFile.findPropertyByKey("c");
     WriteCommandAction.runWriteCommandAction(null, () -> {
-        propertiesFile.addPropertyAfter("key", "", c);
-      });
+      propertiesFile.addPropertyAfter("key", "", c);
+    });
     PsiTestUtil.checkFileStructure((PsiFile)propertiesFile);
 
     assertEquals("a=b\nc=d\nkey=\ne=f", propertiesFile.getText());
@@ -148,33 +147,36 @@ public class PropertiesFileTest extends BasePlatformTestCase {
       PropertiesImplUtil.getPropertiesFile(myFixture.configureByText(PropertiesFileType.INSTANCE, "a=b\nc=d\ne=f"));
     final Property c = (Property)propertiesFile.findPropertyByKey("c");
     WriteCommandAction.runWriteCommandAction(null, () -> {
-        propertiesFile.addPropertyAfter(myPropertyToAdd, c);
-      });
+      propertiesFile.addPropertyAfter(PropertiesElementFactory.createProperty(getProject(), "kkk", "vvv", null), c);
+    });
     PsiTestUtil.checkFileStructure((PsiFile)propertiesFile);
 
     assertEquals("a=b\nc=d\nkkk=vvv\ne=f", propertiesFile.getText());
   }
+
   public void testAddPropertyAfterLast() throws IncorrectOperationException {
     final PropertiesFile propertiesFile =
       PropertiesImplUtil.getPropertiesFile(myFixture.configureByText(PropertiesFileType.INSTANCE, "a=b\nc=d\ne=f"));
     final Property p = (Property)propertiesFile.findPropertyByKey("e");
     WriteCommandAction.runWriteCommandAction(null, () -> {
-        propertiesFile.addPropertyAfter(myPropertyToAdd, p);
-      });
+      propertiesFile.addPropertyAfter(PropertiesElementFactory.createProperty(getProject(), "kkk", "vvv", null), p);
+    });
     PsiTestUtil.checkFileStructure((PsiFile)propertiesFile);
 
     assertEquals("a=b\nc=d\ne=f\nkkk=vvv", propertiesFile.getText());
   }
+
   public void testAddPropertyAfterInBeginning() throws IncorrectOperationException {
     final PropertiesFile propertiesFile =
       PropertiesImplUtil.getPropertiesFile(myFixture.configureByText(PropertiesFileType.INSTANCE, "a=b\nc=d\ne=f"));
     WriteCommandAction.runWriteCommandAction(getProject(), () -> {
-      propertiesFile.addPropertyAfter(myPropertyToAdd, null);
+      propertiesFile.addPropertyAfter(PropertiesElementFactory.createProperty(getProject(), "kkk", "vvv", null), null);
     });
     PsiTestUtil.checkFileStructure((PsiFile)propertiesFile);
 
     assertEquals("kkk=vvv\na=b\nc=d\ne=f", propertiesFile.getText());
   }
+
   public void testUnescapedKey() throws IncorrectOperationException {
     PropertiesFile propertiesFile = PropertiesImplUtil
       .getPropertiesFile(myFixture.configureByText(PropertiesFileType.INSTANCE, "a\\:b=xxx\nc\\ d=xxx\n\\ e\\=f=xxx\n\\u1234\\uxyzt=xxxx"));
