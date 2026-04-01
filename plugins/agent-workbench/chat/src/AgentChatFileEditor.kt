@@ -226,25 +226,37 @@ internal class AgentChatFileEditor(
         return@launch
       }
       var readinessCheckpoint: AgentChatTerminalOutputCheckpoint? = null
+      var retryCurrentStepWithoutReadiness = false
+      var codexPlanBusyRetryAttempt = 0
       while (true) {
-        when (createdTab.awaitInitialMessageReadiness(
-          timeoutMs = INITIAL_MESSAGE_READINESS_TIMEOUT_MS,
-          idleMs = INITIAL_MESSAGE_OUTPUT_IDLE_MS,
-          checkpoint = readinessCheckpoint,
-        )) {
-          AgentChatTerminalInputReadiness.READY -> Unit
-          AgentChatTerminalInputReadiness.TIMEOUT -> {
-            if (file.shouldDelayInitialMessageOnReadinessTimeout()) {
-              yield()
-              continue
+        if (!retryCurrentStepWithoutReadiness) {
+          when (createdTab.awaitInitialMessageReadiness(
+            timeoutMs = INITIAL_MESSAGE_READINESS_TIMEOUT_MS,
+            idleMs = INITIAL_MESSAGE_OUTPUT_IDLE_MS,
+            checkpoint = readinessCheckpoint,
+          )) {
+            AgentChatTerminalInputReadiness.READY -> Unit
+            AgentChatTerminalInputReadiness.TIMEOUT -> {
+              if (file.shouldDelayInitialMessageOnReadinessTimeout()) {
+                yield()
+                continue
+              }
             }
+
+            AgentChatTerminalInputReadiness.TERMINATED -> return@launch
           }
-          AgentChatTerminalInputReadiness.TERMINATED -> return@launch
         }
 
-        val sendResult = sendInitialMessageIfReady(createdTab)
+        val sendResult = sendInitialMessageIfReady(createdTab, codexPlanBusyRetryAttempt)
         if (sendResult.nextReadinessCheckpoint != null) {
           readinessCheckpoint = sendResult.nextReadinessCheckpoint
+        }
+        retryCurrentStepWithoutReadiness = sendResult.retryCurrentStepWithoutReadiness
+        codexPlanBusyRetryAttempt = if (sendResult.retryCurrentStepWithoutReadiness) {
+          codexPlanBusyRetryAttempt + 1
+        }
+        else {
+          0
         }
         if (!sendResult.progressed) {
           if (createdTab.sessionState.value != TerminalViewSessionState.Running || !file.hasPendingInitialMessageForDispatch()) {
@@ -267,7 +279,10 @@ internal class AgentChatFileEditor(
     }
   }
 
-  private suspend fun sendInitialMessageIfReady(createdTab: AgentChatTerminalTab): AgentChatInitialMessageSendResult {
+  private suspend fun sendInitialMessageIfReady(
+    createdTab: AgentChatTerminalTab,
+    codexPlanBusyRetryAttempt: Int,
+  ): AgentChatInitialMessageSendResult {
     if (createdTab.sessionState.value != TerminalViewSessionState.Running) {
       return AgentChatInitialMessageSendResult.NO_PROGRESS
     }
@@ -303,10 +318,10 @@ internal class AgentChatFileEditor(
       }
       if (observation.text.contains(CODEX_PLAN_MODE_BUSY_MESSAGE)) {
         file.cancelInitialMessageDispatch(dispatch)
-        delay(CODEX_PLAN_MODE_RETRY_BACKOFF_MS.milliseconds)
+        delay(calculateCodexPlanModeRetryBackoffMs(codexPlanBusyRetryAttempt).milliseconds)
         return AgentChatInitialMessageSendResult(
           progressed = false,
-          nextReadinessCheckpoint = createdTab.captureOutputCheckpoint(),
+          retryCurrentStepWithoutReadiness = true,
         )
       }
     }
@@ -327,10 +342,16 @@ internal class AgentChatFileEditor(
 private data class AgentChatInitialMessageSendResult(
   @JvmField val progressed: Boolean,
   @JvmField val nextReadinessCheckpoint: AgentChatTerminalOutputCheckpoint? = null,
+  @JvmField val retryCurrentStepWithoutReadiness: Boolean = false,
 ) {
   companion object {
     val NO_PROGRESS: AgentChatInitialMessageSendResult = AgentChatInitialMessageSendResult(progressed = false)
   }
+}
+
+private fun calculateCodexPlanModeRetryBackoffMs(retryAttempt: Int): Long {
+  val cappedAttempt = retryAttempt.coerceIn(0, 2)
+  return (CODEX_PLAN_MODE_RETRY_BACKOFF_MS * (1L shl cappedAttempt)).coerceAtMost(CODEX_PLAN_MODE_MAX_RETRY_BACKOFF_MS)
 }
 
 internal fun interface AgentChatTabSnapshotWriter {
@@ -749,9 +770,10 @@ private fun isMeaningfulTerminalOutputChar(char: Char): Boolean {
 
 private const val INITIAL_MESSAGE_READINESS_TIMEOUT_MS: Long = 2_000
 private const val INITIAL_MESSAGE_OUTPUT_IDLE_MS: Long = 250
-private const val INITIAL_MESSAGE_POST_SEND_OBSERVATION_TIMEOUT_MS: Long = 750
+private const val INITIAL_MESSAGE_POST_SEND_OBSERVATION_TIMEOUT_MS: Long = 1_500
 private const val INITIAL_MESSAGE_POST_SEND_OUTPUT_IDLE_MS: Long = 150
 private const val CODEX_PLAN_MODE_RETRY_BACKOFF_MS: Long = 250
+private const val CODEX_PLAN_MODE_MAX_RETRY_BACKOFF_MS: Long = 1_000
 private const val POST_SEND_SCAN_LIMIT_CHARS: Long = 8_192
 private const val READINESS_SCAN_LIMIT_CHARS: Long = 8_192
 private const val CODEX_PLAN_MODE_BUSY_MESSAGE: String = "'/plan' is disabled while a task is in progress."
