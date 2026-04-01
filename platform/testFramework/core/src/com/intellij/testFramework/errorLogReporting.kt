@@ -1,8 +1,7 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.testFramework
 
-import com.intellij.platform.testFramework.teamCity.generifyErrorMessage
-import com.intellij.platform.testFramework.teamCity.reportTestFailure
+import com.intellij.platform.testFramework.teamCity.TeamCityReporter
 
 internal fun ErrorLog.reportAsFailures() {
   val errors = takeLoggedErrors()
@@ -30,14 +29,8 @@ private fun logAsTeamcityTestFailure(error: LoggedError) {
     println(it)
   }.getOrNull()
 
-  val testName = if (message == null) {
-    "Error logged without message"
-  } else {
-    generifyErrorMessage(message)
-      .replace("[:.()]".toRegex(), " ")
-      .replace(" +".toRegex(), " ")
-  }
-  System.out.reportTestFailure(testName, message ?: "", stackTraceContent, owner)
+  val testName = message ?: "Error logged without message"
+  TeamCityReporter.reportTestLifecycle(testName, TeamCityReporter.TestOutcome.FAILED, message ?: "", stackTraceContent, owner)
 }
 
 private fun findMessage(t: Throwable): String? {

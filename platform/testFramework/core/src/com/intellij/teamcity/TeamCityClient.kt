@@ -2,6 +2,7 @@
 package com.intellij.teamcity
 
 import com.intellij.TestCaseLoader
+import com.intellij.platform.testFramework.teamCity.TeamCityReporter
 import com.intellij.openapi.application.PathManager
 import com.intellij.tool.HttpClient
 import com.intellij.tool.withErrorThreshold
@@ -158,8 +159,7 @@ class TeamCityClient(
       // Because of that feature, files and directories with a comma in the name can't be mentioned as is.
       // So, commas are replaced with wildcards.
       // See also TW-19333.
-      val spec = spec.replace(",", "*")
-      println(" ##teamcity[publishArtifacts '$spec'] ")
+      TeamCityReporter.reportPublishArtifacts(spec.replace(",", "*"))
     }
 
     var suffix: String

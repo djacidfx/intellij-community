@@ -5,6 +5,7 @@ import com.intellij.GroupBasedTestClassFilter
 import com.intellij.TestCaseLoader
 import com.intellij.TestCaseLoader.TEST_RUNNERS_COUNT
 import com.intellij.TestCaseLoader.TEST_RUNNER_INDEX
+import com.intellij.platform.testFramework.teamCity.TeamCityReporter
 import com.intellij.testFramework.TeamCityLogger
 import com.intellij.util.bazelEnvironment.BazelLabel
 import com.intellij.util.bazelEnvironment.BazelRunfiles
@@ -59,9 +60,9 @@ internal object TestsDurationBucketingUtils {
       }
     }
     if (TeamCityLogger.isUnderTC) {
-      println(String.format("##teamcity[buildStatisticValue key='testDurationClasses.loaded' value='%d']", loadedSize))
-      println(String.format("##teamcity[buildStatisticValue key='testDurationClasses.relevant' value='%d']", relevantSize))
-      println(String.format("##teamcity[buildStatisticValue key='testDurationClasses.missing' value='%d']", missing.size))
+      TeamCityReporter.reportStatisticValue("testDurationClasses.loaded", loadedSize)
+      TeamCityReporter.reportStatisticValue("testDurationClasses.relevant", relevantSize)
+      TeamCityReporter.reportStatisticValue("testDurationClasses.missing", missing.size)
     }
 
     if (classesDurations.isEmpty()) return emptyList()
@@ -129,7 +130,7 @@ internal object TestsDurationBucketingUtils {
 
       println("Dumped bucketing data to: $outputFile")
       if (TeamCityLogger.isUnderTC) {
-        println("##teamcity[publishArtifacts '${outputFile.absolutePathString()}']")
+        TeamCityReporter.reportPublishArtifacts(outputFile.absolutePathString())
       }
     }
     catch (e: Exception) {
@@ -170,9 +171,9 @@ internal object TestsDurationBucketingUtils {
     val averageTime = (buckets.sumOf { it.totalTime.inWholeMilliseconds } / bucketsCount).milliseconds
     println("*** Calculated bucket partitions, average bucket time is ${averageTime}")
     if (TeamCityLogger.isUnderTC) {
-      println(String.format("##teamcity[buildStatisticValue key='buckets.averageMs' value='%d']", averageTime.inWholeMilliseconds))
+      TeamCityReporter.reportStatisticValue("buckets.averageMs", averageTime.inWholeMilliseconds)
       val bucket = buckets.getOrNull(currentBucketIndex)
-      println(String.format("##teamcity[buildStatisticValue key='buckets.currentMs' value='%d']", bucket?.totalTime?.inWholeMilliseconds ?: 0))
+      TeamCityReporter.reportStatisticValue("buckets.currentMs", bucket?.totalTime?.inWholeMilliseconds ?: 0)
     }
     filters.forEachIndexed { index, filter ->
       val bucket = buckets[index]
