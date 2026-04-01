@@ -1,16 +1,15 @@
 package com.intellij.polySymbols.testFramework
 
-import com.intellij.openapi.Disposable
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 
-fun CodeInsightTestFixture.configure(configurator: PolySymbolsTestConfigurator, disposable: Disposable? = null) {
-  configurator.configure(this, disposable)
+fun CodeInsightTestFixture.configure(configurator: PolySymbolsTestConfigurator) {
+  configurator.configure(this)
 }
 
 interface PolySymbolsTestConfigurator {
-  fun configure(fixture: CodeInsightTestFixture, disposable: Disposable?)
+  fun configure(fixture: CodeInsightTestFixture)
 
-  fun beforeDirectoryComparison(resultsDir: VirtualFile, goldDir: VirtualFile) {
+  fun beforeDirectoryComparison(fixture: CodeInsightTestFixture, resultsDir: VirtualFile, goldDir: VirtualFile) {
   }
 }

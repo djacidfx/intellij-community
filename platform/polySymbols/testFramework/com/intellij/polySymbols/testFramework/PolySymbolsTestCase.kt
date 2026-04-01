@@ -141,10 +141,9 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
         else if (additionalFiles.isNotEmpty()) {
           configureByFiles(*additionalFiles.toTypedArray())
         }
-        val configuratorsDisposable =
-          if (checkResult && dir) Disposer.newDisposable(myFixture.testRootDisposable) else null
+
         configurators.forEach {
-          it.configure(myFixture, configuratorsDisposable)
+          it.configure(myFixture)
         }
         // After copying the files, some files might have been indexed with incorrect PolyContext,
         // ensure we have all files scanned again and indexed correctly
@@ -212,10 +211,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
             val results = myFixture.tempDirFixture.findOrCreateDir(".")
 
             // Trigger any advanced configurators
-            configurators.forEach { it.configure(myFixture, configuratorsDisposable) }
-
-            // Ensure any files created by configurators are removed
-            Disposer.dispose(configuratorsDisposable!!)
+            configurators.forEach { it.beforeDirectoryComparison(myFixture, results, rootAfter) }
 
             // Set test data file path, so that comparison works
             val root = tempDirFixture.findOrCreateDir(".")
