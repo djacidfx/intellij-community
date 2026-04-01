@@ -13252,6 +13252,43 @@ jvm_import(
 )
 
 copy_file(
+  name = "org.bidib.com.github.markusbernhardt/proxy-vole-1.1.6.jar_copy",
+  src = "@org_bidib_com_github_markusbernhardt-proxy-vole-1_1_6_http//file",
+  out = "org.bidib.com.github.markusbernhardt/proxy-vole-1.1.6.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "org.javadelight/delight-rhino-sandbox-0.0.17.jar_copy",
+  src = "@org_javadelight-delight-rhino-sandbox-0_0_17_http//file",
+  out = "org.javadelight/delight-rhino-sandbox-0.0.17.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+java_library(
+  name = "libraries-proxy-vole-proxy-vole",
+  exports = [
+    ":org_bidib_com_github_markusbernhardt-proxy-vole-1_1_6_http_import",
+    ":org_javadelight-delight-rhino-sandbox-0_0_17_http_import",
+  ],
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "org_bidib_com_github_markusbernhardt-proxy-vole-1_1_6_http_import",
+  jar = "@org_bidib_com_github_markusbernhardt-proxy-vole-1_1_6_http//file",
+  source_jar = "@org_bidib_com_github_markusbernhardt-proxy-vole-1_1_6-sources_http//file"
+)
+
+jvm_import(
+  name = "org_javadelight-delight-rhino-sandbox-0_0_17_http_import",
+  jar = "@org_javadelight-delight-rhino-sandbox-0_0_17_http//file",
+  source_jar = "@org_javadelight-delight-rhino-sandbox-0_0_17-sources_http//file"
+)
+
+copy_file(
   name = "org.jetbrains.pty4j/pty4j-0.13.12.jar_copy",
   src = "@org_jetbrains_pty4j-pty4j-0_13_12_http//file",
   out = "org.jetbrains.pty4j/pty4j-0.13.12.jar",
@@ -19955,43 +19992,6 @@ jvm_import(
   jar = "@com_google_protobuf-protobuf-java-3_25_5_http//file",
   source_jar = "@com_google_protobuf-protobuf-java-3_25_5-sources_http//file",
   visibility = ["//visibility:public"]
-)
-
-copy_file(
-  name = "org.bidib.com.github.markusbernhardt/proxy-vole-1.1.6.jar_copy",
-  src = "@org_bidib_com_github_markusbernhardt-proxy-vole-1_1_6_http//file",
-  out = "org.bidib.com.github.markusbernhardt/proxy-vole-1.1.6.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-copy_file(
-  name = "org.javadelight/delight-rhino-sandbox-0.0.17.jar_copy",
-  src = "@org_javadelight-delight-rhino-sandbox-0_0_17_http//file",
-  out = "org.javadelight/delight-rhino-sandbox-0.0.17.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-java_library(
-  name = "proxy-vole",
-  exports = [
-    ":org_bidib_com_github_markusbernhardt-proxy-vole-1_1_6_http_import",
-    ":org_javadelight-delight-rhino-sandbox-0_0_17_http_import",
-  ],
-  visibility = ["//visibility:public"]
-)
-
-jvm_import(
-  name = "org_bidib_com_github_markusbernhardt-proxy-vole-1_1_6_http_import",
-  jar = "@org_bidib_com_github_markusbernhardt-proxy-vole-1_1_6_http//file",
-  source_jar = "@org_bidib_com_github_markusbernhardt-proxy-vole-1_1_6-sources_http//file"
-)
-
-jvm_import(
-  name = "org_javadelight-delight-rhino-sandbox-0_0_17_http_import",
-  jar = "@org_javadelight-delight-rhino-sandbox-0_0_17_http//file",
-  source_jar = "@org_javadelight-delight-rhino-sandbox-0_0_17-sources_http//file"
 )
 
 copy_file(

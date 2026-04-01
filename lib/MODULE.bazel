@@ -10374,6 +10374,34 @@ http_file(
 )
 
 http_file(
+  name = "org_bidib_com_github_markusbernhardt-proxy-vole-1_1_6_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/bidib/com/github/markusbernhardt/proxy-vole/1.1.6/proxy-vole-1.1.6.jar",
+  sha256 = "4b9fb2e5a13b37cf8bd62eebada8d3485c3dc17df752783b68d89d657bcc01fd",
+  downloaded_file_path = "proxy-vole-1.1.6.jar"
+)
+
+http_file(
+  name = "org_javadelight-delight-rhino-sandbox-0_0_17_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/javadelight/delight-rhino-sandbox/0.0.17/delight-rhino-sandbox-0.0.17.jar",
+  sha256 = "e22941d77d0d01dfc6ee5612ad421860baae8a3a0dea2eeb67658061f34527b4",
+  downloaded_file_path = "delight-rhino-sandbox-0.0.17.jar"
+)
+
+http_file(
+  name = "org_bidib_com_github_markusbernhardt-proxy-vole-1_1_6-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/bidib/com/github/markusbernhardt/proxy-vole/1.1.6/proxy-vole-1.1.6-sources.jar",
+  sha256 = "774613b8f03dd7b2199f7be1e37a85f8af514cf138aec2111f5bd5578bf39dbd",
+  downloaded_file_path = "proxy-vole-1.1.6-sources.jar"
+)
+
+http_file(
+  name = "org_javadelight-delight-rhino-sandbox-0_0_17-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/javadelight/delight-rhino-sandbox/0.0.17/delight-rhino-sandbox-0.0.17-sources.jar",
+  sha256 = "514492007b8e7398842cf219c13d867a23faaf715283e67029166886fe40e6c9",
+  downloaded_file_path = "delight-rhino-sandbox-0.0.17-sources.jar"
+)
+
+http_file(
   name = "org_jetbrains_pty4j-pty4j-0_13_12_http",
   url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/pty4j/pty4j/0.13.12/pty4j-0.13.12.jar",
   sha256 = "da86078dafc3c4e4e3a497981df9794e5d9ed081963ad9561d0e69657f2475d4",
@@ -15502,34 +15530,6 @@ http_file(
   url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/google/protobuf/protobuf-java/3.25.5/protobuf-java-3.25.5-sources.jar",
   sha256 = "d686e802329e42954e72e9b3b148b67eeb4f6f3ed327abc4508b79fda4937c3b",
   downloaded_file_path = "protobuf-java-3.25.5-sources.jar"
-)
-
-http_file(
-  name = "org_bidib_com_github_markusbernhardt-proxy-vole-1_1_6_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/bidib/com/github/markusbernhardt/proxy-vole/1.1.6/proxy-vole-1.1.6.jar",
-  sha256 = "4b9fb2e5a13b37cf8bd62eebada8d3485c3dc17df752783b68d89d657bcc01fd",
-  downloaded_file_path = "proxy-vole-1.1.6.jar"
-)
-
-http_file(
-  name = "org_javadelight-delight-rhino-sandbox-0_0_17_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/javadelight/delight-rhino-sandbox/0.0.17/delight-rhino-sandbox-0.0.17.jar",
-  sha256 = "e22941d77d0d01dfc6ee5612ad421860baae8a3a0dea2eeb67658061f34527b4",
-  downloaded_file_path = "delight-rhino-sandbox-0.0.17.jar"
-)
-
-http_file(
-  name = "org_bidib_com_github_markusbernhardt-proxy-vole-1_1_6-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/bidib/com/github/markusbernhardt/proxy-vole/1.1.6/proxy-vole-1.1.6-sources.jar",
-  sha256 = "774613b8f03dd7b2199f7be1e37a85f8af514cf138aec2111f5bd5578bf39dbd",
-  downloaded_file_path = "proxy-vole-1.1.6-sources.jar"
-)
-
-http_file(
-  name = "org_javadelight-delight-rhino-sandbox-0_0_17-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/javadelight/delight-rhino-sandbox/0.0.17/delight-rhino-sandbox-0.0.17-sources.jar",
-  sha256 = "514492007b8e7398842cf219c13d867a23faaf715283e67029166886fe40e6c9",
-  downloaded_file_path = "delight-rhino-sandbox-0.0.17-sources.jar"
 )
 
 http_file(
