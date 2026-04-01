@@ -83,6 +83,7 @@ fun loadPluginModules(
           }
         }
         else if (event == XMLStreamConstants.END_ELEMENT) {
+          inIdTag = false
           level--
           if (level == 0 || level == 1 && inContentTag) {
             break
