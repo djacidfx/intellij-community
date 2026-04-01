@@ -10738,6 +10738,20 @@ http_file(
 )
 
 http_file(
+  name = "org_tukaani-xz-1_10_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/tukaani/xz/1.10/xz-1.10.jar",
+  sha256 = "95c63c1a55b22dd6453890a419cc1a640f790bbf7d8ae82db1e30aefefb08888",
+  downloaded_file_path = "xz-1.10.jar"
+)
+
+http_file(
+  name = "org_tukaani-xz-1_10-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/tukaani/xz/1.10/xz-1.10-sources.jar",
+  sha256 = "6ac7a5478e952a23fe1f354efa70303f94b2331b7a6279c923f4dbe0ac6e352c",
+  downloaded_file_path = "xz-1.10-sources.jar"
+)
+
+http_file(
   name = "org_apache_thrift-libthrift-0_19_0_http",
   url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/apache/thrift/libthrift/0.19.0/libthrift-0.19.0.jar",
   sha256 = "2b6e6550b40467ede7b3034a1a9eb9148fbf920cfdae5bf0b1d2bb3d4e780625",
@@ -16314,20 +16328,6 @@ http_file(
   url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/eclipse/xtext/org.eclipse.xtext.xbase.lib/2.40.0/org.eclipse.xtext.xbase.lib-2.40.0-sources.jar",
   sha256 = "02cb060d48ce04b31f210a5da11d81e435bf6f9d18ab1d070753d69f8a450958",
   downloaded_file_path = "org.eclipse.xtext.xbase.lib-2.40.0-sources.jar"
-)
-
-http_file(
-  name = "org_tukaani-xz-1_10_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/tukaani/xz/1.10/xz-1.10.jar",
-  sha256 = "95c63c1a55b22dd6453890a419cc1a640f790bbf7d8ae82db1e30aefefb08888",
-  downloaded_file_path = "xz-1.10.jar"
-)
-
-http_file(
-  name = "org_tukaani-xz-1_10-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/tukaani/xz/1.10/xz-1.10-sources.jar",
-  sha256 = "6ac7a5478e952a23fe1f354efa70303f94b2331b7a6279c923f4dbe0ac6e352c",
-  downloaded_file_path = "xz-1.10-sources.jar"
 )
 
 http_file(
