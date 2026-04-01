@@ -6629,48 +6629,6 @@ http_file(
 )
 
 http_file(
-  name = "com_jayway_jsonpath-json-path-2_9_0_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/jayway/jsonpath/json-path/2.9.0/json-path-2.9.0.jar",
-  sha256 = "11a9ee6f88bb31f1450108d1cf6441377dec84aca075eb6bb2343be157575bea",
-  downloaded_file_path = "json-path-2.9.0.jar"
-)
-
-http_file(
-  name = "net_minidev-json-smart-2_5_0_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/net/minidev/json-smart/2.5.0/json-smart-2.5.0.jar",
-  sha256 = "432b9e545848c4141b80717b26e367f83bf33f19250a228ce75da6e967da2bc7",
-  downloaded_file_path = "json-smart-2.5.0.jar"
-)
-
-http_file(
-  name = "net_minidev-accessors-smart-2_5_0_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/net/minidev/accessors-smart/2.5.0/accessors-smart-2.5.0.jar",
-  sha256 = "12314fc6881d66a413fd66370787adba16e504fbf7e138690b0f3952e3fbd321",
-  downloaded_file_path = "accessors-smart-2.5.0.jar"
-)
-
-http_file(
-  name = "com_jayway_jsonpath-json-path-2_9_0-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/jayway/jsonpath/json-path/2.9.0/json-path-2.9.0-sources.jar",
-  sha256 = "67d18b2ebb7b946c781310b9c3d0232f44b7a98278be28afe62a9e658806d088",
-  downloaded_file_path = "json-path-2.9.0-sources.jar"
-)
-
-http_file(
-  name = "net_minidev-json-smart-2_5_0-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/net/minidev/json-smart/2.5.0/json-smart-2.5.0-sources.jar",
-  sha256 = "defc60385f6df8c683ab097874f5057a25a8bfda2e8399256d5e52d9f5bdf541",
-  downloaded_file_path = "json-smart-2.5.0-sources.jar"
-)
-
-http_file(
-  name = "net_minidev-accessors-smart-2_5_0-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/net/minidev/accessors-smart/2.5.0/accessors-smart-2.5.0-sources.jar",
-  sha256 = "15b7153f0dc43209d9e4d8a75791e076ec738a7b66def3fd26ed2f545ed0725c",
-  downloaded_file_path = "accessors-smart-2.5.0-sources.jar"
-)
-
-http_file(
   name = "org_jspecify-jspecify-1_0_0_http",
   url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jspecify/jspecify/1.0.0/jspecify-1.0.0.jar",
   sha256 = "1fad6e6be7557781e4d33729d49ae1cdc8fdda6fe477bb0cc68ce351eafdfbab",
@@ -9818,6 +9776,48 @@ http_file(
   url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/jcraft/jsch.agentproxy.pageant/0.0.9/jsch.agentproxy.pageant-0.0.9-sources.jar",
   sha256 = "026dfa3cb0116e2781f22881ddee25c286bbad72887265ca120a8ef25018e355",
   downloaded_file_path = "jsch.agentproxy.pageant-0.0.9-sources.jar"
+)
+
+http_file(
+  name = "com_jayway_jsonpath-json-path-2_9_0_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/jayway/jsonpath/json-path/2.9.0/json-path-2.9.0.jar",
+  sha256 = "11a9ee6f88bb31f1450108d1cf6441377dec84aca075eb6bb2343be157575bea",
+  downloaded_file_path = "json-path-2.9.0.jar"
+)
+
+http_file(
+  name = "net_minidev-json-smart-2_5_0_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/net/minidev/json-smart/2.5.0/json-smart-2.5.0.jar",
+  sha256 = "432b9e545848c4141b80717b26e367f83bf33f19250a228ce75da6e967da2bc7",
+  downloaded_file_path = "json-smart-2.5.0.jar"
+)
+
+http_file(
+  name = "net_minidev-accessors-smart-2_5_0_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/net/minidev/accessors-smart/2.5.0/accessors-smart-2.5.0.jar",
+  sha256 = "12314fc6881d66a413fd66370787adba16e504fbf7e138690b0f3952e3fbd321",
+  downloaded_file_path = "accessors-smart-2.5.0.jar"
+)
+
+http_file(
+  name = "com_jayway_jsonpath-json-path-2_9_0-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/jayway/jsonpath/json-path/2.9.0/json-path-2.9.0-sources.jar",
+  sha256 = "67d18b2ebb7b946c781310b9c3d0232f44b7a98278be28afe62a9e658806d088",
+  downloaded_file_path = "json-path-2.9.0-sources.jar"
+)
+
+http_file(
+  name = "net_minidev-json-smart-2_5_0-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/net/minidev/json-smart/2.5.0/json-smart-2.5.0-sources.jar",
+  sha256 = "defc60385f6df8c683ab097874f5057a25a8bfda2e8399256d5e52d9f5bdf541",
+  downloaded_file_path = "json-smart-2.5.0-sources.jar"
+)
+
+http_file(
+  name = "net_minidev-accessors-smart-2_5_0-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/net/minidev/accessors-smart/2.5.0/accessors-smart-2.5.0-sources.jar",
+  sha256 = "15b7153f0dc43209d9e4d8a75791e076ec738a7b66def3fd26ed2f545ed0725c",
+  downloaded_file_path = "accessors-smart-2.5.0-sources.jar"
 )
 
 http_file(

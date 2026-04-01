@@ -8248,58 +8248,6 @@ jvm_import(
 )
 
 copy_file(
-  name = "com.jayway.jsonpath/json-path-2.9.0.jar_copy",
-  src = "@com_jayway_jsonpath-json-path-2_9_0_http//file",
-  out = "com.jayway.jsonpath/json-path-2.9.0.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-copy_file(
-  name = "net.minidev/json-smart-2.5.0.jar_copy",
-  src = "@net_minidev-json-smart-2_5_0_http//file",
-  out = "net.minidev/json-smart-2.5.0.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-copy_file(
-  name = "net.minidev/accessors-smart-2.5.0.jar_copy",
-  src = "@net_minidev-accessors-smart-2_5_0_http//file",
-  out = "net.minidev/accessors-smart-2.5.0.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-java_library(
-  name = "jsonpath",
-  exports = [
-    ":com_jayway_jsonpath-json-path-2_9_0_http_import",
-    ":net_minidev-json-smart-2_5_0_http_import",
-    ":net_minidev-accessors-smart-2_5_0_http_import",
-  ],
-  visibility = ["//visibility:public"]
-)
-
-jvm_import(
-  name = "com_jayway_jsonpath-json-path-2_9_0_http_import",
-  jar = "@com_jayway_jsonpath-json-path-2_9_0_http//file",
-  source_jar = "@com_jayway_jsonpath-json-path-2_9_0-sources_http//file"
-)
-
-jvm_import(
-  name = "net_minidev-json-smart-2_5_0_http_import",
-  jar = "@net_minidev-json-smart-2_5_0_http//file",
-  source_jar = "@net_minidev-json-smart-2_5_0-sources_http//file"
-)
-
-jvm_import(
-  name = "net_minidev-accessors-smart-2_5_0_http_import",
-  jar = "@net_minidev-accessors-smart-2_5_0_http//file",
-  source_jar = "@net_minidev-accessors-smart-2_5_0-sources_http//file"
-)
-
-copy_file(
   name = "org.jspecify/jspecify-1.0.0.jar_copy",
   src = "@org_jspecify-jspecify-1_0_0_http//file",
   out = "org.jspecify/jspecify-1.0.0.jar",
@@ -12524,6 +12472,58 @@ jvm_import(
   name = "com_jcraft-jsch_agentproxy_pageant-0_0_9_http_import",
   jar = "@com_jcraft-jsch_agentproxy_pageant-0_0_9_http//file",
   source_jar = "@com_jcraft-jsch_agentproxy_pageant-0_0_9-sources_http//file"
+)
+
+copy_file(
+  name = "com.jayway.jsonpath/json-path-2.9.0.jar_copy",
+  src = "@com_jayway_jsonpath-json-path-2_9_0_http//file",
+  out = "com.jayway.jsonpath/json-path-2.9.0.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "net.minidev/json-smart-2.5.0.jar_copy",
+  src = "@net_minidev-json-smart-2_5_0_http//file",
+  out = "net.minidev/json-smart-2.5.0.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "net.minidev/accessors-smart-2.5.0.jar_copy",
+  src = "@net_minidev-accessors-smart-2_5_0_http//file",
+  out = "net.minidev/accessors-smart-2.5.0.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+java_library(
+  name = "libraries-jsonpath-jsonpath",
+  exports = [
+    ":com_jayway_jsonpath-json-path-2_9_0_http_import",
+    ":net_minidev-json-smart-2_5_0_http_import",
+    ":net_minidev-accessors-smart-2_5_0_http_import",
+  ],
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "com_jayway_jsonpath-json-path-2_9_0_http_import",
+  jar = "@com_jayway_jsonpath-json-path-2_9_0_http//file",
+  source_jar = "@com_jayway_jsonpath-json-path-2_9_0-sources_http//file"
+)
+
+jvm_import(
+  name = "net_minidev-json-smart-2_5_0_http_import",
+  jar = "@net_minidev-json-smart-2_5_0_http//file",
+  source_jar = "@net_minidev-json-smart-2_5_0-sources_http//file"
+)
+
+jvm_import(
+  name = "net_minidev-accessors-smart-2_5_0_http_import",
+  jar = "@net_minidev-accessors-smart-2_5_0_http//file",
+  source_jar = "@net_minidev-accessors-smart-2_5_0-sources_http//file"
 )
 
 copy_file(
