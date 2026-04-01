@@ -133,7 +133,12 @@ class PluginSet internal constructor(
     }
   }
 
+  var descriptorsSequenceForRegistrationInBisectMode: Sequence<IdeaPluginDescriptorImpl>? = null
+
   fun sequenceResolvedSortedDescriptorsForRegistration(): Sequence<IdeaPluginDescriptorImpl> {
+    if (descriptorsSequenceForRegistrationInBisectMode != null) {
+      return descriptorsSequenceForRegistrationInBisectMode!!
+    }
     return if (resolvedPluginSet != null) {
       resolvedPluginSet.sortedResolvedDescriptors.asSequence()
     } else {
