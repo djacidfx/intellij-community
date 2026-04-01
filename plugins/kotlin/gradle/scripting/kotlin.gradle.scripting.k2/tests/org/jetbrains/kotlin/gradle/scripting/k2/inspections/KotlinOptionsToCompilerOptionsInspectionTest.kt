@@ -46,11 +46,13 @@ internal class KotlinOptionsToCompilerOptionsInspectionTest : K2GradleCodeInsigh
         }
     }
 
+    private fun placeCaretIfNeeded(needed: Boolean): String = if (needed) "<caret>" else ""
+
     private fun getBuildScriptPartAllProjects(placeCaret: Boolean): String =
         """
 allprojects {
     tasks.withType<KotlinCompile>().configureEach {
-        ${if (placeCaret) "<caret>" else ""}kotlinOptions.jvmTarget = "1.8"
+        ${placeCaretIfNeeded(placeCaret)}kotlinOptions.jvmTarget = "1.8"
     }
 }
                 """.trimIndent()
@@ -85,7 +87,7 @@ allprojects {
     private fun getBuildScriptPartAssignmentOperation(placeCaret: Boolean): String =
         """
 tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java) {
-    ${if (placeCaret) "<caret>" else ""}kotlinOptions.freeCompilerArgs += "-Xexport-kdoc"
+    ${placeCaretIfNeeded(placeCaret)}kotlinOptions.freeCompilerArgs += "-Xexport-kdoc"
 }
                     """.trimIndent()
 
@@ -115,7 +117,7 @@ tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::cl
     private fun getBuildScriptPartAssignmentOperationTwoParams(placeCaret: Boolean): String =
         """
 tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java) {
-    ${if (placeCaret) "<caret>" else ""}kotlinOptions.freeCompilerArgs += "-Xexport-kdoc" + "-Xopt-in=kotlin.RequiresOptIn"
+    ${placeCaretIfNeeded(placeCaret)}kotlinOptions.freeCompilerArgs += "-Xexport-kdoc" + "-Xopt-in=kotlin.RequiresOptIn"
 }
                     """.trimIndent()
 
@@ -150,7 +152,7 @@ tasks.withType<KotlinCompile>().configureEach {
     }
 
     val overriddenLanguageVersion = project.properties["kotlin.language.version"]?.toString()?.takeIf { it.isNotEmpty() }
-    ${if (placeCaret) "<caret>" else ""}kotlinOptions {
+    ${placeCaretIfNeeded(placeCaret)}kotlinOptions {
         if (overriddenLanguageVersion != null) {
             languageVersion = overriddenLanguageVersion
             // We replace statements even in children
@@ -199,7 +201,7 @@ tasks.withType<KotlinCompile>().configureEach {
     private fun getBuildScriptPartForbiddenOperation(placeCaret: Boolean): String =
         """
 tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java) {
-    ${if (placeCaret) "<caret>" else ""}kotlinOptions.freeCompilerArgs -= "-Xexport-kdoc"
+    ${placeCaretIfNeeded(placeCaret)}kotlinOptions.freeCompilerArgs -= "-Xexport-kdoc"
 }
                 """.trimIndent()
 
@@ -224,7 +226,7 @@ tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::cl
     private fun getBuildScriptPartForbiddenOperation2(placeCaret: Boolean): String =
         """
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-    ${if (placeCaret) "<caret>" else ""}kotlinOptions {
+    ${placeCaretIfNeeded(placeCaret)}kotlinOptions {
         freeCompilerArgs -= "-Xexport-kdoc"
     }
 }
@@ -268,7 +270,7 @@ class Test{
 
 fun main() {
     val kotlinOptions = Test()
-    ${if (placeCaret) "<caret>" else ""}kotlinOptions.parameter = 1
+    ${placeCaretIfNeeded(placeCaret)}kotlinOptions.parameter = 1
 }
             """.trimIndent()
 
@@ -300,7 +302,7 @@ fun main() {
 rootProject.name = "with-kotlin-options-in-settings-file"
 
 val kotlinOptions = mapOf("jvmTarget" to "")
-${if (placeCaret) "<caret>" else ""}kotlinOptions["jvmTarget"]
+${placeCaretIfNeeded(placeCaret)}kotlinOptions["jvmTarget"]
             """.trimIndent()
 
     @ParameterizedTest
@@ -325,7 +327,7 @@ subprojects {
     }
 
     tasks.withType<KotlinCompile>().all {
-        ${if (placeCaret) "<caret>" else ""}kotlinOptions {
+        ${placeCaretIfNeeded(placeCaret)}kotlinOptions {
             freeCompilerArgs = freeCompilerArgs - "-Xopt-in=kotlin.RequiresOptIn"
         }
     }
@@ -458,7 +460,7 @@ subprojects {
     private fun getBuildScriptPartAddAllFromList(placeCaret: Boolean): String =
         """
 tasks.withType<KotlinCompile> {
-    ${if (placeCaret) "<caret>" else ""}kotlinOptions {
+    ${placeCaretIfNeeded(placeCaret)}kotlinOptions {
         freeCompilerArgs += listOf("-module-name", "TheName")
     }
 }
@@ -499,7 +501,7 @@ subprojects {
     }
 
     tasks.withType<KotlinCompile>().all {
-        ${if (placeCaret) "<caret>" else ""}kotlinOptions {
+        ${placeCaretIfNeeded(placeCaret)}kotlinOptions {
             freeCompilerArgs = freeCompilerArgs + "-Xopt-in=kotlin.RequiresOptIn" + "-Xjvm-default=all"
         }
     }
@@ -549,7 +551,7 @@ subprojects {
     }
 
     tasks.withType<KotlinCompile>().all {
-        ${if (placeCaret) "<caret>" else ""}kotlinOptions {
+        ${placeCaretIfNeeded(placeCaret)}kotlinOptions {
             freeCompilerArgs = freeCompilerArgs + project.properties.get("A").toString() + project.properties.get("B").toString()
         }
     }
@@ -599,7 +601,7 @@ subprojects {
     }
 
     tasks.withType<KotlinCompile>().all {
-        ${if (placeCaret) "<caret>" else ""}kotlinOptions {
+        ${placeCaretIfNeeded(placeCaret)}kotlinOptions {
             freeCompilerArgs = freeCompilerArgs +
                     "-opt-in=androidx.compose.foundation.ExperimentalFoundationApi" +
                     "-opt-in=androidx.compose.animation.ExperimentalAnimationApi" +
@@ -658,7 +660,7 @@ subprojects {
     }
 
     tasks.withType<KotlinCompile>().all {
-        ${if (placeCaret) "<caret>" else ""}kotlinOptions {
+        ${placeCaretIfNeeded(placeCaret)}kotlinOptions {
             freeCompilerArgs += libraries.flatMap { listOf("-include-binary", it.path) } + "-include-binary, junit"
         }
     }
@@ -709,7 +711,7 @@ subprojects {
     }
 
     tasks.withType<KotlinCompile>().all {
-        ${if (placeCaret) "<caret>" else ""}kotlinOptions {
+        ${placeCaretIfNeeded(placeCaret)}kotlinOptions {
             freeCompilerArgs = freeCompilerArgs + listOf(
                 "-Xopt-in=kotlin.RequiresOptIn",
                 "-Xopt-in=kotlin.ExperimentalStdlibApi",
@@ -774,7 +776,7 @@ subprojects {
     private fun getBuildScriptPartFreeCompilerArgs(placeCaret: Boolean): String =
         """
 tasks.withType<KotlinCompile> {
-    ${if (placeCaret) "<caret>" else ""}kotlinOptions {
+    ${placeCaretIfNeeded(placeCaret)}kotlinOptions {
         freeCompilerArgs = freeCompilerArgs + "-Xopt-in=kotlin.RequiresOptIn"
     }
 }
@@ -808,7 +810,7 @@ tasks.withType<KotlinCompile> {
     private fun getBuildScriptPartFreeCompilerArgsSetList(placeCaret: Boolean): String =
         """
 tasks.withType<KotlinCompile> {
-    ${if (placeCaret) "<caret>" else ""}kotlinOptions {
+    ${placeCaretIfNeeded(placeCaret)}kotlinOptions {
         freeCompilerArgs = listOf("-Xjsr305=strict")
     }
 }
@@ -842,7 +844,7 @@ tasks.withType<KotlinCompile> {
     private fun getBuildScriptPartFreeCompilerArgsWithSuppress(placeCaret: Boolean): String =
         """
 tasks.withType<KotlinCompile> {
-    ${if (placeCaret) "<caret>" else ""}kotlinOptions {
+    ${placeCaretIfNeeded(placeCaret)}kotlinOptions {
         @Suppress("SuspiciousCollectionReassignment")
         freeCompilerArgs += listOf("-Xopt-in=kotlin.RequiresOptIn")
         // KtExpressionImpl performs replaceExpression() and there calls KtPsiUtil.areParenthesesNecessary(). Inside, innerPriority is calculated
@@ -882,7 +884,7 @@ tasks.withType<KotlinCompile> {
     private fun getBuildScriptPartJava11(placeCaret: Boolean): String =
         """
 val compileKotlin: KotlinCompile by tasks
-compileKotlin.${if (placeCaret) "<caret>" else ""}kotlinOptions {
+compileKotlin.${placeCaretIfNeeded(placeCaret)}kotlinOptions {
     jvmTarget = JavaVersion.VERSION_11.toString()
 }
                 """.trimIndent()
@@ -917,7 +919,7 @@ compileKotlin.compilerOptions {
         """
 val javaVersion = JavaVersion.VERSION_1_8
 tasks.withType(KotlinJvmCompile::class.java).configureEach {
-    ${if (placeCaret) "<caret>" else ""}kotlinOptions {
+    ${placeCaretIfNeeded(placeCaret)}kotlinOptions {
         jvmTarget = javaVersion.toString()
         freeCompilerArgs += setOf(
             "-Xjvm-default=all",
@@ -962,7 +964,7 @@ tasks.withType(KotlinJvmCompile::class.java).configureEach {
     private fun getBuildScriptPartJsSourceMapEmbedSources(placeCaret: Boolean): String =
         """
 tasks.withType<Kotlin2JsCompile>().configureEach {
-    ${if (placeCaret) "<caret>" else ""}kotlinOptions.sourceMapEmbedSources = "inlining"
+    ${placeCaretIfNeeded(placeCaret)}kotlinOptions.sourceMapEmbedSources = "inlining"
 }
                 """.trimIndent()
 
@@ -994,7 +996,7 @@ tasks.withType<Kotlin2JsCompile>().configureEach {
     private fun getBuildScriptPartJsSourceMapNamesPolicy(placeCaret: Boolean): String =
         """
 tasks.withType<Kotlin2JsCompile>().configureEach {
-    ${if (placeCaret) "<caret>" else ""}kotlinOptions.sourceMapNamesPolicy = "fully-qualified-names"
+    ${placeCaretIfNeeded(placeCaret)}kotlinOptions.sourceMapNamesPolicy = "fully-qualified-names"
 }
                 """.trimIndent()
 
@@ -1026,7 +1028,7 @@ tasks.withType<Kotlin2JsCompile>().configureEach {
     private fun getBuildScriptPartTypeOfFqnAndConfigureEach(placeCaret: Boolean): String =
         """
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile>().configureEach {
-    ${if (placeCaret) "<caret>" else ""}kotlinOptions.main = "noCall"
+    ${placeCaretIfNeeded(placeCaret)}kotlinOptions.main = "noCall"
 }
                 """.trimIndent()
 
@@ -1058,7 +1060,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile>().configureEa
     private fun getBuildScriptPartJsTestOrdinaryStringOption(placeCaret: Boolean): String =
         """
 tasks.withType<Kotlin2JsCompile>().configureEach {
-    ${if (placeCaret) "<caret>" else ""}kotlinOptions.sourceMapPrefix = "myPrefix"
+    ${placeCaretIfNeeded(placeCaret)}kotlinOptions.sourceMapPrefix = "myPrefix"
 }
                 """.trimIndent()
 
@@ -1088,7 +1090,7 @@ tasks.withType<Kotlin2JsCompile>().configureEach {
     private fun getBuildScriptPartJvmTarget9(placeCaret: Boolean): String =
         """
 val compileKotlin: KotlinCompile by tasks
-compileKotlin.${if (placeCaret) "<caret>" else ""}kotlinOptions {
+compileKotlin.${placeCaretIfNeeded(placeCaret)}kotlinOptions {
     jvmTarget = "9"
 }
                 """.trimIndent()
@@ -1122,7 +1124,7 @@ compileKotlin.compilerOptions {
     private fun getBuildScriptPartJvmTargetDefinedWithEnum(placeCaret: Boolean): String =
         """
 val compileKotlin: KotlinCompile by tasks
-compileKotlin.${if (placeCaret) "<caret>" else ""}kotlinOptions {
+compileKotlin.${placeCaretIfNeeded(placeCaret)}kotlinOptions {
     jvmTarget = JavaVersion.VERSION_1_8.toString()
     languageVersion = LanguageVersion.KOTLIN_2_1.toString()
     apiVersion = ApiVersion.KOTLIN_2_1.toString()
@@ -1189,7 +1191,7 @@ compileKotlin.compilerOptions {
 fun properties(key: String) = project.findProperty(key).toString()
 
 val compileKotlin: KotlinCompile by tasks
-compileKotlin.${if (placeCaret) "<caret>" else ""}kotlinOptions {
+compileKotlin.${placeCaretIfNeeded(placeCaret)}kotlinOptions {
     jvmTarget = properties("javaVersion")
 }
 val compileTestKotlin: KotlinCompile by tasks
@@ -1226,7 +1228,7 @@ compileTestKotlin.kotlinOptions {
     private fun getBuildScriptPartApiVersionAsString(placeCaret: Boolean): String =
         """
 val compileKotlin: KotlinCompile by tasks
-compileKotlin.${if (placeCaret) "<caret>" else ""}kotlinOptions {
+compileKotlin.${placeCaretIfNeeded(placeCaret)}kotlinOptions {
     jvmTarget = "9"
     freeCompilerArgs += listOf("-module-name", "TheName")
     apiVersion = "1.9"
@@ -1265,7 +1267,7 @@ compileKotlin.compilerOptions {
     private fun getBuildScriptPartOptionsBeforeDot(placeCaret: Boolean): String =
         """
 tasks.withType<KotlinCompile>().configureEach {
-    ${if (placeCaret) "<caret>" else ""}kotlinOptions { options.jvmTarget.set(JvmTarget.JVM_11) }
+    ${placeCaretIfNeeded(placeCaret)}kotlinOptions { options.jvmTarget.set(JvmTarget.JVM_11) }
 }
                 """.trimIndent()
 
@@ -1296,7 +1298,7 @@ tasks.withType<KotlinCompile>().configureEach {
     private fun getBuildScriptPartOptionsBeforeDotInDotQualifiedExpression(placeCaret: Boolean): String =
         """
 tasks.withType<KotlinCompile>().configureEach {
-    ${if (placeCaret) "<caret>" else ""}kotlinOptions.options.jvmTarget.set(JvmTarget.JVM_11)
+    ${placeCaretIfNeeded(placeCaret)}kotlinOptions.options.jvmTarget.set(JvmTarget.JVM_11)
 }
                 """.trimIndent()
 
@@ -1334,7 +1336,7 @@ subprojects {
     }
 
     tasks.withType<KotlinCompile>().all {
-        ${if (placeCaret) "<caret>" else ""}kotlinOptions {
+        ${placeCaretIfNeeded(placeCaret)}kotlinOptions {
             freeCompilerArgs = listOf("-Xjsr305=strict")
             jvmTarget = "11"
         }
@@ -1381,7 +1383,7 @@ subprojects {
     private fun getBuildScriptPartGetByName(placeCaret: Boolean): String =
         """
 tasks.getByName<KotlinCompile>("compileKotlin") {
-    ${if (placeCaret) "<caret>" else ""}kotlinOptions.allWarningsAsErrors = true
+    ${placeCaretIfNeeded(placeCaret)}kotlinOptions.allWarningsAsErrors = true
 }
                 """.trimIndent()
 
@@ -1411,7 +1413,7 @@ tasks.getByName<KotlinCompile>("compileKotlin") {
     private fun getBuildScriptPartGetByNameAndDotReferenced(placeCaret: Boolean): String =
         """
 tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java) {
-    ${if (placeCaret) "<caret>" else ""}kotlinOptions {
+    ${placeCaretIfNeeded(placeCaret)}kotlinOptions {
         languageVersion = "1.9"
     }
 }
@@ -1447,7 +1449,7 @@ tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::cl
     private fun getBuildScriptPartGetByNameAndLambda(placeCaret: Boolean): String =
         """
 tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java) {
-    ${if (placeCaret) "<caret>" else ""}kotlinOptions {
+    ${placeCaretIfNeeded(placeCaret)}kotlinOptions {
         languageVersion = "1.9"
     }
 }
