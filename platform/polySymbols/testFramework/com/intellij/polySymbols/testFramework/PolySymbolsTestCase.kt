@@ -264,7 +264,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     }
   }
 
-  protected fun doCompletionAutoPopupTest(
+  protected fun doEditorTypingTest(
     dir: Boolean = dirModeByDefault,
     extension: String = defaultExtension,
     configureFileName: String = "$testName.$extension",
@@ -272,7 +272,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
     before: CodeInsightTestFixture.() -> Unit = {},
     after: CodeInsightTestFixture.() -> Unit = {},
-    test: CompletionAutoPopupTestFixture.() -> Unit,
+    test: EditorTypingTestFixture.() -> Unit,
   ) {
     doConfiguredTest(
       dir = dir,
@@ -288,7 +288,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
       ApplicationManager.getApplication().executeOnPooledThread {
         try {
           tester.runWithAutoPopupEnabled {
-            object : CompletionAutoPopupTestFixture {
+            object : EditorTypingTestFixture {
               private var checkLookupCount = 0
 
               override fun type(str: String) {
@@ -367,7 +367,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
                 assertDoesntContain(myFixture.lookupElementStrings!!, *items)
               }
 
-              override fun selectItem(item: String) {
+              override fun selectLookupItem(item: String) {
                 assertLookupShown()
                 tester.joinCompletion()
                 invokeAndWaitIfNeeded {
@@ -729,7 +729,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     BLOCK
   }
 
-  protected interface CompletionAutoPopupTestFixture {
+  protected interface EditorTypingTestFixture {
     fun type(str: String)
 
     fun assertLookupShown()
@@ -754,7 +754,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
 
     fun assertLookupDoesntContain(vararg items: String)
 
-    fun selectItem(item: String)
+    fun selectLookupItem(item: String)
   }
 
   protected data class TestConfiguration(
