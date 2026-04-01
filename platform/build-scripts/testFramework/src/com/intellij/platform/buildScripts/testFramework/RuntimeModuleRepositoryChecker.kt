@@ -120,7 +120,7 @@ internal class RuntimeModuleRepositoryChecker private constructor(
         productModules.mainModuleGroup.includedModules
           .asSequence()
           .map { it.moduleDescriptor }
-          .filter { !it.moduleId.stringId.startsWith(RuntimeModuleId.LIB_NAME_PREFIX) }
+          .filter { it.moduleId.namespace != RuntimeModuleId.LEGACY_JPS_LIBRARY_NAMESPACE }
           .flatMap { moduleDescriptor -> moduleDescriptor.resourceRootPaths.map { it to moduleDescriptor.moduleId } }
           .groupBy({ it.first }, { it.second })
       
@@ -194,7 +194,7 @@ internal class RuntimeModuleRepositoryChecker private constructor(
     }.groupBy({ it.first }, { it.second })
     
     for (moduleId in moduleRepositoryData.allModuleIds) {
-      if (moduleId.name.startsWith(RuntimeModuleId.LIB_NAME_PREFIX)) {
+      if (moduleId.namespace == RuntimeModuleId.LEGACY_JPS_LIBRARY_NAMESPACE) {
         //additional libraries shouldn't cause problems because their resources should not be loaded unless they are requested from modules
         continue
       }
