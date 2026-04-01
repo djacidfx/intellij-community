@@ -24,7 +24,6 @@ import com.intellij.ide.starter.telemetry.TestTelemetryService
 import com.intellij.ide.starter.telemetry.computeWithSpan
 import com.intellij.ide.starter.utils.FileSystem.deleteRecursivelyQuietly
 import com.intellij.ide.starter.utils.XmlBuilder
-import com.intellij.ide.starter.utils.replaceSpecialCharactersWithHyphens
 import com.intellij.openapi.diagnostic.LogLevel
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.io.findOrCreateFile
@@ -34,6 +33,7 @@ import com.intellij.tools.ide.performanceTesting.commands.SdkObject
 import com.intellij.tools.ide.performanceTesting.commands.setupProjectSdk
 import com.intellij.tools.ide.util.common.logError
 import com.intellij.tools.ide.util.common.logOutput
+import com.intellij.tools.ide.util.common.replaceSpecialCharactersWithHyphens
 import com.intellij.ui.NewUiValue
 import com.intellij.util.io.createParentDirectories
 import com.intellij.util.io.delete
