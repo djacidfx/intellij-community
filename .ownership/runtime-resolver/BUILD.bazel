@@ -15,10 +15,11 @@ jvm_library(
   resources = [":codeowners-runtime-resolver_resources"],
   deps = [
     "@lib//:kotlin-stdlib",
-    "//.ownership/lib:codeowners",
+    "//.ownership:codeowners",
     "//.ownership/monorepo-resolver:codeowners-monorepo-resolver",
     "//platform/testFramework/bootstrap:tools-testsBootstrap",
-  ]
+  ],
+  exports = ["//.ownership:codeowners"]
 )
 
 jvm_library(
@@ -26,9 +27,13 @@ jvm_library(
   module_name = "intellij.codeowners.runtime.resolver",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
+  exports = [
+    "//.ownership:codeowners",
+    "//.ownership:codeowners_test_lib",
+  ],
   runtime_deps = [
     ":codeowners-runtime-resolver",
-    "//.ownership/lib:codeowners_test_lib",
+    "//.ownership:codeowners_test_lib",
     "//.ownership/monorepo-resolver:codeowners-monorepo-resolver_test_lib",
     "//platform/testFramework/bootstrap:tools-testsBootstrap_test_lib",
   ]

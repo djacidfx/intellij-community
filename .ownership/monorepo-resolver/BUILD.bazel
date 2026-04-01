@@ -15,10 +15,11 @@ jvm_library(
   resources = [":codeowners-monorepo-resolver_resources"],
   deps = [
     "@lib//:kotlin-stdlib",
-    "//libraries/kotlinx/serialization/core",
+    "//.ownership:codeowners",
     "//libraries/kotlinx/serialization/json",
-    "//.ownership/lib:codeowners",
-  ]
+    "//libraries/kotlinx/serialization/core",
+  ],
+  exports = ["//.ownership:codeowners"]
 )
 
 jvm_library(
@@ -26,11 +27,15 @@ jvm_library(
   module_name = "intellij.codeowners.monorepo.resolver",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
+  exports = [
+    "//.ownership:codeowners",
+    "//.ownership:codeowners_test_lib",
+  ],
   runtime_deps = [
     ":codeowners-monorepo-resolver",
-    "//libraries/kotlinx/serialization/core:core_test_lib",
+    "//.ownership:codeowners_test_lib",
     "//libraries/kotlinx/serialization/json:json_test_lib",
-    "//.ownership/lib:codeowners_test_lib",
+    "//libraries/kotlinx/serialization/core:core_test_lib",
   ]
 )
 ### auto-generated section `build intellij.codeowners.monorepo.resolver` end

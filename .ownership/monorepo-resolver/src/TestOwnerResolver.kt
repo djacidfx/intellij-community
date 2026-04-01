@@ -1,11 +1,13 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.codeowners.monorepo.resolver
 
-import com.intellij.codeowners.CodeOwners
-import com.intellij.codeowners.model.OwnershipMatch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.jetbrains.patronus.codeowners.lib.OwnerResolver
+import org.jetbrains.patronus.codeowners.lib.OwnershipMappingGenerator
+import org.jetbrains.patronus.codeowners.lib.core.RepoRootResolver
+import org.jetbrains.patronus.codeowners.lib.models.OwnershipMatch
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.logging.Logger
@@ -15,17 +17,17 @@ import kotlin.io.path.useLines
 
 /**
  * Resolves code owners for test classes by combining file-location and module-path NDJSON artifacts
- * with the [CodeOwners] index.
+ * with the [OwnerResolver] index.
  *
  * Resolution algorithm:
  * 1. Look up (module, package, file) in file-locations map to get the relative path inside the module
  * 2. Resolve the full source file path using the module path
- * 3. Query [CodeOwners.getOwner] with the repository-relative path
+ * 3. Query [OwnerResolver.resolve] with the repository-relative path
  *
- * @see CodeOwners
+ * @see OwnerResolver
  */
 class TestOwnerResolver(
-  private val codeOwners: CodeOwners,
+  private val codeOwners: OwnerResolver,
   private val modulePathMap: Map<String, Path>,
   private val fileLocationMap: Map<FileLocationKey, String>,
   private val repositoryRoot: Path,
@@ -41,7 +43,7 @@ class TestOwnerResolver(
       .resolve(fileName)
       .relativeTo(repositoryRoot)
       .invariantSeparatorsPathString
-    return codeOwners.getOwner(testSourceFile)
+    return codeOwners.resolve(testSourceFile)
   }
 
   companion object {
@@ -51,8 +53,11 @@ class TestOwnerResolver(
     fun create(repositoryRoot: Path, fileLocations: Path, modulePaths: Path): TestOwnerResolver? {
       if (!Files.exists(fileLocations) || !Files.exists(modulePaths)) return null
       return try {
+        val mapping = OwnershipMappingGenerator.loadMappingStrict(RepoRootResolver.ofPath(repositoryRoot))
+        val resolver = OwnerResolver(mapping)
+
         TestOwnerResolver(
-          codeOwners = CodeOwners(repositoryRoot),
+          codeOwners = resolver,
           modulePathMap = loadModulePaths(modulePaths, repositoryRoot),
           fileLocationMap = loadFileLocations(fileLocations),
           repositoryRoot = repositoryRoot,

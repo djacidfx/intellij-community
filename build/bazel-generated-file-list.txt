@@ -1,5 +1,4 @@
-.ownership/lib
-.ownership/lib-test
+.ownership
 .ownership/monorepo-resolver
 .ownership/runtime-resolver
 RegExpSupport
