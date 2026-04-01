@@ -700,8 +700,8 @@ public class Py3ArgumentListInspectionTest extends PyInspectionTestCase {
                    class Derived(Base):
                        def __init__(self): ...
 
-                   d = Derived(<warning descr="Unexpected argument">1</warning>) # TODO (PY-87329): Expected no warnings
-                   d = Derived() # TODO (PY-87329): Expected warning: Parameter 'x' unfilled
+                   d = Derived(1)
+                   d = Derived(<warning descr="Parameter 'x' unfilled">)</warning>
                    """);
   }
 

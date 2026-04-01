@@ -77,11 +77,8 @@ import com.jetbrains.python.psi.types.PyCallableParameter;
 import com.jetbrains.python.psi.types.PyCallableParameterImpl;
 import com.jetbrains.python.psi.types.PyCallableType;
 import com.jetbrains.python.psi.types.PyClassType;
-import com.jetbrains.python.psi.types.PyCollectionType;
-import com.jetbrains.python.psi.types.PyCollectionTypeImpl;
 import com.jetbrains.python.psi.types.PyDynamicallyEvaluatedType;
 import com.jetbrains.python.psi.types.PyFunctionTypeImpl;
-import com.jetbrains.python.psi.types.PyInstantiableType;
 import com.jetbrains.python.psi.types.PyNarrowedType;
 import com.jetbrains.python.psi.types.PyNeverType;
 import com.jetbrains.python.psi.types.PySelfType;
@@ -197,7 +194,7 @@ public class PyFunctionImpl extends PyBaseElementImpl<PyFunctionStub> implements
   public @Nullable PyClass getContainingClass() {
     final PyFunctionStub stub = getStub();
     if (stub != null) {
-      final StubElement parentStub = stub.getParentStub();
+      final StubElement<?> parentStub = stub.getParentStub();
       if (parentStub instanceof PyClassStub) {
         return ((PyClassStub)parentStub).getPsi();
       }
@@ -302,10 +299,6 @@ public class PyFunctionImpl extends PyBaseElementImpl<PyFunctionStub> implements
         type = PyAnyType.getUnknown();
       }
     }
-    // TODO Is it still needed if we infer Self as a return type?
-    else if (receiver != null) {
-      type = replaceSelf(type, receiver, context);
-    }
     if (!isUnknown(type) && isDynamicallyEvaluated(parameters.values(), context)) {
       type = PyUnionType.createWeakType(type);
     }
@@ -320,49 +313,6 @@ public class PyFunctionImpl extends PyBaseElementImpl<PyFunctionStub> implements
         return notNullize(getName(), PyNames.UNNAMED_ELEMENT) + getParameterList().getPresentableText(true);
       }
     };
-  }
-
-  private @Nullable PyType replaceSelf(@Nullable PyType returnType, @Nullable PyExpression receiver, @NotNull TypeEvalContext context) {
-    return replaceSelf(returnType, receiver, context, true);
-  }
-
-  private @Nullable PyType replaceSelf(@Nullable PyType returnType,
-                                       @Nullable PyExpression receiver,
-                                       @NotNull TypeEvalContext context,
-                                       boolean allowCoroutineOrGenerator) {
-    if (receiver != null) {
-      // TODO: Currently we substitute only simple subclass types and unions, but we could handle collection types as well
-      if (returnType instanceof PyClassType returnClassType) {
-
-        if (returnClassType.getPyClass() == getContainingClass()) {
-          final PyType receiverType = context.getType(receiver);
-
-          if (receiverType instanceof PyClassType receiverClassType) {
-
-            if (receiverClassType.getPyClass() != returnClassType.getPyClass() &&
-                PyTypeChecker.match(returnClassType.toClass(), receiverClassType.toClass(), context)) {
-              return returnClassType.isDefinition() ? receiverClassType.toClass() : receiverClassType.toInstance();
-            }
-          }
-        }
-        else if (allowCoroutineOrGenerator &&
-                 returnType instanceof PyCollectionType &&
-                 PyTypingTypeProvider.coroutineOrGeneratorElementType(returnType) != null) {
-          final List<PyType> replacedElementTypes = map(
-            ((PyCollectionType)returnType).getElementTypes(),
-            type -> replaceSelf(type, receiver, context, false)
-          );
-
-          return new PyCollectionTypeImpl(returnClassType.getPyClass(),
-                                          returnClassType.isDefinition(),
-                                          replacedElementTypes);
-        }
-      }
-      else if (returnType instanceof PyUnionType) {
-        return ((PyUnionType)returnType).map(type -> replaceSelf(type, receiver, context, true));
-      }
-    }
-    return returnType;
   }
 
   private static boolean isDynamicallyEvaluated(@NotNull Collection<PyCallableParameter> parameters, @NotNull TypeEvalContext context) {
@@ -751,7 +701,7 @@ public class PyFunctionImpl extends PyBaseElementImpl<PyFunctionStub> implements
   private static @Nullable Modifier getModifierFromStub(@NotNull PyFunctionStub stub) {
     return JBIterable
       .of(stub.getParentStub())
-      .flatMap((StubElement element) -> (List<StubElement>)element.getChildrenStubs())
+      .flatMap((StubElement<?> element) -> element.getChildrenStubs())
       .skipWhile(siblingStub -> !stub.equals(siblingStub))
       .transform(nextSiblingStub -> as(nextSiblingStub, PyTargetExpressionStub.class))
       .filter(Objects::nonNull)

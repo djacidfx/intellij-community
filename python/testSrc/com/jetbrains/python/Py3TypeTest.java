@@ -2982,7 +2982,7 @@ public class Py3TypeTest extends PyTestCase {
 
   // PY-77611
   public void testClassDunderNewResultInPresenceOfInit2() {
-    doTest("Derived", // TODO (PY-87329): Expected type `Base`
+    doTest("Base",
            """
            class Base:
                def __new__(cls, x: int) -> Base: ...
@@ -5596,14 +5596,14 @@ public class Py3TypeTest extends PyTestCase {
               expr = set(cls)
       """);
   }
-  
+
   // PY-88321
   public void testListLiteralOfClassFloat() {
     doTest("list[type[float]]", """
       expr = [float]
     """);
   }
-  
+
   // PY-88234
   public void testQualifiedAttributeTypeNotConfusedWithSameNameParameter() {
     doTest( "int | str", """    
@@ -5730,6 +5730,34 @@ public class Py3TypeTest extends PyTestCase {
                  for instruction in instructions:
                      expr = instruction
              """);
+  }
+
+  // PY-87329
+  public void testInheritedMethodReturnTypeDoesNotChangeToSubclass() {
+    doTest("A", """
+      class A:
+          def foo(self) -> A:
+              return A()
+      
+      class B(A):
+          ...
+
+      expr = B().foo()
+      """);
+  }
+
+  // PY-87329
+  public void testInheritedMethodReturnTypeDoesNotChangeToSubclassGeneric() {
+    doTest("A[int]", """
+      class A[T]:
+          def foo(self) -> A[T]:
+              return A()
+      
+      class B[T](A[T]):
+          ...
+      
+      expr = B[int]().foo()
+      """);
   }
 
   private void doTest(final String expectedType, final String text) {
