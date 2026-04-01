@@ -2,8 +2,11 @@
   <extensionPoints>
     <extensionPoint qualifiedName="com.intellij.virtualFileManagerListener" interface="com.intellij.openapi.vfs.VirtualFileManagerListener" dynamic="true"/>
 
-    <extensionPoint qualifiedName="com.intellij.eelProvider"
-                    interface="com.intellij.platform.eel.provider.EelProvider" dynamic="true"/>
+    <extensionPoint qualifiedName="com.intellij.eelEnvironmentInitializer"
+                    interface="com.intellij.platform.eel.provider.EelEnvironmentInitializer" dynamic="true"/>
+
+    <extensionPoint qualifiedName="com.intellij.eelRoutingPrefixProvider"
+                    interface="com.intellij.platform.eel.provider.EelRoutingPrefixProvider" dynamic="true"/>
 
     <extensionPoint qualifiedName="com.intellij.eelMachineResolver"
                     interface="com.intellij.platform.eel.provider.EelMachineResolver" dynamic="true"/>

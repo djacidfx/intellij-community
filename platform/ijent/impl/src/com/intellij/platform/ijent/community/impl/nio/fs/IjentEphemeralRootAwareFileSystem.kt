@@ -10,6 +10,7 @@ import com.intellij.platform.core.nio.fs.MultiRoutingFsPath
 import com.intellij.platform.core.nio.fs.RoutingAwareFileSystemProvider
 import com.intellij.platform.eel.EelDescriptor
 import com.intellij.platform.eel.EelOsFamily
+import com.intellij.platform.eel.provider.EelDescriptorOwner
 import com.intellij.platform.eel.provider.getEelDescriptor
 import com.intellij.platform.eel.provider.utils.EelPathUtils
  import com.intellij.platform.eel.provider.utils.WindowsPathUtils
@@ -342,8 +343,8 @@ class IjentEphemeralRootAwareFileSystem(
   private val ijentFs: FileSystem,
   private val originalFs: FileSystem,
   private val useRootDirectoriesFromOriginalFs: Boolean,
-  private val eelDescriptor: EelDescriptor
-) : DelegatingFileSystem<IjentEphemeralRootAwareFileSystemProvider>() {
+  override val eelDescriptor: EelDescriptor
+) : DelegatingFileSystem<IjentEphemeralRootAwareFileSystemProvider>(), EelDescriptorOwner {
   private val root: Path = rootAwareFileSystemProvider.root
   private val invariantSeparatorRootPathString = root.invariantSeparatorsPathString.removeSuffix("/")
 

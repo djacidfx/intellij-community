@@ -14,7 +14,8 @@
 
   <extensions defaultExtensionNs="com.intellij">
     <platform.eel.impl.portAccessibleLocally implementation="com.intellij.platform.ide.impl.wsl.WslEelPortAccessibleLocally"/>
-    <eelProvider implementation="com.intellij.platform.ide.impl.wsl.WslEelProvider" os="windows"/>
+    <eelEnvironmentInitializer implementation="com.intellij.platform.ide.impl.wsl.WslEelEnvironmentInitializer" os="windows"/>
+    <eelRoutingPrefixProvider implementation="com.intellij.platform.ide.impl.wsl.WslEelRoutingPrefixProvider" os="windows"/>
     <eelMachineResolver implementation="com.intellij.platform.ide.impl.wsl.WslEelMachineResolver" os="windows"/>
     <applicationService serviceInterface="com.intellij.execution.wsl.WslIjentManager"
                         serviceImplementation="com.intellij.platform.ide.impl.wsl.ProductionWslIjentManager"/>

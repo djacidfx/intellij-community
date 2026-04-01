@@ -14,7 +14,8 @@
   <!-- endregion -->
   <extensions defaultExtensionNs="com.intellij">
     <multiRoutingFileSystemBackend implementation="com.intellij.platform.eel.tcp.TcpEelMrfsBackend"/>
-    <eelProvider implementation="com.intellij.platform.eel.tcp.TcpEelProvider"/>
+    <eelEnvironmentInitializer implementation="com.intellij.platform.eel.tcp.TcpEelEnvironmentInitializer"/>
+    <eelRoutingPrefixProvider implementation="com.intellij.platform.eel.tcp.TcpEelRoutingPrefixProvider"/>
     <eelTcpPathParser implementation="com.intellij.platform.eel.tcp.raw.RawTcpPathParser"/>
     <eelMachineResolver implementation="com.intellij.platform.eel.tcp.raw.RawTcpMachineResolver"/>
   </extensions>

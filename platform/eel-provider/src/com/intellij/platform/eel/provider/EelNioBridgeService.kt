@@ -131,18 +131,10 @@ fun Path.asEelPath(descriptor: EelDescriptor): EelPath {
 }
 
 @ApiStatus.Internal
-fun EelDescriptor.mountProvider(): EelMountProvider? {
-  return EelProvider.EP_NAME.extensionList
-    .firstNotNullOfOrNull { eelProvider ->
-      eelProvider.getMountProvider(eelDescriptor = this)
-    }
-}
-
-@ApiStatus.Internal
 fun EelDescriptor.routingPrefixes(): Set<Path> {
-  return EelProvider.EP_NAME.extensionList
-    .flatMapTo(HashSet()) { eelProvider ->
-      eelProvider.getCustomRoots(this)?.map(Path::of) ?: emptySet()
+  return EelRoutingPrefixProvider.EP_NAME.extensionList
+    .flatMapTo(HashSet()) { provider ->
+      provider.getRoutingPrefixes(this)?.map(Path::of) ?: emptySet()
     }
 }
 

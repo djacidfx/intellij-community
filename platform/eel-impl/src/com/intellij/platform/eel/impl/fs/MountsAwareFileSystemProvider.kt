@@ -4,8 +4,10 @@ package com.intellij.platform.eel.impl.fs
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.platform.core.nio.fs.DelegatingFileSystem
 import com.intellij.platform.core.nio.fs.DelegatingFileSystemProvider
+import com.intellij.platform.eel.EelDescriptor
 import com.intellij.platform.eel.fs.EelFileSystemApi
 import com.intellij.platform.eel.path.EelPath
+import com.intellij.platform.eel.provider.EelDescriptorOwner
 import com.intellij.platform.eel.provider.EelMountProvider
 import com.intellij.platform.eel.provider.EelMountRoot
 import com.intellij.platform.eel.provider.asNioPath
@@ -38,7 +40,7 @@ import java.util.concurrent.ExecutorService
  */
 abstract class MountsAwareFileSystemProvider(
   protected val delegate: FileSystemProvider,
-  private val mountProvider: EelMountProvider
+  internal val mountProvider: EelMountProvider
 ) : DelegatingFileSystemProvider<MountsAwareFileSystemProvider, MountsAwareFileSystem>() {
 
   override fun wrapDelegateFileSystem(delegateFs: FileSystem): MountsAwareFileSystem = MountsAwareFileSystem(this, delegateFs)
@@ -273,7 +275,14 @@ abstract class MountsAwareFileSystemProvider(
 class MountsAwareFileSystem(
   private val provider: MountsAwareFileSystemProvider,
   private val delegate: FileSystem,
-) : DelegatingFileSystem<MountsAwareFileSystemProvider>() {
+) : DelegatingFileSystem<MountsAwareFileSystemProvider>(), EelDescriptorOwner, EelMountProvider {
+
+  override val eelDescriptor: EelDescriptor
+    get() = (delegate as EelDescriptorOwner).eelDescriptor
+
+  override fun getMountRoot(path: EelPath): EelMountRoot? =
+    provider.mountProvider.getMountRoot(path)
+
   override fun getDelegate(): FileSystem = delegate
   override fun toString(): String = """${javaClass.simpleName}($delegate)"""
   override fun close(): Unit = delegate.close()

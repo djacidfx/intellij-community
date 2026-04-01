@@ -10,12 +10,14 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.extensions.BaseExtensionPointName
 import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.openapi.util.Disposer
+import com.intellij.platform.eel.provider.EelEnvironmentInitializer
 import com.intellij.platform.eel.provider.EelInitialization
-import com.intellij.platform.eel.provider.EelProvider
+import com.intellij.platform.eel.provider.EelRoutingPrefixProvider
 import com.intellij.platform.eel.provider.MultiRoutingFileSystemBackend
 import com.intellij.platform.ide.impl.wsl.EelWslMrfsBackend
 import com.intellij.platform.ide.impl.wsl.ProductionWslIjentManager
-import com.intellij.platform.ide.impl.wsl.WslEelProvider
+import com.intellij.platform.ide.impl.wsl.WslEelEnvironmentInitializer
+import com.intellij.platform.ide.impl.wsl.WslEelRoutingPrefixProvider
 import com.intellij.platform.util.coroutines.childScope
 import com.intellij.testFramework.ExtensionTestUtil
 import com.intellij.testFramework.replaceService
@@ -37,7 +39,8 @@ fun replaceProductionWslIjentManager(newServiceScope: CoroutineScope) {
 suspend fun replaceWslServicesAndRunWslEelInitialization(newServiceScope: CoroutineScope, wsl: WSLDistribution) {
   replaceProductionWslIjentManager(newServiceScope)
   replaceExtension(newServiceScope, MultiRoutingFileSystemBackend.EP_NAME, EelWslMrfsBackend(newServiceScope))
-  replaceExtension(newServiceScope, EelProvider.EP_NAME, WslEelProvider())
+  replaceExtension(newServiceScope, EelEnvironmentInitializer.EP_NAME, WslEelEnvironmentInitializer())
+  replaceExtension(newServiceScope, EelRoutingPrefixProvider.EP_NAME, WslEelRoutingPrefixProvider())
   EelInitialization.runEelInitialization(wsl.getUNCRootPath().toString())
 }
 

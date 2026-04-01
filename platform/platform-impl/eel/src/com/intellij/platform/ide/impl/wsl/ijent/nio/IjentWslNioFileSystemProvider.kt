@@ -6,6 +6,7 @@ import com.intellij.execution.wsl.WslPath
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.platform.core.nio.fs.RoutingAwareFileSystemProvider
+import com.intellij.platform.eel.EelDescriptor
 import com.intellij.platform.eel.provider.utils.EelPathUtils
 import com.intellij.platform.ijent.community.impl.nio.IjentNioPath
 import com.intellij.platform.ijent.community.impl.nio.fs.getCachedFileAttributesAndWrapToDosAttributesAdapter
@@ -60,6 +61,7 @@ class IjentWslNioFileSystemProvider(
   val wslId: @NlsSafe String,
   private val ijentFsProvider: FileSystemProvider,
   internal val originalFsProvider: FileSystemProvider,
+  private val eelDescriptor: EelDescriptor,
 ) : FileSystemProvider(), RoutingAwareFileSystemProvider {
   private val ijentFsUri: URI = URI("ijent", "wsl", "/$wslId", null, null)
   private val originalFs = originalFsProvider.getFileSystem(URI("file:/"))
@@ -132,7 +134,8 @@ class IjentWslNioFileSystemProvider(
         provider = this,
         wslId = wslId,
         ijentFs = ijentFsProvider.getFileSystem(URI("ijent", "wsl", "/$wslId", null, null)),
-        originalFsProvider.getFileSystem(URI("file:/"))
+        originalFs = originalFsProvider.getFileSystem(URI("file:/")),
+        eelDescriptor = eelDescriptor,
       )
     }
   }

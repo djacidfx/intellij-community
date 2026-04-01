@@ -5,27 +5,25 @@ package com.intellij.platform.eel.provider
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
-import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
+import com.intellij.platform.core.nio.fs.MultiRoutingFsPath
 import com.intellij.platform.eel.EelApi
 import com.intellij.platform.eel.EelDescriptor
 import com.intellij.platform.eel.EelMachine
 import com.intellij.platform.eel.EelOsFamily
 import com.intellij.platform.eel.EelPlatform
 import com.intellij.platform.eel.EelPosixApi
-import com.intellij.platform.eel.EelUnavailableException
 import com.intellij.platform.eel.EelWindowsApi
 import com.intellij.platform.eel.LocalEelApi
-import com.intellij.platform.eel.ThrowsChecked
 import com.intellij.platform.eel.annotations.MultiRoutingFileSystemPath
-import com.intellij.platform.util.coroutines.mapNotNullConcurrent
 import com.intellij.util.system.LowLevelLocalMachineAccess
 import com.intellij.util.system.OS
-import kotlinx.coroutines.CancellationException
 import org.jetbrains.annotations.ApiStatus
 import java.nio.file.Path
+
+private val logger = logger<LocalEelMachine>()
 
 @ApiStatus.Experimental
 interface LocalWindowsEelApi : LocalEelApi, EelWindowsApi
@@ -65,64 +63,14 @@ fun Project.setEelMachine(machine: EelMachine) {
   putUserData(EEL_MACHINE_KEY, machine)
 }
 
-private val logger = logger<EelInitialization>()
-
-@ApiStatus.Internal
-object EelInitialization {
-
-  @ThrowsChecked(EelUnavailableException::class)
-  suspend fun runEelInitialization(path: String): EelMachine {
-    val eels = EelProvider.EP_NAME.extensionList
-    val machines = eels.mapNotNullConcurrent { eelProvider ->
-      try {
-        eelProvider.tryInitialize(path)
-      }
-      catch (e: CancellationException) {
-        throw e
-      }
-      catch (e: EelUnavailableException) {
-        throw e
-      }
-      catch (e: Throwable) {
-        logger.error(e)
-        null
-      }
-    }
-
-    if (machines.isEmpty()) {
-      logger.debug("No EEL machines found for path: $path")
-      return LocalEelMachine
-    }
-
-    if (machines.size > 1) {
-      logger.error("Several EEL machines $machines found for path: $path")
-    }
-
-    return machines.first()
-  }
-
-  @ThrowsChecked(EelUnavailableException::class)
-  suspend fun runEelInitialization(project: Project) {
-    if (project.isDefault) {
-      return
-    }
-
-    val projectFile = project.projectFilePath
-    check(projectFile != null) { "Impossible: project is not default, but it does not have project file" }
-
-    val machine = runEelInitialization(projectFile)
-
-    project.setEelMachine(machine)
-  }
-}
-
 @ApiStatus.Experimental
 fun Path.getEelDescriptor(): EelDescriptor {
-  val application = ApplicationManager.getApplication()
-  if (application != null) {
-    for (eelProvider in EelProvider.EP_NAME.getExtensionsIfPointIsRegistered(application)) {
-      eelProvider.getEelDescriptor(this)?.let { return it }
-    }
+  val fs = when (this) {
+    is MultiRoutingFsPath -> currentDelegate.fileSystem
+    else -> fileSystem
+  }
+  if (fs is EelDescriptorOwner) {
+    return fs.eelDescriptor
   }
   return LocalEelDescriptor
 }
@@ -210,36 +158,6 @@ data object LocalEelDescriptor : EelDescriptor {
   }
 }
 
-@ApiStatus.Internal
-interface EelProvider {
-  companion object {
-    val EP_NAME: ExtensionPointName<EelProvider> = ExtensionPointName("com.intellij.eelProvider")
-  }
-
-  /**
-   * Runs an initialization process for [EelApi] relevant to [path] during the process of its opening.
-   *
-   * This function runs **early**, so implementors need to be careful with performance.
-   * This function is called for every opening [Project],
-   * so the implementation is expected to exit quickly if it decides that it is not responsible for [path].
-   */
-  @ThrowsChecked(EelUnavailableException::class)
-  suspend fun tryInitialize(path: @MultiRoutingFileSystemPath String): EelMachine?
-
-  /**
-   * Returns the descriptor for some path or `null` if this provider doesn't support such paths.
-   */
-  fun getEelDescriptor(path: Path): EelDescriptor?
-
-  fun getMountProvider(eelDescriptor: EelDescriptor): EelMountProvider? = null
-
-  /**
-   * Makes sense only on Windows, because on Posix there's the only root `/`.
-   *
-   * Returns additional elements to be returned by `FileSystems.getDefault().getRootDirectories()`
-   */
-  fun getCustomRoots(eelDescriptor: EelDescriptor): Collection<@MultiRoutingFileSystemPath String>?
-}
 
 @ApiStatus.Internal
 fun EelApi.systemOs(): OS {

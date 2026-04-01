@@ -1,9 +1,11 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.platform.ijent.community.impl.nio
 
+import com.intellij.platform.eel.EelDescriptor
 import com.intellij.platform.eel.directorySeparators
 import com.intellij.platform.eel.path.EelPath
 import com.intellij.platform.eel.path.EelPathException
+import com.intellij.platform.eel.provider.EelDescriptorOwner
 import com.intellij.platform.ijent.fs.IjentFileSystemApi
 import com.intellij.platform.ijent.fs.IjentFileSystemPosixApi
 import com.intellij.platform.ijent.fs.IjentFileSystemWindowsApi
@@ -18,7 +20,11 @@ import java.nio.file.attribute.UserPrincipalLookupService
 class IjentNioFileSystem internal constructor(
   private val fsProvider: IjentNioFileSystemProvider,
   internal val uri: URI,
-) : FileSystem() {
+) : FileSystem(), EelDescriptorOwner {
+
+  override val eelDescriptor: EelDescriptor
+    get() = ijentFs.descriptor
+
   override fun close() {
     fsProvider.close(uri)
   }
