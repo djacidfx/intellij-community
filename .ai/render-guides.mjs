@@ -140,7 +140,7 @@ function rewriteReferenceLinks(text, sourcePath, outputPath) {
   });
 }
 
-function rewriteMarkdownLinks(text, sourcePath, outputPath) {
+export function rewriteMarkdownLinks(text, sourcePath, outputPath) {
   const withInlineLinks = rewriteInlineLinks(text, sourcePath, outputPath);
   return rewriteReferenceLinks(withInlineLinks, sourcePath, outputPath);
 }
@@ -476,7 +476,7 @@ function extractFrontmatter(content) {
  */
 function rewriteRelativePaths(text, sourceDir, targetDir) {
   const sourceParent = dirname(sourceDir);
-  return text.replace(/\]\(([^)]+)\)/g, (match, linkPath) => {
+  return text.replace(/]\(([^)]+)\)/g, (match, linkPath) => {
     if (/^https?:\/\//.test(linkPath) || linkPath.startsWith("/") || linkPath.startsWith("#")) {
       return match;
     }
