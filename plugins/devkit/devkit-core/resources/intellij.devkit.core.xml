@@ -225,6 +225,13 @@
                      enabledByDefault="true" level="WARNING"
                      implementationClass="org.jetbrains.idea.devkit.inspections.internal.UndesirableClassUsageInspection"
                      key="inspection.undesirable.class.usage.display.name"/>
+
+    <localInspection language="UAST" shortName="FrontendBackendApiUsage"
+                     projectType="INTELLIJ_PLUGIN"
+                     groupPathKey="inspections.group.path" groupKey="inspections.group.code"
+                     enabledByDefault="true" level="WARNING"
+                     implementationClass="org.jetbrains.idea.devkit.inspections.remotedev.FrontendBackendApiUsageInspection"
+                     key="inspection.api.usage.restricted.to.module.type.display.name"/>
     <localInspection language="UAST" shortName="FileEqualsUsage"
                      projectType="INTELLIJ_PLUGIN"
                      groupPathKey="inspections.group.path" groupKey="inspections.group.code"
@@ -732,6 +739,7 @@
     <console.folding order="first" implementation="org.jetbrains.idea.devkit.run.FailedTestDebugLogConsoleFolding"/>
 
     <applicationService serviceImplementation="org.jetbrains.idea.devkit.actions.updateFromSources.UpdateFromSourcesSettings"/>
+    <applicationService serviceImplementation="org.jetbrains.idea.devkit.inspections.remotedev.ApiRestrictionsService"/>
 
     <projectService serviceImplementation="org.jetbrains.idea.devkit.run.JUnitDevKitUnitTestingSettings"
                     configurationSchemaKey="unitTesting"/>
