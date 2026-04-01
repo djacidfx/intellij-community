@@ -594,7 +594,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
   ) {
     doConfiguredTest(dir = true, extension = extension, configureFileName = fileName, configurators = configurators) {
       checkGTDUOutcome(GotoDeclarationOrUsageHandler2.GTDUOutcome.SU)
-      checkListByFile(usagesAtCaret(scope = scope, usagesFilter = usagesFilter), "${testName}/usages.txt", false)
+      checkListByFile(usagesAtCaret(scope = scope, usagesTestHelper = usagesTestHelper), "${testName}/usages.txt", false)
     }
   }
 
@@ -605,7 +605,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
   ) {
     doConfiguredTest(dir = true, extension = extension, configureFileName = fileName, configurators = configurators) {
-      checkListByFile(fileUsages(scope = scope, usagesFilter = usagesFilter).sorted(), "${testName}/usages.txt", false)
+      checkListByFile(fileUsages(scope = scope, usagesTestHelper = usagesTestHelper).sorted(), "${testName}/usages.txt", false)
     }
   }
 
@@ -701,11 +701,11 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     }
   }
 
-  protected open val usagesFilter: (usageInfo: UsageInfo, target: PsiElement) -> Boolean
-    get() = { _, _ -> true }
+  protected open val usagesTestHelper: UsagesTestHelper
+    get() = UsagesTestHelper.Default
 
   protected fun usagesAtCaret(scope: SearchScope? = null): List<String> =
-    myFixture.usagesAtCaret(scope, usagesFilter)
+    myFixture.usagesAtCaret(scope, usagesTestHelper)
 
   protected fun checkUsages(
     signature: String,
@@ -713,7 +713,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     strict: Boolean = true,
     scope: SearchScope? = null,
   ) {
-    myFixture.checkUsages(signature, goldFileName, usagesFilter, strict, scope)
+    myFixture.checkUsages(signature, goldFileName, usagesTestHelper, strict, scope)
   }
 
   @Suppress("unused")
@@ -722,7 +722,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     strict: Boolean = true,
     scope: SearchScope? = null,
   ) {
-    myFixture.checkFileUsages(goldFileName, usagesFilter, strict, scope)
+    myFixture.checkFileUsages(goldFileName, usagesTestHelper, strict, scope)
   }
 
   protected enum class CommentStyle {

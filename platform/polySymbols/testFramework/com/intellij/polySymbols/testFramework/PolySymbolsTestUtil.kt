@@ -81,7 +81,6 @@ import junit.framework.TestCase.assertTrue
 import org.junit.Assert
 import java.io.File
 import java.util.concurrent.Callable
-import kotlin.collections.iterator
 import kotlin.math.max
 import kotlin.math.min
 
@@ -764,25 +763,26 @@ private val Editor.topLevelEditor
 @JvmOverloads
 fun CodeInsightTestFixture.usagesAtCaret(
   scope: SearchScope? = null,
-  usagesFilter: (usageInfo: UsageInfo, target: PsiElement) -> Boolean = { _, _ -> true },
+  usagesTestHelper: UsagesTestHelper = UsagesTestHelper.Default,
 ): List<String> {
-  val usages = polySymbolAtCaret()
-                 ?.let { symbolSearchTarget(project, it) }
-                 ?.let { findUsages(it) }
-                 ?.mapNotNull { (it as? UsageInfo2UsageAdapter)?.usageInfo }
-                 ?.asSequence()
-               ?: elementAtCaret.let { target ->
-                 (this as CodeInsightTestFixtureImpl).findUsages(target, scope)
-                   .asSequence()
-                   .filter { usagesFilter(it, target) }
-               }
-  return usages.dumpToString()
+  val usages =
+    polySymbolAtCaret()
+      ?.let { symbolSearchTarget(project, it) }
+      ?.let { findUsages(it) }
+      ?.mapNotNull { (it as? UsageInfo2UsageAdapter)?.usageInfo }
+      ?.asSequence()
+    ?: elementAtCaret.let { target ->
+      (this as CodeInsightTestFixtureImpl).findUsages(target, scope)
+        .asSequence()
+        .filter { usagesTestHelper.filter(it, target) }
+    }
+  return usages.dumpToString(usagesTestHelper)
 }
 
 @JvmOverloads
 fun CodeInsightTestFixture.fileUsages(
   scope: SearchScope? = null,
-  usagesFilter: (usageInfo: UsageInfo, target: PsiElement) -> Boolean = { _, _ -> true },
+  usagesTestHelper: UsagesTestHelper = UsagesTestHelper.Default,
 ): List<String> {
   val usageInfos = ArrayList<UsageInfo>()
 
@@ -811,17 +811,17 @@ fun CodeInsightTestFixture.fileUsages(
 
   return usageInfos
     .asSequence()
-    .filter { usagesFilter(it, file) }
-    .dumpToString()
+    .filter { usagesTestHelper.filter(it, file) }
+    .dumpToString(usagesTestHelper)
 }
 
-private fun Sequence<UsageInfo>.dumpToString(): List<String> {
+private fun Sequence<UsageInfo>.dumpToString(helper: UsagesTestHelper): List<String> {
   return map { usage: UsageInfo ->
     "<" + usage.file!!.name +
     ":" + usage.element!!.textRange +
     ":" + usage.rangeInElement +
     (if (usage.isNonCodeUsage()) ":non-code" else "") +
-    ">\t" + getElementText(usage.element!!, usage.rangeInElement)
+    ">\t" + helper.getElementText(usage.element!!, usage.rangeInElement)
   }
     .sorted()
     .toList()
@@ -830,7 +830,7 @@ private fun Sequence<UsageInfo>.dumpToString(): List<String> {
 fun CodeInsightTestFixture.checkUsages(
   signature: String,
   goldFileName: String,
-  usagesFilter: (usageInfo: UsageInfo, target: PsiElement) -> Boolean = { _, _ -> true },
+  usagesTestHelper: UsagesTestHelper = UsagesTestHelper.Default,
   strict: Boolean = true,
   scope: SearchScope? = null,
 ) {
@@ -840,41 +840,22 @@ fun CodeInsightTestFixture.checkUsages(
   val checkFileName = "gold/${goldFileName}.txt"
   FileUtil.createIfDoesntExist(File("$testDataPath/$checkFileName"))
 
-  val usages = usagesAtCaret(scope, usagesFilter)
+  val usages = usagesAtCaret(scope, usagesTestHelper)
   checkListByFile(usages.sorted(), checkFileName, !strict)
 }
 
 fun CodeInsightTestFixture.checkFileUsages(
   goldFileName: String,
-  usagesFilter: (usageInfo: UsageInfo, target: PsiElement) -> Boolean = { _, _ -> true },
+  usagesTestHelper: UsagesTestHelper = UsagesTestHelper.Default,
   strict: Boolean = true,
   scope: SearchScope? = null,
 ) {
   val checkFileName = "gold/${goldFileName}.txt"
   FileUtil.createIfDoesntExist(File("$testDataPath/$checkFileName"))
 
-  val usages = fileUsages(scope, usagesFilter)
+  val usages = fileUsages(scope, usagesTestHelper)
   checkListByFile(usages.sorted(), checkFileName, !strict)
 }
-
-private fun getElementText(element: PsiElement, rangeInElement: ProperTextRange?): String {
-  if (element is PsiFile && rangeInElement != null) {
-    val text = element.text
-    return text
-      .substring(max(0, rangeInElement.startOffset), min(rangeInElement.endOffset, text.length))
-      .replace("\n", "\\n")
-  }
-
-  //if (element is XmlTag) {
-  //  return element.name
-  //}
-  //else if (element is XmlAttribute) {
-  //  return element.getText()
-  //}
-  return (element.parent.text.takeIf { it.length < 80 } ?: element.text)
-    .replace("\n", "\\n")
-}
-
 
 fun CodeInsightTestFixture.testWithTempCodeStyleSettings(
   consumer: (CodeStyleSettings) -> Unit,
@@ -889,4 +870,24 @@ fun CodeInsightTestFixture.testWithTempCodeStyleSettings(
   finally {
     manager.dropTemporarySettings()
   }
+}
+
+interface UsagesTestHelper {
+
+  fun filter(usageInfo: UsageInfo, target: PsiElement): Boolean = true
+
+  fun getElementText(element: PsiElement, rangeInElement: ProperTextRange?): String {
+    if (element is PsiFile && rangeInElement != null) {
+      val text = element.text
+      return text
+        .substring(max(0, rangeInElement.startOffset), min(rangeInElement.endOffset, text.length))
+        .replace("\n", "\\n")
+    }
+
+    return (element.parent.text.takeIf { it.length < 80 } ?: element.text)
+      .replace("\n", "\\n")
+  }
+
+  object Default : UsagesTestHelper
+
 }
