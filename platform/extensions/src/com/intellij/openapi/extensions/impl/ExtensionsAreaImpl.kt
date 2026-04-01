@@ -17,14 +17,11 @@ import com.intellij.openapi.extensions.ExtensionsArea
 import com.intellij.openapi.extensions.PluginDescriptor
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.util.Disposer
-import com.intellij.util.containers.with
-import com.intellij.util.containers.withAll
-import com.intellij.util.containers.without
+import com.intellij.util.containers.UnmodifiableHashMap
 import org.jdom.Element
 import org.jetbrains.annotations.ApiStatus.Internal
 import org.jetbrains.annotations.TestOnly
 import java.lang.reflect.Modifier
-import java.util.Collections
 
 private val LOG: Logger
   get() = logger<ExtensionsAreaImpl>()
@@ -66,7 +63,7 @@ fun createExtensionPoints(points: List<ExtensionPointDescriptor>,
 @Internal
 class ExtensionsAreaImpl(private val componentManager: ComponentManager) : ExtensionsArea {
   @Volatile
-  private var extensionPoints: Map<String, ExtensionPointImpl<*>> = Collections.emptyMap()
+  private var extensionPoints: UnmodifiableHashMap<String, ExtensionPointImpl<*>> = UnmodifiableHashMap.empty()
 
   private val epTraces = if (DEBUG_REGISTRATION) HashMap<String, Throwable>() else null
 
@@ -76,7 +73,7 @@ class ExtensionsAreaImpl(private val componentManager: ComponentManager) : Exten
   private val lock = Any()
 
   fun reset(nameToPointMap: Map<String, ExtensionPointImpl<*>>) {
-    extensionPoints = nameToPointMap
+    extensionPoints = UnmodifiableHashMap.fromMap(nameToPointMap)
   }
 
   @TestOnly
@@ -310,8 +307,8 @@ class ExtensionsAreaImpl(private val componentManager: ComponentManager) : Exten
     val extensionPoint = getExtensionPointIfRegistered<Any>(extensionPointName) ?: return
     extensionPoint.reset()
     synchronized(lock) {
-    extensionPoints = extensionPoints.without(extensionPointName)
-      }
+      extensionPoints = extensionPoints.without(extensionPointName)
+    }
   }
 
   override fun hasExtensionPoint(extensionPointName: String): Boolean = extensionPoints.containsKey(extensionPointName)
