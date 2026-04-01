@@ -1427,6 +1427,7 @@
       <separator/>
       <group id="Internal.Editor" popup="true">
         <action id="AddInlayInternalAction" internal="true" class="com.intellij.internal.AddInlayInternalAction"/>
+        <action id="AddAfterLineEndInlayInternalAction" internal="true" class="com.intellij.internal.AddAfterLineEndInlayInternalAction"/>
         <action id="AddInlayBlockInternalAction" internal="true" class="com.intellij.internal.AddInlayBlockInternalAction"/>
         <action id="DumpEditorStateInternalAction" internal="true" class="com.intellij.internal.DumpEditorStateInternalAction"/>
         <action id="SetCaretVisualAttributesInternalAction" internal="true" class="com.intellij.internal.SetCaretVisualAttributesAction"/>

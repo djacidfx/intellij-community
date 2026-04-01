@@ -1,19 +1,21 @@
-// Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.internal;
 
 import com.intellij.codeInsight.hints.presentation.PresentationRenderer;
 import com.intellij.openapi.editor.Inlay;
 import com.intellij.openapi.editor.InlayModel;
 import com.intellij.openapi.project.Project;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-final class AddInlayInternalAction extends AbstractAddInlayInternalAction {
+@ApiStatus.Internal
+final class AddAfterLineEndInlayInternalAction extends AbstractAddInlayInternalAction {
   @Override
   protected @Nullable InlayData showDialog(@NotNull Project project, int caretCount) {
     return showTextInlayDialog(InternalActionsBundle.message(caretCount > 1
-                                                            ? "action.AddInlayInternalAction.dialog.title.plural"
-                                                            : "action.AddInlayInternalAction.dialog.title"));
+                                                            ? "action.AddAfterLineEndInlayInternalAction.dialog.title.plural"
+                                                            : "action.AddAfterLineEndInlayInternalAction.dialog.title"));
   }
 
   @Override
@@ -21,6 +23,6 @@ final class AddInlayInternalAction extends AbstractAddInlayInternalAction {
                                            int offset,
                                            @NotNull InlayData inlayData,
                                            @NotNull PresentationRenderer renderer) {
-    return model.addInlineElement(offset, inlayData.relatesToPrecedingText(), renderer);
+    return model.addAfterLineEndElement(offset, inlayData.relatesToPrecedingText(), renderer);
   }
 }
