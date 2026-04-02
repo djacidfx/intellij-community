@@ -17,6 +17,7 @@ import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.openapi.wm.impl.content.ToolWindowContentUi
 import com.intellij.platform.util.coroutines.childScope
+import com.intellij.toolWindow.StripeButtonUi
 import com.intellij.ui.IconManager
 import com.intellij.ui.JBColor
 import com.intellij.util.cancelOnDispose
@@ -40,7 +41,6 @@ import org.jetbrains.plugins.github.pullrequest.action.GHPRSelectPullRequestForF
 import org.jetbrains.plugins.github.pullrequest.action.GHPRSwitchRemoteAction
 import org.jetbrains.plugins.github.pullrequest.ui.GHPRProjectViewModel
 import org.jetbrains.plugins.github.pullrequest.ui.toolwindow.model.GHPRToolWindowViewModel
-import javax.swing.UIManager
 
 internal class GHPRToolWindowFactory : ToolWindowFactory, DumbAware {
   override fun init(toolWindow: ToolWindow) {
@@ -81,7 +81,7 @@ private class GHPRToolWindowController(private val project: Project, parentCs: C
         }
       }
 
-      val focusColor = UIManager.getColor("ToolWindow.Button.selectedForeground")
+      val focusColor = StripeButtonUi.SELECTED_FOREGROUND_COLOR
       launch {
         vm.connectedProjectVm
           .filterNotNull().flatMapLatest { it.listVm.hasUpdates }
