@@ -10,12 +10,35 @@ import com.intellij.openapi.extensions.PluginId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
 class AnalysisToolsetTest : GeneralMcpToolsetTestBase() {
+  @Test
+  fun lint_files() = runBlocking(Dispatchers.Default) {
+    assumeTrue(isJavaPluginInstalled(), "Java plugin is required for this test")
+
+    testMcpTool(
+      AnalysisToolset::lint_files.name,
+      buildJsonObject {
+        put("file_paths", buildJsonArray {
+          add(JsonPrimitive(project.baseDir.toNioPath().relativizeIfPossible(mainJavaFile)))
+          add(JsonPrimitive(project.baseDir.toNioPath().relativizeIfPossible(mainJavaFile)))
+          add(JsonPrimitive(project.baseDir.toNioPath().relativizeIfPossible(testJavaFile)))
+        })
+      },
+    ) { result ->
+      val text = result.textContent.text
+      assertThat(text).contains(""""items":[{"""")
+      assertThat(text).containsOnlyOnce(""""filePath":"src/Main.java"""")
+      assertThat(text).contains(""""filePath":"src/Test.java"""")
+      assertThat(text).contains(""""problems":[{"""")
+    }
+  }
+
   @Test
   fun get_file_problems() = runBlocking(Dispatchers.Default) {
     // This test requires Java plugin to detect syntax errors in Java files

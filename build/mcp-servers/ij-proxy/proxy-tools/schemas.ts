@@ -189,6 +189,29 @@ export function createSearchSymbolSchema(): ToolInputSchema {
   return createSearchSchema('Symbol query text (class, method, field, etc.).')
 }
 
+export function createLintFilesSchema(): ToolInputSchema {
+  return objectSchema(
+    {
+      file_paths: {
+        type: 'array',
+        description: 'List of project-relative file paths to analyze. Duplicate paths are ignored after normalization.',
+        items: {
+          type: 'string'
+        }
+      },
+      min_severity: {
+        type: 'string',
+        description: 'Minimum severity to include: warning or error. Defaults to warning.'
+      },
+      timeout: {
+        type: 'number',
+        description: 'Timeout in milliseconds for the full batch.'
+      }
+    },
+    ['file_paths']
+  )
+}
+
 export function createApplyPatchSchema(): ToolInputSchema {
   return objectSchema(
     {

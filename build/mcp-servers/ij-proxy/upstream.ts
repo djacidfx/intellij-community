@@ -3,10 +3,10 @@
 import {Client} from '@modelcontextprotocol/sdk/client/index.js'
 import {ResultSchema} from '@modelcontextprotocol/sdk/types.js'
 import {createProjectPathManager} from './project-path'
-import {resolveReadCapabilities, resolveSearchCapabilities} from './proxy-tools/tooling'
+import {resolveAnalysisCapabilities, resolveReadCapabilities, resolveSearchCapabilities} from './proxy-tools/tooling'
 import {extractTextFromResult} from './proxy-tools/shared'
 import type {McpStreamTransport} from './stream-transport'
-import type {ReadCapabilities, SearchCapabilities, ToolArgs, ToolSpecLike} from './proxy-tools/types'
+import type {AnalysisCapabilities, ReadCapabilities, SearchCapabilities, ToolArgs, ToolSpecLike} from './proxy-tools/types'
 
 export interface UpstreamConnectionOptions {
   transport: McpStreamTransport
@@ -47,6 +47,7 @@ export class UpstreamConnection {
   private _tools: ToolSpecLike[] | null = null
 
   searchCapabilities: SearchCapabilities = resolveSearchCapabilities([]).capabilities
+  analysisCapabilities: AnalysisCapabilities = resolveAnalysisCapabilities([]).capabilities
   readCapabilities: ReadCapabilities = resolveReadCapabilities([]).capabilities
   ideVersion: string | null = null
 
@@ -101,6 +102,7 @@ export class UpstreamConnection {
     this._connectedPromise = null
     this._tools = null
     this.searchCapabilities = resolveSearchCapabilities([]).capabilities
+    this.analysisCapabilities = resolveAnalysisCapabilities([]).capabilities
     this.readCapabilities = resolveReadCapabilities([]).capabilities
     this.ideVersion = null
     this.onStateChange?.()
@@ -132,6 +134,7 @@ export class UpstreamConnection {
       this._projectPathManager.stripProjectPathFromTools(tools)
       this._tools = tools
       this.searchCapabilities = resolveSearchCapabilities(tools).capabilities
+      this.analysisCapabilities = resolveAnalysisCapabilities(tools).capabilities
       this.readCapabilities = resolveReadCapabilities(tools).capabilities
       this.onStateChange?.()
       return tools

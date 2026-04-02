@@ -22411,11 +22411,15 @@ function coerceSearchItem(value) {
     let filePath = typeof value.filePath === "string" ? value.filePath : null;
     if (!filePath)
       return null;
-    let item = { filePath };
+    let item = { ...value, filePath };
     if (typeof value.lineNumber === "number")
       item.lineNumber = value.lineNumber;
+    else
+      delete item.lineNumber;
     if (typeof value.lineText === "string")
       item.lineText = value.lineText;
+    else
+      delete item.lineText;
     return item;
   }
   return null;
@@ -23293,6 +23297,96 @@ function findSequence(haystack, needle, startIndex = 0, preferEnd = !1) {
   if (index = searchWith((a, b) => a.trim() === b.trim()), index >= 0)
     return index;
   return searchWith((a, b) => normalizeForMatch(a) === normalizeForMatch(b));
+}
+
+// proxy-tools/handlers/lint-files.ts
+async function handleLintFilesTool(args, callUpstreamTool, capabilities) {
+  let filePaths = normalizeFilePaths(args.file_paths), minSeverity = normalizeMinSeverity(args.min_severity), timeout = toPositiveInt(args.timeout, void 0, "timeout");
+  if (capabilities.hasLintFiles) {
+    let result = await callUpstreamTool("lint_files", {
+      file_paths: filePaths,
+      min_severity: minSeverity,
+      ...timeout !== void 0 ? { timeout } : {}
+    }), structured = extractStructuredContent(result);
+    if (structured == null)
+      throw Error("Upstream lint_files returned unexpected result");
+    return JSON.stringify(structured);
+  }
+  if (!capabilities.supportsLintFiles)
+    throw Error("lint_files is not supported by this IDE version");
+  return await lintFilesLegacy(filePaths, minSeverity, timeout, callUpstreamTool);
+}
+function normalizeFilePaths(value) {
+  if (!Array.isArray(value))
+    throw Error("file_paths must be an array of non-empty strings");
+  let result = [], seen = /* @__PURE__ */ new Set;
+  for (let rawPath of value) {
+    if (typeof rawPath !== "string" || rawPath.trim().length === 0)
+      throw Error("file_paths must contain non-empty strings");
+    let normalizedPath = rawPath.trim();
+    if (seen.has(normalizedPath))
+      continue;
+    seen.add(normalizedPath), result.push(normalizedPath);
+  }
+  if (result.length === 0)
+    throw Error("file_paths must contain at least one path");
+  return result;
+}
+function normalizeMinSeverity(value) {
+  if (value === void 0 || value === null)
+    return "warning";
+  let normalized = requireString(value, "min_severity").trim().toLowerCase();
+  if (normalized === "warning" || normalized === "error")
+    return normalized;
+  throw Error("min_severity must be one of: warning, error");
+}
+async function lintFilesLegacy(filePaths, minSeverity, timeout, callUpstreamTool) {
+  let startedAt = Date.now(), items = [], more = !1;
+  for (let filePath of filePaths) {
+    let remainingTimeout = timeout === void 0 ? void 0 : Math.max(0, timeout - (Date.now() - startedAt));
+    if (remainingTimeout !== void 0 && remainingTimeout <= 0) {
+      more = !0;
+      break;
+    }
+    let result = await callUpstreamTool("get_file_problems", {
+      filePath,
+      errorsOnly: minSeverity === "error",
+      ...remainingTimeout !== void 0 ? { timeout: remainingTimeout } : {}
+    }), item = parseLegacyLintFileResult(result, filePath);
+    if (items.push(item), item.timedOut === !0) {
+      more = !0;
+      break;
+    }
+  }
+  return JSON.stringify(more ? { items, more: !0 } : { items });
+}
+function parseLegacyLintFileResult(result, fallbackPath) {
+  let structured = extractStructuredContent(result);
+  if (!isRecord2(structured))
+    throw Error("Upstream get_file_problems returned unexpected result");
+  let filePath = typeof structured.filePath === "string" && structured.filePath.length > 0 ? structured.filePath : fallbackPath, problems = (Array.isArray(structured.errors) ? structured.errors : []).map(coerceLegacyProblem).filter((problem) => problem != null), timedOut = structured.timedOut === !0 ? !0 : void 0;
+  return {
+    filePath,
+    problems,
+    ...timedOut ? { timedOut } : {}
+  };
+}
+function coerceLegacyProblem(value) {
+  if (!isRecord2(value))
+    return null;
+  let severity = typeof value.severity === "string" ? value.severity : "", description = typeof value.description === "string" ? value.description : "", lineText = typeof value.lineContent === "string" ? value.lineContent : typeof value.lineText === "string" ? value.lineText : "", problem = {
+    severity,
+    description,
+    lineText
+  };
+  if (typeof value.line === "number")
+    problem.line = value.line;
+  if (typeof value.column === "number")
+    problem.column = value.column;
+  return problem;
+}
+function isRecord2(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 // proxy-tools/handlers/list-dir.ts
@@ -24557,6 +24651,25 @@ function createSearchFileSchema() {
 function createSearchSymbolSchema() {
   return createSearchSchema("Symbol query text (class, method, field, etc.).");
 }
+function createLintFilesSchema() {
+  return objectSchema({
+    file_paths: {
+      type: "array",
+      description: "List of project-relative file paths to analyze. Duplicate paths are ignored after normalization.",
+      items: {
+        type: "string"
+      }
+    },
+    min_severity: {
+      type: "string",
+      description: "Minimum severity to include: warning or error. Defaults to warning."
+    },
+    timeout: {
+      type: "number",
+      description: "Timeout in milliseconds for the full batch."
+    }
+  }, ["file_paths"]);
+}
 function createApplyPatchSchema() {
   return objectSchema({
     input: {
@@ -24651,6 +24764,14 @@ var TOOL_VARIANTS = [
     expose: ({ searchCapabilities }) => !searchCapabilities.hasSearchSymbol && searchCapabilities.supportsSymbol
   },
   {
+    name: "lint_files",
+    description: "Analyze several files and return per-file problems with severity, description, line text, and location.",
+    schemaFactory: () => createLintFilesSchema(),
+    handlerFactory: ({ callUpstreamTool, analysisCapabilities }) => (args) => handleLintFilesTool(args, callUpstreamTool, analysisCapabilities),
+    upstreamNames: ["get_file_problems"],
+    expose: ({ analysisCapabilities }) => !analysisCapabilities.hasLintFiles && analysisCapabilities.supportsLintFiles
+  },
+  {
     name: "list_dir",
     description: "Lists entries in a local directory with 1-indexed entry numbers and simple type labels.",
     schemaFactory: () => createListDirSchema(),
@@ -24742,10 +24863,26 @@ function resolveReadCapabilities(upstreamTools) {
     }
   };
 }
+function resolveAnalysisCapabilities(upstreamTools) {
+  let names = /* @__PURE__ */ new Set;
+  for (let tool of upstreamTools ?? []) {
+    let name = typeof tool?.name === "string" ? tool.name : "";
+    if (name)
+      names.add(name);
+  }
+  let hasLintFiles = names.has("lint_files");
+  return {
+    capabilities: {
+      hasLintFiles,
+      supportsLintFiles: hasLintFiles || names.has("get_file_problems")
+    }
+  };
+}
 function createProxyTooling({
   projectPath,
   callUpstreamTool,
   searchCapabilities,
+  analysisCapabilities,
   readCapabilities,
   ideVersion
 }) {
@@ -24753,6 +24890,7 @@ function createProxyTooling({
     projectPath,
     callUpstreamTool,
     searchCapabilities,
+    analysisCapabilities,
     readCapabilities,
     shouldApplyWorkaround: (key) => shouldApplyWorkaround(key, boundVersion)
   });
@@ -24790,6 +24928,7 @@ class UpstreamConnection {
   _connectedPromise = null;
   _tools = null;
   searchCapabilities = resolveSearchCapabilities([]).capabilities;
+  analysisCapabilities = resolveAnalysisCapabilities([]).capabilities;
   readCapabilities = resolveReadCapabilities([]).capabilities;
   ideVersion = null;
   onStateChange;
@@ -24821,7 +24960,7 @@ class UpstreamConnection {
     }), this._connectedPromise;
   }
   reset() {
-    this._connectedPromise = null, this._tools = null, this.searchCapabilities = resolveSearchCapabilities([]).capabilities, this.readCapabilities = resolveReadCapabilities([]).capabilities, this.ideVersion = null, this.onStateChange?.();
+    this._connectedPromise = null, this._tools = null, this.searchCapabilities = resolveSearchCapabilities([]).capabilities, this.analysisCapabilities = resolveAnalysisCapabilities([]).capabilities, this.readCapabilities = resolveReadCapabilities([]).capabilities, this.ideVersion = null, this.onStateChange?.();
   }
   async withReconnect(label, fn) {
     try {
@@ -24842,7 +24981,7 @@ class UpstreamConnection {
     return await this.withReconnect("tools/list", async () => {
       await this.connect();
       let response = await this.client.listTools(), tools = Array.isArray(response?.tools) ? response.tools : [];
-      return this._projectPathManager.updateProjectPathKeys(tools), this._projectPathManager.stripProjectPathFromTools(tools), this._tools = tools, this.searchCapabilities = resolveSearchCapabilities(tools).capabilities, this.readCapabilities = resolveReadCapabilities(tools).capabilities, this.onStateChange?.(), tools;
+      return this._projectPathManager.updateProjectPathKeys(tools), this._projectPathManager.stripProjectPathFromTools(tools), this._tools = tools, this.searchCapabilities = resolveSearchCapabilities(tools).capabilities, this.analysisCapabilities = resolveAnalysisCapabilities(tools).capabilities, this.readCapabilities = resolveReadCapabilities(tools).capabilities, this.onStateChange?.(), tools;
     });
   }
   async getTools() {
@@ -24933,10 +25072,14 @@ var RIDER_PROJECT_SUBPATH = "dotnet", MERGE_TOOL_NAMES = /* @__PURE__ */ new Set
   "search_regex",
   "search_file",
   "search_symbol"
+]), SPLIT_MERGE_TOOL_NAMES = /* @__PURE__ */ new Set([
+  "lint_files"
 ]);
 function resolveRoute(toolName, args, projectRoot) {
   if (MERGE_TOOL_NAMES.has(toolName))
     return "merge";
+  if (SPLIT_MERGE_TOOL_NAMES.has(toolName))
+    return "split-merge";
   return resolveIdeForPath(args, projectRoot) === "rider" ? "target-rider" : "primary";
 }
 function rewriteArgsForTarget(route, args) {
@@ -24980,6 +25123,28 @@ function isRiderPath(filePath, projectRoot) {
   if (relative.startsWith("..") || path7.isAbsolute(relative))
     return !1;
   return relative === RIDER_PROJECT_SUBPATH || relative.startsWith(RIDER_PROJECT_SUBPATH + path7.sep);
+}
+function splitPathListArgsByIde(args, projectRoot, argName = "file_paths") {
+  let rawPaths = args[argName];
+  if (!Array.isArray(rawPaths))
+    throw Error(`${argName} must be an array of strings`);
+  let normalizedPaths = rawPaths.map((rawPath) => {
+    if (typeof rawPath !== "string" || rawPath.trim().length === 0)
+      throw Error(`${argName} must contain non-empty strings`);
+    return rawPath.trim();
+  });
+  if (normalizedPaths.length === 0)
+    throw Error(`${argName} must contain at least one path`);
+  let ideaPaths = [], riderPaths = [];
+  for (let filePath of normalizedPaths)
+    if (isRiderPath(filePath, projectRoot))
+      riderPaths.push(stripRiderPrefix(filePath));
+    else
+      ideaPaths.push(filePath);
+  return {
+    ideaArgs: ideaPaths.length > 0 ? { ...args, [argName]: ideaPaths } : void 0,
+    riderArgs: riderPaths.length > 0 ? { ...args, [argName]: riderPaths } : void 0
+  };
 }
 var PATH_ARG_KEYS = ["pathInProject", "file_path", "dir_path", "directoryPath", "filePath"];
 function extractPathArg(args) {
@@ -25038,7 +25203,7 @@ function blockedToolMessage(toolName) {
     return `Tool '${toolName}' is not exposed by ij-proxy. Use 'apply_patch' instead.`;
   return `Tool '${toolName}' is not exposed by ij-proxy.`;
 }
-var ideaUpstream = null, riderUpstream = null, discoveryPromise = null, proxyToolSpecs = [], proxyToolNames = /* @__PURE__ */ new Set, ideaProxyToolCall = null, riderProxyToolCall = null;
+var ideaUpstream = null, riderUpstream = null, discoveryPromise = null, proxyToolSpecs = [], proxyToolNames = /* @__PURE__ */ new Set, ideaProxyToolNames = /* @__PURE__ */ new Set, riderProxyToolNames = /* @__PURE__ */ new Set, ideaProxyToolCall = null, riderProxyToolCall = null;
 function primaryUpstream() {
   let upstream = ideaUpstream ?? riderUpstream;
   if (!upstream)
@@ -25052,24 +25217,26 @@ function updateProxyTooling() {
       projectPath,
       callUpstreamTool: (name, args) => ideaUpstream.callTool(name, args),
       searchCapabilities: ideaUpstream.searchCapabilities,
+      analysisCapabilities: ideaUpstream.analysisCapabilities,
       readCapabilities: ideaUpstream.readCapabilities,
       ideVersion: ideaUpstream.ideVersion
     });
-    ideaSpecs = tooling.proxyToolSpecs, ideaNames = tooling.proxyToolNames, ideaProxyToolCall = tooling.runProxyToolCall;
+    ideaSpecs = tooling.proxyToolSpecs, ideaNames = tooling.proxyToolNames, ideaProxyToolNames = tooling.proxyToolNames, ideaProxyToolCall = tooling.runProxyToolCall;
   } else
-    ideaProxyToolCall = null;
+    ideaProxyToolNames = /* @__PURE__ */ new Set, ideaProxyToolCall = null;
   let riderSpecs = [], riderNames = /* @__PURE__ */ new Set;
   if (riderUpstream) {
     let riderProjectPath = path8.join(projectPath, RIDER_PROJECT_SUBPATH), tooling = createProxyTooling({
       projectPath: riderProjectPath,
       callUpstreamTool: (name, args) => riderUpstream.callTool(name, args),
       searchCapabilities: riderUpstream.searchCapabilities,
+      analysisCapabilities: riderUpstream.analysisCapabilities,
       readCapabilities: riderUpstream.readCapabilities,
       ideVersion: riderUpstream.ideVersion
     });
-    riderSpecs = tooling.proxyToolSpecs, riderNames = tooling.proxyToolNames, riderProxyToolCall = tooling.runProxyToolCall;
+    riderSpecs = tooling.proxyToolSpecs, riderNames = tooling.proxyToolNames, riderProxyToolNames = tooling.proxyToolNames, riderProxyToolCall = tooling.runProxyToolCall;
   } else
-    riderProxyToolCall = null;
+    riderProxyToolNames = /* @__PURE__ */ new Set, riderProxyToolCall = null;
   proxyToolSpecs = mergeToolLists(ideaSpecs, riderSpecs, /* @__PURE__ */ new Set), proxyToolNames = /* @__PURE__ */ new Set([...ideaNames, ...riderNames]);
 }
 function note(message) {
@@ -25230,6 +25397,8 @@ proxyServer.setRequestHandler(CallToolRequestSchema, async (request) => {
     if (ideaProxyToolCall && riderProxyToolCall) {
       if (isMergeTool(toolName))
         return await callMergedProxyTool(toolName, args);
+      if (toolName === "lint_files")
+        return await callSplitMergedProxyTool(toolName, args);
       let ide = resolveIdeForPath(args, projectPath), proxyCall2 = ide === "rider" ? riderProxyToolCall : ideaProxyToolCall, rewrittenArgs = rewriteArgsForTarget(ide === "rider" ? "target-rider" : "target-idea", args);
       try {
         return makeToolOutput(await proxyCall2(toolName, rewrittenArgs));
@@ -25252,6 +25421,8 @@ proxyServer.setRequestHandler(CallToolRequestSchema, async (request) => {
     switch (route) {
       case "merge":
         return await callMergedPassthroughTool(toolName, args);
+      case "split-merge":
+        return await callSplitMergedPassthroughTool(toolName, args);
       case "target-idea":
       case "target-rider": {
         let target = route === "target-rider" ? riderUpstream : ideaUpstream;
@@ -25294,12 +25465,80 @@ async function callMergedProxyTool(toolName, args) {
   ]);
   return mergeSettledResults(results, "proxy", [void 0, riderItemTransformer]);
 }
+async function callSplitMergedProxyTool(toolName, args) {
+  switch (toolName) {
+    case "lint_files": {
+      let splitArgs;
+      try {
+        splitArgs = splitPathListArgsByIde(args, projectPath);
+      } catch (error48) {
+        let message = error48 instanceof Error ? error48.message : String(error48);
+        return makeToolError(message);
+      }
+      let calls = [], transformers = [];
+      if (splitArgs.ideaArgs)
+        calls.push(callLintFilesViaProxyOrNative("idea", splitArgs.ideaArgs)), transformers.push(void 0);
+      if (splitArgs.riderArgs)
+        calls.push(callLintFilesViaProxyOrNative("rider", splitArgs.riderArgs)), transformers.push(riderItemTransformer);
+      let results = await Promise.allSettled(calls);
+      for (let result of results)
+        if (result.status === "rejected") {
+          let message = result.reason instanceof Error ? result.reason.message : String(result.reason);
+          return makeToolError(message);
+        }
+      return mergeSettledResults(results, "proxy", transformers);
+    }
+    default:
+      return makeToolError(`Tool '${toolName}' is not configured for split-merge proxy routing.`);
+  }
+}
 async function callMergedPassthroughTool(toolName, args) {
   let results = await Promise.allSettled([
     ideaUpstream.callToolForClient(toolName, { ...args }),
     riderUpstream.callToolForClient(toolName, { ...args })
   ]);
   return mergeSettledResults(results, "passthrough", [void 0, riderItemTransformer]);
+}
+async function callSplitMergedPassthroughTool(toolName, args) {
+  switch (toolName) {
+    case "lint_files": {
+      let splitArgs;
+      try {
+        splitArgs = splitPathListArgsByIde(args, projectPath);
+      } catch (error48) {
+        let message = error48 instanceof Error ? error48.message : String(error48);
+        return makeToolError(message);
+      }
+      let calls = [], transformers = [];
+      if (splitArgs.ideaArgs)
+        calls.push(ideaUpstream.callToolForClient(toolName, splitArgs.ideaArgs)), transformers.push(void 0);
+      if (splitArgs.riderArgs)
+        calls.push(riderUpstream.callToolForClient(toolName, splitArgs.riderArgs)), transformers.push(riderItemTransformer);
+      let results = await Promise.allSettled(calls);
+      for (let result of results)
+        if (result.status === "rejected") {
+          let message = result.reason instanceof Error ? result.reason.message : String(result.reason);
+          return makeToolError(message);
+        }
+      return mergeSettledResults(results, "passthrough", transformers);
+    }
+    default:
+      return makeToolError(`Tool '${toolName}' is not configured for split-merge routing.`);
+  }
+}
+async function callLintFilesViaProxyOrNative(side, args) {
+  if (side === "idea") {
+    if (ideaProxyToolCall && ideaProxyToolNames.has("lint_files"))
+      return await ideaProxyToolCall("lint_files", { ...args });
+    if (ideaUpstream?.analysisCapabilities.hasLintFiles)
+      return await ideaUpstream.callToolForClient("lint_files", { ...args });
+  } else {
+    if (riderProxyToolCall && riderProxyToolNames.has("lint_files"))
+      return await riderProxyToolCall("lint_files", { ...args });
+    if (riderUpstream?.analysisCapabilities.hasLintFiles)
+      return await riderUpstream.callToolForClient("lint_files", { ...args });
+  }
+  throw Error(`Tool 'lint_files' is not supported by the ${side === "idea" ? "IDEA" : "Rider"} upstream.`);
 }
 function logSettledErrors(results) {
   for (let r of results)
@@ -25315,28 +25554,42 @@ function settledErrorOutput(results) {
   return makeToolError("All upstreams failed");
 }
 function extractItemsFromResult(value, mode) {
+  let structured = extractStructuredContentFromResult(value, mode);
+  if (!structured)
+    return [];
+  return extractItems({ structuredContent: structured });
+}
+function extractMoreFromResult(value, mode) {
+  let structured = extractStructuredContentFromResult(value, mode);
+  return isRecord3(structured) && structured.more === !0;
+}
+function extractStructuredContentFromResult(value, mode) {
   if (mode === "proxy")
-    return extractItems(value);
+    return extractStructuredContent(value);
   let text = extractTextFromResult(value);
   if (!text)
-    return [];
-  return extractItems({ content: [{ type: "text", text }] });
+    return null;
+  return extractStructuredContent({ content: [{ type: "text", text }] });
+}
+function isRecord3(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 function mergeSettledResults(results, mode, transformers = []) {
   logSettledErrors(results);
-  let allItems = [];
+  let allItems = [], more = !1, hasFulfilledResult = !1;
   for (let i = 0;i < results.length; i++) {
     let r = results[i];
     if (r.status !== "fulfilled")
       continue;
+    hasFulfilledResult = !0;
     let value = r.value;
     if (value == null)
       continue;
     let items = extractItemsFromResult(value, mode), transformer = transformers[i];
-    allItems.push(...transformer ? transformer(items) : items);
+    allItems.push(...transformer ? transformer(items) : items), more = more || extractMoreFromResult(value, mode);
   }
-  if (allItems.length > 0)
-    return makeToolOutput(JSON.stringify({ items: allItems }));
+  if (hasFulfilledResult)
+    return makeToolOutput(JSON.stringify(more ? { items: allItems, more: !0 } : { items: allItems }));
   return settledErrorOutput(results);
 }
 function makeToolOutput(text) {

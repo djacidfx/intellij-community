@@ -39,6 +39,7 @@ import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.progress.jobToIndicator
+import com.intellij.openapi.util.NlsContexts.ProgressTitle
 import com.intellij.openapi.roots.OrderEnumerator
 import com.intellij.openapi.util.ProperTextRange
 import com.intellij.openapi.util.TextRange
@@ -59,6 +60,7 @@ import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import org.jetbrains.concurrency.await
+import java.nio.file.Path
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.io.path.exists
 import kotlin.io.path.isRegularFile
@@ -68,6 +70,32 @@ import kotlin.time.Duration.Companion.milliseconds
 private val logger = logger<AnalysisToolset>()
 
 class AnalysisToolset : McpToolset {
+  @McpTool
+  @McpDescription("""
+        |Analyzes the specified files for errors and warnings using IntelliJ's inspections.
+        |Use this tool to lint several files after editing them.
+        |Returns per-file problems with severity, description, and location information.
+        |`min_severity` must be `warning` or `error`; defaults to `warning`.
+        |Note: Only analyzes files within the project directory.
+        |Note: Lines and Columns are 1-based.
+    """)
+  suspend fun lint_files(
+    @McpDescription("List of project-relative file paths to analyze. Duplicate paths are ignored after normalization.")
+    file_paths: List<String>,
+    @McpDescription("Minimum severity to include: `warning` or `error`. Defaults to `warning`.")
+    min_severity: String = LintMinSeverity.WARNING.apiValue,
+    @McpDescription(Constants.TIMEOUT_MILLISECONDS_DESCRIPTION)
+    timeout: Int = Constants.MEDIUM_TIMEOUT_MILLISECONDS_VALUE,
+  ): LintFilesResult {
+    currentCoroutineContext().reportToolActivity(McpServerBundle.message("tool.activity.collecting.file.problems.batch", file_paths.size))
+    return collectLintFiles(
+      filePaths = file_paths,
+      minSeverityValue = min_severity,
+      timeout = timeout,
+      progressTitle = McpServerBundle.message("progress.title.analyzing.files", file_paths.size),
+    )
+  }
+
   @McpTool
   @McpDescription("""
         |Analyzes the specified file for errors and warnings using IntelliJ's inspections.
@@ -85,63 +113,20 @@ class AnalysisToolset : McpToolset {
     timeout: Int = Constants.MEDIUM_TIMEOUT_MILLISECONDS_VALUE,
   ): FileProblemsResult {
     currentCoroutineContext().reportToolActivity(McpServerBundle.message("tool.activity.collecting.file.problems", filePath))
-    val project = currentCoroutineContext().project
-    val projectDir = project.projectDirectory
-
-    val resolvedPath = project.resolveInProject(filePath)
-    if (!resolvedPath.exists()) mcpFail("File not found: $filePath")
-    if (!resolvedPath.isRegularFile()) mcpFail("Not a file: $filePath")
-
-    logger.trace { "Awaiting external changes and indexing" }
-    awaitExternalChangesAndIndexing(project)
-    logger.trace { "External changes and indexing completed" }
-    val errors = CopyOnWriteArrayList<FileProblem>()
-    val timedOut = withTimeoutOrNull(timeout.milliseconds) {
-      withBackgroundProgress(
-        project,
-        McpServerBundle.message("progress.title.analyzing.file", resolvedPath.fileName),
-        cancellable = true
-      ) {
-        logger.trace { "Refreshing and finding file in VFS" }
-        val file = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(resolvedPath)
-                   ?: mcpFail("Cannot access file: $filePath")
-        logger.trace { "File found in VFS: ${file.path}" }
-
-        val minSeverity = if (errorsOnly) HighlightSeverity.ERROR else HighlightSeverity.WEAK_WARNING
-        logger.trace { "Running main passes with severity: $minSeverity" }
-
-        val psiFile = readAction { PsiManager.getInstance(project).findFile(file) }
-                      ?: mcpFail("Cannot find PSI file: $filePath")
-        val document = readAction { FileDocumentManager.getInstance().getDocument(file) }
-                       ?: mcpFail("Cannot get document: $filePath")
-
-        val daemonIndicator = DaemonProgressIndicator()
-        val range = ProperTextRange(0, document.textLength)
-
-        jobToIndicator(coroutineContext.job, daemonIndicator) {
-          HighlightingSessionImpl.runInsideHighlightingSession(psiFile, defaultContext(), null, range, false) { session ->
-            (session as HighlightingSessionImpl).setMinimumSeverity(minSeverity)
-            val codeAnalyzer = DaemonCodeAnalyzer.getInstance(project) as DaemonCodeAnalyzerImpl
-            val highlightInfos = codeAnalyzer.runMainPasses(psiFile, document, daemonIndicator)
-            logger.trace { "Main passes completed, found ${highlightInfos.size} highlights" }
-
-            for (info in highlightInfos) {
-              if (info.severity.myVal >= minSeverity.myVal) {
-                errors.add(createFileProblem(document, info))
-              }
-            }
-            logger.trace { "Processed highlights, found ${errors.size} problems" }
-          }
-        }
-      }
-    } == null
-
-    logger.trace { "get_file_problems completed: timedOut=$timedOut, errorsCount=${errors.size}" }
-    return FileProblemsResult(
-      filePath = projectDir.relativize(resolvedPath).pathString,
-      errors = errors,
-      timedOut = timedOut
+    val lintResult = collectLintFiles(
+      filePaths = listOf(filePath),
+      minSeverityValue = if (errorsOnly) LintMinSeverity.ERROR.apiValue else LintMinSeverity.WARNING.apiValue,
+      timeout = timeout,
+      progressTitle = McpServerBundle.message("progress.title.analyzing.file", filePath.substringAfterLast('/').substringAfterLast('\\')),
     )
+    val item = lintResult.items.firstOrNull()
+    val result = FileProblemsResult(
+      filePath = item?.filePath ?: filePath,
+      errors = item?.problems?.map { it.toLegacyFileProblem() }.orEmpty(),
+      timedOut = item?.timedOut ?: lintResult.more,
+    )
+    logger.trace { "get_file_problems completed: timedOut=${result.timedOut}, errorsCount=${result.errors.size}" }
+    return result
   }
 
   @McpTool
@@ -366,24 +351,160 @@ class AnalysisToolset : McpToolset {
     return ProjectDependenciesResult(dependencies)
   }
 
-  private fun createFileProblem(
+  private suspend fun collectLintFiles(
+    filePaths: List<String>,
+    minSeverityValue: String,
+    timeout: Int,
+    progressTitle: @ProgressTitle String,
+  ): LintFilesResult {
+    val project = currentCoroutineContext().project
+    val resolvedFiles = resolveLintFiles(project, filePaths)
+    val minSeverity = LintMinSeverity.parse(minSeverityValue)
+
+    logger.trace { "Awaiting external changes and indexing" }
+    awaitExternalChangesAndIndexing(project)
+    logger.trace { "External changes and indexing completed" }
+
+    val startedAtNanos = System.nanoTime()
+    val items = ArrayList<LintFileResult>(resolvedFiles.size)
+    val more = withBackgroundProgress(project, progressTitle, cancellable = true) {
+      var incomplete = false
+      for (resolvedFile in resolvedFiles) {
+        val remainingTimeout = remainingTimeoutMs(timeout, startedAtNanos)
+        if (remainingTimeout <= 0) {
+          incomplete = true
+          break
+        }
+
+        val result = collectLintFile(resolvedFile, minSeverity.highlightSeverity, remainingTimeout)
+        items.add(result)
+        if (result.timedOut == true) {
+          incomplete = true
+          break
+        }
+      }
+      incomplete
+    }
+
+    logger.trace { "lint_files completed: more=$more, filesCount=${items.size}, requestedCount=${resolvedFiles.size}" }
+    return LintFilesResult(items = items, more = more)
+  }
+
+  private fun resolveLintFiles(project: com.intellij.openapi.project.Project, filePaths: List<String>): List<ResolvedLintFile> {
+    if (filePaths.isEmpty()) mcpFail("file_paths must contain at least one path")
+
+    val projectDir = project.projectDirectory
+    val resolvedFiles = LinkedHashMap<String, ResolvedLintFile>()
+    for (rawPath in filePaths) {
+      val filePath = rawPath.trim().ifEmpty { mcpFail("file_paths must not contain blank paths") }
+      val resolvedPath = project.resolveInProject(filePath)
+      if (!resolvedPath.exists()) mcpFail("File not found: $filePath")
+      if (!resolvedPath.isRegularFile()) mcpFail("Not a file: $filePath")
+
+      val relativePath = projectDir.relativize(resolvedPath).pathString
+      resolvedFiles.putIfAbsent(relativePath, ResolvedLintFile(filePath, resolvedPath, relativePath))
+    }
+    return resolvedFiles.values.toList()
+  }
+
+  private suspend fun collectLintFile(
+    resolvedFile: ResolvedLintFile,
+    minSeverity: HighlightSeverity,
+    timeout: Int,
+  ): LintFileResult {
+    val project = currentCoroutineContext().project
+    val problems = CopyOnWriteArrayList<LintProblem>()
+    val timedOut = withTimeoutOrNull(timeout.milliseconds) {
+      logger.trace { "Refreshing and finding file in VFS: ${resolvedFile.relativePath}" }
+      val file = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(resolvedFile.resolvedPath)
+                 ?: mcpFail("Cannot access file: ${resolvedFile.requestedPath}")
+
+      val psiFile = readAction { PsiManager.getInstance(project).findFile(file) }
+                    ?: mcpFail("Cannot find PSI file: ${resolvedFile.requestedPath}")
+      val document = readAction { FileDocumentManager.getInstance().getDocument(file) }
+                     ?: mcpFail("Cannot get document: ${resolvedFile.requestedPath}")
+
+      val daemonIndicator = DaemonProgressIndicator()
+      val range = ProperTextRange(0, document.textLength)
+      jobToIndicator(currentCoroutineContext().job, daemonIndicator) {
+        HighlightingSessionImpl.runInsideHighlightingSession(psiFile, defaultContext(), null, range, false) { session ->
+          (session as HighlightingSessionImpl).setMinimumSeverity(minSeverity)
+          val codeAnalyzer = DaemonCodeAnalyzer.getInstance(project) as DaemonCodeAnalyzerImpl
+          val highlightInfos = codeAnalyzer.runMainPasses(psiFile, document, daemonIndicator)
+          logger.trace { "Main passes completed for ${resolvedFile.relativePath}, found ${highlightInfos.size} highlights" }
+
+          for (info in highlightInfos) {
+            if (info.severity.myVal >= minSeverity.myVal) {
+              problems.add(createLintProblem(document, info))
+            }
+          }
+          logger.trace { "Processed highlights for ${resolvedFile.relativePath}, found ${problems.size} problems" }
+        }
+      }
+    } == null
+
+    return LintFileResult(
+      filePath = resolvedFile.relativePath,
+      problems = problems,
+      timedOut = timedOut,
+    )
+  }
+
+  private fun createLintProblem(
     document: Document,
     info: HighlightInfo,
-  ): FileProblem {
+  ): LintProblem {
     val startLine = document.getLineNumber(info.startOffset)
     val lineStartOffset = document.getLineStartOffset(startLine)
     val lineEndOffset = document.getLineEndOffset(startLine)
-    val lineContent = document.getText(TextRange(lineStartOffset, lineEndOffset))
+    val lineText = document.getText(TextRange(lineStartOffset, lineEndOffset))
     val column = info.startOffset - lineStartOffset
 
-    return FileProblem(
+    return LintProblem(
       severity = info.severity.name,
       description = info.description,
-      lineContent = lineContent,
-      line = startLine + 1, // Convert to 1-based
-      column = column + 1 // Convert to 1-based
+      lineText = lineText,
+      line = startLine + 1,
+      column = column + 1,
     )
   }
+
+  private fun LintProblem.toLegacyFileProblem(): FileProblem {
+    return FileProblem(
+      severity = severity,
+      description = description,
+      lineContent = lineText,
+      line = line,
+      column = column,
+    )
+  }
+
+  @Serializable
+  data class LintProblem(
+    val severity: String,
+    val description: String,
+    val lineText: String,
+    val line: Int,
+    val column: Int,
+  )
+
+  @Serializable
+  data class LintFileResult(
+    val filePath: String,
+    @EncodeDefault(mode = EncodeDefault.Mode.ALWAYS)
+    val problems: List<LintProblem> = emptyList(),
+    @property:McpDescription(Constants.TIMED_OUT_DESCRIPTION)
+    @EncodeDefault(mode = EncodeDefault.Mode.NEVER)
+    val timedOut: Boolean? = false,
+  )
+
+  @Serializable
+  data class LintFilesResult(
+    @EncodeDefault(mode = EncodeDefault.Mode.ALWAYS)
+    val items: List<LintFileResult> = emptyList(),
+    @EncodeDefault(mode = EncodeDefault.Mode.NEVER)
+    val more: Boolean = false,
+  )
 
   @Serializable
   data class FileProblem(
@@ -457,4 +578,31 @@ class AnalysisToolset : McpToolset {
   data class ProjectDependenciesResult(
     val dependencies: List<DependencyInfo>,
   )
+}
+
+private enum class LintMinSeverity(
+  val apiValue: String,
+  val highlightSeverity: HighlightSeverity,
+) {
+  WARNING("warning", HighlightSeverity.WEAK_WARNING),
+  ERROR("error", HighlightSeverity.ERROR);
+
+  companion object {
+    fun parse(value: String): LintMinSeverity {
+      val normalized = value.trim().lowercase()
+      return entries.firstOrNull { it.apiValue == normalized }
+             ?: mcpFail("min_severity must be one of: warning, error")
+    }
+  }
+}
+
+private data class ResolvedLintFile(
+  val requestedPath: String,
+  val resolvedPath: Path,
+  val relativePath: String,
+)
+
+private fun remainingTimeoutMs(timeout: Int, startedAtNanos: Long): Int {
+  val elapsedMs = ((System.nanoTime() - startedAtNanos) / 1_000_000L).coerceAtLeast(0L)
+  return (timeout.toLong() - elapsedMs).coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()).toInt()
 }

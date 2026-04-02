@@ -120,12 +120,16 @@ function coerceSearchItem(value: unknown): SearchItem | null {
   if (isRecord(value)) {
     const filePath = typeof value.filePath === 'string' ? value.filePath : null
     if (!filePath) return null
-    const item: SearchItem = {filePath}
+    const item: SearchItem = {...value, filePath}
     if (typeof value.lineNumber === 'number') {
       item.lineNumber = value.lineNumber
+    } else {
+      delete item.lineNumber
     }
     if (typeof value.lineText === 'string') {
       item.lineText = value.lineText
+    } else {
+      delete item.lineText
     }
     return item
   }
