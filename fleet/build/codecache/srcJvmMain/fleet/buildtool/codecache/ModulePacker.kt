@@ -3,6 +3,7 @@ package fleet.buildtool.codecache
 import com.intellij.util.lang.ImmutableZipFile
 import fleet.buildtool.codecache.specs.NativeLibrariesExtractorSpec
 import fleet.buildtool.codecache.specs.NativeLibraryExtractor
+import fleet.buildtool.codecache.specs.MoveFileSpec
 import fleet.buildtool.codecache.specs.ScrambledJarSpec
 import fleet.buildtool.codecache.specs.ShadowedJarSpec
 import fleet.buildtool.fs.extractZip
@@ -66,6 +67,7 @@ class ModulePacker(
   private val logger: Logger,
   private val shadowedJarSpecs: List<ShadowedJarSpec>,
   private val scrambledJarSpecs: List<ScrambledJarSpec> = emptyList(),
+  private val moveFileSpecs: List<MoveFileSpec> = emptyList(),
 ) {
   private val cache = ConcurrentHashMap<Path, CacheEntry>()
 
@@ -128,6 +130,7 @@ class ModulePacker(
                 else -> directory.resolve("${fileToPack.fileName}.jar")
               },
               logger = logger,
+              moveFilesSpec = moveFileSpecs,
             )
 
             nativeLibrariesExtractorSpec != null -> repackToImmutableJarExtractingNativeFiles(
@@ -146,6 +149,7 @@ class ModulePacker(
               shadowed = shadowed,
               target = directory.resolve(fileToPack.name),
               logger = logger,
+              moveFilesSpec = moveFileSpecs,
             )
 
             else -> error("Cannot pack file which is neither directory or jar: '$file'")
@@ -179,7 +183,7 @@ class ModulePacker(
   }
 }
 
-fun packToImmutableJar(path: Path, needsScrambling: Boolean, shadowed: Path?, target: Path, logger: Logger): PackedJar {
+fun packToImmutableJar(path: Path, needsScrambling: Boolean, shadowed: Path?, target: Path, logger: Logger, moveFilesSpec: List<MoveFileSpec> = emptyList()): PackedJar {
   target.deleteIfExists()
   target.parent.createDirectories()
   val intermediateJar = when {
@@ -189,7 +193,8 @@ fun packToImmutableJar(path: Path, needsScrambling: Boolean, shadowed: Path?, ta
   }
   val jar = packToImmutableJar(target,
                                listOfNotNull(shadowed, intermediateJar),
-                               logger) // order of jars list matters, shadowed content overrides original content (reason: DebugProbes.kt of shadowed `:dock-coroutines` subproject must override `kotlin-stdlib` ones)
+                               logger,
+                               moveFilesSpec) // order of jars list matters, shadowed content overrides original content (reason: DebugProbes.kt of shadowed `:dock-coroutines` subproject must override `kotlin-stdlib` ones)
   return PackedJar(
     path = jar,
     needsScrambling = needsScrambling,
@@ -233,14 +238,15 @@ private fun repackToImmutableJarExtractingNativeFiles(
   )
 }
 
-private fun packToImmutableJar(destinationJar: Path, jars: List<Path>, logger: Logger): Jar {
+private fun packToImmutableJar(destinationJar: Path, jars: List<Path>, logger: Logger, moveFilesSpec: List<MoveFileSpec> = emptyList()): Jar {
   require(jars.map { it.extension }.all { it == "jar" }) { "only jars are supported, got '$jars'" }
   val uniqueJar = jars.singleOrNull()
   when {
-    uniqueJar != null && ImmutableZipFile.load(uniqueJar)
+    moveFilesSpec.isEmpty() && uniqueJar != null && ImmutableZipFile.load(uniqueJar)
       .use { it is ImmutableZipFile } -> uniqueJar.copyTo(destinationJar) // already an immutable jar, not repacking
     else -> {
       val packageIndexBuilder = PackageIndexBuilder(AddDirEntriesMode.NONE)
+      val filesToRepack = moveFilesSpec.associate { it.source to it.destination }
       destinationJar.parent.createDirectories()
       writeZipUsingTempFile(destinationJar, packageIndexBuilder = packageIndexBuilder) { zipOut ->
         val uniqueNames = HashMap<String, Path>()
@@ -255,10 +261,10 @@ private fun packToImmutableJar(destinationJar: Path, jars: List<Path>, logger: L
               }
               else -> {
                 uniqueNames[name] = jar
-
-                packageIndexBuilder.addFile(name)
+                val destinationFile = filesToRepack[name] ?: name
+                packageIndexBuilder.addFile(destinationFile)
                 val data = dataSupplier()
-                zipOut.uncompressedData(name, data)
+                zipOut.uncompressedData(destinationFile, data)
               }
             }
             ZipEntryProcessorResult.CONTINUE

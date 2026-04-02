@@ -133,7 +133,7 @@ private fun generatePluginParts(
 
 private const val entityDescriptorFileHeuristic: String = "entityTypes.txt"
 
-private const val FLEET_KERNEL_PLUGIN_SERVICE: String = "fleet.kernel.plugins.Plugin"
+internal const val FLEET_KERNEL_PLUGIN_SERVICE: String = "fleet.kernel.plugins.Plugin"
 
 private fun Path.toCoordinates(
   pluginName: PluginName,

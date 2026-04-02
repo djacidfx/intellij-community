@@ -73,6 +73,7 @@ suspend fun generateInitDescriptor(
         logger = logger,
         shadowedJarSpecs = listOf(dockCoroutinesShadowedJarSpec),
         scrambledJarSpecs = emptyList(),
+        moveFileSpecs = listOf(FleetPluginResourceMoveSpec),
       )
 
       val packedJars = packModule(

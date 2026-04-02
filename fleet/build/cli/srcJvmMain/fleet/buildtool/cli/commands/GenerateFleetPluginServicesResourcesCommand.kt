@@ -13,8 +13,6 @@ import com.google.devtools.ksp.processing.KspGradleLogger
 import com.google.devtools.ksp.processing.SymbolProcessorProvider
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
-import org.jetbrains.kotlin.analysis.api.standalone.disposeGlobalStandaloneApplicationServices
 import java.net.URLClassLoader
 import java.nio.file.Files
 import java.nio.file.Path
@@ -24,6 +22,8 @@ import kotlin.io.path.copyTo
 import kotlin.io.path.createDirectories
 import kotlin.io.path.deleteRecursively
 import kotlin.io.path.exists
+import kotlin.io.path.isDirectory
+import kotlin.io.path.isRegularFile
 
 private const val PLUGIN_SERVICE_FQN = "fleet.kernel.plugins.Plugin"
 private val PLUGIN_SERVICE_RESOURCE = Path.of("META-INF", "services", PLUGIN_SERVICE_FQN)
@@ -46,7 +46,7 @@ class GenerateFleetPluginServicesResourcesCommand : CliktCommand(
 
   private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-  @OptIn(ExperimentalPathApi::class, KaExperimentalApi::class)
+  @OptIn(ExperimentalPathApi::class)
   override fun run() {
     val workDir = Files.createTempDirectory("fleet-plugin-services-resources-generator")
     try {
@@ -65,23 +65,23 @@ class GenerateFleetPluginServicesResourcesCommand : CliktCommand(
         normalizedSources.any { it.startsWith(root) && it.toString().endsWith(".java") }
       }
       val projectBaseDirPath = Path.of("").toAbsolutePath().normalize()
-      val kspConfig = buildKspConfig(
-        moduleName = moduleName,
-        jvmSourceRootPaths = jvmSourceRootPaths,
-        commonSourceRootPaths = commonSourceRootPaths,
-        javaSourceRootPaths = javaSourceRootPaths,
-        normalizedClasspath = normalizedClasspath,
-        jvmTarget = jvmTarget,
-        languageVersion = languageVersion,
-        apiVersion = apiVersion,
-        projectBaseDirPath = projectBaseDirPath,
-        workDir = workDir,
-        cachesDirPath = cachesDirPath,
-        classesOutputDirPath = classesOutputDirPath,
-        javaOutputDirPath = javaOutputDirPath,
-        kotlinOutputDirPath = kotlinOutputDirPath,
-        resourceOutputDirPath = resourceOutputDirPath,
-      )
+      val kspConfig = KSPJvmConfig.Builder().apply {
+        moduleName = this@GenerateFleetPluginServicesResourcesCommand.moduleName
+        javaSourceRoots = javaSourceRootPaths.map { it.toFile() }
+        javaOutputDir = javaOutputDirPath.toFile()
+        jvmTarget = this@GenerateFleetPluginServicesResourcesCommand.jvmTarget
+        sourceRoots = jvmSourceRootPaths.map { it.toFile() }
+        commonSourceRoots = commonSourceRootPaths.map { it.toFile() }
+        libraries = normalizedClasspath.map { it.toFile() }
+        projectBaseDir = projectBaseDirPath.toFile()
+        outputBaseDir = workDir.toFile()
+        cachesDir = cachesDirPath.toFile()
+        classOutputDir = classesOutputDirPath.toFile()
+        kotlinOutputDir = kotlinOutputDirPath.toFile()
+        resourceOutputDir = resourceOutputDirPath.toFile()
+        languageVersion = this@GenerateFleetPluginServicesResourcesCommand.languageVersion
+        apiVersion = this@GenerateFleetPluginServicesResourcesCommand.apiVersion
+      }.build()
 
       val kspExitCode = executeKsp(kspConfig, normalizedProcessorClasspath)
       check(kspExitCode == 0) {
@@ -98,13 +98,15 @@ class GenerateFleetPluginServicesResourcesCommand : CliktCommand(
     outputDir.createDirectories()
     for (relativePath in GENERATED_RESOURCE_PATHS) {
       val source = resourceOutputDirPath.resolve(relativePath)
-      val target = outputDir.resolve(relativePath)
+      // TODO: Replace with outputDir.resolve(relativePath) once the bazel output directory cache error is fixed
+      //  (https://jetbrains.slack.com/archives/C07NAUFL875/p1775121742002489)
+      val target = outputDir.resolve(relativePath.fileName)
       logResourceState("Preparing generated resource", relativePath, source, target)
       if (!source.exists()) {
-        logMessage("Skipping missing generated resource: ${source.toDebugString()}")
+        logger.info("Skipping missing generated resource: ${source.toDebugString()}")
         continue
       }
-      requireRegularFile(source, "Generated resource source is not a regular file")
+      require(source.isRegularFile()) { "Generated resource source is not a regular file: ${source.toDebugString()}" }
       target.parent?.createDirectories()
       try {
         source.copyTo(target, overwrite = true)
@@ -121,46 +123,11 @@ class GenerateFleetPluginServicesResourcesCommand : CliktCommand(
           t,
         )
       }
-      requireRegularFile(target, "Generated resource target was not created as a regular file")
+      require(target.isRegularFile()) { "Generated resource target was not created as a regular file: ${target.toDebugString()}" }
       logResourceState("Copied generated resource", relativePath, source, target)
     }
   }
 
-  private fun buildKspConfig(
-    moduleName: String,
-    jvmSourceRootPaths: List<Path>,
-    commonSourceRootPaths: List<Path>,
-    javaSourceRootPaths: List<Path>,
-    normalizedClasspath: List<Path>,
-    jvmTarget: String,
-    languageVersion: String,
-    apiVersion: String,
-    projectBaseDirPath: Path,
-    workDir: Path,
-    cachesDirPath: Path,
-    classesOutputDirPath: Path,
-    javaOutputDirPath: Path,
-    kotlinOutputDirPath: Path,
-    resourceOutputDirPath: Path,
-  ): KSPJvmConfig {
-    return KSPJvmConfig.Builder().apply {
-      this.moduleName = moduleName
-      javaSourceRoots = javaSourceRootPaths.map { it.toFile() }
-      javaOutputDir = javaOutputDirPath.toFile()
-      this.jvmTarget = jvmTarget
-      sourceRoots = jvmSourceRootPaths.map { it.toFile() }
-      commonSourceRoots = commonSourceRootPaths.map { it.toFile() }
-      libraries = normalizedClasspath.map { it.toFile() }
-      projectBaseDir = projectBaseDirPath.toFile()
-      outputBaseDir = workDir.toFile()
-      cachesDir = cachesDirPath.toFile()
-      classOutputDir = classesOutputDirPath.toFile()
-      kotlinOutputDir = kotlinOutputDirPath.toFile()
-      resourceOutputDir = resourceOutputDirPath.toFile()
-      this.languageVersion = languageVersion
-      this.apiVersion = apiVersion
-    }.build()
-  }
 
   private fun executeKsp(config: KSPConfig, processorClasspath: List<Path>): Int {
     val loggingLevel = when (System.getProperty("ksp.logging", "warn").lowercase()) {
@@ -189,39 +156,13 @@ class GenerateFleetPluginServicesResourcesCommand : CliktCommand(
     return source.parent ?: source
   }
 
-  private fun requireRegularFile(path: Path, message: String) {
-    if (Files.isRegularFile(path)) return
-    throw IllegalStateException("$message: ${path.toDebugString()}")
-  }
-
   private fun logResourceState(message: String, relativePath: Path, source: Path, target: Path) {
-    logMessage(
-      buildString {
-        append(message)
-        append(": relativePath=")
-        append(relativePath)
-        append(", source=")
-        append(source.toDebugString())
-        append(", target=")
-        append(target.toDebugString())
-      },
+    logger.info(
+      "$message: relativePath=$relativePath, source=${source.toDebugString()}, target=${target.toDebugString()}"
     )
   }
 
-  private fun logMessage(message: String) {
-    logger.info(message)
-  }
-
   private fun Path.toDebugString(): String {
-    return buildString {
-      append(this@toDebugString.toAbsolutePath().normalize())
-      append(" [exists=")
-      append(Files.exists(this@toDebugString))
-      append(", regularFile=")
-      append(Files.isRegularFile(this@toDebugString))
-      append(", directory=")
-      append(Files.isDirectory(this@toDebugString))
-      append("]")
-    }
+    return "${toAbsolutePath()} [exists=${exists()}, regularFile=${isRegularFile()}, directory=${isDirectory()}]"
   }
 }

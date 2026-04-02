@@ -3,6 +3,7 @@ package fleet.buildtool.bundles
 import fleet.buildtool.codecache.ModulePacker
 import fleet.buildtool.codecache.ModuleToPack
 import fleet.buildtool.codecache.specs.NativeLibraryExtractor
+import fleet.buildtool.codecache.specs.MoveFileSpec
 import fleet.buildtool.codecache.specs.ScrambledJarSpec
 import fleet.buildtool.codecache.specs.ShadowedJarSpec
 import fleet.buildtool.scrambling.JarScrambler
@@ -27,6 +28,7 @@ fun Map<LayerSelector, Collection<Path>>.packModuleJars(
     logger = logger,
     shadowedJarSpecs = listOf(licenseClientShadowedJarSpec),
     scrambledJarSpecs = listOf(), // We will handle scrambled jars in a separate step
+    moveFileSpecs = listOf(FleetPluginResourceMoveSpec)
   )
 
   return this.mapValues { (layerSelector, jars) ->
@@ -86,3 +88,8 @@ private val licenseClientShadowedJarSpec = ShadowedJarSpec(
   shadowedJarPattern = Regex("ls\\.client\\.api\\.jar"),
   jpmsModuleName = "ls.client.api",
 )
+
+internal object FleetPluginResourceMoveSpec: MoveFileSpec {
+  override val source: String = FLEET_KERNEL_PLUGIN_SERVICE
+  override val destination: String = "META-INF/services/$FLEET_KERNEL_PLUGIN_SERVICE"
+}
