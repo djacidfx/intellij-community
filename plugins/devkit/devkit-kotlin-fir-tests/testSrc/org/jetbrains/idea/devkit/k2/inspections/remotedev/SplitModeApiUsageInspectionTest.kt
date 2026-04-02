@@ -14,7 +14,7 @@ import kotlin.time.Duration.Companion.seconds
 
 class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), ExpectedPluginModeProvider {
 
-  override val pluginMode: KotlinPluginMode = KotlinPluginMode.K1
+  override val pluginMode: KotlinPluginMode = KotlinPluginMode.K2
 
   override fun getBasePath(): String = "inspections/apiUsageRestrictedToModuleType"
 
