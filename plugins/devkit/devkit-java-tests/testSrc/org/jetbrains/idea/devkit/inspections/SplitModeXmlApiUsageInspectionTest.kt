@@ -48,7 +48,7 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
             <module name="intellij.platform.frontend"/>
           </dependencies>
           <extensions defaultExtensionNs="com.intellij">
-            <<warning descr="'com.intellij.fileIconProvider' can only be used in 'backend' module type">fileIconProvider</warning>/>
+            <<warning descr="'com.intellij.localInspection' can only be used in 'backend' module type">localInspection</warning>/>
           </extensions>
         </idea-plugin>
       """.trimIndent()
@@ -67,7 +67,7 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
           </dependencies>
           <extensions defaultExtensionNs="com.intellij">
             <<warning descr="'com.intellij.fileEditorProvider' can only be used in 'frontend' module type">fileEditorProvider</warning>/>
-            <<warning descr="'com.intellij.fileIconProvider' can only be used in 'backend' module type">fileIconProvider</warning>/>
+            <<warning descr="'com.intellij.localInspection' can only be used in 'backend' module type">localInspection</warning>/>
             <lang.parserDefinition/>
           </extensions>
         </idea-plugin>
@@ -85,7 +85,7 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
             <module name="intellij.platform.frontend"/>
           </dependencies>
           <extensions defaultExtensionNs="com.intellij">
-            <<warning descr="'com.intellij.fileIconProvider' can only be used in 'backend' module type">fileIconProvider</warning>/>
+            <<warning descr="'com.intellij.localInspection' can only be used in 'backend' module type">localInspection</warning>/>
           </extensions>
         </idea-plugin>
       """.trimIndent()
@@ -104,7 +104,7 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
           </dependencies>
           <extensions defaultExtensionNs="com.intellij">
             <<warning descr="'com.intellij.fileEditorProvider' can only be used in 'frontend' module type">fileEditorProvider</warning>/>
-            <<warning descr="'com.intellij.fileIconProvider' can only be used in 'backend' module type">fileIconProvider</warning>/>
+            <<warning descr="'com.intellij.localInspection' can only be used in 'backend' module type">localInspection</warning>/>
           </extensions>
         </idea-plugin>
       """.trimIndent()

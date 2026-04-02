@@ -369,12 +369,6 @@
       "apiName": "com.intellij.util.Query"
     },
     {
-      "apiName": "com.intellij.ide.FileIconProvider",
-      "extensionPointNames": [
-        "com.intellij.fileIconProvider"
-      ]
-    },
-    {
       "apiName": "com.intellij.codeInsight.hints.InlayHintsProvider"
     },
     {
