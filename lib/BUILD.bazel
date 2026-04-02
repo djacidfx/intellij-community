@@ -1070,21 +1070,6 @@ jvm_import(
 )
 
 copy_file(
-  name = "commons-io/commons-io-2.21.0.jar_copy",
-  src = "@commons-io-commons-io-2_21_0_http//file",
-  out = "commons-io/commons-io-2.21.0.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-jvm_import(
-  name = "commons-io",
-  jar = "@commons-io-commons-io-2_21_0_http//file",
-  source_jar = "@commons-io-commons-io-2_21_0-sources_http//file",
-  visibility = ["//visibility:public"]
-)
-
-copy_file(
   name = "org.apache.commons/commons-lang3-3.20.0.jar_copy",
   src = "@org_apache_commons-commons-lang3-3_20_0_http//file",
   out = "org.apache.commons/commons-lang3-3.20.0.jar",
@@ -11195,6 +11180,21 @@ jvm_import(
   name = "libraries-commons-imaging-commons-imaging",
   jar = "@org_jetbrains_intellij_deps-commons-imaging-1_0-RC-1_http//file",
   source_jar = "@org_jetbrains_intellij_deps-commons-imaging-1_0-RC-1-sources_http//file",
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "commons-io/commons-io-2.21.0.jar_copy",
+  src = "@commons-io-commons-io-2_21_0_http//file",
+  out = "commons-io/commons-io-2.21.0.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "libraries-commons-io-commons-io",
+  jar = "@commons-io-commons-io-2_21_0_http//file",
+  source_jar = "@commons-io-commons-io-2_21_0-sources_http//file",
   visibility = ["//visibility:public"]
 )
 
