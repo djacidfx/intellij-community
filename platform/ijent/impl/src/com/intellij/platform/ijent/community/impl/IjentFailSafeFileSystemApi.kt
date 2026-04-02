@@ -282,9 +282,9 @@ private class IjentFailSafeFileSystemPosixApiImpl(
       openForReadingAndWriting(options)
     }
 
-  override suspend fun delete(path: EelPath, removeContent: Boolean): EelResult<Unit, EelFileSystemApi.DeleteError> =
+  override suspend fun delete(path: EelPath, recursive: Boolean): EelResult<Unit, EelFileSystemApi.DeleteError> =
     holder.withDelegateRetrying {
-      delete(path, removeContent)
+      delete(path, recursive)
     }
 
   override suspend fun copy(options: EelFileSystemApi.CopyOptions): EelResult<Unit, EelFileSystemApi.CopyError> =
@@ -464,9 +464,9 @@ private class IjentFailSafeFileSystemWindowsApiImpl(
       openForReadingAndWriting(options)
     }
 
-  override suspend fun delete(path: EelPath, removeContent: Boolean): EelResult<Unit, EelFileSystemApi.DeleteError> =
+  override suspend fun delete(path: EelPath, recursive: Boolean): EelResult<Unit, EelFileSystemApi.DeleteError> =
     holder.withDelegateRetrying {
-      delete(path, removeContent)
+      delete(path, recursive)
     }
 
   override suspend fun copy(options: EelFileSystemApi.CopyOptions): EelResult<Unit, EelFileSystemApi.CopyError> =
