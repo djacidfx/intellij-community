@@ -5043,6 +5043,11 @@ public abstract class LocalInspectionTestGenerated extends AbstractK1LocalInspec
             runTest("testData/inspectionsLocal/emptyRange/downTo2.kt");
         }
 
+        @TestMetadata("downToDefaultParameterValue.kt")
+        public void testDownToDefaultParameterValue() throws Exception {
+            runTest("testData/inspectionsLocal/emptyRange/downToDefaultParameterValue.kt");
+        }
+
         @TestMetadata("rangeUntil.kt")
         public void testRangeUntil() throws Exception {
             runTest("testData/inspectionsLocal/emptyRange/rangeUntil.kt");

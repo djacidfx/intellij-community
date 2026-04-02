@@ -844,6 +844,11 @@ public abstract class K2LocalInspectionTestGenerated extends AbstractK2LocalInsp
             runTest("../../../idea/tests/testData/inspectionsLocal/emptyRange/downTo2.kt");
         }
 
+        @TestMetadata("downToDefaultParameterValue.kt")
+        public void testDownToDefaultParameterValue() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/emptyRange/downToDefaultParameterValue.kt");
+        }
+
         @TestMetadata("rangeUntil.kt")
         public void testRangeUntil() throws Exception {
             runTest("../../../idea/tests/testData/inspectionsLocal/emptyRange/rangeUntil.kt");
