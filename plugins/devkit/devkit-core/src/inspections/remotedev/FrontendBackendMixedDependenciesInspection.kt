@@ -29,39 +29,41 @@ internal class FrontendBackendMixedDependenciesInspection : DevKitPluginXmlInspe
     val dependencies = element.dependencies
     if (!dependencies.exists()) return
 
-    val matchedDependencies = buildList {
+    val declaredDependencies = buildList {
       dependencies.moduleEntry.forEach { moduleDescriptor ->
         moduleDescriptor.name.stringValue?.let { dependencyName ->
-          restrictionsService.getDependencyKind(dependencyName)?.let { dependencyKind ->
-            add(MatchedDependency(dependencyName, dependencyKind, moduleDescriptor))
-          }
+          add(DeclaredDependency(dependencyName, moduleDescriptor))
         }
       }
       dependencies.plugin.forEach { pluginDescriptor ->
         pluginDescriptor.id.stringValue?.let { dependencyName ->
-          restrictionsService.getDependencyKind(dependencyName)?.let { dependencyKind ->
-            add(MatchedDependency(dependencyName, dependencyKind, pluginDescriptor))
-          }
+          add(DeclaredDependency(dependencyName, pluginDescriptor))
         }
       }
     }
-    val frontendDependencies = matchedDependencies.filter { it.kind == ApiRestrictionsService.ModuleKind.FRONTEND }
-    val backendDependencies = matchedDependencies.filter { it.kind == ApiRestrictionsService.ModuleKind.BACKEND }
-    if (frontendDependencies.isEmpty() || backendDependencies.isEmpty()) return
+
+    val matchedDependencies = FrontendBackendModuleKindResolver.collectMatchedDependencies(
+      dependencyNames = declaredDependencies.map { it.name },
+      dependencyKindResolver = restrictionsService::getDependencyKind,
+    )
+    if (!matchedDependencies.isMixed) return
 
     val message = DevKitBundle.message(
       "inspection.remote.dev.mixed.dependencies.message",
-      frontendDependencies.joinToString { it.name },
-      backendDependencies.joinToString { it.name },
+      matchedDependencies.frontendDependencies.joinToString(),
+      matchedDependencies.backendDependencies.joinToString(),
     )
-    matchedDependencies.forEach { matchedDependency ->
-      holder.createProblem(matchedDependency.element, message).highlightWholeElement()
+    declaredDependencies
+      .filter { dependency ->
+        dependency.name in matchedDependencies.frontendDependencies || dependency.name in matchedDependencies.backendDependencies
+      }
+      .forEach { dependency ->
+        holder.createProblem(dependency.element, message).highlightWholeElement()
     }
   }
 
-  private data class MatchedDependency(
+  private data class DeclaredDependency(
     val name: String,
-    val kind: ApiRestrictionsService.ModuleKind,
     val element: DomElement,
   )
 }

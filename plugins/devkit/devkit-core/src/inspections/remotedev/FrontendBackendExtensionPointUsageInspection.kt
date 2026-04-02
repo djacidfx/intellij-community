@@ -8,7 +8,7 @@ import org.jetbrains.idea.devkit.DevKitBundle
 import org.jetbrains.idea.devkit.dom.Extension
 import org.jetbrains.idea.devkit.dom.Extensions
 import org.jetbrains.idea.devkit.inspections.DevKitPluginXmlInspectionBase
-import org.jetbrains.idea.devkit.inspections.remotedev.FrontendBackendModuleKindResolver.isModuleAllowed
+import org.jetbrains.idea.devkit.inspections.remotedev.FrontendBackendModuleKindResolver.doesApiKindMatchExpectedModuleKind
 
 internal class FrontendBackendExtensionPointUsageInspection : DevKitPluginXmlInspectionBase() {
   private val restrictionsService = ApiRestrictionsService.getInstance()
@@ -31,9 +31,9 @@ internal class FrontendBackendExtensionPointUsageInspection : DevKitPluginXmlIns
     val extensionPointName = getExtensionPointName(element) ?: return
     val expectedModuleKind = restrictionsService.getExtensionPointKind(extensionPointName) ?: return
     val xmlTag = element.xmlTag ?: return
-    val actualModuleKind = FrontendBackendModuleKindResolver.getOrComputeModuleType(xmlTag)
+    val actualModuleKind = FrontendBackendModuleKindResolver.getOrComputeModuleKind(xmlTag)
 
-    if (isModuleAllowed(actualModuleKind, expectedModuleKind)) return
+    if (doesApiKindMatchExpectedModuleKind(actualModuleKind, expectedModuleKind)) return
 
     holder.createProblem(
       element,

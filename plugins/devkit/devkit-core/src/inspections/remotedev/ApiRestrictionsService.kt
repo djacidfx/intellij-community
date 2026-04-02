@@ -41,6 +41,7 @@ class ApiRestrictionsService(private val coroutineScope: CoroutineScope) {
     LIKELY_FRONTEND("frontend", "[possibly] frontend"),
     BACKEND("backend", "backend"),
     LIKELY_BACKEND("backend", "[possibly] backend"),
+    MIXED("mixed", "mixed"),
     SHARED("shared", "shared")
   }
 

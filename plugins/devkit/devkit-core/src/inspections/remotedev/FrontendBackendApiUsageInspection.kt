@@ -7,7 +7,6 @@ import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.psi.PsiClass
-import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.util.PsiTypesUtil
 import com.intellij.util.SmartList
@@ -16,7 +15,7 @@ import org.jetbrains.annotations.NotNull
 import org.jetbrains.annotations.VisibleForTesting
 import org.jetbrains.idea.devkit.DevKitBundle
 import org.jetbrains.idea.devkit.inspections.DevKitUastInspectionBase
-import org.jetbrains.idea.devkit.inspections.remotedev.FrontendBackendModuleKindResolver.isModuleAllowed
+import org.jetbrains.idea.devkit.inspections.remotedev.FrontendBackendModuleKindResolver.doesApiKindMatchExpectedModuleKind
 import org.jetbrains.uast.UCallExpression
 import org.jetbrains.uast.UClass
 import org.jetbrains.uast.UElement
@@ -56,7 +55,7 @@ class FrontendBackendApiUsageInspection : DevKitUastInspectionBase(UClass::class
     isOnTheFly: Boolean,
   ): Array<out ProblemDescriptor?>? {
     val sourcePsi = aClass.sourcePsi ?: return null
-    val moduleType = getOrComputeModuleType(sourcePsi)
+    val moduleType = FrontendBackendModuleKindResolver.getOrComputeModuleKind(sourcePsi)
     val descriptors = SmartList<ProblemDescriptor>()
     aClass.uastSuperTypes.forEach { superTypeExpression ->
       checkApiUsage(superTypeExpression, moduleType, manager, isOnTheFly, descriptors)
@@ -79,7 +78,7 @@ class FrontendBackendApiUsageInspection : DevKitUastInspectionBase(UClass::class
     isOnTheFly: Boolean,
   ): Array<ProblemDescriptor>? {
     val sourcePsi = uElement.sourcePsi ?: return null
-    val moduleType = getOrComputeModuleType(sourcePsi)
+    val moduleType = FrontendBackendModuleKindResolver.getOrComputeModuleKind(sourcePsi)
     val descriptors = SmartList<ProblemDescriptor>()
 
     uElement.accept(object : AbstractUastVisitor() {
@@ -117,7 +116,7 @@ class FrontendBackendApiUsageInspection : DevKitUastInspectionBase(UClass::class
     val qualifiedName = getResolvedFqn(expression) ?: return
     val expectedModuleKind = restrictionsService.getCodeApiKind(qualifiedName) ?: return
 
-    if (!isModuleAllowed(currentModuleType, expectedModuleKind)) {
+    if (!doesApiKindMatchExpectedModuleKind(currentModuleType, expectedModuleKind)) {
       val sourcePsi = expression.sourcePsi ?: return
       val message = DevKitBundle.message(
         "inspection.api.usage.restricted.to.module.type.default.message",
@@ -183,9 +182,5 @@ class FrontendBackendApiUsageInspection : DevKitUastInspectionBase(UClass::class
       }
       else -> null
     }
-  }
-
-  private fun getOrComputeModuleType(element: PsiElement): ApiRestrictionsService.ModuleKind {
-    return FrontendBackendModuleKindResolver.getOrComputeModuleType(element)
   }
 }

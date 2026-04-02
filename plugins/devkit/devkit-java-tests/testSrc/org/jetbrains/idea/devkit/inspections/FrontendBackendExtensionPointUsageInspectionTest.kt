@@ -94,6 +94,25 @@ internal class FrontendBackendExtensionPointUsageInspectionTest : JavaCodeInsigh
     myFixture.checkHighlighting()
   }
 
+  fun testFrontendAndBackendExtensionsInMixedModule() {
+    configurePluginXml(
+      """
+        <idea-plugin>
+          <dependencies>
+            <module name="intellij.platform.frontend"/>
+            <module name="intellij.platform.backend"/>
+          </dependencies>
+          <extensions defaultExtensionNs="com.intellij">
+            <<warning descr="'com.intellij.fileEditorProvider' can only be used in 'frontend' module type">fileEditorProvider</warning>/>
+            <<warning descr="'com.intellij.fileIconProvider' can only be used in 'backend' module type">fileIconProvider</warning>/>
+          </extensions>
+        </idea-plugin>
+      """.trimIndent()
+    )
+
+    myFixture.checkHighlighting()
+  }
+
   private fun configurePluginXml(pluginXmlContent: String) {
     configureDescriptor("resources/META-INF/plugin.xml", pluginXmlContent)
   }
