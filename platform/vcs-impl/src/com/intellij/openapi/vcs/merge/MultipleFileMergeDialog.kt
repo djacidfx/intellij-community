@@ -225,6 +225,14 @@ open class MultipleFileMergeDialog(
     super.dispose()
   }
 
+  private fun getModalTaskOwner(): ModalTaskOwner {
+    val pane = rootPane
+    if (pane != null) return ModalTaskOwner.component(pane)
+    val proj = project
+    if (proj != null) return ModalTaskOwner.project(proj)
+    return ModalTaskOwner.guess()
+  }
+
   @NonNls
   override fun getDimensionServiceKey(): String = "MultipleFileMergeDialog"
   override fun getPreferredFocusedComponent(): JComponent = table
@@ -246,7 +254,7 @@ open class MultipleFileMergeDialog(
     if (!beforeResolve(files)) return
 
     runWithErrorHandling {
-      runWithModalProgressBlocking(ModalTaskOwner.component(contentPanel),
+      runWithModalProgressBlocking(getModalTaskOwner(),
                                    VcsBundle.message("multiple.file.merge.dialog.progress.title.resolving.conflicts")) {
         for (file in files) {
           val request = createMergeRequest(file, DiffRequestFactory.getInstance(), callback = null)
@@ -270,7 +278,7 @@ open class MultipleFileMergeDialog(
     assert(resolution.yoursOrTheirs())
     val files = table.selectedFiles
     runWithErrorHandling {
-      runWithModalProgressBlocking(ModalTaskOwner.component(contentPanel),
+      runWithModalProgressBlocking(getModalTaskOwner(),
                                    VcsBundle.message("multiple.file.merge.dialog.progress.title.resolving.conflicts")) {
         val (binaryFiles, textFiles) = files.partition(mergeProvider::isBinary)
         acceptRevision(resolution, binaryFiles)
@@ -459,7 +467,7 @@ open class MultipleFileMergeDialog(
       saveDocument(file)
       checkMarkModifiedProject(project, file)
 
-      runWithModalProgressBlocking(ModalTaskOwner.component(contentPanel),
+      runWithModalProgressBlocking(getModalTaskOwner(),
                                    VcsBundle.message("multiple.file.merge.dialog.progress.title.resolving.conflicts")) {
         markFileProcessed(file, getSessionResolution(MergeResult.RESOLVED))
       }
@@ -489,7 +497,7 @@ open class MultipleFileMergeDialog(
   @RequiresEdt
   private fun showMergeDialogForFile(file: VirtualFile): MergeResult {
     var mergeResult: MergeResult? = null
-    val request = runWithModalProgressBlocking(ModalTaskOwner.component(this.contentPanel),
+    val request = runWithModalProgressBlocking(getModalTaskOwner(),
                                                VcsBundle.message("multiple.file.merge.dialog.progress.title.resolving.conflicts")) {
       createMergeRequest(file, DiffRequestFactory.getInstance()) { result: MergeResult ->
         mergeResult = result
@@ -500,7 +508,7 @@ open class MultipleFileMergeDialog(
           val iterativelyResolved = iterativeDataHolder?.isFileResolved(file) ?: false
 
           if (!iterativelyResolved) {
-            runWithModalProgressBlocking(ModalTaskOwner.component(contentPanel),
+            runWithModalProgressBlocking(getModalTaskOwner(),
                                          VcsBundle.message("multiple.file.merge.dialog.progress.title.resolving.conflicts")) {
               markFileProcessed(file, getSessionResolution(result))
             }
