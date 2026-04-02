@@ -65,6 +65,7 @@ import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
 import org.jetbrains.intellij.build.telemetry.use
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
+import java.lang.Long
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType
 import java.nio.file.Files
@@ -74,6 +75,8 @@ import kotlin.io.path.createDirectories
 import kotlin.io.path.moveTo
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
+
+private const val maxWindowsPathLengthForIDERootToBeAbleToRunRiderBackend: Int = 64
 
 data class BuildRequest(
   @JvmField val platformPrefix: String,
@@ -145,8 +148,8 @@ internal suspend fun buildProduct(request: BuildRequest, createProductProperties
     request.scrambleTool != null -> "-scrambled"
     else -> ""
   }
-  val productDirName = (productDirNameWithoutClassifier + productDirSuffix + classifier).takeLast(255)
-
+  val productDirName = (productDirNameWithoutClassifier + productDirSuffix + classifier).takeLast(maxWindowsPathLengthForIDERootToBeAbleToRunRiderBackend)
+  
   val buildDir = withContext(Dispatchers.IO.limitedParallelism(4)) {
     val buildDir = rootDir.resolve(productDirName)
     // on start, delete everything to avoid stale data
@@ -395,7 +398,7 @@ private suspend fun computeIdeFingerprint(
   debug?.append(distributionFileEntries.size)?.append('\n')
   for (entry in distributionFileEntries) {
     hasher.putLong(entry.hash)
-    debug?.append(java.lang.Long.toUnsignedString(entry.hash, Character.MAX_RADIX))?.append(" ")?.append(relativePath(entry.path))?.append('\n')
+    debug?.append(Long.toUnsignedString(entry.hash, Character.MAX_RADIX))?.append(" ")?.append(relativePath(entry.path))?.append('\n')
   }
 
   val pluginDistributionEntries = pluginDistributionEntriesDeferred.await().pluginEntries
@@ -406,11 +409,11 @@ private suspend fun computeIdeFingerprint(
     debug?.append('\n')?.append(plugin.layout.mainModule)?.append('\n')
     for (entry in plugin.distribution) {
       hasher.putLong(entry.hash)
-      debug?.append("  ")?.append(java.lang.Long.toUnsignedString(entry.hash, Character.MAX_RADIX))?.append(" ")?.append(relativePath(entry.path))?.append('\n')
+      debug?.append("  ")?.append(Long.toUnsignedString(entry.hash, Character.MAX_RADIX))?.append(" ")?.append(relativePath(entry.path))?.append('\n')
     }
   }
 
-  val fingerprint = java.lang.Long.toUnsignedString(hasher.asLong, Character.MAX_RADIX)
+  val fingerprint = Long.toUnsignedString(hasher.asLong, Character.MAX_RADIX)
   withContext(Dispatchers.IO) {
     Files.writeString(runDir.resolve("fingerprint.txt"), fingerprint)
     debug?.let { Files.writeString(runDir.resolve("fingerprint-debug.txt"), it) }
@@ -659,7 +662,7 @@ private fun computeAdditionalModulesFingerprint(additionalModules: List<String>)
     val hash = Hashing.xxh3_64().hashStream()
     hash.putUnorderedIterable(additionalModules, HashFunnel.forString(), Hashing.xxh3_64())
     return "-" + additionalModules.joinToString(separator = "-") { it.removePrefix("intellij.").take(4) } + "-" +
-           java.lang.Long.toUnsignedString(hash.asLong, Character.MAX_RADIX)
+           Long.toUnsignedString(hash.asLong, Character.MAX_RADIX)
   }
 }
 

@@ -6,6 +6,8 @@ package com.jetbrains.python.packaging.management
 import com.intellij.execution.ExecutionException
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.application.asContextElement
 import com.intellij.openapi.application.readAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.thisLogger
@@ -69,7 +71,7 @@ abstract class PythonPackageManager @ApiStatus.Internal constructor(
 
   private val dependencyCache = DependencyCache()
 
-  private val initializationJob = PyPackageCoroutine.launch(project, NON_INTERACTIVE_ROOT_TRACE_CONTEXT, start = CoroutineStart.LAZY) {
+  private val initializationJob = PyPackageCoroutine.launch(project, NON_INTERACTIVE_ROOT_TRACE_CONTEXT + ModalityState.any().asContextElement(), start = CoroutineStart.LAZY) {
     initInstalledPackages()
   }.also {
     it.cancelOnDispose(this)
