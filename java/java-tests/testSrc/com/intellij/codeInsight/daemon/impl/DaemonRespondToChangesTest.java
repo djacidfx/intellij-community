@@ -386,7 +386,7 @@ public class DaemonRespondToChangesTest extends ProductionDaemonAnalyzerTestCase
       LOG.debug(getClass().getSimpleName()+".annotate("+element+") = "+didIDoIt()+" ("+(System.currentTimeMillis()-start)+"ms)");
     }
   }
-  public void testDaemonMustRestartOnWriteAction() throws Exception {
+  public void testDaemonMustRestartOnLoneWriteAction() throws Exception {
     @Language("JAVA")
     String text = """
         class AClass<caret> {
@@ -402,6 +402,27 @@ public class DaemonRespondToChangesTest extends ProductionDaemonAnalyzerTestCase
       }
       MyWaitingAnnotator.wait.set(false);
       WriteAction.run(()->{});
+      myTestDaemonCodeAnalyzer.waitHighlighting(getFile(), HighlightSeverity.ERROR);
+    });
+  }
+  public void testDaemonMustNotHangOnLoneCommandExecution() throws Exception {
+    @Language("JAVA")
+    String text = """
+        class AClass<caret> {
+      
+        }
+      """;
+    MyWaitingAnnotator.wait.set(true);
+    MyWaitingAnnotator.inside = new CountDownLatch(1);
+    DaemonAnnotatorsRespondToChangesTest.useAnnotatorsIn(JavaFileType.INSTANCE.getLanguage(), new DaemonAnnotatorsRespondToChangesTest.MyRecordingAnnotator[]{new MyWaitingAnnotator()}, ()-> {
+      configureByText(JavaFileType.INSTANCE, text);
+      while (!MyWaitingAnnotator.inside.await(1, TimeUnit.SECONDS)) {
+        UIUtil.dispatchAllInvocationEvents();
+      }
+      MyWaitingAnnotator.wait.set(false);
+      CommandProcessor.getInstance().executeCommand(getProject(), ()->{
+      }, "EditorChange", null);
+
       myTestDaemonCodeAnalyzer.waitHighlighting(getFile(), HighlightSeverity.ERROR);
     });
   }

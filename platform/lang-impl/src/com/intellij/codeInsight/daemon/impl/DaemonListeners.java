@@ -721,10 +721,6 @@ public final class DaemonListeners implements Disposable {
 
       String commandName = event.getCommandName();
       cutOperationJustHappened = commandName != null && commandName.equals(getCutActionName());
-      if (!myDaemonCodeAnalyzer.isRunning()) {
-        return;
-      }
-      stopDaemon(false, commandName==null ? "Command started" : "Command started: '"+commandName+"'");
     }
 
     private static Document extractDocumentFromCommand(@NotNull CommandEvent event) {
