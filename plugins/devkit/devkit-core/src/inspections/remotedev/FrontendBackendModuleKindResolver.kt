@@ -14,8 +14,18 @@ import org.jetbrains.idea.devkit.util.DescriptorUtil
 private const val FRONTEND_PLATFORM_MODULE_BASE_NAME = "intellij.platform.frontend"
 private const val BACKEND_PLATFORM_MODULE_BASE_NAME = "intellij.platform.backend"
 
-private val likelyFrontendDependencies = setOf<String>()
-private val likelyBackendDependencies = setOf("intellij.platform.vcs.impl")
+private val likelyFrontendDependencies = setOf(
+  "intellij.platform.frontend.split",
+  "intellij.rd.client",
+  "com.intellij.jetbrains.client",
+  "intellij.cwm.plugin.frontend"
+)
+private val likelyBackendDependencies = setOf(
+  "intellij.platform.vcs.impl",
+  "intellij.platform.backend.split",
+  "com.jetbrains.remoteDevelopment",
+  "intellij.cwm.plugin",
+)
 
 internal object FrontendBackendModuleKindResolver {
   fun getOrComputeModuleType(element: PsiElement): ApiRestrictionsService.ModuleKind {
