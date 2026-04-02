@@ -1,7 +1,7 @@
 """
-  Jupyter notebook runtime variable extraction using debugpy's standard DAP infrastructure.
-  No dependency on _pydevd_bundle.custom package.
-  """
+Jupyter notebook runtime variable extraction using debugpy's standard DAP infrastructure.
+No dependency on _pydevd_bundle.custom package.
+"""
 import sys
 import json
 import inspect
@@ -30,12 +30,16 @@ from debugpy._vendored.pydevd._pydevd_bundle.pydevd_constants import (
     NEXT_VALUE_SEPARATOR,
     GENERATED_LEN_ATTR_NAME,
 )
-
 from pycharm_tables.pydevd_tables import exec_image_table_command
 
 _GROUP_EXPRESSION_PREFIX = "__jupyter_debug_group__:"
 _HIDDEN_TYPES = ("function", "type", "classobj", "module", "typing")
-
+_VARIABLE_PRESENTATION = {
+    DAPGrouper.SCOPE_SPECIAL_VARS: "group",
+    DAPGrouper.SCOPE_FUNCTION_VARS: "group",
+    DAPGrouper.SCOPE_CLASS_VARS: "group",
+    DAPGrouper.SCOPE_PROTECTED_VARS: "inline",
+}
 
 def get_frame():
     """Dump all user namespace variables as DAP Variable dicts."""
@@ -45,7 +49,7 @@ def get_frame():
         hidden_ns = getattr(ipython_shell, "user_ns_hidden", {})
         hidden_names = set(hidden_ns)
 
-        variables = _build_dap_variables(
+        variables = _get_frame_collect_variables(
                   _iter_namespace_entries(user_ns),
                   hidden_names=hidden_names,
                   parent_evaluate_name=None,
@@ -61,10 +65,9 @@ def get_frame():
 def get_variable(pydev_text):
     """Resolve compound variable children as DAP Variable dicts."""
     ipython_shell = get_ipython()
-    # todo: types_renderers
 
     # Handle DAPGrouper scope expansion
-    decoded = _decode_group_expression(pydev_text)
+    decoded = _get_variable_decode_group_expression(pydev_text)
     if decoded is not None:
         parent_evaluate_name, scope = decoded
         hidden_names = None
@@ -73,20 +76,20 @@ def get_variable(pydev_text):
             hidden_ns = getattr(ipython_shell, "user_ns_hidden", {})
             hidden_names = set(hidden_ns)
 
-        entries = _resolve_group_entries(
+        entries = _get_variable_resolve_group_entries(
             ipython_shell.user_ns, parent_evaluate_name, scope, hidden_names=hidden_names
         )
         variables = []
         for name, value, evaluate_name in entries:
             eval_full = should_evaluate_full_value(value)
-            var_data = _var_to_dap_dict(value, name, evaluate_full_value=eval_full)
+            var_data = _convert_variable_to_dap_dict(value, name, evaluate_full_value=eval_full)
             if evaluate_name is not None:
                 var_data["evaluateName"] = evaluate_name
             variables.append(var_data)
         print(json.dumps({"variables": variables}))
         return
 
-    variables = _build_compound_dap_variables(ipython_shell.user_ns, pydev_text)
+    variables = _get_variable_collect_compound_variables(ipython_shell.user_ns, pydev_text)
     print(json.dumps({"variables": variables}))
 
 
@@ -96,7 +99,7 @@ def evaluate(expression, do_trunc):
     namespace = ipython_shell.user_ns
     result = eval_in_context(expression, namespace, namespace)
     do_eval_full = not do_trunc
-    var_data = _var_to_dap_dict(result, expression, evaluate_full_value=do_eval_full, context="variables")
+    var_data = _convert_variable_to_dap_dict(result, expression, evaluate_full_value=do_eval_full, context="variables")
     print(json.dumps({"variables": [var_data]}))
 
 
@@ -109,7 +112,7 @@ def get_array(text):
     var = eval_in_context(name, namespace, namespace)
     from pycharm_tables.pydevd_tabular_to_xml import legacy_table_like_struct_to_xml
     xml = legacy_table_like_struct_to_xml(var, name, int(roffset), int(coffset),
-                                   int(rows), int(cols), format)
+                                          int(rows), int(cols), format)
     print(xml)
 
 
@@ -130,15 +133,32 @@ def table_command(command_text):
     print(res)
 
 
-_VARIABLE_PRESENTATION = {
-    DAPGrouper.SCOPE_SPECIAL_VARS: "group",
-    DAPGrouper.SCOPE_FUNCTION_VARS: "group",
-    DAPGrouper.SCOPE_CLASS_VARS: "group",
-    DAPGrouper.SCOPE_PROTECTED_VARS: "inline",
-}
+def image_start_load_table_command(command_text):
+    ipython_shell = get_ipython()
+    namespace = ipython_shell.user_ns
+    command, command_type, _ = command_text.split(NEXT_VALUE_SEPARATOR)
+    status, res = exec_image_table_command(command, command_type, None, None, namespace, namespace)
+    print(res)
 
 
-def _var_to_dap_dict(val, name, evaluate_full_value=True, context=None):
+def image_load_chunk_table_command(command_text):
+    try:
+        ipython_shell = get_ipython()
+        namespace = ipython_shell.user_ns
+        command, command_type, offset, image_id = command_text.split(NEXT_VALUE_SEPARATOR)
+
+        try:
+            offset = int(offset)
+        except ValueError:
+            offset = None
+
+        status, res = exec_image_table_command(command, command_type, offset, image_id, namespace, namespace)
+        print(res)
+    except:
+        pass
+
+
+def _convert_variable_to_dap_dict(val, name, evaluate_full_value=True, context=None):
     """
     Convert a Python value to a DAP Variable dict.
     Mirrors _AbstractVariable.get_var_data() from pydevd_suspended_frames.py
@@ -201,37 +221,8 @@ def _encode_group_expression(parent_evaluate_name, scope):
         separators=(",", ":"),
     )
 
-def _decode_group_expression(expression):
-    if not expression.startswith(_GROUP_EXPRESSION_PREFIX):
-        return None
 
-    payload = expression[len(_GROUP_EXPRESSION_PREFIX):]
-    try:
-        data = json.loads(payload)
-    except Exception:
-        return None
-
-    if not isinstance(data, dict):
-        return None
-
-    return data.get("parent"), data.get("scope")
-
-
-def _get_entry_scope(name, value, evaluate_name, hidden_names=None):
-    if hidden_names is not None and name in hidden_names:
-        return DAPGrouper.SCOPE_SPECIAL_VARS
-
-    if _is_hidden_var_like_old_pydev(value):
-        return DAPGrouper.SCOPE_SPECIAL_VARS
-
-    return get_var_scope(name, value, evaluate_name or "", False)
-
-
-def _iter_namespace_entries(namespace):
-    return [(name, namespace[name], name) for name in sorted(namespace)]
-
-
-def _group_entries(entries, parent_evaluate_name=None, hidden_names=None):
+def _get_frame_group_entries(entries, parent_evaluate_name=None, hidden_names=None):
     grouped_entries = []
     scope_to_grouper = {}
     inline_entries = []
@@ -262,9 +253,9 @@ def _group_entries(entries, parent_evaluate_name=None, hidden_names=None):
     return grouped_entries + inline_entries
 
 
-def _build_dap_variables(entries, hidden_names=None, parent_evaluate_name=None):
+def _get_frame_collect_variables(entries, hidden_names=None, parent_evaluate_name=None):
     variables = []
-    for name, value, evaluate_name in _group_entries(
+    for name, value, evaluate_name in _get_frame_group_entries(
         entries,
         parent_evaluate_name=parent_evaluate_name,
         hidden_names=hidden_names,
@@ -273,14 +264,30 @@ def _build_dap_variables(entries, hidden_names=None, parent_evaluate_name=None):
             value.contents_debug_adapter_protocol.sort(key=lambda entry: sorted_attributes_key(entry[0]))
 
         eval_full = should_evaluate_full_value(value)
-        var_data = _var_to_dap_dict(value, name, evaluate_full_value=eval_full)
+        var_data = _convert_variable_to_dap_dict(value, name, evaluate_full_value=eval_full)
         if evaluate_name is not None:
             var_data["evaluateName"] = evaluate_name
         variables.append(var_data)
     return variables
 
 
-def _resolve_group_entries(namespace, parent_evaluate_name, scope, hidden_names=None):
+def _get_variable_decode_group_expression(expression):
+    if not expression.startswith(_GROUP_EXPRESSION_PREFIX):
+        return None
+
+    payload = expression[len(_GROUP_EXPRESSION_PREFIX):]
+    try:
+        data = json.loads(payload)
+    except Exception:
+        return None
+
+    if not isinstance(data, dict):
+        return None
+
+    return data.get("parent"), data.get("scope")
+
+
+def _get_variable_resolve_group_entries(namespace, parent_evaluate_name, scope, hidden_names=None):
     if parent_evaluate_name is None:
         entries = _iter_namespace_entries(namespace)
     else:
@@ -297,118 +304,10 @@ def _resolve_group_entries(namespace, parent_evaluate_name, scope, hidden_names=
     ]
 
 
-def load_full_value(scope_attrs):
-    """Load full (non-truncated) values for specific variables."""
-    ipython_shell = get_ipython()
-    namespace = ipython_shell.user_ns
-    parts = scope_attrs.split(NEXT_VALUE_SEPARATOR)
-
-
-    variables = []
-    for var_attrs in parts:
-        var_attrs = var_attrs.strip()
-        if not var_attrs:
-            continue
-        if '\t' in var_attrs:
-            name, attrs = var_attrs.split('\t', 1)
-        else:
-            name = var_attrs
-            attrs = None
-
-        if name in namespace:
-            var_object = resolve_var_object(namespace[name], attrs)
-        else:
-            var_object = eval_in_context(name, namespace, namespace)
-
-        variables.append(_var_to_dap_dict(var_object, name, evaluate_full_value=True))
-
-    print(json.dumps({"variables": variables}))
-
-
-def image_load_chunk_table_command(command_text):
-    try:
-        ipython_shell = get_ipython()
-        namespace = ipython_shell.user_ns
-        command, command_type, offset, image_id = command_text.split(NEXT_VALUE_SEPARATOR)
-
-        try:
-            offset = int(offset)
-        except ValueError:
-            offset = None
-
-        status, res = exec_image_table_command(command, command_type, offset, image_id, namespace, namespace)
-        print(res)
-    except:
-        pass
-
-def image_start_load_table_command(command_text):
-    ipython_shell = get_ipython()
-    namespace = ipython_shell.user_ns
-    command, command_type, _ = command_text.split(NEXT_VALUE_SEPARATOR)
-    status, res = exec_image_table_command(command, command_type, None, None, namespace, namespace)
-    print(res)
-
-
-
-def serializeImage(img):
-    """Serialize a 2D numpy array as JSON image data."""
-    if len(img.shape) != 2:
-        return None
-    if img.shape[0] > 1024 or img.shape[1] > 1024:
-        return None
-    return json.dumps({
-        "height": img.shape[0],
-        "width": img.shape[1],
-        "value": img.tolist(),
-    })
-
-
-def image_command(command_text):
-    ipython_shell = get_ipython()
-    namespace = ipython_shell.user_ns
-    try:
-        var_value = eval_in_context(command_text, namespace, namespace)
-        json_result = serializeImage(var_value)
-    except Exception as e:
-        print(e)
-    print(command_text)
-    print(json_result)
-
-
-def _has_attribute_safe(obj, attr_name):
-    """Check attribute existence without accessing it."""
-    return inspect.getattr_static(obj, attr_name, None) is not None
-
-
-def __get_type_name(value):
-    try:
-        type_name = value.__class__.__name__
-    except Exception:
-        try:
-            type_name = type(value).__name__
-        except Exception:
-            type_name = None
-    return type_name
-
-
-def _is_hidden_var_like_old_pydev(value):
-    type_name = __get_type_name(value)
-    return type_name in _HIDDEN_TYPES
-
-
-def __extend_hidden_vars(user_ns):
-    additional_values = {}
-    for k, v in user_ns.items():
-        if _is_hidden_var_like_old_pydev(v):
-            additional_values[k] = v
-
-    return additional_values
-
-
-def _build_compound_dap_variables(namespace, parent_evaluate_name):
+def _get_variable_collect_compound_variables(namespace, parent_evaluate_name):
     try:
         value = resolve_var_object(namespace, parent_evaluate_name)
-    except Exception:
+    except:
         return []
 
     _type, type_name, resolver = get_type(value)
@@ -463,13 +362,13 @@ def _build_compound_dap_variables(namespace, parent_evaluate_name):
         )
         evaluate_name = _encode_group_expression(parent_evaluate_name, scope)
         eval_full = should_evaluate_full_value(grouper)
-        var_data = _var_to_dap_dict(grouper, scope, evaluate_full_value=eval_full)
+        var_data = _convert_variable_to_dap_dict(grouper, scope, evaluate_full_value=eval_full)
         var_data["evaluateName"] = evaluate_name
         variables.append(var_data)
 
     for key, child_value, evaluate_name in inline_entries:
         eval_full = should_evaluate_full_value(child_value)
-        var_data = _var_to_dap_dict(child_value, key, evaluate_full_value=eval_full)
+        var_data = _convert_variable_to_dap_dict(child_value, key, evaluate_full_value=eval_full)
         if evaluate_name is None:
             var_data.pop("evaluateName", None)
         else:
@@ -479,3 +378,32 @@ def _build_compound_dap_variables(namespace, parent_evaluate_name):
     return variables
 
 
+def _get_entry_scope(name, value, evaluate_name, hidden_names=None):
+    if hidden_names is not None and name in hidden_names:
+        return DAPGrouper.SCOPE_SPECIAL_VARS
+
+    if _legacy_is_hidden_var(value):
+        return DAPGrouper.SCOPE_SPECIAL_VARS
+
+    return get_var_scope(name, value, evaluate_name or "", False)
+
+
+def _iter_namespace_entries(namespace):
+    return [(name, namespace[name], name) for name in sorted(namespace)]
+
+
+def _has_attribute_safe(obj, attr_name):
+    """Check attribute existence without accessing it. Please don't change this code."""
+    return inspect.getattr_static(obj, attr_name, None) is not None
+
+
+def _legacy_is_hidden_var(value):
+    type_name = None
+    try:
+        type_name = value.__class__.__name__
+    except:
+        try:
+            type_name = type(value).__name__
+        except:
+            pass
+    return type_name in _HIDDEN_TYPES
