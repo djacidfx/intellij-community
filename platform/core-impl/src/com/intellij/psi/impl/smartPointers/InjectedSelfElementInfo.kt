@@ -35,7 +35,7 @@ internal class InjectedSelfElementInfo(
   injectedRange: TextRange,
   containingFile: PsiFile,
   private val myHostContext: SmartPsiElementPointer<PsiLanguageInjectionHost>,
-) : SmartPointerElementInfo() {
+) : SmartPointerElementInfo {
 
   private val myInjectedFileRangeInHostFile: SmartPsiFileRange
   private val myAffixOffsets: AffixOffsets?

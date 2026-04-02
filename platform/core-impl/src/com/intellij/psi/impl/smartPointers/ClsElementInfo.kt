@@ -13,7 +13,7 @@ import com.intellij.psi.PsiFile
  */
 internal class ClsElementInfo(
   private val myStubIndexReference: PsiAnchor.StubIndexReference,
-) : SmartPointerElementInfo() {
+) : SmartPointerElementInfo {
   override fun restoreElement(manager: SmartPointerManagerEx): PsiElement? = myStubIndexReference.retrieve()
 
   override fun elementHashCode(): Int = myStubIndexReference.hashCode()

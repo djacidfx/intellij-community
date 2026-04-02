@@ -35,10 +35,9 @@ open class SelfElementInfo internal constructor(
   identikit: Identikit,
   containingPsiFile: PsiFile,
   val isForInjected: Boolean,
-) : SmartPointerElementInfo() {
+) : SmartPointerElementInfo {
   @Volatile
   private var myIdentikit: Identikit = identikit
-
   val context: CodeInsightContext = containingPsiFile.codeInsightContext
 
   override val virtualFile: VirtualFile = containingPsiFile.viewProvider.virtualFile

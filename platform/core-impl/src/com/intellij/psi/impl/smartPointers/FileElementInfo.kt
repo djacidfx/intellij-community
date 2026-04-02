@@ -22,7 +22,7 @@ import com.intellij.psi.impl.PsiDocumentManagerEx
  * Stores the virtual file, language ID, and file class name;
  * verifies the class name matches on restoration to handle multi-language view providers correctly.
  */
-internal class FileElementInfo(file: PsiFile) : SmartPointerElementInfo() {
+internal class FileElementInfo(file: PsiFile) : SmartPointerElementInfo {
   override val virtualFile: VirtualFile = file.viewProvider.virtualFile
   private val myProject: Project = file.project
   private val myLanguageId: String = LanguageUtil.getRootLanguage(file).id

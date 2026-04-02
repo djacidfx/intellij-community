@@ -14,27 +14,27 @@ import org.jetbrains.annotations.ApiStatus
  * (file, directory, regular element, compiled element, injected element, or a hard reference).
  */
 @ApiStatus.Internal
-abstract class SmartPointerElementInfo {
-  open val documentToSynchronize: Document?
+sealed interface SmartPointerElementInfo {
+  val documentToSynchronize: Document?
     get() = null
 
-  open fun fastenBelt(manager: SmartPointerManagerEx) {
+  fun fastenBelt(manager: SmartPointerManagerEx) {
   }
 
-  abstract fun restoreElement(manager: SmartPointerManagerEx): PsiElement?
+  fun restoreElement(manager: SmartPointerManagerEx): PsiElement?
 
-  abstract fun restoreFile(manager: SmartPointerManagerEx): PsiFile?
+  fun restoreFile(manager: SmartPointerManagerEx): PsiFile?
 
-  abstract fun elementHashCode(): Int // must be immutable
+  fun elementHashCode(): Int // must be immutable
 
-  abstract fun pointsToTheSameElementAs(other: SmartPointerElementInfo, manager: SmartPointerManagerEx): Boolean
+  fun pointsToTheSameElementAs(other: SmartPointerElementInfo, manager: SmartPointerManagerEx): Boolean
 
-  abstract val virtualFile: VirtualFile?
+  val virtualFile: VirtualFile?
 
-  abstract fun getRange(manager: SmartPointerManagerEx): Segment?
+  fun getRange(manager: SmartPointerManagerEx): Segment?
 
-  abstract fun getPsiRange(manager: SmartPointerManagerEx): Segment?
+  fun getPsiRange(manager: SmartPointerManagerEx): Segment?
 
-  open fun cleanup() {
+  fun cleanup() {
   }
 }

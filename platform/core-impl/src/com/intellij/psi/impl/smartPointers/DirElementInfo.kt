@@ -12,7 +12,7 @@ import com.intellij.psi.PsiFile
 /**
  * Tracks a [PsiDirectory].
  */
-internal class DirElementInfo(directory: PsiDirectory) : SmartPointerElementInfo() {
+internal class DirElementInfo(directory: PsiDirectory) : SmartPointerElementInfo {
   override val virtualFile: VirtualFile = directory.getVirtualFile()
 
   private val myProject: Project = directory.getProject()

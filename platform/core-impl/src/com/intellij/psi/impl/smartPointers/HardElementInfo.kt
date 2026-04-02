@@ -13,7 +13,7 @@ import com.intellij.psi.util.PsiUtilCore
  */
 internal class HardElementInfo(
   private val myElement: PsiElement,
-) : SmartPointerElementInfo() {
+) : SmartPointerElementInfo {
   override fun restoreElement(manager: SmartPointerManagerEx): PsiElement = myElement
 
   override fun restoreFile(manager: SmartPointerManagerEx): PsiFile? =
