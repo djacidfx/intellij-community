@@ -66,7 +66,6 @@ import com.intellij.openapi.util.Condition;
 import com.intellij.openapi.util.Conditions;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.util.NlsContexts;
-import com.intellij.openapi.util.NlsSafe;
 import com.intellij.openapi.util.ShutDownTracker;
 import com.intellij.openapi.util.ThrowableComputable;
 import com.intellij.openapi.vfs.VirtualFileManager;
@@ -1501,8 +1500,8 @@ public final class ApplicationImpl extends ClientAwareComponentManager implement
   }
 
   @Override
-  public void prohibitTakingLocksInsideAndRun(@NotNull Runnable runnable, @NlsSafe String advice) {
-    getThreadingSupport().prohibitTakingLocksInsideAndRun(runnableUnitFunction(runnable), advice);
+  public <T> T withLocksProhibited(@NotNull String advice, @NotNull Supplier<T> action) {
+    return getThreadingSupport().withLocksProhibited(advice, () -> action.get());
   }
 
   @Override

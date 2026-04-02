@@ -1436,11 +1436,11 @@ class NestedLocksThreadingSupport : ThreadingSupport {
     }
   }
 
-  override fun prohibitTakingLocksInsideAndRun(action: () -> Unit, advice: String) {
+  override fun <T> withLocksProhibited(advice: String, action: () -> T): T {
     val currentValue = myLockingProhibited.get()
     myLockingProhibited.set(advice)
     try {
-      action()
+      return action()
     }
     finally {
       myLockingProhibited.set(currentValue)
