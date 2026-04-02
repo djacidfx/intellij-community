@@ -3152,13 +3152,6 @@ jvm_import(
   visibility = ["//visibility:public"]
 )
 
-jvm_import(
-  name = "fleet-util-modules-jetbrains-intellij-platform-util-zip-squashed",
-  jar = "@com_jetbrains_intellij_platform-util-zip-squashed-252_16432_http//file",
-  source_jar = "@com_jetbrains_intellij_platform-util-zip-squashed-252_16432-sources_http//file",
-  visibility = ["//visibility:public"]
-)
-
 copy_file(
   name = "org.jetbrains.intellij.deps.ift/git-learning-project-212.0.2.jar_copy",
   src = "@org_jetbrains_intellij_deps_ift-git-learning-project-212_0_2_http//file",

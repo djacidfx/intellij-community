@@ -47,8 +47,8 @@ kotlin {
   configureAtMostOneJvmTargetOrThrow { compilations.named("test") { withJavaSourceSet { javaSourceSet -> javaSourceSet.java.srcDir(layout.projectDirectory.dir("../srcJvmTest")) } } }
   sourceSets.jvmTest.configure { resources.srcDir(layout.projectDirectory.dir("../resourcesJvmTest")) }
   sourceSets.commonMain.dependencies {
-    api(jps.com.jetbrains.intellij.platform.util.zip.squashed55996306.get().let { "${it.group}:${it.name}:${it.version}" }) {
-      exclude(group = "org.jetbrains", module = "annotations")
+    implementation(jps.com.jetbrains.intellij.platform.util.zip.squashed55996306.get().let { "${it.group}:${it.name}:${it.version}" }) {
+      isTransitive = false
     }
     implementation(jps.org.jetbrains.annotations1504825916.get())
   }
