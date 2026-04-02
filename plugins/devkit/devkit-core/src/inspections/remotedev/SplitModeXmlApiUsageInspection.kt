@@ -8,7 +8,7 @@ import org.jetbrains.idea.devkit.DevKitBundle
 import org.jetbrains.idea.devkit.dom.Extension
 import org.jetbrains.idea.devkit.dom.Extensions
 import org.jetbrains.idea.devkit.inspections.DevKitPluginXmlInspectionBase
-import org.jetbrains.idea.devkit.inspections.remotedev.FrontendBackendModuleKindResolver.doesApiKindMatchExpectedModuleKind
+import org.jetbrains.idea.devkit.inspections.remotedev.SplitModeModuleKindResolver.doesApiKindMatchExpectedModuleKind
 
 internal class SplitModeXmlApiUsageInspection : DevKitPluginXmlInspectionBase() {
   private val restrictionsService = ApiRestrictionsService.getInstance()
@@ -31,7 +31,7 @@ internal class SplitModeXmlApiUsageInspection : DevKitPluginXmlInspectionBase() 
     val extensionPointName = getExtensionPointName(element) ?: return
     val expectedModuleKind = restrictionsService.getExtensionPointKind(extensionPointName) ?: return
     val xmlTag = element.xmlTag ?: return
-    val actualModuleKind = FrontendBackendModuleKindResolver.getOrComputeModuleKind(xmlTag)
+    val actualModuleKind = SplitModeModuleKindResolver.getOrComputeModuleKind(xmlTag)
 
     if (doesApiKindMatchExpectedModuleKind(actualModuleKind, expectedModuleKind)) return
 

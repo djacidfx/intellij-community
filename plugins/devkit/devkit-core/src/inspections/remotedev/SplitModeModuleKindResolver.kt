@@ -27,7 +27,7 @@ private val likelyBackendDependencies = setOf(
   "intellij.cwm.plugin",
 )
 
-internal object FrontendBackendModuleKindResolver {
+internal object SplitModeModuleKindResolver {
   fun getOrComputeModuleKind(element: PsiElement): ApiRestrictionsService.ModuleKind {
     val cacheHolder = element.containingFile ?: return ApiRestrictionsService.ModuleKind.SHARED
     return CachedValuesManager.getCachedValue(cacheHolder) {

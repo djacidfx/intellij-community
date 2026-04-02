@@ -42,7 +42,7 @@ internal class SplitModeMixedDependenciesInspection : DevKitPluginXmlInspectionB
       }
     }
 
-    val matchedDependencies = FrontendBackendModuleKindResolver.collectMatchedDependencies(
+    val matchedDependencies = SplitModeModuleKindResolver.collectMatchedDependencies(
       dependencyNames = declaredDependencies.map { it.name },
       dependencyKindResolver = restrictionsService::getDependencyKind,
     )

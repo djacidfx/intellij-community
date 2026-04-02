@@ -15,7 +15,7 @@ import org.jetbrains.annotations.NotNull
 import org.jetbrains.annotations.VisibleForTesting
 import org.jetbrains.idea.devkit.DevKitBundle
 import org.jetbrains.idea.devkit.inspections.DevKitUastInspectionBase
-import org.jetbrains.idea.devkit.inspections.remotedev.FrontendBackendModuleKindResolver.doesApiKindMatchExpectedModuleKind
+import org.jetbrains.idea.devkit.inspections.remotedev.SplitModeModuleKindResolver.doesApiKindMatchExpectedModuleKind
 import org.jetbrains.uast.UCallExpression
 import org.jetbrains.uast.UClass
 import org.jetbrains.uast.UElement
@@ -55,7 +55,7 @@ class SplitModeApiUsageInspection : DevKitUastInspectionBase(UClass::class.java,
     isOnTheFly: Boolean,
   ): Array<out ProblemDescriptor?>? {
     val sourcePsi = aClass.sourcePsi ?: return null
-    val moduleType = FrontendBackendModuleKindResolver.getOrComputeModuleKind(sourcePsi)
+    val moduleType = SplitModeModuleKindResolver.getOrComputeModuleKind(sourcePsi)
     val descriptors = SmartList<ProblemDescriptor>()
     aClass.uastSuperTypes.forEach { superTypeExpression ->
       checkApiUsage(superTypeExpression, moduleType, manager, isOnTheFly, descriptors)
@@ -78,7 +78,7 @@ class SplitModeApiUsageInspection : DevKitUastInspectionBase(UClass::class.java,
     isOnTheFly: Boolean,
   ): Array<ProblemDescriptor>? {
     val sourcePsi = uElement.sourcePsi ?: return null
-    val moduleType = FrontendBackendModuleKindResolver.getOrComputeModuleKind(sourcePsi)
+    val moduleType = SplitModeModuleKindResolver.getOrComputeModuleKind(sourcePsi)
     val descriptors = SmartList<ProblemDescriptor>()
 
     uElement.accept(object : AbstractUastVisitor() {
