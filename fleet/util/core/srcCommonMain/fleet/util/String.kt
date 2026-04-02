@@ -16,13 +16,13 @@ fun String.lowercaseLocaleAgnostic(): String = lowercase()
 fun String.uppercaseLocaleAgnostic(): String = uppercase()
 
 object LineEndings {
-  const val CR = "\r"
-  const val LF = "\n"
-  const val CRLF = "\r\n"
+  const val CR: String = "\r"
+  const val LF: String = "\n"
+  const val CRLF: String = "\r\n"
 }
 
 fun String.toOsLineEndings(): String {
-  return if (Os.INSTANCE.isWindows && this.contains(LineEndings.LF) && !this.contains(LineEndings.CRLF)) {
+  return if (Os.INSTANCE.isWindows && !this.contains(LineEndings.CRLF)) {
     this.replace(LineEndings.LF, LineEndings.CRLF)
   }
   else {
