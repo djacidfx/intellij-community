@@ -42,6 +42,7 @@ sealed interface SeTargetItemPresentation : SeItemPresentation
 class SeTargetItemPresentationBuilder {
   private var backgroundColorId: ColorId? = null
   private var iconId: IconId? = null
+  private var iconOriginalWidth: Int? = null
   private var presentableText: String = ""
   private var presentableTextMatchedRanges: List<TextRangeDto>? = null
   private var presentableTextFgColorId: ColorId? = null
@@ -51,6 +52,7 @@ class SeTargetItemPresentationBuilder {
   private var containerTextMatchedRanges: List<TextRangeDto>? = null
   private var locationText: String? = null
   private var locationIconId: IconId? = null
+  private var locationIconOriginalWidth: Int? = null
   private var extendedInfo: SeExtendedInfo? = null
   private var isMultiSelectionSupported: Boolean = false
   private var shouldKeepLocationVisible: Boolean = false
@@ -62,6 +64,7 @@ class SeTargetItemPresentationBuilder {
 
   fun withIcon(icon: Icon?): SeTargetItemPresentationBuilder {
     this.iconId = icon?.rpcId()
+    iconOriginalWidth = icon?.iconWidth
     return this
   }
 
@@ -107,6 +110,7 @@ class SeTargetItemPresentationBuilder {
 
   fun locationIcon(icon: Icon?): SeTargetItemPresentationBuilder {
     this.locationIconId = icon?.rpcId()
+    locationIconOriginalWidth = icon?.iconWidth
     return this
   }
 
@@ -150,6 +154,7 @@ class SeTargetItemPresentationBuilder {
     SeTargetItemPresentationImpl(
       backgroundColorId = backgroundColorId,
       iconId = iconId,
+      iconOriginalWidth = iconOriginalWidth,
       presentableText = presentableText,
       presentableTextMatchedRanges = presentableTextMatchedRanges,
       presentableTextFgColorId = presentableTextFgColorId,
@@ -159,6 +164,7 @@ class SeTargetItemPresentationBuilder {
       containerTextMatchedRanges = containerTextMatchedRanges,
       locationText = locationText,
       locationIconId = locationIconId,
+      locationIconOriginalWidth = locationIconOriginalWidth,
       extendedInfo = extendedInfo,
       isMultiSelectionSupported = isMultiSelectionSupported,
       shouldKeepLocationVisible = shouldKeepLocationVisible,
@@ -177,6 +183,7 @@ class SeTargetItemPresentationBuilder {
 data class SeTargetItemPresentationImpl(
   private val backgroundColorId: ColorId? = null,
   private val iconId: IconId? = null,
+  val iconOriginalWidth: Int? = null,
   val presentableText: @NlsSafe String,
   val presentableTextMatchedRanges: List<TextRangeDto>? = null,
   private val presentableTextFgColorId: ColorId? = null,
@@ -186,6 +193,7 @@ data class SeTargetItemPresentationImpl(
   val containerTextMatchedRanges: List<TextRangeDto>? = null,
   val locationText: @NlsSafe String? = null,
   private val locationIconId: IconId? = null,
+  val locationIconOriginalWidth: Int? = null,
   override val extendedInfo: SeExtendedInfo?,
   override val isMultiSelectionSupported: Boolean,
   val shouldKeepLocationVisible: Boolean,

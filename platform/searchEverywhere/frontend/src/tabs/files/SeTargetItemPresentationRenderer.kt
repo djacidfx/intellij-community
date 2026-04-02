@@ -49,9 +49,10 @@ class SeTargetItemPresentationRenderer(private val resultList: JList<SeResultLis
     // Width for "<border><border>"
     var accumulatedContentWidth = bordersWidth
 
-    presentation.icon?.iconWidth?.let {
+    val iconWidth = presentation.iconOriginalWidth ?: presentation.icon?.iconWidth
+    iconWidth?.let {
       // Width for "<border><icon><gap><border>"
-      accumulatedContentWidth += (it + defaultGapWidth)
+      accumulatedContentWidth += (JBUI.scale(iconWidth) + defaultGapWidth)
     }
 
     val fontMetrics = resultList.getFontMetrics(resultList.font)
@@ -152,7 +153,8 @@ class SeTargetItemPresentationRenderer(private val resultList: JList<SeResultLis
       accumulatedContentWidth += locationTextWidthWithGap
 
       presentation.locationIcon?.let { locationIcon ->
-        if ((accumulatedContentWidth + locationIcon.iconWidth) < resultListWidth) {
+        val iconWidth = presentation.locationIconOriginalWidth ?: locationIcon.iconWidth
+        if ((accumulatedContentWidth + JBUI.scale(iconWidth)) < resultListWidth) {
           icon(locationIcon)
         }
       }
