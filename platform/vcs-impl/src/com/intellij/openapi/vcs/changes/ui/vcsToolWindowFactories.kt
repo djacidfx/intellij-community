@@ -102,7 +102,7 @@ internal class CommitToolWindowFactory : VcsToolWindowFactory() {
         val focusColor = StripeButtonUi.SELECTED_FOREGROUND_COLOR
         val originalIcon = toolWindow.icon
         if (originalIcon != null) {
-          val badgeColor = JBColor { if (toolWindow.isActive) focusColor else JBUI.CurrentTheme.IconBadge.ERROR }
+          val badgeColor = JBColor.lazy { if (toolWindow.isActive) focusColor else JBUI.CurrentTheme.IconBadge.ERROR }
           val badgeIcon = IconManager.getInstance().withIconBadge(originalIcon, badgeColor)
           toolWindow.setIcon(badgeIcon)
         }
