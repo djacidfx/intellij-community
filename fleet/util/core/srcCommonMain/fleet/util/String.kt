@@ -6,8 +6,6 @@ import fleet.util.multiplatform.linkToActual
 fun String.capitalizeWithCurrentLocale(): String = linkToActual()
 fun String.lowercaseWithCurrentLocale(): String = linkToActual()
 fun String.uppercaseWithCurrentLocale(): String = linkToActual()
-fun String.encodeUriComponent(): String = linkToActual()
-fun String.decodeUriComponent(): String = linkToActual()
 fun String.isValidUriString(): Boolean = linkToActual()
 
 fun String.capitalizeLocaleAgnostic(): String = replaceFirstChar {

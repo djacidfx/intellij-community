@@ -16,12 +16,6 @@ fun String.lowercaseWithCurrentLocaleWasmJs(): String = lowercase()
 fun String.uppercaseWithCurrentLocaleWasmJs(): String = uppercase()
 
 @Actual
-fun String.encodeUriComponentWasmJs(): String = encodeURIComponent(this)
-
-@Actual
-fun String.decodeUriComponentWasmJs(): String = decodeURIComponent(this)
-
-@Actual
 fun String.isValidUriStringWasmJs(): Boolean = try {
   URL(this)
   true
