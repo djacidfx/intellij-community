@@ -8,7 +8,7 @@ import org.gradle.tooling.model.idea.IdeaModule
 import org.gradle.tooling.model.idea.IdeaProject
 import org.gradle.tooling.model.internal.ImmutableDomainObjectSet
 
-internal class GradleTestIdeaProject private constructor() {
+class GradleTestIdeaProject private constructor() {
 
   var numHolderModules: Int = 1
   var projectName: String = "project"
@@ -42,7 +42,7 @@ internal class GradleTestIdeaProject private constructor() {
       configure(configuration)
       val modules = buildList {
         repeat(configuration.numHolderModules) { holderModuleIndex ->
-          val holderModuleName = "module-$holderModuleIndex"
+          val holderModuleName = GradleTestModuleNames.holderModuleName(holderModuleIndex)
           add(TestIdeaModule(holderModuleName, configuration.moduleSdkName))
         }
       }

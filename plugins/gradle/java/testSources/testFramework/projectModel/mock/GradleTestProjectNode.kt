@@ -10,7 +10,7 @@ import org.jetbrains.plugins.gradle.model.data.GradleSourceSetData
 import org.jetbrains.plugins.gradle.util.GradleConstants
 import java.nio.file.Path
 
-internal class GradleTestProjectNode {
+class GradleTestProjectNode {
 
   var projectPath: Path = Path.of("project")
   var numHolderModules: Int = 1
@@ -22,14 +22,14 @@ internal class GradleTestProjectNode {
       val projectData = ProjectData(GradleConstants.SYSTEM_ID, "", "", configuration.projectPath.toCanonicalPath())
       val projectNode = DataNode(ProjectKeys.PROJECT, projectData, null)
       repeat(configuration.numHolderModules) { holderModuleIndex ->
-        val holderModuleName = "module-$holderModuleIndex"
-        val holderModuleId = ":module-$holderModuleIndex"
+        val holderModuleName = GradleTestModuleNames.holderModuleName(holderModuleIndex)
+        val holderModuleId = GradleTestModuleNames.holderModuleId(holderModuleIndex)
         val holderModulePath = configuration.projectPath.resolve(holderModuleName).toCanonicalPath()
         val holderModuleData = ModuleData(holderModuleId, GradleConstants.SYSTEM_ID, "", holderModuleName, "", holderModulePath)
         val holderModuleNode = projectNode.createChild(ProjectKeys.MODULE, holderModuleData)
         repeat(configuration.numSourceSetModules) { sourceSetModuleIndex ->
-          val sourceSetModuleName = "$holderModuleName.source-set-$sourceSetModuleIndex"
-          val sourceSetModuleId = "$holderModuleId:source-set-$sourceSetModuleIndex"
+          val sourceSetModuleName = GradleTestModuleNames.sourceSetModuleName(holderModuleIndex, sourceSetModuleIndex)
+          val sourceSetModuleId = GradleTestModuleNames.sourceSetModuleId(holderModuleIndex, sourceSetModuleIndex)
           val sourceSetModuleData = GradleSourceSetData(sourceSetModuleId, sourceSetModuleId, sourceSetModuleName, "", holderModulePath)
           holderModuleNode.createChild(GradleSourceSetData.KEY, sourceSetModuleData)
         }

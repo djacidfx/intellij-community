@@ -6,7 +6,7 @@ import org.jetbrains.plugins.gradle.model.DefaultExternalProject
 import org.jetbrains.plugins.gradle.model.DefaultExternalSourceSet
 import org.jetbrains.plugins.gradle.model.ExternalProject
 
-internal class GradleTestExternalProject {
+class GradleTestExternalProject {
 
   var numHolderModules: Int = 1
   var numSourceSetModules: Int = 1
@@ -21,7 +21,7 @@ internal class GradleTestExternalProject {
           val sourceSets = buildMap {
             repeat(configuration.numSourceSetModules) { sourceSetIndex ->
               val sourceSet = DefaultExternalSourceSet().also {
-                it.name = "source-set-$sourceSetIndex"
+                it.name = GradleTestModuleNames.sourceSetName(sourceSetIndex)
                 it.compilerArguments = emptyList()
               }
               put(sourceSet.name, sourceSet)
@@ -31,8 +31,8 @@ internal class GradleTestExternalProject {
             it.sourceSets = sourceSets
           }
           val projectModel = DefaultExternalProject().also {
-            it.name = "module-$holderModuleIndex"
-            it.identityPath = ":module-$holderModuleIndex"
+            it.name = GradleTestModuleNames.holderModuleName(holderModuleIndex)
+            it.identityPath = GradleTestModuleNames.holderModuleId(holderModuleIndex)
             it.sourceSetModel = sourceSetModel
           }
           add(projectModel)
