@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
 package org.jetbrains.kotlin.idea.k2.refactoring.introduce.introduceVariable;
 
@@ -950,6 +950,31 @@ public abstract class K2IntroduceVariableTestGenerated extends AbstractK2Introdu
         @TestMetadata("IntroduceLambdaAndCreateBlock2.kt")
         public void testIntroduceLambdaAndCreateBlock2() throws Exception {
             runTest("../../idea/tests/testData/refactoring/introduceVariable/IntroduceLambdaAndCreateBlock2.kt");
+        }
+
+        @TestMetadata("IntroduceNameBasedDestructuringDeclarationNameMismatch.kt")
+        public void testIntroduceNameBasedDestructuringDeclarationNameMismatch() throws Exception {
+            runTest("../../idea/tests/testData/refactoring/introduceVariable/IntroduceNameBasedDestructuringDeclarationNameMismatch.kt");
+        }
+
+        @TestMetadata("IntroduceNameBasedDestructuringDeclarationOnlySyntax.kt")
+        public void testIntroduceNameBasedDestructuringDeclarationOnlySyntax() throws Exception {
+            runTest("../../idea/tests/testData/refactoring/introduceVariable/IntroduceNameBasedDestructuringDeclarationOnlySyntax.kt");
+        }
+
+        @TestMetadata("IntroduceNameBasedDestructuringDeclarationOnlySyntax2.kt")
+        public void testIntroduceNameBasedDestructuringDeclarationOnlySyntax2() throws Exception {
+            runTest("../../idea/tests/testData/refactoring/introduceVariable/IntroduceNameBasedDestructuringDeclarationOnlySyntax2.kt");
+        }
+
+        @TestMetadata("IntroducePositionBasedDestructuringDeclarationComplete.kt")
+        public void testIntroducePositionBasedDestructuringDeclarationComplete() throws Exception {
+            runTest("../../idea/tests/testData/refactoring/introduceVariable/IntroducePositionBasedDestructuringDeclarationComplete.kt");
+        }
+
+        @TestMetadata("IntroducePositionBasedDestructuringDeclarationOnlySyntax.kt")
+        public void testIntroducePositionBasedDestructuringDeclarationOnlySyntax() throws Exception {
+            runTest("../../idea/tests/testData/refactoring/introduceVariable/IntroducePositionBasedDestructuringDeclarationOnlySyntax.kt");
         }
 
         @TestMetadata("introduceToClass.kt")
