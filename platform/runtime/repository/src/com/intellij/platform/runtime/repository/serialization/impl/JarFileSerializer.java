@@ -103,8 +103,10 @@ public final class JarFileSerializer {
     try (JarOutputStream jarOutput = new JarOutputStream(new BufferedOutputStream(Files.newOutputStream(jarFile)), manifest)) {
       XMLOutputFactory factory = XMLOutputFactory.newDefaultFactory();
       for (RawRuntimeModuleDescriptor descriptor : descriptors) {
-        String name = descriptor.getModuleId().getName();
-        jarOutput.putNextEntry(new JarEntry(name + ".xml"));
+        String moduleName = descriptor.getModuleId().getName();
+        String namespace = descriptor.getModuleId().getNamespace();
+        String fileName = namespace.equals(RuntimeModuleId.DEFAULT_NAMESPACE) ? moduleName : moduleName + "_" + namespace;
+        jarOutput.putNextEntry(new JarEntry(fileName + ".xml"));
         PrintWriter output = new PrintWriter(jarOutput, false, StandardCharsets.UTF_8);
         ModuleXmlSerializer.writeModuleXml(descriptor, output, factory);
         jarOutput.closeEntry();

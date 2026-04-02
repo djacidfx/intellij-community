@@ -61,7 +61,7 @@ class JarRepositorySerializationTest {
             </dependencies>
           </module>
         """.trimIndent())
-      xml("ij.platform.util.rt.xml", """
+      xml("ij.platform.util.rt_custom.xml", """
           <module name="ij.platform.util.rt" namespace="custom" visibility="public">
             <resources>
               <resource-root path="ij-util-rt.jar"/>
@@ -85,7 +85,7 @@ class JarRepositorySerializationTest {
             </resources>
           </module>
         """.trimIndent())
-      xml("bar.xml", $$"""
+      xml($$"bar_$legacy_jps_module.xml", $$"""
           <module name="bar" namespace="$legacy_jps_module" visibility="public">
             <dependencies>
               <module name="foo"/>
