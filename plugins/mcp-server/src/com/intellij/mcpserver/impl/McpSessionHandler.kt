@@ -574,7 +574,7 @@ private fun McpTool.toSdkTool(): Tool {
   }
   else null
   val tool = Tool(name = descriptor.name,
-                  title = null,
+                  title = descriptor.title,
                   description = descriptor.description,
                   inputSchema = ToolSchema(
                     properties = descriptor.inputSchema.propertiesSchema,
