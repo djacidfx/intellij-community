@@ -264,7 +264,7 @@ private inline fun amendAttributes(attributes: FileAttributes, file: () -> Path)
   for (provider in LocalFileSystemTimestampEvaluator.EP_NAME.extensionList) {
     val customTS = provider.getTimestamp(file())
     if (customTS != null) {
-      return attributes.withTimeStamp(customTS)
+      return attributes.withLastModified(customTS)
     }
   }
   return attributes
