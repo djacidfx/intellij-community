@@ -192,17 +192,15 @@ public class SelfElementInfo extends SmartPointerElementInfo {
   }
 
   private static @Nullable VirtualFile restoreVFile(@NotNull VirtualFile virtualFile) {
-    VirtualFile child;
     if (virtualFile.isValid()) {
-      child = virtualFile;
+      return virtualFile;
     }
-    else {
-      VirtualFile vParent = virtualFile.getParent();
-      if (vParent == null || !vParent.isValid()) return null;
-      String name = virtualFile.getName();
-      child = vParent.findChild(name);
-    }
-    return child;
+
+    VirtualFile vParent = virtualFile.getParent();
+    if (vParent == null || !vParent.isValid()) return null;
+
+    String name = virtualFile.getName();
+    return vParent.findChild(name);
   }
 
   @Override
