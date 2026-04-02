@@ -8,6 +8,7 @@ import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiMethod
+import com.intellij.psi.PsiModifierListOwner
 import com.intellij.psi.util.PsiTypesUtil
 import com.intellij.util.SmartList
 import org.jetbrains.annotations.ApiStatus
@@ -113,14 +114,14 @@ class SplitModeApiUsageInspection : DevKitUastInspectionBase(UClass::class.java,
     isOnTheFly: Boolean,
     descriptors: MutableList<ProblemDescriptor>,
   ) {
-    val qualifiedName = getResolvedFqn(expression) ?: return
-    val expectedModuleKind = restrictionsService.getCodeApiKind(qualifiedName) ?: return
+    val resolvedApi = resolveApiUsage(expression) ?: return
+    val expectedModuleKind = restrictionsService.getCodeApiKind(resolvedApi.qualifiedName, resolvedApi.owner) ?: return
 
     if (!doesApiKindMatchExpectedModuleKind(currentModuleType, expectedModuleKind)) {
       val sourcePsi = expression.sourcePsi ?: return
       val message = DevKitBundle.message(
         "inspection.api.usage.restricted.to.module.type.default.message",
-        qualifiedName,
+        resolvedApi.qualifiedName,
         expectedModuleKind.presentableName
       )
 
@@ -133,6 +134,29 @@ class SplitModeApiUsageInspection : DevKitUastInspectionBase(UClass::class.java,
           ProblemHighlightType.WEAK_WARNING
         )
       )
+    }
+  }
+
+  private fun resolveApiUsage(expression: UExpression): ResolvedApiUsage? {
+    val qualifiedName = getResolvedFqn(expression) ?: return null
+    return ResolvedApiUsage(qualifiedName, getResolvedApiOwner(expression))
+  }
+
+  private fun getResolvedApiOwner(expression: UExpression): PsiModifierListOwner? {
+    return when (expression) {
+      is UCallExpression -> {
+        val resolved = expression.resolve()
+        resolved as? PsiModifierListOwner ?: PsiTypesUtil.getPsiClass(expression.returnType)
+      }
+
+      is UQualifiedReferenceExpression -> {
+        val resolved = expression.resolve()
+        resolved as? PsiModifierListOwner ?: PsiTypesUtil.getPsiClass(expression.getExpressionType())
+      }
+
+      is USimpleNameReferenceExpression -> expression.resolve() as? PsiModifierListOwner
+      is UTypeReferenceExpression -> PsiTypesUtil.getPsiClass(expression.type)
+      else -> null
     }
   }
 
@@ -151,25 +175,30 @@ class SplitModeApiUsageInspection : DevKitUastInspectionBase(UClass::class.java,
           }
         }
       }
+
       is UQualifiedReferenceExpression -> {
         val resolved = expression.resolve()
         when (resolved) {
           is PsiClass -> {
             resolved.qualifiedName
           }
+
           is PsiMethod -> {
             val uMethod = resolved.toUElementOfType<UMethod>() ?: return null
             val containingClass = uMethod.getContainingUClass() ?: return null
             "${containingClass.qualifiedName}.${uMethod.name}"
           }
+
           null -> {
             null
           }
+
           else -> {
             PsiTypesUtil.getPsiClass(expression.getExpressionType())?.qualifiedName
           }
         }
       }
+
       is USimpleNameReferenceExpression -> {
         val resolved = expression.resolve()
         when (resolved) {
@@ -177,10 +206,17 @@ class SplitModeApiUsageInspection : DevKitUastInspectionBase(UClass::class.java,
           else -> null
         }
       }
+
       is UTypeReferenceExpression -> {
         expression.getQualifiedName()
       }
+
       else -> null
     }
   }
+
+  private data class ResolvedApiUsage(
+    val qualifiedName: String,
+    val owner: PsiModifierListOwner?,
+  )
 }

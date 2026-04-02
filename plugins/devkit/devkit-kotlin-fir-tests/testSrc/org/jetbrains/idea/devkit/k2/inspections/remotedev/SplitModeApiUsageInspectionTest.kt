@@ -30,13 +30,16 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
     PsiTestUtil.addResourceContentToRoots(module, myFixture.tempDirFixture.findOrCreateDir("resources"), false)
 
     // Frontend API: com.intellij.openapi.wm.ToolWindowFactory
-    myFixture.addClass("""
+    myFixture.addClass(
+      """
       package com.intellij.openapi.wm;
             
       public interface ToolWindowFactory {}
-    """.trimIndent())
+    """.trimIndent()
+    )
 
-    myFixture.addClass("""
+    myFixture.addClass(
+      """
       package com.intellij.openapi.fileEditor;
             
       public interface FileEditorManager {
@@ -46,22 +49,28 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
         
         void getFocusedEditor();
       }
-    """.trimIndent())
+    """.trimIndent()
+    )
 
-    myFixture.addClass("""
+    myFixture.addClass(
+      """
       package com.intellij.openapi.wm;
       
       public interface ToolWindow {}
-    """.trimIndent())
+    """.trimIndent()
+    )
 
-    myFixture.addClass("""
+    myFixture.addClass(
+      """
       package com.intellij.openapi.project;
       
       public interface Project {}
-    """.trimIndent())
+    """.trimIndent()
+    )
 
     // Backend API: com.intellij.openapi.vfs.VirtualFileManager
-    myFixture.addClass("""
+    myFixture.addClass(
+      """
       package com.intellij.openapi.vfs;
       
       public abstract class VirtualFileManager {
@@ -71,13 +80,46 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
         
         public abstract VirtualFile findFileByUrl(String url);
       }
-    """.trimIndent())
+    """.trimIndent()
+    )
 
-    myFixture.addClass("""
+    myFixture.addClass(
+      """
       package com.intellij.openapi.vfs;
       
       public interface VirtualFile {}
-    """.trimIndent())
+    """.trimIndent()
+    )
+
+    myFixture.addClass(
+      """
+      package com.example.annotated;
+
+      import com.intellij.util.remdev.BackendApi;
+
+      @BackendApi
+      public final class AnnotatedBackendApi {
+        public static AnnotatedBackendApi getInstance() {
+          return null;
+        }
+      }
+    """.trimIndent()
+    )
+
+    myFixture.addClass(
+      """
+      package com.example.annotated;
+
+      import com.intellij.util.remdev.FrontendApi;
+
+      @FrontendApi
+      public final class AnnotatedFrontendApi {
+        public static AnnotatedFrontendApi getInstance() {
+          return null;
+        }
+      }
+    """.trimIndent()
+    )
 
     myFixture.enableInspections(SplitModeApiUsageInspection())
   }
@@ -91,15 +133,18 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
   }
 
   fun testFrontendApiInBackendModule() {
-    configurePluginXml("""
+    configurePluginXml(
+      """
       <idea-plugin>
         <dependencies>
           <module name="intellij.platform.backend"/>
         </dependencies>
       </idea-plugin>
-    """.trimIndent())
+    """.trimIndent()
+    )
 
-    myFixture.configureByText("BackendService.kt", """
+    myFixture.configureByText(
+      "BackendService.kt", """
       package com.example.backend
       
       import com.intellij.openapi.wm.ToolWindowFactory
@@ -118,20 +163,24 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
           <weak_warning descr="'com.intellij.openapi.fileEditor.FileEditorManager.getFocusedEditor' can only be used in 'frontend' module type">FileEditorManager.getInstance().getFocusedEditor()</weak_warning>
         }
       }
-    """.trimIndent())
+    """.trimIndent()
+    )
     myFixture.checkHighlighting()
   }
 
   fun testBackendApiInFrontendModule() {
-    configurePluginXml("""
+    configurePluginXml(
+      """
       <idea-plugin>
         <dependencies>
           <module name="intellij.platform.frontend"/>
         </dependencies>
       </idea-plugin>
-    """.trimIndent())
+    """.trimIndent()
+    )
 
-    myFixture.configureByText("FrontendService.kt", """
+    myFixture.configureByText(
+      "FrontendService.kt", """
       package com.example.frontend
       
       import com.intellij.openapi.wm.ToolWindowFactory
@@ -147,21 +196,25 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
           <weak_warning descr="'com.intellij.openapi.vfs.VirtualFileManager' can only be used in 'backend' module type">VirtualFileManager</weak_warning>.getInstance()
         }
       }
-    """.trimIndent())
+    """.trimIndent()
+    )
 
     myFixture.checkHighlighting()
   }
 
   fun testBackendApiInFrontendContentModule() {
-    configureContentModuleXml("""
+    configureContentModuleXml(
+      """
       <idea-plugin>
         <dependencies>
           <module name="intellij.platform.frontend"/>
         </dependencies>
       </idea-plugin>
-    """.trimIndent())
+    """.trimIndent()
+    )
 
-    myFixture.configureByText("FrontendService.kt", """
+    myFixture.configureByText(
+      "FrontendService.kt", """
       package com.example.frontend
       
       import com.intellij.openapi.wm.ToolWindowFactory
@@ -177,22 +230,82 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
           <weak_warning descr="'com.intellij.openapi.vfs.VirtualFileManager' can only be used in 'backend' module type">VirtualFileManager</weak_warning>.getInstance()
         }
       }
-    """.trimIndent())
+    """.trimIndent()
+    )
+
+    myFixture.checkHighlighting()
+  }
+
+  fun testAnnotatedBackendApiInFrontendModule() {
+    configurePluginXml(
+      """
+      <idea-plugin>
+        <dependencies>
+          <module name="intellij.platform.frontend"/>
+        </dependencies>
+      </idea-plugin>
+    """.trimIndent()
+    )
+
+    myFixture.configureByText(
+      "FrontendService.kt", """
+      package com.example.frontend
+      
+      import com.example.annotated.AnnotatedBackendApi
+      
+      class FrontendService {
+        fun doStuff() {
+          <weak_warning descr="'com.example.annotated.AnnotatedBackendApi' can only be used in 'backend' module type">AnnotatedBackendApi.getInstance()</weak_warning>
+        }
+      }
+    """.trimIndent()
+    )
+
+    myFixture.checkHighlighting()
+  }
+
+  fun testAnnotatedFrontendApiInBackendModule() {
+    configurePluginXml(
+      """
+      <idea-plugin>
+        <dependencies>
+          <module name="intellij.platform.backend"/>
+        </dependencies>
+      </idea-plugin>
+    """.trimIndent()
+    )
+
+    myFixture.configureByText(
+      "BackendService.kt", """
+      package com.example.backend
+      
+      import com.example.annotated.AnnotatedFrontendApi
+      
+      class BackendService {
+        fun doStuff() {
+          <weak_warning descr="'com.example.annotated.AnnotatedFrontendApi' can only be used in 'frontend' module type">AnnotatedFrontendApi.getInstance()</weak_warning>
+        }
+      }
+    """.trimIndent()
+    )
 
     myFixture.checkHighlighting()
   }
 
 
   fun testWarningsInSharedModule() {
-    configurePluginXml("""
+    configurePluginXml(
+      """
       <idea-plugin>
         <dependencies>
           <module name="intellij.platform.core"/>
         </dependencies>
       </idea-plugin>
-    """.trimIndent())
+    """.trimIndent()
+    )
 
-    myFixture.configureByText("SharedService.kt", """
+    myFixture.configureByText(
+      "SharedService.kt", """
       package com.example.shared
       
       import com.intellij.openapi.wm.ToolWindowFactory
@@ -208,7 +321,8 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
           <weak_warning descr="'com.intellij.openapi.vfs.VirtualFileManager' can only be used in 'backend' module type">VirtualFileManager</weak_warning>.getInstance()
         }
       }
-    """.trimIndent())
+    """.trimIndent()
+    )
 
     myFixture.checkHighlighting()
   }

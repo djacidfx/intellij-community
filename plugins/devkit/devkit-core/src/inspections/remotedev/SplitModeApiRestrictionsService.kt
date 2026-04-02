@@ -7,6 +7,8 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.ProjectManager
+import com.intellij.psi.PsiMember
+import com.intellij.psi.PsiModifierListOwner
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -25,6 +27,8 @@ class SplitModeApiRestrictionsService(private val coroutineScope: CoroutineScope
     private val LOG: Logger = logger<SplitModeApiRestrictionsService>()
     private const val API_RESTRICTIONS_FILE_PATH = "/inspectionData/ApiRestrictions.json"
     private const val DEPENDENCY_RESTRICTIONS_FILE_PATH = "/inspectionData/DependencyRestrictions.json"
+    private const val BACKEND_API_ANNOTATION = "com.intellij.util.remdev.BackendApi"
+    private const val FRONTEND_API_ANNOTATION = "com.intellij.util.remdev.FrontendApi"
 
     @JvmStatic
     fun getInstance(): SplitModeApiRestrictionsService = service()
@@ -59,8 +63,8 @@ class SplitModeApiRestrictionsService(private val coroutineScope: CoroutineScope
     return loadingState.get() == LoadingState.COMPLETED
   }
 
-  fun getCodeApiKind(apiName: String): ModuleKind? {
-    return codeRestrictionsRef.get()[apiName]
+  fun getCodeApiKind(apiName: String, apiOwner: PsiModifierListOwner?): ModuleKind? {
+    return getAnnotatedApiKind(apiOwner) ?: codeRestrictionsRef.get()[apiName]
   }
 
   fun getExtensionPointKind(extensionPointName: String): ModuleKind? {
@@ -137,6 +141,24 @@ class SplitModeApiRestrictionsService(private val coroutineScope: CoroutineScope
     return data.withModuleKinds().associate { (moduleKind, restriction) ->
       restriction.dependencyName to moduleKind
     }
+  }
+
+  private fun getAnnotatedApiKind(apiOwner: PsiModifierListOwner?): ModuleKind? {
+    var currentOwner = apiOwner
+    while (currentOwner != null) {
+      val isFrontendApi = currentOwner.hasAnnotation(FRONTEND_API_ANNOTATION)
+      val isBackendApi = currentOwner.hasAnnotation(BACKEND_API_ANNOTATION)
+      when {
+        isFrontendApi && isBackendApi -> {
+          LOG.warn("Both $FRONTEND_API_ANNOTATION and $BACKEND_API_ANNOTATION are present on $currentOwner")
+          return null
+        }
+        isFrontendApi -> return ModuleKind.FRONTEND
+        isBackendApi -> return ModuleKind.BACKEND
+      }
+      currentOwner = (currentOwner as? PsiMember)?.containingClass
+    }
+    return null
   }
 
   private fun <T> RestrictionsData<T>.withModuleKinds(): Sequence<Pair<ModuleKind, T>> {

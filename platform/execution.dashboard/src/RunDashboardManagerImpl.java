@@ -55,6 +55,7 @@ import com.intellij.ui.content.Content;
 import com.intellij.util.SmartList;
 import com.intellij.util.containers.ContainerUtil;
 import com.intellij.util.messages.MessageBusConnection;
+import com.intellij.util.remdev.BackendApi;
 import kotlinx.coroutines.CoroutineScope;
 import kotlinx.coroutines.flow.Flow;
 import org.jetbrains.annotations.NotNull;
@@ -82,6 +83,7 @@ import static com.intellij.platform.kernel.ids.BackendGlobalIdsKt.storeValueGlob
 // fixme might want to save the state on backend machine
 @Service(Service.Level.PROJECT)
 @State(name = "RunDashboard", storages = @Storage(StoragePathMacros.WORKSPACE_FILE))
+@BackendApi
 public final class RunDashboardManagerImpl implements RunDashboardManager, PersistentStateComponent<RunDashboardManagerImpl.State> {
   public static RunDashboardManagerImpl getInstance(Project project) {
     return project.getService(RunDashboardManagerImpl.class);
