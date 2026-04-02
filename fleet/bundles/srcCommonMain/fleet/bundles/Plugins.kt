@@ -24,16 +24,66 @@ sealed class VersionRequirement {
   data class Above(override val version: PluginVersion) : VersionRequirement()
 }
 
+sealed class UnifiedVersionComponent {
+  abstract val stringRepresentation: String
+
+  data class Number(val value: Int) : UnifiedVersionComponent() {
+    override val stringRepresentation: String = value.toString()
+  }
+
+  data object Snapshot : UnifiedVersionComponent() {
+    override val stringRepresentation: String = SNAPSHOT
+
+    /**
+     * Integer value of a SNAPSHOT component, the numeric value depends on in which position is this SNAPSHOT component, that position in
+     * the original version string must be provided by [componentIndex].
+     */
+    fun valueForIndex(componentIndex: Int): Int = when (componentIndex) {
+      1 -> CompatibilityUtils.MAX_FLEET_BUILD_VALUE
+      2 -> CompatibilityUtils.MAX_COMPONENT_VALUE - 1
+      else -> throw IllegalArgumentException("Invalid component index for '$SNAPSHOT': $componentIndex")
+    }
+  }
+
+  companion object {
+    private const val SNAPSHOT = "SNAPSHOT"
+
+    fun fromString(s: String?): UnifiedVersionComponent? = when (s) {
+      null -> null
+      SNAPSHOT -> Snapshot
+      else -> when (val i = s.toIntOrNull()) {
+        null -> throw IllegalArgumentException("Cannot parse `$s` as UnifiedVersionComponent, it must be an integer or 'SNAPSHOT'")
+        else -> Number(i)
+      }
+    }
+  }
+}
+
 @Serializable(with = PluginVersionSerializer::class)
 data class PluginVersion(
-  private val components: List<Int>,
-  private val isSnapshot: Boolean,
+  val component0: UnifiedVersionComponent.Number,
+  val component1: UnifiedVersionComponent,
+  val component2: UnifiedVersionComponent?,
 ) : Comparable<PluginVersion> {
-  val major: Int = components[0] // for backward compatibility with code reasoning in terms of "major"
-  val minor: Int = when { // for backward compatibility with code reasoning in terms of "minor"
-    components.size >= 2 -> components[1]
-    isSnapshot -> CompatibilityUtils.SNAPSHOT_VALUE
-    else -> throw IllegalArgumentException("internal error, components cannot have a single value and not be a snapshot version")
+  val isSnapshot: Boolean = component2 is UnifiedVersionComponent.Snapshot || component1 is UnifiedVersionComponent.Snapshot
+
+  private val components: List<UnifiedVersionComponent> by lazy {
+    listOfNotNull(component0, component1, component2)
+  }
+
+  private val componentValues: List<Int> by lazy {
+    listOfNotNull(
+      component0.value,
+      when (component1) {
+        is UnifiedVersionComponent.Number -> component1.value
+        UnifiedVersionComponent.Snapshot -> UnifiedVersionComponent.Snapshot.valueForIndex(1)
+      },
+      when (component2) {
+        null -> null
+        is UnifiedVersionComponent.Number -> component2.value
+        UnifiedVersionComponent.Snapshot -> UnifiedVersionComponent.Snapshot.valueForIndex(2)
+      },
+    )
   }
 
   companion object {
@@ -41,37 +91,38 @@ data class PluginVersion(
      * Build numbering of AIR and next products of the Fleet platform, using https://youtrack.jetbrains.com/articles/IJPL-A-109
      */
     fun fromString(s: String): PluginVersion {
-      val split = s.split(".", limit = 3)
-      val intComponents = split.mapIndexed { index, c ->
-        when (c) {
-          SNAPSHOT -> when (index) {
-            split.size - 1 -> UnifiedVersionComponent.Snapshot
-            else -> throw IllegalArgumentException("Cannot parse `$s` as PluginVersion, SNAPSHOT must be the last component")
-          }
-          else -> when (val v = c.toIntOrNull()) {
-            null -> throw IllegalArgumentException("Cannot parse `$s` as PluginVersion, component at index $index is not an integer")
-            else -> {
-              require(index != 1 || v < CompatibilityUtils.MAX_BUILD_VALUE) { "Cannot parse `$s` as PluginVersion, second component cannot be greater than ${CompatibilityUtils.MAX_BUILD_VALUE}" }
-              require(index != 2 || v < CompatibilityUtils.MAX_COMPONENT_VALUE) { "Cannot parse `$s` as PluginVersion, third component be greater than ${CompatibilityUtils.MAX_COMPONENT_VALUE}" }
-              UnifiedVersionComponent.IntComponent(v)
-            }
-          }
-        }
+      val components = s.split(".")
+      require(components.size == 2 || components.size == 3) {
+        "Cannot parse `$s` as PluginVersion, must be either X.Y or X.Y.Z"
       }
-      require(intComponents.size in 2..3) { "Cannot parse `$s` as PluginVersion, does not conform to either X.Y or X.Y.Z, where X, Y and Z are integers or 'SNAPSHOT'" }
-
+      val component0 = UnifiedVersionComponent.fromString(components[0])
+      require(component0 != null) {
+        "Cannot parse `$s` as PluginVersion, component 1 must be an integer"
+      }
+      require(component0 is UnifiedVersionComponent.Number) {
+        "Cannot parse `$s` as PluginVersion, component 1 must be an integer, it cannot be SNAPSHOT"
+      }
+      val component1 = UnifiedVersionComponent.fromString(components[1])
+      require(component1 != null) {
+        "Cannot parse `$s` as PluginVersion, component 2 must be an integer or 'SNAPSHOT'"
+      }
+      val component2 = UnifiedVersionComponent.fromString(components.getOrNull(2))
+      require(component2 == null || component1 !is UnifiedVersionComponent.Snapshot) {
+        "Cannot parse `$s` as PluginVersion, component 2 cannot be SNAPSHOT if a component 3 is specified"
+      }
+      require(component1 !is UnifiedVersionComponent.Number || component1.value < CompatibilityUtils.MAX_FLEET_BUILD_VALUE) {
+        "Cannot parse `$s` as PluginVersion, component 2 cannot be greater than ${CompatibilityUtils.MAX_FLEET_BUILD_VALUE}"
+      }
+      require(component2 == null || component2 !is UnifiedVersionComponent.Number || component2.value < CompatibilityUtils.MAX_COMPONENT_VALUE) {
+        "Cannot parse `$s` as PluginVersion, component 3 cannot be greater than ${CompatibilityUtils.MAX_COMPONENT_VALUE}"
+      }
       return PluginVersion(
-        components = intComponents.filterIsInstance<UnifiedVersionComponent.IntComponent>().map { it.value },
-        isSnapshot = intComponents.last() is UnifiedVersionComponent.Snapshot,
+        component0 = component0,
+        component1 = component1,
+        component2 = component2,
       )
     }
 
-    private const val SNAPSHOT = "SNAPSHOT"
-
-    private sealed class UnifiedVersionComponent {
-      data class IntComponent(val value: Int) : UnifiedVersionComponent()
-      data object Snapshot : UnifiedVersionComponent()
-    }
   }
 
   val presentableText: String get() = versionString
@@ -79,35 +130,27 @@ data class PluginVersion(
   /**
    * String representation of this [PluginVersion] for Marketplace compatibility range fields of the plugin descriptor's JSON
    */
-  val marketplaceCompatibilityRangeVersionString: String
-    get() = when (components.size) {
-      3 -> components
-      2 if isSnapshot -> components.plus(CompatibilityUtils.MAX_COMPONENT_VALUE - 1)
-      2 -> components.plus(0)
-      1 if isSnapshot -> components.plus(@Suppress("DEPRECATION") CompatibilityUtils.MAX_FLEET_BUILD_VALUE)
-        .plus(CompatibilityUtils.MAX_COMPONENT_VALUE - 1)
-
-      else -> throw IllegalArgumentException("internal error 'components' must have either 2 or 3 components, as a plugin version must be either XXX.YYY or XXX.YYY.ZZZ")
-    }.joinToString(".")
-
-  val versionString: String
-    get() = when {
-      isSnapshot -> components.plus(SNAPSHOT)
-      else -> components
-    }.joinToString(".")
-
-  override fun compareTo(other: PluginVersion): Int = toLongForComparison().compareTo(other.toLongForComparison())
-
-  private fun toLongForComparison(): Long {
-    val componentForComparaison = when {
-      isSnapshot -> components.plus(CompatibilityUtils.SNAPSHOT_VALUE)
-      else -> components
+  /**
+   * String representation of this [PluginVersion] for Marketplace compatibility range fields of the plugin descriptor's JSON
+   */
+  val marketplaceCompatibilityRangeVersionString: String = when (component2) {
+    null -> {
+      val mandatoryPatchComponent = when (component1) {
+        is UnifiedVersionComponent.Number -> 0
+        UnifiedVersionComponent.Snapshot -> UnifiedVersionComponent.Snapshot.valueForIndex(2)
+      }
+      "${componentValues.joinToString(".")}.${mandatoryPatchComponent}"
     }
-    return CompatibilityUtils.versionAsLong(componentForComparaison.toIntArray())
+    else -> componentValues.joinToString(".")
   }
 
+  val versionString: String
+    get() = components.joinToString(".") { it.stringRepresentation }
+
+  override fun compareTo(other: PluginVersion): Int = toLong().compareTo(other.toLong())
+
   // should be in sync with https://github.com/JetBrains/intellij-plugin-verifier/blob/6a04cd7c94eb806877e26a093378eaf2b85e0d73/intellij-plugin-structure/structure-fleet/src/main/kotlin/com/jetbrains/plugin/structure/fleet/FleetPluginDescriptor.kt#L146
-  fun toLong(): Long = CompatibilityUtils.versionAsLong(components.toIntArray())
+  fun toLong(): Long = CompatibilityUtils.versionAsLong(componentValues.toIntArray())
 }
 
 /**
@@ -247,7 +290,7 @@ data class PluginSet(
 )
 
 private object CompatibilityUtils {
-  @Deprecated(message = "Must be removed once Marketplace stops validating on that minor number")
+  @Deprecated(message = "Must be replaced by `MAX_BUILD_VALUE` once Marketplace stops validating on that minor number")
   const val MAX_FLEET_BUILD_VALUE = 8191
   const val MAX_BUILD_VALUE = 100000
   const val MAX_COMPONENT_VALUE = 10000
