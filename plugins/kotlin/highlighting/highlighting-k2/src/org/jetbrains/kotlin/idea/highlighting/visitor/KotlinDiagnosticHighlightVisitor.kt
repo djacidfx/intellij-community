@@ -107,6 +107,7 @@ internal class KotlinDiagnosticHighlightVisitor : HighlightVisitor, HighlightRan
         val analysis = file.collectDiagnostics(KaDiagnosticCheckerFilter.ONLY_COMMON_CHECKERS)
         val filteredAnalysisResult = analysis
             .filterOutCodeFragmentVisibilityErrors(file)
+            .filterOutUnusedExpressionWarnings()
 
         val builders = filteredAnalysisResult
             .map { diagnostic ->
@@ -197,6 +198,15 @@ internal class KotlinDiagnosticHighlightVisitor : HighlightVisitor, HighlightRan
         return filterNot { diagnostic ->
             diagnostic.diagnosticClass == KaFirDiagnostic.InvisibleReference::class
                     || diagnostic.diagnosticClass == KaFirDiagnostic.InvisibleSetter::class
+        }
+    }
+
+    private fun <PSI : PsiElement> Collection<KaDiagnosticWithPsi<PSI>>.filterOutUnusedExpressionWarnings(): Collection<KaDiagnosticWithPsi<PSI>> {
+        // Remove unused expression diagnostics as they already exist as inspections.
+        // TODO(KTIJ-38323): remove this filter entirely once inspection is converted to quickfix.
+        return filterNot { diagnostic ->
+            diagnostic.diagnosticClass == KaFirDiagnostic.UnusedExpression::class
+                    || diagnostic.diagnosticClass == KaFirDiagnostic.UnusedLambdaExpression::class
         }
     }
 
