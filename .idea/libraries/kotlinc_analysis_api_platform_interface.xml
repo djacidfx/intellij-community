@@ -1,11 +1,18 @@
 <component name="libraryTable">
-  <library name="kotlinc.analysis-api-platform-interface">
+  <library name="kotlinc.analysis-api-platform-interface" type="repository">
+    <properties include-transitive-deps="false" maven-id="org.jetbrains.kotlin:analysis-api-platform-interface-for-ide:2.4.0-dev-8806">
+      <verification>
+        <artifact url="file://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/analysis-api-platform-interface-for-ide/2.4.0-dev-8806/analysis-api-platform-interface-for-ide-2.4.0-dev-8806.jar">
+          <sha256sum>75789cc34c90eefc0f5cac285aa083ed8d619bafec7c24932f2cf936b73cc309</sha256sum>
+        </artifact>
+      </verification>
+    </properties>
     <CLASSES>
-      <root url="jar://$PROJECT_DIR$/lib/kotlin-snapshot/org/jetbrains/kotlin/analysis-api-platform-interface-for-ide/2.4.255-dev-255/analysis-api-platform-interface-for-ide-2.4.255-dev-255.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/analysis-api-platform-interface-for-ide/2.4.0-dev-8806/analysis-api-platform-interface-for-ide-2.4.0-dev-8806.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES>
-      <root url="jar://$PROJECT_DIR$/lib/kotlin-snapshot/org/jetbrains/kotlin/analysis-api-platform-interface-for-ide/2.4.255-dev-255/analysis-api-platform-interface-for-ide-2.4.255-dev-255-sources.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/analysis-api-platform-interface-for-ide/2.4.0-dev-8806/analysis-api-platform-interface-for-ide-2.4.0-dev-8806-sources.jar!/" />
     </SOURCES>
   </library>
 </component>
