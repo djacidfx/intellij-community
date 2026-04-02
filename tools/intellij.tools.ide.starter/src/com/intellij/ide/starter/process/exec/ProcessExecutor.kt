@@ -14,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.runInterruptible
@@ -256,7 +257,8 @@ class ProcessExecutor(
     finally {
       if (!processFinished) {
         logOutput("   ... terminating process `$presentableName` because of scope cancellation or failed attempt to do it in the timeout hook ...")
-        killProcess(gracefully = false)
+        val gracefully = !currentCoroutineContext().isActive
+        killProcess(gracefully = gracefully)
       }
 
       try {
