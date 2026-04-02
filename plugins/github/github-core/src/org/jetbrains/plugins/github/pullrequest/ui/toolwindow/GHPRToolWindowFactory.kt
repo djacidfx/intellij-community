@@ -90,7 +90,7 @@ private class GHPRToolWindowController(private val project: Project, parentCs: C
             withContext(Dispatchers.EDT) {
               toolWindow.setIcon(
                 if (it == null || !it) GithubIcons.PullRequestsToolWindow
-                else IconManager.getInstance().withIconBadge(GithubIcons.PullRequestsToolWindow, JBColor {
+                else IconManager.getInstance().withIconBadge(GithubIcons.PullRequestsToolWindow, JBColor.lazy {
                   if (toolWindow.isActive) focusColor else JBUI.CurrentTheme.IconBadge.INFORMATION
                 }))
             }
