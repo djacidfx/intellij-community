@@ -8,6 +8,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.WriteAction;
 import com.intellij.openapi.diagnostic.DefaultLogger;
 import com.intellij.openapi.util.SystemInfo;
+import com.intellij.openapi.util.ThrowableComputable;
 import com.intellij.openapi.util.io.FileAttributes;
 import com.intellij.openapi.util.io.FileAttributes.CaseSensitivity;
 import com.intellij.openapi.util.io.FileSystemUtil;
@@ -40,6 +41,7 @@ import com.intellij.openapi.vfs.newvfs.impl.VirtualDirectoryImpl;
 import com.intellij.openapi.vfs.newvfs.impl.VirtualFileSystemEntry;
 import com.intellij.openapi.vfs.newvfs.persistent.PersistentFS;
 import com.intellij.openapi.vfs.newvfs.persistent.PersistentFSImpl;
+import com.intellij.openapi.vfs.newvfs.persistent.executor.AsyncFileContentWriteRequestor;
 import com.intellij.testFramework.PerformanceUnitTest;
 import com.intellij.testFramework.PlatformTestUtil;
 import com.intellij.testFramework.TestLoggerKt;
@@ -57,6 +59,7 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -75,6 +78,7 @@ import java.util.function.Function;
 
 import static com.intellij.testFramework.EdtTestUtil.runInEdtAndWait;
 import static com.intellij.util.io.DirectoryContentSpecKt.jarFile;
+import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -127,6 +131,41 @@ public class LocalFileSystemTest extends BareTestFixtureTestCase {
   @After
   public void tearDown() {
     myFS = null;
+  }
+
+  @Test
+  public void fileSystem_behavesAsIfUpdatesAppliedSynchronously_regardlessOfSynchronousOrAsynchronousImplementationUnderneath() throws IOException {
+    VirtualFile file = tempDir.newVirtualFile("testFile.tst", "initial content".getBytes(US_ASCII));
+    var asyncAllowingRequestor = new AsyncFileContentWriteRequestor() {};
+    int enoughAttempts = 100_000;
+    ApplicationManager.getApplication().runWriteAction((ThrowableComputable<Void, IOException>)() -> {
+      for (int i = 0; i < enoughAttempts; i++) {
+        byte[] newContent = ("new content: " + "a".repeat(i)).getBytes(US_ASCII);
+        try (OutputStream stream = file.getOutputStream(asyncAllowingRequestor)) {
+          stream.write(newContent);
+        }
+
+        //Regardless of LocalFileSystem implementation being synchronous or asynchronous, for outside observer
+        // they both must look as-if content is actually changed right after new content is written (outputStream
+        // is closed):
+
+        long lengthViaFs = myFS.getLength(file);
+        assertEquals("FS.getLength(file) must return content.length immediately after content update is finished",
+                     newContent.length,
+                     lengthViaFs
+        );
+
+        assertEquals("VirtualFile.timestamp must be == underlying FS.timestamp after file content update is finished",
+                     file.getTimeStamp(),
+                     myFS.getTimeStamp(file)
+        );
+        assertEquals("VirtualFile.length must be == underlying FS.length after file content update is finished",
+                     file.getLength(),
+                     lengthViaFs
+        );
+      }
+      return null;
+    });
   }
 
   @Test
@@ -403,7 +442,7 @@ public class LocalFileSystemTest extends BareTestFixtureTestCase {
       settings.setUseSafeWrite(false);
 
       var targetFile = tempDir.newFileNio("targetFile");
-      var hardLinkFile =tempDir.getRootPath().resolve("hardLinkFile");
+      var hardLinkFile = tempDir.getRootPath().resolve("hardLinkFile");
       Files.createLink(hardLinkFile, targetFile);
 
       var file = myFS.refreshAndFindFileByNioFile(targetFile);
