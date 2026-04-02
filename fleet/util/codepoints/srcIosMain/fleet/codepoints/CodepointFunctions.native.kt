@@ -21,5 +21,6 @@ import fleet.util.multiplatform.Actual
 @Actual internal fun isUnicodeIdentifierPartNative(codepoint: Int): Boolean = MultiplatformCodepoints.isUnicodeIdentifierPart(codepoint)
 @Actual internal fun isJavaIdentifierStartNative(codepoint: Int): Boolean = MultiplatformCodepoints.isJavaIdentifierStart(codepoint)
 @Actual internal fun isJavaIdentifierPartNative(codepoint: Int): Boolean = MultiplatformCodepoints.isJavaIdentifierPart(codepoint)
-@Actual internal fun isISOControlNative(codepoint: Int): Boolean = MultiplatformCodepoints.isISOControl(codepoint)
+@Actual internal fun isIsoControlNative(codepoint: Int): Boolean = MultiplatformCodepoints.isISOControl(codepoint)
+@Actual internal fun isPrivateUseNative(codepoint: Int): Boolean = MultiplatformCodepoints.isPrivateUse(codepoint)
 @Actual internal fun getUnicodeScriptNative(codepoint: Int): UnicodeScript = MultiplatformCodepoints.getUnicodeScript(codepoint)
