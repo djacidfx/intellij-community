@@ -86,7 +86,7 @@ class ApiRestrictionsService(private val coroutineScope: CoroutineScope) {
         val apiRestrictionsData = loadRestrictionsData<ApiRestriction>(API_RESTRICTIONS_FILE_PATH)
         val dependencyRestrictionsData = loadRestrictionsData<DependencyRestriction>(DEPENDENCY_RESTRICTIONS_FILE_PATH)
 
-        buildApiRestrictionsLookup(apiRestrictionsData) to buildRestrictionsMap(dependencyRestrictionsData) { listOf(it.dependencyName) }
+        buildApiRestrictionsLookup(apiRestrictionsData) to buildDependencyRestrictionsLookup(dependencyRestrictionsData)
       }
 
       codeRestrictionsRef.set(apiRestrictions.codeRestrictions)
@@ -121,33 +121,29 @@ class ApiRestrictionsService(private val coroutineScope: CoroutineScope) {
   }
 
   private fun buildApiRestrictionsLookup(data: RestrictionsData<ApiRestriction>): RestrictionsLookup {
-    val codeRestrictions = buildRestrictionsMap(data) { listOf(it.apiName) }
-    val extensionPointRestrictions = buildRestrictionsMap(data) { it.extensionPointNames }
-    return RestrictionsLookup(codeRestrictions, extensionPointRestrictions)
-  }
-
-  private fun <T> buildRestrictionsMap(
-    data: RestrictionsData<T>,
-    namesProvider: (T) -> Collection<String>,
-  ): Map<String, ModuleKind> {
-    val restrictions = mutableMapOf<String, ModuleKind>()
-    appendRestrictions(data.frontend, ModuleKind.FRONTEND, restrictions, namesProvider)
-    appendRestrictions(data.backend, ModuleKind.BACKEND, restrictions, namesProvider)
-    appendRestrictions(data.shared, ModuleKind.SHARED, restrictions, namesProvider)
-    return restrictions
-  }
-
-  private fun <T> appendRestrictions(
-    entries: List<T>,
-    moduleKind: ModuleKind,
-    restrictions: MutableMap<String, ModuleKind>,
-    namesProvider: (T) -> Collection<String>,
-  ) {
-    entries.forEach { entry ->
-      namesProvider(entry).forEach { name ->
-        restrictions[name] = moduleKind
-      }
+    val rawRestrictionsByModuleKind = data.withModuleKinds()
+    val codeRestrictions = rawRestrictionsByModuleKind.associate { (moduleKind, restriction) ->
+      restriction.apiName to moduleKind
     }
+    val extensionPointRestrictions = rawRestrictionsByModuleKind
+      .flatMap { (moduleKind, restriction) ->
+        restriction.extensionPointNames.asSequence().map { it to moduleKind }
+      }.toMap()
+    return RestrictionsLookup(codeRestrictions = codeRestrictions, extensionPointRestrictions = extensionPointRestrictions)
+  }
+
+  private fun buildDependencyRestrictionsLookup(data: RestrictionsData<DependencyRestriction>): Map<String, ModuleKind> {
+    return data.withModuleKinds().associate { (moduleKind, restriction) ->
+      restriction.dependencyName to moduleKind
+    }
+  }
+
+  private fun <T> RestrictionsData<T>.withModuleKinds(): Sequence<Pair<ModuleKind, T>> {
+    return sequenceOf(
+      frontend.asSequence().map { ModuleKind.FRONTEND to it },
+      backend.asSequence().map { ModuleKind.BACKEND to it },
+      shared.asSequence().map { ModuleKind.SHARED to it },
+    ).flatten()
   }
 
   private data class RestrictionsLookup(
