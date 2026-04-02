@@ -12373,6 +12373,11 @@ public abstract class K2IntentionTestGenerated extends AbstractK2IntentionTest {
             runTest("../../../idea/tests/testData/intentions/branched/doubleBangToIfThen/localVar.kt");
         }
 
+        @TestMetadata("notApplicableToIncrement.kt")
+        public void testNotApplicableToIncrement() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/branched/doubleBangToIfThen/notApplicableToIncrement.kt");
+        }
+
         @TestMetadata("replaceParentExpression.kt")
         public void testReplaceParentExpression() throws Exception {
             runTest("../../../idea/tests/testData/intentions/branched/doubleBangToIfThen/replaceParentExpression.kt");

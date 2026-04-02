@@ -81,7 +81,7 @@ internal class GitWorktreeListParser(private val executable: GitExecutable, priv
     }
     else {
       val convertedPath = executable.convertFilePathBack(path, currentRoot)
-      _trees.add(GitWorkingTree(path, branch, main, convertedPath == currentRoot, locked, prunable))
+      _trees.add(GitWorkingTree(convertedPath.toString(), branch, main, convertedPath == currentRoot, locked, prunable))
     }
     currentWorktreePath = null
     branchFullName = null

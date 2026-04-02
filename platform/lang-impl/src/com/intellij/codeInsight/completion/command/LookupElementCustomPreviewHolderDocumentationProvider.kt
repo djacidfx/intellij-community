@@ -409,10 +409,10 @@ internal fun installLookupIntentionPreviewListener(lookup: LookupImpl) {
   val previewHandler =
     LookupPreviewHandler(
       project, lookup,
-      Function { element ->
+      Function { element: Any? ->
         return@Function element as? LookupElement
       },
-      Function { element ->
+      Function { element: LookupElement? ->
         val commandElement = getLookupElementCustomPreviewHolder(element)
         commandElement?.preview(ActionContext.from(lookup.editor, file)) ?: IntentionPreviewInfo.EMPTY
       }
@@ -450,7 +450,7 @@ internal fun installLookupIntentionPreviewListener(lookup: LookupImpl) {
   })
 }
 
-public fun getLookupElementCustomPreviewHolder(element: LookupElement?): LookupElementCustomPreviewHolder? {
+fun getLookupElementCustomPreviewHolder(element: LookupElement?): LookupElementCustomPreviewHolder? {
   if (element is CompletionItemLookupElement) {
     return element.item() as? LookupElementCustomPreviewHolder
   }

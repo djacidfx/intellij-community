@@ -2560,6 +2560,11 @@ public abstract class K1IntentionTestGenerated extends AbstractK1IntentionTest {
                 runTest("testData/intentions/branched/doubleBangToIfThen/localVar.kt");
             }
 
+            @TestMetadata("notApplicableToIncrement.kt")
+            public void testNotApplicableToIncrement() throws Exception {
+                runTest("testData/intentions/branched/doubleBangToIfThen/notApplicableToIncrement.kt");
+            }
+
             @TestMetadata("replaceParentExpression.kt")
             public void testReplaceParentExpression() throws Exception {
                 runTest("testData/intentions/branched/doubleBangToIfThen/replaceParentExpression.kt");
