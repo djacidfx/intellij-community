@@ -8,6 +8,7 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.FoldingModelEx
+import com.intellij.openapi.project.IndexNotReadyException
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.SmartPointerManager
 import java.util.IdentityHashMap
@@ -99,14 +100,23 @@ class MinimapModel(private val editor: Editor): Disposable {
 
     val structureMarkerPolicy = MinimapStructureMarkerPolicy.forEditor(editor)
 
-    MinimapStructureMarkerCollector(
-      structureMarkerPolicy = structureMarkerPolicy,
-      previousByElement = previousByElement,
-      reusedStructureMarkers = reusedStructureMarkers,
-      result = result,
-      document = document,
-      pointerManager = pointerManager,
-    ).visit(root, includeSelf = false)
+    try {
+      MinimapStructureMarkerCollector(
+        structureMarkerPolicy = structureMarkerPolicy,
+        previousByElement = previousByElement,
+        reusedStructureMarkers = reusedStructureMarkers,
+        result = result,
+        document = document,
+        pointerManager = pointerManager,
+      ).visit(root, includeSelf = false)
+    }
+    catch (_: IndexNotReadyException) {
+      return
+    }
+    catch (e: IllegalStateException) {
+      if (e.message?.contains("Index is not created for `Stubs`") == true) return
+      throw e
+    }
 
     val unused = previousStructureMarkers.filterNot { reusedStructureMarkers.containsKey(it) }
     disposeStructureMarkers(unused)
