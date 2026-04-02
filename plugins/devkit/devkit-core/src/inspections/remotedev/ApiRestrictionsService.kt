@@ -23,7 +23,8 @@ class ApiRestrictionsService(private val coroutineScope: CoroutineScope) {
 
   companion object {
     private val LOG: Logger = logger<ApiRestrictionsService>()
-    private const val RESTRICTIONS_FILE_PATH = "/inspectionData/ApiRestrictions.json"
+    private const val API_RESTRICTIONS_FILE_PATH = "/inspectionData/ApiRestrictions.json"
+    private const val DEPENDENCY_RESTRICTIONS_FILE_PATH = "/inspectionData/DependencyRestrictions.json"
 
     @JvmStatic
     fun getInstance(): ApiRestrictionsService = service()
@@ -46,6 +47,7 @@ class ApiRestrictionsService(private val coroutineScope: CoroutineScope) {
   private val loadingState = AtomicReference<LoadingState>(LoadingState.NOT_STARTED)
   private val codeRestrictionsRef = AtomicReference<Map<String, ModuleKind>>(emptyMap())
   private val extensionPointRestrictionsRef = AtomicReference<Map<String, ModuleKind>>(emptyMap())
+  private val dependencyRestrictionsRef = AtomicReference<Map<String, ModuleKind>>(emptyMap())
 
   private val json = Json {
     ignoreUnknownKeys = true
@@ -64,6 +66,10 @@ class ApiRestrictionsService(private val coroutineScope: CoroutineScope) {
     return extensionPointRestrictionsRef.get()[extensionPointName]
   }
 
+  fun getDependencyKind(dependencyName: String): ModuleKind? {
+    return dependencyRestrictionsRef.get()[dependencyName]
+  }
+
   fun scheduleLoadRestrictions() {
     if (loadingState.compareAndSet(LoadingState.NOT_STARTED, LoadingState.IN_PROGRESS)) {
       coroutineScope.launch {
@@ -74,25 +80,24 @@ class ApiRestrictionsService(private val coroutineScope: CoroutineScope) {
 
   private suspend fun loadRestrictions() {
     try {
-      LOG.info("Loading API restrictions from $RESTRICTIONS_FILE_PATH")
+      LOG.info("Loading API restrictions from $API_RESTRICTIONS_FILE_PATH and dependency restrictions from $DEPENDENCY_RESTRICTIONS_FILE_PATH")
 
-      val restrictions = withContext(Dispatchers.IO) {
-        val inputStream = ApiRestrictionsService::class.java.getResourceAsStream(RESTRICTIONS_FILE_PATH)
-        if (inputStream == null) {
-          LOG.warn("API restrictions file not found: $RESTRICTIONS_FILE_PATH")
-          return@withContext RestrictionsLookup(emptyMap(), emptyMap())
-        }
+      val (apiRestrictions, dependencyRestrictions) = withContext(Dispatchers.IO) {
+        val apiRestrictionsData = loadRestrictionsData<ApiRestriction>(API_RESTRICTIONS_FILE_PATH)
+        val dependencyRestrictionsData = loadRestrictionsData<DependencyRestriction>(DEPENDENCY_RESTRICTIONS_FILE_PATH)
 
-        val jsonText = inputStream.bufferedReader().use { it.readText() }
-        val data = json.decodeFromString<ApiRestrictionsData>(jsonText)
-
-        buildRestrictionsLookup(data)
+        buildApiRestrictionsLookup(apiRestrictionsData) to buildRestrictionsMap(dependencyRestrictionsData) { listOf(it.dependencyName) }
       }
 
-      codeRestrictionsRef.set(restrictions.codeRestrictions)
-      extensionPointRestrictionsRef.set(restrictions.extensionPointRestrictions)
+      codeRestrictionsRef.set(apiRestrictions.codeRestrictions)
+      extensionPointRestrictionsRef.set(apiRestrictions.extensionPointRestrictions)
+      dependencyRestrictionsRef.set(dependencyRestrictions)
 
-      LOG.info("Loaded ${restrictions.codeRestrictions.size} API restrictions and ${restrictions.extensionPointRestrictions.size} extension point restrictions")
+      LOG.info(
+        "Loaded ${apiRestrictions.codeRestrictions.size} API restrictions, " +
+        "${apiRestrictions.extensionPointRestrictions.size} extension point restrictions, " +
+        "and ${dependencyRestrictions.size} dependency restrictions"
+      )
       loadingState.set(LoadingState.COMPLETED)
 
       restartCodeAnalyzer()
@@ -104,27 +109,43 @@ class ApiRestrictionsService(private val coroutineScope: CoroutineScope) {
     }
   }
 
-  private fun buildRestrictionsLookup(data: ApiRestrictionsData): RestrictionsLookup {
-    val codeRestrictions = mutableMapOf<String, ModuleKind>()
-    val extensionPointRestrictions = mutableMapOf<String, ModuleKind>()
+  private inline fun <reified T> loadRestrictionsData(filePath: String): RestrictionsData<T> {
+    val inputStream = ApiRestrictionsService::class.java.getResourceAsStream(filePath)
+    if (inputStream == null) {
+      LOG.warn("Restrictions file not found: $filePath")
+      return RestrictionsData()
+    }
 
-    appendRestrictions(data.frontend, ModuleKind.FRONTEND, codeRestrictions, extensionPointRestrictions)
-    appendRestrictions(data.backend, ModuleKind.BACKEND, codeRestrictions, extensionPointRestrictions)
-    appendRestrictions(data.shared, ModuleKind.SHARED, codeRestrictions, extensionPointRestrictions)
+    val jsonText = inputStream.bufferedReader().use { it.readText() }
+    return json.decodeFromString(jsonText)
+  }
 
+  private fun buildApiRestrictionsLookup(data: RestrictionsData<ApiRestriction>): RestrictionsLookup {
+    val codeRestrictions = buildRestrictionsMap(data) { listOf(it.apiName) }
+    val extensionPointRestrictions = buildRestrictionsMap(data) { it.extensionPointNames }
     return RestrictionsLookup(codeRestrictions, extensionPointRestrictions)
   }
 
-  private fun appendRestrictions(
-    entries: List<ApiRestriction>,
+  private fun <T> buildRestrictionsMap(
+    data: RestrictionsData<T>,
+    namesProvider: (T) -> Collection<String>,
+  ): Map<String, ModuleKind> {
+    val restrictions = mutableMapOf<String, ModuleKind>()
+    appendRestrictions(data.frontend, ModuleKind.FRONTEND, restrictions, namesProvider)
+    appendRestrictions(data.backend, ModuleKind.BACKEND, restrictions, namesProvider)
+    appendRestrictions(data.shared, ModuleKind.SHARED, restrictions, namesProvider)
+    return restrictions
+  }
+
+  private fun <T> appendRestrictions(
+    entries: List<T>,
     moduleKind: ModuleKind,
-    codeRestrictions: MutableMap<String, ModuleKind>,
-    extensionPointRestrictions: MutableMap<String, ModuleKind>,
+    restrictions: MutableMap<String, ModuleKind>,
+    namesProvider: (T) -> Collection<String>,
   ) {
     entries.forEach { entry ->
-      codeRestrictions[entry.apiName] = moduleKind
-      entry.extensionPointNames.forEach { extensionPointName ->
-        extensionPointRestrictions[extensionPointName] = moduleKind
+      namesProvider(entry).forEach { name ->
+        restrictions[name] = moduleKind
       }
     }
   }
@@ -150,15 +171,15 @@ class ApiRestrictionsService(private val coroutineScope: CoroutineScope) {
   }
 
   @Serializable
-  private data class ApiRestrictionsData(
+  private data class RestrictionsData<T>(
     @SerialName("frontend")
-    val frontend: List<ApiRestriction> = emptyList(),
+    val frontend: List<T> = emptyList(),
 
     @SerialName("backend")
-    val backend: List<ApiRestriction> = emptyList(),
+    val backend: List<T> = emptyList(),
 
     @SerialName("shared")
-    val shared: List<ApiRestriction> = emptyList(),
+    val shared: List<T> = emptyList(),
   )
 
   @Serializable
@@ -168,5 +189,11 @@ class ApiRestrictionsService(private val coroutineScope: CoroutineScope) {
 
     @SerialName("extensionPointNames")
     val extensionPointNames: List<String> = emptyList(),
+  )
+
+  @Serializable
+  private data class DependencyRestriction(
+    @SerialName("dependencyName")
+    val dependencyName: String,
   )
 }

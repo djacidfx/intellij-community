@@ -164,6 +164,12 @@
     <localInspection language="XML" applyToDialects="false"
                      projectType="INTELLIJ_PLUGIN"
                      groupPathKey="inspections.group.path" groupKey="inspections.group.descriptor"
+                     enabledByDefault="true" level="ERROR"
+                     implementationClass="org.jetbrains.idea.devkit.inspections.remotedev.FrontendBackendMixedDependenciesInspection"
+                     key="inspection.remote.dev.mixed.dependencies.display.name"/>
+    <localInspection language="XML" applyToDialects="false"
+                     projectType="INTELLIJ_PLUGIN"
+                     groupPathKey="inspections.group.path" groupKey="inspections.group.descriptor"
                      enabledByDefault="true" level="WARNING"
                      implementationClass="org.jetbrains.idea.devkit.inspections.PluginXmlDynamicPluginInspection"
                      key="inspection.plugin.xml.dynamic.plugin.display.name"/>
@@ -745,8 +751,6 @@
     <console.folding order="first" implementation="org.jetbrains.idea.devkit.run.FailedTestDebugLogConsoleFolding"/>
 
     <applicationService serviceImplementation="org.jetbrains.idea.devkit.actions.updateFromSources.UpdateFromSourcesSettings"/>
-    <applicationService serviceImplementation="org.jetbrains.idea.devkit.inspections.remotedev.ApiRestrictionsService"/>
-
     <projectService serviceImplementation="org.jetbrains.idea.devkit.run.JUnitDevKitUnitTestingSettings"
                     configurationSchemaKey="unitTesting"/>
 
