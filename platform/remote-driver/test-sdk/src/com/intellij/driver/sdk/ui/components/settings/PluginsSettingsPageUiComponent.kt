@@ -89,6 +89,7 @@ class PluginsSettingsPageUiComponent(data: ComponentData) : UiComponent(data) {
   fun openInstalledTab(): PluginsSettingsPageUiComponent {
     step("Go to the Installed tab") {
       installedTab.click()
+      waitLoaded()
     }
     return this
   }
