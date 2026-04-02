@@ -36,6 +36,13 @@ internal object FrontendBackendModuleKindResolver {
     }
   }
 
+  fun isModuleAllowed(actualKind: ApiRestrictionsService.ModuleKind, expectedKind: ApiRestrictionsService.ModuleKind): Boolean {
+    return when {
+      expectedKind == ApiRestrictionsService.ModuleKind.SHARED || actualKind == ApiRestrictionsService.ModuleKind.SHARED -> true
+      else -> expectedKind.id == actualKind.id
+    }
+  }
+
   private fun computeModuleType(file: PsiFile): ApiRestrictionsService.ModuleKind {
     val module = ModuleUtilCore.findModuleForFile(file) ?: return ApiRestrictionsService.ModuleKind.SHARED
 

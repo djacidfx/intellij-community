@@ -8,6 +8,7 @@ import org.jetbrains.idea.devkit.DevKitBundle
 import org.jetbrains.idea.devkit.dom.Extension
 import org.jetbrains.idea.devkit.dom.Extensions
 import org.jetbrains.idea.devkit.inspections.DevKitPluginXmlInspectionBase
+import org.jetbrains.idea.devkit.inspections.remotedev.FrontendBackendModuleKindResolver.isModuleAllowed
 
 internal class FrontendBackendExtensionPointUsageInspection : DevKitPluginXmlInspectionBase() {
   private val restrictionsService = ApiRestrictionsService.getInstance()
@@ -51,16 +52,5 @@ internal class FrontendBackendExtensionPointUsageInspection : DevKitPluginXmlIns
 
     val extensions = element.getParentOfType(Extensions::class.java, true) ?: return null
     return extensions.epPrefix + element.xmlElementName
-  }
-
-  private fun isModuleAllowed(
-    actualKind: ApiRestrictionsService.ModuleKind,
-    expectedKind: ApiRestrictionsService.ModuleKind,
-  ): Boolean {
-    return when {
-      expectedKind == ApiRestrictionsService.ModuleKind.SHARED -> true
-      actualKind == ApiRestrictionsService.ModuleKind.SHARED -> false
-      else -> expectedKind.id == actualKind.id
-    }
   }
 }

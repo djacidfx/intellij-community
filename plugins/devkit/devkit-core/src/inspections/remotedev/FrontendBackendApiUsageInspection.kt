@@ -16,6 +16,7 @@ import org.jetbrains.annotations.NotNull
 import org.jetbrains.annotations.VisibleForTesting
 import org.jetbrains.idea.devkit.DevKitBundle
 import org.jetbrains.idea.devkit.inspections.DevKitUastInspectionBase
+import org.jetbrains.idea.devkit.inspections.remotedev.FrontendBackendModuleKindResolver.isModuleAllowed
 import org.jetbrains.uast.UCallExpression
 import org.jetbrains.uast.UClass
 import org.jetbrains.uast.UElement
@@ -187,12 +188,4 @@ class FrontendBackendApiUsageInspection : DevKitUastInspectionBase(UClass::class
   private fun getOrComputeModuleType(element: PsiElement): ApiRestrictionsService.ModuleKind {
     return FrontendBackendModuleKindResolver.getOrComputeModuleType(element)
   }
-
-  private fun isModuleAllowed(actualKind: ApiRestrictionsService.ModuleKind, expectedKind: ApiRestrictionsService.ModuleKind): Boolean {
-    return when {
-      expectedKind == ApiRestrictionsService.ModuleKind.SHARED || actualKind == ApiRestrictionsService.ModuleKind.SHARED -> true
-      else -> expectedKind.id == actualKind.id
-    }
-  }
-
 }
