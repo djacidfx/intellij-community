@@ -220,20 +220,27 @@ private class AffixOffsets(
   }
 
   fun expandRangeToAffixes(start: Int, end: Int, fragments: List<TextRange>): ProperTextRange? {
-    var start = start
-    var end = end
-    if (startAffixIndex >= 0) {
-      val fragment = if (startAffixIndex < fragments.size) fragments[startAffixIndex] else null
-      if (fragment == null || startAffixOffset > fragment.length) return null
-      TextRange.assertProperRange(fragment)
-      start = fragment.startOffset + startAffixOffset
-    }
-    if (endAffixIndex >= 0) {
-      val fragment = if (endAffixIndex < fragments.size) fragments[endAffixIndex] else null
-      if (fragment == null || endAffixOffset > fragment.length) return null
-      TextRange.assertProperRange(fragment)
-      end = fragment.startOffset + endAffixOffset
-    }
-    return ProperTextRange.create(start, end)
+    return ProperTextRange.create(
+      shiftOffsetOrDefault(fragments, startAffixIndex, startAffixOffset, start) ?: return null,
+      shiftOffsetOrDefault(fragments, endAffixIndex, endAffixOffset, end) ?: return null
+    )
   }
+}
+
+private fun shiftOffsetOrDefault(fragments: List<TextRange>, fragmentIndex: Int, offset: Int, defaultOffset: Int): Int? {
+  if (fragmentIndex < 0) {
+    return defaultOffset
+  }
+
+  if (fragmentIndex >= fragments.size) {
+    return null
+  }
+
+  val fragment = fragments[fragmentIndex]
+  if (fragment.length < offset) {
+    return null
+  }
+
+  TextRange.assertProperRange(fragment)
+  return fragment.startOffset + offset
 }
