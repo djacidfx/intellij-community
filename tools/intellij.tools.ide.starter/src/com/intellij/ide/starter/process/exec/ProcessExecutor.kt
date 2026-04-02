@@ -255,7 +255,7 @@ class ProcessExecutor(
     }
     finally {
       if (!processFinished) {
-        logOutput("   ... terminating process `$presentableName` because of scope cancellation or failed attempt to do it in the timeou hook ...")
+        logOutput("   ... terminating process `$presentableName` because of scope cancellation or failed attempt to do it in the timeout hook ...")
         killProcess(gracefully = false)
       }
 
