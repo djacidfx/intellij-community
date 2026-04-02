@@ -33,11 +33,11 @@ object TracingConfigProperties {
   val ijPerfSpanPrefix: String? by lazy { fleetProperty("fleet.diagnostic.ijperf.span.prefix") }
 
   /**
-   * The set of checkpoint which application tracks and waits during the startup performance test.
-   * Empty set means no expecations.
+   * The set of checkpoints that application tracks and waits during the startup performance test.
+   * Empty set means no expectations.
    *
-   * Some expectation may turn on some custom behaviour for testing like typing in editor or opening a terminal.
-   * When all checkpoints reached, application will quit.
+   * Some expectations may turn on some custom behaviour for testing like typing in editor or opening a terminal.
+   * When all checkpoints are reached, the application will quit.
    *
    * fleet.frontend.reporting.Checkpoint#name is used for referencing a checkpoint
    */
