@@ -34,6 +34,8 @@ f:com.intellij.lexer.FuseMergingLexer
 - com.intellij.lexer.MergingLexerAdapterBase
 - <init>(com.intellij.lexer.Lexer,com.intellij.psi.tree.IElementType,com.intellij.psi.tree.TokenSet):V
 - getMergeFunction():com.intellij.lexer.MergeFunction
+c:com.intellij.mock.MockComponentManager
+- com.intellij.openapi.components.ComponentManagerEx
 com.intellij.openapi.application.ex.ApplicationEx
 - com.intellij.openapi.application.Application
 - sf:ELEVATE:I
