@@ -65,8 +65,6 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
 
   protected abstract val defaultDependencies: Map<String, String>
 
-  protected open val defaultConfigurators: List<PolySymbolsTestConfigurator> = emptyList()
-
   protected open val dirModeByDefault: Boolean = false
 
   val testName: String get() = getTestName(true)
@@ -107,6 +105,11 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     }
   }
 
+  protected open fun adjustConfigurators(
+    configurators: List<PolySymbolsTestConfigurator>,
+  ): List<PolySymbolsTestConfigurator> =
+    configurators
+
   fun doConfiguredTest(
     fileContents: String? = null,
     dir: Boolean = dirModeByDefault,
@@ -114,7 +117,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     extension: String = defaultExtension,
     configureFile: Boolean = true,
     configureFileName: String = "$testName.$extension",
-    configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
+    configurators: List<PolySymbolsTestConfigurator> = emptyList(),
     additionalFiles: List<String> = emptyList(),
     checkResult: Boolean = false,
     goldFileName: String? = null,
@@ -141,7 +144,8 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
           configureByFiles(*additionalFiles.toTypedArray())
         }
 
-        configurators.forEach {
+        val adjustedConfigurators = adjustConfigurators(configurators)
+        adjustedConfigurators.forEach {
           it.configure(myFixture)
         }
         // After copying the files, some files might have been indexed with incorrect PolyContext,
@@ -169,7 +173,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
           }
         }
         val testConfiguration = TestConfiguration(
-          configurators
+          adjustedConfigurators
         )
         if (!editorConfigEnabled && configureCodeStyleSettings != null) {
           testWithTempCodeStyleSettings {
@@ -210,7 +214,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
             val results = myFixture.tempDirFixture.findOrCreateDir(".")
 
             // Trigger any advanced configurators
-            configurators.forEach { it.beforeDirectoryComparison(myFixture, results, rootAfter) }
+            adjustedConfigurators.forEach { it.beforeDirectoryComparison(myFixture, results, rootAfter) }
 
             // Set test data file path, so that comparison works
             val root = tempDirFixture.findOrCreateDir(".")
@@ -268,7 +272,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     extension: String = defaultExtension,
     configureFile: Boolean = true,
     configureFileName: String = "$testName.$extension",
-    configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
+    configurators: List<PolySymbolsTestConfigurator> = emptyList(),
     additionalFiles: List<String> = emptyList(),
     checkResult: Boolean = true,
     goldFileName: String? = null,
@@ -422,7 +426,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     extension: String = defaultExtension,
     configureFileName: String = "$testName.$extension",
     caretPosSignature: String? = null,
-    configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
+    configurators: List<PolySymbolsTestConfigurator> = emptyList(),
     additionalFiles: List<String> = emptyList(),
     editorConfigEnabled: Boolean = false,
     configureCodeStyleSettings: (CodeStyleSettings.() -> Unit)? = null,
@@ -484,7 +488,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     configureFileName: String = "$testName.$extension",
     goldFileName: String? = null,
     editorConfigEnabled: Boolean = false,
-    configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
+    configurators: List<PolySymbolsTestConfigurator> = emptyList(),
     additionalFiles: List<String> = emptyList(),
     configureCodeStyleSettings: CodeStyleSettings.() -> Unit = {},
   ) {
@@ -509,7 +513,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
   protected fun doFoldingTest(
     extension: String = defaultExtension,
     configureFileName: String = "$testName.$extension",
-    configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
+    configurators: List<PolySymbolsTestConfigurator> = emptyList(),
   ) {
     doConfiguredTest(extension = extension, checkResult = false, configureFile = false, configurators = configurators) {
       testFolding("$testDataPath/$configureFileName")
@@ -521,7 +525,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     dirName: String = testName,
     extension: String = defaultExtension,
     configureFileName: String = "$testName.$extension",
-    configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
+    configurators: List<PolySymbolsTestConfigurator> = emptyList(),
     additionalFiles: List<String> = emptyList(),
     inspections: Collection<Class<out LocalInspectionTool>> = emptyList(),
     checkSymbolNames: Boolean = false,
@@ -579,7 +583,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     extension: String = defaultExtension,
     configureFileName: String = "$testName.$extension",
     caretPosSignature: String? = null,
-    configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
+    configurators: List<PolySymbolsTestConfigurator> = emptyList(),
     additionalFiles: List<String> = emptyList(),
     goldFileName: String = if (dir) "$testName/param-info.html" else "$testName.param-info.html",
   ) {
@@ -612,7 +616,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     dirName: String = testName,
     extension: String = defaultExtension,
     configureFileName: String = "$testName.$extension",
-    configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
+    configurators: List<PolySymbolsTestConfigurator> = emptyList(),
     additionalFiles: List<String> = emptyList(),
   ) {
     doConfiguredTest(
@@ -636,7 +640,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     dirName: String = testName,
     extension: String = defaultExtension,
     configureFileName: String = "$testName.$extension",
-    configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
+    configurators: List<PolySymbolsTestConfigurator> = emptyList(),
     additionalFiles: List<String> = emptyList(),
   ) {
     doConfiguredTest(
@@ -661,7 +665,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     extension: String = defaultExtension,
     configureFileName: String = "$testName.$extension",
     caretPosSignature: String? = null,
-    configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
+    configurators: List<PolySymbolsTestConfigurator> = emptyList(),
     additionalFiles: List<String> = emptyList(),
   ) {
     doConfiguredTest(
@@ -683,7 +687,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     dirName: String = testName,
     extension: String = defaultExtension,
     fileName: String = "$testName.$extension",
-    configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
+    configurators: List<PolySymbolsTestConfigurator> = emptyList(),
     expectedFileName: String = "${testName}/usages.txt",
   ) {
     doConfiguredTest(dir = true, dirName = dirName, extension = extension, configureFileName = fileName, configurators = configurators) {
@@ -698,7 +702,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     extension: String = defaultExtension,
     configureFileName: String = "$testName.$extension",
     caretPosSignature: String? = null,
-    configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
+    configurators: List<PolySymbolsTestConfigurator> = emptyList(),
     additionalFiles: List<String> = emptyList(),
   ) {
     doConfiguredTest(
@@ -755,7 +759,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     dirName: String = testName,
     extension: String = defaultExtension,
     configureFileName: String = "$testName.$extension",
-    configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
+    configurators: List<PolySymbolsTestConfigurator> = emptyList(),
     additionalFiles: List<String> = emptyList(),
     editorConfigEnabled: Boolean = false,
     configureCodeStyleSettings: (CodeStyleSettings.() -> Unit)? = null,
@@ -784,7 +788,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     dir: Boolean = true,
     dirName: String = testName,
     goldFileName: String? = null,
-    configurators: List<PolySymbolsTestConfigurator> = defaultConfigurators,
+    configurators: List<PolySymbolsTestConfigurator> = emptyList(),
     additionalFiles: List<String> = emptyList(),
     editorConfigEnabled: Boolean = false,
     configureCodeStyleSettings: (CodeStyleSettings.() -> Unit)? = null,
