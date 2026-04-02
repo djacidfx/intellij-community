@@ -1,4 +1,4 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.execution.testframework;
 
 import com.intellij.execution.testframework.ui.AbstractTestTreeBuilderBase;
@@ -39,7 +39,7 @@ public interface TestFrameworkRunningModel extends Disposable {
           AbstractTestProxy t1 = testNodeDescriptor1.getElement();
           AbstractTestProxy t2 = testNodeDescriptor2.getElement();
           if (!TestConsoleProperties.SUITES_ALWAYS_ON_TOP.value(properties) || t1.isLeaf() == t2.isLeaf()) {
-            return Comparing.compare(t2.getDuration(), t1.getDuration());
+            return Comparing.compare(t2.getCustomizedDuration(properties), t1.getCustomizedDuration(properties));
           }
         }
         return 0;

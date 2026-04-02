@@ -1,11 +1,17 @@
-// Copyright 2000-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.execution.testframework.sm.runner;
 
 import com.intellij.execution.Location;
 import com.intellij.execution.PsiLocation;
+import com.intellij.execution.testframework.AbstractTestProxy;
 import com.intellij.execution.testframework.Filter;
 import com.intellij.execution.testframework.TestConsoleProperties;
+import com.intellij.execution.testframework.TestFrameworkRunningModel;
+import com.intellij.execution.testframework.TestTreeView;
 import com.intellij.execution.testframework.sm.runner.ui.MockPrinter;
+import com.intellij.execution.testframework.ui.AbstractTestTreeBuilderBase;
+import com.intellij.execution.testframework.ui.BaseTestProxyNodeDescriptor;
+import com.intellij.ide.util.treeView.NodeDescriptor;
 import com.intellij.openapi.application.WriteAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiDocumentManager;
@@ -18,6 +24,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import static com.intellij.execution.testframework.sm.runner.states.TestStateInfo.Magnitude;
@@ -1202,6 +1209,59 @@ public class SMTestProxyTest extends BaseSMTRunnerTestCase {
     assertTrue(test2.wasTerminated());
   }
 
+
+  public void testSortByDuration_usesCustomizedDuration() {
+    // dynamicTests1: getCustomizedDuration()=2200, getDuration() sum=200
+    SMTestProxy suite1 = new SMTestProxy("dynamicTests1", true, null) {
+      @Override
+      public @NotNull Long getCustomizedDuration(@NotNull TestConsoleProperties props) {
+        return 2200L;
+      }
+    };
+    createTestProxy("Test 1", suite1).setDuration(100L);
+    createTestProxy("Test 2", suite1).setDuration(100L);
+
+    // dynamicTests2: getCustomizedDuration()=1000, getDuration() sum=1000
+    SMTestProxy suite2 = new SMTestProxy("dynamicTests2", true, null) {
+      @Override
+      public @NotNull Long getCustomizedDuration(@NotNull TestConsoleProperties props) {
+        return 1000L;
+      }
+    };
+    createTestProxy("Test 1", suite2).setDuration(500L);
+    createTestProxy("Test 2", suite2).setDuration(500L);
+
+    // Sanity: raw getDuration() would incorrectly sort suite2 first (pre-fix behaviour)
+    assertEquals(200L, (long)suite1.getDuration());
+    assertEquals(1000L, (long)suite2.getDuration());
+
+    TestConsoleProperties properties = createConsoleProperties();
+    TestConsoleProperties.SORT_BY_DURATION.set(properties, true);
+
+    TestFrameworkRunningModel model = new TestFrameworkRunningModel() {
+      @Override public TestConsoleProperties getProperties() { return properties; }
+      @Override public void setFilter(@NotNull Filter<?> filter) {}
+      @Override public boolean isRunning() { return false; }
+      @Override public TestTreeView getTreeView() { return null; }
+      @Override public AbstractTestTreeBuilderBase<?> getTreeBuilder() { return null; }
+      @Override public boolean hasTestSuites() { return false; }
+      @Override public AbstractTestProxy getRoot() { return null; }
+      @Override public void selectAndNotify(AbstractTestProxy proxy) {}
+      @Override public void dispose() {}
+    };
+
+    SMTestProxy root = createSuiteProxy("root");
+    root.addChild(suite1);
+    root.addChild(suite2);
+    NodeDescriptor<?> parentDesc = new BaseTestProxyNodeDescriptor<>(getProject(), root, null);
+    BaseTestProxyNodeDescriptor<SMTestProxy> desc1 = new BaseTestProxyNodeDescriptor<>(getProject(), suite1, parentDesc);
+    BaseTestProxyNodeDescriptor<SMTestProxy> desc2 = new BaseTestProxyNodeDescriptor<>(getProject(), suite2, parentDesc);
+
+    Comparator<NodeDescriptor<?>> comparator = model.createComparator();
+
+    assertTrue("suite1 (wall=2200 ms) must sort before suite2 (wall=1000 ms)",
+               comparator.compare(desc1, desc2) < 0);
+  }
 
   private static void assertDisplayTimeEqualsToSumOfChildren(@NotNull SMTestProxy node) {
     List<? extends SMTestProxy> children = node.collectChildren(new Filter<>() {
