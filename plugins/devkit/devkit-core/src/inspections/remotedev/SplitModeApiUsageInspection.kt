@@ -32,7 +32,7 @@ import org.jetbrains.uast.visitor.AbstractUastVisitor
 
 @VisibleForTesting
 @ApiStatus.Internal
-class FrontendBackendApiUsageInspection : DevKitUastInspectionBase(UClass::class.java, UField::class.java, UMethod::class.java) {
+class SplitModeApiUsageInspection : DevKitUastInspectionBase(UClass::class.java, UField::class.java, UMethod::class.java) {
 
   private val restrictionsService = ApiRestrictionsService.getInstance()
 

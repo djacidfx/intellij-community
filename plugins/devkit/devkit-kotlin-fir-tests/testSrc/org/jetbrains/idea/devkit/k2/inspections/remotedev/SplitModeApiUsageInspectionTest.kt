@@ -6,13 +6,13 @@ import com.intellij.testFramework.common.timeoutRunBlocking
 import com.intellij.testFramework.common.waitUntil
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
 import org.jetbrains.idea.devkit.inspections.remotedev.ApiRestrictionsService
-import org.jetbrains.idea.devkit.inspections.remotedev.FrontendBackendApiUsageInspection
+import org.jetbrains.idea.devkit.inspections.remotedev.SplitModeApiUsageInspection
 import org.jetbrains.kotlin.idea.base.plugin.KotlinPluginMode
 import org.jetbrains.kotlin.idea.test.ExpectedPluginModeProvider
 import org.jetbrains.kotlin.idea.test.setUpWithKotlinPlugin
 import kotlin.time.Duration.Companion.seconds
 
-class FrontendBackendApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), ExpectedPluginModeProvider {
+class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), ExpectedPluginModeProvider {
 
   override val pluginMode: KotlinPluginMode = KotlinPluginMode.K1
 
@@ -79,7 +79,7 @@ class FrontendBackendApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCas
       public interface VirtualFile {}
     """.trimIndent())
 
-    myFixture.enableInspections(FrontendBackendApiUsageInspection())
+    myFixture.enableInspections(SplitModeApiUsageInspection())
   }
 
   private fun configurePluginXml(pluginXmlContent: String) {
@@ -183,7 +183,7 @@ class FrontendBackendApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCas
   }
 
 
-  fun testNoWarningsInSharedModule() {
+  fun testWarningsInSharedModule() {
     configurePluginXml("""
       <idea-plugin>
         <dependencies>
@@ -198,14 +198,14 @@ class FrontendBackendApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCas
       import com.intellij.openapi.wm.ToolWindowFactory
       import com.intellij.openapi.vfs.VirtualFileManager
       
-      // no warnings at all are expected
+      // both warnings are expected in a shared module
       class SharedService {
         fun testFrontendApi() {
-          class MyToolWindow: ToolWindowFactory {}
+          class MyToolWindow: <weak_warning descr="'com.intellij.openapi.wm.ToolWindowFactory' can only be used in 'frontend' module type">ToolWindowFactory</weak_warning> {}
         }
         
         fun testBackendApi() {
-          VirtualFileManager.getInstance()
+          <weak_warning descr="'com.intellij.openapi.vfs.VirtualFileManager' can only be used in 'backend' module type">VirtualFileManager</weak_warning>.getInstance()
         }
       }
     """.trimIndent())

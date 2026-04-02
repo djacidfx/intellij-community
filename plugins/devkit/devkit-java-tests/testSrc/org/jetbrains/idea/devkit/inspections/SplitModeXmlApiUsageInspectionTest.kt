@@ -6,10 +6,10 @@ import com.intellij.testFramework.common.timeoutRunBlocking
 import com.intellij.testFramework.common.waitUntil
 import com.intellij.testFramework.fixtures.JavaCodeInsightFixtureTestCase
 import org.jetbrains.idea.devkit.inspections.remotedev.ApiRestrictionsService
-import org.jetbrains.idea.devkit.inspections.remotedev.FrontendBackendExtensionPointUsageInspection
+import org.jetbrains.idea.devkit.inspections.remotedev.SplitModeXmlApiUsageInspection
 import kotlin.time.Duration.Companion.seconds
 
-internal class FrontendBackendExtensionPointUsageInspectionTest : JavaCodeInsightFixtureTestCase() {
+internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCase() {
   override fun setUp() {
     super.setUp()
 
@@ -20,7 +20,7 @@ internal class FrontendBackendExtensionPointUsageInspectionTest : JavaCodeInsigh
     }
 
     PsiTestUtil.addResourceContentToRoots(module, myFixture.tempDirFixture.findOrCreateDir("resources"), false)
-    myFixture.enableInspections(FrontendBackendExtensionPointUsageInspection())
+    myFixture.enableInspections(SplitModeXmlApiUsageInspection())
   }
 
   fun testFrontendExtensionInBackendModule() {

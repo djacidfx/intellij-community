@@ -10,7 +10,7 @@ import org.jetbrains.idea.devkit.dom.Extensions
 import org.jetbrains.idea.devkit.inspections.DevKitPluginXmlInspectionBase
 import org.jetbrains.idea.devkit.inspections.remotedev.FrontendBackendModuleKindResolver.doesApiKindMatchExpectedModuleKind
 
-internal class FrontendBackendExtensionPointUsageInspection : DevKitPluginXmlInspectionBase() {
+internal class SplitModeXmlApiUsageInspection : DevKitPluginXmlInspectionBase() {
   private val restrictionsService = ApiRestrictionsService.getInstance()
 
   override fun isAllowed(holder: DomElementAnnotationHolder): Boolean {

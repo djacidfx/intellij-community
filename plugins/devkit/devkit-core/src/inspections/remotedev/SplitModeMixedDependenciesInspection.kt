@@ -8,7 +8,7 @@ import org.jetbrains.idea.devkit.DevKitBundle
 import org.jetbrains.idea.devkit.dom.IdeaPlugin
 import org.jetbrains.idea.devkit.inspections.DevKitPluginXmlInspectionBase
 
-internal class FrontendBackendMixedDependenciesInspection : DevKitPluginXmlInspectionBase() {
+internal class SplitModeMixedDependenciesInspection : DevKitPluginXmlInspectionBase() {
   private val restrictionsService = ApiRestrictionsService.getInstance()
 
   override fun isAllowed(holder: DomElementAnnotationHolder): Boolean {
