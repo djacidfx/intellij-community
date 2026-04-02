@@ -22,7 +22,7 @@ import com.intellij.lang.Language
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.PlatformCoreDataKeys
 import com.intellij.openapi.actionSystem.UiDataProvider
-import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ApplicationManager.getApplication
 import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.EditorFactory
@@ -47,12 +47,17 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * @author Liudmila Kornilova
- **/
-class EditorCellViewer(private val project: Project,
-                       private val grid: DataGrid,
-                       editable: Boolean) : CellViewer {
-  private val editor: EditorEx = createEditor(editable)
+ * Default text-based [CellViewer] implementation used by the Value Editor tab.
+ *
+ * The "Editor" part of the name refers to the backing editor component ([EditorEx]).
+ */
+open class EditorCellViewer(
+  protected val project: Project,
+  protected val grid: DataGrid,
+  editable: Boolean,
+) : CellViewer {
+  protected val editor: EditorEx = createEditor(editable)
+  private var lastUpdatedCell: Pair<ModelIndex<GridRow>, ModelIndex<GridColumn>>? = null
   private val formattedModeHandler = FormattedModeHandler(grid, editor.document, project, this::disableUpdateListener)
   private val valueParserCache = ValueParserCache(grid)
   private val updateDocumentListener = object : DocumentListener {
@@ -128,6 +133,25 @@ class EditorCellViewer(private val project: Project,
     editor.document.addDocumentListener(updateDocumentListener)
   }
 
+  /** Updates editor text without triggering the [documentChanged] listener. */
+  protected fun updateEditorTextSilently(text: String) {
+    disableUpdateListener {
+      getApplication().runWriteAction {
+        editor.document.setText(text)
+        offset = editor.document.textLength
+      }
+    }
+  }
+
+  /** Clears the cached value parser (e.g., after language/mode change). */
+  protected fun clearValueParserCache() {
+    valueParserCache.clearCache()
+  }
+
+  protected fun getLastUpdatedCell(): Pair<ModelIndex<GridRow>, ModelIndex<GridColumn>>? {
+    return lastUpdatedCell
+  }
+
   override fun dispose() {
     if (!editor.isDisposed) {
       EditorFactory.getInstance().releaseEditor(editor)
@@ -173,13 +197,23 @@ class EditorCellViewer(private val project: Project,
   }
 
   private fun updateText(value: Any?, rowIdx: ModelIndex<GridRow>, columnIdx: ModelIndex<GridColumn>) {
+    lastUpdatedCell = rowIdx to columnIdx
     setText(value ?: ReservedCellValue.NULL, rowIdx, columnIdx)
-    val language = DefaultTextRendererFactory.getLanguage(grid, rowIdx, columnIdx, value)
-    val fragment = GridHelper.get(grid).createCellCodeFragment(editor.document.text, project, grid, rowIdx, columnIdx, value)
+    val (language, fragment) = resolveLanguageAndFragment(rowIdx, columnIdx, value)
     updateLanguage(language, fragment)
   }
 
-  private fun updateLanguage(language: Language, fragment: PsiCodeFragment?) {
+  protected open fun resolveLanguageAndFragment(
+    rowIdx: ModelIndex<GridRow>,
+    columnIdx: ModelIndex<GridColumn>,
+    value: Any?,
+  ): Pair<Language, PsiCodeFragment?> {
+    val language = DefaultTextRendererFactory.getLanguage(grid, rowIdx, columnIdx, value)
+    val fragment = GridHelper.get(grid).createCellCodeFragment(editor.document.text, project, grid, rowIdx, columnIdx, value)
+    return language to fragment
+  }
+
+  protected fun updateLanguage(language: Language, fragment: PsiCodeFragment?) {
     WriteAction.runAndWait<Nothing> {
       val virtualFile = FileDocumentManager.getInstance().getFile(editor.document) as? LightVirtualFile ?: return@runAndWait
       if (virtualFile.language != language) {
@@ -209,7 +243,7 @@ class EditorCellViewer(private val project: Project,
   private fun setText(value: Any, rowIdx: ModelIndex<GridRow>, columnIdx: ModelIndex<GridColumn>) {
     val document = editor.document
     disableUpdateListener {
-      ApplicationManager.getApplication().runWriteAction {
+      getApplication().runWriteAction {
         val offsetBefore = offset
         val formatter = GridCellEditorFactoryProvider.get(grid)
                           ?.getEditorFactory(grid, rowIdx, columnIdx, value)
@@ -234,13 +268,29 @@ class EditorCellViewer(private val project: Project,
     val row = grid.selectionModel.leadSelectionRow
     val column = grid.selectionModel.leadSelectionColumn
     if (!row.isValid(grid) || !column.isValid(grid)) return
-    val parser = valueParserCache.getValueParser(row, column, grid.getDataModel(DataAccessType.DATA_WITH_MUTATIONS).getValueAt(row, column))
     val document = editor.document
     PsiDocumentManager.getInstance(project).commitDocument(document)
     val file = PsiDocumentManager.getInstance(project).getPsiFile(document)
     val text = if (file != null) getText(document, formattedModeHandler.minimize(file)) else getText(document, document.text)
-    val value = parser.parse(text, document)
-    grid.resultView.setValueAt(value, row, column, false, GridRequestSource(EditMaximizedViewRequestPlace(grid, this)))
+    val value =
+      parseDocumentValue(row, column, text, document, grid.getDataModel(DataAccessType.DATA_WITH_MUTATIONS).getValueAt(row, column))
+    grid.resultView.setValueAt(
+      value,
+      row,
+      column,
+      false,
+      GridRequestSource(EditMaximizedViewRequestPlace(grid, this))
+    )
+  }
+
+  protected open fun parseDocumentValue(
+    row: ModelIndex<GridRow>,
+    column: ModelIndex<GridColumn>,
+    text: String,
+    document: Document,
+    gridValue: Any?,
+  ): Any? {
+    return valueParserCache.getValueParser(row, column, gridValue).parse(text, document)
   }
 
   companion object {

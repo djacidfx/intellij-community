@@ -173,6 +173,13 @@ public final class DefaultTextRendererFactory implements GridCellRendererFactory
       }
     }
 
+    /**
+     * Returns the editor. Must be called after {@link #getComponent} which lazily creates it.
+     */
+    public @NotNull EditorEx getEditor() {
+      return myComponent.getEditor();
+    }
+
     public static @NotNull AbbreviatingRendererComponent createComponent(@NotNull Project project, @Nullable Language language) {
       return language == PlainTextLanguage.INSTANCE ?
              new AbbreviatingRendererComponent(project, language, false, true) :

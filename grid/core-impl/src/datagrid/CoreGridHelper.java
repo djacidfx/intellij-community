@@ -25,6 +25,16 @@ public interface CoreGridHelper {
                                          @NotNull ModelIndex<GridColumn> column,
                                          @Nullable Object value);
 
+  /**
+   * Creates a code fragment for expression mode editing.
+   * Unlike {@link #createCellCodeFragment}, this parses the text as an expression, not a statement.
+   */
+  default @Nullable PsiCodeFragment createExpressionCodeFragment(@NotNull String text,
+                                                                  @NotNull Project project,
+                                                                  @NotNull CoreGrid<GridRow, GridColumn> grid) {
+    return null;
+  }
+
   default boolean isModifyColumnAcrossCollection() {
     return false;
   }

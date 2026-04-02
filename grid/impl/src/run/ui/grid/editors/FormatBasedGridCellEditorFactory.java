@@ -17,6 +17,7 @@ import com.intellij.database.run.ui.grid.editors.UnparsedValue.ParsingError;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.text.StringUtil;
+import com.intellij.util.ObjectUtils;
 import com.intellij.util.textCompletion.TextCompletionProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -77,11 +78,13 @@ public abstract class FormatBasedGridCellEditorFactory implements GridCellEditor
                                              @NotNull ModelIndex<GridRow> rowIdx,
                                              @NotNull ModelIndex<GridColumn> columnIdx,
                                              @Nullable Object value) {
+    String initialText = getValueFormatter(grid, rowIdx, columnIdx, value).format().text;
     Object databaseValue = grid.getDataModel(DataAccessType.DATABASE_DATA).getValueAt(rowIdx, columnIdx);
     String databaseValueText = getValueFormatter(grid, rowIdx, columnIdx, databaseValue).format().text;
     Formatter format = getFormat(grid, rowIdx, columnIdx, value);
-    return getValueParser(format, grid, databaseValue, databaseValueText, columnIdx,
-                          (text, e) -> GridCellEditorHelper.get(grid).createUnparsedValue(text, e, grid, rowIdx, columnIdx));
+    ValueParser baseParser = getValueParser(format, grid, databaseValue, databaseValueText, columnIdx,
+                                            (text, e) -> GridCellEditorHelper.get(grid).createUnparsedValue(text, e, grid, rowIdx, columnIdx));
+    return (text, document) -> initialText.equals(text) ? ObjectUtils.notNull(value, ReservedCellValue.NULL) : baseParser.parse(text, document);
   }
 
   protected static @NotNull ValueParser getValueParser(@NotNull Formatter format,

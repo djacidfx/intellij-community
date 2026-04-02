@@ -433,9 +433,19 @@ public final class TableResultView extends JBTableWithResizableCells
                          @NotNull ModelIndex<GridColumn> column,
                          boolean allowImmediateUpdate,
                          @NotNull GridRequestSource source) {
+    setValueAt(v, row, column, allowImmediateUpdate, source, null);
+  }
+
+  @Override
+  public void setValueAt(@Nullable Object v,
+                         @NotNull ModelIndex<GridRow> row,
+                         @NotNull ModelIndex<GridColumn> column,
+                         boolean allowImmediateUpdate,
+                         @NotNull GridRequestSource source,
+                         @Nullable Object metadata) {
     int viewRowIdx = isTransposed() ? column.toView(myResultPanel).asInteger() : row.toView(myResultPanel).asInteger();
     int viewColumnIdx = isTransposed() ? row.toView(myResultPanel).asInteger() : column.toView(myResultPanel).asInteger();
-    setValueAt(v, viewRowIdx, viewColumnIdx, allowImmediateUpdate, source);
+    setValueAt(v, viewRowIdx, viewColumnIdx, allowImmediateUpdate, source, metadata);
   }
 
   @Override
@@ -1430,12 +1440,18 @@ public final class TableResultView extends JBTableWithResizableCells
   }
 
   public void withCurrentValue(@Nullable Object value, @NotNull Runnable r) {
+    withCurrentValue(value, true, r);
+  }
+
+  public void withCurrentValue(@Nullable Object value, boolean shouldMoveFocus, @NotNull Runnable r) {
     ClientProperty.put(this, GridTableCellEditor.CURRENT_VALUE_CLIENT_PROPERTY_KEY, value);
+    ClientProperty.put(this, GridTableCellEditor.SUPPRESS_MOVE_FOCUS_CLIENT_PROPERTY_KEY, !shouldMoveFocus);
     try {
       r.run();
     }
     finally {
       ClientProperty.remove(this, GridTableCellEditor.CURRENT_VALUE_CLIENT_PROPERTY_KEY);
+      ClientProperty.remove(this, GridTableCellEditor.SUPPRESS_MOVE_FOCUS_CLIENT_PROPERTY_KEY);
     }
   }
 
@@ -2062,6 +2078,10 @@ public final class TableResultView extends JBTableWithResizableCells
     withCurrentValue(value, this::editSelectedCell);
   }
 
+  public void editSelectedCellWithValue(Object value, boolean shouldMoveFocus) {
+    withCurrentValue(value, shouldMoveFocus, this::editSelectedCell);
+  }
+
   @Override
   public boolean isMultiEditingAllowed() {
     int[] selectedColumns = isTransposed() ? getSelectedRows() : getSelectedColumns();
@@ -2142,7 +2162,7 @@ public final class TableResultView extends JBTableWithResizableCells
   public TableCellEditor getCellEditor(int row, int column) {
     ModelIndex<GridRow> rowIdx = ViewIndex.forRow(myResultPanel, isTransposed() ? column : row).toModel(myResultPanel);
     ModelIndex<GridColumn> columnIdx = ViewIndex.forColumn(myResultPanel, isTransposed() ? row : column).toModel(myResultPanel);
-    Object currentValue = ComponentUtil.getClientProperty(this, GridTableCellEditor.CURRENT_VALUE_CLIENT_PROPERTY_KEY);
+    Object currentValue = ClientProperty.get(this, GridTableCellEditor.CURRENT_VALUE_CLIENT_PROPERTY_KEY);
     Object value = currentValue == null ? myResultPanel.getDataModel(DATA_WITH_MUTATIONS).getValueAt(rowIdx, columnIdx) : currentValue;
     GridCellEditorFactoryProvider factoryProvider = GridCellEditorFactoryProvider.get(myResultPanel);
     GridCellEditorFactory editorFactory =
@@ -2161,14 +2181,15 @@ public final class TableResultView extends JBTableWithResizableCells
 
   @Override
   public void setValueAt(Object value, int viewRowIdx, int viewColumnIdx) {
-    setValueAt(value, viewRowIdx, viewColumnIdx, true, new GridRequestSource(new DataGridRequestPlace(myResultPanel)));
+    setValueAt(value, viewRowIdx, viewColumnIdx, true, new GridRequestSource(new DataGridRequestPlace(myResultPanel)), null);
   }
 
   private void setValueAt(Object value,
                           int viewRowIdx,
                           int viewColumnIdx,
                           boolean allowImmediateUpdate,
-                          @NotNull GridRequestSource source) {
+                          @NotNull GridRequestSource source,
+                          @Nullable Object metadata) {
     boolean allowed = isMultiEditingAllowed();
     int[] rows = allowed ? getSelectedRows() : new int[]{viewRowIdx};
     int[] columns = allowed ? getSelectedColumns() : new int[]{viewColumnIdx};
@@ -2185,7 +2206,8 @@ public final class TableResultView extends JBTableWithResizableCells
                              value,
                              allowImmediateUpdate,
                              moveToNextCellRunnable,
-                             source);
+                             source,
+                             metadata);
   }
 
   private void moveToNextCell(@NotNull ViewIndex<GridRow> rowIndex, @NotNull ViewIndex<GridColumn> colIndex) {

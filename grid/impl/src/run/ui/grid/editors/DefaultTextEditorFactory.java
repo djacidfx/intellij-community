@@ -11,7 +11,6 @@ import com.intellij.database.extractors.ObjectFormatterUtil;
 import com.intellij.database.remote.jdbc.LobInfo;
 import com.intellij.database.run.ReservedCellValue;
 import com.intellij.database.run.actions.LoadFileAction;
-import com.intellij.database.run.ui.DataAccessType;
 import com.intellij.database.settings.DataGridSettings;
 import com.intellij.database.util.LobInfoHelper;
 import com.intellij.notification.Notification;
@@ -58,11 +57,11 @@ public class DefaultTextEditorFactory implements GridCellEditorFactory {
                                              @NotNull ModelIndex<GridRow> rowIdx,
                                              @NotNull ModelIndex<GridColumn> columnIdx,
                                              @Nullable Object value) {
-    Object initialValue = grid.getDataModel(DataAccessType.DATA_WITH_MUTATIONS).getValueAt(rowIdx, columnIdx);
-    String initialText = getValueFormatter(grid, rowIdx, columnIdx, initialValue).format().text;
+    // Respect the editor opening value so editSelectedCellWithValue() can control the unchanged commit result.
+    String initialText = getValueFormatter(grid, rowIdx, columnIdx, value).format().text;
     return (text, document) -> {
       boolean valueChanged = !initialText.equals(text);
-      return valueChanged ? text : ObjectUtils.notNull(initialValue, ReservedCellValue.NULL);
+      return valueChanged ? text : ObjectUtils.notNull(value, ReservedCellValue.NULL);
     };
   }
 
