@@ -92,7 +92,6 @@ jvm_library(
     "//platform/vcs-impl:vcs-impl_test_lib",
     "//libraries/stream",
     "//libraries/stream:stream_test_lib",
-    "@lib//:grazie-tests-pro-ai-grazie-model-def-jvm",
     "@lib//:grazie-tests-pro-ai-grazie-model-swagger-annotations-jvm",
     "//platform/testFramework/junit5",
     "//platform/testFramework/junit5:junit5_test_lib",

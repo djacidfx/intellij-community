@@ -29,6 +29,7 @@ import com.intellij.grazie.mlec.MlecChecker
 import com.intellij.grazie.rule.RuleIdeClient
 import com.intellij.grazie.rule.SentenceBatcher
 import com.intellij.grazie.rule.SentenceBatcher.Companion.runWithSentenceBatcher
+import com.intellij.grazie.rule.SentenceTokenizer
 import com.intellij.grazie.rule.SentenceTokenizer.tokenize
 import com.intellij.grazie.spellcheck.SpellingTextChecker
 import com.intellij.grazie.text.CheckerRunner
@@ -54,8 +55,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
-import kotlin.collections.component1
-import kotlin.collections.component2
 import ai.grazie.text.TextRange as GrazieTextRange
 
 @JvmField
@@ -110,7 +109,7 @@ internal fun getAllProblems(file: PsiFile, checkedDomains: Set<TextDomain>, allC
 
 private fun getAllProblems(texts: List<TextContent>, checkedDomains: Set<TextDomain>, allCheckers: List<TextChecker>): List<TextProblem> =
   buildProblemMap(allCheckers, texts, checkedDomains)
-    .flatMap { (text, problems) -> TextProblemAggregator.aggregate(text.toString(), problems) }
+    .flatMap { (text, problems) -> TextProblemAggregator.aggregate(problems, SentenceTokenizer.toTokens(text), false) }
 
 private fun buildProblemMap(
   allCheckers: List<TextChecker>,

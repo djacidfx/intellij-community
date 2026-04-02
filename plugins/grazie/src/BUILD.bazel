@@ -44,6 +44,7 @@ jvm_library(
     "@lib//:grazie-core-ai-grazie-client-ktor-jvm",
     "@lib//:grazie-core-ai-grazie-tasks-library-api-jvm",
     "@lib//:grazie-core-ai-grazie-tasks-library-model-jvm",
+    "@lib//:grazie-core-ai-grazie-gec-util",
     "@lib//:grazie-core-org-jetbrains-intellij-deps-languagetool-languagetool-core",
     "@lib//:grazie-core-org-jetbrains-intellij-deps-languagetool-language-en",
     "@lib//:grazie-core-net-loomchild-segment-2-0-1",
@@ -91,6 +92,7 @@ jvm_library(
     "//platform/ide-core-impl",
     "//platform/ide-core",
     "//platform/progress/shared:ide-progress",
+    "@lib//:io-github-oshai-kotlin-logging-jvm",
   ],
   exports = [
     "@lib//:grazie-core-ai-grazie-api-gateway-client-jvm",
