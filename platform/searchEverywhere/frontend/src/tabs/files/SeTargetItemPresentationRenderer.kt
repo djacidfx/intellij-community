@@ -65,7 +65,7 @@ class SeTargetItemPresentationRenderer(private val resultList: JList<SeResultLis
     val resultListWidth = resultList.width
 
     val maxPresentableTextWidth = resultListWidth - accumulatedContentWidth - locationTextWidthWithGap.coerceAtMost(resultListWidth / 3)
-    val presentableText = if (presentation.shouldKeepLocationVisible && presentableTextWidth > maxPresentableTextWidth) {
+    val presentableText = if (presentableTextWidth > maxPresentableTextWidth) {
       val newText = SETextShortener.getShortenText(presentation.presentableText, maxPresentableTextWidth) { fontMetrics.stringWidth(it) }
       presentableTextWidth = fontMetrics.stringWidth(newText)
       newText
