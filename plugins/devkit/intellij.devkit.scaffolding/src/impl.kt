@@ -1,9 +1,9 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.devkit.scaffolding
 
+import com.intellij.devkit.core.icons.DevkitCoreIcons
 import com.intellij.icons.AllIcons
 import com.intellij.ide.actions.newclass.CreateWithTemplatesDialogPanel
-import com.intellij.ide.plugins.ModuleLoadingRule
 import com.intellij.ide.ui.newItemPopup.NewItemPopupUtil
 import com.intellij.lang.LangBundle
 import com.intellij.notification.NotificationGroupManager
@@ -27,22 +27,26 @@ import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.ui.popup.JBPopup
 import com.intellij.openapi.ui.popup.JBPopupListener
 import com.intellij.openapi.ui.popup.LightweightWindowEvent
+import com.intellij.openapi.ui.popup.ListItemDescriptorAdapter
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.xml.XmlFile
-import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.SimpleTextAttributes
+import com.intellij.ui.components.JBLabel
+import com.intellij.ui.popup.list.GroupedItemsListRenderer
 import com.intellij.util.Consumer
 import com.intellij.util.ui.JBUI
 import com.intellij.workspaceModel.ide.legacyBridge.impl.java.JAVA_MODULE_ENTITY_TYPE_ID_NAME
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import org.jetbrains.annotations.Nls
 import org.jetbrains.annotations.TestOnly
+import org.jetbrains.idea.devkit.dom.ContentDescriptor
 import org.jetbrains.idea.devkit.dom.index.PluginIdDependenciesIndex
 import org.jetbrains.idea.devkit.util.DescriptorUtil
 import org.jetbrains.jps.model.java.JavaModuleSourceRootTypes
@@ -51,7 +55,10 @@ import org.jetbrains.jps.model.java.JavaSourceRootType
 import java.awt.event.InputEvent
 import java.nio.file.Files
 import java.nio.file.Path
-import javax.swing.JList
+import javax.swing.BoxLayout
+import javax.swing.Icon
+import javax.swing.JComponent
+import javax.swing.JPanel
 import javax.swing.JTextField
 import javax.swing.event.DocumentEvent
 import kotlin.coroutines.resume
@@ -106,30 +113,32 @@ internal suspend fun askForModule(project: Project, popupContext: NewIjModuleCre
 internal data class NewIjModuleCreationContext(
   val suggestedNamePrefix: String,
   val targetPlugin: ContentModuleRegistrationTarget?,
+  val availableKinds: List<IjModuleKind>,
 )
 
 private class NewIjModulePopupPanel(private val popupContext: NewIjModuleCreationContext) :
-  CreateWithTemplatesDialogPanel(IjModuleKind.matchingTemplate(popupContext.suggestedNamePrefix).templateName,
-                                 IjModuleKind.entries.map { TemplatePresentation(message(it.titleKey), it.icon, it.templateName) }) {
+  CreateWithTemplatesDialogPanel(
+    IjModuleKind.ROOT_PLUGIN_MODULE.templateName,
+    popupContext.availableKinds.map { TemplatePresentation(message(it.titleKey), it.icon, it.templateName) },
+  ) {
 
-  private val suggestionsByKind = IjModuleKind.entries.associateWithTo(LinkedHashMap()) { kind ->
-    kind.defaultSuggestion(popupContext.suggestedNamePrefix)
-  }
+  private val namePrefix = popupContext.suggestedNamePrefix
   private var suppressDocumentTracking = false
-  private var selectedKind = IjModuleKind.matchingTemplate(popupContext.suggestedNamePrefix)
+  private var editableSegment = ""
+  private var selectedKind = IjModuleKind.ROOT_PLUGIN_MODULE
 
   init {
-    myTemplatesList.cellRenderer = NewIjModuleKindRenderer(popupContext.targetPlugin?.pluginId)
-    restoreSuggestion(selectedKind)
+    refreshRenderer()
+    restoreNameField(selectedKind)
 
     setTemplateSelectorMatcher { moduleName, template ->
-      IjModuleKind.matchingTemplate(moduleName).templateName == template.templateName()
+      IjModuleKind.matchingTemplate(moduleName, popupContext.availableKinds).templateName == template.templateName()
     }
 
     nameField.document.addDocumentListener(object : DocumentAdapter() {
       override fun textChanged(e: DocumentEvent) {
         if (!suppressDocumentTracking) {
-          suggestionsByKind[selectedKind] = nameField.text
+          editableSegment = extractEditableSegment(nameField.text, selectedKind)
         }
       }
     })
@@ -137,6 +146,7 @@ private class NewIjModulePopupPanel(private val popupContext: NewIjModuleCreatio
     myTemplatesList.addListSelectionListener {
       if (!it.valueIsAdjusting) {
         applySuggestionForSelectionChange()
+        refreshRenderer()
       }
     }
   }
@@ -147,16 +157,19 @@ private class NewIjModulePopupPanel(private val popupContext: NewIjModuleCreatio
       return
     }
 
-    suggestionsByKind[selectedKind] = nameField.text
     selectedKind = newKind
-    restoreSuggestion(newKind)
+    restoreNameField(newKind)
   }
 
-  private fun restoreSuggestion(kind: IjModuleKind) {
-    val suggestion = suggestionsByKind.getValue(kind)
-    if (nameField.text == suggestion) return
+  private fun restoreNameField(kind: IjModuleKind) {
+    val moduleName = buildModuleName(kind)
+    if (nameField.text == moduleName) {
+      moveCaretBeforeSuffix(kind)
+      return
+    }
     suppressDocumentTracking = true
-    nameField.text = suggestion
+    nameField.text = moduleName
+    moveCaretBeforeSuffix(kind)
     suppressDocumentTracking = false
   }
 
@@ -164,40 +177,114 @@ private class NewIjModulePopupPanel(private val popupContext: NewIjModuleCreatio
     val selectedTemplate = myTemplatesList.selectedValue ?: return null
     return IjModuleKind.fromTemplateName(selectedTemplate.templateName())
   }
+
+  private fun buildModuleName(kind: IjModuleKind): String {
+    return namePrefix + editableSegment + kind.moduleSuffix
+  }
+
+  private fun extractEditableSegment(moduleName: String, kind: IjModuleKind): String {
+    val withoutPrefix = moduleName.removePrefix(namePrefix)
+    val suffix = kind.moduleSuffix
+    return withoutPrefix.removeSuffix(suffix)
+  }
+
+  private fun moveCaretBeforeSuffix(kind: IjModuleKind) {
+    val caretOffset = nameField.text.length - kind.moduleSuffix.length
+    nameField.caretPosition = caretOffset.coerceIn(0, nameField.text.length)
+  }
+
+  private fun refreshRenderer() {
+    myTemplatesList.cellRenderer = NewIjModuleKindRenderer(popupContext)
+    myTemplatesList.revalidate()
+    myTemplatesList.repaint()
+  }
 }
 
 private class NewIjModuleKindRenderer(
-  private val contentModuleRegistrationPluginId: String?,
-) : ColoredListCellRenderer<CreateWithTemplatesDialogPanel.TemplatePresentation>() {
+  private val popupContext: NewIjModuleCreationContext,
+) : GroupedItemsListRenderer<CreateWithTemplatesDialogPanel.TemplatePresentation>(NewIjModuleKindDescriptor()) {
 
-  @Suppress("HardCodedStringLiteral")
-  override fun customizeCellRenderer(
-    list: JList<out CreateWithTemplatesDialogPanel.TemplatePresentation>,
-    value: CreateWithTemplatesDialogPanel.TemplatePresentation?,
+  private lateinit var detailsPanel: JPanel
+  private lateinit var purposeLabel: JBLabel
+  private lateinit var targetPluginLabel: JBLabel
+
+  override fun createItemComponent(): JComponent {
+    createLabel()
+    myTextLabel.border = JBUI.Borders.empty()
+    purposeLabel = createDetailsLabel(JBUI.Borders.emptyTop(4))
+    targetPluginLabel = createDetailsLabel(JBUI.Borders.emptyTop(2))
+    detailsPanel = JPanel().apply {
+      isOpaque = false
+      layout = BoxLayout(this, BoxLayout.Y_AXIS)
+      add(purposeLabel)
+      add(targetPluginLabel)
+    }
+
+    val itemPanel = JPanel().apply {
+      isOpaque = false
+      layout = BoxLayout(this, BoxLayout.Y_AXIS)
+      border = JBUI.Borders.empty(3, 6, 3, 1)
+      add(myTextLabel)
+      add(detailsPanel)
+    }
+    return layoutComponent(itemPanel)
+  }
+
+  override fun customizeComponent(
+    list: javax.swing.JList<out CreateWithTemplatesDialogPanel.TemplatePresentation>,
+    value: CreateWithTemplatesDialogPanel.TemplatePresentation,
     index: Int,
-    selected: Boolean,
-    hasFocus: Boolean,
+    isSelected: Boolean,
+    cellHasFocus: Boolean,
   ) {
-    if (value == null) return
-
-    border = JBUI.Borders.empty(3, 6, 3, 1)
-    icon = value.icon()
-    append(value.kind())
+    super.customizeComponent(list, value, index, isSelected, cellHasFocus)
 
     val moduleKind = IjModuleKind.fromTemplateName(value.templateName())
-    if (moduleKind.isContentModule && !contentModuleRegistrationPluginId.isNullOrBlank()) {
-      append(" (target plugin ID=", SimpleTextAttributes.GRAYED_ATTRIBUTES)
-      append("`$contentModuleRegistrationPluginId`", SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES)
-      append(")", SimpleTextAttributes.GRAYED_ATTRIBUTES)
+    val showDetails = index == list.selectedIndex
+    val targetPluginLine = moduleKind.targetPluginLine(popupContext)
+    detailsPanel.isVisible = showDetails
+    purposeLabel.text = moduleKind.purpose()
+    targetPluginLabel.text = targetPluginLine ?: " "
+    targetPluginLabel.isVisible = showDetails
+
+    purposeLabel.foreground = SimpleTextAttributes.GRAYED_ATTRIBUTES.fgColor
+    targetPluginLabel.foreground = SimpleTextAttributes.GRAYED_ATTRIBUTES.fgColor
+  }
+
+  private fun createDetailsLabel(border: javax.swing.border.Border): JBLabel {
+    return JBLabel().apply {
+      isOpaque = false
+      this.border = border
+      font = JBUI.Fonts.smallFont()
+      foreground = SimpleTextAttributes.GRAYED_ATTRIBUTES.fgColor
     }
   }
 }
 
-internal fun collectNewIjModuleCreationContext(newModuleParentDirectory: VirtualFile, project: Project): NewIjModuleCreationContext {
-  return NewIjModuleCreationContext(
-    suggestedNamePrefix = suggestModuleNamePrefix(newModuleParentDirectory, project),
-    targetPlugin = findSingleTargetPluginForModuleOrNull(project, newModuleParentDirectory, null),
-  )
+private class NewIjModuleKindDescriptor : ListItemDescriptorAdapter<CreateWithTemplatesDialogPanel.TemplatePresentation>() {
+  override fun getTextFor(value: CreateWithTemplatesDialogPanel.TemplatePresentation): String {
+    return value.kind()
+  }
+
+  override fun getTooltipFor(value: CreateWithTemplatesDialogPanel.TemplatePresentation): String? = null
+
+  override fun getIconFor(value: CreateWithTemplatesDialogPanel.TemplatePresentation) = value.icon()
+}
+
+internal suspend fun collectNewIjModuleCreationContext(
+  newModuleParentDirectory: VirtualFile,
+  project: Project,
+): NewIjModuleCreationContext {
+  val availableKinds = withContext(Dispatchers.IO) {
+    project.availablePopupModuleKinds()
+  }
+  return readAction {
+    NewIjModuleCreationContext(
+      suggestedNamePrefix = suggestModuleNamePrefix(newModuleParentDirectory, project),
+      targetPlugin = findSingleTargetPluginForModuleOrNull(project, newModuleParentDirectory, null),
+      availableKinds = availableKinds,
+    )
+  }
 }
 
 private fun suggestModuleNamePrefix(parentDir: VirtualFile, project: Project): String {
@@ -239,17 +326,16 @@ internal suspend fun createIjModule(
   request: NewIjModuleRequest,
   targetPlugin: ContentModuleRegistrationTarget?,
 ): CreatedIjModule {
-  val normalizedRequest = request.normalized()
-  val directoryName = computeDirectoryNameForModule(normalizedRequest.moduleName, newModuleParentDirectory, project)
-  val createdModule = if (!normalizedRequest.kind.isTemplateBased) {
-    createEmptyModule(newModuleParentDirectory, normalizedRequest, directoryName, project)
+  val directoryName = computeDirectoryNameForModule(request.moduleName, newModuleParentDirectory, project)
+  val createdModule = if (!request.kind.isTemplateBased) {
+    createEmptyModule(newModuleParentDirectory, request, directoryName, project)
   }
   else {
     val moduleRoot =
-      prepareTemplateModuleFiles(project, newModuleParentDirectory, normalizedRequest.moduleName, directoryName, normalizedRequest.kind)
-    CreatedIjModule(normalizedRequest.moduleName, moduleRoot.moduleRoot, normalizedRequest.kind, existedBefore = moduleRoot.existedBefore)
+      prepareTemplateModuleFiles(project, newModuleParentDirectory, request.moduleName, directoryName, request.kind)
+    CreatedIjModule(request.moduleName, moduleRoot.moduleRoot, request.kind, existedBefore = moduleRoot.existedBefore)
   }
-  if (normalizedRequest.kind.isContentModule && targetPlugin != null) {
+  if (request.kind.isContentModule && targetPlugin != null) {
     addModuleToEnclosingPluginIfPresent(project, targetPlugin, createdModule)
   }
   project.scheduleSave() // to write changes in modules.xml to the disk
@@ -438,31 +524,30 @@ private class ModuleVFiles(
 internal data class NewIjModuleRequest(
   val moduleName: @NlsSafe String,
   val kind: IjModuleKind,
-) {
-  fun normalized(): NewIjModuleRequest {
-    return copy(moduleName = kind.applyToModuleName(moduleName))
-  }
-}
+)
 
 internal enum class IjModuleKind(
   val templateName: String,
   val titleKey: String,
-  val moduleSuffix: String?,
+  val moduleSuffix: String,
   val isContentModule: Boolean,
+  val icon: Icon,
   val templateDirectoryName: String?,
 ) {
   EMPTY(
     templateName = "empty",
     titleKey = "scaffolding.new.ij.module.kind.empty",
-    moduleSuffix = null,
+    moduleSuffix = "",
     isContentModule = false,
+    icon = AllIcons.Nodes.Module,
     templateDirectoryName = null
   ),
   ROOT_PLUGIN_MODULE(
     templateName = "rootPluginModule",
     titleKey = "scaffolding.new.ij.module.kind.root.plugin.module",
-    moduleSuffix = null,
+    moduleSuffix = "",
     isContentModule = false,
+    icon = DevkitCoreIcons.PluginV2,
     templateDirectoryName = TEMPLATE_MODULE_IN_MONOREPO_NAME
   ),
   FRONTEND(
@@ -470,6 +555,7 @@ internal enum class IjModuleKind(
     titleKey = "scaffolding.new.ij.module.kind.frontend",
     moduleSuffix = "frontend",
     isContentModule = true,
+    icon = DevkitCoreIcons.PluginModule,
     templateDirectoryName = "$TEMPLATE_MODULE_IN_MONOREPO_NAME.frontend",
   ),
   BACKEND(
@@ -477,6 +563,7 @@ internal enum class IjModuleKind(
     titleKey = "scaffolding.new.ij.module.kind.backend",
     moduleSuffix = "backend",
     isContentModule = true,
+    icon = DevkitCoreIcons.PluginModule,
     templateDirectoryName = "$TEMPLATE_MODULE_IN_MONOREPO_NAME.backend",
   ),
   SHARED(
@@ -484,68 +571,43 @@ internal enum class IjModuleKind(
     titleKey = "scaffolding.new.ij.module.kind.shared",
     moduleSuffix = "shared",
     isContentModule = true,
+    icon = DevkitCoreIcons.PluginModule,
     templateDirectoryName = "$TEMPLATE_MODULE_IN_MONOREPO_NAME.shared",
   );
 
   val isTemplateBased: Boolean
     get() = templateDirectoryName != null
 
-  fun applyToModuleName(moduleName: String): @NlsSafe String {
-    if (moduleSuffix == null) return moduleName.trim()
-
-    val trimmedName = moduleName.trim()
-    if (trimmedName.isEmpty()) return trimmedName
-
-    val withoutTrailingDot = trimmedName.trimEnd('.')
-    val withoutKnownSuffix = withoutTrailingDot.removeKnownKindSuffix()
-    return "$withoutKnownSuffix.$moduleSuffix"
-  }
-
-  fun defaultSuggestion(moduleName: String): @NlsSafe String {
-    return applyToModuleName(moduleName.baseSuggestion())
-  }
-
   companion object {
+    val popupOrder: List<IjModuleKind> = listOf(ROOT_PLUGIN_MODULE, FRONTEND, BACKEND, SHARED, EMPTY)
+
     fun fromTemplateName(templateName: String): IjModuleKind {
       return entries.first { it.templateName == templateName }
     }
 
-    fun matchingTemplate(moduleName: String): IjModuleKind {
-      return entries.firstOrNull { kind ->
-        kind.moduleSuffix != null && moduleName.endsWith(".${kind.moduleSuffix}")
-      } ?: EMPTY
+    fun matchingTemplate(moduleName: String, availableKinds: Collection<IjModuleKind> = entries.toList()): IjModuleKind {
+      return availableKinds.firstOrNull { kind -> moduleName.endsWith(".${kind.moduleSuffix}") }
+             ?: availableKinds.firstOrNull { it == EMPTY }
+             ?: availableKinds.first()
     }
   }
 }
 
-private fun String.removeKnownKindSuffix(): String {
-  for (kind in IjModuleKind.entries) {
-    val suffix = kind.moduleSuffix ?: continue
-    if (endsWith(".$suffix")) {
-      return removeSuffix(".$suffix")
-    }
+private fun IjModuleKind.purpose(): @Nls String {
+  return when (this) {
+    IjModuleKind.ROOT_PLUGIN_MODULE -> message("scaffolding.new.ij.module.purpose.root.plugin.module")
+    IjModuleKind.FRONTEND -> message("scaffolding.new.ij.module.purpose.frontend")
+    IjModuleKind.BACKEND -> message("scaffolding.new.ij.module.purpose.backend")
+    IjModuleKind.SHARED -> message("scaffolding.new.ij.module.purpose.shared")
+    IjModuleKind.EMPTY -> message("scaffolding.new.ij.module.purpose.empty")
   }
-  return this
 }
 
-private fun String.baseSuggestion(): String {
-  val trimmed = trim()
-  if (trimmed.isEmpty()) return trimmed
-
-  val hasTrailingDot = trimmed.endsWith('.')
-  val withoutTrailingDot = trimmed.trimEnd('.')
-  val withoutKindSuffix = withoutTrailingDot.removeKnownKindSuffix()
-  return if (hasTrailingDot) "$withoutKindSuffix." else withoutKindSuffix
+private fun IjModuleKind.targetPluginLine(popupContext: NewIjModuleCreationContext): @Nls String? {
+  val targetPluginId = popupContext.targetPlugin?.pluginId ?: return null
+  if (!isContentModule) return null
+  return message("scaffolding.new.ij.module.target.plugin", targetPluginId)
 }
-
-private val IjModuleKind.icon
-  get() = when (this) {
-    IjModuleKind.EMPTY -> AllIcons.Nodes.Module
-    IjModuleKind.ROOT_PLUGIN_MODULE -> AllIcons.Nodes.Plugin
-    IjModuleKind.FRONTEND -> AllIcons.Nodes.Plugin
-    IjModuleKind.BACKEND -> AllIcons.Nodes.Plugin
-    IjModuleKind.SHARED -> AllIcons.Nodes.Plugin
-  }
 
 private data class ReplacementContext(private val replacements: List<Pair<String, String>>) {
   fun apply(value: String): String {
@@ -561,7 +623,7 @@ private data class ReplacementContext(private val replacements: List<Pair<String
     ): ReplacementContext {
       val shortModuleName = moduleName.removePrefix("intellij.")
       val templateSuffix = kind.moduleSuffix
-      if (templateSuffix == null) {
+      if (templateSuffix.isEmpty()) {
         return ReplacementContext(
           listOf(
             "intellij.$TEMPLATE_MODULE_IN_MONOREPO_NAME" to moduleName,
@@ -606,6 +668,18 @@ private fun Project.templateRoot(kind: IjModuleKind): Path {
   return Path.of(projectBasePath).resolve(TEMPLATE_MODULES_ROOT).resolve(templateDirectoryName)
 }
 
+private fun Project.availablePopupModuleKinds(): List<IjModuleKind> {
+  return IjModuleKind.popupOrder.filter { kind ->
+    !kind.isTemplateBased || hasTemplateFor(kind)
+  }
+}
+
+private fun Project.hasTemplateFor(kind: IjModuleKind): Boolean {
+  val projectBasePath = basePath ?: return false
+  val templateDirectoryName = kind.templateDirectoryName ?: return false
+  return Path.of(projectBasePath).resolve(TEMPLATE_MODULES_ROOT).resolve(templateDirectoryName).exists()
+}
+
 private suspend fun addModuleToEnclosingPluginIfPresent(
   project: Project,
   targetPlugin: ContentModuleRegistrationTarget,
@@ -626,7 +700,7 @@ private suspend fun addModuleToEnclosingPluginIfPresent(
             IjModuleKind.EMPTY -> {}
             IjModuleKind.ROOT_PLUGIN_MODULE -> {}
             IjModuleKind.SHARED -> {
-              moduleEntry.loading.stringValue = ModuleLoadingRule.REQUIRED.name.lowercase()
+              moduleEntry.loading.stringValue = ContentDescriptor.ModuleDescriptor.ModuleLoadingRule.REQUIRED.name.lowercase()
             }
             IjModuleKind.FRONTEND -> {
               moduleEntry.requiredIfAvailable.stringValue = PLATFORM_FRONTEND_MODULE

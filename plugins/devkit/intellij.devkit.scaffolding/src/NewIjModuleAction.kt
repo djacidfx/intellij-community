@@ -7,7 +7,6 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.application.EDT
-import com.intellij.openapi.application.readAction
 import com.intellij.openapi.project.DumbAware
 import com.intellij.platform.ide.progress.withModalProgress
 import kotlinx.coroutines.CoroutineStart
@@ -38,9 +37,7 @@ private suspend fun actionPerformed(dc: DataContext) {
   val project = dc.getData(CommonDataKeys.PROJECT) ?: return
   val newModuleParentDirectory = dc.getData(CommonDataKeys.VIRTUAL_FILE) ?: return
   val popupContext = withModalProgress(project, message("scaffolding.preparing.module")) {
-    readAction {
-      collectNewIjModuleCreationContext(newModuleParentDirectory, project)
-    }
+    collectNewIjModuleCreationContext(newModuleParentDirectory, project)
   }
   val request = withContext(Dispatchers.EDT) {
     askForModule(project, popupContext)

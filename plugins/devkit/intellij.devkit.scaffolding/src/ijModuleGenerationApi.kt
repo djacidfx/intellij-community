@@ -1,7 +1,6 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.devkit.scaffolding
 
-import com.intellij.openapi.application.readAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import org.jetbrains.annotations.ApiStatus
@@ -23,9 +22,7 @@ suspend fun createIjModuleWithoutUi(
   moduleName: String,
   kindTemplateName: String,
 ): CreatedIjModuleInfo {
-  val popupContext = readAction {
-    collectNewIjModuleCreationContext(newModuleParentDirectory, project)
-  }
+  val popupContext = collectNewIjModuleCreationContext(newModuleParentDirectory, project)
   val kind = parseIjModuleKind(kindTemplateName)
   val createdModule = createIjModule(
     project,
