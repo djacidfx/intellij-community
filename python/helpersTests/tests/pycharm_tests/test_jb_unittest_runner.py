@@ -1,4 +1,4 @@
-import pathlib
+import os
 import sys
 import unittest
 
@@ -34,10 +34,9 @@ class JBUnittestRunnerTest(HelpersTestCase):
 
     @python3_only
     def test_quiet_discover(self):
-        tmp_path = pathlib.Path(self.temp_dir)
         self.assertEqual(
             build_unittest_args(
-                path=str(tmp_path),
+                path=self.temp_dir,
                 targets=None,
                 additional_args=[],
                 verbose=False,
@@ -47,7 +46,7 @@ class JBUnittestRunnerTest(HelpersTestCase):
                 "python -m unittest",
                 "discover",
                 "-s",
-                str(tmp_path),
+                self.temp_dir,
                 "-t",
                 "/project_dir",
                 "--quiet",
@@ -56,10 +55,9 @@ class JBUnittestRunnerTest(HelpersTestCase):
 
     @python3_only
     def test_verbose_discover(self):
-        tmp_path = pathlib.Path(self.temp_dir)
         self.assertEqual(
             build_unittest_args(
-                path=str(tmp_path),
+                path=self.temp_dir,
                 targets=None,
                 additional_args=[],
                 verbose=True,
@@ -69,7 +67,7 @@ class JBUnittestRunnerTest(HelpersTestCase):
                 "python -m unittest",
                 "discover",
                 "-s",
-                str(tmp_path),
+                self.temp_dir,
                 "-t",
                 "/project_dir",
                 "--verbose",
@@ -78,10 +76,9 @@ class JBUnittestRunnerTest(HelpersTestCase):
 
     @python2_only
     def test_python2(self):
-        tmp_path = pathlib.Path(self.temp_dir)
         self.assertEqual(
             build_unittest_args(
-                path=str(tmp_path),
+                path=self.temp_dir,
                 targets=None,
                 additional_args=[],
                 verbose=True,
@@ -91,7 +88,7 @@ class JBUnittestRunnerTest(HelpersTestCase):
                 "python -m unittest",
                 "discover",
                 "-s",
-                str(tmp_path),
+                self.temp_dir,
                 "-t",
                 "/project_dir",
                 "--verbose",
@@ -100,13 +97,12 @@ class JBUnittestRunnerTest(HelpersTestCase):
 
     @python2_only
     def test_python2_and_path_is_file(self):
-        tmp_path = pathlib.Path(self.temp_dir)
-        tmp_file = tmp_path / "test_sample.py"
-        tmp_file.touch()
+        temp_file = self.resolve_in_temp_dir("test_sample.py")
+        open(temp_file, "a").close()
 
         self.assertEqual(
             build_unittest_args(
-                path=str(tmp_file),
+                path=temp_file,
                 targets=None,
                 additional_args=[],
                 verbose=True,
@@ -116,9 +112,9 @@ class JBUnittestRunnerTest(HelpersTestCase):
                 "python -m unittest",
                 "discover",
                 "-s",
-                str(tmp_path),
+                self.temp_dir,
                 "-p",
-                tmp_file.name,
+                os.path.basename(temp_file),
                 "-t",
                 "/project_dir",
                 "--verbose",
@@ -127,13 +123,12 @@ class JBUnittestRunnerTest(HelpersTestCase):
 
     @python3_only
     def test_python3_and_path_is_file(self):
-        tmp_path = pathlib.Path(self.temp_dir)
-        tmp_file = tmp_path / "test_sample.py"
-        tmp_file.touch()
-
+        temp_file = self.resolve_in_temp_dir("test_sample.py")
+        open(temp_file, "a").close()
+        
         self.assertEqual(
             build_unittest_args(
-                path=str(tmp_file),
+                path=temp_file,
                 targets=None,
                 additional_args=[],
                 verbose=True,
@@ -141,7 +136,7 @@ class JBUnittestRunnerTest(HelpersTestCase):
             ),
             [
                 "python -m unittest",
-                str(tmp_file),
+                temp_file,
                 "--verbose",
             ],
         )
