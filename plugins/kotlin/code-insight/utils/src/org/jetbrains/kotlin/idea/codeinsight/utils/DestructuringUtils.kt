@@ -10,6 +10,8 @@ import org.jetbrains.kotlin.analysis.api.symbols.KaNamedClassSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaValueParameterSymbol
 import org.jetbrains.kotlin.analysis.api.types.KaClassType
 import org.jetbrains.kotlin.analysis.api.types.KaTypeNullability
+import org.jetbrains.kotlin.config.LanguageFeature.DeprecateNameMismatchInShortDestructuringWithParentheses
+import org.jetbrains.kotlin.idea.base.projectStructure.languageVersionSettings
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.psi.KtDestructuringDeclaration
 import org.jetbrains.kotlin.psi.KtParameter
@@ -73,7 +75,7 @@ fun KtDestructuringDeclaration.isPositionalDestructuringType(): Boolean {
 
 @ApiStatus.Internal
 fun KaSession.isPositionalDestructuringType(classType: KaClassType): Boolean {
-    val classId = classType.expandedSymbol?.classId
+    val classId = classType.expandedSymbol?.classId ?: return false
     return classId in POSITIONAL_DESTRUCTURING_CLASSES
 }
 
@@ -81,24 +83,24 @@ fun KaSession.isPositionalDestructuringType(classType: KaClassType): Boolean {
 fun KtDestructuringDeclaration.buildNameBasedDestructuringText(
     nameBasedDestructuringForm: NameBasedDestructuringForm,
     useExplicitMappings: Boolean = false,
+    entityNames: List<String>? = null
 ): String? {
+    val destructuringNames = nameBasedDestructuringForm.names
+    val names = entityNames ?: entries.map { it.text.substringBefore('=').trim() }
+    if (names.size > destructuringNames.size) return null
 
-    val names = nameBasedDestructuringForm.names
-    if (entries.size > names.size) return null
-
-    val originalKeyword = if (isVar) "var" else "val"
     val positionBased = nameBasedDestructuringForm.positionBased
-
-    val keyword = "".takeIf { positionBased } ?: originalKeyword
-    val newEntries = entries.zip(names) { entry, name ->
-        val leftHandSideText = entry.text.substringBefore('=').trim()
+    val useShortForm = !nameBasedDestructuringForm.useFullForm
+    val originalKeyword = if (isVar) "var" else "val"
+    val keyword = "".takeIf { positionBased || useShortForm } ?: originalKeyword
+    val newEntries = names.zip(destructuringNames) { entry, name ->
         buildString {
             append(keyword)
             if (keyword.isNotEmpty()) {
                 append(" ")
             }
-            append(leftHandSideText)
-            if (useExplicitMappings || entry.name != name) {
+            append(entry)
+            if (!positionBased && (useExplicitMappings || entry != name)) {
                 append(" = ")
                 append(name)
             }
@@ -107,7 +109,7 @@ fun KtDestructuringDeclaration.buildNameBasedDestructuringText(
 
     val declarationText =
         buildString {
-            if (positionBased) {
+            if (positionBased || useShortForm) {
                 append(originalKeyword)
                 append(" ")
             }
@@ -122,9 +124,10 @@ fun KtDestructuringDeclaration.buildNameBasedDestructuringText(
 context(session: KaSession)
 fun KtDestructuringDeclaration.buildNameBasedDestructuringText(useExplicitMappings: Boolean = false): String? {
     val positionalDestructuringType = isPositionalDestructuringType()
+    val useFullForm = !languageVersionSettings.supportsFeature(DeprecateNameMismatchInShortDestructuringWithParentheses)
     val names = session.extractPrimaryParameters(this)?.map { it.name.asString() } ?: return null
     return buildNameBasedDestructuringText(
-        NameBasedDestructuringForm(names, positionalDestructuringType),
+        NameBasedDestructuringForm(names, positionalDestructuringType, useFullForm),
         useExplicitMappings
     )
 }
@@ -149,6 +152,7 @@ fun convertDestructuringToPositionalForm(declaration: KtDestructuringDeclaration
 data class NameBasedDestructuringForm(
     val names: List<String>,
     val positionBased: Boolean,
+    val useFullForm: Boolean,
 ) {
     val leftParenthesis: String
         get() = "[".takeIf { positionBased } ?: "("

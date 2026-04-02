@@ -313,24 +313,9 @@ object K2IntroduceVariableHandler : KotlinIntroduceVariableHandler() {
         useExplicitMappings: Boolean,
         entryNames: List<String>? = null,
     ): KtDestructuringDeclaration {
-        val newText = if (entryNames != null && !nameBasedDestructuringForm.positionBased) {
-            val destructuringFormNames = nameBasedDestructuringForm.names
-            if (entryNames.size > destructuringFormNames.size) return declaration
-
-            val keyword = if (declaration.isVar) "var" else "val"
-            val newEntries = entryNames.zip(destructuringFormNames) { entryName, destructuringName ->
-                if (!useExplicitMappings && entryName == destructuringName) {
-                    "$keyword $entryName"
-                } else {
-                    "$keyword $entryName = $destructuringName"
-                }
-            }.joinToString(", ")
-
-            declaration.initializer?.let { "($newEntries) = ${it.text}" } ?: "($newEntries)"
-        } else {
-            declaration.buildNameBasedDestructuringText(nameBasedDestructuringForm, useExplicitMappings) ?: return declaration
-        }
-        if (newText == declaration.text) return declaration
+        val newText =
+            declaration.buildNameBasedDestructuringText(nameBasedDestructuringForm, useExplicitMappings, entryNames)
+                ?.takeIf { it != declaration.text } ?: return declaration
 
         val newDeclaration = KtPsiFactory(declaration.project)
             .createFile("fun extracted() { $newText }")

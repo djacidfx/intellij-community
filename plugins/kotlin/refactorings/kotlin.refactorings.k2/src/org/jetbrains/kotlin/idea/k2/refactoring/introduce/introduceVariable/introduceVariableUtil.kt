@@ -103,6 +103,8 @@ internal fun suggestNameBasedDestructuringPropertyNames(
     val settings = expression.languageVersionSettings
     if (!settings.supportsFeature(NameBasedDestructuring)) return null
 
+    val useFullForm = !settings.supportsFeature(DeprecateNameMismatchInShortDestructuringWithParentheses)
+
     return analyzeInModalWindow(expression, KotlinBundle.message("find.usages.prepare.dialog.progress")) {
         val expressionType =
             expression.expressionType?.lowerBoundIfFlexible() as? KaClassType ?: return@analyzeInModalWindow null
@@ -110,14 +112,11 @@ internal fun suggestNameBasedDestructuringPropertyNames(
 
         // see #configureCommonLanguageFeatures:
         // both `name-mismatch` and `complete` enables DeprecateNameMismatchInShortDestructuringWithParentheses
-        if (!positionalDestructuringType &&
-            settings.supportsFeature(DeprecateNameMismatchInShortDestructuringWithParentheses)) return@analyzeInModalWindow null
-
         val names = extractDataClassParameters(expressionType)
             ?.takeIf { entriesCount <= it.size }
             ?.take(entriesCount)
             ?.map { it.name.asString() } ?: return@analyzeInModalWindow null
-        NameBasedDestructuringForm(names, positionalDestructuringType)
+        NameBasedDestructuringForm(names, positionalDestructuringType, useFullForm)
     }
 }
 

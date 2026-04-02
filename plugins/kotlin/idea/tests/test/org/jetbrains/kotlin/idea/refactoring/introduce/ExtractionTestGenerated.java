@@ -954,6 +954,16 @@ public abstract class ExtractionTestGenerated extends AbstractK1ExtractionTest {
                 runTest("testData/refactoring/introduceVariable/IntroduceLambdaAndCreateBlock2.kt");
             }
 
+            @TestMetadata("IntroduceNameBasedDestructuringDeclarationComplete.kt")
+            public void testIntroduceNameBasedDestructuringDeclarationComplete() throws Exception {
+                runTest("testData/refactoring/introduceVariable/IntroduceNameBasedDestructuringDeclarationComplete.kt");
+            }
+
+            @TestMetadata("IntroduceNameBasedDestructuringDeclarationComplete2.kt")
+            public void testIntroduceNameBasedDestructuringDeclarationComplete2() throws Exception {
+                runTest("testData/refactoring/introduceVariable/IntroduceNameBasedDestructuringDeclarationComplete2.kt");
+            }
+
             @TestMetadata("IntroduceNameBasedDestructuringDeclarationNameMismatch.kt")
             public void testIntroduceNameBasedDestructuringDeclarationNameMismatch() throws Exception {
                 runTest("testData/refactoring/introduceVariable/IntroduceNameBasedDestructuringDeclarationNameMismatch.kt");
@@ -972,6 +982,11 @@ public abstract class ExtractionTestGenerated extends AbstractK1ExtractionTest {
             @TestMetadata("IntroducePositionBasedDestructuringDeclarationComplete.kt")
             public void testIntroducePositionBasedDestructuringDeclarationComplete() throws Exception {
                 runTest("testData/refactoring/introduceVariable/IntroducePositionBasedDestructuringDeclarationComplete.kt");
+            }
+
+            @TestMetadata("IntroducePositionBasedDestructuringDeclarationComplete2.kt")
+            public void testIntroducePositionBasedDestructuringDeclarationComplete2() throws Exception {
+                runTest("testData/refactoring/introduceVariable/IntroducePositionBasedDestructuringDeclarationComplete2.kt");
             }
 
             @TestMetadata("IntroducePositionBasedDestructuringDeclarationOnlySyntax.kt")
