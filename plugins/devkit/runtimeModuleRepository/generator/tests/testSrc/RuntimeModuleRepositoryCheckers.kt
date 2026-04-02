@@ -7,6 +7,8 @@ import com.intellij.devkit.runtimeModuleRepository.generator.JpsCompilationResou
 import com.intellij.devkit.runtimeModuleRepository.generator.RuntimeModuleRepositoryGenerator
 import com.intellij.devkit.runtimeModuleRepository.generator.RuntimeModuleRepositoryValidator
 import com.intellij.platform.runtime.repository.RuntimeModuleId
+import com.intellij.platform.runtime.repository.RuntimeModuleId.DEFAULT_NAMESPACE
+import com.intellij.platform.runtime.repository.RuntimeModuleId.raw
 import com.intellij.platform.runtime.repository.RuntimeModuleVisibility
 import com.intellij.platform.runtime.repository.serialization.RawRuntimeModuleDescriptor
 import com.intellij.platform.runtime.repository.serialization.RawRuntimeModuleRepositoryData
@@ -69,10 +71,18 @@ class RawDescriptorListBuilder {
     descriptor(id, resources, dependencies.asList())
   }
 
-  fun testDescriptor(id: String,
+  fun testDescriptor(moduleName: String,
                      vararg dependencies: String,
-                     resourceDirName: String = id.removeSuffix(RuntimeModuleId.TESTS_NAME_SUFFIX)) {
-    descriptor(id, listOf("test/$resourceDirName"), dependencies.asList())
+                     resourceDirName: String = moduleName.removeSuffix(RuntimeModuleId.TESTS_NAME_SUFFIX)) {
+    descriptor(raw(moduleName, RuntimeModuleId.LEGACY_JPS_MODULE_TESTS_NAMESPACE), listOf("test/$resourceDirName"),
+               dependencies.asList().map { raw(it, DEFAULT_NAMESPACE) })
+  }
+
+  fun testDescriptor(moduleName: String,
+                     vararg dependencies: RuntimeModuleId,
+                     resourceDirName: String = moduleName.removeSuffix(RuntimeModuleId.TESTS_NAME_SUFFIX)) {
+    descriptor(raw(moduleName, RuntimeModuleId.LEGACY_JPS_MODULE_TESTS_NAMESPACE), listOf("test/$resourceDirName"),
+               dependencies.asList())
   }
 
   fun descriptor(id: String, resources: List<String>, dependencies: List<String>) {

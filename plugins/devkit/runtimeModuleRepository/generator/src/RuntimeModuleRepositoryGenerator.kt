@@ -89,33 +89,10 @@ private fun generateDescriptorsForModules(
   resourcePathsSchema: ResourcePathsSchema,
   contentModuleDetector: ContentModuleDetector,
 ) {
-  //it's better to get rid of such modules, but until it's done, we need to have this workaround to avoid duplicating IDs 
-  val productionModulesWithTestRoots = HashSet<String>()
-  val testModulesWithProductionRoots = HashSet<String>()
-  val allIncludedTestModuleNames = includedTests.mapTo(HashSet()) { it.name }
-  for (module in includedTests) {
-    if (module.name.endsWith(RuntimeModuleId.TESTS_NAME_SUFFIX) && module.hasProductionSources) {
-      testModulesWithProductionRoots.add(module.name)
-    }
-    if ((module.name + RuntimeModuleId.TESTS_NAME_SUFFIX) in allIncludedTestModuleNames && module.hasTestSources) {
-      productionModulesWithTestRoots.add(module.name)
-    }
-  }
-
   fun getRuntimeModuleId(module: JpsModule, tests: Boolean): RuntimeModuleId {
     val moduleName = module.name
     if (tests) {
-      if (moduleName in productionModulesWithTestRoots) {
-        return RuntimeModuleId.raw(moduleName + RuntimeModuleId.TESTS_NAME_SUFFIX + "2")
-      }
-      if (!moduleName.endsWith(RuntimeModuleId.TESTS_NAME_SUFFIX)) {
-        return RuntimeModuleId.moduleTests(moduleName)
-      }
-    }
-    else {
-      if (moduleName in testModulesWithProductionRoots) {
-        return RuntimeModuleId.raw(moduleName + "2")
-      }
+      return RuntimeModuleId.moduleTests(moduleName)
     }
     val contentModuleData = contentModuleDetector.findContentModuleData(module)
     if (contentModuleData != null) {

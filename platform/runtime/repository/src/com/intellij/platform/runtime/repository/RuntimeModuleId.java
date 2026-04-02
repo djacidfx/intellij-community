@@ -18,6 +18,8 @@ public final class RuntimeModuleId {
   @ApiStatus.Internal
   public static final String LEGACY_JPS_MODULE_NAMESPACE = "$legacy_jps_module";
   @ApiStatus.Internal
+  public static final String LEGACY_JPS_MODULE_TESTS_NAMESPACE = "$legacy_jps_module_tests";
+  @ApiStatus.Internal
   public static final String LEGACY_JPS_LIBRARY_NAMESPACE = "$legacy_jps_library";
   private final String myName;
   private final String myNamespace;
@@ -67,7 +69,7 @@ public final class RuntimeModuleId {
    * Creates ID of a runtime module corresponding to the test part of module {@code moduleName} in intellij project configuration.
    */
   public static @NotNull RuntimeModuleId moduleTests(@NotNull String moduleName) {
-    return new RuntimeModuleId(moduleName + TESTS_NAME_SUFFIX, DEFAULT_NAMESPACE);
+    return new RuntimeModuleId(moduleName, LEGACY_JPS_MODULE_TESTS_NAMESPACE);
   }
 
   /**

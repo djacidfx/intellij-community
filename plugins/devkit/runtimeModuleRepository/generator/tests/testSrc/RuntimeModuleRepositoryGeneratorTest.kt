@@ -41,7 +41,7 @@ class RuntimeModuleRepositoryGeneratorTest {
     addModule("a", withTests = true)
     buildAndCheck { 
       descriptor("a")
-      testDescriptor("a.tests", "a")
+      testDescriptor("a", "a")
     }
   }
 
@@ -90,9 +90,9 @@ class RuntimeModuleRepositoryGeneratorTest {
     addModule("b", a, withTests = true)
     buildAndCheck { 
       descriptor("a")
-      testDescriptor("a.tests", "a")
+      testDescriptor("a", "a")
       descriptor("b", "a")
-      testDescriptor("b.tests", "b", "a.tests")
+      testDescriptor("b", module("b"), moduleTests("a"))
     }
   }
 
@@ -104,9 +104,9 @@ class RuntimeModuleRepositoryGeneratorTest {
     JpsJavaExtensionService.getInstance().getOrCreateDependencyExtension(dependency).scope = JpsJavaDependencyScope.TEST
     buildAndCheck {
       descriptor("a.test", resourceDirName = null)
-      testDescriptor("a.test.tests", "a.test", resourceDirName = "a.test")
+      testDescriptor("a.test", "a.test", resourceDirName = "a.test")
       descriptor("b")
-      testDescriptor("b.tests", "b", "a.test.tests")
+      testDescriptor("b", module("b"), moduleTests("a.test"))
     }
   }
 
@@ -119,8 +119,8 @@ class RuntimeModuleRepositoryGeneratorTest {
       descriptor("a")
       descriptor("b", "a")
       descriptor("c", "b")
-      testDescriptor("a.tests", "a")
-      testDescriptor("c.tests", "c", "a.tests")
+      testDescriptor("a", "a")
+      testDescriptor("c", module("c"), moduleTests("a"))
     }
   }
 
@@ -137,8 +137,8 @@ class RuntimeModuleRepositoryGeneratorTest {
       descriptor("a")
       descriptor("b", "a")
       descriptor("c", "b")
-      testDescriptor("a.tests", "a")
-      descriptor("c.tests", listOf("test/c", $$"$PROJECT_DIR$/lib"),  listOf("c", "a.tests"))
+      testDescriptor("a", "a")
+      descriptor(moduleTests("c"), listOf("test/c", $$"$PROJECT_DIR$/lib"),  listOf(module("c"), moduleTests("a")))
     }
   }
 
@@ -153,8 +153,8 @@ class RuntimeModuleRepositoryGeneratorTest {
       descriptor("b")
       descriptor("c", "a", "b")
       descriptor("d", "c")
-      testDescriptor("a.tests", "a")
-      testDescriptor("d.tests", "d", "a.tests")
+      testDescriptor("a", "a")
+      testDescriptor("d", module("d"), moduleTests("a"))
     }
   }
 
@@ -166,9 +166,9 @@ class RuntimeModuleRepositoryGeneratorTest {
     JpsJavaExtensionService.getInstance().getOrCreateDependencyExtension(dependency).scope = JpsJavaDependencyScope.RUNTIME
     buildAndCheck {
       descriptor("a", "b")
-      testDescriptor("a.tests", "a", "b.tests")
+      testDescriptor("a", module("a"), moduleTests("b"))
       descriptor("b", "a")
-      testDescriptor("b.tests", "b", "a.tests")
+      testDescriptor("b", module("b"), moduleTests("a"))
     }
   }
 
@@ -183,7 +183,7 @@ class RuntimeModuleRepositoryGeneratorTest {
       descriptor("a", "b")
       descriptor("b", "a")
       descriptor("c", "b")
-      testDescriptor("c.tests", "c")
+      testDescriptor("c", "c")
     }
   }
 
@@ -226,7 +226,7 @@ class RuntimeModuleRepositoryGeneratorTest {
     lib.addRoot(getUrl("project/lib"), JpsOrderRootType.COMPILED)
     val libId = RuntimeModuleId.projectLibrary("lib")
     buildAndCheck {
-      descriptor(RuntimeModuleId.contentModule("a", RuntimeModuleId.DEFAULT_NAMESPACE), listOf("production/a"), listOf(libId))
+      descriptor(module("a"), listOf("production/a"), listOf(libId))
       descriptor(libId, listOf($$"$PROJECT_DIR$/lib"), emptyList())
     }
   }
@@ -241,7 +241,7 @@ class RuntimeModuleRepositoryGeneratorTest {
     lib.addRoot(JpsPathUtil.getLibraryRootUrl(mavenRepoRoot.resolve(relativeLibPath)), JpsOrderRootType.COMPILED)
     val libId = RuntimeModuleId.projectLibrary("lib")
     buildAndCheck {
-      descriptor(RuntimeModuleId.contentModule("a", DEFAULT_NAMESPACE), listOf("production/a"),
+      descriptor(module("a"), listOf("production/a"),
                  listOf(libId))
       descriptor(libId, listOf($$"$MAVEN_REPOSITORY$/$$relativeLibPath"), emptyList())
     }
@@ -257,8 +257,8 @@ class RuntimeModuleRepositoryGeneratorTest {
     val libId = RuntimeModuleId.projectLibrary("lib")
     buildAndCheck { 
       descriptor("a")
-      descriptor(RuntimeModuleId.contentModule("a.tests", DEFAULT_NAMESPACE), listOf("test/a"),
-                 listOf(RuntimeModuleId.contentModule("a", DEFAULT_NAMESPACE), libId))
+      descriptor(moduleTests("a"), listOf("test/a"),
+                 listOf(module("a"), libId))
       descriptor(libId, listOf($$"$PROJECT_DIR$/lib"), emptyList())
     }
   }
@@ -284,5 +284,8 @@ class RuntimeModuleRepositoryGeneratorTest {
   private fun getUrl(relativePath: String): String {
     return JpsPathUtil.pathToUrl(tempDirectory.rootPath.resolve(relativePath).absolutePathString())
   }
+
+  private fun module(name: String): RuntimeModuleId = RuntimeModuleId.contentModule(name, DEFAULT_NAMESPACE)
+  private fun moduleTests(name: String): RuntimeModuleId = RuntimeModuleId.moduleTests(name)
 }
 
