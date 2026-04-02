@@ -1,278 +1,223 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.psi.impl.smartPointers;
+package com.intellij.psi.impl.smartPointers
 
-import com.intellij.codeInsight.multiverse.CodeInsightContext;
-import com.intellij.codeInsight.multiverse.CodeInsightContextUtil;
-import com.intellij.lang.Language;
-import com.intellij.openapi.application.ReadAction;
-import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.editor.event.DocumentEvent;
-import com.intellij.openapi.editor.impl.FrozenDocument;
-import com.intellij.openapi.fileEditor.FileDocumentManager;
-import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.Pair;
-import com.intellij.openapi.util.ProperTextRange;
-import com.intellij.openapi.util.Segment;
-import com.intellij.openapi.util.TextRange;
-import com.intellij.openapi.util.UnfairTextRange;
-import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.PsiDirectory;
-import com.intellij.psi.PsiDocumentManager;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiManager;
-import com.intellij.psi.impl.PsiDocumentManagerEx;
-import org.jetbrains.annotations.ApiStatus;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.List;
+import com.intellij.codeInsight.multiverse.CodeInsightContext
+import com.intellij.codeInsight.multiverse.codeInsightContext
+import com.intellij.lang.Language
+import com.intellij.openapi.application.runReadActionBlocking
+import com.intellij.openapi.editor.Document
+import com.intellij.openapi.editor.impl.FrozenDocument
+import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Pair
+import com.intellij.openapi.util.ProperTextRange
+import com.intellij.openapi.util.Segment
+import com.intellij.openapi.util.TextRange
+import com.intellij.openapi.util.UnfairTextRange
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiDirectory
+import com.intellij.psi.PsiDocumentManager
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiManager
+import com.intellij.psi.impl.PsiDocumentManagerEx
+import org.jetbrains.annotations.ApiStatus
+import kotlin.concurrent.Volatile
 
 /**
- * Tracks a regular PSI element inside a file via an {@link Identikit} (element type + optional anchor)
- * and text offsets. Offsets are kept in sync with document edits through {@link SmartPointerTracker}.
+ * Tracks a regular PSI element inside a file via an [Identikit] (element type + optional anchor)
+ * and text offsets. Offsets are kept in sync with document edits through [SmartPointerTracker].
  * The main workhorse of the hierarchy.
  */
 @ApiStatus.Internal
-public class SelfElementInfo extends SmartPointerElementInfo {
-  private static final FileDocumentManager ourFileDocManager = FileDocumentManager.getInstance();
+open class SelfElementInfo internal constructor(
+  range: ProperTextRange?,
+  identikit: Identikit,
+  containingPsiFile: PsiFile,
+  val isForInjected: Boolean,
+) : SmartPointerElementInfo() {
+  @Volatile
+  private var myIdentikit: Identikit = identikit
 
-  private final @NotNull CodeInsightContext myContext;
-  private volatile Identikit myIdentikit;
-  private final VirtualFile myVirtualFile;
-  private final boolean myForInjected;
-  private int myStartOffset;
-  private int myEndOffset;
+  val context: CodeInsightContext = containingPsiFile.codeInsightContext
 
-  SelfElementInfo(@Nullable ProperTextRange range,
-                  @NotNull Identikit identikit,
-                  @NotNull PsiFile containingPsiFile,
-                  boolean forInjected) {
-    myForInjected = forInjected;
-    myIdentikit = identikit;
+  override val virtualFile: VirtualFile = containingPsiFile.viewProvider.virtualFile
 
-    myVirtualFile = containingPsiFile.getViewProvider().getVirtualFile();
-    myContext = CodeInsightContextUtil.getCodeInsightContext(containingPsiFile);
-    setRange(range);
+  var psiStartOffset: Int = 0
+    private set
+
+  var psiEndOffset: Int = 0
+    private set
+
+  init {
+    setRange(range)
   }
 
-  @ApiStatus.Experimental
-  public @NotNull CodeInsightContext getContext() {
-    return myContext;
+  fun switchToAnchor(element: PsiElement) {
+    switchTo(element, findAnchor(element))
   }
 
-  void switchToAnchor(@NotNull PsiElement element) {
-    switchTo(element, findAnchor(element));
+  private fun findAnchor(element: PsiElement): Pair<Identikit.ByAnchor, PsiElement>? {
+    val language = myIdentikit.fileLanguage ?: return null
+    return Identikit.withAnchor(element, language)
   }
 
-  private @Nullable Pair<Identikit.ByAnchor, PsiElement> findAnchor(@NotNull PsiElement element) {
-    Language language = myIdentikit.getFileLanguage();
-    if (language == null) return null;
-    return Identikit.withAnchor(element, language);
-  }
-
-  private void switchTo(@NotNull PsiElement element, @Nullable Pair<Identikit.ByAnchor, PsiElement> pair) {
-    if (pair != null) {
-      assert pair.first.hashCode() == myIdentikit.hashCode();
-      myIdentikit = pair.first;
-      setRange(pair.second.getTextRange());
+  private fun switchTo(element: PsiElement, pair: Pair<Identikit.ByAnchor, PsiElement>?) {
+    if (pair == null) {
+      setRange(element.textRange)
+      return
     }
-    else {
-      setRange(element.getTextRange());
-    }
+
+    assert(pair.first.hashCode() == myIdentikit.hashCode())
+    myIdentikit = pair.first
+    setRange(pair.second.textRange)
   }
 
-  boolean updateRangeToPsi(@NotNull Segment pointerRange, PsiElement cachedElement) {
-    Pair<Identikit.ByAnchor, PsiElement> pair = findAnchor(cachedElement);
-    TextRange range = (pair != null ? pair.second : cachedElement).getTextRange();
-    if (range != null && range.intersects(pointerRange)) {
-      switchTo(cachedElement, pair);
-      return true;
+  fun updateRangeToPsi(pointerRange: Segment, cachedElement: PsiElement): Boolean {
+    val pair = findAnchor(cachedElement)
+    val range = (pair?.second ?: cachedElement).textRange
+    if (range == null || !range.intersects(pointerRange)) {
+      return false
     }
-    return false;
+    switchTo(cachedElement, pair)
+    return true
   }
 
-
-  void setRange(@Nullable Segment range) {
+  fun setRange(range: Segment?) {
     if (range == null) {
-      myStartOffset = -1;
-      myEndOffset = -1;
+      psiStartOffset = -1
+      psiEndOffset = -1
     }
     else {
-      myStartOffset = range.getStartOffset();
-      myEndOffset = range.getEndOffset();
+      psiStartOffset = range.startOffset
+      psiEndOffset = range.endOffset
     }
   }
 
-  boolean hasRange() {
-    return myStartOffset >= 0;
+  fun hasRange(): Boolean = this.psiStartOffset >= 0
+
+  val isGreedy: Boolean
+    get() = isForInjected || myIdentikit.isForPsiFile()
+
+  override val documentToSynchronize: Document?
+    get() = ourFileDocManager.getCachedDocument(virtualFile)
+
+  override fun restoreElement(manager: SmartPointerManagerEx): PsiElement? {
+    val segment = getPsiRange(manager) ?: return null
+    val file = restoreFile(manager)?.takeIf { it.isValid } ?: return null
+    return myIdentikit.findPsiElement(file, segment.startOffset, segment.endOffset)
   }
 
-  int getPsiStartOffset() {
-    return myStartOffset;
+  override fun getPsiRange(manager: SmartPointerManagerEx): TextRange? = calcPsiRange()
+
+  private fun calcPsiRange(): TextRange? =
+    if (hasRange()) UnfairTextRange(psiStartOffset, psiEndOffset) else null
+
+  override fun restoreFile(manager: SmartPointerManagerEx): PsiFile? {
+    val language = myIdentikit.fileLanguage ?: return null
+    return restoreFileFromVirtual(virtualFile, context, manager.project, language)
   }
 
-  int getPsiEndOffset() {
-    return myEndOffset;
+  override fun cleanup() {
+    setRange(null)
   }
 
-  boolean isGreedy() {
-    return myForInjected || myIdentikit.isForPsiFile();
-  }
+  override fun elementHashCode(): Int = virtualFile.hashCode() + myIdentikit.hashCode() * 31
 
-  @Override
-  Document getDocumentToSynchronize() {
-    return ourFileDocManager.getCachedDocument(getVirtualFile());
-  }
-
-  @Override
-  PsiElement restoreElement(@NotNull SmartPointerManagerEx manager) {
-    Segment segment = getPsiRange(manager);
-    if (segment == null) return null;
-
-    PsiFile file = restoreFile(manager);
-    if (file == null || !file.isValid()) return null;
-
-    return myIdentikit.findPsiElement(file, segment.getStartOffset(), segment.getEndOffset());
-  }
-
-  @Nullable
-  @Override
-  TextRange getPsiRange(@NotNull SmartPointerManagerEx manager) {
-    return calcPsiRange();
-  }
-
-  boolean isForInjected() {
-    return myForInjected;
-  }
-
-  private @Nullable TextRange calcPsiRange() {
-    return hasRange() ? new UnfairTextRange(myStartOffset, myEndOffset) : null;
-  }
-
-  @Override
-  @Nullable
-  PsiFile restoreFile(@NotNull SmartPointerManagerEx manager) {
-    Language language = myIdentikit.getFileLanguage();
-    if (language == null) return null;
-    return restoreFileFromVirtual(getVirtualFile(), getContext(), manager.getProject(), language);
-  }
-
-  @Override
-  void cleanup() {
-    setRange(null);
-  }
-
-  public static @Nullable PsiFile restoreFileFromVirtual(@NotNull VirtualFile virtualFile,
-                                                         @NotNull CodeInsightContext context,
-                                                         @NotNull Project project,
-                                                         @NotNull Language language) {
-    return ReadAction.computeBlocking(() -> {
-      if (project.isDisposed()) return null;
-
-      VirtualFile child = restoreVFile(virtualFile);
-      if (child == null || !child.isValid()) return null;
-      PsiFile file = PsiManager.getInstance(project).findFile(child, context);
-      if (file != null) {
-        return file.getViewProvider().getPsi(language == Language.ANY ? file.getViewProvider().getBaseLanguage() : language);
-      }
-
-      return null;
-    });
-  }
-
-  public static @Nullable PsiDirectory restoreDirectoryFromVirtual(@NotNull VirtualFile virtualFile, @NotNull Project project) {
-    return ReadAction.computeBlocking(() -> {
-      if (project.isDisposed()) return null;
-      VirtualFile child = restoreVFile(virtualFile);
-      if (child == null || !child.isValid()) return null;
-      PsiDirectory file = PsiManager.getInstance(project).findDirectory(child);
-      if (file == null || !file.isValid()) return null;
-      return file;
-    });
-  }
-
-  private static @Nullable VirtualFile restoreVFile(@NotNull VirtualFile virtualFile) {
-    if (virtualFile.isValid()) {
-      return virtualFile;
+  override fun pointsToTheSameElementAs(other: SmartPointerElementInfo, manager: SmartPointerManagerEx): Boolean {
+    if (other !is SelfElementInfo) {
+      return false
     }
+    if (virtualFile != other.virtualFile || myIdentikit !== other.myIdentikit) return false
 
-    VirtualFile vParent = virtualFile.getParent();
-    if (vParent == null || !vParent.isValid()) return null;
-
-    String name = virtualFile.getName();
-    return vParent.findChild(name);
-  }
-
-  @Override
-  int elementHashCode() {
-    return getVirtualFile().hashCode() + myIdentikit.hashCode() * 31;
-  }
-
-  @Override
-  boolean pointsToTheSameElementAs(@NotNull SmartPointerElementInfo other, @NotNull SmartPointerManagerEx manager) {
-    if (other instanceof SelfElementInfo) {
-      SelfElementInfo otherInfo = (SelfElementInfo)other;
-      if (!getVirtualFile().equals(other.getVirtualFile()) || myIdentikit != otherInfo.myIdentikit) return false;
-
-      return ReadAction.computeBlocking(() -> {
-        Segment range1 = getPsiRange(manager);
-        Segment range2 = otherInfo.getPsiRange(manager);
-        return range1 != null && range2 != null
-               && range1.getStartOffset() == range2.getStartOffset()
-               && range1.getEndOffset() == range2.getEndOffset();
-      });
+    return runReadActionBlocking {
+      val range1 = getPsiRange(manager)
+      val range2 = other.getPsiRange(manager)
+      range1 != null && range2 != null && range1.startOffset == range2.startOffset && range1.endOffset == range2.endOffset
     }
-    return false;
   }
 
-  @Override
-  final @NotNull VirtualFile getVirtualFile() {
-    return myVirtualFile;
-  }
-
-  @Override
-  @Nullable
-  Segment getRange(@NotNull SmartPointerManagerEx manager) {
+  override fun getRange(manager: SmartPointerManagerEx): Segment? {
     if (hasRange()) {
-      Document document = getDocumentToSynchronize();
+      val document = documentToSynchronize
       if (document != null) {
-        PsiDocumentManagerEx documentManager = manager.getPsiDocumentManager();
-        List<DocumentEvent> events = documentManager.getEventsSinceCommit(document);
+        val documentManager = manager.psiDocumentManager
+        val events = documentManager.getEventsSinceCommit(document)
         if (!events.isEmpty()) {
-          SmartPointerTracker tracker = manager.getTracker(getVirtualFile());
+          val tracker = manager.getTracker(virtualFile)
           if (tracker != null) {
-            return tracker.getUpdatedRange(this, (FrozenDocument)documentManager.getLastCommittedDocument(document), events);
+            return tracker.getUpdatedRange(this, documentManager.getLastCommittedDocument(document) as FrozenDocument, events)
           }
         }
       }
     }
-    return calcPsiRange();
+    return calcPsiRange()
   }
 
-  @Override
-  public String toString() {
-    return "psi:range=" + calcPsiRange() + ",type=" + myIdentikit;
+  override fun toString(): String {
+    return "psi:range=" + calcPsiRange() + ",type=" + myIdentikit
   }
 
-  public static @Nullable Segment calcActualRangeAfterDocumentEvents(@NotNull PsiFile containingFile,
-                                                                     @NotNull Document document,
-                                                                     @NotNull Segment segment,
-                                                                     boolean isSegmentGreedy) {
-    Project project = containingFile.getProject();
-    PsiDocumentManagerEx documentManager = (PsiDocumentManagerEx)PsiDocumentManager.getInstance(project);
-    List<DocumentEvent> events = documentManager.getEventsSinceCommit(document);
-    if (events.isEmpty()) {
-      return null;
+  companion object {
+    @Suppress("ApplicationServiceAsStaticFinalFieldOrProperty")
+    private val ourFileDocManager = FileDocumentManager.getInstance()
+
+    @JvmStatic
+    internal fun restoreFileFromVirtual(
+      virtualFile: VirtualFile,
+      context: CodeInsightContext,
+      project: Project,
+      language: Language,
+    ): PsiFile? {
+      return runReadActionBlocking {
+        if (project.isDisposed()) return@runReadActionBlocking null
+        val child = restoreVFile(virtualFile)?.takeIf { it.isValid } ?: return@runReadActionBlocking null
+        val file = PsiManager.getInstance(project).findFile(child, context) ?: return@runReadActionBlocking null
+        val effectiveLanguage = if (language === Language.ANY) file.viewProvider.baseLanguage else language
+        return@runReadActionBlocking file.viewProvider.getPsi(effectiveLanguage)
+      }
     }
 
-    SmartPointerManagerEx pointerManager = SmartPointerManagerEx.getInstanceEx(project);
-    SmartPointerTracker tracker = pointerManager.getTracker(containingFile.getViewProvider().getVirtualFile());
-    if (tracker == null) {
-      return null;
+    @JvmStatic
+    internal fun restoreDirectoryFromVirtual(virtualFile: VirtualFile, project: Project): PsiDirectory? {
+      return runReadActionBlocking {
+        if (project.isDisposed()) return@runReadActionBlocking null
+        val child = restoreVFile(virtualFile)?.takeIf { it.isValid } ?: return@runReadActionBlocking null
+        val file = PsiManager.getInstance(project).findDirectory(child)?.takeIf { it.isValid }
+        file
+      }
     }
 
-    return tracker.getUpdatedRange(containingFile, segment, isSegmentGreedy,
-                                   (FrozenDocument)documentManager.getLastCommittedDocument(document), events);
+    internal fun restoreVFile(virtualFile: VirtualFile): VirtualFile? {
+      if (virtualFile.isValid()) {
+        return virtualFile
+      }
+
+      val vParent = virtualFile.parent?.takeIf { it.isValid } ?: return null
+      return vParent.findChild(virtualFile.name)
+    }
+
+    @JvmStatic
+    fun calcActualRangeAfterDocumentEvents(
+      containingFile: PsiFile,
+      document: Document,
+      segment: Segment,
+      isSegmentGreedy: Boolean,
+    ): Segment? {
+      val project = containingFile.project
+      val documentManager = PsiDocumentManager.getInstance(project) as PsiDocumentManagerEx
+      val events = documentManager.getEventsSinceCommit(document).ifEmpty { return null }
+
+      val pointerManager = SmartPointerManagerEx.getInstanceEx(project)
+      val tracker = pointerManager.getTracker(containingFile.viewProvider.virtualFile) ?: return null
+
+      return tracker.getUpdatedRange(
+        containingFile = containingFile,
+        segment = segment,
+        isSegmentGreedy = isSegmentGreedy,
+        frozen = documentManager.getLastCommittedDocument(document) as FrozenDocument,
+        events = events
+      )
+    }
   }
 }

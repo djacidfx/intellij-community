@@ -1,64 +1,34 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.psi.impl.smartPointers;
+package com.intellij.psi.impl.smartPointers
 
-import com.intellij.openapi.util.Segment;
-import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.PsiAnchor;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiFile;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import com.intellij.openapi.util.Segment
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiAnchor
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
 
 /**
- * Tracks a compiled ({@code .class}) PSI element via a {@link com.intellij.psi.PsiAnchor.StubIndexReference}.
+ * Tracks a compiled (`.class`) PSI element via a [PsiAnchor.StubIndexReference].
  * Has no text range since bytecode elements have no source offsets.
  */
-class ClsElementInfo extends SmartPointerElementInfo {
-  private final @NotNull PsiAnchor.StubIndexReference myStubIndexReference;
+internal class ClsElementInfo(
+  private val myStubIndexReference: PsiAnchor.StubIndexReference,
+) : SmartPointerElementInfo() {
+  override fun restoreElement(manager: SmartPointerManagerEx): PsiElement? = myStubIndexReference.retrieve()
 
-  ClsElementInfo(@NotNull PsiAnchor.StubIndexReference stubReference) {
-    myStubIndexReference = stubReference;
-  }
+  override fun elementHashCode(): Int = myStubIndexReference.hashCode()
 
-  @Override
-  PsiElement restoreElement(@NotNull SmartPointerManagerEx manager) {
-    return myStubIndexReference.retrieve();
-  }
+  override fun pointsToTheSameElementAs(other: SmartPointerElementInfo, manager: SmartPointerManagerEx): Boolean =
+    other is ClsElementInfo && myStubIndexReference == other.myStubIndexReference
 
-  @Override
-  int elementHashCode() {
-    return myStubIndexReference.hashCode();
-  }
+  override val virtualFile: VirtualFile
+    get() = myStubIndexReference.virtualFile
 
-  @Override
-  boolean pointsToTheSameElementAs(@NotNull SmartPointerElementInfo other, @NotNull SmartPointerManagerEx manager) {
-    return other instanceof ClsElementInfo && myStubIndexReference.equals(((ClsElementInfo)other).myStubIndexReference);
-  }
+  override fun getRange(manager: SmartPointerManagerEx): Segment? = null
 
-  @Override
-  @NotNull
-  VirtualFile getVirtualFile() {
-    return myStubIndexReference.getVirtualFile();
-  }
+  override fun getPsiRange(manager: SmartPointerManagerEx): Segment? = null
 
-  @Override
-  Segment getRange(@NotNull SmartPointerManagerEx manager) {
-    return null;
-  }
+  override fun restoreFile(manager: SmartPointerManagerEx): PsiFile? = myStubIndexReference.getFile()
 
-  @Nullable
-  @Override
-  Segment getPsiRange(@NotNull SmartPointerManagerEx manager) {
-    return null;
-  }
-
-  @Override
-  PsiFile restoreFile(@NotNull SmartPointerManagerEx manager) {
-    return myStubIndexReference.getFile();
-  }
-
-  @Override
-  public String toString() {
-    return myStubIndexReference.toString();
-  }
+  override fun toString(): String = myStubIndexReference.toString()
 }

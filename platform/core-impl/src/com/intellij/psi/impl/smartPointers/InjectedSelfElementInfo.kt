@@ -1,264 +1,239 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.psi.impl.smartPointers;
+package com.intellij.psi.impl.smartPointers
 
-import com.intellij.injected.editor.DocumentWindow;
-import com.intellij.injected.editor.VirtualFileWindow;
-import com.intellij.lang.LanguageUtil;
-import com.intellij.lang.injection.InjectedLanguageManager;
-import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.Pair;
-import com.intellij.openapi.util.ProperTextRange;
-import com.intellij.openapi.util.Segment;
-import com.intellij.openapi.util.TextRange;
-import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.PsiDocumentManager;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiLanguageInjectionHost;
-import com.intellij.psi.SmartPointerManager;
-import com.intellij.psi.SmartPsiElementPointer;
-import com.intellij.psi.SmartPsiFileRange;
-import com.intellij.psi.impl.FreeThreadedFileViewProvider;
-import com.intellij.psi.impl.PsiDocumentManagerEx;
-import com.intellij.util.containers.ContainerUtil;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.List;
-import java.util.Set;
+import com.intellij.injected.editor.DocumentWindow
+import com.intellij.injected.editor.VirtualFileWindow
+import com.intellij.lang.LanguageUtil
+import com.intellij.lang.injection.InjectedLanguageManager
+import com.intellij.openapi.editor.Document
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.ProperTextRange
+import com.intellij.openapi.util.Segment
+import com.intellij.openapi.util.TextRange
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiDocumentManager
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiLanguageInjectionHost
+import com.intellij.psi.SmartPointerManager
+import com.intellij.psi.SmartPsiElementPointer
+import com.intellij.psi.SmartPsiFileRange
+import com.intellij.psi.impl.FreeThreadedFileViewProvider
+import com.intellij.psi.impl.PsiDocumentManagerEx
+import com.intellij.util.containers.ContainerUtil
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 
 /**
  * Tracks a PSI element inside a language injection. Stores a host-context smart pointer and the
  * injected range in host-file coordinates, converting between host and injected coordinate spaces
  * on restoration. Handles non-editable affix fragments (prefix/suffix around the injected code).
  */
-class InjectedSelfElementInfo extends SmartPointerElementInfo {
-  private final @NotNull SmartPsiFileRange myInjectedFileRangeInHostFile;
-  private final @Nullable AffixOffsets myAffixOffsets;
-  private final Identikit myType;
-  private final @NotNull SmartPsiElementPointer<PsiLanguageInjectionHost> myHostContext;
+internal class InjectedSelfElementInfo(
+  project: Project,
+  injectedElement: PsiElement,
+  injectedRange: TextRange,
+  containingFile: PsiFile,
+  private val myHostContext: SmartPsiElementPointer<PsiLanguageInjectionHost>,
+) : SmartPointerElementInfo() {
 
-  InjectedSelfElementInfo(@NotNull Project project,
-                          @NotNull PsiElement injectedElement,
-                          @NotNull TextRange injectedRange,
-                          @NotNull PsiFile containingFile,
-                          @NotNull SmartPsiElementPointer<PsiLanguageInjectionHost> hostContext) {
-    myHostContext = hostContext;
-    assert containingFile.getViewProvider() instanceof FreeThreadedFileViewProvider : "element parameter must be an injected element: "+injectedElement+"; "+containingFile;
-    assert containingFile.getTextRange().contains(injectedRange) : "Injected range outside the file: "+injectedRange +"; file: "+containingFile.getTextRange();
+  private val myInjectedFileRangeInHostFile: SmartPsiFileRange
+  private val myAffixOffsets: AffixOffsets?
+  private val myType: Identikit
 
-    InjectedLanguageManager ilm = InjectedLanguageManager.getInstance(project);
-    TextRange hostRange = ilm.injectedToHost(injectedElement, injectedRange);
-    PsiFile hostFile = hostContext.getContainingFile();
-    assert !(hostFile.getViewProvider() instanceof FreeThreadedFileViewProvider) : "hostContext parameter must not be and injected element: "+hostContext;
-    SmartPointerManager smartPointerManager = SmartPointerManager.getInstance(project);
-    myInjectedFileRangeInHostFile = smartPointerManager.createSmartPsiFileRangePointer(hostFile, hostRange);
-    myType = Identikit.fromPsi(injectedElement, LanguageUtil.getRootLanguage(containingFile));
+  init {
+    assert(containingFile.viewProvider is FreeThreadedFileViewProvider) { "element parameter must be an injected element: $injectedElement; $containingFile" }
+    assert(injectedRange in containingFile.getTextRange()) { "Injected range outside the file: " + injectedRange + "; file: " + containingFile.getTextRange() }
 
-    int startAffixIndex = -1;
-    int startAffixOffset = -1;
-    int endAffixIndex = -1;
-    int endAffixOffset = -1;
-    List<TextRange> fragments = ilm.getNonEditableFragments((DocumentWindow)containingFile.getViewProvider().getDocument());
-    for (int i = 0; i < fragments.size(); i++) {
-      TextRange range = fragments.get(i);
-      if (range.containsOffset(injectedRange.getStartOffset())) {
-        startAffixIndex = i;
-        startAffixOffset = injectedRange.getStartOffset() - range.getStartOffset();
+    val ilm = InjectedLanguageManager.getInstance(project)
+    val hostRange = ilm.injectedToHost(injectedElement, injectedRange)
+    val hostFile = myHostContext.getContainingFile()!!
+    assert(hostFile.viewProvider !is FreeThreadedFileViewProvider) { "hostContext parameter must not be and injected element: $myHostContext" }
+    val smartPointerManager = SmartPointerManager.getInstance(project)
+    myInjectedFileRangeInHostFile = smartPointerManager.createSmartPsiFileRangePointer(hostFile, hostRange)
+    myType = Identikit.fromPsi(injectedElement, LanguageUtil.getRootLanguage(containingFile))
+
+    var startAffixIndex = -1
+    var startAffixOffset = -1
+    var endAffixIndex = -1
+    var endAffixOffset = -1
+    val fragments = ilm.getNonEditableFragments(containingFile.getViewProvider().getDocument() as DocumentWindow)
+    for (i in fragments.indices) {
+      val range = fragments[i]
+      if (range.containsOffset(injectedRange.startOffset)) {
+        startAffixIndex = i
+        startAffixOffset = injectedRange.startOffset - range.startOffset
       }
-      if (range.containsOffset(injectedRange.getEndOffset())) {
-        endAffixIndex = i;
-        endAffixOffset = injectedRange.getEndOffset() - range.getStartOffset();
+      if (range.containsOffset(injectedRange.endOffset)) {
+        endAffixIndex = i
+        endAffixOffset = injectedRange.endOffset - range.startOffset
       }
     }
-    myAffixOffsets = startAffixIndex >= 0 || endAffixIndex >= 0 ? new AffixOffsets(startAffixIndex, startAffixOffset, endAffixIndex, endAffixOffset) : null;
+    myAffixOffsets = if (startAffixIndex >= 0 || endAffixIndex >= 0) AffixOffsets(startAffixIndex, startAffixOffset, endAffixIndex, endAffixOffset) else null
   }
 
-  @Override
-  VirtualFile getVirtualFile() {
-    PsiElement element = restoreElement(SmartPointerManagerEx.getInstanceEx(getProject()));
-    if (element == null) return null;
-    return element.getContainingFile().getVirtualFile();
+  override val virtualFile: VirtualFile?
+    get() {
+      val element = restoreElement(SmartPointerManagerEx.getInstanceEx(project)) ?: return null
+      return element.containingFile.virtualFile
+    }
+
+  override fun getRange(manager: SmartPointerManagerEx): Segment? = getInjectedRange(false)
+
+  override fun getPsiRange(manager: SmartPointerManagerEx): Segment? = getInjectedRange(true)
+
+  override fun restoreElement(manager: SmartPointerManagerEx): PsiElement? {
+    val hostFile = myHostContext.getContainingFile()?.takeIf { it.isValid } ?: return null
+    val hostContext = myHostContext.getElement() ?: return null
+    val segment = myInjectedFileRangeInHostFile.getPsiRange() ?: return null
+
+    val injectedPsi = getInjectedFileIn(hostContext, hostFile, TextRange.create(segment))
+    val rangeInInjected = hostToInjected(true, segment, injectedPsi, myAffixOffsets) ?: return null
+
+    return myType.findPsiElement(injectedPsi, rangeInInjected.startOffset, rangeInInjected.endOffset)
   }
 
-  @Override
-  Segment getRange(@NotNull SmartPointerManagerEx manager) {
-    return getInjectedRange(false);
-  }
+  private fun getInjectedFileIn(
+    hostContext: PsiElement,
+    hostFile: PsiFile,
+    rangeInHostFile: TextRange,
+  ): PsiFile? {
+    val docManager = PsiDocumentManager.getInstance(project) as PsiDocumentManagerEx
 
-  @Nullable
-  @Override
-  Segment getPsiRange(@NotNull SmartPointerManagerEx manager) {
-    return getInjectedRange(true);
-  }
-
-  @Override
-  PsiElement restoreElement(@NotNull SmartPointerManagerEx manager) {
-    PsiFile hostFile = myHostContext.getContainingFile();
-    if (hostFile == null || !hostFile.isValid()) return null;
-
-    PsiElement hostContext = myHostContext.getElement();
-    if (hostContext == null) return null;
-
-    Segment segment = myInjectedFileRangeInHostFile.getPsiRange();
-    if (segment == null) return null;
-
-    PsiFile injectedPsi = getInjectedFileIn(hostContext, hostFile, TextRange.create(segment));
-    ProperTextRange rangeInInjected = hostToInjected(true, segment, injectedPsi, myAffixOffsets);
-    if (rangeInInjected == null) return null;
-
-    return myType.findPsiElement(injectedPsi, rangeInInjected.getStartOffset(), rangeInInjected.getEndOffset());
-  }
-
-  private PsiFile getInjectedFileIn(@NotNull PsiElement hostContext,
-                                    @NotNull PsiFile hostFile,
-                                    @NotNull TextRange rangeInHostFile) {
-    PsiDocumentManagerEx docManager = (PsiDocumentManagerEx)PsiDocumentManager.getInstance(getProject());
-    PsiFile[] result = {null};
-    PsiLanguageInjectionHost.InjectedPsiVisitor visitor = (injectedPsi, places) -> {
-      Document document = docManager.getDocument(injectedPsi);
-      if (document instanceof DocumentWindow) {
-        DocumentWindow window = (DocumentWindow)docManager.getLastCommittedDocument(document);
-        TextRange hostRange = window.injectedToHost(new TextRange(0, injectedPsi.getTextLength()));
-        if (hostRange.contains(rangeInHostFile)) {
-         result[0] = injectedPsi;
+    var result: PsiFile? = null
+    val visitor = PsiLanguageInjectionHost.InjectedPsiVisitor { injectedPsi: PsiFile, _ ->
+      val document = docManager.getDocument(injectedPsi)
+      if (document is DocumentWindow) {
+        val window = docManager.getLastCommittedDocument(document) as DocumentWindow
+        val hostRange = window.injectedToHost(TextRange(0, injectedPsi.textLength))
+        if (rangeInHostFile in hostRange) {
+          result = injectedPsi
         }
       }
-    };
+    }
 
-    PsiDocumentManager documentManager = PsiDocumentManager.getInstance(getProject());
-    Document document = documentManager.getDocument(hostFile);
-    InjectedLanguageManager injectionManager = InjectedLanguageManager.getInstance(getProject());
-    if (document != null && documentManager.isUncommited(document)) {
-      List<DocumentWindow> documents = injectionManager.getCachedInjectedDocumentsInRange(hostFile, rangeInHostFile);
-      Set<PsiFile> injectedFiles = ContainerUtil.map2SetNotNull(documents, d -> documentManager.getPsiFile(d));
-      for (PsiFile injectedFile : injectedFiles) {
-        visitor.visit(injectedFile, ContainerUtil.emptyList());
+    val document = docManager.getDocument(hostFile)
+    val injectionManager = InjectedLanguageManager.getInstance(project)
+    if (document != null && docManager.isUncommited(document)) {
+      val documents = injectionManager.getCachedInjectedDocumentsInRange(hostFile, rangeInHostFile)
+      val injectedFiles = ContainerUtil.map2SetNotNull(documents) { d -> docManager.getPsiFile(d) }
+      for (injectedFile in injectedFiles) {
+        visitor.visit(injectedFile, ContainerUtil.emptyList())
       }
     }
     else {
-      List<Pair<PsiElement, TextRange>> injected = injectionManager.getInjectedPsiFiles(hostContext);
+      val injected = injectionManager.getInjectedPsiFiles(hostContext)
       if (injected != null) {
-        Set<PsiFile> injectedFiles = ContainerUtil.map2SetNotNull(injected, pair -> pair.first.getContainingFile());
-        for (PsiFile injectedFile : injectedFiles) {
-          visitor.visit(injectedFile, ContainerUtil.emptyList());
+        val injectedFiles = ContainerUtil.map2SetNotNull(injected) { pair -> pair.first.containingFile }
+        for (injectedFile in injectedFiles) {
+          visitor.visit(injectedFile, ContainerUtil.emptyList())
         }
       }
     }
 
-    return result[0];
+    return result
   }
 
-  @Override
-  boolean pointsToTheSameElementAs(@NotNull SmartPointerElementInfo other, @NotNull SmartPointerManagerEx manager) {
-    if (getClass() != other.getClass()) return false;
-    if (!((InjectedSelfElementInfo)other).myHostContext.equals(myHostContext)) return false;
-    SmartPointerElementInfo myElementInfo = ((SmartPsiElementPointerImpl<?>)myInjectedFileRangeInHostFile).getElementInfo();
-    SmartPointerElementInfo oElementInfo = ((SmartPsiElementPointerImpl<?>)((InjectedSelfElementInfo)other).myInjectedFileRangeInHostFile).getElementInfo();
-    return myElementInfo.pointsToTheSameElementAs(oElementInfo, manager);
+  override fun pointsToTheSameElementAs(other: SmartPointerElementInfo, manager: SmartPointerManagerEx): Boolean {
+    if (javaClass != other.javaClass) return false
+    if ((other as InjectedSelfElementInfo).myHostContext != myHostContext) return false
+    val myElementInfo = (myInjectedFileRangeInHostFile as SmartPsiElementPointerImpl<*>).elementInfo
+    val oElementInfo = (other.myInjectedFileRangeInHostFile as SmartPsiElementPointerImpl<*>).elementInfo
+    return myElementInfo.pointsToTheSameElementAs(oElementInfo, manager)
   }
 
-  @Override
-  PsiFile restoreFile(@NotNull SmartPointerManagerEx manager) {
-    PsiFile hostFile = myHostContext.getContainingFile();
-    if (hostFile == null || !hostFile.isValid()) return null;
+  override fun restoreFile(manager: SmartPointerManagerEx): PsiFile? {
+    val hostFile = myHostContext.getContainingFile()?.takeIf { it.isValid } ?: return null
+    val hostContext = myHostContext.getElement() ?: return null
+    val segment = myInjectedFileRangeInHostFile.getPsiRange() ?: return null
 
-    PsiElement hostContext = myHostContext.getElement();
-    if (hostContext == null) return null;
-
-    Segment segment = myInjectedFileRangeInHostFile.getPsiRange();
-    if (segment == null) return null;
-    TextRange rangeInHostFile = TextRange.create(segment);
-    return getInjectedFileIn(hostContext, hostFile, rangeInHostFile);
+    val rangeInHostFile = TextRange.create(segment)
+    return getInjectedFileIn(hostContext, hostFile, rangeInHostFile)
   }
 
-  private @Nullable ProperTextRange getInjectedRange(boolean psi) {
-    PsiElement hostContext = myHostContext.getElement();
-    if (hostContext == null) return null;
+  private fun getInjectedRange(psi: Boolean): ProperTextRange? {
+    if (myHostContext.element == null) return null
 
-    Segment hostElementRange = psi ? myInjectedFileRangeInHostFile.getPsiRange() : myInjectedFileRangeInHostFile.getRange();
-    if (hostElementRange == null) return null;
+    val hostElementRange = (if (psi) myInjectedFileRangeInHostFile.psiRange else myInjectedFileRangeInHostFile.range) ?: return null
 
-    return hostToInjected(psi, hostElementRange, restoreFile(SmartPointerManagerEx.getInstanceEx(getProject())), myAffixOffsets);
+    val injectedFile = restoreFile(SmartPointerManagerEx.getInstanceEx(project))
+    return hostToInjected(psi, hostElementRange, injectedFile, myAffixOffsets)
   }
 
-  private static @Nullable ProperTextRange hostToInjected(boolean psi, @NotNull Segment hostRange, @Nullable PsiFile injectedFile, @Nullable AffixOffsets affixOffsets) {
-    VirtualFile virtualFile = injectedFile == null ? null : injectedFile.getVirtualFile();
-    if (virtualFile instanceof VirtualFileWindow) {
-      Project project = injectedFile.getProject();
-      DocumentWindow documentWindow = ((VirtualFileWindow)virtualFile).getDocumentWindow();
-      if (psi) {
-        documentWindow = (DocumentWindow) ((PsiDocumentManagerEx) PsiDocumentManager.getInstance(project)).getLastCommittedDocument(documentWindow);
-      }
-      int start = documentWindow.hostToInjected(hostRange.getStartOffset());
-      int end = documentWindow.hostToInjected(hostRange.getEndOffset());
-      if (affixOffsets != null) {
-        return affixOffsets.expandRangeToAffixes(start, end, InjectedLanguageManager.getInstance(project).getNonEditableFragments(documentWindow));
-      }
-      return ProperTextRange.create(start, end);
-    }
-
-    return null;
+  override fun cleanup() {
+    SmartPointerManager.getInstance(project).removePointer(myInjectedFileRangeInHostFile)
   }
 
-  @Override
-  void cleanup() {
-    SmartPointerManager.getInstance(getProject()).removePointer(myInjectedFileRangeInHostFile);
+  override val documentToSynchronize: Document?
+    get() = (myHostContext as SmartPsiElementPointerImpl<*>).elementInfo.documentToSynchronize
+
+  override fun elementHashCode(): Int {
+    return (myHostContext as SmartPsiElementPointerImpl<*>).elementInfo.elementHashCode()
   }
 
-  @Nullable
-  @Override
-  Document getDocumentToSynchronize() {
-    return ((SmartPsiElementPointerImpl<?>)myHostContext).getElementInfo().getDocumentToSynchronize();
+  private val project: Project
+    get() = myHostContext.project
+
+  override fun toString(): String = "injected{type=$myType, range=$myInjectedFileRangeInHostFile, host=$myHostContext}"
+}
+
+@OptIn(ExperimentalContracts::class)
+private fun hostToInjected(
+  psi: Boolean,
+  hostRange: Segment,
+  injectedFile: PsiFile?,
+  affixOffsets: AffixOffsets?,
+): ProperTextRange? {
+  contract {
+    returnsNotNull() implies (injectedFile != null)
   }
 
-  @Override
-  int elementHashCode() {
-    return ((SmartPsiElementPointerImpl<?>)myHostContext).getElementInfo().elementHashCode();
+  val virtualFile = injectedFile?.virtualFile as? VirtualFileWindow ?: return null
+  val project = injectedFile.project
+  var documentWindow = virtualFile.getDocumentWindow()
+  if (psi) {
+    documentWindow = (PsiDocumentManager.getInstance(project) as PsiDocumentManagerEx).getLastCommittedDocument(documentWindow) as DocumentWindow
   }
 
-  private @NotNull Project getProject() {
-    return myHostContext.getProject();
+  val start = documentWindow.hostToInjected(hostRange.getStartOffset())
+  val end = documentWindow.hostToInjected(hostRange.getEndOffset())
+
+  if (affixOffsets != null) {
+    return affixOffsets.expandRangeToAffixes(start, end, InjectedLanguageManager.getInstance(project).getNonEditableFragments(documentWindow))
   }
+  return ProperTextRange.create(start, end)
+}
 
-  @Override
-  public String toString() {
-    return "injected{type=" + myType + ", range=" + myInjectedFileRangeInHostFile + ", host=" + myHostContext + "}";
-  }
-
-  private static class AffixOffsets {
-    final int startAffixIndex;
-    final int startAffixOffset;
-    final int endAffixIndex;
-    final int endAffixOffset;
-
-    AffixOffsets(int startAffixIndex, int startAffixOffset, int endAffixIndex, int endAffixOffset) {
-      this.startAffixIndex = startAffixIndex;
-      this.startAffixOffset = startAffixOffset;
-      this.endAffixIndex = endAffixIndex;
-      this.endAffixOffset = endAffixOffset;
-      assert startAffixIndex < 0 || endAffixIndex < 0 ||
-             startAffixOffset >= 0 && endAffixOffset >= 0 && (startAffixIndex < endAffixIndex || startAffixIndex == endAffixIndex && startAffixOffset <= endAffixOffset)
-        : "Invalid offsets passed: startAffixIndex = " + startAffixIndex + ";endAffixIndex = " + endAffixIndex + ";startAffixOffset = " + startAffixOffset + ";endAffixOffset = " + endAffixOffset;
-    }
-
-    @Nullable
-    ProperTextRange expandRangeToAffixes(int start, int end, @NotNull List<? extends TextRange> fragments) {
-      if (startAffixIndex >= 0) {
-        TextRange fragment = startAffixIndex < fragments.size() ? fragments.get(startAffixIndex) : null;
-        if (fragment == null || startAffixOffset > fragment.getLength()) return null;
-        TextRange.assertProperRange(fragment);
-        start = fragment.getStartOffset() + startAffixOffset;
-      }
-      if (endAffixIndex >= 0) {
-        TextRange fragment = endAffixIndex < fragments.size() ? fragments.get(endAffixIndex) : null;
-        if (fragment == null || endAffixOffset > fragment.getLength()) return null;
-        TextRange.assertProperRange(fragment);
-        end = fragment.getStartOffset() + endAffixOffset;
-      }
-      return ProperTextRange.create(start, end);
+private class AffixOffsets(
+  val startAffixIndex: Int,
+  val startAffixOffset: Int,
+  val endAffixIndex: Int,
+  val endAffixOffset: Int
+) {
+  init {
+    assert(startAffixIndex < 0 ||
+           endAffixIndex < 0 ||
+           startAffixOffset >= 0 && endAffixOffset >= 0 && (startAffixIndex < endAffixIndex || startAffixIndex == endAffixIndex && startAffixOffset <= endAffixOffset)
+    ) {
+      "Invalid offsets passed: startAffixIndex = $startAffixIndex;endAffixIndex = $endAffixIndex;startAffixOffset = $startAffixOffset;endAffixOffset = $endAffixOffset"
     }
   }
 
+  fun expandRangeToAffixes(start: Int, end: Int, fragments: List<TextRange>): ProperTextRange? {
+    var start = start
+    var end = end
+    if (startAffixIndex >= 0) {
+      val fragment = if (startAffixIndex < fragments.size) fragments[startAffixIndex] else null
+      if (fragment == null || startAffixOffset > fragment.length) return null
+      TextRange.assertProperRange(fragment)
+      start = fragment.startOffset + startAffixOffset
+    }
+    if (endAffixIndex >= 0) {
+      val fragment = if (endAffixIndex < fragments.size) fragments[endAffixIndex] else null
+      if (fragment == null || endAffixOffset > fragment.length) return null
+      TextRange.assertProperRange(fragment)
+      end = fragment.startOffset + endAffixOffset
+    }
+    return ProperTextRange.create(start, end)
+  }
 }

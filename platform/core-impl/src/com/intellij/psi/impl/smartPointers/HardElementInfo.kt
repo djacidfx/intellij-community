@@ -1,61 +1,35 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.psi.impl.smartPointers;
+package com.intellij.psi.impl.smartPointers
 
-import com.intellij.openapi.util.Segment;
-import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.util.PsiUtilCore;
-import org.jetbrains.annotations.NotNull;
+import com.intellij.openapi.util.Segment
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
+import com.intellij.psi.util.PsiUtilCore
 
 /**
- * Holds a direct (hard) reference to a {@link PsiElement}. No range tracking or survival across
+ * Holds a direct (hard) reference to a [PsiElement]. No range tracking or survival across
  * reparse — used for non-physical PSI that cannot be restored by position (e.g., light elements).
  */
-class HardElementInfo extends SmartPointerElementInfo {
-  private final @NotNull PsiElement myElement;
+internal class HardElementInfo(
+  private val myElement: PsiElement,
+) : SmartPointerElementInfo() {
+  override fun restoreElement(manager: SmartPointerManagerEx): PsiElement = myElement
 
-  HardElementInfo(@NotNull PsiElement element) {
-    myElement = element;
-  }
+  override fun restoreFile(manager: SmartPointerManagerEx): PsiFile? =
+    if (myElement.isValid()) myElement.containingFile else null
 
-  @Override
-  PsiElement restoreElement(@NotNull SmartPointerManagerEx manager) {
-    return myElement;
-  }
+  override fun elementHashCode(): Int = myElement.hashCode()
 
-  @Override
-  PsiFile restoreFile(@NotNull SmartPointerManagerEx manager) {
-    return myElement.isValid() ? myElement.getContainingFile() : null;
-  }
+  override fun pointsToTheSameElementAs(other: SmartPointerElementInfo, manager: SmartPointerManagerEx): Boolean =
+    other is HardElementInfo && myElement == other.myElement
 
-  @Override
-  int elementHashCode() {
-    return myElement.hashCode();
-  }
+  override val virtualFile: VirtualFile?
+    get() = PsiUtilCore.getVirtualFile(myElement)
 
-  @Override
-  boolean pointsToTheSameElementAs(@NotNull SmartPointerElementInfo other, @NotNull SmartPointerManagerEx manager) {
-    return other instanceof HardElementInfo && myElement.equals(((HardElementInfo)other).myElement);
-  }
+  override fun getRange(manager: SmartPointerManagerEx): Segment? = myElement.textRange
 
-  @Override
-  VirtualFile getVirtualFile() {
-    return PsiUtilCore.getVirtualFile(myElement);
-  }
+  override fun getPsiRange(manager: SmartPointerManagerEx): Segment? = getRange(manager)
 
-  @Override
-  Segment getRange(@NotNull SmartPointerManagerEx manager) {
-    return myElement.getTextRange();
-  }
-
-  @Override
-  Segment getPsiRange(@NotNull SmartPointerManagerEx manager) {
-    return getRange(manager);
-  }
-
-  @Override
-  public String toString() {
-    return "hard{" + myElement + " of " + myElement.getClass() + "}";
-  }
+  override fun toString(): String = "hard{$myElement of ${myElement.javaClass}}"
 }

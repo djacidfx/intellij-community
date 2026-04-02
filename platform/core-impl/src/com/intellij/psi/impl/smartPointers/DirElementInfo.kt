@@ -1,69 +1,35 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.psi.impl.smartPointers;
+package com.intellij.psi.impl.smartPointers
 
-import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.Comparing;
-import com.intellij.openapi.util.Segment;
-import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.PsiDirectory;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiFile;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Comparing
+import com.intellij.openapi.util.Segment
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiDirectory
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
 
 /**
- * Tracks a {@link PsiDirectory}.
+ * Tracks a [PsiDirectory].
  */
-class DirElementInfo extends SmartPointerElementInfo {
-  private final @NotNull VirtualFile myVirtualFile;
-  private final @NotNull Project myProject;
+internal class DirElementInfo(directory: PsiDirectory) : SmartPointerElementInfo() {
+  override val virtualFile: VirtualFile = directory.getVirtualFile()
 
+  private val myProject: Project = directory.getProject()
 
-  DirElementInfo(@NotNull PsiDirectory directory) {
-    myProject = directory.getProject();
-    myVirtualFile = directory.getVirtualFile();
-  }
+  override fun restoreElement(manager: SmartPointerManagerEx): PsiElement? =
+    SelfElementInfo.restoreDirectoryFromVirtual(this.virtualFile, myProject)
 
-  @Override
-  PsiElement restoreElement(@NotNull SmartPointerManagerEx manager) {
-    return SelfElementInfo.restoreDirectoryFromVirtual(myVirtualFile, myProject);
-  }
+  override fun restoreFile(manager: SmartPointerManagerEx): PsiFile? = null
 
-  @Override
-  PsiFile restoreFile(@NotNull SmartPointerManagerEx manager) {
-    return null;
-  }
+  override fun elementHashCode(): Int = virtualFile.hashCode()
 
-  @Override
-  int elementHashCode() {
-    return myVirtualFile.hashCode();
-  }
+  override fun pointsToTheSameElementAs(other: SmartPointerElementInfo, manager: SmartPointerManagerEx): Boolean =
+    other is DirElementInfo && Comparing.equal(this.virtualFile, other.virtualFile)
 
-  @Override
-  boolean pointsToTheSameElementAs(@NotNull SmartPointerElementInfo other,
-                                   @NotNull SmartPointerManagerEx manager) {
-    return other instanceof DirElementInfo && Comparing.equal(myVirtualFile, ((DirElementInfo)other).myVirtualFile);
-  }
+  override fun getRange(manager: SmartPointerManagerEx): Segment? = null
 
-  @NotNull
-  @Override
-  VirtualFile getVirtualFile() {
-    return myVirtualFile;
-  }
+  override fun getPsiRange(manager: SmartPointerManagerEx): Segment? = null
 
-  @Override
-  Segment getRange(@NotNull SmartPointerManagerEx manager) {
-    return null;
-  }
-
-  @Nullable
-  @Override
-  Segment getPsiRange(@NotNull SmartPointerManagerEx manager) {
-    return null;
-  }
-
-  @Override
-  public String toString() {
-    return "dir{" + myVirtualFile + "}";
-  }
+  override fun toString(): String = "dir{$virtualFile}"
 }

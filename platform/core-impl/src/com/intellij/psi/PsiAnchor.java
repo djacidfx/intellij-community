@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
 package com.intellij.psi;
 
@@ -217,7 +217,7 @@ public abstract class PsiAnchor implements Pointer<PsiElement> {
     public @Nullable PsiFile getFile() {
       Language language = myInfo.getFileLanguage();
       if (language == null) return null;
-      return SelfElementInfo.restoreFileFromVirtual(myVirtualFile, myContext, myProject, language);
+      return SelfElementInfo.restoreFileFromVirtual$intellij_platform_core_impl(myVirtualFile, myContext, myProject, language);
     }
 
     @Override
@@ -335,7 +335,7 @@ public abstract class PsiAnchor implements Pointer<PsiElement> {
 
     @Override
     public @Nullable PsiFile getFile() {
-      return SelfElementInfo.restoreFileFromVirtual(myFile, myContext, myProject, myLanguage);
+      return SelfElementInfo.restoreFileFromVirtual$intellij_platform_core_impl(myFile, myContext, myProject, myLanguage);
     }
 
     @Override
@@ -380,7 +380,7 @@ public abstract class PsiAnchor implements Pointer<PsiElement> {
 
     @Override
     public PsiElement retrieve() {
-      return SelfElementInfo.restoreDirectoryFromVirtual(myFile, myProject);
+      return SelfElementInfo.restoreDirectoryFromVirtual$intellij_platform_core_impl(myFile, myProject);
     }
 
     @Override
