@@ -36,8 +36,19 @@ val Project.projectDirectory: Path
  * When [throwWhenOutside] is true the method throws an McpExpectedException if the path is outside the project directory.
  */
 fun Project.resolveInProject(pathInProject: String, throwWhenOutside: Boolean = true): Path {
+  return resolveInProject(pathInProject = pathInProject, projectDirectory = projectDirectory, throwWhenOutside = throwWhenOutside)
+}
+
+/**
+ * Resolves a relative path against the directory.
+ *
+ * When [throwWhenOutside] is true the method throws an McpExpectedException if the path is outside the project directory.
+ */
+fun resolveInProject(pathInProject: String, projectDirectory: Path, throwWhenOutside: Boolean = true): Path {
   val filePath = projectDirectory.resolve(pathInProject).normalize()
-  if (throwWhenOutside && !filePath.startsWith(projectDirectory)) mcpFail("Specified path '$filePath' points to the location outside of the project directory")
+  if (throwWhenOutside && !filePath.startsWith(projectDirectory)) {
+    mcpFail("Specified path '$filePath' points to the location outside of the project directory")
+  }
   return filePath
 }
 

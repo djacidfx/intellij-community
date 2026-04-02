@@ -23353,7 +23353,9 @@ async function lintFilesLegacy(filePaths, minSeverity, timeout, callUpstreamTool
       errorsOnly: minSeverity === "error",
       ...remainingTimeout !== void 0 ? { timeout: remainingTimeout } : {}
     }), item = parseLegacyLintFileResult(result, filePath);
-    if (items.push(item), item.timedOut === !0) {
+    if (item.problems.length > 0)
+      items.push(item);
+    if (item.timedOut === !0) {
       more = !0;
       break;
     }
@@ -25007,7 +25009,7 @@ class UpstreamConnection {
       return normalizeToolResult(result);
     });
   }
-  static _LONG_TIMEOUT_TOOLS = /* @__PURE__ */ new Set(["build_project"]);
+  static _LONG_TIMEOUT_TOOLS = /* @__PURE__ */ new Set(["build_project", "lint_files"]);
   _resolveTimeoutMs(toolName) {
     return UpstreamConnection._LONG_TIMEOUT_TOOLS.has(toolName) ? this._buildTimeoutMs : this._toolCallTimeoutMs;
   }

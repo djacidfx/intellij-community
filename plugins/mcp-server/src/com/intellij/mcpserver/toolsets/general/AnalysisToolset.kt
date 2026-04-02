@@ -1,4 +1,4 @@
-@file:Suppress("FunctionName", "unused")
+@file:Suppress("FunctionName", "unused", "ReplaceGetOrSet")
 @file:OptIn(ExperimentalSerializationApi::class)
 
 package com.intellij.mcpserver.toolsets.general
@@ -11,12 +11,6 @@ import com.intellij.build.events.FileMessageEvent
 import com.intellij.build.events.FinishBuildEvent
 import com.intellij.build.events.MessageEvent
 import com.intellij.build.events.StartBuildEvent
-import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
-import com.intellij.codeInsight.daemon.impl.DaemonCodeAnalyzerImpl
-import com.intellij.codeInsight.daemon.impl.DaemonProgressIndicator
-import com.intellij.codeInsight.daemon.impl.HighlightInfo
-import com.intellij.codeInsight.daemon.impl.HighlightingSessionImpl
-import com.intellij.codeInsight.multiverse.defaultContext
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.mcpserver.McpServerBundle
 import com.intellij.mcpserver.McpToolset
@@ -27,7 +21,6 @@ import com.intellij.mcpserver.mcpFail
 import com.intellij.mcpserver.project
 import com.intellij.mcpserver.reportToolActivity
 import com.intellij.mcpserver.toolsets.Constants
-import com.intellij.mcpserver.util.awaitExternalChangesAndIndexing
 import com.intellij.mcpserver.util.projectDirectory
 import com.intellij.mcpserver.util.relativizeIfPossible
 import com.intellij.mcpserver.util.resolveInProject
@@ -35,18 +28,12 @@ import com.intellij.openapi.application.readAction
 import com.intellij.openapi.components.serviceAsync
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.diagnostic.trace
-import com.intellij.openapi.editor.Document
-import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.module.ModuleManager
-import com.intellij.openapi.progress.jobToIndicator
-import com.intellij.openapi.util.NlsContexts.ProgressTitle
 import com.intellij.openapi.roots.OrderEnumerator
-import com.intellij.openapi.util.ProperTextRange
-import com.intellij.openapi.util.TextRange
+import com.intellij.openapi.util.NlsContexts.ProgressTitle
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.platform.ide.progress.withBackgroundProgress
-import com.intellij.psi.PsiManager
 import com.intellij.task.ProjectTaskContext
 import com.intellij.task.ProjectTaskManager
 import com.intellij.task.impl.ProjectTaskManagerImpl
@@ -54,17 +41,13 @@ import com.intellij.util.asDisposable
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.job
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import org.jetbrains.concurrency.await
-import java.nio.file.Path
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
-import kotlin.io.path.exists
-import kotlin.io.path.isRegularFile
-import kotlin.io.path.pathString
 import kotlin.time.Duration.Companion.milliseconds
 
 private val logger = logger<AnalysisToolset>()
@@ -161,21 +144,22 @@ class AnalysisToolset : McpToolset {
         // Listen to build events to collect problems directly
         buildViewManager.addListener(BuildProgressListener { buildId, event ->
           logger.trace { "Received build event: ${event.javaClass.simpleName}, buildId=$buildId" }
-          
+
           when (event) {
             is StartBuildEvent -> {
               logger.trace { "Build started: ${event.buildDescriptor.title}" }
               buildStarted = true
             }
-            
+
             is FileMessageEvent -> {
               // Collect file-based error/warning messages directly from build events
               if (event.kind == MessageEvent.Kind.ERROR || event.kind == MessageEvent.Kind.WARNING) {
                 val filePosition = event.filePosition
-                val virtualFile = filePosition.file?.let { 
-                  VirtualFileManager.getInstance().findFileByNioPath(it.toPath()) 
+                val virtualFile = filePosition.file?.let {
+                  @Suppress("IO_FILE_USAGE")
+                  VirtualFileManager.getInstance().findFileByNioPath(it.toPath())
                 }
-                
+
                 val problem = ProjectProblem(
                   message = event.message,
                   kind = event.kind.name,
@@ -185,12 +169,12 @@ class AnalysisToolset : McpToolset {
                   line = filePosition.startLine,
                   column = filePosition.startColumn,
                 )
-                
+
                 logger.trace { "Collected problem from event: $problem" }
                 problems.add(problem)
               }
             }
-            
+
             is BuildIssueEvent -> {
               // Collect build issues (e.g., configuration problems, dependency issues)
               // BuildIssueEvent extends MessageEvent, so it has kind, group, etc.
@@ -248,7 +232,8 @@ class AnalysisToolset : McpToolset {
           val filePaths = filesToRebuild.map { file -> project.resolveInProject(file) }
           logger.trace { "Refreshing files: $filePaths..." }
           LocalFileSystem.getInstance().refreshNioFiles(filePaths)
-          val virtualFiles = filePaths.map { file -> LocalFileSystem.getInstance().findFileByNioFile(file) ?: mcpFail("File not found: $file") }
+          val virtualFiles =
+            filePaths.map { file -> LocalFileSystem.getInstance().findFileByNioFile(file) ?: mcpFail("File not found: $file") }
           logger.trace { "Creating build task for files: ${virtualFiles.joinToString { it.path }}" }
           readAction {
             (ProjectTaskManager.getInstance(project) as ProjectTaskManagerImpl).createModulesFilesTask(virtualFiles.toTypedArray())
@@ -263,7 +248,7 @@ class AnalysisToolset : McpToolset {
 
         val context = ProjectTaskContext(callId)
         logger.trace { "Running build task with context" }
-        
+
         // Run build and wait for FinishBuildEvent
         val result = ProjectTaskManager.getInstance(project).run(context, task).await()
 
@@ -358,115 +343,37 @@ class AnalysisToolset : McpToolset {
     progressTitle: @ProgressTitle String,
   ): LintFilesResult {
     val project = currentCoroutineContext().project
-    val resolvedFiles = resolveLintFiles(project, filePaths)
+    val requestedFiles = prepareRequestedLintFiles(project, filePaths)
     val minSeverity = LintMinSeverity.parse(minSeverityValue)
-
-    logger.trace { "Awaiting external changes and indexing" }
-    awaitExternalChangesAndIndexing(project)
-    logger.trace { "External changes and indexing completed" }
-
-    val startedAtNanos = System.nanoTime()
-    val items = ArrayList<LintFileResult>(resolvedFiles.size)
-    val more = withBackgroundProgress(project, progressTitle, cancellable = true) {
-      var incomplete = false
-      for (resolvedFile in resolvedFiles) {
-        val remainingTimeout = remainingTimeoutMs(timeout, startedAtNanos)
-        if (remainingTimeout <= 0) {
-          incomplete = true
-          break
-        }
-
-        val result = collectLintFile(resolvedFile, minSeverity.highlightSeverity, remainingTimeout)
-        items.add(result)
-        if (result.timedOut == true) {
-          incomplete = true
-          break
-        }
+    val request = LintFilesCollectorRequest(
+      requestedFiles = requestedFiles,
+      filePaths = requestedFiles.map { it.relativePath },
+      minSeverity = minSeverity.highlightSeverity,
+    )
+    val completedResults = ConcurrentHashMap<String, LintFileResult>(requestedFiles.size)
+    val completedFilePaths = ConcurrentHashMap.newKeySet<String>(requestedFiles.size)
+    val onFileResult: (LintFileResult) -> Unit = { result ->
+      completedFilePaths.add(result.filePath)
+      if (result.problems.isNotEmpty()) {
+        completedResults.putIfAbsent(result.filePath, result)
       }
-      incomplete
     }
 
-    logger.trace { "lint_files completed: more=$more, filesCount=${items.size}, requestedCount=${resolvedFiles.size}" }
+    val completedInTime = withTimeoutOrNull(timeout.milliseconds) {
+      withBackgroundProgress(project, progressTitle, cancellable = true) {
+        collectLintFiles(project, request, onFileResult)
+      }
+    } != null
+
+    val items = requestedFiles.mapNotNull { requestedFile ->
+      completedResults.get(requestedFile.relativePath)
+    }
+    val more = !completedInTime || completedFilePaths.size < requestedFiles.size
+
+    logger.trace {
+      "lint_files completed: more=$more, finishedInTime=$completedInTime, filesCount=${items.size}, completedCount=${completedFilePaths.size}, requestedCount=${requestedFiles.size}"
+    }
     return LintFilesResult(items = items, more = more)
-  }
-
-  private fun resolveLintFiles(project: com.intellij.openapi.project.Project, filePaths: List<String>): List<ResolvedLintFile> {
-    if (filePaths.isEmpty()) mcpFail("file_paths must contain at least one path")
-
-    val projectDir = project.projectDirectory
-    val resolvedFiles = LinkedHashMap<String, ResolvedLintFile>()
-    for (rawPath in filePaths) {
-      val filePath = rawPath.trim().ifEmpty { mcpFail("file_paths must not contain blank paths") }
-      val resolvedPath = project.resolveInProject(filePath)
-      if (!resolvedPath.exists()) mcpFail("File not found: $filePath")
-      if (!resolvedPath.isRegularFile()) mcpFail("Not a file: $filePath")
-
-      val relativePath = projectDir.relativize(resolvedPath).pathString
-      resolvedFiles.putIfAbsent(relativePath, ResolvedLintFile(filePath, resolvedPath, relativePath))
-    }
-    return resolvedFiles.values.toList()
-  }
-
-  private suspend fun collectLintFile(
-    resolvedFile: ResolvedLintFile,
-    minSeverity: HighlightSeverity,
-    timeout: Int,
-  ): LintFileResult {
-    val project = currentCoroutineContext().project
-    val problems = CopyOnWriteArrayList<LintProblem>()
-    val timedOut = withTimeoutOrNull(timeout.milliseconds) {
-      logger.trace { "Refreshing and finding file in VFS: ${resolvedFile.relativePath}" }
-      val file = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(resolvedFile.resolvedPath)
-                 ?: mcpFail("Cannot access file: ${resolvedFile.requestedPath}")
-
-      val psiFile = readAction { PsiManager.getInstance(project).findFile(file) }
-                    ?: mcpFail("Cannot find PSI file: ${resolvedFile.requestedPath}")
-      val document = readAction { FileDocumentManager.getInstance().getDocument(file) }
-                     ?: mcpFail("Cannot get document: ${resolvedFile.requestedPath}")
-
-      val daemonIndicator = DaemonProgressIndicator()
-      val range = ProperTextRange(0, document.textLength)
-      jobToIndicator(currentCoroutineContext().job, daemonIndicator) {
-        HighlightingSessionImpl.runInsideHighlightingSession(psiFile, defaultContext(), null, range, false) { session ->
-          (session as HighlightingSessionImpl).setMinimumSeverity(minSeverity)
-          val codeAnalyzer = DaemonCodeAnalyzer.getInstance(project) as DaemonCodeAnalyzerImpl
-          val highlightInfos = codeAnalyzer.runMainPasses(psiFile, document, daemonIndicator)
-          logger.trace { "Main passes completed for ${resolvedFile.relativePath}, found ${highlightInfos.size} highlights" }
-
-          for (info in highlightInfos) {
-            if (info.severity.myVal >= minSeverity.myVal) {
-              problems.add(createLintProblem(document, info))
-            }
-          }
-          logger.trace { "Processed highlights for ${resolvedFile.relativePath}, found ${problems.size} problems" }
-        }
-      }
-    } == null
-
-    return LintFileResult(
-      filePath = resolvedFile.relativePath,
-      problems = problems,
-      timedOut = timedOut,
-    )
-  }
-
-  private fun createLintProblem(
-    document: Document,
-    info: HighlightInfo,
-  ): LintProblem {
-    val startLine = document.getLineNumber(info.startOffset)
-    val lineStartOffset = document.getLineStartOffset(startLine)
-    val lineEndOffset = document.getLineEndOffset(startLine)
-    val lineText = document.getText(TextRange(lineStartOffset, lineEndOffset))
-    val column = info.startOffset - lineStartOffset
-
-    return LintProblem(
-      severity = info.severity.name,
-      description = info.description,
-      lineText = lineText,
-      line = startLine + 1,
-      column = column + 1,
-    )
   }
 
   private fun LintProblem.toLegacyFileProblem(): FileProblem {
@@ -481,11 +388,11 @@ class AnalysisToolset : McpToolset {
 
   @Serializable
   data class LintProblem(
-    val severity: String,
-    val description: String,
-    val lineText: String,
-    val line: Int,
-    val column: Int,
+    @JvmField val severity: String,
+    @JvmField val description: String,
+    @JvmField val lineText: String,
+    @JvmField val line: Int,
+    @JvmField val column: Int,
   )
 
   @Serializable
@@ -508,11 +415,11 @@ class AnalysisToolset : McpToolset {
 
   @Serializable
   data class FileProblem(
-    val severity: String,
-    val description: String,
-    val lineContent: String,
-    val line: Int,
-    val column: Int,
+    @JvmField val severity: String,
+    @JvmField val description: String,
+    @JvmField val lineContent: String,
+    @JvmField val line: Int,
+    @JvmField val column: Int,
   )
 
   @Serializable
@@ -559,30 +466,30 @@ class AnalysisToolset : McpToolset {
 
   @Serializable
   data class ModuleInfo(
-    val name: String,
+    @JvmField val name: String,
     @EncodeDefault(mode = EncodeDefault.Mode.NEVER)
-    val type: String? = null,
+    @JvmField val type: String? = null,
   )
 
   @Serializable
   data class ProjectModulesResult(
-    val modules: List<ModuleInfo>,
+    @JvmField val modules: List<ModuleInfo>,
   )
 
   @Serializable
   data class DependencyInfo(
-    val name: String
+    @JvmField val name: String,
   )
 
   @Serializable
   data class ProjectDependenciesResult(
-    val dependencies: List<DependencyInfo>,
+    @JvmField val dependencies: List<DependencyInfo>,
   )
 }
 
 private enum class LintMinSeverity(
-  val apiValue: String,
-  val highlightSeverity: HighlightSeverity,
+  @JvmField val apiValue: String,
+  @JvmField val highlightSeverity: HighlightSeverity,
 ) {
   WARNING("warning", HighlightSeverity.WEAK_WARNING),
   ERROR("error", HighlightSeverity.ERROR);
@@ -590,19 +497,7 @@ private enum class LintMinSeverity(
   companion object {
     fun parse(value: String): LintMinSeverity {
       val normalized = value.trim().lowercase()
-      return entries.firstOrNull { it.apiValue == normalized }
-             ?: mcpFail("min_severity must be one of: warning, error")
+      return entries.firstOrNull { it.apiValue == normalized } ?: mcpFail("min_severity must be one of: warning, error")
     }
   }
-}
-
-private data class ResolvedLintFile(
-  val requestedPath: String,
-  val resolvedPath: Path,
-  val relativePath: String,
-)
-
-private fun remainingTimeoutMs(timeout: Int, startedAtNanos: Long): Int {
-  val elapsedMs = ((System.nanoTime() - startedAtNanos) / 1_000_000L).coerceAtLeast(0L)
-  return (timeout.toLong() - elapsedMs).coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()).toInt()
 }

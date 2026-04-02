@@ -103,7 +103,9 @@ async function lintFilesLegacy(
       ...(remainingTimeout !== undefined ? {timeout: remainingTimeout} : {})
     })
     const item = parseLegacyLintFileResult(result, filePath)
-    items.push(item)
+    if (item.problems.length > 0) {
+      items.push(item)
+    }
     if (item.timedOut === true) {
       more = true
       break

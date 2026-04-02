@@ -43,4 +43,9 @@ abstract class GeneralMcpToolsetTestBase : McpToolsetTestBase() {
    * Convenience handle for the shared sample project's `src/Test.java`.
    */
   protected val testJavaFile: VirtualFile by projectFixture.fileOrDirInProjectFixture("src/Test.java")
+
+  /**
+   * Convenience handle for the shared sample project's `src/Class.java`.
+   */
+  protected val classJavaFile: VirtualFile by projectFixture.fileOrDirInProjectFixture("src/Class.java")
 }

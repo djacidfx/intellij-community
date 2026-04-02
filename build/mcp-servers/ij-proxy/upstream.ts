@@ -181,7 +181,7 @@ export class UpstreamConnection {
     })
   }
 
-  private static readonly _LONG_TIMEOUT_TOOLS = new Set(['build_project'])
+  private static readonly _LONG_TIMEOUT_TOOLS = new Set(['build_project', 'lint_files'])
 
   private _resolveTimeoutMs(toolName: string): number {
     return UpstreamConnection._LONG_TIMEOUT_TOOLS.has(toolName) ? this._buildTimeoutMs : this._toolCallTimeoutMs
