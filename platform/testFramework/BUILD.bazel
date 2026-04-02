@@ -80,6 +80,7 @@ jvm_library(
     "//platform/syntax/syntax-util:util",
     "//platform/testFramework/common",
     "//platform/testFramework/core",
+    "//platform/todo/backend",
     "//platform/todo",
     "//platform/usageView",
     "//platform/usageView-impl",
@@ -97,7 +98,6 @@ jvm_library(
     "//jps/model-impl",
     "//platform/util:util-ui",
     "//platform/util-ex",
-    "//platform/todo/backend",
     ":libraries_junit4_provided",
     ":libraries_junit5-launcher_provided",
   ],
@@ -209,6 +209,7 @@ jvm_library(
     "//platform/testFramework/core:core_test_lib",
     "//platform/testFramework/junit5",
     "//platform/testFramework/junit5:junit5_test_lib",
+    "//platform/todo/backend:backend_test_lib",
     "//platform/todo:todo_test_lib",
     "//platform/usageView:usageView_test_lib",
     "//platform/usageView-impl:usageView-impl_test_lib",
@@ -231,7 +232,6 @@ jvm_library(
     "//jps/model-impl:model-impl_test_lib",
     "//platform/util:util-ui_test_lib",
     "//platform/util-ex:util-ex_test_lib",
-    "//platform/todo/backend:backend_test_lib",
   ]
 )
 ### auto-generated section `build intellij.platform.testFramework` end

@@ -9,7 +9,6 @@ import com.intellij.util.indexing.FileBasedIndexEx
 import com.intellij.util.indexing.roots.IndexableFilesDeduplicateFilter
 import com.intellij.util.indexing.roots.IndexableFilesIterator
 import com.jetbrains.performancePlugin.PerformanceTestingBundle
-import com.jetbrains.performancePlugin.utils.indexes.CurrentIndexedFileResolver.getAllToBeIndexedFilesInProject
 
 /**
  * Provides access to indexed files that belong to the current project:

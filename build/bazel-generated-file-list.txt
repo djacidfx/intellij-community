@@ -1455,6 +1455,7 @@ plugins/mcp-server/tests
 plugins/mcp-server/tests/plugin
 plugins/ml-local-models
 plugins/ml-local-models/java
+plugins/performanceTesting/backend
 plugins/performanceTesting/commands-model
 plugins/performanceTesting/core
 plugins/performanceTesting/event-bus

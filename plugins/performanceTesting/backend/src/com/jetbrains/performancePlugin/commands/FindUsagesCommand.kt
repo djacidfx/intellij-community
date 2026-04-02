@@ -22,6 +22,8 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiNamedElement
 import com.intellij.usages.Usage
+import com.jetbrains.performancePlugin.FindUsagesSpans
+import com.jetbrains.performancePlugin.FindUsagesSpans.PARENT_SPAN_NAME
 import com.jetbrains.performancePlugin.PerformanceTestSpan
 import com.sampullara.cli.Args
 import io.opentelemetry.api.trace.Span
@@ -39,10 +41,8 @@ import java.util.concurrent.TimeUnit
  */
 class FindUsagesCommand(text: String, line: Int) : PerformanceCommandCoroutineAdapter(text, line) {
   companion object {
-    const val NAME: @NonNls String = "findUsages"
+    const val NAME: @NonNls String = FindUsagesSpans.BASE_NAME
     const val PREFIX: @NonNls String = CMD_PREFIX + NAME
-    const val SPAN_NAME: @NonNls String = NAME
-    const val PARENT_SPAN_NAME: @NonNls String = SPAN_NAME + "Parent"
     private val LOG = logger<FindUsagesCommand>()
 
     @Suppress("TestOnlyProblems")

@@ -65,7 +65,6 @@ import java.util.Collections
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.io.path.readText
 
-internal const val PREFIX = AbstractCommand.CMD_PREFIX + "compareIndices"
 private val LOG = logger<CompareIndices>()
 
 private const val LIMIT_OF_ERRORS_PER_COLLECTOR = 100
@@ -93,6 +92,10 @@ private const val LIMIT_OF_ERRORS_PER_COLLECTOR = 100
  * The folder with the stored indices should be defined by the parameter '-Dcompare.indices.command.stored.indexes.directory'.
  */
 internal class CompareIndices(text: String, line: Int) : AbstractCommand(text, line) {
+  companion object {
+    const val PREFIX = CMD_PREFIX + "compareIndices"
+  }
+
   override fun _execute(context: PlaybackContext): Promise<Any?> {
     val actionCallback = ActionCallbackProfilerStopper()
     val storedIndexDir = getStoredIndicesDirectory()

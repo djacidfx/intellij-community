@@ -15,6 +15,7 @@ import com.intellij.psi.PsiNamedElement
 import com.intellij.usages.Usage
 import com.intellij.usages.UsageView
 import com.intellij.usages.impl.UsageViewElementsListener
+import com.jetbrains.performancePlugin.FindUsagesSpans
 import com.jetbrains.performancePlugin.PerformanceTestSpan
 import com.jetbrains.performancePlugin.commands.FindUsagesCommand.Companion.getElement
 import com.jetbrains.performancePlugin.commands.FindUsagesCommand.Companion.goToElement
@@ -29,10 +30,9 @@ import org.jetbrains.annotations.NonNls
  */
 class FindUsagesInBackgroundCommand(text: String, line: Int) : PerformanceCommandCoroutineAdapter(text, line) {
   companion object {
-    const val NAME: @NonNls String = "findUsagesInBackground"
+    const val NAME: @NonNls String = FindUsagesSpans.BASE_NAME_BG
     const val PREFIX: @NonNls String = CMD_PREFIX + NAME
-    const val SPAN_NAME: @NonNls String = NAME
-    const val FIRST_USAGE_SPAN_BACKGROUND: String = "${SPAN_NAME}_firstUsage"
+
   }
 
   override suspend fun doExecute(context: PlaybackContext) {
@@ -72,7 +72,7 @@ class FindUsagesInBackgroundCommand(text: String, line: Int) : PerformanceComman
 
         val firstUsageSpan = PerformanceTestSpan
           .getTracer(isWarmupMode)
-          .spanBuilder(FIRST_USAGE_SPAN_BACKGROUND)
+          .spanBuilder(FindUsagesSpans.FIRST_USAGE_SPAN_BACKGROUND)
           .setParent(PerformanceTestSpan.getContext())
           .startSpan()
 
