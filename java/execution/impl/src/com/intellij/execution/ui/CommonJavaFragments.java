@@ -116,7 +116,6 @@ public final class CommonJavaFragments {
     String name = ExecutionBundle.message("application.configuration.use.classpath.and.jdk.of.module");
     comboBox.getAccessibleContext().setAccessibleName(name);
     setMinimumWidth(comboBox, 400);
-    CommonParameterFragments.setMonospaced(comboBox);
     SettingsEditorFragment<S, ModuleClasspathCombo> fragment =
       new SettingsEditorFragment<>("module.classpath", name, ExecutionBundle.message("group.java.options"), comboBox, 10,
                                    (s, c) -> comboBox.reset(s),
