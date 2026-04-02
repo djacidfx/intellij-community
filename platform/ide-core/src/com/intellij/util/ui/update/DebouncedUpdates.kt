@@ -11,16 +11,16 @@ import com.intellij.openapi.progress.runBlockingCancellable
 import com.intellij.util.cancelOnDispose
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.intellij.util.ui.launchOnShow
-import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
@@ -621,16 +621,10 @@ private abstract class BaseUpdateQueue<T>(
       val data = onPrepare()
 
       // Process the data in a separate coroutine
-      coroutineScope {
-        val job = launch {
-          try {
-            withContext(context) {
-              onProcess(data)
-            }
-          } catch (e: CancellationException) {
-            throw e
-          } catch (e: Throwable) {
-            logger<DebouncedUpdates>().error("Exception in DebouncedUpdates '$name'", e)
+      supervisorScope {
+        val job = launch(CoroutineExceptionHandler { _, e -> logger<DebouncedUpdates>().error(e) }) {
+          withContext(context) {
+            onProcess(data)
           }
         }
         
