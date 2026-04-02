@@ -34,7 +34,7 @@ import org.jetbrains.uast.visitor.AbstractUastVisitor
 @ApiStatus.Internal
 class SplitModeApiUsageInspection : DevKitUastInspectionBase(UClass::class.java, UField::class.java, UMethod::class.java) {
 
-  private val restrictionsService = ApiRestrictionsService.getInstance()
+  private val restrictionsService = SplitModeApiRestrictionsService.getInstance()
 
   override fun isAllowed(holder: ProblemsHolder): Boolean {
     if (!super.isAllowed(holder)) return false
@@ -108,7 +108,7 @@ class SplitModeApiUsageInspection : DevKitUastInspectionBase(UClass::class.java,
 
   private fun checkApiUsage(
     expression: UExpression,
-    currentModuleType: ApiRestrictionsService.ModuleKind,
+    currentModuleType: SplitModeApiRestrictionsService.ModuleKind,
     manager: InspectionManager,
     isOnTheFly: Boolean,
     descriptors: MutableList<ProblemDescriptor>,

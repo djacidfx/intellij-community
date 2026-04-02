@@ -19,15 +19,15 @@ import java.util.concurrent.atomic.AtomicReference
 
 @Service(Service.Level.APP)
 @ApiStatus.Internal
-class ApiRestrictionsService(private val coroutineScope: CoroutineScope) {
+class SplitModeApiRestrictionsService(private val coroutineScope: CoroutineScope) {
 
   companion object {
-    private val LOG: Logger = logger<ApiRestrictionsService>()
+    private val LOG: Logger = logger<SplitModeApiRestrictionsService>()
     private const val API_RESTRICTIONS_FILE_PATH = "/inspectionData/ApiRestrictions.json"
     private const val DEPENDENCY_RESTRICTIONS_FILE_PATH = "/inspectionData/DependencyRestrictions.json"
 
     @JvmStatic
-    fun getInstance(): ApiRestrictionsService = service()
+    fun getInstance(): SplitModeApiRestrictionsService = service()
   }
 
   private enum class LoadingState {
@@ -111,7 +111,7 @@ class ApiRestrictionsService(private val coroutineScope: CoroutineScope) {
   }
 
   private inline fun <reified T> loadRestrictionsData(filePath: String): RestrictionsData<T> {
-    val inputStream = ApiRestrictionsService::class.java.getResourceAsStream(filePath)
+    val inputStream = SplitModeApiRestrictionsService::class.java.getResourceAsStream(filePath)
     if (inputStream == null) {
       LOG.warn("Restrictions file not found: $filePath")
       return RestrictionsData()

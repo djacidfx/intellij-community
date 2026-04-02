@@ -5,7 +5,7 @@ import com.intellij.testFramework.PsiTestUtil
 import com.intellij.testFramework.common.timeoutRunBlocking
 import com.intellij.testFramework.common.waitUntil
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
-import org.jetbrains.idea.devkit.inspections.remotedev.ApiRestrictionsService
+import org.jetbrains.idea.devkit.inspections.remotedev.SplitModeApiRestrictionsService
 import org.jetbrains.idea.devkit.inspections.remotedev.SplitModeApiUsageInspection
 import org.jetbrains.kotlin.idea.base.plugin.KotlinPluginMode
 import org.jetbrains.kotlin.idea.test.ExpectedPluginModeProvider
@@ -21,7 +21,7 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
   override fun setUp() {
     setUpWithKotlinPlugin { super.setUp() }
 
-    val service = ApiRestrictionsService.getInstance()
+    val service = SplitModeApiRestrictionsService.getInstance()
     service.scheduleLoadRestrictions()
     timeoutRunBlocking {
       waitUntil("API restrictions failed to load", 2.seconds) { service.isLoaded() }

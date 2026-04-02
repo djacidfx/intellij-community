@@ -9,7 +9,7 @@ import org.jetbrains.idea.devkit.dom.IdeaPlugin
 import org.jetbrains.idea.devkit.inspections.DevKitPluginXmlInspectionBase
 
 internal class SplitModeMixedDependenciesInspection : DevKitPluginXmlInspectionBase() {
-  private val restrictionsService = ApiRestrictionsService.getInstance()
+  private val restrictionsService = SplitModeApiRestrictionsService.getInstance()
 
   override fun isAllowed(holder: DomElementAnnotationHolder): Boolean {
     if (!super.isAllowed(holder)) return false
@@ -42,10 +42,7 @@ internal class SplitModeMixedDependenciesInspection : DevKitPluginXmlInspectionB
       }
     }
 
-    val matchedDependencies = SplitModeModuleKindResolver.collectMatchedDependencies(
-      dependencyNames = declaredDependencies.map { it.name },
-      dependencyKindResolver = restrictionsService::getDependencyKind,
-    )
+    val matchedDependencies = SplitModeModuleKindResolver.collectMatchedDependencies(dependencyNames = declaredDependencies.map { it.name })
     if (!matchedDependencies.isMixed) return
 
     val message = DevKitBundle.message(

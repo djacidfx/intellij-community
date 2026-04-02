@@ -11,7 +11,7 @@ import org.jetbrains.idea.devkit.inspections.DevKitPluginXmlInspectionBase
 import org.jetbrains.idea.devkit.inspections.remotedev.SplitModeModuleKindResolver.doesApiKindMatchExpectedModuleKind
 
 internal class SplitModeXmlApiUsageInspection : DevKitPluginXmlInspectionBase() {
-  private val restrictionsService = ApiRestrictionsService.getInstance()
+  private val restrictionsService = SplitModeApiRestrictionsService.getInstance()
 
   override fun isAllowed(holder: DomElementAnnotationHolder): Boolean {
     if (!super.isAllowed(holder)) return false
