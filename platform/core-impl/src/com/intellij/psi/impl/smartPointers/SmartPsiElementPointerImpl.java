@@ -92,11 +92,16 @@ public class SmartPsiElementPointerImpl<E extends PsiElement> implements SmartPo
     if (getProject().isDisposed()) return null;
 
     E element = getCachedElement();
-    if (element == null || !element.isValid()) {
+    if (element == null || !element.isValid() || isContextsPossiblyChanged()) {
       element = doRestoreElement();
       cacheElement(element);
     }
     return element;
+  }
+
+  private boolean isContextsPossiblyChanged() {
+    SmartPointerTracker.PointerReference reference = pointerReference;
+    return reference != null && reference.getTracker().isContextPossiblyInvalidated();
   }
 
   @Nullable

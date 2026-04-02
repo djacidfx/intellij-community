@@ -10,6 +10,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.util.CommonProcessors
 import com.intellij.util.Processor
+import com.intellij.util.concurrency.annotations.RequiresWriteLock
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.TestOnly
 import org.jetbrains.annotations.VisibleForTesting
@@ -28,6 +29,9 @@ import java.util.Arrays
  */
 @ApiStatus.Internal
 class SmartPointerTracker {
+  @Volatile
+  private var isPossiblyInvalidated: Boolean = false
+
   private val refList = WeakPointerReferenceList()
   private val markerCache = MarkerCache(this)
   private var mySorted = false
@@ -168,6 +172,15 @@ class SmartPointerTracker {
   @TestOnly
   @Synchronized
   fun getSize(): Int = refList.size
+
+  @RequiresWriteLock
+  @Synchronized
+  fun possiblyInvalidate() {
+    isPossiblyInvalidated = true
+  }
+
+  fun isContextPossiblyInvalidated(): Boolean =
+    isPossiblyInvalidated // does not require synchronization, only writes should be synchronized
 
   private val SmartPsiElementPointerImpl<*>.selfInfo: SelfElementInfo
     get() = this.elementInfo as SelfElementInfo

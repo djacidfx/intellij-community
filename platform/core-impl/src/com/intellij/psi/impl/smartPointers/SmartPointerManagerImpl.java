@@ -21,6 +21,7 @@ import com.intellij.psi.SmartPsiFileRange;
 import com.intellij.psi.impl.PsiDocumentManagerEx;
 import com.intellij.psi.util.PsiUtilCore;
 import com.intellij.testFramework.LightVirtualFile;
+import com.intellij.util.concurrency.annotations.RequiresWriteLock;
 import com.intellij.util.containers.CollectionFactory;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NonNls;
@@ -35,6 +36,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
 
+import static com.intellij.codeInsight.multiverse.CodeInsightContexts.isSharedSourceSupportEnabled;
 import static com.intellij.reference.SoftReference.dereference;
 
 @ApiStatus.Internal
@@ -256,8 +258,18 @@ public final class SmartPointerManagerImpl extends SmartPointerManagerEx {
     return myPsiDocManager;
   }
 
+  @RequiresWriteLock
   @Override
   public void possiblyInvalidate() {
-    // TODO
+    if (!isSharedSourceSupportEnabled(myProject)) {
+      return;
+    }
+    synchronized (myPhysicalTrackers) {
+      for (SmartPointerTracker value : myPhysicalTrackers.values()) {
+        if (value != null) {
+          value.possiblyInvalidate();
+        }
+      }
+    }
   }
 }

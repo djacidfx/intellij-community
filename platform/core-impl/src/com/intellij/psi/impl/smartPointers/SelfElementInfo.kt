@@ -171,6 +171,9 @@ open class SelfElementInfo internal constructor(
       return runReadActionBlocking {
         if (project.isDisposed()) return@runReadActionBlocking null
         val child = restoreVFile(virtualFile)?.takeIf { it.isValid } ?: return@runReadActionBlocking null
+
+        // TODO implement context updating here
+
         val file = PsiManager.getInstance(project).findFile(child, context) ?: return@runReadActionBlocking null
         val effectiveLanguage = if (language === Language.ANY) file.viewProvider.baseLanguage else language
         return@runReadActionBlocking file.viewProvider.getPsi(effectiveLanguage)
