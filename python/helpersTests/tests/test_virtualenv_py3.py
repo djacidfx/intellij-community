@@ -4,8 +4,10 @@ import sys
 import unittest
 
 from testing import _helpers_root
+from testing import python3_only
 
 
+@python3_only
 class VirtualenvPy3Test(unittest.TestCase):
     def test_pyz_integrity(self):
         result = subprocess.run(
