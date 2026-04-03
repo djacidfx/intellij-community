@@ -21,4 +21,8 @@
             implementationClass="org.jetbrains.kotlin.idea.gradle.versionCatalog.toml.KotlinDotQualifiedExpressionManipulator"/>
   </extensions>
 
+  <extensions defaultExtensionNs="org.jetbrains.kotlin">
+    <psiReferenceProvider implementation="org.jetbrains.kotlin.idea.gradle.versionCatalog.toml.KotlinGradleTomlVersionCatalogPsiReferenceProviderContributor"/>
+  </extensions>
+
 </idea-plugin>

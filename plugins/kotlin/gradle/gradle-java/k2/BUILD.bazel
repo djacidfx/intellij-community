@@ -112,8 +112,6 @@ jvm_library(
     "//platform/testFramework/junit5:junit5_test_lib",
     "//plugins/kotlin/project-configuration",
     "//plugins/kotlin/project-configuration:project-configuration_test_lib",
-    "//plugins/kotlin/gradle/code-insight-toml/k2",
-    "//plugins/kotlin/gradle/code-insight-toml/k2:k2_test_lib",
     "//plugins/kotlin/fir/testFramework",
     "//plugins/kotlin/fir/testFramework:testFramework_test_lib",
     "//jps/model-api:model",
