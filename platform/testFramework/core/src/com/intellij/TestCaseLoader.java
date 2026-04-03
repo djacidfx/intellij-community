@@ -93,7 +93,9 @@ public class TestCaseLoader {
     if (ourBucketingSchemeInitRecursionLock.get() == Boolean.TRUE) throw new IllegalStateException("recursion detected");
     ourBucketingSchemeInitRecursionLock.set(Boolean.TRUE);
     try {
-      scheme.initialize();
+      TeamCityLogger.block("Initializing bucketing scheme ...", () -> {
+        scheme.initialize();
+      });
     } finally {
       ourBucketingSchemeInitRecursionLock.remove();
     }
