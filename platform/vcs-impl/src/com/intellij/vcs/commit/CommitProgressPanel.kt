@@ -75,6 +75,7 @@ import javax.swing.border.Border
 import javax.swing.event.HyperlinkEvent
 import kotlin.properties.Delegates.observable
 import kotlin.properties.ReadWriteProperty
+import kotlin.time.Duration.Companion.milliseconds
 
 private fun JBLabel.setError(@NlsContexts.Label errorText: String) {
   text = errorText
@@ -115,8 +116,8 @@ open class CommitProgressPanel(project: Project, parentDisposable: Disposable) :
 
   private var announceCommitErrorAlarm: SingleAlarm? = null
 
-  override var isEmptyMessage by stateFlag()
-  override var isEmptyChanges by stateFlag()
+  override var isEmptyMessage: Boolean by stateFlag()
+  override var isEmptyChanges: Boolean by stateFlag()
 
   private val dumbModeFlow: MutableStateFlow<Boolean> = MutableStateFlow(false)
   override var isDumbMode: Boolean by dumbModeFlow::value
@@ -124,7 +125,7 @@ open class CommitProgressPanel(project: Project, parentDisposable: Disposable) :
 
   init {
     scope.launch {
-      dumbModeFlow.debounce(300).collect { update() }
+      dumbModeFlow.debounce(300.milliseconds).collect { update() }
     }
   }
 
@@ -153,7 +154,7 @@ open class CommitProgressPanel(project: Project, parentDisposable: Disposable) :
   @Suppress("EXPERIMENTAL_API_USAGE")
   private fun setupProgressVisibilityDelay() {
     progressFlow
-      .debounce(ProgressUIUtil.DEFAULT_PROGRESS_DELAY_MILLIS)
+      .debounce(ProgressUIUtil.DEFAULT_PROGRESS_DELAY_MILLIS.milliseconds)
       .onEach { indicator ->
         if (indicator?.isRunning == true && failuresPanel.isEmpty()) {
           indicator.component.isVisible = true
@@ -273,9 +274,9 @@ open class CommitProgressPanel(project: Project, parentDisposable: Disposable) :
     update()
   }
 
-  override fun documentChanged(event: DocumentEvent) = clearError()
+  override fun documentChanged(event: DocumentEvent): Unit = clearError()
 
-  override fun inclusionChanged() = clearError()
+  override fun inclusionChanged(): Unit = clearError()
 
   protected fun update() {
     if (!isDumbMode) {
