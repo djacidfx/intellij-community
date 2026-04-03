@@ -50,6 +50,7 @@
     <registryKey key="ide.images.sci.mode.channels.operations" defaultValue="true"
                  description="Show combobox for image channels operations"/>
     <statistics.counterUsagesCollector implementationClass="org.intellij.images.scientific.statistics.ScientificImageActionsCollector"/>
+    <applicationSettings service="org.intellij.images.options.impl.OptionsManagerImpl"/>
   </extensions>
 
   <actions>
