@@ -101,7 +101,7 @@ public class SmartPsiElementPointerImpl<E extends PsiElement> implements SmartPo
 
   private boolean isContextsPossiblyChanged() {
     SmartPointerTracker.PointerReference reference = pointerReference;
-    return reference != null && reference.getTracker().isContextPossiblyInvalidated();
+    return reference != null && reference.isContextPossiblyInvalidated();
   }
 
   @Nullable

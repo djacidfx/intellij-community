@@ -35,7 +35,7 @@ open class SelfElementInfo internal constructor(
   identikit: Identikit,
   containingPsiFile: PsiFile,
   val isForInjected: Boolean,
-) : SmartPointerElementInfo {
+) : SmartPointerElementInfo, ContextAwareInfo {
   @Volatile
   private var myIdentikit: Identikit = identikit
   val context: CodeInsightContext = containingPsiFile.codeInsightContext

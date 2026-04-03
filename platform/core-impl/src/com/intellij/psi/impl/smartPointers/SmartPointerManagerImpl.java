@@ -159,7 +159,7 @@ public final class SmartPointerManagerImpl extends SmartPointerManagerEx {
 
   private <E extends PsiElement> void trackPointer(@NotNull SmartPsiElementPointerImpl<E> pointer, @NotNull VirtualFile containingFile) {
     SmartPointerElementInfo info = pointer.getElementInfo();
-    if (!(info instanceof SelfElementInfo)) return;
+    if (!(info instanceof ContextAwareInfo)) return;
 
     SmartPointerTracker tracker = getTracker(containingFile);
     if (tracker == null) {

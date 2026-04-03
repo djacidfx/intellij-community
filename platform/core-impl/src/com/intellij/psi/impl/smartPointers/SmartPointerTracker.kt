@@ -31,32 +31,46 @@ import java.util.Arrays
 class SmartPointerTracker {
   @Volatile
   private var isPossiblyInvalidated: Boolean = false
-
-  private val refList = WeakPointerReferenceList()
+  private val selfInfoList = WeakPointerReferenceList()
+  private val fileInfoList = WeakPointerReferenceList()
   private val markerCache = MarkerCache(this)
   private var mySorted = false
 
   @JvmName("startTracking")
   @Synchronized
   internal fun startTracking(pointer: SmartPsiElementPointerImpl<*>) {
-    val elementInfo = pointer.elementInfo
-    require(elementInfo is SelfElementInfo)
-    val reference = PointerReference(pointer, this)
-    refList.add(reference)
-    mySorted = false
-    if (pointer.selfInfo.hasRange()) {
-      markerCache.rangeChanged()
+    val elementInfo = pointer.elementInfo as ContextAwareInfo
+
+    when (elementInfo) {
+      is SelfElementInfo -> {
+        val reference = SelfElementPointerReference(pointer, this)
+        selfInfoList.add(reference)
+        mySorted = false
+        if (pointer.selfInfo.hasRange()) {
+          markerCache.rangeChanged()
+        }
+      }
+      is FileElementInfo -> {
+        val reference = FilePointerReference(pointer, this)
+        fileInfoList.add(reference)
+      }
+      else -> {
+        throw IllegalArgumentException("Unexpected element info: $elementInfo")
+      }
     }
   }
 
   @Synchronized
   private fun removeReference(reference: PointerReference) {
-    refList.remove(reference)
+    when (reference) {
+      is SelfElementPointerReference -> selfInfoList.remove(reference)
+      is FilePointerReference -> fileInfoList.remove(reference)
+    }
   }
 
   private fun ensureSorted() {
     if (mySorted) return
-    refList.sort { p1, p2 ->
+    selfInfoList.sort { p1, p2 ->
       MarkerCache.INFO_COMPARATOR.compare(p1.selfInfo, p2.selfInfo)
     }
     mySorted = true
@@ -105,7 +119,7 @@ class SmartPointerTracker {
   @Synchronized
   internal fun fastenBelts(manager: SmartPointerManagerEx) {
     processQueue()
-    refList.processAlivePointers { pointer ->
+    selfInfoList.processAlivePointers { pointer ->
       pointer.selfInfo.fastenBelt(manager)
       true
     }
@@ -114,7 +128,7 @@ class SmartPointerTracker {
   @JvmName("updatePointerTargetsAfterReparse")
   @Synchronized
   internal fun updatePointerTargetsAfterReparse() {
-    refList.processAlivePointers { pointer ->
+    selfInfoList.processAlivePointers { pointer ->
       if (pointer !is SmartPsiFileRangePointerImpl) {
         updatePointerTarget(pointer, pointer.psiRange)
       }
@@ -158,8 +172,8 @@ class SmartPointerTracker {
   internal fun getSortedInfos(): List<SelfElementInfo> {
     ensureSorted()
 
-    val infos = ArrayList<SelfElementInfo>(refList.size)
-    refList.processAlivePointers { pointer ->
+    val infos = ArrayList<SelfElementInfo>(selfInfoList.size)
+    selfInfoList.processAlivePointers { pointer ->
       val info = pointer.selfInfo
       if (!info.hasRange()) return@processAlivePointers false
 
@@ -169,9 +183,18 @@ class SmartPointerTracker {
     return infos
   }
 
+  @Synchronized
+  internal fun getFileInfos(): List<FileElementInfo> = buildList(fileInfoList.size) {
+    fileInfoList.processAlivePointers { pointer ->
+      val info = pointer.elementInfo as FileElementInfo
+      this@buildList.add(info)
+      true
+    }
+  }
+
   @TestOnly
   @Synchronized
-  fun getSize(): Int = refList.size
+  fun getSize(): Int = selfInfoList.size
 
   @RequiresWriteLock
   @Synchronized
@@ -196,7 +219,7 @@ class SmartPointerTracker {
    *
    * We need them to be able to remove the reference from the corresponding list ([selfInfoList] or [fileInfoList]) when the referent is garbage-collected.
    */
-  internal class PointerReference(
+  internal sealed class PointerReference(
     pointer: SmartPsiElementPointerImpl<*>,
     private val tracker: SmartPointerTracker
   ) : WeakReference<SmartPsiElementPointerImpl<*>?>(pointer, ourQueue) {
@@ -206,10 +229,23 @@ class SmartPointerTracker {
       pointer.pointerReference = this
     }
 
+    fun isContextPossiblyInvalidated(): Boolean =
+      tracker.isContextPossiblyInvalidated()
+
     fun delete() {
       tracker.removeReference(this)
     }
   }
+
+  private class FilePointerReference(
+    pointer: SmartPsiElementPointerImpl<*>,
+    tracker: SmartPointerTracker
+  ) : PointerReference(pointer, tracker)
+
+  private class SelfElementPointerReference(
+    pointer: SmartPsiElementPointerImpl<*>,
+    tracker: SmartPointerTracker
+  ) : PointerReference(pointer, tracker)
 
   /**
    * Manages a list of weak references to `SmartPsiElementPointerImpl` objects.
