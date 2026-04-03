@@ -1,12 +1,10 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.idea.devkit.inspections.remotedev
 
-import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.logger
-import com.intellij.openapi.project.ProjectManager
 import com.intellij.psi.PsiModifierListOwner
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -105,9 +103,6 @@ class SplitModeApiRestrictionsService(private val coroutineScope: CoroutineScope
         "and ${dependencyRestrictions.size} dependency restrictions"
       )
       loadingState.set(LoadingState.COMPLETED)
-
-      restartCodeAnalyzer()
-
     }
     catch (e: Exception) {
       LOG.error("Failed to load API restrictions", e)
@@ -172,21 +167,6 @@ class SplitModeApiRestrictionsService(private val coroutineScope: CoroutineScope
     val codeRestrictions: Map<String, ModuleKind>,
     val extensionPointRestrictions: Map<String, ModuleKind>,
   )
-
-  private fun restartCodeAnalyzer() {
-    try {
-      val projectManager = ProjectManager.getInstance()
-      for (project in projectManager.openProjects) {
-        if (!project.isDisposed) {
-          DaemonCodeAnalyzer.getInstance(project).restart("API restrictions loaded")
-        }
-      }
-      LOG.info("Restarted DaemonCodeAnalyzer for all open projects")
-    }
-    catch (e: Exception) {
-      LOG.error("Failed to restart DaemonCodeAnalyzer", e)
-    }
-  }
 
   @Serializable
   private data class RestrictionsData<T>(
