@@ -7,7 +7,6 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.ProjectManager
-import com.intellij.psi.PsiMember
 import com.intellij.psi.PsiModifierListOwner
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -17,6 +16,8 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.jetbrains.annotations.ApiStatus
+import org.jetbrains.uast.UAnnotated
+import org.jetbrains.uast.toUElementOfType
 import java.util.concurrent.atomic.AtomicReference
 
 @Service(Service.Level.APP)
@@ -144,21 +145,19 @@ class SplitModeApiRestrictionsService(private val coroutineScope: CoroutineScope
   }
 
   private fun getAnnotatedApiKind(apiOwner: PsiModifierListOwner?): ModuleKind? {
-    var currentOwner = apiOwner
-    while (currentOwner != null) {
-      val isFrontendApi = currentOwner.hasAnnotation(FRONTEND_API_ANNOTATION)
-      val isBackendApi = currentOwner.hasAnnotation(BACKEND_API_ANNOTATION)
-      when {
-        isFrontendApi && isBackendApi -> {
-          LOG.warn("Both $FRONTEND_API_ANNOTATION and $BACKEND_API_ANNOTATION are present on $currentOwner")
-          return null
-        }
-        isFrontendApi -> return ModuleKind.FRONTEND
-        isBackendApi -> return ModuleKind.BACKEND
+    val uAnnotated = apiOwner?.toUElementOfType<UAnnotated>() ?: return null
+    val isFrontendApi = uAnnotated.findAnnotation(FRONTEND_API_ANNOTATION) != null
+    val isBackendApi = uAnnotated.findAnnotation(BACKEND_API_ANNOTATION) != null
+
+    return when {
+      isFrontendApi && isBackendApi -> {
+        LOG.info("Both $FRONTEND_API_ANNOTATION and $BACKEND_API_ANNOTATION are present, skipping api")
+        null
       }
-      currentOwner = (currentOwner as? PsiMember)?.containingClass
+      isFrontendApi -> ModuleKind.FRONTEND
+      isBackendApi -> ModuleKind.BACKEND
+      else -> null
     }
-    return null
   }
 
   private fun <T> RestrictionsData<T>.withModuleKinds(): Sequence<Pair<ModuleKind, T>> {

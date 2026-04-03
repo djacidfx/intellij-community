@@ -29,6 +29,47 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
 
     PsiTestUtil.addResourceContentToRoots(module, myFixture.tempDirFixture.findOrCreateDir("resources"), false)
 
+    myFixture.addClass("""
+      package com.intellij.util.remdev;
+
+      import org.jetbrains.annotations.ApiStatus;
+
+      import java.lang.annotation.ElementType;
+      import java.lang.annotation.Retention;
+      import java.lang.annotation.RetentionPolicy;
+      import java.lang.annotation.Target;
+
+      /**
+       * Marks an API that can only be used from frontend modules in split mode.
+       */
+      @Retention(RetentionPolicy.CLASS)
+      @Target({ElementType.TYPE, ElementType.METHOD, ElementType.CONSTRUCTOR, ElementType.FIELD})
+      @ApiStatus.Internal
+      public @interface FrontendApi {
+      }
+    """.trimIndent())
+
+    myFixture.addClass("""
+      package com.intellij.util.remdev;
+
+      import org.jetbrains.annotations.ApiStatus;
+
+      import java.lang.annotation.Documented;
+      import java.lang.annotation.ElementType;
+      import java.lang.annotation.Retention;
+      import java.lang.annotation.RetentionPolicy;
+      import java.lang.annotation.Target;
+
+      /**
+       * Marks an API that can only be used from backend modules in split mode.
+       */
+      @Retention(RetentionPolicy.CLASS)
+      @Target({ElementType.TYPE, ElementType.METHOD, ElementType.CONSTRUCTOR, ElementType.FIELD})
+      @ApiStatus.Internal
+      public @interface BackendApi {
+      }
+
+    """.trimIndent())
     // Frontend API: com.intellij.openapi.wm.ToolWindowFactory
     myFixture.addClass(
       """
@@ -255,7 +296,7 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
       
       class FrontendService {
         fun doStuff() {
-          <weak_warning descr="'com.example.annotated.AnnotatedBackendApi' can only be used in 'backend' module type">AnnotatedBackendApi.getInstance()</weak_warning>
+          <weak_warning descr="'com.example.annotated.AnnotatedBackendApi' can only be used in 'backend' module type">AnnotatedBackendApi</weak_warning>.getInstance()
         }
       }
     """.trimIndent()
@@ -283,7 +324,7 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
       
       class BackendService {
         fun doStuff() {
-          <weak_warning descr="'com.example.annotated.AnnotatedFrontendApi' can only be used in 'frontend' module type">AnnotatedFrontendApi.getInstance()</weak_warning>
+          <weak_warning descr="'com.example.annotated.AnnotatedFrontendApi' can only be used in 'frontend' module type">AnnotatedFrontendApi</weak_warning>.getInstance()
         }
       }
     """.trimIndent()
