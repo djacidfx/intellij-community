@@ -40,6 +40,26 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Set;
 
+/**
+ * Lightweight pointer to a {@link PsiElement}.
+ *
+ * <p>{@code PsiAnchor} is a low-level anchoring primitive for storing references to PSI elements.
+ * The primary benefit of PsiAnchor is that it survives GC of the referenced PSI element and Stub-AST switch.
+ * Compared to {@link SmartPsiElementPointer}, it is more lightweight, but less resilient to PSI/document modifications.</p>
+ *
+ * <p><b>Commit overhead:</b> unlike {@link SmartPsiElementPointer}, anchors do not add document-commit tracking overhead.</p>
+ *
+ * <p><b>Memory behavior:</b> use {@code PsiAnchor} when you need a restorable PSI reference without strongly retaining
+ * PSI elements, which helps avoid unintentionally keeping PSI/file structures from being garbage-collected.</p>
+ *
+ * <p><b>When to use:</b> prefer {@code PsiAnchor} over a hard PSI reference when references must outlive a single
+ * read action or be stored in UI, best-effort restoration is enough, and you don't want to prevent GC of referenced PsiElement.</p>
+ *
+ * Plugin code should generally prefer {@link SmartPsiElementPointer} created via {@link SmartPointerManager#createPointer(PsiElement)}.</p>
+ *
+ * @see SmartPsiElementPointer
+ * @see SmartPointerManager
+ */
 @ApiStatus.NonExtendable
 public abstract class PsiAnchor implements Pointer<PsiElement> {
 
@@ -53,6 +73,13 @@ public abstract class PsiAnchor implements Pointer<PsiElement> {
     return retrieve();
   }
 
+  /**
+   * Creates a new instance of {@link PsiAnchor} for the given {@link PsiElement}.
+   *
+   * @param element the PSI element for which the anchor is to be created. Must not be null and must be valid.
+   * @return a new {@link PsiAnchor} instance associated with the specified PSI element. Will never be null.
+   * @throws IllegalArgumentException if the provided element is invalid (ensured by {@code PsiUtilCore.ensureValid}).
+   */
   public static @NotNull PsiAnchor create(@NotNull PsiElement element) {
     PsiUtilCore.ensureValid(element);
 
