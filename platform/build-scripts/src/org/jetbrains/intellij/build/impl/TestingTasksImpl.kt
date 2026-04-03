@@ -182,24 +182,26 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
 
     val systemProperties = LinkedHashMap<String, String>(additionalSystemProperties)
     try {
-      if (runConfigurations.any { it.buildProject }) {
-        context.messages.info(
-          "Building the entire project as requested by run configurations: " +
-          runConfigurations.filter { it.buildProject }.map { it.name }
-        )
-        context.compileModules(moduleNames = null, includingTestsInModules = null)
-      }
-      else if (runConfigurations.any()) {
-        context.compileModules(
-          moduleNames = listOf("intellij.tools.testsBootstrap"),
-          includingTestsInModules = listOf("intellij.platform.buildScripts") + runConfigurations.map { it.moduleName },
-        )
-      }
-      else {
-        context.compileModules(
-          moduleNames = listOf("intellij.tools.testsBootstrap"),
-          includingTestsInModules = listOfNotNull(mainModule, "intellij.platform.buildScripts"),
-        )
+      blockWithDefaultFlowId("compile modules") {
+        if (runConfigurations.any { it.buildProject }) {
+          context.messages.info(
+            "Building the entire project as requested by run configurations: " +
+            runConfigurations.filter { it.buildProject }.map { it.name }
+          )
+          context.compileModules(moduleNames = null, includingTestsInModules = null)
+        }
+        else if (runConfigurations.any()) {
+          context.compileModules(
+            moduleNames = listOf("intellij.tools.testsBootstrap"),
+            includingTestsInModules = listOf("intellij.platform.buildScripts") + runConfigurations.map { it.moduleName },
+          )
+        }
+        else {
+          context.compileModules(
+            moduleNames = listOf("intellij.tools.testsBootstrap"),
+            includingTestsInModules = listOfNotNull(mainModule, "intellij.platform.buildScripts"),
+          )
+        }
       }
       val runtimeModuleRepository = context.getOriginalModuleRepository()
       systemProperties.put("intellij.platform.runtime.repository.path", runtimeModuleRepository.repositoryPath.pathString)
