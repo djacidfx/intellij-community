@@ -23,12 +23,12 @@ import com.intellij.openapi.command.UndoConfirmationPolicy
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.module.Module
-import com.intellij.openapi.progress.currentThreadCoroutineScope
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.MessageType
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.ex.MessagesEx
 import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.WindowManager
 import com.intellij.psi.PsiDocumentManager
@@ -103,7 +103,7 @@ open class JavaToKotlinAction : AnAction() {
         val j2kConverterExtension = J2kConverterExtension.extension(j2kKind)
         if (shouldSkipConversionOfErroneousCode(javaFiles, project)) return
         if (j2kConverterExtension.doCheckBeforeConversion(project, module)) {
-            val launch = currentThreadCoroutineScope().launch {
+            val launch = e.coroutineScope.launch {
                 JavaToKotlinActionHandler.convertFiles(
                     files = javaFiles,
                     project = project,
@@ -113,7 +113,7 @@ open class JavaToKotlinAction : AnAction() {
             j2kJob?.set(launch)
         } else {
             j2kConverterExtension.setUpAndConvert(project, module, javaFiles) { files, project, module ->
-                val launch = currentThreadCoroutineScope().launch {
+                val launch = e.coroutineScope.launch {
                     JavaToKotlinActionHandler.convertFiles(
                         files = files,
                         project = project,
@@ -158,7 +158,7 @@ open class JavaToKotlinAction : AnAction() {
         val okText = KotlinBundle.message("action.j2k.correction.investigate")
         val cancelText = KotlinBundle.message("action.j2k.correction.proceed")
 
-        if (Messages.showOkCancelDialog(
+        return if (Messages.showOkCancelDialog(
                 project,
                 question,
                 JavaToKotlinActionHandler.title,
@@ -168,10 +168,10 @@ open class JavaToKotlinAction : AnAction() {
             ) == Messages.OK
         ) {
             activateFileWithPsiElement(firstSyntaxError.navigationElement)
-            return true
+            true
+        } else {
+            false
         }
-
-        return false
     }
 
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
@@ -189,6 +189,7 @@ open class JavaToKotlinAction : AnAction() {
 }
 
 object JavaToKotlinActionHandler {
+    @NlsSafe
     val title: String = KotlinBundle.message("action.j2k.name")
 
     suspend fun convertFiles(
