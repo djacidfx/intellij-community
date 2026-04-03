@@ -178,6 +178,16 @@ f:com.intellij.psi.ExternalChangeActionUtil
 - sf:externalDocumentChangeAction(java.lang.Runnable):java.lang.Runnable
 - sf:isExternalChangeInProgress():Z
 - sf:isExternalDocumentChangeInProgress():Z
+Fa:com.intellij.psi.PsiAnchor
+- com.intellij.model.Pointer
+- <init>():V
+- s:create(com.intellij.psi.PsiElement):com.intellij.psi.PsiAnchor
+- dereference():com.intellij.psi.PsiElement
+- a:getEndOffset():I
+- a:getFile():com.intellij.psi.PsiFile
+- a:getStartOffset():I
+- a:retrieve():com.intellij.psi.PsiElement
+- retrieveOrThrow():com.intellij.psi.PsiElement
 com.intellij.psi.impl.AnyPsiChangeListener
 - afterPsiChanged(Z):V
 - beforePsiChanged(Z):V

@@ -33,12 +33,14 @@ import com.intellij.psi.stubs.StubElementRegistryService;
 import com.intellij.psi.stubs.StubElementUtil;
 import com.intellij.psi.tree.IElementType;
 import com.intellij.psi.util.PsiUtilCore;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Set;
 
+@ApiStatus.NonExtendable
 public abstract class PsiAnchor implements Pointer<PsiElement> {
 
   public abstract @Nullable PsiElement retrieve();
@@ -125,6 +127,7 @@ public abstract class PsiAnchor implements Pointer<PsiElement> {
     return new HardReference(element);
   }
 
+  @ApiStatus.Internal
   public static @Nullable StubIndexReference createStubReference(@NotNull PsiElement element, @NotNull PsiFile containingFile) {
     if (element instanceof StubBasedPsiElement &&
         element.isPhysical() &&
@@ -152,6 +155,7 @@ public abstract class PsiAnchor implements Pointer<PsiElement> {
     return stubDescriptor != null && vFile != null && stubDescriptor.getStubDefinition().shouldBuildStubFor(vFile);
   }
 
+  @ApiStatus.Internal
   public static int calcStubIndex(@NotNull StubBasedPsiElement<?> psi) {
     if (psi instanceof PsiFile) {
       return 0;
@@ -254,6 +258,7 @@ public abstract class PsiAnchor implements Pointer<PsiElement> {
     }
   }
 
+  @ApiStatus.Internal
   public static class HardReference extends PsiAnchor {
     private final PsiElement myElement;
 
@@ -417,6 +422,7 @@ public abstract class PsiAnchor implements Pointer<PsiElement> {
     }
   }
 
+  @ApiStatus.Internal
   public static @Nullable PsiElement restoreFromStubIndex(PsiFileWithStubSupport fileImpl,
                                                           int index,
                                                           @NotNull IElementType elementType,
@@ -443,6 +449,7 @@ public abstract class PsiAnchor implements Pointer<PsiElement> {
     return psi;
   }
 
+  @ApiStatus.Internal
   public static final class StubIndexReference extends PsiAnchor {
     private final @NotNull VirtualFile myVirtualFile;
     private final @NotNull CodeInsightContext myContext;
