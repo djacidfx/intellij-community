@@ -1770,6 +1770,42 @@
                                         implementation="com.intellij.codeInsight.daemon.SyntheticPsiFileHighlightingSettingProvider"/>
 
     <advancedSetting id="ide.ui.theme.custom.islands" groupKey="group.advanced.settings.appearance" default="false"/>
+    <projectSettings service="com.intellij.codeInsight.daemon.impl.analysis.HighlightingSettingsPerFile"/>
+    <applicationSettings service="com.intellij.application.options.codeStyle.CodeStyleSchemesUIConfiguration"/>
+    <applicationSettings service="com.intellij.ide.fileTemplates.impl.ExportableFileTemplateSettings"/>
+    <projectSettings service="com.intellij.ide.fileTemplates.impl.FileTemplateManagerImpl"/>
+    <projectSettings service="com.intellij.find.impl.FindInProjectRecents"/>
+    <applicationSettings service="com.intellij.openapi.editor.richcopy.settings.RichCopySettings"/>
+    <applicationSettings service="com.intellij.ide.extensionResources.ResourceVersions"/>
+    <applicationSettings service="com.intellij.codeInspection.ex.AppInspectionProfilesVisibleTreeState"/>
+    <applicationSettings service="com.intellij.refactoring.RefactoringSettings"/>
+    <applicationSettings service="com.intellij.psi.templateLanguages.TemplateDataLanguagePatterns"/>
+    <applicationSettings service="com.intellij.codeInsight.template.impl.TemplateSettings"/>
+    <projectSettings service="com.intellij.openapi.file.exclude.ProjectPlainTextFileTypeManager"/>
+    <applicationSettings service="com.intellij.ui.debugger.extensions.PlaybackDebugger$PlaybackDebuggerState"/>
+    <applicationSettings service="com.intellij.psi.impl.source.codeStyle.PersistableCodeStyleSchemes"/>
+    <applicationSettings service="com.intellij.packageDependencies.DependencyUISettings"/>
+    <applicationSettings service="com.intellij.ide.scratch.ScratchFileServiceImpl"/>
+    <projectSettings service="com.intellij.openapi.module.impl.UnloadedModulesListStorage"/>
+    <projectSettings service="com.intellij.ide.hierarchy.HierarchyBrowserManager"/>
+    <applicationSettings service="com.intellij.codeEditor.printing.PrintSettings"/>
+    <applicationSettings service="com.intellij.codeInsight.daemon.impl.LineMarkerSettingsImpl"/>
+    <applicationSettings service="com.intellij.ide.projectView.impl.ProjectViewFileNestingService"/>
+    <projectSettings service="com.intellij.ide.projectView.impl.ProjectViewImpl"/>
+    <applicationSettings service="com.intellij.codeInsight.codeVision.settings.CodeVisionSettings"/>
+    <applicationSettings service="com.intellij.lang.LocalizationStateServiceImpl"/>
+    <projectSettings service="com.intellij.openapi.module.impl.ModulePointerManagerImpl"/>
+    <projectSettings service="com.intellij.ide.projectView.impl.ProjectViewState"/>
+    <applicationSettings service="com.intellij.ide.projectView.impl.ProjectViewSharedSettings"/>
+    <applicationSettings service="com.intellij.usages.ShowUsagesSettings"/>
+    <applicationSettings service="com.intellij.usages.UsageViewSettings"/>
+    <applicationSettings service="com.intellij.codeInsight.hints.InlayHintsSettings"/>
+    <applicationSettings service="com.intellij.codeInsight.hints.declarative.DeclarativeInlayHintsSettings"/>
+    <projectSettings service="com.intellij.ide.fileTemplates.impl.FileTemplateSettings"/>
+    <applicationSettings service="com.intellij.ide.todo.TodoConfiguration"/>
+    <applicationSettings service="com.intellij.codeInsight.intention.impl.config.IntentionManagerSettings"/>
+    <applicationSettings service="com.intellij.codeInsight.template.postfix.settings.PostfixTemplatesSettings"/>
+    <applicationSettings service="com.intellij.codeInsight.template.postfix.settings.PostfixTemplateStorage"/>
   </extensions>
 
   <extensions defaultExtensionNs="com.intellij.platform.backend">

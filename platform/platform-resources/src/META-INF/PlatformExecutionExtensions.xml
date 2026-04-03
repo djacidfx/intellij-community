@@ -89,6 +89,9 @@
     <projectService serviceImplementation="com.intellij.execution.configurations.RunConfigurationVcsSupport" open="true"/>
 
     <codeInsight.lineMarkerProvider language="" implementationClass="com.intellij.execution.lineMarker.RunLineMarkerProvider"/>
+    <projectSettings service="com.intellij.execution.ExecutionTargetManagerImpl"/>
+    <applicationSettings service="com.intellij.execution.ui.layout.impl.RunnerLayoutSettings"/>
+    <projectSettings service="com.intellij.execution.impl.RunManagerImpl"/>
   </extensions>
   <projectListeners>
     <listener class="com.intellij.execution.lineMarker.RunnableStatusListener"

@@ -2108,6 +2108,57 @@
     <statistics.counterUsagesCollector implementationClass="com.intellij.execution.impl.EditorHyperlinkUsageCollector"/>
 
     <universalFileChooserContributor implementation="com.intellij.openapi.fileChooser.universal.LocalFileChooserContributor"/>
+    <projectSettings service="com.intellij.openapi.vcs.readOnlyHandler.ReadonlyStatusHandlerImpl"/>
+    <projectSettings service="com.intellij.externalDependencies.impl.ExternalDependenciesManagerImpl"/>
+    <applicationSettings service="com.intellij.openapi.fileTypes.impl.FileTypeManagerImpl"/>
+    <applicationSettings service="com.intellij.util.net.HttpConfigurable"/>
+    <applicationSettings service="com.intellij.openapi.keymap.NationalKeyboardSupport"/>
+    <projectSettings service="com.intellij.openapi.ui.MasterDetailsStateService"/>
+    <projectSettings service="com.intellij.execution.testframework.export.ExportTestResultsConfiguration"/>
+    <applicationSettings
+      service="com.intellij.internal.statistic.eventLog.validator.storage.persistence.EventLogMetadataSettingsPersistence"/>
+    <applicationSettings service="com.intellij.openapi.editor.ex.EditorSettingsExternalizable$OsSpecificState"/>
+    <applicationSettings service="com.intellij.openapi.fileTypes.impl.associate.OSFileAssociationPreferences"/>
+    <applicationSettings service="com.intellij.ide.browsers.WebBrowserManager"/>
+    <applicationSettings service="com.intellij.openapi.file.exclude.OverrideFileTypeManager"/>
+    <applicationSettings service="com.intellij.openapi.updateSettings.impl.pluginsAdvertisement.GlobalIgnoredPluginSuggestionState"/>
+    <applicationSettings service="com.intellij.openapi.vfs.encoding.EncodingManagerImpl"/>
+    <projectSettings service="com.intellij.openapi.vfs.encoding.EncodingProjectManagerImpl"/>
+    <applicationSettings service="com.intellij.usages.impl.UsageFilteringRuleStateService"/>
+    <projectSettings service="com.intellij.openapi.util.WindowStateProjectService"/>
+    <applicationSettings service="com.intellij.openapi.util.WindowStateApplicationService"/>
+    <applicationSettings service="com.intellij.ide.plugins.PluginManagerUISettings"/>
+    <applicationSettings service="com.intellij.diff.DiffApplicationSettings"/>
+    <projectSettings service="com.intellij.openapi.project.impl.ProjectReloadStateImpl"/>
+    <applicationSettings service="com.intellij.openapi.updateSettings.impl.UpdateSettings"/>
+    <applicationSettings service="com.intellij.openapi.actionSystem.impl.AbbreviationManagerImpl"/>
+    <applicationSettings service="com.intellij.featureStatistics.FeatureUsageTrackerImpl"/>
+    <applicationSettings service="com.intellij.openapi.wm.impl.WindowButtonsConfiguration"/>
+    <applicationSettings service="com.intellij.openapi.keymap.impl.KeymapFlagsStorage"/>
+    <applicationSettings service="com.intellij.openapi.keymap.impl.KeymapManagerImpl"/>
+    <applicationSettings service="com.intellij.openapi.wm.impl.status.widget.StatusBarWidgetSettings"/>
+    <applicationSettings service="com.intellij.ide.lightEdit.LightEditServiceImpl"/>
+    <applicationSettings service="com.intellij.diff.tools.util.base.TextDiffSettingsHolder"/>
+    <applicationSettings service="com.intellij.openapi.options.advanced.AdvancedSettingsImpl"/>
+    <applicationSettings service="com.intellij.ide.minimap.settings.MinimapSettings"/>
+    <projectSettings service="com.intellij.ui.docking.impl.DockManagerImpl"/>
+    <applicationSettings service="com.intellij.openapi.project.impl.shared.P3DynamicPluginSynchronizer"/>
+    <applicationSettings service="com.intellij.openapi.wm.impl.customFrameDecorations.frameButtons.LinuxIconThemeConfiguration"/>
+    <applicationSettings service="com.intellij.openapi.fileEditor.impl.FileEditorProviderManagerImpl"/>
+    <applicationSettings service="com.intellij.util.net.ssl.CertificateManager"/>
+    <projectSettings service="com.intellij.configurationStore.ProjectIdManagerImpl"/>
+    <applicationSettings service="com.intellij.ide.impl.TrustedPaths"/>
+    <applicationSettings service="com.intellij.ide.impl.TrustedPathsSettings"/>
+    <applicationSettings service="com.intellij.codeInsight.hints.settings.ParameterNameHintsSettings"/>
+    <applicationSettings service="com.intellij.credentialStore.PasswordSafeSettings"/>
+    <applicationSettings service="com.intellij.diff.tools.external.ExternalDiffSettings"/>
+    <applicationSettings service="com.intellij.ide.ui.experimental.toolbar.ExperimentalToolbarSettings"/>
+    <projectSettings service="com.intellij.ide.util.ProjectPropertyService"/>
+    <applicationSettings service="com.intellij.ide.util.AppPropertyService"/>
+    <applicationSettings service="com.intellij.openapi.util.registry.RegistryManagerImpl"/>
+    <applicationSettings service="com.intellij.platform.ide.impl.presentationAssistant.PresentationAssistant"/>
+    <applicationSettings service="com.intellij.openapi.editor.colors.impl.EditorColorsManagerImpl"/>
+    <applicationSettings service="com.intellij.application.options.PathMacrosImpl"/>
   </extensions>
 
   <applicationListeners>

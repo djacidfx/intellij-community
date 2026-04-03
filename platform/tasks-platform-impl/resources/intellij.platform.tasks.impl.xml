@@ -37,6 +37,8 @@
     <tasks.contextProvider implementation="com.intellij.tasks.context.BookmarkContextProvider"/>
     <notificationGroup id="Tasks" displayType="BALLOON" bundle="messages.TaskBundle" key="notification.group.context.corrupted"/>
     <notificationGroup id="Branch Context group" displayType="BALLOON" bundle="messages.TaskBundle" key="notification.group.branch.context"/>
+    <projectSettings service="com.intellij.tasks.impl.TaskProjectConfiguration"/>
+    <projectSettings service="com.intellij.tasks.impl.TaskManagerImpl"/>
   </extensions>
   <projectListeners>
     <listener class="com.intellij.tasks.context.BranchContextTracker" topic="com.intellij.openapi.vcs.BranchChangeListener"/>

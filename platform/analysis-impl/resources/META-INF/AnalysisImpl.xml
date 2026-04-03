@@ -114,5 +114,9 @@
     <completion.frontendFriendlyTailType target="com.intellij.codeInsight.CharTailType"
                                          converter="com.intellij.codeInsight.completion.CharTailTypeConverter"
                                          descriptor="com.intellij.codeInsight.completion.FrontendFriendlyCharTailType"/>
+    <applicationSettings service="com.intellij.find.impl.FindSettingsImpl$FindRecents"/>
+    <applicationSettings service="com.intellij.find.impl.FindUsagesSettingsImpl"/>
+    <projectSettings service="com.intellij.packageDependencies.DependencyValidationManagerImpl"/>
+    <projectSettings service="com.intellij.profile.codeInspection.ProjectInspectionProfileManager"/>
   </extensions>
 </idea-plugin>

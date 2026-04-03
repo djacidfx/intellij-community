@@ -23,5 +23,6 @@
                              bundle="messages.ElevationBundle"
                              key="elevation.settings.configurable"
                              id="application.elevation"/>
+    <applicationSettings service="com.intellij.execution.process.elevation.settings.ElevationSettings"/>
   </extensions>
 </idea-plugin>

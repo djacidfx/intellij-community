@@ -113,5 +113,34 @@
 
     <registryKey key="modern.diff.show.header.when.empty" defaultValue="false" description="Shows a string saying &quot;Preview&quot; when the header is not supplied"/>
     <registryKey key="modern.diff.show.file.name.when.trivial" defaultValue="false" description="Shows the file name even when there is one file in the diff and it's the current file"/>
+    <projectSettings service="com.intellij.analysis.AnalysisUIOptions"/>
+    <projectSettings service="com.intellij.codeInsight.actions.onSave.CodeCleanupOnSaveOptions"/>
+    <projectSettings service="com.intellij.codeInsight.actions.onSave.OptimizeImportsOnSaveOptions"/>
+    <projectSettings service="com.intellij.codeInsight.actions.onSave.FormatOnSaveOptions"/>
+    <projectSettings service="com.intellij.tools.ToolsProjectConfig"/>
+    <projectSettings service="com.intellij.codeInspection.ex.ProjectInspectionProfilesVisibleTreeState"/>
+    <projectSettings service="com.intellij.ide.actions.runAnything.RunAnythingCache"/>
+    <projectSettings service="com.intellij.slicer.SliceManager"/>
+    <projectSettings service="com.intellij.slicer.SliceToolwindowSettings"/>
+    <projectSettings service="com.intellij.psi.templateLanguages.TemplateDataLanguageMappings"/>
+    <projectSettings service="com.intellij.moduleDependencies.DependenciesAnalyzeManager"/>
+    <projectSettings service="com.intellij.framework.detection.impl.exclude.old.OldFacetDetectionExcludesConfiguration"/>
+    <projectSettings service="com.intellij.codeInsight.CodeInsightWorkspaceSettings"/>
+    <projectSettings service="com.intellij.codeEditor.printing.ExportToHTMLSettings"/>
+    <applicationSettings service="com.intellij.ide.util.gotoByName.SearchEverywhereConfiguration"/>
+    <projectSettings service="com.intellij.ide.util.gotoByName.GotoClassSymbolConfiguration"/>
+    <projectSettings service="com.intellij.ide.util.gotoByName.GotoFileConfiguration"/>
+    <projectSettings service="com.intellij.codeInsight.hints.codeVision.CodeVisionProjectSettings"/>
+    <applicationSettings service="com.intellij.find.actions.SearchOptionsService"/>
+    <projectSettings service="com.intellij.ide.actions.runAnything.RunAnythingContextRecentDirectoryCache"/>
+    <projectSettings service="com.intellij.find.findInProject.FindInProjectScopeService"/>
+    <projectSettings service="com.intellij.refactoring.rename.RenameScopeService"/>
+    <applicationSettings service="com.intellij.refactoring.rename.impl.TextOptionsService"/>
+    <applicationSettings service="com.intellij.ide.actions.searcheverywhere.footer.ActionHistoryManager"/>
+    <applicationSettings service="com.intellij.openapi.projectRoots.impl.jdkDownloader.JdkInstallerStore"/>
+    <projectSettings service="com.intellij.analysis.problemsView.toolWindow.ProblemsViewStateManager"/>
+    <projectSettings service="com.intellij.ui.tabs.PerUserFileColorModelStorageManager"/>
+    <projectSettings service="com.intellij.ui.tabs.PerTeamFileColorModelStorageManager"/>
+    <applicationSettings service="com.intellij.codeInsight.hints.chain.DeclarativeCallChainInlaySettings"/>
   </extensions>
 </idea-plugin>

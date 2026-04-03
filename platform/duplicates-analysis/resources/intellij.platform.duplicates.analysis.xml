@@ -17,5 +17,6 @@
 
   <extensions defaultExtensionNs="com.intellij">
     <applicationService serviceImplementation="com.intellij.dupLocator.DuplocatorSettings"/>
+    <applicationSettings service="com.intellij.dupLocator.DuplocatorSettings"/>
   </extensions>
 </idea-plugin>

@@ -19,5 +19,6 @@
                     serviceImplementation="com.intellij.workspaceModel.ide.impl.legacyBridge.module.ModuleDependenciesGraphServiceImpl"/>
     <projectService serviceInterface="com.intellij.openapi.components.CustomImlComponentService"
                     serviceImplementation="com.intellij.openapi.components.CustomImlComponentServiceImpl"/>
+    <projectSettings service="com.intellij.openapi.project.ProjectTypeService"/>
   </extensions>
 </idea-plugin>

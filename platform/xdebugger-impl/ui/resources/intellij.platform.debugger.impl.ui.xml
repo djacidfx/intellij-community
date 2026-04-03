@@ -119,6 +119,7 @@
     <remote.customDataContextSerializer implementation="com.intellij.xdebugger.impl.ui.ExecutionEnvironmentKeySerializer"/>
     <remote.customDataContextSerializer implementation="com.intellij.xdebugger.impl.ui.XDebuggerTreeSelectedValuesSerializer"/>
     <remote.customDataContextSerializer implementation="com.intellij.xdebugger.impl.ui.XDebuggerTreeSelectedStacksSerializer"/>
+    <projectSettings service="com.intellij.xdebugger.impl.XDebuggerHistoryManager"/>
   </extensions>
 
   <actions resource-bundle="messages.XDebuggerUiBundle">

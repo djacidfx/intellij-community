@@ -23,4 +23,7 @@
     <module name="intellij.platform.welcomeScreen"/>
   </dependencies>
   <!-- endregion -->
+  <extensions defaultExtensionNs="com.intellij">
+    <applicationSettings service="com.intellij.openapi.util.DimensionService"/>
+  </extensions>
 </idea-plugin>

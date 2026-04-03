@@ -31,6 +31,7 @@
     <projectService serviceImplementation="com.intellij.execution.testframework.sm.TestHistoryConfiguration"/>
     <runDashboardCustomizer implementation="com.intellij.execution.testframework.sm.runner.SMTRunnerRunDashboardCustomizer"
                             order="first" id="smtRunnerCustomizer"/>
+    <projectSettings service="com.intellij.execution.testframework.sm.TestHistoryConfiguration"/>
   </extensions>
   <actions>
     <group id="SmRunTestGroup">

@@ -16,4 +16,7 @@
     <module name="intellij.platform.vcs.shared"/>
   </dependencies>
   <!-- endregion -->
+  <extensions defaultExtensionNs="com.intellij">
+    <projectSettings service="com.intellij.openapi.vcs.VcsSharedProjectSettings"/>
+  </extensions>
 </idea-plugin>

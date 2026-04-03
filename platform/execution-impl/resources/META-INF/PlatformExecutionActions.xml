@@ -95,6 +95,12 @@
                  restartRequired="true"/>
     <remote.customDataContextSerializer implementation="com.intellij.execution.RunContentDescriptorIdSerializer"/>
     <uiDataRule implementation="com.intellij.execution.RunContentDescriptorIdDataRule"/>
+    <projectSettings service="com.intellij.execution.startup.ProjectStartupLocalConfiguration"/>
+    <projectSettings service="com.intellij.execution.startup.ProjectStartupSharedConfiguration"/>
+    <projectSettings service="com.intellij.execution.impl.IprRunManagerImpl"/>
+    <projectSettings service="com.intellij.execution.ui.RunConfigurationStartHistory"/>
+    <projectSettings service="com.intellij.execution.runToolbar.RunToolbarSettings"/>
+    <applicationSettings service="com.intellij.terminal.TerminalUiSettingsManager"/>
   </extensions>
   <extensionPoints>
     <extensionPoint interface="com.intellij.execution.DisplayDescriptorChooser"

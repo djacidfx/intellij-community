@@ -29,5 +29,8 @@
     <applicationActivity implementation="com.intellij.internal.statistic.updater.StatisticsJobsScheduler"/>
     <applicationActivity implementation="com.intellij.internal.statistic.updater.StatisticsStateCollectorsScheduler"/>
     <postStartupActivity implementation="com.intellij.internal.statistic.updater.StatisticsStateCollectorsSchedulerProjectActivity"/>
+    <applicationSettings service="com.intellij.internal.statistic.persistence.UsageStatisticsPersistenceComponent"/>
+    <applicationSettings service="com.intellij.internal.statistic.local.ContributorsLocalSummary"/>
+    <applicationSettings service="com.intellij.internal.statistic.local.ActionsLocalSummary"/>
   </extensions>
 </idea-plugin>
