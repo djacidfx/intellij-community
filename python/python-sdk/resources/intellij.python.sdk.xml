@@ -18,5 +18,7 @@
     <applicationService serviceInterface="com.jetbrains.python.sdk.WinRegistryService"
                         serviceImplementation="com.jetbrains.python.sdk.WinRegistryServiceImpl"/>
     <applicationService serviceImplementation="com.jetbrains.python.sdk.PySdkSettings"/>
+    <applicationSettings service="com.jetbrains.python.sdk.PySdkSettings"/>
+    <applicationSettings service="com.jetbrains.python.packaging.PyCondaPackageService"/>
   </extensions>
 </idea-plugin>
