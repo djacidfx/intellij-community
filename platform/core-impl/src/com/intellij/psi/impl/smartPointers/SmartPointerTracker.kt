@@ -28,9 +28,7 @@ import java.util.Arrays
  */
 @ApiStatus.Internal
 class SmartPointerTracker {
-  private var nextAvailableIndex = 0
-  private var size: Int = 0
-  private var references = arrayOfNulls<PointerReference>(10)
+  private val refList = WeakPointerReferenceList()
   private val markerCache = MarkerCache(this)
   private var mySorted = false
 
@@ -40,87 +38,24 @@ class SmartPointerTracker {
     val elementInfo = pointer.elementInfo
     require(elementInfo is SelfElementInfo)
     val reference = PointerReference(pointer, this)
-    if (needsExpansion() || isTooSparse()) {
-      resize()
-    }
-
-    if (references[nextAvailableIndex] != null) {
-      throw AssertionError(references[nextAvailableIndex])
-    }
-
-    storePointerReference(references, nextAvailableIndex++, reference)
-    size++
+    refList.add(reference)
     mySorted = false
     if (pointer.selfInfo.hasRange()) {
       markerCache.rangeChanged()
     }
   }
 
-  private fun needsExpansion(): Boolean =
-    nextAvailableIndex >= references.size
-
-  private fun isTooSparse(): Boolean =
-    nextAvailableIndex > size * 2
-
-  private fun resize() {
-    val newReferences = arrayOfNulls<PointerReference>(size * 3 / 2 + 1)
-    var index = 0
-    // don't use processAlivePointers/removeReference since it can unregister the whole pointer list, and we're not prepared to that
-    for (ref in references) {
-      if (ref != null) {
-        storePointerReference(newReferences, index++, ref)
-      }
-    }
-    assert(index == size) { "$index != $size" }
-    references = newReferences
-    nextAvailableIndex = index
-  }
-
   @JvmName("removeReference")
   @Synchronized
   internal fun removeReference(reference: PointerReference) {
-    val index = reference.index
-    if (index < 0) return
-
-    if (reference != references[index]) {
-      throw AssertionError("At " + index + " expected " + reference + ", found " + references[index])
-    }
-    reference.index = -1
-    references[index] = null
-    size--
-  }
-
-  private fun processAlivePointers(processor: Processor<in SmartPsiElementPointerImpl<*>>) {
-    for (i in 0..<nextAvailableIndex) {
-      val ref = references[i] ?: continue
-
-      val pointer = ref.get() ?: run {
-        removeReference(ref)
-        continue
-      }
-
-      if (!processor.process(pointer)) {
-        return
-      }
-    }
+    refList.remove(reference)
   }
 
   private fun ensureSorted() {
     if (mySorted) return
-
-    val pointers = ArrayList<SmartPsiElementPointerImpl<*>>()
-    processAlivePointers(CommonProcessors.CollectProcessor(pointers))
-    if (size != pointers.size) throw AssertionError()
-
-    pointers.sortWith { p1, p2 ->
+    refList.sort { p1, p2 ->
       MarkerCache.INFO_COMPARATOR.compare(p1.selfInfo, p2.selfInfo)
     }
-
-    for (i in pointers.indices) {
-      storePointerReference(references, i, pointers[i].pointerReference!!)
-    }
-    Arrays.fill(references, pointers.size, nextAvailableIndex, null)
-    nextAvailableIndex = pointers.size
     mySorted = true
   }
 
@@ -167,7 +102,7 @@ class SmartPointerTracker {
   @Synchronized
   internal fun fastenBelts(manager: SmartPointerManagerEx) {
     processQueue()
-    processAlivePointers { pointer ->
+    refList.processAlivePointers { pointer ->
       pointer.selfInfo.fastenBelt(manager)
       true
     }
@@ -176,7 +111,7 @@ class SmartPointerTracker {
   @JvmName("updatePointerTargetsAfterReparse")
   @Synchronized
   internal fun updatePointerTargetsAfterReparse() {
-    processAlivePointers { pointer ->
+    refList.processAlivePointers { pointer ->
       if (pointer !is SmartPsiFileRangePointerImpl) {
         updatePointerTarget(pointer, pointer.psiRange)
       }
@@ -215,18 +150,13 @@ class SmartPointerTracker {
     }
   }
 
-  private fun storePointerReference(references: Array<PointerReference?>, index: Int, ref: PointerReference) {
-    references[index] = ref
-    ref.index = index
-  }
-
   @JvmName("getSortedInfos")
   @Synchronized
   internal fun getSortedInfos(): List<SelfElementInfo> {
     ensureSorted()
 
-    val infos = ArrayList<SelfElementInfo>(size)
-    processAlivePointers { pointer ->
+    val infos = ArrayList<SelfElementInfo>(refList.size)
+    refList.processAlivePointers { pointer ->
       val info = pointer.selfInfo
       if (!info.hasRange()) return@processAlivePointers false
 
@@ -238,7 +168,7 @@ class SmartPointerTracker {
 
   @TestOnly
   @Synchronized
-  fun getSize(): Int = size
+  fun getSize(): Int = refList.size
 
   private val SmartPsiElementPointerImpl<*>.selfInfo: SelfElementInfo
     get() = this.elementInfo as SelfElementInfo
@@ -251,6 +181,92 @@ class SmartPointerTracker {
 
     init {
       pointer.pointerReference = this
+    }
+  }
+
+  private class WeakPointerReferenceList {
+    private var references = arrayOfNulls<PointerReference>(10)
+    private var nextAvailableIndex = 0
+    var size: Int = 0
+      private set
+
+    fun add(reference: PointerReference) {
+      if (needsExpansion() || isTooSparse()) {
+        resize()
+      }
+
+      if (references[nextAvailableIndex] != null) {
+        throw AssertionError(references[nextAvailableIndex])
+      }
+
+      storePointerReference(references, nextAvailableIndex++, reference)
+      size++
+    }
+
+    private fun needsExpansion(): Boolean =
+      nextAvailableIndex >= references.size
+
+    private fun isTooSparse(): Boolean =
+      nextAvailableIndex > size * 2
+
+    private fun resize() {
+      val newReferences = arrayOfNulls<PointerReference>(size * 3 / 2 + 1)
+      var index = 0
+      // don't use processAlivePointers/removeReference since it can unregister the whole pointer list, and we're not prepared to that
+      for (ref in references) {
+        if (ref != null) {
+          storePointerReference(newReferences, index++, ref)
+        }
+      }
+      assert(index == size) { "$index != $size" }
+      references = newReferences
+      nextAvailableIndex = index
+    }
+
+    private fun storePointerReference(references: Array<PointerReference?>, index: Int, ref: PointerReference) {
+      references[index] = ref
+      ref.index = index
+    }
+
+    fun remove(reference: PointerReference) {
+      val index = reference.index
+      if (index < 0) return
+
+      if (reference != references[index]) {
+        throw AssertionError("At " + index + " expected " + reference + ", found " + references[index])
+      }
+      reference.index = -1
+      references[index] = null
+      size--
+    }
+
+    fun processAlivePointers(processor: Processor<in SmartPsiElementPointerImpl<*>>) {
+      for (i in 0..<nextAvailableIndex) {
+        val ref = references[i] ?: continue
+
+        val pointer = ref.get() ?: run {
+          remove(ref)
+          continue
+        }
+
+        if (!processor.process(pointer)) {
+          return
+        }
+      }
+    }
+
+    fun sort(comparator: Comparator<SmartPsiElementPointerImpl<*>>) {
+      val pointers = ArrayList<SmartPsiElementPointerImpl<*>>()
+      processAlivePointers(CommonProcessors.CollectProcessor(pointers))
+      if (size != pointers.size) throw AssertionError()
+
+      pointers.sortWith(comparator)
+
+      for (i in pointers.indices) {
+        storePointerReference(references, i, pointers[i].pointerReference!!)
+      }
+      Arrays.fill(references, pointers.size, nextAvailableIndex, null)
+      nextAvailableIndex = pointers.size
     }
   }
 
