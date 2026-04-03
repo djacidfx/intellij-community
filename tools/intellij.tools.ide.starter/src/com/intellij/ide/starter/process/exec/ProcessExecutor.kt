@@ -213,7 +213,11 @@ class ProcessExecutor(
     val stderrThread = redirectProcessOutput(process, false, stderrRedirect)
     val ioThreads = listOfNotNull(inputThread, stdoutThread, stderrThread)
 
+    // can't use process.isAlive: after killProcessTree sends a signal,
+    // the OS may not reap the process immediately, so isAlive can briefly return true
+    // — causing the finally block to redundantly re-run cleanup
     var processFinished = false
+
     fun killProcess(gracefully: Boolean) {
       if (processFinished) return
       catchAll { runBlocking(Dispatchers.IO) { onProcessCreatedJob.cancelAndJoin() } }
