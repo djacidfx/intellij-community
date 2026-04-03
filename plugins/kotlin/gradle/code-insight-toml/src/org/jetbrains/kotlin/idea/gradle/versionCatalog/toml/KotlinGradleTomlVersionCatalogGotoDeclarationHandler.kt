@@ -32,7 +32,7 @@ class KotlinGradleTomlVersionCatalogGotoDeclarationHandler : GotoDeclarationHand
 
     private fun resolveViaCatalogReferences(dotExpression: KtDotQualifiedExpression): Array<PsiElement>? =
         dotExpression.references
-            .filterIsInstance<KtTomlVersionCatalogReference>()
+            .filterIsInstance<KtVersionCatalogReference>()
             .mapNotNull { it.resolve() }
             .toTypedArray()
             .ifEmpty { null }

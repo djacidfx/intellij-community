@@ -22,7 +22,7 @@
   </extensions>
 
   <extensions defaultExtensionNs="org.jetbrains.kotlin">
-    <psiReferenceProvider implementation="org.jetbrains.kotlin.idea.gradle.versionCatalog.toml.KotlinGradleTomlVersionCatalogPsiReferenceProviderContributor"/>
+    <psiReferenceProvider implementation="org.jetbrains.kotlin.idea.gradle.versionCatalog.toml.KotlinGradleVersionCatalogPsiReferenceProviderContributor"/>
   </extensions>
 
 </idea-plugin>
