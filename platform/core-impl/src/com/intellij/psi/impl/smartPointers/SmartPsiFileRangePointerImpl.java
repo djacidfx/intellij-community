@@ -19,12 +19,13 @@ class SmartPsiFileRangePointerImpl extends SmartPsiElementPointerImpl<PsiFile> i
                                @NotNull PsiFile containingFile,
                                @NotNull ProperTextRange range,
                                boolean forInjected) {
-    super(manager, containingFile, createElementInfo(containingFile, range, forInjected));
+    super(manager, containingFile, createElementInfo(containingFile, range, forInjected, manager));
   }
 
   private static @NotNull SmartPointerElementInfo createElementInfo(@NotNull PsiFile containingFile,
                                                                     @NotNull ProperTextRange range,
-                                                                    boolean forInjected) {
+                                                                    boolean forInjected,
+                                                                    @NotNull SmartPointerManagerEx manager) {
     Project project = containingFile.getProject();
     if (containingFile.getViewProvider() instanceof FreeThreadedFileViewProvider) {
       PsiLanguageInjectionHost host = InjectedLanguageManager.getInstance(project).getInjectionHost(containingFile);
@@ -33,8 +34,8 @@ class SmartPsiFileRangePointerImpl extends SmartPsiElementPointerImpl<PsiFile> i
         return new InjectedSelfElementInfo(project, containingFile, range, containingFile, hostPointer);
       }
     }
-    if (!forInjected && range.equals(containingFile.getTextRange())) return new FileElementInfo(containingFile);
-    return new SelfElementInfo(range, Identikit.fromTypes(PsiElement.class, null, Language.ANY), containingFile, forInjected);
+    if (!forInjected && range.equals(containingFile.getTextRange())) return new FileElementInfo(containingFile, manager);
+    return new SelfElementInfo(range, Identikit.fromTypes(PsiElement.class, null, Language.ANY), containingFile, forInjected, manager);
   }
 
   @Override

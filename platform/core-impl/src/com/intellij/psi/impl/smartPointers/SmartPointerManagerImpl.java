@@ -161,10 +161,7 @@ public final class SmartPointerManagerImpl extends SmartPointerManagerEx {
     SmartPointerElementInfo info = pointer.getElementInfo();
     if (!(info instanceof ContextAwareInfo)) return;
 
-    SmartPointerTracker tracker = getTracker(containingFile);
-    if (tracker == null) {
-      tracker = getOrCreateTracker(containingFile);
-    }
+    SmartPointerTracker tracker = getOrCreateTracker(containingFile);
     tracker.startTracking(pointer);
   }
 
@@ -205,7 +202,8 @@ public final class SmartPointerManagerImpl extends SmartPointerManagerEx {
     return file instanceof LightVirtualFile ? dereference(file.getUserData(LIGHT_TRACKER_KEY)) : myPhysicalTrackers.get(file);
   }
 
-  private @NotNull SmartPointerTracker getOrCreateTracker(@NotNull VirtualFile file) {
+  @Override
+  public @NotNull SmartPointerTracker getOrCreateTracker(@NotNull VirtualFile file) {
     synchronized (myPhysicalTrackers) {
       SmartPointerTracker tracker = getTracker(file);
       if (tracker == null) {

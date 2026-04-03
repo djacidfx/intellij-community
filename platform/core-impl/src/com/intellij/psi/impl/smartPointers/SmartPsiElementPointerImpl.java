@@ -28,7 +28,6 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiLanguageInjectionHost;
 import com.intellij.psi.PsiManager;
-import com.intellij.psi.SmartPointerManager;
 import com.intellij.psi.SmartPsiElementPointer;
 import com.intellij.psi.StubBasedPsiElement;
 import com.intellij.psi.impl.FreeThreadedFileViewProvider;
@@ -161,12 +160,12 @@ public class SmartPsiElementPointerImpl<E extends PsiElement> implements SmartPo
                                                                                            @NotNull E element,
                                                                                            @Nullable PsiFile containingFile,
                                                                                            boolean forInjected) {
-    SmartPointerElementInfo elementInfo = doCreateElementInfo(manager.getProject(), element, containingFile, forInjected);
+    SmartPointerElementInfo elementInfo = doCreateElementInfo(manager, element, containingFile, forInjected);
     if (ApplicationManager.getApplication().isUnitTestMode() && !ApplicationManagerEx.isInStressTest()) {
       PsiElement restoredElement = elementInfo.restoreElement(manager);
       if (restoredElement == null) {
         // The problem might be with injection. It's a questionable solution, requires more discussion.
-        elementInfo = doCreateElementInfo(manager.getProject(), element, containingFile, !forInjected);
+        elementInfo = doCreateElementInfo(manager, element, containingFile, !forInjected);
         restoredElement = elementInfo.restoreElement(manager);
       }
       if (!element.equals(restoredElement)) {
@@ -178,7 +177,7 @@ public class SmartPsiElementPointerImpl<E extends PsiElement> implements SmartPo
     return elementInfo;
   }
 
-  private static @NotNull <E extends PsiElement> SmartPointerElementInfo doCreateElementInfo(@NotNull Project project,
+  private static @NotNull <E extends PsiElement> SmartPointerElementInfo doCreateElementInfo(@NotNull SmartPointerManagerEx manager,
                                                                                              @NotNull E element,
                                                                                              @Nullable PsiFile containingFile,
                                                                                              boolean forInjected) {
@@ -188,7 +187,7 @@ public class SmartPsiElementPointerImpl<E extends PsiElement> implements SmartPo
     if (element instanceof PsiCompiledElement || containingFile == null) {
       if (element instanceof StubBasedPsiElement && element instanceof PsiCompiledElement) {
         if (element instanceof PsiFile) {
-          return new FileElementInfo((PsiFile)element);
+          return new FileElementInfo((PsiFile)element, manager);
         }
         PsiAnchor.StubIndexReference stubReference = PsiAnchor.createStubReference(element, containingFile);
         if (stubReference != null) {
@@ -203,16 +202,16 @@ public class SmartPsiElementPointerImpl<E extends PsiElement> implements SmartPo
       PsiLanguageInjectionHost hostContext = InjectedLanguageManager.getInstance(containingFile.getProject()).getInjectionHost(containingFile);
       TextRange elementRange = element.getTextRange();
       if (hostContext != null && elementRange != null) {
-        SmartPsiElementPointer<PsiLanguageInjectionHost> hostPointer = SmartPointerManager.getInstance(project).createSmartPsiElementPointer(hostContext);
-        return new InjectedSelfElementInfo(project, element, elementRange, containingFile, hostPointer);
+        SmartPsiElementPointer<PsiLanguageInjectionHost> hostPointer = manager.createSmartPsiElementPointer(hostContext);
+        return new InjectedSelfElementInfo(manager.getProject(), element, elementRange, containingFile, hostPointer);
       }
     }
 
     VirtualFile virtualFile = viewProvider.getVirtualFile();
     if (element instanceof PsiFile) {
-      FileViewProvider restored = PsiManager.getInstance(project).findViewProvider(virtualFile);
+      FileViewProvider restored = PsiManager.getInstance(manager.getProject()).findViewProvider(virtualFile);
       return restored != null && restored.getPsi(LanguageUtil.getRootLanguage(element)) == element
-             ? new FileElementInfo((PsiFile)element)
+             ? new FileElementInfo((PsiFile)element, manager)
              : new HardElementInfo(element);
     }
 
@@ -222,11 +221,11 @@ public class SmartPsiElementPointerImpl<E extends PsiElement> implements SmartPo
 
     Document document = FileDocumentManager.getInstance().getCachedDocument(virtualFile);
     if (document != null &&
-        ((PsiDocumentManagerEx)PsiDocumentManager.getInstance(project)).getSynchronizer().isDocumentAffectedByTransactions(document)) {
+        ((PsiDocumentManagerEx)PsiDocumentManager.getInstance(manager.getProject())).getSynchronizer().isDocumentAffectedByTransactions(document)) {
       LOG.error("Smart pointers must not be created during PSI changes");
     }
 
-    SmartPointerElementInfo info = createAnchorInfo(element, containingFile);
+    SmartPointerElementInfo info = createAnchorInfo(element, containingFile, manager);
     if (info != null) {
       return info;
     }
@@ -249,7 +248,7 @@ public class SmartPsiElementPointerImpl<E extends PsiElement> implements SmartPo
     }
 
     ProperTextRange proper = ProperTextRange.create(elementRange);
-    return new SelfElementInfo(proper, identikit, containingFile, forInjected);
+    return new SelfElementInfo(proper, identikit, containingFile, forInjected, manager);
   }
 
   // check it's not some fake PSI that overrides getContainingFile/getTextRange/isPhysical/etc and confuses everyone
@@ -268,21 +267,23 @@ public class SmartPsiElementPointerImpl<E extends PsiElement> implements SmartPo
            PsiTreeUtil.findElementOfClassAtRange(containingFile, range.getStartOffset(), range.getEndOffset(), element.getClass()) != element;
   }
 
-  private static @Nullable SmartPointerElementInfo createAnchorInfo(@NotNull PsiElement element, @NotNull PsiFile containingFile) {
+  private static @Nullable SmartPointerElementInfo createAnchorInfo(@NotNull PsiElement element,
+                                                                    @NotNull PsiFile containingFile,
+                                                                    @NotNull SmartPointerManagerEx manager) {
     if (element instanceof StubBasedPsiElement && containingFile instanceof PsiFileImpl) {
       LanguageStubDescriptor stubType = ((PsiFileImpl)containingFile).getStubDescriptor();
       if (stubType != null && stubType.getStubDefinition().shouldBuildStubFor(containingFile.getViewProvider().getVirtualFile())) {
         StubBasedPsiElement<?> stubPsi = (StubBasedPsiElement<?>)element;
         int stubId = PsiAnchor.calcStubIndex(stubPsi);
         if (stubId != -1) {
-          return new AnchorElementInfo(element, (PsiFileImpl)containingFile, stubId, stubPsi.getIElementType());
+          return new AnchorElementInfo(element, (PsiFileImpl)containingFile, stubId, stubPsi.getIElementType(), manager);
         }
       }
     }
 
     Pair<Identikit.ByAnchor, PsiElement> pair = Identikit.withAnchor(element, LanguageUtil.getRootLanguage(containingFile));
     if (pair != null) {
-      return new AnchorElementInfo(pair.second, containingFile, pair.first);
+      return new AnchorElementInfo(pair.second, containingFile, pair.first, manager);
     }
     return null;
   }

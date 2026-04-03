@@ -379,6 +379,54 @@ internal class FileMoveWithWaitForIndexingTest {
   }
 
   @Test
+  fun `smart pointer survives two consecutive file moves`() = doTest {
+    val psiFile = aJava.findPsiFile()
+    assertModuleContext(psiFile, aJava, "module1")
+
+    val pointer = createSmartPointer(psiFile, "A")
+
+    // Move 1: src1 -> src2 (module1 -> module2)
+    moveFile(aJava, src2)
+    // Trigger FVP reanimation to push context mapping M1
+    aJava.findPsiFile()
+
+    // Move 2: src2 -> src12 (module2 -> module1)
+    moveFile(aJava, src12)
+    // Trigger FVP reanimation to push context mapping M2
+    aJava.findPsiFile()
+
+    // pointer should resolve after two consecutive context changes (M1+M2 composed)
+    assertNotNull(readAction { pointer.element })
+
+    val movedPsiFile = aJava.findPsiFile()
+    assertModuleContext(movedPsiFile, aJava, "module1")
+  }
+
+  @Test
+  fun `shared file smart pointer survives two consecutive moves`() = doTest {
+    val psiFile4 = bJava.findPsiFile(module4.asContext())
+
+    val pointer4 = createSmartPointer(psiFile4, "B")
+
+    // Move 1: src34 -> src4 (module3 dies, module4 survives)
+    moveFile(bJava, src4)
+    // Trigger FVP reanimation to push context mapping M1
+    bJava.findPsiFile()
+
+    // Move 2: src4 -> src2 (module4 -> module2)
+    moveFile(bJava, src2)
+    // Trigger FVP reanimation to push context mapping M2
+    bJava.findPsiFile()
+
+    // pointer4 was for module4, should follow: module4 (survived move1) -> module2 (move2)
+    val restored4 = readAction { pointer4.element }
+    assertNotNull(restored4)
+
+    val movedPsiFile = bJava.findPsiFile()
+    assertModuleContext(movedPsiFile, bJava, "module2")
+  }
+
+  @Test
   fun `file changes context after move with smart pointer`() = doTest {
     val psiFile = aJava.findPsiFile()
 
@@ -655,6 +703,148 @@ internal class FileMoveWithWaitForIndexingTest {
       val offset = psiFile.text.indexOf(leafText).takeIf { it >= 0 } ?: throw IllegalStateException("Leaf not found: $leafText, text: ${psiFile.text}")
       val leaf = requireNotNull(psiFile.findElementAt(offset)) { "Leaf element not found at offset: $offset, $leafText, text: ${psiFile.text}" }
       SmartPointerManager.createPointer(leaf)
+    }
+  }
+
+  private suspend fun createFileSmartPointer(psiFile: PsiFile): SmartPsiElementPointer<PsiFile> {
+    return readAction {
+      SmartPointerManager.createPointer(psiFile)
+    }
+  }
+
+  @Test
+  fun `file changes context after move with file smart pointer`() = doTest {
+    val psiFile = aJava.findPsiFile()
+
+    assertModuleContext(psiFile, aJava, "module1")
+
+    val pointer = createFileSmartPointer(psiFile)
+
+    moveFile(aJava, src2)
+
+    assertPsiFileIsValid(psiFile, aJava)
+
+    val movedPsiFile = aJava.findPsiFile()
+    assertModuleContext(movedPsiFile, aJava, "module2")
+
+    assertNotNull(readAction { pointer.element })
+  }
+
+  @Test
+  fun `shared file changes context after move with file pointer`() = doTest {
+    val psiFile3 = bJava.findPsiFile(module3.asContext())
+    val psiFile4 = bJava.findPsiFile(module4.asContext())
+
+    val pointer3 = createFileSmartPointer(psiFile3)
+    val pointer4 = createFileSmartPointer(psiFile4)
+
+    assertEquals("module3", psiFile3.getModuleContextName())
+    assertEquals("module4", psiFile4.getModuleContextName())
+
+    moveFile(bJava, src2)
+
+    readAction {
+      assert(psiFile3.isValid xor psiFile4.isValid) {
+        val text3 = psiFile3.presentableTextWithContext() + "[" + if (psiFile3.isValid) "valid]" else "invalid]"
+        val text4 = psiFile3.presentableTextWithContext() + "[" + if (psiFile4.isValid) "valid]" else "invalid]"
+        text3 + " : " + text4 + ", " + dumpPsiFiles(bJava)
+      }
+    }
+
+    val movedPsiFile = bJava.findPsiFile()
+    assertModuleContext(movedPsiFile, bJava, "module2")
+
+    val (restored3, restored4) = readAction {
+      pointer3.element to pointer4.element
+    }
+
+    assertTrue((restored3 != null) xor (restored4 != null))
+  }
+
+  @Test
+  fun `shared file changes context after move when one context survives with file smart pointer`() = doTest {
+    val psiFile3 = bJava.findPsiFile(module3.asContext())
+    val psiFile4 = bJava.findPsiFile(module4.asContext())
+
+    assertEquals("module3", psiFile3.getModuleContextName())
+    assertEquals("module4", psiFile4.getModuleContextName())
+
+    val pointer3 = createFileSmartPointer(psiFile3)
+    val pointer4 = createFileSmartPointer(psiFile4)
+
+    moveFile(bJava, src4)
+
+    assertPsiFileIsNotValid(psiFile3, bJava)
+    assertPsiFileIsValid(psiFile4, bJava)
+
+    val movedPsiFile = bJava.findPsiFile()
+    assertModuleContext(movedPsiFile, bJava, "module4")
+
+    val (restored3, restored4) = readAction {
+      pointer3.element to pointer4.element
+    }
+
+    assertNotNull(restored4)
+    assertNull(restored3)
+  }
+
+  @Test
+  fun `shared file moves and all contexts survive with file pointer`() = doTest {
+    val module3 = ModuleManager.getInstance(project).findModuleByName("module3")!!
+    val module4 = ModuleManager.getInstance(project).findModuleByName("module4")!!
+    val module3Context = ProjectModelContextBridge.getInstance(project).getContext(module3)!!
+    val module4Context = ProjectModelContextBridge.getInstance(project).getContext(module4)!!
+
+    val psiFile3 = bJava.findPsiFile(module3Context)
+    val psiFile4 = bJava.findPsiFile(module4Context)
+
+    assertModuleContext(psiFile3, bJava, "module3")
+    assertModuleContext(psiFile4, bJava, "module4")
+
+    val pointer3 = createFileSmartPointer(psiFile3)
+    val pointer4 = createFileSmartPointer(psiFile4)
+
+    moveFile(bJava, src34)
+
+    assertPsiFileIsValid(psiFile3, bJava)
+    assertPsiFileIsValid(psiFile4, bJava)
+
+    val (restored3, restored4) = readAction {
+      pointer3.element to pointer4.element
+    }
+
+    assertNotNull(restored3)
+    assertNotNull(restored4)
+  }
+
+  @Test
+  fun `file and file smart pointer after content root is removed`() = doTest {
+    val tempDir = writeAction {
+      project.baseDir.createChildDirectory(this, "tempContentRoot")
+    }
+    PsiTestUtil.addContentRoot(module1, tempDir)
+
+    val javaFile = writeAction {
+      val vf = tempDir.createChildData(this, "Temp.java")
+      VfsUtil.saveText(vf, "public class Temp {}")
+      vf
+    }
+
+    val psiFile = javaFile.findPsiFile()
+    readAction {
+      assertTrue(psiFile.isValid)
+      assertInstanceOf<ModuleContext>(psiFile.codeInsightContext)
+    }
+
+    val pointer = createFileSmartPointer(psiFile)
+
+    PsiTestUtil.removeContentEntry(module1, tempDir)
+
+    readAction {
+      assertTrue(psiFile.isValid)
+      assertEquals(defaultContext(), psiFile.codeInsightContext)
+      requireNotNull(pointer.element)
+      assertEquals(defaultContext(), pointer.element!!.codeInsightContext)
     }
   }
 

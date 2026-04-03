@@ -64,6 +64,8 @@ public abstract class SmartPointerManagerEx extends SmartPointerManager implemen
 
   public abstract @Nullable SmartPointerTracker getTracker(@NotNull VirtualFile file);
 
+  public abstract @NotNull SmartPointerTracker getOrCreateTracker(@NotNull VirtualFile file);
+
   public abstract void updatePointers(@NotNull Document document,
                                       @NotNull FrozenDocument frozen,
                                       @NotNull List<? extends DocumentEvent> events);

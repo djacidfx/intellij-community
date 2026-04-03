@@ -19,6 +19,7 @@ import com.intellij.openapi.util.Comparing;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.impl.FreeThreadedFileViewProvider;
+import com.intellij.psi.impl.smartPointers.FileHolder;
 import com.intellij.psi.impl.smartPointers.Identikit;
 import com.intellij.psi.impl.smartPointers.SelfElementInfo;
 import com.intellij.psi.impl.smartPointers.SmartPointerAnchorProvider;
@@ -231,9 +232,20 @@ public abstract class PsiAnchor implements Pointer<PsiElement> {
     return element;
   }
 
+  private static @NotNull FileHolder createHolder(@NotNull PsiFile file, @NotNull VirtualFile virtualFile) {
+    //noinspection UseVirtualFileEquals
+    if (virtualFile != file.getViewProvider().getVirtualFile()) {
+      // TODO is it even possible? Should it be working?
+      Logger.getInstance(PsiAnchor.class).error("File view provider virtual file differs from PsiFile virtual file: " + file + "; " + virtualFile);
+      return FileHolder.create(CodeInsightContextUtil.getCodeInsightContext(file), virtualFile);
+    }
+    else {
+      return FileHolder.createInterned(file);
+    }
+  }
+
   private static final class TreeRangeReference extends PsiAnchor {
-    private final VirtualFile myVirtualFile;
-    private final @NotNull CodeInsightContext myContext; // todo IJPL-339 object layout got bigger +8 bytes
+    private final @NotNull FileHolder myFileHolder;
     private final Project myProject;
     private final Identikit myInfo;
     private final int myStartOffset;
@@ -244,12 +256,15 @@ public abstract class PsiAnchor implements Pointer<PsiElement> {
                                int endOffset,
                                @NotNull Identikit info,
                                @NotNull VirtualFile virtualFile) {
-      myVirtualFile = virtualFile;
-      myContext = CodeInsightContextUtil.getCodeInsightContext(file);
+      myFileHolder = createHolder(file, virtualFile);
       myProject = file.getProject();
       myStartOffset = startOffset;
       myEndOffset = endOffset;
       myInfo = info;
+    }
+
+    @NotNull VirtualFile getVirtualFile() {
+      return myFileHolder.getVirtualFile$intellij_platform_core_impl(); // must be constant, used in equals/hashcode
     }
 
     @Override
@@ -264,7 +279,7 @@ public abstract class PsiAnchor implements Pointer<PsiElement> {
     public @Nullable PsiFile getFile() {
       Language language = myInfo.getFileLanguage();
       if (language == null) return null;
-      return SelfElementInfo.restoreFileFromVirtual$intellij_platform_core_impl(myVirtualFile, myContext, myProject, language);
+      return SelfElementInfo.restoreFileFromVirtual$intellij_platform_core_impl(() -> myFileHolder, myProject, language, null);
     }
 
     @Override
@@ -287,7 +302,7 @@ public abstract class PsiAnchor implements Pointer<PsiElement> {
       return myEndOffset == that.myEndOffset &&
              myStartOffset == that.myStartOffset &&
              myInfo.equals(that.myInfo) &&
-             myVirtualFile.equals(that.myVirtualFile);
+             getVirtualFile().equals(that.getVirtualFile());
     }
 
     @Override
@@ -295,7 +310,7 @@ public abstract class PsiAnchor implements Pointer<PsiElement> {
       int result = myInfo.hashCode();
       result = 31 * result + myStartOffset;
       result = 31 * result + myEndOffset;
-      result = 31 * result + myVirtualFile.hashCode();
+      result = 31 * result + getVirtualFile().hashCode();
 
       return result;
     }
@@ -353,16 +368,18 @@ public abstract class PsiAnchor implements Pointer<PsiElement> {
   }
 
   private static final class PsiFileReference extends PsiAnchor {
-    private final VirtualFile myFile;
-    private final CodeInsightContext myContext;
+    private final FileHolder myFileHolder;
     private final Project myProject;
     private final @NotNull Language myLanguage;
 
     private PsiFileReference(@NotNull VirtualFile file, @NotNull PsiFile psiFile) {
-      myFile = file;
-      myContext = CodeInsightContextUtil.getCodeInsightContext(psiFile);
+      myFileHolder = createHolder(psiFile, file);
       myProject = psiFile.getProject();
       myLanguage = findLanguage(psiFile);
+    }
+
+    @NotNull VirtualFile getVirtualFile() {
+      return myFileHolder.getVirtualFile$intellij_platform_core_impl(); // must be constant, used in equals/hashcode
     }
 
     private static @NotNull Language findLanguage(@NotNull PsiFile file) {
@@ -383,7 +400,7 @@ public abstract class PsiAnchor implements Pointer<PsiElement> {
 
     @Override
     public @Nullable PsiFile getFile() {
-      return SelfElementInfo.restoreFileFromVirtual$intellij_platform_core_impl(myFile, myContext, myProject, myLanguage);
+      return SelfElementInfo.restoreFileFromVirtual$intellij_platform_core_impl(() -> myFileHolder, myProject, myLanguage, null);
     }
 
     @Override
@@ -393,7 +410,7 @@ public abstract class PsiAnchor implements Pointer<PsiElement> {
 
     @Override
     public int getEndOffset() {
-      return (int)myFile.getLength();
+      return (int)getVirtualFile().getLength();
     }
 
     @Override
@@ -403,7 +420,7 @@ public abstract class PsiAnchor implements Pointer<PsiElement> {
 
       PsiFileReference reference = (PsiFileReference)o;
 
-      if (!myFile.equals(reference.myFile)) return false;
+      if (!getVirtualFile().equals(reference.getVirtualFile())) return false;
       if (!myLanguage.equals(reference.myLanguage)) return false;
       if (!myProject.equals(reference.myProject)) return false;
 
@@ -412,7 +429,7 @@ public abstract class PsiAnchor implements Pointer<PsiElement> {
 
     @Override
     public int hashCode() {
-      return 31 * myFile.hashCode() + myLanguage.hashCode();
+      return 31 * getVirtualFile().hashCode() + myLanguage.hashCode();
     }
   }
 

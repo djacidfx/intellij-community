@@ -141,9 +141,13 @@ internal class MultiverseFileViewProviderCache(
       return null
     }
 
-    reassignProvidersWithOutdatedContextToActualContexts(vFile, fileMap)
+    val contextMapping = reassignProvidersWithOutdatedContextToActualContexts(vFile, fileMap)
+    if (contextMapping.isNotEmpty()) {
+      SmartPointerManagerEx.getInstanceEx(project).getTracker(vFile)?.pushContextMapping(contextMapping)
+    }
 
     dropPossibleInvalidation(fileMap)
+
     return fileMap
   }
 
@@ -154,7 +158,10 @@ internal class MultiverseFileViewProviderCache(
     fileMap.isPossiblyInvalidated = false
   }
 
-  private fun reassignProvidersWithOutdatedContextToActualContexts(vFile: VirtualFile, fileMap: FileProviderMap) {
+  private fun reassignProvidersWithOutdatedContextToActualContexts(
+    vFile: VirtualFile,
+    fileMap: FileProviderMap,
+  ): Map<CodeInsightContext, CodeInsightContext?> {
     val contextManager = CodeInsightContextManagerImpl.getInstanceImpl(project)
     val actualContexts = contextManager.getCodeInsightContexts(vFile)
 
@@ -171,11 +178,14 @@ internal class MultiverseFileViewProviderCache(
     }
 
     if (outdatedProviders.isEmpty()) {
-      return
+      return emptyMap()
     }
+
+    val contextMapping = mutableMapOf<CodeInsightContext, CodeInsightContext?>()
 
     outdatedProviders.zip(actualUnusedContextSet).forEach { (outdatedProviderAndContext, context) ->
       val (outdatedProvider, outDatedContext) = outdatedProviderAndContext
+      contextMapping[outDatedContext] = context
       fileMap.remove(outDatedContext, outdatedProvider)
       contextManager.setCodeInsightContext(outdatedProvider, context)
       require(fileMap.cacheOrGet(context, outdatedProvider) == outdatedProvider)
@@ -183,10 +193,13 @@ internal class MultiverseFileViewProviderCache(
 
     if (actualUnusedContextSet.size < outdatedProviders.size) {
       outdatedProviders.subList(actualUnusedContextSet.size, outdatedProviders.size).forEach { (outdatedProvider, context) ->
+        contextMapping[context] = null
         fileMap.remove(context, outdatedProvider)
         outdatedProvider.unmarkPossiblyInvalidated()
       }
     }
+
+    return contextMapping
   }
 
   override fun removeAllFileViewProvidersAndSet(vFile: VirtualFile, viewProvider: FileViewProvider) {

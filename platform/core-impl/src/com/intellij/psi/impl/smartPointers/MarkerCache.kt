@@ -246,7 +246,7 @@ internal class MarkerCache(
       containingFile: PsiFile,
     ): MarkerRanges {
       // using a mock SelfElementInfo to infer updated range for the segment
-      val info = SelfElementInfo(ProperTextRange.create(segment), MockIdentikit(), containingFile, isSegmentGreedy)
+      val info = SelfElementInfo(ProperTextRange.create(segment), MockIdentikit(), containingFile, isSegmentGreedy, null)
       val infos = listOf(info)
 
       val greedy = info.isGreedy

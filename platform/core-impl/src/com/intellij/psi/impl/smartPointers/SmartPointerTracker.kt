@@ -1,16 +1,21 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.psi.impl.smartPointers
 
+import com.intellij.codeInsight.multiverse.CodeInsightContext
+import com.intellij.codeInsight.multiverse.CodeInsightContextManager
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.impl.FrozenDocument
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.LowMemoryWatcher
 import com.intellij.openapi.util.Segment
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.util.CommonProcessors
 import com.intellij.util.Processor
 import com.intellij.util.concurrency.annotations.RequiresWriteLock
+import com.intellij.util.containers.CollectionFactory
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.TestOnly
 import org.jetbrains.annotations.VisibleForTesting
@@ -35,6 +40,8 @@ class SmartPointerTracker {
   private val fileInfoList = WeakPointerReferenceList()
   private val markerCache = MarkerCache(this)
   private var mySorted = false
+  private val holderCache = CollectionFactory.createConcurrentWeakKeySoftValueMap<CodeInsightContext, FileHolder>()
+  private val pendingContextMappings = mutableListOf<Map<CodeInsightContext, CodeInsightContext?>>()
 
   @JvmName("startTracking")
   @Synchronized
@@ -205,8 +212,98 @@ class SmartPointerTracker {
   fun isContextPossiblyInvalidated(): Boolean =
     isPossiblyInvalidated // does not require synchronization, only writes should be synchronized
 
+  @Synchronized
+  internal fun pushContextMapping(mapping: Map<CodeInsightContext, CodeInsightContext?>) {
+    pendingContextMappings.add(mapping)
+  }
+
   private val SmartPsiElementPointerImpl<*>.selfInfo: SelfElementInfo
     get() = this.elementInfo as SelfElementInfo
+
+  @Synchronized
+  fun revalidate(virtualFile: VirtualFile, project: Project) {
+    if (!isPossiblyInvalidated) return
+
+    isPossiblyInvalidated = false
+
+    val allInfos = getSortedInfos() + getFileInfos()
+    if (allInfos.isEmpty()) {
+      pendingContextMappings.clear()
+      return
+    }
+
+    if (pendingContextMappings.isNotEmpty()) {
+      val composedMapping = composeMappings(pendingContextMappings)
+      pendingContextMappings.clear()
+
+      for (info in allInfos) {
+        val ctx = info.fileHolder.context ?: continue
+        if (ctx in composedMapping) {
+          info.fileHolder = createFileHolderInterned(virtualFile, composedMapping[ctx])
+        }
+      }
+
+      for (oldCtx in composedMapping.keys) {
+        holderCache.remove(oldCtx)
+      }
+      return
+    }
+
+    // Fallback: no stored mappings available
+    val oldContexts = allInfos.mapNotNullTo(mutableSetOf()) { it.fileHolder.context }
+    val actualContexts = CodeInsightContextManager.getInstance(project).getCodeInsightContexts(virtualFile).toSet()
+    val deadContexts = oldContexts.subtract(actualContexts)
+
+    if (deadContexts.isEmpty()) {
+      return
+    }
+
+    if (deadContexts.size == 1 && actualContexts.size == 1 && oldContexts.size == 1) {
+      val actualContext = actualContexts.single()
+      val deadContext = deadContexts.single()
+      val newHolder = createFileHolderInterned(virtualFile, actualContext)
+      for (info in allInfos) {
+        info.fileHolder = newHolder
+      }
+      holderCache.remove(deadContext)
+      holderCache[actualContext] = newHolder
+      return
+    }
+
+    for (info in allInfos) {
+      if (info.fileHolder.context in deadContexts) {
+        info.fileHolder = createFileHolderInterned(virtualFile, null)
+      }
+    }
+    for (deadContext in deadContexts) {
+      holderCache.remove(deadContext)
+    }
+  }
+
+  internal fun createFileHolderInterned(virtualFile: VirtualFile, context: CodeInsightContext?): FileHolder =
+    holderCache.computeIfAbsent(context ?: NullContext) { c -> FileHolder.create(c.takeUnless { it === NullContext }, virtualFile) }
+
+  private object NullContext: CodeInsightContext
+
+  private fun composeMappings(
+    mappings: List<Map<CodeInsightContext, CodeInsightContext?>>,
+  ): Map<CodeInsightContext, CodeInsightContext?> {
+    val composed = mutableMapOf<CodeInsightContext, CodeInsightContext?>()
+    for (mapping in mappings) {
+      for (key in composed.keys) {
+        val value = composed[key]
+        if (value != null && value in mapping) {
+          composed[key] = mapping[value]
+        }
+      }
+      for ((key, value) in mapping) {
+        if (key !in composed) {
+          composed[key] = value
+        }
+      }
+    }
+    return composed
+  }
 
   /**
    * A weak reference to a `SmartPsiElementPointerImpl`.

@@ -1,8 +1,6 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.psi.impl.smartPointers
 
-import com.intellij.codeInsight.multiverse.CodeInsightContext
-import com.intellij.codeInsight.multiverse.codeInsightContext
 import com.intellij.lang.Language
 import com.intellij.lang.LanguageUtil
 import com.intellij.openapi.fileEditor.FileDocumentManager
@@ -14,6 +12,7 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.impl.PsiDocumentManagerEx
+import kotlin.concurrent.Volatile
 
 /**
  * Tracks an entire [PsiFile].
@@ -22,16 +21,20 @@ import com.intellij.psi.impl.PsiDocumentManagerEx
  * Stores the virtual file, language ID, and file class name;
  * verifies the class name matches on restoration to handle multi-language view providers correctly.
  */
-internal class FileElementInfo(file: PsiFile) : SmartPointerElementInfo, ContextAwareInfo {
-  override val virtualFile: VirtualFile = file.viewProvider.virtualFile
+internal class FileElementInfo(file: PsiFile, manager: SmartPointerManagerEx) : SmartPointerElementInfo, ContextAwareInfo {
   private val myProject: Project = file.project
   private val myLanguageId: String = LanguageUtil.getRootLanguage(file).id
   private val myFileClassName: String = file.javaClass.name
-  private val myContext: CodeInsightContext = file.viewProvider.codeInsightContext
+
+  @Volatile
+  override var fileHolder: FileHolder = FileHolder.createInterned(file, manager)
+
+  override val virtualFile: VirtualFile
+    get() = fileHolder.virtualFile
 
   override fun restoreElement(manager: SmartPointerManagerEx): PsiElement? {
     val language = Language.findLanguageByID(myLanguageId) ?: return null
-    val file = SelfElementInfo.restoreFileFromVirtual(this.virtualFile, myContext, myProject, language) ?: return null
+    val file = SelfElementInfo.restoreFileFromVirtual(::fileHolder, myProject, language, manager.getTracker(virtualFile)) ?: return null
     return if (file.javaClass.name == myFileClassName) file else null
   }
 

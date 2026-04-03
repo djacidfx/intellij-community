@@ -23,7 +23,8 @@ internal class AnchorElementInfo : SelfElementInfo {
     anchor: PsiElement,
     containingFile: PsiFile,
     identikit: Identikit.ByAnchor,
-  ) : super(ProperTextRange.create(anchor.getTextRange()), identikit, containingFile, false) {
+    manager: SmartPointerManagerEx,
+  ) : super(ProperTextRange.create(anchor.getTextRange()), identikit, containingFile, false, manager) {
     myStubElementTypeAndId = pack(-1, null)
   }
 
@@ -33,10 +34,13 @@ internal class AnchorElementInfo : SelfElementInfo {
     containingFile: PsiFileWithStubSupport,
     stubId: Int,
     stubElementType: IElementType,
+    manager: SmartPointerManagerEx,
   ) : super(
     null,
     Identikit.fromTypes(anchor.javaClass, stubElementType, LanguageUtil.getRootLanguage(containingFile)),
-    containingFile, false
+    containingFile,
+    false,
+    manager
   ) {
     myStubElementTypeAndId = pack(stubId, stubElementType)
     assert(anchor !is PsiFile) { "FileElementInfo must be used for file: $anchor" }

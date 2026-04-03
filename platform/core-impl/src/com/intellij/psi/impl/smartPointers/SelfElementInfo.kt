@@ -1,8 +1,6 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.psi.impl.smartPointers
 
-import com.intellij.codeInsight.multiverse.CodeInsightContext
-import com.intellij.codeInsight.multiverse.codeInsightContext
 import com.intellij.lang.Language
 import com.intellij.openapi.application.runReadActionBlocking
 import com.intellij.openapi.editor.Document
@@ -35,12 +33,16 @@ open class SelfElementInfo internal constructor(
   identikit: Identikit,
   containingPsiFile: PsiFile,
   val isForInjected: Boolean,
+  manager: SmartPointerManagerEx?,
 ) : SmartPointerElementInfo, ContextAwareInfo {
   @Volatile
   private var myIdentikit: Identikit = identikit
-  val context: CodeInsightContext = containingPsiFile.codeInsightContext
 
-  override val virtualFile: VirtualFile = containingPsiFile.viewProvider.virtualFile
+  @Volatile
+  override var fileHolder: FileHolder = FileHolder.createInterned(containingPsiFile, manager)
+
+  override val virtualFile: VirtualFile
+    get() = fileHolder.virtualFile
 
   var psiStartOffset: Int = 0
     private set
@@ -114,7 +116,17 @@ open class SelfElementInfo internal constructor(
 
   override fun restoreFile(manager: SmartPointerManagerEx): PsiFile? {
     val language = myIdentikit.fileLanguage ?: return null
-    return restoreFileFromVirtual(virtualFile, context, manager.project, language)
+    val holder = fileHolder
+    val vfile = restoreVFile(holder.virtualFile)
+
+    val tracker = SmartPointerManagerEx.getInstanceEx(manager.project).getTracker(holder.virtualFile)
+
+    if (vfile == null) {
+      fileHolder = FileHolder.createInterned(holder.virtualFile, null, tracker)
+      return null
+    }
+    tracker?.revalidate(vfile, manager.project)
+    return restoreFileFromVirtual({ fileHolder }, manager.project, language, manager.getTracker(vfile))
   }
 
   override fun cleanup() {
@@ -163,18 +175,21 @@ open class SelfElementInfo internal constructor(
 
     @JvmStatic
     internal fun restoreFileFromVirtual(
-      virtualFile: VirtualFile,
-      context: CodeInsightContext,
+      fileHolder: () -> FileHolder,
       project: Project,
       language: Language,
+      tracker: SmartPointerTracker?,
     ): PsiFile? {
       return runReadActionBlocking {
         if (project.isDisposed()) return@runReadActionBlocking null
-        val child = restoreVFile(virtualFile)?.takeIf { it.isValid } ?: return@runReadActionBlocking null
 
-        // TODO implement context updating here
+        val vfile = restoreVFile(fileHolder().virtualFile) ?: return@runReadActionBlocking null
 
-        val file = PsiManager.getInstance(project).findFile(child, context) ?: return@runReadActionBlocking null
+        // updates file-holders for all pointers of the file
+        tracker?.revalidate(vfile, project)
+
+        val context = fileHolder().context ?: return@runReadActionBlocking null
+        val file = PsiManager.getInstance(project).findFile(vfile, context) ?: return@runReadActionBlocking null
         val effectiveLanguage = if (language === Language.ANY) file.viewProvider.baseLanguage else language
         return@runReadActionBlocking file.viewProvider.getPsi(effectiveLanguage)
       }
