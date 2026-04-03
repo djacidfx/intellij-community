@@ -11,6 +11,7 @@ import org.jetbrains.plugins.gradle.service.project.CommonGradleProjectResolverE
 
 /**
  * Enables navigation: `build.gradle.kts` -> Gradle Version Catalog
+ * TODO: IDEA-387965 move the class to another module, it's not bound to TOML anymore
  */
 class KotlinGradleVersionCatalogGotoDeclarationHandler : GotoDeclarationHandler {
 

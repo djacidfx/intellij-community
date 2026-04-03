@@ -8,6 +8,10 @@ import org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor
 import org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor.ReferenceProvider
 import org.jetbrains.plugins.gradle.service.resolve.getVersionCatalogFiles
 
+/**
+ * Creates references from `build.gradle.kts` to Gradle Version Catalog.
+ * TODO: IDEA-387965 move the class to another module, it's not bound to TOML anymore
+ */
 internal class KotlinGradleVersionCatalogPsiReferenceProviderContributor : KotlinPsiReferenceProviderContributor<KtDotQualifiedExpression> {
     override val elementClass: Class<KtDotQualifiedExpression>
         get() = KtDotQualifiedExpression::class.java
