@@ -5614,20 +5614,6 @@ http_file(
 )
 
 http_file(
-  name = "org_java-websocket-Java-WebSocket-1_6_0_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/java-websocket/Java-WebSocket/1.6.0/Java-WebSocket-1.6.0.jar",
-  sha256 = "eae29213e4f16515639c28957200f011b3967fffcada1962cf0255d24919c22f",
-  downloaded_file_path = "Java-WebSocket-1.6.0.jar"
-)
-
-http_file(
-  name = "org_java-websocket-Java-WebSocket-1_6_0-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/java-websocket/Java-WebSocket/1.6.0/Java-WebSocket-1.6.0-sources.jar",
-  sha256 = "0c64cd898770928467810e8ab4eeb6b99b76b40affda402faa6995f2def4eeef",
-  downloaded_file_path = "Java-WebSocket-1.6.0-sources.jar"
-)
-
-http_file(
   name = "org_apache_maven_resolver-maven-resolver-connector-basic-1_9_22_http",
   url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/apache/maven/resolver/maven-resolver-connector-basic/1.9.22/maven-resolver-connector-basic-1.9.22.jar",
   sha256 = "4ab68bdec97eec318b2a3bd27e7c954e316f890df92d544b68afd0bf666c9588",
@@ -9573,6 +9559,20 @@ http_file(
   url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/tools/jackson/module/jackson-module-kotlin/3.1.0-rc1/jackson-module-kotlin-3.1.0-rc1-sources.jar",
   sha256 = "5288cdcb51e45b2f7aca1cec626223d924fac3131510e3f46bfbaacb25dd0f61",
   downloaded_file_path = "jackson-module-kotlin-3.1.0-rc1-sources.jar"
+)
+
+http_file(
+  name = "org_java-websocket-Java-WebSocket-1_6_0_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/java-websocket/Java-WebSocket/1.6.0/Java-WebSocket-1.6.0.jar",
+  sha256 = "eae29213e4f16515639c28957200f011b3967fffcada1962cf0255d24919c22f",
+  downloaded_file_path = "Java-WebSocket-1.6.0.jar"
+)
+
+http_file(
+  name = "org_java-websocket-Java-WebSocket-1_6_0-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/java-websocket/Java-WebSocket/1.6.0/Java-WebSocket-1.6.0-sources.jar",
+  sha256 = "0c64cd898770928467810e8ab4eeb6b99b76b40affda402faa6995f2def4eeef",
+  downloaded_file_path = "Java-WebSocket-1.6.0-sources.jar"
 )
 
 http_file(

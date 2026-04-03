@@ -6949,21 +6949,6 @@ jvm_import(
 )
 
 copy_file(
-  name = "org.java-websocket/Java-WebSocket-1.6.0.jar_copy",
-  src = "@org_java-websocket-Java-WebSocket-1_6_0_http//file",
-  out = "org.java-websocket/Java-WebSocket-1.6.0.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-jvm_import(
-  name = "java-_web_socket",
-  jar = "@org_java-websocket-Java-WebSocket-1_6_0_http//file",
-  source_jar = "@org_java-websocket-Java-WebSocket-1_6_0-sources_http//file",
-  visibility = ["//visibility:public"]
-)
-
-copy_file(
   name = "org.apache.maven.resolver/maven-resolver-connector-basic-1.9.22.jar_copy",
   src = "@org_apache_maven_resolver-maven-resolver-connector-basic-1_9_22_http//file",
   out = "org.apache.maven.resolver/maven-resolver-connector-basic-1.9.22.jar",
@@ -12235,6 +12220,21 @@ jvm_import(
   name = "libraries-jackson3-module-kotlin-jackson3-module-kotlin",
   jar = "@tools_jackson_module-jackson-module-kotlin-3_1_0-rc1_http//file",
   source_jar = "@tools_jackson_module-jackson-module-kotlin-3_1_0-rc1-sources_http//file",
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "org.java-websocket/Java-WebSocket-1.6.0.jar_copy",
+  src = "@org_java-websocket-Java-WebSocket-1_6_0_http//file",
+  out = "org.java-websocket/Java-WebSocket-1.6.0.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "libraries-java-websocket-_java-_web_socket",
+  jar = "@org_java-websocket-Java-WebSocket-1_6_0_http//file",
+  source_jar = "@org_java-websocket-Java-WebSocket-1_6_0-sources_http//file",
   visibility = ["//visibility:public"]
 )
 
