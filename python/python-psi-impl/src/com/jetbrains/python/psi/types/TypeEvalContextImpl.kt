@@ -47,7 +47,7 @@ open class TypeEvalContextImpl internal constructor(
   private val myProcessingContext = ThreadLocal.withInitial { ProcessingContext() }
 
   @ApiStatus.Internal
-  val typeEngine: PyTypeEngine? = constraints.myOrigin?.let {
+  override val typeEngine: PyTypeEngine? = constraints.myOrigin?.let {
     ModuleUtilCore.findModuleForFile(it) }?.let { module ->
     PyTypeEngineProvider.createTypeResolver(module)
   }
@@ -188,12 +188,13 @@ open class TypeEvalContextImpl internal constructor(
     }
 
     return RecursionManager.doPreventingRecursion(element to this, false) {
-      val type = if (typeEngine != null && typeEngine.isSupportedForResolve(element)) {
+      val engine = typeEngine
+      val type = if (engine != null && engine.isSupportedForResolve(element)) {
         val (result, duration) = measureTimedValue {
           val isUserInitiated = constraints.myAllowStubToAST && constraints.myAllowDataFlow
-          typeEngine.resolveType(element, this is LibraryTypeEvalContext, isUserInitiated)?.get()
+          engine.resolveType(element, this is LibraryTypeEvalContext, isUserInitiated)?.get()
         }
-        PyTypeEvaluationAggregatesCollector.recordHybridTypeEngineTime(typeEngine.name, duration.inWholeMilliseconds)
+        PyTypeEvaluationAggregatesCollector.recordHybridTypeEngineTime(engine.name, duration.inWholeMilliseconds)
         result
       }
       else {

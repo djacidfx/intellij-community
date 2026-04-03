@@ -2,6 +2,7 @@
 package com.jetbrains.python.inspections;
 
 import com.intellij.codeInspection.LocalInspectionToolSession;
+import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.codeInspection.ProblemsHolder;
 import com.intellij.lang.ASTNode;
 import com.intellij.openapi.diagnostic.Logger;
@@ -107,7 +108,8 @@ public class PyTypeCheckerInspection extends PyInspection {
       session.putUserData(TIME_KEY, System.nanoTime());
     }
     TypeEvalContext context = PyInspectionVisitor.getContext(session);
-    return new PyReachableElementVisitor(new Visitor(holder, context), context);
+    Visitor visitor = new Visitor(holder, context);
+    return new PyReachableElementVisitor(visitor, context);
   }
 
   public static class Visitor extends PyInspectionVisitor {
@@ -190,6 +192,7 @@ public class PyTypeCheckerInspection extends PyInspection {
             getHolder()
               .problem(returnExpr != null ? returnExpr : node,
                        PyPsiBundle.message("INSP.type.checker.expected.type.got.type.instead", expectedName, actualName))
+              .highlight(effectiveHighlightType(ProblemHighlightType.GENERIC_ERROR_OR_WARNING))
               .fix(new PyMakeFunctionReturnTypeQuickFix(function, myTypeEvalContext))
               .register();
           }
@@ -277,6 +280,7 @@ public class PyTypeCheckerInspection extends PyInspection {
         getHolder()
           .problem(yieldExpr != null ? yieldExpr : node,
                    PyPsiBundle.message("INSP.type.checker.yield.type.mismatch", expectedName, actualName))
+          .highlight(effectiveHighlightType(ProblemHighlightType.GENERIC_ERROR_OR_WARNING))
           .fix(new PyMakeFunctionReturnTypeQuickFix(function, myTypeEvalContext))
           .register();
         return true;
@@ -359,7 +363,8 @@ public class PyTypeCheckerInspection extends PyInspection {
         registerProblem(expr, isDescriptor ?
                               PyPsiBundle.message("INSP.type.checker.expected.type.from.dunder.set.got.type.instead",
                                                   expectedName, actualName) :
-                              PyPsiBundle.message("INSP.type.checker.expected.type.got.type.instead", expectedName, actualName));
+                              PyPsiBundle.message("INSP.type.checker.expected.type.got.type.instead", expectedName, actualName),
+                        effectiveHighlightType(ProblemHighlightType.GENERIC_ERROR_OR_WARNING));
       }
     }
 
@@ -406,7 +411,8 @@ public class PyTypeCheckerInspection extends PyInspection {
         registerProblem(error.getActualExpression(),
                         PyPsiBundle.message("INSP.type.checker.expected.type.got.type.instead",
                                             PythonDocumentationProvider.getTypeName(error.getExpectedType(), myTypeEvalContext),
-                                            PythonDocumentationProvider.getTypeName(error.getActualType(), myTypeEvalContext)));
+                                            PythonDocumentationProvider.getTypeName(error.getActualType(), myTypeEvalContext)),
+                        effectiveHighlightType(ProblemHighlightType.GENERIC_ERROR_OR_WARNING));
       });
       result.getExtraKeys().forEach(error -> {
         registerProblem(Objects.requireNonNullElse(error.getActualExpression(), expression),
@@ -447,6 +453,7 @@ public class PyTypeCheckerInspection extends PyInspection {
             if (annotationValue != null) {
               getHolder()
                 .problem(annotationValue, PyPsiBundle.message("INSP.type.checker.expected.type.got.type.instead", expectedName, actualName))
+                .highlight(effectiveHighlightType(ProblemHighlightType.GENERIC_ERROR_OR_WARNING))
                 .fix(new PyMakeFunctionReturnTypeQuickFix(node, myTypeEvalContext))
                 .register();
             }
@@ -501,7 +508,8 @@ public class PyTypeCheckerInspection extends PyInspection {
       if (!PyTypeChecker.match(expected, actual, myTypeEvalContext)) {
         final String expectedName = PythonDocumentationProvider.getVerboseTypeName(expected, myTypeEvalContext);
         final String actualName = PythonDocumentationProvider.getTypeName(actual, myTypeEvalContext);
-        registerProblem(defaultValue, PyPsiBundle.message("INSP.type.checker.expected.type.got.type.instead", expectedName, actualName));
+        registerProblem(defaultValue, PyPsiBundle.message("INSP.type.checker.expected.type.got.type.instead", expectedName, actualName),
+                        effectiveHighlightType(ProblemHighlightType.GENERIC_ERROR_OR_WARNING));
       }
     }
 
@@ -553,7 +561,8 @@ public class PyTypeCheckerInspection extends PyInspection {
 
       if (!ContainerUtil.exists(calleesResults, calleeResults -> isMatched(calleeResults))) {
         PyTypeCheckerInspectionProblemRegistrar
-          .registerProblem(this, callSite, getArgumentTypes(calleesResults), calleesResults, myTypeEvalContext);
+          .registerProblem(this, callSite, getArgumentTypes(calleesResults), calleesResults, myTypeEvalContext,
+                           effectiveHighlightType(ProblemHighlightType.GENERIC_ERROR_OR_WARNING));
       }
     }
 
@@ -568,7 +577,8 @@ public class PyTypeCheckerInspection extends PyInspection {
           final String typeName = PythonDocumentationProvider.getTypeName(type, myTypeEvalContext);
 
           String qualifiedName = "collections." + iterableClassName;
-          registerProblem(iteratedValue, PyPsiBundle.message("INSP.type.checker.expected.type.got.type.instead", qualifiedName, typeName));
+          registerProblem(iteratedValue, PyPsiBundle.message("INSP.type.checker.expected.type.got.type.instead", qualifiedName, typeName),
+                          effectiveHighlightType(ProblemHighlightType.GENERIC_ERROR_OR_WARNING));
           return true;
         }
       }
@@ -586,7 +596,8 @@ public class PyTypeCheckerInspection extends PyInspection {
           final String typeName = PythonDocumentationProvider.getTypeName(type, myTypeEvalContext);
 
           String qualifiedName = "contextlib." + contextManagerClassName;
-          registerProblem(iteratedValue, PyPsiBundle.message("INSP.type.checker.expected.type.got.type.instead", qualifiedName, typeName));
+          registerProblem(iteratedValue, PyPsiBundle.message("INSP.type.checker.expected.type.got.type.instead", qualifiedName, typeName),
+                          effectiveHighlightType(ProblemHighlightType.GENERIC_ERROR_OR_WARNING));
         }
       }
     }
