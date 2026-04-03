@@ -24,11 +24,12 @@ class AgentChatSemanticRegionControllerTest {
     val snapshot = createSnapshot(
       """
       intro
-      <proposed_plan>
-      # Semantic Navigation
-      1. Detect plan regions
-      2. Add markers
-      </proposed_plan>
+      • Proposed Plan
+       
+        # Semantic Navigation
+        1. Detect plan regions
+        2. Add markers
+       
       outro
       """.trimIndent(),
     )
@@ -38,17 +39,15 @@ class AgentChatSemanticRegionControllerTest {
     assertThat(region.kind).isEqualTo(AgentChatSemanticRegionKind.PROPOSED_PLAN)
     assertThat(region.summary).isEqualTo("Semantic Navigation")
     assertThat(extractMatchedText(snapshot, region))
-      .contains("<proposed_plan>")
-      .contains("# Semantic Navigation")
-      .contains("</proposed_plan>")
+      .contains("\u2022 Proposed Plan")
+      .contains("Semantic Navigation")
   }
 
   @Test
-  fun codexDetectorIgnoresIncompleteProposedPlan(): Unit = timeoutRunBlocking {
+  fun codexDetectorIgnoresHeaderWithoutContent(): Unit = timeoutRunBlocking {
     val snapshot = createSnapshot(
       """
-      <proposed_plan>
-      # Still drafting
+      • Proposed Plan
       """.trimIndent(),
     )
 
@@ -59,16 +58,16 @@ class AgentChatSemanticRegionControllerTest {
   fun codexDetectorKeepsMultiplePlansOrderedAndStable(): Unit = timeoutRunBlocking {
     val snapshot = createSnapshot(
       """
-      <proposed_plan>
-      # First plan
-      </proposed_plan>
+      • Proposed Plan
+        First plan
+       
       chatter
-      <proposed_plan>
-      # First plan
-      </proposed_plan>
-      <proposed_plan>
-      # Third plan
-      </proposed_plan>
+      • Proposed Plan
+        First plan
+       
+      • Proposed Plan
+        Third plan
+       
       """.trimIndent(),
     )
 
@@ -90,13 +89,13 @@ class AgentChatSemanticRegionControllerTest {
   fun semanticRegionStateAddsMarkersAndWrapsNavigation(): Unit = timeoutRunBlocking {
     val text = """
 intro
-<proposed_plan>
-# First proposal
-</proposed_plan>
+• Proposed Plan
+  First proposal
+ 
 between
-<proposed_plan>
-# Second proposal
-</proposed_plan>
+• Proposed Plan
+  Second proposal
+ 
 tail
 """.trimIndent()
     val regions = detectCodexRegions(createSnapshot(text))
@@ -135,6 +134,44 @@ tail
     finally {
       releaseEditor(editor)
     }
+  }
+
+  @Test
+  fun codexDetectorExtractsUpdatedPlan(): Unit = timeoutRunBlocking {
+    val snapshot = createSnapshot(
+      """
+      • Updated Plan
+        └ Step one
+          Step two
+       
+      """.trimIndent(),
+    )
+
+    val region = detectCodexRegions(snapshot).single()
+
+    assertThat(region.kind).isEqualTo(AgentChatSemanticRegionKind.UPDATED_PLAN)
+    assertThat(region.summary).isEqualTo("Step one")
+  }
+
+  @Test
+  fun codexDetectorMixesProposedAndUpdatedPlansInOrder(): Unit = timeoutRunBlocking {
+    val snapshot = createSnapshot(
+      """
+      • Proposed Plan
+        Implement feature
+       
+      • Updated Plan
+        └ Step 1 done
+       
+      """.trimIndent(),
+    )
+
+    val regions = detectCodexRegions(snapshot)
+
+    assertThat(regions).hasSize(2)
+    assertThat(regions[0].kind).isEqualTo(AgentChatSemanticRegionKind.PROPOSED_PLAN)
+    assertThat(regions[1].kind).isEqualTo(AgentChatSemanticRegionKind.UPDATED_PLAN)
+    assertThat(regions[0].startOffset).isLessThan(regions[1].startOffset)
   }
 
   @Test

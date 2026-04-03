@@ -13,7 +13,6 @@ import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessageD
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProviders
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionTerminalLaunchSpec
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.UI
 import com.intellij.openapi.components.service
 import com.intellij.openapi.components.serviceAsync
@@ -254,10 +253,7 @@ suspend fun openChat(
       file.putUserData(FileEditorProvider.KEY, provider)
     }
   }
-  manager.openFile(
-    file = file,
-    options = FileEditorOpenOptions(requestFocus = true, reuseOpen = true),
-  )
+  manager.openFile(file = file, options = FileEditorOpenOptions(requestFocus = true, reuseOpen = true))
   if (existing != null && hasExplicitInitialMessageDispatch && !file.initialMessageSent) {
     flushPendingInitialMessageForOpenEditors(manager = manager, file = file)
   }
@@ -825,7 +821,7 @@ suspend fun updateOpenAgentChatTabTitles(
   )
 }
 
-suspend fun collectSelectedChatThreadIdentity(): Pair<AgentSessionProvider, String>? = withContext(Dispatchers.EDT) {
+suspend fun collectSelectedChatThreadIdentity(): Pair<AgentSessionProvider, String>? = withContext(Dispatchers.UI) {
   collectOpenAgentChatTabsSnapshot().selectedChatThreadIdentity
 }
 

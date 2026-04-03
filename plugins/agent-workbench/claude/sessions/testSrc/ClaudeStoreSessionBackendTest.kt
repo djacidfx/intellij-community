@@ -152,7 +152,9 @@ class ClaudeStoreSessionBackendTest {
       assertThat(threads).hasSize(2)
       val ids = threads.map { it.id }.toSet()
       assertThat(ids).containsExactlyInAnyOrder("session-a", "session-b")
-      assertThat(threads.first { it.id == "session-a" }.title).isEqualTo("Index title")
+      val sessionA = threads.first { it.id == "session-a" }
+      assertThat(sessionA.title).isEqualTo("Index title")
+      assertThat(sessionA.gitBranch).isEqualTo("master")
     }
   }
 

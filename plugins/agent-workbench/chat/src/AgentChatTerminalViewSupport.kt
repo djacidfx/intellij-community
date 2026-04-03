@@ -6,7 +6,7 @@ import com.intellij.ide.DataManager
 import com.intellij.ide.OccurenceNavigator
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.EDT
+import com.intellij.openapi.application.UI
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.editor.ex.EditorEx
@@ -60,7 +60,11 @@ private const val AGENT_CHAT_SEMANTIC_REGION_SUMMARY_MAX_LENGTH: Int = 80
 private val AGENT_CHAT_SEMANTIC_REGION_KEY: Key<AgentChatSemanticRegion> =
   Key.create("AgentWorkbench.Chat.SemanticRegion")
 private val AGENT_CHAT_PROPOSED_PLAN_STRIPE_COLOR = JBColor(0x5A9955, 0x78C070)
-private val AGENT_CHAT_MARKDOWN_PREFIX_REGEX = Regex("^(#+|[-*+]|\\d+[.)])\\s+")
+private val AGENT_CHAT_UPDATED_PLAN_STRIPE_COLOR = JBColor(0x4A8DB7, 0x6CB3D9)
+private val AGENT_CHAT_MARKDOWN_PREFIX_REGEX = Regex("^(#+|[-*+]|\\d+[.)]) +")
+private val AGENT_CHAT_PLAN_STEP_PREFIX_REGEX = Regex("^([\u2514\u2714\u2612\u25a1] +)+")
+private const val CODEX_TUI_PROPOSED_PLAN_HEADER = "\u2022 Proposed Plan"
+private const val CODEX_TUI_UPDATED_PLAN_HEADER = "\u2022 Updated Plan"
 
 internal data class AgentChatActiveTerminalSnapshot(
   val model: TerminalOutputModel,
@@ -72,7 +76,7 @@ internal suspend fun captureActiveTerminalSnapshot(
   sessionState: StateFlow<TerminalViewSessionState>,
   onUnavailable: () -> Unit,
 ): AgentChatActiveTerminalSnapshot? {
-  return withContext(Dispatchers.EDT) {
+  return withContext(Dispatchers.UI) {
     if (sessionState.value == TerminalViewSessionState.Terminated) {
       onUnavailable()
       null
@@ -93,7 +97,7 @@ internal suspend fun captureActiveTerminalSnapshot(
 
 internal fun terminalOutputModelChangeFlow(terminalView: TerminalView): Flow<Unit> = callbackFlow {
   val scope = this
-  withContext(Dispatchers.EDT) {
+  withContext(Dispatchers.UI) {
     val listenerDisposable = scope.asDisposable()
     val listener = object : TerminalOutputModelListener {
       override fun afterContentChanged(event: TerminalContentChangeEvent) {
@@ -134,13 +138,14 @@ internal fun resolveSelectedAgentChatFileEditor(project: Project): AgentChatFile
 
 internal fun resolveAgentChatSemanticRegionDetector(provider: AgentSessionProvider?): AgentChatSemanticRegionDetector? {
   return when (provider) {
-    AgentSessionProvider.CODEX -> CodexProposedPlanDetector
+    AgentSessionProvider.CODEX -> CodexSemanticRegionDetector
     else -> null
   }
 }
 
 internal enum class AgentChatSemanticRegionKind {
   PROPOSED_PLAN,
+  UPDATED_PLAN,
 }
 
 internal enum class AgentChatSemanticNavigationDirection {
@@ -203,7 +208,7 @@ internal class AgentChatSemanticRegionController(
       sessionState
         .filter { it == TerminalViewSessionState.Terminated }
         .collect {
-          withContext(Dispatchers.EDT) {
+          withContext(Dispatchers.UI) {
             removeErrorMarkerListener()
             state.clear()
           }
@@ -245,7 +250,7 @@ internal class AgentChatSemanticRegionController(
       detector.detect(request.snapshot)
     }
 
-    withContext(Dispatchers.EDT) {
+    withContext(Dispatchers.UI) {
       if (sessionState.value == TerminalViewSessionState.Terminated) {
         removeErrorMarkerListener()
         state.clear()
@@ -318,7 +323,11 @@ internal class AgentChatSemanticRegionState {
         null,
         HighlighterTargetArea.LINES_IN_RANGE,
       )
-      highlighter.setErrorStripeMarkColor(AGENT_CHAT_PROPOSED_PLAN_STRIPE_COLOR)
+      val stripeColor = when (region.kind) {
+        AgentChatSemanticRegionKind.PROPOSED_PLAN -> AGENT_CHAT_PROPOSED_PLAN_STRIPE_COLOR
+        AgentChatSemanticRegionKind.UPDATED_PLAN -> AGENT_CHAT_UPDATED_PLAN_STRIPE_COLOR
+      }
+      highlighter.setErrorStripeMarkColor(stripeColor)
       highlighter.setThinErrorStripeMark(true)
       highlighter.errorStripeTooltip = buildRegionTooltip(region)
       highlighter.putUserData(AGENT_CHAT_SEMANTIC_REGION_KEY, region)
@@ -407,7 +416,7 @@ internal class AgentChatSemanticRegionNavigator(
   override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
 }
 
-private object CodexProposedPlanDetector : AgentChatSemanticRegionDetector {
+private object CodexSemanticRegionDetector : AgentChatSemanticRegionDetector {
   override fun detect(snapshot: TerminalOutputModelSnapshot): List<AgentChatSemanticRegion> {
     if (snapshot.lineCount == 0) {
       return emptyList()
@@ -424,12 +433,18 @@ private object CodexProposedPlanDetector : AgentChatSemanticRegionDetector {
     val sameHashCounts = mutableMapOf<String, Int>()
     var line = firstScanLine
     while (line <= snapshot.lastLineIndex) {
-      if (snapshot.lineText(line).trim() != "<proposed_plan>") {
+      val trimmed = snapshot.lineText(line).trim()
+      val kind = when (trimmed) {
+        CODEX_TUI_PROPOSED_PLAN_HEADER -> AgentChatSemanticRegionKind.PROPOSED_PLAN
+        CODEX_TUI_UPDATED_PLAN_HEADER -> AgentChatSemanticRegionKind.UPDATED_PLAN
+        else -> null
+      }
+      if (kind == null) {
         line += 1L
         continue
       }
 
-      val region = parseCodexProposedPlan(snapshot, line, sameHashCounts)
+      val region = parseCodexPlanSection(snapshot, line, kind, sameHashCounts)
       if (region == null) {
         line += 1L
         continue
@@ -442,27 +457,50 @@ private object CodexProposedPlanDetector : AgentChatSemanticRegionDetector {
   }
 }
 
-private fun parseCodexProposedPlan(
+private fun parseCodexPlanSection(
   snapshot: TerminalOutputModelSnapshot,
-  openingTagLine: TerminalLineIndex,
+  headerLine: TerminalLineIndex,
+  kind: AgentChatSemanticRegionKind,
   sameHashCounts: MutableMap<String, Int>,
 ): Pair<AgentChatSemanticRegion, TerminalLineIndex>? {
-  var closingTagLine: TerminalLineIndex? = null
   val summaryCandidates = mutableListOf<String>()
-  var line = openingTagLine + 1L
+  var lastContentLine = headerLine
+  var line = headerLine + 1L
+  var sawContent = false
+  var trailingBlankCount = 0
   while (line <= snapshot.lastLineIndex) {
     val text = snapshot.lineText(line)
-    if (text.trim() == "</proposed_plan>") {
-      closingTagLine = line
+    val trimmed = text.trim()
+    if (isCodexTuiSectionHeader(text)) {
+      break // next section header at column 0 — stop
+    }
+    if (trimmed.isNotEmpty() && !text.startsWith(' ')) {
+      // Non-indented non-blank line — outside the plan section (e.g. regular conversation text).
       break
     }
+    if (trimmed.isEmpty()) {
+      trailingBlankCount++
+      // Allow blank lines inside the section, but if we already had content and see
+      // two consecutive blanks, treat that as end-of-section padding.
+      if (sawContent && trailingBlankCount >= 2) {
+        break
+      }
+      line += 1L
+      continue
+    }
+    trailingBlankCount = 0
+    sawContent = true
     summaryCandidates += text
+    lastContentLine = line
     line += 1L
   }
-  val resolvedClosingTagLine = closingTagLine ?: return null
 
-  val startOffset = (snapshot.getStartOfLine(openingTagLine) - snapshot.startOffset).toInt()
-  val endOffset = (snapshot.getEndOfLine(resolvedClosingTagLine, includeEOL = true) - snapshot.startOffset).toInt()
+  if (!sawContent) {
+    return null
+  }
+
+  val startOffset = (snapshot.getStartOfLine(headerLine) - snapshot.startOffset).toInt()
+  val endOffset = (snapshot.getEndOfLine(lastContentLine, includeEOL = true) - snapshot.startOffset).toInt()
   if (endOffset <= startOffset) {
     return null
   }
@@ -473,23 +511,32 @@ private fun parseCodexProposedPlan(
   sameHashCounts[contentHash] = ordinal
   return AgentChatSemanticRegion(
     id = "$contentHash:$ordinal",
-    kind = AgentChatSemanticRegionKind.PROPOSED_PLAN,
-    summary = summarizeProposedPlan(summaryCandidates),
+    kind = kind,
+    summary = summarizePlanSection(summaryCandidates, kind),
     startOffset = startOffset,
     endOffset = endOffset,
-    startLine = (openingTagLine - snapshot.firstLineIndex).toInt(),
-    endLine = (resolvedClosingTagLine - snapshot.firstLineIndex).toInt(),
-  ) to resolvedClosingTagLine
+    startLine = (headerLine - snapshot.firstLineIndex).toInt(),
+    endLine = (lastContentLine - snapshot.firstLineIndex).toInt(),
+  ) to lastContentLine
 }
 
-private fun summarizeProposedPlan(lines: List<String>): String {
+private fun isCodexTuiSectionHeader(lineText: String): Boolean {
+  return lineText.startsWith("\u2022 ") && lineText.length > 2 && lineText[2].isLetter()
+}
+
+private fun summarizePlanSection(lines: List<String>, kind: AgentChatSemanticRegionKind): String {
   val summary = lines.asSequence()
     .map(String::trim)
     .filter { it.isNotEmpty() && it != "```" }
     .map { line -> AGENT_CHAT_MARKDOWN_PREFIX_REGEX.replace(line, "") }
+    .map { line -> AGENT_CHAT_PLAN_STEP_PREFIX_REGEX.replace(line, "") }
     .firstOrNull()
     ?.let(::truncateSummary)
-  return summary ?: AgentChatBundle.message("chat.semantic.region.proposed.plan")
+  val fallbackKey = when (kind) {
+    AgentChatSemanticRegionKind.PROPOSED_PLAN -> "chat.semantic.region.proposed.plan"
+    AgentChatSemanticRegionKind.UPDATED_PLAN -> "chat.semantic.region.updated.plan"
+  }
+  return summary ?: AgentChatBundle.message(fallbackKey)
 }
 
 private fun truncateSummary(text: String): String {
@@ -504,6 +551,7 @@ private fun truncateSummary(text: String): String {
 private fun buildRegionTooltip(region: AgentChatSemanticRegion): @Tooltip String {
   return when (region.kind) {
     AgentChatSemanticRegionKind.PROPOSED_PLAN -> AgentChatBundle.message("chat.semantic.region.proposed.plan.tooltip", region.summary)
+    AgentChatSemanticRegionKind.UPDATED_PLAN -> AgentChatBundle.message("chat.semantic.region.updated.plan.tooltip", region.summary)
   }
 }
 

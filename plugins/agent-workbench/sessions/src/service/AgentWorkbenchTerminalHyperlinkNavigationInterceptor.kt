@@ -8,7 +8,6 @@ import com.intellij.execution.filters.FileHyperlinkInfo
 import com.intellij.execution.filters.HyperlinkInfo
 import com.intellij.execution.filters.OpenFileHyperlinkInfo
 import com.intellij.ide.impl.ProjectUtilService
-import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.UI
 import com.intellij.openapi.components.service
 import com.intellij.openapi.components.serviceAsync
@@ -75,14 +74,15 @@ private suspend fun navigateInProject(targetProject: Project, descriptor: OpenFi
   if (!descriptor.canNavigate()) {
     return false
   }
-  return withContext(Dispatchers.EDT) {
+  return withContext(Dispatchers.UI) {
     OpenFileHyperlinkInfo(descriptor).navigate(targetProject)
     true
   }
 }
 
 private suspend fun focusProjectWindowForNavigation(project: Project) {
+  val projectUtilService = project.serviceAsync<ProjectUtilService>()
   withContext(Dispatchers.UI) {
-    project.serviceAsync<ProjectUtilService>().focusProjectWindow()
+    projectUtilService.focusProjectWindow()
   }
 }

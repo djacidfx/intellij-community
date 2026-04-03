@@ -20,7 +20,6 @@ import com.intellij.agent.workbench.sessions.util.buildAgentSessionIdentity
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.EDT
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
@@ -29,9 +28,7 @@ import com.intellij.openapi.ui.InputValidatorEx
 import com.intellij.openapi.ui.Messages
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.withContext
 
 private val LOG = logger<AgentSessionRenameService>()
 
@@ -253,20 +250,18 @@ private suspend fun dispatchRenameToOpenEditorTab(
     provider = target.provider,
     sessionId = target.threadId,
   )
-  withContext(Dispatchers.EDT) {
-    openChat(
-      project = context.project,
-      projectPath = target.path,
-      threadIdentity = buildAgentSessionIdentity(provider = target.provider, sessionId = target.threadId),
-      shellCommand = launchSpec.command,
-      shellEnvVariables = launchSpec.envVariables,
-      threadId = target.threadId,
-      threadTitle = target.title,
-      subAgentId = null,
-      threadActivity = context.threadActivity,
-      initialMessageDispatchPlan = dispatchPlan,
-    )
-  }
+  openChat(
+    project = context.project,
+    projectPath = target.path,
+    threadIdentity = buildAgentSessionIdentity(provider = target.provider, sessionId = target.threadId),
+    shellCommand = launchSpec.command,
+    shellEnvVariables = launchSpec.envVariables,
+    threadId = target.threadId,
+    threadTitle = target.title,
+    subAgentId = null,
+    threadActivity = context.threadActivity,
+    initialMessageDispatchPlan = dispatchPlan,
+  )
 }
 
 private fun dispatchRenameFromTreePopup(

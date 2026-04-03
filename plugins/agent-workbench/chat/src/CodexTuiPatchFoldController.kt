@@ -2,7 +2,7 @@
 package com.intellij.agent.workbench.chat
 
 import com.intellij.agent.workbench.common.session.AgentSessionProvider
-import com.intellij.openapi.application.EDT
+import com.intellij.openapi.application.UI
 import com.intellij.openapi.editor.CustomFoldRegion
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.Inlay
@@ -72,7 +72,7 @@ internal class CodexTuiPatchFoldController(
       sessionState
         .filter { it == TerminalViewSessionState.Terminated }
         .collect {
-          withContext(Dispatchers.EDT) {
+          withContext(Dispatchers.UI) {
             foldState.clear()
           }
         }
@@ -123,7 +123,7 @@ internal class CodexTuiPatchFoldController(
       detectCodexTuiPatchBlocks(request.snapshot)
     }
 
-    withContext(Dispatchers.EDT) {
+    withContext(Dispatchers.UI) {
       if (sessionState.value == TerminalViewSessionState.Terminated) {
         foldState.clear()
         return@withContext

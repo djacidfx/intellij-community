@@ -30,7 +30,7 @@ Define how Agent Workbench chat tabs annotate semantically meaningful terminal-t
 ## Non-goals
 - Inline accept/decline controls or any transcript-mutating UI.
 - PSI-based gutters, structure view nodes, or Code Vision entries for chat transcript regions.
-- Defining accepted-plan, declined-plan, tool-call, patch, or error-region navigation in v1.
+- Defining declined-plan, tool-call, patch, or error-region navigation in v1.
 - Defining chat tab lifecycle, persistence, or thread-opening behavior.
 
 ## Requirements
@@ -38,12 +38,13 @@ Define how Agent Workbench chat tabs annotate semantically meaningful terminal-t
   [@test] ../chat/testSrc/AgentChatSemanticRegionControllerTest.kt
 
 - V1 semantic navigation must support only `PROPOSED_PLAN` regions for Codex chats; providers without a registered detector must expose no semantic transcript regions.
+- V1 semantic navigation must also support `UPDATED_PLAN` regions for Codex chats to mark plan updates (accepted/modified plans) alongside proposed plans.
   [@test] ../chat/testSrc/AgentChatSemanticRegionControllerTest.kt
 
 - Proposed-plan navigation must remain gated by registry key `agent.workbench.semantic.proposed.plan.navigation`, default `false`.
   [@test] ../chat/testSrc/AgentChatSemanticRegionControllerTest.kt
 
-- Codex proposed-plan detection must use explicit `<proposed_plan>` and `</proposed_plan>` transcript delimiters; incomplete or unclosed blocks must not produce semantic regions.
+- Codex plan detection must use TUI header patterns emitted by the Codex CLI: `• Proposed Plan` for proposed plans and `• Updated Plan` for plan updates (U+2022 BULLET prefix). Header-only lines without subsequent content must not produce semantic regions.
   [@test] ../chat/testSrc/AgentChatSemanticRegionControllerTest.kt
 
 - Proposed-plan summaries must derive from the first meaningful line inside the block, ignoring empty lines, code fences, and Markdown heading/list prefixes used only for formatting.
@@ -55,18 +56,22 @@ Define how Agent Workbench chat tabs annotate semantically meaningful terminal-t
 - Semantic-region state must materialize navigable editor markup for each active proposed-plan region and must support wrap-around previous/next navigation based on the editor caret position.
   [@test] ../chat/testSrc/AgentChatSemanticRegionControllerTest.kt
 
+- Proposed plans and updated plans must use distinct error-stripe mark colors so users can visually distinguish plan states at a glance.
+  [@test] ../chat/testSrc/AgentChatSemanticRegionControllerTest.kt
+
 - Agent Workbench chat plugin must register editor-tab actions `Previous Proposed Plan` and `Next Proposed Plan` so navigation is discoverable from chat tabs and standard IntelliJ action lookup.
   [@test] ../sessions-actions/testSrc/AgentWorkbenchPluginLoadingTest.kt
 
 ## User Experience
 - When the registry key is disabled, or the selected chat provider has no semantic detector, the chat editor shows no semantic-navigation actions or markers.
 - In supported Codex chats, each detected proposed plan appears as a thin right-stripe marker with tooltip text derived from the region summary.
+- Each detected plan update (accepted/modified plan) appears as a distinct-colored thin right-stripe marker with tooltip text derived from the region summary.
 - Clicking a proposed-plan marker or invoking previous/next occurrence navigation moves the caret to the start of that region and centers it in the transcript editor.
 - Proposed-plan navigation is read-only; users still accept, decline, or edit plans through the TUI itself.
 
 ## Data & Backend
 - The source of truth for semantic-region offsets is the active terminal transcript shown in the embedded editor.
-- Shared controller/state logic must react to transcript changes, active output-model switches, and session termination without leaving stale markers attached to the editor.
+- Shared controller/state logic must react to transcript changes, active output-model switches, and session termination without leaving stale markers attached to the editor. Section boundaries are detected heuristically from TUI header patterns and indentation structure.
 - Detector implementations may be provider-specific, but region kinds and navigation/controller abstractions must remain provider-agnostic so future semantic areas can reuse the same pipeline.
 
 ## Error Handling

@@ -47,7 +47,6 @@ import com.intellij.agent.workbench.sessions.util.resolveAgentSessionId
 import com.intellij.ide.impl.OpenProjectTask
 import com.intellij.ide.impl.ProjectUtilService
 import com.intellij.ide.util.PropertiesComponent
-import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.UI
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
@@ -58,6 +57,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.project.currentOrDefaultProject
 import com.intellij.openapi.project.ex.ProjectManagerEx
+import com.intellij.openapi.project.getOpenedProjects
 import com.intellij.openapi.ui.DoNotAskOption
 import com.intellij.openapi.ui.MessageDialogBuilder
 import com.intellij.openapi.wm.ToolWindowManager
@@ -226,7 +226,7 @@ class AgentSessionLaunchService internal constructor(
         val worktreeBranch = stateStore.findWorktreeBranch(normalizedPath)
         val originBranch = effectiveThread.originBranch
         if (worktreeBranch != null && originBranch != null && originBranch != worktreeBranch && !isBranchMismatchDialogSuppressed()) {
-          val proceed = withContext(Dispatchers.EDT) {
+          val proceed = withContext(Dispatchers.UI) {
             showBranchMismatchDialog(originBranch, worktreeBranch)
           }
           if (!proceed) {
@@ -857,37 +857,35 @@ private suspend fun openChatInProject(
   else {
     chatOpenPayload.initialMessageDispatchPlan
   }
-  withContext(Dispatchers.EDT) {
-    openChat(
-      project = project,
-      projectPath = projectPath,
-      threadIdentity = chatOpenPayload.threadIdentity,
-      shellCommand = chatOpenPayload.launchSpec.command,
-      shellEnvVariables = chatOpenPayload.launchSpec.envVariables,
-      threadId = chatOpenPayload.runtimeThreadId,
-      threadTitle = chatOpenPayload.threadTitle,
-      subAgentId = chatOpenPayload.subAgentId,
-      threadActivity = thread.activity,
-      initialMessageDispatchPlan = effectiveInitialMessageDispatchPlan,
-    )
-    focusProjectWindowSync(project)
-  }
+  openChat(
+    project = project,
+    projectPath = projectPath,
+    threadIdentity = chatOpenPayload.threadIdentity,
+    shellCommand = chatOpenPayload.launchSpec.command,
+    shellEnvVariables = chatOpenPayload.launchSpec.envVariables,
+    threadId = chatOpenPayload.runtimeThreadId,
+    threadTitle = chatOpenPayload.threadTitle,
+    subAgentId = chatOpenPayload.subAgentId,
+    threadActivity = thread.activity,
+    initialMessageDispatchPlan = effectiveInitialMessageDispatchPlan,
+  )
+
+  focusProjectWindow(project)
 }
 
 private suspend fun focusProjectWindow(project: Project) {
+  val projectUtilService = project.serviceAsync<ProjectUtilService>()
   withContext(Dispatchers.UI) {
-    project.serviceAsync<ProjectUtilService>().focusProjectWindow()
+    projectUtilService.focusProjectWindow()
   }
 }
 
-private fun focusProjectWindowSync(project: Project) {
-  ProjectUtilService.getInstance(project).focusProjectWindow()
-}
-
 private suspend fun focusProjectWindowAndActivateSessions(project: Project) {
+  val projectUtilService = project.serviceAsync<ProjectUtilService>()
+  val toolWindowManager = project.serviceAsync<ToolWindowManager>()
   withContext(Dispatchers.UI) {
-    project.serviceAsync<ProjectUtilService>().focusProjectWindow()
-    ToolWindowManager.getInstance(project).getToolWindow(AGENT_SESSIONS_TOOL_WINDOW_ID)?.activate(null)
+    projectUtilService.focusProjectWindow()
+    toolWindowManager.getToolWindow(AGENT_SESSIONS_TOOL_WINDOW_ID)?.activate(null)
   }
 }
 
@@ -915,10 +913,8 @@ private suspend fun openProject(
   findOpenProject(normalizedPath)?.let { return it }
 
   try {
-    return (serviceAsync<ProjectManager>() as ProjectManagerEx).openProjectAsync(
-      projectIdentityFile = projectPath,
-      options = options,
-    )
+    @Suppress("UnsafeOpenServiceCast")
+    return (serviceAsync<ProjectManager>() as ProjectManagerEx).openProjectAsync(projectIdentityFile = projectPath, options = options)
   }
   catch (e: CancellationException) {
     throw e
@@ -930,7 +926,7 @@ private suspend fun openProject(
 }
 
 private fun findOpenProject(normalizedPath: String): Project? {
-  return ProjectManager.getInstance().openProjects.firstOrNull { project ->
+  return getOpenedProjects().firstOrNull { project ->
     val projectPath = (project as? ProjectStoreOwner)
       ?.componentStore
       ?.storeDescriptor

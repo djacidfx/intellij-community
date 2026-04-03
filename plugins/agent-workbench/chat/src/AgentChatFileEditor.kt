@@ -15,7 +15,7 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.DefaultActionGroup
-import com.intellij.openapi.application.EDT
+import com.intellij.openapi.application.UI
 import com.intellij.openapi.components.serviceAsync
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorState
@@ -643,7 +643,7 @@ private class ToolWindowAgentChatTerminalTab(
 
   override suspend fun captureOutputCheckpoint(): AgentChatTerminalOutputCheckpoint {
     val outputModels = delegate.view.outputModels
-    return withContext(Dispatchers.EDT) {
+    return withContext(Dispatchers.UI) {
       AgentChatTerminalOutputCheckpoint(
         regularEndOffset = outputModels.regular.endOffset.toAbsolute(),
         alternativeEndOffset = outputModels.alternative.endOffset.toAbsolute(),
@@ -674,7 +674,7 @@ private class ToolWindowAgentChatTerminalTab(
 
   override suspend fun readRecentOutputTail(): String {
     val outputModels = delegate.view.outputModels
-    return withContext(Dispatchers.EDT) {
+    return withContext(Dispatchers.UI) {
       readRecentTerminalOutputTail(outputModels.regular, outputModels.alternative)
     }
   }
@@ -778,7 +778,7 @@ internal suspend fun awaitTerminalOutputObservation(
     onMeaningfulOutput = onMeaningfulOutput,
     checkpoint = checkpoint,
   )
-  val text = withContext(Dispatchers.EDT) {
+  val text = withContext(Dispatchers.UI) {
     readTerminalOutputSince(
       regularOutputModel = regularOutputModel,
       alternativeOutputModel = alternativeOutputModel,
@@ -830,7 +830,7 @@ private fun meaningfulTerminalOutputFlow(
   val scope = this
   val outputModels = listOf(regularOutputModel, alternativeOutputModel)
 
-  withContext(Dispatchers.EDT) {
+  withContext(Dispatchers.UI) {
     val listenerDisposable = scope.asDisposable()
     val listener = object : TerminalOutputModelListener {
       override fun afterContentChanged(event: TerminalContentChangeEvent) {
