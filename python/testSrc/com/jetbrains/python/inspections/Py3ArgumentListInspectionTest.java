@@ -704,4 +704,46 @@ public class Py3ArgumentListInspectionTest extends PyInspectionTestCase {
                    d = Derived() # TODO (PY-87329): Expected warning: Parameter 'x' unfilled
                    """);
   }
+
+  // PY-72077
+  public void testPydanticPopulateByNameWithAlias() {
+    myFixture.copyDirectoryToProject("stubs/pydantic", "pydantic");
+    doMultiFileTest("b.py");
+  }
+
+  // PY-72077
+  public void testPydanticPopulateByNameWithFieldName() {
+    myFixture.copyDirectoryToProject("stubs/pydantic", "pydantic");
+    doTest();
+  }
+
+  // PY-72077
+  public void testPydanticPopulateByNameInherited() {
+    myFixture.copyDirectoryToProject("stubs/pydantic", "pydantic");
+    doTest();
+  }
+
+  // PY-72077
+  public void testPydanticPopulateByNameInheritedMultiFile() {
+    myFixture.copyDirectoryToProject("stubs/pydantic", "pydantic");
+    doMultiFileTest();
+  }
+
+  // PY-72077
+  public void testPydanticPopulateByNameModelConfig() {
+    myFixture.copyDirectoryToProject("stubs/pydantic", "pydantic");
+    doTest();
+  }
+
+  // PY-72077
+  public void testPydanticPopulateByNameDisabled() {
+    myFixture.copyDirectoryToProject("stubs/pydantic", "pydantic");
+    doTest();
+  }
+
+  // PY-72077
+  public void testPydanticPopulateByNameExplicitFalse() {
+    myFixture.copyDirectoryToProject("stubs/pydantic", "pydantic");
+    doTest();
+  }
 }
