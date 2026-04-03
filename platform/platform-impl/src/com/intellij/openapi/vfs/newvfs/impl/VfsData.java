@@ -4,7 +4,8 @@ package com.intellij.openapi.vfs.newvfs.impl;
 import com.intellij.concurrency.ConcurrentCollectionFactory;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.Application;
-import com.intellij.openapi.application.ApplicationListener;
+import com.intellij.openapi.application.WriteActionListener;
+import com.intellij.openapi.application.ex.ApplicationEx;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.vfs.InvalidVirtualFileAccessException;
@@ -188,14 +189,18 @@ public final class VfsData implements Closeable {
 
     LOG.info("Use SoftReference in VFS cache: " + USE_SOFT_REFERENCES);
 
-    //TODO RC: replace with ((ApplicationEx)app).addWriteActionListener(new WriteActionListener()) ?
-    app.addApplicationListener(new ApplicationListener() {
+    ((ApplicationEx)app).addWriteActionListener(new WriteActionListener(){
       @Override
-      public void writeActionFinished(@NotNull Object action) {
-        // after top-level write action is finished, all the deletion listeners should have processed the deleted files
-        // and their data is considered safe to remove. From this point on accessing a removed file will result in an exception.
+      public void writeActionFinished(@NotNull Class<?> action) {
+        //FIXME RC: writeLock is not released in writeActionFinished() by contract -- isWriteAccessAllowed is never false here,
+        //          so the branch body is never executed at all!
+        //          But removing the branch leads to huge amount of errors like 'deleted file access' -- the files in
+        //          queueOfFileIdsToBeInvalidated are not removed from .children lists
         if (!app.isWriteAccessAllowed()) {
+          // After the top-level write action is finished, all the deletion listeners should have processed the deleted files
+          // and their data is considered safe to remove:
           killInvalidatedFiles();
+          // From this point on: accessing a removed file will result in an exception
         }
       }
     }, writeActionListenerDisposer);
