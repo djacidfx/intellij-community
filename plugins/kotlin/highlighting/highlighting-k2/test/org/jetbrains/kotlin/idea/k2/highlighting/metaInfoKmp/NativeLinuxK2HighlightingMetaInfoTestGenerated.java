@@ -296,6 +296,11 @@ public abstract class NativeLinuxK2HighlightingMetaInfoTestGenerated extends Abs
             runTest("../../idea/tests/testData/highlighterMetaInfo/ContextArgumentsWithoutValue.kt");
         }
 
+        @TestMetadata("ContextArgumentsWrongName.kt")
+        public void testContextArgumentsWrongName() throws Exception {
+            runTest("../../idea/tests/testData/highlighterMetaInfo/ContextArgumentsWrongName.kt");
+        }
+
         @TestMetadata("DefinitelyNotNullType.kt")
         public void testDefinitelyNotNullType() throws Exception {
             runTest("../../idea/tests/testData/highlighterMetaInfo/DefinitelyNotNullType.kt");
