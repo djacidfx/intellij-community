@@ -57,21 +57,31 @@ public abstract class PsiAnchor implements Pointer<PsiElement> {
     PsiUtilCore.ensureValid(element);
 
     PsiAnchor anchor = doCreateAnchor(element);
-    if (ApplicationManager.getApplication().isUnitTestMode() && !ApplicationManagerEx.isInStressTest()) {
-      PsiElement restored = anchor.retrieve();
-      if (!element.equals(restored)) {
-        Logger.getInstance(PsiAnchor.class)
-          .error("Cannot restore element " + element  + " of " + element.getClass()
-                 + " from anchor " + anchor + ", getting " + restored + " instead");
-      }
-    }
+    checkAnchorIfTestMode(element, anchor);
     return anchor;
+  }
+
+  private static void checkAnchorIfTestMode(@NotNull PsiElement element, @NotNull PsiAnchor anchor) {
+    if (!ApplicationManager.getApplication().isUnitTestMode() || ApplicationManagerEx.isInStressTest()) {
+      return;
+    }
+
+    PsiElement restored = anchor.retrieve();
+    if (element.equals(restored)) {
+      return;
+    }
+
+    Logger.getInstance(PsiAnchor.class).error(
+      "Cannot restore element " + element + " of " + element.getClass() + " from anchor " + anchor + ", getting " + restored + " instead"
+    );
   }
 
   private static @NotNull PsiAnchor doCreateAnchor(@NotNull PsiElement element) {
     if (element instanceof PsiFile) {
       VirtualFile virtualFile = ((PsiFile)element).getVirtualFile();
-      if (virtualFile != null) return new PsiFileReference(virtualFile, (PsiFile)element);
+      if (virtualFile != null) {
+        return new PsiFileReference(virtualFile, (PsiFile)element);
+      }
       return new HardReference(element);
     }
     if (element instanceof PsiDirectory) {
@@ -84,10 +94,14 @@ public abstract class PsiAnchor implements Pointer<PsiElement> {
       return new HardReference(element);
     }
     VirtualFile virtualFile = file.getVirtualFile();
-    if (virtualFile == null || virtualFile instanceof VirtualFileWindow) return new HardReference(element);
+    if (virtualFile == null || virtualFile instanceof VirtualFileWindow) {
+      return new HardReference(element);
+    }
 
     PsiAnchor stubRef = createStubReference(element, file);
-    if (stubRef != null) return stubRef;
+    if (stubRef != null) {
+      return stubRef;
+    }
 
     if (!element.isPhysical()) {
       return wrapperOrHardReference(element);
@@ -98,20 +112,22 @@ public abstract class PsiAnchor implements Pointer<PsiElement> {
       return wrapperOrHardReference(element);
     }
 
-    Language lang = null;
-    FileViewProvider viewProvider = file.getViewProvider();
-    for (Language l : viewProvider.getLanguages()) {
-      if (viewProvider.getPsi(l) == file) {
-        lang = l;
-        break;
-      }
-    }
-
+    Language lang = computeLanguage(file);
     if (lang == null) {
       return wrapperOrHardReference(element);
     }
 
     return new TreeRangeReference(file, textRange.getStartOffset(), textRange.getEndOffset(), Identikit.fromPsi(element, lang), virtualFile);
+  }
+
+  private static @Nullable Language computeLanguage(@NotNull PsiFile file) {
+    FileViewProvider viewProvider = file.getViewProvider();
+    for (Language l : viewProvider.getLanguages()) {
+      if (viewProvider.getPsi(l) == file) {
+        return l;
+      }
+    }
+    return null;
   }
 
   private static @NotNull PsiAnchor wrapperOrHardReference(@NotNull PsiElement element) {
