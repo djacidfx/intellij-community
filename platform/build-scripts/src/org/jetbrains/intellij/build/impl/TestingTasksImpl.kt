@@ -22,7 +22,11 @@ import com.intellij.testFramework.SkipInHeadlessEnvironment
 import com.intellij.util.bazelEnvironment.BazelRunfiles
 import com.intellij.util.io.awaitExit
 import com.intellij.util.lang.UrlClassLoader
+import io.opentelemetry.api.trace.Span
+import jetbrains.buildServer.messages.serviceMessages.BlockClosed
+import jetbrains.buildServer.messages.serviceMessages.BlockOpened
 import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.intellij.build.BuildCancellationException
@@ -41,8 +45,8 @@ import org.jetbrains.intellij.build.impl.coverage.Coverage
 import org.jetbrains.intellij.build.impl.coverage.CoverageImpl
 import org.jetbrains.intellij.build.io.runProcess
 import org.jetbrains.intellij.build.mapConcurrent
+import org.jetbrains.intellij.build.telemetry.TraceManager
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
-import org.jetbrains.intellij.build.telemetry.block
 import org.jetbrains.intellij.build.telemetry.use
 import org.jetbrains.jps.incremental.java.ModulePathSplitter
 import org.jetbrains.jps.model.java.JavaResourceRootType
@@ -310,7 +314,7 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
     systemProperties: MutableMap<String, String>,
   ) {
     for (configuration in runConfigurations) {
-      spanBuilder("run '${configuration.name}' run configuration").use {
+      blockWithDefaultFlowId("run '${configuration.name}' run configuration") {
         runTestsFromRunConfiguration(runConfigurationProperties = configuration, additionalJvmOptions = additionalJvmOptions, systemProperties = systemProperties)
       }
     }
@@ -423,7 +427,7 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
     context.messages.info("Will run tests from simple patterns, patterns, or groups in ${testModules.size} modules: ${testModules.joinToString(", ") { it.name }}")
     val suppressedExceptions = mutableListOf<Throwable>()
     for (testModule in testModules) {
-      spanBuilder("run '${testModule.name}' module").use {
+      blockWithDefaultFlowId("run '${testModule.name}' module") {
         try {
           runTestsProcess(
             mainModule = testModule,
@@ -869,7 +873,7 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
   ) {
     val messages = context.messages
     if (options.testSimplePatterns != null) {
-      val exitCode = block("running tests w/ simple patterns") {
+      val exitCode = blockWithDefaultFlowId("running tests w/ simple patterns") {
         runJUnit5Engine(
           mainModule = mainModule,
           systemProperties = systemProperties,
@@ -894,10 +898,10 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
       }
       messages.info("Will run tests in dedicated runtimes ('${options.isDedicatedTestRuntime}')")
       // First, collect all tests for both JUnit5 and JUnit3+4
-      val testClassesJUnit5 = spanBuilder("collect junit 5 tests").use {
+      val testClassesJUnit5 = blockWithDefaultFlowId("collect junit 5 tests") {
         if (options.shouldSkipJUnit5Tests) {
           messages.warning("JUnit 5 tests collections is skipped")
-          return@use emptyList()
+          return@blockWithDefaultFlowId emptyList()
         }
 
         val testClassesListFile = Files.createTempFile("tests-to-run-", ".list").apply { Files.delete(this) }
@@ -920,10 +924,10 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
         testClassesListFile.let { if (Files.exists(it)) it.readLines() else emptyList() }
       }
 
-      val testClassesJUnit34 = block("collect junit 3+4 tests") {
+      val testClassesJUnit34 = blockWithDefaultFlowId("collect junit 3+4 tests") {
         if (options.shouldSkipJUnit34Tests) {
           messages.warning("JUnit 3+4 tests collections is skipped")
-          return@block emptyList()
+          return@blockWithDefaultFlowId emptyList()
         }
 
         val testClassesListFile = Files.createTempFile("tests-to-run-", ".list").apply { Files.delete(this) }
@@ -943,7 +947,7 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
           methodName = null,
           devBuildSettings = null,
         )
-        return@block testClassesListFile.let { if (Files.exists(it)) it.readLines() else emptyList() }
+        return@blockWithDefaultFlowId testClassesListFile.let { if (Files.exists(it)) it.readLines() else emptyList() }
       }
 
       if (testClassesJUnit5.isEmpty() && testClassesJUnit34.isEmpty() &&
@@ -956,7 +960,7 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
         var hasFailures = false
 
         suspend fun runOneClass(testClassName: String) {
-          val exitCode = block("running test class '$testClassName'") {
+          val exitCode = blockWithDefaultFlowId("running test class '$testClassName'") {
             runJUnit5Engine(
               mainModule = mainModule,
               systemProperties = systemProperties,
@@ -1007,7 +1011,7 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
           val packageName = entry.key
           val classes = entry.value
 
-          val exitCode = block("running tests in package '$packageName'") {
+          val exitCode = blockWithDefaultFlowId("running tests in package '$packageName'") {
             runJUnit5Engine(
               mainModule = mainModule,
               systemProperties = systemProperties,
@@ -1103,7 +1107,7 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
           }
 
           if (runJUnit5) {
-            block("run junit 5 tests${spanNameSuffix}") {
+            blockWithDefaultFlowId("run junit 5 tests${spanNameSuffix}") {
               exitCode5 = runJUnit5Engine(
                 mainModule = mainModule,
                 systemProperties = systemProperties + additionalProperties + additionalPropertiesJUnit5 + listOf(
@@ -1124,7 +1128,7 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
           }
 
           if (runJUnit34) {
-            block("run junit 3+4 tests${spanNameSuffix}") {
+            blockWithDefaultFlowId("run junit 3+4 tests${spanNameSuffix}") {
               exitCode34 = runJUnit5Engine(
                 mainModule = mainModule,
                 systemProperties = systemProperties + additionalProperties + additionalPropertiesJUnit34 + listOf(
@@ -1430,6 +1434,27 @@ private fun removeBazelEnvironmentVariables(environment: MutableMap<String, Stri
   "TEST_SRCDIR",
   "TEST_TMPDIR",
 ).forEach { environment.remove(it) }
+
+private suspend inline fun <T> blockWithDefaultFlowId(
+  name: String,
+  crossinline operation: suspend CoroutineScope.(Span) -> T,
+): T {
+  // the test process inherits I/O from the current process and writes to stdout/stderr w/o flowId, start a new block in the root flow to capture it
+  if (TeamCityHelper.isUnderTeamCity) {
+    TraceManager.flush()  // before BlockOpened
+    println(BlockOpened(name))
+  }
+  try {
+    // SpanAwareServiceMessage uses SpanContext#getSpanId as flowId, don't use SpanKt#block to preserve the default flow ID
+    return spanBuilder(name).use(operation = operation)
+  }
+  finally {
+    if (TeamCityHelper.isUnderTeamCity) {
+      TraceManager.flush()  // before BlockClosed
+      println(BlockClosed(name))
+    }
+  }
+}
 
 private suspend fun publishTestDiscovery(messages: BuildMessages, file: String?) {
   val serverUrl = System.getProperty("intellij.test.discovery.url")
