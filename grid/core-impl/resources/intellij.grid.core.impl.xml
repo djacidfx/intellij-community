@@ -28,6 +28,7 @@
     <applicationService serviceImplementation="com.intellij.database.settings.DataGridAppearanceSettingsImpl"/>
     <registryKey key="grid.tables.columns.limit" defaultValue="2000"
                  description="Limit the number of columns to be displayed in the table"/>
+    <applicationSettings service="com.intellij.database.settings.DataGridAppearanceSettingsImpl"/>
   </extensions>
 
 </idea-plugin>

@@ -13,5 +13,6 @@
   <extensions defaultExtensionNs="com.intellij">
     <applicationService serviceImplementation="com.intellij.database.settings.CsvSettings"/>
     <fileType name="CSV/TSV" implementationClass="com.intellij.database.csv.CsvFileType" fieldName="INSTANCE" extensions="csv;tsv"/>
+    <applicationSettings service="com.intellij.database.settings.CsvSettings"/>
   </extensions>
 </idea-plugin>
