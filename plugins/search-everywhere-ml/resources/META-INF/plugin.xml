@@ -81,6 +81,7 @@
     <statistic.eventLog.eventLoggerProvider
       implementation="com.intellij.searchEverywhereMl.SearchEverywhereEventLoggerProvider"
       order="first"/>
+    <applicationSettings service="com.intellij.searchEverywhereMl.SearchEverywhereMlSettingsService"/>
   </extensions>
 
   <extensionPoints>

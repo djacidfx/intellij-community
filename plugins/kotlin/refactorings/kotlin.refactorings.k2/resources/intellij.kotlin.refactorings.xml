@@ -73,6 +73,7 @@
 
     <registryKey defaultValue="true" description="Show scope chooser for kotlin extract function refactoring"
                  key="k2.extract.function.scope.chooser"/>
+    <applicationSettings service="org.jetbrains.kotlin.idea.k2.refactoring.KotlinFirRefactoringsSettings"/>
   </extensions>
 
   <extensions defaultExtensionNs="org.jetbrains.kotlin">

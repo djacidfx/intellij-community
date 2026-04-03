@@ -76,6 +76,8 @@
 
     <resolveScopeProvider implementation="org.jetbrains.kotlin.idea.core.script.k1.dependencies.KotlinScriptResolveScopeProvider"/>
     <resolveScopeProvider implementation="org.jetbrains.kotlin.idea.core.script.k1.dependencies.ScriptDependenciesResolveScopeProvider"/>
+    <projectSettings service="org.jetbrains.kotlin.idea.core.script.k1.settings.KotlinScriptingSettingsImpl"/>
+    <projectSettings service="org.jetbrains.kotlin.idea.core.script.k1.configuration.utils.ScriptClassRootsStorage"/>
   </extensions>
 
   <extensions defaultExtensionNs="org.jetbrains.kotlin">

@@ -115,6 +115,10 @@
       dynamic="true"
       parentId="com.intellij.mcpserver.settings"/>
 
+    <applicationSettings service="com.intellij.mcpserver.impl.McpClientDetectionSettings"/>
+    <applicationSettings service="com.intellij.mcpserver.settings.McpServerSettings"/>
+    <applicationSettings service="com.intellij.mcpserver.settings.McpToolDisallowListSettings"/>
+    <applicationSettings service="com.intellij.mcpserver.settings.McpToolFilterSettings"/>
   </extensions>
 
   <resource-bundle>messages.McpServerBundle</resource-bundle>

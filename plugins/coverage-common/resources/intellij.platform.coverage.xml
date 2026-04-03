@@ -56,6 +56,9 @@
                 secondary="true"
                 canCloseContents="true"
                 doNotActivateOnStart="true" />
+    <projectSettings service="com.intellij.coverage.CoverageOptionsProvider"/>
+    <projectSettings service="com.intellij.coverage.CoverageDataSuitesManager"/>
+    <projectSettings service="com.intellij.coverage.view.CoverageViewManager"/>
   </extensions>
   <applicationListeners>
     <listener class="com.intellij.coverage.CoverageDataManagerImpl$CoverageProjectManagerListener" topic="com.intellij.openapi.project.ProjectCloseListener"/>

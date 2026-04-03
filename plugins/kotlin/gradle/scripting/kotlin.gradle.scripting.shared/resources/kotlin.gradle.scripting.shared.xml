@@ -18,6 +18,7 @@
 
   <extensions defaultExtensionNs="com.intellij">
     <internalFileTemplate name="Kotlin Script Gradle"/>
+    <projectSettings service="org.jetbrains.kotlin.gradle.scripting.shared.settings.StandaloneScriptsStorage"/>
   </extensions>
 
   <actions resource-bundle="messages.KotlinGradleScriptingBundle">

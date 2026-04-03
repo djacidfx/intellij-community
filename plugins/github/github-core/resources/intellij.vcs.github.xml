@@ -115,6 +115,14 @@
       order="last"/>
 
     <statistics.counterUsagesCollector implementationClass="org.jetbrains.plugins.github.authentication.GHLoginCollector"/>
+    <applicationSettings service="org.jetbrains.plugins.github.util.GithubSettings"/>
+    <applicationSettings service="org.jetbrains.plugins.github.authentication.accounts.GHPersistentAccounts"/>
+    <projectSettings service="org.jetbrains.plugins.github.pullrequest.ui.filters.GHPRListPersistentSearchHistory"/>
+    <projectSettings service="org.jetbrains.plugins.github.pullrequest.data.service.GHPRPersistentInteractionState"/>
+    <projectSettings service="org.jetbrains.plugins.github.authentication.accounts.GithubProjectDefaultAccountHolder"/>
+    <projectSettings service="org.jetbrains.plugins.github.util.GithubProjectSettings"/>
+    <projectSettings service="org.jetbrains.plugins.github.pullrequest.config.GithubPullRequestsProjectUISettings"/>
+    <projectSettings service="org.jetbrains.plugins.github.util.GithubSharedProjectSettings"/>
   </extensions>
 
   <extensions defaultExtensionNs="Git4Idea">

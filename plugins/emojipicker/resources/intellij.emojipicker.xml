@@ -22,4 +22,7 @@
     </action>
   </actions>
 
+  <extensions defaultExtensionNs="com.intellij">
+    <applicationSettings service="org.jetbrains.plugins.emojipicker.service.EmojiService"/>
+  </extensions>
 </idea-plugin>

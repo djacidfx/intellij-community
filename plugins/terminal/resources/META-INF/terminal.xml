@@ -140,6 +140,11 @@
 
     <applicationService serviceInterface="org.jetbrains.plugins.terminal.startup.TerminalEnvironmentVariablesProvider"
                         serviceImplementation="org.jetbrains.plugins.terminal.startup.TerminalEnvironmentVariablesProviderImpl"/>
+    <applicationSettings service="org.jetbrains.plugins.terminal.arrangement.TerminalCommandHistoryManager"/>
+    <applicationSettings service="org.jetbrains.plugins.terminal.settings.impl.TerminalLocalOptionsImpl"/>
+    <projectSettings service="org.jetbrains.plugins.terminal.arrangement.TerminalArrangementManager"/>
+    <projectSettings service="org.jetbrains.plugins.terminal.TerminalProjectOptionsProvider"/>
+    <applicationSettings service="org.jetbrains.plugins.terminal.block.reworked.TerminalUsageLocalStorage"/>
   </extensions>
 
   <extensions defaultExtensionNs="org.jetbrains.plugins.terminal">

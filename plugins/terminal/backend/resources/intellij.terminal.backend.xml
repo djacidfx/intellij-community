@@ -16,6 +16,7 @@
                         client="remote"/>
     <applicationService serviceInterface="com.intellij.terminal.backend.TerminalActivityTracker" open="true"
                         serviceImplementation="com.intellij.terminal.backend.TerminalNoOpActivityTracker"/>
+    <projectSettings service="com.intellij.terminal.backend.TerminalTabsStorage"/>
   </extensions>
 
   <extensions defaultExtensionNs="org.jetbrains.plugins.terminal">

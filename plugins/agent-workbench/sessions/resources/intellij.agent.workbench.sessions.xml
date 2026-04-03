@@ -33,5 +33,8 @@
     <projectFrameActionExclusion frameType="AGENT_DEDICATED" place="MainToolbar" id="AIAssistantHubPopupAction"/>
     <projectFrameActionExclusion frameType="AGENT_DEDICATED" place="MainToolbar" id="BuildSolutionBar"/>
     <projectFrameActionExclusion frameType="AGENT_DEDICATED" place="MainToolbar" id="ActiveDeviceGroup"/>
+    <applicationSettings service="com.intellij.agent.workbench.sessions.state.AgentSessionTreeUiStateService"/>
+    <applicationSettings service="com.intellij.agent.workbench.sessions.state.AgentSessionUiPreferencesStateService"/>
+    <applicationSettings service="com.intellij.agent.workbench.sessions.state.AgentSessionWarmStateService"/>
   </extensions>
 </idea-plugin>

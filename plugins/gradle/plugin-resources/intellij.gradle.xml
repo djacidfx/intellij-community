@@ -256,6 +256,12 @@
         Enable Building of models in parallel during Gradle project sync.
       </description>
     </experimentalFeature>
+    <projectSettings service="org.jetbrains.plugins.gradle.settings.GradleSettingsMigration$LegacyDefaultGradleProjectSettings"/>
+    <projectSettings service="org.jetbrains.plugins.gradle.service.task.ExecuteGradleTaskHistoryService"/>
+    <applicationSettings service="org.jetbrains.plugins.gradle.settings.GradleDefaultProjectSettings$Service"/>
+    <applicationSettings service="org.jetbrains.plugins.gradle.jvmcompat.GradleJvmSupportMatrix"/>
+    <projectSettings service="org.jetbrains.plugins.gradle.settings.GradleSettings"/>
+    <applicationSettings service="org.jetbrains.plugins.gradle.settings.GradleSystemSettings"/>
   </extensions>
 
   <applicationListeners>

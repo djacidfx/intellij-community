@@ -401,6 +401,7 @@
                  description="Enables completion for .editorconfig options from Roslyn and R#"/>
     <registryKey key="editor.config.full.settings.support" defaultValue="true"
                  description="Supports all code style settings in addition to basic options"/>
+    <projectSettings service="org.editorconfig.configmanagement.editor.EditorConfigPreviewManager"/>
   </extensions>
 
   <extensions defaultExtensionNs="com.intellij.lang">

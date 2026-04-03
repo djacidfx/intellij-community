@@ -534,6 +534,16 @@
     <referencesSearch implementation="org.jetbrains.idea.maven.search.MavenModuleReferenceSearcher"/>
 
     <lang.jvm.multiReleaseSupport implementation="org.jetbrains.idea.maven.utils.MavenMultiReleaseSupport"/>
+    <projectSettings service="org.jetbrains.idea.maven.project.MavenWorkspaceSettingsComponent"/>
+    <projectSettings service="org.jetbrains.idea.maven.tasks.MavenTasksManager"/>
+    <projectSettings service="org.jetbrains.idea.maven.navigator.actions.ExecuteMavenGoalHistoryService"/>
+    <projectSettings service="org.jetbrains.idea.maven.execution.MavenRunner"/>
+    <projectSettings service="org.jetbrains.idea.maven.project.MavenProjectsManager"/>
+    <projectSettings service="org.jetbrains.idea.maven.project.MavenProjectSettings"/>
+    <applicationSettings service="org.jetbrains.idea.maven.server.MavenWrapperMapping"/>
+    <applicationSettings service="org.jetbrains.idea.maven.indices.MavenSystemIndicesManager"/>
+    <applicationSettings service="org.jetbrains.idea.maven.indices.archetype.MavenCatalogManager"/>
+    <projectSettings service="org.jetbrains.idea.maven.navigator.MavenProjectsNavigator"/>
   </extensions>
 
   <extensions defaultExtensionNs="com.intellij.properties">

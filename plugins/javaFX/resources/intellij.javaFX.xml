@@ -115,6 +115,7 @@
                  description="Resolve FXML controllers specified with FXMLLoader.setController()"/>
     <registryKey key="embed.scene.builder" defaultValue="true"
                  description="Show SceneBuilder embedded into an IntelliJ IDEA frame"/>
+    <applicationSettings service="org.jetbrains.plugins.javaFX.JavaFxSettings"/>
   </extensions>
 
   <projectListeners>

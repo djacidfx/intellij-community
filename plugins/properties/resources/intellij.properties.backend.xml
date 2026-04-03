@@ -177,6 +177,8 @@
     <codeInsight.completion.command.provider language="Properties" implementationClass="com.intellij.codeInsight.completion.command.commands.UncommentLineCompletionCommandProvider" order="last"/>
 
     <statementUpDownMover implementation="com.intellij.lang.properties.editor.PropertiesStatementUpDownMover"/>
+    <applicationSettings service="com.intellij.lang.properties.refactoring.PropertiesRefactoringSettings"/>
+    <applicationSettings service="com.intellij.lang.properties.LastSelectedPropertiesFileStore"/>
   </extensions>
 
   <projectListeners>

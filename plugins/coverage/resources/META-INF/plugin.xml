@@ -46,6 +46,7 @@ To configure, open <b>Settings/Preferences | Build, Execution, Deployment | Cove
               extensions="exec"
               implementationClass="com.intellij.coverage.JaCoCoCoverageFileType"
               fieldName="INSTANCE"/>
+    <projectSettings service="com.intellij.coverage.JavaCoverageOptionsProvider"/>
   </extensions>
 
   <extensionPoints>

@@ -189,5 +189,11 @@
     <vcs.svn.mergerCommitMessage implementation="org.jetbrains.idea.svn.integrate.DefaultMergerCommitMessage"
                                  id="svn.defaultMergerCommitMessage"
                                  order="last"/>
+    <projectSettings service="org.jetbrains.idea.svn.SvnFileUrlMappingImpl"/>
+    <projectSettings service="org.jetbrains.idea.svn.SvnConfiguration"/>
+    <applicationSettings service="org.jetbrains.idea.svn.SvnApplicationSettings"/>
+    <applicationSettings service="org.jetbrains.idea.svn.branchConfig.SvnBranchMapperManager"/>
+    <projectSettings service="org.jetbrains.idea.svn.branchConfig.SvnBranchConfigurationManager"/>
+    <applicationSettings service="org.jetbrains.idea.svn.difftool.SvnDiffSettingsHolder"/>
   </extensions>
 </idea-plugin>

@@ -28,6 +28,7 @@
 
   <extensions defaultExtensionNs="com.intellij">
     <notificationGroup id="Bytecode Viewer Errors" displayType="BALLOON" key="notification.group.error.report"/>
+    <applicationSettings service="com.intellij.byteCodeViewer.BytecodeViewerSettings"/>
   </extensions>
 
   <actions>

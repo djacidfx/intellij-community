@@ -78,6 +78,10 @@
     <statistics.notificationIdsHolder implementation="org.zmlx.hg4idea.HgNotificationIdsHolder"/>
 
     <history.activityPresentationProvider implementation="org.zmlx.hg4idea.HgActivityPresentationProvider"/>
+    <projectSettings service="org.zmlx.hg4idea.HgProjectSettings"/>
+    <applicationSettings service="org.zmlx.hg4idea.HgRememberedInputs"/>
+    <applicationSettings service="org.zmlx.hg4idea.HgGlobalSettings"/>
+    <projectSettings service="org.zmlx.hg4idea.provider.update.HgUpdateConfigurationSettings"/>
   </extensions>
 
   <projectListeners>

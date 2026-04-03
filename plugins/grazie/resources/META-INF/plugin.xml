@@ -153,6 +153,8 @@
       <className>com.intellij.grazie.ide.inspection.grammar.quickfix.GrazieMassApplyAction</className>
       <descriptionDirectoryName>GrazieMassApplyAction</descriptionDirectoryName>
     </intentionAction>
+    <applicationSettings service="com.intellij.grazie.GrazieFolderConfig"/>
+    <applicationSettings service="com.intellij.grazie.GrazieConfig"/>
   </extensions>
 
   <extensions defaultExtensionNs="com.intellij.grazie">
