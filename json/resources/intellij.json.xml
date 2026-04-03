@@ -79,5 +79,6 @@
 
     <!-- Various editor features -->
     <focusModeProvider language="JSON" implementationClass="com.intellij.json.editor.JsonFocusModeProvider"/>
+    <applicationSettings service="com.intellij.json.editor.folding.JsonFoldingSettings"/>
   </extensions>
 </idea-plugin>
