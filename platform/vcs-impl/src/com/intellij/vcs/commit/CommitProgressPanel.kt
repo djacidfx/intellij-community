@@ -91,6 +91,7 @@ private fun JBLabel.setWarning(@NlsContexts.Label warningText: String) {
 }
 
 @OptIn(FlowPreview::class)
+@ApiStatus.Internal
 open class CommitProgressPanel(project: Project, parentDisposable: Disposable) : CommitProgressUi, InclusionListener, DocumentListener, Disposable {
   private val scope = VcsDisposable.getInstance(project).coroutineScope.childScope("CommitProgressPanel", Dispatchers.EDT)
 

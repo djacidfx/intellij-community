@@ -38,6 +38,7 @@ import com.intellij.util.ui.JBUI.Borders.emptyLeft
 import com.intellij.util.ui.JBUI.scale
 import com.intellij.util.ui.components.BorderLayoutPanel
 import com.intellij.vcsUtil.VcsUIUtil
+import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nls
 import javax.swing.JComponent
 import javax.swing.LayoutFocusTraversalPolicy
@@ -45,6 +46,7 @@ import javax.swing.SwingConstants
 import javax.swing.UIManager
 import javax.swing.border.Border
 
+@ApiStatus.Internal
 abstract class NonModalCommitPanel(
   val project: Project,
   val commitActionsPanel: CommitActionsPanel = CommitActionsPanel(),
