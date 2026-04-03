@@ -28,8 +28,6 @@ import com.intellij.util.containers.IntObjectMap;
 import com.intellij.util.keyFMap.KeyFMap;
 import io.opentelemetry.api.metrics.BatchCallback;
 import io.opentelemetry.api.metrics.Meter;
-import io.opentelemetry.api.metrics.ObservableDoubleMeasurement;
-import io.opentelemetry.api.metrics.ObservableLongMeasurement;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
@@ -59,7 +57,7 @@ import java.util.function.IntUnaryOperator;
 import static com.intellij.util.SystemProperties.getBooleanProperty;
 
 /**
- * Main part of VFS in-memory cache: flags, user data and children are all stored here.
+ * The main part of VFS in-memory cache: flags, user data and children are all stored here.
  * {@link VirtualFileSystemEntry} and {@link VirtualDirectoryImpl} objects mainly just store fileId, so they could be
  * seen as 'pointers' into this cache.
  * <p>
@@ -169,18 +167,19 @@ public final class VfsData implements Closeable {
 
   private final Disposable writeActionListenerDisposer = Disposer.newDisposable();
 
-  // ====================== monitoring ======================================================================================= //
+  // ====================== monitoring: ====================================================================================== //
 
-  /** # of {@link Segment} instances created, since the start */
+  /** # of {@link Segment} instances created, over the lifespan of VfsData */
   private final AtomicInteger segmentsCreated = new AtomicInteger();
 
-  /** # of {@link DirectoryData}/{@link VirtualDirectoryImpl} objects created, since the start */
+  /** # of {@link DirectoryData}/{@link VirtualDirectoryImpl} objects created, over the lifespan of VfsData */
   private final AtomicInteger directoriesCreated = new AtomicInteger();
 
-  /** # of {@link VirtualFileImpl} objects created, since the start */
+  /** # of {@link VirtualFileImpl} objects created, over the lifespan of VfsData */
   private final AtomicInteger filesCreated = new AtomicInteger();
 
   private final BatchCallback otelHandle;
+
 
   public VfsData(@NotNull Application app,
                  @NotNull PersistentFSImpl pfs) {
@@ -206,10 +205,10 @@ public final class VfsData implements Closeable {
 
   private BatchCallback setupOTelMonitoring() {
     Meter vfsMeter = TelemetryManager.getInstance().getMeter(PlatformScopesKt.VFS);
-    ObservableDoubleMeasurement cacheSegmentsCount = vfsMeter.gaugeBuilder("VFS.cache.segments").buildObserver();
-    ObservableLongMeasurement cacheSegmentsCreated = vfsMeter.counterBuilder("VFS.cache.segmentsCreated").buildObserver();
-    ObservableLongMeasurement cacheDirectoriesCreated = vfsMeter.counterBuilder("VFS.cache.directoriesCreated").buildObserver();
-    ObservableLongMeasurement cacheFilesCreated = vfsMeter.counterBuilder("VFS.cache.filesCreated").buildObserver();
+    var cacheSegmentsCount = vfsMeter.gaugeBuilder("VFS.cache.segments").ofLongs().buildObserver();
+    var cacheSegmentsCreated = vfsMeter.counterBuilder("VFS.cache.segmentsCreated").buildObserver();
+    var cacheDirectoriesCreated = vfsMeter.counterBuilder("VFS.cache.directoriesCreated").buildObserver();
+    var cacheFilesCreated = vfsMeter.counterBuilder("VFS.cache.filesCreated").buildObserver();
     return vfsMeter.batchCallback(
       () -> {
         cacheSegmentsCount.record(segments.size());
@@ -224,8 +223,8 @@ public final class VfsData implements Closeable {
 
   @Override
   public void close() {
-    otelHandle.close();
     Disposer.dispose(writeActionListenerDisposer);
+    otelHandle.close();
   }
 
   @NotNull PersistentFSImpl owningPersistentFS() {
