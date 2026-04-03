@@ -17,7 +17,9 @@ import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.RunAll
 import com.intellij.testFramework.TemporaryDirectory
 import com.intellij.testFramework.common.timeoutRunBlocking
+import com.intellij.testFramework.fixtures.impl.CodeInsightTestFixtureImpl
 import com.intellij.testFramework.utils.vfs.refreshAndGetVirtualDirectory
+import com.intellij.util.ArrayUtilRt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.withContext
@@ -185,7 +187,13 @@ abstract class AbstractGradleMultiFileQuickFixTest : MultiplePluginVersionGradle
 
             IndexingTestUtil.waitUntilIndexesAreReady(myProject)
 
-            codeInsightTestFixture.doHighlighting()
+            CodeInsightTestFixtureImpl.instantiateAndRun(
+                /* psiFile = */ codeInsightTestFixture.file,
+                /* editor = */ codeInsightTestFixture.editor,
+                /* toIgnore = */ ArrayUtilRt.EMPTY_INT_ARRAY,
+                /* canChangeDocument = */ true,
+                /* readEditorMarkupModel = */ true
+            )
 
             readActionBlocking {
                 DirectiveBasedActionUtils.checkAvailableActionsAreExpected(mainPsiFile, action?.let { actions - it } ?: actions)
