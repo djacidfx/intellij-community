@@ -101,5 +101,6 @@
 
     <completion.frontendFriendlyInsertHandler target="com.intellij.codeInsight.completion.FrontendFriendlyOverridableSpaceInsertHandler"/>
 
+    <applicationSettings service="com.intellij.codeInsight.folding.impl.JavaCodeFoldingSettingsImpl"/>
   </extensions>
 </idea-plugin>
