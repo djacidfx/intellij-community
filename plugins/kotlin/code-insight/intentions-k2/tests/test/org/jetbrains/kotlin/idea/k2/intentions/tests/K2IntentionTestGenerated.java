@@ -13023,11 +13023,6 @@ public abstract class K2IntentionTestGenerated extends AbstractK2IntentionTest {
                 KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
             }
 
-            @TestMetadata("caretAtCall.kt")
-            public void testCaretAtCall() throws Exception {
-                runTest("../../../idea/tests/testData/intentions/concatenationToBuildCollection/inapplicable/caretAtCall.kt");
-            }
-
             @TestMetadata("contextReceiver.kt")
             public void testContextReceiver() throws Exception {
                 runTest("../../../idea/tests/testData/intentions/concatenationToBuildCollection/inapplicable/contextReceiver.kt");
@@ -13067,6 +13062,11 @@ public abstract class K2IntentionTestGenerated extends AbstractK2IntentionTest {
                 KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
             }
 
+            @TestMetadata("caretAtCall.kt")
+            public void testCaretAtCall() throws Exception {
+                runTest("../../../idea/tests/testData/intentions/concatenationToBuildCollection/list/caretAtCall.kt");
+            }
+
             @TestMetadata("complexExpressions.kt")
             public void testComplexExpressions() throws Exception {
                 runTest("../../../idea/tests/testData/intentions/concatenationToBuildCollection/list/complexExpressions.kt");
@@ -13090,6 +13090,11 @@ public abstract class K2IntentionTestGenerated extends AbstractK2IntentionTest {
             @TestMetadata("parenthesis.kt")
             public void testParenthesis() throws Exception {
                 runTest("../../../idea/tests/testData/intentions/concatenationToBuildCollection/list/parenthesis.kt");
+            }
+
+            @TestMetadata("singleExpression.kt")
+            public void testSingleExpression() throws Exception {
+                runTest("../../../idea/tests/testData/intentions/concatenationToBuildCollection/list/singleExpression.kt");
             }
 
             @TestMetadata("transformingOperations.kt")
@@ -13139,6 +13144,11 @@ public abstract class K2IntentionTestGenerated extends AbstractK2IntentionTest {
             @TestMetadata("parenthesis.kt")
             public void testParenthesis() throws Exception {
                 runTest("../../../idea/tests/testData/intentions/concatenationToBuildCollection/set/parenthesis.kt");
+            }
+
+            @TestMetadata("singleExpression.kt")
+            public void testSingleExpression() throws Exception {
+                runTest("../../../idea/tests/testData/intentions/concatenationToBuildCollection/set/singleExpression.kt");
             }
 
             @TestMetadata("transformingOperations.kt")
