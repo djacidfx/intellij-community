@@ -1480,6 +1480,8 @@ private class EditorServiceFakeAgentChatTerminalTab : AgentChatTerminalTab {
       AgentChatTerminalInputReadiness.READY
     }
   }
+
+  override suspend fun readRecentOutputTail(): String = ""
 }
 
 private data class EditorServiceSentTerminalText(

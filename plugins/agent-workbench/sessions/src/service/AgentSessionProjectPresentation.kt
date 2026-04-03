@@ -12,7 +12,6 @@ import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.io.FileUtilRt
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
-import kotlin.io.path.invariantSeparatorsPathString
 import kotlin.io.path.name
 
 fun buildAgentSessionProjectPathCandidates(paths: List<String>): List<AgentPromptProjectPathCandidate> {
@@ -95,7 +94,7 @@ private fun collectOpenProjectsByPath(manager: RecentProjectsManagerBase?): Sequ
     .filterNot(AgentWorkbenchDedicatedFrameProjectManager::isDedicatedProject)
     .mapNotNull { project ->
       val path = resolveOpenProjectPath(
-        managerProjectPath = manager?.getProjectPath(project)?.invariantSeparatorsPathString,
+        managerProjectPath = manager?.getProjectPath(project),
         projectBasePath = project.basePath,
       ) ?: return@mapNotNull null
       path to project

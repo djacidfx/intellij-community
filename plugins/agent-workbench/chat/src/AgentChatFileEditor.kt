@@ -318,8 +318,10 @@ internal class AgentChatFileEditor(
     val dispatch = file.acquireInitialMessageDispatch() ?: return AgentChatInitialMessageSendResult.NO_PROGRESS
     if (
       dispatch.completionPolicy == AgentInitialMessageDispatchCompletionPolicy.RETRY_ON_CODEX_PLAN_BUSY &&
-      codexPlanBusyRetryAttempt > 0 &&
-      file.threadActivity.isBusyForExistingThreadPlanMode()
+      (
+        file.threadActivity.isBusyForExistingThreadPlanMode() ||
+        isCodexPlanModeUnsafeTerminalTail(createdTab.readRecentOutputTail())
+      )
     ) {
       file.cancelInitialMessageDispatch(dispatch)
       delay(calculateCodexPlanModeRetryBackoffMs(codexPlanBusyRetryAttempt).milliseconds)
@@ -417,8 +419,46 @@ private fun isCodexPlanModeBusyOutput(text: String): Boolean {
   return normalizeCodexTerminalOutput(text).contains(CODEX_PLAN_MODE_BUSY_MESSAGE, ignoreCase = true)
 }
 
+private fun isCodexPlanModeUnsafeTerminalTail(text: String): Boolean {
+  val tailLines = codexTerminalTailLines(text)
+  val latestLine = tailLines.lastOrNull() ?: return false
+  if (latestLine.contains(CODEX_PLAN_MODE_BUSY_MESSAGE, ignoreCase = true)) {
+    return true
+  }
+  return tailLines.any { line ->
+    line.contains(CODEX_PLAN_MODE_MCP_STARTUP_SINGLE_MESSAGE, ignoreCase = true) ||
+    line.contains(CODEX_PLAN_MODE_MCP_STARTUP_MULTI_MESSAGE, ignoreCase = true) ||
+    line.contains(CODEX_PLAN_MODE_QUEUE_HINT_MESSAGE, ignoreCase = true) ||
+    line.contains(CODEX_PLAN_MODE_WORKING_STATUS_MARKER, ignoreCase = true)
+  }
+}
+
+private fun codexTerminalTailLines(text: String): List<String> {
+  return stripCodexTerminalAnsi(text)
+    .replace("\r", "\n")
+    .lineSequence()
+    .map(::normalizeCodexTerminalTailLine)
+    .filter(String::isNotEmpty)
+    .toList()
+    .takeLast(CODEX_TERMINAL_TAIL_LINE_SCAN_LIMIT)
+}
+
+private fun normalizeCodexTerminalTailLine(text: String): String {
+  val sanitized = buildString(text.length) {
+    text.forEach { char ->
+      append(
+        when {
+          char.isWhitespace() || char.isISOControl() -> ' '
+          else -> char
+        }
+      )
+    }
+  }
+  return sanitized.replace(CODEX_TERMINAL_WHITESPACE_REGEX, " ").trim()
+}
+
 private fun normalizeCodexTerminalOutput(text: String): String {
-  val withoutAnsi = CODEX_TERMINAL_ANSI_ESCAPE_REGEX.replace(text, "")
+  val withoutAnsi = stripCodexTerminalAnsi(text)
   val sanitized = buildString(withoutAnsi.length) {
     withoutAnsi.forEach { char ->
       append(
@@ -431,6 +471,8 @@ private fun normalizeCodexTerminalOutput(text: String): String {
   }
   return sanitized.replace(CODEX_TERMINAL_WHITESPACE_REGEX, " ").trim()
 }
+
+private fun stripCodexTerminalAnsi(text: String): String = CODEX_TERMINAL_ANSI_ESCAPE_REGEX.replace(text, "")
 
 internal fun interface AgentChatTabSnapshotWriter {
   suspend fun upsert(snapshot: AgentChatTabSnapshot)
@@ -487,6 +529,8 @@ internal interface AgentChatTerminalTab {
     idleMs: Long,
     checkpoint: AgentChatTerminalOutputCheckpoint? = null,
   ): AgentChatTerminalInputReadiness
+
+  suspend fun readRecentOutputTail(): String
 
   fun sendText(text: String, shouldExecute: Boolean, useBracketedPasteMode: Boolean = true)
 }
@@ -626,6 +670,13 @@ private class ToolWindowAgentChatTerminalTab(
         }
       },
     )
+  }
+
+  override suspend fun readRecentOutputTail(): String {
+    val outputModels = delegate.view.outputModels
+    return withContext(Dispatchers.EDT) {
+      readRecentTerminalOutputTail(outputModels.regular, outputModels.alternative)
+    }
   }
 
   override fun sendText(text: String, shouldExecute: Boolean, useBracketedPasteMode: Boolean) {
@@ -843,6 +894,18 @@ private fun readTerminalOutputSince(
     .joinToString(separator = "\n")
 }
 
+private fun readRecentTerminalOutputTail(
+  regularOutputModel: TerminalOutputModel,
+  alternativeOutputModel: TerminalOutputModel,
+): String {
+  return listOf(
+    readRecentTerminalOutputChunk(regularOutputModel),
+    readRecentTerminalOutputChunk(alternativeOutputModel),
+  )
+    .filter { it.isNotEmpty() }
+    .joinToString(separator = "\n")
+}
+
 private fun readTerminalOutputChunk(model: TerminalOutputModel, checkpointOffset: Long): String {
   val end = model.endOffset
   val availableStart = maxTerminalOffset(model.startOffset, TerminalOffset.of(checkpointOffset))
@@ -852,6 +915,21 @@ private fun readTerminalOutputChunk(model: TerminalOutputModel, checkpointOffset
   }
   val boundedStart = if (availableChars > POST_SEND_SCAN_LIMIT_CHARS) end - POST_SEND_SCAN_LIMIT_CHARS else availableStart
   return model.getText(boundedStart, end).toString()
+}
+
+private fun readRecentTerminalOutputChunk(model: TerminalOutputModel): String {
+  val end = model.endOffset
+  val availableChars = end - model.startOffset
+  if (availableChars <= 0) {
+    return ""
+  }
+  val start = if (availableChars > CODEX_TERMINAL_TAIL_SCAN_LIMIT_CHARS) {
+    end - CODEX_TERMINAL_TAIL_SCAN_LIMIT_CHARS
+  }
+  else {
+    model.startOffset
+  }
+  return model.getText(start, end).toString()
 }
 
 private fun maxTerminalOffset(first: TerminalOffset, second: TerminalOffset): TerminalOffset {
@@ -874,6 +952,12 @@ private const val CODEX_PLAN_MODE_RETRY_BACKOFF_MS: Long = 250
 private const val CODEX_PLAN_MODE_MAX_RETRY_BACKOFF_MS: Long = 1_000
 private const val POST_SEND_SCAN_LIMIT_CHARS: Long = 8_192
 private const val READINESS_SCAN_LIMIT_CHARS: Long = 8_192
+private const val CODEX_TERMINAL_TAIL_SCAN_LIMIT_CHARS: Long = 4_096
+private const val CODEX_TERMINAL_TAIL_LINE_SCAN_LIMIT: Int = 8
 private const val CODEX_PLAN_MODE_BUSY_MESSAGE: String = "'/plan' is disabled while a task is in progress."
+private const val CODEX_PLAN_MODE_MCP_STARTUP_SINGLE_MESSAGE: String = "Booting MCP server:"
+private const val CODEX_PLAN_MODE_MCP_STARTUP_MULTI_MESSAGE: String = "Starting MCP servers"
+private const val CODEX_PLAN_MODE_QUEUE_HINT_MESSAGE: String = "tab to queue"
+private const val CODEX_PLAN_MODE_WORKING_STATUS_MARKER: String = "Working ("
 private val CODEX_TERMINAL_ANSI_ESCAPE_REGEX: Regex = Regex("\\u001B\\[[0-9;?]*[ -/]*[@-~]")
 private val CODEX_TERMINAL_WHITESPACE_REGEX: Regex = Regex(" +")
