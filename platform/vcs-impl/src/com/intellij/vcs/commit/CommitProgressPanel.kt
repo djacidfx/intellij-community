@@ -93,7 +93,7 @@ private fun JBLabel.setWarning(@NlsContexts.Label warningText: String) {
 
 @OptIn(FlowPreview::class)
 @ApiStatus.Internal
-open class CommitProgressPanel(project: Project, parentDisposable: Disposable) : CommitProgressUi, InclusionListener, DocumentListener, Disposable {
+open class CommitProgressPanel(project: Project, parentDisposable: Disposable) : CommitProgressUi, Disposable {
   private val scope = VcsDisposable.getInstance(project).coroutineScope.childScope("CommitProgressPanel", Dispatchers.EDT)
 
   init {
@@ -143,8 +143,17 @@ open class CommitProgressPanel(project: Project, parentDisposable: Disposable) :
     panel.add(failuresPanel)
     panel.border = border
 
-    commitMessage.addDocumentListener(this)
-    commitWorkflowUi.addInclusionListener(this, this)
+    val documentListener = object : DocumentListener {
+      override fun documentChanged(event: DocumentEvent): Unit = clearError()
+    }
+    commitMessage.addDocumentListener(documentListener)
+    Disposer.register(this, Disposable {
+      commitMessage.removeDocumentListener(documentListener)
+    })
+
+    commitWorkflowUi.addInclusionListener(object : InclusionListener {
+      override fun inclusionChanged(): Unit = clearError()
+    }, this)
 
     setupProgressVisibilityDelay()
     setupProgressSpinnerTooltip()
@@ -273,10 +282,6 @@ open class CommitProgressPanel(project: Project, parentDisposable: Disposable) :
     shouldWarnAboutDumbMode = false
     update()
   }
-
-  override fun documentChanged(event: DocumentEvent): Unit = clearError()
-
-  override fun inclusionChanged(): Unit = clearError()
 
   protected fun update() {
     if (!isDumbMode) {
