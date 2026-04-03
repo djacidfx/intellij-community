@@ -69,7 +69,6 @@ public class JUnit5TestSessionListener implements LauncherSessionListener {
   private static class FirstAndLastInSuiteTestExecutionListener implements TestExecutionListener {
     private static final String BOOTSTRAP_TESTS_SUITE_NAME = "com.intellij.tests.BootstrapTests";  // reuse existing mutes on TeamCity
     private static final String VINTAGE_UNIQUE_ID = UniqueId.forEngine("junit-vintage").toString();
-    private static final String ORDERED_VINTAGE_UNIQUE_ID = UniqueId.forEngine("ordered-vintage").toString();
     private static final String ENGINE_VINTAGE = System.getProperty("intellij.build.test.engine.vintage");
 
     private final List<Throwable> caughtExceptions;
@@ -85,7 +84,7 @@ public class JUnit5TestSessionListener implements LauncherSessionListener {
       final String _FirstInSuiteTestPrefix = "_FirstInSuiteTest.";
 
       // TODO: use the same logic for tests, remove junit34Test
-      final boolean junit34Test = ContainerUtil.exists(testPlan.getRoots(), root -> root.getUniqueId().equals(VINTAGE_UNIQUE_ID) || root.getUniqueId().equals(ORDERED_VINTAGE_UNIQUE_ID));
+      final boolean junit34Test = ContainerUtil.exists(testPlan.getRoots(), root -> root.getUniqueId().equals(VINTAGE_UNIQUE_ID));
       final boolean reportAsBootstrapTestsSuite = "only".equals(ENGINE_VINTAGE);  // reuse existing mutes on TeamCity
       final BiConsumer<String, ThrowableRunnable<?>> doTest = (reportAsBootstrapTestsSuite ? this::catchExceptionAndReportAsBootstrapTestsSuite : this::catchException);
 
@@ -163,7 +162,7 @@ public class JUnit5TestSessionListener implements LauncherSessionListener {
       if (!buildConfName.isEmpty()) buildConfName = "[" + buildConfName + "]";
 
       // TODO: use the same logic for tests, remove junit34Test
-      final boolean junit34Test = ContainerUtil.exists(testPlan.getRoots(), root -> root.getUniqueId().equals(VINTAGE_UNIQUE_ID) || root.getUniqueId().equals(ORDERED_VINTAGE_UNIQUE_ID));
+      final boolean junit34Test = ContainerUtil.exists(testPlan.getRoots(), root -> root.getUniqueId().equals(VINTAGE_UNIQUE_ID));
       final boolean reportAsBootstrapTestsSuite = "only".equals(ENGINE_VINTAGE);  // reuse existing mutes on TeamCity
       final BiConsumer<String, ThrowableRunnable<?>> doTest = (reportAsBootstrapTestsSuite ? this::catchExceptionAndReportAsBootstrapTestsSuite : this::catchException);
 

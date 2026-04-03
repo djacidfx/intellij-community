@@ -16,15 +16,11 @@ import junit.framework.TestSuite;
 import org.junit.platform.commons.logging.LogRecordListener;
 import org.junit.platform.commons.logging.LoggerFactory;
 import org.junit.platform.engine.DiscoverySelector;
-import org.junit.platform.engine.EngineDiscoveryRequest;
-import org.junit.platform.engine.ExecutionRequest;
 import org.junit.platform.engine.Filter;
 import org.junit.platform.engine.FilterResult;
 import org.junit.platform.engine.TestDescriptor;
-import org.junit.platform.engine.TestEngine;
 import org.junit.platform.engine.TestExecutionResult;
 import org.junit.platform.engine.TestSource;
-import org.junit.platform.engine.UniqueId;
 import org.junit.platform.engine.discovery.ClassNameFilter;
 import org.junit.platform.engine.discovery.DiscoverySelectors;
 import org.junit.platform.engine.reporting.ReportEntry;
@@ -75,14 +71,14 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 
 /**
- * Runs JUnit 3/4 tests using {@linkplain VintageTestEngine}/{@linkplain OrderedVintageTestEngine}, or JUnit 5 tests using {@linkplain JupiterTestEngine}.
+ * Runs JUnit 3/4 tests using {@linkplain VintageTestEngine}, or JUnit 5 tests using {@linkplain JupiterTestEngine}.
  *
  * Supported options:
  * - __class__ className[;...]
  * - __package__ packageName
  * - __classpathroot__
- *   if {@systemProperty intellij.build.test.engine.vintage} is set, {@code only} runs only JUnit 3/4 tests using {@linkplain OrderedVintageTestEngine}, {@code false} runs only JUnit 5 tests; otherwise, both are run
- *   if {@systemProperty intellij.build.test.reverse.order} is set, JUnit 3/4 tests are run in reverse order
+ *   if {@systemProperty intellij.build.test.engine.vintage} is set, {@code only} runs only JUnit 3/4 tests using {@linkplain VintageTestEngine}, {@code false} runs only JUnit 5 tests; otherwise, both are run
+ *   if {@systemProperty intellij.build.test.reverse.order} is set, tests are run in reverse order
  * - className
  * - className methodName
  * if {@systemProperty intellij.build.test.list.classes} is set, only test discovery is performed and the resulting list of test classes is saved to the file specified by this property
@@ -108,7 +104,6 @@ public final class JUnit5TeamCityRunner {
       ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
       List<? extends DiscoverySelector> selectors;
       List<Filter<?>> filters = new ArrayList<>(0);
-      Optional<OrderedVintageTestEngine> optionalOrderedVintageEngine = Optional.empty();
 
       if (args[0].equals("__class__")) {
         String[] classNames = args[1].split(";");
@@ -136,21 +131,10 @@ public final class JUnit5TeamCityRunner {
         if (INCLUDE_TAGS != null) filters.add(TagFilter.includeTags(INCLUDE_TAGS.split(";")));        // JUnit 5 tag filter
 
         // filter engines
-        if ("false".equals(ENGINE_VINTAGE)) {  // JUnit 5 tests only
-          filters.add(EngineFilter.excludeEngines(VintageTestDescriptor.ENGINE_ID));
-        }
-        else {
-          // TODO: use vintage by default
-          optionalOrderedVintageEngine = Optional.of(new OrderedVintageTestEngine());
-          filters.add(EngineFilter.excludeEngines(VintageTestDescriptor.ENGINE_ID));  // mask VintageTestEngine to avoid running JUnit 3/4 tests twice
-
-          if ("only".equals(ENGINE_VINTAGE)) {  // JUnit 3/4 tests only
-            filters.add(EngineFilter.includeEngines(OrderedVintageTestEngine.ENGINE_ID));
-          }
-          else if (ENGINE_VINTAGE == null) {  // all tests
-          }
-          else throw new RuntimeException("Unsupported 'intellij.build.test.engine.vintage' value: " + ENGINE_VINTAGE);
-        }
+        if ("false".equals(ENGINE_VINTAGE)) filters.add(EngineFilter.excludeEngines(VintageTestDescriptor.ENGINE_ID));      // JUnit 5 tests only
+        else if ("only".equals(ENGINE_VINTAGE)) filters.add(EngineFilter.includeEngines(VintageTestDescriptor.ENGINE_ID));  // JUnit 3/4 tests only
+        else if (ENGINE_VINTAGE != null) throw new RuntimeException("Unsupported 'intellij.build.test.engine.vintage' value: " + ENGINE_VINTAGE);
+        // else all tests
       }
       else if (args.length == 1) {
         String className = args[0];
@@ -166,7 +150,7 @@ public final class JUnit5TeamCityRunner {
 
       LoggerFactory.addListener(new TCLogRecordListener());  // report warnings/errors as build problems on TeamCity, incl. test discovery
 
-      Launcher launcher = LauncherFactory.create(LauncherConfig.builder().addTestEngines(optionalOrderedVintageEngine.stream().toArray(TestEngine[]::new)).build());
+      Launcher launcher = LauncherFactory.create();
       LauncherDiscoveryRequest discoveryRequest = LauncherDiscoveryRequestBuilder.request()
         .selectors(selectors)
         .filters(filters.toArray(Filter[]::new))
@@ -178,6 +162,9 @@ public final class JUnit5TeamCityRunner {
 
       if (LIST_CLASSES != null) {
         saveListOfTestClasses(testPlan);  // save only
+      }
+      else if ("true".equals(REVERSE_ORDER)) {
+        executeInReverseOrder(launcher, testPlan, listener, filters);  // used by [IDEA Trunk / Tests / Linux x86_64 Reversed Order / Aggregator](https://buildserver.labs.intellij.net/buildConfiguration/ijplatform_master_Idea_Tests_AggregatorRevX64)
       }
       else {
         launcher.execute(testPlan, listener);
@@ -243,6 +230,20 @@ public final class JUnit5TeamCityRunner {
                   "getClassRoots", MethodType.methodType(List.class))
       .invokeExact();
     return new HashSet<>(testRoots);
+  }
+
+  private static void executeInReverseOrder(Launcher launcher, TestPlan testPlan, TestExecutionListener listener, List<Filter<?>> filters) {
+    List<? extends DiscoverySelector> selectors = testPlan.getRoots().stream().flatMap(root -> {  // keep engine order
+      List<TestIdentifier> children = new ArrayList<>(testPlan.getChildren(root));
+      Collections.reverse(children);
+      return children.stream().map(child -> DiscoverySelectors.selectUniqueId(child.getUniqueIdObject()));
+    }).toList();
+
+    LauncherDiscoveryRequest discoveryRequest = LauncherDiscoveryRequestBuilder.request()
+      .selectors(selectors)
+      .filters(filters.toArray(Filter[]::new))
+      .build();
+    launcher.execute(discoveryRequest, listener);
   }
 
   private static void saveListOfTestClasses(TestPlan testPlan) {
@@ -941,38 +942,4 @@ public final class JUnit5TeamCityRunner {
       return FilterResult.included("Unknown source type " + source.getClass());
     }
   }
-
-  public static final class OrderedVintageTestEngine implements TestEngine {
-    public static final String ENGINE_ID = "ordered-vintage";
-
-    @SuppressWarnings("FieldMayBeStatic") private final VintageTestEngine delegate = new VintageTestEngine();
-
-    @Override
-    public String getId() {
-      return ENGINE_ID;
-    }
-
-    @Override
-    public TestDescriptor discover(EngineDiscoveryRequest request, UniqueId uniqueId) {
-      TestDescriptor root = delegate.discover(request, uniqueId);
-      root.orderChildren(children -> {
-        Collections.sort(children, (a, b) -> {
-          assert a.getSource().isPresent() && a.getSource().get() instanceof ClassSource;
-          ClassSource aClass = (ClassSource)a.getSource().get();
-          assert b.getSource().isPresent() && b.getSource().get() instanceof ClassSource;
-          ClassSource bClass = (ClassSource)b.getSource().get();
-          return aClass.getJavaClass().getName().compareTo(bClass.getJavaClass().getName());
-        });
-        if ("true".equals(REVERSE_ORDER)) Collections.reverse(children);
-        return children;
-      });
-      return root;
-    }
-
-    @Override
-    public void execute(ExecutionRequest request) {
-      delegate.execute(request);
-    }
-  }
-
 }
