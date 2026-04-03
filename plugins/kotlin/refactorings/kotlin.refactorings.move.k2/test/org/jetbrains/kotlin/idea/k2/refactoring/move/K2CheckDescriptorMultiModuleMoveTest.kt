@@ -208,6 +208,23 @@ class K2CheckDescriptorMultiModuleMoveTest : AbstractK2CheckDescriptorMultiModul
         )
     }
 
+    @TestMetadata("moveAllDeclarationsWithFileLevelAnnotation")
+    @Throws(Exception::class)
+    fun testMoveAllDeclarationsWithFileLevelAnnotation() {
+        doTest(
+            "moveAllDeclarationsWithFileLevelAnnotation/moveAllDeclarationsWithFileLevelAnnotation.test",
+            configureMoveModel = { moveModel ->
+                setAllMoveSettingsOn(moveModel)
+                setMoveModelSetting(moveModel.mppDeclarations, false)
+                setNewTargetPackageInSameRoot(moveModel, FqName("bar"))
+                setTargetFile(moveModel, "declarations.kt")
+            },
+            checkMoveDescriptor = {
+                assert(isFileMove(it)) { "File move was expected, but found ${it::class.java.canonicalName}" }
+            },
+        )
+    }
+
     /**
      * Set the package and reset the target directory to the source root in the move model.
      * Mimics the UI dialog behavior when a non-existent package is selected.
