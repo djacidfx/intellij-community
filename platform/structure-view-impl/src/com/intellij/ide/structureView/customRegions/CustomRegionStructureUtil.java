@@ -35,18 +35,14 @@ public final class CustomRegionStructureUtil {
 
   public static Collection<StructureViewTreeElement> groupByCustomRegions(@NotNull PsiElement rootElement,
                                                                           @NotNull Collection<StructureViewTreeElement> originalElements) {
-    if (rootElement instanceof PsiFileEx && !((PsiFileEx)rootElement).isContentsLoaded() ||
-        rootElement instanceof StubBasedPsiElement && ((StubBasedPsiElement<?>)rootElement).getStub() != null) {
+    if (rootElement instanceof PsiFileEx file && !file.isContentsLoaded() ||
+        rootElement instanceof StubBasedPsiElement<?> stubElement && stubElement.getStub() != null) {
       return originalElements;
     }
-    List<StructureViewTreeElement> physicalElements = ContainerUtil.filter(originalElements, element -> {
-      Object value = element.getValue();
-      return !(value instanceof StubBasedPsiElement) || ((StubBasedPsiElement<?>)value).getStub() == null;
-    });
-    Set<TextRange> childrenRanges = ContainerUtil.map2SetNotNull(physicalElements, element -> {
-      Object value = element.getValue();
-      return value instanceof PsiElement ? getTextRange((PsiElement)value) : null;
-    });
+    List<StructureViewTreeElement> physicalElements =
+      ContainerUtil.filter(originalElements, element -> !(element.getValue() instanceof StubBasedPsiElement<?> e) || e.getStub() == null);
+    Set<TextRange> childrenRanges =
+      ContainerUtil.map2SetNotNull(physicalElements, element -> element.getValue() instanceof PsiElement e ? getTextRange(e) : null);
     Collection<CustomRegionTreeElement> customRegions = collectCustomRegions(rootElement, childrenRanges);
     if (!customRegions.isEmpty()) {
       List<StructureViewTreeElement> result = physicalElements.isEmpty() ? new ArrayList<>(customRegions) : new ArrayList<>();
@@ -143,8 +139,8 @@ public final class CustomRegionStructureUtil {
     Language language = element.getLanguage();
     if (!Language.ANY.is(language)) {
       for (FoldingBuilder builder : LanguageFolding.INSTANCE.allForLanguage(language)) {
-        if (builder instanceof CustomFoldingBuilder) {
-          return ((CustomFoldingBuilder)builder).isCustomFoldingCandidate(element);
+        if (builder instanceof CustomFoldingBuilder foldingBuilder) {
+          return foldingBuilder.isCustomFoldingCandidate(element);
         }
       }
     }
