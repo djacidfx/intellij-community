@@ -15,10 +15,14 @@ import java.util.Objects;
 final class MultiRoutingWatchKeyDelegate implements WatchKey {
   private final @NotNull WatchKey myDelegate;
   private final @NotNull MultiRoutingFileSystemProvider myProvider;
+  private final @NotNull MultiRoutingWatchServiceDelegate myOwner;
 
-  MultiRoutingWatchKeyDelegate(@NotNull WatchKey delegate, @NotNull MultiRoutingFileSystemProvider provider) {
+  MultiRoutingWatchKeyDelegate(@NotNull WatchKey delegate,
+                               @NotNull MultiRoutingFileSystemProvider provider,
+                               @NotNull MultiRoutingWatchServiceDelegate owner) {
     myDelegate = delegate;
     myProvider = provider;
+    myOwner = owner;
   }
 
   @Override
@@ -38,12 +42,21 @@ final class MultiRoutingWatchKeyDelegate implements WatchKey {
 
   @Override
   public boolean reset() {
-    return myDelegate.reset();
+    boolean result = myDelegate.reset();
+    if (!result) {
+      myOwner.forgetDelegateKey(myDelegate);
+    }
+    return result;
   }
 
   @Override
   public void cancel() {
-    myDelegate.cancel();
+    try {
+      myDelegate.cancel();
+    }
+    finally {
+      myOwner.forgetDelegateKey(myDelegate);
+    }
   }
 
   @Override

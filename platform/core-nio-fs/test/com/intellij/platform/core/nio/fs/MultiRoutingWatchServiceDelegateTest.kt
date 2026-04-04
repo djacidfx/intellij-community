@@ -3,6 +3,7 @@ package com.intellij.platform.core.nio.fs
 
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
+import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.net.URI
@@ -18,10 +19,11 @@ class MultiRoutingWatchServiceDelegateTest {
   }
 
   @Test
-  fun `register returns a key equivalent to the key observed from the watch service`(@TempDir tempDir: Path) {
+  fun `register returns the same key instance as the key observed from the watch service`(@TempDir tempDir: Path) {
     val fs = MultiRoutingFileSystemProvider(defaultSunNioFs.provider()).getFileSystem(URI("file:/"))
     val watchedDirectory = fs.getPath(tempDir.toString())
-    val createdFile = watchedDirectory.resolve("created.txt")
+    val firstCreatedFile = watchedDirectory.resolve("created.txt")
+    val secondCreatedFile = watchedDirectory.resolve("created-again.txt")
 
     fs.newWatchService().use { watchService ->
       val registeredKey = watchedDirectory.register(watchService, ENTRY_CREATE)
@@ -31,19 +33,29 @@ class MultiRoutingWatchServiceDelegateTest {
       registeredWatchable.toString().shouldBe(watchedDirectory.toString())
       watchService.poll().shouldBe(null)
 
-      createdFile.createFile()
+      firstCreatedFile.createFile()
 
       val observedKey = requireNotNull(watchService.poll(10, TimeUnit.SECONDS))
       val observedWatchable = observedKey.watchable().shouldBeInstanceOf<MultiRoutingFsPath>()
 
       observedKey.javaClass.name.shouldBe(WRAPPED_WATCH_KEY_CLASS_NAME)
+      assertSame(registeredKey, observedKey)
       observedKey.shouldBe(registeredKey)
       observedKey.hashCode().shouldBe(registeredKey.hashCode())
       observedWatchable.toString().shouldBe(watchedDirectory.toString())
 
-      val createEvent = observedKey.pollEvents().first { it.kind() == ENTRY_CREATE }
-      createEvent.context().shouldBeInstanceOf<MultiRoutingFsPath>().name.shouldBe(createdFile.name)
+      val firstCreateEvent = observedKey.pollEvents().first { it.kind() == ENTRY_CREATE }
+      firstCreateEvent.context().shouldBeInstanceOf<MultiRoutingFsPath>().name.shouldBe(firstCreatedFile.name)
       observedKey.reset().shouldBe(true)
+
+      watchService.poll().shouldBe(null)
+      secondCreatedFile.createFile()
+
+      val observedKeyAgain = requireNotNull(watchService.poll(10, TimeUnit.SECONDS))
+      assertSame(registeredKey, observedKeyAgain)
+      observedKeyAgain.pollEvents().first { it.kind() == ENTRY_CREATE }
+        .context().shouldBeInstanceOf<MultiRoutingFsPath>().name.shouldBe(secondCreatedFile.name)
+      observedKeyAgain.reset().shouldBe(true)
     }
   }
 }

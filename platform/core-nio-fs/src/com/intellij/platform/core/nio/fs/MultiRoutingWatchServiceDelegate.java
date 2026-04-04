@@ -6,11 +6,14 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 final class MultiRoutingWatchServiceDelegate implements WatchService {
   final @NotNull WatchService myDelegate;
   private final @NotNull MultiRoutingFileSystemProvider myProvider;
+  private final @NotNull Map<WatchKey, MultiRoutingWatchKeyDelegate> myWrappedKeys = new IdentityHashMap<>();
 
   MultiRoutingWatchServiceDelegate(@NotNull WatchService delegate, @NotNull MultiRoutingFileSystemProvider provider) {
     myDelegate = delegate;
@@ -19,7 +22,14 @@ final class MultiRoutingWatchServiceDelegate implements WatchService {
 
   @Override
   public void close() throws IOException {
-    myDelegate.close();
+    try {
+      myDelegate.close();
+    }
+    finally {
+      synchronized (myWrappedKeys) {
+        myWrappedKeys.clear();
+      }
+    }
   }
 
   @Override
@@ -44,8 +54,21 @@ final class MultiRoutingWatchServiceDelegate implements WatchService {
   }
 
   @NotNull WatchKey wrapDelegateKey(@NotNull WatchKey watchKey) {
-    // poll()/take() can recreate wrappers around the same delegate key. MultiRoutingWatchKeyDelegate
-    // equality is based on the delegate key, so map lookups remain stable across those wrapper instances.
-    return new MultiRoutingWatchKeyDelegate(watchKey, myProvider);
+    // JDK watch services return the same key instance from register() and delivery. Preserve that
+    // identity even though MRFS has to wrap backend keys before exposing them to callers.
+    synchronized (myWrappedKeys) {
+      MultiRoutingWatchKeyDelegate wrappedKey = myWrappedKeys.get(watchKey);
+      if (wrappedKey == null) {
+        wrappedKey = new MultiRoutingWatchKeyDelegate(watchKey, myProvider, this);
+        myWrappedKeys.put(watchKey, wrappedKey);
+      }
+      return wrappedKey;
+    }
+  }
+
+  void forgetDelegateKey(@NotNull WatchKey watchKey) {
+    synchronized (myWrappedKeys) {
+      myWrappedKeys.remove(watchKey);
+    }
   }
 }
