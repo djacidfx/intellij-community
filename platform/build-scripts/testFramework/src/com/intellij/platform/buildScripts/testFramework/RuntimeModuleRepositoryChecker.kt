@@ -133,11 +133,6 @@ internal class RuntimeModuleRepositoryChecker private constructor(
         }
         
         for (pluginModule in allPluginModules) {
-          if (pluginModule.moduleId == RuntimeModuleId.projectLibrary("commons-lang3")) {
-            //ignore this error until IJPL-671 is fixed
-            continue
-          }
-          
           for (resourcePath in pluginModule.resourceRootPaths) {
             val mainModules = mainGroupModuleResourceRoots[resourcePath]
             if (mainModules != null) {
