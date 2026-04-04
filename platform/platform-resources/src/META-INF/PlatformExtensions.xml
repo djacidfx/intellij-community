@@ -2067,6 +2067,8 @@
     <registryKey key="editor.use.new.soft.wraps.impl" defaultValue="true"
                  description="Use the new custom-wrap aware soft wraps implementation (in favor of the legacy implementation)."
                  restartRequired="true"/>
+
+    <statistics.counterUsagesCollector implementationClass="com.intellij.execution.impl.EditorHyperlinkUsageCollector"/>
   </extensions>
 
   <applicationListeners>
