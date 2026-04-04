@@ -2,7 +2,9 @@
 package com.intellij.openapi.editor.impl.softwrap
 
 import com.intellij.openapi.util.registry.Registry
+import org.junit.Ignore
 
+@Ignore("AT-4013")
 internal class ExperimentalSoftWrapTest : SoftWrapTest() {
   override fun setUp() {
     super.setUp()

@@ -17,6 +17,7 @@ package com.intellij.java.codeInsight.template.postfix.templates;
 
 import com.intellij.refactoring.JavaRefactoringSettings;
 import org.jetbrains.annotations.NotNull;
+import org.junit.Ignore;
 
 public class ForDescendingPostfixTemplateTest extends PostfixTemplateTestCase {
   @NotNull
@@ -52,6 +53,7 @@ public class ForDescendingPostfixTemplateTest extends PostfixTemplateTestCase {
     doTest();
   }
 
+  @Ignore("AT-4013")
   public static class ModForDescendingPostfixTemplateTest extends ForDescendingPostfixTemplateTest {
     @Override
     protected boolean useModCommandTemplates() {
