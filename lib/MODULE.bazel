@@ -609,20 +609,6 @@ http_file(
 )
 
 http_file(
-  name = "commons-cli-commons-cli-1_11_0_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/commons-cli/commons-cli/1.11.0/commons-cli-1.11.0.jar",
-  sha256 = "8f7f8605d68e15bf32db61ec94eac6fdafc51b1bdbe1e0e0802b57d23f387792",
-  downloaded_file_path = "commons-cli-1.11.0.jar"
-)
-
-http_file(
-  name = "commons-cli-commons-cli-1_11_0-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/commons-cli/commons-cli/1.11.0/commons-cli-1.11.0-sources.jar",
-  sha256 = "c65b544468eafd3e1036671fb22fd9ba4c3f67c03f76298e8aaeb6943755a70b",
-  downloaded_file_path = "commons-cli-1.11.0-sources.jar"
-)
-
-http_file(
   name = "commons-codec-commons-codec-1_21_0_http",
   url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/commons-codec/commons-codec/1.21.0/commons-codec-1.21.0.jar",
   sha256 = "4da851cb6abfb98bfe9eb77c5e5fc47f5414fa28b94e21b7fd9a646705dc167f",
@@ -8607,6 +8593,20 @@ http_file(
   url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/io/coil-kt/coil3/coil-test-jvm/3.2.0/coil-test-jvm-3.2.0-sources.jar",
   sha256 = "dabc717837fe8b897f0ad526f47c097483983794c6b0b46eeec868ccfe2a7273",
   downloaded_file_path = "coil-test-jvm-3.2.0-sources.jar"
+)
+
+http_file(
+  name = "commons-cli-commons-cli-1_11_0_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/commons-cli/commons-cli/1.11.0/commons-cli-1.11.0.jar",
+  sha256 = "8f7f8605d68e15bf32db61ec94eac6fdafc51b1bdbe1e0e0802b57d23f387792",
+  downloaded_file_path = "commons-cli-1.11.0.jar"
+)
+
+http_file(
+  name = "commons-cli-commons-cli-1_11_0-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/commons-cli/commons-cli/1.11.0/commons-cli-1.11.0-sources.jar",
+  sha256 = "c65b544468eafd3e1036671fb22fd9ba4c3f67c03f76298e8aaeb6943755a70b",
+  downloaded_file_path = "commons-cli-1.11.0-sources.jar"
 )
 
 http_file(
