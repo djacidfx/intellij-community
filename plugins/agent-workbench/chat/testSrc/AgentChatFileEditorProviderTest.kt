@@ -15,6 +15,7 @@ import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSource
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionTerminalLaunchSpec
 import com.intellij.agent.workbench.sessions.core.providers.InMemoryAgentSessionProviderRegistry
 import com.intellij.agent.workbench.sessions.core.providers.agentSessionThreadStatusIcon
+import com.intellij.openapi.fileEditor.FileEditorManagerKeys
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.IconLoader
 import com.intellij.testFramework.common.timeoutRunBlocking
@@ -179,6 +180,20 @@ class AgentChatFileEditorProviderTest {
     assertThat(tabKey).isNotNull
     assertThat(tabKey?.value).isEqualTo(file.tabKey)
     assertThat(file.path).startsWith("$AGENT_CHAT_URL_SCHEMA_VERSION/")
+  }
+
+  @Test
+  fun forbidsTabSplitForChatFiles() {
+    val file = AgentChatVirtualFile(
+      projectPath = "/work/project-a",
+      threadIdentity = "CODEX:thread-42",
+      shellCommand = listOf("codex", "resume", "thread-42"),
+      threadId = "thread-42",
+      threadTitle = "Implement parser",
+      subAgentId = "alpha",
+    )
+
+    assertThat(file.getUserData(FileEditorManagerKeys.FORBID_TAB_SPLIT)).isTrue()
   }
 
   @Test

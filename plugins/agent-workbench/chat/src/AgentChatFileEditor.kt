@@ -12,6 +12,7 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.components.service
 import com.intellij.openapi.components.serviceAsync
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorState
@@ -28,6 +29,7 @@ internal class AgentChatFileEditor(
   private val project: Project,
   private val file: AgentChatVirtualFile,
   private val terminalTabs: AgentChatTerminalTabs = ToolWindowAgentChatTerminalTabs,
+  private val liveTerminalRegistry: AgentChatLiveTerminalRegistry = project.service<AgentChatLiveTerminalRegistryService>(),
   private val tabSnapshotWriter: AgentChatTabSnapshotWriter = ApplicationAgentChatTabSnapshotWriter,
   private val currentTimeProvider: () -> Long = System::currentTimeMillis,
   pendingScopedRefreshRetryIntervalMs: Long = AgentSessionThreadRebindPolicy.PENDING_THREAD_REFRESH_RETRY_INTERVAL_MS,
@@ -117,9 +119,6 @@ internal class AgentChatFileEditor(
     patchFoldController = null
     semanticRegionController?.dispose()
     semanticRegionController = null
-    tab?.let { terminalTab ->
-      terminalTabs.closeTab(project, terminalTab)
-    }
     tab = null
     component.removeAll()
   }
@@ -130,7 +129,7 @@ internal class AgentChatFileEditor(
     }
     initializationStarted = true
     try {
-      val createdTab = terminalTabs.createTab(project, file)
+      val createdTab = liveTerminalRegistry.acquireOrCreate(file = file, terminalTabs = terminalTabs)
       tab = createdTab
       pendingThreadRefreshController.attach(createdTab)
       concreteThreadRebindController.attach(createdTab, providerDescriptor)

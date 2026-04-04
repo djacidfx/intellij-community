@@ -9,6 +9,7 @@ import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessageT
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionTerminalLaunchSpec
 import com.intellij.openapi.diagnostic.debug
 import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.fileEditor.FileEditorManagerKeys
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.vfs.VirtualFileSystem
 import com.intellij.testFramework.LightVirtualFile
@@ -126,6 +127,7 @@ internal class AgentChatVirtualFile internal constructor(
 
   init {
     updateFromResolution(resolution)
+    putUserData(FileEditorManagerKeys.FORBID_TAB_SPLIT, true)
     isWritable = false
   }
 

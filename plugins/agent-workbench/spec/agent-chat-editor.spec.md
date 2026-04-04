@@ -82,7 +82,11 @@ Define how Agent chat tabs are opened, restored, reused, and rendered in editor 
   - terminal session starts only on first explicit tab selection/focus.
   [@test] ../chat/testSrc/AgentChatTabSelectionServiceTest.kt
 
-- Disposing an initialized chat editor must always release terminal tab resources:
+- Agent Chat live terminal lifetime belongs to the logical open chat tab (`tabKey`), not to a transient `FileEditor` instance recreated by tab drag-and-drop reorder, move between splitters, or detach/reattach.
+- Agent Chat files are unsplittable: simultaneous duplicate editor copies of the same chat are not supported because one live terminal view backs the logical tab.
+- Reordering an open chat tab by drag-and-drop must preserve the running session and visible transcript state; the move must not interrupt, restart, or replace the live terminal.
+- Disposing an initialized chat editor instance must only release editor-local controller state; it must not interrupt or restart the live terminal while the same chat file remains open in the project.
+- Closing the chat file after transient editor recreation has settled must always release terminal tab resources:
   - manager-backed tab content must close through `TerminalToolWindowTabsManager.closeTab`,
   - detached tab content (no content manager) must still be released.
   [@test] ../chat/testSrc/AgentChatFileEditorLifecycleTest.kt
@@ -127,7 +131,7 @@ Define how Agent chat tabs are opened, restored, reused, and rendered in editor 
 - Codex `/plan` retries that already observed a busy rejection must pause while the open tab still reports `PROCESSING` or `REVIEWING`, then resume the same `/plan` step after activity clears.
 - Codex busy-response detection must tolerate terminal formatting noise such as ANSI color sequences or collapsed/expanded whitespace around the canonical busy message.
 - If the Codex `/plan` step produces no such rejection within the post-send observation window, it is treated as complete even if Codex emitted no explicit success text.
-- If terminal session reaches `Terminated` before `Running`, or the editor is disposed before `Running`, pending initial prompt metadata must remain unsent.
+- If terminal session reaches `Terminated` before `Running`, or an editor instance is disposed before `Running`, pending initial prompt metadata must remain unsent until a later attached editor can resume dispatch.
 - If initial prompt metadata is updated while waiting for `Running`, dispatch must use the latest metadata and stale in-flight dispatch attempts must not mark metadata as sent.
   [@test] ../chat/testSrc/AgentChatFileEditorLifecycleTest.kt
   [@test] ../sessions/testSrc/AgentSessionPromptLauncherBridgeTest.kt
