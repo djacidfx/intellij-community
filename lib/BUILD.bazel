@@ -656,73 +656,6 @@ jvm_import(
 )
 
 copy_file(
-  name = "org.bouncycastle/bcpg-jdk18on-1.83.jar_copy",
-  src = "@org_bouncycastle-bcpg-jdk18on-1_83_http//file",
-  out = "org.bouncycastle/bcpg-jdk18on-1.83.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-jvm_import(
-  name = "bouncy-castle-pgp",
-  jar = "@org_bouncycastle-bcpg-jdk18on-1_83_http//file",
-  source_jar = "@org_bouncycastle-bcpg-jdk18on-1_83-sources_http//file",
-  visibility = ["//visibility:public"]
-)
-
-copy_file(
-  name = "org.bouncycastle/bcpkix-jdk18on-1.83.jar_copy",
-  src = "@org_bouncycastle-bcpkix-jdk18on-1_83_http//file",
-  out = "org.bouncycastle/bcpkix-jdk18on-1.83.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-copy_file(
-  name = "org.bouncycastle/bcutil-jdk18on-1.83.jar_copy",
-  src = "@org_bouncycastle-bcutil-jdk18on-1_83_http//file",
-  out = "org.bouncycastle/bcutil-jdk18on-1.83.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-copy_file(
-  name = "org.bouncycastle/bcprov-jdk18on-1.83.jar_copy",
-  src = "@org_bouncycastle-bcprov-jdk18on-1_83_http//file",
-  out = "org.bouncycastle/bcprov-jdk18on-1.83.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-java_library(
-  name = "bouncy-castle-provider",
-  exports = [
-    ":org_bouncycastle-bcpkix-jdk18on-1_83_http_import",
-    ":org_bouncycastle-bcutil-jdk18on-1_83_http_import",
-    ":org_bouncycastle-bcprov-jdk18on-1_83_http_import",
-  ],
-  visibility = ["//visibility:public"]
-)
-
-jvm_import(
-  name = "org_bouncycastle-bcpkix-jdk18on-1_83_http_import",
-  jar = "@org_bouncycastle-bcpkix-jdk18on-1_83_http//file",
-  source_jar = "@org_bouncycastle-bcpkix-jdk18on-1_83-sources_http//file"
-)
-
-jvm_import(
-  name = "org_bouncycastle-bcutil-jdk18on-1_83_http_import",
-  jar = "@org_bouncycastle-bcutil-jdk18on-1_83_http//file",
-  source_jar = "@org_bouncycastle-bcutil-jdk18on-1_83-sources_http//file"
-)
-
-jvm_import(
-  name = "org_bouncycastle-bcprov-jdk18on-1_83_http_import",
-  jar = "@org_bouncycastle-bcprov-jdk18on-1_83_http//file",
-  source_jar = "@org_bouncycastle-bcprov-jdk18on-1_83-sources_http//file"
-)
-
-copy_file(
   name = "net.bytebuddy/byte-buddy-1.17.7.jar_copy",
   src = "@net_bytebuddy-byte-buddy-1_17_7_http//file",
   out = "net.bytebuddy/byte-buddy-1.17.7.jar",
@@ -10874,6 +10807,73 @@ jvm_import(
   jar = "@org_jetbrains_intellij-blockmap-1_0_7_http//file",
   source_jar = "@org_jetbrains_intellij-blockmap-1_0_7-sources_http//file",
   visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "org.bouncycastle/bcpg-jdk18on-1.83.jar_copy",
+  src = "@org_bouncycastle-bcpg-jdk18on-1_83_http//file",
+  out = "org.bouncycastle/bcpg-jdk18on-1.83.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "libraries-bouncy-castle-pgp-bouncy-castle-pgp",
+  jar = "@org_bouncycastle-bcpg-jdk18on-1_83_http//file",
+  source_jar = "@org_bouncycastle-bcpg-jdk18on-1_83-sources_http//file",
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "org.bouncycastle/bcpkix-jdk18on-1.83.jar_copy",
+  src = "@org_bouncycastle-bcpkix-jdk18on-1_83_http//file",
+  out = "org.bouncycastle/bcpkix-jdk18on-1.83.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "org.bouncycastle/bcutil-jdk18on-1.83.jar_copy",
+  src = "@org_bouncycastle-bcutil-jdk18on-1_83_http//file",
+  out = "org.bouncycastle/bcutil-jdk18on-1.83.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "org.bouncycastle/bcprov-jdk18on-1.83.jar_copy",
+  src = "@org_bouncycastle-bcprov-jdk18on-1_83_http//file",
+  out = "org.bouncycastle/bcprov-jdk18on-1.83.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+java_library(
+  name = "libraries-bouncy-castle-provider-bouncy-castle-provider",
+  exports = [
+    ":org_bouncycastle-bcpkix-jdk18on-1_83_http_import",
+    ":org_bouncycastle-bcutil-jdk18on-1_83_http_import",
+    ":org_bouncycastle-bcprov-jdk18on-1_83_http_import",
+  ],
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "org_bouncycastle-bcpkix-jdk18on-1_83_http_import",
+  jar = "@org_bouncycastle-bcpkix-jdk18on-1_83_http//file",
+  source_jar = "@org_bouncycastle-bcpkix-jdk18on-1_83-sources_http//file"
+)
+
+jvm_import(
+  name = "org_bouncycastle-bcutil-jdk18on-1_83_http_import",
+  jar = "@org_bouncycastle-bcutil-jdk18on-1_83_http//file",
+  source_jar = "@org_bouncycastle-bcutil-jdk18on-1_83-sources_http//file"
+)
+
+jvm_import(
+  name = "org_bouncycastle-bcprov-jdk18on-1_83_http_import",
+  jar = "@org_bouncycastle-bcprov-jdk18on-1_83_http//file",
+  source_jar = "@org_bouncycastle-bcprov-jdk18on-1_83-sources_http//file"
 )
 
 copy_file(
