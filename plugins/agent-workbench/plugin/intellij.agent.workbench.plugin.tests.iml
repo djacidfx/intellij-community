@@ -14,9 +14,7 @@
           </stringArguments>
           <arrayArguments>
             <arrayArg name="pluginClasspaths">
-              <args>
-                <arg>$KOTLIN_BUNDLED$/lib/kotlinx-serialization-compiler-plugin.jar</arg>
-              </args>
+              <args>$KOTLIN_BUNDLED$/lib/kotlinx-serialization-compiler-plugin.jar</args>
             </arrayArg>
           </arrayArguments>
         </compilerArguments>
@@ -41,6 +39,7 @@
     <orderEntry type="module" module-name="intellij.agent.workbench.prompt.vcs" scope="RUNTIME" />
     <orderEntry type="module" module-name="intellij.agent.workbench.prompt.testrunner" scope="RUNTIME" />
     <orderEntry type="module" module-name="intellij.agent.workbench.sessions" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.agent.workbench.vcs.merge" scope="RUNTIME" />
     <orderEntry type="module" module-name="intellij.agent.workbench.sessions.actions" scope="RUNTIME" />
     <orderEntry type="module" module-name="intellij.agent.workbench.sessions.toolwindow" scope="RUNTIME" />
     <orderEntry type="module" module-name="intellij.agent.workbench.codex.sessions" scope="RUNTIME" />
@@ -58,6 +57,7 @@
     <orderEntry type="module" module-name="intellij.agent.workbench.prompt.vcs.tests" scope="TEST" />
     <orderEntry type="module" module-name="intellij.agent.workbench.prompt.testrunner.tests" scope="TEST" />
     <orderEntry type="module" module-name="intellij.agent.workbench.sessions.tests" scope="TEST" />
+    <orderEntry type="module" module-name="intellij.agent.workbench.vcs.merge.tests" scope="TEST" />
     <orderEntry type="module" module-name="intellij.agent.workbench.sessions.actions.tests" scope="TEST" />
     <orderEntry type="module" module-name="intellij.agent.workbench.sessions.toolwindow.tests" scope="TEST" />
     <orderEntry type="module" module-name="intellij.agent.workbench.sessions.launch.config.backend.tests" scope="TEST" />

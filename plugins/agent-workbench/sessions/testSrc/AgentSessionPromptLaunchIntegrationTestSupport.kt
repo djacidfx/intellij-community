@@ -17,6 +17,10 @@ import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProvider
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionTerminalLaunchSpec
 import com.intellij.agent.workbench.sessions.core.providers.InMemoryAgentSessionProviderRegistry
 import com.intellij.agent.workbench.sessions.service.AgentSessionChatOpenExecutor
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.ProjectManager
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.testFramework.LightVirtualFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
@@ -196,6 +200,8 @@ internal class RecordingChatOpenExecutor(
     launchSpec: AgentSessionTerminalLaunchSpec,
     initialMessageDispatchPlan: AgentInitialMessageDispatchPlan,
     preferredDedicatedFrame: Boolean?,
+    openedChatHandler: (suspend (Project, VirtualFile) -> Unit)?,
+    threadTitle: String?,
   ) {
     val request = OpenNewChatRequest(
       normalizedPath = normalizedPath,
@@ -209,6 +215,7 @@ internal class RecordingChatOpenExecutor(
     val callIndex = openNewChatCalls.incrementAndGet()
     lastOpenNewChatRequest.set(request)
     onOpenNewChat?.invoke(request, callIndex)
+    openedChatHandler?.invoke(ProjectManager.getInstance().defaultProject, LightVirtualFile("opened-chat-$callIndex"))
   }
 }
 

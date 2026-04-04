@@ -156,7 +156,7 @@ suspend fun openChat(
   pendingFirstInputAtMs: Long? = null,
   pendingLaunchMode: String? = null,
   initialMessageDispatchPlan: AgentInitialMessageDispatchPlan = AgentInitialMessageDispatchPlan.EMPTY,
-) {
+): VirtualFile {
   val manager = FileEditorManagerEx.getInstanceExAsync(project)
 
   val tabKey = AgentChatTabKey.fromIdentity(
@@ -265,6 +265,8 @@ suspend fun openChat(
   if (pendingProvider != null && AgentSessionProviders.find(pendingProvider)?.emitsScopedRefreshSignals == true) {
     notifyAgentChatTerminalOutputForRefresh(provider = pendingProvider, projectPath = projectPath)
   }
+
+  return file
 }
 
 @Suppress("unused")

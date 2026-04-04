@@ -24,7 +24,8 @@ import it.unimi.dsi.fastutil.ints.IntArrayList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-internal class MergeConflictIterativeDataHolder(
+@org.jetbrains.annotations.ApiStatus.Internal
+class MergeConflictIterativeDataHolder(
   private val project: Project?,
   parentDisposable: Disposable,
 ) : Disposable {
@@ -86,6 +87,28 @@ internal class MergeConflictIterativeDataHolder(
     }
 
   @RequiresEdt
+  fun getAiFileSnapshot(file: VirtualFile): MergeConflictAiFileSnapshot? {
+    val model = mergeConflictModels[file] ?: return null
+    val changes = model.getAllChanges()
+    return MergeConflictAiFileSnapshot(
+      totalConflicts = changes.size,
+      resolvedConflicts = changes.count { it.isResolved },
+      unresolvedConflicts = changes.count { !it.isResolved },
+    )
+  }
+
+  @RequiresEdt
+  fun resolveAutoResolvableConflicts(file: VirtualFile): Boolean {
+    val model = mergeConflictModels[file] ?: return false
+    if (model.getAutoResolvableChanges().isEmpty()) return false
+
+    runWriteAction {
+      model.resolveAllChangesAutomatically()
+    }
+    return true
+  }
+
+  @RequiresEdt
   override fun dispose() {
     mergeConflictModels.values.forEach {
       Disposer.dispose(it)
@@ -99,4 +122,12 @@ internal class MergeConflictIterativeDataHolder(
       is MergeRequestHandler.UserConfiguredExternalToolHandler, is MergeRequestHandler.ExtensionBasedHandler -> false
     }
   }
+
 }
+
+@org.jetbrains.annotations.ApiStatus.Internal
+data class MergeConflictAiFileSnapshot(
+  @JvmField val totalConflicts: Int,
+  @JvmField val resolvedConflicts: Int,
+  @JvmField val unresolvedConflicts: Int,
+)

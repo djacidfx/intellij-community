@@ -104,11 +104,13 @@ Canonical command mapping is owned by `spec/agent-core-contracts.spec.md`.
 - Swing row popup implementation must use IntelliJ action-system popup infrastructure; no Compose popup code is allowed.
   [@test] ../../sessions-toolwindow/testSrc/AgentSessionsToolWindowFactorySwingTest.kt
 
-- Service entry point must be `AgentSessionLaunchService.createNewSession(path, provider, mode, currentProject)`.
+- Service entry point must be `AgentSessionLaunchService.createNewSession(...)`.
   [@test] ../../sessions-toolwindow/testSrc/AgentSessionsSwingNewSessionActionsTest.kt
 
-- `createNewSession` must deduplicate in-flight actions by normalized `path + provider + mode` using single-flight `DROP` semantics.
-  [@test] ../../sessions/testSrc/AgentSessionRefreshCoordinatorTest.kt
+- `createNewSession` must deduplicate semantically identical in-flight actions using single-flight `DROP` semantics.
+- Default new-thread launches deduplicate by normalized `path + provider + mode`.
+- Specialized callers may append a launch discriminator when distinct concurrent sessions in the same project/provider/mode must not be coalesced.
+  [@test] ../../sessions/testSrc/AgentSessionPromptLauncherBridgeTest.kt
 
 - `createNewSession` must set `lastUsedProvider` to selected provider before opening chat.
   [@test] ../../sessions/testSrc/AgentSessionRefreshCoordinatorTest.kt

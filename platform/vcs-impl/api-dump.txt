@@ -3247,6 +3247,7 @@ c:com.intellij.openapi.vcs.merge.MultipleFileMergeDialog
 - p:getDimensionServiceKey():java.lang.String
 - getPreferredFocusedComponent():javax.swing.JComponent
 - f:getProcessedFiles():java.util.List
+- f:handoffToAgent():V
 a:com.intellij.openapi.vcs.roots.VcsIntegrationEnabler
 - pf:myProject:com.intellij.openapi.project.Project
 - p:<init>(com.intellij.openapi.vcs.AbstractVcs):V

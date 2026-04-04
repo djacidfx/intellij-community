@@ -16,7 +16,6 @@ import com.intellij.agent.workbench.sessions.actions.AgentSessionsGoToSourceProj
 import com.intellij.agent.workbench.sessions.actions.AgentSessionsSelectThreadInToolWindowAction
 import com.intellij.agent.workbench.sessions.actions.buildQuickStartProjectPopupGroup
 import com.intellij.agent.workbench.sessions.actions.collectProjectPathCandidates
-import com.intellij.agent.workbench.sessions.actions.providerIcon
 import com.intellij.agent.workbench.sessions.actions.resolveQuickStartProjectPopupAnchor
 import com.intellij.agent.workbench.sessions.core.SessionActionTarget
 import com.intellij.agent.workbench.sessions.core.statistics.AgentWorkbenchEntryPoint

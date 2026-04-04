@@ -15,6 +15,6 @@ internal fun providerDisplayName(provider: AgentSessionProvider): @NlsSafe Strin
     .getOrDefault(bridge.displayNameFallback)
 }
 
-internal fun providerIcon(provider: AgentSessionProvider): Icon? {
+fun providerIcon(provider: AgentSessionProvider): Icon? {
   return AgentSessionProviders.find(provider)?.icon
 }

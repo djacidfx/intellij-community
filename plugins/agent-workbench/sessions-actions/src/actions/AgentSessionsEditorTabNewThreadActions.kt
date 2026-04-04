@@ -12,6 +12,7 @@ import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProvider
 import com.intellij.agent.workbench.sessions.core.providers.hasEntries
 import com.intellij.agent.workbench.sessions.core.statistics.AgentWorkbenchEntryPoint
 import com.intellij.agent.workbench.sessions.frame.AgentWorkbenchDedicatedFrameProjectManager
+import com.intellij.agent.workbench.sessions.providerIconWithMode
 import com.intellij.agent.workbench.sessions.service.buildAgentSessionProjectPathCandidates
 import com.intellij.agent.workbench.sessions.service.collectOpenAgentSessionProjectPaths
 import com.intellij.agent.workbench.sessions.state.AgentSessionUiPreferencesStateService

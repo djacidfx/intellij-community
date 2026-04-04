@@ -14,9 +14,9 @@ import com.intellij.diff.statistics.MergeAction
 import com.intellij.diff.statistics.MergeStatisticsCollector
 import com.intellij.diff.util.DiffUtil
 import com.intellij.diff.util.Side
-import com.intellij.ide.DataManager
 import com.intellij.ide.util.treeView.TreeState
 import com.intellij.openapi.actionSystem.PlatformDataKeys
+import com.intellij.openapi.actionSystem.UiDataProvider
 import com.intellij.openapi.application.UI
 import com.intellij.openapi.application.UiWithModelAccess
 import com.intellij.openapi.application.writeAction
@@ -74,6 +74,7 @@ import com.intellij.util.ui.tree.TreeUtil
 import com.intellij.vcsUtil.VcsUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.jetbrains.annotations.ApiStatus.Internal
 import org.jetbrains.annotations.Nls
 import org.jetbrains.annotations.NonNls
 import java.awt.event.ComponentAdapter
@@ -116,15 +117,10 @@ open class MultipleFileMergeDialog(
         return true
       }
     }.installOn(this)
-  }.also { table ->
-    TableSpeedSearch.installOn(table, Convertor { (it as? VirtualFile)?.name })
-
-    DataManager.registerDataProvider(table) { dataId ->
-      when {
-        PlatformDataKeys.TREE_EXPANDER.`is`(dataId) -> DefaultTreeTableExpander(table)
-        else -> null
-      }
-    }
+    TableSpeedSearch.installOn(this, Convertor { (it as? VirtualFile)?.name })
+  }
+  private val tableComponent = UiDataProvider.wrapComponent(table) { sink ->
+    sink[PlatformDataKeys.TREE_EXPANDER] = DefaultTreeTableExpander(table)
   }
 
   private var groupByDirectory: Boolean = false
@@ -144,23 +140,25 @@ open class MultipleFileMergeDialog(
 
   private val mergeFlowDelegate: MergeFlowDelegate = if (project != null && iterativeDataHolder != null) IterativeMergeFlowDelegate(
     project = project,
+    iterativeDataHolder = iterativeDataHolder,
     table = table,
+    tableComponent = tableComponent,
     columnNames = columns.map { it.name },
-    files = files,
     mergeDialogCustomizer = mergeDialogCustomizer,
     rootPane = rootPane,
+    files = files,
     onClose = ::doCancelAction,
     acceptForResolution = ::acceptForResolution,
     showMergeDialog = ::showMergeDialog,
     toggleGroupByDirectory = ::toggleGroupByDirectory,
     getGroupByDirectory = { groupByDirectory },
-    iterativeDataHolder = iterativeDataHolder,
     resolveAutomatically = { resolveAutomatically(project, iterativeDataHolder) },
-    updateTable = ::updateModelFromFiles
+    updateTable = ::updateModelFromFiles,
+    getMergeDialogContext = { createMergeDialogContext(closeDialogForAgentHandoff = ::handoffToAgent) }
   )
   else OneShotMergeFlowDelegate(
     project = project,
-    table = table,
+    tableComponent = tableComponent,
     files = files,
     mergeDialogCustomizer = mergeDialogCustomizer,
     rootPane = rootPane,
@@ -449,6 +447,12 @@ open class MultipleFileMergeDialog(
     super.doCancelAction()
   }
 
+  @RequiresEdt
+  fun handoffToAgent() {
+    finishResolution()
+    super.doCancelAction()
+  }
+
   private fun finishResolution() {
     val iterativelyResolved = iterativeDataHolder?.getResolvedFiles() ?: return
     iterativelyResolved.forEach { file ->
@@ -532,6 +536,20 @@ open class MultipleFileMergeDialog(
 
   private fun getUnresolvedFiles(): List<VirtualFile> = unresolvedFiles - getResolvedFiles()
   private fun getResolvedFiles(): Set<VirtualFile> = (iterativeDataHolder?.getResolvedFiles() ?: emptySet())
+
+  @RequiresEdt
+  @Internal
+  fun createMergeDialogContext(closeDialogForAgentHandoff: (() -> Unit)? = null): MergeDialogContext? {
+    val project = project ?: return null
+    return MergeDialogContext(
+      project = project,
+      mergeProvider = mergeProvider,
+      mergeDialogCustomizer = mergeDialogCustomizer,
+      getUnresolvedFiles = ::getUnresolvedFiles,
+      isModalDialogProvider = ::isModal,
+      closeDialogForAgentHandoffHandler = closeDialogForAgentHandoff,
+    )
+  }
 
   @RequiresEdt
   private fun runWithErrorHandling(block: () -> Unit) {

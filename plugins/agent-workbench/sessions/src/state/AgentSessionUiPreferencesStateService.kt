@@ -32,6 +32,15 @@ class AgentSessionUiPreferencesStateService
     return state.launchMode
   }
 
+  fun getLastUsedVcsMergeProvider(): AgentSessionProvider? {
+    val id = state.lastUsedVcsMergeProvider ?: return null
+    return AgentSessionProvider.fromOrNull(id)
+  }
+
+  fun getLastUsedVcsMergeLaunchMode(): AgentSessionLaunchMode? {
+    return state.lastUsedVcsMergeLaunchMode
+  }
+
   fun setLastUsedProvider(provider: AgentSessionProvider) {
     if (state.lastUsedProvider == provider.value) {
       _lastUsedProviderFlow.value = provider
@@ -82,6 +91,18 @@ class AgentSessionUiPreferencesStateService
     ))
   }
 
+  fun updateVcsMergeProviderPreferencesOnLaunch(
+    provider: AgentSessionProvider,
+    launchMode: AgentSessionLaunchMode,
+  ) {
+    updateState { current ->
+      current.copy(
+        lastUsedVcsMergeProvider = provider.value,
+        lastUsedVcsMergeLaunchMode = launchMode,
+      )
+    }
+  }
+
   override fun loadState(state: UiPreferencesState) {
     super.loadState(state)
     _lastUsedProviderFlow.value = state.lastUsedProvider?.let(AgentSessionProvider::fromOrNull)
@@ -92,5 +113,7 @@ class AgentSessionUiPreferencesStateService
     @JvmField val lastUsedProvider: String? = null,
     @JvmField val launchMode: AgentSessionLaunchMode? = null,
     @JvmField val providerOptionsByProviderId: Map<String, Set<String>> = emptyMap(),
+    @JvmField val lastUsedVcsMergeProvider: String? = null,
+    @JvmField val lastUsedVcsMergeLaunchMode: AgentSessionLaunchMode? = null,
   )
 }
