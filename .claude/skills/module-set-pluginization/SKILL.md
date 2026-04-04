@@ -55,7 +55,7 @@ bazel run //platform/buildScripts:plugin-model-tool
 
 ## Verification
 
-- Run `get_file_problems(errorsOnly=false)` on every changed Kotlin source and test file.
+- Run `lint_files()` on every changed Kotlin source and test file.
 - Run `AllProductsPackagingTest` first via `mcp__ijproxy__execute_run_configuration` with `configurationName = "AllProductsPackagingTest"`.
 - Run the `Fast Project Structure Tests` run configuration via `mcp__ijproxy__execute_run_configuration` with `configurationName = "Fast Project Structure Tests"`.
 - Run `UltimateProjectTestsStructureTest` after that via `mcp__ijproxy__execute_run_configuration` with `configurationName = "UltimateProjectTestsStructureTest"`.
