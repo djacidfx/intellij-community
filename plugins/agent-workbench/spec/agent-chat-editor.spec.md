@@ -100,6 +100,8 @@ Define how Agent chat tabs are opened, restored, reused, and rendered in editor 
   [@test] ../chat/testSrc/AgentChatEditorServiceTest.kt
 
 - Pending Codex tabs must capture first user-input timestamp once (on first terminal key event) and persist it for later rebind matching.
+- After the first pending Codex key event, chat must emit an immediate scoped refresh for the tab path and keep a bounded pending-only scoped refresh retry loop active until the tab rebinds, the tab closes, or the pending rebind window expires.
+- Restored pending Codex tabs with persisted first-input metadata must resume the same bounded scoped refresh retries on initialization.
   [@test] ../chat/testSrc/AgentChatEditorServiceTest.kt
 
 - Concrete top-level Codex tabs must detect execution of exact terminal command `/new`, persist a single rebind anchor timestamp (`newThreadRebindRequestedAtMs`), and request scoped refresh for the tab path.

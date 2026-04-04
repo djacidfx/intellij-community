@@ -2,6 +2,9 @@
 package com.intellij.agent.workbench.chat
 
 import com.intellij.agent.workbench.common.AgentThreadActivity
+import com.intellij.agent.workbench.common.buildAgentThreadIdentity
+import com.intellij.agent.workbench.common.session.AgentSessionProvider
+import com.intellij.agent.workbench.sessions.core.AgentSessionThreadRebindPolicy
 import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessageDispatchCompletionPolicy
 import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessageDispatchStep
 import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessageTimeoutPolicy
@@ -13,15 +16,21 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.terminal.frontend.view.TerminalKeyEvent
 import com.intellij.terminal.frontend.view.TerminalViewSessionState
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.launch
 import org.assertj.core.api.Assertions.assertThat
+import org.jetbrains.plugins.terminal.view.TerminalOffset
 import org.junit.jupiter.api.Test
 import java.awt.event.KeyEvent
+import java.lang.reflect.Constructor
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Proxy
 import java.util.concurrent.ConcurrentLinkedDeque
@@ -808,6 +817,154 @@ class AgentChatFileEditorLifecycleTest {
     "echo /new".forEach { tracker.record(keyTyped(it)) }
     assertThat(tracker.record(keyPressed(KeyEvent.VK_ENTER))).isEqualTo("echo /new")
   }
+
+  @Test
+  fun pendingCodexFirstInputPersistsMetadataAndRetriesScopedRefresh() {
+    val terminalTabs = FakeAgentChatTerminalTabs()
+    val snapshotWriter = RecordingSnapshotWriter()
+    val signalCollector = CodexScopedRefreshSignalCollector()
+    val file = pendingTestFile()
+    val editor = testEditor(
+      file = file,
+      terminalTabs = terminalTabs,
+      snapshotWriter = snapshotWriter,
+      pendingScopedRefreshRetryIntervalMs = 25L,
+    )
+
+    try {
+      editor.selectNotify()
+      terminalTabs.tab.emitKeyEvent(keyTyped('a'))
+
+      waitForCondition {
+        file.pendingFirstInputAtMs != null &&
+        snapshotWriter.snapshots.lastOrNull()?.runtime?.pendingFirstInputAtMs == file.pendingFirstInputAtMs &&
+        signalCollector.codexSignals.size >= 2
+      }
+
+      assertThat(signalCollector.codexSignals.map { it.single() }).containsOnly(file.projectPath)
+    }
+    finally {
+      signalCollector.dispose()
+      Disposer.dispose(editor)
+    }
+  }
+
+  @Test
+  fun restoredPendingCodexTabResumesScopedRefreshRetriesOnInitialization() {
+    val terminalTabs = FakeAgentChatTerminalTabs()
+    val signalCollector = CodexScopedRefreshSignalCollector()
+    val pendingFirstInputAtMs = System.currentTimeMillis() - 100L
+    val file = pendingTestFile(pendingFirstInputAtMs = pendingFirstInputAtMs)
+    val editor = testEditor(
+      file = file,
+      terminalTabs = terminalTabs,
+      pendingScopedRefreshRetryIntervalMs = 25L,
+    )
+
+    try {
+      editor.selectNotify()
+
+      waitForCondition {
+        signalCollector.codexSignals.size >= 2
+      }
+
+      assertThat(file.pendingFirstInputAtMs).isEqualTo(pendingFirstInputAtMs)
+      assertThat(signalCollector.codexSignals.map { it.single() }).containsOnly(file.projectPath)
+    }
+    finally {
+      signalCollector.dispose()
+      Disposer.dispose(editor)
+    }
+  }
+
+  @Test
+  fun pendingCodexScopedRefreshRetriesStopAfterRebind() {
+    val terminalTabs = FakeAgentChatTerminalTabs()
+    val signalCollector = CodexScopedRefreshSignalCollector()
+    val file = pendingTestFile()
+    val editor = testEditor(
+      file = file,
+      terminalTabs = terminalTabs,
+      pendingScopedRefreshRetryIntervalMs = 100L,
+    )
+
+    try {
+      editor.selectNotify()
+      terminalTabs.tab.emitKeyEvent(keyTyped('b'))
+      waitForCondition { signalCollector.codexSignals.isNotEmpty() }
+
+      file.rebindPendingThread(
+        threadIdentity = buildAgentThreadIdentity(AgentSessionProvider.CODEX.value, "thread-42"),
+        shellCommand = listOf("codex", "resume", "thread-42"),
+        shellEnvVariables = emptyMap(),
+        threadId = "thread-42",
+        threadTitle = "Recovered thread",
+        threadActivity = AgentThreadActivity.READY,
+      )
+
+      val signalCountAfterRebind = signalCollector.codexSignals.size
+      Thread.sleep(180)
+
+      assertThat(file.isPendingThread).isFalse()
+      assertThat(signalCollector.codexSignals).hasSize(signalCountAfterRebind)
+    }
+    finally {
+      signalCollector.dispose()
+      Disposer.dispose(editor)
+    }
+  }
+
+  @Test
+  fun stalePendingCodexTabDoesNotResumeScopedRefreshRetries() {
+    val terminalTabs = FakeAgentChatTerminalTabs()
+    val signalCollector = CodexScopedRefreshSignalCollector()
+    val file = pendingTestFile(
+      pendingFirstInputAtMs = System.currentTimeMillis() - AgentSessionThreadRebindPolicy.PENDING_THREAD_MATCH_POST_WINDOW_MS - 1L,
+    )
+    val editor = testEditor(
+      file = file,
+      terminalTabs = terminalTabs,
+      pendingScopedRefreshRetryIntervalMs = 25L,
+    )
+
+    try {
+      editor.selectNotify()
+      Thread.sleep(120)
+
+      assertThat(signalCollector.codexSignals).isEmpty()
+    }
+    finally {
+      signalCollector.dispose()
+      Disposer.dispose(editor)
+    }
+  }
+
+  @Test
+  fun pendingClaudeTabDoesNotStartCodexScopedRefreshRetries() {
+    val terminalTabs = FakeAgentChatTerminalTabs()
+    val signalCollector = CodexScopedRefreshSignalCollector()
+    val file = pendingTestFile(
+      provider = AgentSessionProvider.CLAUDE,
+      pendingFirstInputAtMs = System.currentTimeMillis() - 100L,
+    )
+    val editor = testEditor(
+      file = file,
+      terminalTabs = terminalTabs,
+      pendingScopedRefreshRetryIntervalMs = 25L,
+    )
+
+    try {
+      editor.selectNotify()
+      terminalTabs.tab.emitKeyEvent(keyTyped('c'))
+      Thread.sleep(120)
+
+      assertThat(signalCollector.codexSignals).isEmpty()
+    }
+    finally {
+      signalCollector.dispose()
+      Disposer.dispose(editor)
+    }
+  }
 }
 
 private class FakeAgentChatTerminalTabs : AgentChatTerminalTabs {
@@ -833,8 +990,9 @@ private class FakeAgentChatTerminalTab : AgentChatTerminalTab {
     override val coroutineContext = Job()
   }
   private val mutableSessionState: MutableStateFlow<TerminalViewSessionState> = MutableStateFlow(TerminalViewSessionState.NotStarted)
+  private val mutableKeyEventsFlow: MutableSharedFlow<TerminalKeyEvent> = MutableSharedFlow(replay = 1, extraBufferCapacity = 16)
   override val sessionState: StateFlow<TerminalViewSessionState> = mutableSessionState
-  override val keyEventsFlow: Flow<TerminalKeyEvent> = emptyFlow()
+  override val keyEventsFlow: Flow<TerminalKeyEvent> = mutableKeyEventsFlow.asSharedFlow()
   @Volatile var readinessResult: AgentChatTerminalInputReadiness = AgentChatTerminalInputReadiness.READY
   @Volatile private var recentOutputTail: String = ""
   private val postSendOutputQueue: ConcurrentLinkedDeque<PostSendOutput> = ConcurrentLinkedDeque()
@@ -863,6 +1021,10 @@ private class FakeAgentChatTerminalTab : AgentChatTerminalTab {
 
   fun setSessionState(state: TerminalViewSessionState) {
     mutableSessionState.value = state
+  }
+
+  fun emitKeyEvent(awtEvent: KeyEvent) {
+    mutableKeyEventsFlow.tryEmit(terminalKeyEvent(awtEvent))
   }
 
   override suspend fun captureOutputCheckpoint(): AgentChatTerminalOutputCheckpoint {
@@ -1018,16 +1180,34 @@ private fun testFile(
   )
 }
 
+private fun pendingTestFile(
+  provider: AgentSessionProvider = AgentSessionProvider.CODEX,
+  pendingFirstInputAtMs: Long? = null,
+): AgentChatVirtualFile {
+  return testFile(
+    threadIdentity = buildAgentThreadIdentity(provider.value, "new-thread"),
+    shellCommand = listOf(provider.value),
+  ).also { file ->
+    file.updatePendingMetadata(
+      pendingCreatedAtMs = System.currentTimeMillis() - 1_000L,
+      pendingFirstInputAtMs = pendingFirstInputAtMs,
+      pendingLaunchMode = "standard",
+    )
+  }
+}
+
 private fun testEditor(
   file: AgentChatVirtualFile = testFile(),
   terminalTabs: AgentChatTerminalTabs = FakeAgentChatTerminalTabs(),
   snapshotWriter: AgentChatTabSnapshotWriter = AgentChatTabSnapshotWriter { },
+  pendingScopedRefreshRetryIntervalMs: Long = AgentSessionThreadRebindPolicy.PENDING_THREAD_REFRESH_RETRY_INTERVAL_MS,
 ): AgentChatFileEditor {
   return AgentChatFileEditor(
     project = testProject(),
     file = file,
     terminalTabs = terminalTabs,
     tabSnapshotWriter = snapshotWriter,
+    pendingScopedRefreshRetryIntervalMs = pendingScopedRefreshRetryIntervalMs,
   )
 }
 
@@ -1056,6 +1236,21 @@ private class RecordingSnapshotWriter : AgentChatTabSnapshotWriter {
   }
 }
 
+private class CodexScopedRefreshSignalCollector {
+  val codexSignals: CopyOnWriteArrayList<Set<String>> = CopyOnWriteArrayList()
+  private val job = object : CoroutineScope {
+    override val coroutineContext = Job() + Dispatchers.Default
+  }.launch(start = CoroutineStart.UNDISPATCHED) {
+    codexScopedRefreshSignals().collect { signal ->
+      codexSignals += signal
+    }
+  }
+
+  fun dispose() {
+    job.cancel()
+  }
+}
+
 private fun testProject(): Project {
   val handler = InvocationHandler { proxy, method, args ->
     when (method.name) {
@@ -1075,6 +1270,16 @@ private fun keyTyped(keyChar: Char): KeyEvent {
 
 private fun keyPressed(keyCode: Int): KeyEvent {
   return KeyEvent(JPanel(), KeyEvent.KEY_PRESSED, 0L, 0, keyCode, KeyEvent.CHAR_UNDEFINED)
+}
+
+private fun terminalKeyEvent(awtEvent: KeyEvent): TerminalKeyEvent {
+  return TERMINAL_KEY_EVENT_CONSTRUCTOR.newInstance(awtEvent, TerminalOffset.ZERO) as TerminalKeyEvent
+}
+
+private val TERMINAL_KEY_EVENT_CONSTRUCTOR: Constructor<*> by lazy {
+  Class.forName("com.intellij.terminal.frontend.view.TerminalKeyEventImpl")
+    .getDeclaredConstructor(KeyEvent::class.java, TerminalOffset::class.java)
+    .apply { isAccessible = true }
 }
 
 private fun defaultValue(returnType: Class<*>): Any? {

@@ -5,7 +5,6 @@ import com.intellij.agent.workbench.common.session.AgentSessionProvider
 import com.intellij.ide.DataManager
 import com.intellij.ide.OccurenceNavigator
 import com.intellij.openapi.actionSystem.ActionUpdateThread
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.UI
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ScrollType
@@ -22,7 +21,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.NlsContexts.Tooltip
-import com.intellij.openapi.util.registry.RegistryManager
 import com.intellij.terminal.actions.TerminalActionUtil
 import com.intellij.terminal.frontend.view.TerminalView
 import com.intellij.terminal.frontend.view.TerminalViewSessionState
@@ -123,13 +121,7 @@ internal fun TerminalOutputModelSnapshot.lineText(line: TerminalLineIndex): Stri
 }
 
 internal fun shouldInstallAgentChatSemanticRegionNavigation(provider: AgentSessionProvider?): Boolean {
-  if (resolveAgentChatSemanticRegionDetector(provider) == null) {
-    return false
-  }
-  if (ApplicationManager.getApplication() == null) {
-    return false
-  }
-  return RegistryManager.getInstance().`is`(AGENT_CHAT_PROPOSED_PLAN_NAVIGATION_REGISTRY_KEY)
+  return resolveAgentChatProviderBehavior(provider).shouldInstallSemanticRegionNavigation()
 }
 
 internal fun resolveSelectedAgentChatFileEditor(project: Project): AgentChatFileEditor? {
@@ -137,10 +129,7 @@ internal fun resolveSelectedAgentChatFileEditor(project: Project): AgentChatFile
 }
 
 internal fun resolveAgentChatSemanticRegionDetector(provider: AgentSessionProvider?): AgentChatSemanticRegionDetector? {
-  return when (provider) {
-    AgentSessionProvider.CODEX -> CodexSemanticRegionDetector
-    else -> null
-  }
+  return resolveAgentChatProviderBehavior(provider).semanticRegionDetector
 }
 
 internal enum class AgentChatSemanticRegionKind {
@@ -167,12 +156,16 @@ internal fun interface AgentChatSemanticRegionDetector {
   fun detect(snapshot: TerminalOutputModelSnapshot): List<AgentChatSemanticRegion>
 }
 
+internal interface AgentChatDisposableController {
+  fun dispose()
+}
+
 internal class AgentChatSemanticRegionController(
   private val terminalView: TerminalView,
   private val sessionState: StateFlow<TerminalViewSessionState>,
   private val detector: AgentChatSemanticRegionDetector,
   parentScope: CoroutineScope,
-) {
+) : AgentChatDisposableController {
   private val state = AgentChatSemanticRegionState()
   private val navigator = AgentChatSemanticRegionNavigator { state }
   private val rebuildJob: Job
@@ -232,7 +225,7 @@ internal class AgentChatSemanticRegionController(
     } != null
   }
 
-  fun dispose() {
+  override fun dispose() {
     rebuildJob.cancel()
     activeModelJob.cancel()
     terminationJob.cancel()
@@ -416,7 +409,7 @@ internal class AgentChatSemanticRegionNavigator(
   override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
 }
 
-private object CodexSemanticRegionDetector : AgentChatSemanticRegionDetector {
+internal object CodexSemanticRegionDetector : AgentChatSemanticRegionDetector {
   override fun detect(snapshot: TerminalOutputModelSnapshot): List<AgentChatSemanticRegion> {
     if (snapshot.lineCount == 0) {
       return emptyList()

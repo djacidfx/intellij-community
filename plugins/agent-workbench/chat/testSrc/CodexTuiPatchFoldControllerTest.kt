@@ -144,9 +144,9 @@ class CodexTuiPatchFoldControllerTest {
   @Test
   @RegistryKey(key = CODEX_TUI_PATCH_FOLDING_REGISTRY_KEY, value = "true")
   fun installCheckHonorsRegistryKey() {
-    assertThat(shouldInstallCodexTuiPatchFolding(AgentSessionProvider.CODEX)).isTrue()
-    assertThat(shouldInstallCodexTuiPatchFolding(AgentSessionProvider.CLAUDE)).isFalse()
-    assertThat(shouldInstallCodexTuiPatchFolding(null)).isFalse()
+    assertThat(shouldInstallAgentChatPatchFolding(AgentSessionProvider.CODEX)).isTrue()
+    assertThat(shouldInstallAgentChatPatchFolding(AgentSessionProvider.CLAUDE)).isFalse()
+    assertThat(shouldInstallAgentChatPatchFolding(null)).isFalse()
   }
 }
 

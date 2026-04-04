@@ -1372,6 +1372,93 @@ class AgentSessionRefreshCoordinatorTest {
   }
 
   @Test
+  fun pendingCodexScopedRefreshRebindsWhenConcreteThreadAppearsOnLaterRefresh() = runBlocking(Dispatchers.Default) {
+    val closedRefreshInvocations = AtomicInteger(0)
+    val rebindInvocations = mutableListOf<PendingCodexRebindInvocation>()
+    val scopedRefreshSignals = MutableSharedFlow<Set<String>>(replay = 1, extraBufferCapacity = 1)
+    val pendingFirstInputAtMs = System.currentTimeMillis() - 1_000L
+
+    val source = ScriptedSessionSource(
+      provider = AgentSessionProvider.CODEX,
+      supportsUpdates = false,
+      listFromClosedProject = { path ->
+        if (path != PROJECT_PATH) {
+          emptyList()
+        }
+        else {
+          when (closedRefreshInvocations.incrementAndGet()) {
+            1 -> emptyList()
+            else -> listOf(
+              thread(
+                id = "codex-resolved-later",
+                updatedAt = pendingFirstInputAtMs + 200L,
+                title = "Resolved later",
+                provider = AgentSessionProvider.CODEX,
+              )
+            )
+          }
+        }
+      },
+    )
+
+    withLoadingCoordinator(
+      sessionSourcesProvider = { listOf(source) },
+      isRefreshGateActive = { true },
+      openChatPathsProvider = { setOf(PROJECT_PATH) },
+      codexScopedRefreshSignalsProvider = { scopedRefreshSignals },
+      openPendingCodexTabsProvider = {
+        mapOf(
+          PROJECT_PATH to listOf(
+            pendingCodexTab(
+              pendingThreadIdentity = "codex:new-retry",
+              pendingCreatedAtMs = pendingFirstInputAtMs - 100L,
+              pendingFirstInputAtMs = pendingFirstInputAtMs,
+              pendingLaunchMode = "standard",
+            )
+          )
+        )
+      },
+      openChatPendingTabsBinder = { requestsByPath ->
+        requestsByPath.forEach { (path, requests) ->
+          requests.forEach { request ->
+            rebindInvocations.add(
+              PendingCodexRebindInvocation(
+                path = path,
+                pendingTabKey = request.pendingTabKey,
+                pendingThreadIdentity = request.pendingThreadIdentity,
+                target = request.target,
+              )
+            )
+          }
+        }
+        successfulPendingCodexRebindReport(requestsByPath)
+      },
+    ) { coordinator, _ ->
+      coordinator.observeSessionSourceUpdates()
+      scopedRefreshSignals.tryEmit(setOf(PROJECT_PATH))
+
+      waitForCondition {
+        closedRefreshInvocations.get() >= 1
+      }
+      delay(150.milliseconds)
+
+      assertThat(rebindInvocations).isEmpty()
+
+      scopedRefreshSignals.tryEmit(setOf(PROJECT_PATH))
+
+      waitForCondition {
+        closedRefreshInvocations.get() >= 2 && rebindInvocations.isNotEmpty()
+      }
+
+      val invocation = rebindInvocations.single()
+      assertThat(invocation.pendingThreadIdentity).isEqualTo("codex:new-retry")
+      assertThat(invocation.target.threadIdentity)
+        .isEqualTo(buildAgentSessionIdentity(AgentSessionProvider.CODEX, "codex-resolved-later"))
+      assertThat(invocation.target.threadTitle).isEqualTo("Resolved later")
+    }
+  }
+
+  @Test
   fun pendingCodexScopedRefreshWithoutKnownBaselineDoesNotRebindStaleCreateFlowTabs() = runBlocking(Dispatchers.Default) {
     val closedRefreshInvocations = AtomicInteger(0)
     val binderInvocations = AtomicInteger(0)

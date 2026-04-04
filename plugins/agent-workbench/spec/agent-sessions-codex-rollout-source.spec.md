@@ -52,6 +52,7 @@ Define Codex thread-list behavior where discovery and primary status projection 
   [@test] ../codex/sessions/testSrc/CodexAppServerSessionBackendTest.kt
 
 - Pending Codex chat tabs must trigger pending-only polling refresh to rebind pending identities when source update notifications are unavailable.
+  The fallback must be driven by bounded chat-editor scoped refresh retries for pending tabs, not by rollout watcher polling.
   [@test] ../sessions/testSrc/AgentSessionRefreshCoordinatorTest.kt
 
 - Rollout backend scan scope must be limited to `~/.codex/sessions/**/rollout-*.jsonl`.

@@ -1,7 +1,6 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.agent.workbench.chat
 
-import com.intellij.agent.workbench.common.session.AgentSessionProvider
 import com.intellij.openapi.application.UI
 import com.intellij.openapi.editor.CustomFoldRegion
 import com.intellij.openapi.editor.Editor
@@ -10,7 +9,6 @@ import com.intellij.openapi.editor.event.EditorMouseEvent
 import com.intellij.openapi.editor.event.EditorMouseListener
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
-import com.intellij.openapi.util.registry.RegistryManager
 import com.intellij.terminal.frontend.view.TerminalView
 import com.intellij.terminal.frontend.view.TerminalViewSessionState
 import com.intellij.terminal.frontend.view.activeOutputModel
@@ -30,15 +28,11 @@ import kotlin.time.Duration.Companion.milliseconds
 
 internal const val CODEX_TUI_PATCH_FOLDING_REGISTRY_KEY: String = "agent.workbench.codex.tui.patch.folding"
 
-internal fun shouldInstallCodexTuiPatchFolding(provider: AgentSessionProvider?): Boolean {
-  return provider == AgentSessionProvider.CODEX && RegistryManager.getInstance().`is`(CODEX_TUI_PATCH_FOLDING_REGISTRY_KEY)
-}
-
 internal class CodexTuiPatchFoldController(
   private val terminalView: TerminalView,
   private val sessionState: kotlinx.coroutines.flow.StateFlow<TerminalViewSessionState>,
   parentScope: CoroutineScope,
-) {
+) : AgentChatDisposableController {
   private val foldState = CodexTuiPatchFoldState()
   private val rebuildJob: Job
   private val activeModelJob: Job
@@ -79,7 +73,7 @@ internal class CodexTuiPatchFoldController(
     }
   }
 
-  fun dispose() {
+  override fun dispose() {
     rebuildJob.cancel()
     activeModelJob.cancel()
     terminationJob.cancel()
