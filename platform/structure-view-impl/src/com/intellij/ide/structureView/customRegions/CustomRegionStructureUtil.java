@@ -1,4 +1,4 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.structureView.customRegions;
 
 import com.intellij.ide.structureView.StructureViewTreeElement;
@@ -49,12 +49,13 @@ public final class CustomRegionStructureUtil {
     });
     Collection<CustomRegionTreeElement> customRegions = collectCustomRegions(rootElement, childrenRanges);
     if (!customRegions.isEmpty()) {
-      List<StructureViewTreeElement> result = new ArrayList<>(customRegions);
+      List<StructureViewTreeElement> result = physicalElements.isEmpty() ? new ArrayList<>(customRegions) : new ArrayList<>();
       for (StructureViewTreeElement element : physicalElements) {
         ProgressManager.checkCanceled();
         boolean isInCustomRegion = false;
         for (CustomRegionTreeElement customRegion : customRegions) {
           if (customRegion.containsElement(element)) {
+            if (result.isEmpty() || result.getLast() != customRegion) result.add(customRegion);
             customRegion.addChild(element);
             isInCustomRegion = true;
             break;
