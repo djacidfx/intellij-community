@@ -609,20 +609,6 @@ http_file(
 )
 
 http_file(
-  name = "commons-codec-commons-codec-1_21_0_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/commons-codec/commons-codec/1.21.0/commons-codec-1.21.0.jar",
-  sha256 = "4da851cb6abfb98bfe9eb77c5e5fc47f5414fa28b94e21b7fd9a646705dc167f",
-  downloaded_file_path = "commons-codec-1.21.0.jar"
-)
-
-http_file(
-  name = "commons-codec-commons-codec-1_21_0-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/commons-codec/commons-codec/1.21.0/commons-codec-1.21.0-sources.jar",
-  sha256 = "4b4558c13a54afb6461ab795a95b6c349b1fada9cd785defe1f47531853247ec",
-  downloaded_file_path = "commons-codec-1.21.0-sources.jar"
-)
-
-http_file(
   name = "org_apache_commons-commons-compress-1_28_0_http",
   url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/apache/commons/commons-compress/1.28.0/commons-compress-1.28.0.jar",
   sha256 = "e1522945218456f3649a39bc4afd70ce4bd466221519dba7d378f2141a4642ca",
@@ -8607,6 +8593,20 @@ http_file(
   url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/commons-cli/commons-cli/1.11.0/commons-cli-1.11.0-sources.jar",
   sha256 = "c65b544468eafd3e1036671fb22fd9ba4c3f67c03f76298e8aaeb6943755a70b",
   downloaded_file_path = "commons-cli-1.11.0-sources.jar"
+)
+
+http_file(
+  name = "commons-codec-commons-codec-1_21_0_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/commons-codec/commons-codec/1.21.0/commons-codec-1.21.0.jar",
+  sha256 = "4da851cb6abfb98bfe9eb77c5e5fc47f5414fa28b94e21b7fd9a646705dc167f",
+  downloaded_file_path = "commons-codec-1.21.0.jar"
+)
+
+http_file(
+  name = "commons-codec-commons-codec-1_21_0-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/commons-codec/commons-codec/1.21.0/commons-codec-1.21.0-sources.jar",
+  sha256 = "4b4558c13a54afb6461ab795a95b6c349b1fada9cd785defe1f47531853247ec",
+  downloaded_file_path = "commons-codec-1.21.0-sources.jar"
 )
 
 http_file(

@@ -1025,21 +1025,6 @@ jvm_import(
 )
 
 copy_file(
-  name = "commons-codec/commons-codec-1.21.0.jar_copy",
-  src = "@commons-codec-commons-codec-1_21_0_http//file",
-  out = "commons-codec/commons-codec-1.21.0.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-jvm_import(
-  name = "commons-codec",
-  jar = "@commons-codec-commons-codec-1_21_0_http//file",
-  source_jar = "@commons-codec-commons-codec-1_21_0-sources_http//file",
-  visibility = ["//visibility:public"]
-)
-
-copy_file(
   name = "org.apache.commons/commons-compress-1.28.0.jar_copy",
   src = "@org_apache_commons-commons-compress-1_28_0_http//file",
   out = "org.apache.commons/commons-compress-1.28.0.jar",
@@ -11135,6 +11120,21 @@ jvm_import(
   name = "libraries-commons-cli-commons-cli",
   jar = "@commons-cli-commons-cli-1_11_0_http//file",
   source_jar = "@commons-cli-commons-cli-1_11_0-sources_http//file",
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "commons-codec/commons-codec-1.21.0.jar_copy",
+  src = "@commons-codec-commons-codec-1_21_0_http//file",
+  out = "commons-codec/commons-codec-1.21.0.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "libraries-commons-codec-commons-codec",
+  jar = "@commons-codec-commons-codec-1_21_0_http//file",
+  source_jar = "@commons-codec-commons-codec-1_21_0-sources_http//file",
   visibility = ["//visibility:public"]
 )
 
