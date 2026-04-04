@@ -1159,6 +1159,11 @@ public abstract class ExtractionTestGenerated extends AbstractK1ExtractionTest {
                 runTest("testData/refactoring/introduceVariable/notNullAssertion.kt");
             }
 
+            @TestMetadata("nullableIndexValue.kt")
+            public void testNullableIndexValue() throws Exception {
+                runTest("testData/refactoring/introduceVariable/nullableIndexValue.kt");
+            }
+
             @TestMetadata("OccurrencesInStringTemplate.kt")
             public void testOccurrencesInStringTemplate() throws Exception {
                 runTest("testData/refactoring/introduceVariable/OccurrencesInStringTemplate.kt");

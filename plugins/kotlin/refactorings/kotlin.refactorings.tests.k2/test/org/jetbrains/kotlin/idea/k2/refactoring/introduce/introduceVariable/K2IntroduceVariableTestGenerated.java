@@ -1157,6 +1157,11 @@ public abstract class K2IntroduceVariableTestGenerated extends AbstractK2Introdu
             runTest("../../idea/tests/testData/refactoring/introduceVariable/notNullAssertion.kt");
         }
 
+        @TestMetadata("nullableIndexValue.kt")
+        public void testNullableIndexValue() throws Exception {
+            runTest("../../idea/tests/testData/refactoring/introduceVariable/nullableIndexValue.kt");
+        }
+
         @TestMetadata("OccurrencesInStringTemplate.kt")
         public void testOccurrencesInStringTemplate() throws Exception {
             runTest("../../idea/tests/testData/refactoring/introduceVariable/OccurrencesInStringTemplate.kt");
