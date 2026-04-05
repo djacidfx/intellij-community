@@ -13,7 +13,6 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import org.jetbrains.intellij.build.productLayout.LIB_MODULE_PREFIX
 import org.jetbrains.intellij.build.productLayout.config.SuppressionConfig
 import org.jetbrains.intellij.build.productLayout.dependency.PluginContentProvider
 import org.jetbrains.intellij.build.productLayout.deps.PluginDependencyPlan
@@ -66,11 +65,7 @@ internal object PluginDependencyPlanner : PipelineNode {
       // Process all real plugins in the graph (main target present).
       // DSL-defined plugins are generated from Kotlin specs and skipped here.
       val tasks = ArrayList<Deferred<PluginDependencyPlan?>>()
-      val pluginGraphDeps = collectPluginGraphDeps(
-        graph = graph,
-        allRealProductNames = allRealProductNames,
-        libraryModuleFilter = model.config.libraryModuleFilter,
-      )
+      val pluginGraphDeps = collectPluginGraphDeps(graph = graph, allRealProductNames = allRealProductNames)
       for (graphDeps in pluginGraphDeps) {
         if (graphDeps.isDslDefined) continue
         tasks.add(async {
@@ -106,7 +101,6 @@ internal data class PluginGraphDeps(
 internal fun collectPluginGraphDeps(
   graph: PluginGraph,
   allRealProductNames: Set<String>,
-  libraryModuleFilter: (String) -> Boolean,
 ): List<PluginGraphDeps> {
   val results = ArrayList<PluginGraphDeps>()
   graph.query {
@@ -130,10 +124,6 @@ internal fun collectPluginGraphDeps(
           if (!dep.isProduction()) return@dependsOn
           when (val classification = classifyTarget(dep.targetId)) {
             is DependencyClassification.ModuleDep -> {
-              if (classification.moduleName.value.startsWith(LIB_MODULE_PREFIX) && !libraryModuleFilter(classification.moduleName.value)) {
-                filteredModuleDeps.add(classification.moduleName)
-                return@dependsOn
-              }
               if (classification.moduleName in contentModules) {
                 filteredModuleDeps.add(classification.moduleName)
                 return@dependsOn

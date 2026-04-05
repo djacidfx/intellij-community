@@ -17,7 +17,6 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import org.jetbrains.intellij.build.productLayout.LIB_MODULE_PREFIX
 import org.jetbrains.intellij.build.productLayout.config.SuppressionConfig
 import org.jetbrains.intellij.build.productLayout.debug
 import org.jetbrains.intellij.build.productLayout.dependency.ModuleDescriptorCache
@@ -110,7 +109,6 @@ internal object ContentModuleDependencyPlanner : PipelineNode {
               isTestDescriptor = isTestDescriptorModule,
               suppressionConfig = model.suppressionConfig,
               updateSuppressions = model.updateSuppressions,
-              libraryModuleFilter = model.config.libraryModuleFilter,
             )
             GenerationOutput(plan, suppressibleError)
           }
@@ -192,7 +190,6 @@ internal suspend fun planContentModuleDependenciesWithBothSets(
   isTestDescriptor: Boolean,
   suppressionConfig: SuppressionConfig,
   updateSuppressions: Boolean,
-  libraryModuleFilter: (String) -> Boolean,
 ): ContentModuleGenerationOutput {
   // Handle slash-notation modules (e.g., "intellij.restClient/intelliLang")
   // These are virtual content modules without separate JPS modules.
@@ -217,7 +214,6 @@ internal suspend fun planContentModuleDependenciesWithBothSets(
     suppressionConfig = suppressionConfig,
     updateSuppressions = updateSuppressions,
     isTestDescriptor = isTestDescriptor,
-    libraryModuleFilter = libraryModuleFilter,
   )
   return ContentModuleGenerationOutput(plan = plan, suppressibleError = prodInfo.suppressibleError)
 }
@@ -245,7 +241,6 @@ private fun buildContentModuleDependencyPlanFromInfoWithBothSets(
   suppressionConfig: SuppressionConfig,
   updateSuppressions: Boolean,
   isTestDescriptor: Boolean,
-  libraryModuleFilter: (String) -> Boolean,
 ): ContentModuleDependencyPlan {
   // Skip XML modification for modules with non-standard XML root
   if (prodInfo.suppressibleError?.category == ErrorCategory.NON_STANDARD_DESCRIPTOR_ROOT) {
@@ -292,23 +287,12 @@ private fun buildContentModuleDependencyPlanFromInfoWithBothSets(
     val module = contentModule(contentModuleName)
     isTestDescriptor || (module != null && !hasProductionContentSource(module.id))
   }
-  // Test-runtime-only modules must keep all required library dependencies.
-  // Product-level library filters target production outputs and would drop
-  // required test libraries (for example, assertj) for these modules.
-  val effectiveLibraryModuleFilter: (String) -> Boolean =
-    if (includeTestScopeForWrittenDeps) {
-      { true }
-    }
-    else {
-      libraryModuleFilter
-    }
   val prodGraphDeps = graph.query {
     computeJpsDeps(
       graph = graph,
       moduleName = contentModuleName,
       includeTestScope = includeTestScopeForWrittenDeps,
       allRealProductNames = allRealProductNames,
-      libraryModuleFilter = effectiveLibraryModuleFilter,
     )
   }
   val prodGraphModuleDeps = prodGraphDeps.moduleDeps
@@ -355,7 +339,6 @@ private fun buildContentModuleDependencyPlanFromInfoWithBothSets(
     moduleName = contentModuleName,
     includeTestScope = true,
     allRealProductNames = allRealProductNames,
-    libraryModuleFilter = effectiveLibraryModuleFilter,
   ).moduleDeps
 
   for (depModule in testGraphModuleDeps) {
@@ -532,7 +515,6 @@ private fun computeJpsDeps(
   moduleName: ContentModuleName,
   includeTestScope: Boolean,
   allRealProductNames: Set<String>,
-  libraryModuleFilter: (String) -> Boolean,
 ): JpsDeps {
   val moduleDeps = HashSet<ContentModuleName>()
   val pluginDeps = HashSet<PluginId>()
@@ -575,9 +557,6 @@ private fun computeJpsDeps(
         when (val c = classifyTarget(dep.targetId)) {
           is DependencyClassification.ModuleDep -> {
             if (c.moduleName == moduleName) {
-              return@dependsOn
-            }
-            if (c.moduleName.value.startsWith(LIB_MODULE_PREFIX) && !libraryModuleFilter(c.moduleName.value)) {
               return@dependsOn
             }
             // skip globally embedded modules for plugin-only source modules

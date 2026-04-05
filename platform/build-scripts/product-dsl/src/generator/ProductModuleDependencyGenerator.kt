@@ -73,7 +73,7 @@ internal object ProductModuleDependencyGenerator : PipelineNode {
           val suppressedModules = suppressionConfig.getSuppressedModules(contentModuleName)
 
           // Compute dependencies from graph (only content modules - those with descriptors)
-          val dependencies = computeProductModuleDeps(graph, moduleName, model.config.libraryModuleFilter).map(::ContentModuleName)
+          val dependencies = computeProductModuleDeps(graph, moduleName).map(::ContentModuleName)
           val dependencyNames = dependencies.mapTo(HashSet()) { it.value }
           val existingXmlModules = info.existingModuleDependencies.toSet()
           val existingXmlModulesAsContentModuleName = existingXmlModules.mapTo(HashSet(), ::ContentModuleName)
@@ -137,7 +137,6 @@ internal object ProductModuleDependencyGenerator : PipelineNode {
 private fun computeProductModuleDeps(
   graph: PluginGraph,
   moduleName: String,
-  libraryModuleFilter: (String) -> Boolean,
 ): List<String> {
   val deps = ArrayList<String>()
   graph.query {
@@ -150,9 +149,6 @@ private fun computeProductModuleDeps(
         is DependencyClassification.ModuleDep -> {
           val depName = c.moduleName.value
           if (depName == moduleName) {
-            return@dependsOn
-          }
-          if (depName.startsWith(LIB_MODULE_PREFIX) && !libraryModuleFilter(depName)) {
             return@dependsOn
           }
           deps.add(depName)

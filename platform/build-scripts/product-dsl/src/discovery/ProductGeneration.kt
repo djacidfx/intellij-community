@@ -92,16 +92,6 @@ data class ModuleSetGenerationConfig(
   @JvmField val pluginAllowedMissingDependencies: Map<ContentModuleName, Set<ContentModuleName>> = emptyMap(),
 
   /**
-   * Filter to control which library modules should replace library references in .iml files.
-   * When a library is exported by a library module (e.g., Guava exported by intellij.libraries.guava),
-   * this filter determines whether the library reference should be replaced with a module reference.
-   *
-   * The filter receives the library module name (e.g., "intellij.libraries.guava").
-   * @return true if the library should be replaced with a module dependency, false to keep the library reference
-   */
-  @JvmField val libraryModuleFilter: (libraryModuleName: String) -> Boolean = { true },
-
-  /**
    * Map from project library name to the library module that exports it.
    * Built from JPS library modules (e.g., intellij.libraries.*) and used to map project
    * library dependencies to module targets.

@@ -358,7 +358,6 @@ class ContentModuleDependencyGeneratorTest {
           isTestDescriptor = false,
           suppressionConfig = SuppressionConfig(),
           updateSuppressions = false,
-          libraryModuleFilter = { libraryModuleName -> !libraryModuleName.contains(".assertj.") },
         )
         val plan = generation.plan
         assertThat(plan).isNotNull()
@@ -409,64 +408,6 @@ class ContentModuleDependencyGeneratorTest {
             .describedAs("Module with a production content source should keep TEST scope deps out of written XML")
             .doesNotContain(ContentModuleName("intellij.test.only.lib"))
         }
-      }
-    }
-
-    @Test
-    fun `module shared with production source still applies library filter`(@TempDir tempDir: Path) {
-      runBlocking(Dispatchers.Default) {
-        val setup = pluginTestSetup(tempDir) {
-          contentModule("intellij.libraries.assertj.core") {
-            descriptor = """<idea-plugin package="assertj"/>"""
-          }
-
-          contentModule("intellij.shared.consumer") {
-            descriptor = """<idea-plugin package="shared.consumer"/>"""
-            jpsDependency("intellij.libraries.assertj.core", JpsJavaDependencyScope.TEST)
-          }
-
-          plugin("intellij.production.plugin") {
-            content("intellij.shared.consumer")
-          }
-
-          plugin("intellij.test.plugin") {
-            isTestPlugin = true
-            content("intellij.shared.consumer")
-            content("intellij.libraries.assertj.core")
-          }
-        }
-
-        val graph = pluginGraph {
-          moduleWithScopedDeps("intellij.libraries.assertj.core")
-          moduleWithScopedDeps("intellij.shared.consumer", "intellij.libraries.assertj.core" to "TEST")
-          plugin("intellij.production.plugin") {
-            content("intellij.shared.consumer")
-          }
-          testPlugin("intellij.test.plugin") {
-            testContent("intellij.shared.consumer")
-            testContent("intellij.libraries.assertj.core")
-          }
-        }
-
-        val descriptorCache = ModuleDescriptorCache(setup.jps.outputProvider)
-        val generation = planContentModuleDependenciesWithBothSets(
-          contentModuleName = ContentModuleName("intellij.shared.consumer"),
-          descriptorCache = descriptorCache,
-          pluginGraph = graph,
-          isTestDescriptor = false,
-          suppressionConfig = SuppressionConfig(),
-          updateSuppressions = false,
-          libraryModuleFilter = { libraryModuleName -> !libraryModuleName.contains(".assertj.") },
-        )
-        val plan = generation.plan
-        assertThat(plan).isNotNull()
-
-        assertThat(plan!!.moduleDependencies)
-          .describedAs("Shared module should keep production library filtering in written deps")
-          .doesNotContain(ContentModuleName("intellij.libraries.assertj.core"))
-        assertThat(plan.testDependencies)
-          .describedAs("Shared module should keep production library filtering in test deps")
-          .doesNotContain(ContentModuleName("intellij.libraries.assertj.core"))
       }
     }
   }
@@ -1239,7 +1180,6 @@ class ContentModuleDependencyGeneratorTest {
           isTestDescriptor = false,
           suppressionConfig = suppressionConfig,
           updateSuppressions = false,
-          libraryModuleFilter = { true },
         )
         val plan = generation.plan
         assertThat(plan).isNotNull()
@@ -1305,7 +1245,6 @@ class ContentModuleDependencyGeneratorTest {
           isTestDescriptor = false,
           suppressionConfig = suppressionConfig,
           updateSuppressions = false,
-          libraryModuleFilter = { true },
         )
         val plan = generation.plan
         assertThat(plan).isNotNull()
@@ -1346,7 +1285,6 @@ class ContentModuleDependencyGeneratorTest {
           isTestDescriptor = false,
           suppressionConfig = SuppressionConfig(),
           updateSuppressions = false,
-          libraryModuleFilter = { true },
         )
         val plan = generation.plan
         assertThat(plan).isNotNull()
@@ -1405,7 +1343,6 @@ class ContentModuleDependencyGeneratorTest {
             )
           ),
           updateSuppressions = true,
-          libraryModuleFilter = { true },
         )
         val plan = generation.plan
         assertThat(plan).isNotNull()
@@ -1455,7 +1392,6 @@ class ContentModuleDependencyGeneratorTest {
           isTestDescriptor = false,
           suppressionConfig = SuppressionConfig(),
           updateSuppressions = true,
-          libraryModuleFilter = { true },
         )
         val plan = generation.plan
         assertThat(plan).isNotNull()
@@ -1511,7 +1447,6 @@ class ContentModuleDependencyGeneratorTest {
           isTestDescriptor = false,
           suppressionConfig = SuppressionConfig(),
           updateSuppressions = true,
-          libraryModuleFilter = { true },
         )
         val plan = generation.plan
         assertThat(plan).isNotNull()

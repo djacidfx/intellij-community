@@ -121,11 +121,7 @@ internal suspend fun generatePluginDependencies(
     val contentModuleCache = AsyncCache<String, PlannedContentModuleResult?>()
     val testContentModuleCache = AsyncCache<String, DependencyFileResult?>()
     val allRealProductNames = embeddedCheckProductNames(testSetup.products.map { it.name })
-    val pluginGraphDeps = collectPluginGraphDeps(
-      graph = graph,
-      allRealProductNames = allRealProductNames,
-      libraryModuleFilter = { true },
-    )
+    val pluginGraphDeps = collectPluginGraphDeps(graph = graph, allRealProductNames = allRealProductNames)
       .associateBy { it.pluginContentModuleName.value }
 
     val generationOutputs = plugins.map { pluginModuleName ->
@@ -302,7 +298,6 @@ private suspend fun generatePluginDependency(
         isTestDescriptor = isTestModule,
         suppressionConfig = effectiveConfig,
         updateSuppressions = updateSuppressions,
-        libraryModuleFilter = { true },
       )
       val plan = generation.plan ?: return@getOrPut null
       PlannedContentModuleResult(plan = plan, result = writeContentModulePlan(plan, effectiveStrategy))
