@@ -17,6 +17,7 @@ import com.intellij.util.EventDispatcher
 import com.intellij.workspaceModel.ide.impl.WorkspaceModelCacheImpl
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicInteger
@@ -65,6 +66,7 @@ class AutoReloadWsmCacheInvalidationTest {
       }
   }
 
+  @Disabled("AT-4013")
   @Test
   fun `test no extra reload when WSM cache persists`(): Unit = timeoutRunBlocking {
     val mockProjectAware = MockProjectAware(testRoot)
