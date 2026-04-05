@@ -17,6 +17,7 @@ import com.jetbrains.python.console.addDefaultEnvironments
 import com.jetbrains.python.run.PythonCommandLineState
 import com.jetbrains.python.run.PythonCommandLineState.getPythonTargetInterpreter
 import com.jetbrains.python.run.PythonModuleExecution
+import com.jetbrains.python.run.appendToPythonPath
 import com.jetbrains.python.run.buildTargetedCommandLine
 import com.jetbrains.python.run.ensureProjectSdkAndModuleDirsAreOnTarget
 import com.jetbrains.python.statistics.modules
@@ -58,6 +59,7 @@ object PythonExecuteUtils {
     additionalUploadLocalDir: Path?,
     targetPortsForwarding: List<Int> = emptyList(),
     includeSourceRootsToPythonPath: Boolean = true,
+    additionalPythonPaths: List<TargetEnvironmentFunction<String>> = emptyList(),
   ): TargetProcessRunResult {
     val execution = PythonModuleExecution()
     execution.moduleName = pyModuleToRun
@@ -78,6 +80,7 @@ object PythonExecuteUtils {
       PythonCommandLineState.buildPythonPath(project, module, execution, sdk, null, false, true,
                                              true, false, request)
     }
+    appendToPythonPath(execution.envs, additionalPythonPaths, request.targetPlatform)
 
     if (additionalUploadLocalDir != null) {
       val uploadVolume = TargetEnvironment.UploadRoot(localRootPath = additionalUploadLocalDir, targetRootPath = TargetPath.Temporary())
