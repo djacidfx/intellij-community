@@ -7,7 +7,7 @@ jvm_library(
   visibility = ["//visibility:public"],
   srcs = glob(["src/**/*.kt", "src/**/*.java", "src/**/*.form"], allow_empty = True),
   deps = [
-    "@lib//:junit5Jupiter",
+    "//libraries/junit5-jupiter",
     "@lib//:jetbrains-annotations",
     "@lib//:kotlin-stdlib",
     "//libraries/kotlinx/coroutines/core",
@@ -34,6 +34,7 @@ jvm_library(
   srcs = glob([], allow_empty = True),
   runtime_deps = [
     ":eel",
+    "//libraries/junit5-jupiter:junit5-jupiter_test_lib",
     "//libraries/kotlinx/coroutines/core:core_test_lib",
     "@lib//:junit5Params",
     "//libraries/junit5:junit5_test_lib",
@@ -90,7 +91,8 @@ jvm_library(
     "//platform/testFramework/junit5/eel:eel_test_lib",
   ],
   deps = [
-    "@lib//:junit5Jupiter",
+    "//libraries/junit5-jupiter",
+    "//libraries/junit5-jupiter:junit5-jupiter_test_lib",
     "@lib//:jetbrains-annotations",
     "@lib//:kotlin-stdlib",
     "//libraries/kotlinx/coroutines/core",

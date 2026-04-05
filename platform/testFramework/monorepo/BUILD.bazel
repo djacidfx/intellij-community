@@ -7,7 +7,7 @@ jvm_library(
   visibility = ["//visibility:public"],
   srcs = glob(["src/**/*.kt", "src/**/*.java", "src/**/*.form"], allow_empty = True),
   deps = [
-    "@lib//:junit5Jupiter",
+    "//libraries/junit5-jupiter",
     "@lib//:kotlin-stdlib",
     "//platform/util/coroutines",
     "//libraries/kotlinx/coroutines/core",
@@ -27,6 +27,7 @@ jvm_library(
   srcs = glob([], allow_empty = True),
   runtime_deps = [
     ":monorepo",
+    "//libraries/junit5-jupiter:junit5-jupiter_test_lib",
     "//platform/testFramework/junit5",
     "//platform/testFramework/junit5:junit5_test_lib",
     "//platform/util/coroutines:coroutines_test_lib",
@@ -80,7 +81,8 @@ jvm_library(
     "//platform/testFramework/monorepo:monorepo_test_lib",
   ],
   deps = [
-    "@lib//:junit5Jupiter",
+    "//libraries/junit5-jupiter",
+    "//libraries/junit5-jupiter:junit5-jupiter_test_lib",
     "//platform/testFramework/junit5",
     "//platform/testFramework/junit5:junit5_test_lib",
     "@lib//:kotlin-stdlib",

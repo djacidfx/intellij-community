@@ -2331,6 +2331,20 @@ http_file(
 )
 
 http_file(
+  name = "org_junit_jupiter-junit-jupiter-engine-5_13_4_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/junit/jupiter/junit-jupiter-engine/5.13.4/junit-jupiter-engine-5.13.4.jar",
+  sha256 = "027404a92fe618b72465792a257951495c503a7d5751e2791e0f51c87f67f5bc",
+  downloaded_file_path = "junit-jupiter-engine-5.13.4.jar"
+)
+
+http_file(
+  name = "org_junit_jupiter-junit-jupiter-engine-5_13_4-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/junit/jupiter/junit-jupiter-engine/5.13.4/junit-jupiter-engine-5.13.4-sources.jar",
+  sha256 = "14b5458d4bd2b103945f4b31daab17d66709b2b90efdb1556829adcff098beec",
+  downloaded_file_path = "junit-jupiter-engine-5.13.4-sources.jar"
+)
+
+http_file(
   name = "org_tukaani-xz-1_9_http",
   url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/tukaani/xz/1.9/xz-1.9.jar",
   sha256 = "211b306cfc44f8f96df3a0a3ddaf75ba8c5289eed77d60d72f889bb855f535e5",
@@ -6500,20 +6514,6 @@ http_file(
   url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/junit/platform/junit-platform-commons/1.13.4/junit-platform-commons-1.13.4-sources.jar",
   sha256 = "8bf2533dc967499bbb957a7b1cd0be471a0794d8d792fcb47c66393edfa66503",
   downloaded_file_path = "junit-platform-commons-1.13.4-sources.jar"
-)
-
-http_file(
-  name = "org_junit_jupiter-junit-jupiter-engine-5_13_4_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/junit/jupiter/junit-jupiter-engine/5.13.4/junit-jupiter-engine-5.13.4.jar",
-  sha256 = "027404a92fe618b72465792a257951495c503a7d5751e2791e0f51c87f67f5bc",
-  downloaded_file_path = "junit-jupiter-engine-5.13.4.jar"
-)
-
-http_file(
-  name = "org_junit_jupiter-junit-jupiter-engine-5_13_4-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/junit/jupiter/junit-jupiter-engine/5.13.4/junit-jupiter-engine-5.13.4-sources.jar",
-  sha256 = "14b5458d4bd2b103945f4b31daab17d66709b2b90efdb1556829adcff098beec",
-  downloaded_file_path = "junit-jupiter-engine-5.13.4-sources.jar"
 )
 
 http_file(

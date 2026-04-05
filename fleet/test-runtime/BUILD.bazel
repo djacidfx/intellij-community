@@ -9,7 +9,7 @@ jvm_library(
   exports = [
     "@lib//:junit5",
     "@lib//:junit5Params",
-    "@lib//:junit5Jupiter",
+    "@lib//:fleet-test-runtime-_j_unit5_jupiter",
     "@lib//:junit5Launcher",
     "@lib//:hamcrest",
     "@lib//:kotlin-test-junit5",
@@ -18,7 +18,7 @@ jvm_library(
   runtime_deps = [
     "@lib//:junit5",
     "@lib//:junit5Params",
-    "@lib//:junit5Jupiter",
+    "@lib//:fleet-test-runtime-_j_unit5_jupiter",
     "@lib//:junit5Launcher",
     "@lib//:hamcrest",
     "@lib//:kotlin-test-junit5",
@@ -34,7 +34,7 @@ jvm_library(
   exports = [
     "@lib//:junit5",
     "@lib//:junit5Params",
-    "@lib//:junit5Jupiter",
+    "@lib//:fleet-test-runtime-_j_unit5_jupiter",
     "@lib//:junit5Launcher",
     "@lib//:hamcrest",
     "@lib//:kotlin-test-junit5",

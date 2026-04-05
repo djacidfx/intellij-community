@@ -1295,7 +1295,7 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
 }
 
 private fun appendJUnitStarter(classPath: MutableList<String>, context: CompilationContext) {
-  for ((libName, moduleName) in arrayOf("JUnit5" to null, "JUnit5Launcher" to null, "JUnit5Vintage" to "intellij.libraries.junit5.vintage", "JUnit5Jupiter" to null)) {
+  for ((libName, moduleName) in arrayOf("JUnit5" to null, "JUnit5Launcher" to null, "JUnit5Vintage" to "intellij.libraries.junit5.vintage", "JUnit5Jupiter" to "intellij.libraries.junit5.jupiter")) {
     for (library in context.outputProvider.findLibraryRoots(libName, moduleName)) {
       classPath.add(library.toString())
     }
