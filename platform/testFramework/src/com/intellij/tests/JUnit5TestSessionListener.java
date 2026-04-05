@@ -82,6 +82,10 @@ public class JUnit5TestSessionListener implements LauncherSessionListener {
     public void testPlanExecutionStarted(TestPlan testPlan) {
       // same as _FirstInSuiteTest
       final String _FirstInSuiteTestPrefix = "_FirstInSuiteTest.";
+      String testProcessName = System.getProperty("intellij.build.test.process.name", "");
+      if (!testProcessName.isEmpty()) testProcessName = "(" + testProcessName + ")";
+      String buildConfName = System.getProperty("teamcity.buildConfName", "");
+      if (!buildConfName.isEmpty()) buildConfName = "[" + buildConfName + "]";
 
       // TODO: use the same logic for tests, remove junit34Test
       final boolean junit34Test = ContainerUtil.exists(testPlan.getRoots(), root -> root.getUniqueId().equals(VINTAGE_UNIQUE_ID) && !testPlan.getChildren(root).isEmpty());
@@ -91,7 +95,7 @@ public class JUnit5TestSessionListener implements LauncherSessionListener {
       // no testReportClassLoadingProblems
 
       // testNothing
-      doTest.accept(_FirstInSuiteTestPrefix + "testNothing", () -> {
+      doTest.accept(_FirstInSuiteTestPrefix + "testNothing" + testProcessName + buildConfName, () -> {
         suiteStarted = System.nanoTime();
 
         if (junit34Test) {
@@ -121,13 +125,13 @@ public class JUnit5TestSessionListener implements LauncherSessionListener {
       System.out.println(Timings.getStatistics());
 
       // testFileEncoding
-      doTest.accept(_FirstInSuiteTestPrefix + "testFileEncoding", () -> {
+      doTest.accept(_FirstInSuiteTestPrefix + "testFileEncoding" + testProcessName + buildConfName, () -> {
         assertEncoding("file.encoding");
         assertEncoding("sun.jnu.encoding");
       });
 
       // testSymlinkAbility
-      doTest.accept(_FirstInSuiteTestPrefix + "testSymlinkAbility", () -> {
+      doTest.accept(_FirstInSuiteTestPrefix + "testSymlinkAbility" + testProcessName + buildConfName, () -> {
         Assertions.assertTrue(
           IoTestUtil.isSymLinkCreationSupported,
           String.format("Symlink creation not supported for %s on %s (%s)",
@@ -138,7 +142,7 @@ public class JUnit5TestSessionListener implements LauncherSessionListener {
       });
 
       // testGlobalState
-      doTest.accept(_FirstInSuiteTestPrefix + "testGlobalState", () -> {
+      doTest.accept(_FirstInSuiteTestPrefix + "testGlobalState" + testProcessName + buildConfName, () -> {
         if (junit34Test) {
           GlobalState.checkSystemStreams(); // Rather initialize than check.
         }
@@ -158,6 +162,8 @@ public class JUnit5TestSessionListener implements LauncherSessionListener {
     public void testPlanExecutionFinished(TestPlan testPlan) {
       // same as _LastInSuiteTest
       final String _LastInSuiteTestPrefix = "_LastInSuiteTest.";
+      String testProcessName = System.getProperty("intellij.build.test.process.name", "");
+      if (!testProcessName.isEmpty()) testProcessName = "(" + testProcessName + ")";
       String buildConfName = System.getProperty("teamcity.buildConfName", "");
       if (!buildConfName.isEmpty()) buildConfName = "[" + buildConfName + "]";
 
@@ -172,31 +178,31 @@ public class JUnit5TestSessionListener implements LauncherSessionListener {
       }
 
       // testProjectLeak
-      doTest.accept(_LastInSuiteTestPrefix + "testProjectLeak" + buildConfName, () -> {
+      doTest.accept(_LastInSuiteTestPrefix + "testProjectLeak" + testProcessName + buildConfName, () -> {
         TestApplicationManager.testProjectLeak();
       });
 
       // testLanguagesHaveDifferentDisplayNames
-      doTest.accept(_LastInSuiteTestPrefix + "testLanguagesHaveDifferentDisplayNames" + buildConfName, () -> {
+      doTest.accept(_LastInSuiteTestPrefix + "testLanguagesHaveDifferentDisplayNames" + testProcessName + buildConfName, () -> {
         LanguageTestUtil.assertAllLanguagesHaveDifferentDisplayNames();
       });
 
       // testFilenameIndexConsistency
-      doTest.accept(_LastInSuiteTestPrefix + "testFilenameIndexConsistency" + buildConfName, () -> {
+      doTest.accept(_LastInSuiteTestPrefix + "testFilenameIndexConsistency" + testProcessName + buildConfName, () -> {
         if (junit34Test) {
           FSRecords.checkFilenameIndexConsistency();
         }
       });
 
       // testGlobalState
-      doTest.accept(_LastInSuiteTestPrefix + "testGlobalState" + buildConfName, () -> {
+      doTest.accept(_LastInSuiteTestPrefix + "testGlobalState" + testProcessName + buildConfName, () -> {
         if (junit34Test) {
           GlobalState.checkSystemStreams();
         }
       });
 
       // testStatistics
-      doTest.accept(_LastInSuiteTestPrefix + "testStatistics" + buildConfName, () -> {
+      doTest.accept(_LastInSuiteTestPrefix + "testStatistics" + testProcessName + buildConfName, () -> {
         if (suiteStarted != 0) {
           long testSuiteDuration = System.nanoTime() - suiteStarted;
           System.out.printf("##teamcity[buildStatisticValue key='ideaTests.totalTimeMs' value='%d']%n", testSuiteDuration / 1_000_000);
