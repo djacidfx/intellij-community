@@ -90,7 +90,7 @@ jvm_library(
     "//platform/indexing-impl",
     "//platform/platform-api:ide",
     "//platform/diff-impl",
-    "@lib//:assert_j",
+    "//libraries/assertj-core",
     "//platform/core-ui",
     "//libraries/fastutil",
   ]
@@ -154,7 +154,8 @@ jvm_library(
     "//platform/testFramework:testFramework_test_lib",
     "//platform/diff-impl",
     "//platform/diff-impl:diff-impl_test_lib",
-    "@lib//:assert_j",
+    "//libraries/assertj-core",
+    "//libraries/assertj-core:assertj-core_test_lib",
     "//platform/core-ui",
     "//platform/core-ui:core-ui_test_lib",
     "//libraries/fastutil",

@@ -626,21 +626,6 @@ jvm_import(
 )
 
 copy_file(
-  name = "org.assertj/assertj-core-4.0.0-M1.jar_copy",
-  src = "@org_assertj-assertj-core-4_0_0-M1_http//file",
-  out = "org.assertj/assertj-core-4.0.0-M1.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-jvm_import(
-  name = "assert_j",
-  jar = "@org_assertj-assertj-core-4_0_0-M1_http//file",
-  source_jar = "@org_assertj-assertj-core-4_0_0-M1-sources_http//file",
-  visibility = ["//visibility:public"]
-)
-
-copy_file(
   name = "org.assertj/assertj-swing-3.17.1.jar_copy",
   src = "@org_assertj-assertj-swing-3_17_1_http//file",
   out = "org.assertj/assertj-swing-3.17.1.jar",
@@ -10415,6 +10400,21 @@ jvm_import(
   name = "org_ow2_asm-asm-9_8_http_import",
   jar = "@org_ow2_asm-asm-9_8_http//file",
   source_jar = "@org_ow2_asm-asm-9_8-sources_http//file"
+)
+
+copy_file(
+  name = "org.assertj/assertj-core-4.0.0-M1.jar_copy",
+  src = "@org_assertj-assertj-core-4_0_0-M1_http//file",
+  out = "org.assertj/assertj-core-4.0.0-M1.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "libraries-assertj-core-assert_j",
+  jar = "@org_assertj-assertj-core-4_0_0-M1_http//file",
+  source_jar = "@org_assertj-assertj-core-4_0_0-M1-sources_http//file",
+  visibility = ["//visibility:public"]
 )
 
 copy_file(

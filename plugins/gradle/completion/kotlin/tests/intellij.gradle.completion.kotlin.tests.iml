@@ -6,7 +6,7 @@
       <sourceFolder url="file://$MODULE_DIR$/test" isTestSource="true" packagePrefix="com.intellij.gradle.completion.kotlin" />
     </content>
     <orderEntry type="inheritedJdk" />
-    <orderEntry type="library" scope="TEST" name="assertJ" level="project" />
+    <orderEntry type="module" module-name="intellij.libraries.assertj.core" scope="TEST" />
     <orderEntry type="module" module-name="kotlin.plugin.k2" scope="RUNTIME" />
     <orderEntry type="library" name="kotlin-test" level="project" />
     <orderEntry type="sourceFolder" forTests="false" />

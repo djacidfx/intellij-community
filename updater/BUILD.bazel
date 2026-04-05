@@ -29,7 +29,8 @@ jvm_library(
   runtime_deps = [
     ":updater",
     "@lib//:junit5",
-    "@lib//:assert_j",
+    "//libraries/assertj-core",
+    "//libraries/assertj-core:assertj-core_test_lib",
   ]
 )
 ### auto-generated section `build intellij.tools.updater` end
@@ -60,7 +61,8 @@ jvm_library(
     "@lib//:jetbrains-annotations",
     "@lib//:jna",
     "@lib//:junit5",
-    "@lib//:assert_j",
+    "//libraries/assertj-core",
+    "//libraries/assertj-core:assertj-core_test_lib",
   ],
   runtime_deps = [":tools-updater-tests"]
 )

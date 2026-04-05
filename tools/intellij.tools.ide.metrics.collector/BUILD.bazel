@@ -63,7 +63,8 @@ jvm_library(
     "//libraries/kotlinx/serialization/core:core_test_lib",
     "//libraries/kotlinx/serialization/json:json_test_lib",
     "//libraries/fastutil:fastutil_test_lib",
-    "@lib//:assert_j",
+    "//libraries/assertj-core",
+    "//libraries/assertj-core:assertj-core_test_lib",
   ]
 )
 ### auto-generated section `build intellij.tools.ide.metrics.collector` end
@@ -135,7 +136,8 @@ jvm_library(
     "//libraries/kotlinx/serialization/json:json_test_lib",
     "//libraries/fastutil",
     "//libraries/fastutil:fastutil_test_lib",
-    "@lib//:assert_j",
+    "//libraries/assertj-core",
+    "//libraries/assertj-core:assertj-core_test_lib",
   ],
   runtime_deps = [":ide-metrics-collector-tests"]
 )

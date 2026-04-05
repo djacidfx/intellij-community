@@ -34,7 +34,8 @@ jvm_library(
     "//platform/util/coroutines:coroutines_test_lib",
     "//platform/util/multiplatform:multiplatform_test_lib",
     "//platform/util/base:base_test_lib",
-    "@lib//:assert_j",
+    "//libraries/assertj-core",
+    "//libraries/assertj-core:assertj-core_test_lib",
     "@lib//:junit5",
   ]
 )
@@ -86,7 +87,8 @@ jvm_library(
     "//platform/diagnostic:diagnostic_test_lib",
     "//platform/util/coroutines",
     "//platform/util/coroutines:coroutines_test_lib",
-    "@lib//:assert_j",
+    "//libraries/assertj-core",
+    "//libraries/assertj-core:assertj-core_test_lib",
     "@lib//:junit5",
   ],
   runtime_deps = [

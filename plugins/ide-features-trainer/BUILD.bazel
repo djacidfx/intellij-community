@@ -16,7 +16,7 @@ jvm_library(
   deps = [
     "@lib//:kotlin-stdlib",
     "//libraries/guava",
-    "@lib//:assert_j",
+    "//libraries/assertj-core",
     "@lib//:assertj-swing",
     "//platform/analysis-api:analysis",
     "//platform/util-ex",
@@ -58,7 +58,7 @@ jvm_library(
     "//platform/xdebugger-impl/ui",
   ],
   exports = [
-    "@lib//:assert_j",
+    "//libraries/assertj-core",
     "@lib//:assertj-swing",
   ]
 )
@@ -69,7 +69,8 @@ jvm_library(
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
   exports = [
-    "@lib//:assert_j",
+    "//libraries/assertj-core",
+    "//libraries/assertj-core:assertj-core_test_lib",
     "@lib//:assertj-swing",
   ],
   runtime_deps = [
@@ -77,6 +78,7 @@ jvm_library(
     "//libraries/kotlin/test:libraries-kotlinTest",
     "//libraries/kotlin/test:libraries-kotlinTest_test_lib",
     "//libraries/guava:guava_test_lib",
+    "//libraries/assertj-core:assertj-core_test_lib",
     "//platform/analysis-api:analysis_test_lib",
     "//platform/util-ex:util-ex_test_lib",
     "//platform/code-style-api:codeStyle_test_lib",
@@ -145,7 +147,7 @@ jvm_library(
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
   exports = [
-    "@lib//:assert_j",
+    "//libraries/assertj-core",
     "@lib//:assertj-swing",
   ]
 )
@@ -165,7 +167,8 @@ jvm_library(
     "//libraries/kotlin/test:libraries-kotlinTest_test_lib",
     "//libraries/guava",
     "//libraries/guava:guava_test_lib",
-    "@lib//:assert_j",
+    "//libraries/assertj-core",
+    "//libraries/assertj-core:assertj-core_test_lib",
     "@lib//:assertj-swing",
     "//platform/analysis-api:analysis",
     "//platform/analysis-api:analysis_test_lib",
@@ -247,7 +250,8 @@ jvm_library(
     "//platform/xdebugger-impl/ui:ui_test_lib",
   ],
   exports = [
-    "@lib//:assert_j",
+    "//libraries/assertj-core",
+    "//libraries/assertj-core:assertj-core_test_lib",
     "@lib//:assertj-swing",
   ],
   runtime_deps = [
