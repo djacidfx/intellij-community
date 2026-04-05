@@ -553,20 +553,6 @@ http_file(
 )
 
 http_file(
-  name = "org_apache_commons-commons-compress-1_28_0_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/apache/commons/commons-compress/1.28.0/commons-compress-1.28.0.jar",
-  sha256 = "e1522945218456f3649a39bc4afd70ce4bd466221519dba7d378f2141a4642ca",
-  downloaded_file_path = "commons-compress-1.28.0.jar"
-)
-
-http_file(
-  name = "org_apache_commons-commons-compress-1_28_0-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/apache/commons/commons-compress/1.28.0/commons-compress-1.28.0-sources.jar",
-  sha256 = "6de9de4559f12bba6d41789c72f6a2a424514f2d2a3f7f49e2a3c52414db9632",
-  downloaded_file_path = "commons-compress-1.28.0-sources.jar"
-)
-
-http_file(
   name = "org_jetbrains_intellij_deps_completion-completion-ranking-cpp-0_1_5_http",
   url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/completion/completion-ranking-cpp/0.1.5/completion-ranking-cpp-0.1.5.jar",
   sha256 = "2c09237e1e0e76d571b77c4f43371d8cd828903ffa442f0e3593894bce3021c3",
@@ -8610,6 +8596,20 @@ http_file(
 )
 
 http_file(
+  name = "org_apache_commons-commons-compress-1_28_0_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/apache/commons/commons-compress/1.28.0/commons-compress-1.28.0.jar",
+  sha256 = "e1522945218456f3649a39bc4afd70ce4bd466221519dba7d378f2141a4642ca",
+  downloaded_file_path = "commons-compress-1.28.0.jar"
+)
+
+http_file(
+  name = "org_apache_commons-commons-compress-1_28_0-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/apache/commons/commons-compress/1.28.0/commons-compress-1.28.0-sources.jar",
+  sha256 = "6de9de4559f12bba6d41789c72f6a2a424514f2d2a3f7f49e2a3c52414db9632",
+  downloaded_file_path = "commons-compress-1.28.0-sources.jar"
+)
+
+http_file(
   name = "org_jetbrains_intellij_deps-commons-imaging-1_0-RC-1_http",
   url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/commons-imaging/1.0-RC-1/commons-imaging-1.0-RC-1.jar",
   sha256 = "ba1cb46e5494286940b016da372ae94a60d2dbc411b6dac5db1e40128725d501",
@@ -10511,6 +10511,20 @@ http_file(
   url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/snakeyaml/snakeyaml-engine/2.9/snakeyaml-engine-2.9-sources.jar",
   sha256 = "9534d9fed25fa34149bcc563cf257423c241457058fc87734b38df9a0633d590",
   downloaded_file_path = "snakeyaml-engine-2.9-sources.jar"
+)
+
+http_file(
+  name = "org_yaml-snakeyaml-2_4_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/yaml/snakeyaml/2.4/snakeyaml-2.4.jar",
+  sha256 = "ef779af5d29a9dde8cc70ce0341f5c6f7735e23edff9685ceaa9d35359b7bb7f",
+  downloaded_file_path = "snakeyaml-2.4.jar"
+)
+
+http_file(
+  name = "org_yaml-snakeyaml-2_4-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/yaml/snakeyaml/2.4/snakeyaml-2.4-sources.jar",
+  sha256 = "0a3c537e86cbb13a9a31ab138c13cee0b2c2cedc17dba38e0dc1f24a2053d8af",
+  downloaded_file_path = "snakeyaml-2.4-sources.jar"
 )
 
 http_file(
@@ -15810,20 +15824,6 @@ http_file(
   url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/slf4j/slf4j-jdk14/2.0.13/slf4j-jdk14-2.0.13-sources.jar",
   sha256 = "8bd6a94a7f610ea9f0180f8b6832bd8b4398f123bea8ad8febe00c36c49e1d1e",
   downloaded_file_path = "slf4j-jdk14-2.0.13-sources.jar"
-)
-
-http_file(
-  name = "org_yaml-snakeyaml-2_4_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/yaml/snakeyaml/2.4/snakeyaml-2.4.jar",
-  sha256 = "ef779af5d29a9dde8cc70ce0341f5c6f7735e23edff9685ceaa9d35359b7bb7f",
-  downloaded_file_path = "snakeyaml-2.4.jar"
-)
-
-http_file(
-  name = "org_yaml-snakeyaml-2_4-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/yaml/snakeyaml/2.4/snakeyaml-2.4-sources.jar",
-  sha256 = "0a3c537e86cbb13a9a31ab138c13cee0b2c2cedc17dba38e0dc1f24a2053d8af",
-  downloaded_file_path = "snakeyaml-2.4-sources.jar"
 )
 
 http_file(

@@ -958,21 +958,6 @@ jvm_import(
 )
 
 copy_file(
-  name = "org.apache.commons/commons-compress-1.28.0.jar_copy",
-  src = "@org_apache_commons-commons-compress-1_28_0_http//file",
-  out = "org.apache.commons/commons-compress-1.28.0.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-jvm_import(
-  name = "commons-compress",
-  jar = "@org_apache_commons-commons-compress-1_28_0_http//file",
-  source_jar = "@org_apache_commons-commons-compress-1_28_0-sources_http//file",
-  visibility = ["//visibility:public"]
-)
-
-copy_file(
   name = "org.jetbrains.intellij.deps.completion/completion-ranking-cpp-0.1.5.jar_copy",
   src = "@org_jetbrains_intellij_deps_completion-completion-ranking-cpp-0_1_5_http//file",
   out = "org.jetbrains.intellij.deps.completion/completion-ranking-cpp-0.1.5.jar",
@@ -11139,6 +11124,21 @@ jvm_import(
 )
 
 copy_file(
+  name = "org.apache.commons/commons-compress-1.28.0.jar_copy",
+  src = "@org_apache_commons-commons-compress-1_28_0_http//file",
+  out = "org.apache.commons/commons-compress-1.28.0.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "libraries-commons-compress-commons-compress",
+  jar = "@org_apache_commons-commons-compress-1_28_0_http//file",
+  source_jar = "@org_apache_commons-commons-compress-1_28_0-sources_http//file",
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
   name = "org.jetbrains.intellij.deps/commons-imaging-1.0-RC-1.jar_copy",
   src = "@org_jetbrains_intellij_deps-commons-imaging-1_0-RC-1_http//file",
   out = "org.jetbrains.intellij.deps/commons-imaging-1.0-RC-1.jar",
@@ -13400,6 +13400,21 @@ jvm_import(
   name = "libraries-snakeyaml-engine-snakeyaml-engine",
   jar = "@org_snakeyaml-snakeyaml-engine-2_9_http//file",
   source_jar = "@org_snakeyaml-snakeyaml-engine-2_9-sources_http//file",
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "org.yaml/snakeyaml-2.4.jar_copy",
+  src = "@org_yaml-snakeyaml-2_4_http//file",
+  out = "org.yaml/snakeyaml-2.4.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "libraries-snakeyaml-snakeyaml",
+  jar = "@org_yaml-snakeyaml-2_4_http//file",
+  source_jar = "@org_yaml-snakeyaml-2_4-sources_http//file",
   visibility = ["//visibility:public"]
 )
 
@@ -20408,21 +20423,6 @@ jvm_import(
   name = "slf4j-jdk14",
   jar = "@org_slf4j-slf4j-jdk14-2_0_13_http//file",
   source_jar = "@org_slf4j-slf4j-jdk14-2_0_13-sources_http//file",
-  visibility = ["//visibility:public"]
-)
-
-copy_file(
-  name = "org.yaml/snakeyaml-2.4.jar_copy",
-  src = "@org_yaml-snakeyaml-2_4_http//file",
-  out = "org.yaml/snakeyaml-2.4.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-jvm_import(
-  name = "snakeyaml",
-  jar = "@org_yaml-snakeyaml-2_4_http//file",
-  source_jar = "@org_yaml-snakeyaml-2_4-sources_http//file",
   visibility = ["//visibility:public"]
 )
 
