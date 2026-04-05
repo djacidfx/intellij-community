@@ -772,6 +772,15 @@
                      language="kotlin"
                      key="inspection.map.get.with.not.null.assertion.operator.display.name" bundle="messages.KotlinBundle"/>
 
+    <localInspection implementationClass="org.jetbrains.kotlin.idea.k2.codeinsight.inspections.DoubleBangInspection"
+                     groupPath="Kotlin"
+                     groupBundle="messages.KotlinBundle" groupKey="group.names.style.issues"
+                     enabledByDefault="true"
+                     cleanupTool="true"
+                     level="INFORMATION"
+                     language="kotlin"
+                     key="inspection.double.bang.display.name" bundle="messages.KotlinBundle"/>
+
     <localInspection implementationClass="org.jetbrains.kotlin.idea.k2.codeinsight.inspections.PublicApiImplicitTypeInspection"
                      groupPath="Kotlin"
                      groupBundle="messages.KotlinBundle" groupKey="group.names.other.problems"

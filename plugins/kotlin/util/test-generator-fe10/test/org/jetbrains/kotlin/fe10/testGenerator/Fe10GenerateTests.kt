@@ -629,6 +629,7 @@ private fun assembleWorkspace(): TWorkspace = workspace(KotlinPluginMode.K1) {
                     "branched/introduceWhenSubject/whenGuards", // K2-only
                     "removeRedundantLabel", // quick fix in K1
                     "defaultAnnotationTarget", // K2-only
+                    "doubleBang", // K2-only
                     "orInWhenGuard", // K2-only
                     "convertFromMultiDollarToRegularString", // K2-only
                     "javaCollectionsWithNullableTypes", // K2-only

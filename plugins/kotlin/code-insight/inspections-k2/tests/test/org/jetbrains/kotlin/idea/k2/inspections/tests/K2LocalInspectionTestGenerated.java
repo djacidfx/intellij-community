@@ -773,6 +773,65 @@ public abstract class K2LocalInspectionTestGenerated extends AbstractK2LocalInsp
     }
 
     @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../../idea/tests/testData/inspectionsLocal/doubleBang")
+    public static class DoubleBang extends AbstractK2LocalInspectionTest {
+        @java.lang.Override
+        @org.jetbrains.annotations.NotNull
+        public final KotlinPluginMode getPluginMode() {
+            return KotlinPluginMode.K2;
+        }
+
+        private void runTest(String testDataFilePath) throws Exception {
+            KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
+        }
+
+        @TestMetadata("callExpression.kt")
+        public void testCallExpression() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/doubleBang/callExpression.kt");
+        }
+
+        @TestMetadata("callExpressionParenthesis.kt")
+        public void testCallExpressionParenthesis() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/doubleBang/callExpressionParenthesis.kt");
+        }
+
+        @TestMetadata("localVal.kt")
+        public void testLocalVal() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/doubleBang/localVal.kt");
+        }
+
+        @TestMetadata("notApplicableToIncrement.kt")
+        public void testNotApplicableToIncrement() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/doubleBang/notApplicableToIncrement.kt");
+        }
+
+        @TestMetadata("replaceParentExpression.kt")
+        public void testReplaceParentExpression() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/doubleBang/replaceParentExpression.kt");
+        }
+
+        @TestMetadata("replaceParentExpression2.kt")
+        public void testReplaceParentExpression2() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/doubleBang/replaceParentExpression2.kt");
+        }
+
+        @TestMetadata("simpleNameExpressionInParenthesis.kt")
+        public void testSimpleNameExpressionInParenthesis() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/doubleBang/simpleNameExpressionInParenthesis.kt");
+        }
+
+        @TestMetadata("usedInAssignment.kt")
+        public void testUsedInAssignment() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/doubleBang/usedInAssignment.kt");
+        }
+
+        @TestMetadata("withAnnotation.kt")
+        public void testWithAnnotation() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/doubleBang/withAnnotation.kt");
+        }
+    }
+
+    @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../../idea/tests/testData/inspectionsLocal/doubleNegation")
     public static class DoubleNegation extends AbstractK2LocalInspectionTest {
         @java.lang.Override
