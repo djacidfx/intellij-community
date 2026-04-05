@@ -1,6 +1,7 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.kotlin.idea.k2.codeinsight.inspections
 
+import com.intellij.codeInsight.intention.PriorityAction
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.codeInspection.util.IntentionFamilyName
@@ -79,7 +80,9 @@ internal class ConvertSealedClassToSealedInterfaceInspection : AbstractKotlinIns
 
     private class ConvertToInterfaceQuickFix(
         private val inheritors: List<SmartPsiElementPointer<KtClassOrObject>>
-    ) : KotlinModCommandQuickFix<KtClass>() {
+    ) : KotlinModCommandQuickFix<KtClass>(), PriorityAction {
+
+        override fun getPriority(): PriorityAction.Priority = PriorityAction.Priority.HIGH
 
         override fun getFamilyName(): @IntentionFamilyName String =
             KotlinBundle.message("inspection.convert.sealed.class.to.interface.fix.text")
@@ -87,8 +90,8 @@ internal class ConvertSealedClassToSealedInterfaceInspection : AbstractKotlinIns
         override fun applyFix(project: Project, element: KtClass, updater: ModPsiUpdater) {
             inheritors.mapNotNull { it.element?.let(updater::getWritable) }
                 .forEach { it.removeConstructorCallFromSuperType(element) }
-            val classKeyword = element.getClassKeyword() ?: return
-            (classKeyword as LeafPsiElement).replaceWithText(KtTokens.INTERFACE_KEYWORD.value)
+            val classKeyword = element.getClassKeyword() as? LeafPsiElement ?: return
+            classKeyword.replaceWithText(KtTokens.INTERFACE_KEYWORD.value)
             element.primaryConstructor?.delete()
             element.updateMemberModifiersForInterface()
         }
@@ -133,7 +136,9 @@ internal class ConvertSealedInterfaceToSealedClassInspection : AbstractKotlinIns
 
     private class ConvertToClassQuickFix(
         private val inheritors: List<SmartPsiElementPointer<KtClassOrObject>>
-    ) : KotlinModCommandQuickFix<KtClass>() {
+    ) : KotlinModCommandQuickFix<KtClass>(), PriorityAction {
+
+        override fun getPriority(): PriorityAction.Priority = PriorityAction.Priority.HIGH
 
         override fun getFamilyName(): @IntentionFamilyName String =
             KotlinBundle.message("inspection.convert.sealed.interface.to.class.fix.text")
@@ -141,21 +146,19 @@ internal class ConvertSealedInterfaceToSealedClassInspection : AbstractKotlinIns
         override fun applyFix(project: Project, element: KtClass, updater: ModPsiUpdater) {
             inheritors.mapNotNull { it.element?.let(updater::getWritable) }
                 .forEach { it.addConstructorCallToSuperType(element) }
-            val interfaceKeyword = element.node.findChildByType(KtTokens.INTERFACE_KEYWORD) ?: return
-            (interfaceKeyword.psi as LeafPsiElement).replaceWithText(KtTokens.CLASS_KEYWORD.value)
+            val interfaceKeyword = element.node.findChildByType(KtTokens.INTERFACE_KEYWORD)?.psi as? LeafPsiElement ?: return
+            interfaceKeyword.replaceWithText(KtTokens.CLASS_KEYWORD.value)
             element.updateMemberModifiersForClass()
         }
     }
 }
 
-// Shared utilities
-
 private fun KtClass.findSealedInheritors(): List<SmartPsiElementPointer<KtClassOrObject>> {
-    val pointerManager = SmartPointerManager.getInstance(project)
+    val smartPointerManager = SmartPointerManager.getInstance(project)
     return analyze(this) {
         val symbol = this@findSealedInheritors.symbol as? KaNamedClassSymbol ?: return emptyList()
-        symbol.sealedClassInheritors.mapNotNull { inheritor ->
-            (inheritor.psi as? KtClassOrObject)?.let { pointerManager.createSmartPsiElementPointer(it) }
+        symbol.sealedClassInheritors.mapNotNull {
+            (it.psi as? KtClassOrObject)?.let (smartPointerManager::createSmartPsiElementPointer)
         }
     }
 }
