@@ -385,6 +385,11 @@ abstract class ProductProperties {
   open suspend fun copyAdditionalFiles(targetDir: Path, context: BuildContext) { }
 
   /**
+   * Override this method to copy additional OS- and arch-specific files.
+   */
+  open suspend fun copyAdditionalOsSpecificFiles(runDir: Path, os: OsFamily, arch: JvmArchitecture, context: BuildContext) { }
+
+  /**
    * Override this method if the product has several editions to ensure that their artifacts won't be mixed up.
    * @return the name of a subdirectory under `projectHome/out` where build artifacts will be placed,
    * must be unique among all products built from the same sources.

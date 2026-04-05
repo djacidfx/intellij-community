@@ -97,6 +97,7 @@ class LinuxCustomizerBuilder @PublishedApi internal constructor(private val proj
    * This handler is called after the base copyAdditionalFiles logic.
    *
    * @param handler Lambda receiving targetDir, arch, and context
+   * @see [ProductProperties.copyAdditionalOsSpecificFiles]
    */
   fun copyAdditionalFiles(handler: suspend (targetDir: Path, arch: JvmArchitecture, context: BuildContext) -> Unit) {
     this.copyAdditionalFilesHandler = handler
@@ -152,6 +153,7 @@ class LinuxCustomizerBuilder @PublishedApi internal constructor(private val proj
 
     override suspend fun copyAdditionalFiles(targetDir: Path, arch: JvmArchitecture, context: BuildContext) {
       super.copyAdditionalFiles(targetDir = targetDir, arch = arch, context = context)
+      context.productProperties.copyAdditionalOsSpecificFiles(targetDir, OsFamily.LINUX, arch, context)
       builder.copyAdditionalFilesHandler?.invoke(targetDir, arch, context)
     }
 

@@ -71,8 +71,23 @@ import java.lang.invoke.MethodType
 import java.nio.file.Files
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.OptIn
+import kotlin.RuntimeException
+import kotlin.String
+import kotlin.Suppress
+import kotlin.Unit
+import kotlin.also
 import kotlin.io.path.createDirectories
 import kotlin.io.path.moveTo
+import kotlin.let
+import kotlin.text.StringBuilder
+import kotlin.text.buildString
+import kotlin.text.removePrefix
+import kotlin.text.take
+import kotlin.text.takeLast
+import kotlin.text.toBoolean
 import kotlin.time.Duration.Companion.hours
 
 private const val maxWindowsPathLengthForIDERootToBeAbleToRunRiderBackend: Int = 64
@@ -369,6 +384,12 @@ internal suspend fun buildProduct(request: BuildRequest, createBuildContext: sus
         }
 
         withContext(Dispatchers.IO) {
+          context.productProperties.copyAdditionalOsSpecificFiles(
+            runDir = runDir,
+            os = request.os,
+            arch = JvmArchitecture.currentJvmArch,
+            context = context
+          )
           copyDistFiles(
             newDir = runDir,
             os = request.os,
