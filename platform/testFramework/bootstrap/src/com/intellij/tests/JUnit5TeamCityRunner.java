@@ -197,9 +197,11 @@ public final class JUnit5TeamCityRunner {
   }
 
   private static void assertNoUnhandledExceptions(Throwable e) {
-    String runConfigurationName = System.getProperty("intellij.build.run.configuration.name");
-    final String testName = "JUnit5TeamCityRunnerForTestAllSuite.assertNoUnhandledExceptions"  // TODO: rename to JUnit5TeamCityRunner
-                            + (runConfigurationName == null ? "" : ("(" + runConfigurationName + ")"));
+    String testProcessName = System.getProperty("intellij.build.test.process.name", "");
+    if (!testProcessName.isEmpty()) testProcessName = "(" + testProcessName + ")";
+    String buildConfName = System.getProperty("teamcity.buildConfName", "");
+    if (!buildConfName.isEmpty()) buildConfName = "[" + buildConfName + "]";
+    final String testName = "JUnit5TeamCityRunner.assertNoUnhandledExceptions" + testProcessName + buildConfName;
 
     System.out.println(new TestStarted(testName, true, null));
     if (e != null) {

@@ -336,9 +336,10 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
         mainModule = context.findRequiredModule(runConfigurationProperties.moduleName),
         testGroups = null,
         testPatterns = runConfigurationProperties.testClassPatterns.joinToString(separator = ";"),
-        jvmArgs = removeStandardJvmOptions(runConfigurationProperties.vmParameters) + additionalJvmOptions
-                  + "-Dintellij.build.run.configuration.name=${runConfigurationProperties.name}",
-        systemProperties = systemProperties,
+        jvmArgs = removeStandardJvmOptions(runConfigurationProperties.vmParameters) + additionalJvmOptions,
+        systemProperties = systemProperties + listOf(
+          "intellij.build.test.process.name" to runConfigurationProperties.name,
+        ),
         envVariables = runConfigurationProperties.envVariables,
         remoteDebugging = false,
         searchForTestsAcrossModuleDependencies = runConfigurationProperties.testSearchScope == JUnitRunConfigurationProperties.TestSearchScope.MODULE_WITH_DEPENDENCIES,
@@ -442,7 +443,9 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
             testPatterns = options.testPatterns,
             testTags = options.testTags,
             jvmArgs = additionalJvmOptions,
-            systemProperties = systemProperties,
+            systemProperties = systemProperties + listOf(
+              "intellij.build.test.process.name" to testModule.name,
+            ),
             remoteDebugging = false,
             searchForTestsAcrossModuleDependencies = false,
             rootExcludeCondition = rootExcludeCondition,
