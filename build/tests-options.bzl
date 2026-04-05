@@ -70,7 +70,7 @@ TEST_FRAMEWORK_DEPS = [
 
   # Provide test engines to run actual tests
   # Junit 3/4 is also run by junit5 via junit vintage
-  "@lib//:junit5Vintage",
+  "@community//libraries/junit5-vintage",
   "@lib//:junit5Launcher",
 ]
 
