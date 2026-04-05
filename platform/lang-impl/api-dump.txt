@@ -855,6 +855,8 @@ com.intellij.ide.util.PsiElementRenderingInfo
 - getIcon(com.intellij.psi.PsiElement):javax.swing.Icon
 - a:getPresentableText(com.intellij.psi.PsiElement):java.lang.String
 - s:targetPresentation(com.intellij.psi.PsiElement,com.intellij.ide.util.PsiElementRenderingInfo):com.intellij.platform.backend.presentation.TargetPresentation
+c:com.intellij.ide.util.PsiNavigationSupportImpl
+- openDirectoryInSystemFileManager(java.nio.file.Path):V
 com.intellij.ide.util.TypeVisibilityStateHolder
 - a:isVisible(java.lang.Object):Z
 - a:setVisible(java.lang.Object,Z):V

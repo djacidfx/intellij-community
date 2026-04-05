@@ -90,6 +90,9 @@ com.intellij.ide.plugins.PluginUtil
 - a:findPluginId(java.lang.Throwable):com.intellij.openapi.extensions.PluginId
 - a:findPluginName(com.intellij.openapi.extensions.PluginId):java.lang.String
 - s:getInstance():com.intellij.ide.plugins.PluginUtil
+a:com.intellij.ide.util.PsiNavigationSupport
+- openDirectoryInSystemFileManager(java.io.File):V
+- a:openDirectoryInSystemFileManager(java.nio.file.Path):V
 com.intellij.injected.editor.DocumentWindow
 - com.intellij.openapi.editor.Document
 - a:areRangesEqual(com.intellij.injected.editor.DocumentWindow):Z

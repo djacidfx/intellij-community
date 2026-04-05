@@ -3,9 +3,11 @@ package com.intellij.agent.workbench.chat
 
 import com.intellij.agent.workbench.common.session.AgentSessionProvider
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProviders
+import com.intellij.agent.workbench.sessions.core.providers.AgentSessionTerminalLaunchSpec
 import com.intellij.openapi.application.UI
 import com.intellij.openapi.project.Project
 import com.intellij.terminal.frontend.toolwindow.TerminalToolWindowTab
+import com.intellij.terminal.frontend.toolwindow.TerminalToolWindowTabBuilder
 import com.intellij.terminal.frontend.toolwindow.TerminalToolWindowTabsManager
 import com.intellij.terminal.frontend.view.TerminalKeyEvent
 import com.intellij.terminal.frontend.view.TerminalView
@@ -88,15 +90,11 @@ internal interface AgentChatTerminalTabs {
 internal object ToolWindowAgentChatTerminalTabs : AgentChatTerminalTabs {
   override fun createTab(project: Project, file: AgentChatVirtualFile): AgentChatTerminalTab {
     val startupLaunchSpec = file.consumeStartupLaunchSpec()
-    val terminalTab = TerminalToolWindowTabsManager.getInstance(project)
-      .createTabBuilder()
-      .shouldAddToToolWindow(false)
-      .deferSessionStartUntilUiShown(true)
-      .workingDirectory(file.projectPath)
-      .processType(TerminalProcessType.NON_SHELL)
-      .tabName(file.threadTitle)
-      .shellCommand(startupLaunchSpec.command)
-      .envVariables(startupLaunchSpec.envVariables)
+    val terminalTab = configureAgentChatTerminalTabBuilder(
+      builder = TerminalToolWindowTabsManager.getInstance(project).createTabBuilder(),
+      file = file,
+      startupLaunchSpec = startupLaunchSpec,
+    )
       .createTab()
     return ToolWindowAgentChatTerminalTab(
       delegate = terminalTab,
@@ -109,6 +107,23 @@ internal object ToolWindowAgentChatTerminalTabs : AgentChatTerminalTabs {
     val toolWindowTab = (tab as? ToolWindowAgentChatTerminalTab)?.delegate ?: return
     closeTerminalToolWindowTab(project, toolWindowTab)
   }
+}
+
+internal fun configureAgentChatTerminalTabBuilder(
+  builder: TerminalToolWindowTabBuilder,
+  file: AgentChatVirtualFile,
+  startupLaunchSpec: AgentSessionTerminalLaunchSpec,
+): TerminalToolWindowTabBuilder {
+  val projectPath = file.projectPath.takeIf { it.isNotBlank() }
+  return builder
+    .shouldAddToToolWindow(false)
+    .deferSessionStartUntilUiShown(true)
+    .workingDirectory(projectPath)
+    .sourceNavigationProjectPath(projectPath)
+    .processType(TerminalProcessType.NON_SHELL)
+    .tabName(file.threadTitle)
+    .shellCommand(startupLaunchSpec.command)
+    .envVariables(startupLaunchSpec.envVariables)
 }
 
 internal fun closeTerminalToolWindowTab(

@@ -67,7 +67,7 @@ c:com.intellij.execution.ExecutionFinishedException
 - com.intellij.execution.ExecutionException
 - <init>():V
 - <init>(java.lang.Throwable):V
-c:com.intellij.execution.filters.BrowserHyperlinkInfo
+f:com.intellij.execution.filters.BrowserHyperlinkInfo
 - com.intellij.execution.filters.HyperlinkInfo
 - <init>(java.lang.String):V
 - navigate(com.intellij.openapi.project.Project):V

@@ -92,6 +92,13 @@ interface TerminalToolWindowTabBuilder {
   @ApiStatus.Internal
   fun shouldAddToToolWindow(addToToolWindow: Boolean): TerminalToolWindowTabBuilder
 
+  /**
+   * Specifies an alternate project path to use when opening file hyperlinks from this terminal tab.
+   * If not specified, hyperlinks navigate in the current terminal project as usual.
+   */
+  @ApiStatus.Internal
+  fun sourceNavigationProjectPath(projectPath: String?): TerminalToolWindowTabBuilder
+
   @ApiStatus.Internal
   fun startupFusInfo(startupFusInfo: TerminalStartupFusInfo?): TerminalToolWindowTabBuilder
 

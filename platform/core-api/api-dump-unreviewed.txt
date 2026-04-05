@@ -238,7 +238,6 @@ a:com.intellij.ide.util.PsiNavigationSupport
 - a:getDescriptor(com.intellij.psi.PsiElement):com.intellij.pom.Navigatable
 - s:getInstance():com.intellij.ide.util.PsiNavigationSupport
 - a:navigateToDirectory(com.intellij.psi.PsiDirectory,Z):V
-- a:openDirectoryInSystemFileManager(java.io.File):V
 com.intellij.injected.editor.InjectionEditService
 - a:synchronizeWithFragment(com.intellij.psi.PsiFile,com.intellij.openapi.editor.Document):com.intellij.openapi.Disposable
 com.intellij.injected.editor.VirtualFileDelegate
