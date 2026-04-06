@@ -138,6 +138,7 @@ internal class AgentChatFileEditor(
       semanticRegionController = providerBehavior.createSemanticRegionController(createdTab)
       component.removeAll()
       component.add(createdTab.component, BorderLayout.CENTER)
+      installAgentChatFileDropSupport(component, createdTab, this)
       component.revalidate()
       component.repaint()
     }

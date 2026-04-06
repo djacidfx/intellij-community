@@ -18,7 +18,7 @@ targets:
 # Agent Chat Editor
 
 Status: Draft
-Date: 2026-03-09
+Date: 2026-04-06
 
 ## Summary
 Define how Agent chat tabs are opened, restored, reused, and rendered in editor tabs. This spec owns tab lifecycle and persistence behavior. Shared command mapping and shared editor-tab popup action semantics are owned by `spec/agent-core-contracts.spec.md`. Semantic transcript navigation and proposed-plan editor affordances are owned by `spec/agent-chat-semantic-navigation.spec.md`.
@@ -85,6 +85,10 @@ Define how Agent chat tabs are opened, restored, reused, and rendered in editor 
 - Agent Chat live terminal lifetime belongs to the logical open chat tab (`tabKey`), not to a transient `FileEditor` instance recreated by tab drag-and-drop reorder, move between splitters, or detach/reattach.
 - Agent Chat files are unsplittable: simultaneous duplicate editor copies of the same chat are not supported because one live terminal view backs the logical tab.
 - Reordering an open chat tab by drag-and-drop must preserve the running session and visible transcript state; the move must not interrupt, restart, or replace the live terminal.
+- Dropping one or more files onto an open Agent Chat tab must paste the dropped file paths into the terminal input instead of opening the dropped files in editor tabs.
+- File-drop paste must work for both IDE-internal drags (for example Project View) and OS/native file drops.
+- File-drop paste must preserve drop order, must not auto-execute, and must keep working while terminal content swaps between regular and alternate-buffer editors.
+  [@test] ../chat/testSrc/AgentChatFileDropSupportTest.kt
 - Disposing an initialized chat editor instance must only release editor-local controller state; it must not interrupt or restart the live terminal while the same chat file remains open in the project.
 - Closing the chat file after transient editor recreation has settled must always release terminal tab resources:
   - manager-backed tab content must close through `TerminalToolWindowTabsManager.closeTab`,
@@ -161,6 +165,7 @@ Define how Agent chat tabs are opened, restored, reused, and rendered in editor 
 - Clicking a thread opens its chat tab.
 - Clicking a sub-agent opens a separate tab scoped to that sub-agent.
 - Restored tabs appear immediately, while terminal startup is deferred until first explicit selection.
+- Dropping files into an open chat tab inserts their paths into the terminal prompt without submitting the command.
 
 ## Data & Backend
 - Chat terminal sessions use source project/worktree `cwd`.
@@ -175,6 +180,7 @@ Define how Agent chat tabs are opened, restored, reused, and rendered in editor 
 
 ## Testing / Local Run
 - `./tests.cmd --module intellij.agent.workbench.plugin.tests --test com.intellij.agent.workbench.chat.AgentChatEditorServiceTest`
+- `./tests.cmd --module intellij.agent.workbench.chat.tests --test com.intellij.agent.workbench.chat.AgentChatFileDropSupportTest`
 - `./tests.cmd --module intellij.agent.workbench.chat.tests --test com.intellij.agent.workbench.chat.AgentChatFileEditorProviderTest`
 - `./tests.cmd --module intellij.agent.workbench.chat.tests --test com.intellij.agent.workbench.chat.AgentChatTabSelectionServiceTest`
 - `./tests.cmd --module intellij.agent.workbench.chat.tests --test com.intellij.agent.workbench.chat.AgentChatRestoreNotificationServiceTest`
