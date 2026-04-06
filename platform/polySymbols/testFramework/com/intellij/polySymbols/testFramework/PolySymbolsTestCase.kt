@@ -47,8 +47,6 @@ import com.intellij.testFramework.fixtures.impl.CodeInsightTestFixtureImpl
 import com.intellij.testFramework.runInEdtAndWait
 import com.intellij.testFramework.utils.io.createFile
 import com.intellij.util.ui.UIUtil
-import org.editorconfig.Utils
-import org.editorconfig.configmanagement.extended.EditorConfigCodeStyleSettingsModifier
 import java.io.FileNotFoundException
 import java.nio.file.Path
 import java.util.TreeMap
@@ -121,77 +119,58 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     additionalFiles: List<String> = emptyList(),
     checkResult: Boolean = false,
     goldFileName: String? = null,
-    editorConfigEnabled: Boolean = false,
+    useProjectCodeStyle: Boolean = false,
     configureCodeStyleSettings: (CodeStyleSettings.() -> Unit)? = null,
     test: CodeInsightTestFixture.() -> Unit,
   ) {
-    if (editorConfigEnabled) {
-      EditorConfigCodeStyleSettingsModifier.Handler.setEnabledInTests(true)
-      Utils.isEnabledInTests = true
-    }
     CodeInsightTestFixtureImpl.ensureIndexesUpToDate(project)
-    try {
-      myFixture.apply {
-        if (dir) {
-          if (checkResult) {
-            copyDirectoryToProject("$dirName/before", ".")
-          }
-          else {
-            copyDirectoryToProject(dirName, ".")
-          }
-        }
-        else if (additionalFiles.isNotEmpty()) {
-          configureByFiles(*additionalFiles.toTypedArray())
-        }
-
-        val adjustedConfigurators = adjustConfigurators(configurators)
-        adjustedConfigurators.forEach {
-          it.configure(myFixture)
-        }
-        // After copying the files, some files might have been indexed with incorrect PolyContext,
-        // ensure we have all files scanned again and indexed correctly
-        WriteAction.run<RuntimeException> {
-          ProjectRootManagerEx.getInstanceEx(project)
-            .makeRootsChange(EmptyRunnable.getInstance(), RootsChangeRescanningInfo.TOTAL_RESCAN)
-        }
-        ensureIndexesReady()
-        if (configureFile) {
-          if (fileContents != null) {
-            configureByText(configureFileName, fileContents)
-          }
-          else if (dir) {
-            configureFromTempProjectFile(configureFileName)
-              .also {
-                it.virtualFile.putUserData(
-                  VfsTestUtil.TEST_DATA_FILE_PATH,
-                  "$testDataPath/$dirName/${if (checkResult) "before/" else ""}$configureFileName"
-                )
-              }
-          }
-          else {
-            configureByFile(configureFileName)
-          }
-        }
-        val testConfiguration = TestConfiguration(
-          adjustedConfigurators
-        )
-        if (!editorConfigEnabled && configureCodeStyleSettings != null) {
-          testWithTempCodeStyleSettings {
-            it.configureCodeStyleSettings()
-            beforeConfiguredTest(testConfiguration)
-            ensureIndexesReady()
-            try {
-              test()
-            }
-            finally {
-              afterConfiguredTest(testConfiguration)
-            }
-          }
+    myFixture.apply {
+      if (dir) {
+        if (checkResult) {
+          copyDirectoryToProject("$dirName/before", ".")
         }
         else {
-          if (editorConfigEnabled) {
-            CodeStyleSettingsManager.getInstance(project).dropTemporarySettings()
-          }
+          copyDirectoryToProject(dirName, ".")
+        }
+      }
+      else if (additionalFiles.isNotEmpty()) {
+        configureByFiles(*additionalFiles.toTypedArray())
+      }
+
+      val adjustedConfigurators = adjustConfigurators(configurators)
+        adjustedConfigurators.forEach {
+        it.configure(myFixture)
+      }
+      // After copying the files, some files might have been indexed with incorrect PolyContext,
+      // ensure we have all files scanned again and indexed correctly
+      WriteAction.run<RuntimeException> {
+        ProjectRootManagerEx.getInstanceEx(project)
+          .makeRootsChange(EmptyRunnable.getInstance(), RootsChangeRescanningInfo.TOTAL_RESCAN)
+      }
+      ensureIndexesReady()
+      if (configureFile) {
+        if (fileContents != null) {
+          configureByText(configureFileName, fileContents)
+        }
+        else if (dir) {
+          configureFromTempProjectFile(configureFileName)
+            .also {
+              it.virtualFile.putUserData(
+                VfsTestUtil.TEST_DATA_FILE_PATH,
+                "$testDataPath/$dirName/${if (checkResult) "before/" else ""}$configureFileName"
+              )
+            }
+        }
+        else {
+          configureByFile(configureFileName)
+        }
+      }
+      val testConfiguration = TestConfiguration(
+        adjustedConfigurators
+      )
+      if (!useProjectCodeStyle && configureCodeStyleSettings != null) {
+        testWithTempCodeStyleSettings {
+          it.configureCodeStyleSettings()
           beforeConfiguredTest(testConfiguration)
           ensureIndexesReady()
           try {
@@ -201,51 +180,58 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
             afterConfiguredTest(testConfiguration)
           }
         }
-        waitForAsyncOperationsToCompleteAfterEdit()
-        if (checkResult) {
-          WriteCommandAction.runWriteCommandAction(getProject()) {
-            PostprocessReformattingAspect.getInstance(getProject()).doPostponedFormatting()
-          }
-          FileDocumentManager.getInstance().saveAllDocuments()
-          if (dir) {
-            val pathAfter = "$testDataPath/$dirName/after"
-            val rootAfter = LocalFileSystem.getInstance().findFileByPath(pathAfter)
-                            ?: throw FileNotFoundException(pathAfter)
-            val results = myFixture.tempDirFixture.findOrCreateDir(".")
-
-            // Trigger any advanced configurators
-            adjustedConfigurators.forEach { it.beforeDirectoryComparison(myFixture, results, rootAfter) }
-
-            // Set test data file path, so that comparison works
-            val root = tempDirFixture.findOrCreateDir(".")
-            val filter = directoriesCompareFileFilter
-            VfsUtil.visitChildrenRecursively(root, object : VirtualFileVisitor<Any>() {
-              override fun visitFileEx(file: VirtualFile): Result =
-                if (!filter.accept(file))
-                  SKIP_CHILDREN
-                else {
-                  file.putUserData(
-                    VfsTestUtil.TEST_DATA_FILE_PATH,
-                    pathAfter + "/" + VfsUtil.getRelativePath(file, root)
-                  )
-                  CONTINUE
-                }
-            })
-
-            PlatformTestUtil.assertDirectoriesEqual(rootAfter, results, filter)
-          }
-          else {
-            val ext = InjectedLanguageManager.getInstance(project).getTopLevelFile(myFixture.file)
-              .name.takeLastWhile { it != '.' }
-            myFixture.checkResultByFile(goldFileName ?: "${testName}_after.$ext")
-          }
+      }
+      else {
+        if (useProjectCodeStyle) {
+          CodeStyleSettingsManager.getInstance(project).dropTemporarySettings()
+        }
+        beforeConfiguredTest(testConfiguration)
+        ensureIndexesReady()
+        try {
+          test()
+        }
+        finally {
+          afterConfiguredTest(testConfiguration)
         }
       }
-    }
-    finally {
-      if (editorConfigEnabled) {
-        EditorConfigCodeStyleSettingsModifier.Handler.setEnabledInTests(false)
-        Utils.isEnabledInTests = false
+      waitForAsyncOperationsToCompleteAfterEdit()
+      if (checkResult) {
+        WriteCommandAction.runWriteCommandAction(getProject()) {
+          PostprocessReformattingAspect.getInstance(getProject()).doPostponedFormatting()
+        }
+        FileDocumentManager.getInstance().saveAllDocuments()
+        if (dir) {
+          val pathAfter = "$testDataPath/$dirName/after"
+          val rootAfter = LocalFileSystem.getInstance().findFileByPath(pathAfter)
+                          ?: throw FileNotFoundException(pathAfter)
+          val results = myFixture.tempDirFixture.findOrCreateDir(".")
+
+          // Trigger any advanced configurators
+          adjustedConfigurators.forEach { it.beforeDirectoryComparison(myFixture, results, rootAfter) }
+
+          // Set test data file path, so that comparison works
+          val root = tempDirFixture.findOrCreateDir(".")
+          val filter = directoriesCompareFileFilter
+          VfsUtil.visitChildrenRecursively(root, object : VirtualFileVisitor<Any>() {
+            override fun visitFileEx(file: VirtualFile): Result =
+              if (!filter.accept(file))
+                SKIP_CHILDREN
+              else {
+                file.putUserData(
+                  VfsTestUtil.TEST_DATA_FILE_PATH,
+                  pathAfter + "/" + VfsUtil.getRelativePath(file, root)
+                )
+                CONTINUE
+              }
+          })
+
+          PlatformTestUtil.assertDirectoriesEqual(rootAfter, results, filter)
+        }
+        else {
+          val ext = InjectedLanguageManager.getInstance(project).getTopLevelFile(myFixture.file)
+            .name.takeLastWhile { it != '.' }
+          myFixture.checkResultByFile(goldFileName ?: "${testName}_after.$ext")
+        }
       }
     }
   }
@@ -276,7 +262,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     additionalFiles: List<String> = emptyList(),
     checkResult: Boolean = true,
     goldFileName: String? = null,
-    editorConfigEnabled: Boolean = false,
+    useProjectCodeStyle: Boolean = false,
     configureCodeStyleSettings: (CodeStyleSettings.() -> Unit)? = null,
     before: CodeInsightTestFixture.() -> Unit = {},
     after: CodeInsightTestFixture.() -> Unit = {},
@@ -293,7 +279,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
       goldFileName = goldFileName,
       configurators = configurators,
       additionalFiles = additionalFiles,
-      editorConfigEnabled = editorConfigEnabled,
+      useProjectCodeStyle = useProjectCodeStyle,
       configureCodeStyleSettings = configureCodeStyleSettings,
     ) {
       before()
@@ -428,7 +414,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     caretPosSignature: String? = null,
     configurators: List<PolySymbolsTestConfigurator> = emptyList(),
     additionalFiles: List<String> = emptyList(),
-    editorConfigEnabled: Boolean = false,
+    useProjectCodeStyle: Boolean = false,
     configureCodeStyleSettings: (CodeStyleSettings.() -> Unit)? = null,
     renderPriority: Boolean = true,
     renderTypeText: Boolean = true,
@@ -451,7 +437,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
       configureFileName = configureFileName,
       additionalFiles = additionalFiles,
       configurators = configurators,
-      editorConfigEnabled = editorConfigEnabled,
+      useProjectCodeStyle = useProjectCodeStyle,
       configureCodeStyleSettings = configureCodeStyleSettings,
       checkResult = typeToFinishLookup != null,
       goldFileName = goldFileName,
@@ -487,7 +473,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     extension: String = defaultExtension,
     configureFileName: String = "$testName.$extension",
     goldFileName: String? = null,
-    editorConfigEnabled: Boolean = false,
+    useProjectCodeStyle: Boolean = false,
     configurators: List<PolySymbolsTestConfigurator> = emptyList(),
     additionalFiles: List<String> = emptyList(),
     configureCodeStyleSettings: CodeStyleSettings.() -> Unit = {},
@@ -503,7 +489,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
       configureCodeStyleSettings = configureCodeStyleSettings,
       configurators = configurators,
       additionalFiles = additionalFiles,
-      editorConfigEnabled = editorConfigEnabled,
+      useProjectCodeStyle = useProjectCodeStyle,
     ) {
       val codeStyleManager = CodeStyleManager.getInstance(project)
       WriteCommandAction.runWriteCommandAction(project) { codeStyleManager.reformat(file) }
@@ -761,7 +747,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     configureFileName: String = "$testName.$extension",
     configurators: List<PolySymbolsTestConfigurator> = emptyList(),
     additionalFiles: List<String> = emptyList(),
-    editorConfigEnabled: Boolean = false,
+    useProjectCodeStyle: Boolean = false,
     configureCodeStyleSettings: (CodeStyleSettings.() -> Unit)? = null,
   ) {
     doSymbolRenameTest(
@@ -774,7 +760,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
       dirName = dirName,
       configurators = configurators,
       additionalFiles = additionalFiles,
-      editorConfigEnabled = editorConfigEnabled,
+      useProjectCodeStyle = useProjectCodeStyle,
       configureCodeStyleSettings = configureCodeStyleSettings,
     )
   }
@@ -790,7 +776,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
     goldFileName: String? = null,
     configurators: List<PolySymbolsTestConfigurator> = emptyList(),
     additionalFiles: List<String> = emptyList(),
-    editorConfigEnabled: Boolean = false,
+    useProjectCodeStyle: Boolean = false,
     configureCodeStyleSettings: (CodeStyleSettings.() -> Unit)? = null,
   ) {
     setTestDialog(testDialog)
@@ -802,7 +788,7 @@ abstract class PolySymbolsTestCase(mode: HybridTestMode = HybridTestMode.BasePla
       configureFileName = mainFile,
       configurators = configurators,
       additionalFiles = additionalFiles,
-      editorConfigEnabled = editorConfigEnabled,
+      useProjectCodeStyle = useProjectCodeStyle,
       configureCodeStyleSettings = configureCodeStyleSettings,
     ) {
       signature?.let { moveToOffsetBySignature(it) }
