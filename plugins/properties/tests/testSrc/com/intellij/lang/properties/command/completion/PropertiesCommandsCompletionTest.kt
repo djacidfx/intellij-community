@@ -183,4 +183,67 @@ class PropertiesCommandsCompletionTest : LightFixtureCompletionTestCase() {
         a.b.c=some.strange 
         """.trimIndent())
   }
+
+  fun testCommentProperty() {
+    myFixture.configureByText(PropertiesFileType.INSTANCE, """
+      a.b.c=some.value.<caret>
+      """.trimIndent())
+    val elements = myFixture.completeBasic()
+    assertNotNull(elements.firstOrNull { element -> element.lookupString.contains("Comment", ignoreCase = true) })
+  }
+
+  fun testCommentPropertyExecution() {
+    myFixture.configureByText(PropertiesFileType.INSTANCE, """
+      a.b.c=some.value.<caret>
+      """.trimIndent())
+    val elements = myFixture.completeBasic()
+    selectItem(elements.first { element -> element.lookupString.contains("Comment", ignoreCase = true) })
+    NonBlockingReadActionImpl.waitForAsyncTaskCompletion()
+    myFixture.checkResult("""
+      #a.b.c=some.value
+      """.trimIndent())
+  }
+
+  fun testCommentMultilineProperty() {
+    myFixture.configureByText(PropertiesFileType.INSTANCE, """
+      a.b.c=line1 \
+        line2 \
+        line3.<caret>
+      """.trimIndent())
+    val elements = myFixture.completeBasic()
+    assertNotNull(elements.firstOrNull { element -> element.lookupString.contains("Comment", ignoreCase = true) })
+  }
+
+  fun testCommentMultilinePropertyExecution() {
+    myFixture.configureByText(PropertiesFileType.INSTANCE, """
+      a.b.c=line1 \
+        line2 \
+        line3.<caret>
+      """.trimIndent())
+    val elements = myFixture.completeBasic()
+    selectItem(elements.first { element -> element.lookupString.contains("Comment", ignoreCase = true) })
+    NonBlockingReadActionImpl.waitForAsyncTaskCompletion()
+    myFixture.checkResult("""
+      #a.b.c=line1 \
+      #  line2 \
+      #  line3
+      """.trimIndent())
+  }
+
+  fun testCommentNotAvailableInMiddle() {
+    myFixture.configureByText(PropertiesFileType.INSTANCE, """
+      a.b.<caret>c=some.value
+      """.trimIndent())
+    val elements = myFixture.completeBasic()
+    assertNull(elements?.firstOrNull { element -> element.lookupString.contains("Comment property", ignoreCase = true) })
+  }
+
+  fun testUncommentPropertyWithDoubleDot() {
+    myFixture.configureByText(PropertiesFileType.INSTANCE, """
+      #a.b.c=some.value..<caret>
+      """.trimIndent())
+    val elements = myFixture.completeBasic()
+    assertNotNull("Uncomment command should be available for explicit double-dot invocation at end of comment",
+      elements?.firstOrNull { element -> element.lookupString.contains("Uncomment", ignoreCase = true) })
+  }
 }

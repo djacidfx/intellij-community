@@ -102,7 +102,7 @@ internal class CommandCompletionProvider(val contributor: CommandCompletionContr
         !(ApplicationManager.getApplication().isUnitTestMode() && Registry.`is`("ide.completion.command.force.enabled", false))) return
     if (!ApplicationCommandCompletionService.getInstance().commandCompletionEnabled()) return
     if (parameters.completionType != CompletionType.BASIC) return
-    if (parameters.position is PsiComment) return
+    if (parameters.position is PsiComment && parameters.invocationCount == 0) return
     if (parameters.editor.caretModel.caretCount != 1) return
     val templateState = TemplateManagerImpl.getTemplateState(parameters.editor)
     if (templateState != null && !templateState.isFinished) return
@@ -170,6 +170,12 @@ internal class CommandCompletionProvider(val contributor: CommandCompletionContr
     }
 
     val commandCompletionType = findCommandCompletionType(commandCompletionFactory, isReadOnly, offset, parameters.editor) ?: return
+    if (parameters.position is PsiComment) {
+      // Allow command completion in comments only for explicit double-dot invocation (FullSuffix) at the end of the comment
+      if (commandCompletionType !is InvocationCommandType.FullSuffix) return
+      val originalComment = parameters.originalPosition
+      if (originalComment !is PsiComment || offset > originalComment.textRange.endOffset) return
+    }
     if (commandCompletionType !is InvocationCommandType.FullSuffix) {
       for (completionResult in postfixResults) {
         resultSet.passResult(completionResult)
