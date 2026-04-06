@@ -269,11 +269,6 @@ suspend fun openChat(
   return file
 }
 
-@Suppress("unused")
-suspend fun collectOpenAgentChatProjectPaths(): Set<String> {
-  return collectOpenAgentChatProjectPaths(includePendingOnly = false)
-}
-
 suspend fun collectOpenPendingAgentChatProjectPaths(): Set<String> {
   return collectOpenAgentChatProjectPaths(includePendingOnly = true)
 }
@@ -740,13 +735,6 @@ fun clearOpenConcreteAgentChatNewThreadRebindAnchors(
   return cleared
 }
 
-@Suppress("unused")
-fun clearOpenConcreteCodexNewThreadRebindAnchors(
-  tabsByProjectPath: Map<String, List<AgentChatConcreteTabSnapshot>>,
-): Int {
-  return clearOpenConcreteAgentChatNewThreadRebindAnchors(AgentSessionProvider.CODEX, tabsByProjectPath)
-}
-
 suspend fun updateOpenAgentChatTabPresentation(
   titleByPathAndThreadIdentity: Map<Pair<String, String>, String>,
   activityByPathAndThreadIdentity: Map<Pair<String, String>, AgentThreadActivity>,
@@ -811,16 +799,6 @@ suspend fun updateOpenAgentChatTabPresentation(
     " requestedTitles=${normalizedTitlesByPathAndThreadIdentity.size}, requestedActivities=${normalizedActivitiesByPathAndThreadIdentity.size}"
   }
   return updatedTabs
-}
-
-@Suppress("unused")
-suspend fun updateOpenAgentChatTabTitles(
-  titleByPathAndThreadIdentity: Map<Pair<String, String>, String>,
-): Int {
-  return updateOpenAgentChatTabPresentation(
-    titleByPathAndThreadIdentity = titleByPathAndThreadIdentity,
-    activityByPathAndThreadIdentity = emptyMap(),
-  )
 }
 
 suspend fun collectSelectedChatThreadIdentity(): Pair<AgentSessionProvider, String>? = withContext(Dispatchers.UI) {

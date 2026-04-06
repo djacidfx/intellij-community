@@ -208,24 +208,17 @@ private fun codexTerminalTailLines(text: String): List<String> {
     .takeLast(CODEX_TERMINAL_TAIL_LINE_SCAN_LIMIT)
 }
 
-private fun normalizeCodexTerminalTailLine(text: String): String {
-  val sanitized = buildString(text.length) {
-    text.forEach { char ->
-      append(
-        when {
-          char.isWhitespace() || char.isISOControl() -> ' '
-          else -> char
-        }
-      )
-    }
-  }
-  return sanitized.replace(CODEX_TERMINAL_WHITESPACE_REGEX, " ").trim()
+private fun normalizeCodexTerminalOutput(text: String): String {
+  return sanitizeCodexTerminalText(stripCodexTerminalAnsi(text))
 }
 
-private fun normalizeCodexTerminalOutput(text: String): String {
-  val withoutAnsi = stripCodexTerminalAnsi(text)
-  val sanitized = buildString(withoutAnsi.length) {
-    withoutAnsi.forEach { char ->
+private fun normalizeCodexTerminalTailLine(text: String): String {
+  return sanitizeCodexTerminalText(text)
+}
+
+private fun sanitizeCodexTerminalText(text: String): String {
+  val sanitized = buildString(text.length) {
+    text.forEach { char ->
       append(
         when {
           char.isWhitespace() || char.isISOControl() -> ' '

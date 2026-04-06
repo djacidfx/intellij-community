@@ -192,21 +192,6 @@ class CodexWebSocketAppServerClient(
     }
   }
 
-  @Suppress("unused")
-  suspend fun createThread(
-    cwd: String? = null,
-    approvalPolicy: String? = null,
-    sandbox: String? = null,
-    ephemeral: Boolean? = null,
-  ): CodexThread {
-    return createThreadSession(
-      cwd = cwd,
-      approvalPolicy = approvalPolicy,
-      sandbox = sandbox,
-      ephemeral = ephemeral,
-    ).thread
-  }
-
   suspend fun createThreadSession(
     cwd: String? = null,
     approvalPolicy: String? = null,

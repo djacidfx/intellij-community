@@ -120,11 +120,6 @@ object AgentPromptContextRenderers {
   private val epRegistry: AgentPromptContextRendererRegistry = EpBackedAgentPromptContextRendererRegistry()
   private val registryOverride = OverridableValue { epRegistry }
 
-  @Suppress("unused")
-  fun allBridges(): List<AgentPromptContextRendererBridge> {
-    return registryOverride.value().allBridges()
-  }
-
   fun find(rendererId: String): AgentPromptContextRendererBridge? {
     return registryOverride.value().find(rendererId)
   }

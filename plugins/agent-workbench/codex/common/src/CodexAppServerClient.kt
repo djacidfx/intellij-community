@@ -389,19 +389,6 @@ class CodexAppServerClient(
     )
   }
 
-  @Suppress("unused")
-  suspend fun interruptTurn(threadId: String, turnId: String) {
-    requestUnit(
-      method = "turn/interrupt",
-      paramsWriter = { generator ->
-        generator.writeStartObject()
-        generator.writeStringField("threadId", threadId)
-        generator.writeStringField("turnId", turnId)
-        generator.writeEndObject()
-      },
-    )
-  }
-
   /**
    * Sends a minimal [turn/start] for the given thread to force persistence so
    * that `codex resume <id>` can discover it.

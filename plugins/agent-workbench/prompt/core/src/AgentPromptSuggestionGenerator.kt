@@ -105,9 +105,4 @@ object AgentPromptSuggestionGenerators {
   fun find(): AgentPromptSuggestionGenerator? {
     return generatorOverride.value()
   }
-
-  @Suppress("unused")
-  fun <T> withGeneratorForTest(generator: AgentPromptSuggestionGenerator?, action: () -> T): T {
-    return generatorOverride.withOverride(generator, action)
-  }
 }
