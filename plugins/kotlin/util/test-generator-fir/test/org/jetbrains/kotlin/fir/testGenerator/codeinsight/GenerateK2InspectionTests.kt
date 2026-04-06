@@ -56,6 +56,7 @@ internal fun MutableTWorkspace.generateK2InspectionTests() {
             model("${idea}/inspectionsLocal/conventionNameCalls/replaceGetOrSet")
             model("${idea}/inspectionsLocal/cascadeIf")
             model("${idea}/inspectionsLocal/nullableBooleanElvis")
+            model("${idea}/inspectionsLocal/nullableHashCode")
             model("${idea}/inspectionsLocal/redundantElvisReturnNull")
             model("${idea}/inspectionsLocal/replaceCollectionCountWithSize")
             model("${idea}/inspectionsLocal/nonNullableBooleanPropertyInExternalInterface", pattern = Patterns.KT_WITHOUT_DOTS)

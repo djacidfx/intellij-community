@@ -2776,6 +2776,60 @@ public abstract class K2LocalInspectionTestGenerated extends AbstractK2LocalInsp
     }
 
     @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../../idea/tests/testData/inspectionsLocal/nullableHashCode")
+    public static class NullableHashCode extends AbstractK2LocalInspectionTest {
+        @java.lang.Override
+        @org.jetbrains.annotations.NotNull
+        public final KotlinPluginMode getPluginMode() {
+            return KotlinPluginMode.K2;
+        }
+
+        private void runTest(String testDataFilePath) throws Exception {
+            KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
+        }
+
+        @TestMetadata("commentInside.kt")
+        public void testCommentInside() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/nullableHashCode/commentInside.kt");
+        }
+
+        @TestMetadata("customHashCode.kt")
+        public void testCustomHashCode() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/nullableHashCode/customHashCode.kt");
+        }
+
+        @TestMetadata("differentConstant.kt")
+        public void testDifferentConstant() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/nullableHashCode/differentConstant.kt");
+        }
+
+        @TestMetadata("notNullableReceiver.kt")
+        public void testNotNullableReceiver() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/nullableHashCode/notNullableReceiver.kt");
+        }
+
+        @TestMetadata("parenthesizedCall.kt")
+        public void testParenthesizedCall() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/nullableHashCode/parenthesizedCall.kt");
+        }
+
+        @TestMetadata("parenthesizedReceiver.kt")
+        public void testParenthesizedReceiver() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/nullableHashCode/parenthesizedReceiver.kt");
+        }
+
+        @TestMetadata("parenthesizedWholeExpression.kt")
+        public void testParenthesizedWholeExpression() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/nullableHashCode/parenthesizedWholeExpression.kt");
+        }
+
+        @TestMetadata("simple.kt")
+        public void testSimple() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/nullableHashCode/simple.kt");
+        }
+    }
+
+    @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../../idea/tests/testData/inspectionsLocal/redundantElvisReturnNull")
     public static class RedundantElvisReturnNull extends AbstractK2LocalInspectionTest {
         @java.lang.Override
