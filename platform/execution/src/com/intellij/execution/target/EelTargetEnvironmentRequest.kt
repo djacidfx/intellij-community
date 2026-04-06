@@ -250,7 +250,7 @@ class EelTargetEnvironment(override val request: EelTargetEnvironmentRequest) : 
     }
   }
 
-  private class EelVolume private constructor(
+  class EelVolume private constructor(
     private val eel: EelApi,
     override val localRoot: Path,
     override val targetRoot: String,
