@@ -199,7 +199,10 @@ object CommunityRepositoryModules {
     plugin("intellij.java.coverage") { spec ->
       spec.withModule("intellij.java.coverage.rt")
       // explicitly pack JaCoCo as a separate JAR
-      spec.withModuleLibrary("JaCoCo", "intellij.java.coverage", "jacoco.jar")
+      spec.withModuleLibrary(libraryName = "JaCoCo", moduleName = "intellij.java.coverage", relativeOutputPath = "jacoco.jar")
+    },
+    pluginAuto("intellij.featuresTrainer") { spec ->
+      spec.withModuleLibrary(libraryName = "assertJ", moduleName = "intellij.libraries.assertj.core", relativeOutputPath = "assertj.jar")
     },
     plugin("intellij.java.decompiler") { spec ->
       spec.directoryName = "java-decompiler"
@@ -223,7 +226,9 @@ object CommunityRepositoryModules {
       spec.bundlingRestrictions.includeInDistribution = PluginDistribution.NOT_FOR_RELEASE
     },
     pluginAuto(listOf("intellij.lombok", "intellij.lombok.generated")),
-    pluginAuto(listOf("intellij.performanceTesting")),
+    pluginAuto(listOf("intellij.performanceTesting")) { spec ->
+      spec.withModuleLibrary(libraryName = "assertJ", moduleName = "intellij.libraries.assertj.core", relativeOutputPath = "assertj.jar")
+    },
     pluginAuto(listOf("intellij.performanceTesting.ui")),
     pluginAuto(listOf("intellij.vcs.github")),
     pluginAuto(listOf("intellij.vcs.gitlab")),

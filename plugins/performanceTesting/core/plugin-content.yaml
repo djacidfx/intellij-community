@@ -5,9 +5,9 @@
   reason: <- intellij.performanceTesting.remoteDriver
 - name: lib/assertj.jar
   library: assertJ
+  module: intellij.libraries.assertj.core
   files:
   - name: $MAVEN_REPOSITORY$/org/assertj/assertj-core/4/assertj-core-4.jar
-  reason: <- intellij.performanceTesting.remoteDriver
 - name: lib/github.oshi.core.jar
   library: github.oshi.core
   files:

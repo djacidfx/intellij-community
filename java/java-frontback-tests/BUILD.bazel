@@ -9,7 +9,6 @@ jvm_library(
   exports = [
     "@lib//:easymock",
     "@lib//:mockito",
-    "//libraries/assertj-core",
     "@lib//:kotlin-test",
     "//platform/testFramework",
     "//platform/testFramework/junit5",
@@ -89,8 +88,6 @@ jvm_library(
   exports = [
     "@lib//:easymock",
     "@lib//:mockito",
-    "//libraries/assertj-core",
-    "//libraries/assertj-core:assertj-core_test_lib",
     "@lib//:kotlin-test",
     "//platform/testFramework",
     "//platform/testFramework:testFramework_test_lib",

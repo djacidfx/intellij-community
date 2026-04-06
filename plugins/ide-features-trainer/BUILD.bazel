@@ -57,10 +57,7 @@ jvm_library(
     "//platform/execution",
     "//platform/xdebugger-impl/ui",
   ],
-  exports = [
-    "//libraries/assertj-core",
-    "@lib//:assertj-swing",
-  ]
+  exports = ["@lib//:assertj-swing"]
 )
 
 jvm_library(
@@ -68,11 +65,7 @@ jvm_library(
   module_name = "intellij.featuresTrainer",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
-  exports = [
-    "//libraries/assertj-core",
-    "//libraries/assertj-core:assertj-core_test_lib",
-    "@lib//:assertj-swing",
-  ],
+  exports = ["@lib//:assertj-swing"],
   runtime_deps = [
     ":featuresTrainer",
     "//libraries/kotlin/test:libraries-kotlinTest",
@@ -146,10 +139,7 @@ jvm_library(
   module_name = "intellij.featuresTrainer.tests",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
-  exports = [
-    "//libraries/assertj-core",
-    "@lib//:assertj-swing",
-  ]
+  exports = ["@lib//:assertj-swing"]
 )
 
 jvm_library(
@@ -249,11 +239,7 @@ jvm_library(
     "//platform/xdebugger-impl/ui",
     "//platform/xdebugger-impl/ui:ui_test_lib",
   ],
-  exports = [
-    "//libraries/assertj-core",
-    "//libraries/assertj-core:assertj-core_test_lib",
-    "@lib//:assertj-swing",
-  ],
+  exports = ["@lib//:assertj-swing"],
   runtime_deps = [
     ":featuresTrainer-tests",
     "//platform/platform-impl:ide-impl_test_lib",

@@ -1,4 +1,6 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+@file:Suppress("ReplaceGetOrSet")
+
 package org.jetbrains.intellij.build.impl
 
 import com.intellij.devkit.runtimeModuleRepository.generator.ResourcePathsSchema
@@ -232,12 +234,7 @@ private suspend fun generateRepositoryForDistribution(
     includedProjectLibraries = libraryPaths.keySet().filter { it.isProjectLevel },
     resourcePathsSchema = DistributionResourcePathsSchema(moduleProductionPaths, moduleTestPaths, libraryPaths),
     contentModuleDetector = contentModuleDetector,
-  ).map { descriptor ->
-    //this is a temporary workaround to skip optional dependencies which aren't included in the distribution
-    val dependenciesToSkip = dependenciesToSkip[descriptor.moduleId] ?: return@map descriptor
-    val actualDependencies = descriptor.dependencyIds.filterNot { it in dependenciesToSkip}
-    RawRuntimeModuleDescriptor.create(descriptor.moduleId, descriptor.resourcePaths, actualDependencies)
-  }
+  ).map(::removeSkippedDistributionDependencies)
 
   val errors = ArrayList<String>()
   val errorReporter = object : RuntimeModuleRepositoryValidator.ErrorReporter {
@@ -442,11 +439,46 @@ private fun collectTransitiveDependencies(moduleIds: Collection<RuntimeModuleId>
   }
 }
 
+private fun removeSkippedDistributionDependencies(descriptor: RawRuntimeModuleDescriptor): RawRuntimeModuleDescriptor {
+  val actualDependencies = removeSkippedDistributionDependencies(
+    moduleName = descriptor.moduleId.name,
+    dependencyIds = descriptor.dependencyIds,
+  )
+  if (actualDependencies.size == descriptor.dependencyIds.size) {
+    return descriptor
+  }
+  return RawRuntimeModuleDescriptor.create(descriptor.moduleId, descriptor.visibility, descriptor.resourcePaths, actualDependencies)
+}
+
+private fun removeSkippedDistributionDependencies(moduleName: String, dependencyIds: List<RuntimeModuleId>): List<RuntimeModuleId> {
+  val actualDependencyIds = removeSkippedDistributionDependencyIds(
+    moduleName = moduleName,
+    dependencyIds = dependencyIds.map(RuntimeModuleId::getName),
+  )
+  if (actualDependencyIds.size == dependencyIds.size) {
+    return dependencyIds
+  }
+  val dependencyIdsByName = dependencyIds.associateBy(RuntimeModuleId::getName)
+  return actualDependencyIds.map(dependencyIdsByName::getValue)
+}
+
+private fun removeSkippedDistributionDependencyIds(moduleName: String, dependencyIds: List<String>): List<String> {
+  val dependenciesToSkip = dependenciesToSkip.get(moduleName) ?: return dependencyIds
+  if (dependencyIds.none { it in dependenciesToSkip }) {
+    return dependencyIds
+  }
+  return dependencyIds.filterNot { it in dependenciesToSkip }
+}
+
 internal const val RUNTIME_REPOSITORY_MODULES_DIR_NAME = "modules"
 internal const val MODULE_DESCRIPTORS_JAR_PATH: String = "$RUNTIME_REPOSITORY_MODULES_DIR_NAME/$JAR_REPOSITORY_FILE_NAME" 
 const val MODULE_DESCRIPTORS_COMPACT_PATH: String = "$RUNTIME_REPOSITORY_MODULES_DIR_NAME/$COMPACT_REPOSITORY_FILE_NAME" 
 
 private val dependenciesToSkip = mapOf(
-  //may be removed when IJPL-125 is fixed
-  RuntimeModuleId.legacyJpsModule("intellij.platform.buildScripts.downloader") to setOf(RuntimeModuleId.projectLibrary("zstd-jni")),
+  // may be removed when IJPL-125 is fixed
+  "intellij.platform.buildScripts.downloader" to setOf("zstd-jni"),
+  // Bundled via spec.withModuleLibrary(..., relativeOutputPath = "assertj.jar"), so the separate library content module
+  // must not remain as a hard runtime repository dependency in distributions.
+  "intellij.featuresTrainer" to setOf("intellij.libraries.assertj.core"),
+  "intellij.performanceTesting.remoteDriver" to setOf("intellij.libraries.assertj.core"),
 )
