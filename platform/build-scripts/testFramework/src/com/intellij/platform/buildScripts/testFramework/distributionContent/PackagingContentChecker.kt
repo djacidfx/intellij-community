@@ -17,6 +17,7 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.annotations.ApiStatus.Internal
@@ -277,14 +278,12 @@ class PackagingSuiteFixture private constructor(
   }
 
   fun createPluginTests(): List<DynamicTest> {
-    val tests = ArrayList<DynamicTest>(packagingTasks.size)
-    for (task in packagingTasks) {
-      if (!task.spec.checkPlugins) {
-        tests.addAll(createPluginContentDynamicTests(targetId = task.spec.id, checkPlugins = false))
-        continue
-      }
+    val checkResults = packagingTasks.map { task ->
+      scope.async(Dispatchers.Default) {
+        if (!task.spec.checkPlugins) {
+          return@async TaskResult(value = emptyList())
+        }
 
-      val checkResult = runBlocking {
         captureTaskResult {
           withTelemetrySpan(
             telemetry = telemetry,
@@ -304,10 +303,17 @@ class PackagingSuiteFixture private constructor(
           }
         }
       }
+    }
+
+    val tests = ArrayList<DynamicTest>(packagingTasks.size)
+    val resolvedCheckResults = runBlocking {
+      checkResults.awaitAll()
+    }
+    for ((task, checkResult) in packagingTasks.zip(resolvedCheckResults)) {
       tests.addAll(
         createPluginContentDynamicTests(
           targetId = task.spec.id,
-          checkPlugins = true,
+          checkPlugins = task.spec.checkPlugins,
           failures = checkResult.value.orEmpty(),
           failure = checkResult.failure,
         )

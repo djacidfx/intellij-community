@@ -8,7 +8,7 @@ import org.jetbrains.intellij.build.BuildPaths.Companion.COMMUNITY_ROOT
 import org.jetbrains.intellij.build.impl.createBuildContext
 import org.jetbrains.intellij.build.impl.createIdeClassPath
 import org.jetbrains.intellij.build.impl.createPlatformLayout
-import org.junit.Test
+import org.junit.jupiter.api.Test
 
 class PluginDistributionJARsBuilderTest {
   @Test
