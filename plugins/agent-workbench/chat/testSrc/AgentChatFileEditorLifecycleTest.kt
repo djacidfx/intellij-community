@@ -13,6 +13,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorComposite
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.fileEditor.FileEditorManagerKeys
 import com.intellij.openapi.fileEditor.FileEditorNavigatable
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.DumbAware
@@ -197,6 +198,136 @@ class AgentChatFileEditorLifecycleTest {
     assertThat(terminalTabs.closeCalls).isEqualTo(0)
     assertThat(liveTerminalStore.isTracked(file.tabKey)).isTrue()
 
+    liveTerminalStore.dispose(project)
+  }
+
+  @Test
+  fun fileClosedDefersInitializedTerminalTabCloseWhileClosingToReopen() {
+    val project = testProject()
+    val terminalTabs = FakeAgentChatTerminalTabs()
+    val file = claudeLifecycleTestFile()
+    val liveTerminalStore = AgentChatLiveTerminalStore()
+    val editor = testEditor(
+      project = project,
+      file = file,
+      terminalTabs = terminalTabs,
+      liveTerminalRegistry = TestAgentChatLiveTerminalRegistry(project, liveTerminalStore),
+    )
+
+    editor.selectNotify()
+    Disposer.dispose(editor)
+    file.putUserData(FileEditorManagerKeys.CLOSING_TO_REOPEN, true)
+    val closeResult = liveTerminalStore.handleFileClosed(project, testFileEditorManager(isFileOpen = false), file)
+
+    assertThat(closeResult).isEqualTo(AgentChatLiveTerminalCloseResult.DEFERRED)
+    assertThat(terminalTabs.createCalls).isEqualTo(1)
+    assertThat(terminalTabs.closeCalls).isEqualTo(0)
+    assertThat(liveTerminalStore.isTracked(file.tabKey)).isTrue()
+    assertThat(liveTerminalStore.isPendingClose(file.tabKey)).isTrue()
+
+    file.putUserData(FileEditorManagerKeys.CLOSING_TO_REOPEN, null)
+    liveTerminalStore.dispose(project)
+  }
+
+  @Test
+  fun pendingCloseConfirmationKeepsInitializedTerminalTabWhenFileReopens() {
+    val project = testProject()
+    val terminalTabs = FakeAgentChatTerminalTabs()
+    val file = claudeLifecycleTestFile()
+    val liveTerminalStore = AgentChatLiveTerminalStore()
+    val editor = testEditor(
+      project = project,
+      file = file,
+      terminalTabs = terminalTabs,
+      liveTerminalRegistry = TestAgentChatLiveTerminalRegistry(project, liveTerminalStore),
+    )
+    val fileEditorManager = TestFileEditorManager(isFileOpen = false)
+
+    editor.selectNotify()
+    Disposer.dispose(editor)
+    file.putUserData(FileEditorManagerKeys.CLOSING_TO_REOPEN, true)
+    val closeResult = liveTerminalStore.handleFileClosed(project, fileEditorManager, file)
+    fileEditorManager.setFileOpen(true)
+    liveTerminalStore.handleFileOpened(file)
+    val confirmResult = liveTerminalStore.confirmPendingClose(project, fileEditorManager, file)
+
+    assertThat(closeResult).isEqualTo(AgentChatLiveTerminalCloseResult.DEFERRED)
+    assertThat(confirmResult).isEqualTo(AgentChatLiveTerminalCloseResult.KEPT_OPEN)
+    assertThat(terminalTabs.closeCalls).isEqualTo(0)
+    assertThat(liveTerminalStore.isTracked(file.tabKey)).isTrue()
+    assertThat(liveTerminalStore.isPendingClose(file.tabKey)).isFalse()
+
+    file.putUserData(FileEditorManagerKeys.CLOSING_TO_REOPEN, null)
+    liveTerminalStore.dispose(project)
+  }
+
+  @Test
+  fun pendingCloseConfirmationClosesInitializedTerminalTabWhenReopenNeverArrives() {
+    val project = testProject()
+    val terminalTabs = FakeAgentChatTerminalTabs()
+    val file = claudeLifecycleTestFile()
+    val liveTerminalStore = AgentChatLiveTerminalStore()
+    val editor = testEditor(
+      project = project,
+      file = file,
+      terminalTabs = terminalTabs,
+      liveTerminalRegistry = TestAgentChatLiveTerminalRegistry(project, liveTerminalStore),
+    )
+    val fileEditorManager = TestFileEditorManager(isFileOpen = false)
+
+    editor.selectNotify()
+    Disposer.dispose(editor)
+    file.putUserData(FileEditorManagerKeys.CLOSING_TO_REOPEN, true)
+    val closeResult = liveTerminalStore.handleFileClosed(project, fileEditorManager, file)
+    file.putUserData(FileEditorManagerKeys.CLOSING_TO_REOPEN, null)
+    val confirmResult = liveTerminalStore.confirmPendingClose(project, fileEditorManager, file)
+
+    assertThat(closeResult).isEqualTo(AgentChatLiveTerminalCloseResult.DEFERRED)
+    assertThat(confirmResult).isEqualTo(AgentChatLiveTerminalCloseResult.CLOSED)
+    assertThat(terminalTabs.createCalls).isEqualTo(1)
+    assertThat(terminalTabs.closeCalls).isEqualTo(1)
+    assertThat(liveTerminalStore.isTracked(file.tabKey)).isFalse()
+    assertThat(liveTerminalStore.isPendingClose(file.tabKey)).isFalse()
+
+    liveTerminalStore.dispose(project)
+  }
+
+  @Test
+  fun acquireOrCreateClearsPendingCloseAndReusesInitializedTerminalTab() {
+    val project = testProject()
+    val terminalTabs = FakeAgentChatTerminalTabs()
+    val file = claudeLifecycleTestFile()
+    val liveTerminalStore = AgentChatLiveTerminalStore()
+    val liveTerminalRegistry = TestAgentChatLiveTerminalRegistry(project, liveTerminalStore)
+    val firstEditor = testEditor(
+      project = project,
+      file = file,
+      terminalTabs = terminalTabs,
+      liveTerminalRegistry = liveTerminalRegistry,
+    )
+
+    firstEditor.selectNotify()
+    Disposer.dispose(firstEditor)
+    file.putUserData(FileEditorManagerKeys.CLOSING_TO_REOPEN, true)
+    val closeResult = liveTerminalStore.handleFileClosed(project, testFileEditorManager(isFileOpen = false), file)
+
+    val secondEditor = testEditor(
+      project = project,
+      file = file,
+      terminalTabs = terminalTabs,
+      liveTerminalRegistry = liveTerminalRegistry,
+    )
+    secondEditor.selectNotify()
+
+    assertThat(closeResult).isEqualTo(AgentChatLiveTerminalCloseResult.DEFERRED)
+    assertThat(terminalTabs.createCalls).isEqualTo(1)
+    assertThat(terminalTabs.closeCalls).isEqualTo(0)
+    assertThat(liveTerminalStore.isTracked(file.tabKey)).isTrue()
+    assertThat(liveTerminalStore.isPendingClose(file.tabKey)).isFalse()
+    assertThat(secondEditor.preferredFocusedComponent).isSameAs(terminalTabs.tab.preferredFocusableComponent)
+
+    Disposer.dispose(secondEditor)
+    file.putUserData(FileEditorManagerKeys.CLOSING_TO_REOPEN, null)
     liveTerminalStore.dispose(project)
   }
 
@@ -1389,65 +1520,74 @@ private class TestAgentChatLiveTerminalRegistry(
 }
 
 private fun testFileEditorManager(isFileOpen: Boolean): FileEditorManager {
-  val project = testProject()
-  val selectedEditorFlow = MutableStateFlow<FileEditor?>(null)
-  return object : FileEditorManager() {
-    override fun getComposite(file: VirtualFile): FileEditorComposite? = null
+  return TestFileEditorManager(isFileOpen)
+}
 
-    override fun canOpenFile(file: VirtualFile): Boolean = true
+private class TestFileEditorManager(isFileOpen: Boolean) : FileEditorManager() {
+  @Volatile
+  private var fileOpen: Boolean = isFileOpen
+  private val testProjectInstance = testProject()
+  private val selectedEditorStateFlow = MutableStateFlow<FileEditor?>(null)
 
-    override fun openFile(file: VirtualFile, focusEditor: Boolean): Array<FileEditor> = emptyArray()
-
-    override fun openFile(file: VirtualFile): List<FileEditor> = emptyList()
-
-    override fun closeFile(file: VirtualFile) = Unit
-
-    override fun openTextEditor(descriptor: OpenFileDescriptor, focusEditor: Boolean): Editor? = null
-
-    override fun getSelectedTextEditor(): Editor? = null
-
-    override fun isFileOpen(file: VirtualFile): Boolean = isFileOpen
-
-    override fun getOpenFiles(): Array<VirtualFile> = emptyArray()
-
-    override fun getOpenFilesWithRemotes(): List<VirtualFile> = emptyList()
-
-    override fun getCurrentFile(): VirtualFile? = null
-
-    override fun getSelectedFiles(): Array<VirtualFile> = emptyArray()
-
-    override fun getSelectedEditors(): Array<FileEditor> = emptyArray()
-
-    override fun getSelectedEditorFlow(): StateFlow<FileEditor?> = selectedEditorFlow
-
-    override fun getSelectedEditor(file: VirtualFile): FileEditor? = null
-
-    override fun getEditors(file: VirtualFile): Array<FileEditor> = emptyArray()
-
-    override fun getAllEditors(file: VirtualFile): Array<FileEditor> = emptyArray()
-
-    override fun getAllEditorList(file: VirtualFile): List<FileEditor> = emptyList()
-
-    override fun getAllEditors(): Array<FileEditor> = emptyArray()
-
-    override fun addTopComponent(editor: FileEditor, component: JComponent) = Unit
-
-    override fun removeTopComponent(editor: FileEditor, component: JComponent) = Unit
-
-    override fun addBottomComponent(editor: FileEditor, component: JComponent) = Unit
-
-    override fun removeBottomComponent(editor: FileEditor, component: JComponent) = Unit
-
-    override fun openFileEditor(descriptor: FileEditorNavigatable, focusEditor: Boolean): List<FileEditor> = emptyList()
-
-    override fun getProject(): Project = project
-
-    override fun setSelectedEditor(file: VirtualFile, fileEditorProviderId: String) = Unit
-
-    override fun runWhenLoaded(editor: Editor, runnable: Runnable) = runnable.run()
-
-    override fun toString(): String = "FileEditorManager(agent-chat-editor-lifecycle-test)"
+  fun setFileOpen(isFileOpen: Boolean) {
+    fileOpen = isFileOpen
   }
+
+  override fun getComposite(file: VirtualFile): FileEditorComposite? = null
+
+  override fun canOpenFile(file: VirtualFile): Boolean = true
+
+  override fun openFile(file: VirtualFile, focusEditor: Boolean): Array<FileEditor> = emptyArray()
+
+  override fun openFile(file: VirtualFile): List<FileEditor> = emptyList()
+
+  override fun closeFile(file: VirtualFile) = Unit
+
+  override fun openTextEditor(descriptor: OpenFileDescriptor, focusEditor: Boolean): Editor? = null
+
+  override fun getSelectedTextEditor(): Editor? = null
+
+  override fun isFileOpen(file: VirtualFile): Boolean = fileOpen
+
+  override fun getOpenFiles(): Array<VirtualFile> = emptyArray()
+
+  override fun getOpenFilesWithRemotes(): List<VirtualFile> = emptyList()
+
+  override fun getCurrentFile(): VirtualFile? = null
+
+  override fun getSelectedFiles(): Array<VirtualFile> = emptyArray()
+
+  override fun getSelectedEditors(): Array<FileEditor> = emptyArray()
+
+  override fun getSelectedEditorFlow(): StateFlow<FileEditor?> = selectedEditorStateFlow
+
+  override fun getSelectedEditor(file: VirtualFile): FileEditor? = null
+
+  override fun getEditors(file: VirtualFile): Array<FileEditor> = emptyArray()
+
+  override fun getAllEditors(file: VirtualFile): Array<FileEditor> = emptyArray()
+
+  override fun getAllEditorList(file: VirtualFile): List<FileEditor> = emptyList()
+
+  override fun getAllEditors(): Array<FileEditor> = emptyArray()
+
+  override fun addTopComponent(editor: FileEditor, component: JComponent) = Unit
+
+  override fun removeTopComponent(editor: FileEditor, component: JComponent) = Unit
+
+  override fun addBottomComponent(editor: FileEditor, component: JComponent) = Unit
+
+  override fun removeBottomComponent(editor: FileEditor, component: JComponent) = Unit
+
+  override fun openFileEditor(descriptor: FileEditorNavigatable, focusEditor: Boolean): List<FileEditor> = emptyList()
+
+  override fun getProject(): Project = testProjectInstance
+
+  override fun setSelectedEditor(file: VirtualFile, fileEditorProviderId: String) = Unit
+
+  override fun runWhenLoaded(editor: Editor, runnable: Runnable) = runnable.run()
+
+  override fun toString(): String = "FileEditorManager(agent-chat-editor-lifecycle-test)"
 }
 
 private fun keyTyped(keyChar: Char): KeyEvent {
