@@ -22,6 +22,7 @@ import com.intellij.model.psi.PsiSymbolReference
 import com.intellij.model.psi.impl.referencesAt
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.application.WriteAction
+import com.intellij.openapi.application.readAction
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.diagnostic.Logger
@@ -33,6 +34,8 @@ import com.intellij.openapi.util.Computable
 import com.intellij.openapi.util.ProperTextRange
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.util.registry.Registry
+import com.intellij.platform.backend.documentation.DocumentationData
+import com.intellij.platform.backend.documentation.impl.computeDocumentationAsync
 import com.intellij.platform.backend.documentation.impl.computeDocumentationBlocking
 import com.intellij.platform.testFramework.core.FileComparisonFailedError
 import com.intellij.polySymbols.PolySymbol
@@ -78,6 +81,8 @@ import junit.framework.TestCase.assertFalse
 import junit.framework.TestCase.assertNotNull
 import junit.framework.TestCase.assertNull
 import junit.framework.TestCase.assertTrue
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import org.junit.Assert
 import java.io.File
 import java.util.concurrent.Callable
@@ -113,6 +118,10 @@ fun CodeInsightTestFixture.checkNoDocumentationAtCaret() {
 
 fun CodeInsightTestFixture.checkDocumentationAtCaret() {
   checkDocumentation(renderDocAtCaret())
+}
+
+suspend fun CodeInsightTestFixture.checkDocumentationAtCaretSuspending() {
+  checkDocumentation(renderDocAtCaretSuspending())
 }
 
 fun CodeInsightTestFixture.checkLookupItems(
@@ -314,7 +323,25 @@ private fun CodeInsightTestFixture.renderDocAtCaret(): String? {
       }, EmptyProgressIndicator())
     }, 10)!!
 
-  return targets.mapNotNull { computeDocumentationBlocking(it.createPointer())?.html }
+  return targets.mapNotNull { computeDocumentationBlocking(it.createPointer()) }.render()
+}
+
+private suspend fun CodeInsightTestFixture.renderDocAtCaretSuspending(): String? {
+  val targets = readAction {
+    IdeDocumentationTargetProvider.getInstance(project).documentationTargets(editor, file, caretOffset)
+  }
+
+  return coroutineScope {
+    targets.map { this.computeDocumentationAsync(it.createPointer()) }
+      .awaitAll()
+      .filterNotNull()
+      .render()
+  }
+}
+
+private fun List<DocumentationData>.render(): String? {
+  return this
+    .map { it.html }
     .also { assertTrue("More then one documentation rendered:\n\n${it.joinToString("\n\n")}", it.size <= 1) }
     .getOrNull(0)
     ?.trim()
