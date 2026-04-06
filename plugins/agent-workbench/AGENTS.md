@@ -7,7 +7,7 @@ This file captures development references only. Product/design decisions live in
 - Tool window title: "Agent Threads"
 - Main module: `intellij.agent.workbench.plugin` (plugin.xml)
 - Content module: `intellij.agent.workbench.sessions`
-- Spec format (single source): `spec-format/SPEC_GUIDE.md` (specs live under `spec/`).
+- Spec format (single source): `../../.ai/spec/SPEC_GUIDE.md` (specs live under `spec/`).
 - Issue tracker: https://github.com/JetBrains/agent-workbench
 
 ## Running Tests
