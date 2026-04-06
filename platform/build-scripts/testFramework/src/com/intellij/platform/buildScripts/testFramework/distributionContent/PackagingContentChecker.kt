@@ -279,12 +279,13 @@ class PackagingSuiteFixture private constructor(
   fun createPluginTests(): List<DynamicTest> {
     val tests = ArrayList<DynamicTest>(packagingTasks.size)
     for (task in packagingTasks) {
-      tests.add(DynamicTest.dynamicTest(task.spec.id) {
-        if (!task.spec.checkPlugins) {
-          return@dynamicTest
-        }
+      if (!task.spec.checkPlugins) {
+        tests.addAll(createPluginContentDynamicTests(targetId = task.spec.id, checkPlugins = false))
+        continue
+      }
 
-        runBlocking {
+      val checkResult = runBlocking {
+        captureTaskResult {
           withTelemetrySpan(
             telemetry = telemetry,
             name = "plugin content check: ${task.spec.id}",
@@ -293,17 +294,24 @@ class PackagingSuiteFixture private constructor(
             },
           ) {
             val packageResult = task.resultDeferred.await().getOrAbort("Plugin content check for ${task.spec.id} skipped because packaging failed")
-            val failures = collectPluginContentFailures(
+            collectPluginContentFailures(
               content = packageResult.content,
               project = packageResult.jpsProject,
               projectHome = packageResult.projectHome,
               suggestedReviewer = task.spec.suggestedReviewer,
               testName = { category, key -> "${task.spec.id} $category: $key" },
             )
-            assertNoPackagingCheckFailures(problemMessage = "Plugin content checks failed for ${task.spec.id}", failures = failures)
           }
         }
-      })
+      }
+      tests.addAll(
+        createPluginContentDynamicTests(
+          targetId = task.spec.id,
+          checkPlugins = true,
+          failures = checkResult.value.orEmpty(),
+          failure = checkResult.failure,
+        )
+      )
     }
     return tests
   }
@@ -482,6 +490,29 @@ private fun createDynamicTests(
   return listOf(DynamicTest.dynamicTest("too many $problemMessage") {
     throw MultipleFailuresError("${failures.size} failures", failures.map { it.error })
   })
+}
+
+@Internal
+fun createPluginContentDynamicTests(
+  targetId: String,
+  checkPlugins: Boolean,
+  failures: List<PackagingCheckFailure> = emptyList(),
+  failure: Throwable? = null,
+): List<DynamicTest> {
+  if (!checkPlugins) {
+    return listOf(DynamicTest.dynamicTest(targetId) {})
+  }
+  if (failure != null) {
+    return listOf(DynamicTest.dynamicTest(targetId) {
+      throw failure
+    })
+  }
+  return createDynamicTests(
+    failures = failures,
+    problemMessage = "Plugin content checks failed for $targetId",
+    threshold = Int.MAX_VALUE,
+    successTestName = targetId,
+  )
 }
 
 private fun <T> TaskResult<T>.getOrThrow(): T {
