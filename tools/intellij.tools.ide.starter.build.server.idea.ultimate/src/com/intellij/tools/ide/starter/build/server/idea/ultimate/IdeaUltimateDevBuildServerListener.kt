@@ -2,10 +2,9 @@
 package com.intellij.tools.ide.starter.build.server.idea.ultimate
 
 import com.intellij.ide.starter.di.di
-import com.intellij.ide.starter.di.initDevBuildServerDiBinding
 import com.intellij.ide.starter.models.IdeInfo
 import com.intellij.ide.starter.models.IdeInfoType
-import org.junit.platform.launcher.TestExecutionListener
+import com.intellij.ide.starter.models.IdeProductInit
 import org.kodein.di.direct
 import org.kodein.di.instance
 
@@ -17,7 +16,6 @@ import org.kodein.di.instance
  */
 val IdeInfo.Companion.IdeaUltimate: IdeInfo
   get() {
-    IdeaUltimateDevBuildServerListener.init()
     return di.direct.instance<IdeInfo>(tag = IdeInfoType.IDEA_ULTIMATE)
   }
 
@@ -32,14 +30,7 @@ internal val DefaultIdeaUltimate = IdeInfo(
 /**
  * Registers IntelliJ IDEA Ultimate [IdeInfo] in DI and initializes Dev Build Server support.
  */
-class IdeaUltimateDevBuildServerListener : TestExecutionListener {
-  companion object {
-    init {
-      init()
-    }
-
-    fun init() {
-      initDevBuildServerDiBinding(IdeInfoType.IDEA_ULTIMATE, DefaultIdeaUltimate)
-    }
-  }
+class IdeaUltimateDevBuildServerListener : IdeProductInit {
+  override val ideInfoType: IdeInfoType = IdeInfoType.IDEA_ULTIMATE
+  override val ideInfo: IdeInfo = DefaultIdeaUltimate
 }

@@ -2,10 +2,9 @@
 package com.intellij.tools.ide.starter.build.server.phpstorm
 
 import com.intellij.ide.starter.di.di
-import com.intellij.ide.starter.di.initDevBuildServerDiBinding
 import com.intellij.ide.starter.models.IdeInfo
 import com.intellij.ide.starter.models.IdeInfoType
-import org.junit.platform.launcher.TestExecutionListener
+import com.intellij.ide.starter.models.IdeProductInit
 import org.kodein.di.direct
 import org.kodein.di.instance
 
@@ -17,7 +16,6 @@ import org.kodein.di.instance
  */
 val IdeInfo.Companion.PhpStorm: IdeInfo
   get() {
-    PhpStormDevBuildServerListener.init()
     return di.direct.instance<IdeInfo>(tag = IdeInfoType.PHPSTORM)
   }
 
@@ -32,14 +30,7 @@ internal val DefaultPhpStorm = IdeInfo(
 /**
  * Registers PhpStorm [IdeInfo] in DI and initializes Dev Build Server support.
  */
-class PhpStormDevBuildServerListener : TestExecutionListener {
-  companion object {
-    init {
-      init()
-    }
-
-    fun init() {
-      initDevBuildServerDiBinding(IdeInfoType.PHPSTORM, DefaultPhpStorm)
-    }
-  }
+class PhpStormDevBuildServerListener : IdeProductInit {
+  override val ideInfoType: IdeInfoType = IdeInfoType.PHPSTORM
+  override val ideInfo: IdeInfo = DefaultPhpStorm
 }

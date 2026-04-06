@@ -33,3 +33,10 @@ enum class IdeInfoType(
       entries.find { it.productCode == productCode }
   }
 }
+
+
+/** Interface for IDE product initialization discovered via [java.util.ServiceLoader]. */
+interface IdeProductInit {
+  val ideInfoType: IdeInfoType
+  val ideInfo: IdeInfo
+}

@@ -2,10 +2,9 @@
 package com.intellij.tools.ide.starter.build.server.aqua
 
 import com.intellij.ide.starter.di.di
-import com.intellij.ide.starter.di.initDevBuildServerDiBinding
 import com.intellij.ide.starter.models.IdeInfo
 import com.intellij.ide.starter.models.IdeInfoType
-import org.junit.platform.launcher.TestExecutionListener
+import com.intellij.ide.starter.models.IdeProductInit
 import org.kodein.di.direct
 import org.kodein.di.instance
 
@@ -17,7 +16,6 @@ import org.kodein.di.instance
  */
 val IdeInfo.Companion.Aqua: IdeInfo
   get() {
-    AquaDevBuildServerListener.init()
     return di.direct.instance<IdeInfo>(tag = IdeInfoType.AQUA)
   }
 
@@ -31,14 +29,7 @@ internal val DefaultAqua = IdeInfo(
 /**
  * Registers Aqua [IdeInfo] in DI and initializes Dev Build Server support.
  */
-class AquaDevBuildServerListener : TestExecutionListener {
-  companion object {
-    init {
-      init()
-    }
-
-    fun init() {
-      initDevBuildServerDiBinding(IdeInfoType.AQUA, DefaultAqua)
-    }
-  }
+class AquaDevBuildServerListener : IdeProductInit {
+  override val ideInfoType: IdeInfoType = IdeInfoType.AQUA
+  override val ideInfo: IdeInfo = DefaultAqua
 }

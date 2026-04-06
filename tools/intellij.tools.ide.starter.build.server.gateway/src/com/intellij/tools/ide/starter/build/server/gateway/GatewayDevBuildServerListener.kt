@@ -2,10 +2,9 @@
 package com.intellij.tools.ide.starter.build.server.gateway
 
 import com.intellij.ide.starter.di.di
-import com.intellij.ide.starter.di.initDevBuildServerDiBinding
 import com.intellij.ide.starter.models.IdeInfo
 import com.intellij.ide.starter.models.IdeInfoType
-import org.junit.platform.launcher.TestExecutionListener
+import com.intellij.ide.starter.models.IdeProductInit
 import org.kodein.di.direct
 import org.kodein.di.instance
 
@@ -17,7 +16,6 @@ import org.kodein.di.instance
  */
 val IdeInfo.Companion.Gateway: IdeInfo
   get() {
-    GatewayDevBuildServerListener.init()
     return di.direct.instance<IdeInfo>(tag = IdeInfoType.GATEWAY)
   }
 
@@ -31,14 +29,7 @@ internal val DefaultGateway = IdeInfo(
 /**
  * Registers Gateway [IdeInfo] in DI and initializes Dev Build Server support.
  */
-class GatewayDevBuildServerListener : TestExecutionListener {
-  companion object {
-    init {
-      init()
-    }
-
-    fun init() {
-      initDevBuildServerDiBinding(IdeInfoType.GATEWAY, DefaultGateway)
-    }
-  }
+class GatewayDevBuildServerListener : IdeProductInit {
+  override val ideInfoType: IdeInfoType = IdeInfoType.GATEWAY
+  override val ideInfo: IdeInfo = DefaultGateway
 }

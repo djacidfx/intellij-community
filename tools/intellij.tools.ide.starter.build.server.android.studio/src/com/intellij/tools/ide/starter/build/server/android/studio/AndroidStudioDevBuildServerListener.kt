@@ -2,10 +2,9 @@
 package com.intellij.tools.ide.starter.build.server.android.studio
 
 import com.intellij.ide.starter.di.di
-import com.intellij.ide.starter.di.initDevBuildServerDiBinding
 import com.intellij.ide.starter.models.IdeInfo
 import com.intellij.ide.starter.models.IdeInfoType
-import org.junit.platform.launcher.TestExecutionListener
+import com.intellij.ide.starter.models.IdeProductInit
 import org.kodein.di.direct
 import org.kodein.di.instance
 
@@ -17,7 +16,6 @@ import org.kodein.di.instance
  */
 val IdeInfo.Companion.AndroidStudio: IdeInfo
   get() {
-    AndroidStudioDevBuildServerListener.init()
     return di.direct.instance<IdeInfo>(tag = IdeInfoType.ANDROID_STUDIO)
   }
 
@@ -31,14 +29,7 @@ internal val DefaultAndroidStudio = IdeInfo(
 /**
  * Registers Android Studio [IdeInfo] in DI and initializes Dev Build Server support.
  */
-class AndroidStudioDevBuildServerListener : TestExecutionListener {
-  companion object {
-    init {
-      init()
-    }
-
-    fun init() {
-      initDevBuildServerDiBinding(IdeInfoType.ANDROID_STUDIO, DefaultAndroidStudio)
-    }
-  }
+class AndroidStudioDevBuildServerListener : IdeProductInit {
+  override val ideInfoType: IdeInfoType = IdeInfoType.ANDROID_STUDIO
+  override val ideInfo: IdeInfo = DefaultAndroidStudio
 }

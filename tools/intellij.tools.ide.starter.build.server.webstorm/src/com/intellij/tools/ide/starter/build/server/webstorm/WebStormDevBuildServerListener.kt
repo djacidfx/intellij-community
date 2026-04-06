@@ -2,10 +2,9 @@
 package com.intellij.tools.ide.starter.build.server.webstorm
 
 import com.intellij.ide.starter.di.di
-import com.intellij.ide.starter.di.initDevBuildServerDiBinding
 import com.intellij.ide.starter.models.IdeInfo
 import com.intellij.ide.starter.models.IdeInfoType
-import org.junit.platform.launcher.TestExecutionListener
+import com.intellij.ide.starter.models.IdeProductInit
 import org.kodein.di.direct
 import org.kodein.di.instance
 
@@ -17,7 +16,6 @@ import org.kodein.di.instance
  */
 val IdeInfo.Companion.WebStorm: IdeInfo
   get() {
-    WebStormDevBuildServerListener.init()
     return di.direct.instance<IdeInfo>(tag = IdeInfoType.WEBSTORM)
   }
 
@@ -32,14 +30,7 @@ internal val DefaultWebStorm = IdeInfo(
 /**
  * Registers WebStorm [IdeInfo] in DI and initializes Dev Build Server support.
  */
-class WebStormDevBuildServerListener : TestExecutionListener {
-  companion object {
-    init {
-      init()
-    }
-
-    fun init() {
-      initDevBuildServerDiBinding(IdeInfoType.WEBSTORM, DefaultWebStorm)
-    }
-  }
+class WebStormDevBuildServerListener : IdeProductInit {
+  override val ideInfoType: IdeInfoType = IdeInfoType.WEBSTORM
+  override val ideInfo: IdeInfo = DefaultWebStorm
 }

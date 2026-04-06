@@ -2,10 +2,9 @@
 package com.intellij.tools.ide.starter.build.server.pycharm.community
 
 import com.intellij.ide.starter.di.di
-import com.intellij.ide.starter.di.initDevBuildServerDiBinding
 import com.intellij.ide.starter.models.IdeInfo
 import com.intellij.ide.starter.models.IdeInfoType
-import org.junit.platform.launcher.TestExecutionListener
+import com.intellij.ide.starter.models.IdeProductInit
 import org.kodein.di.direct
 import org.kodein.di.instance
 
@@ -17,7 +16,6 @@ import org.kodein.di.instance
  */
 val IdeInfo.Companion.PyCharmCommunity: IdeInfo
   get() {
-    PyCharmCommunityDevBuildServerListener.init()
     return di.direct.instance<IdeInfo>(tag = IdeInfoType.PYCHARM_COMMUNITY)
   }
 
@@ -32,14 +30,7 @@ internal val DefaultPyCharmCommunity = IdeInfo(
 /**
  * Registers PyCharm Community [IdeInfo] in DI and initializes Dev Build Server support.
  */
-class PyCharmCommunityDevBuildServerListener : TestExecutionListener {
-  companion object {
-    init {
-      init()
-    }
-
-    fun init() {
-      initDevBuildServerDiBinding(IdeInfoType.PYCHARM_COMMUNITY, DefaultPyCharmCommunity)
-    }
-  }
+class PyCharmCommunityDevBuildServerListener : IdeProductInit {
+  override val ideInfoType: IdeInfoType = IdeInfoType.PYCHARM_COMMUNITY
+  override val ideInfo: IdeInfo = DefaultPyCharmCommunity
 }
