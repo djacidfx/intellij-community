@@ -301,8 +301,11 @@ internal class IterativeMergeFlowDelegate(
       text = if (isResolvingConflicts) VcsBundle.message("multiple.file.merge.dialog.progress.title.resolving.conflicts")
       else VcsBundle.message("multiple.file.iterative.merge.resolve.automatically")
 
-      toolTipText =
-        if (!isEnabled && !isResolvingConflicts) VcsBundle.message("multiple.file.iterative.merge.resolve.automatically.disabled.tooltip") else null
+      toolTipText = when {
+        isResolvingConflicts -> null
+        !isEnabled -> VcsBundle.message("multiple.file.iterative.merge.resolve.automatically.disabled.tooltip")
+        else -> VcsBundle.message("multiple.file.iterative.merge.resolve.automatically.tooltip")
+      }
     }
 
     table.isEnabled = !isResolvingConflicts
@@ -433,7 +436,11 @@ private enum class ConflictsNodeType {
 
 private class ConflictsGroupNode(val type: ConflictsNodeType) : ChangesBrowserNode<ConflictsNodeType>(type) {
   override fun render(renderer: ChangesBrowserNodeRenderer, selected: Boolean, expanded: Boolean, hasFocus: Boolean) {
-    renderer.append(getTextPresentation(), SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES)
+    renderer.icon = when (type) {
+      ConflictsNodeType.RESOLVED -> AllIcons.General.GreenCheckmark
+      ConflictsNodeType.UNRESOLVED -> AllIcons.Vcs.Remove
+    }
+    renderer.append(FontUtil.spaceAndThinSpace() + getTextPresentation(), SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES)
     appendCount(renderer)
   }
 
