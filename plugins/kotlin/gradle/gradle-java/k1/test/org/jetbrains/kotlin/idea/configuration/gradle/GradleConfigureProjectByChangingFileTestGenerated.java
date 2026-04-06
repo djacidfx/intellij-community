@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
 package org.jetbrains.kotlin.idea.configuration.gradle;
 
@@ -32,19 +32,9 @@ public abstract class GradleConfigureProjectByChangingFileTestGenerated extends 
             KotlinTestUtils.runTest(this::doTestGradle, this, testDataFilePath);
         }
 
-        @TestMetadata("jreLib")
-        public void testJreLib() throws Exception {
-            runTest("../../../idea/tests/testData/configuration/gradle/jreLib/");
-        }
-
         @TestMetadata("libraryMissing")
         public void testLibraryMissing() throws Exception {
             runTest("../../../idea/tests/testData/configuration/gradle/libraryMissing/");
-        }
-
-        @TestMetadata("pluginPresent")
-        public void testPluginPresent() throws Exception {
-            runTest("../../../idea/tests/testData/configuration/gradle/pluginPresent/");
         }
 
         @TestMetadata("simpleProject")
@@ -65,6 +55,11 @@ public abstract class GradleConfigureProjectByChangingFileTestGenerated extends 
         @TestMetadata("simpleProjectMilestone")
         public void testSimpleProjectMilestone() throws Exception {
             runTest("../../../idea/tests/testData/configuration/gradle/simpleProjectMilestone/");
+        }
+
+        @TestMetadata("simpleProjectOldSyntax")
+        public void testSimpleProjectOldSyntax() throws Exception {
+            runTest("../../../idea/tests/testData/configuration/gradle/simpleProjectOldSyntax/");
         }
 
         @TestMetadata("simpleProjectReleaseCandidate")
@@ -101,11 +96,6 @@ public abstract class GradleConfigureProjectByChangingFileTestGenerated extends 
             runTest("../../../idea/tests/testData/configuration/gsk/libraryMissing/");
         }
 
-        @TestMetadata("pluginPresent")
-        public void testPluginPresent() throws Exception {
-            runTest("../../../idea/tests/testData/configuration/gsk/pluginPresent/");
-        }
-
         @TestMetadata("simpleProject")
         public void testSimpleProject() throws Exception {
             runTest("../../../idea/tests/testData/configuration/gsk/simpleProject/");
@@ -124,6 +114,11 @@ public abstract class GradleConfigureProjectByChangingFileTestGenerated extends 
         @TestMetadata("simpleProjectMilestone")
         public void testSimpleProjectMilestone() throws Exception {
             runTest("../../../idea/tests/testData/configuration/gsk/simpleProjectMilestone/");
+        }
+
+        @TestMetadata("simpleProjectOldSyntax")
+        public void testSimpleProjectOldSyntax() throws Exception {
+            runTest("../../../idea/tests/testData/configuration/gsk/simpleProjectOldSyntax/");
         }
 
         @TestMetadata("simpleProjectReleaseCandidate")

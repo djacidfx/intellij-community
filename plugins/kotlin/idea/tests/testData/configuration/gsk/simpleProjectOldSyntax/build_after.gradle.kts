@@ -2,10 +2,7 @@ import org.gradle.api.JavaVersion.VERSION_1_7
 
 plugins {
     application
-}
-
-apply {
-    plugin("kotlin")
+    kotlin("jvm") version "1.6.20"
 }
 
 application {
@@ -21,3 +18,8 @@ dependencies {
 }
 
 // VERSION: 1.6.20
+kotlin {
+    jvmToolchain {
+        (this as JavaToolchainSpec).languageVersion.set(JavaLanguageVersion.of(8))
+    }
+}
