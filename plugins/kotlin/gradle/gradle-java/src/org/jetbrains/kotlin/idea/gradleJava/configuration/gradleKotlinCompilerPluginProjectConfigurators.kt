@@ -25,7 +25,6 @@ import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.getTopLevelBuildScriptP
 import org.jetbrains.kotlin.idea.util.application.executeWriteCommand
 import org.jetbrains.kotlin.idea.vfilefinder.KotlinStdlibIndex
 import org.jetbrains.kotlin.psi.KtFile
-import org.jetbrains.kotlin.utils.PathUtil
 
 abstract class AbstractGradleKotlinCompilerPluginProjectConfigurator : KotlinCompilerPluginProjectConfigurator {
     override fun isApplicable(module: Module): Boolean =
@@ -69,7 +68,6 @@ abstract class AbstractGradleKotlinCompilerPluginProjectConfigurator : KotlinCom
         manipulator.configureBuildScripts(
             "kotlin.$kotlinCompilerPluginId",
             getKotlinPluginExpression(this is KtFile),
-            PathUtil.KOTLIN_JAVA_STDLIB_NAME,
             addVersion = addVersion,
             version = version,
             jvmTarget = null,

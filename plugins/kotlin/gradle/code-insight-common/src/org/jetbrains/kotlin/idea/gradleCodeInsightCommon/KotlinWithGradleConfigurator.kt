@@ -14,7 +14,6 @@ import com.intellij.openapi.project.modules
 import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.openapi.roots.DependencyScope
 import com.intellij.openapi.roots.ExternalLibraryDescriptor
-import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.psi.PsiElement
@@ -69,15 +68,15 @@ abstract class KotlinWithGradleConfigurator : BaseKotlinProjectConfigurator() {
         if (status != ConfigureKotlinStatus.CAN_BE_CONFIGURED) return status
 
         val module = moduleSourceRootGroup.baseModule
-        val (projectBuildFile, topLevelBuildFile) = runReadAction {
+        val (moduleBuildFile, topLevelBuildFile) = runReadAction {
             module.getBuildScriptPsiFile() to module.project.getTopLevelBuildScriptPsiFile()
         }
 
-        if (projectBuildFile == null && topLevelBuildFile == null) {
+        if (moduleBuildFile == null && topLevelBuildFile == null) {
             return ConfigureKotlinStatus.NON_APPLICABLE
         }
 
-        if (projectBuildFile?.isConfiguredByAnyGradleConfigurator() == true) {
+        if (moduleBuildFile?.isConfiguredByAnyGradleConfigurator() == true) {
             return ConfigureKotlinStatus.BROKEN
         }
 
@@ -392,19 +391,15 @@ abstract class KotlinWithGradleConfigurator : BaseKotlinProjectConfigurator() {
         jvmTarget: String?,
         changedFiles: ChangedConfiguratorFiles
     ) {
-        val sdk = ModuleUtil.findModuleForPsiElement(file)?.let { ModuleRootManager.getInstance(it).sdk }
         GradleBuildScriptSupport.getManipulator(file).configureBuildScripts(
             kotlinPluginName,
             getKotlinPluginExpression(file.isKtDsl()),
-            getStdlibArtifactName(sdk, version),
             addVersion,
             version,
             jvmTarget,
             changedFiles
         )
     }
-
-    protected open fun getStdlibArtifactName(sdk: Sdk?, version: IdeKotlinVersion): String = getJvmStdlibArtifactId(sdk, version)
 
     protected open fun getJvmTarget(sdk: Sdk?, version: IdeKotlinVersion): String? = null
 
@@ -620,10 +615,6 @@ abstract class KotlinWithGradleConfigurator : BaseKotlinProjectConfigurator() {
             ?.let {
                 it.project.executeWriteCommand(KotlinIdeaGradleBundle.message("change.build.gradle.configuration"), null) { body(it) }
             }
-
-        fun getKotlinStdlibVersion(module: Module): String? = module.getBuildScriptPsiFile()?.let {
-            GradleBuildScriptSupport.getManipulator(it).getKotlinStdlibVersion()
-        }
 
         private fun showErrorMessage(project: Project, @Nls message: String?) {
             ApplicationManager.getApplication().invokeLater(Runnable {

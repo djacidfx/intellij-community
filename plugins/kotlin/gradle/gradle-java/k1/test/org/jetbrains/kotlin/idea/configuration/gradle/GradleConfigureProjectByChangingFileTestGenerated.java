@@ -32,11 +32,6 @@ public abstract class GradleConfigureProjectByChangingFileTestGenerated extends 
             KotlinTestUtils.runTest(this::doTestGradle, this, testDataFilePath);
         }
 
-        @TestMetadata("libraryMissing")
-        public void testLibraryMissing() throws Exception {
-            runTest("../../../idea/tests/testData/configuration/gradle/libraryMissing/");
-        }
-
         @TestMetadata("simpleProject")
         public void testSimpleProject() throws Exception {
             runTest("../../../idea/tests/testData/configuration/gradle/simpleProject/");
@@ -89,11 +84,6 @@ public abstract class GradleConfigureProjectByChangingFileTestGenerated extends 
 
         private void runTest(String testDataFilePath) throws Exception {
             KotlinTestUtils.runTest(this::doTestGradle, this, testDataFilePath);
-        }
-
-        @TestMetadata("libraryMissing")
-        public void testLibraryMissing() throws Exception {
-            runTest("../../../idea/tests/testData/configuration/gsk/libraryMissing/");
         }
 
         @TestMetadata("simpleProject")

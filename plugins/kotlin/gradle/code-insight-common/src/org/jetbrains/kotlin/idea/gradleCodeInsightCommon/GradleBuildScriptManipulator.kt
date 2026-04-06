@@ -48,7 +48,6 @@ interface GradleBuildScriptManipulator<out Psi : PsiFile> {
     fun configureBuildScripts(
         kotlinPluginName: String,
         kotlinPluginExpression: String,
-        stdlibArtifactName: String,
         addVersion: Boolean,
         version: IdeKotlinVersion,
         jvmTarget: String?,
@@ -88,21 +87,6 @@ interface GradleBuildScriptManipulator<out Psi : PsiFile> {
         scope: DependencyScope,
         libraryDescriptor: ExternalLibraryDescriptor
     ): ModCommand = ModCommand.nop()
-
-    fun getKotlinStdlibVersion(): String?
-
-    fun addJdkSpec(
-        jvmTarget: String,
-        version: IdeKotlinVersion,
-        gradleVersion: GradleVersionInfo,
-        applySpec: (
-            useToolchain: Boolean,
-            useToolchainHelper: Boolean,
-            targetVersionNumber: String
-        ) -> Unit
-    ) {
-
-    }
 
     /**
      * Finds a "parent" block containing the current element with the [name] – be it a closure block or the whole line containing the [name].

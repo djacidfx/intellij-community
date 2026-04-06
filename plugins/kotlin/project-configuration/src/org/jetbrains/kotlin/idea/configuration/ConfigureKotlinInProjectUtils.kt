@@ -38,7 +38,6 @@ import org.jetbrains.kotlin.config.LanguageVersionSettingsImpl
 import org.jetbrains.kotlin.idea.KotlinFileType
 import org.jetbrains.kotlin.idea.base.facet.isMultiPlatformModule
 import org.jetbrains.kotlin.idea.base.facet.platform.platform
-import org.jetbrains.kotlin.idea.base.indices.KotlinPackageIndexUtils
 import org.jetbrains.kotlin.idea.base.platforms.KotlinCommonLibraryKind
 import org.jetbrains.kotlin.idea.base.platforms.KotlinJavaScriptLibraryKind
 import org.jetbrains.kotlin.idea.base.platforms.KotlinNativeLibraryKind
@@ -389,10 +388,6 @@ fun hasAnyKotlinRuntimeInScope(module: Module): Boolean {
                     || hasKotlinNativeRuntimeInScope(module)
         })
     }
-}
-
-fun isStdlibModule(module: Module): Boolean {
-    return KotlinPackageIndexUtils.packageExists(FqName("kotlin"), module.moduleProductionSourceScope)
 }
 
 fun getPlatform(module: Module): String {
