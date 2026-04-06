@@ -85,7 +85,7 @@ class GroovyBuildScriptManipulator(
     override val scriptFile: GroovyFile,
     override val preferNewSyntax: Boolean
 ) : GradleBuildScriptManipulator<GroovyFile> {
-    override fun isApplicable(file: PsiFile) = file is GroovyFile
+    override fun isApplicable(file: PsiFile): Boolean = file is GroovyFile
 
     private val gradleVersion = GradleVersionProvider.fetchGradleVersion(scriptFile)
 
@@ -861,17 +861,17 @@ class GroovyBuildScriptManipulator(
             return getBlockByName(name)!!
         }
 
-        fun GrStatementOwner.getBlockOrPrepend(name: String) = getBlockOrCreate(name) { newBlock ->
+        fun GrStatementOwner.getBlockOrPrepend(name: String): GrClosableBlock = getBlockOrCreate(name) { newBlock ->
             addAfter(newBlock, null)
             true
         }
 
-        fun GrStatementOwner.getPluginsBlock() = getBlockOrCreate("plugins") { newBlock ->
+        fun GrStatementOwner.getPluginsBlock(): GrClosableBlock = getBlockOrCreate("plugins") { newBlock ->
             addAfter(newBlock, getBlockByName("buildscript"))
             true
         }
 
-        fun GrStatementOwner.getSettingsPluginsBlock() = getBlockOrCreate("plugins") { newBlock ->
+        fun GrStatementOwner.getSettingsPluginsBlock(): GrClosableBlock = getBlockOrCreate("plugins") { newBlock ->
             val beforeBlock = getBlockByName("buildscript") ?: getBlockByName("pluginManagement")
             addAfter(newBlock, beforeBlock?.parent)
             true

@@ -109,12 +109,12 @@ class KotlinBuildScriptManipulator(
         return originalText != scriptFile.text
     }
 
-    override fun configureSettingsFile(pluginName: String, version: IdeKotlinVersion): Boolean {
+    override fun configureSettingsFile(kotlinPluginName: String, version: IdeKotlinVersion): Boolean {
         val originalText = scriptFile.text
         scriptFile.getOrCreatePluginManagementBlock()?.findOrCreateBlock("plugins")?.let {
-            if (it.findPluginInPluginsGroup(pluginName) == null) {
+            if (it.findPluginInPluginsGroup(kotlinPluginName) == null) {
                 it.addExpressionIfMissing(
-                    "$pluginName version \"${version.artifactVersion}\""
+                    "$kotlinPluginName version \"${version.artifactVersion}\""
                 ) as? KtCallExpression
             }
         }
@@ -772,7 +772,7 @@ class KotlinBuildScriptManipulator(
     ): PsiElement {
         var precomputedReplacement = compilerOption.expression
         var preserveAssignmentWhenReplacing = true
-        var assignment: KtExpression? = compilerOptionsBlock.statements.find { stmt ->
+        val assignment: KtExpression? = compilerOptionsBlock.statements.find { stmt ->
             when (stmt) {
                 is KtDotQualifiedExpression -> {
                     preserveAssignmentWhenReplacing = false

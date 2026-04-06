@@ -121,7 +121,6 @@ fun DependencyScope.toGradleCompileScope(isAndroidModule: Boolean): String = whe
     DependencyScope.TEST -> if (isAndroidModule) "implementation" else "testImplementation"
     DependencyScope.RUNTIME -> "runtime"
     DependencyScope.PROVIDED -> "implementation"
-    else -> "implementation"
 }
 
 fun DependencyScope.toGradleCompileScope(targetModule: Module? = null): String = when (this) {
@@ -129,7 +128,6 @@ fun DependencyScope.toGradleCompileScope(targetModule: Module? = null): String =
     DependencyScope.TEST -> if (targetModule?.isMultiPlatformModule == true) "implementation" else "testImplementation"
     DependencyScope.RUNTIME -> "runtime"
     DependencyScope.PROVIDED -> "implementation"
-    else -> "implementation"
 }
 
 fun RepositoryDescription.toGroovyRepositorySnippet(): String = "maven { url '$url' }"
@@ -407,7 +405,7 @@ fun getPlatform(module: Module): String {
 
         module.platform.isJs() && hasKotlinJsRuntimeInScope(module) -> "js"
         module.platform.isCommon() -> "common"
-        module.platform.isNative() -> "native." + (module.platform?.componentPlatforms?.first()?.targetName ?: "unknown")
+        module.platform.isNative() -> "native." + module.platform.componentPlatforms.first().targetName
         else -> "unknown"
     }
 }
