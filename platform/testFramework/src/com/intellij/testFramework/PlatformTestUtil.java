@@ -77,6 +77,7 @@ import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileFilter;
 import com.intellij.openapi.vfs.ex.temp.TempFileSystem;
+import com.intellij.openapi.vfs.newvfs.persistent.PersistentFSImpl;
 import com.intellij.platform.testFramework.core.FileComparisonFailedError;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiManager;
@@ -897,6 +898,8 @@ public final class PlatformTestUtil {
     @Nullable Function<VirtualFile, String> fileNameMapper
   ) throws IOException {
     FileDocumentManager.getInstance().saveAllDocuments();
+    //Async Iops, if any in progress, may ruin the comparison -- flush them:
+    flushAllPendingVFSUpdates();
 
     var childrenAfter = dirExpected.getChildren();
     shallowCompare(dirExpected, childrenAfter);
@@ -959,6 +962,23 @@ public final class PlatformTestUtil {
         "Text mismatch in the file " + fileExpected.getName(), expected, actual,
         fileActual.getUserData(VfsTestUtil.TEST_DATA_FILE_PATH));
     }
+  }
+
+  /**
+   * Flushes IO operations pending in VFS, if any.
+   * Use before transition from VFS to File/Path, or before launching an external process that uses the file(s) modified via VFS.
+   */
+  public static void flushAllPendingVFSUpdates() throws IOException {
+    PersistentFSImpl.flushPendingUpdates();
+  }
+
+  /**
+   * Flushes IO operations pending in VFS (if any) for the given file.
+   * Use before transition from VFS to File/Path, or before launching an external process that uses the file previously modified
+   * via VFS.
+   */
+  public static void flushPendingVFSUpdatesFor(@NotNull VirtualFile file) throws IOException {
+    PersistentFSImpl.flushPendingUpdates(file);
   }
 
   private static String fileText(@NotNull VirtualFile file) throws IOException {

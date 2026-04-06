@@ -25,6 +25,8 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.vfs.findDirectory
 import com.intellij.openapi.vfs.findOrCreateDirectory
+import com.intellij.openapi.vfs.newvfs.persistent.PersistentFS
+import com.intellij.openapi.vfs.newvfs.persistent.PersistentFSImpl
 import com.intellij.platform.backend.workspace.toVirtualFileUrl
 import com.intellij.platform.backend.workspace.workspaceModel
 import com.intellij.platform.workspace.jps.JpsProjectConfigLocation
@@ -48,6 +50,7 @@ import com.intellij.pom.PomManager
 import com.intellij.testFramework.IdeaTestUtil
 import com.intellij.testFramework.IndexingTestUtil.Companion.suspendUntilIndexesAreReady
 import com.intellij.testFramework.common.timeoutRunBlocking
+import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.IdeaTestExecutionPolicy
 import com.intellij.testFramework.junit5.fixture.disposableFixture
 import com.intellij.testFramework.junit5.fixture.projectFixture
@@ -320,6 +323,8 @@ abstract class AbstractAllIntellijEntitiesGenerationTest {
     //  VfsUtil.copyDirectory(this, newSrcRoot, vfExpectedSrcDir, null)
     //}
 
+    //transition from VFS to Path API: need to force VFS to flush pending updates
+    PlatformTestUtil.flushAllPendingVFSUpdates()
     val filePathFilter: (String) -> Boolean = { it.endsWith(".kt") && !it.endsWith("GradleJvmSupportDefaultData.kt") }
     if (genIsInsideSrc) {
       Path.of(newSrcRoot.presentableUrl)
