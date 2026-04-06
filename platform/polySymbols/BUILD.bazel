@@ -80,11 +80,18 @@ exports_files([
 ### auto-generated section `iml intellij.platform.polySymbols` end
 
 ### auto-generated section `build intellij.platform.polySymbols.testFramework` start
+resourcegroup(
+  name = "polySymbols-testFramework_resources",
+  srcs = glob(["testFrameworkResources/**/*"]),
+  strip_prefix = "testFrameworkResources"
+)
+
 jvm_library(
   name = "polySymbols-testFramework",
   module_name = "intellij.platform.polySymbols.testFramework",
   visibility = ["//visibility:public"],
   srcs = glob(["testFramework/**/*.kt", "testFramework/**/*.java", "testFramework/**/*.form"], allow_empty = True),
+  resources = [":polySymbols-testFramework_resources"],
   deps = [
     "//platform/lang-impl",
     "//platform/editor-ui-api:editor-ui",

@@ -5,6 +5,9 @@
     <content url="file://$MODULE_DIR$/testFramework">
       <sourceFolder url="file://$MODULE_DIR$/testFramework" isTestSource="false" />
     </content>
+    <content url="file://$MODULE_DIR$/testFrameworkResources">
+      <sourceFolder url="file://$MODULE_DIR$/testFrameworkResources" type="java-resource" />
+    </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="module" module-name="intellij.platform.lang.impl" />
     <orderEntry type="sourceFolder" forTests="false" />
