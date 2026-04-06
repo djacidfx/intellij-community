@@ -16186,6 +16186,11 @@ public abstract class K1IntentionTestGenerated extends AbstractK1IntentionTest {
             runTest("testData/intentions/removeExplicitTypeArguments/returnCallWithUnnecessaryTypeArgs.kt");
         }
 
+        @TestMetadata("script.kts")
+        public void testScript() throws Exception {
+            runTest("testData/intentions/removeExplicitTypeArguments/script.kts");
+        }
+
         @TestMetadata("twoArguments.kt")
         public void testTwoArguments() throws Exception {
             runTest("testData/intentions/removeExplicitTypeArguments/twoArguments.kt");
@@ -16211,14 +16216,39 @@ public abstract class K1IntentionTestGenerated extends AbstractK1IntentionTest {
             runTest("testData/intentions/removeExplicitTypeArguments/valueDeclaration.kt");
         }
 
-        @TestMetadata("valueDeclarationWithReceiver.kt")
-        public void testValueDeclarationWithReceiver() throws Exception {
-            runTest("testData/intentions/removeExplicitTypeArguments/valueDeclarationWithReceiver.kt");
-        }
-
         @TestMetadata("valueDeclarationWithReceiverInClasses.kt")
         public void testValueDeclarationWithReceiverInClasses() throws Exception {
             runTest("testData/intentions/removeExplicitTypeArguments/valueDeclarationWithReceiverInClasses.kt");
+        }
+
+        @TestMetadata("valueDeclarationWithReceiverInInnerClassNecessary.kt")
+        public void testValueDeclarationWithReceiverInInnerClassNecessary() throws Exception {
+            runTest("testData/intentions/removeExplicitTypeArguments/valueDeclarationWithReceiverInInnerClassNecessary.kt");
+        }
+
+        @TestMetadata("valueDeclarationWithReceiverInInnerClassUnnecessary.kt")
+        public void testValueDeclarationWithReceiverInInnerClassUnnecessary() throws Exception {
+            runTest("testData/intentions/removeExplicitTypeArguments/valueDeclarationWithReceiverInInnerClassUnnecessary.kt");
+        }
+
+        @TestMetadata("valueDeclarationWithReceiverInMemberExtensionNecessary.kt")
+        public void testValueDeclarationWithReceiverInMemberExtensionNecessary() throws Exception {
+            runTest("testData/intentions/removeExplicitTypeArguments/valueDeclarationWithReceiverInMemberExtensionNecessary.kt");
+        }
+
+        @TestMetadata("valueDeclarationWithReceiverInMemberExtensionUnnecessary.kt")
+        public void testValueDeclarationWithReceiverInMemberExtensionUnnecessary() throws Exception {
+            runTest("testData/intentions/removeExplicitTypeArguments/valueDeclarationWithReceiverInMemberExtensionUnnecessary.kt");
+        }
+
+        @TestMetadata("valueDeclarationWithReceiverNecessary.kt")
+        public void testValueDeclarationWithReceiverNecessary() throws Exception {
+            runTest("testData/intentions/removeExplicitTypeArguments/valueDeclarationWithReceiverNecessary.kt");
+        }
+
+        @TestMetadata("valueDeclarationWithReceiverUnnecessary.kt")
+        public void testValueDeclarationWithReceiverUnnecessary() throws Exception {
+            runTest("testData/intentions/removeExplicitTypeArguments/valueDeclarationWithReceiverUnnecessary.kt");
         }
 
         @TestMetadata("variableString.kt")

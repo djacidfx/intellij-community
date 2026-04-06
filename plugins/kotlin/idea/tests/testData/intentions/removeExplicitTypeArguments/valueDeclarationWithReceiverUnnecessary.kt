@@ -1,6 +1,7 @@
-// PROBLEM: none
-// IS_APPLICABLE: false
-// IGNORE_K1
+// FIX: Remove explicit type arguments
+// AFTER-WARNING: Variable 'x' is never used
+// AFTER-WARNING: Variable 'y' is never used
+
 fun <T> T.ext(): T = this
 
 fun String.testMeToo() {
