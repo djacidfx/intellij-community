@@ -195,7 +195,12 @@ object TeamCityReporter {
    * @param spec artifact path specification (e.g. `"path/to/file => destination"`)
    */
   fun reportPublishArtifacts(spec: String) {
-    println(PublishArtifacts(spec).asString())
+    // https://www.jetbrains.com/help/teamcity/2025.07/configuring-general-settings.html#Artifact+Paths
+    // > You can specify exact file paths or patterns, one per line or comma-separated.
+    // Because of that feature, files and directories with a comma in the name can't be mentioned as is.
+    // So, commas are replaced with wildcards.
+    // See also TW-19333.
+    println(PublishArtifacts(spec.replace(",", "*")).asString())
   }
 
   /**
