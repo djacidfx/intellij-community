@@ -1,20 +1,28 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.internal.ui.sandbox.components
 
+import com.intellij.icons.AllIcons
 import com.intellij.internal.ui.sandbox.UISandboxPanel
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.ActionUpdateThread
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.ex.ActionUtil
+import com.intellij.openapi.project.DumbAwareAction
+import com.intellij.ui.ColorUtil
 import com.intellij.ui.JBColor
 import com.intellij.ui.SimpleColoredComponent
 import com.intellij.ui.components.Badge
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.panels.Wrapper
 import com.intellij.ui.dsl.builder.AlignX
+import com.intellij.ui.dsl.builder.actionsButton
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.dsl.listCellRenderer.listCellRenderer
 import com.intellij.ui.tabs.TabInfo
 import com.intellij.ui.tabs.impl.JBTabsImpl
 import com.intellij.util.ui.JBDimension
 import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.NamedColorUtil
 import java.awt.BorderLayout
 import javax.swing.Icon
 import javax.swing.JComponent
@@ -58,6 +66,18 @@ internal class BadgePanel : UISandboxPanel {
           cell(JBList(allColorTypeBadges)).applyToComponent {
             cellRenderer = renderer
           }
+        }
+      }
+
+      group("Badges in Actions") {
+        row {
+          actionsButton(
+            CustomAction("Simple Action"),
+            CustomAction("Action with Icon", icon = AllIcons.General.Settings),
+            CustomAction("Action with Badge", badge = Badge.beta),
+            CustomAction("Action", comment = "Comment", badge = Badge.alpha),
+            icon = AllIcons.General.Menu
+          ).comment("Press the menu icon to see badge usage in actions")
         }
       }
 
@@ -106,3 +126,34 @@ private val allColorTypeBadges = listOf(
   Badge("Gray secondary", Badge.ColorType.GRAY_SECONDARY),
   Badge("Disabled").apply { enabled = false },
 )
+
+private class CustomAction(
+  private val text: String,
+  private val icon: Icon? = null,
+  private val comment: String? = null,
+  private val badge: Icon? = null,
+) :
+  DumbAwareAction() {
+
+  override fun actionPerformed(e: AnActionEvent) {
+  }
+
+  override fun update(e: AnActionEvent) {
+    e.presentation.text = getTextWithComment()
+    e.presentation.icon = icon
+    e.presentation.putClientProperty(ActionUtil.SECONDARY_ICON, badge)
+  }
+
+  override fun getActionUpdateThread(): ActionUpdateThread {
+    return ActionUpdateThread.BGT
+  }
+
+  private fun getTextWithComment(): String {
+    if (comment == null) {
+      return text
+    }
+
+    val color = ColorUtil.toHex(NamedColorUtil.getInactiveTextColor())
+    return "<html>$text <span color=$color>$comment"
+  }
+}
