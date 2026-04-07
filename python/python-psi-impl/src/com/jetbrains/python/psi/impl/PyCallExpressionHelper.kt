@@ -47,6 +47,8 @@ import com.jetbrains.python.psi.PySubscriptionExpression
 import com.jetbrains.python.psi.PyTupleParameter
 import com.jetbrains.python.psi.PyTypedElement
 import com.jetbrains.python.psi.PyUtil
+import com.jetbrains.python.psi.impl.PyCallExpressionHelper.getCalleeType
+import com.jetbrains.python.psi.impl.PyCallExpressionHelper.mapArguments
 import com.jetbrains.python.psi.impl.references.PyReferenceImpl
 import com.jetbrains.python.psi.resolve.PyResolveContext
 import com.jetbrains.python.psi.resolve.PyResolveUtil
@@ -71,6 +73,7 @@ import com.jetbrains.python.psi.types.PySelfType
 import com.jetbrains.python.psi.types.PyStructuralType
 import com.jetbrains.python.psi.types.PyType
 import com.jetbrains.python.psi.types.PyTypeChecker
+import com.jetbrains.python.psi.types.PyTypeChecker.getSubstitutionsWithUnresolvedReturnGenerics
 import com.jetbrains.python.psi.types.PyTypeInferenceCspFactory
 import com.jetbrains.python.psi.types.PyTypeMember
 import com.jetbrains.python.psi.types.PyTypeUtil.components
@@ -404,16 +407,22 @@ object PyCallExpressionHelper {
    * @return a non-negative number of parameters that are implicit to this call.
    */
   @JvmStatic
-  fun getImplicitArgumentCount(expression: PyReferenceExpression, function: PyFunction, resolveContext: PyResolveContext): Int {
+  fun getImplicitArgumentCount(expression: PyExpression, function: PyFunction, resolveContext: PyResolveContext): Int {
+    val type = resolveContext.typeEvalContext.getType(expression)
+    val isConstructorCall = type is PyClassType && type.isDefinition
+    if (isConstructorCall) {
+      return getImplicitArgumentCount(function, function.modifier, true, false, false)
+    }
+    // TODO (PY-89079): Incorrect offset when the callee is not a reference expression
+    if (expression !is PyReferenceExpression) {
+      return 0;
+    }
     val followed = expression.followAssignmentsChain(resolveContext)
     val qualifiers = followed.qualifiers
     val firstQualifier = qualifiers.firstOrNull()
     val isByInstance = isQualifiedByInstance(function, qualifiers, resolveContext.typeEvalContext)
-    val name = expression.name
-    val isConstructorCall = PyUtil.isInitOrNewMethod(function) &&
-                            (!expression.isQualified || PyNames.INIT != name && PyNames.NEW != name)
     val isByClass = firstQualifier != null && isQualifiedByClass(function, firstQualifier, resolveContext.typeEvalContext)
-    return getImplicitArgumentCount(function, function.modifier, isConstructorCall, isByInstance, isByClass)
+    return getImplicitArgumentCount(function, function.modifier, false, isByInstance, isByClass)
   }
 
   /**
@@ -554,13 +563,6 @@ object PyCallExpressionHelper {
         }
       }
     }
-    // TODO (PY-88644): This does not take into account `__call__` method of the metaclass or `__new__` method of the class
-    if (callee is PySubscriptionExpression) {
-      val parametrizedType = Ref.deref(PyTypingTypeProvider.getType(callee, context))
-      if (parametrizedType != null) {
-        return parametrizedType
-      }
-    }
     val resolveContext = PyResolveContext.defaultContext(context)
     return getCallType(expression.multiResolveCallee(resolveContext), expression, context)
   }
@@ -657,20 +659,25 @@ object PyCallExpressionHelper {
     }
 
     var callType: PyType? = PyAnyType.unknown
+    val callee = callSite.callee
     val genericType = PyTypeChecker.findGenericDefinitionType(cls, context)
     if (genericType != null) {
-      val receiver = callSite.callee
-      val mappedArguments = mapArguments(receiver, callSite, method, context)
+      val mappedArguments = mapArguments(callee, callSite, method, context)
       val callableType = context.getType(method) as? PyCallableType
-      val substitutions = PyTypeInferenceCspFactory.unifyGenericCall(callSite, receiver, callableType, mappedArguments, context)
+      val substitutions = PyTypeInferenceCspFactory.unifyGenericCall(callSite, callee, callableType, mappedArguments, context)
       if (substitutions != null) {
-        callType = PyTypeChecker.substitute(genericType, substitutions, context)
+        val parameters = callableType?.getParameters(context) ?: emptyList()
+        val finalSubstitutions = getSubstitutionsWithUnresolvedReturnGenerics(parameters, genericType, substitutions, context)
+        callType = PyTypeChecker.substitute(genericType, finalSubstitutions, context)
       }
     }
-    else {
-      val type = context.getType(cls)
-      if (type is PyInstantiableType<*>) {
-        callType = type.toInstance()
+
+    if (callType.isUnknown) {
+      if (callee != null) {
+        val calleeType = context.getType(callee)
+        if (calleeType is PyInstantiableType<*>) {
+          callType = calleeType.toInstance()
+        }
       }
     }
 
@@ -1472,7 +1479,7 @@ object PyCallExpressionHelper {
     val implicitOffset: Int
     if (callSite is PyCallExpression) {
       val callee = callSite.callee
-      if (callee is PyReferenceExpression && callable is PyFunction) {
+      if (callee != null && callable is PyFunction) {
         implicitOffset = getImplicitArgumentCount(callee, callable, resolveContext)
       }
       else {

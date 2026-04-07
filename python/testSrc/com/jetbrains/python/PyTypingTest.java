@@ -6461,7 +6461,7 @@ public class PyTypingTest extends PyTestCase {
 
   // PY-77601
   public void testParamSpecNotMappedToSingleTypeWithoutSquareBrackets() {
-    doTest("Any", """
+    doTest("(**P) -> int", """
       from typing import ParamSpec, Callable, Generic, TypeVar
       
       P = ParamSpec("P")
