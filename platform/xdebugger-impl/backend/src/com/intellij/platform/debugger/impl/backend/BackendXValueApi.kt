@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.platform.debugger.impl.backend
 
 import com.intellij.ide.ui.colors.rpcId
@@ -122,8 +122,8 @@ internal class BackendXValueApi : XValueApi {
         trySend(XFullValueEvaluatorResult.Evaluated(fullValue))
       }
 
+      @Suppress("OVERRIDE_DEPRECATION")
       override fun evaluated(fullValue: String, font: Font?) {
-        // TODO[IJPL-160146]: support Font?
         trySend(XFullValueEvaluatorResult.Evaluated(fullValue))
       }
 

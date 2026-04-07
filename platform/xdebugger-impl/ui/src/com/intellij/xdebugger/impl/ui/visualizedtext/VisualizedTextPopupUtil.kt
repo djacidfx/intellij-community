@@ -1,4 +1,4 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.xdebugger.impl.ui.visualizedtext
 
 import com.intellij.ide.util.PropertiesComponent
@@ -321,7 +321,7 @@ private class EvaluationCallback(private val panel: VisualizedTextPanel) : XFull
 
   private var lastFullValueHashCode = AtomicReference<Int?>()
 
-  override fun evaluated(fullValue: String, font: Font?) {
+  override fun evaluated(fullValue: String) {
     // This code is not expected to be called multiple times (e.g., statistics are expected to be collected only once),
     // but it is actually called in the case of huge Java string.
     // 1. NodeDescriptorImpl.updateRepresentation() calls ValueDescriptorImpl.calcRepresentation() and it calls labelChanged()
