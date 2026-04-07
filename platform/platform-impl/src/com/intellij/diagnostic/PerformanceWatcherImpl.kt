@@ -81,6 +81,7 @@ import kotlin.io.path.getLastModifiedTime
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.name
 import kotlin.io.path.useDirectoryEntries
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
@@ -135,7 +136,7 @@ internal class PerformanceWatcherImpl(private val coroutineScope: CoroutineScope
             return@collectLatest
           }
 
-          delay(unresponsiveInterval.toLong())
+          delay(unresponsiveInterval.toLong().milliseconds)
           task.edtFrozen()
         }
       }
@@ -173,7 +174,7 @@ internal class PerformanceWatcherImpl(private val coroutineScope: CoroutineScope
         }
 
         while (true) {
-          delay(samplingIntervalMs)
+          delay(samplingIntervalMs.milliseconds)
           samplePerformance(samplingIntervalMs)
         }
       }
@@ -581,7 +582,7 @@ private class CoroutineDispatcherWatcher(
     coroutineScope.launch(CoroutineName("$dispatcher sampling") + dispatcher) {
       try {
         while (true) {
-          delay(pooledSamplingInterval)
+          delay(pooledSamplingInterval.milliseconds)
           lastSampleNs = System.nanoTime()
         }
       }
@@ -599,7 +600,7 @@ private class CoroutineDispatcherWatcher(
         var lastReportedNs = System.nanoTime()
 
         while (true) {
-          delay(pooledSamplingInterval)
+          delay(pooledSamplingInterval.milliseconds)
 
           val unresponsiveIntervalMs = getUnresponsiveIntervalMs()
           if (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - lastSampleNs) <= unresponsiveIntervalMs ||
