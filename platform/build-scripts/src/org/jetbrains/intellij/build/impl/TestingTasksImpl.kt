@@ -454,7 +454,9 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
       }
     }
 
-    if (suppressedExceptions.isNotEmpty() && suppressedExceptions.size == testModules.size) {
+    if (suppressedExceptions.size == testModules.size &&
+        // a bucket might be empty for run configurations with too few tests due to imperfect tests balancing
+        options.bucketsCount < 2) {
       throw RuntimeException("No tests were found in '${mainModule.name}' module classpath w/ simple patterns '${options.testSimplePatterns}', patterns '${options.testPatterns}', or groups '${options.testGroups}'").apply {
         suppressedExceptions.forEach(::addSuppressed)
       }
