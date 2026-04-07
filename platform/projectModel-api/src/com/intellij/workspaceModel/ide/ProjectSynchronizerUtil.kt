@@ -13,5 +13,9 @@ interface ProjectSynchronizerUtil {
   companion object {
     @JvmStatic
     suspend fun getInstance(project: Project): ProjectSynchronizerUtil = project.serviceAsync()
+
+    suspend fun backgroundPostStartupProjectLoading(project: Project) {
+      getInstance(project).applyJpsModelToProjectModel()
+    }
   }
 }
