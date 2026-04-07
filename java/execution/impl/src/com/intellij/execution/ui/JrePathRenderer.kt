@@ -9,6 +9,9 @@ import com.intellij.ui.dsl.listCellRenderer.LcrRow
 import com.intellij.ui.dsl.listCellRenderer.listCellRenderer
 import javax.swing.ListCellRenderer
 
+@NlsSafe
+private const val JAVA = "java"
+
 internal fun createJrePathRenderer(): ListCellRenderer<JreComboBoxItem?> {
   val monospacedFont = CommonParameterFragments.getMonospaced()
 
@@ -22,8 +25,7 @@ internal fun createJrePathRenderer(): ListCellRenderer<JreComboBoxItem?> {
     when {
       BundledJreProvider.BUNDLED == value.getPresentableText() -> {
         if (index == -1) {
-          @Suppress("HardCodedStringLiteral")
-          text("java")
+          text(JAVA)
         }
 
         text(ExecutionBundle.message("bundled.jre.name")) {
@@ -36,8 +38,7 @@ internal fun createJrePathRenderer(): ListCellRenderer<JreComboBoxItem?> {
       }
 
       index == -1 -> {
-        @Suppress("HardCodedStringLiteral")
-        text("java")
+        text(JAVA)
 
         val shortVersion = appendShortVersion(value)
         if (pathOrName != null && pathOrName != shortVersion) {
