@@ -40,7 +40,8 @@ internal class SplitModeXmlApiUsageInspection : DevKitPluginXmlInspectionBase() 
       DevKitBundle.message(
         "inspection.api.usage.restricted.to.module.type.default.message",
         extensionPointName,
-        expectedModuleKind.presentableName
+        expectedModuleKind.presentableName,
+        actualModuleKind.presentableName,
       )
     )
   }

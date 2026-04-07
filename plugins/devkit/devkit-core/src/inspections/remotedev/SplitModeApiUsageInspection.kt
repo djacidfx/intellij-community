@@ -122,7 +122,8 @@ class SplitModeApiUsageInspection : DevKitUastInspectionBase(UClass::class.java,
       val message = DevKitBundle.message(
         "inspection.api.usage.restricted.to.module.type.default.message",
         resolvedApi.qualifiedName,
-        expectedModuleKind.presentableName
+        expectedModuleKind.presentableName,
+        currentModuleType.presentableName,
       )
 
       descriptors.add(

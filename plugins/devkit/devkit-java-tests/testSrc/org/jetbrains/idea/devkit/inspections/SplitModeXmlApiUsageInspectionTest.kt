@@ -31,7 +31,7 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
             <module name="intellij.platform.backend"/>
           </dependencies>
           <extensions defaultExtensionNs="com.intellij">
-            <<warning descr="'com.intellij.fileEditorProvider' can only be used in 'frontend' module type">fileEditorProvider</warning>/>
+            <<warning descr="'com.intellij.fileEditorProvider' can only be used in 'frontend' module type. Actual module type is 'backend'">fileEditorProvider</warning>/>
           </extensions>
         </idea-plugin>
       """.trimIndent()
@@ -48,7 +48,7 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
             <module name="intellij.platform.frontend"/>
           </dependencies>
           <extensions defaultExtensionNs="com.intellij">
-            <<warning descr="'com.intellij.localInspection' can only be used in 'backend' module type">localInspection</warning>/>
+            <<warning descr="'com.intellij.localInspection' can only be used in 'backend' module type. Actual module type is 'frontend'">localInspection</warning>/>
           </extensions>
         </idea-plugin>
       """.trimIndent()
@@ -66,8 +66,8 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
             <module name="intellij.platform.ide"/>
           </dependencies>
           <extensions defaultExtensionNs="com.intellij">
-            <<warning descr="'com.intellij.fileEditorProvider' can only be used in 'frontend' module type">fileEditorProvider</warning>/>
-            <<warning descr="'com.intellij.localInspection' can only be used in 'backend' module type">localInspection</warning>/>
+            <<warning descr="'com.intellij.fileEditorProvider' can only be used in 'frontend' module type. Actual module type is 'shared'">fileEditorProvider</warning>/>
+            <<warning descr="'com.intellij.localInspection' can only be used in 'backend' module type. Actual module type is 'shared'">localInspection</warning>/>
             <lang.parserDefinition/>
           </extensions>
         </idea-plugin>
@@ -85,7 +85,7 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
             <module name="intellij.platform.frontend"/>
           </dependencies>
           <extensions defaultExtensionNs="com.intellij">
-            <<warning descr="'com.intellij.localInspection' can only be used in 'backend' module type">localInspection</warning>/>
+            <<warning descr="'com.intellij.localInspection' can only be used in 'backend' module type. Actual module type is 'shared'">localInspection</warning>/>
           </extensions>
         </idea-plugin>
       """.trimIndent()
@@ -103,8 +103,8 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
             <module name="intellij.platform.backend"/>
           </dependencies>
           <extensions defaultExtensionNs="com.intellij">
-            <<warning descr="'com.intellij.fileEditorProvider' can only be used in 'frontend' module type">fileEditorProvider</warning>/>
-            <<warning descr="'com.intellij.localInspection' can only be used in 'backend' module type">localInspection</warning>/>
+            <<warning descr="'com.intellij.fileEditorProvider' can only be used in 'frontend' module type. Actual module type is 'mixed'">fileEditorProvider</warning>/>
+            <<warning descr="'com.intellij.localInspection' can only be used in 'backend' module type. Actual module type is 'mixed'">localInspection</warning>/>
           </extensions>
         </idea-plugin>
       """.trimIndent()
