@@ -3,24 +3,10 @@ load("@rules_jvm//:jvm.bzl", "kt_javac_options")
 load("//build:compiler-options.bzl", "create_kotlinc_options")
 load("@aspect_rules_lint//format:defs.bzl", "format_multirun")
 
-config_setting(
-    name = "windows_arm64",
-    constraint_values = [
-        "@platforms//os:windows",
-        "@platforms//cpu:arm64",
-    ],
-)
-
 format_multirun(
     name = "format",
     starlark = "@buildifier_prebuilt//:buildifier",
     visibility = ["//visibility:public"],
-    # Fix for https://github.com/keith/buildifier-prebuilt/issues/141
-    # Remove this compatibility section (and the related config_setting) once the issue is fixed.
-    target_compatible_with = select({
-        ":windows_arm64": ["@platforms//:incompatible"],
-        "//conditions:default": [],
-    }),
 )
 
 exports_files(
