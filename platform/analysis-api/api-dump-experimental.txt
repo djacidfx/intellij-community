@@ -367,7 +367,6 @@ com.intellij.modcommand.ModPsiUpdater
 *a:com.intellij.modcompletion.PsiUpdateCompletionItem
 - com.intellij.modcompletion.ModCompletionItem
 - p:<init>(java.lang.String,java.lang.Object):V
-- p:addCompletionChar(com.intellij.modcommand.ModPsiUpdater,com.intellij.modcompletion.ModCompletionItem$InsertionContext):V
 - p:calculateEndOffsetForOverwrite(com.intellij.openapi.editor.Document,I):I
 - contextObject():java.lang.Object
 - mainLookupString():java.lang.String

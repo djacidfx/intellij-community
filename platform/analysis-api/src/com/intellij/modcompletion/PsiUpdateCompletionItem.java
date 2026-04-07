@@ -58,7 +58,13 @@ public abstract class PsiUpdateCompletionItem<T> implements ModCompletionItem {
     });
   }
 
-  protected void addCompletionChar(ModPsiUpdater updater, InsertionContext context) {
+  /**
+   * Inserts a completion character to the document, if necessary.
+   * 
+   * @param updater updater to use
+   * @param context insertion context
+   */
+  private void addCompletionChar(ModPsiUpdater updater, InsertionContext context) {
     if (!shouldAddCompletionChar(context)) return;
     PsiDocumentManager.getInstance(updater.getProject()).doPostponedOperationsAndUnblockDocument(updater.getDocument());
     int offset = updater.getCaretOffset();
@@ -66,6 +72,15 @@ public abstract class PsiUpdateCompletionItem<T> implements ModCompletionItem {
     updater.moveCaretTo(offset + 1);
   }
 
+  /**
+   * Informs whether the completion character should be inserted to the document.
+   * <p>
+   * @implNote The default implementation inserts any character, except tab and enter. 
+   * The method could be overridden to suppress other characters. 
+   * 
+   * @param context insertion context
+   * @return true if the completion character should be inserted to the document automatically.
+   */
   protected boolean shouldAddCompletionChar(InsertionContext context) {
     char c = context.insertionCharacter();
     return c != Lookup.NORMAL_SELECT_CHAR &&
