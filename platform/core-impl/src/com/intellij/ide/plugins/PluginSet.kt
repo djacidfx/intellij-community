@@ -167,6 +167,9 @@ fun executeRegisterTaskForOldContent(mainPluginDescriptor: IdeaPluginDescriptorI
 
 @ApiStatus.Internal
 suspend fun SequenceScope<IdeaPluginDescriptorImpl>.sequenceSubDescriptorsForRegistration(moduleDescriptor: IdeaPluginDescriptorImpl) {
+  if (!moduleDescriptor.isMarkedForLoading) {
+    return
+  }
   for (dep in moduleDescriptor.dependencies) {
     val subDescriptor = dep.subDescriptor
     if (subDescriptor?.isMarkedForLoading != true) {
