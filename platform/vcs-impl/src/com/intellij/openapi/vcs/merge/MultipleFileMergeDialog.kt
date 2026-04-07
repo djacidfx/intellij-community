@@ -17,7 +17,6 @@ import com.intellij.diff.util.Side
 import com.intellij.ide.util.treeView.TreeState
 import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.actionSystem.UiDataProvider
-import com.intellij.openapi.application.UI
 import com.intellij.openapi.application.UiWithModelAccess
 import com.intellij.openapi.application.writeAction
 import com.intellij.openapi.command.WriteCommandAction.writeCommandAction
@@ -339,7 +338,7 @@ open class MultipleFileMergeDialog(
       }
     }
 
-    withContext(Dispatchers.UI) {
+    withContext(Dispatchers.UiWithModelAccess) {
       updateModelFromFiles()
     }
   }
@@ -432,6 +431,7 @@ open class MultipleFileMergeDialog(
     markFilesProcessed(listOf(file), resolution)
   }
 
+  @RequiresEdt
   private fun updateModelFromFiles() {
     if (unresolvedFiles.isEmpty()) {
       doCancelAction()
