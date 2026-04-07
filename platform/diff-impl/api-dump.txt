@@ -132,7 +132,8 @@ c:com.intellij.diff.actions.impl.OpenInEditorAction
 - sf:openEditor(com.intellij.openapi.project.Project,com.intellij.pom.Navigatable[],java.lang.Runnable):Z
 - sf:openEditor(com.intellij.pom.Navigatable,java.lang.Runnable):Z
 - sf:openEditor(com.intellij.pom.Navigatable[],java.lang.Runnable):Z
-- promote(java.util.List,com.intellij.openapi.actionSystem.DataContext):java.util.List
+- f:promote(java.util.List,com.intellij.openapi.actionSystem.DataContext):java.util.List
+- f:suppress(java.util.List,com.intellij.openapi.actionSystem.DataContext):java.util.List
 - update(com.intellij.openapi.actionSystem.AnActionEvent):V
 f:com.intellij.diff.actions.impl.OpenInEditorAction$Companion
 - f:openEditor(com.intellij.openapi.project.Project,com.intellij.pom.Navigatable,java.lang.Runnable):Z
