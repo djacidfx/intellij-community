@@ -15,6 +15,7 @@ import org.jetbrains.idea.maven.dom.MavenDomUtil
 import org.jetbrains.idea.maven.dom.toolchains.MavenDomToolchain
 import org.jetbrains.idea.maven.dom.toolchains.MavenDomToolchainsModel
 import java.nio.file.Path
+import kotlin.io.path.fileSize
 import kotlin.io.path.isRegularFile
 
 class ToolchainModel(
@@ -75,7 +76,7 @@ suspend fun addIntoToolchainsFile(project: Project, toolchains: Path, sdk: Sdk):
 }
 
 private fun ensureFileValid(toolchains: Path) {
-  if (!toolchains.isRegularFile()) {
+  if (!toolchains.isRegularFile() || toolchains.fileSize() == 0L) {
     toolchains.write("<toolchains>\n</toolchains>".toByteArray())
   }
 }

@@ -2,9 +2,14 @@
 package org.jetbrains.idea.maven.utils
 
 import com.intellij.maven.testFramework.MavenTestCase
+import com.intellij.platform.eel.provider.asNioPath
+import com.intellij.platform.eel.provider.getEelDescriptor
+import com.intellij.platform.eel.provider.toEelApi
 import junit.framework.TestCase
 import kotlinx.coroutines.runBlocking
+import org.jetbrains.idea.maven.config.MavenConfigParser
 import org.jetbrains.idea.maven.model.MavenId
+import org.jetbrains.idea.maven.utils.MavenUtil.DOT_M2_DIR
 import org.jetbrains.idea.maven.utils.MavenUtil.containsDeclaredExtension
 import org.jetbrains.idea.maven.utils.MavenUtil.getRepositoryFromSettings
 import org.jetbrains.idea.maven.utils.MavenUtil.getVFileBaseDir
@@ -217,6 +222,42 @@ class MavenUtilTest : MavenTestCase() {
     assertEquals(subDir2, getVFileBaseDir(subDir2))
     assertEquals(projectRoot, getVFileBaseDir(subDir3))
     assertEquals(subDir4, getVFileBaseDir(subDir4))
+  }
+
+  fun testEelToolchainsOverrideWithEmptyString() = runBlocking {
+    createProjectSubFile(".mvn/maven.config", "-t\ntoolchains-path.xml")
+    createProjectSubFile("toolchains-path.xml")
+    val config = MavenConfigParser.parse(projectPath.toString())
+    val toolchainsFile = MavenEelUtil.getToolchainsFile(project, "", config)
+    val expected = projectPath.resolve("toolchains-path.xml")
+    assertTrue("Files $expected and $toolchainsFile should be the same", Files.isSameFile(expected, toolchainsFile))
+  }
+
+  fun testEelToolchainsOverrideWithNullString() = runBlocking {
+    createProjectSubFile(".mvn/maven.config", "-t\ntoolchains-path.xml")
+    createProjectSubFile("toolchains-path.xml")
+    val config = MavenConfigParser.parse(projectPath.toString())
+    val toolchainsFile = MavenEelUtil.getToolchainsFile(project, null, config)
+    val expected = projectPath.resolve("toolchains-path.xml")
+    assertTrue("Files $expected and $toolchainsFile should be the same", Files.isSameFile(expected, toolchainsFile))
+  }
+
+  fun testEelToolchainsOverrideWithNullStringNonExistingFile() = runBlocking {
+    createProjectSubFile(".mvn/maven.config", "-t\nnon-existent-toolchains-path.xml")
+    //createProjectSubFile("non-existent-toolchains-path.xml")
+    val config = MavenConfigParser.parse(projectPath.toString())
+    val toolchainsFile = MavenEelUtil.getToolchainsFile(project, null, config)
+    assertEquals(projectPath.getEelDescriptor().toEelApi().userInfo.home.asNioPath()
+                   .resolve(DOT_M2_DIR)
+                   .resolve(MavenUtil.TOOLCHAINS_XML).toString(), toolchainsFile.toString())
+  }
+
+  fun testEelToolchainsOverrideWithSettingsString() = runBlocking {
+    createProjectSubFile(".mvn/maven.config", "-t\ntoolchains-path.xml")
+    createProjectSubFile("toolchains-path.xml")
+    val config = MavenConfigParser.parse(projectPath.toString())
+    val toolchainsFile = MavenEelUtil.getToolchainsFile(project, "/path/to/my-toolchains.xml", config)
+    assertEquals("/path/to/my-toolchains.xml", toolchainsFile.toString())
   }
 
   fun testBaseDirIOfNoDotMvn() {

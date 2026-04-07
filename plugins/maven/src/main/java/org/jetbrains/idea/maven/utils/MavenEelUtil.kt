@@ -51,7 +51,6 @@ import com.intellij.platform.util.progress.withProgressText
 import com.intellij.ui.navigation.Place
 import com.intellij.util.SystemProperties
 import com.intellij.util.text.VersionComparatorUtil
-import com.intellij.util.text.nullize
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -87,6 +86,7 @@ import java.io.IOException
 import java.nio.file.Path
 import java.util.Properties
 import javax.swing.event.HyperlinkEvent
+import kotlin.io.path.exists
 
 object MavenEelUtil {
   @JvmStatic
@@ -270,17 +270,18 @@ object MavenEelUtil {
     overridenToolchainsPathString: String?,
     config: MavenConfig?,
   ): Path {
-    val toolchainsPath = (overridenToolchainsPathString ?: config?.getOptionValue(MavenConfigSettings.ALTERNATE_TOOLCHAINS_SETTINGS))
-      .nullize(true)
-    return resolveUsingEel(project,
-                           {
-                             toolchainsPath?.let { Path.of(it) } ?: Path.of(SystemProperties.getUserHome())
-                               .resolve(DOT_M2_DIR)
-                               .resolve(MavenUtil.TOOLCHAINS_XML)
-                           },
-                           { api ->
-                             toolchainsPath?.let { api.fs.getPath(it).asNioPath() } ?: api.resolveM2Dir().resolve(MavenUtil.TOOLCHAINS_XML)
-                           })
+    if (!overridenToolchainsPathString.isNullOrEmpty()) return Path.of(overridenToolchainsPathString)
+    val toolchainsPath = config?.getOptionValue(MavenConfigSettings.ALTERNATE_TOOLCHAINS_SETTINGS)
+    if (toolchainsPath.isNullOrEmpty()) {
+      return defaultToolchainsFile(project)
+    }
+    return config.getAbsolutePath(Path.of(toolchainsPath)).takeIf { it.exists() } ?: defaultToolchainsFile(project)
+  }
+
+  private suspend fun defaultToolchainsFile(project: Project?): Path {
+    val home = (project?.getEelDescriptor()?.toEelApi()?.userInfo?.home?.asNioPath() ?: Path.of(SystemProperties.getUserHome()))
+    return home.resolve(DOT_M2_DIR)
+      .resolve(MavenUtil.TOOLCHAINS_XML)
   }
 
   @JvmStatic
