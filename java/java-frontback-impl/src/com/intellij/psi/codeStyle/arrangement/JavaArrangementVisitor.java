@@ -1,4 +1,4 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.psi.codeStyle.arrangement;
 
 import com.intellij.openapi.editor.Document;
@@ -9,6 +9,7 @@ import com.intellij.psi.PsiAnonymousClass;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiClassInitializer;
 import com.intellij.psi.PsiComment;
+import com.intellij.psi.PsiDeclarationStatement;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiEnumConstant;
 import com.intellij.psi.PsiErrorElement;
@@ -154,7 +155,7 @@ public class JavaArrangementVisitor extends JavaRecursiveElementVisitor {
     }
 
     TextRange codeBlockRange = new TextRange(lBrace.getTextRange().getStartOffset(), rBrace.getTextRange().getEndOffset());
-    JavaElementArrangementEntry entry = createNewEntry(codeBlockRange, ANONYMOUS_CLASS_BODY, aClass.getName());
+    JavaElementArrangementEntry entry = createNewEntry(codeBlockRange, ANONYMOUS_CLASS_BODY, null, true);
 
     if (entry == null) {
       return;
@@ -184,7 +185,8 @@ public class JavaArrangementVisitor extends JavaRecursiveElementVisitor {
     else if (aClass.isInterface()) {
       type = INTERFACE;
     }
-    JavaElementArrangementEntry entry = createNewEntry(range, type, aClass.getName());
+    JavaElementArrangementEntry entry =
+      createNewEntry(range, type, aClass.getName(), !(aClass.getParent() instanceof PsiDeclarationStatement));
     processEntry(entry, aClass, aClass);
   }
 
@@ -194,14 +196,14 @@ public class JavaArrangementVisitor extends JavaRecursiveElementVisitor {
 
   @Override
   public void visitAnonymousClass(final @NotNull PsiAnonymousClass aClass) {
-    JavaElementArrangementEntry entry = createNewEntry(aClass.getTextRange(), ANONYMOUS_CLASS, aClass.getName());
+    JavaElementArrangementEntry entry = createNewEntry(aClass.getTextRange(), ANONYMOUS_CLASS, null, false);
     if (entry == null) {
       return;
     }
     processChildrenWithinEntryScope(entry, () -> {
       PsiExpressionList list = aClass.getArgumentList();
       if (list != null && list.getTextLength() > 0) {
-        JavaElementArrangementEntry listEntry = createNewEntry(list.getTextRange(), ANON_CLASS_PARAMETER_LIST, aClass.getName());
+        JavaElementArrangementEntry listEntry = createNewEntry(list.getTextRange(), ANON_CLASS_PARAMETER_LIST, null, false);
         processEntry(listEntry, null, list);
       }
       createAndProcessAnonymousClassBodyEntry(aClass);
@@ -268,7 +270,7 @@ public class JavaArrangementVisitor extends JavaRecursiveElementVisitor {
       }
     }
 
-    JavaElementArrangementEntry entry = createNewEntry(range, FIELD, field.getName());
+    JavaElementArrangementEntry entry = createNewEntry(range, FIELD, field.getName(), true);
     if (entry == null) {
       return;
     }
@@ -410,7 +412,7 @@ public class JavaArrangementVisitor extends JavaRecursiveElementVisitor {
 
   @Override
   public void visitClassInitializer(@NotNull PsiClassInitializer initializer) {
-    JavaElementArrangementEntry entry = createNewEntry(initializer.getTextRange(), INIT_BLOCK, null);
+    JavaElementArrangementEntry entry = createNewEntry(initializer.getTextRange(), INIT_BLOCK, null, true);
     if (entry == null) {
       return;
     }
@@ -453,7 +455,7 @@ public class JavaArrangementVisitor extends JavaRecursiveElementVisitor {
                                                       : method.getTextRange();
 
     ArrangementSettingsToken type = method.isConstructor() ? CONSTRUCTOR : METHOD;
-    JavaElementArrangementEntry entry = createNewEntry(range, type, method.getName());
+    JavaElementArrangementEntry entry = createNewEntry(range, type, method.getName(), true);
     if (entry == null) {
       return;
     }
@@ -564,15 +566,15 @@ public class JavaArrangementVisitor extends JavaRecursiveElementVisitor {
 
   private @Nullable JavaElementArrangementEntry createNewEntry(@NotNull TextRange range,
                                                                @NotNull ArrangementSettingsToken type,
-                                                               @Nullable String name) {
+                                                               @Nullable String name,
+                                                               boolean canBeRearranged) {
     if (!isWithinBounds(range)) {
       return null;
     }
     DefaultArrangementEntry current = getCurrent();
-    JavaElementArrangementEntry entry;
     TextRange expandedRange = myDocument == null ? null : ArrangementUtil.expandToLineIfPossible(range, myDocument);
     TextRange rangeToUse = expandedRange == null ? range : expandedRange;
-    entry = new JavaElementArrangementEntry(current, rangeToUse, type, name, true);
+    JavaElementArrangementEntry entry = new JavaElementArrangementEntry(current, rangeToUse, type, name, canBeRearranged);
     registerEntry(entry);
     return entry;
   }
