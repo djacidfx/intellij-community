@@ -181,7 +181,7 @@ abstract class AbstractNewWizardProjectImportTest : HeavyPlatformTestCase() {
             )
             analyze(psiFile) {
                 val diagnostics =
-                    psiFile.diagnostics(KaDiagnosticCheckerFilter.EXTENDED_AND_COMMON_CHECKERS).filter { it.severity == KaSeverity.ERROR }
+                    psiFile.collectDiagnostics(KaDiagnosticCheckerFilter.EXTENDED_AND_COMMON_CHECKERS).filter { it.severity == KaSeverity.ERROR }
                 assert(diagnostics.isEmpty()) {
                     "Diagnostics list should be empty:\n ${diagnostics.joinToString("\n") { it.defaultMessage }}"
                 }
