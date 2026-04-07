@@ -87,6 +87,13 @@ class GlobalWorkspaceModels internal constructor() {
   }
 }
 
+/**
+ * Please use project-level [WorkspaceModel] directly instead.
+ * [SdkEntity] and global [LibraryEntity] are seamlessly synchronized between [GlobalWorkspaceModel] and [WorkspaceModel].
+ * For custom entities [GlobalWorkspaceModel] won't give you an advantage because you would still need to make sure that all the
+ * custom entities are present in the global WSM after application start because global WSM cache may be invalidated. On top of that, you
+ * would have to remember which WSM to use: the global WSM or project-level WSM.
+ */
 @OptIn(EntityStorageInstrumentationApi::class)
 @ApiStatus.Internal
 class GlobalWorkspaceModel internal constructor(
