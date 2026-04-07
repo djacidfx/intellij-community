@@ -1,6 +1,7 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.minimap.interaction
 
+import com.intellij.codeInsight.hints.presentation.InputHandler
 import com.intellij.ide.minimap.MinimapPanel
 import com.intellij.ide.minimap.MinimapUsageCollector
 import com.intellij.ide.minimap.hover.MinimapHoverController
@@ -10,6 +11,7 @@ import java.awt.Point
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
+import javax.swing.SwingUtilities
 import kotlin.math.abs
 import kotlin.math.max
 
@@ -137,7 +139,32 @@ class MinimapMouseInteractionController(
 
   private fun handleClick(e: MouseEvent) {
     // TODO: if clicked on structure view element -> scroll to the element
+    if (panel.settings.state.rightAligned && tryDispatchToEditorInlay(e)) return
     panel.scrollTo(e.y)
+  }
+
+  /**
+   * Converts a minimap click to editor content coordinates and dispatches it to the inlay at
+   * that position, if one exists. Returns `true` if the event was consumed by an inlay.
+   */
+  private fun tryDispatchToEditorInlay(e: MouseEvent): Boolean {
+    val contentComponent = editor.contentComponent
+    val editorPoint = SwingUtilities.convertPoint(panel, e.point, contentComponent)
+    val inlay = editor.inlayModel.getElementAt(editorPoint) ?: return false
+    val renderer = inlay.renderer
+    if (renderer !is InputHandler) return false
+    val bounds = inlay.getBounds() ?: return false
+    val translated = Point(editorPoint.x - bounds.x, editorPoint.y - bounds.y)
+    val syntheticEvent = MouseEvent(
+      contentComponent,
+      e.id, e.`when`, e.modifiersEx,
+      editorPoint.x, editorPoint.y,
+      e.clickCount, false, e.button
+    )
+    renderer.mouseMoved(syntheticEvent, translated)
+    renderer.mouseReleased(syntheticEvent, translated)
+    renderer.mouseExited()
+    return true
   }
 
   private fun logClicked() {
