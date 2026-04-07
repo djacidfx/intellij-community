@@ -48,6 +48,7 @@ import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
@@ -75,6 +76,7 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
 import kotlin.io.path.fileSize
 import kotlin.io.path.getLastModifiedTime
@@ -580,7 +582,7 @@ private class CoroutineDispatcherWatcher(
 
   private fun startPooledThreadSampling() {
     LOG.debug("$dispatcher thread sampling started")
-    coroutineScope.launch(CoroutineName("$dispatcher sampling") + dispatcher) {
+    coroutineScope.launchWithSafeContext(CoroutineName("$dispatcher sampling") + dispatcher) {
       try {
         while (true) {
           delay(pooledSamplingInterval.milliseconds)
@@ -596,7 +598,7 @@ private class CoroutineDispatcherWatcher(
   private fun startPooledThreadWatcher() {
     LOG.debug("$dispatcher thread watcher started")
     @Suppress("OPT_IN_USAGE")
-    coroutineScope.launch(CoroutineName("$dispatcher watcher") + blockingDispatcher) {
+    coroutineScope.launchWithSafeContext(CoroutineName("$dispatcher watcher") + blockingDispatcher) {
       try {
         var lastReportedNs = System.nanoTime()
 
@@ -632,6 +634,16 @@ private class CoroutineDispatcherWatcher(
       finally {
         LOG.debug("$dispatcher watcher stopped")
       }
+    }
+  }
+
+  private fun CoroutineScope.launchWithSafeContext(context: CoroutineContext, block: suspend () -> Unit) {
+    // See IJPL-234553
+    // We keep the Job from application scope to get cancellation, but strip everything else that might influence the coroutine execution
+    val effectiveContext = context + coroutineContext[Job]!!
+    @Suppress("OPT_IN_USAGE")
+    GlobalScope.launch(effectiveContext) {
+      block()
     }
   }
 }
