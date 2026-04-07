@@ -178,6 +178,7 @@ import com.intellij.testFramework.PsiTestUtil;
 import com.intellij.testFramework.RunAll;
 import com.intellij.testFramework.TestActionEvent;
 import com.intellij.testFramework.TestDataFile;
+import com.intellij.testFramework.TestObservation;
 import com.intellij.testFramework.TreeNodeTester;
 import com.intellij.testFramework.UsefulTestCase;
 import com.intellij.testFramework.VfsTestUtil;
@@ -417,6 +418,11 @@ public class CodeInsightTestFixtureImpl extends BaseFixture implements CodeInsig
           assertNotNull(file);
           Document document = editor.getDocument();
           ThreadingAssertions.assertEventDispatchThread();
+          // wait for tracked activities (e.g., vendor scan, external system import) that may fire
+          // write actions triggering rootsChanged during highlighting
+          if (mustWaitForSmartMode && project.isOpen()) {
+            TestObservation.waitForConfiguration(project);
+          }
           TestDaemonCodeAnalyzerImpl.runWithReparseDelay(0, () ->
             testDaemonCodeAnalyzer.runPasses(file, document, textEditor, toIgnore, canChangeDocument, mustWaitForSmartMode, null));
           IdeaTestExecutionPolicy policy = IdeaTestExecutionPolicy.current();
