@@ -66,6 +66,7 @@ import java.nio.file.Path
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.copyTo
+import kotlin.io.path.createDirectories
 import kotlin.io.path.deleteRecursively
 import kotlin.io.path.exists
 import kotlin.io.path.isRegularFile
@@ -601,7 +602,7 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
     testTags?.let { systemProperties.putIfAbsent("intellij.build.test.tags", it) }
     systemProperties.putIfAbsent(TestingOptions.PERFORMANCE_TESTS_ONLY_FLAG, options.isPerformanceTestsOnly.toString())
     val allJvmArgs = ArrayList(jvmArgs)
-    prepareEnvForTestRun(jvmArgs = allJvmArgs, systemProperties = systemProperties, classPath = bootstrapClasspath, remoteDebugging = remoteDebugging)
+    prepareEnvForTestRun(jvmArgs = allJvmArgs, systemProperties = systemProperties, classPath = bootstrapClasspath, remoteDebugging = remoteDebugging, cleanSystemDir = false)
     val messages = context.messages
     if (!testPatterns.isNullOrEmpty()) {
       messages.info("Starting tests from patterns '${testPatterns}' from classpath of module '${mainModule.name}'")
@@ -731,6 +732,7 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
       PathManager.PROPERTY_HOME_PATH to context.paths.projectHome.toString(),
       PathManager.PROPERTY_CONFIG_PATH to "$tempDir/config",
       PathManager.PROPERTY_SYSTEM_PATH to "$ideaSystemPath",
+      PathManager.PROPERTY_LOG_PATH to "$ideaSystemPath/testlog",
       BuildOptions.PROJECT_CLASSES_OUTPUT_DIRECTORY_PROPERTY to "${context.classesOutputDirectory}",
       "idea.coverage.enabled.build" to System.getProperty("idea.coverage.enabled.build"),
       "teamcity.buildConfName" to System.getProperty("teamcity.buildConfName"),
@@ -872,6 +874,7 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
     }.flatten()
   }
 
+  @OptIn(ExperimentalPathApi::class)
   private suspend fun runJUnit5Engine(
     mainModule: String,
     systemProperties: Map<String, String>,
@@ -1038,6 +1041,25 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
         failedClassesListFile?.let { additionalProperties["intellij.build.test.retries.failedClasses.file"] = it.absolutePathString() }
         var failedClasses: List<String>? = null
 
+        // use separate config, system, and log directories per test process
+        val ideaLogPath = let {
+          val old = Path.of(systemProperties[PathManager.PROPERTY_LOG_PATH] ?: error("'${PathManager.PROPERTY_LOG_PATH}' is not set"))
+
+          old.createDirectories()
+          val testProcessName = systemProperties["intellij.build.test.process.name"] ?: error("'intellij.build.test.process.name' is not set")
+          Files.createTempDirectory(old, "junit-$testProcessName-")
+        }
+        val ideaConfigPath = Path.of(systemProperties[PathManager.PROPERTY_CONFIG_PATH] ?: error("'${PathManager.PROPERTY_CONFIG_PATH}' is not set")).resolve(ideaLogPath.fileName)  // reuse the same junit-* name
+        ideaConfigPath.deleteRecursively()
+        val ideaSystemPath = Path.of(systemProperties[PathManager.PROPERTY_SYSTEM_PATH] ?: error("'${PathManager.PROPERTY_SYSTEM_PATH}' is not set")).resolve(ideaLogPath.fileName)
+        ideaSystemPath.deleteRecursively()
+        additionalProperties.putAll(listOf(
+          PathManager.PROPERTY_CONFIG_PATH to ideaConfigPath.absolutePathString(),
+          PathManager.PROPERTY_SYSTEM_PATH to ideaSystemPath.absolutePathString(),
+          PathManager.PROPERTY_LOG_PATH to ideaLogPath.absolutePathString(),
+        ))
+        context.messages.info("Test process log directory: $ideaLogPath")
+
         var exitCode = 0
 
         for (attempt in 1..options.attemptCount) {
@@ -1103,6 +1125,10 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
             }
           }
         }
+
+        // clean up, don't remove the test process logs
+        ideaConfigPath.deleteRecursively()
+        ideaSystemPath.deleteRecursively()
 
         val hadRunFailures = exitCode == 1
         hadAnyFailures = hadAnyFailures || hadRunFailures
