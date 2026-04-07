@@ -519,6 +519,27 @@ class HighlightingTest : BaseTestCase() {
     myFixture.findSingleIntention("tend")
   }
 
+  @Test
+  fun `test closeMlecMerging MLEC client ability`() {
+    myFixture.configureByText(
+      "a.txt",
+      "One can <GRAMMAR_ERROR descr=\"MD_BASEFORM\">li<caret>stened</GRAMMAR_ERROR> <GRAMMAR_ERROR descr=\"Grazie.RuleEngine.En.Grammar.PREPOSITION_ISSUES\">music</GRAMMAR_ERROR> or <GRAMMAR_ERROR descr=\"Grazie.MLEC.En.All: Incorrect verb tense form\">watched</GRAMMAR_ERROR> some funny videos."
+    )
+    myFixture.checkHighlighting()
+    val listenIntention = myFixture.findSingleIntention("listen")
+    myFixture.launchAction(listenIntention)
+    myFixture.checkResult("One can listen music or watched some funny videos.")
+
+    myFixture.configureByText(
+      "a.txt",
+      "One can listen <GRAMMAR_ERROR descr=\"Grazie.RuleEngine.En.Grammar.PREPOSITION_ISSUES\"><caret>music</GRAMMAR_ERROR> or <GRAMMAR_ERROR descr=\"Grazie.MLEC.En.All: Incorrect verb tense form\">watched</GRAMMAR_ERROR> some funny videos."
+    )
+    myFixture.checkHighlighting()
+    val musicIntention = myFixture.findSingleIntention("to music")
+    myFixture.launchAction(musicIntention)
+    myFixture.checkResult("One can listen to music or watched some funny videos.")
+  }
+
   @NeedsCloud
   @Test
   fun `test empty problem suppressions do not break highlighting`() {
