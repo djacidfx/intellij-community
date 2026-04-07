@@ -30,7 +30,6 @@ import org.jetbrains.annotations.Nullable;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -97,13 +96,11 @@ public final class JavaPsiAnnotationUtil {
 
     // For source files, collect additional source roots from the same module with their package prefixes
     String mainPackagePrefix = "";
-    List<VirtualFile> additionalRoots = Collections.emptyList();
-    List<String> additionalPrefixes = Collections.emptyList();
+    record RootPrefix(@NotNull VirtualFile root, @NotNull String prefix) {}
+    List<RootPrefix> additionalRoots = new ArrayList<>();
     if (!compiled) {
       Module module = index.getModuleForFile(vFile);
       if (module != null) {
-        additionalRoots = new ArrayList<>();
-        additionalPrefixes = new ArrayList<>();
         for (ContentEntry entry : ModuleRootManager.getInstance(module).getContentEntries()) {
           for (SourceFolder folder : entry.getSourceFolders()) {
             VirtualFile folderFile = folder.getFile();
@@ -113,8 +110,7 @@ public final class JavaPsiAnnotationUtil {
               mainPackagePrefix = prefix;
             }
             else {
-              additionalRoots.add(folderFile);
-              additionalPrefixes.add(prefix);
+              additionalRoots.add(new RootPrefix(folderFile, prefix));
             }
           }
         }
@@ -129,15 +125,13 @@ public final class JavaPsiAnnotationUtil {
       if (!additionalRoots.isEmpty()) {
         String relPath = VfsUtilCore.getRelativePath(directory.getVirtualFile(), root);
         String relPackage = relPath == null || relPath.isEmpty() ? "" : relPath.replace('/', '.');
-        String currentPackage = mainPackagePrefix.isEmpty() ? relPackage
-            : relPackage.isEmpty() ? mainPackagePrefix
-            : mainPackagePrefix + "." + relPackage;
-        for (int i = 0; i < additionalRoots.size(); i++) {
-          String additionalRelPath = packageToRelativePath(currentPackage, additionalPrefixes.get(i));
+        String currentPackage = resolvePackageName(mainPackagePrefix, relPackage);
+        for (RootPrefix rootPrefix : additionalRoots) {
+          String additionalRelPath = packageToRelativePath(currentPackage, rootPrefix.prefix());
           if (additionalRelPath != null) {
             VirtualFile correspondingVDir = additionalRelPath.isEmpty()
-                ? additionalRoots.get(i)
-                : additionalRoots.get(i).findFileByRelativePath(additionalRelPath);
+                                            ? rootPrefix.root()
+                                            : rootPrefix.root().findFileByRelativePath(additionalRelPath);
             if (correspondingVDir != null) {
               PsiDirectory correspondingDir = psiManager.findDirectory(correspondingVDir);
               if (correspondingDir != null) {
@@ -152,6 +146,15 @@ public final class JavaPsiAnnotationUtil {
       directory = directory.getParentDirectory();
       superPackage = true;
     }
+  }
+
+  /**
+   * @return full package name given the prefix and relative package name
+   */
+  private static String resolvePackageName(@NotNull String prefix, @NotNull String relativeName) {
+    return prefix.isEmpty() ? relativeName : 
+           relativeName.isEmpty() ? prefix : 
+           prefix + "." + relativeName;
   }
 
   /**
