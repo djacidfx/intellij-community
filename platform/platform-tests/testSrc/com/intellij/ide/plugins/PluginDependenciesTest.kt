@@ -79,6 +79,24 @@ internal class PluginDependenciesTest {
   }
 
   @Test
+  fun `optional config for unresolved dependency is not marked for loading`() {
+    foo()
+    plugin("bar") {
+      depends("foo", configFile = "foo.xml") { actions = "" }
+      depends("baz", configFile = "baz.xml") { actions = "" }
+    }.buildDir(pluginDirPath.resolve("bar"))
+
+    val pluginSet = buildPluginSet()
+    assertThat(pluginSet).hasExactlyEnabledPlugins("bar", "foo")
+
+    val bar = pluginSet.findEnabledPlugin(PluginId.getId("bar")) as PluginMainDescriptor
+    val fooDescriptor = bar.dependencies.first { it.pluginId == PluginId.getId("foo") }.subDescriptor!!
+    val bazDescriptor = bar.dependencies.first { it.pluginId == PluginId.getId("baz") }.subDescriptor!!
+    assertThat(fooDescriptor.isMarkedForLoading).isTrue
+    assertThat(bazDescriptor.isMarkedForLoading).isFalse
+  }
+
+  @Test
   fun `plugin is loaded when plugin dependency is resolved, only main module is a classloader parent`() {
     `bar with optional module`()
     `foo plugin-dependency bar`()
