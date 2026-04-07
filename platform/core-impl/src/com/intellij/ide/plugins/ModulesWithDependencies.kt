@@ -105,7 +105,11 @@ private fun collectDirectDependenciesInOldFormat(
   for (dependency in rootDescriptor.dependencies) {
     // check for missing optional dependency
     val dependencyPluginId = dependency.pluginId
-    val dep = pluginSet.resolvePluginId(dependencyPluginId) ?: continue
+    val dep = pluginSet.resolvePluginId(dependencyPluginId)
+    if (dep == null) {
+      dependency.subDescriptor?.isMarkedForLoading = false // target is unresolved
+      continue
+    }
     if (dep.pluginId != PluginManagerCore.CORE_ID || dep is ContentModuleDescriptor) {
       // ultimate plugin it is combined plugin, where some included XML can define dependency on ultimate explicitly and for now not clear,
       // can be such requirements removed or not
