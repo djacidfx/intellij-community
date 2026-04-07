@@ -11,6 +11,7 @@ import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaImplementationDetail
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.analyze
+import org.jetbrains.kotlin.analysis.api.analyzeCopy
 import org.jetbrains.kotlin.analysis.api.components.KaDiagnosticCheckerFilter
 import org.jetbrains.kotlin.analysis.api.components.buildClassType
 import org.jetbrains.kotlin.analysis.api.components.buildSubstitutor
@@ -23,6 +24,7 @@ import org.jetbrains.kotlin.analysis.api.components.render
 import org.jetbrains.kotlin.analysis.api.components.resolveToCall
 import org.jetbrains.kotlin.analysis.api.components.type
 import org.jetbrains.kotlin.analysis.api.fir.diagnostics.KaFirDiagnostic
+import org.jetbrains.kotlin.analysis.api.projectStructure.KaDanglingFileResolutionMode
 import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
 import org.jetbrains.kotlin.analysis.api.resolution.KaErrorCallInfo
 import org.jetbrains.kotlin.analysis.api.resolution.KaExplicitReceiverValue
@@ -153,7 +155,7 @@ internal fun ExtractionData.inferParametersInfo(
 
     }
 
-    val unknownContextParameters = analyze(virtualBlock) {
+    val unknownContextParameters = analyzeCopy(virtualBlock, KaDanglingFileResolutionMode.IGNORE_SELF) {
         val parameters = linkedMapOf<KaType, KtParameter>()
         for (referenceExpression in virtualBlock.collectDescendantsOfType<KtReferenceExpression> { it.resolveResult != null }) {
             val call = referenceExpression.resolveToCall()
@@ -572,7 +574,15 @@ private fun ExtractionData.getBrokenReferencesInfo(body: KtBlockExpression): Lis
         // Skip P in type references like 'P.Q'
         if (parent is KtUserType && (parent.parent as? KtUserType)?.qualifier == parent) continue
 
-        val descriptor = newRef.mainReference.resolve()
+        // `resolve` uses Analysis API under the hood to retrieve suitable declarations for the reference.
+        // `analyzeCopy` call is needed here as `newRef` is contained in a synthetic and potentially modified copy of the original file.
+        // The automatic `KaDanglingFileResolutionMode` calculator on the Analysis API side would set `PREFER_SELF` for modified files.
+        // However, in this case, `newRef` would resolve to a declaration from the synthetic file and not from the original one.
+        // This would lead to `descriptor` not being equal to the `originalDescriptor` which was retrieved from the original file.
+        val descriptor = analyzeCopy(newRef, KaDanglingFileResolutionMode.IGNORE_SELF) {
+            newRef.mainReference.resolve()
+        }
+
         val originalDescriptor = originalRefExpr.mainReference.resolve()
         val isBadRef = descriptor != originalDescriptor
 

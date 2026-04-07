@@ -12,12 +12,14 @@ import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaImplementationDetail
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.analyze
+import org.jetbrains.kotlin.analysis.api.analyzeCopy
 import org.jetbrains.kotlin.analysis.api.components.KaCompletionExtensionCandidateChecker
 import org.jetbrains.kotlin.analysis.api.components.buildClassType
 import org.jetbrains.kotlin.analysis.api.components.expectedType
 import org.jetbrains.kotlin.analysis.api.components.expressionType
 import org.jetbrains.kotlin.analysis.api.components.render
 import org.jetbrains.kotlin.analysis.api.impl.base.components.KaBaseIllegalPsiException
+import org.jetbrains.kotlin.analysis.api.projectStructure.KaDanglingFileResolutionMode
 import org.jetbrains.kotlin.analysis.api.types.KaType
 import org.jetbrains.kotlin.analysis.api.types.symbol
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.KtSymbolFromIndexProvider
@@ -447,7 +449,7 @@ private class ParallelCompletionRunner : K2CompletionRunner {
     private fun <P : KotlinRawPositionContext> performCompletion(
         completionContext: K2CompletionContext<P>,
         remainingSectionsQueue: SharedPriorityQueue<K2ParallelCompletionEntry<P>, K2ContributorSectionPriority>,
-    ) = analyze(completionContext.parameters.completionFile) {
+    ) = analyzeCopy(completionContext.parameters.completionFile, KaDanglingFileResolutionMode.IGNORE_SELF) {
         // We need to create one common data (containing weighing context and similar constructs) per session
         val commonData = createCommonSectionData(completionContext)
             ?: throw WeighingContextCreationImpossibleException()
