@@ -13,8 +13,8 @@ import com.intellij.openapi.util.io.FileUtil;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileSystem;
+import com.intellij.openapi.vfs.impl.SymlinksCapableFileSystem;
 import com.intellij.openapi.vfs.impl.ZipHandlerBase;
-import com.intellij.openapi.vfs.impl.local.LocalFileSystemImpl;
 import com.intellij.openapi.vfs.newvfs.AttributeInputStream;
 import com.intellij.openapi.vfs.newvfs.AttributeOutputStream;
 import com.intellij.openapi.vfs.newvfs.ChildInfoImpl;
@@ -1097,9 +1097,9 @@ public final class FSRecordsImpl implements Closeable {
 
       CharSequence name = info.getName();
       VirtualFileSystem fs = parent.getFileSystem();
-      if (fs instanceof LocalFileSystemImpl) {
+      if (fs instanceof SymlinksCapableFileSystem scfs && scfs.isSymlinksSupported()) {
         String linkPath = parent.getPath() + '/' + name;
-        ((LocalFileSystemImpl)fs).symlinkUpdated(id, parent, name, linkPath, symlinkTarget);
+        scfs.symlinkUpdated(id, parent, name, linkPath, symlinkTarget);
       }
     }
   }

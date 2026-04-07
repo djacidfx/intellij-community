@@ -48,6 +48,7 @@ import com.intellij.openapi.vfs.encoding.EncodingManager;
 import com.intellij.openapi.vfs.encoding.EncodingProjectManager;
 import com.intellij.openapi.vfs.encoding.Utf8BomOptionProvider;
 import com.intellij.openapi.vfs.ex.temp.TempFileSystem;
+import com.intellij.openapi.vfs.impl.SymlinksCapableFileSystem;
 import com.intellij.openapi.vfs.impl.local.LocalFileSystemBase;
 import com.intellij.openapi.vfs.impl.local.LocalFileSystemImpl;
 import com.intellij.openapi.vfs.newvfs.ArchiveFileSystem;
@@ -90,7 +91,6 @@ import com.intellij.util.ArrayUtil;
 import com.intellij.util.BitUtil;
 import com.intellij.util.ExceptionUtil;
 import com.intellij.util.ExceptionUtilRt;
-import com.intellij.util.PathUtil;
 import com.intellij.util.SmartList;
 import com.intellij.util.Suppressions;
 import com.intellij.util.UriUtil;
@@ -2649,8 +2649,8 @@ public final class PersistentFSImpl extends PersistentFS implements Disposable {
   private static void doInvalidate(@NotNull VirtualFileSystemEntry file, @NotNull Object source, @NotNull Object reason) {
     if (file.is(VFileProperty.SYMLINK)) {
       VirtualFileSystem fs = file.getFileSystem();
-      if (fs instanceof LocalFileSystemImpl) {
-        ((LocalFileSystemImpl)fs).symlinkRemoved(file.getId());
+      if (fs instanceof SymlinksCapableFileSystem scfs && scfs.isSymlinksSupported()) {
+        scfs.symlinkRemoved(file.getId());
       }
     }
     file.invalidate(source, reason);
@@ -2690,8 +2690,8 @@ public final class PersistentFSImpl extends PersistentFS implements Disposable {
     int id = fileId(file);
     vfsPeer.storeSymlinkTarget(id, target);
     VirtualFileSystem fs = file.getFileSystem();
-    if (fs instanceof LocalFileSystemImpl) {
-      ((LocalFileSystemImpl)fs).symlinkUpdated(id, file.getParent(), file.getNameSequence(), file.getPath(), target);
+    if (fs instanceof SymlinksCapableFileSystem scfs && scfs.isSymlinksSupported()) {
+      scfs.symlinkUpdated(id, file.getParent(), file.getNameSequence(), file.getPath(), target);
     }
   }
 

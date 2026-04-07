@@ -15,6 +15,7 @@ import com.intellij.openapi.vfs.VFileProperty;
 import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFilePointerCapableFileSystem;
+import com.intellij.openapi.vfs.impl.SymlinksCapableFileSystem;
 import com.intellij.openapi.vfs.newvfs.FileNavigator;
 import com.intellij.openapi.vfs.newvfs.ManagingFS;
 import com.intellij.openapi.vfs.newvfs.NewVirtualFile;
@@ -61,7 +62,7 @@ import static java.util.Objects.requireNonNullElse;
 @SuppressWarnings("removal")
 public class LocalFileSystemImpl
   extends LocalFileSystemBase
-  implements Disposable, BatchingFileSystem, VirtualFilePointerCapableFileSystem
+  implements Disposable, BatchingFileSystem, VirtualFilePointerCapableFileSystem, SymlinksCapableFileSystem
 {
   @SuppressWarnings("SSBasedInspection")
   private static final Logger WATCH_ROOTS_LOG = Logger.getInstance("#com.intellij.openapi.vfs.WatchRoots");
@@ -311,6 +312,12 @@ public class LocalFileSystemImpl
     }
   }
 
+  @Override
+  public boolean isSymlinksSupported() {
+    return true;
+  }
+
+  @Override
   @ApiStatus.Internal
   public final void symlinkUpdated(
     int fileId,
@@ -324,6 +331,7 @@ public class LocalFileSystemImpl
     }
   }
 
+  @Override
   @ApiStatus.Internal
   public final void symlinkRemoved(int fileId) {
     myWatchRootsManager.removeSymlink(fileId);
