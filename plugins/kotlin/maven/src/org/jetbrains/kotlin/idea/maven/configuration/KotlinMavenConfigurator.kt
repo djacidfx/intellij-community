@@ -3,21 +3,15 @@
 package org.jetbrains.kotlin.idea.maven.configuration
 
 import com.intellij.codeInsight.CodeInsightUtilCore
-import com.intellij.codeInsight.daemon.impl.quickfix.OrderEntryFix
 import com.intellij.openapi.application.runReadAction
-import com.intellij.openapi.externalSystem.autoimport.ExternalSystemProjectTrackerSettings
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.roots.DependencyScope
-import com.intellij.openapi.roots.ExternalLibraryDescriptor
-import com.intellij.openapi.roots.JavaProjectModelModificationService
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.NlsContexts
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.WritingAccessProvider
-import com.intellij.platform.backend.observation.Observation
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
@@ -55,7 +49,6 @@ import org.jetbrains.kotlin.idea.maven.PomFile
 import org.jetbrains.kotlin.idea.maven.changeFeatureConfiguration
 import org.jetbrains.kotlin.idea.maven.changeLanguageVersion
 import org.jetbrains.kotlin.idea.maven.excludeMavenChildrenModules
-import org.jetbrains.kotlin.idea.projectConfiguration.LibraryJarDescriptor
 import org.jetbrains.kotlin.idea.quickfix.AbstractChangeFeatureSupportLevelFix
 import org.jetbrains.kotlin.idea.statistics.KotlinProjectConfigurationError
 import org.jetbrains.kotlin.idea.statistics.KotlinProjectConfigurationError.BUILD_SCRIPT_FOR_MODULE_IS_ABSENT_OR_NOT_WRITABLE
@@ -193,15 +186,6 @@ abstract class KotlinMavenConfigurator protected constructor(
         return {
             writeActions.forEach { it.invoke() }
             resultBuilder
-        }
-    }
-
-    override suspend fun queueSyncAndWaitForProjectToBeConfigured(project: Project) {
-        val projectSettings = ExternalSystemProjectTrackerSettings.getInstance(project)
-        if (projectSettings.autoReloadType != ExternalSystemProjectTrackerSettings.AutoReloadType.NONE) {
-            val configurationService = KotlinProjectConfigurationService.getInstance(project)
-            configurationService.queueSync()
-            Observation.awaitConfiguration(project)
         }
     }
 

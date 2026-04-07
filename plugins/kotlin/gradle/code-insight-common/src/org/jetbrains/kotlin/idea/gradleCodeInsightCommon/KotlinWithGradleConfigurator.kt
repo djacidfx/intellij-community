@@ -8,7 +8,6 @@ import com.intellij.openapi.extensions.Extensions
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtil
-import com.intellij.openapi.progress.blockingContextScope
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.project.modules
@@ -106,13 +105,6 @@ abstract class KotlinWithGradleConfigurator : BaseKotlinProjectConfigurator() {
         val manipulator = GradleBuildScriptSupport.findManipulator(buildScript) ?: return false
         return with(manipulator) {
             isConfiguredWithOldSyntax(kotlinPluginName) || isConfigured(getKotlinPluginExpression(buildScript.isKtDsl()))
-        }
-    }
-
-    override suspend fun queueSyncAndWaitForProjectToBeConfigured(project: Project) {
-        blockingContextScope {
-            val configurationService = KotlinProjectConfigurationService.getInstance(project)
-            configurationService.queueSyncIfPossible()
         }
     }
 
