@@ -123,7 +123,8 @@ internal class JpsCompilationRunner(private val context: CompilationContext) {
     resolveProjectDependencies: Boolean = false,
     canceledStatus: CanceledStatus = CanceledStatus.NULL,
   ) = context.withCompilationLock {
-    require(!BazelRunfiles.isRunningFromBazel) {
+    val mavenLibrariesDownloading = resolveProjectDependencies && context.options.mavenLibrariesDownloadLocation != null && moduleSet.isEmpty() && artifactNames.isEmpty()
+    require(!BazelRunfiles.isRunningFromBazel || mavenLibrariesDownloading) {
       "Running JPS compiler is not supported when running from Bazel."
     }
 

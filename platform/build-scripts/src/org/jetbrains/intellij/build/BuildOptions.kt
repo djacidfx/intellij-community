@@ -523,6 +523,12 @@ data class BuildOptions(
   @Internal
   var buildStepListener: BuildStepListener = BuildStepListener()
 
+  /**
+  Option for [DownloadLibrariesBuildTarget]
+   */
+  @Internal
+  var mavenLibrariesDownloadLocation: Path? = null
+
   init {
     val targetOsId = System.getProperty(TARGET_OS_PROPERTY, OS_ALL).lowercase()
     targetOs = when {

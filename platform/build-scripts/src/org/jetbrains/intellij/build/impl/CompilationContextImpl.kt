@@ -63,6 +63,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.Properties
 import java.util.stream.Stream
+import kotlin.io.path.absolutePathString
 import kotlin.io.path.invariantSeparatorsPathString
 import kotlin.io.path.relativeToOrNull
 
@@ -130,7 +131,15 @@ suspend fun createCompilationContext(
   }
 
   val isCompilationRequired = isCompilationRequired(options)
-  val model = loadProject(projectHome = projectHome, kotlinBinaries = KotlinBinaries(COMMUNITY_ROOT), isCompilationRequired = isCompilationRequired)
+
+  val mavenLibrariesDownloadLocation = options.mavenLibrariesDownloadLocation
+  val mavenRepositoryPath = when {
+    mavenLibrariesDownloadLocation != null -> mavenLibrariesDownloadLocation.absolutePathString()
+    // set this to a missing path, so the code won't access library downloaded by maven
+    isRunningFromBazelOut() -> getMavenRepositoryPath() + "-do-not-use-maven-repository-with-bazel"
+    else -> getMavenRepositoryPath()
+  }
+  val model = loadProject(projectHome = projectHome, kotlinBinaries = KotlinBinaries(COMMUNITY_ROOT), isCompilationRequired = isCompilationRequired, mavenRepositoryPath = mavenRepositoryPath)
 
   val buildPaths = customBuildPaths ?: computeBuildPaths(options, options.outRootDir ?: buildOutputRootEvaluator(model.project), projectHome)
 
@@ -360,7 +369,7 @@ ${dumpCoroutines()}
   }
 }
 
-private suspend fun loadProject(projectHome: Path, kotlinBinaries: KotlinBinaries, isCompilationRequired: Boolean): JpsModel {
+private suspend fun loadProject(projectHome: Path, kotlinBinaries: KotlinBinaries, isCompilationRequired: Boolean, mavenRepositoryPath: String): JpsModel {
   val model = JpsElementFactory.getInstance().createModel()
   val pathVariablesConfiguration = JpsModelSerializationDataService.getOrCreatePathVariablesConfiguration(model.global)
   if (isCompilationRequired) {
@@ -372,14 +381,6 @@ private suspend fun loadProject(projectHome: Path, kotlinBinaries: KotlinBinarie
   }
 
   spanBuilder("load project").use(Dispatchers.IO) { span ->
-    val mavenRepositoryPath = if (isRunningFromBazelOut()) {
-      // set this to a missing path, so the code won't access library downloaded by maven
-      getMavenRepositoryPath() + "-do-not-use-maven-repository-with-bazel"
-    }
-    else {
-      getMavenRepositoryPath()
-    }
-
     span.addEvent(
       "Resolved local maven repository path",
       Attributes.of(AttributeKey.stringKey("m2 repository path"), mavenRepositoryPath),
