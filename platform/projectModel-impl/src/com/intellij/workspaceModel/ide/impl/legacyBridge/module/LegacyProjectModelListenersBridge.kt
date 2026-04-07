@@ -78,7 +78,7 @@ internal class LegacyProjectModelListenersBridge(
       }
 
       val oldModuleNames = mutableMapOf<Module, String>()
-      processModuleChange(changes, oldModuleNames, event)
+      processModulesChanges(changes, oldModuleNames, event)
 
       for (change in moduleLibraryChanges) {
         if (change is EntityChange.Added) processModuleLibraryChange(change, event)
@@ -100,7 +100,7 @@ internal class LegacyProjectModelListenersBridge(
     }
   }
 
-  private fun processModuleChange(
+  private fun processModulesChanges(
     changes: List<EntityChange<ModuleEntity>>,
     oldModuleNames: MutableMap<Module, String>,
     event: VersionedStorageChange
@@ -161,10 +161,10 @@ internal class LegacyProjectModelListenersBridge(
         }
       }
     }
-    removeUnloadedModuleWithId(modulesToRemoveFromUnloadedStorage)
+    removeUnloadedModules(modulesToRemoveFromUnloadedStorage)
   }
 
-  private fun removeUnloadedModuleWithId(modulesToRemove: Set<ModuleId>) {
+  private fun removeUnloadedModules(modulesToRemove: Set<ModuleId>) {
     val currentSnapshotOfUnloadedEntities = (WorkspaceModel.getInstance(project) as WorkspaceModelInternal).currentSnapshotOfUnloadedEntities
     val modulesToRemove = modulesToRemove.mapNotNull { it.resolve(currentSnapshotOfUnloadedEntities) }
     if (modulesToRemove.isNotEmpty()) {
