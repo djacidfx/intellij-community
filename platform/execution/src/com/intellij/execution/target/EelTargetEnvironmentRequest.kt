@@ -4,6 +4,7 @@ package com.intellij.execution.target
 import com.intellij.execution.ExecutionException
 import com.intellij.execution.Platform
 import com.intellij.execution.target.local.toLocalPtyOptions
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.components.BaseState
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.Service
@@ -51,6 +52,7 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import org.jetbrains.annotations.ApiStatus
 import java.net.InetAddress
 import java.net.InetSocketAddress
@@ -60,9 +62,11 @@ import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentLinkedQueue
 import javax.swing.Icon
 import kotlin.io.path.Path
 import kotlin.io.path.isSameFileAs
+import kotlin.time.Duration.Companion.seconds
 
 private fun EelOsFamily.toTargetPlatform(): TargetPlatform = when (this) {
   EelOsFamily.Posix -> TargetPlatform(Platform.UNIX)
@@ -175,10 +179,15 @@ class EelTargetEnvironmentRequest(
 
 @ApiStatus.Internal
 class EelTargetEnvironment(override val request: EelTargetEnvironmentRequest) : TargetEnvironment(request) {
+  companion object {
+    private val LOG = logger<EelTargetEnvironment>()
+  }
+
   private val myUploadVolumes: MutableMap<UploadRoot, UploadableVolume> = HashMap()
   private val myDownloadVolumes: MutableMap<DownloadRoot, DownloadableVolume> = HashMap()
   private val myTargetPortBindings: MutableMap<TargetPortBinding, ResolvedPortBinding> = HashMap()
   private val myLocalPortBindings: MutableMap<LocalPortBinding, ResolvedPortBinding> = ConcurrentHashMap()
+  private val acceptors = ConcurrentLinkedQueue<EelTunnelsApi.ConnectionAcceptor>()
 
   private val eel = request.configuration.descriptor.toEelApiBlocking()
 
@@ -218,6 +227,7 @@ class EelTargetEnvironment(override val request: EelTargetEnvironmentRequest) : 
       val acceptor = runBlockingMaybeCancellable {
         eel.tunnels.getAcceptorForRemotePort().port((localPortBinding.target ?: 0).toUShort()).eelIt()
       }
+      acceptors.add(acceptor)
 
       @OptIn(DelicateCoroutinesApi::class, IntellijInternalApi::class)
       forwardingScope.launch(blockingDispatcher) {
@@ -410,7 +420,26 @@ class EelTargetEnvironment(override val request: EelTargetEnvironmentRequest) : 
 
   override fun shutdown() {
     runBlockingMaybeCancellable {
-      forwardingScope.coroutineContext.job.cancelAndJoin()
+      // Explicitly close acceptors — sends closeRemoteServer via gRPC
+      // before cancelling the scope. Timeout each close because
+      // ConnectionAcceptorImpl.close() calls cancelAndJoin() which
+      // can block if gRPC is congested.
+      coroutineScope {
+        for (acceptor in acceptors) {
+          launch {
+            withTimeoutOrNull(5.seconds) {
+              try {
+                acceptor.close()
+              }
+              catch (_: Exception) {
+              }
+            }
+          }
+        }
+      }
+      withTimeoutOrNull(10.seconds) {
+        forwardingScope.coroutineContext.job.cancelAndJoin()
+      } ?: LOG.warn("Forwarding scope shutdown timed out")
     }
   }
 }
