@@ -1,10 +1,9 @@
-// Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
-package org.jetbrains.kotlin.idea.configuration
+package org.jetbrains.kotlin.idea.fir.configuration
 
 import com.intellij.framework.addSupport.FrameworkSupportInModuleProvider
 import com.intellij.ide.util.frameworkSupport.FrameworkSupportProviderTestCase
-import junit.framework.TestCase
 import org.jetbrains.kotlin.config.VersionView
 import org.jetbrains.kotlin.config.apiVersionView
 import org.jetbrains.kotlin.config.languageVersionView
@@ -20,8 +19,8 @@ class KotlinFrameworkSupportProviderTest : FrameworkSupportProviderTestCase() {
         addSupport()
 
         with(KotlinCommonCompilerArgumentsHolder.getInstance(module.project).settings) {
-            TestCase.assertEquals(VersionView.LatestStable, languageVersionView)
-            TestCase.assertEquals(VersionView.LatestStable, apiVersionView)
+            assertEquals(VersionView.LatestStable, languageVersionView)
+            assertEquals(VersionView.LatestStable, apiVersionView)
         }
     }
 

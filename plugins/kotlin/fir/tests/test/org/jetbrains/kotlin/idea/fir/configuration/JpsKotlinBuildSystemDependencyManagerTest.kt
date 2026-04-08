@@ -1,5 +1,5 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package org.jetbrains.kotlin.idea.configuration
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+package org.jetbrains.kotlin.idea.fir.configuration
 
 import com.intellij.codeInspection.options.OptionControllerProvider
 import com.intellij.modcommand.ActionContext
@@ -32,7 +32,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.jetbrains.idea.maven.utils.library.RepositoryLibraryProperties
-import org.jetbrains.kotlin.idea.test.UseK1PluginMode
+import org.jetbrains.kotlin.idea.configuration.JpsDependencyProvider
+import org.jetbrains.kotlin.idea.configuration.JpsKotlinBuildSystemDependencyManager
+import org.jetbrains.kotlin.idea.configuration.KotlinBuildSystemDependencyManager
+import org.jetbrains.kotlin.idea.test.UseK2PluginMode
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
@@ -40,7 +43,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.util.concurrent.atomic.AtomicReference
 
-@UseK1PluginMode
+@UseK2PluginMode
 @TestApplication
 class JpsKotlinBuildSystemDependencyManagerTest {
 

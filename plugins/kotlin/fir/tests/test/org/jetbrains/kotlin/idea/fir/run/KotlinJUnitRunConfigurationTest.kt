@@ -1,6 +1,6 @@
-// Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
-package org.jetbrains.kotlin.idea.run
+package org.jetbrains.kotlin.idea.fir.run
 
 import com.intellij.execution.RunManager
 import com.intellij.execution.impl.RunManagerImpl
@@ -11,6 +11,8 @@ import com.intellij.refactoring.RefactoringFactory
 import org.jetbrains.kotlin.idea.base.plugin.KotlinPluginMode
 import org.jetbrains.kotlin.idea.base.util.allScope
 import org.jetbrains.kotlin.idea.junit.KotlinJUnitRunConfigurationProducer
+import org.jetbrains.kotlin.idea.run.AbstractRunConfigurationBaseTest
+import org.jetbrains.kotlin.idea.run.getConfiguration
 import org.jetbrains.kotlin.idea.stubindex.KotlinFullClassNameIndex
 import org.jetbrains.kotlin.idea.test.IDEA_TEST_DATA_DIR
 import org.jetbrains.kotlin.idea.test.MockLibraryFacility
@@ -27,7 +29,7 @@ class KotlinJUnitRunConfigurationTest : AbstractRunConfigurationBaseTest() {
     private lateinit var mockLibraryFacility: MockLibraryFacility
 
     override val pluginMode: KotlinPluginMode
-        get() = KotlinPluginMode.K1
+        get() = KotlinPluginMode.K2
 
     override fun setUp() {
         super.setUp()
@@ -37,7 +39,7 @@ class KotlinJUnitRunConfigurationTest : AbstractRunConfigurationBaseTest() {
 
     override fun tearDown() {
         runAll(
-            { (RunManager.Companion.getInstance(myProject) as RunManagerImpl).clearAll() },
+            { (RunManager.getInstance(myProject) as RunManagerImpl).clearAll() },
             { mockLibraryFacility.tearDown(module) },
             { super.tearDown() },
         )
@@ -78,7 +80,7 @@ class KotlinJUnitRunConfigurationTest : AbstractRunConfigurationBaseTest() {
 
         val kotlinFile = testDir.findChild("MyKotlinTest.kt")!!
 
-        val manager = RunManager.Companion.getInstance(myProject) as RunManagerImpl
+        val manager = RunManager.getInstance(myProject) as RunManagerImpl
 
         val kotlinClassConfiguration = getConfiguration(kotlinFile, project, "MyKotlinTest")
         assert(kotlinClassConfiguration.configuration is JUnitConfiguration)
@@ -104,7 +106,7 @@ class KotlinJUnitRunConfigurationTest : AbstractRunConfigurationBaseTest() {
 
         val kotlinFile = testDir.findChild("MyKotlinTest.kt")!!
 
-        val manager = RunManager.Companion.getInstance(myProject) as RunManagerImpl
+        val manager = RunManager.getInstance(myProject) as RunManagerImpl
         
         val kotlinFunctionConfiguration = getConfiguration(kotlinFile, project, "testA")
         assert(kotlinFunctionConfiguration.configuration is JUnitConfiguration)
