@@ -54,6 +54,7 @@ import com.intellij.util.CommonJavaRefactoringUtil;
 import com.intellij.util.IncorrectOperationException;
 import com.intellij.util.containers.MultiMap;
 import org.jetbrains.annotations.NonNls;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -166,18 +167,22 @@ public final class ExtractSuperClassUtil {
       final PsiCodeBlock body = constructor.getBody();
       assert body != null;
       body.add(statement);
-      PsiReferenceList throwsList = baseConstructor.getThrowsList();
-      if (throwsList instanceof ClsElementImpl) {
-        List<PsiJavaCodeReferenceElement> toList = new ArrayList<>();
-        for (PsiJavaCodeReferenceElement element : throwsList.getReferenceElements()) {
-          toList.add(factory.createReferenceFromText(element.getCanonicalText(), baseConstructor));
-        }
-        constructor.getThrowsList().replace(factory.createReferenceList(toList.toArray(PsiJavaCodeReferenceElement.EMPTY_ARRAY)));
-      }
-      else {
-        constructor.getThrowsList().replace(throwsList);
-      }
+      PsiReferenceList throwsList = getThrowsList(baseConstructor, factory);
+      constructor.getThrowsList().replace(throwsList);
     }
+  }
+
+  private static @NotNull PsiReferenceList getThrowsList(@NotNull PsiMethod baseConstructor,
+                                                         @NotNull PsiElementFactory factory) {
+    PsiReferenceList throwsList = baseConstructor.getThrowsList();
+    if (throwsList instanceof ClsElementImpl) {
+      List<PsiJavaCodeReferenceElement> toList = new ArrayList<>();
+      for (PsiJavaCodeReferenceElement element : throwsList.getReferenceElements()) {
+        toList.add(factory.createReferenceFromText(element.getCanonicalText(), baseConstructor));
+      }
+      throwsList = factory.createReferenceList(toList.toArray(PsiJavaCodeReferenceElement.EMPTY_ARRAY));
+    }
+    return throwsList;
   }
 
   private static PsiMethod[] getCalledBaseConstructors(final PsiClass subclass) {
