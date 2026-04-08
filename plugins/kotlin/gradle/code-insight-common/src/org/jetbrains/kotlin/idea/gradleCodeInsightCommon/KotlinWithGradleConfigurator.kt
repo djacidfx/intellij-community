@@ -2,7 +2,6 @@
 package org.jetbrains.kotlin.idea.gradleCodeInsightCommon
 
 import com.intellij.codeInsight.CodeInsightUtilCore
-import com.intellij.codeInsight.daemon.impl.quickfix.OrderEntryFix
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.extensions.Extensions
@@ -52,7 +51,6 @@ import org.jetbrains.kotlin.idea.extensions.gradle.KotlinGradleConstants.GROUP_I
 import org.jetbrains.kotlin.idea.facet.getRuntimeLibraryVersion
 import org.jetbrains.kotlin.idea.facet.getRuntimeLibraryVersionOrDefault
 import org.jetbrains.kotlin.idea.gradle.KotlinIdeaGradleBundle
-import org.jetbrains.kotlin.idea.projectConfiguration.LibraryJarDescriptor
 import org.jetbrains.kotlin.idea.projectConfiguration.getJvmStdlibArtifactId
 import org.jetbrains.kotlin.idea.quickfix.AbstractChangeFeatureSupportLevelFix
 import org.jetbrains.kotlin.idea.statistics.KotlinProjectConfigurationError.ADDING_KOTLIN_VERSION_TO_TOP_LEVEL_BUILD_SCRIPT_FAILED
@@ -150,7 +148,10 @@ abstract class KotlinWithGradleConfigurator : BaseKotlinProjectConfigurator() {
         val moduleNode = hierarchy?.getNodeForModule(baseModule) ?: return null
         if (moduleNode.definedKotlinVersion != null || moduleNode.hasKotlinVersionConflict()) return null
 
-        val forcedKotlinVersion = moduleNode.getForcedKotlinVersion()
+        val forcedKotlinVersion =
+            moduleNode.getForcedKotlinVersion()
+                ?: getPluginManagementVersion(module)?.parsedVersion
+                ?: module.getBuildScriptPsiFile()?.let { GradleBuildScriptSupport.getManipulator(it).getKotlinVersion() }
         val allConfigurableKotlinVersions = getAllConfigurableKotlinVersions()
         if (forcedKotlinVersion != null && !allConfigurableKotlinVersions.contains(forcedKotlinVersion)) {
             return null
@@ -565,12 +566,8 @@ abstract class KotlinWithGradleConfigurator : BaseKotlinProjectConfigurator() {
          * Returns null if the version is not defined in the settings.gradle file.
          * Returns a non-null value, but null version inside the object, if the version was defined but could not be parsed.
          */
-        fun getPluginManagementVersion(module: Module): DefinedKotlinPluginManagementVersion? {
-            return module.getBuildScriptSettingsPsiFile()?.let {
-                GradleBuildScriptSupport.getManipulator(it)
-                    .findKotlinPluginManagementVersion()
-            }
-        }
+        fun getPluginManagementVersion(module: Module): DefinedKotlinPluginManagementVersion? =
+            GradleBuildScriptSupport.findKotlinPluginManagementVersion(module)
 
         fun getGroovyDependencySnippet(
             artifactName: String,
