@@ -423,10 +423,6 @@ f:com.intellij.codeInsight.highlighting.HighlightUsagesHandler
 - <init>(com.intellij.openapi.editor.Inlay):V
 - contentChanged(java.awt.Rectangle):V
 - sizeChanged(java.awt.Dimension,java.awt.Dimension):V
-*f:com.intellij.codeInsight.hints.InlayHintsFactory
-- *sf:Companion:com.intellij.codeInsight.hints.InlayHintsFactory$Companion
-- <init>():V
-*f:com.intellij.codeInsight.hints.InlayHintsFactory$Companion
 *f:com.intellij.codeInsight.hints.InlayHintsSinkImpl
 - com.intellij.codeInsight.hints.InlayHintsSink
 - <init>(com.intellij.openapi.editor.Editor):V
