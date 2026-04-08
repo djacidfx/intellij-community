@@ -6047,7 +6047,6 @@ f:com.intellij.openapi.editor.impl.EditorImpl
 - com.intellij.openapi.editor.ex.EditorEx
 - com.intellij.openapi.editor.highlighter.HighlighterClient
 - com.intellij.openapi.ui.Queryable
-- com.intellij.psi.codeStyle.CodeStyleSettingsListener
 - java.awt.event.FocusListener
 - sf:DISABLE_CARET_POSITION_KEEPING:com.intellij.openapi.util.Key
 - sf:DISABLE_CARET_SHIFT_ON_WHITESPACE_INSERTION:com.intellij.openapi.util.Key
@@ -6068,7 +6067,6 @@ f:com.intellij.openapi.editor.impl.EditorImpl
 - adjustGlobalFontSize(F):V
 - applyFocusMode():V
 - bidiTextFound():V
-- codeStyleSettingsChanged(com.intellij.psi.codeStyle.CodeStyleSettingsChangeEvent):V
 - createBoundColorSchemeDelegate(com.intellij.openapi.editor.colors.EditorColorsScheme):com.intellij.openapi.editor.colors.EditorColorsScheme
 - dumpState():java.lang.String
 - findNearestDirectionBoundary(I,Z):I

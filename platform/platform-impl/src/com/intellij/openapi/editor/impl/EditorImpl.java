@@ -300,8 +300,7 @@ import java.util.function.IntFunction;
 import java.util.function.Predicate;
 
 
-public final class EditorImpl extends UserDataHolderBase implements EditorEx, HighlighterClient, Queryable, Dumpable,
-                                                                    CodeStyleSettingsListener, FocusListener {
+public final class EditorImpl extends UserDataHolderBase implements EditorEx, HighlighterClient, Queryable, Dumpable, FocusListener {
   public static final int TEXT_ALIGNMENT_LEFT = 0;
   public static final int TEXT_ALIGNMENT_RIGHT = 1;
 
@@ -800,7 +799,10 @@ public final class EditorImpl extends UserDataHolderBase implements EditorEx, Hi
     myDocument.addPropertyChangeListener(propertyChangeListener);
     Disposer.register(myDisposable, () -> myDocument.removePropertyChangeListener(propertyChangeListener));
 
-    CodeStyleSettingsManager.getInstance(myProject).subscribe(this, myDisposable);
+    CodeStyleSettingsListener codeStyleSettingsListener = e -> {
+      codeStyleSettingsChanged(e);
+    };
+    CodeStyleSettingsManager.getInstance(myProject).subscribe(codeStyleSettingsListener, myDisposable);
 
     myState.addPropertyChangeListener((event) -> {
       switch (event.getPropertyName()) {
@@ -1573,7 +1575,7 @@ public final class EditorImpl extends UserDataHolderBase implements EditorEx, Hi
       }
     });
   }
-  
+
   static @NotNull Component getComponentToScroll(@NotNull Component scrollEventSource) {
     var parent = scrollEventSource.getParent();
     if (parent instanceof PanelWithFloatingToolbar layeredPane) {
@@ -5469,8 +5471,7 @@ public final class EditorImpl extends UserDataHolderBase implements EditorEx, Hi
     }
   }
 
-  @Override
-  public void codeStyleSettingsChanged(@NotNull CodeStyleSettingsChangeEvent event) {
+  private void codeStyleSettingsChanged(@NotNull CodeStyleSettingsChangeEvent event) {
     if (myProject != null) {
       VirtualFile eventFile = event.getVirtualFile();
       final var file = getVirtualFile();
