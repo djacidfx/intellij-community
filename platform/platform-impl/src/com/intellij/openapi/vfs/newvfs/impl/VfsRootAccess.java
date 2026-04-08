@@ -3,6 +3,7 @@ package com.intellij.openapi.vfs.newvfs.impl;
 
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.Application;
+import com.intellij.openapi.application.ArchivedCompilationContextUtil;
 import com.intellij.openapi.application.PathManager;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.application.ex.ApplicationEx;
@@ -152,6 +153,13 @@ public final class VfsRootAccess {
       }
     }
     catch (URISyntaxException | IllegalArgumentException ignored) {
+    }
+
+    // We need to allow bazel-out for file like C:\ProgramData\_bazel\6dodgvqr\execroot\_main\bazel-out\local_windows-fastbuild\bin\external\lib+\org.jetbrains.kotlin\kotlin-stdlib-2.3.20.jar
+    // ArchivedCompilationContextUtil.getArchivedCompiledClassesLocation() will return C:\ProgramData\_bazel\6dodgvqr\execroot\_main\bazel-out\jvm-fastbuild
+    if (ArchivedCompilationContextUtil.getArchivedCompiledClassesLocation() != null) {
+      allowed.add(FileUtil.toSystemIndependentName(
+        new File(ArchivedCompilationContextUtil.getArchivedCompiledClassesLocation()).getParentFile().getPath()));
     }
 
     try {
