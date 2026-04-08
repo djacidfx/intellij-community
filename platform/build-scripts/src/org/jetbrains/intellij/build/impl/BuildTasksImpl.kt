@@ -176,7 +176,7 @@ val SUPPORTED_DISTRIBUTIONS: List<SupportedDistribution> = listOf(
 
 fun createIdeaPropertyFile(context: BuildContext): CharSequence {
   val builder = StringBuilder(Files.readString(context.paths.communityHomeDir.resolve(when {
-    context.isLanguageServer -> "../language-server/building/idea.properties"
+    context.isLanguageServer -> "../language-server/build/idea.properties"
     else -> "bin/idea.properties"
   })))
   for (it in context.productProperties.additionalIDEPropertiesFilePaths) {
