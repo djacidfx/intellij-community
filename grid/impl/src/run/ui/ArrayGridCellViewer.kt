@@ -29,9 +29,11 @@ import com.intellij.ui.table.JBTable
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import java.awt.Component
+import java.awt.event.KeyEvent
 import javax.swing.BorderFactory
 import javax.swing.JComponent
 import javax.swing.JPanel
+import javax.swing.KeyStroke
 import javax.swing.table.AbstractTableModel
 import javax.swing.table.TableCellRenderer
 
@@ -160,6 +162,8 @@ class ArrayGridViewer(private val grid: DataGrid) : CellViewer {
       }
     }
     table.tableHeader = null
+    table.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT)
+      .put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "startEditing")
     table.setShowVerticalLines(false)
     (grid.resultView as? ResultViewWithRows)?.rowHeight?.let { table.rowHeight = it }
     val decorator = ToolbarDecorator.createDecorator(table)
@@ -244,7 +248,7 @@ class ArrayGridViewer(private val grid: DataGrid) : CellViewer {
     val escapeAction = object : DumbAwareAction() {
       override fun actionPerformed(e: AnActionEvent) = grid.resultView.component.requestFocus()
     }
-    escapeAction.registerCustomShortcutSet(java.awt.event.KeyEvent.VK_ESCAPE, 0, table)
+    escapeAction.registerCustomShortcutSet(KeyEvent.VK_ESCAPE, 0, table)
     decoratorPanel.border = JBUI.Borders.empty()
     panel.add(decoratorPanel, BorderLayout.CENTER)
     decorator.actionsPanel?.apply {
