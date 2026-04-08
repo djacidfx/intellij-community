@@ -30,7 +30,6 @@ import com.intellij.platform.util.progress.RawProgressReporter
 import com.intellij.psi.PsiFile
 import com.intellij.util.application
 import com.intellij.util.containers.ContainerUtil
-import com.intellij.util.containers.ContainerUtil.createConcurrentSoftKeySoftValueMap
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -38,7 +37,6 @@ import org.languagetool.language.English
 
 object DependencyParser {
   private val LOG = Logger.getInstance(DependencyParser::class.java)
-  private val cachedTrees: MutableMap<SentenceWithLanguage, Tree> = createConcurrentSoftKeySoftValueMap()
 
   @JvmStatic
   fun getParser(context: ProofreadingContext, minimal: Boolean): AsyncBatchParser<Tree>? {
@@ -75,10 +73,8 @@ object DependencyParser {
           (ltLanguage?.disambiguator as? LazyCachingConcurrentDisambiguator)?.ensureInitializedAsync()
           @Suppress("UNCHECKED_CAST")
           return sentences.associateWith {
-            cachedTrees.getOrPut(SentenceWithLanguage(it.sentence, language)) {
-              ensureActive()
-              Tree.createFlatTree(support, it.sentence)
-            }
+            ensureActive()
+            Tree.createFlatTree(support, it.sentence)
           } as LinkedHashMap<SentenceWithExclusions, Tree?>
         }
 
@@ -172,5 +168,3 @@ object DependencyParser {
     }
   }
 }
-
-private data class SentenceWithLanguage(val sentence: String, val language: Language)

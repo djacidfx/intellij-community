@@ -29,6 +29,8 @@ import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.max
 
+internal const val CACHE_SIZE: Long = 256
+
 object LangTool : GrazieStateLifecycle {
   private val langs: MutableMap<Lang, MutableMap<TextStyleDomain, JLanguageTool>> = ConcurrentHashMap()
   private val rulesEnabledByDefault = ConcurrentHashMap<Lang, MutableMap<TextStyleDomain, Set<String>>>()
@@ -74,7 +76,7 @@ object LangTool : GrazieStateLifecycle {
   internal fun createTool(lang: Lang, state: GrazieConfig.State, domain: TextStyleDomain): JLanguageTool {
     val jLanguage = lang.jLanguage
     require(jLanguage != null) { "Trying to get LangTool for not available language" }
-    return JLanguageTool(jLanguage, null, ResultCache(256)).apply {
+    return JLanguageTool(jLanguage, null, ResultCache(CACHE_SIZE)).apply {
       setCheckCancelledCallback { ProgressManager.checkCanceled(); false }
       addMatchFilter(UppercaseMatchFilter())
 
