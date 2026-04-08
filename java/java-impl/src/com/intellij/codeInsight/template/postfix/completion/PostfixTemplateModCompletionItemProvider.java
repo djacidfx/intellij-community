@@ -1,10 +1,13 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.codeInsight.template.postfix.completion;
 
+import com.intellij.codeInsight.completion.CompletionSorter;
 import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo;
 import com.intellij.codeInsight.intention.preview.IntentionPreviewUtils;
 import com.intellij.codeInsight.lookup.AutoCompletionPolicy;
+import com.intellij.codeInsight.lookup.LookupElement;
 import com.intellij.codeInsight.lookup.LookupElementCustomPreviewHolder;
+import com.intellij.codeInsight.lookup.LookupElementWeigher;
 import com.intellij.codeInsight.template.CustomTemplateCallback;
 import com.intellij.codeInsight.template.postfix.settings.PostfixTemplatesSettings;
 import com.intellij.codeInsight.template.postfix.templates.LanguagePostfixTemplate;
@@ -154,5 +157,16 @@ public final class PostfixTemplateModCompletionItemProvider implements ModComple
   @Override
   public boolean isEnabled() {
     return Registry.is("postfix.template.mod.completion.enabled", false);
+  }
+
+  @Override
+  public @NotNull CompletionSorter getSorter(@NotNull CompletionContext context) {
+    CompletionSorter sorter = CompletionSorter.defaultSorter(context, context.matcher());
+    return sorter.weigh(new LookupElementWeigher("postfix_length") {
+      @Override
+      public @NotNull Integer weigh(@NotNull LookupElement element) {
+        return element.getLookupString().length();
+      }
+    });
   }
 }
