@@ -413,13 +413,10 @@ public class TestCaseLoader {
     t = (System.nanoTime() - t) / 1_000_000;
     System.out.println("Loaded " + getClassesCount() + " classes in " + t + " ms");
 
-    if (getClassesCount() == 0 && !Boolean.getBoolean("idea.tests.ignoreJUnit3EmptySuite")) {
+    if (getClassesCount() == 0) {
       // Specially formatted error message will fail the build
       // See https://www.jetbrains.com/help/teamcity/build-script-interaction-with-teamcity.html#BuildScriptInteractionwithTeamCity-ReportingMessagesForBuildLog
-      System.out.println(
-        "##teamcity[message text='Expected some junit 3 or junit 4 tests to be executed, but no test classes were found. " +
-        "If all your tests are junit 5 and you do not expect old junit tests to be executed, please pass vm option " +
-        "-Didea.tests.ignoreJUnit3EmptySuite=true' status='ERROR']");
+      System.out.println("##teamcity[message text='Expected some junit 3 or junit 4 tests to be executed, but no test classes were found' status='ERROR']");
     }
   }
 
