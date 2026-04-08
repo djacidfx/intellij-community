@@ -713,6 +713,11 @@ public abstract class VirtualFileSystemEntry extends NewVirtualFile {
     private static final boolean DEBUG = LOG.isDebugEnabled();
   }
 
+  /**
+   * Mark the VFS entry as invalid (deleted).
+   * The method changes state of VFS _in-memory_ entry only -- persistent data ({@link com.intellij.openapi.vfs.newvfs.persistent.FSRecordsImpl})
+   * is not affected, and 'deleted' flag there must be set separately.
+   */
   @ApiStatus.Internal
   public void invalidate(@NotNull Object source, @NotNull Object reason) {
     getVfsData().invalidateFile(id);

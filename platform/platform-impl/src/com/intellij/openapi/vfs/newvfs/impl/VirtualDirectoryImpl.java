@@ -1074,6 +1074,12 @@ public class VirtualDirectoryImpl extends VirtualFileSystemEntry {
     markDirtyRecursivelyInternal();
   }
 
+  @Override
+  public void invalidate(@NotNull Object source, @NotNull Object reason) {
+    super.invalidate(source, reason);
+    directoryData.children = VfsData.ChildrenIds.EMPTY;
+  }
+
   // optimization: do not travel up unnecessarily
   private void markDirtyRecursivelyInternal() {
     //TODO RC: cachedChildren() or iterInDbChildren() or getChildren()? Normally, it is enough to mark dirty only the

@@ -857,7 +857,7 @@ public final class FileBasedIndexImpl extends FileBasedIndexEx {
       getIndex(indexId).removeTransientDataForFile(inputId);
     }
 
-    Document document = file == null ? null : myFileDocumentManager.getCachedDocument(file);
+    Document document = (file == null || !file.isValid()) ? null : myFileDocumentManager.getCachedDocument(file);
     if (document != null) {
       myLastIndexedDocStamps.clearForDocument(document);
       document.putUserData(ourFileContentKey, null);
