@@ -1,4 +1,3 @@
-com/google/common/escape/Escaper
 com/google/gson/Gson
 com/google/gson/JsonElement
 com/google/gson/stream/JsonReader
