@@ -147,6 +147,12 @@ com.intellij.terminal.TerminalShellCommandHandler
 - sf:Companion:com.intellij.terminal.TerminalShellCommandHandler$Companion
 - a:execute(com.intellij.openapi.project.Project,java.lang.String,Z,java.lang.String,com.intellij.execution.Executor):Z
 - a:matches(com.intellij.openapi.project.Project,java.lang.String,Z,java.lang.String):Z
+f:com.intellij.terminal.TerminalTitle$State
+- <init>(java.lang.String,java.lang.String,java.lang.String,java.lang.String,Z):V
+- b:<init>(java.lang.String,java.lang.String,java.lang.String,java.lang.String,Z,I,kotlin.jvm.internal.DefaultConstructorMarker):V
+- f:component5():Z
+- f:copy(java.lang.String,java.lang.String,java.lang.String,java.lang.String,Z):com.intellij.terminal.TerminalTitle$State
+- bs:copy$default(com.intellij.terminal.TerminalTitle$State,java.lang.String,java.lang.String,java.lang.String,java.lang.String,Z,I,java.lang.Object):com.intellij.terminal.TerminalTitle$State
 com.intellij.terminal.ui.TerminalWidget
 - com.intellij.openapi.ui.ComponentContainer
 - a:addNotification(javax.swing.JComponent,com.intellij.openapi.Disposable):V

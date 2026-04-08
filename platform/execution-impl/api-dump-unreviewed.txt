@@ -2209,26 +2209,19 @@ f:com.intellij.terminal.TerminalTitle
 - f:getUserDefinedTitle():java.lang.String
 f:com.intellij.terminal.TerminalTitle$State
 - <init>():V
-- <init>(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.Boolean):V
-- b:<init>(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.Boolean,I,kotlin.jvm.internal.DefaultConstructorMarker):V
 - f:component1():java.lang.String
 - f:component2():java.lang.String
 - f:component3():java.lang.String
 - f:component4():java.lang.String
-- f:component5():java.lang.Boolean
-- f:copy(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.Boolean):com.intellij.terminal.TerminalTitle$State
-- bs:copy$default(com.intellij.terminal.TerminalTitle$State,java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.Boolean,I,java.lang.Object):com.intellij.terminal.TerminalTitle$State
 - equals(java.lang.Object):Z
 - f:getApplicationTitle():java.lang.String
 - f:getDefaultTitle():java.lang.String
 - f:getTag():java.lang.String
-- f:getTrackTerminalApplicationTitleChanges():java.lang.Boolean
 - f:getUserDefinedTitle():java.lang.String
 - hashCode():I
 - f:setApplicationTitle(java.lang.String):V
 - f:setDefaultTitle(java.lang.String):V
 - f:setTag(java.lang.String):V
-- f:setTrackTerminalApplicationTitleChanges(java.lang.Boolean):V
 - f:setUserDefinedTitle(java.lang.String):V
 f:com.intellij.terminal.TerminalTitleKt
 - sf:bindApplicationTitle(com.intellij.terminal.TerminalTitle,com.jediterm.terminal.Terminal,com.intellij.openapi.Disposable):V
