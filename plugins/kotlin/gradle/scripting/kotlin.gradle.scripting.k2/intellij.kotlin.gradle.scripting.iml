@@ -72,5 +72,6 @@
     <orderEntry type="module" module-name="intellij.gradle.java" />
     <orderEntry type="module" module-name="intellij.kotlin.codeInsight.shared" />
     <orderEntry type="module" module-name="intellij.kotlin.uast.base" />
+    <orderEntry type="module" module-name="intellij.platform.lang" />
   </component>
 </module>

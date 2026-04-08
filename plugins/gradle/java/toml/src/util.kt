@@ -1,5 +1,6 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 @file:ApiStatus.Internal
+
 package com.intellij.gradle.java.toml
 
 import com.intellij.openapi.components.service
@@ -18,12 +19,16 @@ import com.intellij.psi.util.childrenOfType
 import com.intellij.util.asSafely
 import com.intellij.util.containers.tail
 import org.jetbrains.annotations.ApiStatus
+import com.intellij.openapi.module.Module
+import com.intellij.psi.PsiManager
+import org.jetbrains.plugins.gradle.service.resolve.Coordinates
 import org.jetbrains.plugins.gradle.service.resolve.DependencyCoordinates
 import org.jetbrains.plugins.gradle.service.resolve.GradleCommonClassNames.GRADLE_API_PROVIDER_PROVIDER
 import org.jetbrains.plugins.gradle.service.resolve.GradleCommonClassNames.GRADLE_API_PROVIDER_PROVIDER_CONVERTIBLE
 import org.jetbrains.plugins.gradle.service.resolve.GradleVersionCatalogPsiResolver
 import org.jetbrains.plugins.gradle.service.resolve.PluginCoordinates
 import org.jetbrains.plugins.gradle.service.resolve.VersionCatalogsLocator
+import org.jetbrains.plugins.gradle.service.resolve.findVersionCatalogEntryElement
 import org.jetbrains.plugins.gradle.service.resolve.getVersionCatalogFiles
 import org.jetbrains.plugins.gradle.util.BUNDLE_ACCESSORS_SUFFIX
 import org.jetbrains.plugins.gradle.util.LIBRARIES_FOR_PREFIX
@@ -41,7 +46,7 @@ import org.toml.lang.psi.TomlRecursiveVisitor
 import org.toml.lang.psi.TomlTable
 import org.toml.lang.psi.ext.name
 
-private fun getTableEntries(context: PsiElement, tableName: @NlsSafe String) : List<TomlKeySegment> {
+private fun getTableEntries(context: PsiElement, tableName: @NlsSafe String): List<TomlKeySegment> {
   val file = context.containingFile.asSafely<TomlFile>() ?: return emptyList()
   val targetTable = file.childrenOfType<TomlTable>().find { it.header.key?.name == tableName } ?: return emptyList()
   return targetTable.childrenOfType<TomlKeyValue>().mapNotNull { it.key.segments.singleOrNull() }
@@ -51,7 +56,7 @@ internal fun getVersions(context: PsiElement): List<TomlKeySegment> = getTableEn
 
 internal fun getLibraries(context: PsiElement): List<TomlKeySegment> = getTableEntries(context, "libraries")
 
-fun String.getVersionCatalogParts() : List<String> = split("_", "-")
+fun String.getVersionCatalogParts(): List<String> = split("_", "-")
 
 fun findTomlFile(context: PsiElement, name: String): TomlFile? {
   val module = ModuleUtilCore.findModuleForPsiElement(context) ?: return null
@@ -109,32 +114,7 @@ internal class GradleVersionCatalogPsiResolverImpl : GradleVersionCatalogPsiReso
   override fun getResolvedDependency(method: PsiMethod, context: PsiElement): DependencyCoordinates? {
     if (!isInVersionCatalogAccessor(method)) return null
     val origin = findOriginInTomlFile(method, context) as? TomlKeyValue ?: return null
-    return when (val originValue = origin.value) {
-      is TomlLiteral -> DependencyCoordinates.from(originValue.text.cleanRawString())
-
-      is TomlInlineTable -> {
-        val module = originValue.entries.find { it.key.segments.size == 1 && it.key.segments.firstOrNull()?.name == "module" }?.value
-
-        val (groupText, nameText) = if (module != null) {
-          if (module !is TomlLiteral) return null
-          module.text.cleanRawString().split(':').takeIf { it.size == 2 } ?: return null
-        }
-        else {
-          val group = originValue.entries.find { it.key.segments.size == 1 && it.key.segments.firstOrNull()?.name == "group" }?.value
-          val name = originValue.entries.find { it.key.segments.size == 1 && it.key.segments.firstOrNull()?.name == "name" }?.value
-          if (group == null || name == null) return null
-          if (group !is TomlLiteral || name !is TomlLiteral) return null
-          listOf(group.text.cleanRawString(), name.text.cleanRawString())
-        }
-
-        val versionEntry = originValue.entries.find { it.key.segments.firstOrNull()?.name == "version" }
-                           ?: return DependencyCoordinates(groupText, nameText, null)
-        val versionText = getResolvedVersion(versionEntry) ?: return DependencyCoordinates(groupText, nameText, null)
-        DependencyCoordinates(groupText, nameText, versionText)
-      }
-
-      else -> return null
-    }
+    return extractDependencyFromEntry(origin)
   }
 
   /**
@@ -143,23 +123,65 @@ internal class GradleVersionCatalogPsiResolverImpl : GradleVersionCatalogPsiReso
   override fun getResolvedPlugin(method: PsiMethod, context: PsiElement): PluginCoordinates? {
     if (!isInVersionCatalogAccessor(method)) return null
     val origin = findOriginInTomlFile(method, context) as? TomlKeyValue ?: return null
-    return when (val originValue = origin.value) {
-      is TomlLiteral -> PluginCoordinates.from(originValue.text.cleanRawString())
+    return extractPluginFromEntry(origin)
+  }
 
-      is TomlInlineTable -> {
-        val id = originValue.entries.find { it.key.segments.size == 1 && it.key.segments.firstOrNull()?.name == "id" }?.value
-        if (id == null) return null
-        if (id !is TomlLiteral) return null
-        val idText = id.text.cleanRawString()
-
-        val versionEntry = originValue.entries.find { it.key.segments.firstOrNull()?.name == "version" }
-                           ?: return PluginCoordinates(idText, null)
-        val versionText = getResolvedVersion(versionEntry) ?: return PluginCoordinates(idText, null)
-        PluginCoordinates(idText, versionText)
-      }
-
+  override fun getResolvedCoordinatesByPath(catalogName: String, entryPath: String, context: PsiElement): Coordinates? {
+    val tomlFile = findTomlFile(context, catalogName) ?: return null
+    val entry = findVersionCatalogEntryElement(tomlFile, entryPath) as? TomlKeyValue ?: return null
+    return when (getTomlParentSectionName(entry)) {
+      "libraries" -> extractDependencyFromEntry(entry)
+      "plugins" -> extractPluginFromEntry(entry)
       else -> null
     }
+  }
+}
+
+private fun extractDependencyFromEntry(entry: TomlKeyValue): DependencyCoordinates? {
+  return when (val originValue = entry.value) {
+    is TomlLiteral -> DependencyCoordinates.from(originValue.text.cleanRawString())
+
+    is TomlInlineTable -> {
+      val module = originValue.entries.find { it.key.segments.size == 1 && it.key.segments.firstOrNull()?.name == "module" }?.value
+
+      val (groupText, nameText) = if (module != null) {
+        if (module !is TomlLiteral) return null
+        module.text.cleanRawString().split(':').takeIf { it.size == 2 } ?: return null
+      }
+      else {
+        val group = originValue.entries.find { it.key.segments.size == 1 && it.key.segments.firstOrNull()?.name == "group" }?.value
+        val name = originValue.entries.find { it.key.segments.size == 1 && it.key.segments.firstOrNull()?.name == "name" }?.value
+        if (group == null || name == null) return null
+        if (group !is TomlLiteral || name !is TomlLiteral) return null
+        listOf(group.text.cleanRawString(), name.text.cleanRawString())
+      }
+
+      val versionEntry = originValue.entries.find { it.key.segments.firstOrNull()?.name == "version" }
+                         ?: return DependencyCoordinates(groupText, nameText, null)
+      val versionText = getResolvedVersion(versionEntry) ?: return DependencyCoordinates(groupText, nameText, null)
+      DependencyCoordinates(groupText, nameText, versionText)
+    }
+
+    else -> null
+  }
+}
+
+private fun extractPluginFromEntry(entry: TomlKeyValue): PluginCoordinates? {
+  return when (val originValue = entry.value) {
+    is TomlLiteral -> PluginCoordinates.from(originValue.text.cleanRawString())
+
+    is TomlInlineTable -> {
+      val id = originValue.entries.find { it.key.segments.size == 1 && it.key.segments.firstOrNull()?.name == "id" }?.value
+      if (id == null || id !is TomlLiteral) return null
+      val idText = id.text.cleanRawString()
+
+      val versionEntry = originValue.entries.find { it.key.segments.firstOrNull()?.name == "version" }
+                         ?: return PluginCoordinates(idText, null)
+      val versionText = getResolvedVersion(versionEntry) ?: return PluginCoordinates(idText, null)
+      PluginCoordinates(idText, versionText)
+    }
+
+    else -> null
   }
 }
 

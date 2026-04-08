@@ -30,6 +30,14 @@
   </extensions>
 
   <extensions defaultExtensionNs="com.intellij">
+    <codeInsight.declarativeInlayProvider language="kotlin"
+                                          implementationClass="org.jetbrains.kotlin.gradle.scripting.k2.GradleVersionCatalogVersionInlayHintsProvider"
+                                          isEnabledByDefault="true"
+                                          group="VALUES_GROUP"
+                                          providerId="gradle.version.catalog.version"
+                                          bundle="messages.KotlinGradleScriptingBundle"
+                                          nameKey="inlay.hints.version.catalog.dependencies.name"/>
+
     <applicationService serviceInterface="org.jetbrains.kotlin.gradle.scripting.shared.roots.AbstractGradleBuildRootDataSerializer"
                     serviceImplementation="org.jetbrains.kotlin.gradle.scripting.k2.roots.GradleBuildRootDataSerializer"/>
 
