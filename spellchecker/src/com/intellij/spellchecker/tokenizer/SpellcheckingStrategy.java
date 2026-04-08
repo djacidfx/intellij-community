@@ -29,6 +29,7 @@ import com.intellij.spellchecker.quickfixes.SpellCheckerQuickFixFactory;
 import com.intellij.spellchecker.settings.SpellCheckerSettings;
 import com.intellij.spellchecker.statistics.SpellcheckerRateTracker;
 import com.intellij.util.KeyedLazyInstance;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -149,6 +150,25 @@ public class SpellcheckingStrategy implements PossiblyDumbAware {
    */
   public boolean useTextLevelSpellchecking(PsiElement element) {
     return useTextLevelSpellchecking();
+  }
+
+  /**
+   * Returns the file-relative range of the identifier text that should participate in the rename quick fix.
+   * <p>
+   * {@code nameIdentifier} is the PSI element used as the rename anchor, not an arbitrary descendant.
+   * <p>
+   * {@link PsiNameIdentifierOwner#getNameIdentifier()} of the enclosing {@link PsiNamedElement} when it is available;
+   * otherwise it falls back to the original PSI element on which spellchecking reported the typo.
+   * <p>
+   * The range is expected to cover the full logical name, even if the underlying PSI element contains
+   * language-specific symbols / constructs or non-editable fragments. For example, in PHP for the element {@code $lengthMinutes} the method should
+   * return the range of {@code lengthMinutes}, i.e. {@code [1; 14]}.
+   * <p>
+   * Return {@code null} when the strategy cannot determine such a range for the supplied rename anchor.
+   */
+  @ApiStatus.Experimental
+  public @Nullable TextRange getRenameIdentifierRange(@NotNull PsiElement nameIdentifier) {
+    return null;
   }
 
   protected static boolean isInjectedLanguageFragment(@Nullable PsiElement element) {
