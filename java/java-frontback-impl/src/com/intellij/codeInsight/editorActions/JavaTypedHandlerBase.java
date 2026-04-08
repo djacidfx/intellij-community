@@ -61,6 +61,7 @@ import com.intellij.psi.TokenType;
 import com.intellij.psi.codeStyle.CodeStyleManager;
 import com.intellij.psi.javadoc.PsiDocComment;
 import com.intellij.psi.tree.IElementType;
+import com.intellij.psi.tree.TokenSet;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.util.PsiUtil;
 import com.intellij.util.text.CharArrayUtil;
@@ -69,6 +70,19 @@ import org.jetbrains.annotations.Nullable;
 
 
 public class JavaTypedHandlerBase extends TypedHandlerDelegate {
+  private static final TokenSet KEYWORDS_BEFORE_METHOD_TYPE_PARAMETERS = TokenSet.create(
+    JavaTokenType.PUBLIC_KEYWORD,
+    JavaTokenType.PROTECTED_KEYWORD,
+    JavaTokenType.PRIVATE_KEYWORD,
+    JavaTokenType.STATIC_KEYWORD,
+    JavaTokenType.FINAL_KEYWORD,
+    JavaTokenType.ABSTRACT_KEYWORD,
+    JavaTokenType.DEFAULT_KEYWORD,
+    JavaTokenType.SYNCHRONIZED_KEYWORD,
+    JavaTokenType.NATIVE_KEYWORD,
+    JavaTokenType.STRICTFP_KEYWORD
+  );
+
   private boolean myJavaLTTyped;
 
   protected JavaTypedHandlerBase() {
@@ -148,8 +162,7 @@ public class JavaTypedHandlerBase extends TypedHandlerDelegate {
                     !isJspFile(file) &&
                     CodeInsightSettings.getInstance().AUTOINSERT_PAIR_BRACKET &&
                     isLanguageLevel5OrHigher(file) &&
-                    TypedHandlerUtil.isAfterClassLikeIdentifierOrDot(offsetBefore, editor, JavaTokenType.DOT, JavaTokenType.IDENTIFIER,
-                                                                     true);
+                    isAfterGenericLtStart(offsetBefore, editor);
 
     if ('>' == c) {
       if (!isJspFile(file) && CodeInsightSettings.getInstance().AUTOINSERT_PAIR_BRACKET && isLanguageLevel5OrHigher(file)) {
@@ -244,6 +257,21 @@ public class JavaTypedHandlerBase extends TypedHandlerDelegate {
     }
 
     return Result.CONTINUE;
+  }
+
+  private static boolean isAfterGenericLtStart(int offset, @NotNull Editor editor) {
+    if (TypedHandlerUtil.isAfterClassLikeIdentifierOrDot(offset, editor, JavaTokenType.DOT, JavaTokenType.IDENTIFIER, true)) {
+      return true;
+    }
+
+    HighlighterIterator iterator = editor.getHighlighter().createIterator(offset);
+    if (iterator.atEnd()) {
+      return false;
+    }
+    if (offset != iterator.getEnd() && iterator.getStart() > 0) {
+      iterator.retreat();
+    }
+    return KEYWORDS_BEFORE_METHOD_TYPE_PARAMETERS.contains(iterator.getTokenType());
   }
 
   private static @Nullable Result processOpenBraceInOneLineCaseRule(@NotNull Project project,

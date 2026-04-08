@@ -1405,6 +1405,8 @@ public class NormalCompletionTest extends NormalCompletionTestCase {
 
   public void testNewClassAngleBracketExpected() { doTest("<"); }
 
+  public void testAngleBracketAfterKeyword() { doTest("<"); }
+
   public void testNewClassSquareBracket() { doTest("["); }
 
   public void testMethodColon() { doTest(":"); }
