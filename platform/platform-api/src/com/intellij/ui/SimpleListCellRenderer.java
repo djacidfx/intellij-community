@@ -68,6 +68,11 @@ public abstract class SimpleListCellRenderer<T> extends JBLabel implements ListC
     setIcon(null);
     customize(list, value, index, isSelected, cellHasFocus);
     setOpaque(isSelected);
+
+    if (!isSelected) {
+      UIUtil.applyDeprecatedBackground(this);
+    }
+
     return this;
   }
 
