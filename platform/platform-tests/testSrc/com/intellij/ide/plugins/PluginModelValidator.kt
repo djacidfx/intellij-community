@@ -790,6 +790,15 @@ internal class PluginModelValidator(
         )
       )
     }
+    if (pluginDescriptor.id == null) {
+      reportError("""
+                    |<id> tag is not specified in plugin.xml in module '${sourceModule.name}'.
+                    |While the plugin system uses the name of the plugin as an ID in such cases, in IntelliJ monorepo it's required to have 
+                    |an explicit <id> tag in plugin.xml for consistency.
+                  """.trimMargin(),
+                  sourceModule,
+                  params = mapOf("descriptorFile" to moduleInfo.descriptorFile))
+    }
     val namespace = pluginDescriptor.namespace
     if (namespace != null) {
       when {
