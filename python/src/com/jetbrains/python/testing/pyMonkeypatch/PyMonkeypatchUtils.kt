@@ -9,6 +9,8 @@ import com.jetbrains.python.psi.PyReferenceExpression
 import com.jetbrains.python.psi.resolve.PyResolveContext
 import com.jetbrains.python.psi.types.PyClassType
 import com.jetbrains.python.psi.types.TypeEvalContext
+import com.jetbrains.python.testing.pyTestFixtures.isFixture
+import com.jetbrains.python.testing.pyTestFixtures.reservedFixturesSet
 
 private const val MONKEYPATCH_FQN = "_pytest.monkeypatch.MonkeyPatch"
 
@@ -19,7 +21,8 @@ private const val MONKEYPATCH_FQN = "_pytest.monkeypatch.MonkeyPatch"
  * 1. The callee must be `<qualifier>.setattr` or `<qualifier>.delattr`.
  * 2. The qualifier is identified as a monkeypatch fixture by either:
  *    - Type: its type is `_pytest.monkeypatch.MonkeyPatch`
- *    - Name: it resolves to a parameter named `monkeypatch` (a reserved pytest fixture)
+ *    - Fixture: it resolves to a parameter recognized as a pytest fixture
+ *    - Reserved name: it resolves to a parameter named `monkeypatch` (a known pytest built-in fixture)
  */
 internal fun isMonkeypatchAttrCall(callExpr: PyCallExpression, methodName: String, context: TypeEvalContext): Boolean {
   val callee = callExpr.callee as? PyQualifiedExpression ?: return false
@@ -33,13 +36,12 @@ internal fun isMonkeypatchAttrCall(callExpr: PyCallExpression, methodName: Strin
     return true
   }
 
-  // Check by name: qualifier resolves to a parameter named "monkeypatch" in a test function
-  if (qualifier is PyReferenceExpression && qualifier.name == "monkeypatch") {
+  // Check by fixture resolution
+  if (qualifier is PyReferenceExpression) {
     val resolveContext = PyResolveContext.defaultContext(context)
     val resolved = qualifier.followAssignmentsChain(resolveContext).element
-    if (resolved is PyNamedParameter && resolved.name == "monkeypatch") {
-      val func = resolved.parent?.parent as? PyFunction
-      if (func != null) return true
+    if (resolved is PyNamedParameter) {
+      return resolved.isFixture(context)
     }
   }
 
