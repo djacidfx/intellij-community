@@ -8,6 +8,7 @@ import com.intellij.execution.testframework.Filter;
 import com.intellij.execution.testframework.TestConsoleProperties;
 import com.intellij.execution.testframework.TestFrameworkRunningModel;
 import com.intellij.execution.testframework.TestTreeView;
+import com.intellij.execution.testframework.sm.runner.events.TestDurationStrategy;
 import com.intellij.execution.testframework.sm.runner.ui.MockPrinter;
 import com.intellij.execution.testframework.ui.AbstractTestTreeBuilderBase;
 import com.intellij.execution.testframework.ui.BaseTestProxyNodeDescriptor;
@@ -844,6 +845,29 @@ public class SMTestProxyTest extends BaseSMTRunnerTestCase {
     final Long duration = mySuite.getDuration();
     assertNotNull(duration);
     assertEquals(2L, duration.longValue());
+  }
+
+  public void testSetDuration_Suite_ManualStrategy() {
+    SMTestProxy.SMRootTestProxy root = new SMTestProxy.SMRootTestProxy();
+    root.setDurationStrategy(TestDurationStrategy.MANUAL);
+    SMTestProxy suite = createSuiteProxy("suite");
+    root.addChild(suite);
+
+    suite.setDuration(500);
+    Long duration = suite.getDuration();
+    assertNotNull(duration);
+    assertEquals(500L, duration.longValue());
+  }
+
+  public void testSetDuration_Suite_AutomaticStrategy() {
+    SMTestProxy.SMRootTestProxy root = new SMTestProxy.SMRootTestProxy();
+    root.setDurationStrategy(TestDurationStrategy.AUTOMATIC);
+    SMTestProxy suite = createSuiteProxy("suite");
+    root.addChild(suite);
+
+    suite.setDuration(500);
+    Long duration = suite.getDuration();
+    assertNull(duration);
   }
 
   public void testDuration_ForSuiteWithTests() {

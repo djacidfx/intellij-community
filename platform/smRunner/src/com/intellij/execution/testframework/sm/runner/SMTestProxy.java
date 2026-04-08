@@ -1,4 +1,4 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.execution.testframework.sm.runner;
 
 import com.intellij.execution.Location;
@@ -1125,7 +1125,7 @@ public class SMTestProxy extends AbstractTestProxy implements Navigatable {
       myTestsReporterAttached = true;
     }
 
-    final void setDurationStrategy(final @NotNull TestDurationStrategy strategy) {
+    public final void setDurationStrategy(final @NotNull TestDurationStrategy strategy) {
       myDurationStrategy = strategy;
     }
 

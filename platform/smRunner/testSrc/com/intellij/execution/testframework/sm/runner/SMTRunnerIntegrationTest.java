@@ -1,4 +1,4 @@
-// Copyright 2000-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.execution.testframework.sm.runner;
 
 import com.intellij.execution.executors.DefaultRunExecutor;
@@ -156,6 +156,45 @@ public class SMTRunnerIntegrationTest extends LightPlatformTestCase {
     }
 
     notifyStdoutLineAvailable("##teamcity[testingFinished]");
+  }
+
+  public void testSuiteFinishedWithWallTimeDuration() {
+    notifyStdoutLineAvailable("##teamcity[enteredTheMatrix durationStrategy='MANUAL']");
+    notifyStdoutLineAvailable("##teamcity[testingStarted]");
+    notifyStdoutLineAvailable("##teamcity[testSuiteStarted nodeId='1' parentNodeId='0' name='suite']");
+
+    notifyStdoutLineAvailable("##teamcity[testStarted nodeId='2' parentNodeId='1' name='test']");
+    notifyStdoutLineAvailable("##teamcity[testFinished nodeId='2' duration='100']");
+
+    notifyStdoutLineAvailable("##teamcity[testSuiteFinished nodeId='1' duration='500']");
+    notifyStdoutLineAvailable("##teamcity[testingFinished]");
+    assertState(1, 0, 1, "passed");
+    SMTestProxy suite = myRootNode.getChildren().getFirst();
+    assertNotNull(suite);
+    Long suiteDuration = suite.getDuration();
+    assertNotNull(suiteDuration);
+    assertEquals(500L, suiteDuration.longValue());
+  }
+
+  public void testSuiteFinishedWithWallTimeDurationWithoutDurationStrategy() {
+    notifyStdoutLineAvailable("##teamcity[enteredTheMatrix]");
+    notifyStdoutLineAvailable("##teamcity[testingStarted]");
+    notifyStdoutLineAvailable("##teamcity[testSuiteStarted nodeId='1' parentNodeId='0' name='suite']");
+
+    notifyStdoutLineAvailable("##teamcity[testStarted nodeId='2' parentNodeId='1' name='test1']");
+    notifyStdoutLineAvailable("##teamcity[testFinished nodeId='2' duration='100']");
+
+    notifyStdoutLineAvailable("##teamcity[testStarted nodeId='3' parentNodeId='1' name='test2']");
+    notifyStdoutLineAvailable("##teamcity[testFinished nodeId='3' duration='50']");
+
+    notifyStdoutLineAvailable("##teamcity[testSuiteFinished nodeId='1' duration='500']");
+    notifyStdoutLineAvailable("##teamcity[testingFinished]");
+    assertState(2, 0, 1, "passed");
+    SMTestProxy suite = myRootNode.getChildren().getFirst();
+    assertNotNull(suite);
+    Long suiteDuration = suite.getDuration();
+    assertNotNull(suiteDuration);
+    assertEquals(150L, suiteDuration.longValue());
   }
 
   private void assertState(int finishedTests, int failedTests, int topLevelChildrenCount, String status) {
