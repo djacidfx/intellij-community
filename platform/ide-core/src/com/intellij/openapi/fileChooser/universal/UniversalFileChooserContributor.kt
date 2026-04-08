@@ -13,12 +13,15 @@ interface UniversalFileChooserContributor {
     @JvmField
     val EP_NAME: ExtensionPointName<UniversalFileChooserContributor> = ExtensionPointName("com.intellij.universalFileChooserContributor")
 
+    fun findOwner(path: Path): UniversalFileChooserContributor? = EP_NAME.findFirstSafe { ext -> ext.ownsPath(path) }
   }
 
   @get:Nls(capitalization = Nls.Capitalization.Title)
   val tabTitle: String
 
   fun getRoots(): List<Path>
+
+  fun ownsPath(path: Path): Boolean
 
 }
 

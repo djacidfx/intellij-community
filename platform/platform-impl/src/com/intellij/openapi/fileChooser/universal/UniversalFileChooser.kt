@@ -129,7 +129,21 @@ object UniversalFileChooser {
         tabbedPane.addTab(contributor.tabTitle, fileView.topComponent)
       }
 
+      preselectProjectTab(project)
+
       add(tabbedPane, BorderLayout.CENTER)
+    }
+
+    private fun preselectProjectTab(project: Project) {
+      val projectContributor = if (project.isDefault) null else {
+        project.projectFilePath?.let { projectPath ->
+          UniversalFileChooserContributor.findOwner(Path.of(projectPath))
+        }
+      }
+      projectContributor?.let { contributor ->
+        tabbedPane.indexOfTab(contributor.tabTitle)
+          .takeIf { it >= 0 }?.let { tabbedPane.selectedIndex = it }
+      }
     }
 
     fun getSelectedFiles(): List<VirtualFile> {
