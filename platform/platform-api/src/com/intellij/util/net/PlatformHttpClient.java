@@ -50,6 +50,8 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Flow;
 import java.util.zip.GZIPInputStream;
 
+import static java.util.Objects.requireNonNullElse;
+
 /// Collection of helpers for working with [HttpClient].
 ///
 /// Example:
@@ -134,7 +136,7 @@ public final class PlatformHttpClient {
     catch (IOException e) {
       ProgressManager.checkCanceled();
       var cause = e.getCause();
-      if (cause instanceof IOException && e.getMessage().contains("too many authentication attempts")) {
+      if (cause instanceof IOException && requireNonNullElse(e.getMessage(), "").contains("too many authentication attempts")) {
         var stack = cause.getStackTrace();
         if (
           stack.length > 1 &&
