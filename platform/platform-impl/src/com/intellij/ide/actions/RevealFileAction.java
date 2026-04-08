@@ -341,11 +341,14 @@ public class RevealFileAction extends DumbAwareAction implements LightEditCompat
               .findFirst();
             if (desktopFile.isPresent()) {
               for (var line : Files.readAllLines(desktopFile.get())) {
-                if (line.startsWith("Exec=")) {
+                if (line.startsWith("Exec=") && fmApp == null) {
                   fmApp = getExecCommand(line.substring(5));
                 }
-                else if (line.startsWith("Name=")) {
+                else if (line.startsWith("Name=") && fmName == null) {
                   fmName = line.substring(5);
+                }
+                if (fmApp != null && fmName != null) {
+                  break;
                 }
               }
             }
