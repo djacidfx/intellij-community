@@ -2,6 +2,8 @@ package com.intellij.searchEverywhereMl.typos
 
 import com.intellij.ide.actions.searcheverywhere.SearchEverywhereSpellCheckResult
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 internal class SearchEverywhereSpellerImplTest {
@@ -47,5 +49,11 @@ internal class SearchEverywhereSpellerImplTest {
     )
 
     assertEquals(corrections.take(2), actual)
+  }
+
+  @Test
+  fun `prefix matcher must be ready before typo correction proceeds`() {
+    assertTrue(shouldSkipTypoCorrection("Show Col", null))
+    assertFalse(shouldSkipTypoCorrection("123", null))
   }
 }
