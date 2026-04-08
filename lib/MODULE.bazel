@@ -3304,10 +3304,10 @@ http_file(
 )
 
 http_file(
-  name = "org_jetbrains_intellij_deps_languagetool-language-en-6_7_20_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-en/6.7.20/language-en-6.7.20.jar",
-  sha256 = "572cb63055eaa335522e9f3983d457c9acc24672edfc629cc82277d46b455702",
-  downloaded_file_path = "language-en-6.7.20.jar"
+  name = "org_jetbrains_intellij_deps_languagetool-language-en-6_7_21_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-en/6.7.21/language-en-6.7.21.jar",
+  sha256 = "227c623a7f7b4bafc34184f9320b3c1a1d373bb3329c2148c9dcb2f81ef134b2",
+  downloaded_file_path = "language-en-6.7.21.jar"
 )
 
 http_file(
@@ -3318,17 +3318,17 @@ http_file(
 )
 
 http_file(
-  name = "org_jetbrains_intellij_deps_languagetool-language-en-6_7_20-sources_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-en/6.7.20/language-en-6.7.20-sources.jar",
-  sha256 = "f06ee338628f530d6d599631d60dc4cb67d2efc39507ed9c1dabab94ccf9206b",
-  downloaded_file_path = "language-en-6.7.20-sources.jar"
+  name = "org_jetbrains_intellij_deps_languagetool-language-en-6_7_21-sources_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-en/6.7.21/language-en-6.7.21-sources.jar",
+  sha256 = "4776786fade8d16f39ff1ca41c8727870f21e1220f7c3e6a964ce4fe4d22dfb8",
+  downloaded_file_path = "language-en-6.7.21-sources.jar"
 )
 
 http_file(
-  name = "org_jetbrains_intellij_deps_languagetool-languagetool-core-6_7_20_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/languagetool-core/6.7.20/languagetool-core-6.7.20.jar",
-  sha256 = "2ceb4fddcf6e6943e8e418a417caf05affd239c9f7855ba22aa8494aa0668256",
-  downloaded_file_path = "languagetool-core-6.7.20.jar"
+  name = "org_jetbrains_intellij_deps_languagetool-languagetool-core-6_7_21_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/languagetool-core/6.7.21/languagetool-core-6.7.21.jar",
+  sha256 = "cca73b390f94078fc7a498ced615ce24fab95eef39cb5d676f63d92a355749fe",
+  downloaded_file_path = "languagetool-core-6.7.21.jar"
 )
 
 http_file(
@@ -3339,10 +3339,10 @@ http_file(
 )
 
 http_file(
-  name = "org_jetbrains_intellij_deps_languagetool-languagetool-core-6_7_20-sources_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/languagetool-core/6.7.20/languagetool-core-6.7.20-sources.jar",
-  sha256 = "c0d48f7a19b04e80bb6f252f8f9f70f4255ca36945ee4cec9a8b2ab14f32a532",
-  downloaded_file_path = "languagetool-core-6.7.20-sources.jar"
+  name = "org_jetbrains_intellij_deps_languagetool-languagetool-core-6_7_21-sources_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/languagetool-core/6.7.21/languagetool-core-6.7.21-sources.jar",
+  sha256 = "41304ecfca0e245917547874a88b4489f463ae0129cd22a8d484b7255403e474",
+  downloaded_file_path = "languagetool-core-6.7.21-sources.jar"
 )
 
 http_file(
@@ -3416,10 +3416,10 @@ http_file(
 )
 
 http_file(
-  name = "org_jetbrains_intellij_deps_languagetool-language-be-6_7_20_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-be/6.7.20/language-be-6.7.20.jar",
-  sha256 = "f24b9d99f0b9dddbe1d63118dce0af30fd32cb6228f949cfbbad9902e2bfa169",
-  downloaded_file_path = "language-be-6.7.20.jar"
+  name = "org_jetbrains_intellij_deps_languagetool-language-be-6_7_21_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-be/6.7.21/language-be-6.7.21.jar",
+  sha256 = "566815fa27db767d87f14b82ef8336c3ef31833481055db75ff3088d583c797c",
+  downloaded_file_path = "language-be-6.7.21.jar"
 )
 
 http_file(
@@ -3430,17 +3430,17 @@ http_file(
 )
 
 http_file(
-  name = "org_jetbrains_intellij_deps_languagetool-language-be-6_7_20-sources_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-be/6.7.20/language-be-6.7.20-sources.jar",
-  sha256 = "4ad7b5f9f742f81bc593260f8ebf1fa3e137f31f5cbebb5b1152ae90075147a4",
-  downloaded_file_path = "language-be-6.7.20-sources.jar"
+  name = "org_jetbrains_intellij_deps_languagetool-language-be-6_7_21-sources_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-be/6.7.21/language-be-6.7.21-sources.jar",
+  sha256 = "42ddaadc8c34430f9efc1c7b76c58b386a53e002afaacef21c0e56f75465667f",
+  downloaded_file_path = "language-be-6.7.21-sources.jar"
 )
 
 http_file(
-  name = "org_jetbrains_intellij_deps_languagetool-language-uk-6_7_20_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-uk/6.7.20/language-uk-6.7.20.jar",
-  sha256 = "bc94dd9aaee1f3e076d55bc91872d383cd92c9293cc7efd2e316915690963280",
-  downloaded_file_path = "language-uk-6.7.20.jar"
+  name = "org_jetbrains_intellij_deps_languagetool-language-uk-6_7_21_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-uk/6.7.21/language-uk-6.7.21.jar",
+  sha256 = "04e83fb369611244907c20090ead4d16565fa396f804124ecaf09c17b22fd4ba",
+  downloaded_file_path = "language-uk-6.7.21.jar"
 )
 
 http_file(
@@ -3451,17 +3451,17 @@ http_file(
 )
 
 http_file(
-  name = "org_jetbrains_intellij_deps_languagetool-language-uk-6_7_20-sources_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-uk/6.7.20/language-uk-6.7.20-sources.jar",
-  sha256 = "bf9da0bf1f2672c5c0c8c07fb4d1fd496a46d304ed56436a00585b0dcf134031",
-  downloaded_file_path = "language-uk-6.7.20-sources.jar"
+  name = "org_jetbrains_intellij_deps_languagetool-language-uk-6_7_21-sources_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-uk/6.7.21/language-uk-6.7.21-sources.jar",
+  sha256 = "ff4cb2f9f50db9e116db7655e4c7d984b2899602fd954596aefa28719cc05734",
+  downloaded_file_path = "language-uk-6.7.21-sources.jar"
 )
 
 http_file(
-  name = "org_jetbrains_intellij_deps_languagetool-language-de-6_7_20_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-de/6.7.20/language-de-6.7.20.jar",
-  sha256 = "91d7d42c173b92d918cdf4266f7f6b468726445dca98740976002745ebdd9678",
-  downloaded_file_path = "language-de-6.7.20.jar"
+  name = "org_jetbrains_intellij_deps_languagetool-language-de-6_7_21_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-de/6.7.21/language-de-6.7.21.jar",
+  sha256 = "db20e21fda0b2d81dc7fc97e63f937001e20be43521fd3c7126b825b6b7b04d0",
+  downloaded_file_path = "language-de-6.7.21.jar"
 )
 
 http_file(
@@ -3479,10 +3479,10 @@ http_file(
 )
 
 http_file(
-  name = "org_jetbrains_intellij_deps_languagetool-language-de-6_7_20-sources_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-de/6.7.20/language-de-6.7.20-sources.jar",
-  sha256 = "e94db4853a649da10b0d2f3149e6f1c7f290237510efef9ead35ff6a867aff44",
-  downloaded_file_path = "language-de-6.7.20-sources.jar"
+  name = "org_jetbrains_intellij_deps_languagetool-language-de-6_7_21-sources_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-de/6.7.21/language-de-6.7.21-sources.jar",
+  sha256 = "905d8a041a9704ec1dad9ac40c9b5909b4c31444e63b98507683379059c6a0ba",
+  downloaded_file_path = "language-de-6.7.21-sources.jar"
 )
 
 http_file(
@@ -3493,52 +3493,52 @@ http_file(
 )
 
 http_file(
-  name = "org_jetbrains_intellij_deps_languagetool-language-it-6_7_20_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-it/6.7.20/language-it-6.7.20.jar",
-  sha256 = "6b25433cf377e3fafce95f772aec21fec29c0267bf1b651834d74309700b34a5",
-  downloaded_file_path = "language-it-6.7.20.jar"
+  name = "org_jetbrains_intellij_deps_languagetool-language-it-6_7_21_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-it/6.7.21/language-it-6.7.21.jar",
+  sha256 = "e9ca9ee6379429e09a3a4f2a0a9643004121635dec1c0a74e3d8d41c08dd316e",
+  downloaded_file_path = "language-it-6.7.21.jar"
 )
 
 http_file(
-  name = "org_jetbrains_intellij_deps_languagetool-language-it-6_7_20-sources_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-it/6.7.20/language-it-6.7.20-sources.jar",
-  sha256 = "cc57a20bfa5242f0c5d1e57db83676aeda62f8303ae79ffe45226e43a79e367f",
-  downloaded_file_path = "language-it-6.7.20-sources.jar"
+  name = "org_jetbrains_intellij_deps_languagetool-language-it-6_7_21-sources_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-it/6.7.21/language-it-6.7.21-sources.jar",
+  sha256 = "d577670451303d9910bf6afc43300397b3fa11db69c5caaba77b1d3e370ca6a7",
+  downloaded_file_path = "language-it-6.7.21-sources.jar"
 )
 
 http_file(
-  name = "org_jetbrains_intellij_deps_languagetool-language-pt-6_7_20_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-pt/6.7.20/language-pt-6.7.20.jar",
-  sha256 = "2878fbeeeff14a74a970a2a1c477a9cd5fd74a432c015ca810a85eaeaa078186",
-  downloaded_file_path = "language-pt-6.7.20.jar"
+  name = "org_jetbrains_intellij_deps_languagetool-language-pt-6_7_21_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-pt/6.7.21/language-pt-6.7.21.jar",
+  sha256 = "a91523eaf4fd33ca93a50a885408d20960212b3d62fc798ff9f89e38dca2007d",
+  downloaded_file_path = "language-pt-6.7.21.jar"
 )
 
 http_file(
-  name = "org_jetbrains_intellij_deps_languagetool-language-pt-6_7_20-sources_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-pt/6.7.20/language-pt-6.7.20-sources.jar",
-  sha256 = "b7a969746cbe5e4c184a13f6ebdd376520c978cb6f5bfed64697c3e5223d304f",
-  downloaded_file_path = "language-pt-6.7.20-sources.jar"
+  name = "org_jetbrains_intellij_deps_languagetool-language-pt-6_7_21-sources_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-pt/6.7.21/language-pt-6.7.21-sources.jar",
+  sha256 = "2c3b16e9ae981ae4618f7bb08a495c391c07556273ddfb151ba197c4defa95d3",
+  downloaded_file_path = "language-pt-6.7.21-sources.jar"
 )
 
 http_file(
-  name = "org_jetbrains_intellij_deps_languagetool-language-ru-6_7_20_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-ru/6.7.20/language-ru-6.7.20.jar",
-  sha256 = "37ee7871b86ded531c364ab448ebf446a1666aef088ecbd35c9bebd25f7239f4",
-  downloaded_file_path = "language-ru-6.7.20.jar"
+  name = "org_jetbrains_intellij_deps_languagetool-language-ru-6_7_21_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-ru/6.7.21/language-ru-6.7.21.jar",
+  sha256 = "b6eb62e217480b8491f14d2974191851ae448e2d9732f7de022d53c01dee7a97",
+  downloaded_file_path = "language-ru-6.7.21.jar"
 )
 
 http_file(
-  name = "org_jetbrains_intellij_deps_languagetool-language-ru-6_7_20-sources_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-ru/6.7.20/language-ru-6.7.20-sources.jar",
-  sha256 = "324aa1b449368a054e718d9ab6b891f272fc93f8dcf0739ec677946a0e26ca44",
-  downloaded_file_path = "language-ru-6.7.20-sources.jar"
+  name = "org_jetbrains_intellij_deps_languagetool-language-ru-6_7_21-sources_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-ru/6.7.21/language-ru-6.7.21-sources.jar",
+  sha256 = "67e5339bebad5386d49d901a7aa35161ba189c794fec2742b4d8812749f2d4c2",
+  downloaded_file_path = "language-ru-6.7.21-sources.jar"
 )
 
 http_file(
-  name = "org_jetbrains_intellij_deps_languagetool-language-zh-6_7_20_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-zh/6.7.20/language-zh-6.7.20.jar",
-  sha256 = "c04ded4e5f33399dc14a52e4d4b13d6a4bfaa817f91efb26aaf208a4bbfdb42b",
-  downloaded_file_path = "language-zh-6.7.20.jar"
+  name = "org_jetbrains_intellij_deps_languagetool-language-zh-6_7_21_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-zh/6.7.21/language-zh-6.7.21.jar",
+  sha256 = "dda8b9c0c045dbf99c37bd567ca672e141aababc36e236bd9c91fb0a11d02732",
+  downloaded_file_path = "language-zh-6.7.21.jar"
 )
 
 http_file(
@@ -3549,10 +3549,10 @@ http_file(
 )
 
 http_file(
-  name = "org_jetbrains_intellij_deps_languagetool-language-zh-6_7_20-sources_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-zh/6.7.20/language-zh-6.7.20-sources.jar",
-  sha256 = "0ab0c1ced1ea8d6d635f976d4bf8a2c7081f8996241de66bff1b4d8064009ff6",
-  downloaded_file_path = "language-zh-6.7.20-sources.jar"
+  name = "org_jetbrains_intellij_deps_languagetool-language-zh-6_7_21-sources_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-zh/6.7.21/language-zh-6.7.21-sources.jar",
+  sha256 = "17626a6286510e3a4f133d231e6b0c227473c5e28736d4e4cdfd49326e279c2d",
+  downloaded_file_path = "language-zh-6.7.21-sources.jar"
 )
 
 http_file(
@@ -4725,10 +4725,10 @@ http_file(
 )
 
 http_file(
-  name = "org_jetbrains_intellij_deps_languagetool-language-el-6_7_20_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-el/6.7.20/language-el-6.7.20.jar",
-  sha256 = "da622c6b8d7581a1ce9d58e3cab8c7e9b6770cbe994bb2982d1d82d743dfc436",
-  downloaded_file_path = "language-el-6.7.20.jar"
+  name = "org_jetbrains_intellij_deps_languagetool-language-el-6_7_21_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-el/6.7.21/language-el-6.7.21.jar",
+  sha256 = "aa6dafcb2ca2922baffa1161336ed5d5abc68c377c95798dbe75b905ce5613cb",
+  downloaded_file_path = "language-el-6.7.21.jar"
 )
 
 http_file(
@@ -4739,10 +4739,10 @@ http_file(
 )
 
 http_file(
-  name = "org_jetbrains_intellij_deps_languagetool-language-el-6_7_20-sources_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-el/6.7.20/language-el-6.7.20-sources.jar",
-  sha256 = "cf7e00a4873f41197031866b5a1eaf34b2e30d3c1c11e2ae3e977e7eb854e6c4",
-  downloaded_file_path = "language-el-6.7.20-sources.jar"
+  name = "org_jetbrains_intellij_deps_languagetool-language-el-6_7_21-sources_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/languagetool/language-el/6.7.21/language-el-6.7.21-sources.jar",
+  sha256 = "4c43e433659249e3418cecf27f8f0802f3a9b35c1b523b76cf68dd951dea3c4f",
+  downloaded_file_path = "language-el-6.7.21-sources.jar"
 )
 
 http_file(
