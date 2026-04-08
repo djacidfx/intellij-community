@@ -123,7 +123,7 @@ class AdvancedSettingBean : PluginAware, KeyedLazyInstance<AdvancedSettingBean> 
 
   /**
    * Whether the option is visible in the Advanced Settings UI.
-   * Useful setting to `false` when you need to migrate the setting to the other place, for example, to the regular settings.
+   * Set to `false` when you need to migrate the setting to the other place, for example, to the regular settings.
    * This way, the option won't be visible in the UI, but its state will be still available for the new option initialization.
    */
   @Attribute("visible")
