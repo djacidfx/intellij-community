@@ -11,6 +11,7 @@ import com.intellij.build.events.MessageEvent
 import com.intellij.build.events.StartBuildEvent
 import com.intellij.execution.rpc.createProcessHandlerDto
 import com.intellij.ide.rpc.setupTransfer
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.diagnostic.debug
 import com.intellij.openapi.diagnostic.fileLogger
@@ -148,12 +149,16 @@ class BackendMultipleBuildsView(
         val treeViewId = buildView.eventView?.buildViewId
         val consoleComponent = buildView.consoleComponent.setupTransfer(buildView)
 
-        val processHandler = buildInfo.processHandler?.let { createProcessHandlerDto(buildScope, it) }
+        val processHandler = buildInfo.processHandler
+        if (processHandler is Disposable) {
+          Disposer.register(buildView, processHandler)
+        }
+        val processHandlerDto = processHandler?.let { createProcessHandlerDto(buildScope, it) }
 
         viewManager.onBuildStart(buildInfo)
         viewModel.onBuildStarted(this, id, buildInfo.title, buildInfo.startTime, event.message,
                                  buildInfo.isAutoFocusContent, buildInfo.isActivateToolWindowWhenAdded,
-                                 treeViewId, consoleComponent, processHandler)
+                                 treeViewId, consoleComponent, processHandlerDto)
       }
       else {
         if (!isFirstErrorShown &&
@@ -187,6 +192,9 @@ class BackendMultipleBuildsView(
           }
           viewManager.onBuildFinish(buildInfo)
           viewModel.onBuildFinished(this, buildInfo.buildId, event.message, buildInfo.icon, select, activate, notification)
+          (buildInfo.processHandler as? Disposable)?.let {
+            Disposer.dispose(it)
+          }
         }
         else {
           val message = event.getMessage()
