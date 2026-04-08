@@ -123,7 +123,7 @@ final class InjectedGeneralHighlightingPass extends ProgressableTextEditorHighli
                                        @NotNull PsiLanguageInjectionHost.InjectedPsiVisitor visitor) {
     ApplicationManager.getApplication().assertReadAccessAllowed();
 
-    InjectedLanguageManagerImpl injectedLanguageManager = InjectedLanguageManagerImpl.findInstanceImpl(myProject);
+    InjectedLanguageManager injectedLanguageManager = InjectedLanguageManager.getInstance(myProject);
     if (injectedLanguageManager == null) return;
     List<DocumentWindow> cachedInjected = injectedLanguageManager.getCachedInjectedDocumentsInRange(myFile, myFile.getTextRange());
     Collection<PsiElement> hosts = new HashSet<>(elements1.size() + elements2.size() + cachedInjected.size());

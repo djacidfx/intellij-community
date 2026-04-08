@@ -69,20 +69,11 @@ public final class InjectedLanguageManagerImpl extends InjectedLanguageManager i
   private final PsiDocumentManager myDocManager;
 
   /**
-   * @deprecated use {@link InjectedLanguageManagerImpl#findInstanceImpl(Project)}
+   * @deprecated use {@link InjectedLanguageManager#getInstance(Project)} directly. {@link InjectedLanguageManagerImpl} shouldn't be exposed.
    */
   @Deprecated
   public static InjectedLanguageManagerImpl getInstanceImpl(Project project) {
     return (InjectedLanguageManagerImpl)getInstance(project);
-  }
-
-  @Nullable
-  public static InjectedLanguageManagerImpl findInstanceImpl(@NotNull Project project) {
-    InjectedLanguageManager instance = getInstance(project);
-    if (!(instance instanceof InjectedLanguageManagerImpl injectedLanguageManager)) {
-      return null;
-    }
-    return injectedLanguageManager;
   }
 
   public InjectedLanguageManagerImpl(Project project) {
@@ -182,6 +173,7 @@ public final class InjectedLanguageManagerImpl extends InjectedLanguageManager i
   private final Set<MultiHostInjector> myManualInjectors = Collections.synchronizedSet(new LinkedHashSet<>());
   private volatile ClassMapCachingNulls<MultiHostInjector> cachedInjectors;
 
+  @Override
   public void processInjectableElements(@NotNull Collection<? extends PsiElement> in, @NotNull Processor<? super PsiElement> processor) {
     ClassMapCachingNulls<MultiHostInjector> map = getInjectorMap();
     for (PsiElement element : in) {
