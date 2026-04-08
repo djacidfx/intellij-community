@@ -17,6 +17,14 @@ import java.util.UUID
 @ApiStatus.Internal
 object TeamCityReporter {
 
+  // TeamCity parses test names as "<suite>: <test>", so colons would cause unintended nesting.
+  // TODO: AT-4370
+  private fun sanitizeTestName(name: String): String {
+      // this is done to match an old approach used in platform test framework, should dropped as a next step in AT-4370
+      return name.replace("[:.()]".toRegex(), " ")
+        .replace(" +".toRegex(), " ")
+  }
+
   /**
    * Truncates and escapes a string for safe inclusion in a TeamCity service message value.
    * Uses the same escaping as [ServiceMessage.asString] to guarantee consistency.
@@ -57,9 +65,11 @@ object TeamCityReporter {
   fun reportTestStarted(
     testName: String, flowId: String? = null, nodeId: String? = null,
     parentNodeId: String? = null, captureStandardOutput: String? = null,
+    additionalSanitization: Boolean = false,
   ) {
+    val name = if (additionalSanitization) sanitizeTestName(testName) else testName
     println(serviceMessage("testStarted", buildMap {
-      put("name", testName)
+      put("name", name)
       flowId?.let { put("flowId", it) }
       nodeId?.let { put("nodeId", it) }
       parentNodeId?.let { put("parentNodeId", it) }
@@ -79,9 +89,11 @@ object TeamCityReporter {
   fun reportTestFinished(
     testName: String, flowId: String? = null, nodeId: String? = null,
     parentNodeId: String? = null, duration: String? = null,
+    additionalSanitization: Boolean = false,
   ) {
+    val name = if (additionalSanitization) sanitizeTestName(testName) else testName
     println(serviceMessage("testFinished", buildMap {
-      put("name", testName)
+      put("name", name)
       flowId?.let { put("flowId", it) }
       nodeId?.let { put("nodeId", it) }
       parentNodeId?.let { put("parentNodeId", it) }
@@ -102,9 +114,11 @@ object TeamCityReporter {
   fun reportTestFailed(
     testName: String, message: String, flowId: String? = null,
     nodeId: String? = null, parentNodeId: String? = null, details: String? = null,
+    additionalSanitization: Boolean = false,
   ) {
+    val name = if (additionalSanitization) sanitizeTestName(testName) else testName
     println(serviceMessage("testFailed", buildMap {
-      put("name", testName)
+      put("name", name)
       put("message", message)
       details?.let { put("details", it) }
       flowId?.let { put("flowId", it) }
@@ -125,9 +139,11 @@ object TeamCityReporter {
   fun reportTestIgnored(
     testName: String, message: String, flowId: String? = null,
     nodeId: String? = null, parentNodeId: String? = null,
+    additionalSanitization: Boolean = false,
   ) {
+    val name = if (additionalSanitization) sanitizeTestName(testName) else testName
     println(serviceMessage("testIgnored", buildMap {
-      put("name", testName)
+      put("name", name)
       put("message", message)
       flowId?.let { put("flowId", it) }
       nodeId?.let { put("nodeId", it) }
@@ -136,13 +152,15 @@ object TeamCityReporter {
   }
 
   /** Prints a `##teamcity[testSuiteStarted …]` message to stdout. */
-  fun reportTestSuiteStarted(suiteName: String, flowId: String? = null) {
-    println(TestSuiteStarted(suiteName).apply { flowId?.let { setFlowId(it) } }.asString())
+  fun reportTestSuiteStarted(suiteName: String, flowId: String? = null, additionalSanitization: Boolean = false) {
+    val name = if (additionalSanitization) sanitizeTestName(suiteName) else suiteName
+    println(TestSuiteStarted(name).apply { flowId?.let { setFlowId(it) } }.asString())
   }
 
   /** Prints a `##teamcity[testSuiteFinished …]` message to stdout. */
-  fun reportTestSuiteFinished(suiteName: String, flowId: String? = null) {
-    println(TestSuiteFinished(suiteName).apply { flowId?.let { setFlowId(it) } }.asString())
+  fun reportTestSuiteFinished(suiteName: String, flowId: String? = null, additionalSanitization: Boolean = false) {
+    val name = if (additionalSanitization) sanitizeTestName(suiteName) else suiteName
+    println(TestSuiteFinished(name).apply { flowId?.let { setFlowId(it) } }.asString())
   }
 
   /**
@@ -170,9 +188,10 @@ object TeamCityReporter {
   fun reportTestMetadata(
     testName: String? = null, value: String, name: String? = null,
     flowId: String? = null, type: MetadataType = MetadataType.TEXT,
+    additionalSanitization: Boolean = false,
   ) {
     println(serviceMessage("testMetadata", buildMap {
-      testName?.let { put("testName", it) }
+      testName?.let { put("testName", if (additionalSanitization) sanitizeTestName(it) else it) }
       put("type", type.name.lowercase())
       name?.let { put("name", it) }
       put("value", value)
@@ -246,25 +265,26 @@ object TeamCityReporter {
     testName: String, outcome: TestOutcome, message: String = "",
     details: String = "", owner: String? = null, metadata: List<TestMetadata> = emptyList(),
     generifyTestName: Boolean = true,
+    additionalSanitization: Boolean = false,
   ) {
     val effectiveName = if (generifyTestName) generifyErrorMessage(testName) else testName
     val flowId = UUID.randomUUID().toString()
-    reportTestStarted(effectiveName, flowId, nodeId = effectiveName, parentNodeId = "0", captureStandardOutput = null)
+    reportTestStarted(effectiveName, flowId, nodeId = effectiveName, parentNodeId = "0", captureStandardOutput = null, additionalSanitization = additionalSanitization)
     when (outcome) {
       TestOutcome.FAILED -> {
         if (owner != null) {
-          reportTestMetadata(effectiveName, owner, "Code Owner", flowId, type = MetadataType.TEXT)
+          reportTestMetadata(effectiveName, owner, "Code Owner", flowId, type = MetadataType.TEXT, additionalSanitization = additionalSanitization)
         }
-        reportTestFailed(effectiveName, message, flowId, nodeId = effectiveName, parentNodeId = "0", details = details)
+        reportTestFailed(effectiveName, message, flowId, nodeId = effectiveName, parentNodeId = "0", details = details, additionalSanitization = additionalSanitization)
       }
       TestOutcome.IGNORED -> {
-        reportTestIgnored(effectiveName, message, flowId, nodeId = effectiveName, parentNodeId = null)
+        reportTestIgnored(effectiveName, message, flowId, nodeId = effectiveName, parentNodeId = null, additionalSanitization = additionalSanitization)
       }
       TestOutcome.SUCCESS -> {}
     }
     for (entry in metadata) {
-      reportTestMetadata(effectiveName, entry.value, entry.name, flowId, entry.type)
+      reportTestMetadata(effectiveName, entry.value, entry.name, flowId, entry.type, additionalSanitization = additionalSanitization)
     }
-    reportTestFinished(effectiveName, flowId, nodeId = effectiveName, parentNodeId = "0", duration = null)
+    reportTestFinished(effectiveName, flowId, nodeId = effectiveName, parentNodeId = "0", duration = null, additionalSanitization = additionalSanitization)
   }
 }
