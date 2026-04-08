@@ -12,6 +12,7 @@ import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.components.containingSymbol
+import org.jetbrains.kotlin.analysis.api.components.directlyOverriddenSymbols
 import org.jetbrains.kotlin.analysis.api.components.fakeOverrideOriginal
 import org.jetbrains.kotlin.analysis.api.components.getImplementationStatus
 import org.jetbrains.kotlin.analysis.api.components.intersectionOverriddenSymbols
@@ -56,7 +57,8 @@ open class KtImplementMembersHandler : KtGenerateMembersHandler(true) {
             val classSymbol = classOrObject.classSymbol
             return classSymbol?.memberScope?.callables?.toList()?.mapNotNull { symbol ->
                 (symbol.psi as? KtCallableDeclaration)?.takeIf {
-                    symbol.getImplementationStatus(classSymbol) == ImplementationStatus.CANNOT_BE_IMPLEMENTED
+                    symbol.getImplementationStatus(classSymbol) == ImplementationStatus.CANNOT_BE_IMPLEMENTED &&
+                            symbol.directlyOverriddenSymbols.any()
                 }
             } ?: emptyList()
         }

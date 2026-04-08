@@ -157,11 +157,11 @@ internal object LetImplementInterfaceFixFactories {
             if (membersToAddOverride.isNotEmpty()) {
                 application.runWriteAction {
                     membersToAddOverride.forEach {
-                        it.addModifier(KtTokens.OVERRIDE_KEYWORD)
-                        val visibility = element.visibilityModifierType()
+                        val visibility = it.visibilityModifierType()
                         if (visibility != null && visibility != KtTokens.PUBLIC_KEYWORD) {
-                            element.removeModifier(visibility)
+                            it.removeModifier(visibility)
                         }
+                        it.addModifier(KtTokens.OVERRIDE_KEYWORD)
                     }
                 }
             }

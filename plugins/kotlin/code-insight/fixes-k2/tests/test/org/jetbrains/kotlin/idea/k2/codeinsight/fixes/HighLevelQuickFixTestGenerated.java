@@ -15852,6 +15852,16 @@ public abstract class HighLevelQuickFixTestGenerated extends AbstractHighLevelQu
             public void testLetStringImplementInterface() throws Exception {
                 runTest("../../../idea/tests/testData/quickfix/typeMismatch/letImplementInterface/letStringImplementInterface.kt");
             }
+
+            @TestMetadata("privateProperty.kt")
+            public void testPrivateProperty() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/typeMismatch/letImplementInterface/privateProperty.kt");
+            }
+
+            @TestMetadata("substituteOverrideFunction.kt")
+            public void testSubstituteOverrideFunction() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/typeMismatch/letImplementInterface/substituteOverrideFunction.kt");
+            }
         }
 
         @RunWith(JUnit3RunnerWithInners.class)

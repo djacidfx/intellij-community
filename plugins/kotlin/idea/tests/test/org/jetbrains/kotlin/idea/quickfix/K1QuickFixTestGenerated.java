@@ -19723,6 +19723,16 @@ public abstract class K1QuickFixTestGenerated extends AbstractK1QuickFixTest {
             public void testLetStringImplementInterface() throws Exception {
                 runTest("testData/quickfix/typeMismatch/letImplementInterface/letStringImplementInterface.kt");
             }
+
+            @TestMetadata("privateProperty.kt")
+            public void testPrivateProperty() throws Exception {
+                runTest("testData/quickfix/typeMismatch/letImplementInterface/privateProperty.kt");
+            }
+
+            @TestMetadata("substituteOverrideFunction.kt")
+            public void testSubstituteOverrideFunction() throws Exception {
+                runTest("testData/quickfix/typeMismatch/letImplementInterface/substituteOverrideFunction.kt");
+            }
         }
 
         @RunWith(JUnit3RunnerWithInners.class)
