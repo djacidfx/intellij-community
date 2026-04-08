@@ -110,7 +110,7 @@ data class PluginVersion(
       require(component2 == null || component1 !is UnifiedVersionComponent.Snapshot) {
         "Cannot parse `$s` as PluginVersion, component 2 cannot be SNAPSHOT if a component 3 is specified"
       }
-      require(component1 !is UnifiedVersionComponent.Number || component1.value < CompatibilityUtils.MAX_FLEET_BUILD_VALUE) {
+      require(component1 !is UnifiedVersionComponent.Number || component1.value <= CompatibilityUtils.MAX_FLEET_BUILD_VALUE) {
         "Cannot parse `$s` as PluginVersion, component 2 cannot be greater than ${CompatibilityUtils.MAX_FLEET_BUILD_VALUE}"
       }
       require(component2 == null || component2 !is UnifiedVersionComponent.Number || component2.value < CompatibilityUtils.MAX_COMPONENT_VALUE) {
