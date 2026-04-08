@@ -690,8 +690,6 @@ object PluginManagerCore {
     return pluginSet to cycleErrors
   }
 
-  // FIXME depends is handled incorrectly, it should bring all content modules that are not yet excluded
-
   private fun adaptResolvedPluginSetAsOldPluginSet(
     resolvedPluginSet: ResolvedPluginSet,
     incompletePlugins: Map<PluginId, PluginMainDescriptor>,
@@ -1041,11 +1039,6 @@ object PluginManagerCore {
       }
     }
   }
-
-  /**
-   * TODO: add "check third party plugins without consent flag" to ProductInitContext, set this flag only to startup's init context instance;
-   *   add handling to product imposed exclusions
-   */
 
   /**
    * @return `true` If any required dependency of some essential plugin (both plugin or modular, including transitive) is provided by [pluginDescriptor].
