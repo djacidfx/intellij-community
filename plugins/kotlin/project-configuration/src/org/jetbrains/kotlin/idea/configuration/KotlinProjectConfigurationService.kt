@@ -18,6 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.jetbrains.annotations.ApiStatus
+import org.jetbrains.annotations.VisibleForTesting
 import org.jetbrains.kotlin.idea.projectConfiguration.KotlinProjectConfigurationBundle
 import org.jetbrains.kotlin.idea.statistics.KotlinProjectSetupFUSCollector
 import org.jetbrains.kotlin.idea.util.isKotlinFileType
@@ -216,7 +217,7 @@ class KotlinProjectConfigurationService(private val project: Project, val corout
         checkingAndPerformingAutoConfig = true
         // Removes the notification showing for a split second
         refreshEditorNotifications()
-        coroutineScope.launch(Dispatchers.Default) {
+        val job = coroutineScope.launch(Dispatchers.Default) {
             var configured = false
             try {
                 configured = autoConfigure(module)
@@ -232,6 +233,7 @@ class KotlinProjectConfigurationService(private val project: Project, val corout
                 }
             }
         }
+        jobReference?.set(job)
     }
 
     @ApiStatus.Internal
@@ -253,4 +255,7 @@ class KotlinProjectConfigurationService(private val project: Project, val corout
         autoConfigurator.runAutoConfig(autoConfigSettings)
         return true
     }
+
+    @VisibleForTesting
+    var jobReference: AtomicReference<Job>? = null
 }

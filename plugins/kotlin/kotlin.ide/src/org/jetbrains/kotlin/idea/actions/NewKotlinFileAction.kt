@@ -114,14 +114,8 @@ internal abstract class AbstractNewKotlinFileAction : CreateFileFromTemplateActi
     override fun postProcess(createdElement: PsiFile, templateName: String?, customProperties: Map<String, String>?) {
         super.postProcess(createdElement, templateName, customProperties)
 
-        val module = ModuleUtilCore.findModuleForPsiElement(createdElement)
-
         if (createdElement is KtFile) {
-            if (module != null) {
-                for (hook in NewKotlinFileHook.EP_NAME.extensions) {
-                    hook.postProcess(createdElement, module)
-                }
-            }
+            NewKotlinFileHook.runPostProcessHooks(createdElement)
 
             val ktClass = createdElement.declarations.singleOrNull() as? KtNamedDeclaration
             if (ktClass != null) {

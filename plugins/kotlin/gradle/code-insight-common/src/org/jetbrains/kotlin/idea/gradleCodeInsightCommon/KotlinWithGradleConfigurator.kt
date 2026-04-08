@@ -153,7 +153,7 @@ abstract class KotlinWithGradleConfigurator : BaseKotlinProjectConfigurator() {
                 ?: getPluginManagementVersion(module)?.parsedVersion
                 ?: module.getBuildScriptPsiFile()?.let { GradleBuildScriptSupport.getManipulator(it).getKotlinVersion() }
         val allConfigurableKotlinVersions = getAllConfigurableKotlinVersions()
-        if (forcedKotlinVersion != null && !allConfigurableKotlinVersions.contains(forcedKotlinVersion)) {
+        if (forcedKotlinVersion != null && forcedKotlinVersion !in allConfigurableKotlinVersions) {
             return null
         }
 
