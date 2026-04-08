@@ -115,6 +115,14 @@ internal class PyExpectedVarianceJudgmentTest : PyTestCase() {
       """)
   }
 
+  fun `test Generic class final attribute callable concatenate parameter`() {
+    doTest("T, P], None", Variance.CONTRAVARIANT, """
+      from typing import Callable, Concatenate, Final
+      class A[T, **P]:
+          attr: Final[Callable[Concatenate[T, P], None]]
+      """)
+  }
+
   fun `test Generic class final attribute callable return`() {
     doTest("T]]", Variance.COVARIANT, """
       from typing import Final, Callable
@@ -153,6 +161,14 @@ internal class PyExpectedVarianceJudgmentTest : PyTestCase() {
       """)
   }
 
+  fun `test Generic class method parameter nesting callable concatenate parameter`() {
+    doTest("T, P], None", Variance.COVARIANT, """
+      from typing import Callable, Concatenate
+      class A[T, **P]:
+          def method(self, arg: Callable[Concatenate[T, P], None]): ...
+      """)
+  }
+
   fun `test Generic class method parameter nesting callable return`() {
     doTest("T])", Variance.CONTRAVARIANT, """
       from typing import Callable
@@ -166,6 +182,14 @@ internal class PyExpectedVarianceJudgmentTest : PyTestCase() {
       from typing import Callable
       class A[T]:
           def method(self) -> Callable[[T], None]: pass
+      """)
+  }
+
+  fun `test Generic class method return nesting callable concatenate parameter`() {
+    doTest("T, P], None", Variance.CONTRAVARIANT, """
+      from typing import Callable, Concatenate
+      class A[T, **P]:
+          def f2(self, t: T) -> Callable[Concatenate[T, P], None]: ...
       """)
   }
 
