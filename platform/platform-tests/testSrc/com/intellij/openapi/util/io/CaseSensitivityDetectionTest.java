@@ -20,7 +20,6 @@ import static com.intellij.openapi.util.io.IoTestUtil.assumeWindows;
 import static com.intellij.openapi.util.io.IoTestUtil.assumeWorkingWslDistribution;
 import static com.intellij.openapi.util.io.IoTestUtil.assumeWslPresence;
 import static com.intellij.openapi.util.io.IoTestUtil.getUnicodeName;
-import static com.intellij.openapi.util.io.IoTestUtil.setCaseSensitivity;
 import static java.util.Objects.requireNonNullElse;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.Assert.assertEquals;
@@ -59,9 +58,9 @@ public class CaseSensitivityDetectionTest {
     var dir = tempDir.newDirectoryPath("dir");
     var file = dir.resolve("child.txt");
     assertParentCaseSensitivity(file, CaseSensitivity.INSENSITIVE);
-    setCaseSensitivity(dir, true);
+    IoTestUtil.setCaseSensitivity(dir, true);
     assertParentCaseSensitivity(file, CaseSensitivity.SENSITIVE);
-    setCaseSensitivity(dir, false);
+    IoTestUtil.setCaseSensitivity(dir, false);
     assertParentCaseSensitivity(file, CaseSensitivity.INSENSITIVE);
   }
 
