@@ -364,6 +364,10 @@ com.intellij.modcommand.ModPsiUpdater
 - type():com.intellij.codeInsight.completion.CompletionType
 *:com.intellij.modcompletion.ModCompletionResult
 - java.util.function.Consumer
+*f:com.intellij.modcompletion.ModCompletionSettings
+- <init>(java.util.Set):V
+- s:getDefault():com.intellij.modcompletion.ModCompletionSettings
+- isProviderEnabled(com.intellij.modcompletion.ModCompletionItemProvider):Z
 *a:com.intellij.modcompletion.PsiUpdateCompletionItem
 - com.intellij.modcompletion.ModCompletionItem
 - p:<init>(java.lang.String,java.lang.Object):V

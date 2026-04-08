@@ -8,6 +8,7 @@ import com.intellij.codeInsight.lookup.LookupElement;
 import com.intellij.codeInsight.lookup.WeighingContext;
 import com.intellij.modcompletion.ModCompletionItemProvider;
 import com.intellij.modcompletion.ModCompletionResult;
+import com.intellij.modcompletion.ModCompletionSettings;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.util.text.StringUtil;
@@ -36,13 +37,19 @@ import java.util.Set;
 @NotNullByDefault
 @ApiStatus.Internal
 public final class LightModCompletionServiceImpl {
-  public static void getItems(PsiFile file, int caretOffset, int invocationCount, CompletionType type,
-                              ModCompletionResult sink) {
+
+  public static void getItems(PsiFile file, int caretOffset, int invocationCount, CompletionType type,  
+                              ModCompletionSettings settings, ModCompletionResult sink) {
     CharSequence sequence = file.getFileDocument().getCharsSequence();
     int start = findStart(caretOffset, sequence);
     DumbModeAccessType.RELIABLE_DATA_ONLY.ignoreDumbMode(() -> {
-      getItems(file, start, caretOffset, invocationCount, type, sink);
+      getItems(file, start, caretOffset, invocationCount, type, settings, sink);
     });
+  }
+
+  public static void getItems(PsiFile file, int caretOffset, int invocationCount, CompletionType type,
+                              ModCompletionResult sink) {
+    getItems(file, caretOffset, invocationCount, type, ModCompletionSettings.getDefault(), sink);
   }
 
   private static int findStart(int caretOffset, CharSequence sequence) {
@@ -55,7 +62,12 @@ public final class LightModCompletionServiceImpl {
 
   public static void getItems(PsiFile file, int startOffset, int caretOffset, int invocationCount, CompletionType type,  
                               ModCompletionResult sink) {
-    PsiElement element;
+    getItems(file, startOffset, caretOffset, invocationCount, type, ModCompletionSettings.getDefault(), sink);
+  }
+
+  public static void getItems(PsiFile file, int startOffset, int caretOffset, int invocationCount, CompletionType type,  
+                              ModCompletionSettings settings, ModCompletionResult sink) {
+    PsiElement element;  
     PsiElement original = file.findElementAt(startOffset);
     if (startOffset == caretOffset) {
       PsiFile copy = (PsiFile)file.copy();
@@ -68,7 +80,7 @@ public final class LightModCompletionServiceImpl {
       element = Objects.requireNonNullElse(original, file);
     }
     List<ModCompletionItemProvider> providers = ModCompletionItemProvider.EP_NAME.allForLanguage(file.getLanguage());
-    String prefix = file.getFileDocument().getText(TextRange.create(startOffset, caretOffset));
+    String prefix = file.getFileDocument().getText(TextRange.create(startOffset, caretOffset));  
     var matcher = new CamelHumpMatcher(prefix);
     ModCompletionItemProvider.CompletionContext context = new ModCompletionItemProvider.CompletionContext(
       file, caretOffset, original, element, matcher, invocationCount, type);
@@ -76,6 +88,7 @@ public final class LightModCompletionServiceImpl {
     Map<CompletionSorterImpl, Classifier<LookupElement>> sortMap = new LinkedHashMap<>();
     Map<CompletionSorterImpl, Set<LookupElement>> allItems = new LinkedHashMap<>();
     for (ModCompletionItemProvider provider : providers) {
+      if (!settings.isProviderEnabled(provider)) continue;
       CompletionSorterImpl sorter = (CompletionSorterImpl)provider.getSorter(context);
       Classifier<LookupElement> classifier = sortMap.computeIfAbsent(sorter, s -> s.buildClassifier(Classifier.empty()));
       provider.provideItems(context, item -> {
