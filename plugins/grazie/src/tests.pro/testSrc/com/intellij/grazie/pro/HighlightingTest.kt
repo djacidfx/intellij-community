@@ -614,6 +614,23 @@ class HighlightingTest : BaseTestCase() {
     )
   }
 
+  @NeedsCloud
+  @Test
+  fun `test disable oxford spelling`() {
+    GrazieConfig.update { it.copy(useOxfordSpelling = true) }
+    enableLanguages(setOf(Lang.BRITISH_ENGLISH), project, testRootDisposable)
+    configureByText("a.txt", "// The detailed field <STYLE_SUGGESTION><caret>summarises</STYLE_SUGGESTION>")
+    myFixture.checkHighlighting()
+
+    val intention = myFixture.findSingleIntention("Disable Oxford Spelling")
+    EdtInvocationManager.invokeAndWaitIfNeeded {
+      myFixture.launchAction(intention)
+      UIUtil.dispatchAllInvocationEvents()
+    }
+    assertFalse(GrazieConfig.get().useOxfordSpelling, "Disable Oxford Spelling should've updated GrazieConfig")
+    assertEquals(GrazieConfig.get().availableLanguages, setOf(Lang.BRITISH_ENGLISH), "Disable Oxford Spelling should have not updated available languages")
+  }
+
   companion object {
     @JvmStatic
     fun enableLanguages(langs: Set<Lang>, project: Project, disposable: Disposable) {

@@ -1,9 +1,9 @@
 <component name="libraryTable">
   <library name="ai.grazie.rule.engine" type="repository">
-    <properties maven-id="ai.grazie:grazie-rule-engine:0.3.164">
+    <properties maven-id="ai.grazie:grazie-rule-engine:0.3.169">
       <verification>
-        <artifact url="file://$MAVEN_REPOSITORY$/ai/grazie/grazie-rule-engine/0.3.164/grazie-rule-engine-0.3.164.jar">
-          <sha256sum>e03372e69f70ba48de19f50ba35e6e59a54932990b560bb53920f8516813bc94</sha256sum>
+        <artifact url="file://$MAVEN_REPOSITORY$/ai/grazie/grazie-rule-engine/0.3.169/grazie-rule-engine-0.3.169.jar">
+          <sha256sum>cdc3a4147023928cebfe8262ed7f5a624f7ff7ddc38b20b9847a9d9240c1d4b4</sha256sum>
         </artifact>
         <artifact url="file://$MAVEN_REPOSITORY$/net/fellbaum/jemoji/1.3.1/jemoji-1.3.1.jar">
           <sha256sum>80a2f8918240a07d3a6fc7cdcc543d278013f6943c080835e43a22fc90462a9f</sha256sum>
@@ -48,12 +48,12 @@
       </exclude>
     </properties>
     <CLASSES>
-      <root url="jar://$MAVEN_REPOSITORY$/ai/grazie/grazie-rule-engine/0.3.164/grazie-rule-engine-0.3.164.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/ai/grazie/grazie-rule-engine/0.3.169/grazie-rule-engine-0.3.169.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/net/fellbaum/jemoji/1.3.1/jemoji-1.3.1.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES>
-      <root url="jar://$MAVEN_REPOSITORY$/ai/grazie/grazie-rule-engine/0.3.164/grazie-rule-engine-0.3.164-sources.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/ai/grazie/grazie-rule-engine/0.3.169/grazie-rule-engine-0.3.169-sources.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/net/fellbaum/jemoji/1.3.1/jemoji-1.3.1-sources.jar!/" />
     </SOURCES>
   </library>
