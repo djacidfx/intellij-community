@@ -188,7 +188,7 @@ interface BuildContext : CompilationContext {
 }
 
 internal val BuildContext.isLanguageServer: Boolean
-  get() = productProperties.platformPrefix == "LanguageServer"
+  get() = productProperties.platformPrefix == "IntelliJServer"
 
 // To be removed
 internal fun BuildContext.add64IfNeeded(s: String): String =
