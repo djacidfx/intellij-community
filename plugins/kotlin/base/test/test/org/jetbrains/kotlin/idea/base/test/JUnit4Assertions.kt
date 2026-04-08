@@ -6,6 +6,7 @@ import com.intellij.testFramework.UsefulTestCase
 import org.jetbrains.kotlin.test.Assertions
 import org.junit.Assert
 import java.io.File
+import kotlin.time.Duration
 
 object JUnit4Assertions : Assertions() {
     override fun doesEqualToFile(expectedFile: File, actual: String, sanitizer: (String) -> String): Boolean {
@@ -52,5 +53,9 @@ object JUnit4Assertions : Assertions() {
 
     override fun fail(message: () -> String): Nothing {
         throw AssertionError(message.invoke())
+    }
+
+    override fun assertTimeoutPreemptively(timeout: Duration, message: () -> String, action: () -> Unit) {
+        throw UnsupportedOperationException("JUnit 4 does not support timeout assertions.")
     }
 }

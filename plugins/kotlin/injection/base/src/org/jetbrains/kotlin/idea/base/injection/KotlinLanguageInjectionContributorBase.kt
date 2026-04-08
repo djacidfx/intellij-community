@@ -322,7 +322,7 @@ abstract class KotlinLanguageInjectionContributorBase : LanguageInjectionContrib
         if (isAnalyzeOff(configuration)) return null
 
         val searchScope = LocalSearchScope(arrayOf(containingFile), "", true)
-        val targetProperty = getTargetProperty(ktProperty)
+        val targetProperty = getTargetProperty(ktProperty, containingFile)
         return ReferencesSearch.search(targetProperty, searchScope).asIterable().asSequence().mapNotNull { psiReference ->
             val element = psiReference.element as? KtElement ?: return@mapNotNull null
             findInjectionInfo(element, containingFile, configuration, false)
@@ -330,10 +330,12 @@ abstract class KotlinLanguageInjectionContributorBase : LanguageInjectionContrib
     }
 
     /**
-     * Returns property which can be found in its containing file.
-     * For K2 and non-physical copy, one needs to go to the original property to find something
+     * Returns the property referred to in an injection context.
+     * For K2, it can be an original property, or property from the file copy, depending on the dangling file's resolution mode.
+     *
+     * @see [org.jetbrains.kotlin.analysis.api.projectStructure.KaDanglingFileResolutionMode]
      */
-    protected open fun getTargetProperty(ktProperty: KtProperty): KtProperty = ktProperty
+    protected open fun getTargetProperty(ktProperty: KtProperty, containingFile: PsiFile): KtProperty = ktProperty
 
     private tailrec fun injectWithCall(host: KtElement, configuration: Configuration): InjectionInfo? {
         val argument = getArgument(host) ?: return null
