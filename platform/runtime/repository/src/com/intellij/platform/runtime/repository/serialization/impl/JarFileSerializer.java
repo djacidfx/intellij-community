@@ -112,8 +112,8 @@ public final class JarFileSerializer {
         jarOutput.closeEntry();
       }
       for (RawRuntimePluginHeader pluginHeader : pluginHeaders) {
-        String id = pluginHeader.getPluginId();
-        jarOutput.putNextEntry(new JarEntry("plugins/" + id + ".xml"));
+        String moduleName = pluginHeader.getPluginDescriptorModuleId().getName();
+        jarOutput.putNextEntry(new JarEntry("plugins/" + moduleName + ".xml"));
         PrintWriter output = new PrintWriter(jarOutput, false, StandardCharsets.UTF_8);
         PluginHeaderXmlSerializer.writePluginHeaderXml(pluginHeader, output, factory);
         jarOutput.closeEntry();

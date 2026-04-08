@@ -162,7 +162,7 @@ class JarRepositorySerializationTest {
         </module>
       """.trimIndent())
       dir("plugins") {
-        xml("plugin.id.xml", """
+        xml("ij.plugin.xml", """
          <!-- The IDE doesn't use this file; it takes data from module-descriptors.dat instead -->
          <plugin id="plugin.id">
            <plugin-descriptor-module name="ij.plugin" namespace="jetbrains"/>
