@@ -49,7 +49,11 @@ class MarkdownFormatterTest: LightPlatformCodeInsightTestCase() {
 
   fun `test reflow no extra new lines`() = doTest(rightMargin = 80)
 
-  fun `test reflow no extra new lines_keep line breaks`() = doTest(rightMargin = 80, keepLineBreaks = true)
+  fun `test reflow no extra new lines keep line breaks margin 80`() = doTest(rightMargin = 80, keepLineBreaks = true)
+
+  fun `test reflow no extra new lines keep line breaks margin 60`() = doTest(rightMargin = 60, keepLineBreaks = true)
+
+  fun `test reflow no extra new lines keep line breaks margin 40`() = doTest(rightMargin = 40, keepLineBreaks = true)
 
   fun `test emphasis`() = doTest()
 
