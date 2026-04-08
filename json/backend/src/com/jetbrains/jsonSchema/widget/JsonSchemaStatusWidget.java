@@ -39,7 +39,6 @@ import com.intellij.util.Alarm;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import com.intellij.util.concurrency.SynchronizedClearableLazy;
 import com.intellij.util.containers.ContainerUtil;
-import com.intellij.util.messages.MessageBusConnection;
 import com.jetbrains.jsonSchema.JsonSchemaCatalogProjectConfiguration;
 import com.jetbrains.jsonSchema.JsonSchemaMappingsProjectConfiguration;
 import com.jetbrains.jsonSchema.extension.JsonSchemaEnabler;
@@ -77,7 +76,7 @@ final class JsonSchemaStatusWidget extends EditorBasedStatusBarPopup {
   private volatile Pair<WidgetState, VirtualFile> myLastWidgetStateAndFilePair;
   private ProgressIndicator myCurrentProgress;
 
-  JsonSchemaStatusWidget(@NotNull Project project, @NotNull CoroutineScope scope) {
+  private JsonSchemaStatusWidget(@NotNull Project project, @NotNull CoroutineScope scope) {
     super(project, false, scope);
 
     myServiceLazy = new SynchronizedClearableLazy<>(() -> {
@@ -89,7 +88,12 @@ final class JsonSchemaStatusWidget extends EditorBasedStatusBarPopup {
       }
       return null;
     });
-    JsonWidgetSuppressor.EXTENSION_POINT_NAME.addChangeListener(this::update, this);
+  }
+
+  public static JsonSchemaStatusWidget create(@NotNull Project project, @NotNull CoroutineScope scope) {
+    var widget = new JsonSchemaStatusWidget(project, scope);
+    widget.initialize(scope);
+    return widget;
   }
 
   private @Nullable JsonSchemaService getService() {
@@ -442,8 +446,7 @@ final class JsonSchemaStatusWidget extends EditorBasedStatusBarPopup {
     return null;
   }
 
-  @Override
-  protected void registerCustomListeners(@NotNull MessageBusConnection connection) {
+  private void initialize(CoroutineScope scope) {
     final class Listener implements DumbService.DumbModeListener {
       volatile boolean isDumbMode;
 
@@ -460,7 +463,8 @@ final class JsonSchemaStatusWidget extends EditorBasedStatusBarPopup {
       }
     }
 
-    connection.subscribe(DumbService.DUMB_MODE, new Listener());
+    myConnection.subscribe(DumbService.DUMB_MODE, new Listener());
+    JsonWidgetSuppressor.EXTENSION_POINT_NAME.addChangeListener(scope, this::update);
   }
 
   @Override
@@ -470,7 +474,7 @@ final class JsonSchemaStatusWidget extends EditorBasedStatusBarPopup {
 
   @Override
   protected @NotNull StatusBarWidget createInstance(@NotNull Project project) {
-    return new JsonSchemaStatusWidget(project, getScope());
+    return create(project, getScope());
   }
 
   @Override
