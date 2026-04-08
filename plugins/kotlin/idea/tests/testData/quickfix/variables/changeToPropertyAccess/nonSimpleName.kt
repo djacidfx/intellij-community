@@ -1,7 +1,7 @@
 // "Change to property access" "true"
+// K2_ERROR: Candidate 'fun <T, R> DeepRecursiveFunction<T, R>.invoke(value: T): R' is inapplicable because of a receiver type mismatch.
 // K2_ERROR: Cannot infer type for type parameter 'R'. Specify it explicitly.
 // K2_ERROR: Cannot infer type for type parameter 'T'. Specify it explicitly.
-// K2_ERROR: Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:<br>fun <T, R> DeepRecursiveFunction<T, R>.invoke(value: T): R
 
 fun x() {
     val y = (1 + 2<caret>)()
