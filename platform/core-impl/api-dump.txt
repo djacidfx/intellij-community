@@ -12,11 +12,6 @@ c:com.intellij.extapi.psi.StubBasedPsiElementBase
 - f:getRequiredStubOrPsiChild(com.intellij.psi.tree.IElementType,java.lang.Class):com.intellij.psi.PsiElement
 - f:getStubOrPsiChild(com.intellij.psi.tree.IElementType):com.intellij.psi.PsiElement
 - f:getStubOrPsiChild(com.intellij.psi.tree.IElementType,java.lang.Class):com.intellij.psi.PsiElement
-f:com.intellij.ide.plugins.PluginManagerCore
-- sf:ALL_MODULES_MARKER:com.intellij.openapi.extensions.PluginId
-- sf:SPECIAL_IDEA_PLUGIN_ID:com.intellij.openapi.extensions.PluginId
-- s:isIgnoreCompatibility:Z
-- s:isUnitTestMode:Z
 com.intellij.lang.DefaultASTFactory
 - a:createComment(com.intellij.psi.tree.IElementType,java.lang.CharSequence):com.intellij.psi.impl.source.tree.LeafElement
 c:com.intellij.lang.impl.PsiBuilderAdapter
