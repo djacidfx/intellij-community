@@ -22,6 +22,7 @@ import org.jetbrains.kotlin.idea.base.codeInsight.CliArgumentStringBuilder.repla
 import org.jetbrains.kotlin.idea.base.facet.isMultiPlatformModule
 import org.jetbrains.kotlin.idea.base.plugin.KotlinCompilerVersionProvider
 import org.jetbrains.kotlin.idea.base.util.module
+import org.jetbrains.kotlin.idea.codeinsight.utils.isFalseConstant
 import org.jetbrains.kotlin.idea.compiler.configuration.IdeKotlinVersion
 import org.jetbrains.kotlin.idea.configuration.BuildSystemType
 import org.jetbrains.kotlin.idea.configuration.ChangedConfiguratorFiles
@@ -39,7 +40,6 @@ import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.FOOJAY_RESOLVER_NAME
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.GradleBuildScriptManipulator
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.GradleBuildScriptSupport
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.GradleVersionProvider
-import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.SCRIPT_PRODUCTION_DEPENDENCY_STATEMENTS
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.assertApplicableInMultiplatform
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.canBeConfigured
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.fetchGradleVersion
@@ -66,7 +66,6 @@ import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtReferenceExpression
 import org.jetbrains.kotlin.psi.KtScriptInitializer
-import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 import org.jetbrains.kotlin.psi.psiUtil.getChildrenOfType
 import org.jetbrains.kotlin.psi.psiUtil.getPossiblyQualifiedCallExpression
 import org.jetbrains.kotlin.psi.psiUtil.startOffset
@@ -82,11 +81,11 @@ class KotlinBuildScriptManipulator(
     private val gradleVersion = GradleVersionProvider.fetchGradleVersion(scriptFile)
 
     override fun isConfiguredWithOldSyntax(kotlinPluginName: String): Boolean = runReadAction {
-        scriptFile.containsApplyKotlinPlugin(kotlinPluginName) && scriptFile.containsCompileStdLib()
+        scriptFile.containsApplyKotlinPlugin(kotlinPluginName) && !hasKotlinPluginApplyFalse()
     }
 
     override fun isConfigured(kotlinPluginExpression: String): Boolean = runReadAction {
-        scriptFile.containsKotlinPluginInPluginsGroup(kotlinPluginExpression)
+        scriptFile.containsKotlinPluginInPluginsGroup(kotlinPluginExpression) && !hasKotlinPluginApplyFalse()
     }
 
     override fun configureProjectBuildScript(kotlinPluginName: String, version: IdeKotlinVersion): Boolean {
@@ -126,13 +125,23 @@ class KotlinBuildScriptManipulator(
         return KotlinCompilerVersionProvider.getVersion(module)
     }
 
+    private fun getPluginsBlock(): KtBlockExpression? {
+        return scriptFile.findScriptInitializer("plugins")?.getBlock()
+    }
+
     override fun hasExplicitlyDefinedKotlinVersion(): Boolean {
-        val pluginsBlock = scriptFile.findScriptInitializer("plugins")?.getBlock() ?: return false
+        val pluginsBlock = getPluginsBlock() ?: return false
         return pluginsBlock.findPluginExpressions(::isKotlinPluginIdentifier)?.versionExpression != null
     }
 
+    override fun hasKotlinPluginApplyFalse(): Boolean {
+        val pluginsBlock = getPluginsBlock() ?: return false
+        val kotlinPluginExpression = pluginsBlock.findPluginExpressions(::isKotlinPluginIdentifier)
+        return kotlinPluginExpression?.applyExpression?.arguments?.firstOrNull()?.isFalseConstant() == true
+    }
+
     override fun findAndRemoveKotlinVersionFromBuildScript(): Boolean {
-        val pluginsBlock = scriptFile.findScriptInitializer("plugins")?.getBlock() ?: return false
+        val pluginsBlock = getPluginsBlock() ?: return false
         val pluginExpression = pluginsBlock.findPluginExpressions(::isKotlinPluginIdentifier)
         pluginExpression?.versionExpression?.let {
             it.delete()
@@ -419,9 +428,6 @@ class KotlinBuildScriptManipulator(
         return scriptFile.changeKotlinTaskParameter(parameterName, parameterValue, forTests, kotlinVersion)
     }
 
-    private fun KtFile.containsCompileStdLib(): Boolean =
-        findScriptInitializer("dependencies")?.getBlock()?.findStdLibDependency() != null
-
     private fun KtFile.containsApplyKotlinPlugin(pluginName: String): Boolean =
         findScriptInitializer("apply")?.getBlock()?.findPlugin(pluginName) != null
 
@@ -545,26 +551,6 @@ class KotlinBuildScriptManipulator(
     internal fun KtCallExpression.getBlock(): KtBlockExpression? =
         (valueArguments.singleOrNull()?.getArgumentExpression() as? KtLambdaExpression)?.bodyExpression
             ?: lambdaArguments.lastOrNull()?.getLambdaExpression()?.bodyExpression
-
-
-    private fun KtBlockExpression.findStdLibDependency(): KtCallExpression? {
-        return PsiTreeUtil.getChildrenOfType(this, KtCallExpression::class.java)?.find {
-            val calleeText = it.calleeExpression?.text
-            calleeText in SCRIPT_PRODUCTION_DEPENDENCY_STATEMENTS
-                    && (it.valueArguments.firstOrNull()?.getArgumentExpression()?.isKotlinStdLib() == true)
-        }
-    }
-
-    private fun KtExpression.isKotlinStdLib(): Boolean = when (this) {
-        is KtCallExpression -> {
-            val calleeText = calleeExpression?.text
-            (calleeText == "kotlinModule" || calleeText == "kotlin") &&
-                    valueArguments.firstOrNull()?.getArgumentExpression()?.text?.startsWith("\"stdlib") == true
-        }
-
-        is KtStringTemplateExpression -> text.startsWith("\"$STDLIB_ARTIFACT_PREFIX")
-        else -> false
-    }
 
     private fun KtFile.getOrCreatePluginManagementBlock(): KtBlockExpression? = findOrCreateScriptInitializer("pluginManagement", true)
 
@@ -956,7 +942,6 @@ class KotlinBuildScriptManipulator(
     }
 
     companion object {
-        private const val STDLIB_ARTIFACT_PREFIX: String = "org.jetbrains.kotlin:kotlin-stdlib"
         const val GSK_KOTLIN_VERSION_PROPERTY_NAME: String = "kotlin_version"
 
         fun getKotlinGradlePluginClassPathSnippet(): String =

@@ -45,6 +45,16 @@ interface GradleBuildScriptManipulator<out Psi : PsiFile> {
     fun isConfiguredWithOldSyntax(kotlinPluginName: String): Boolean
     fun isConfigured(kotlinPluginExpression: String): Boolean
 
+    /**
+     * Returns true if the Kotlin plugin is applied with the "apply false" argument, for example:
+     * ```
+     * plugins {
+     *    kotlin("jvm") apply false
+     * }
+     * ```
+     */
+    fun hasKotlinPluginApplyFalse(): Boolean
+
     fun configureBuildScripts(
         kotlinPluginName: String,
         kotlinPluginExpression: String,
