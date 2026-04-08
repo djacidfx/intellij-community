@@ -16,6 +16,7 @@ import org.jetbrains.kotlin.idea.compiler.configuration.IdeKotlinVersion
 import org.jetbrains.kotlin.idea.configuration.ChangedConfiguratorFiles
 import org.jetbrains.kotlin.idea.configuration.ConfigurationResultBuilder
 import org.jetbrains.kotlin.idea.configuration.KotlinCompilerPluginProjectConfigurator
+import org.jetbrains.kotlin.idea.configuration.KotlinDependencyProvider
 import org.jetbrains.kotlin.idea.framework.ui.ConfigureDialogWithModulesAndVersion.Companion.defaultKotlinVersion
 import org.jetbrains.kotlin.idea.gradle.KotlinIdeaGradleBundle
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.GradleBuildScriptSupport
@@ -54,7 +55,7 @@ abstract class AbstractGradleKotlinCompilerPluginProjectConfigurator : KotlinCom
             val moduleFile = moduleBuildScriptPsiFile.takeIf { it != topLevelFile }?.let(updater::getWritable)
             writablePomFile.add(addVersion = true, sourceModule = module, changedFiles = changedFiles)
             moduleFile?.add(addVersion = false, sourceModule = module, changedFiles = changedFiles)
-        }
+        }.andThen(KotlinDependencyProvider.syncModCommand(topLevelFile))
     }
 
     private fun PsiFile.add(addVersion: Boolean, sourceModule: Module, changedFiles: ChangedConfiguratorFiles) {
