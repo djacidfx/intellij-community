@@ -39,7 +39,7 @@
     <workspace.bridgeInitializer
       implementation="com.intellij.workspaceModel.ide.impl.legacyBridge.library.GlobalAndCustomLibraryTableBridgeInitializer"/>
 
-    <projectService serviceInterface="com.intellij.openapi.roots.FileIndexFacade" open="true"
+    <projectService serviceInterface="com.intellij.openapi.roots.FileIndexFacade"
                     serviceImplementation="com.intellij.openapi.roots.impl.ProjectFileIndexFacade"/>
     <projectService serviceInterface="com.intellij.openapi.roots.ProjectFileIndex" open="true"
                     serviceImplementation="com.intellij.openapi.roots.impl.ProjectFileIndexImpl"/>
