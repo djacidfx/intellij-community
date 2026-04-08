@@ -10,6 +10,7 @@ import com.intellij.modcommand.ModCommandQuickFix
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.ThrowableComputable
 import com.intellij.psi.PsiFile
 import com.intellij.psi.impl.IncompleteModelUtil.isIncompleteModel
@@ -55,8 +56,10 @@ abstract class AbstractKotlinCompilerPluginInspection(protected val kotlinCompil
             }
         }
 
+    @get:NlsSafe
     protected abstract val descriptionTemplate: String
 
+    @get:NlsSafe
     protected abstract val familyName: String
 
     protected abstract fun isCompilerPluginRequired(file: KtFile): Boolean
