@@ -147,6 +147,7 @@ import static com.intellij.openapi.vfs.newvfs.AsyncEventSupport.afterVfsChange;
 import static com.intellij.openapi.vfs.newvfs.events.VFileEvent.REFRESH_REQUESTOR;
 import static com.intellij.openapi.vfs.newvfs.impl.VfsThreadingUtil.runActionOnBackgroundRegardlessOfCurrentThread;
 import static com.intellij.openapi.vfs.newvfs.impl.VfsThreadingUtil.runActionOnEdtRegardlessOfCurrentThread;
+import static com.intellij.util.ExceptionUtil.runAllAndCollectExceptions;
 import static com.intellij.util.SystemProperties.getBooleanProperty;
 import static com.intellij.util.SystemProperties.getIntProperty;
 import static com.intellij.util.containers.CollectionFactory.createFilePathMap;
@@ -280,29 +281,40 @@ public final class PersistentFSImpl extends PersistentFS implements Disposable {
         listener.beforeConnectionClosed();
       }
 
-      LOG.info("VFS dispose started");
-      long startedAtNs = System.nanoTime();
-      try {
-        //Give LFSystem a chance to clear caches/stop file watchers:
-        //TODO RC: would be much better use PersistentFsConnectionListener or alike instead of direct calling
-        //         (PFSImpl shouldn't even explicitly know that LocalFileSystem needs cleaning)
-        ((LocalFileSystemImpl)LocalFileSystem.getInstance()).onDisconnecting();
-        // TODO how to make sure we don't have files left in memory after VFS is disconnected?
-        rootsByUrl.clear();
-        missedRootIds.clear();
-      }
-      finally {
-        FSRecordsImpl vfsPeer = this.vfsPeer;
-        if (vfsPeer != null && !vfsPeer.isClosed()) {
-          vfsPeer.close();
-          //better not set this.vfsPeer=null, but leave it as-is: on access instead of just NPE we'll get
-          // more understandable AlreadyDisposedException with additional diagnostic info
-        }
-      }
-      vfsData.close();//stops monitoring
-      vfsData = null;
+      LOG.info("VFS disconnect started");
 
-      LOG.info("VFS dispose completed in " + NANOSECONDS.toMillis(System.nanoTime() - startedAtNs) + " ms.");
+      long startedAtNs = System.nanoTime();
+      List<? extends Throwable> errorsDuringDisconnect = runAllAndCollectExceptions(
+        () -> {
+          //Give LFSystem a chance to clear caches/stop file watchers:
+          //TODO RC: would be much better use PersistentFsConnectionListener or alike instead of direct calling
+          //         (PFSImpl shouldn't even explicitly know that LocalFileSystem needs cleaning)
+          ((LocalFileSystemImpl)LocalFileSystem.getInstance()).onDisconnecting();
+        },
+        () -> {
+          // TODO how to make sure we don't have VirtualFiles left in memory after VFS is disconnected?
+          rootsByUrl.clear();
+          missedRootIds.clear();
+        },
+        () -> {
+          FSRecordsImpl vfsPeer = this.vfsPeer;
+          if (vfsPeer != null && !vfsPeer.isClosed()) {
+            vfsPeer.close();
+            //Don't clear this.vfsPeer=null, but leave it as-is: on access-after-close we'll get understandable
+            // AlreadyDisposedException with additional diagnostic info -- instead of just NPE.
+          }
+        },
+        () -> {
+          vfsData.close();//unregisters listener & stops monitoring
+          vfsData = null;
+        }
+      );
+      LOG.info("VFS disconnect completed in " + NANOSECONDS.toMillis(System.nanoTime() - startedAtNs) + " ms.");
+      if (!errorsDuringDisconnect.isEmpty()) {
+        RuntimeException compoundError = new RuntimeException("VFS disconnect produced errors");
+        errorsDuringDisconnect.forEach(compoundError::addSuppressed);
+        LOG.error("VFS disconnect produced errors", compoundError);
+      }
     }
   }
 
@@ -379,17 +391,29 @@ public final class PersistentFSImpl extends PersistentFS implements Disposable {
 
   @Override
   public void dispose() {
-    //noinspection IncorrectCancellationExceptionHandling
-    try {
-      disconnect();
+    List<? extends Throwable> errorsDuringDispose = runAllAndCollectExceptions(
+      () -> {
+        try {
+          disconnect();
+        }
+        catch (ProcessCanceledException e) {
+          // Application may be closed before `LocalFileSystem` gets initialized()
+          //noinspection IncorrectCancellationExceptionHandling
+          LOG.warn("Detected cancellation during dispose of PersistentFS. " +
+                   "Application was likely closed before VFS got completely initialized", e.getCause());
+          throw e;
+        }
+      },
+      () -> {
+        otelMonitoringHandle.close();
+      }
+    );
+
+    if(!errorsDuringDispose.isEmpty()){
+      RuntimeException compoundError = new RuntimeException("VFS disconnect produced errors");
+      errorsDuringDispose.forEach(compoundError::addSuppressed);
+      LOG.error("VFS dispose produced errors", compoundError);
     }
-    catch (ProcessCanceledException e) {
-      // Application may be closed before `LocalFileSystem` gets initialized()
-      //noinspection IncorrectCancellationExceptionHandling
-      LOG.warn("Detected cancellation during dispose of PersistentFS. " +
-               "Application was likely closed before VFS got completely initialized", e);
-    }
-    otelMonitoringHandle.close();
   }
 
   @Override
