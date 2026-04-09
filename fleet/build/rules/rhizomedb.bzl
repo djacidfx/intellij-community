@@ -40,10 +40,32 @@ def _fleet_plugin_services_resources_impl(ctx):
         progress_message = "Generating Fleet plugin services resources for %%{label}",
     )
 
+    output_jar = ctx.actions.declare_file(ctx.label.name + ".jar")
+
+    args = ctx.actions.args()
+    args.set_param_file_format("multiline")
+    args.use_param_file("@%s", use_always = True)
+    args.add("--output")
+    args.add(output_jar.path)
+    args.add_all([resources_output_dir], map_each = _pass_resource_entry)
+
+    ctx.actions.run(
+        executable = ctx.executable._resource_jar_builder,
+        arguments = [args],
+        inputs = depset([resources_output_dir]),
+        outputs = [output_jar],
+        tools = [ctx.executable._resource_jar_builder],
+        mnemonic = "JvmResourceJar",
+        progress_message = "Create resource jar %{label}",
+    )
+
     return [
-        DefaultInfo(files = depset([resources_output_dir])),
+        DefaultInfo(files = depset([output_jar])),
         ResourceGroupInfo(files = [resources_output_dir], strip_prefix = resources_output_dir.path, add_prefix = ""),
     ]
+
+def _pass_resource_entry(resource):
+  return ["--entry", resource.basename, resource.path]
 
 fleet_plugin_services_resources = rule(
     implementation = _fleet_plugin_services_resources_impl,
@@ -63,6 +85,12 @@ fleet_plugin_services_resources = rule(
         "_kernel_plugins_processor": attr.label(
             default = "//fleet/build/kernel.plugins.processor",
             providers = [JavaInfo],
+        ),
+        "_resource_jar_builder": attr.label(
+            executable = True,
+            cfg = "exec",
+            default = Label("@rules_jvm//:resource-jar-builder"),
+            allow_files = True,
         ),
     },
     toolchains = [KOTLIN_TOOLCHAIN],
