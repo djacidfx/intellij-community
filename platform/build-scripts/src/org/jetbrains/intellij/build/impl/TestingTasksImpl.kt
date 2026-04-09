@@ -1098,6 +1098,7 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
             }
             else {
               if (exitCode == 1) throw RuntimeException("Unexpected exit code $exitCode when running tests but no failed tests to retry found")
+              break // All tests are passing, no further attempts are needed
             }
           }
         }
