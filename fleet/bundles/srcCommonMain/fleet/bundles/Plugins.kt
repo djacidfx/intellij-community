@@ -67,25 +67,6 @@ data class PluginVersion(
 ) : Comparable<PluginVersion> {
   val isSnapshot: Boolean = component2 is UnifiedVersionComponent.Snapshot || component1 is UnifiedVersionComponent.Snapshot
 
-  private val components: List<UnifiedVersionComponent> by lazy {
-    listOfNotNull(component0, component1, component2)
-  }
-
-  private val componentValues: List<Int> by lazy {
-    listOfNotNull(
-      component0.value,
-      when (component1) {
-        is UnifiedVersionComponent.Number -> component1.value
-        UnifiedVersionComponent.Snapshot -> UnifiedVersionComponent.Snapshot.valueForIndex(1)
-      },
-      when (component2) {
-        null -> null
-        is UnifiedVersionComponent.Number -> component2.value
-        UnifiedVersionComponent.Snapshot -> UnifiedVersionComponent.Snapshot.valueForIndex(2)
-      },
-    )
-  }
-
   companion object {
     /**
      * Build numbering of AIR and next products of the Fleet platform, using https://youtrack.jetbrains.com/articles/IJPL-A-109
@@ -129,28 +110,59 @@ data class PluginVersion(
 
   /**
    * String representation of this [PluginVersion] for Marketplace compatibility range fields of the plugin descriptor's JSON
+   *
+   * @param lowerBound if true, the returned string will be a lower bound for the compatibility range, if false, it will be an upper bound
    */
-  /**
-   * String representation of this [PluginVersion] for Marketplace compatibility range fields of the plugin descriptor's JSON
-   */
-  val marketplaceCompatibilityRangeVersionString: String = when (component2) {
-    null -> {
-      val mandatoryPatchComponent = when (component1) {
-        is UnifiedVersionComponent.Number -> 0
-        UnifiedVersionComponent.Snapshot -> UnifiedVersionComponent.Snapshot.valueForIndex(2)
+  fun marketplaceCompatibilityRangeVersionString(lowerBound: Boolean): String = listOfNotNull(
+    component0.value,
+    when (component1) {
+      is UnifiedVersionComponent.Number -> component1.value
+      UnifiedVersionComponent.Snapshot -> when {
+        lowerBound -> 0
+        else -> UnifiedVersionComponent.Snapshot.valueForIndex(1)
       }
-      "${componentValues.joinToString(".")}.${mandatoryPatchComponent}"
-    }
-    else -> componentValues.joinToString(".")
-  }
+    },
+    when (component2) {
+      null -> when (component1) {
+        is UnifiedVersionComponent.Number -> 0
+        UnifiedVersionComponent.Snapshot -> when {
+          lowerBound -> 0
+          else -> UnifiedVersionComponent.Snapshot.valueForIndex(2)
+        }
+      }
+      is UnifiedVersionComponent.Number -> component2.value
+      UnifiedVersionComponent.Snapshot -> when {
+        lowerBound -> 0
+        else -> UnifiedVersionComponent.Snapshot.valueForIndex(2)
+      }
+    },
+  ).joinToString(".")
 
-  val versionString: String
-    get() = components.joinToString(".") { it.stringRepresentation }
+  val versionString: String by lazy {
+    listOfNotNull(component0, component1, component2).joinToString(".") { it.stringRepresentation }
+  }
 
   override fun compareTo(other: PluginVersion): Int = toLong().compareTo(other.toLong())
 
   // should be in sync with https://github.com/JetBrains/intellij-plugin-verifier/blob/6a04cd7c94eb806877e26a093378eaf2b85e0d73/intellij-plugin-structure/structure-fleet/src/main/kotlin/com/jetbrains/plugin/structure/fleet/FleetPluginDescriptor.kt#L146
-  fun toLong(): Long = CompatibilityUtils.versionAsLong(componentValues.toIntArray())
+  private val longRepresentation: Long by lazy {
+    val values = listOfNotNull(
+      component0.value,
+      when (component1) {
+        is UnifiedVersionComponent.Number -> component1.value
+        UnifiedVersionComponent.Snapshot -> UnifiedVersionComponent.Snapshot.valueForIndex(1)
+      },
+      when (component2) {
+        null -> null
+        is UnifiedVersionComponent.Number -> component2.value
+        UnifiedVersionComponent.Snapshot -> UnifiedVersionComponent.Snapshot.valueForIndex(2)
+      },
+    )
+    CompatibilityUtils.versionAsLong(values.toIntArray())
+  }
+
+  // should be in sync with https://github.com/JetBrains/intellij-plugin-verifier/blob/6a04cd7c94eb806877e26a093378eaf2b85e0d73/intellij-plugin-structure/structure-fleet/src/main/kotlin/com/jetbrains/plugin/structure/fleet/FleetPluginDescriptor.kt#L146
+  fun toLong(): Long = longRepresentation
 }
 
 /**
@@ -215,9 +227,9 @@ data class PluginSignature(val bytes: ByteArray) {
 
 @Serializable
 data class ShipVersionRange(
-  @Serializable(with = PluginVersionForCompatibilityRangeSerializer::class)
+  @Serializable(with = PluginVersionForFromCompatibilityRangeSerializer::class)
   val from: PluginVersion,
-  @Serializable(with = PluginVersionForCompatibilityRangeSerializer::class)
+  @Serializable(with = PluginVersionForToCompatibilityRangeSerializer::class)
   val to: PluginVersion,
 )
 
