@@ -177,6 +177,23 @@ class MinimapPanel(
     hoverController.onSnapshot(snapshot)
   }
 
+  fun repaintGutter() {
+    val panelWidth = width
+    if (panelWidth <= 0) {
+      repaint()
+      return
+    }
+
+    val gutterWidth = currentSnapshot()
+      ?.layoutMetrics
+      ?.contentStartX
+      ?.toInt()
+      ?.coerceIn(1, panelWidth)
+      ?: panelWidth
+
+    repaint(0, 0, gutterWidth, height.coerceAtLeast(0))
+  }
+
   internal fun updatePreferredWidth(preferredWidth: Int): Boolean {
     if (preferredSize.width == preferredWidth) return false
     preferredSize = Dimension(preferredWidth, 0)

@@ -43,6 +43,9 @@ internal class MinimapLayerPainter(
 
   fun paintTokenFillerLayer(graphics: Graphics2D, state: MinimapLayerRenderState) {
     val snapshot = state.snapshot
+    val clip = graphics.clipBounds
+    val contentStartX = snapshot.layoutMetrics?.contentStartX ?: 0.0
+    if (clip != null && clip.maxX <= contentStartX) return
     renderer.paint(graphics, snapshot.context, snapshot.tokenEntries, snapshot.layoutMetrics)
   }
 
