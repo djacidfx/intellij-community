@@ -3,11 +3,10 @@ package com.intellij.openapi.vfs;
 
 import com.intellij.execution.process.ProcessIOExecutorService;
 import com.intellij.openapi.progress.ProcessCanceledException;
-import com.intellij.openapi.progress.util.ProgressIndicatorUtils;
+import com.intellij.openapi.progress.util.ProgressIndicatorUtilsCore;
 import com.intellij.openapi.util.ThrowableComputable;
-import com.intellij.platform.diagnostic.telemetry.PlatformScopesKt;
-import com.intellij.platform.diagnostic.telemetry.TelemetryManager;
 import com.intellij.util.ExceptionUtil;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
@@ -21,7 +20,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
 import static com.intellij.openapi.progress.ContextKt.isInCancellableContext;
-import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 /**
@@ -82,7 +80,7 @@ public final class DiskQueryRelay<Param, Result> {
         // maybe it was very fast and completed before being put into a map
         myTasks.remove(arg, future);
       }
-      return ProgressIndicatorUtils.awaitWithCheckCanceled(future);
+      return ProgressIndicatorUtilsCore.awaitWithCheckCanceled(future);
     }
     finally {
       long elapsedNs = System.nanoTime() - startedAtNs;
@@ -116,7 +114,7 @@ public final class DiskQueryRelay<Param, Result> {
 
     Future<Result> future = executor.submit(task::compute);
     try {
-      return ProgressIndicatorUtils.awaitWithCheckCanceled(future);
+      return ProgressIndicatorUtilsCore.awaitWithCheckCanceled(future);
     }
     catch (ProcessCanceledException e) {
       throw e;
@@ -153,40 +151,24 @@ public final class DiskQueryRelay<Param, Result> {
   /** Total (since app start) number of tasks requested. Could be <= tasksExecuted because of task coalescing */
   private static final AtomicInteger tasksRequestedCount = new AtomicInteger();
 
-  static long taskExecutionTotalTime(@NotNull TimeUnit unit) {
+  @ApiStatus.Internal
+  public static long taskExecutionTotalTime(@NotNull TimeUnit unit) {
     return unit.convert(taskExecutionTotalTimeNs.get(), NANOSECONDS);
   }
 
-  static long taskWaitingTotalTime(@NotNull TimeUnit unit) {
+  @ApiStatus.Internal
+  public static long taskWaitingTotalTime(@NotNull TimeUnit unit) {
     return unit.convert(taskWaitingTotalTimeNs.get(), NANOSECONDS);
   }
 
-  static int tasksExecuted() {
+  @ApiStatus.Internal
+  public static int tasksExecuted() {
     return tasksExecutedCount.get();
   }
 
-  static int tasksRequested() {
+  @ApiStatus.Internal
+  public static int tasksRequested() {
     return tasksRequestedCount.get();
   }
 
-  static {
-    var otelMeter = TelemetryManager.getInstance().getMeter(PlatformScopesKt.PlatformMetrics);
-
-    var taskExecutionTimeUs = otelMeter.counterBuilder("DiskQueryRelay.taskExecutionTotalTimeUs").buildObserver();
-    var taskWaitingTimeUs = otelMeter.counterBuilder("DiskQueryRelay.taskWaitingTotalTimeUs").buildObserver();
-    var tasksExecuted = otelMeter.counterBuilder("DiskQueryRelay.tasksExecuted").buildObserver();
-    var tasksRequested = otelMeter.counterBuilder("DiskQueryRelay.tasksRequested").buildObserver();
-
-    //noinspection resource
-    otelMeter.batchCallback(
-      () -> {
-        taskExecutionTimeUs.record(taskExecutionTotalTime(MICROSECONDS));
-        taskWaitingTimeUs.record(taskWaitingTotalTime(MICROSECONDS));
-        tasksExecuted.record(tasksExecuted());
-        tasksRequested.record(tasksRequested());
-      },
-      taskExecutionTimeUs, taskWaitingTimeUs,
-      tasksExecuted, tasksRequested
-    );
-  }
 }
