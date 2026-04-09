@@ -736,9 +736,9 @@ object PluginManagerCore {
     when (exclusionReason) {
       is PartOfDependencyCycle -> {
         val error = PluginSetBuilder.createCyclePluginLoadingError(exclusionReason.dependencyCycle.nodesWithDependenciesOnCycle.keys.filterIsInstance<PluginModuleDescriptor>()) {
-          emptySequence<Nothing>().iterator() // FIXME lost diagnostics on cycle chain, does it matter that much? btw, is the produced cycle sequence not in order? strange
+          emptySequence<Nothing>().iterator() // lost diagnostics on cycle chain – doesn't matter since the cycle is logged properly by logExclusionTree
         }
-        if (cycleErrors.none { it.htmlMessage.toString() == error.htmlMessage.toString() }) { // FIXME this looks awful but idc atm
+        if (cycleErrors.none { it.htmlMessage.toString() == error.htmlMessage.toString() }) { // slow path anyway
           cycleErrors.add(error)
         }
       }
@@ -746,7 +746,7 @@ object PluginManagerCore {
         val cycle = exclusionReason.dependencyCycle.nodesWithDependenciesOnCycle.keys.asSequence()
           .flatMap { it.sortedDescriptors }.distinct().filterIsInstance<PluginModuleDescriptor>().toList()
         val error = PluginSetBuilder.createCyclePluginLoadingError(cycle) { emptySequence<Nothing>().iterator() }
-        if (cycleErrors.none { it.htmlMessage.toString() == error.htmlMessage.toString() }) { // FIXME this looks awful but idc atm
+        if (cycleErrors.none { it.htmlMessage.toString() == error.htmlMessage.toString() }) { // slow path anyway
           cycleErrors.add(error)
         }
       }
