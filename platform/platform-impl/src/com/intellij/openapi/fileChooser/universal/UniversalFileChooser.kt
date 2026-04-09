@@ -93,6 +93,7 @@ object UniversalFileChooser {
     }
 
     override fun choose(toSelect: VirtualFile?, callback: Consumer<in MutableList<VirtualFile>>) {
+      mainPanel.preselectFile(toSelect)
       if (showAndGet()) {
         val mutableList = mutableListOf<VirtualFile>()
         mutableList.addAll(mainPanel.getSelectedFiles())
@@ -118,6 +119,7 @@ object UniversalFileChooser {
     }
 
     private val tabbedPane: JBTabbedPane
+    private val fileViews: MutableList<FileView> = mutableListOf()
 
     init {
       layout = BorderLayout()
@@ -126,6 +128,7 @@ object UniversalFileChooser {
       tabbedPane = JBTabbedPane()
       for (contributor in UniversalFileChooserContributor.EP_NAME.extensionList) {
         val fileView = FileView(contributor, descriptor, disposable, project, okAction)
+        fileViews.add(fileView)
         tabbedPane.addTab(contributor.tabTitle, fileView.topComponent)
       }
 
@@ -146,6 +149,15 @@ object UniversalFileChooser {
       }
     }
 
+    fun preselectFile(toSelect: VirtualFile?) {
+      if (toSelect == null) return
+      val nioPath = runCatching { toSelect.toNioPath() }.getOrNull() ?: return
+      val index = fileViews.indexOfFirst { it.contributor.ownsPath(nioPath) }
+      if (index < 0) return
+      tabbedPane.selectedIndex = index
+      fileViews[index].fileToSelect = toSelect
+    }
+
     fun getSelectedFiles(): List<VirtualFile> {
       val fileView = (tabbedPane.selectedComponent as JComponent).getUserData(FILE_VIEW_KEY)
       return fileView?.getSelectedFiles() ?: emptyList()
@@ -153,7 +165,7 @@ object UniversalFileChooser {
 
 
     class FileView(
-      private val contributor: UniversalFileChooserContributor,
+      val contributor: UniversalFileChooserContributor,
       descriptor: FileChooserDescriptor,
       disposable: Disposable,
       project: Project,
@@ -162,6 +174,7 @@ object UniversalFileChooser {
       val topComponent: JComponent
       val fileTree: FileSystemTreeImpl
       private val roots: MutableList<Path> = mutableListOf()
+      var fileToSelect: VirtualFile? = null
 
       companion object {
         private const val LOADING_CARD = "loading"
@@ -228,6 +241,7 @@ object UniversalFileChooser {
               roots.addAll(elements)
               ((tree.model as AsyncTreeModel).model as FileTreeModel).resetRoots()
               cardLayout.show(contentPanel, TREE_CARD)
+              fileToSelect?.let { fileTree.select(it, null) }
             }
           }
         }
