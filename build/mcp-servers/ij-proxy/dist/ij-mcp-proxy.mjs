@@ -3,40 +3,25 @@
 var __create = Object.create;
 var { getPrototypeOf: __getProtoOf, defineProperty: __defProp, getOwnPropertyNames: __getOwnPropNames } = Object;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-function __accessProp(key) {
-  return this[key];
-}
-var __toESMCache_node, __toESMCache_esm, __toESM = (mod, isNodeMode, target) => {
-  var canCache = mod != null && typeof mod === "object";
-  if (canCache) {
-    var cache = isNodeMode ? __toESMCache_node ??= /* @__PURE__ */ new WeakMap : __toESMCache_esm ??= /* @__PURE__ */ new WeakMap, cached = cache.get(mod);
-    if (cached)
-      return cached;
-  }
+var __toESM = (mod, isNodeMode, target) => {
   target = mod != null ? __create(__getProtoOf(mod)) : {};
   let to = isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: !0 }) : target;
   for (let key of __getOwnPropNames(mod))
     if (!__hasOwnProp.call(to, key))
       __defProp(to, key, {
-        get: __accessProp.bind(mod, key),
+        get: () => mod[key],
         enumerable: !0
       });
-  if (canCache)
-    cache.set(mod, to);
   return to;
 };
 var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
-var __returnValue = (v) => v;
-function __exportSetter(name, newValue) {
-  this[name] = __returnValue.bind(null, newValue);
-}
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, {
       get: all[name],
       enumerable: !0,
       configurable: !0,
-      set: __exportSetter.bind(all, name)
+      set: (newValue) => all[name] = () => newValue
     });
 };
 var __require = import.meta.require;
@@ -24996,7 +24981,13 @@ class UpstreamConnection {
       await this.connect(), await this.getTools();
       let callArgs = { ...args };
       this._projectPathManager.injectProjectPathArgs(toolName, callArgs);
-      let timeoutMs = this._resolveTimeoutMs(toolName), options = timeoutMs > 0 ? { timeout: timeoutMs } : void 0, result = normalizeToolResult(await this.client.callTool({ name: toolName, arguments: callArgs }, void 0, options));
+      let timeoutMs = this._resolveTimeoutMs(toolName), options = timeoutMs > 0 ? { timeout: timeoutMs } : void 0, startTime = Date.now(), result;
+      try {
+        result = normalizeToolResult(await this.client.callTool({ name: toolName, arguments: callArgs }, void 0, options));
+      } catch (error48) {
+        let elapsed = Date.now() - startTime;
+        throw this._warn(`Upstream ${toolName} failed after ${elapsed}ms (timeout: ${timeoutMs}ms): ${getErrorMessage(error48)}`), error48;
+      }
       if (result?.isError)
         throw Error(extractTextFromResult(result) || "Upstream tool error");
       return result;
@@ -25005,11 +24996,17 @@ class UpstreamConnection {
   async callToolForClient(toolName, args) {
     return await this.withReconnect(`tools/call ${toolName}`, async () => {
       await this.connect(), await this.getTools(), this._projectPathManager.injectProjectPathArgs(toolName, args);
-      let timeoutMs = this._resolveTimeoutMs(toolName), options = timeoutMs > 0 ? { timeout: timeoutMs } : void 0, result = await this.client.callTool({ name: toolName, arguments: args }, void 0, options);
-      return normalizeToolResult(result);
+      let timeoutMs = this._resolveTimeoutMs(toolName), options = timeoutMs > 0 ? { timeout: timeoutMs } : void 0, startTime = Date.now();
+      try {
+        let result = await this.client.callTool({ name: toolName, arguments: args }, void 0, options);
+        return normalizeToolResult(result);
+      } catch (error48) {
+        let elapsed = Date.now() - startTime;
+        throw this._warn(`Upstream ${toolName} failed after ${elapsed}ms (timeout: ${timeoutMs}ms): ${getErrorMessage(error48)}`), error48;
+      }
     });
   }
-  static _LONG_TIMEOUT_TOOLS = /* @__PURE__ */ new Set(["build_project", "lint_files"]);
+  static _LONG_TIMEOUT_TOOLS = /* @__PURE__ */ new Set(["build_project", "lint_files", "open_file_in_editor"]);
   _resolveTimeoutMs(toolName) {
     return UpstreamConnection._LONG_TIMEOUT_TOOLS.has(toolName) ? this._buildTimeoutMs : this._toolCallTimeoutMs;
   }

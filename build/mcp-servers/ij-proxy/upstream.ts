@@ -157,9 +157,17 @@ export class UpstreamConnection {
       this._projectPathManager.injectProjectPathArgs(toolName, callArgs)
       const timeoutMs = this._resolveTimeoutMs(toolName)
       const options = timeoutMs > 0 ? {timeout: timeoutMs} : undefined
-      const result = normalizeToolResult(
-        await this.client.callTool({name: toolName, arguments: callArgs}, undefined, options)
-      )
+      const startTime = Date.now()
+      let result: unknown
+      try {
+        result = normalizeToolResult(
+          await this.client.callTool({name: toolName, arguments: callArgs}, undefined, options)
+        )
+      } catch (error) {
+        const elapsed = Date.now() - startTime
+        this._warn(`Upstream ${toolName} failed after ${elapsed}ms (timeout: ${timeoutMs}ms): ${getErrorMessage(error)}`)
+        throw error
+      }
 
       if (result?.isError) {
         throw new Error(extractTextFromResult(result) || 'Upstream tool error')
@@ -176,12 +184,19 @@ export class UpstreamConnection {
       this._projectPathManager.injectProjectPathArgs(toolName, args)
       const timeoutMs = this._resolveTimeoutMs(toolName)
       const options = timeoutMs > 0 ? {timeout: timeoutMs} : undefined
-      const result = await this.client.callTool({name: toolName, arguments: args}, undefined, options)
-      return normalizeToolResult(result)
+      const startTime = Date.now()
+      try {
+        const result = await this.client.callTool({name: toolName, arguments: args}, undefined, options)
+        return normalizeToolResult(result)
+      } catch (error) {
+        const elapsed = Date.now() - startTime
+        this._warn(`Upstream ${toolName} failed after ${elapsed}ms (timeout: ${timeoutMs}ms): ${getErrorMessage(error)}`)
+        throw error
+      }
     })
   }
 
-  private static readonly _LONG_TIMEOUT_TOOLS = new Set(['build_project', 'lint_files'])
+  private static readonly _LONG_TIMEOUT_TOOLS = new Set(['build_project', 'lint_files', 'open_file_in_editor'])
 
   private _resolveTimeoutMs(toolName: string): number {
     return UpstreamConnection._LONG_TIMEOUT_TOOLS.has(toolName) ? this._buildTimeoutMs : this._toolCallTimeoutMs
