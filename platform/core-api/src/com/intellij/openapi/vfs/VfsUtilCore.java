@@ -2,12 +2,15 @@
 package com.intellij.openapi.vfs;
 
 import com.intellij.core.CoreBundle;
+import com.intellij.openapi.application.Application;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.roots.ContentIterator;
 import com.intellij.openapi.util.Comparing;
 import com.intellij.openapi.util.NlsSafe;
 import com.intellij.openapi.util.NotNullLazyValue;
+import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.Ref;
 import com.intellij.openapi.util.SystemInfoRt;
 import com.intellij.openapi.util.io.BufferExposingByteArrayInputStream;
@@ -17,7 +20,9 @@ import com.intellij.openapi.util.io.OSAgnosticPathUtil;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.util.text.StringUtilRt;
 import com.intellij.openapi.vfs.impl.InputStreamSkippingBOM;
+import com.intellij.openapi.vfs.impl.VfsUtilCoreApplicationService;
 import com.intellij.openapi.vfs.limits.FileSizeLimit;
+import com.intellij.util.ExceptionUtil;
 import com.intellij.util.PathUtil;
 import com.intellij.util.Processor;
 import com.intellij.util.containers.ContainerUtil;
@@ -45,6 +50,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+
+import static com.intellij.openapi.progress.ContextKt.isInCancellableContext;
 
 /**
  * Various utility methods for working with {@link VirtualFile}.
@@ -418,6 +425,25 @@ public class VfsUtilCore {
    * @see com.intellij.openapi.fileEditor.impl.LoadTextUtil#loadText(VirtualFile, int)
    */
   public static @NotNull String loadText(@NotNull VirtualFile file, int length) throws IOException {
+    Application application = ApplicationManager.getApplication();
+    if (application.isReadAccessAllowed() && isInCancellableContext()
+        // FileUtilRt.loadText might try to take a read action, in which case it will freeze
+        // if accessDiskWithCheckCanceled is called within a write action.
+        && !application.isWriteAccessAllowed()) {
+      try {
+        // Use DiskQueryRelay to delegate file loading to a background thread.
+        return application.getService(VfsUtilCoreApplicationService.class).getLoadTextDQR()
+          .accessDiskWithCheckCanceled(Pair.create(file, length));
+      }
+      catch (RuntimeException e) {
+        // Unwrap the IO exception.
+        IOException t = ExceptionUtil.findCause(e, IOException.class);
+        if (t != null) {
+          throw t;
+        }
+        throw e;
+      }
+    }
     try (InputStreamReader reader = new InputStreamReader(file.getInputStream(), file.getCharset())) {
       return new String(FileUtilRt.loadText(reader, length));
     }
@@ -815,7 +841,7 @@ public class VfsUtilCore {
     }
     return 0;
   }
-  
+
   public static boolean hasInvalidFiles(@NotNull Iterable<? extends VirtualFile> files) {
     for (VirtualFile file : files) {
       if (!file.isValid()) {

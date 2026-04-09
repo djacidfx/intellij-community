@@ -94,7 +94,7 @@ fun VirtualFile.originalFileOrSelf(): VirtualFile {
 }
 
 private fun VirtualFile.relativizeToClosestAncestor(
-  relativePath: String
+  relativePath: String,
 ): Pair<VirtualFile, Path> {
   val basePath = Paths.get(path)
   val (normalizedBasePath, normalizedRelativePath) = basePath.relativizeToClosestAncestor(relativePath)
@@ -113,7 +113,7 @@ private fun VirtualFile.relativizeToClosestAncestor(
 
 private inline fun VirtualFile.getResolvedVirtualFile(
   relativePath: String,
-  getChild: VirtualFile.(String, Boolean) -> VirtualFile
+  getChild: VirtualFile.(String, Boolean) -> VirtualFile,
 ): VirtualFile {
   val (baseVirtualFile, normalizedRelativePath) = relativizeToClosestAncestor(relativePath)
   var virtualFile = baseVirtualFile
@@ -253,10 +253,12 @@ fun VirtualFile.resolveFromRootOrRelative(absoluteOrRelativeFilePath: String): V
  * @param canCache       Whether the value can be cached in particular circumstance
  */
 @Experimental
-fun <T : Any> VirtualFile.getCachedValue(key: Key<VirtualFileCachedValue<T>>,
-                                         useSoftCache: Boolean = false,
-                                         canCache: ((VirtualFile) -> Boolean)? = null,
-                                         provider: (VirtualFile, CharSequence?) -> T,): T {
+fun <T : Any> VirtualFile.getCachedValue(
+  key: Key<VirtualFileCachedValue<T>>,
+  useSoftCache: Boolean = false,
+  canCache: ((VirtualFile) -> Boolean)? = null,
+  provider: (VirtualFile, CharSequence?) -> T,
+): T {
   if (!isValid() && ApplicationManager.getApplication().isReadAccessAllowed) {
     thisLogger().error(InvalidVirtualFileAccessException(this))
     return provider(this, null)
@@ -280,14 +282,14 @@ fun <T : Any> VirtualFile.getCachedValue(key: Key<VirtualFileCachedValue<T>>,
   return data
 }
 
-private fun loadText(packageJsonFile: VirtualFile, packageJsonDocument: Document?): CharSequence? {
-  if (packageJsonDocument != null) {
-    return packageJsonDocument.immutableCharSequence
+private fun loadText(file: VirtualFile, document: Document?): CharSequence? {
+  if (document != null) {
+    return document.immutableCharSequence
   }
   return try {
-    VfsUtilCore.loadText(packageJsonFile)
+    VfsUtilCore.loadText(file)
   }
-  catch (e: IOException) {
+  catch (_: IOException) {
     null
   }
 }
@@ -298,9 +300,9 @@ class VirtualFileCachedValue<T> private constructor(
   private val weakData: SoftReference<T?>?,
   internal val fileModificationStamp: Long,
   internal val documentModificationStamp: Long,
-  ) {
+) {
 
-  internal constructor(data: T, useWeakCache: Boolean, fileModificationStamp: Long, documentModificationStamp: Long, ):
+  internal constructor(data: T, useWeakCache: Boolean, fileModificationStamp: Long, documentModificationStamp: Long) :
     this(if (useWeakCache) null else data,
          if (useWeakCache) SoftReference(data) else null,
          fileModificationStamp, documentModificationStamp)
