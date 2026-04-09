@@ -401,6 +401,10 @@ public abstract class TestObject extends JavaTestFrameworkRunnableState<JUnitCon
       javaParameters.getVMParametersList().addProperty("idea.test.graceful.shutdown.timeout.seconds", String.valueOf(timeout));
     }
 
+    if (!Registry.is("test.use.suite.duration")) {
+      javaParameters.getVMParametersList().addProperty("test.use.suite.duration", "false");
+    }
+
     if (javaParameters.getMainClass() == null) { // for custom main class, e.g. overridden by JUnitDevKitUnitTestingSettings.Companion#apply
       javaParameters.setMainClass(JUnitConfiguration.JUNIT_START_CLASS);
     }
