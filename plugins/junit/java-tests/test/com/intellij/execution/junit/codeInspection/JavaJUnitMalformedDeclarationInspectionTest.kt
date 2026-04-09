@@ -147,6 +147,33 @@ class JavaJUnitMalformedDeclarationInspectionTest {
     """.trimIndent())
     }
 
+    fun `test malformed callback extension before all only highlighting`() {
+      myFixture.testHighlighting(JvmLanguage.JAVA, """
+      class A {
+        @org.junit.jupiter.api.extension.RegisterExtension
+        MyExt <error descr="MyExt should be registered at the class level">ext</error> = new MyExt();
+        
+        static class MyExt implements org.junit.jupiter.api.extension.BeforeAllCallback {
+          public void beforeAll(org.junit.jupiter.api.extension.ExtensionContext ctx) {}
+        }
+      }
+    """.trimIndent())
+    }
+
+    fun `test malformed callback extension before all only no highlighting when per class`() {
+      myFixture.testHighlighting(JvmLanguage.JAVA, """
+      @org.junit.jupiter.api.TestInstance(org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS)
+      class A {
+        @org.junit.jupiter.api.extension.RegisterExtension
+        MyExt ext = new MyExt();
+        
+        static class MyExt implements org.junit.jupiter.api.extension.BeforeAllCallback {
+          public void beforeAll(org.junit.jupiter.api.extension.ExtensionContext ctx) {}
+        }
+      }
+    """.trimIndent())
+    }
+
     /* Malformed nested class */
     fun `test malformed nested class no highlighting`() {
       myFixture.testHighlighting(JvmLanguage.JAVA, """

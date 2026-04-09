@@ -45,6 +45,37 @@ abstract class KotlinJUnitMalformedDeclarationInspectionTest : KotlinJUnitMalfor
     """.trimIndent())
   }
 
+  fun `test malformed callback extension before all only highlighting`() {
+    myFixture.testHighlighting(
+      JvmLanguage.KOTLIN, """
+      class A {
+        @JvmField
+        @org.junit.jupiter.api.extension.RegisterExtension
+        val <error descr="MyExt should be registered at the class level">ext</error> = MyExt()
+        
+        class MyExt : org.junit.jupiter.api.extension.BeforeAllCallback {
+          override fun beforeAll(ctx: org.junit.jupiter.api.extension.ExtensionContext) {}
+        }
+      }
+    """.trimIndent())
+  }
+
+  fun `test malformed callback extension before all only no highlighting when per class`() {
+    myFixture.testHighlighting(
+      JvmLanguage.KOTLIN, """
+      @org.junit.jupiter.api.TestInstance(org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS)
+      class A {
+        @JvmField
+        @org.junit.jupiter.api.extension.RegisterExtension
+        val ext = MyExt()
+        
+        class MyExt : org.junit.jupiter.api.extension.BeforeAllCallback {
+          override fun beforeAll(ctx: org.junit.jupiter.api.extension.ExtensionContext) {}
+        }
+      }
+    """.trimIndent())
+  }
+
   /* Malformed nested class */
   fun `test malformed nested no highlighting`() {
     myFixture.testHighlighting(
