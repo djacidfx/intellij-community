@@ -64,6 +64,7 @@ import com.intellij.openapi.vfs.newvfs.events.VFileEvent;
 import com.intellij.openapi.vfs.newvfs.events.VFilePropertyChangeEvent;
 import com.intellij.openapi.vfs.newvfs.persistent.PersistentFS;
 import com.intellij.openapi.vfs.newvfs.persistent.PersistentFsConnectionListener;
+import com.intellij.openapi.vfs.newvfs.persistent.executor.AsyncFileContentWriteRequestor;
 import com.intellij.pom.core.impl.PomModelImpl;
 import com.intellij.psi.AbstractFileViewProvider;
 import com.intellij.psi.ExternalChangeActionUtil;
@@ -117,7 +118,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public class FileDocumentManagerImpl extends FileDocumentManagerBase implements SafeWriteRequestor {
+public class FileDocumentManagerImpl extends FileDocumentManagerBase implements SafeWriteRequestor, AsyncFileContentWriteRequestor {
   private static final Logger LOG = Logger.getInstance(FileDocumentManagerImpl.class);
 
   public static final Key<Object> NOT_RELOADABLE_DOCUMENT_KEY = new Key<>("NOT_RELOADABLE_DOCUMENT_KEY");
