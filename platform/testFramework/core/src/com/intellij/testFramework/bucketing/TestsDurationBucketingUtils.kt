@@ -6,6 +6,8 @@ import com.intellij.TestCaseLoader
 import com.intellij.TestCaseLoader.TEST_RUNNERS_COUNT
 import com.intellij.TestCaseLoader.TEST_RUNNER_INDEX
 import com.intellij.testFramework.TeamCityLogger
+import com.intellij.util.bazelEnvironment.BazelLabel
+import com.intellij.util.bazelEnvironment.BazelRunfiles
 import org.jetbrains.annotations.ApiStatus
 import tools.jackson.databind.SerializationFeature
 import tools.jackson.databind.json.JsonMapper
@@ -82,7 +84,13 @@ internal object TestsDurationBucketingUtils {
   fun loadSeasonData(season: String?): Map<String, Int>? {
     if (season == null) return null
 
-    val files = getDataDirectories().map { it.resolve("seasons/$season.csv") }.filter { Files.isRegularFile(it) }.distinct().toList()
+    val files = if (BazelRunfiles.isRunningFromBazel) {
+      val label = BazelLabel.fromString("//:tests/classes-duration")
+      BazelRunfiles.getFileByLabelOrNull(label)?.absolute()?.resolve("seasons/$season.csv")?.let { listOf(it) } ?: emptyList()
+    } else {
+      getDataDirectories().map { it.resolve("seasons/$season.csv") }.filter { Files.isRegularFile(it) }.distinct().toList()
+    }
+
     if (files.isEmpty()) {
       System.err.println("No CSV file for season '$season' found")
       return null

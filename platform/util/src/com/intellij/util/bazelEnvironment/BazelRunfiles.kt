@@ -18,6 +18,15 @@ object BazelRunfiles {
   private val runfileManifest = BazelRunfilesManifest()
 
   @JvmStatic
+  fun getFileByLabelOrNull(label: BazelLabel): Path? {
+    return try {
+      getFileByLabel(label)
+    } catch (_: IllegalStateException) {
+      null
+    }
+  }
+
+  @JvmStatic
   fun getFileByLabel(label: BazelLabel): Path {
     val repoEntry = bazelTestRepoMapping.getOrElse(label.repo) {
       error("Unable to determine dependency path '${label.asLabel}'")

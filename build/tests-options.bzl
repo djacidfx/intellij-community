@@ -85,6 +85,24 @@ def _normalize_runtime_dep(dep):
         return "@community//platform/util:util-tests_test_lib"
     return dep
 
+def _classes_duration_data():
+    repo = native.repository_name()
+    module = native.module_name()
+
+    # The top-level checkout has no explicit `module(name = "ultimate")`, so its main repository reports an empty module name.
+    if repo == "@" and not module:
+        return "//:tests/classes-duration"
+
+    # When the top-level checkout builds `@community//...`, the classes-duration target still lives in the canonical main repo.
+    if repo != "@" and module == "community":
+        return "@@//:tests/classes-duration"
+
+    # Standalone `community/bazel.cmd` runs with `repo == "@"` and `module == "community"`, so no extra data is added there.
+    if repo == "@" and module == "community":
+        return None
+
+    fail("Unexpected repository/module combination for tests-options.bzl: repository_name=%r module_name=%r" % (repo, module))
+
 def jps_test(name, jvm_flags = [], runtime_deps = [], args = [], data = [], tags = [], sandbox = False, env = {}):
     # Merge user-provided args with our default ones
     all_jvm_flags = JAVA_TEST_FLAGS + ADD_OPENS_FLAGS + jvm_flags
@@ -103,6 +121,10 @@ def jps_test(name, jvm_flags = [], runtime_deps = [], args = [], data = [], tags
 
     # handled by com.intellij.tests.JUnit5BazelRunner.main
     all_env["JB_TEST_SANDBOX"] = str(sandbox)
+
+    classes_duration_data = _classes_duration_data()
+    if classes_duration_data != None:
+        all_data.append(classes_duration_data)
 
     if sandbox:
         if "block-network" not in all_tags:
