@@ -9,12 +9,14 @@ import com.intellij.internal.statistic.eventLog.events.EventFields.String
 import com.intellij.internal.statistic.eventLog.events.EventFields.StringValidatedByRegexpReference
 import com.intellij.internal.statistic.eventLog.events.EventFields.Version
 import com.intellij.internal.statistic.service.fus.collectors.ApplicationUsagesCollector
+import com.intellij.util.system.LowLevelLocalMachineAccess
 import com.intellij.util.system.OS
 import java.nio.file.Path
 import java.time.OffsetDateTime
 import java.util.Locale
 import kotlin.io.path.name
 
+@OptIn(LowLevelLocalMachineAccess::class)
 internal class OsDataCollector : ApplicationUsagesCollector() {
   private val GROUP = EventLogGroup("system.os", 21)
 
@@ -23,7 +25,8 @@ internal class OsDataCollector : ApplicationUsagesCollector() {
   private val LOCALES = listOf(
     "am", "ar", "as", "az", "bn", "cs", "da", "de", "el", "en", "es", "fa", "fr", "gu", "ha", "hi", "hu", "ig", "in", "it", "ja", "kk",
     "kn", "ko", "ml", "mr", "my", "nb", "ne", "nl", "nn", "no", "or", "pa", "pl", "pt", "ro", "ru", "rw", "sd", "si", "so", "sv", "ta",
-    "te", "th", "tr", "uk", "ur", "uz", "vi", "yo", "zh", "zu")
+    "te", "th", "tr", "uk", "ur", "uz", "vi", "yo", "zh", "zu"
+  )
 
   @Suppress("SpellCheckingInspection")
   private val SHELLS = listOf("sh", "ash", "bash", "csh", "dash", "fish", "ksh", "pwsh", "tcsh", "xonsh", "zsh", "nu", "other", "unknown")
@@ -33,7 +36,8 @@ internal class OsDataCollector : ApplicationUsagesCollector() {
     "almalinux", "alpine", "amzn", "arch", "bunsenlabs", "centos", "chromeos", "debian", "deepin", "devuan", "elementary",
     "endeavouros", "fedora", "galliumos", "garuda", "gentoo", "kali", "linuxmint", "mageia", "manjaro", "neon", "nixos", "ol",
     "opensuse-leap", "opensuse-tumbleweed", "parrot", "pop", "pureos", "raspbian", "rhel", "rocky", "rosa", "sabayon",
-    "slackware", "solus", "ubuntu", "void", "zorin", "other", "unknown")
+    "slackware", "solus", "ubuntu", "void", "zorin", "other", "unknown"
+  )
 
   private val OS_NAME = String("name", OS_NAMES)
   private val OS_LANG = String("locale", LOCALES)
@@ -59,7 +63,7 @@ internal class OsDataCollector : ApplicationUsagesCollector() {
     )
     if (OS.CURRENT == OS.Linux) {
       val osInfo = OS.CURRENT.osInfo as OS.LinuxInfo
-      val linuxMetrics = mutableListOf<EventPair<*>>(
+      val linuxMetrics = mutableListOf(
         DISTRO.with(DISTROS.coerce(osInfo.distro)),
         RELEASE.with(osInfo.release),
         UNDER_WSL.with(osInfo.isUnderWsl()),

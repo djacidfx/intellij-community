@@ -111,12 +111,12 @@ public class RevealFileAction extends DumbAwareAction implements LightEditCompat
 
   /// Whether a system is able to open a directory in a file manager and highlight a file in it.
   public static boolean isSupported() {
-    return OS.CURRENT == OS.Windows || OS.CURRENT == OS.macOS || Holder.fileManagerApp != null || PathEnvironmentVariableUtil.isOnPath("gdbus");
+    return OS.CURRENT == OS.Windows || OS.CURRENT == OS.macOS || Holder.fileManagerApp != null || Holder.gdbusPresent;
   }
 
   /// Whether a system is able to open a directory in a file manager.
   public static boolean isDirectoryOpenSupported() {
-    return isSupported() || PathEnvironmentVariableUtil.isOnPath("xdg-open");
+    return isSupported() || Holder.xdgOpenPresent;
   }
 
   public static @ActionText @NotNull String getActionName() {
@@ -235,7 +235,7 @@ public class RevealFileAction extends DumbAwareAction implements LightEditCompat
         spawn(fmApp, toSelect != null ? toSelect : dir);
       }
     }
-    else if (PathEnvironmentVariableUtil.isOnPath("gdbus")) {
+    else if (Holder.gdbusPresent) {
       var method = "org.freedesktop.FileManager1." + (toSelect != null ? "ShowItems" : "ShowFolders");
       var uri = (_toSelect != null ? _toSelect : _dir).toUri().toString();
       spawn(
@@ -243,7 +243,7 @@ public class RevealFileAction extends DumbAwareAction implements LightEditCompat
         "--method", method, "['" + uri + "']", ""
       );
     }
-    else if (toSelect == null && PathEnvironmentVariableUtil.isOnPath("xdg-open")) {
+    else if (toSelect == null && Holder.xdgOpenPresent) {
       spawn("xdg-open", dir);
     }
     else {
@@ -328,6 +328,8 @@ public class RevealFileAction extends DumbAwareAction implements LightEditCompat
   private static final class Holder {
     private static final @Nullable String fileManagerApp;
     private static final @Nullable @NlsSafe String fileManagerName;
+    private static final boolean gdbusPresent;
+    private static final boolean xdgOpenPresent;
 
     static {
       String fmApp = null, fmName = null;
@@ -360,6 +362,8 @@ public class RevealFileAction extends DumbAwareAction implements LightEditCompat
       }
       fileManagerApp = fmApp;
       fileManagerName = fmName;
+      gdbusPresent = PathEnvironmentVariableUtil.isOnPath("gdbus");
+      xdgOpenPresent = PathEnvironmentVariableUtil.isOnPath("xdg-open");
     }
 
     private static String getXdgDataDirectories() {

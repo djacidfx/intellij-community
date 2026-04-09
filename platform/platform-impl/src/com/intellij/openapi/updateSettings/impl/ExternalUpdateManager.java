@@ -12,9 +12,7 @@ import org.jetbrains.annotations.Nullable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/**
- * Represents a tool which manages IDE updates instead of a built-in update engine.
- */
+/// Represents a tool which manages IDE updates instead of a built-in update engine.
 public enum ExternalUpdateManager {
   TOOLBOX("Toolbox App"),
   SNAP("Snap"),
@@ -36,12 +34,10 @@ public enum ExternalUpdateManager {
     }
   }
 
-  /**
-   * Returns a tool managing this IDE instance, or {@code null} when no such tool is detected.
-   */
+  /// Returns a tool managing this IDE instance, or `null` when no such tool is detected.
   public static final @Nullable ExternalUpdateManager ACTUAL;
   static {
-    var home = PathManager.getHomePath().replace('\\', '/');
+    var home = PathManager.getHomeDir().toString().replace('\\', '/');
     var toolboxV2Path = System.getProperty("ide.managed.by.toolbox");
     if (home.contains("/apps/") && home.contains("/ch-")) ACTUAL = TOOLBOX;
     else if (toolboxV2Path != null && Files.exists(Path.of(toolboxV2Path)))ACTUAL = TOOLBOX;
@@ -53,9 +49,7 @@ public enum ExternalUpdateManager {
     Logger.getInstance(ExternalUpdateManager.class).info("update manager: " + (ACTUAL == null ? "-" : ACTUAL.toolName));
   }
 
-  /**
-   * Returns {@code true} when the update manager takes care of creating XDG desktop entries.
-   */
+  /// Returns `true` when the update manager takes care of creating XDG desktop entries.
   @ApiStatus.Internal
   public static boolean isCreatingDesktopEntries() {
     return ACTUAL == TOOLBOX || ACTUAL == SNAP || ACTUAL == FLATPAK;
