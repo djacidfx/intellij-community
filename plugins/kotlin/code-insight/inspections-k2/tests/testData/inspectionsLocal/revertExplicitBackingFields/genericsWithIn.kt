@@ -2,4 +2,4 @@
 class MyClass<in T>
 
 val x: MyClass<Double>
-    field = MyClass<Number>()<caret>
+    field<caret> = MyClass<Number>()

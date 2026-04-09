@@ -5,5 +5,5 @@ interface Base {
 
 abstract class AbstractBase : Base {
     final override val names: List<String>
-        field = mutableListOf<String>()<caret>
+        field<caret> = mutableListOf<String>()
 }

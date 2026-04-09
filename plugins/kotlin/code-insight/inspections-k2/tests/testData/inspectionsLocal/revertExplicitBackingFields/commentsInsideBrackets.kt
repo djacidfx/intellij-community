@@ -2,4 +2,4 @@
 
 /*COMMENT*/
 val items: Set<Int>
-    field = mutableSetOf<Int>()<caret>
+    field<caret> = mutableSetOf<Int>()

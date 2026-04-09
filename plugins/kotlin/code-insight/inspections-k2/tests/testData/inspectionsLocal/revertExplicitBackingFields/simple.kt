@@ -1,4 +1,4 @@
 // COMPILER_ARGUMENTS: -Xexplicit-backing-fields
 
 val items: Set<Int>
-    field = mutableSetOf<Int>()<caret>
+    field<caret> = mutableSetOf<Int>()

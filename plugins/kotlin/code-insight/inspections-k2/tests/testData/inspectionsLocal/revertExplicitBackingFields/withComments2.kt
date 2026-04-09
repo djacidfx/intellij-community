@@ -4,5 +4,5 @@ internal class Foo {
     // comment
     // comment 2
     val x: List<Int>
-        field = mutableListOf<Int>()<caret>
+        field<caret> = mutableListOf<Int>()
 }

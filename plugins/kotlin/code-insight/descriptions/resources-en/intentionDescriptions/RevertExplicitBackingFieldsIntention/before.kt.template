@@ -1,2 +1,0 @@
-val items: Set<Int>
-    field = mutableSetOf<Int>()

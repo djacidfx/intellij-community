@@ -2,4 +2,4 @@
 class MyClass<out T>
 
 val y: MyClass<Any>
-    field = MyClass<String>()<caret>
+    field<caret> = MyClass<String>()

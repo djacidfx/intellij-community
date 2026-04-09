@@ -1,7 +1,7 @@
 // COMPILER_ARGUMENTS: -Xexplicit-backing-fields
 class Foo {
     val x: List<Any>
-        field: MutableList<Int> = mutableListOf()<caret>
+        field<caret>: MutableList<Int> = mutableListOf()
 
     fun returnInt(): Int = x[0]
 }

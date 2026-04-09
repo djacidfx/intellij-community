@@ -4,5 +4,5 @@ internal class Foo {
     Useful documentation!!!
      */
     val x: List<Int>
-        field = mutableListOf<Int>()<caret>
+        field<caret> = mutableListOf<Int>()
 }

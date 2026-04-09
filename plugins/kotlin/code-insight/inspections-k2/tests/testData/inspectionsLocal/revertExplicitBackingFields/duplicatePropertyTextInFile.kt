@@ -3,7 +3,7 @@ interface I
 
 class First {
     val x: List<I>
-        field: MutableList<I> = mutableListOf()<caret>
+        field<caret>: MutableList<I> = mutableListOf()
 
     fun update(newX: I) {
         x.add(newX)

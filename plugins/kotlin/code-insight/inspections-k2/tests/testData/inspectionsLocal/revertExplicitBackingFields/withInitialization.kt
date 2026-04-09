@@ -1,7 +1,7 @@
 // COMPILER_ARGUMENTS: -Xexplicit-backing-fields
 class A {
     val town: List<String>
-        field: MutableList<String><caret>
+        field<caret>: MutableList<String>
 
     init {
         town = mutableListOf()

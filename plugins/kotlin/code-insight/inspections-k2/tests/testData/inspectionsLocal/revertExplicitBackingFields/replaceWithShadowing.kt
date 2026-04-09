@@ -6,7 +6,7 @@ class Child : Parent {
 
 class Point {
     val prop: Parent
-        field = Child()<caret>
+        field<caret> = Child()
 
     fun foo(): String {
         val prop = 1

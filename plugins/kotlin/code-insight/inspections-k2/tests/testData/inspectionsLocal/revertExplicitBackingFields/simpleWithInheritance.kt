@@ -7,6 +7,6 @@ class C {
     //
 
     val items: A
-        field = B()<caret>
+        field<caret> = B()
     //one more comment
 }

@@ -4,5 +4,5 @@ class Child : Parent
 
 class Point {
     val `pro p`: Parent
-        field = Child()<caret>
+        field<caret> = Child()
 }

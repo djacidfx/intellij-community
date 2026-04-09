@@ -2,9 +2,11 @@
 interface I
 class C {
     val x: List<I>
-        field: MutableList<I> = mutableListOf()<caret>
+        field<caret>: MutableList<I> = mutableListOf()
 
     fun update(newX: I) {
+        val _x: String = ""
+        println(_x)
         x.add(newX)
     }
 }
