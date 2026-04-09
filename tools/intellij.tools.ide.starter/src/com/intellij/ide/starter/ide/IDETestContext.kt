@@ -363,10 +363,6 @@ open class IDETestContext(
     addSystemProperty("search.everywhere.fuzzy.files.enabled", true)
   }
 
-  fun withKotlinPluginK2(): IDETestContext = applyVMOptionsPatch {
-    addSystemProperty("idea.kotlin.plugin.use.k1", false)
-  }
-
   fun enableCloudRegistry(registryHost: String): IDETestContext = applyVMOptionsPatch {
     addSystemProperty("ide.registry.refresh.debug", true)
     addSystemProperty("ide.registry.refresh.initial.delay.seconds", 0)

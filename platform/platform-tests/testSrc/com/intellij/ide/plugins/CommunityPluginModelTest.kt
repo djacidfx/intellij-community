@@ -31,11 +31,6 @@ private val communityPluginModelBuilderOptions = SourceCodeBasedPluginModelBuild
       systemPropertyName = "idea.kotlin.plugin.use.k1",
       systemPropertyValue = "false",
     ),
-    PluginVariantWithDynamicIncludes(
-      mainModuleName = "kotlin.plugin",
-      systemPropertyName = "idea.kotlin.plugin.use.k1",
-      systemPropertyValue = "true",
-    ),
   ),
 )
 

@@ -448,6 +448,10 @@ internal class PluginModelValidator(
             registerError("Use com.intellij.java id instead of com.intellij.modules.java")
             continue
           }
+          if (id == "com.intellij.modules.kotlin.k1") {
+            // we won't load k1 in the IDE
+            return
+          }
           if (id == "com.intellij.modules.platform") {
             // todo: remove this check when MP-7413 is fixed in the plugin verifier version used at the Marketplace
             if (moduleDependenciesCount > 1) {
