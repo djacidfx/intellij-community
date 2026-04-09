@@ -2,24 +2,24 @@
 package com.intellij.ide.minimap.hover
 
 import com.intellij.ide.minimap.MinimapPanel
+import com.intellij.ide.minimap.scene.MinimapSnapshot
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Disposer
 import com.intellij.platform.util.coroutines.childScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
-import com.intellij.ide.minimap.scene.MinimapSnapshot
-import com.intellij.ide.minimap.layout.MinimapLayoutMode
 import java.awt.Graphics2D
 import java.awt.Point
 
 class MinimapHoverController(
   coroutineScope: CoroutineScope,
-  panel: MinimapPanel,
+  private val panel: MinimapPanel,
   private val isDocumentCommitted: () -> Boolean,
 ): Disposable {
   private val scope = coroutineScope.childScope("MinimapHoverController")
   private val hitChecker = MinimapHoverHitCheck(panel.editor)
   private val presenter = MinimapHoverPresenter(panel)
+  private val hoverPolicy = MinimapHoverPolicy.forEditor(panel.editor)
   private var lastSnapshot: MinimapSnapshot? = null
   private var hoverEnabled = true
 
@@ -40,7 +40,7 @@ class MinimapHoverController(
   }
 
   fun onSnapshot(snapshot: MinimapSnapshot) {
-    hoverEnabled = snapshot.layoutMode == MinimapLayoutMode.EXACT
+    hoverEnabled = hoverPolicy.isHoverEnabled(panel.editor, snapshot)
     if (!hoverEnabled) {
       hideBalloon()
     }

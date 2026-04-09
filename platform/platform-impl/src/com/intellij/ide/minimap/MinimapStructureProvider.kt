@@ -1,6 +1,7 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.minimap
 
+import com.intellij.ide.minimap.model.MinimapStructureModelProvider
 import com.intellij.ide.structureView.StructureViewModel
 import com.intellij.ide.structureView.TreeBasedStructureViewBuilder
 import com.intellij.lang.LanguageStructureViewBuilder
@@ -12,6 +13,8 @@ import com.intellij.psi.PsiDocumentManager
 
 class MinimapStructureProvider(private val project: Project?, private val parentDisposable: Disposable) {
   fun createModel(editor: Editor): StructureViewModel? {
+    MinimapStructureModelProvider.resolve(editor, parentDisposable)?.let { return it }
+
     project ?: return null
 
     val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(editor.document) ?: return null

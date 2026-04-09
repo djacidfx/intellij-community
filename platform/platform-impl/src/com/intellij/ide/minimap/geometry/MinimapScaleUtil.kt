@@ -1,6 +1,7 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.minimap.geometry
 
+import com.intellij.ide.minimap.layout.MinimapLayoutProfileProvider
 import com.intellij.ide.minimap.layout.MinimapLayoutUtil
 import com.intellij.ide.minimap.settings.MinimapScaleMode
 import com.intellij.openapi.editor.Editor
@@ -18,26 +19,27 @@ object MinimapScaleUtil {
                    panelHeight: Int,
                    fixedWidth: Int,
                    scaleMode: MinimapScaleMode): MinimapScaleData {
+    val additionalWidth = MinimapLayoutProfileProvider.forEditor(editor).additionalPanelWidthPx
     val maxWidth = fixedWidth.coerceAtLeast(1)
     if (scaleMode != MinimapScaleMode.FIT) {
-      return MinimapScaleData(width = maxWidth, fitToHeight = false)
+      return MinimapScaleData(width = applyAdditionalWidth(maxWidth, additionalWidth), fitToHeight = false)
     }
 
     val documentHeight = documentHeight(editor, editor.document.lineCount)
     if (documentHeight <= 0 || panelHeight <= 0) {
-      return MinimapScaleData(width = maxWidth, fitToHeight = false)
+      return MinimapScaleData(width = applyAdditionalWidth(maxWidth, additionalWidth), fitToHeight = false)
     }
 
     val logicalWidth = logicalWidth(editor)
     if (logicalWidth <= 0) {
-      return MinimapScaleData(width = maxWidth, fitToHeight = false)
+      return MinimapScaleData(width = applyAdditionalWidth(maxWidth, additionalWidth), fitToHeight = false)
     }
 
     val idealWidth = panelHeight.toDouble() * logicalWidth / documentHeight.toDouble()
     val minWidth = MIN_FIT_WIDTH.coerceAtMost(maxWidth).coerceAtLeast(1)
     val width = idealWidth.toInt().coerceIn(minWidth, maxWidth)
     val fitToHeight = idealWidth <= maxWidth.toDouble()
-    return MinimapScaleData(width = width, fitToHeight = fitToHeight)
+    return MinimapScaleData(width = applyAdditionalWidth(width, additionalWidth), fitToHeight = fitToHeight)
   }
 
   fun effectiveWidth(editor: Editor, panelHeight: Int, fixedWidth: Int, scaleMode: MinimapScaleMode): Int {
@@ -55,5 +57,10 @@ object MinimapScaleUtil {
     val charWidth = EditorUtil.getPlainSpaceWidth(editor)
     val visibleWidth = editor.scrollingModel.visibleArea.width
     return MinimapLayoutUtil.computeLogicalWidth(rightMargin, charWidth, visibleWidth)
+  }
+
+  private fun applyAdditionalWidth(width: Int, additionalWidth: Int): Int {
+    if (additionalWidth <= 0) return width
+    return width.coerceAtMost(Int.MAX_VALUE - additionalWidth) + additionalWidth
   }
 }

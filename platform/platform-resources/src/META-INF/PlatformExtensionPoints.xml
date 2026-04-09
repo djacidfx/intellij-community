@@ -722,16 +722,6 @@
                     interface="com.intellij.ide.plugins.PluginCategoryPromotionProvider"
                     dynamic="false"/>
 
-    <extensionPoint name="minimapStructureMarkerPolicy"
-                    interface="com.intellij.ide.minimap.model.MinimapStructureMarkerPolicy"
-                    dynamic="true"/>
-    <extensionPoint name="minimapLayerFactory"
-                    interface="com.intellij.ide.minimap.layers.MinimapLayerFactory"
-                    dynamic="true"/>
-    <extensionPoint name="minimapFileSupportPolicy"
-                    interface="com.intellij.ide.minimap.model.MinimapFileSupportPolicy"
-                    dynamic="true"/>
-
     <extensionPoint name="fileChooserCustomizer"
                     interface="com.intellij.openapi.fileChooser.FileChooserCustomizer"
                     dynamic="true"/>

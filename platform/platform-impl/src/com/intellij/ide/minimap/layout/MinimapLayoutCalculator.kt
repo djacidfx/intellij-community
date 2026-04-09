@@ -5,6 +5,7 @@ import com.intellij.ide.minimap.model.MinimapStructureMarker
 import com.intellij.ide.minimap.model.MinimapLineProjection
 import com.intellij.ide.minimap.render.MinimapRenderContext
 import com.intellij.ide.minimap.render.MinimapRenderEntry
+import com.intellij.ide.minimap.render.MinimapTokenRenderPolicy
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.TextRange
 import java.awt.geom.Rectangle2D
@@ -19,6 +20,7 @@ class MinimapLayoutCalculator(private val editor: Editor) {
   private data class LayoutBuildState(
     val layout: MinimapLayoutContext,
     val documentLength: Int,
+    val tokenRenderPolicy: MinimapTokenRenderPolicy,
     val tokenEntries: ArrayList<MinimapRenderEntry>,
     val structureEntries: ArrayList<MinimapRenderEntry>,
   )
@@ -70,6 +72,7 @@ class MinimapLayoutCalculator(private val editor: Editor) {
     val lineCount = metrics.lineCount
     if (lineCount == 0) return null
 
+    val tokenRenderPolicy = MinimapTokenRenderPolicy.forEditor(editor)
     val tokenEntries = ArrayList<MinimapRenderEntry>()
     val structureEntries = ArrayList<MinimapRenderEntry>(structureMarkers.size)
     val visibleLines = MinimapLayoutUtil.visibleLines(geometry, lineCount)
@@ -80,7 +83,7 @@ class MinimapLayoutCalculator(private val editor: Editor) {
       visibleLines = visibleLines,
       lineProjection = context.lineProjection,
     )
-    return LayoutBuildState(layout, documentLength, tokenEntries, structureEntries)
+    return LayoutBuildState(layout, documentLength, tokenRenderPolicy, tokenEntries, structureEntries)
   }
 
   private fun buildResult(prepared: LayoutBuildState): MinimapLayoutBuildResult {
@@ -98,6 +101,7 @@ class MinimapLayoutCalculator(private val editor: Editor) {
     val pxPerColumn = context.metrics.pxPerColumn
     val document = context.document
     val chars = document.charsSequence
+    val tokenRenderPolicy = prepared.tokenRenderPolicy
     if (context.visibleLines.isEmpty()) return
     val firstLogicalLine = lineProjection.projectedToLogicalLine(context.visibleLines.first) ?: return
     val iterator = editor.highlighter.createIterator(document.getLineStartOffset(firstLogicalLine))
@@ -120,7 +124,16 @@ class MinimapLayoutCalculator(private val editor: Editor) {
         val tokenStart = iterator.start.coerceAtLeast(lineStartOffset)
         val tokenEnd = iterator.end.coerceAtMost(trimmedEndOffset)
 
-        if (tokenEnd > tokenStart && !isWhitespace(chars, tokenStart, tokenEnd)) {
+        if (tokenEnd > tokenStart &&
+            !isWhitespace(chars, tokenStart, tokenEnd) &&
+            tokenRenderPolicy.shouldRenderTokenSpan(
+              editor = editor,
+              document = document,
+              lineStartOffset = lineStartOffset,
+              lineEndOffset = lineEndOffset,
+              startOffset = tokenStart,
+              endOffset = tokenEnd,
+            )) {
           val startColumn = (tokenStart - lineStartOffset).coerceAtLeast(0)
           val endColumn = (tokenEnd - lineStartOffset).coerceAtLeast(startColumn + 1)
           val rect2d = rectForColumns(startColumn, endColumn, band, context, pxPerColumn)
@@ -159,7 +172,7 @@ class MinimapLayoutCalculator(private val editor: Editor) {
         line = bandEndLine
         continue
       }
-      appendDenseBandFillers(result, context, band, lineProjection, line, bandEndLine)
+      appendDenseBandFillers(result, context, band, lineProjection, line, bandEndLine, prepared.tokenRenderPolicy)
       line = bandEndLine
     }
   }
@@ -169,18 +182,19 @@ class MinimapLayoutCalculator(private val editor: Editor) {
                                      band: LineBand,
                                      lineProjection: MinimapLineProjection,
                                      startLine: Int,
-                                     endLineExclusive: Int) {
+                                     endLineExclusive: Int,
+                                     tokenRenderPolicy: MinimapTokenRenderPolicy) {
     val lineCount = endLineExclusive - startLine
     if (lineCount <= 0) return
 
-    appendDenseSampleForLine(result, context, band, lineProjection, startLine)
+    appendDenseSampleForLine(result, context, band, lineProjection, startLine, tokenRenderPolicy)
 
     if (lineCount > 2) {
-      appendDenseSampleForLine(result, context, band, lineProjection, startLine + lineCount / 2)
+      appendDenseSampleForLine(result, context, band, lineProjection, startLine + lineCount / 2, tokenRenderPolicy)
     }
 
     if (lineCount > 1) {
-      appendDenseSampleForLine(result, context, band, lineProjection, endLineExclusive - 1)
+      appendDenseSampleForLine(result, context, band, lineProjection, endLineExclusive - 1, tokenRenderPolicy)
     }
   }
 
@@ -188,7 +202,8 @@ class MinimapLayoutCalculator(private val editor: Editor) {
                                        context: MinimapLayoutContext,
                                        band: LineBand,
                                        lineProjection: MinimapLineProjection,
-                                       projectedLine: Int) {
+                                       projectedLine: Int,
+                                       tokenRenderPolicy: MinimapTokenRenderPolicy) {
     val logicalLine = lineProjection.projectedToLogicalLine(projectedLine) ?: return
     val document = context.document
     val chars = document.charsSequence
@@ -201,6 +216,17 @@ class MinimapLayoutCalculator(private val editor: Editor) {
 
     val trimmedStartOffset = trimLineStart(chars, lineStartOffset, trimmedEndOffset)
     if (trimmedStartOffset >= trimmedEndOffset) return
+
+    if (!tokenRenderPolicy.shouldRenderTokenSpan(
+        editor = editor,
+        document = document,
+        lineStartOffset = lineStartOffset,
+        lineEndOffset = lineEndOffset,
+        startOffset = trimmedStartOffset,
+        endOffset = trimmedEndOffset,
+      )) {
+      return
+    }
 
     val startColumn = (trimmedStartOffset - lineStartOffset).coerceAtLeast(0)
     val endColumn = (trimmedEndOffset - lineStartOffset).coerceAtLeast(startColumn + 1)
