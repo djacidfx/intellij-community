@@ -69,7 +69,16 @@ public class XValueNodeImpl extends XValueContainerNode<XValue> implements XValu
     myName = name;
 
     // todo: should be rewritten, this code passes partially initialized 'this' into a call
-    value.computePresentation(this, XValuePlace.TREE);
+    initializePresentation();
+  }
+
+  XValueNodeImpl(XValueNodeImpl node, @NotNull XValue value) {
+    super(node.getTree(), (XDebuggerTreeNode)node.getParent(), true, value);
+    myName = node.getName();
+  }
+
+  private void initializePresentation() {
+    getValueContainer().computePresentation(this, XValuePlace.TREE);
 
     // add "Collecting" message only if computation is not yet done
     if (!isComputed()) {
@@ -79,11 +88,6 @@ public class XValueNodeImpl extends XValueContainerNode<XValue> implements XValu
       }
       myText.append(XDebuggerUIConstants.getCollectingDataMessage(), XDebuggerUIConstants.COLLECTING_DATA_HIGHLIGHT_ATTRIBUTES);
     }
-  }
-
-  XValueNodeImpl(XValueNodeImpl node, @NotNull XValue value) {
-    super(node.getTree(), (XDebuggerTreeNode)node.getParent(), true, value);
-    myName = node.getName();
   }
 
   @Override
@@ -376,5 +380,19 @@ public class XValueNodeImpl extends XValueContainerNode<XValue> implements XValu
         XDebuggerPinToTopAction.Companion.pinToTopField(event, XValueNodeImpl.this);
       }
     };
+  }
+
+  @ApiStatus.Internal
+  @Override
+  protected final void clear() {
+    super.clear();
+    myValuePresentation = null;
+    myChanged = false;
+  }
+
+  @ApiStatus.Internal
+  public final void recomputePresentation() {
+    clear();
+    initializePresentation();
   }
 }

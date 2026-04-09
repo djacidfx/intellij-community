@@ -6,7 +6,6 @@ import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.platform.debugger.impl.shared.SplitDebuggerAction
 import com.intellij.xdebugger.XDebuggerBundle
-import com.intellij.xdebugger.frame.XValuePlace
 import com.intellij.xdebugger.impl.frame.XWatchesView
 import com.intellij.xdebugger.impl.ui.tree.XDebuggerTree
 import com.intellij.xdebugger.impl.ui.tree.nodes.WatchNodeImpl
@@ -52,7 +51,7 @@ internal class XPauseWatchAction : XWatchesTreeActionBase(), SplitDebuggerAction
       }
       else {
         // resume watch, trigger value evaluation
-        node.valueContainer.computePresentation(node, XValuePlace.TREE)
+        node.recomputePresentation()
       }
     }
   }
