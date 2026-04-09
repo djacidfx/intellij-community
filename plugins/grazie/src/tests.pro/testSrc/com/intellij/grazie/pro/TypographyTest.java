@@ -5,7 +5,6 @@ import ai.grazie.rules.en.EnglishParameters;
 import com.intellij.grazie.GrazieConfig;
 import com.intellij.grazie.ide.inspection.grammar.GrazieInspection;
 import com.intellij.grazie.jlanguage.Lang;
-import com.intellij.grazie.text.TreeRuleChecker;
 import com.intellij.grazie.utils.TextStyleDomain;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,7 +26,7 @@ public class TypographyTest extends BaseTestCase {
   @Test
   public void testDashesAreSuggestedInMd() {
     GrazieConfig.Companion.update(config -> config.withAutoFix(false));
-    HighlightingTest.enableLanguages(Set.of(Lang.AMERICAN_ENGLISH, Lang.RUSSIAN), getProject(), getTestRootDisposable());
+    HighlightingTest.enableLanguages(Set.of(Lang.AMERICAN_ENGLISH, Lang.RUSSIAN), getTestRootDisposable());
 
     myFixture.configureByText("a.md", """
     A Song for <STYLE_SUGGESTION>Spain<caret> - Consider</STYLE_SUGGESTION> what it would be like to have a national anthem without lyrics.
@@ -44,7 +43,7 @@ public class TypographyTest extends BaseTestCase {
   @NeedsCloud
   @Test
   public void testPlainTextDashesAreNotSuggestedInComments() {
-    HighlightingTest.enableLanguages(Set.of(Lang.AMERICAN_ENGLISH, Lang.RUSSIAN), getProject(), getTestRootDisposable());
+    HighlightingTest.enableLanguages(Set.of(Lang.AMERICAN_ENGLISH, Lang.RUSSIAN), getTestRootDisposable());
 
     myFixture.configureByText("a.java", """
     // A Song for Spain - Consider what it would be like to have a national anthem without lyrics.
@@ -79,7 +78,7 @@ public class TypographyTest extends BaseTestCase {
   @NeedsCloud
   @Test
   public void testSmartQuoteContexts() {
-    HighlightingTest.enableLanguages(Set.of(Lang.GERMANY_GERMAN), getProject(), getTestRootDisposable());
+    HighlightingTest.enableLanguages(Set.of(Lang.GERMANY_GERMAN), getTestRootDisposable());
 
     // plain quotes in code, which prefers ASCII
     myFixture.configureByText("a.java", "// Wo ist das <GRAMMAR_ERROR descr=\"Grazie.RuleEngine.De.Spelling.WORD_SEPARATION\"><caret>Gefällt mir Teil</GRAMMAR_ERROR>?");
@@ -103,7 +102,7 @@ public class TypographyTest extends BaseTestCase {
   @NeedsCloud
   @Test
   public void testNbspInMarkdown() {
-    HighlightingTest.enableLanguages(Set.of(Lang.AMERICAN_ENGLISH, Lang.GERMANY_GERMAN), getProject(), getTestRootDisposable());
+    HighlightingTest.enableLanguages(Set.of(Lang.AMERICAN_ENGLISH, Lang.GERMANY_GERMAN), getTestRootDisposable());
 
     myFixture.configureByText("a.md",
       "Die Datei wird benötigt (<STYLE_SUGGESTION descr=\"Grazie.RuleEngine.De.Typography.ABBREVIATION_SPACES\"><caret>z.B.</STYLE_SUGGESTION> aus welchem Sourcestand die Anwendung gebaut wurde)."
@@ -117,7 +116,7 @@ public class TypographyTest extends BaseTestCase {
   @NeedsCloud
   @Test
   public void testNoNbspInComments() {
-    HighlightingTest.enableLanguages(Set.of(Lang.AMERICAN_ENGLISH, Lang.GERMANY_GERMAN), getProject(), getTestRootDisposable());
+    HighlightingTest.enableLanguages(Set.of(Lang.AMERICAN_ENGLISH, Lang.GERMANY_GERMAN), getTestRootDisposable());
 
     myFixture.configureByText("a.java", "// Die Datei wird benötigt (<STYLE_SUGGESTION descr=\"Grazie.RuleEngine.De.Typography.ABBREVIATION_SPACES\">z.<caret>B.</STYLE_SUGGESTION> aus welchem Sourcestand die Anwendung gebaut wurde).");
     myFixture.checkHighlighting();
@@ -141,7 +140,7 @@ public class TypographyTest extends BaseTestCase {
   @NeedsCloud
   @Test
   public void testNoGermanEllipsisNbsp() {
-    HighlightingTest.enableLanguages(Set.of(Lang.AMERICAN_ENGLISH, Lang.GERMANY_GERMAN), getProject(), getTestRootDisposable());
+    HighlightingTest.enableLanguages(Set.of(Lang.AMERICAN_ENGLISH, Lang.GERMANY_GERMAN), getTestRootDisposable());
 
     myFixture.configureByText("a.java", "// Was das wohl <caret><GRAMMAR_ERROR descr=\"Grazie.RuleEngine.De.Punctuation.FORMATTING_ISSUES\">bedeutet...</GRAMMAR_ERROR>");
     myFixture.checkHighlighting();
