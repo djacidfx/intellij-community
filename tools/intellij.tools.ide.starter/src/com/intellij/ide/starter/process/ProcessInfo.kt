@@ -38,8 +38,19 @@ class ProcessInfo private constructor(
       )
     }
 
-    suspend fun OSProcess.toProcessInfo(portThatIsUsedByProcess: Int? = null): ProcessInfo {
-      return create(processID.toLong(), portThatIsUsedByProcess)
+    fun create(p: OSProcess, portThatIsUsedByProcess: Int? = null): ProcessInfo = ProcessInfo(
+      pid = p.processID.toLong(),
+      parentPid = p.parentProcessID.toLong(),
+      name = p.name ?: "Not Available",
+      arguments = p.arguments ?: emptyList(),
+      startTime = p.startTime.let(Instant::ofEpochMilli),
+      user = p.user,
+      processHandle = ProcessHandle.of(p.processID.toLong()).getOrNull(),
+      portThatIsUsedByProcess = portThatIsUsedByProcess
+    )
+
+    fun OSProcess.toProcessInfo(portThatIsUsedByProcess: Int? = null): ProcessInfo {
+      return create(this, portThatIsUsedByProcess)
     }
 
     suspend fun Process.toProcessInfo(): ProcessInfo {
