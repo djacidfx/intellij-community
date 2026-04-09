@@ -8,6 +8,7 @@ import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.io.BufferExposingByteArrayOutputStream;
 import com.intellij.openapi.util.io.FileUtilRt;
 import com.intellij.openapi.util.io.NioFiles;
+import com.intellij.openapi.vfs.DiskQueryRelay;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileWithId;
 import com.intellij.openapi.vfs.newvfs.AttributeInputStream;
@@ -22,6 +23,7 @@ import com.intellij.util.concurrency.AppExecutorUtil;
 import com.intellij.util.concurrency.SynchronizedClearableLazy;
 import com.intellij.util.containers.CollectionFactory;
 import com.intellij.util.containers.FactoryMap;
+import com.intellij.util.gist.VirtualFileAwareExternalizer;
 import com.intellij.util.io.DataExternalizer;
 import com.intellij.util.io.IOUtil;
 import com.intellij.util.progress.CancellationUtil;
@@ -220,49 +222,51 @@ public final class GistStorageImpl extends GistStorage {
 
       CancellationUtil.lockMaybeCancellable(lock.readLock());
       try {
-        try (AttributeInputStream stream = fileAttribute.readFileAttribute(file)) {
-          if (stream == null) {
-            return GistData.empty();
-          }
-          //iterate through Gists records, look for Gist for the project given:
-          while (true) {
-            GistRecord<Data> gistRecord = nextRecordOrNull(stream, externalizer);
-            if (gistRecord == null) {
+        return DiskQueryRelay.compute(() -> {
+          try (AttributeInputStream stream = fileAttribute.readFileAttribute(file)) {
+            if (stream == null) {
               return GistData.empty();
             }
-            if (!gistRecord.matchProjectId(projectId)) {
-              continue;
-            }
-            if (gistRecord.gistStamp != expectedGistStamp) {
-              return GistData.outdated(gistRecord.gistStamp);
-            }
-            if (gistRecord.externalFileSuffix == null) {
-              return GistData.valid(
-                gistRecord.payload,
-                gistRecord.gistStamp
-              );
-            }
-            else {
-              Path gistPath = dedicatedGistFilePath(file, gistRecord.externalFileSuffix);
-              if (!Files.exists(gistPath)) {
-                //looks like data corruption: if gist value was indeed null, we would have stored it as VALUE_KIND_NULL
-                throw new IOException("Gist file [" + gistPath + "] doesn't exist -> looks like data corruption?");
+            //iterate through Gists records, look for Gist for the project given:
+            while (true) {
+              GistRecord<Data> gistRecord = nextRecordOrNull(stream, externalizer, file);
+              if (gistRecord == null) {
+                return GistData.empty();
               }
-              try (DataInputStream gistStream = new DataInputStream(Files.newInputStream(gistPath, StandardOpenOption.READ))) {
+              if (!gistRecord.matchProjectId(projectId)) {
+                continue;
+              }
+              if (gistRecord.gistStamp != expectedGistStamp) {
+                return GistData.outdated(gistRecord.gistStamp);
+              }
+              if (gistRecord.externalFileSuffix == null) {
                 return GistData.valid(
-                  externalizer.read(gistStream),
+                  gistRecord.payload,
                   gistRecord.gistStamp
                 );
               }
+              else {
+                Path gistPath = dedicatedGistFilePath(file, gistRecord.externalFileSuffix);
+                if (!Files.exists(gistPath)) {
+                  //looks like data corruption: if gist value was indeed null, we would have stored it as VALUE_KIND_NULL
+                  throw new IOException("Gist file [" + gistPath + "] doesn't exist -> looks like data corruption?");
+                }
+                try (DataInputStream gistStream = new DataInputStream(Files.newInputStream(gistPath, StandardOpenOption.READ))) {
+                  Data read = externalizer instanceof VirtualFileAwareExternalizer ? 
+                              ((VirtualFileAwareExternalizer<Data>)externalizer).read(file, gistStream) : 
+                              externalizer.read(gistStream);
+                  return GistData.valid(read, gistRecord.gistStamp);
+                }
+              }
             }
           }
-        }
-        catch (ProcessCanceledException pce) {
-          throw pce;
-        }
-        catch (Exception e) {
-          throw new IOException("Can't read " + this, e);
-        }
+          catch (ProcessCanceledException pce) {
+            throw pce;
+          }
+          catch (Exception e) {
+            throw new IOException("Can't read " + this, e);
+          }
+        });
       }
       finally {
         lock.readLock().unlock();
@@ -283,7 +287,7 @@ public final class GistStorageImpl extends GistStorage {
         try (AttributeInputStream attributeStream = fileAttribute.readFileAttribute(file)) {
           if (attributeStream != null) {
             while (attributeStream.available() > 0) {
-              GistRecord<Data> record = nextRecordOrNull(attributeStream, externalizer);
+              GistRecord<Data> record = nextRecordOrNull(attributeStream, externalizer, file);
               if (record == null) {
                 break;
               }
@@ -334,7 +338,8 @@ public final class GistStorageImpl extends GistStorage {
 
 
     private static @Nullable <T> GistRecord<T> nextRecordOrNull(@NotNull AttributeInputStream stream,
-                                                                @NotNull DataExternalizer<T> externalizer) throws IOException {
+                                                                @NotNull DataExternalizer<T> externalizer, 
+                                                                @NotNull VirtualFile file) throws IOException {
       if (stream.available() == 0) {
         return null;
       }
@@ -359,7 +364,9 @@ public final class GistStorageImpl extends GistStorage {
           );
         }
         case VALUE_KIND_INLINE -> {
-          T gistValue = externalizer.read(stream);
+          T gistValue = externalizer instanceof VirtualFileAwareExternalizer ?
+                        ((VirtualFileAwareExternalizer<T>)externalizer).read(file, stream) :
+                        externalizer.read(stream);
           return new GistRecord<>(
             persistedProjectId,
             persistedGistStamp,

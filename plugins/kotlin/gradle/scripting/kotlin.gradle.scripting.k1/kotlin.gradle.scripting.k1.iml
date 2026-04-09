@@ -49,5 +49,6 @@
     <orderEntry type="module" module-name="kotlin.base.scripting.k1" />
     <orderEntry type="module" module-name="intellij.platform.externalSystem.impl" />
     <orderEntry type="module" module-name="intellij.kotlin.base.scripting.shared" />
+    <orderEntry type="module" module-name="intellij.platform.indexing" />
   </component>
 </module>

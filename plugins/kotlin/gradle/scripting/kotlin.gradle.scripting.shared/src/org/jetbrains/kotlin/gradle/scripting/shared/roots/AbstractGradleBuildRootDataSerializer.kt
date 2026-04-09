@@ -20,20 +20,16 @@ private const val NO_TRACK_GIST_STAMP = 0
 
 abstract class AbstractGradleBuildRootDataSerializer {
 
-    protected val currentBuildRoot: ThreadLocal<VirtualFile> = ThreadLocal()
-
     private val buildRootDataGist =
         GistStorage.getInstance().newGist("GradleBuildRootData", BINARY_FORMAT_VERSION, getExternalizer())
 
     protected abstract fun getExternalizer(): DataExternalizer<GradleBuildRootData>
 
     fun read(buildRoot: VirtualFile): GradleBuildRootData? {
-        currentBuildRoot.set(buildRoot)
         return buildRootDataGist.getGlobalData(buildRoot, NO_TRACK_GIST_STAMP).data()
     }
 
     fun write(buildRoot: VirtualFile, data: GradleBuildRootData?) {
-        currentBuildRoot.set(buildRoot) // putGlobalData calls  Externalizer.read
         buildRootDataGist.putGlobalData(buildRoot, data, NO_TRACK_GIST_STAMP)
     }
 
