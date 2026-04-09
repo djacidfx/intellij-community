@@ -54,6 +54,18 @@ public interface ModCompletionItem {
   }
 
   /**
+   * Generates and returns the {@link ModCommand} necessary to insert this item into the document.
+   * <p> 
+   * It is strongly recommended to extend {@link PsiUpdateCompletionItem} and override
+   * {@link PsiUpdateCompletionItem#update} instead of implementing this method directly.
+   * <p>
+   * If you implement this method directly and the command modifies text, you must account for the fact that
+   * the selection range will already be deleted by the time the command is applied.
+   * To handle this, use the {@code copyCleaner} parameter of
+   * {@link ModCommand#psiUpdate(ActionContext, java.util.function.Consumer, java.util.function.Consumer)},
+   * which lets you adjust the document copy to match the expected state.
+   * If the document texts don't match, the command will not be applied.
+   * 
    * @param actionContext    action context where the completion is performed.
    *                         The selection range denotes the prefix text inserted during the current completion session.
    *                         The command must ignore it, as at the time it will be applied, the selection range will be deleted.
