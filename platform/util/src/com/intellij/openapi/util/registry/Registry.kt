@@ -3,7 +3,6 @@ package com.intellij.openapi.util.registry
 
 import com.intellij.diagnostic.LoadingState
 import com.intellij.openapi.util.NlsSafe
-import kotlinx.coroutines.future.asDeferred
 import org.jdom.Element
 import org.jetbrains.annotations.ApiStatus.Experimental
 import org.jetbrains.annotations.ApiStatus.Internal
@@ -14,7 +13,6 @@ import java.lang.ref.Reference
 import java.lang.ref.SoftReference
 import java.util.MissingResourceException
 import java.util.Properties
-import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.function.Function
 
@@ -50,12 +48,13 @@ class Registry {
     private set
 
   @Volatile
-  var valueChangeListener: RegistryValueListener = EMPTY_VALUE_LISTENER
+  internal var valueChangeListener: RegistryValueListener = EMPTY_VALUE_LISTENER
     private set
 
   companion object {
     private var bundledRegistry: Reference<Map<String, String>>? = null
 
+    @Internal
     const val REGISTRY_BUNDLE: String = "misc.registry"
 
     private val EMPTY_VALUE_LISTENER: RegistryValueListener = object : RegistryValueListener { }
@@ -153,6 +152,21 @@ class Registry {
     @Throws(MissingResourceException::class)
     @JvmStatic
     fun stringValue(key: String): String = getInstance().resolveValue(key).asString()
+
+    @JvmStatic
+    fun stringValue(key: String, defaultValue: String): String {
+      if (!LoadingState.COMPONENTS_LOADED.isOccurred) {
+        LoadingState.COMPONENTS_REGISTERED.checkOccurred()
+        return defaultValue
+      }
+
+      try {
+        return registry.resolveValue(key).asString()
+      }
+      catch (_: MissingResourceException) {
+        return defaultValue
+      }
+    }
 
     @Throws(MissingResourceException::class)
     @JvmStatic
@@ -350,12 +364,14 @@ class Registry {
   private fun resolveValue(key: String): RegistryValue = values.computeIfAbsent(key, valueProducer)
 
   @TestOnly
+  @Internal
   fun reset() {
     userProperties.clear()
     values.clear()
     isLoaded = false
   }
 
+  @Internal
   fun getBundleValueOrNull(key: String): @NlsSafe String? =
     contributedKeys[key]?.defaultValue ?: loadFromBundledConfig()?.get(key)
 
@@ -412,9 +428,11 @@ class Registry {
     }
   }
 
+  @get:Internal
   val isInDefaultState: Boolean
     get() = userProperties.isEmpty()
 
+  @get:Internal
   val isRestartNeeded: Boolean
     get() = isRestartNeeded(userProperties)
 }
