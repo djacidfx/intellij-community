@@ -1,3 +1,5 @@
+@file:Suppress("RAW_RUN_BLOCKING", "OPT_IN_USAGE")
+
 package com.intellij.ide.starter.process
 
 import com.intellij.ide.starter.ci.CIServer
@@ -13,9 +15,6 @@ import com.intellij.tools.ide.util.common.logOutput
 import com.intellij.tools.ide.util.common.withRetry
 import com.intellij.util.system.OS
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import oshi.SystemInfo
@@ -32,24 +31,29 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.measureTimedValue
 
 suspend fun getProcessList(processName: String? = null): List<ProcessInfo> =
-  coroutineScope {
-    val processes = withContext(Dispatchers.IO) {
-      SystemInfo().operatingSystem.getProcesses({ p ->
-        p.state != OSProcess.State.INVALID && (processName == null || p.name == processName)
-      }, null, 0)
+  if (processName == null) getFilteredProcessList()
+  else {
+    getFilteredProcessList { p ->
+      p.name == processName
     }
-    processes
-      .map { async { it.toProcessInfo() } }
-      .awaitAll()
   }
 
 suspend fun getProcessList(vararg substringToSearch: String): List<ProcessInfo> =
-  getProcessList().filter { p ->
+  getFilteredProcessList { p ->
     substringToSearch.isEmpty() || p.arguments.any { arg -> substringToSearch.any { arg.contains(it) } }
   }
 
 suspend fun getProcessList(filter: Predicate<ProcessInfo>): List<ProcessInfo> =
-  getProcessList().filter(filter::test)
+  getFilteredProcessList().filter(filter::test)
+
+private suspend fun getFilteredProcessList(filter: Predicate<OSProcess>? = null): List<ProcessInfo> = withContext(Dispatchers.IO) {
+  SystemInfo().operatingSystem.getProcesses(
+    { p -> p.state != OSProcess.State.INVALID && (filter == null || filter.test(p)) },
+    null,
+    0,
+  )
+    .map { it.toProcessInfo() }
+}
 
 /**
  * Identifies and terminates any leftover processes from previous test runs, specifically those
