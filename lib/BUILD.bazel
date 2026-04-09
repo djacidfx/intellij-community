@@ -8791,28 +8791,6 @@ java_library(
 )
 
 copy_file(
-  name = "org.jetbrains.kotlin/analysis-api-impl-base-tests-for-ide-2.4.0-dev-9153.jar_copy",
-  src = "@org_jetbrains_kotlin-analysis-api-impl-base-tests-for-ide-2_4_0-dev-9153_http//file",
-  out = "org.jetbrains.kotlin/analysis-api-impl-base-tests-for-ide-2.4.0-dev-9153.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-jvm_import(
-  name = "kotlinc-analysis-api-impl-base-tests",
-  jar = "@org_jetbrains_kotlin-analysis-api-impl-base-tests-for-ide-2_4_0-dev-9153_http//file",
-  source_jar = "@org_jetbrains_kotlin-analysis-api-impl-base-tests-for-ide-2_4_0-dev-9153-sources_http//file",
-  visibility = ["//visibility:public"]
-)
-
-java_library(
-  name = "kotlinc-analysis-api-impl-base-tests-provided",
-  exports = [":kotlinc-analysis-api-impl-base-tests"],
-  neverlink = True,
-  visibility = ["//visibility:public"]
-)
-
-copy_file(
   name = "org.jetbrains.kotlin/analysis-api-k2-for-ide-2.4.0-dev-9153.jar_copy",
   src = "@org_jetbrains_kotlin-analysis-api-k2-for-ide-2_4_0-dev-9153_http//file",
   out = "org.jetbrains.kotlin/analysis-api-k2-for-ide-2.4.0-dev-9153.jar",

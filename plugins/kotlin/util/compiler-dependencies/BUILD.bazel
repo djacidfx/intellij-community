@@ -20,7 +20,6 @@ jvm_library(
     "@lib//:kotlinc-analysis-api-fe10-provided",
     "@lib//:kotlinc-analysis-api-provided",
     "@lib//:kotlinc-analysis-api-impl-base-provided",
-    "@lib//:kotlinc-analysis-api-impl-base-tests-provided",
     "@lib//:kotlinc-analysis-api-platform-interface-provided",
     "@lib//:kotlinc-symbol-light-classes-provided",
     "@lib//:kotlinc-incremental-compilation-impl-tests-provided",
