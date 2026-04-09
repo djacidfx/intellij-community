@@ -36,6 +36,7 @@ import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import com.intellij.util.SystemProperties
 import com.intellij.util.currentJavaVersion
 import com.intellij.util.system.CpuArch
+import com.intellij.util.system.LowLevelLocalMachineAccess
 import com.intellij.util.system.OS
 import com.intellij.util.ui.IoErrorText
 import kotlinx.coroutines.CoroutineScope
@@ -54,6 +55,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
+@OptIn(LowLevelLocalMachineAccess::class)
 internal object SystemHealthMonitor {
   private const val NOTIFICATION_GROUP_ID = "System Health"
 
