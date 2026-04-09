@@ -6,7 +6,6 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" scope="PROVIDED" name="kotlinc.allopen-compiler-plugin" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.analysis-api-k2-tests" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="kotlinc.analysis-api-k2" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="kotlinc.analysis-api-fe10" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="kotlinc.analysis-api" level="project" />

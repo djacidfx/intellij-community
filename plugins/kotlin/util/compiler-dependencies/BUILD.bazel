@@ -16,7 +16,6 @@ jvm_library(
   runtime_deps = [
     ":compiler-dependencies",
     "@lib//:kotlinc-allopen-compiler-plugin-provided",
-    "@lib//:kotlinc-analysis-api-k2-tests-provided",
     "@lib//:kotlinc-analysis-api-k2-provided",
     "@lib//:kotlinc-analysis-api-fe10-provided",
     "@lib//:kotlinc-analysis-api-provided",
