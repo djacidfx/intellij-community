@@ -33,6 +33,8 @@ interface RustLicenseReader {
 class CargoAboutLicenseReader(
   val cargoAboutBinary: Path,
   val cargoAboutConfiguration: Path,
+  val cargoBinary: Path? = null,
+  val rustcBinary: Path? = null,
 ) : RustLicenseReader {
   private val json = Json {
     ignoreUnknownKeys = true
@@ -89,6 +91,10 @@ class CargoAboutLicenseReader(
     val result = runProcessAndCaptureOutput(
       workingDir = workingDir,
       command = cmd,
+      environment = listOfNotNull(
+        cargoBinary?.let { "CARGO" to it.absolutePathString() },
+        rustcBinary?.let { "RUSTC" to it.absolutePathString() },
+      ).toMap(),
       outputListener = object : ProcessOutputListener {
         override fun onStdoutLine(line: String, pid: Long) = logger.info("[cargo-about] [$pid] $line")
         override fun onStderrLine(line: String, pid: Long) = logger.error("[cargo-about] [$pid] $line")
