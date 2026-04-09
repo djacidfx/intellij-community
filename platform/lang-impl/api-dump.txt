@@ -967,8 +967,9 @@ com.intellij.largeFilesEditor.search.LfeSearchManager
 com.intellij.largeFilesEditor.search.searchTask.FileDataProviderForSearch
 - a:getName():java.lang.String
 - a:getPagesAmount():J
-f:com.intellij.microservices.url.inlay.UrlPathInlayHintsProviderFactoryKt
+f:com.intellij.microservices.url.inlay.UrlPathInlayHintsProviderUtil
 - sf:getLanguagesProviderByLanguage(com.intellij.lang.Language):com.intellij.microservices.url.inlay.UrlPathInlayLanguagesProvider
+- sf:getUrlPathInlayHintsProviderFactory():com.intellij.codeInsight.hints.InlayHintsProviderFactory
 com.intellij.navigation.ChooseByNameContributorEx
 - com.intellij.navigation.ChooseByNameContributor
 - getItemsByName(java.lang.String,java.lang.String,com.intellij.openapi.project.Project,Z):com.intellij.navigation.NavigationItem[]

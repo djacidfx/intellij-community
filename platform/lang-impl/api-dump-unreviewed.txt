@@ -11194,8 +11194,6 @@ f:com.intellij.lexer.LexerUtil
 - s:internToken(com.intellij.lexer.Lexer,com.intellij.util.CharTable):java.lang.CharSequence
 f:com.intellij.microservices.url.inlay.UrlPathInlayHintsPresentationsKt
 - sf:urlInlayPresentation(com.intellij.codeInsight.hints.presentation.ScaleAwarePresentationFactory):com.intellij.codeInsight.hints.presentation.InlayPresentation
-f:com.intellij.microservices.url.inlay.UrlPathInlayHintsProviderFactoryKt
-- sf:getUrlPathInlayHintsProviderFactory():com.intellij.codeInsight.hints.InlayHintsProviderFactory
 f:com.intellij.microservices.url.parameters.PathVariableDeclarationUtils
 - <init>():V
 - s:createPathVariableReferencesForPks(com.intellij.psi.PsiElement,com.intellij.psi.util.PartiallyKnownString,com.intellij.microservices.url.references.UrlPksParser,com.intellij.microservices.url.parameters.PathVariableUsagesProvider):com.intellij.psi.PsiReference[]
