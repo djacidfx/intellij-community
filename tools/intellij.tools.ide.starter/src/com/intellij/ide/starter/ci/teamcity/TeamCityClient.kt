@@ -8,9 +8,10 @@ import com.intellij.ide.starter.models.IdeInfo
 import com.intellij.ide.starter.path.GlobalPaths
 import com.intellij.ide.starter.utils.FileSystem.deleteRecursivelyQuietly
 import com.intellij.ide.starter.utils.HttpClient
-import com.intellij.ide.starter.utils.replaceSpecialCharactersWithHyphens
+import com.intellij.platform.testFramework.teamCity.TeamCityReporter
 import com.intellij.tools.ide.util.common.logError
 import com.intellij.tools.ide.util.common.logOutput
+import com.intellij.tools.ide.util.common.replaceSpecialCharactersWithHyphens
 import com.intellij.tools.ide.util.common.withRetryBlocking
 import org.apache.http.HttpRequest
 import org.apache.http.auth.UsernamePasswordCredentials
@@ -95,7 +96,7 @@ object TeamCityClient {
 
   private fun printTcArtifactsPublishMessage(spec: String) {
     logger.debug(" !!teamcity[publishArtifacts '$spec'] ") //we need this to see in the usual IDEA log
-    logOutput(" ##teamcity[publishArtifacts '$spec'] ")
+    TeamCityReporter.reportPublishArtifacts(spec)
   }
 
   /**

@@ -1,13 +1,13 @@
 package com.intellij.ide.starter.report
 
 import com.intellij.ide.starter.ci.CIServer
-import com.intellij.ide.starter.ci.teamcity.TeamCityCIServer
 import com.intellij.ide.starter.ci.teamcity.TeamCityClient
 import com.intellij.ide.starter.runner.IDERunContext
 import com.intellij.ide.starter.utils.beforeKillScreenshotName
-import com.intellij.ide.starter.utils.replaceSpecialCharactersWithHyphens
 import com.intellij.ide.starter.utils.threadDumpParser.ThreadDumpParser
+import com.intellij.platform.testFramework.teamCity.TeamCityReporter
 import com.intellij.tools.ide.util.common.logOutput
+import com.intellij.tools.ide.util.common.replaceSpecialCharactersWithHyphens
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.exists
@@ -96,9 +96,9 @@ object TimeoutAnalyzer {
         false
       )
 
-      TeamCityCIServer.addTestMetadata(
+      TeamCityReporter.reportTestMetadata(
         testName = null,
-        TeamCityCIServer.TeamCityMetadataType.IMAGE,
+        type = TeamCityReporter.MetadataType.IMAGE,
         flowId = null,
         name = null,
         value = runContext.contextName.replaceSpecialCharactersWithHyphens() + "/timeout-screenshots/${screenshot.name}"

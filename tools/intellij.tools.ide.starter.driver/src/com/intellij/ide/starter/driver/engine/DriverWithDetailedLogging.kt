@@ -6,18 +6,18 @@ import com.intellij.driver.model.LockSemantics
 import com.intellij.driver.model.OnDispatcher
 import com.intellij.driver.sdk.ui.ui
 import com.intellij.ide.starter.ci.CIServer
-import com.intellij.ide.starter.ci.teamcity.TeamCityCIServer
 import com.intellij.ide.starter.ci.teamcity.TeamCityClient
 import com.intellij.ide.starter.config.ConfigurationStorage
 import com.intellij.ide.starter.config.useDockerContainer
 import com.intellij.ide.starter.report.FailureDetailsOnCI
 import com.intellij.ide.starter.runner.IDERunContext
 import com.intellij.ide.starter.runner.events.IdeLaunchEvent
-import com.intellij.ide.starter.utils.replaceSpecialCharactersWithHyphens
+import com.intellij.platform.testFramework.teamCity.TeamCityReporter
 import com.intellij.tools.ide.starter.bus.EventsBus
 import com.intellij.tools.ide.util.common.logError
 import com.intellij.tools.ide.util.common.logOutput
 import com.intellij.util.system.OS
+import com.intellij.tools.ide.util.common.replaceSpecialCharactersWithHyphens
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.CompletableFuture
@@ -112,7 +112,7 @@ internal class DriverWithDetailedLogging(private val driver: Driver, logUiHierar
             val actualArtifactPathOnCi = TeamCityClient.publishTeamCityArtifacts(path, artifactDir, artifactName, false)
             if (actualArtifactPathOnCi != null) {
               logOutput("Adding screenshot to metadata: $actualArtifactPathOnCi")
-              TeamCityCIServer.addTestMetadata(testName = null, TeamCityCIServer.TeamCityMetadataType.IMAGE, flowId = null, name = null, value = actualArtifactPathOnCi)
+              TeamCityReporter.reportTestMetadata(testName = null, type = TeamCityReporter.MetadataType.IMAGE, flowId = null, name = null, value = actualArtifactPathOnCi)
             }
           }
         }

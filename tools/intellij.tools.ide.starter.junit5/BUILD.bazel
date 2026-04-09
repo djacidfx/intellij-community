@@ -155,6 +155,8 @@ jvm_library(
     "//RegExpSupport:regexp-tests_test_lib",
     "//platform/xdebugger-impl:debugger-impl-tests",
     "//platform/xdebugger-impl:debugger-impl-tests_test_lib",
+    "//platform/testFramework/teamCity",
+    "//platform/testFramework/teamCity:teamCity_test_lib",
   ],
   runtime_deps = [":ide-starter-junit5-tests"]
 )

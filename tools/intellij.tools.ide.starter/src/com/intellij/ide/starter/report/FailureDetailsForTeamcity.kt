@@ -5,8 +5,8 @@ import com.intellij.ide.starter.ci.teamcity.TeamCityCIServer
 import com.intellij.ide.starter.ci.teamcity.asTeamCity
 import com.intellij.ide.starter.report.FailureDetailsOnCI.Companion.getTestMethodName
 import com.intellij.ide.starter.runner.IDERunContext
-import com.intellij.ide.starter.utils.replaceSpecialCharactersWithHyphens
 import com.intellij.openapi.vfs.CharsetToolkit
+import com.intellij.tools.ide.util.common.replaceSpecialCharactersWithHyphens
 import java.net.URI
 import java.net.URLEncoder
 

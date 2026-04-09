@@ -21,6 +21,7 @@ import com.intellij.ide.starter.runner.events.StopProfilerEvent
 import com.intellij.ide.starter.telemetry.TestTelemetryService
 import com.intellij.ide.starter.telemetry.computeWithSpan
 import com.intellij.openapi.util.io.NioFiles
+import com.intellij.platform.testFramework.teamCity.TeamCityReporter
 import com.intellij.tools.ide.starter.bus.EventsBus
 import com.intellij.tools.ide.util.common.logError
 import com.intellij.tools.ide.util.common.logOutput
@@ -160,7 +161,7 @@ class LocalIDEProcess : IDEProcess {
             ideProcessId?.let { testContext.collectJBRDiagnosticFiles(it) }
 
             val link = FailureDetailsOnCI.instance.getLinkToCIArtifacts(this)
-            TeamCityCIServer.addTestMetadata(testName = null, TeamCityCIServer.TeamCityMetadataType.LINK, flowId = null, name = "Link to Logs and artifacts", value = link.toString())
+            TeamCityReporter.reportTestMetadata(testName = null, type = TeamCityReporter.MetadataType.LINK, flowId = null, name = "Link to Logs and artifacts", value = link.toString())
             (CIServer.instance as? TeamCityCIServer)?.addBisectMetadata()
             ErrorReporter.instance.reportErrorsAsFailedTests(this)
           }

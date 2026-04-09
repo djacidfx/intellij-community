@@ -51,6 +51,7 @@ jvm_library(
     "//platform/util:util-ui",
     "//platform/util-ex",
     "//jps/model-serialization",
+    "//platform/testFramework/teamCity",
   ],
   exports = [
     "//plugins/performanceTesting/commands-model:tools-ide-performanceTesting-commands",
@@ -93,6 +94,7 @@ jvm_library(
     "//platform/util:util-ui_test_lib",
     "//platform/util-ex:util-ex_test_lib",
     "//jps/model-serialization:model-serialization_test_lib",
+    "//platform/testFramework/teamCity:teamCity_test_lib",
   ]
 )
 ### auto-generated section `build intellij.tools.ide.starter` end
