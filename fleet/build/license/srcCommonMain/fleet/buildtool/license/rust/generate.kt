@@ -41,7 +41,18 @@ class CargoAboutLicenseReader(
 
   @OptIn(ExperimentalSerializationApi::class)
   override suspend fun generateLicensesFile(cargoManifest: Path, output: Path, logger: Logger): Path {
-    val entries = readCargoAboutLicenses(cargoManifest, logger).licenses.flatMap { license ->
+    val licenses = readCargoAboutLicenses(cargoManifest, logger).licenses
+
+    // TODO: should we fail on that maybe?
+    val noLicensePathLicenses = licenses.filter { it.relativeLicensePath == null }
+    if (noLicensePathLicenses.isNotEmpty()) {
+      logger.warn("""
+        |Some crates are missing license URL information, specify a clarification in 'fleet/native/about.toml' for:
+        |${noLicensePathLicenses.flatMap { it.crates }.joinToString("\n|") { " - ${it.name} (${it.version})" }}
+      """.trimMargin())
+    }
+
+    val entries = licenses.flatMap { license ->
       license.crates.map { crate ->
         JetbrainsLicenceEntry(
           name = crate.name,
@@ -138,12 +149,9 @@ private data class CargoAboutCrate(
   val repository: String?,
   @SerialName(value = "manifest_path") val manifestPath: String,
 ) {
-  fun licenseUrl(relativeLicensePath: Path?): String? = relativeLicensePath?.let { path ->
-    if (repository != null) {
-      "${repository.removeSuffix("/")}/blob/HEAD/$path"
-    }
-    else {
-      "https://docs.rs/crate/${name}/${version}/source/$path"
-    }
+  fun licenseUrl(relativeLicensePath: Path?): String? = when {
+    relativeLicensePath == null -> null
+    repository != null -> "${repository.removeSuffix("/")}/blob/HEAD/$relativeLicensePath"
+    else -> "https://docs.rs/crate/${name}/${version}/source/$relativeLicensePath"
   }
 }
