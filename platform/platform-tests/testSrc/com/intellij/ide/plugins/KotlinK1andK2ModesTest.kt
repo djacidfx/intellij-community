@@ -24,7 +24,7 @@ class KotlinK1andK2ModesTest {
   private val rootDir: Path get() = inMemoryFs.fs.getPath("/")
 
   @Test
-  fun `plugin depending on kotlin enabled by default in K2 mode`() = withKotlinPluginMode(isK2 = true) {
+  fun `plugin depending on kotlin enabled by default in K2 mode`() {
     plugin("foo") {
       depends("org.jetbrains.kotlin")
     }.buildDir(rootDir.resolve("foo"))
@@ -33,7 +33,7 @@ class KotlinK1andK2ModesTest {
   }
 
   @Test
-  fun `explicitly incompatible plugin depending on kotlin disabled in K2 Mode`() = withKotlinPluginMode(isK2 = true) {
+  fun `explicitly incompatible plugin depending on kotlin disabled in K2 Mode`() {
     plugin("foo") {
       depends("org.jetbrains.kotlin")
       extensions("""<supportsKotlinPluginMode supportsK2="false"/>""", ns = "org.jetbrains.kotlin")
@@ -43,19 +43,9 @@ class KotlinK1andK2ModesTest {
     assertThat(reason).isInstanceOf(PluginIsIncompatibleWithKotlinMode::class.java)
   }
 
-  @Test
-  fun `explicitly incompatible plugin depending on kotlin disabled in K1 Mode`() = withKotlinPluginMode(isK2 = false) {
-    plugin("foo") {
-      depends("org.jetbrains.kotlin")
-      extensions("""<supportsKotlinPluginMode supportsK1="false"/>""", ns = "org.jetbrains.kotlin")
-    }.buildDir(rootDir.resolve("foo"))
-    val (_, reason) = getSinglePlugin(rootDir)
-    assertThat(reason).isNotNull()
-    assertThat(reason).isInstanceOf(PluginIsIncompatibleWithKotlinMode::class.java)
-  }
 
   @Test
-  fun `plugin depending on kotlin is enabled when with supportsK2`() = withKotlinPluginMode(isK2 = true) {
+  fun `plugin depending on kotlin is enabled when with supportsK2`() {
     plugin("foo") {
       depends("org.jetbrains.kotlin")
       extensions("""<supportsKotlinPluginMode supportsK2="true"/>""", ns = "org.jetbrains.kotlin")
@@ -66,7 +56,7 @@ class KotlinK1andK2ModesTest {
 
 
   @Test
-  fun `plugin optionally depending on kotlin plugin is not disabled by default in K2 mode and optional dependency is enabled`() = withKotlinPluginMode(isK2 = true) {
+  fun `plugin optionally depending on kotlin plugin is not disabled by default in K2 mode and optional dependency is enabled`() {
     plugin("foo") {
       depends("org.jetbrains.kotlin", configFile = "kt.xml") { }
     }.buildDir(rootDir.resolve("foo"))
@@ -77,7 +67,7 @@ class KotlinK1andK2ModesTest {
   }
 
   @Test
-  fun `plugin optionally depending on kotlin plugin is not disabled by default in K2 mode and optional dependency is not disabled`() = withKotlinPluginMode(isK2 = true) {
+  fun `plugin optionally depending on kotlin plugin is not disabled by default in K2 mode and optional dependency is not disabled`() {
     plugin("foo") {
       depends("org.jetbrains.kotlin", configFile = "kt.xml") { }
       extensions("""<supportsKotlinPluginMode supportsK2="true"/>""", ns = "org.jetbrains.kotlin")
@@ -93,20 +83,4 @@ private fun getSinglePlugin(rootDir: Path): Pair<IdeaPluginDescriptorImpl, Plugi
   val allPlugins = PluginSetTestBuilder.fromPath(rootDir).discoverPlugins().second.pluginLists.flatMap { it.plugins }
   val plugin = allPlugins.single()
   return plugin to ProductPluginInitContext().validatePluginIsCompatible(plugin)
-}
-
-private inline fun withKotlinPluginMode(isK2: Boolean, action: () -> Unit) {
-  val current = System.getProperty("idea.kotlin.plugin.use.k1")
-  System.setProperty("idea.kotlin.plugin.use.k1", (!isK2).toString())
-  try {
-    action()
-  }
-  finally {
-    if (current == null) {
-      System.clearProperty("idea.kotlin.plugin.use.k1")
-    }
-    else {
-      System.setProperty("idea.kotlin.plugin.use.k1", current)
-    }
-  }
 }
