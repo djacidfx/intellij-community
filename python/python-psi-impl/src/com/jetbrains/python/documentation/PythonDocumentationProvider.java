@@ -530,10 +530,9 @@ public class PythonDocumentationProvider implements DocumentationProvider {
                                             @NotNull TypeEvalContext context,
                                             @NotNull PsiElement anchor,
                                             @NotNull HtmlBuilder body) {
-    // Variable annotated with 'typing.TypeAlias' marker is deliberately treated as having "Any" type
-    if (typeOwner instanceof PyTargetExpression && type == null) {
-      PyAssignmentStatement assignment = as(typeOwner.getParent(), PyAssignmentStatement.class);
-      if (assignment != null && PyTypingTypeProvider.isExplicitTypeAlias(assignment, context)) {
+    if (typeOwner instanceof PyTargetExpression) {
+      if (typeOwner.getParent() instanceof PyAssignmentStatement assignment &&
+          PyTypingTypeProvider.isExplicitTypeAlias(assignment, context)) {
         body.append(styledSpan("TypeAlias", PyHighlighter.PY_ANNOTATION));
         return;
       }

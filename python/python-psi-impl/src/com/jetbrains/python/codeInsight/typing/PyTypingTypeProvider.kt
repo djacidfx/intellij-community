@@ -305,6 +305,16 @@ class PyTypingTypeProvider : PyTypeProviderWithCustomContext<Context?>() {
         }
       }
 
+      if (isExplicitTypeAlias(referenceTarget, context.typeContext)) {
+        if (assignedValue != null) {
+          val type = getType(assignedValue, context)?.get()
+          if (type is PyInstantiableType<*>) {
+            return Ref(type.toClass())
+          }
+        }
+        return Ref(PyAnyType.unknown)
+      }
+
       // Return a type from an immediate type hint, e.g., from a syntactic annotation for
       //
       // x: int = ...
@@ -1328,10 +1338,6 @@ class PyTypingTypeProvider : PyTypeProviderWithCustomContext<Context?>() {
         if (literalType != null) {
           return literalType
         }
-        val typeAliasType: Ref<PyType?>? = getExplicitTypeAliasType(resolved)
-        if (typeAliasType != null) {
-          return typeAliasType
-        }
         val narrowedType: Ref<PyType?>? = getNarrowedType(resolved, context)
         if (narrowedType != null) {
           return narrowedType
@@ -1558,16 +1564,6 @@ class PyTypingTypeProvider : PyTypeProviderWithCustomContext<Context?>() {
       if (resolved is PyParenthesizedExpression) {
         val containedExpression = PyPsiUtils.flattenParens(resolved as PyExpression)
         return if (containedExpression != null) getType(containedExpression, context) else null
-      }
-      return null
-    }
-
-    private fun getExplicitTypeAliasType(resolved: PsiElement): Ref<PyType?>? {
-      if (resolved is PyQualifiedNameOwner) {
-        val qualifiedName = resolved.qualifiedName
-        if (TYPE_ALIAS == qualifiedName || TYPE_ALIAS_EXT == qualifiedName) {
-          return Ref(PyAnyType.unknown)
-        }
       }
       return null
     }
