@@ -247,9 +247,9 @@ class StyleConfigurable : BoundConfigurable(GrazieBundle.message("grazie.setting
     }
     val treeSettings = settings.getTreeSettings(textStyle, language)
     treeSettings.description.listener(language)
-    treeWrapper.removeAll()
     treeWrapper.firstComponent = createScrollTreeComponent(textStyle, language)
     treeWrapper.secondComponent = treeSettings.description.component
+    treeWrapper.revalidate()
     treeWrapper.repaint()
   }
 
