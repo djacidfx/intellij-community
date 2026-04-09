@@ -149,6 +149,9 @@ internal class CustomWrapOnlyRecalculationManager(
   }
 
   override fun customWrapAdded(wrap: CustomWrap) {
+    if (isBulkDocumentUpdateInProgress.getAsBoolean()) {
+      return
+    }
     recalculateCustomWraps(createEventForVisualChange(wrap.offset, wrap.offset))
     softWrapNotifier.notifyAllDirtyRegionsReparsed()
   }

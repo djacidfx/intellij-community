@@ -8,6 +8,9 @@ import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.impl.AbstractEditorTest
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.impl.SoftWrapModelImpl
+import com.intellij.ui.DocumentAdapter
+import com.intellij.util.DocumentEventUtil
+import com.intellij.util.DocumentUtil
 import java.awt.Graphics
 import java.awt.Point
 
@@ -202,6 +205,39 @@ abstract class CustomWrapsTestBase : AbstractEditorTest() {
 
     val widthWithWrap = editor.contentComponent.preferredSize.width
     assertTrue(widthWithWrap < widthWithoutWrap)
+  }
+
+  fun testCustomWrapChangesAreDeferredUntilBulkModeFinishes() {
+    initTextAndSoftWraps("abcdef", charCountToSoftWrapAt = 100)
+    val initialWrap = editor.customWrapModel.addWrap(2, 0, 0)!!
+
+    fun registeredCustomSoftWrapOffsets(): List<Int> {
+      return registeredSoftWraps().filter { it.isCustomSoftWrap }.map { it.start }
+    }
+
+    fun modelCustomWrapOffsets(): List<Int> {
+      return editor.customWrapModel.getWraps().map { it.offset }
+    }
+
+    assertEquals(listOf(2), registeredCustomSoftWrapOffsets())
+    assertEquals(listOf(2), modelCustomWrapOffsets())
+
+    runWriteCommand {
+      DocumentUtil.executeInBulk(editor.document as DocumentEx) {
+        assertNotNull(editor.customWrapModel.addWrap(4, 0, 0))
+        assertEquals(listOf(2, 4), modelCustomWrapOffsets())
+        assertEquals(listOf(2), registeredCustomSoftWrapOffsets())
+
+        editor.customWrapModel.removeWrap(initialWrap)
+        assertEquals(listOf(4), modelCustomWrapOffsets())
+        assertEquals(listOf(2), registeredCustomSoftWrapOffsets())
+      }
+    }
+
+    assertEquals(listOf(4), modelCustomWrapOffsets())
+    assertEquals(listOf(4), registeredCustomSoftWrapOffsets())
+    assertStorageConsistent()
+    (editor as EditorImpl).validateState()
   }
 }
 

@@ -314,11 +314,17 @@ public final class SoftWrappingEnabledRecalculationManager extends SoftWrapRecal
 
   @Override
   public void customWrapAdded(@NotNull CustomWrap wrap) {
+    if (myBulkDocumentUpdateInProgress.getAsBoolean()) {
+      return;
+    }
     myApplianceManager.recalculate(Collections.singletonList(new TextRange(wrap.getOffset(), wrap.getOffset())));
   }
 
   @Override
   public void customWrapRemoved(@NotNull CustomWrap wrap) {
+    if (myBulkDocumentUpdateInProgress.getAsBoolean()) {
+      return;
+    }
     if (myDocumentUpdateInProgress) {
       // wrap was removed due to a document change, recalculation will be handled in #documentChanged
       return;
