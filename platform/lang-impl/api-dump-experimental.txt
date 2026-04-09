@@ -588,7 +588,7 @@ a:com.intellij.codeInsight.template.postfix.templates.PostfixTemplate
 - *:createModExpander():com.intellij.codeInsight.template.postfix.templates.PostfixModExpander
 - *:isApplicableForModCommand():Z
 com.intellij.codeInsight.template.postfix.templates.PostfixTemplateProvider
-- *:preCheckModCommand(com.intellij.psi.PsiFile,I):V
+- *:prepareCopyForModCommand(com.intellij.psi.PsiFile,I):V
 a:com.intellij.codeInsight.template.postfix.templates.PostfixTemplateWithExpressionSelector
 - com.intellij.codeInsight.template.postfix.templates.PostfixTemplate
 - *:createModExpander():com.intellij.codeInsight.template.postfix.templates.PostfixModExpander

@@ -166,7 +166,7 @@ public class JavaPostfixTemplateProvider implements PostfixTemplateProvider {
   }
 
   @Override
-  public void preCheckModCommand(@NotNull PsiFile copyFile, int currentOffset) {
+  public void prepareCopyForModCommand(@NotNull PsiFile copyFile, int currentOffset) {
     Document document = copyFile.getFileDocument();
     if (JavaCompletionContributor.semicolonNeeded(copyFile, currentOffset)) {
       document.insertString(currentOffset, ";");

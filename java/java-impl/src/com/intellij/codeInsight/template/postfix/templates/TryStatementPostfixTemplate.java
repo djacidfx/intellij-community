@@ -6,6 +6,7 @@ import com.intellij.codeInsight.template.CustomTemplateCallback;
 import com.intellij.codeInsight.template.postfix.util.JavaPostfixTemplatesUtils;
 import com.intellij.modcommand.ActionContext;
 import com.intellij.modcommand.ModCommand;
+import com.intellij.modcommand.ModPsiUpdater;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.DumbAware;
@@ -66,11 +67,11 @@ public class TryStatementPostfixTemplate extends PostfixTemplate implements Dumb
   }
 
   private static void expandModImpl(@NotNull ActionContext actionContext, @NotNull PostfixTemplateProvider provider,
-                                    @NotNull TextRange keyRange, @NotNull com.intellij.modcommand.ModPsiUpdater updater) {
+                                    @NotNull TextRange keyRange, @NotNull ModPsiUpdater updater) {
     updater.getDocument().deleteString(PostfixLiveTemplate.positiveOffset(keyRange.getStartOffset()), actionContext.selection().getStartOffset());
     PsiDocumentManager.getInstance(actionContext.project()).commitDocument(updater.getDocument());
     PsiFile file = updater.getPsiFile();
-    provider.preCheckModCommand(file, PostfixLiveTemplate.positiveOffset(keyRange.getStartOffset()));
+    provider.prepareCopyForModCommand(file, PostfixLiveTemplate.positiveOffset(keyRange.getStartOffset()));
     PsiElement context =
       CustomTemplateCallback.getContext(file, PostfixLiveTemplate.positiveOffset(keyRange.getStartOffset() - 1));
     PsiStatement statement = PsiTreeUtil.getNonStrictParentOfType(context, PsiStatement.class);

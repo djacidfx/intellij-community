@@ -81,7 +81,7 @@ public class TryWithResourcesPostfixTemplate extends PostfixTemplate implements 
                              updater.getDocument().deleteString(PostfixLiveTemplate.positiveOffset(keyRange.getStartOffset()), actionContext.selection().getStartOffset());
                              PsiDocumentManager.getInstance(actionContext.project()).commitDocument(updater.getDocument());
                              PsiFile file = updater.getPsiFile();
-                             provider.preCheckModCommand(file, PostfixLiveTemplate.positiveOffset(keyRange.getStartOffset()));
+                             provider.prepareCopyForModCommand(file, PostfixLiveTemplate.positiveOffset(keyRange.getStartOffset()));
                              PsiElement context =
                                CustomTemplateCallback.getContext(file, PostfixLiveTemplate.positiveOffset(keyRange.getStartOffset() - 1));
 

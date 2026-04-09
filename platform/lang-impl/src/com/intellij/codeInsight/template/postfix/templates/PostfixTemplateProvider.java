@@ -89,15 +89,21 @@ public interface PostfixTemplateProvider {
 
 
   /**
-   * Prepares a copy of the file and processes it for checking availability of a template,
-   * applying necessary modifications or validations based on the current offset.
-   * It is not called during extend call
+   * A {@link com.intellij.modcommand.ModCommand}-compatible counterpart of {@link #preCheck(PsiFile, Editor, int)}.
+   * Prepares a copy of the file for checking the availability of templates,
+   * applying necessary modifications based on the current offset.
+   * <p>
+   * File content doesn't contain the template's key: it is deleted just before this method invocation.
+   * <p>
+   * This method is <b>not</b> called automatically by the framework.
+   * {@link PostfixModExpander#expand} implementations should call it explicitly
+   * if pre-check processing is required for the provider.
    *
-   * @param copyFile a copy of the original {@link PsiFile} that can be modified during the process
-   * @param currentOffset the current offset within the file at which the method should operate
+   * @param copyFile      a copy of the original {@link PsiFile} that can be freely modified
+   * @param currentOffset the offset within the file at which the method should operate
    */
   @ApiStatus.Experimental
-  default void preCheckModCommand(@NotNull PsiFile copyFile, int currentOffset) { }
+  default void prepareCopyForModCommand(@NotNull PsiFile copyFile, int currentOffset) { }
 
 
   /**

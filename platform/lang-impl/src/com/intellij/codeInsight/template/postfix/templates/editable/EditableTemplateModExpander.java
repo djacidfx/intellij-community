@@ -27,6 +27,18 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
+/**
+ * {@link PostfixModExpander} implementation for {@link EditablePostfixTemplate}.
+ * <p>
+ * Uses the template's own expression resolution ({@link EditablePostfixTemplate#getExpressions})
+ * and expands via live template substitution ({@link EditablePostfixTemplate#getLiveTemplate()}).
+ * When multiple candidate expressions are found, the user is presented with a chooser
+ * via {@link ModCommand#chooseAction}; for a single candidate the expansion proceeds immediately.
+ *
+ * @see PostfixModExpander
+ * @see EditablePostfixTemplate
+ * @see com.intellij.codeInsight.template.postfix.templates.ExpressionSelectorModExpander
+ */
 @ApiStatus.Experimental
 public class EditableTemplateModExpander implements PostfixModExpander {
   private final @NotNull EditablePostfixTemplate myTemplate;
@@ -47,7 +59,7 @@ public class EditableTemplateModExpander implements PostfixModExpander {
       startOffset = PostfixLiveTemplate.positiveOffset(startOffset);
       copyDocument.deleteString(startOffset, keyRange.getEndOffset());
       PsiDocumentManager.getInstance(project).commitDocument(copyDocument);
-      provider.preCheckModCommand(copyFile, startOffset);
+      provider.prepareCopyForModCommand(copyFile, startOffset);
       PsiDocumentManager.getInstance(project).commitDocument(copyDocument);
       PsiElement context = CustomTemplateCallback.getContext(copyFile, PostfixLiveTemplate.positiveOffset(startOffset));
       return myTemplate.getExpressions(context, context.getContainingFile().getFileDocument(), startOffset);
@@ -101,7 +113,7 @@ public class EditableTemplateModExpander implements PostfixModExpander {
                                 updater -> {
                                   updater.getDocument().deleteString(PostfixLiveTemplate.positiveOffset(key.getStartOffset()), ctx.selection().getStartOffset());
                                   PsiDocumentManager.getInstance(ctx.project()).commitDocument(updater.getDocument());
-                                  provider.preCheckModCommand(updater.getPsiFile(), PostfixLiveTemplate.positiveOffset(key.getStartOffset()));
+                                  provider.prepareCopyForModCommand(updater.getPsiFile(), PostfixLiveTemplate.positiveOffset(key.getStartOffset()));
                                   String exprText = virtualExpression.getText();
                                   PsiElement expression = PsiTreeUtil.findSameElementInCopy(virtualExpression, updater.getPsiFile());
                                   TextRange rangeToRemove = myTemplate.getRangeToRemove(expression);

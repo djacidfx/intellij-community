@@ -66,7 +66,7 @@ public final class PostfixTemplateModCompletionItemProvider implements ModComple
       contentWithoutKey.append(fileContent.subSequence(0, newOffset));
       contentWithoutKey.append(fileContent.subSequence(offset, fileContent.length()));
       PsiFile copyFile = PostfixLiveTemplate.copyFile(file, contentWithoutKey);
-      provider.preCheckModCommand(copyFile, newOffset);
+      provider.prepareCopyForModCommand(copyFile, newOffset);
 
       Document copyDocument = copyFile.getFileDocument();
       PsiElement copyContext = CustomTemplateCallback.getContext(copyFile, newOffset > 0 ? newOffset - 1 : newOffset);
@@ -125,11 +125,9 @@ public final class PostfixTemplateModCompletionItemProvider implements ModComple
 
     @Override
     public @NotNull ModCompletionItemPresentation presentation() {
-      //temporary
-      //noinspection HardCodedStringLiteral
       return new ModCompletionItemPresentation(MarkupText.plainText(myTemplate.getPresentableName()))
         .withMainIcon(() -> AllIcons.Nodes.Template)
-        .withDetailText(MarkupText.plainText(myTemplate.getExample() + " (MC)"));
+        .withDetailText(MarkupText.plainText(myTemplate.getExample()));
     }
 
     @Override

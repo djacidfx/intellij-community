@@ -67,7 +67,7 @@ public class IntroduceVariablePostfixTemplate extends PostfixTemplateWithExpress
       int startOffset = PostfixLiveTemplate.positiveOffset(keyRange.getStartOffset());
       copyDocument.deleteString(startOffset, keyRange.getEndOffset());
       PsiDocumentManager.getInstance(project).commitDocument(copyDocument);
-      provider.preCheckModCommand(copyFile, startOffset);
+      provider.prepareCopyForModCommand(copyFile, startOffset);
       PsiDocumentManager.getInstance(project).commitDocument(copyDocument);
       PsiElement context = CustomTemplateCallback.getContext(copyFile, PostfixLiveTemplate.positiveOffset(startOffset));
       return MY_SELECTOR.getExpressions(context, copyFile.getFileDocument(), startOffset);
@@ -140,7 +140,7 @@ public class IntroduceVariablePostfixTemplate extends PostfixTemplateWithExpress
                                                 updater.getDocument()
                                                   .deleteString(PostfixLiveTemplate.positiveOffset(keyRange.getStartOffset()), ctx.selection().getStartOffset());
                                                 PsiDocumentManager.getInstance(ctx.project()).commitDocument(updater.getDocument());
-                                                provider.preCheckModCommand(updater.getPsiFile(), PostfixLiveTemplate.positiveOffset(keyRange.getStartOffset()));
+                                                provider.prepareCopyForModCommand(updater.getPsiFile(), PostfixLiveTemplate.positiveOffset(keyRange.getStartOffset()));
                                                 PsiElement expression =
                                                   PsiTreeUtil.findSameElementInCopy(virtualExpr, updater.getPsiFile());
                                                 expression = ElementToWorkOn.getWritable(expression, updater);

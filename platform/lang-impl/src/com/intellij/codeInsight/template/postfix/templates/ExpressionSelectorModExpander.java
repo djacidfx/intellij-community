@@ -22,10 +22,29 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
+/**
+ * Standard {@link PostfixModExpander} implementation that uses a {@link PostfixTemplateExpressionSelector}
+ * to resolve candidate expressions and delegates the actual expansion to a {@link ModExpandAction}.
+ * <p>
+ * When multiple candidate expressions are found, the user is presented with a chooser
+ * via {@link ModCommand#chooseAction}; for a single candidate the expansion proceeds immediately.
+ * <p>
+ * Subclasses of {@link PostfixTemplateWithExpressionSelector} can obtain an instance via
+ * {@link PostfixTemplateWithExpressionSelector#createModExpander(ModExpandAction)}.
+ *
+ * @see PostfixModExpander
+ */
 @ApiStatus.Experimental
 public class ExpressionSelectorModExpander implements PostfixModExpander {
   /**
-   * Action that performs the actual per-element expansion within a ModCommand context.
+   * Callback that performs the actual per-element template expansion on a non-physical PSI copy.
+   * <p>
+   * Invoked by {@link ExpressionSelectorModExpander} after the target expression has been resolved
+   * and the file copy has been prepared. The {@code element} is already a writable element
+   * inside the non-physical copy.
+   *
+   * @see StringBasedModExpandAction
+   * @see SurroundModExpandAction
    */
   @ApiStatus.Experimental
   @FunctionalInterface
@@ -54,7 +73,7 @@ public class ExpressionSelectorModExpander implements PostfixModExpander {
       startOffset = PostfixLiveTemplate.positiveOffset(startOffset);
       copyDocument.deleteString(startOffset, keyRange.getEndOffset());
       PsiDocumentManager.getInstance(project).commitDocument(copyDocument);
-      provider.preCheckModCommand(copyFile, startOffset);
+      provider.prepareCopyForModCommand(copyFile, startOffset);
       PsiDocumentManager.getInstance(project).commitDocument(copyDocument);
       PsiElement context = CustomTemplateCallback.getContext(copyFile, PostfixLiveTemplate.positiveOffset(startOffset));
       return mySelector.getExpressions(context, copyFile.getFileDocument(), startOffset);
@@ -105,7 +124,7 @@ public class ExpressionSelectorModExpander implements PostfixModExpander {
                                 updater -> {
                                   updater.getDocument().deleteString(PostfixLiveTemplate.positiveOffset(key.getStartOffset()), ctx.selection().getStartOffset());
                                   PsiDocumentManager.getInstance(ctx.project()).commitDocument(updater.getDocument());
-                                  provider.preCheckModCommand(updater.getPsiFile(), PostfixLiveTemplate.positiveOffset(key.getStartOffset()));
+                                  provider.prepareCopyForModCommand(updater.getPsiFile(), PostfixLiveTemplate.positiveOffset(key.getStartOffset()));
                                   PsiElement elementInCopy = PsiTreeUtil.findSameElementInCopy(virtualExpression, updater.getPsiFile());
                                   myExpandAction.expand(updatedContext, updater, elementInCopy);
                                 });
