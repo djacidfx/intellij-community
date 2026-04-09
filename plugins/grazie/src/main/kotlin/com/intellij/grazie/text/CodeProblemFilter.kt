@@ -3,6 +3,8 @@ package com.intellij.grazie.text
 import ai.grazie.rules.code.CodeDetector
 import com.intellij.grazie.spellcheck.GrazieSpellCheckingInspection
 import com.intellij.grazie.utils.treeRange
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.util.text.StringUtil
 
 /**
  * A natural language problem filter that suppresses problems in areas which resemble code.
@@ -17,7 +19,11 @@ import com.intellij.grazie.utils.treeRange
 open class CodeProblemFilter : ProblemFilter() {
   override fun shouldIgnore(problem: TextProblem): Boolean {
     if (!problem.shouldSuppressInCodeLikeFragments() || !shouldSuppressInText(problem.text)) return false
-    val codeFragments = CodeDetector.findCodeFragments(problem.text)
+    val codeFragments = CodeDetector.findCodeFragments(object: StringUtil.BombedCharSequence(problem.text) {
+      override fun checkCanceled() {
+        ProgressManager.checkCanceled()
+      }
+    })
     return problem.highlightRanges.any { range -> codeFragments.any { it.containsInclusive(range.treeRange()) } }
   }
 
