@@ -16,6 +16,7 @@ import com.intellij.util.containers.ContainerUtil
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.NonNls
 import org.jetbrains.annotations.TestOnly
+import kotlin.collections.mutableListOf
 
 internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapModel, PrioritizedDocumentListener, Dumpable {
   private val document = editor.elfDocument
@@ -129,9 +130,32 @@ internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapM
   
   @TestOnly
   fun validateState() {
-    for (wrap in getWraps()) {
+    val customWraps = getWraps()
+    for (wrap in customWraps) {
       LOG.assertTrue(isValidCustomWrapOffset(wrap.offset, document))
     }
+    if (document.isInBulkUpdate) {
+      return
+    }
+    val notCollapsedUniqueWraps: List<CustomWrap> = customWraps
+      // only not collapsed
+      .filter {
+        val lineStartOffset = DocumentUtil.getLineStartOffset(it.offset, document)
+        val foldRegion = editor.foldingModel.getCollapsedRegionAtOffset(it.offset)
+        foldRegion == null || it.offset == lineStartOffset
+      }
+      // only one wrap per offset
+      .fold(mutableListOf()) { acc, wrap ->
+        val prev = acc.lastOrNull()
+        if (prev == null || prev.offset < wrap.offset) {
+          acc.add(wrap)
+        }
+        acc
+      }
+    val softWraps = editor.softWrapModel.getRegisteredSoftWrapsEx()
+    val customSoftWraps = softWraps.filter { it.isCustomSoftWrap }
+    LOG.assertTrue(notCollapsedUniqueWraps.size == customSoftWraps.size)
+
   }
 
   private class CustomWrapTree(document: Document) : HardReferencingRangeMarkerTree<CustomWrapImpl>(document) {

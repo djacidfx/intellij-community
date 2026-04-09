@@ -602,6 +602,9 @@ public final class ExperimentalSoftWrapModelImpl extends SoftWrapModelImpl {
   @Override
   @TestOnly
   void validateState() {
+    LOG.assertTrue(myUseSoftWraps
+                   ? myRecalculationManager instanceof SoftWrappingEnabledRecalculationManager
+                   : myRecalculationManager instanceof CustomWrapOnlyRecalculationManager);
     if (document.isInBulkUpdate()) return;
     FoldingModel foldingModel = editor.getFoldingModel();
     List<? extends SoftWrap> softWraps = getRegisteredSoftWraps();
