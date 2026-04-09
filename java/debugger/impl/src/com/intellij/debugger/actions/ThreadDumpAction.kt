@@ -336,7 +336,6 @@ private fun buildThreadStates(
 
   val result = mutableListOf<ThreadState>()
   val nameToThreadMap = mutableMapOf<String, ThreadState>()
-  val waitingMap = mutableMapOf<String, String>() // key 'waits_for' value
 
   val jlThreadType = platformThreads.firstOrNull()
     ?.let { someThread ->
