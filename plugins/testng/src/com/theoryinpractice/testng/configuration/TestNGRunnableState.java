@@ -21,6 +21,7 @@ import com.intellij.openapi.projectRoots.JavaSdkVersion;
 import com.intellij.openapi.projectRoots.JavaSdkVersionUtil;
 import com.intellij.openapi.projectRoots.Sdk;
 import com.intellij.openapi.projectRoots.ex.JavaSdkUtil;
+import com.intellij.openapi.util.registry.Registry;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
@@ -115,6 +116,9 @@ public class TestNGRunnableState extends JavaTestFrameworkRunnableState<TestNGCo
 
     createServerSocket(javaParameters);
     createTempFiles(javaParameters);
+    if (!Registry.is("test.use.suite.duration")) {
+      javaParameters.getVMParametersList().addProperty("test.use.suite.duration", "false");
+    }
     return javaParameters;
   }
 

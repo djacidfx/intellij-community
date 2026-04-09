@@ -27,11 +27,16 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class IDEATestNGRemoteListener {
 
+  public static final String SUITE_DURATION = "test.use.suite.duration";
+
   private final PrintStream myPrintStream;
+  private final boolean myUseSuiteDuration;
   private final List<String> myCurrentSuites = new ArrayList<>();
+  private final Map<String, Long> mySuiteStartNanos = new ConcurrentHashMap<>();
   private final Map<String, Integer> myInvocationCounts = new HashMap<>();
   private final Map<ExposedTestResult, String> myParamsMap = new HashMap<>();
   private final Map<ExposedTestResult, DelegatedResult> myResults = new HashMap<>();
@@ -43,7 +48,13 @@ public class IDEATestNGRemoteListener {
 
   public IDEATestNGRemoteListener(PrintStream printStream) {
     myPrintStream = printStream;
-    myPrintStream.println("##teamcity[enteredTheMatrix]");
+    myUseSuiteDuration = Boolean.parseBoolean(System.getProperty(SUITE_DURATION, "true"));
+    if (myUseSuiteDuration) {
+      myPrintStream.println("##teamcity[enteredTheMatrix durationStrategy='MANUAL']");
+    }
+    else {
+      myPrintStream.println("##teamcity[enteredTheMatrix]");
+    }
   }
 
   public synchronized void onStart(final ISuite suite) {
@@ -193,7 +204,7 @@ public class IDEATestNGRemoteListener {
 
     for (int i = myCurrentSuites.size() - 1; i >= idx; i--) {
       currentClass = myCurrentSuites.remove(i);
-      myPrintStream.println("##teamcity[testSuiteFinished name='" + escapeName(currentClass) + "']");
+      onSuiteFinish(currentClass);
     }
 
     for (int i = idx; i < parentsHierarchy.size(); i++) {
@@ -212,12 +223,23 @@ public class IDEATestNGRemoteListener {
       myPrintStream.println("##teamcity[testSuiteStarted name ='" + escapeName(currentClassName) +
                             (provideLocation ? "' locationHint = '" + location : "") + "']");
       myCurrentSuites.add(currentClassName);
+      if (myUseSuiteDuration) {
+        mySuiteStartNanos.put(currentClassName, System.nanoTime());
+      }
     }
     return false;
   }
 
   public void onSuiteFinish(String suiteName) {
-    myPrintStream.println("##teamcity[testSuiteFinished name='" + escapeName(suiteName) + "']");
+    String durationAttr = "";
+    if (myUseSuiteDuration) {
+      Long start = mySuiteStartNanos.remove(suiteName);
+      if (start != null) {
+        long durationMs = (System.nanoTime() - start) / 1_000_000L;
+        if (durationMs > 0) durationAttr = " duration='" + durationMs + "'";
+      }
+    }
+    myPrintStream.println("##teamcity[testSuiteFinished name='" + escapeName(suiteName) + "'" + durationAttr + "]");
   }
 
   private void onTestStart(ExposedTestResult result, String paramString, Integer invocationCount, boolean config) {
