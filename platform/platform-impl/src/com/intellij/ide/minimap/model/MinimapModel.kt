@@ -70,6 +70,7 @@ class MinimapModel(private val editor: Editor): Disposable {
         val startLine = document.getLineNumber(startOffset)
         val endLine = document.getLineNumber((endOffsetExclusive - 1).coerceAtLeast(startOffset))
         if (endLine <= startLine) continue
+        if (!MinimapLineSpanProvider.shouldUseCollapsedFoldRegion(editor, document, lineCount, region, startLine, endLine)) continue
         foldedRegions += startLine to endLine
       }
     }

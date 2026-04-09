@@ -3,6 +3,7 @@ package com.intellij.ide.minimap.model
 
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.FoldRegion
 import com.intellij.openapi.extensions.ExtensionPointName
 import org.jetbrains.annotations.ApiStatus
 import java.util.LinkedHashMap
@@ -13,10 +14,10 @@ import java.util.LinkedHashMap
  * A span of:
  * - `1` keeps the default one-slot mapping;
  * - `N > 1` expands a logical line into multiple projected slots;
- * - `0` is reserved for internal compression (for example hidden lines in collapsed fold regions).
+ * - `0` is reserved for internal compression (for example, hidden lines in collapsed fold regions).
  *
  * Register via `com.intellij.minimapLineSpanProvider`.
- * Applicable providers are merged in registration order; last provider wins for the same line.
+ * Applicable providers are merged in registration order; the last provider wins for the same line.
  */
 @ApiStatus.OverrideOnly
 interface MinimapLineSpanProvider {
@@ -27,6 +28,19 @@ interface MinimapLineSpanProvider {
    * Invalid line numbers are ignored. Values are normalized to at least `1`.
    */
   fun getLineSpanOverrides(editor: Editor, document: Document, logicalLineCount: Int): Map<Int, Int>
+
+  /**
+   * Controls whether a collapsed [region] should be applied to minimap line projection.
+   * Return `false` for visual-only folds that should not hide underlying text in minimap.
+   */
+  fun shouldUseCollapsedFoldRegion(
+    editor: Editor,
+    document: Document,
+    logicalLineCount: Int,
+    region: FoldRegion,
+    startLine: Int,
+    endLine: Int,
+  ): Boolean = true
 
   companion object {
     @JvmField
@@ -49,6 +63,23 @@ interface MinimapLineSpanProvider {
         }
       }
       return merged ?: emptyMap()
+    }
+
+    fun shouldUseCollapsedFoldRegion(
+      editor: Editor,
+      document: Document,
+      logicalLineCount: Int,
+      region: FoldRegion,
+      startLine: Int,
+      endLine: Int,
+    ): Boolean {
+      for (provider in EP_NAME.extensionList) {
+        if (!provider.isApplicable(editor)) continue
+        if (!provider.shouldUseCollapsedFoldRegion(editor, document, logicalLineCount, region, startLine, endLine)) {
+          return false
+        }
+      }
+      return true
     }
   }
 }
