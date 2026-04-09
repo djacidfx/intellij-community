@@ -87,6 +87,8 @@ object UniversalFileChooser {
       title = descriptor.title ?: UIBundle.message("file.chooser.default.title")
     }
 
+    override fun getDimensionServiceKey(): String = "UniversalFileChooserDialog"
+
     override fun choose(project: Project?, vararg toSelect: VirtualFile?): Array<out VirtualFile?> {
       this.showAndGet()
       return emptyArray()
