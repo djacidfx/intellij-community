@@ -469,10 +469,15 @@ public class SMTestProxy extends AbstractTestProxy implements Navigatable {
    */
   @Override
   public @Nullable Long getDuration() {
-    // Returns duration value for tests
-    // or cached duration for suites
-    if (myDurationIsCached || durationShouldBeSetExplicitly()) {
+    if (myDurationIsCached) {
       return myDuration;
+    }
+    if (durationShouldBeSetExplicitly()) {
+      // leaf test, or MANUAL suite with an explicitly set duration
+      if (!myIsSuite || myDuration != null) {
+        return myDuration;
+      }
+      // MANUAL suite with no explicit duration: fall through to compute from children
     }
 
     //For suites counts and caches durations of its children. Also it evaluates partial duration,

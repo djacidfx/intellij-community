@@ -259,9 +259,6 @@ public class GeneralIdBasedToSMTRunnerEventsConvertor extends GeneralTestEventsP
       LOG.debug("onSuiteFinished " + suiteFinishedEvent.getId());
     }
     Long duration = suiteFinishedEvent.getDuration();
-    if (TreeNodeEvent.ROOT_NODE_ID.equals(suiteFinishedEvent.getId())) {
-      if (duration != null && duration >= 0) myTestsRootProxy.setDuration(duration);
-    }
     Node node = findNodeToTerminate(suiteFinishedEvent);
     if (node != null) {
       if (LOG.isDebugEnabled()) {
