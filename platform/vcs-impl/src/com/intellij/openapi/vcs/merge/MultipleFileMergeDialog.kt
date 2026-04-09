@@ -15,8 +15,6 @@ import com.intellij.diff.statistics.MergeStatisticsCollector
 import com.intellij.diff.util.DiffUtil
 import com.intellij.diff.util.Side
 import com.intellij.ide.util.treeView.TreeState
-import com.intellij.openapi.actionSystem.PlatformDataKeys
-import com.intellij.openapi.actionSystem.UiDataProvider
 import com.intellij.openapi.application.UiWithModelAccess
 import com.intellij.openapi.application.writeAction
 import com.intellij.openapi.command.WriteCommandAction.writeCommandAction
@@ -56,7 +54,6 @@ import com.intellij.ui.DoubleClickListener
 import com.intellij.ui.TableSpeedSearch
 import com.intellij.ui.TableUtil
 import com.intellij.ui.UIBundle
-import com.intellij.ui.treeStructure.treetable.DefaultTreeTableExpander
 import com.intellij.ui.treeStructure.treetable.ListTreeTableModelOnColumns
 import com.intellij.ui.treeStructure.treetable.TreeTable
 import com.intellij.ui.treeStructure.treetable.TreeTableModel
@@ -118,9 +115,6 @@ open class MultipleFileMergeDialog(
     }.installOn(this)
     TableSpeedSearch.installOn(this, Convertor { (it as? VirtualFile)?.name })
   }
-  private val tableComponent = UiDataProvider.wrapComponent(table) { sink ->
-    sink[PlatformDataKeys.TREE_EXPANDER] = DefaultTreeTableExpander(table)
-  }
 
   private var groupByDirectory: Boolean = false
     get() = when {
@@ -141,7 +135,6 @@ open class MultipleFileMergeDialog(
     project = project,
     iterativeDataHolder = iterativeDataHolder,
     table = table,
-    tableComponent = tableComponent,
     columnNames = columns.map { it.name },
     mergeDialogCustomizer = mergeDialogCustomizer,
     rootPane = rootPane,
@@ -157,7 +150,7 @@ open class MultipleFileMergeDialog(
   )
   else OneShotMergeFlowDelegate(
     project = project,
-    tableComponent = tableComponent,
+    table = table,
     files = files,
     mergeDialogCustomizer = mergeDialogCustomizer,
     rootPane = rootPane,

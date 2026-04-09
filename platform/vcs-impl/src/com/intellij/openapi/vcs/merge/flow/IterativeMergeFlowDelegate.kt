@@ -89,7 +89,6 @@ internal class IterativeMergeFlowDelegate(
   private val project: Project,
   private val iterativeDataHolder: MergeConflictIterativeDataHolder,
   private val table: MergeConflictsTreeTable,
-  private val tableComponent: JComponent,
   private val columnNames: List<String>,
   private val mergeDialogCustomizer: MergeDialogCustomizer,
   private val rootPane: JRootPane,
@@ -170,7 +169,7 @@ internal class IterativeMergeFlowDelegate(
       }
 
       row {
-        scrollCell(JLayer(tableComponent, DisabledStateLayerUI(table)))
+        scrollCell(JLayer(table, DisabledStateLayerUI(table)))
           .align(Align.FILL)
       }.resizableRow()
     }.apply {

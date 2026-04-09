@@ -32,7 +32,7 @@ class OneShotMergeFlowDelegateTest : BasePlatformTestCase() {
     val rootPane = JRootPane()
     val delegate = OneShotMergeFlowDelegate(
       project = project,
-      tableComponent = JPanel(),
+      table = JPanel(),
       mergeDialogCustomizer = mergeDialogCustomizer,
       rootPane = rootPane,
       files = listOf(file),
@@ -64,7 +64,7 @@ class OneShotMergeFlowDelegateTest : BasePlatformTestCase() {
     val file = myFixture.tempDirFixture.createFile("conflicts/sample.txt", "text")
     val delegate = OneShotMergeFlowDelegate(
       project = project,
-      tableComponent = JPanel(),
+      table = JPanel(),
       mergeDialogCustomizer = MergeDialogCustomizer(),
       rootPane = JRootPane(),
       files = listOf(file),
@@ -87,7 +87,7 @@ class OneShotMergeFlowDelegateTest : BasePlatformTestCase() {
     val file = myFixture.tempDirFixture.createFile("conflicts/sample.txt", "text")
     val delegate = OneShotMergeFlowDelegate(
       project = project,
-      tableComponent = JPanel(),
+      table = JPanel(),
       mergeDialogCustomizer = MergeDialogCustomizer(),
       rootPane = JRootPane(),
       files = listOf(file),
