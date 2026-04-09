@@ -6,7 +6,12 @@ import com.intellij.idea.IdeaLogger
 import com.intellij.lambda.testFramework.starter.IdeInstance
 import com.intellij.lambda.testFramework.starter.IdeInstance.ide
 import com.intellij.lambda.testFramework.starter.IdeInstance.isStarted
+import com.intellij.ide.starter.process.collectJavaThreadDumpSuspendable
+import com.intellij.ide.starter.runner.IDERunContext
+import com.intellij.ide.starter.utils.catchAll
+import com.intellij.lambda.testFramework.utils.IdeWithLambda
 import com.intellij.openapi.diagnostic.thisLogger
+import com.intellij.remoteDev.tests.impl.utils.getArtifactsFileName
 import com.jetbrains.rd.util.reactive.RdFault
 import com.jetbrains.rd.util.string.printToString
 import kotlinx.coroutines.runBlocking
@@ -76,6 +81,28 @@ class BackgroundLambdaDefaultCallbacks : BeforeAllCallback, BeforeEachCallback, 
         return
       }
       val message = "$callbackName failed for $contextName"
+      catchAll("Gathering thread dumps '$message'") {
+        @Suppress("RAW_RUN_BLOCKING")
+        runBlocking {
+
+          suspend fun IdeWithLambda.dumpProcess(runContext: IDERunContext) {
+            collectJavaThreadDumpSuspendable(runContext.testContext.ide.resolveAndDownloadTheSameJDKOrFallback(),
+                                             runContext.logsDir,
+                                             backgroundRun.process.id.toLong(),
+                                             runContext.logsDir.resolve(getArtifactsFileName(callbackName,
+                                                                                             "ThreadDumps-$contextName",
+                                                                                             "log")))
+          }
+          ide.dumpProcess(IdeInstance.runContext.frontendContext)
+          ide.backendIdeWithLambda?.let { backendIde ->
+            IdeInstance.runContext.backendContext?.let { backendContext ->
+              backendIde.dumpProcess(backendContext)
+            } ?: {
+              thisLogger().warn("Backend context is not yet initialized")
+            }
+          }
+        }
+      }
       if (!context.executionException.isPresent) {
         CIServer.instance.reportTestFailure(message, message + "\n" + e.printToString(), "")
       }
