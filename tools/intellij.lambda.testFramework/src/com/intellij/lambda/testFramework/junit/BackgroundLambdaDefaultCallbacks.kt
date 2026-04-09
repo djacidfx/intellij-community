@@ -12,6 +12,9 @@ import com.intellij.ide.starter.utils.catchAll
 import com.intellij.lambda.testFramework.utils.IdeWithLambda
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.remoteDev.tests.impl.utils.getArtifactsFileName
+import com.intellij.remoteDev.tests.impl.utils.getTimeoutHonouringDebug
+import com.intellij.remoteDev.tests.impl.utils.runLogged
+import com.intellij.remoteDev.tests.modelGenerated.LambdaRdTestSession
 import com.jetbrains.rd.util.reactive.RdFault
 import com.jetbrains.rd.util.string.printToString
 import kotlinx.coroutines.runBlocking
@@ -21,6 +24,7 @@ import org.junit.jupiter.api.extension.BeforeAllCallback
 import org.junit.jupiter.api.extension.BeforeEachCallback
 import org.junit.jupiter.api.extension.ExtensionContext
 import kotlin.jvm.optionals.getOrNull
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Ensures `BackgroundRunWithLambda.cleanUp()` is executed automatically after each test.
@@ -31,30 +35,26 @@ import kotlin.jvm.optionals.getOrNull
 class BackgroundLambdaDefaultCallbacks : BeforeAllCallback, BeforeEachCallback, AfterEachCallback, AfterAllCallback {
 
   override fun beforeAll(context: ExtensionContext) {
-    callbackInvoker(context, "Before all",
-                    { contextName, callbackName -> ide.forEachSession(callbackName) { it.beforeAll.startSuspending(contextName) } })
+    callbackInvoker(context, "Before all") { rdTestSession, contextName -> rdTestSession.beforeAll.startSuspending(contextName) }
   }
 
   override fun beforeEach(context: ExtensionContext) {
-    callbackInvoker(context, "Before each",
-                    { contextName, callbackName -> ide.forEachSession(callbackName) { it.beforeEach.startSuspending(contextName) } })
+    callbackInvoker(context, "Before each") { rdTestSession, contextName -> rdTestSession.beforeEach.startSuspending(contextName) }
   }
 
   override fun afterEach(context: ExtensionContext) {
-    callbackInvoker(context, "After each",
-                    { contextName, callbackName -> ide.forEachSession(callbackName) { it.afterEach.startSuspending(contextName) } })
+    callbackInvoker(context, "After each") { rdTestSession, contextName -> rdTestSession.afterEach.startSuspending(contextName) }
   }
 
   override fun afterAll(context: ExtensionContext) {
-    callbackInvoker(context, "After all",
-                    { contextName, callbackName -> ide.forEachSession(callbackName) { it.afterAll.startSuspending(contextName) } })
+    callbackInvoker(context, "After all") { rdTestSession, contextName -> rdTestSession.afterAll.startSuspending(contextName) }
   }
 
 
   private fun callbackInvoker(
     context: ExtensionContext,
     callbackName: String,
-    callback: suspend (String, String) -> Unit,
+    callback: suspend (LambdaRdTestSession, String) -> Unit,
   ) {
     val contextName = buildString {
       append(context.requiredTestClass.name)
@@ -70,7 +70,14 @@ class BackgroundLambdaDefaultCallbacks : BeforeAllCallback, BeforeEachCallback, 
     try {
       @Suppress("RAW_RUN_BLOCKING")
       runBlocking(testSuiteSupervisorScope.coroutineContext) {
-        callback(contextName, callbackName)
+        ide.apply {
+          listOfNotNull(this, backendIdeWithLambda).map { it.rdSession }.forEach { session ->
+            val title = session.getRdIdeTypePrefix() + callbackName
+            runLogged(title, getTimeoutHonouringDebug(30.seconds)) {
+              callback(session, title)
+            }
+          }
+        }
       }
     }
     catch (e: Throwable) {

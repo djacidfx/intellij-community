@@ -123,17 +123,6 @@ class IdeWithLambda(internal val backgroundRun: BackgroundRun, val rdSession: La
     }
   }
 
-  internal suspend inline fun forEachSession(
-    stepName: String,
-    crossinline action: suspend (LambdaRdTestSession) -> Unit,
-  ) {
-    listOfNotNull(this, backendIdeWithLambda).map { it.rdSession }.forEach { session ->
-      runLogged(session.getRdIdeTypePrefix() + stepName, getTimeoutHonouringDebug(30.seconds)) {
-        action(session)
-      }
-    }
-  }
-
   suspend inline operator fun invoke(block: suspend IdeWithLambda.() -> Unit) {
     block()
   }
