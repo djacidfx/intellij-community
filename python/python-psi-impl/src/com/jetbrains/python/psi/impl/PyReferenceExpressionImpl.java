@@ -469,19 +469,9 @@ public class PyReferenceExpressionImpl extends PyElementImpl implements PyRefere
         boolean possiblyParameterizedQualifier = !(qualifierType instanceof PyModuleType || qualifierType instanceof PyImportedModuleType);
         final PyType type = Ref.deref(typeRef);
         if (possiblyParameterizedQualifier && PyTypeChecker.hasGenerics(type, context)) {
-          if (qualifierType instanceof PyCollectionType collectionType && collectionType.isDefinition()) {
-            if (type != null) {
-              var substitutions = PyTypeChecker.unifyReceiver(qualifierType, context);
-              PyType typeWithSubstitutions = PyTypeChecker.substitute(type, substitutions, context);
-              if (typeWithSubstitutions != null) {
-                return Ref.create(typeWithSubstitutions);
-              }
-            }
-          }
-          final var substitutions = PyTypeChecker.unifyGenericCall(qualifier, Collections.emptyMap(), context);
-          if (substitutions != null) {
-            return Ref.create(PyTypeChecker.substitute(type, substitutions, context));
-          }
+          var substitutions = PyTypeChecker.unifyReceiver(qualifierType, context);
+          PyType typeWithSubstitutions = PyTypeChecker.substitute(type, substitutions, context);
+          return Ref.create(typeWithSubstitutions);
         }
       }
     }
