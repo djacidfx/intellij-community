@@ -1,4 +1,4 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.xdebugger.impl.breakpoints
 
 import com.intellij.openapi.application.EDT
@@ -37,6 +37,7 @@ import com.intellij.util.concurrency.annotations.RequiresWriteLock
 import com.intellij.util.containers.isEmpty
 import com.intellij.util.ui.update.DebouncedUpdates
 import com.intellij.xdebugger.XDebuggerUtil
+import com.intellij.xdebugger.breakpoints.XLineBreakpointPlacement
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -157,9 +158,14 @@ class InlineBreakpointInlayManager(private val project: Project, parentScope: Co
     }
   }
 
+  /**
+   * Returns document breakpoints that are eligible for inline inlay rendering.
+   * Only breakpoints which can be placed on a line are taken into account.
+   */
   private fun allBreakpoints(document: Document): Collection<XLineBreakpointProxy> =
     XDebugManagerProxy.getInstance().getBreakpointManagerProxy(project).getLineBreakpointManager()
       .getDocumentBreakpointProxies(document)
+      .filter { it.getPlacement() == XLineBreakpointPlacement.ON_LINE }
 
   private fun getBreakpointLines(document: Document, onlyLine: Int?): Set<Int> {
     var lines: Set<Int> = allBreakpoints(document).map { it.getLine() }.toHashSet()
