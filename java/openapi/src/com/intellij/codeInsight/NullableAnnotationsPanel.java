@@ -20,12 +20,15 @@ import com.intellij.ui.BooleanTableCellRenderer;
 import com.intellij.ui.ColoredTableCellRenderer;
 import com.intellij.ui.SimpleTextAttributes;
 import com.intellij.ui.ToolbarDecorator;
+import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.dsl.builder.DslComponentProperty;
 import com.intellij.ui.dsl.builder.VerticalComponentGap;
 import com.intellij.ui.table.JBTable;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import com.intellij.util.ui.GridBag;
 import com.intellij.util.ui.JBDimension;
+import com.intellij.util.ui.JBFont;
+import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UI;
 import com.intellij.util.ui.UIUtil;
 import org.jetbrains.annotations.NotNull;
@@ -182,9 +185,15 @@ public class NullableAnnotationsPanel {
     myComponent = new JPanel(new GridBagLayout());
     myComponent.putClientProperty(DslComponentProperty.VERTICAL_COMPONENT_GAP, VerticalComponentGap.BOTH);
     GridBag constraints = new GridBag().setDefaultAnchor(GridBagConstraints.WEST);
+    myComponent.add(tablePanel, constraints.nextLine().coverLine().fillCell().weighty(1));
     myComponent.add(new JLabel(JavaBundle.message("nullable.notnull.annotation.used.label")), constraints.nextLine().next());
     myComponent.add(myCombo, constraints.next().fillCellHorizontally().weightx(1).insetBottom(UIUtil.DEFAULT_VGAP));
-    myComponent.add(tablePanel, constraints.nextLine().coverLine().fillCell().weighty(1));
+    JBLabel label = new JBLabel(JavaBundle.message("nullable.notnull.annotation.used.label.description"))
+      .withFont(JBFont.medium())
+      .setAllowAutoWrapping(true)
+      .setCopyable(true);
+    label.setForeground(JBUI.CurrentTheme.ContextHelp.FOREGROUND);
+    myComponent.add(label, constraints.nextLine().coverLine().fillCell());
   }
 
   private @NotNull TableCellRenderer createHeaderRenderer() {

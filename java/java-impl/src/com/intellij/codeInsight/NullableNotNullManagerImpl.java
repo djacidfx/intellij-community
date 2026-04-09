@@ -510,13 +510,16 @@ public class NullableNotNullManagerImpl extends NullableNotNullManager implement
       .withRootPane(() -> pane(
         tabs(
           tab(NullableNotNullDialog.NULLABLE,
-              string("myDefaultNullable", JavaBundle.message("nullable.notnull.annotation.used.label")),
               stringList("myNullables", JavaBundle.message("nullable.notnull.annotations.panel.title", "Nullable"),
-                         new JavaClassValidator().annotationsOnly())),
+                         new JavaClassValidator().annotationsOnly()),
+              string("myDefaultNullable", JavaBundle.message("nullable.notnull.annotation.used.label"))
+                .description(JavaBundle.message("nullable.notnull.annotation.used.label.description"))
+          ),
           tab(NullableNotNullDialog.NOT_NULL,
-              string("myDefaultNotNull", JavaBundle.message("nullable.notnull.annotation.used.label")),
               stringList("myNotNulls", JavaBundle.message("nullable.notnull.annotations.panel.title", "NotNull"),
-                         new JavaClassValidator().annotationsOnly())
+                         new JavaClassValidator().annotationsOnly()),
+              string("myDefaultNotNull", JavaBundle.message("nullable.notnull.annotation.used.label"))
+                .description(JavaBundle.message("nullable.notnull.annotation.used.label.description"))
           ))));
   }
 
