@@ -49,7 +49,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.StreamSupport;
 
 import static com.intellij.openapi.vfs.impl.local.LocalFileSystemEelUtil.listWithAttributesUsingEel;
@@ -57,6 +56,7 @@ import static com.intellij.openapi.vfs.impl.local.LocalFileSystemEelUtil.readAtt
 import static com.intellij.openapi.vfs.newvfs.impl.VirtualDirectoryImpl.createCreateEvent;
 import static com.intellij.util.containers.CollectionFactory.createFilePathMap;
 import static java.util.Objects.requireNonNullElse;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 @ApiStatus.Internal
 @SuppressWarnings("removal")
@@ -70,6 +70,24 @@ public class LocalFileSystemImpl
 
   private static final FileAttributes UNC_ROOT_ATTRIBUTES =
     new FileAttributes(true, false, false, false, DEFAULT_LENGTH, DEFAULT_TIMESTAMP, false, FileAttributes.CaseSensitivity.INSENSITIVE);
+
+  /** copied from VfsImplUtil.refreshAndFindFileByPath, just without refreshing on childOf() path */
+  private static final FileNavigator<NewVirtualFile> NON_REFRESHING_NAVIGATOR = new FileNavigator<>() {
+    @Override
+    public @Nullable NewVirtualFile parentOf(@NotNull NewVirtualFile file) {
+
+      if (!file.is(VFileProperty.SYMLINK)) {
+        return file.getParent();
+      }
+      var canonicalPath = file.getCanonicalPath();
+      return canonicalPath != null ? VfsImplUtil.refreshAndFindFileByPath(file.getFileSystem(), canonicalPath) : null;
+    }
+
+    @Override
+    public @Nullable NewVirtualFile childOf(@NotNull NewVirtualFile parent, @NotNull String childName) {
+      return parent.findChild(childName);
+    }
+  };
 
   private final ManagingFS myManagingFS;
   private final FileWatcher myWatcher;
@@ -90,27 +108,11 @@ public class LocalFileSystemImpl
         path = Path.of(toIoPath(pair.first));
       }
       catch (InvalidPathException e) {
-        throw new RuntimeException(e);
+        throw new RuntimeException(e);//TODO RC: why to wrap in RuntimeException?
       }
       return listWithAttributesUsingEel(path, pair.second);
     });
 
-  private final FileNavigator<NewVirtualFile> NON_REFRESHING_NAVIGATOR = new FileNavigator<>() {
-    @Override
-    public @Nullable NewVirtualFile parentOf(@NotNull NewVirtualFile file) {
-      // copied from VfsImplUtil.refreshAndFindFileByPath
-      if (!file.is(VFileProperty.SYMLINK)) {
-        return file.getParent();
-      }
-      var canonicalPath = file.getCanonicalPath();
-      return canonicalPath != null ? VfsImplUtil.refreshAndFindFileByPath(LocalFileSystemImpl.this, canonicalPath) : null;
-    }
-
-    @Override
-    public @Nullable NewVirtualFile childOf(@NotNull NewVirtualFile parent, @NotNull String childName) {
-      return parent.findChild(childName);
-    }
-  };
 
   protected LocalFileSystemImpl() {
     myManagingFS = ManagingFS.getInstance();
@@ -122,7 +124,7 @@ public class LocalFileSystemImpl
             storeRefreshStatusToFiles();
           }
         },
-        STATUS_UPDATE_PERIOD, STATUS_UPDATE_PERIOD, TimeUnit.MILLISECONDS
+        STATUS_UPDATE_PERIOD, STATUS_UPDATE_PERIOD, MILLISECONDS
       );
     });
     myWatchRootsManager = new WatchRootsManager(myWatcher, this);
@@ -381,9 +383,6 @@ public class LocalFileSystemImpl
 
   @Override
   public byte @NotNull [] contentsToByteArray(@NotNull VirtualFile file) throws IOException {
-    //if (SystemInfo.isUnix && file.is(VFileProperty.SPECIAL)) { // avoid opening FIFO files
-    //  throw new NoSuchFileException(file.getPath(), null, "Not a file");
-    //}
     var result = myContentGetter.accessDiskWithCheckCanceled(file);
     if (result instanceof IOException e) throw e;
     return (byte[])result;
