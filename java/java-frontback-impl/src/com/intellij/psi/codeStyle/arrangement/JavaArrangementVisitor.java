@@ -35,8 +35,6 @@ import com.intellij.psi.search.searches.SuperMethodsSearch;
 import com.intellij.psi.util.MethodSignatureBackedByPsiMethod;
 import com.intellij.psi.util.PropertyUtilBase;
 import com.intellij.psi.util.PsiUtil;
-import com.intellij.util.Functions;
-import com.intellij.util.containers.ContainerUtil;
 import com.intellij.util.containers.Stack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -194,7 +192,7 @@ public class JavaArrangementVisitor extends JavaRecursiveElementVisitor {
   }
 
   @Override
-  public void visitAnonymousClass(final @NotNull PsiAnonymousClass aClass) {
+  public void visitAnonymousClass(@NotNull PsiAnonymousClass aClass) {
     JavaElementArrangementEntry entry = createNewEntry(aClass.getTextRange(), ANONYMOUS_CLASS, null, false);
     if (entry == null) {
       return;
@@ -315,22 +313,13 @@ public class JavaArrangementVisitor extends JavaRecursiveElementVisitor {
   }
 
   private @NotNull List<PsiField> getReferencedFields(@NotNull PsiField field) {
-    final List<PsiField> referencedElements = new ArrayList<>();
-
     PsiExpression fieldInitializer = field.getInitializer();
     PsiClass containingClass = field.getContainingClass();
 
-    if (fieldInitializer == null || containingClass == null) {
-      return referencedElements;
-    }
+    if (fieldInitializer == null || containingClass == null) return List.of();
 
-    Set<PsiField> classFields = myCachedClassFields.get(containingClass);
-    if (classFields == null) {
-      classFields = ContainerUtil.map2Set(containingClass.getFields(), Functions.id());
-      myCachedClassFields.put(containingClass, classFields);
-    }
-
-    final Set<PsiField> containingClassFields = classFields;
+    Set<PsiField> classFields = myCachedClassFields.computeIfAbsent(containingClass, c -> Set.of(c.getFields()));
+    List<PsiField> referencedFields = new ArrayList<>();
     fieldInitializer.accept(new JavaRecursiveElementVisitor() {
       int myCurrentMethodLookupDepth;
       private static final int MAX_METHOD_LOOKUP_DEPTH = 3;
@@ -339,8 +328,8 @@ public class JavaArrangementVisitor extends JavaRecursiveElementVisitor {
       public void visitReferenceExpression(@NotNull PsiReferenceExpression expression) {
         if (expression instanceof PsiMethodReferenceExpression) return;
         PsiElement ref = expression.resolve();
-        if (ref instanceof PsiField f && containingClassFields.contains(ref) && hasSameStaticModifier(field, f)) {
-          referencedElements.add(f);
+        if (ref instanceof PsiField f && classFields.contains(ref) && hasSameStaticModifier(field, f)) {
+          referencedFields.add(f);
         }
         else if (ref instanceof PsiMethod method && myCurrentMethodLookupDepth < MAX_METHOD_LOOKUP_DEPTH) {
           myCurrentMethodLookupDepth++;
@@ -352,7 +341,7 @@ public class JavaArrangementVisitor extends JavaRecursiveElementVisitor {
       }
     });
 
-    return referencedElements;
+    return referencedFields;
   }
 
   private static boolean hasSameStaticModifier(@NotNull PsiField first, @NotNull PsiField second) {
