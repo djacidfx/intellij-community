@@ -1097,7 +1097,8 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
               messages.warning("Will rerun tests: $failedClasses")
             }
             else {
-              if (exitCode == 1) throw RuntimeException("Unexpected exit code $exitCode when running tests but no failed tests to retry found")
+              // Besides ordinary test failures, there might be non-test errors such as 'JUnit5TeamCityRunner.assertNoUnhandledExceptions'
+              messages.warning("Got exit code $exitCode when running tests but no failed tests to retry found. A test framework failure?")
               break // All tests passed or no tests were found; no further attempts needed.
             }
           }
