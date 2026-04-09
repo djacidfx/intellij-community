@@ -55,6 +55,8 @@ interface XBreakpointApi : RemoteApi<Unit> {
 
   suspend fun setFileUrl(breakpointId: XBreakpointId, requestId: Long, fileUrl: String?)
 
+  suspend fun setPlacement(breakpointId: XBreakpointId, requestId: Long, placement: XLineBreakpointPlacement)
+
   /**
    * Returns `true` on success, `false` if the request should be retried later due to version mismatch.
    */

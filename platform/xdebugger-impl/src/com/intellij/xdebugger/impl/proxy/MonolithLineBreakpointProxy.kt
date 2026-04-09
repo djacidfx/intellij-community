@@ -42,6 +42,10 @@ internal class MonolithLineBreakpointProxy @Deprecated("Use breakpoint.asProxy()
     breakpoint.line = line
   }
 
+  override fun setPlacement(placement: XLineBreakpointPlacement) {
+    breakpoint.placement = placement
+  }
+
   override fun getPlacement(): XLineBreakpointPlacement = breakpoint.placement
 
   override fun getHighlightRange(): XLineBreakpointHighlighterRange {

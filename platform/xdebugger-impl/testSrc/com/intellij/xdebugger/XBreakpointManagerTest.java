@@ -13,6 +13,7 @@ import com.intellij.xdebugger.breakpoints.XLineBreakpointPlacement;
 import com.intellij.xdebugger.impl.BreakpointManagerState;
 import com.intellij.xdebugger.impl.breakpoints.BreakpointState;
 import com.intellij.xdebugger.impl.breakpoints.XBreakpointBase;
+import com.intellij.xdebugger.impl.breakpoints.XLineBreakpointImpl;
 import org.jdom.Element;
 import org.jdom.JDOMException;
 import org.jetbrains.annotations.NotNull;
@@ -147,6 +148,62 @@ public class XBreakpointManagerTest extends XBreakpointsTestCase {
     assertSame(onLine, assertOneElement(myBreakpointManager.findBreakpointsAtLine(MY_LINE_BREAKPOINT_TYPE, file, 0)));
     assertSame(restored, assertOneElement(myBreakpointManager.findBreakpointsAtLine(MY_LINE_BREAKPOINT_TYPE, file, 0,
                                                                                     XLineBreakpointPlacement.INTER_LINE)));
+  }
+
+  @Test
+  public void testChangingPlacementFromLogpointToBreakpointAndBackUpdatesBreakpointLookup() {
+    VirtualFile file = getTempDir().createVirtualFile("breakpoint.txt");
+    XLineBreakpoint<MyBreakpointProperties> breakpoint =
+      myBreakpointManager.addLineBreakpoint(MY_LINE_BREAKPOINT_TYPE, file.getUrl(), 0, new MyBreakpointProperties("inter-line"), false,
+                                            XLineBreakpointPlacement.INTER_LINE);
+
+    StringBuilder out = new StringBuilder();
+    myBreakpointManager.addBreakpointListener(MY_LINE_BREAKPOINT_TYPE, new XBreakpointListener<>() {
+      @Override
+      public void breakpointChanged(@NotNull XLineBreakpoint<MyBreakpointProperties> changedBreakpoint) {
+        out.append("changed[").append(changedBreakpoint.getProperties().myOption).append("];");
+      }
+    }, getTestRootDisposable());
+
+    assertLookupForPlacement(file, breakpoint, XLineBreakpointPlacement.INTER_LINE);
+
+    XLineBreakpointImpl<?> breakpointImpl = assertInstanceOf(breakpoint, XLineBreakpointImpl.class);
+    breakpointImpl.setPlacement(XLineBreakpointPlacement.ON_LINE);
+
+    assertLookupForPlacement(file, breakpoint, XLineBreakpointPlacement.ON_LINE);
+
+    breakpointImpl.setPlacement(XLineBreakpointPlacement.INTER_LINE);
+
+    assertLookupForPlacement(file, breakpoint, XLineBreakpointPlacement.INTER_LINE);
+    assertEquals("changed[inter-line];changed[inter-line];", out.toString());
+  }
+
+  @Test
+  public void testChangingPlacementFromBreakpointToLogpointAndBackUpdatesBreakpointLookup() {
+    VirtualFile file = getTempDir().createVirtualFile("breakpoint.txt");
+    XLineBreakpoint<MyBreakpointProperties> breakpoint =
+      myBreakpointManager.addLineBreakpoint(MY_LINE_BREAKPOINT_TYPE, file.getUrl(), 0, new MyBreakpointProperties("on-line"), false,
+                                            XLineBreakpointPlacement.ON_LINE);
+
+    StringBuilder out = new StringBuilder();
+    myBreakpointManager.addBreakpointListener(MY_LINE_BREAKPOINT_TYPE, new XBreakpointListener<>() {
+      @Override
+      public void breakpointChanged(@NotNull XLineBreakpoint<MyBreakpointProperties> changedBreakpoint) {
+        out.append("changed[").append(changedBreakpoint.getProperties().myOption).append("];");
+      }
+    }, getTestRootDisposable());
+
+    assertLookupForPlacement(file, breakpoint, XLineBreakpointPlacement.ON_LINE);
+
+    XLineBreakpointImpl<?> breakpointImpl = assertInstanceOf(breakpoint, XLineBreakpointImpl.class);
+    breakpointImpl.setPlacement(XLineBreakpointPlacement.INTER_LINE);
+
+    assertLookupForPlacement(file, breakpoint, XLineBreakpointPlacement.INTER_LINE);
+
+    breakpointImpl.setPlacement(XLineBreakpointPlacement.ON_LINE);
+
+    assertLookupForPlacement(file, breakpoint, XLineBreakpointPlacement.ON_LINE);
+    assertEquals("changed[on-line];changed[on-line];", out.toString());
   }
 
   @Test
@@ -370,5 +427,27 @@ public class XBreakpointManagerTest extends XBreakpointsTestCase {
   private void reload() {
     Element element = save();
     load(element);
+  }
+
+  private void assertLookupForPlacement(@NotNull VirtualFile file,
+                                        @NotNull XLineBreakpoint<MyBreakpointProperties> breakpoint,
+                                        @NotNull XLineBreakpointPlacement expectedPlacement) {
+    assertEquals(expectedPlacement, breakpoint.getPlacement());
+    switch (expectedPlacement) {
+      case ON_LINE -> {
+        assertSame(breakpoint, myBreakpointManager.findBreakpointAtLine(MY_LINE_BREAKPOINT_TYPE, file, 0));
+        assertSame(breakpoint, assertOneElement(myBreakpointManager.findBreakpointsAtLine(MY_LINE_BREAKPOINT_TYPE, file, 0,
+                                                                                          XLineBreakpointPlacement.ON_LINE)));
+        assertEmpty(myBreakpointManager.findBreakpointsAtLine(MY_LINE_BREAKPOINT_TYPE, file, 0,
+                                                              XLineBreakpointPlacement.INTER_LINE));
+      }
+      case INTER_LINE -> {
+        assertNull(myBreakpointManager.findBreakpointAtLine(MY_LINE_BREAKPOINT_TYPE, file, 0));
+        assertEmpty(myBreakpointManager.findBreakpointsAtLine(MY_LINE_BREAKPOINT_TYPE, file, 0,
+                                                              XLineBreakpointPlacement.ON_LINE));
+        assertSame(breakpoint, assertOneElement(myBreakpointManager.findBreakpointsAtLine(MY_LINE_BREAKPOINT_TYPE, file, 0,
+                                                                                          XLineBreakpointPlacement.INTER_LINE)));
+      }
+    }
   }
 }

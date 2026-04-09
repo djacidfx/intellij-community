@@ -160,6 +160,19 @@ public final class XLineBreakpointImpl<P extends XBreakpointProperties> extends 
   }
 
   @ApiStatus.Internal
+  public void setPlacement(@NotNull XLineBreakpointPlacement placement) {
+    setPlacement(-1, placement);
+  }
+
+  public void setPlacement(long requestId, @NotNull XLineBreakpointPlacement placement) {
+    updateStateIfNeededAndNotify(requestId, placement, this::getPlacement, (newPlacement) -> {
+      myState.setPlacement(newPlacement);
+      myVisualRepresentation.removeHighlighter();
+      myVisualRepresentation.redrawInlineInlays(getFile(), getLine());
+    });
+  }
+
+  @ApiStatus.Internal
   public void setLine(final int line) {
     setLine(-1, line, true);
   }

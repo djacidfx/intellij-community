@@ -22,6 +22,7 @@ interface XLineBreakpointProxy : XBreakpointProxy, XLightLineBreakpointProxy {
   fun setFileUrl(url: String)
   fun getFileUrl(): String
   fun setLine(line: Int)
+  fun setPlacement(placement: XLineBreakpointPlacement)
 
   override fun getPlacement(): XLineBreakpointPlacement
 

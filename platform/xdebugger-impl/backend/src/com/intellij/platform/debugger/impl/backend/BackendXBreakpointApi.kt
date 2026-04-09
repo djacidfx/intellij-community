@@ -17,6 +17,7 @@ import com.intellij.platform.project.ProjectId
 import com.intellij.platform.project.findProject
 import com.intellij.xdebugger.XDebuggerManager
 import com.intellij.xdebugger.breakpoints.SuspendPolicy
+import com.intellij.xdebugger.breakpoints.XLineBreakpointPlacement
 import com.intellij.xdebugger.evaluation.EvaluationMode
 import com.intellij.xdebugger.impl.breakpoints.XBreakpointManagerImpl
 import com.intellij.xdebugger.impl.breakpoints.XBreakpointUtil
@@ -76,6 +77,13 @@ internal class BackendXBreakpointApi : XBreakpointApi {
     val breakpoint = breakpointId.findValue() as? XLineBreakpointImpl<*> ?: return
     edtWriteAction {
       breakpoint.setFileUrl(requestId, fileUrl)
+    }
+  }
+
+  override suspend fun setPlacement(breakpointId: XBreakpointId, requestId: Long, placement: XLineBreakpointPlacement) {
+    val breakpoint = breakpointId.findValue() as? XLineBreakpointImpl<*> ?: return
+    edtWriteAction {
+      breakpoint.setPlacement(requestId, placement)
     }
   }
 

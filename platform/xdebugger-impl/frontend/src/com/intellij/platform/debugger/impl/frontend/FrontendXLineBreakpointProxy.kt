@@ -236,6 +236,20 @@ internal class FrontendXLineBreakpointProxy(
     }
   }
 
+  override fun setPlacement(placement: XLineBreakpointPlacement) {
+    updateLineBreakpointStateIfNeeded(
+      newValue = placement,
+      getter = { it.placement },
+      copy = { it.copy(placement = placement) },
+      afterStateChanged = {
+        visualRepresentation.removeHighlighter()
+      },
+    ) { requestId ->
+      XBreakpointApi.getInstance().setPlacement(id, requestId, placement)
+      visualRepresentation.redrawInlineInlays(getFile(), getLine())
+    }
+  }
+
   override fun getHighlightRange(): XLineBreakpointHighlighterRange {
     val range = lineBreakpointInfo.highlightingRange
     if (range == UNAVAILABLE_RANGE) return XLineBreakpointHighlighterRange.Unavailable
