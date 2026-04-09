@@ -28,9 +28,7 @@ public class ClearSourceCaches extends AbstractCommand {
             Project project = context.getProject();
             PsiManager.getInstance(project).dropResolveCaches();
             PsiManager.getInstance(project).dropPsiCaches();
-            if (System.getProperty("idea.kotlin.plugin.use.k1", "false").equals("false")) {
-                UtilsKt.publishGlobalSourceModuleStateModificationEvent(project);
-            }
+            UtilsKt.publishGlobalSourceModuleStateModificationEvent(project);
             actionCallback.setDone();
         });
         return Promises.toPromise(actionCallback);
