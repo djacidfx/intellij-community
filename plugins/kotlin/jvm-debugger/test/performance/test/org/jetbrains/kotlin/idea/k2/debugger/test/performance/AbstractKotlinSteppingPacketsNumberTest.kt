@@ -1,11 +1,14 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package org.jetbrains.kotlin.idea.debugger.test
+package org.jetbrains.kotlin.idea.k2.debugger.test.performance
 
 import com.intellij.debugger.engine.SuspendContextImpl
 import com.intellij.tools.ide.metrics.benchmark.Benchmark
 import com.intellij.tools.ide.metrics.collector.MetricsCollector
 import com.intellij.tools.ide.metrics.collector.metrics.PerformanceMetrics
 import com.jetbrains.jdi.VirtualMachineImpl
+import org.jetbrains.kotlin.config.JvmClosureGenerationScheme
+import org.jetbrains.kotlin.idea.debugger.test.AbstractIrKotlinSteppingTest
+import org.jetbrains.kotlin.idea.debugger.test.TestFiles
 import org.jetbrains.kotlin.idea.debugger.test.preference.DebuggerPreferenceKeys
 import org.jetbrains.kotlin.idea.debugger.test.preference.DebuggerPreferences
 import java.nio.file.Path
@@ -23,6 +26,10 @@ abstract class AbstractKotlinSteppingPacketsNumberTest : AbstractIrKotlinSteppin
     override fun setUp() {
         super.setUp()
         setUpPacketsMeasureTest()
+    }
+
+    override fun lambdasGenerationScheme(): JvmClosureGenerationScheme {
+        return JvmClosureGenerationScheme.INDY
     }
 
     override fun doMultiFileTest(files: TestFiles, preferences: DebuggerPreferences) {

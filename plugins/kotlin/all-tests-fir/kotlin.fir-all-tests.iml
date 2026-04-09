@@ -35,6 +35,7 @@
     <orderEntry type="module" module-name="intellij.kotlin.codeInsight.lineMarkers" scope="RUNTIME" />
     <orderEntry type="module" module-name="intellij.kotlin.navigation.tests" scope="RUNTIME" />
     <orderEntry type="module" module-name="intellij.kotlin.jvm.debugger.test" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.kotlin.jvm.debugger.performance.test" scope="RUNTIME" />
     <orderEntry type="module" module-name="intellij.kotlin.refactorings.move" scope="RUNTIME" />
     <orderEntry type="module" module-name="intellij.kotlin.refactorings.rename" scope="RUNTIME" />
     <orderEntry type="module" module-name="intellij.kotlin.codeInsight.shared" scope="RUNTIME" />

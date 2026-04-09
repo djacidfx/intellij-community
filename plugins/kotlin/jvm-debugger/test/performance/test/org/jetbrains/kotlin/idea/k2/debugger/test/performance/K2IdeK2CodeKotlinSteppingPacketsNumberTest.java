@@ -1,15 +1,13 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
-package org.jetbrains.kotlin.idea.k2.debugger.test;
+package org.jetbrains.kotlin.idea.k2.debugger.test.performance;
 
 import com.intellij.testFramework.PerformanceUnitTest;
 import com.intellij.testFramework.TestDataPath;
 import kotlin.Unit;
 import kotlin.jvm.functions.Function0;
-import org.jetbrains.kotlin.config.JvmClosureGenerationScheme;
 import org.jetbrains.kotlin.idea.base.plugin.KotlinPluginMode;
 import org.jetbrains.kotlin.idea.base.test.TestRoot;
-import org.jetbrains.kotlin.idea.debugger.test.AbstractKotlinSteppingPacketsNumberTest;
 import org.jetbrains.kotlin.idea.test.JUnit3RunnerWithInners;
 import org.jetbrains.kotlin.idea.test.KotlinTestUtils;
 import org.jetbrains.kotlin.test.TestMetadata;
@@ -26,11 +24,6 @@ public class K2IdeK2CodeKotlinSteppingPacketsNumberTest extends AbstractKotlinSt
     @org.jetbrains.annotations.NotNull
     public final KotlinPluginMode getPluginMode() {
         return KotlinPluginMode.K2;
-    }
-
-    @Override
-    public JvmClosureGenerationScheme lambdasGenerationScheme() {
-        return JvmClosureGenerationScheme.INDY;
     }
 
     @Override
