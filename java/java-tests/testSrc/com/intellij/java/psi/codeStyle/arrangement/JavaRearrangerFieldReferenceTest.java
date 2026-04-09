@@ -1,7 +1,8 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.java.psi.codeStyle.arrangement;
 
 import com.intellij.psi.codeStyle.arrangement.match.StdArrangementMatchRule;
+import org.intellij.lang.annotations.Language;
 
 import java.util.List;
 
@@ -20,6 +21,56 @@ public class JavaRearrangerFieldReferenceTest extends AbstractJavaRearrangerTest
     List.of(rule(FIELD, STATIC, FINAL), rule(FIELD, PUBLIC),
             rule(FIELD, PROTECTED), rule(FIELD, PACKAGE_PRIVATE),
             rule(FIELD, PRIVATE));
+  
+  public void testMethodReferences() {
+    @Language("JAVA") String text = """
+      public class Foo {
+          private final Runnable mFooRunnable1 = this::runFooRunnable2;
+          private final Runnable mFooRunnable2 = makeFooRunnable2();
+          public Foo() {
+          }
+          private Runnable makeFooRunnable2() {
+              return new Runnable() {
+                  @Override
+                  public void run() {
+                      mFooRunnable1.run();
+                  }
+              };
+          }
+          private void runFooRunnable2() {
+              mFooRunnable2.run();
+          }
+      }
+      """;
+    doTest(text, text, defaultFieldsArrangement); // IDEA-311599
+    text = """
+      public record Test() {
+          static final Integer TEMP0 = 3;
+          static final Integer TEMP1 = run(ITest::temp2);
+          static final Integer TEMP2 = TEMP0 + 2 + TEMP1;
+          static Integer run(final Supplier<Integer> supplier) {
+              return 4;
+          }
+          interface ITest {
+              static int temp2() {
+                  return Test.TEMP2;
+              }
+          }
+      }
+      """;
+    doTest(text, text, defaultFieldsArrangement); // IDEA-314824
+    text = """
+      import java.util.function.Consumer;
+      public class Showcase {
+          Consumer<? super Boolean> foo = this::bar;
+          Object baz;
+          private void bar(Boolean really) {
+              System.out.println(foo);
+          }
+      }
+      """;
+    doTest(text, text, defaultFieldsArrangement); // IDEA-341366
+  }
 
   public void test_keep_referenced_package_private_field_before_public_one_which_has_reference_through_binary_expression() {
     doTest("""

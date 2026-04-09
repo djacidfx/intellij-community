@@ -337,6 +337,7 @@ public class JavaArrangementVisitor extends JavaRecursiveElementVisitor {
 
       @Override
       public void visitReferenceExpression(@NotNull PsiReferenceExpression expression) {
+        if (expression instanceof PsiMethodReferenceExpression) return;
         PsiElement ref = expression.resolve();
         if (ref instanceof PsiField f && containingClassFields.contains(ref) && hasSameStaticModifier(field, f)) {
           referencedElements.add(f);
