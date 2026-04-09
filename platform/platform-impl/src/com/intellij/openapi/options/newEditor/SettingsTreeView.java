@@ -44,6 +44,7 @@ import com.intellij.ui.render.RenderingUtil;
 import com.intellij.ui.scale.JBUIScale;
 import com.intellij.ui.tree.AsyncTreeModel;
 import com.intellij.ui.tree.FilteringTreeModel;
+import com.intellij.ui.tree.RestoreSelectionListener;
 import com.intellij.ui.tree.ui.Control;
 import com.intellij.ui.tree.ui.DefaultControl;
 import com.intellij.ui.treeStructure.CachingSimpleNode;
@@ -155,6 +156,7 @@ public class SettingsTreeView extends JComponent implements Accessible, Disposab
     myTree.setCellRenderer(new MyRenderer());
     myTree.setRootVisible(false);
     myTree.setExpandableItemsEnabled(false);
+    myTree.addTreeSelectionListener(new RestoreSelectionListener());
     RelativeFont.BOLD.install(myTree);
     setComponentPopupMenuTo(myTree);
 
