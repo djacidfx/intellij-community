@@ -198,9 +198,9 @@ private class PluginSetConstraintsResolver(
    */
   private fun establishDependencyFulfillmentConstraintsAndRememberResolvedDependencies(candidate: IdeaPluginDescriptorImpl) {
     val resolvedDependencies = ArrayList<IdeaPluginDescriptorImpl>()
-    val seenDependencies = HashMap<IdeaPluginDescriptorImpl, Boolean>()
+    val seenDependencies = HashSet<IdeaPluginDescriptorImpl>()
     fun tryAddDependency(dependency: IdeaPluginDescriptorImpl): Boolean {
-      if (dependency !== candidate && seenDependencies.putIfAbsent(dependency, true) == null) {
+      if (dependency !== candidate && seenDependencies.add(dependency)) {
         resolvedDependencies.add(dependency)
         return true
       }
@@ -455,14 +455,14 @@ private class PluginSetConstraintsResolver(
     for (group in representativeToGroups.values) {
       val groupDependencies = ArrayList<RuntimeModuleGroup>()
       val descriptors = group.sortedDescriptors
-      val seenDependencies = HashMap<RuntimeModuleGroupImpl, Boolean>()
+      val seenDependencies = HashSet<RuntimeModuleGroupImpl>()
       for (descriptor in descriptors) {
         for (target in resolvedDependencies[descriptor]!!) {
           val targetGroup = candidateToGroup[target] as? RuntimeModuleGroupImpl ?: error("runtime module group not found for $target")
           if (targetGroup === group) {
             continue
           }
-          if (seenDependencies.putIfAbsent(targetGroup, true) == null) {
+          if (seenDependencies.add(targetGroup)) {
             groupDependencies.add(targetGroup)
           }
         }
