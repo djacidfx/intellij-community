@@ -37,6 +37,11 @@ class TestClassCodeOwnerResolverImpl {
 
   private fun createResolver(): TestOwnerResolver? {
     val dir = ultimateRoot / "out" / "artifacts" / "codeowners"
-    return TestOwnerResolver.create(ultimateRoot, dir / "file-locations.ndjson", dir / "module-paths.ndjson")
+    return TestOwnerResolver.create(
+      ultimateRoot,
+      dir / "file-locations.ndjson",
+      dir / "module-paths.ndjson",
+      dir / "ownership-mapping-generated.yaml",
+    )
   }
 }

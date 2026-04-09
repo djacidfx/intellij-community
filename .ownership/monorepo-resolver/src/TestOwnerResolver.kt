@@ -6,7 +6,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.jetbrains.patronus.codeowners.lib.OwnerResolver
 import org.jetbrains.patronus.codeowners.lib.OwnershipMappingGenerator
-import org.jetbrains.patronus.codeowners.lib.core.RepoRootResolver
 import org.jetbrains.patronus.codeowners.lib.models.OwnershipMatch
 import java.nio.file.Files
 import java.nio.file.Path
@@ -50,10 +49,10 @@ class TestOwnerResolver(
     private val logger: Logger = Logger.getLogger(TestOwnerResolver::class.java.name)
     private val json = Json { ignoreUnknownKeys = true }
 
-    fun create(repositoryRoot: Path, fileLocations: Path, modulePaths: Path): TestOwnerResolver? {
-      if (!Files.exists(fileLocations) || !Files.exists(modulePaths)) return null
+    fun create(repositoryRoot: Path, fileLocations: Path, modulePaths: Path, ownershipMapping: Path): TestOwnerResolver? {
+      if (!Files.exists(fileLocations) || !Files.exists(modulePaths) || !Files.exists(ownershipMapping)) return null
       return try {
-        val mapping = OwnershipMappingGenerator.loadMappingStrict(RepoRootResolver.ofPath(repositoryRoot))
+        val mapping = OwnershipMappingGenerator.loadMapping(ownershipMapping)
         val resolver = OwnerResolver(mapping)
 
         TestOwnerResolver(
