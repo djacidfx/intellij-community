@@ -28,6 +28,9 @@
     <extensionPoint name="minimapHoverPolicy"
                     interface="com.intellij.ide.minimap.hover.MinimapHoverPolicy"
                     dynamic="true"/>
+    <extensionPoint name="minimapClickHandler"
+                    interface="com.intellij.ide.minimap.interaction.MinimapClickHandler"
+                    dynamic="true"/>
     <extensionPoint name="minimapFileSupportPolicy"
                     interface="com.intellij.ide.minimap.model.MinimapFileSupportPolicy"
                     dynamic="true"/>

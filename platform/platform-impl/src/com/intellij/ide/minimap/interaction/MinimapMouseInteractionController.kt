@@ -126,10 +126,12 @@ class MinimapMouseInteractionController(
 
   override fun mouseMoved(e: MouseEvent) {
     panel.cursor = Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR)
+    if (MinimapClickHandler.handleMouseMoved(panel, e)) return
     updateHover(e.point)
   }
 
   override fun mouseExited(e: MouseEvent) {
+    if (MinimapClickHandler.handleMouseExited(panel, e)) return
     updateHover(null)
   }
 
@@ -139,6 +141,7 @@ class MinimapMouseInteractionController(
 
   private fun handleClick(e: MouseEvent) {
     // TODO: if clicked on structure view element -> scroll to the element
+    if (MinimapClickHandler.handleClick(panel, e)) return
     if (panel.settings.state.rightAligned && tryDispatchToEditorInlay(e)) return
     panel.scrollTo(e.y)
   }
