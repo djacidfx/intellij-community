@@ -253,9 +253,8 @@ data class IDERunContext(
     startConfig: IDEStartConfig,
     ideProcessId: Long,
     snapshotsDir: Path,
-    runContext: IDERunContext,
   ) {
-    if (!runContext.calculateVmOptions().hasHeadlessMode() && runContext.testContext !is IDERemDevTestContext) {
+    if (!calculateVmOptions().hasHeadlessMode() && testContext !is IDERemDevTestContext) {
       catchAll {
         takeScreenshot(logsDir)
       }

@@ -102,7 +102,7 @@ class LocalIDEProcess : IDEProcess {
                 logOutput("BeforeKilled: $processPresentableName")
                 (ideProcessId ?: getIdeProcessIdWithRetry(process.toProcessInfo(), runContext))?.let {
                   ideProcessId = it
-                  captureDiagnosticOnKill(logsDir, jdkHome, startConfig, it, snapshotsDir, runContext = this)
+                  captureDiagnosticOnKill(logsDir, jdkHome, startConfig, it, snapshotsDir)
                 }
                 EventsBus.postAndWaitProcessing(IdeBeforeKillEvent(this, process, pid))
                 if (testContext.profilerType != ProfilerType.NONE) {
