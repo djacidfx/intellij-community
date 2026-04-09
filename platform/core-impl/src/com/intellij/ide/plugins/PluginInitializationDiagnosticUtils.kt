@@ -99,7 +99,7 @@ object PluginInitializationDiagnosticUtils {
     if (logBuilder.length == logHeader.length - 1) {
       logBuilder.append(" no exclusions")
     }
-    logger.warn(logBuilder.toString())
+    logger.info(logBuilder.toString())
 
     if (logger.isDebugEnabled) {
       logger.debug(buildString {
