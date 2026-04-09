@@ -107,6 +107,7 @@ class MinimapLayoutCalculator(private val editor: Editor) {
     val iterator = editor.highlighter.createIterator(document.getLineStartOffset(firstLogicalLine))
 
     for (projectedLine in context.visibleLines) {
+      if (!lineProjection.isPrimaryProjectedLine(projectedLine)) continue
       val logicalLine = lineProjection.projectedToLogicalLine(projectedLine) ?: continue
       val lineStartOffset = document.getLineStartOffset(logicalLine)
       val lineEndOffset = document.getLineEndOffset(logicalLine)
@@ -204,6 +205,7 @@ class MinimapLayoutCalculator(private val editor: Editor) {
                                        lineProjection: MinimapLineProjection,
                                        projectedLine: Int,
                                        tokenRenderPolicy: MinimapTokenRenderPolicy) {
+    if (!lineProjection.isPrimaryProjectedLine(projectedLine)) return
     val logicalLine = lineProjection.projectedToLogicalLine(projectedLine) ?: return
     val document = context.document
     val chars = document.charsSequence

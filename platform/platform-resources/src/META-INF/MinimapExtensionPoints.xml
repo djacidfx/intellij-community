@@ -19,6 +19,9 @@
     <extensionPoint name="minimapLayoutProfileProvider"
                     interface="com.intellij.ide.minimap.layout.MinimapLayoutProfileProvider"
                     dynamic="true"/>
+    <extensionPoint name="minimapLineSpanProvider"
+                    interface="com.intellij.ide.minimap.model.MinimapLineSpanProvider"
+                    dynamic="true"/>
     <extensionPoint name="minimapTokenRenderPolicy"
                     interface="com.intellij.ide.minimap.render.MinimapTokenRenderPolicy"
                     dynamic="true"/>
