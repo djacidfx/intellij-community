@@ -505,8 +505,7 @@ private fun writeLinuxVmOptions(distBinDir: Path, context: BuildContext): Path {
       "-Dsun.tools.attach.tmp.only=true",
       "-Dawt.lock.fair=true",
       when (context.productProperties.platformPrefix) {
-        "JetBrainsClient" -> null // Wayland auto-detection is disabled for JetBrains Client until rem-dev specific compatibility issues are resolved (IJPL-231136)
-        "Gateway" -> null // and for Gateway until system tray will be supported in Wayland toolkit in JBR (IJPL-231661/JBR-9966)
+        "Gateway" -> null // disabled for Gateway until system tray will be supported in Wayland toolkit in JBR (IJPL-231661/JBR-9966)
         "Rider" -> null // until the issues with SkikoLayer are resolved (RIDER-132169, SKIKO-28)
         else -> "-Dawt.toolkit.name=auto"
       }
