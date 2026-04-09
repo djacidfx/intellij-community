@@ -254,7 +254,7 @@ internal object SystemHealthMonitor {
 
   private fun checkLauncher() {
     if (
-      (OS.CURRENT == OS.Windows || OS.CURRENT == OS.Linux) &&
+      OS.CURRENT != OS.macOS &&
       System.getProperty("ide.native.launcher") == null &&
       !ExternalUpdateManager.isCreatingDesktopEntries()
     ) {

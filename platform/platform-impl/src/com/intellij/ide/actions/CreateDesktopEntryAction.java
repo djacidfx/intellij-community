@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.actions;
 
 import com.intellij.execution.ExecutionException;
@@ -22,7 +22,7 @@ import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.updateSettings.impl.ExternalUpdateManager;
-import com.intellij.openapi.util.NlsSafe;
+import com.intellij.openapi.util.io.NioFiles;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.AppUIUtil;
 import com.intellij.ui.AppUIUtilKt;
@@ -135,6 +135,13 @@ public final class CreateDesktopEntryAction extends DumbAwareAction implements A
 
     var starter = Restarter.getIdeStarter();
     if (starter == null) throw new RuntimeException(ApplicationBundle.message("desktop.entry.script.missing", binDir));
+    var starterName = NioFiles.getFileName(starter);
+    if (starterName.endsWith(".sh")) {
+      var binStarter = starter.resolveSibling(starterName.substring(0, starterName.length() - 3));
+      if (Files.exists(binStarter)) {
+        starter = binStarter;
+      }
+    }
 
     var names = ApplicationNamesInfo.getInstance();
     var name = names.getFullProductNameWithEdition();
