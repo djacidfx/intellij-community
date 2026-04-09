@@ -170,7 +170,7 @@ class ProcessExecutor(
   }
 
   /**
-   * Creates new process and wait for it's completion
+   * Creates a new process and waits for its completion.
    */
   @Throws(ExecTimeoutException::class)
   suspend fun startCancellable(printEnvVariables: Boolean = ConfigurationStorage.logEnvVariables()): Int {
@@ -261,8 +261,7 @@ class ProcessExecutor(
     finally {
       if (!processFinished) {
         logOutput("   ... terminating process `$presentableName` because of scope cancellation or failed attempt to do it in the timeout hook ...")
-        val gracefully = !currentCoroutineContext().isActive
-        killProcess(gracefully = gracefully)
+        killProcess(gracefully = !currentCoroutineContext().isActive)
       }
 
       try {
