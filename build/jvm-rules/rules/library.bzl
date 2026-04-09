@@ -1,14 +1,12 @@
 load("@rules_java//java:defs.bzl", _JavaInfo = "JavaInfo")
 load("@rules_kotlin//kotlin:jvm.bzl", "kt_jvm_library")
 load("@rules_kotlin//kotlin/internal:defs.bzl", "KtPluginConfiguration", _KtCompilerPluginInfo = "KtCompilerPluginInfo", _KtJvmInfo = "KtJvmInfo")
-load("//:rules/common-attrs.bzl", "add_dicts", "common_attr", "common_outputs", "common_toolchains")
+load("//:rules/common-attrs.bzl", "USE_RULES_KOTLIN_BACKEND", "add_dicts", "common_attr", "common_outputs", "common_toolchains")
 load("//:rules/impl/compile.bzl", "kt_jvm_produce_jar_actions")
 load("//:rules/impl/transitions.bzl", "jvm_platform_transition")
 load("//:rules/resource.bzl", "ResourceGroupInfo")
 
 visibility("public")
-
-USE_RULES_KOTLIN_BACKEND = False
 
 def _jvm_library(ctx):
     if ctx.attr.neverlink and ctx.attr.runtime_deps:

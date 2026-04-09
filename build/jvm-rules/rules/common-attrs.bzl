@@ -17,6 +17,8 @@ load("//:rules/impl/transitions.bzl", "scrubbed_host_platform_transition")
 
 visibility("private")
 
+USE_RULES_KOTLIN_BACKEND = False
+
 common_toolchains = [
     _TOOLCHAIN_TYPE,
     _JAVA_TOOLCHAIN_TYPE,

@@ -1,55 +1,22 @@
+load("@rules_java//java:defs.bzl", "JavaInfo", "java_library")
+load("//:rules/common-attrs.bzl", "USE_RULES_KOTLIN_BACKEND")
+load("//:rules/impl/transitions.bzl", "jvm_platform_transition")
+
 visibility("private")
 
 ResourceGroupInfo = provider(fields = ["files", "strip_prefix", "add_prefix"])
 
-def _strip_known_prefix(path, prefix):
-    if not prefix:
-        return path
-    normalized_prefix = prefix[:-1] if prefix.endswith("/") else prefix
-    if path.startswith(normalized_prefix + "/"):
-        return path[len(normalized_prefix) + 1:]
-    return path
-
-def _to_resource_jar_path(path, strip_prefix, add_prefix):
-    stripped = _strip_known_prefix(path, strip_prefix)
-    if not add_prefix:
-        return stripped
-    if not stripped:
-        return add_prefix
-    return add_prefix + "/" + stripped
-
-def _resourcegroup_impl(ctx):
-    output_jar = ctx.actions.declare_file(ctx.label.name + ".jar")
-    strip_prefix = ctx.file.strip_prefix.short_path if ctx.file.strip_prefix else ""
-
-    args = ctx.actions.args()
-    args.set_param_file_format("multiline")
-    args.use_param_file("@%s", use_always = True)
-    args.add("--output")
-    args.add(output_jar.path)
-    for resource in sorted(ctx.files.srcs, key = lambda f: f.short_path):
-        args.add("--entry")
-        args.add(_to_resource_jar_path(resource.short_path, strip_prefix, ctx.attr.add_prefix))
-        args.add(resource.path)
-
-    ctx.actions.run(
-        executable = ctx.executable._resource_jar_builder,
-        arguments = [args],
-        inputs = ctx.files.srcs,
-        outputs = [output_jar],
-        tools = [ctx.executable._resource_jar_builder],
-        mnemonic = "JvmResourceJar",
-        progress_message = "Create resource jar %{label}",
-    )
-
+def _resourcegroup_jps_impl(ctx):
     return [
-        DefaultInfo(files = depset([output_jar])),
+        ctx.attr.resource_jar[0][DefaultInfo],
+        ctx.attr.resource_jar[0][JavaInfo],
+        ctx.attr.resource_jar[0][OutputGroupInfo],
         ResourceGroupInfo(files = ctx.files.srcs, strip_prefix = ctx.file.strip_prefix, add_prefix = ctx.attr.add_prefix),
     ]
 
-resourcegroup = rule(
+_resourcegroup_jps = rule(
     doc = """This rule specifies resources layout in a .jar file.""",
-    implementation = _resourcegroup_impl,
+    implementation = _resourcegroup_jps_impl,
     attrs = {
         "srcs": attr.label_list(
             doc = """The list of resource files""",
@@ -59,16 +26,44 @@ resourcegroup = rule(
         "strip_prefix": attr.label(
             doc = """The path prefix to remove from Java resources""",
             allow_single_file = True,
+            providers = ["FileProvider"],
         ),
         "add_prefix": attr.string(
             doc = """The path prefix to prepend to Java resources, after applying `strip_prefix` (if any) to each file's relative path""",
             default = "",
         ),
-        "_resource_jar_builder": attr.label(
-            executable = True,
-            cfg = "exec",
-            default = Label("//:resource-jar-builder"),
-            allow_files = True,
+        "resource_jar": attr.label(
+            doc = """The resource jar with the actual providers to support Bazel plugin.""",
+            mandatory = True,
+            cfg = jvm_platform_transition,
         ),
     },
 )
+
+def resourcegroup(name, srcs, strip_prefix, visibility = ["//visibility:private"]):
+    package_name = native.package_name()
+    if package_name:
+        package_name = package_name + "/"
+    if USE_RULES_KOTLIN_BACKEND:
+        java_library(
+            name = name,
+            resources = srcs,
+            resource_strip_prefix = package_name + strip_prefix,
+            visibility = visibility,
+        )
+    else:
+        # forward the actual providers for Java resources from java_library to support Bazel plugin
+        java_library(
+            name = name + "_lib",
+            resources = srcs,
+            resource_strip_prefix = package_name + strip_prefix,
+            visibility = ["//visibility:private"],
+            tags = ["manual"],
+        )
+        _resourcegroup_jps(
+            name = name,
+            srcs = srcs,
+            strip_prefix = strip_prefix,
+            resource_jar = name + "_lib",
+            visibility = visibility,
+        )
