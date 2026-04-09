@@ -17,7 +17,7 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 class RemoteDevBackgroundRun(
-  private val backendRun: BackgroundRun,
+  val backendRun: BackgroundRun,
   frontendProcess: IDEHandle,
   frontendDriver: Driver,
   frontendStartResult: Deferred<IDEStartResult>,

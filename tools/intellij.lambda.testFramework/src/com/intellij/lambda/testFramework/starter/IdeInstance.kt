@@ -105,7 +105,7 @@ object IdeInstance {
         emptySet()
       }
 
-      catchAll { _ide?.forceKill() }
+      catchAll { _ide?.backgroundRun?.forceKill() }
       _ide = null
 
       // Wait for ports to be released after killing the IDE to avoid port conflicts when starting the next IDE

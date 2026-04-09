@@ -61,6 +61,7 @@ jvm_library(
     "//platform/projectModel-api:projectModel",
     "//platform/util:util-ui",
     "//platform/util-ex",
+    "//platform/remote-driver/client",
   ]
 )
 
@@ -109,6 +110,7 @@ jvm_library(
     "//platform/projectModel-api:projectModel_test_lib",
     "//platform/util:util-ui_test_lib",
     "//platform/util-ex:util-ex_test_lib",
+    "//platform/remote-driver/client:client_test_lib",
   ]
 )
 ### auto-generated section `build intellij.lambda.testFramework` end

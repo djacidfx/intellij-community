@@ -1,6 +1,7 @@
 package com.intellij.lambda.testFramework.utils
 
 import com.intellij.ide.starter.driver.driver.remoteDev.RemDevDriverRunner
+import com.intellij.ide.starter.driver.driver.remoteDev.RemoteDevBackgroundRun
 import com.intellij.ide.starter.driver.engine.LocalDriverRunner
 import com.intellij.ide.starter.ide.IDERemDevTestContext
 import com.intellij.ide.starter.ide.IDETestContext
@@ -92,7 +93,12 @@ internal fun IDERemDevTestContext.runIdeWithLambda(
                                                     configure = configure)
   listOf(backendRdSession, frontendRdSession)
     .forEach { it.awaitSessionReady(if (this.frontendIDEContext.ide.vmOptions.hasHeadlessMode()) 15.seconds else 30.seconds) }
-  return IdeWithLambda(backgroundRun, rdSession = frontendRdSession, backendRdSession = backendRdSession).also {
+  return IdeWithLambda(backgroundRun,
+                       rdSession = frontendRdSession,
+                       backendIdeWithLambda = if (backgroundRun is RemoteDevBackgroundRun)
+                         IdeWithLambda(backgroundRun.backendRun, backendRdSession, null)
+                       else null
+  ).also {
     if (testCase.projectInfo != NoProject) {
       @Suppress("RAW_RUN_BLOCKING")
       runBlocking {

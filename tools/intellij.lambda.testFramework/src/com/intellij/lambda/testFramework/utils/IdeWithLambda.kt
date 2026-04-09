@@ -1,7 +1,8 @@
 package com.intellij.lambda.testFramework.utils
 
+import com.intellij.driver.client.Driver
+import com.intellij.ide.starter.driver.driver.remoteDev.RemoteDevBackgroundRun
 import com.intellij.ide.starter.driver.engine.BackgroundRun
-import com.intellij.ide.starter.driver.engine.IBackgroundRun
 import com.intellij.remoteDev.tests.LambdaBackendContext
 import com.intellij.remoteDev.tests.LambdaFrontendContext
 import com.intellij.remoteDev.tests.LambdaIdeContext
@@ -18,11 +19,18 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
-class IdeWithLambda(delegate: BackgroundRun, val rdSession: LambdaRdTestSession, val backendRdSession: LambdaRdTestSession?) :
-  IBackgroundRun by delegate {
+class IdeWithLambda(internal val backgroundRun: BackgroundRun, val rdSession: LambdaRdTestSession, val backendIdeWithLambda: IdeWithLambda?) {
+  init {
+      if (backgroundRun is RemoteDevBackgroundRun) {
+        checkNotNull(backendIdeWithLambda) { "Remote dev background run should be not null" }
+      } else {
+        check(backendIdeWithLambda == null) { "Remote dev background run should be null" }
+      }
+  }
   fun defaultStepName(): String = "Step " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
-  val isRemoteDev: Boolean = rdSession.rdIdeType == LambdaRdIdeType.FRONTEND
-  val defaultTimeout = 1.minutes
+  val driver: Driver = backgroundRun.driver
+  val isRemoteDev: Boolean = backgroundRun is RemoteDevBackgroundRun
+  val defaultTimeout: Duration = 1.minutes
 
   fun LambdaRdTestSession.getRdIdeTypePrefix(): String = if (rdIdeType != LambdaRdIdeType.MONOLITH) "${rdIdeType}: " else ""
 
@@ -92,7 +100,7 @@ class IdeWithLambda(delegate: BackgroundRun, val rdSession: LambdaRdTestSession,
     timeout: Duration = defaultTimeout,
     lambdaConsumer: SerializedLambdaWithIdeContextHelper.SuspendingSerializableConsumer<LambdaBackendContext, Serializable>,
   ): Serializable {
-    return (backendRdSession ?: rdSession).runGetResult(name,
+    return (backendIdeWithLambda?: this).rdSession.runGetResult(name,
                                                         parameters = parameters,
                                                         lambdaConsumer = lambdaConsumer,
                                                         globalTestScope = globalTestScope,
@@ -119,7 +127,7 @@ class IdeWithLambda(delegate: BackgroundRun, val rdSession: LambdaRdTestSession,
     stepName: String,
     crossinline action: suspend (LambdaRdTestSession) -> Unit,
   ) {
-    listOfNotNull(rdSession, backendRdSession).forEach { session ->
+    listOfNotNull(this, backendIdeWithLambda).map { it.rdSession }.forEach { session ->
       runLogged(session.getRdIdeTypePrefix() + stepName, getTimeoutHonouringDebug(30.seconds)) {
         action(session)
       }
