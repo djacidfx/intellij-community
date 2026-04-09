@@ -4,7 +4,6 @@ package com.intellij.ide.minimap.model
 import com.intellij.ide.structureView.StructureViewTreeElement
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.editor.Document
-import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.RangeMarker
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
@@ -19,7 +18,6 @@ internal class MinimapStructureMarkerCollector(
   private val previousByElement: IdentityHashMap<StructureViewTreeElement, MinimapStructureMarker>,
   private val reusedStructureMarkers: IdentityHashMap<MinimapStructureMarker, Boolean>,
   private val result: MutableList<MinimapStructureMarker>,
-  private val editor: Editor,
   private val document: Document,
   private val pointerManager: SmartPointerManager?,
 ) {
@@ -93,9 +91,6 @@ internal class MinimapStructureMarkerCollector(
 
   private fun resolveStructureMarkerSource(element: StructureViewTreeElement): MinimapStructureMarkerSource {
     val value = element.value
-    if (value != null) {
-      MinimapStructureMarkerSourceProvider.resolve(editor, element, value)?.let { return it }
-    }
 
     return when (value) {
       is PsiNameIdentifierOwner -> {

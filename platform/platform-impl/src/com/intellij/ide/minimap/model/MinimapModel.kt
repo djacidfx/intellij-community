@@ -109,7 +109,6 @@ class MinimapModel(private val editor: Editor): Disposable {
         previousByElement = previousByElement,
         reusedStructureMarkers = reusedStructureMarkers,
         result = result,
-        editor = editor,
         document = document,
         pointerManager = pointerManager,
       ).visit(root, includeSelf = false)

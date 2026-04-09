@@ -1,21 +1,20 @@
 <!--suppress PluginXmlRegistrationCheck -->
 <idea-plugin>
   <extensionPoints>
+    <!-- Structure extraction pipeline -->
     <extensionPoint name="minimapStructureMarkerPolicy"
                     interface="com.intellij.ide.minimap.model.MinimapStructureMarkerPolicy"
                     dynamic="true"/>
-    <extensionPoint name="minimapStructureModelProvider"
-                    interface="com.intellij.ide.minimap.model.MinimapStructureModelProvider"
-                    dynamic="true"/>
-    <extensionPoint name="minimapStructureMarkerSourceProvider"
-                    interface="com.intellij.ide.minimap.model.MinimapStructureMarkerSourceProvider"
-                    dynamic="true"/>
+
+    <!-- Layer pipeline -->
     <extensionPoint name="minimapLayerFactory"
                     interface="com.intellij.ide.minimap.layers.MinimapLayerFactory"
                     dynamic="true"/>
     <extensionPoint name="minimapLayerVisibilityPolicy"
                     interface="com.intellij.ide.minimap.layers.MinimapLayerVisibilityPolicy"
                     dynamic="true"/>
+
+    <!-- Layout and rendering -->
     <extensionPoint name="minimapLayoutProfileProvider"
                     interface="com.intellij.ide.minimap.layout.MinimapLayoutProfileProvider"
                     dynamic="true"/>
@@ -25,12 +24,16 @@
     <extensionPoint name="minimapTokenRenderPolicy"
                     interface="com.intellij.ide.minimap.render.MinimapTokenRenderPolicy"
                     dynamic="true"/>
+
+    <!-- Interaction -->
     <extensionPoint name="minimapHoverPolicy"
                     interface="com.intellij.ide.minimap.hover.MinimapHoverPolicy"
                     dynamic="true"/>
     <extensionPoint name="minimapClickHandler"
                     interface="com.intellij.ide.minimap.interaction.MinimapClickHandler"
                     dynamic="true"/>
+
+    <!-- File support -->
     <extensionPoint name="minimapFileSupportPolicy"
                     interface="com.intellij.ide.minimap.model.MinimapFileSupportPolicy"
                     dynamic="true"/>
