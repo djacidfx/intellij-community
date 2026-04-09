@@ -43,7 +43,7 @@ private const val PROPERTY_DISABLED = "idea.builtin.server.disabled"
 
 private val LOG = logger<BuiltInServerManager>()
 
-class BuiltInServerManagerImpl(private val coroutineScope: CoroutineScope) : BuiltInServerManager() {
+internal class BuiltInServerManagerImpl(private val coroutineScope: CoroutineScope) : BuiltInServerManager() {
   private var serverStartFuture: Job? = null
   private var server: BuiltInServer? = null
   private var portOverride: Int? = null

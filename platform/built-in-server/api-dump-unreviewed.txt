@@ -110,22 +110,6 @@ f:org.jetbrains.builtInWebServer.liveReload.WebServerPageConnectionService
 - f:reloadRelatedClients(java.util.List):com.intellij.openapi.vfs.AsyncFileListener$ChangeApplier
 f:org.jetbrains.builtInWebServer.liveReload.WebServerPageConnectionService$Companion
 - f:getInstance():org.jetbrains.builtInWebServer.liveReload.WebServerPageConnectionService
-f:org.jetbrains.ide.BuiltInServerManagerImpl
-- org.jetbrains.ide.BuiltInServerManager
-- sf:Companion:org.jetbrains.ide.BuiltInServerManagerImpl$Companion
-- <init>(kotlinx.coroutines.CoroutineScope):V
-- addAuthToken(com.intellij.util.Url):com.intellij.util.Url
-- configureRequestToWebServer(java.net.URLConnection):V
-- createClientBootstrap():io.netty.bootstrap.Bootstrap
-- f:createServerBootstrap():io.netty.bootstrap.ServerBootstrap
-- getPort():I
-- getServerDisposable():com.intellij.openapi.Disposable
-- isOnBuiltInWebServer(com.intellij.util.Url):Z
-- sf:isOnBuiltInWebServerByAuthority(java.lang.String):Z
-- overridePort(java.lang.Integer):V
-- waitForStart():org.jetbrains.ide.BuiltInServerManager
-f:org.jetbrains.ide.BuiltInServerManagerImpl$Companion
-- f:isOnBuiltInWebServerByAuthority(java.lang.String):Z
 a:org.jetbrains.ide.RestService
 - org.jetbrains.ide.HttpRequestHandler
 - sf:Companion:org.jetbrains.ide.RestService$Companion

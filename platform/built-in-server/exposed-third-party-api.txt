@@ -3,7 +3,6 @@ com/google/gson/JsonElement
 com/google/gson/stream/JsonReader
 com/google/gson/stream/JsonWriter
 io/netty/bootstrap/Bootstrap
-io/netty/bootstrap/ServerBootstrap
 io/netty/buffer/ByteBuf
 io/netty/buffer/ByteBufAllocator
 io/netty/channel/Channel
