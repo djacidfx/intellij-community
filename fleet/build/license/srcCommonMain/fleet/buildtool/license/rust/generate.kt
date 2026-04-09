@@ -68,6 +68,7 @@ class CargoAboutLicenseReader(
     val cmd = listOf(
       cargoAboutBinary.absolutePathString(),
       "generate",
+      "--locked",
       "--format=json",
       "--manifest-path=${cargoManifest.absolutePathString()}",
       "--config=${cargoAboutConfiguration.absolutePathString()}",
