@@ -56,7 +56,7 @@ import org.jetbrains.kotlin.psi.psiUtil.isPrivate
 internal class ConvertToExplicitBackingFieldsInspection :
     KotlinApplicableInspectionBase.Simple<KtProperty, ConvertToExplicitBackingFieldsInspection.Context>() {
 
-    data class Context(val backingProperty: SmartPsiElementPointer<KtProperty>)
+    internal data class Context(val backingProperty: SmartPsiElementPointer<KtProperty>)
 
     override fun getProblemDescription(
         element: KtProperty,
