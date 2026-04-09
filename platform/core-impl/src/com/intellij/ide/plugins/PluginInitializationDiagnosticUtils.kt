@@ -100,6 +100,16 @@ object PluginInitializationDiagnosticUtils {
       logBuilder.append(" no exclusions")
     }
     logger.warn(logBuilder.toString())
+
+    if (logger.isDebugEnabled) {
+      logger.debug(buildString {
+        appendLine("Resolved descriptors:")
+        for ((index, descriptor) in resolvedPluginSet.sortedResolvedDescriptors.withIndex()) {
+          if (index > 0) append(", ")
+          append(descriptor.getLogDescription())
+        }
+      })
+    }
   }
 
   private fun DescriptorExclusionReason.getDependencyCycleRepresentative(): IdeaPluginDescriptorImpl =
