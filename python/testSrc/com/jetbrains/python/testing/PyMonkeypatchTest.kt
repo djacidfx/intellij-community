@@ -26,6 +26,8 @@ class PyMonkeypatchTest : PyTestCase() {
 
   override fun setUp() {
     super.setUp()
+    TestRunnerService.getInstance(myFixture.module).selectedFactory =
+      PythonTestConfigurationType.getInstance().pyTestFactory
     myFixture.copyDirectoryToProject("", "")
   }
 
