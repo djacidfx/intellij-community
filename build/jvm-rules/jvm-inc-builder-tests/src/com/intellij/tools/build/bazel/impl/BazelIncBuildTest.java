@@ -422,6 +422,10 @@ public abstract class BazelIncBuildTest {
     static Iterable<BuildOutput> scanOutputs(Path testOutputDir) throws IOException {
       List<Path> targetOutputs = Files.list(testOutputDir).filter(path -> matches(path, ".jar") && !matches(path, DataPaths.ABI_JAR_SUFFIX)).toList();
 
+      // resourcegroup produces the supplementary resource jar with the actual providers to support Bazel plugin
+      // JvmIncBuilderTest#testRebuildOnUntrackedInputChange test previously ignored them because they were located under a platform-specific output directory (e.g. .../bazel-out/darwin_arm64-fastbuild), now they are under .../bazel-out/jvm-fastbuild
+      targetOutputs = targetOutputs.stream().filter(path -> !matches(path, "_resources_lib-class.jar") && !matches(path, "_resources_lib-native-header.jar") && !matches(path, "_resources_lib.jar")).toList();  // TODO: remove this
+
       return map(targetOutputs, output -> {
         try {
           String dataDirName = DataPaths.truncateExtension(getFileName(output)) + DataPaths.DATA_DIR_NAME_SUFFIX;
