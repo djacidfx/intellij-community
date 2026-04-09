@@ -88,13 +88,16 @@ class GroovyBuildScriptManipulator(
 ) : GradleBuildScriptManipulator<GroovyFile> {
     override fun isApplicable(file: PsiFile): Boolean = file is GroovyFile
 
+    override fun usesOldSyntax(kotlinPluginName: String): Boolean {
+        val fileText = runReadAction { scriptFile.text }
+        return containsDirective(fileText, getApplyPluginDirective(kotlinPluginName)) &&
+                fileText.contains("org.jetbrains.kotlin")
+    }
+
     private val gradleVersion = GradleVersionProvider.fetchGradleVersion(scriptFile)
 
     override fun isConfiguredWithOldSyntax(kotlinPluginName: String): Boolean {
-        val fileText = runReadAction { scriptFile.text }
-        return containsDirective(fileText, getApplyPluginDirective(kotlinPluginName)) &&
-                fileText.contains("org.jetbrains.kotlin") &&
-                !hasKotlinPluginApplyFalse()
+        return usesOldSyntax(kotlinPluginName) && !hasKotlinPluginApplyFalse()
     }
 
     override fun isConfigured(kotlinPluginExpression: String): Boolean {

@@ -42,6 +42,7 @@ interface GradleBuildScriptManipulator<out Psi : PsiFile> {
     val scriptFile: Psi
     val preferNewSyntax: Boolean
 
+    fun usesOldSyntax(kotlinPluginName: String): Boolean
     fun isConfiguredWithOldSyntax(kotlinPluginName: String): Boolean
     fun isConfigured(kotlinPluginExpression: String): Boolean
 
@@ -221,7 +222,7 @@ fun GradleBuildScriptManipulator<*>.useNewSyntax(kotlinPluginName: String, gradl
 
     if (gradleVersion < GradleVersionProvider.getVersion(MIN_GRADLE_VERSION_FOR_NEW_PLUGIN_SYNTAX.version)) return false
 
-    if (isConfiguredWithOldSyntax(kotlinPluginName)) return false
+    if (usesOldSyntax(kotlinPluginName)) return false
 
     val fileText = runReadAction { scriptFile.text }
     val hasOldApply = fileText.contains("apply plugin:")

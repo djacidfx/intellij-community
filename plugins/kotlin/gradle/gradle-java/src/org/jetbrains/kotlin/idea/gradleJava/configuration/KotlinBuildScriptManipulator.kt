@@ -80,9 +80,14 @@ class KotlinBuildScriptManipulator(
 
     private val gradleVersion = GradleVersionProvider.fetchGradleVersion(scriptFile)
 
-    override fun isConfiguredWithOldSyntax(kotlinPluginName: String): Boolean = runReadAction {
-        scriptFile.containsApplyKotlinPlugin(kotlinPluginName) && !hasKotlinPluginApplyFalse()
+    override fun usesOldSyntax(kotlinPluginName: String): Boolean = runReadAction {
+        scriptFile.containsApplyKotlinPlugin(kotlinPluginName)
     }
+
+    override fun isConfiguredWithOldSyntax(kotlinPluginName: String): Boolean =
+        usesOldSyntax(kotlinPluginName) && runReadAction {
+            !hasKotlinPluginApplyFalse()
+        }
 
     override fun isConfigured(kotlinPluginExpression: String): Boolean = runReadAction {
         scriptFile.containsKotlinPluginInPluginsGroup(kotlinPluginExpression) && !hasKotlinPluginApplyFalse()
