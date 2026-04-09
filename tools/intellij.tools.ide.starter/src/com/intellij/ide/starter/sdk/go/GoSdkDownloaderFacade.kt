@@ -1,5 +1,7 @@
 package com.intellij.ide.starter.sdk.go
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.intellij.ide.starter.path.GlobalPaths
 import com.intellij.ide.starter.runner.SetupException
 import com.intellij.ide.starter.runner.targets.TargetIdentifier
@@ -35,6 +37,21 @@ object GoSdkDownloaderFacade {
     return GoSdkDownloadItem(version, platformInfo.os, platformInfo.arch) {
       downloadGoSdkItem(version, platformInfo)
     }
+  }
+
+  /**
+   * Fetches the latest available Go SDK version (including RC) from the go.dev/dl API.
+   */
+  fun getLatestAvailableVersion(): String {
+    val url = "https://go.dev/dl/?mode=json&include=all"
+    logOutput("Fetching Go versions from $url")
+    val response = java.net.URI(url).toURL().openStream().bufferedReader().use { it.readText() }
+    val mapper = jacksonObjectMapper()
+    val versions = mapper.readValue(response, Array<GoVersionInfo>::class.java)
+    val latest = versions?.firstOrNull()
+                 ?: error("No Go versions found at $url")
+    logOutput("Latest available Go version: ${latest.version}")
+    return latest.version.removePrefix("go")
   }
 
   /**
@@ -113,4 +130,7 @@ object GoSdkDownloaderFacade {
   }
 
   data class PlatformInfo(val os: String, val arch: String, val extension: String)
+
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  private data class GoVersionInfo(val version: String = "", val stable: Boolean = false)
 }
