@@ -952,6 +952,7 @@ open class ConsoleViewImpl protected constructor(
               object : FlushRunnable(true) {
                 public override fun doRun() {
                   if (heavyUpdateTicket != currentValue) {
+                    LOG.info("Heavy console filter: outdated, skipping application for '${text.trim()}'")
                     return
                   }
 
