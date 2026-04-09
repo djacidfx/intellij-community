@@ -32,7 +32,7 @@ internal suspend fun buildOriginalModuleRepository(context: CompilationContext):
       val resourcePathsSchema = AbsolutePathsResourcePathsSchema(moduleOutputs, testModuleOutputs)
       val moduleDescriptors = RuntimeModuleRepositoryGenerator.generateRuntimeModuleDescriptorsForWholeProject(context.project, resourcePathsSchema, NoContentModuleDetector)
       withContext(Dispatchers.IO) {
-        RuntimeModuleRepositoryGenerator.saveModuleRepository(moduleDescriptors, targetDirectory)
+        RuntimeModuleRepositoryGenerator.saveModuleRepository(moduleDescriptors, pluginHeaders = emptyList(), targetDirectory)
       }
     }
     catch (e: Throwable) {

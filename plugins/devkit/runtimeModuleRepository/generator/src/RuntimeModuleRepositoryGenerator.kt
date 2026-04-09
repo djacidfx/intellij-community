@@ -64,13 +64,15 @@ object RuntimeModuleRepositoryGenerator {
     return descriptors
   }
 
-  fun saveModuleRepository(descriptors: List<RawRuntimeModuleDescriptor>, targetDirectory: Path) {
+  fun saveModuleRepository(descriptors: List<RawRuntimeModuleDescriptor>, pluginHeaders: List<RawRuntimePluginHeader>,
+                           targetDirectory: Path) {
     try {
       val bootstrapModuleName = "intellij.platform.bootstrap"
       targetDirectory.createDirectories()
-      val pluginHeaders = emptyList<RawRuntimePluginHeader>()
-      RuntimeModuleRepositorySerialization.saveToCompactFile(descriptors, pluginHeaders, bootstrapModuleName, targetDirectory.resolve(COMPACT_REPOSITORY_FILE_NAME), GENERATOR_VERSION)
-      RuntimeModuleRepositorySerialization.saveToJar(descriptors, pluginHeaders, bootstrapModuleName, targetDirectory.resolve(JAR_REPOSITORY_FILE_NAME), GENERATOR_VERSION)
+      RuntimeModuleRepositorySerialization.saveToCompactFile(descriptors,
+                                                             pluginHeaders, bootstrapModuleName, targetDirectory.resolve(COMPACT_REPOSITORY_FILE_NAME), GENERATOR_VERSION)
+      RuntimeModuleRepositorySerialization.saveToJar(descriptors,
+                                                     pluginHeaders, bootstrapModuleName, targetDirectory.resolve(JAR_REPOSITORY_FILE_NAME), GENERATOR_VERSION)
     }
     catch (e: IOException) {
       throw RuntimeException("Failed to save runtime module repository: ${e.message}", e)

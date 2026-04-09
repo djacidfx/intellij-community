@@ -1,7 +1,6 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.intellij.build.impl
 
-import com.intellij.devkit.runtimeModuleRepository.generator.ContentModuleDetector
 import com.intellij.devkit.runtimeModuleRepository.generator.ResourcePathsSchema
 import com.intellij.devkit.runtimeModuleRepository.generator.RuntimeModuleRepositoryGenerator
 import com.intellij.devkit.runtimeModuleRepository.generator.RuntimeModuleRepositoryGenerator.COMPACT_REPOSITORY_FILE_NAME
@@ -11,6 +10,7 @@ import com.intellij.devkit.runtimeModuleRepository.generator.isProjectLevel
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.platform.runtime.repository.RuntimeModuleId
 import com.intellij.platform.runtime.repository.serialization.RawRuntimeModuleDescriptor
+import com.intellij.platform.runtime.repository.serialization.RawRuntimePluginHeader
 import com.intellij.platform.runtime.repository.serialization.RuntimeModuleRepositorySerialization
 import com.intellij.util.containers.MultiMap
 import io.opentelemetry.api.trace.Span
@@ -18,6 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.intellij.build.BuildContext
 import org.jetbrains.intellij.build.ModuleOutputProvider
+import org.jetbrains.intellij.build.classPath.PluginBuildDescriptor
 import org.jetbrains.intellij.build.impl.projectStructureMapping.ContentReport
 import org.jetbrains.intellij.build.impl.projectStructureMapping.DistributionFileEntry
 import org.jetbrains.intellij.build.impl.projectStructureMapping.ModuleLibraryFileEntry
@@ -52,7 +53,6 @@ internal suspend fun generateRuntimeModuleRepositoryForDistribution(
   val repositoryEntries = ArrayList<RuntimeModuleRepositoryEntry>()
   val osSpecificDistPaths = listOf(null to context.paths.distAllDir) +
                             SUPPORTED_DISTRIBUTIONS.map { it to getOsAndArchSpecificDistDirectory(osFamily = it.os, arch = it.arch, libc = it.libcImpl, context = context) }
-  val contentModuleDetector = ContentModuleDetectorImpl(platformLayout, contentReport)
   for (entry in contentReport.bundled()) {
     val (distribution, rootPath) = osSpecificDistPaths.find { entry.path.startsWith(it.second) } ?: continue
 
@@ -60,30 +60,33 @@ internal suspend fun generateRuntimeModuleRepositoryForDistribution(
     repositoryEntries.add(RuntimeModuleRepositoryEntry(distribution = distribution, relativePath = pathInDist, origin = entry))
   }
 
-  if (repositoryEntries.all { it.distribution == null }) {
+  if (repositoryEntries.all { it.distribution == null } && contentReport.bundledPlugins.all { it.os == null && it.arch == null }) {
     generateRepositoryForDistribution(
       targetDirectory = context.paths.distAllDir,
       entries = repositoryEntries,
+      bundledPlugins = contentReport.bundledPlugins,
+      platformLayout = platformLayout,
       context = context,
-      contentModuleDetector = contentModuleDetector,
     )
   }
   else {
     for (distribution in SUPPORTED_DISTRIBUTIONS) {
       val targetDirectory = getOsAndArchSpecificDistDirectory(osFamily = distribution.os, arch = distribution.arch, libc = distribution.libcImpl, context = context)
       val actualEntries = repositoryEntries.filter { it.distribution == null || it.distribution == distribution }
+      val actualPlugins = contentReport.bundledPlugins.filter { (it.os == null || it.os == distribution.os) && (it.arch == null || it.arch == distribution.arch) }
       generateRepositoryForDistribution(
         targetDirectory = targetDirectory,
         entries = actualEntries,
+        bundledPlugins = actualPlugins,
         context = context,
-        contentModuleDetector = contentModuleDetector,
+        platformLayout = platformLayout,
       )
     }
   }
 }
 
 /**
- * A variant of [generateRuntimeModuleRepositoryForDistribution] which should be used for 'dev build', when all [entries] correspond to the current OS,
+ * A variant of [generateRuntimeModuleRepositoryForDistribution] which should be used for 'dev build', when all entries correspond to the current OS,
  * and distribution files are generated under [targetDirectory].
  */
 internal suspend fun generateRuntimeModuleRepositoryForDevBuild(
@@ -102,8 +105,9 @@ internal suspend fun generateRuntimeModuleRepositoryForDevBuild(
   generateRepositoryForDistribution(
     targetDirectory = targetDirectory,
     entries = actualEntries.toList(),
+    bundledPlugins = contentReport.bundledPlugins,
+    platformLayout = platformLayout,
     context = context,
-    contentModuleDetector = ContentModuleDetectorImpl(platformLayout, contentReport),
   )
 }
 
@@ -125,6 +129,9 @@ internal fun generateCrossPlatformRepository(distAllPath: Path, osSpecificDistPa
     RuntimeModuleRepositorySerialization.loadFromCompactFile(repositoryFile)
   }
   val commonIds = repositories.map { it.allModuleIds }.reduce { a, b -> a.intersect(b) }
+  val commonPluginDescriptorModules = repositories
+    .map { repository -> repository.pluginHeaders.mapTo(HashSet()) { it.pluginDescriptorModuleId } }
+    .reduce<Set<RuntimeModuleId>, Set<RuntimeModuleId>> { a, b -> a.intersect(b) }
   val commonDescriptors = ArrayList<RawRuntimeModuleDescriptor>()
   for (moduleId in commonIds) {
     val descriptors = repositories.map { it.findDescriptor(moduleId)!! }
@@ -137,8 +144,19 @@ internal fun generateCrossPlatformRepository(distAllPath: Path, osSpecificDistPa
     }
     commonDescriptors.add(RawRuntimeModuleDescriptor.create(moduleId, commonResourcePaths.toList(), commonDependencies))
   }
+  val commonPluginHeaders = ArrayList<RawRuntimePluginHeader>()
+  for (pluginDescriptorModule in commonPluginDescriptorModules) {
+    val headers = repositories.map { repository -> repository.pluginHeaders.single { it.pluginDescriptorModuleId == pluginDescriptorModule } }
+    val header = headers.first()
+    for (anotherHeader in headers.drop(1)) {
+      if (header.pluginId != anotherHeader.pluginId || header.includedModules != anotherHeader.includedModules) {
+        context.messages.logErrorAndThrow("Cannot generate runtime module repository for cross-platform distribution: different plugin headers for module '${pluginDescriptorModule.presentableName}': $header and $anotherHeader")
+      }
+    }
+    commonPluginHeaders.add(header)
+  }
   val targetDir = context.paths.tempDir.resolve("cross-platform-module-repository")
-  RuntimeModuleRepositoryGenerator.saveModuleRepository(commonDescriptors, targetDir)
+  RuntimeModuleRepositoryGenerator.saveModuleRepository(commonDescriptors, commonPluginHeaders, targetDir)
   return targetDir
 }
 
@@ -153,7 +171,8 @@ private suspend fun generateRepositoryForDistribution(
   targetDirectory: Path,
   entries: List<RuntimeModuleRepositoryEntry>,
   context: BuildContext,
-  contentModuleDetector: ContentModuleDetector,
+  bundledPlugins: List<PluginBuildDescriptor>,
+  platformLayout: PlatformLayout,
 ) {
   val mainPathsForResources = computeMainPathsForResourcesCopiedToMultiplePlaces(entries, context)
   fun isMainPath(element: JpsNamedElement, path: String): Boolean {
@@ -196,6 +215,7 @@ private suspend fun generateRepositoryForDistribution(
   addMappingForModulesWithoutResources(moduleProductionPaths)
   addMappingsForDuplicatingLibraries(libraryPaths, moduleProductionPaths)
 
+  val contentModuleDetector = ContentModuleDetectorImpl(platformLayout, bundledPlugins)
   val distDescriptors = RuntimeModuleRepositoryGenerator.generateRuntimeModuleDescriptors(
     includedProduction = moduleProductionPaths.keySet(),
     includedTests = moduleTestPaths.keySet(),
@@ -211,16 +231,24 @@ private suspend fun generateRepositoryForDistribution(
 
   val errors = ArrayList<String>()
   val errorReporter = object : RuntimeModuleRepositoryValidator.ErrorReporter {
-    override fun reportDuplicatingId(moduleId: RuntimeModuleId) {
-      errors.add("Module '${moduleId.presentableName}' is included several times in the runtime module repository")
+    override fun reportError(errorMessage: String) {
+      errors.add(errorMessage)
     }
   }
-  RuntimeModuleRepositoryValidator.validate(distDescriptors, errorReporter)
-  require(errors.isEmpty()) {
-    "Runtime module repository has ${errors.size} ${StringUtil.pluralize("error", errors.size)}:\n" + errors.joinToString("\n")
+  val pluginHeaders = contentModuleDetector.pluginHeaders
+  RuntimeModuleRepositoryValidator.validate(distDescriptors, pluginHeaders, errorReporter)
+  if (errors.isNotEmpty()) {
+    context.messages.logErrorAndThrow(
+      "Runtime module repository which is used to run the frontend process has ${errors.size} ${StringUtil.pluralize("error", errors.size)}:\n " +
+      errors.joinToString("\n ")
+    )
   }
   withContext(Dispatchers.IO) {
-    RuntimeModuleRepositoryGenerator.saveModuleRepository(descriptors = distDescriptors, targetDirectory = targetDirectory.resolve(RUNTIME_REPOSITORY_MODULES_DIR_NAME))
+    RuntimeModuleRepositoryGenerator.saveModuleRepository(
+      descriptors = distDescriptors,
+      pluginHeaders = pluginHeaders,
+      targetDirectory = targetDirectory.resolve(RUNTIME_REPOSITORY_MODULES_DIR_NAME)
+    )
   }
 }
 

@@ -2,14 +2,16 @@
 package com.intellij.platform.runtime.repository.serialization;
 
 import com.intellij.platform.runtime.repository.IncludedRuntimeModule;
-import com.intellij.platform.runtime.repository.RuntimeModuleLoadingRule;
-import com.intellij.platform.runtime.repository.impl.IncludedRuntimeModuleImpl;
 import com.intellij.platform.runtime.repository.RuntimeModuleDescriptor;
 import com.intellij.platform.runtime.repository.RuntimeModuleId;
+import com.intellij.platform.runtime.repository.RuntimeModuleLoadingRule;
 import com.intellij.platform.runtime.repository.RuntimeModuleRepository;
+import com.intellij.platform.runtime.repository.impl.IncludedRuntimeModuleImpl;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.Objects;
 
 public final class RawIncludedRuntimeModule {
   private final RuntimeModuleId myModuleId;
@@ -33,6 +35,20 @@ public final class RawIncludedRuntimeModule {
 
   public @Nullable RuntimeModuleId getRequiredIfAvailableId() {
     return myRequiredIfAvailableId;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) return false;
+
+    RawIncludedRuntimeModule module = (RawIncludedRuntimeModule)o;
+    return myModuleId.equals(module.myModuleId) && myLoadingRule == module.myLoadingRule
+           && Objects.equals(myRequiredIfAvailableId, module.myRequiredIfAvailableId);
+  }
+
+  @Override
+  public int hashCode() {
+    return 31 * (31 * myModuleId.hashCode() + myLoadingRule.hashCode()) + Objects.hashCode(myRequiredIfAvailableId);
   }
 
   @Override
