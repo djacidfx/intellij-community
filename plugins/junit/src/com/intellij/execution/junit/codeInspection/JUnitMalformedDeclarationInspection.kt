@@ -12,6 +12,7 @@ import com.intellij.codeInsight.options.JavaClassValidator
 import com.intellij.codeInspection.AbstractBaseUastLocalInspectionTool
 import com.intellij.codeInspection.IntentionWrapper
 import com.intellij.codeInspection.LocalInspectionToolSession
+import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.codeInspection.flattenedAttributeValues
 import com.intellij.codeInspection.isAnonymousOrLocal
@@ -125,7 +126,9 @@ import com.siyeh.ig.junit.JUnitCommonClassNames.ORG_JUNIT_JUPITER_API_AFTER_EACH
 import com.siyeh.ig.junit.JUnitCommonClassNames.ORG_JUNIT_JUPITER_API_BEFORE_ALL
 import com.siyeh.ig.junit.JUnitCommonClassNames.ORG_JUNIT_JUPITER_API_BEFORE_EACH
 import com.siyeh.ig.junit.JUnitCommonClassNames.ORG_JUNIT_JUPITER_API_EXTENSION_AFTER_ALL_CALLBACK
+import com.siyeh.ig.junit.JUnitCommonClassNames.ORG_JUNIT_JUPITER_API_EXTENSION_AFTER_EACH_CALLBACK
 import com.siyeh.ig.junit.JUnitCommonClassNames.ORG_JUNIT_JUPITER_API_EXTENSION_BEFORE_ALL_CALLBACK
+import com.siyeh.ig.junit.JUnitCommonClassNames.ORG_JUNIT_JUPITER_API_EXTENSION_BEFORE_EACH_CALLBACK
 import com.siyeh.ig.junit.JUnitCommonClassNames.ORG_JUNIT_JUPITER_API_EXTENSION_EXTEND_WITH
 import com.siyeh.ig.junit.JUnitCommonClassNames.ORG_JUNIT_JUPITER_API_EXTENSION_EXTENSION
 import com.siyeh.ig.junit.JUnitCommonClassNames.ORG_JUNIT_JUPITER_API_EXTENSION_EXTENSIONS
@@ -559,9 +562,15 @@ private class JUnitMalformedSignatureVisitor(
     if (!type.isInheritorOf(ORG_JUNIT_JUPITER_API_EXTENSION_BEFORE_ALL_CALLBACK, ORG_JUNIT_JUPITER_API_EXTENSION_AFTER_ALL_CALLBACK)) return
     val containingClass = javaField.containingClass ?: return
     if (TestUtils.testInstancePerClass(containingClass)) return
-    val message = JUnitBundle.message("jvm.inspections.junit.malformed.extension.class.level.descriptor", type.presentableText)
-    val fixes = createModifierQuickfixes(field, modifierRequest(JvmModifier.STATIC, shouldBePresent = true))
-    holder.registerUProblem(field, message, *fixes)
+    if (type.isInheritorOf(ORG_JUNIT_JUPITER_API_EXTENSION_BEFORE_EACH_CALLBACK, ORG_JUNIT_JUPITER_API_EXTENSION_AFTER_EACH_CALLBACK)) {
+      val message = JUnitBundle.message("jvm.inspections.junit.malformed.extension.instance.level.descriptor", type.presentableText)
+      holder.registerUProblem(field, message, highlightType = ProblemHighlightType.WEAK_WARNING)
+    }
+    else {
+      val message = JUnitBundle.message("jvm.inspections.junit.malformed.extension.class.level.descriptor", type.presentableText)
+      val fixes = createModifierQuickfixes(field, modifierRequest(JvmModifier.STATIC, shouldBePresent = true))
+      holder.registerUProblem(field, message, *fixes)
+    }
   }
 
   private fun UMethod.isNoArg(): Boolean = uastParameters.isEmpty() || uastParameters.all { param ->

@@ -76,6 +76,58 @@ abstract class KotlinJUnitMalformedDeclarationInspectionTest : KotlinJUnitMalfor
     """.trimIndent())
   }
 
+  fun `test malformed callback extension dual mode weak warning`() {
+    myFixture.configureByText("Foo.kt", """
+      class A {
+        @JvmField
+        @org.junit.jupiter.api.extension.RegisterExtension
+        val <weak_warning descr="MyExt implements both class-level and instance-level callbacks; 'beforeAll' will not be called for a non-static field">ext</weak_warning> = MyExt()
+
+        class MyExt : org.junit.jupiter.api.extension.BeforeAllCallback,
+                      org.junit.jupiter.api.extension.BeforeEachCallback {
+          override fun beforeAll(ctx: org.junit.jupiter.api.extension.ExtensionContext) {}
+          override fun beforeEach(ctx: org.junit.jupiter.api.extension.ExtensionContext) {}
+        }
+      }
+    """.trimIndent())
+    myFixture.checkHighlighting(true, false, true)
+  }
+
+  fun `test malformed callback extension dual mode no highlighting when per class`() {
+    myFixture.testHighlighting(
+      JvmLanguage.KOTLIN, """
+      @org.junit.jupiter.api.TestInstance(org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS)
+      class A {
+        @JvmField
+        @org.junit.jupiter.api.extension.RegisterExtension
+        val ext = MyExt()
+
+        class MyExt : org.junit.jupiter.api.extension.BeforeAllCallback,
+                      org.junit.jupiter.api.extension.BeforeEachCallback {
+          override fun beforeAll(ctx: org.junit.jupiter.api.extension.ExtensionContext) {}
+          override fun beforeEach(ctx: org.junit.jupiter.api.extension.ExtensionContext) {}
+        }
+      }
+    """.trimIndent())
+  }
+
+  fun `test malformed callback extension before each static no highlighting`() {
+    myFixture.testHighlighting(
+      JvmLanguage.KOTLIN, """
+      class A {
+        companion object {
+          @JvmField
+          @org.junit.jupiter.api.extension.RegisterExtension
+          val ext = MyExt()
+        }
+
+        class MyExt : org.junit.jupiter.api.extension.BeforeEachCallback {
+          override fun beforeEach(ctx: org.junit.jupiter.api.extension.ExtensionContext) {}
+        }
+      }
+    """.trimIndent())
+  }
+
   /* Malformed nested class */
   fun `test malformed nested no highlighting`() {
     myFixture.testHighlighting(
