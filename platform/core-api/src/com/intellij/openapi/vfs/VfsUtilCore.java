@@ -16,6 +16,7 @@ import com.intellij.openapi.util.io.FileUtilRt;
 import com.intellij.openapi.util.io.OSAgnosticPathUtil;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.util.text.StringUtilRt;
+import com.intellij.openapi.vfs.impl.InputStreamSkippingBOM;
 import com.intellij.openapi.vfs.limits.FileSizeLimit;
 import com.intellij.util.PathUtil;
 import com.intellij.util.Processor;
@@ -30,7 +31,6 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.SystemIndependent;
 import org.jetbrains.annotations.Unmodifiable;
 
-import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -270,16 +270,7 @@ public class VfsUtilCore {
   }
 
   public static @NotNull InputStream inputStreamSkippingBOM(@NotNull InputStream stream, @NotNull VirtualFile file) throws IOException {
-    if (!stream.markSupported()) {
-      //noinspection IOResourceOpenedButNotSafelyClosed
-      stream = new BufferedInputStream(stream);
-    }
-    byte[] bom = CharsetToolkit.detectBOMFromStream(stream);
-    if (bom != null && file.getBOM() == null) {
-      // this method was called before com.intellij.openapi.fileEditor.impl.LoadTextUtil.detectCharsetAndSetBOM
-      file.setBOM(bom);
-    }
-    return stream;
+    return new InputStreamSkippingBOM(stream, file);
   }
 
   public static @NotNull OutputStream outputStreamAddingBOM(@NotNull OutputStream stream, @NotNull VirtualFile file) throws IOException {
