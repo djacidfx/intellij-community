@@ -170,10 +170,6 @@ public class CoreProgressManager extends ProgressManager implements Disposable {
   }
 
   @ApiStatus.Internal
-  public boolean runCheckCanceledHooks(@Nullable ProgressIndicator indicator) {
-    return false;
-  }
-  @ApiStatus.Internal
   protected boolean hasCheckCanceledHooks() {
     return false;
   }

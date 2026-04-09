@@ -834,6 +834,9 @@ com.intellij.openapi.progress.TaskInfo
 - getStatusBarIndicatorWeight():I
 - a:getTitle():java.lang.String
 - a:isCancellable():Z
+f:com.intellij.openapi.progress.util.ProgressIndicatorUtilsCore
+- sf:awaitWithCheckCanceled(java.util.concurrent.Future):java.lang.Object
+- sf:awaitWithCheckCanceled(java.util.concurrent.Future,com.intellij.openapi.progress.ProgressIndicator):java.lang.Object
 com.intellij.openapi.project.DumbAware
 com.intellij.openapi.project.DumbAwareRunnable
 - com.intellij.openapi.project.DumbAware

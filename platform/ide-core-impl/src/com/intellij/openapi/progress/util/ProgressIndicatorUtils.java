@@ -21,7 +21,6 @@ import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.util.ThrowableComputable;
 import com.intellij.util.ConcurrencyUtil;
-import com.intellij.util.ExceptionUtil;
 import com.intellij.util.TimeoutUtil;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import com.intellij.util.concurrency.Semaphore;
@@ -30,15 +29,12 @@ import org.jetbrains.annotations.ApiStatus.Obsolete;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -56,8 +52,6 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
  */
 public final class ProgressIndicatorUtils {
   private static final Logger LOG = Logger.getInstance(ProgressIndicatorUtils.class);
-
-  private static final int MAX_REJECTED_EXECUTIONS_BEFORE_CANCELLATION = 16;
 
 
   /**
@@ -152,7 +146,7 @@ public final class ProgressIndicatorUtils {
         // add listener inside runProcess to avoid cancelling indicator before even starting the progress
         return runActionAndCancelBeforeWrite(application, cancellation, action);
       }
-      catch (ProcessCanceledException ignore) {
+      catch (@SuppressWarnings("IncorrectCancellationExceptionHandling") ProcessCanceledException ignore) {
         return false;
       }
     }, progressIndicator);
@@ -271,7 +265,7 @@ public final class ProgressIndicatorUtils {
       try {
         return task.runBackgroundProcess(progressIndicator);
       }
-      catch (ProcessCanceledException ignore) {
+      catch (@SuppressWarnings("IncorrectCancellationExceptionHandling") ProcessCanceledException ignore) {
         return null;
       }
     }, progressIndicator);
@@ -381,46 +375,7 @@ public final class ProgressIndicatorUtils {
   }
 
   public static <T> T awaitWithCheckCanceled(@NotNull Future<T> future, @Nullable ProgressIndicator indicator) {
-    int rejectedExecutions = 0;
-    while (true) {
-      if (!future.isDone()) {//short-circuit all the ProgressIndicator processing if future is already done
-        checkCancelledEvenWithPCEDisabled(indicator);
-      }
-      try {
-        return future.get(ConcurrencyUtil.DEFAULT_TIMEOUT_MS, MILLISECONDS);
-      }
-      catch (TimeoutException ignore) {
-      }
-      //BEWARE RC: in a non-cancellable section we _could_ still (re-)throw a (P)CE if the _awaited_ code gets cancelled.
-      //           It is sometimes mistakenly considered an error, but it is not -- [see Daniil Ovchinnikov, private conversation]
-      catch (RejectedExecutionException ree) {
-        //EA-225412: FJP throws REE (which propagates through futures) e.g. when FJP reaches max
-        // threads while compensating for too many managedBlockers -- or when it is shutdown.
-
-        //This branch creates a risk of infinite loop -- i.e. if the current thread itself is somehow
-        // responsible for FJP resource exhaustion, hence can't release anything, each consequent
-        // future.get() will throw the same REE again and again. So let's limit retries:
-        rejectedExecutions++;
-        if (rejectedExecutions > MAX_REJECTED_EXECUTIONS_BEFORE_CANCELLATION) {
-          //RC: It would be clearer to rethrow ree itself -- but I doubt many callers are ready for it,
-          //    while all callers are ready for PCE, hence...
-          throw new ProcessCanceledException(ree);
-        }
-      }
-      catch (InterruptedException e) {
-        throw new ProcessCanceledException(e);
-      }
-      catch (Throwable e) {
-        Throwable cause = e.getCause();
-        if (cause instanceof ProcessCanceledException) {
-          throw (ProcessCanceledException)cause;
-        }
-        if (cause instanceof CancellationException) {
-          throw new ProcessCanceledException(cause);
-        }
-        ExceptionUtil.rethrow(e);
-      }
-    }
+    return ProgressIndicatorUtilsCore.awaitWithCheckCanceled(future, indicator);
   }
 
   public static void awaitWithCheckCanceled(@NotNull Lock lock) {
@@ -433,7 +388,7 @@ public final class ProgressIndicatorUtils {
 
   /** Use when a deadlock is possible otherwise. */
   public static void checkCancelledEvenWithPCEDisabled(@Nullable ProgressIndicator indicator) {
-    ProgressIndicatorUtilBase.checkCancelledEvenWithPCEDisabled(indicator);
+    ProgressIndicatorUtilsCore.checkCancelledEvenWithPCEDisabled(indicator);
   }
 
   public static void awaitWithCheckCanceled(@NotNull Semaphore semaphore, @Nullable ProgressIndicator indicator) {

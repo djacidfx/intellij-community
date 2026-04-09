@@ -41,7 +41,7 @@ fun <T> runWithCheckCanceled(
 
   val future = GlobalScope.async(blockingDispatcher + context, block = action).asCompletableFuture()
   try {
-    return ProgressIndicatorUtils.awaitWithCheckCanceled(future)
+    return future.awaitWithCheckCanceled()
   }
   catch (e: CancellationException) {
     future.cancel(false)
@@ -54,7 +54,5 @@ fun <T> runWithCheckCanceled(
 @ApiStatus.Experimental
 fun <T> awaitWithCheckCanceled(deferred: Deferred<T>): T {
   assertRunBlockingBackgroundThreadAndNoWriteAction()
-
-  val future = deferred.asCompletableFuture()
-  return ProgressIndicatorUtils.awaitWithCheckCanceled(future)
+  return deferred.asCompletableFuture().awaitWithCheckCanceled()
 }
