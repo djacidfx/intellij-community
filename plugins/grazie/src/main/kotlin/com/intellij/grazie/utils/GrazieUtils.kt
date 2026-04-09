@@ -41,7 +41,6 @@ import com.intellij.grazie.text.TextContent.TextDomain
 import com.intellij.grazie.text.TextContentImpl
 import com.intellij.grazie.text.TextProblem
 import com.intellij.grazie.text.TextProblemAggregator
-import com.intellij.grazie.text.TreeRuleChecker
 import com.intellij.grazie.utils.HighlightingUtil.findInstalledLang
 import com.intellij.openapi.progress.checkCanceled
 import com.intellij.openapi.progress.runBlockingCancellable
@@ -117,12 +116,8 @@ private fun buildProblemMap(
   checkedDomains: Set<TextDomain>,
 ): Map<TextContent, List<TextProblem>> {
   if (texts.isEmpty()) return emptyMap()
-  val file = texts.first().containingFile
   val textsWithProblems = mutableMapOf<TextContent, MutableList<TextProblem>>()
   CheckerRunner.checkTexts(allCheckers, texts, checkedDomains).forEach { problem ->
-    textsWithProblems.computeIfAbsent(problem.text) { ArrayList() }.add(problem)
-  }
-  TreeRuleChecker.checkTextLevelProblems(file).forEach { problem ->
     textsWithProblems.computeIfAbsent(problem.text) { ArrayList() }.add(problem)
   }
   return textsWithProblems

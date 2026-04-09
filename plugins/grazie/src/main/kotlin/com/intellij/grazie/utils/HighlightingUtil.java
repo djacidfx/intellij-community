@@ -65,6 +65,10 @@ public final class HighlightingUtil {
     return texts.stream().mapToInt(t -> t.length()).sum() > MAX_TEXT_LENGTH_IN_PSI_ELEMENT;
   }
 
+  public static boolean isTooLargeText(TextContent text) {
+    return text.length() > MAX_TEXT_LENGTH_IN_PSI_ELEMENT;
+  }
+
   public static void applyTextChanges(Document document, List<StringOperation> changes) {
     for (StringOperation r : StreamEx.of(changes).sortedBy(c -> -c.getRange().getStartOffset())) {
       document.replaceString(r.getRange().getStartOffset(), r.getRange().getEndOffset(), r.getReplacement());

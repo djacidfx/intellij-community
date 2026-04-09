@@ -48,8 +48,6 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiPlainTextFile;
-import com.intellij.psi.util.CachedValueProvider;
-import com.intellij.psi.util.CachedValuesManager;
 import com.intellij.util.ExceptionUtil;
 import com.intellij.util.containers.ContainerUtil;
 import com.intellij.util.text.StringOperation;
@@ -68,8 +66,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.SequencedMap;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 import static com.intellij.grazie.text.GrazieProblem.getQuickFixText;
@@ -208,21 +206,11 @@ public final class TreeRuleChecker {
   private static List<MatchingResult> doCheck(TextContent text, List<ParsedSentence> sentences) {
     if (sentences.isEmpty()) return List.of();
 
-    record Cached(List<ParsedSentence> sentences, List<MatchingResult> matches) {}
-
-    AtomicReference<Cached> ref = CachedValuesManager.getManager(text.getContainingFile().getProject())
-      .getCachedValue(text, () -> CachedValueProvider.Result.create(new AtomicReference<>(), HighlightingUtil.grazieConfigTracker()));
-
     try {
-      Cached cached = ref.get();
-      if (cached == null || !cached.sentences.equals(sentences)) {
-        ParameterValues parameters = calcParameters(sentences);
-        List<Tree> trees = ContainerUtil.map(sentences, s -> s.tree.withParameters(parameters));
-        List<ai.grazie.rules.Rule> rules = enabledRules(trees.getFirst(), text);
-        List<MatchingResult> matches = matchTrees(trees, rules);
-        ref.set(cached = new Cached(sentences, matches));
-      }
-      return cached.matches;
+      ParameterValues parameters = calcParameters(sentences);
+      List<Tree> trees = ContainerUtil.map(sentences, s -> s.tree.withParameters(parameters));
+      List<ai.grazie.rules.Rule> rules = enabledRules(trees.getFirst(), text);
+      return matchTrees(trees, rules);
     } catch (Throwable e) {
       Throwable cause = ExceptionUtil.getRootCause(e);
       if (cause instanceof ProcessCanceledException pce) {
@@ -301,8 +289,16 @@ public final class TreeRuleChecker {
     return null;
   }
 
+  /**
+   * @deprecated Use {@link TreeRuleChecker#checkText(List)} instead
+   */
+  @SuppressWarnings("unused")
+  @Deprecated(forRemoval = true)
   public static List<TreeProblem> checkTextLevelProblems(PsiFile file) {
-    List<SentenceWithContent> doc = obtainDocument(file);
+    return checkText(ParsedSentence.getAllCheckedSentences(file.getViewProvider()));
+  }
+
+  private static List<TreeProblem> checkDocumentProblems(PsiFile file, List<SentenceWithContent> doc) {
     if (doc.isEmpty()) return List.of();
 
     List<TreeProblem> result = documentProblems(file, doc);
@@ -423,12 +419,18 @@ public final class TreeRuleChecker {
     return result;
   }
 
-  private static List<SentenceWithContent> obtainDocument(PsiFile file) {
-    var suppressedRanges = suppressedRanges();
+  public static List<TreeProblem> checkText(List<TextContent> texts) {
+    return checkText(ParsedSentence.getAllCheckedSentences(texts));
+  }
 
+  private static List<TreeProblem> checkText(SequencedMap<TextContent, List<ParsedSentence>> textToSentences) {
+    if (textToSentences.isEmpty()) return List.of();
+
+    var suppressedRanges = suppressedRanges();
+    List<TreeProblem> problems = new ArrayList<>();
     List<SentenceWithContent> doc = new ArrayList<>();
     int offset = 0;
-    for (var entry : ParsedSentence.getAllCheckedSentences(file.getViewProvider()).entrySet()) {
+    for (var entry : textToSentences.entrySet()) {
       TextContent content = entry.getKey();
       List<ParsedSentence> sentences = entry.getValue();
       if (sentences.isEmpty()) continue;
@@ -436,6 +438,10 @@ public final class TreeRuleChecker {
       int offsetInContent = 0;
 
       List<MatchingResult> matches = doCheck(content, sentences);
+      List<TreeProblem> matchProblems = checkPlainProblems(content, matches);
+      AutoFix.consider(content, matchProblems);
+      problems.addAll(matchProblems);
+
       for (int i = 0; i < sentences.size(); i++) {
         ParsedSentence parsed = sentences.get(i);
 
@@ -457,7 +463,11 @@ public final class TreeRuleChecker {
       }
       offset += offsetInContent;
     }
-    return doc;
+
+    PsiFile file = textToSentences.keySet().iterator().next().getContainingFile();
+    problems.addAll(checkDocumentProblems(file, doc));
+
+    return problems;
   }
 
   private record SentenceWithContent(DocumentSentence.Analyzed sentence, TextContent content, int contentStart, int docSentenceOffset) {}
@@ -477,6 +487,11 @@ public final class TreeRuleChecker {
     return ProblemFilter.allIgnoringFilters(p).findFirst().orElse(null);
   }
 
+  /**
+   * @deprecated Use {@link TreeRuleChecker#checkText(List)} instead
+   */
+  @SuppressWarnings("unused")
+  @Deprecated(forRemoval = true)
   static List<TreeProblem> check(TextContent text, List<ParsedSentence> sentences) {
     List<MatchingResult> mr = doCheck(text, sentences);
     List<TreeProblem> problems = checkPlainProblems(text, mr);
