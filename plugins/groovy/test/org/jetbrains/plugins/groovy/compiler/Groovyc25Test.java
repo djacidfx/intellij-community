@@ -1,6 +1,7 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.plugins.groovy.compiler;
 
+import com.intellij.idea.IJIgnore;
 import com.intellij.openapi.compiler.CompilerMessage;
 import com.intellij.openapi.roots.ModuleRootModificationUtil;
 import com.intellij.psi.PsiFile;
@@ -14,6 +15,7 @@ import org.junit.Ignore;
 
 import java.io.IOException;
 
+@IJIgnore(issue = "IJPL-242343")
 public class Groovyc25Test extends GroovycTestBase {
   @Override
   protected TestLibrary getGroovyLibrary() {

@@ -2,6 +2,7 @@
 package org.jetbrains.plugins.groovy.compiler;
 
 import com.intellij.compiler.CompilerConfiguration;
+import com.intellij.idea.IJIgnore;
 import com.intellij.openapi.projectRoots.JavaSdkVersion;
 import com.intellij.pom.java.LanguageLevel;
 import com.intellij.testFramework.builders.JavaModuleFixtureBuilder;
@@ -9,6 +10,7 @@ import org.jetbrains.jps.incremental.groovy.JpsGroovycRunner;
 
 import java.util.List;
 
+@IJIgnore(issue = "IJPL-242343")
 public final class GroovycForkedJava8Test extends Groovyc25Test {
 
   @Override
