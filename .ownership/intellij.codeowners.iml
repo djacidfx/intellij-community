@@ -31,16 +31,16 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module-library" exported="">
       <library name="jetbrains.patronus.codeowners.lib.ownership" type="repository">
-        <properties maven-id="org.jetbrains.patronus:codeowners-lib-ownership:2026.04.02-1504">
+        <properties maven-id="org.jetbrains.patronus:codeowners-lib-ownership:2026.04.09-1517">
           <verification>
-            <artifact url="file://$MAVEN_REPOSITORY$/org/jetbrains/patronus/codeowners-lib-ownership/2026.04.02-1504/codeowners-lib-ownership-2026.04.02-1504.jar">
-              <sha256sum>52638a1dccd42026daf3126698b20523da38ebd224a1061ddf15db2bd3ac31aa</sha256sum>
+            <artifact url="file://$MAVEN_REPOSITORY$/org/jetbrains/patronus/codeowners-lib-ownership/2026.04.09-1517/codeowners-lib-ownership-2026.04.09-1517.jar">
+              <sha256sum>2f155bba83f73e89e84685bbb3597d7316bdcb1e69142652638c212af5f94fc0</sha256sum>
             </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/org/jetbrains/patronus/codeowners-lib-core/2026.04.02-1504/codeowners-lib-core-2026.04.02-1504.jar">
-              <sha256sum>687a4d1cee1aaae6f57b9b501ae894d074a48bc4af6066357fdafc4750343f34</sha256sum>
+            <artifact url="file://$MAVEN_REPOSITORY$/org/jetbrains/patronus/codeowners-lib-core/2026.04.09-1517/codeowners-lib-core-2026.04.09-1517.jar">
+              <sha256sum>e45ef8e37723f34f23736f546658f6e59b4e88c46b13e8635346c99da31d9d98</sha256sum>
             </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/org/jetbrains/patronus/gitignore/2026.04.02-1504/gitignore-2026.04.02-1504.jar">
-              <sha256sum>afa797b51fde2c1eed337cade7a6d52eec89f92f7b1fbdb50bbef921cc334ba1</sha256sum>
+            <artifact url="file://$MAVEN_REPOSITORY$/org/jetbrains/patronus/gitignore/2026.04.09-1517/gitignore-2026.04.09-1517.jar">
+              <sha256sum>a10131c4613d82046a3931b1b1eeb3998a945441d1d7d50e09a781521a126588</sha256sum>
             </artifact>
           </verification>
           <exclude>
@@ -53,15 +53,15 @@
           </exclude>
         </properties>
         <CLASSES>
-          <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/patronus/codeowners-lib-ownership/2026.04.02-1504/codeowners-lib-ownership-2026.04.02-1504.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/patronus/codeowners-lib-core/2026.04.02-1504/codeowners-lib-core-2026.04.02-1504.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/patronus/gitignore/2026.04.02-1504/gitignore-2026.04.02-1504.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/patronus/codeowners-lib-ownership/2026.04.09-1517/codeowners-lib-ownership-2026.04.09-1517.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/patronus/codeowners-lib-core/2026.04.09-1517/codeowners-lib-core-2026.04.09-1517.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/patronus/gitignore/2026.04.09-1517/gitignore-2026.04.09-1517.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
-          <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/patronus/codeowners-lib-ownership/2026.04.02-1504/codeowners-lib-ownership-2026.04.02-1504-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/patronus/codeowners-lib-core/2026.04.02-1504/codeowners-lib-core-2026.04.02-1504-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/patronus/gitignore/2026.04.02-1504/gitignore-2026.04.02-1504-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/patronus/codeowners-lib-ownership/2026.04.09-1517/codeowners-lib-ownership-2026.04.09-1517-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/patronus/codeowners-lib-core/2026.04.09-1517/codeowners-lib-core-2026.04.09-1517-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/patronus/gitignore/2026.04.09-1517/gitignore-2026.04.09-1517-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>
