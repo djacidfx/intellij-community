@@ -306,7 +306,6 @@ f:com.intellij.openapi.ui.BrowseFolderDescriptor$Companion
 c:com.intellij.openapi.ui.ComboBox
 c:com.intellij.openapi.ui.ComboBoxTableRenderer
 c:com.intellij.openapi.ui.ComboBoxWithWidePopup
-c:com.intellij.openapi.ui.ComboBoxWithWidePopup$AdjustingListCellRenderer
 c:com.intellij.openapi.ui.ComponentValidator
 c:com.intellij.openapi.ui.ComponentWithBrowseButton
 c:com.intellij.openapi.ui.ComponentWithBrowseButton$BrowseFolderActionListener

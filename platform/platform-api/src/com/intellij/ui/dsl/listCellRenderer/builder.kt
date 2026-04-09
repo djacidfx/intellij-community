@@ -1,8 +1,10 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ui.dsl.listCellRenderer
 
+import com.intellij.util.ui.UIUtil
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nls
+import javax.swing.ComboBoxEditor
 import javax.swing.ListCellRenderer
 
 @DslMarker
@@ -76,5 +78,18 @@ fun <T> groupedTextListCellRenderer(textExtractor: (T) -> @Nls String?, separato
         text = it
       }
     }
+  }
+}
+
+/**
+ * A replacement for [com.intellij.ui.EditorComboBoxRenderer] with rounded selection support.
+ */
+@ApiStatus.Internal
+fun <T> comboBoxEditorRenderer(comboBoxEditor: ComboBoxEditor): ListCellRenderer<T> {
+  return listCellRenderer {
+    font = comboBoxEditor.editorComponent.font
+
+    @Suppress("HardCodedStringLiteral")
+    text(UIUtil.htmlInjectionGuard(value)?.toString() ?: "")
   }
 }
