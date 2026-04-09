@@ -18,10 +18,12 @@ import com.intellij.openapi.vfs.newvfs.events.VFileDeleteEvent
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowContextMenuActionBase
 import com.intellij.openapi.wm.ToolWindowId
+import com.intellij.ui.ComponentUtil
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBPanelWithEmptyText
 import com.intellij.ui.content.Content
 import com.intellij.util.application
+import org.jetbrains.annotations.ApiStatus
 import java.awt.event.KeyEvent
 import java.util.Collections
 import javax.swing.JComponent
@@ -107,6 +109,17 @@ internal class Placeholder(
       Disposer.dispose(file.component)
     }
   }
+}
+
+@ApiStatus.Internal
+fun <T : JComponent> Content.findComponentOfType(klass: Class<T>): T? {
+  val unwrappedComponent = (component as? Placeholder)?.file?.component ?: component
+
+  if (klass.isInstance(unwrappedComponent)) {
+    return klass.cast(unwrappedComponent)
+  }
+
+  return ComponentUtil.findComponentsOfType(unwrappedComponent, klass).firstOrNull()
 }
 
 internal fun moveContentToEditor(
