@@ -13,6 +13,8 @@ import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
 import javax.swing.SwingUtilities
 import kotlin.math.abs
+import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.max
 
 class MinimapMouseInteractionController(
@@ -28,6 +30,7 @@ class MinimapMouseInteractionController(
   private var dragStartY = 0
   private var dragDistancePx = 0
   private var independentDragLastY = 0
+  private var independentWheelRemainderPx = 0.0
 
   fun install() {
     panel.addMouseListener(this)
@@ -46,6 +49,7 @@ class MinimapMouseInteractionController(
     dragStartY = 0
     dragDistancePx = 0
     independentDragLastY = 0
+    independentWheelRemainderPx = 0.0
 
     panel.removeMouseListener(this)
     panel.removeMouseWheelListener(this)
@@ -62,6 +66,7 @@ class MinimapMouseInteractionController(
       dragStartY = e.y
       dragDistancePx = 0
       independentDragLastY = e.y
+      independentWheelRemainderPx = 0.0
       return
     }
 
@@ -72,6 +77,7 @@ class MinimapMouseInteractionController(
       dragStartY = 0
       dragDistancePx = 0
       independentDragLastY = 0
+      independentWheelRemainderPx = 0.0
       return
     }
 
@@ -80,6 +86,7 @@ class MinimapMouseInteractionController(
     dragStartY = e.y
     dragDistancePx = 0
     independentDragLastY = 0
+    independentWheelRemainderPx = 0.0
 
     val thumbTop = geometry.thumbStart - geometry.areaStart
     val thumbBottom = thumbTop + geometry.thumbHeight
@@ -109,6 +116,7 @@ class MinimapMouseInteractionController(
     dragStartY = 0
     dragDistancePx = 0
     independentDragLastY = 0
+    independentWheelRemainderPx = 0.0
   }
 
   override fun mouseWheelMoved(mouseWheelEvent: MouseWheelEvent) {
@@ -116,12 +124,15 @@ class MinimapMouseInteractionController(
     if (preciseWheelRotation == 0.0) return
     logWheelScrolled(mouseWheelEvent, preciseWheelRotation)
 
-    val deltaPx = (preciseWheelRotation * editor.lineHeight * WHEEL_SCROLL_LINES).toInt()
     if (panel.isIndependentScrollEnabled()) {
-      panel.scrollIndependentViewportBy(deltaPx)
+      val independentDeltaPx = independentWheelDeltaPx(preciseWheelRotation)
+      if (independentDeltaPx != 0) {
+        panel.scrollIndependentViewportBy(independentDeltaPx)
+      }
       return
     }
 
+    val deltaPx = (preciseWheelRotation * editor.lineHeight * WHEEL_SCROLL_LINES).toInt()
     editor.scrollingModel.scrollVertically(
       editor.scrollingModel.verticalScrollOffset + deltaPx)
   }
@@ -242,7 +253,21 @@ class MinimapMouseInteractionController(
     }
   }
 
+  private fun independentWheelDeltaPx(preciseWheelRotation: Double): Int {
+    val scaledDeltaPx = preciseWheelRotation * editor.lineHeight * WHEEL_SCROLL_LINES * INDEPENDENT_WHEEL_SENSITIVITY
+    val accumulatedDeltaPx = scaledDeltaPx + independentWheelRemainderPx
+    val wholeDeltaPx = if (accumulatedDeltaPx > 0) {
+      floor(accumulatedDeltaPx).toInt()
+    }
+    else {
+      ceil(accumulatedDeltaPx).toInt()
+    }
+    independentWheelRemainderPx = accumulatedDeltaPx - wholeDeltaPx
+    return wholeDeltaPx
+  }
+
   companion object {
     private const val WHEEL_SCROLL_LINES: Int = 5
+    private const val INDEPENDENT_WHEEL_SENSITIVITY: Double = 0.35
   }
 }
