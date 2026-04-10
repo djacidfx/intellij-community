@@ -9,6 +9,7 @@ import com.intellij.mcpserver.util.parsePathForProjectLookup
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.ModernApplicationStarter
 import com.intellij.openapi.application.writeIntentReadAction
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.startup.StartupManager
@@ -74,6 +75,10 @@ internal class McpServerHeadlessStarter : ModernApplicationStarter() {
       }
     }
     System.err.println("Project initialization completed")
+
+    DumbService.getInstance(projects.first()).waitForSmartMode()
+
+    System.err.println("Project is smart, starting MCP server...")
 
     try {
       McpServerService.getInstance().start()
