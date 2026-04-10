@@ -22,7 +22,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ProducerScope
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.channelFlow
@@ -42,6 +41,7 @@ internal class BackendXExecutionStackApi : XExecutionStackApi {
     return channelFlow {
       val executionStack = executionStackModel.executionStack
       val pendingPresentationJobs = mutableListOf<Job>()
+      val events = Channel<suspend () -> Unit>(Channel.UNLIMITED)
 
       executionStack.computeStackFrames(firstFrameIndex, object : XStackFrameContainerEx {
         override fun addStackFrames(stackFrames: List<XStackFrame>, last: Boolean) {
@@ -53,20 +53,22 @@ internal class BackendXExecutionStackApi : XExecutionStackApi {
           toSelect: XStackFrame?,
           last: Boolean,
         ) {
-          // Create a copy of stackFrames to avoid concurrent modification
-          val framesCopy = stackFrames.toList()
+          events.trySend {
+            // Create a copy of stackFrames to avoid concurrent modification
+            val framesCopy = stackFrames.toList()
 
-          val session = executionStackModel.session
-          val frameDtos = framesCopy.map { frame ->
-            frame.toRpc(executionStackModel.coroutineScope, session)
+            val session = executionStackModel.session
+            val frameDtos = framesCopy.map { frame ->
+              frame.toRpc(executionStackModel.coroutineScope, session)
+            }
+            val frameToSelectId = toSelect?.let {
+              val index = framesCopy.indexOf(it)
+              if (index >= 0) frameDtos[index].stackFrameId else null
+            }
+            trySend(XStackFramesEvent.XNewStackFrames(frameDtos, frameToSelectId, last))
+            val framesWithIds = frameDtos.zip(framesCopy) { dto, frame -> dto.stackFrameId to frame }
+            subscribeToPresentationUpdates(executionStackId, framesWithIds, last)
           }
-          val frameToSelectId = toSelect?.let {
-            val index = framesCopy.indexOf(it)
-            if (index >= 0) frameDtos[index].stackFrameId else null
-          }
-          trySend(XStackFramesEvent.XNewStackFrames(frameDtos, frameToSelectId, last))
-          val framesWithIds = frameDtos.zip(framesCopy) { dto, frame -> dto.stackFrameId to frame }
-          subscribeToPresentationUpdates(executionStackId, framesWithIds, last)
         }
 
         private fun ProducerScope<XStackFramesEvent>.subscribeToPresentationUpdates(executionStackId: XExecutionStackId,
@@ -91,17 +93,20 @@ internal class BackendXExecutionStackApi : XExecutionStackApi {
             // 2. XStackFrame.customizePresentation() returns a finite flow, as stated in its doc.
             launch(CoroutineName("computeStackFrames finisher for $executionStackId")) {
               pendingPresentationJobs.joinAll()
-              this@channelFlow.close()
+              events.close()
             }
           }
         }
 
         override fun errorOccurred(errorMessage: @NlsContexts.DialogMessage String) {
-          trySend(XStackFramesEvent.ErrorOccurred(errorMessage))
+          events.trySend { XStackFramesEvent.ErrorOccurred(errorMessage) }
         }
       })
-      awaitClose()
-    }.buffer(Channel.UNLIMITED)
+
+      for (eventComputation in events) {
+        eventComputation()
+      }
+    }.buffer(Channel.BUFFERED)
   }
 
   override suspend fun canDrop(sessionId: XDebugSessionId, stackFrameId: XStackFrameId): Boolean {

@@ -64,6 +64,7 @@ import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -167,14 +168,14 @@ internal class BackendXValueApi : XValueApi {
 
   override suspend fun computeInlineData(xValueId: XValueId): XInlineDebuggerDataDto? {
     val xValueModel = BackendXValueModel.findById(xValueId) ?: return null
-    val channel = Channel<XSourcePositionDto>(Channel.UNLIMITED)
+    val channel = Channel<suspend () -> XSourcePositionDto>(Channel.UNLIMITED)
     val state = xValueModel.xValue.computeInlineDebuggerData(object : XInlineDebuggerDataCallback() {
       override fun computed(position: XSourcePosition?) {
         if (position == null) return
-        channel.trySend(position.toRpc())
+        channel.trySend { position.toRpc() }
       }
     })
-    return XInlineDebuggerDataDto(state, channel.asColdFlow().toRpc())
+    return XInlineDebuggerDataDto(state, channel.asColdFlow().map { it() }.toRpc())
   }
 
   override suspend fun nodeLinkClicked(linkId: XDebuggerHyperlinkId) {

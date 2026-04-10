@@ -63,7 +63,7 @@ private suspend fun XBreakpointBase<*, *, *>.getDtoState(): XBreakpointDtoState 
     val completedRequestId = manager.requestCounter.getRequestId(breakpoint.breakpointId)
     XBreakpointDtoState(
       displayText = XBreakpointUtil.getShortText(breakpoint),
-      sourcePosition = readAction { sourcePosition?.toRpc() },
+      sourcePosition = sourcePosition?.toRpc(),
       isDefault = manager.isDefaultBreakpoint(breakpoint),
       logMessage = isLogMessage,
       logStack = isLogStack,

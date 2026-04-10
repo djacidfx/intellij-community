@@ -77,6 +77,7 @@ import com.intellij.xdebugger.stepping.XSmartStepIntoVariant
 import fleet.rpc.core.toRpc
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
@@ -89,6 +90,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.future.asDeferred
+import kotlinx.coroutines.future.await
 import kotlinx.coroutines.withContext
 import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.await
@@ -447,7 +449,7 @@ internal suspend fun XDebugSessionImpl.suspendData(): SuspendData? {
   )
 }
 
-internal fun XStackFrame.toRpc(coroutineScope: CoroutineScope, session: XDebugSessionImpl): XStackFrameDto {
+internal suspend fun XStackFrame.toRpc(coroutineScope: CoroutineScope, session: XDebugSessionImpl): XStackFrameDto {
   val id = getOrStoreGlobally(coroutineScope, session)
   val serializedEqualityObject = when (val equalityObject = equalityObject) {
     is String -> XStackFrameStringEqualityObject(equalityObject)
@@ -478,9 +480,10 @@ internal suspend fun XExecutionStack.toRpc(coroutineScope: CoroutineScope, sessi
     stack.icon?.rpcId(),
     stack.iconFlow.map { it?.rpcId() }.toRpc(),
     stack.xExecutionStackDescriptorAsync?.asDeferred(),
-    stack.topFrameAsync.thenApply { frame ->
-      frame?.toRpc(coroutineScope, session)
-    }.asDeferred()
+    coroutineScope.async {
+      val topFrame = stack.topFrameAsync.await()
+      topFrame?.toRpc(coroutineScope, session)
+    }
   )
 }
 

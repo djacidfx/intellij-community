@@ -44,8 +44,7 @@ interface FrontendXLineBreakpointVariant {
   val useAsInlineVariant: Boolean
 }
 
-@ApiStatus.Internal
-fun XLineBreakpointInstallationInfo.toRequest(hasBreakpoints: Boolean): XLineBreakpointInstallationRequest = XLineBreakpointInstallationRequest(
+private suspend fun XLineBreakpointInstallationInfo.toRequest(hasBreakpoints: Boolean) = XLineBreakpointInstallationRequest(
   types.map { XBreakpointTypeId(it.id) },
   position.toRpc(),
   placement,
