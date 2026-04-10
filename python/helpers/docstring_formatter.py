@@ -5,7 +5,9 @@ import re
 import sys
 import textwrap
 
-from six import text_type, u
+from six import text_type
+from six import u
+from six import PY2
 
 ENCODING = 'utf-8'
 
@@ -33,7 +35,6 @@ def format_fragments(fragments_list):
 def format_rest(docstring):
     from docutils import nodes
     from docutils.core import publish_string
-    from docutils.frontend import get_default_settings
     from docutils.nodes import Text, field_body, field_name, SkipNode
     from docutils.parsers.rst import directives
     from docutils.parsers.rst.directives.admonitions import BaseAdmonition
@@ -84,7 +85,12 @@ def format_rest(docstring):
         def __init__(self, document):
             # Copied from epydoc.markup.restructuredtext._EpydocHTMLTranslator
             if self.settings is None:
-                settings = get_default_settings(HTMLWriter())
+                if PY2:
+                    from docutils.frontend import OptionParser
+                    settings = OptionParser([HTMLWriter()]).get_default_values()
+                else:
+                    from docutils.frontend import get_default_settings
+                    settings = get_default_settings(HTMLWriter())
                 self.__class__.settings = settings
             document.settings = self.settings
 
