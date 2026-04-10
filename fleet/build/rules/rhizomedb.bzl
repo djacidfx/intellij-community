@@ -1,10 +1,11 @@
-load("@rules_jvm//:jvm.bzl", "ResourceGroupInfo")
-load("@rules_java//java:defs.bzl", "JavaInfo")
+load("@rules_jvm//:jvm.bzl", "ResourceGroupInfo", "jvm_platform_transition")
+load("@rules_java//java:defs.bzl", "JavaInfo", "java_import")
 load("@rules_kotlin//kotlin/internal:defs.bzl", KOTLIN_TOOLCHAIN = "TOOLCHAIN_TYPE")
 load("//fleet/build/rules:haven_cli.bzl", "HAVEN_CLI_ATTR", "run_haven_cli")
 
-def _fleet_plugin_services_resources_impl(ctx):
+def _fleet_plugin_services_resources_generate_impl(ctx):
     resources_output_dir = ctx.actions.declare_directory("%s.generated_resources" % ctx.label.name)
+    resources_output_jar = ctx.actions.declare_file("%s.generated_resources.jar" % ctx.label.name)
 
     compile_classpath = depset(
         transitive = [
@@ -27,6 +28,7 @@ def _fleet_plugin_services_resources_impl(ctx):
     args.add("--language-version=%s" % kotlin_toolchain.language_version)
     args.add("--api-version=%s" % kotlin_toolchain.api_version)
     args.add("--output-dir=%s" % resources_output_dir.path)
+    args.add("--output-jar=%s" % resources_output_jar.path)
 
     run_haven_cli(
         ctx = ctx,
@@ -35,40 +37,20 @@ def _fleet_plugin_services_resources_impl(ctx):
             direct = ctx.files.srcs,
             transitive = [compile_classpath, processor_classpath],
         ),
-        outputs = [resources_output_dir],
+        outputs = [resources_output_dir, resources_output_jar],
         arguments = [args],
         progress_message = "Generating Fleet plugin services resources for %%{label}",
     )
 
-    output_jar = ctx.actions.declare_file(ctx.label.name + ".jar")
-
-    args = ctx.actions.args()
-    args.set_param_file_format("multiline")
-    args.use_param_file("@%s", use_always = True)
-    args.add("--output")
-    args.add(output_jar.path)
-    args.add_all([resources_output_dir], map_each = _pass_resource_entry)
-
-    ctx.actions.run(
-        executable = ctx.executable._resource_jar_builder,
-        arguments = [args],
-        inputs = depset([resources_output_dir]),
-        outputs = [output_jar],
-        tools = [ctx.executable._resource_jar_builder],
-        mnemonic = "JvmResourceJar",
-        progress_message = "Create resource jar %{label}",
-    )
-
     return [
-        DefaultInfo(files = depset([output_jar])),
         ResourceGroupInfo(files = [resources_output_dir], strip_prefix = resources_output_dir.path, add_prefix = ""),
+        DefaultInfo(
+            files = depset([resources_output_jar]),
+        )
     ]
 
-def _pass_resource_entry(resource):
-  return ["--entry", resource.basename, resource.path]
-
-fleet_plugin_services_resources = rule(
-    implementation = _fleet_plugin_services_resources_impl,
+_fleet_plugin_services_resources_generate = rule(
+    implementation = _fleet_plugin_services_resources_generate_impl,
     attrs = HAVEN_CLI_ATTR | {
         "srcs": attr.label_list(
             allow_files = True,
@@ -86,13 +68,57 @@ fleet_plugin_services_resources = rule(
             default = "//fleet/build/kernel.plugins.processor",
             providers = [JavaInfo],
         ),
-        "_resource_jar_builder": attr.label(
-            executable = True,
-            cfg = "exec",
-            default = Label("@rules_jvm//:resource-jar-builder"),
-            allow_files = True,
-        ),
     },
     toolchains = [KOTLIN_TOOLCHAIN],
 )
 
+def _fleet_plugin_services_resources_expose_impl(ctx):
+    return [
+        ctx.attr.resource_jar[0][DefaultInfo],
+        ctx.attr.resource_jar[0][JavaInfo],
+        ctx.attr.resource_jar[0][OutputGroupInfo],
+        ctx.attr.generated[ResourceGroupInfo],
+    ]
+
+_fleet_plugin_services_resources_expose = rule(
+    implementation = _fleet_plugin_services_resources_expose_impl,
+    attrs = {
+        "generated": attr.label(
+            mandatory = True,
+            providers = [ResourceGroupInfo],
+        ),
+        "resource_jar": attr.label(
+            doc = """The resource jar with the actual providers to support Bazel plugin.""",
+            mandatory = True,
+            cfg = jvm_platform_transition,
+        ),
+    },
+)
+
+
+def fleet_plugin_services_resources(name, srcs, deps, module_name = None):
+    generate_resources_name = name + "_generate"
+    generate_jar_lib_name = name + "_lib"
+
+    # Generates both the resource jar (for kotlin backend rules implementation) and the generated resources (for jps implementation).
+    _fleet_plugin_services_resources_generate(
+        name = generate_resources_name,
+        srcs = srcs,
+        deps = deps,
+        module_name = module_name,
+    )
+
+    # This rule is only needed to expose the JavaInfo provider of the generated resources jar
+    java_import(
+        name = generate_jar_lib_name,
+        jars = [":" + generate_resources_name],
+        visibility = ["//visibility:private"],
+        tags = ["manual"],
+    )
+
+    # Dummy rule to expose the resource jar and the generated resources to their respective consumers.
+    _fleet_plugin_services_resources_expose(
+        name = name,
+        generated = ":" + generate_resources_name,
+        resource_jar = generate_jar_lib_name,
+    )

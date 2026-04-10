@@ -17,13 +17,20 @@ import java.net.URLClassLoader
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.ServiceLoader
+import java.util.jar.JarEntry
+import java.util.jar.JarOutputStream
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.copyTo
 import kotlin.io.path.createDirectories
+import kotlin.io.path.createFile
 import kotlin.io.path.deleteRecursively
 import kotlin.io.path.exists
+import kotlin.io.path.inputStream
+import kotlin.io.path.invariantSeparatorsPathString
 import kotlin.io.path.isDirectory
 import kotlin.io.path.isRegularFile
+import kotlin.io.path.outputStream
+import kotlin.io.path.walk
 
 private const val PLUGIN_SERVICE_FQN = "fleet.kernel.plugins.Plugin"
 private val PLUGIN_SERVICE_RESOURCE = Path.of("META-INF", "services", PLUGIN_SERVICE_FQN)
@@ -43,6 +50,7 @@ class GenerateFleetPluginServicesResourcesCommand : CliktCommand(
   private val languageVersion by option("--language-version").required()
   private val apiVersion by option("--api-version").required()
   private val outputDir by option("--output-dir").path().required()
+  private val outputJar by option("--output-jar").path().required()
 
   private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -87,10 +95,11 @@ class GenerateFleetPluginServicesResourcesCommand : CliktCommand(
       check(kspExitCode == 0) {
         "KSP failed with exit code $kspExitCode"
       }
-      copyGeneratedResources(resourceOutputDirPath, outputDir.toAbsolutePath().normalize())
+      copyGeneratedResources(resourceOutputDirPath, outputDir)
+      createResourcesJar(outputDir, outputJar)
     }
     finally {
-        workDir.deleteRecursively()
+      workDir.deleteRecursively()
     }
   }
 
@@ -128,7 +137,6 @@ class GenerateFleetPluginServicesResourcesCommand : CliktCommand(
     }
   }
 
-
   private fun executeKsp(config: KSPConfig, processorClasspath: List<Path>): Int {
     val loggingLevel = when (System.getProperty("ksp.logging", "warn").lowercase()) {
       "error" -> KspGradleLogger.LOGGING_LEVEL_ERROR
@@ -160,6 +168,21 @@ class GenerateFleetPluginServicesResourcesCommand : CliktCommand(
     logger.info(
       "$message: relativePath=$relativePath, source=${source.toDebugString()}, target=${target.toDebugString()}"
     )
+  }
+
+  private fun createResourcesJar(outputDir: Path, outputJar: Path) {
+    outputJar.parent?.createDirectories()
+    outputJar.createFile()
+    JarOutputStream(outputJar.outputStream()).use { jarOut ->
+      outputDir.walk().filter { it.isRegularFile() }
+        .forEach { sourceFile ->
+          val relativePath = outputDir.relativize(sourceFile).invariantSeparatorsPathString
+          val jarEntry = JarEntry(relativePath)
+          jarOut.putNextEntry(jarEntry)
+          sourceFile.inputStream().use { it.copyTo(jarOut) }
+          jarOut.closeEntry()
+        }
+    }
   }
 
   private fun Path.toDebugString(): String {
