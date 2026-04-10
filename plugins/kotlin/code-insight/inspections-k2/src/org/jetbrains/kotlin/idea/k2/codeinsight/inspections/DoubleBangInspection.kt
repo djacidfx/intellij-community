@@ -23,6 +23,7 @@ import org.jetbrains.kotlin.idea.codeinsight.api.applicators.ApplicabilityRange
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.KtAnnotatedExpression
 import org.jetbrains.kotlin.psi.KtBinaryExpression
+import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtParenthesizedExpression
@@ -59,7 +60,7 @@ internal class DoubleBangInspection :
 
         val expression = element.baseExpression ?: return null
         val baseExpression = expression.deparenthesize(true)
-        return "'${formatForUseInErrorArgument(baseExpression.text)}' must not be null"
+        return KotlinBundle.message("inspection.double.bang.display.template.0", formatForUseInErrorArgument(baseExpression))
     }
 
     override fun getProblemDescription(
@@ -83,7 +84,8 @@ internal class DoubleBangInspection :
             val expression = writableElement.baseExpression ?: return
             val baseExpression = expression.deparenthesize(true)
             val psiFactory = KtPsiFactory(project)
-            val messageExpression = psiFactory.createExpression("\"${StringUtil.escapeStringCharacters(context)}\"")
+            val escapedMessage = StringUtil.escapeStringCharacters(context)
+            val messageExpression = psiFactory.createExpression("\"$escapedMessage\"")
             val replacedExpression = writableElement.replaced<KtExpression>(
                 psiFactory.createExpressionByPattern("($0 ?: kotlin.error($1))", baseExpression, messageExpression)
             )
@@ -119,12 +121,18 @@ internal class DoubleBangInspection :
         }
     }
 
-    private fun formatForUseInErrorArgument(expressionText: String): String {
-        val lines = expressionText.split('\n')
+    private fun formatForUseInErrorArgument(baseExpression: KtExpression): String {
+        val expression =
+            when(baseExpression) {
+                is KtDotQualifiedExpression -> baseExpression.selectorExpression
+                else -> null
+            }
+        val text = (expression ?: baseExpression).text
+        val lines = text.split('\n')
         return if (lines.size > 1) {
             lines.first().trim() + " " + Typography.ellipsis.toString()
         } else {
-            expressionText.trim()
+            text.trim()
         }
     }
 }

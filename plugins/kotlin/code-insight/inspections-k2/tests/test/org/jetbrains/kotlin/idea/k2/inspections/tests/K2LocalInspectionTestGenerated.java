@@ -795,6 +795,11 @@ public abstract class K2LocalInspectionTestGenerated extends AbstractK2LocalInsp
             runTest("../../../idea/tests/testData/inspectionsLocal/doubleBang/callExpressionParenthesis.kt");
         }
 
+        @TestMetadata("dotExpression.kt")
+        public void testDotExpression() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/doubleBang/dotExpression.kt");
+        }
+
         @TestMetadata("localVal.kt")
         public void testLocalVal() throws Exception {
             runTest("../../../idea/tests/testData/inspectionsLocal/doubleBang/localVal.kt");
