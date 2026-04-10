@@ -1068,13 +1068,11 @@ class PyTypingTypeProvider : PyTypeProviderWithCustomContext<Context?>() {
       }
       // See https://mypy.readthedocs.io/en/stable/generics.html#defining-sub-classes-of-generic-classes
       val parameterizedSuperClassExpressions = getSuperClassExpressions(cls).filterIsInstance<PySubscriptionExpression>()
-      val genericAsSuperClass = parameterizedSuperClassExpressions.find {
-        resolvesToQualifiedNames(it.operand,
-                                 context.typeContext,
-                                 GENERIC)
+      val genericOrProtocolBase = parameterizedSuperClassExpressions.find {
+        resolvesToQualifiedNames(it.operand, context.typeContext, GENERIC, PROTOCOL, PROTOCOL_EXT)
       }
       return StreamEx.of(
-        if (genericAsSuperClass != null) listOf(genericAsSuperClass)
+        if (genericOrProtocolBase != null) listOf(genericOrProtocolBase)
         else parameterizedSuperClassExpressions
       )
         .map { it!!.indexExpression }
@@ -1623,10 +1621,7 @@ class PyTypingTypeProvider : PyTypeProviderWithCustomContext<Context?>() {
               shouldParameterize &&
               type is PyClassType
               && !(stubRetainedContext is PyClass ||
-                   PsiTreeUtil.getStubOrPsiParentOfType(
-                     stubRetainedContext,
-                     ScopeOwner::class.java
-                   ) is PyClass)
+                   PsiTreeUtil.getStubOrPsiParentOfType(stubRetainedContext, ScopeOwner::class.java) is PyClass)
               && (typeHint.parent as? PySubscriptionExpression)?.operand != typeHint &&
               isGeneric(type, context.typeContext)
             ) {

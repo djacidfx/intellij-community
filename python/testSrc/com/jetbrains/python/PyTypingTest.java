@@ -3908,6 +3908,28 @@ public class PyTypingTest extends PyTestCase {
              """);
   }
 
+
+  // PY-76902
+  public void testClassInheritsProtocolToOrderTypeParameters() {
+    doTest("str",
+           """
+             from typing import Protocol, TypeVar
+             
+             T1 = TypeVar('T1')
+             T2 = TypeVar('T2')
+             
+             class Box(Protocol[T1]):
+                 def get(self) -> T1:
+                     pass
+             
+             class Pair(Box[T2], Protocol[T1, T2]):
+                 pass
+             
+             xs: Pair[int, str] = ...
+             expr = xs.get()
+             """);
+  }
+
   // PY-54336
   public void testReusedTypeVarsAndInheritanceDoNotCauseRecursiveSubstitution() {
     doTest("Sub[T1]",
