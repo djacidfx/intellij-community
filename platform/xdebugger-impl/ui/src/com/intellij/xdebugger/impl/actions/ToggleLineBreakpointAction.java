@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.xdebugger.impl.actions;
 
 import com.intellij.icons.AllIcons;
@@ -18,7 +18,7 @@ import com.intellij.platform.debugger.impl.shared.proxy.XDebugManagerProxy;
 import com.intellij.platform.debugger.impl.shared.proxy.XLineBreakpointTypeProxy;
 import com.intellij.util.SmartList;
 import com.intellij.xdebugger.XSourcePosition;
-import com.intellij.xdebugger.breakpoints.XLineBreakpointPlacement;
+import com.intellij.xdebugger.breakpoints.XLineBreakpointVerticalPlacement;
 import com.intellij.xdebugger.impl.DebuggerSupport;
 import com.intellij.xdebugger.impl.XEditorSourcePosition;
 import com.intellij.xdebugger.impl.XSourcePositionImpl;
@@ -71,7 +71,7 @@ public class ToggleLineBreakpointAction extends XDebuggerActionBase implements D
       for (XLineBreakpointTypeProxy breakpointType : breakpointTypes) {
         final VirtualFile file = position.getFile();
         final int line = position.getLine();
-        if (breakpointManager.findBreakpointAtLine(breakpointType, file, line, XLineBreakpointPlacement.ON_LINE) != null) {
+        if (breakpointManager.findBreakpointAtLine(breakpointType, file, line, XLineBreakpointVerticalPlacement.ON_LINE) != null) {
           return true;
         }
       }

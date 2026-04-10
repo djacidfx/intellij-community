@@ -15,7 +15,7 @@ import com.intellij.util.concurrency.annotations.RequiresReadLock
 import com.intellij.util.containers.toMutableSmartList
 import com.intellij.xdebugger.XDebuggerManager
 import com.intellij.xdebugger.breakpoints.XBreakpointProperties
-import com.intellij.xdebugger.breakpoints.XLineBreakpointPlacement
+import com.intellij.xdebugger.breakpoints.XLineBreakpointVerticalPlacement
 import com.intellij.xdebugger.breakpoints.XLineBreakpointType
 import com.intellij.xdebugger.impl.XDebuggerUtilImpl
 import com.intellij.xdebugger.impl.XSourcePositionImpl
@@ -156,7 +156,7 @@ class InlineBreakpointsVariantsManager(private val project: Project) {
   private fun allBreakpointsIn(document: Document): Collection<XLineBreakpointImpl<*>> {
     val lineBreakpointManager = (XDebuggerManager.getInstance(project).breakpointManager as XBreakpointManagerImpl).lineBreakpointManager
     return XDebuggerUtilImpl.getDocumentBreakpoints(document, lineBreakpointManager)
-      .filter { it.placement == XLineBreakpointPlacement.ON_LINE }
+      .filter { it.placement == XLineBreakpointVerticalPlacement.ON_LINE }
   }
 
   private suspend fun <T> withSemaphorePermit(action: suspend () -> T): T {

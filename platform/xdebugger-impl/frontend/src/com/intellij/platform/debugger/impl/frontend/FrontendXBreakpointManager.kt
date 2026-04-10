@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.platform.debugger.impl.frontend
 
 import com.intellij.concurrency.ConcurrentCollectionFactory
@@ -30,7 +30,7 @@ import com.intellij.platform.debugger.impl.shared.proxy.XLineBreakpointProxy
 import com.intellij.platform.debugger.impl.shared.proxy.XLineBreakpointTypeProxy
 import com.intellij.platform.project.projectId
 import com.intellij.platform.util.coroutines.childScope
-import com.intellij.xdebugger.breakpoints.XLineBreakpointPlacement
+import com.intellij.xdebugger.breakpoints.XLineBreakpointVerticalPlacement
 import com.intellij.xdebugger.SplitDebuggerMode
 import com.intellij.xdebugger.impl.breakpoints.XBreakpointItem
 import com.intellij.xdebugger.impl.breakpoints.XBreakpointsDialogState
@@ -400,7 +400,7 @@ class FrontendXBreakpointManager(private val project: Project, private val cs: C
     }
   }
 
-  override fun findBreakpointsAtLine(type: XLineBreakpointTypeProxy, file: VirtualFile, line: Int, placement: XLineBreakpointPlacement): List<XLineBreakpointProxy> {
+  override fun findBreakpointsAtLine(type: XLineBreakpointTypeProxy, file: VirtualFile, line: Int, placement: XLineBreakpointVerticalPlacement): List<XLineBreakpointProxy> {
     return breakpoints.values.filterIsInstance<XLineBreakpointProxy>().filter {
       it.type == type && it.getFile()?.url == file.url && it.getLine() == line &&
       it.getPlacement() == placement
@@ -408,7 +408,7 @@ class FrontendXBreakpointManager(private val project: Project, private val cs: C
   }
 
 
-  private data class LightBreakpointPosition(val file: VirtualFile, val line: Int, val placement: XLineBreakpointPlacement)
+  private data class LightBreakpointPosition(val file: VirtualFile, val line: Int, val placement: XLineBreakpointVerticalPlacement)
 
   private fun FrontendXLineBreakpointProxy.registerInManager(updateUI: Boolean) {
     while (true) {

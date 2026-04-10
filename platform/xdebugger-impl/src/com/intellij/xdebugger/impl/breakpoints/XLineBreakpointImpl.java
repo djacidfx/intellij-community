@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.xdebugger.impl.breakpoints;
 
 import com.intellij.openapi.editor.RangeMarker;
@@ -15,7 +15,7 @@ import com.intellij.xdebugger.XDebuggerUtil;
 import com.intellij.xdebugger.XSourcePosition;
 import com.intellij.xdebugger.breakpoints.XBreakpointProperties;
 import com.intellij.xdebugger.breakpoints.XLineBreakpoint;
-import com.intellij.xdebugger.breakpoints.XLineBreakpointPlacement;
+import com.intellij.xdebugger.breakpoints.XLineBreakpointVerticalPlacement;
 import com.intellij.xdebugger.breakpoints.XLineBreakpointType;
 import com.intellij.xdebugger.impl.proxy.MonolithBreakpointManagerKt;
 import com.intellij.xdebugger.impl.proxy.MonolithBreakpointProxyKt;
@@ -64,7 +64,7 @@ public final class XLineBreakpointImpl<P extends XBreakpointProperties> extends 
   }
 
   @Override
-  public @NotNull XLineBreakpointPlacement getPlacement() {
+  public @NotNull XLineBreakpointVerticalPlacement getPlacement() {
     return myState.getPlacement();
   }
 
@@ -160,11 +160,11 @@ public final class XLineBreakpointImpl<P extends XBreakpointProperties> extends 
   }
 
   @ApiStatus.Internal
-  public void setPlacement(@NotNull XLineBreakpointPlacement placement) {
+  public void setPlacement(@NotNull XLineBreakpointVerticalPlacement placement) {
     setPlacement(-1, placement);
   }
 
-  public void setPlacement(long requestId, @NotNull XLineBreakpointPlacement placement) {
+  public void setPlacement(long requestId, @NotNull XLineBreakpointVerticalPlacement placement) {
     updateStateIfNeededAndNotify(requestId, placement, this::getPlacement, (newPlacement) -> {
       myState.setPlacement(newPlacement);
       myVisualRepresentation.removeHighlighter();

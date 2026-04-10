@@ -12,7 +12,7 @@ import org.jetbrains.annotations.ApiStatus
  */
 @ApiStatus.Internal
 @Serializable
-enum class XLineBreakpointPlacement {
+enum class XLineBreakpointVerticalPlacement {
   /**
    * A breakpoint placed on the source line itself.
    */

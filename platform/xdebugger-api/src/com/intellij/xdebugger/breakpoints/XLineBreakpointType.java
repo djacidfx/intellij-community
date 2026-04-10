@@ -1,4 +1,4 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
 package com.intellij.xdebugger.breakpoints;
 
@@ -168,7 +168,7 @@ public abstract class XLineBreakpointType<P extends XBreakpointProperties> exten
   }
 
   /**
-   * Return {@code true} if new breakpoints of this type may use {@link XLineBreakpointPlacement#INTER_LINE}.
+   * Return {@code true} if new breakpoints of this type may use {@link XLineBreakpointVerticalPlacement#INTER_LINE}.
    * When this returns {@code false}, inter-line creation is disabled.
    * The actual placement of a created breakpoint is stored on the breakpoint entity itself.
    */

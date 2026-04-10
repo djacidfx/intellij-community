@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.xdebugger.impl.actions.handlers
 
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -12,7 +12,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.registry.Registry.Companion.`is`
 import com.intellij.platform.debugger.impl.shared.proxy.XDebugManagerProxy
 import com.intellij.util.ThreeState
-import com.intellij.xdebugger.breakpoints.XLineBreakpointPlacement
+import com.intellij.xdebugger.breakpoints.XLineBreakpointVerticalPlacement
 import com.intellij.xdebugger.impl.actions.DebuggerActionHandler
 import com.intellij.xdebugger.impl.actions.ToggleLineBreakpointAction
 import com.intellij.xdebugger.impl.breakpoints.XBreakpointUIUtil
@@ -32,10 +32,10 @@ class XToggleLineBreakpointActionHandler(private val myTemporary: Boolean) : Deb
       return false
     }
     val placement = if (event.getData(XLineBreakpointManager.INTER_LINE_BREAKPOINT_KEY) == true) {
-      XLineBreakpointPlacement.INTER_LINE
+      XLineBreakpointVerticalPlacement.INTER_LINE
     }
     else {
-      XLineBreakpointPlacement.ON_LINE
+      XLineBreakpointVerticalPlacement.ON_LINE
     }
     val breakpointManager = XDebugManagerProxy.getInstance().getBreakpointManagerProxy(project)
     val breakpointTypes = breakpointManager.getLineBreakpointTypes()
@@ -63,16 +63,16 @@ class XToggleLineBreakpointActionHandler(private val myTemporary: Boolean) : Deb
     val editor = event.getData(CommonDataKeys.EDITOR)
     val isFromGutterClick = event.getData(XLineBreakpointManager.BREAKPOINT_LINE_KEY) != null
     val placement = if (event.getData(XLineBreakpointManager.INTER_LINE_BREAKPOINT_KEY) == true) {
-      XLineBreakpointPlacement.INTER_LINE
+      XLineBreakpointVerticalPlacement.INTER_LINE
     }
     else {
-      XLineBreakpointPlacement.ON_LINE
+      XLineBreakpointVerticalPlacement.ON_LINE
     }
     val inputEvent = event.inputEvent
     val isAltClick = isFromGutterClick && inputEvent != null && inputEvent.isAltDown
     val isShiftClick = isFromGutterClick && inputEvent != null && inputEvent.isShiftDown
     val canRemove = !isFromGutterClick || (!isShiftClick && !`is`("debugger.click.disable.breakpoints"))
-    val isInterlineLogging = placement == XLineBreakpointPlacement.INTER_LINE &&
+    val isInterlineLogging = placement == XLineBreakpointVerticalPlacement.INTER_LINE &&
                              event.getData(InterLineBreakpointProperties.KEY)?.isLogging == true
     val isLoggingBreakpoint = isFromGutterClick && editor != null && inputEvent is MouseEvent
                               && !isAltClick && (isShiftClick || isInterlineLogging)

@@ -1,7 +1,8 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.xdebugger.impl.proxy
 
 import com.intellij.openapi.application.readAction
+import com.intellij.xdebugger.breakpoints.XLineBreakpointVerticalPlacement
 import com.intellij.openapi.application.runReadActionBlocking
 import com.intellij.openapi.editor.markup.GutterDraggableObject
 import com.intellij.openapi.editor.markup.RangeHighlighter
@@ -10,7 +11,6 @@ import com.intellij.platform.debugger.impl.shared.proxy.XBreakpointAttachment
 import com.intellij.platform.debugger.impl.shared.proxy.XLineBreakpointHighlighterRange
 import com.intellij.platform.debugger.impl.shared.proxy.XLineBreakpointProxy
 import com.intellij.platform.debugger.impl.shared.proxy.XLineBreakpointTypeProxy
-import com.intellij.xdebugger.breakpoints.XLineBreakpointPlacement
 import com.intellij.xdebugger.impl.breakpoints.XLineBreakpointImpl
 import com.intellij.xdebugger.impl.breakpoints.highlightRange
 
@@ -42,11 +42,11 @@ internal class MonolithLineBreakpointProxy @Deprecated("Use breakpoint.asProxy()
     breakpoint.line = line
   }
 
-  override fun setPlacement(placement: XLineBreakpointPlacement) {
+  override fun setPlacement(placement: XLineBreakpointVerticalPlacement) {
     breakpoint.placement = placement
   }
 
-  override fun getPlacement(): XLineBreakpointPlacement = breakpoint.placement
+  override fun getPlacement(): XLineBreakpointVerticalPlacement = breakpoint.placement
 
   override fun getHighlightRange(): XLineBreakpointHighlighterRange {
     val range = runReadActionBlocking { breakpoint.highlightRange }

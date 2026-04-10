@@ -37,7 +37,7 @@ import com.intellij.util.concurrency.annotations.RequiresWriteLock
 import com.intellij.util.containers.isEmpty
 import com.intellij.util.ui.update.DebouncedUpdates
 import com.intellij.xdebugger.XDebuggerUtil
-import com.intellij.xdebugger.breakpoints.XLineBreakpointPlacement
+import com.intellij.xdebugger.breakpoints.XLineBreakpointVerticalPlacement
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -165,7 +165,7 @@ class InlineBreakpointInlayManager(private val project: Project, parentScope: Co
   private fun allBreakpoints(document: Document): Collection<XLineBreakpointProxy> =
     XDebugManagerProxy.getInstance().getBreakpointManagerProxy(project).getLineBreakpointManager()
       .getDocumentBreakpointProxies(document)
-      .filter { it.getPlacement() == XLineBreakpointPlacement.ON_LINE }
+      .filter { it.getPlacement() == XLineBreakpointVerticalPlacement.ON_LINE }
 
   private fun getBreakpointLines(document: Document, onlyLine: Int?): Set<Int> {
     var lines: Set<Int> = allBreakpoints(document).map { it.getLine() }.toHashSet()

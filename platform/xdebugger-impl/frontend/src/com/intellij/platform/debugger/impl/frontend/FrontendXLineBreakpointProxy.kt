@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.platform.debugger.impl.frontend
 
 import com.intellij.ide.rpc.DocumentPatchVersion
@@ -26,7 +26,7 @@ import com.intellij.platform.util.coroutines.childScope
 import com.intellij.xdebugger.SplitDebuggerMode
 import com.intellij.xdebugger.XDebuggerUtil
 import com.intellij.xdebugger.XSourcePosition
-import com.intellij.xdebugger.breakpoints.XLineBreakpointPlacement
+import com.intellij.xdebugger.breakpoints.XLineBreakpointVerticalPlacement
 import com.intellij.xdebugger.impl.breakpoints.XBreakpointVisualRepresentation
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -172,7 +172,7 @@ internal class FrontendXLineBreakpointProxy(
     return lineBreakpointInfo.line
   }
 
-  override fun getPlacement(): XLineBreakpointPlacement {
+  override fun getPlacement(): XLineBreakpointVerticalPlacement {
     return lineBreakpointInfo.placement
   }
 
@@ -236,7 +236,7 @@ internal class FrontendXLineBreakpointProxy(
     }
   }
 
-  override fun setPlacement(placement: XLineBreakpointPlacement) {
+  override fun setPlacement(placement: XLineBreakpointVerticalPlacement) {
     updateLineBreakpointStateIfNeeded(
       newValue = placement,
       getter = { it.placement },

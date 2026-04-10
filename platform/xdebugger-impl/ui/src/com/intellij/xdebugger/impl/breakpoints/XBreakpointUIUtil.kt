@@ -27,7 +27,7 @@ import com.intellij.platform.debugger.impl.shared.proxy.XDebugManagerProxy
 import com.intellij.platform.debugger.impl.shared.proxy.XLineBreakpointInstallationInfo
 import com.intellij.platform.debugger.impl.shared.proxy.XLineBreakpointProxy
 import com.intellij.platform.debugger.impl.shared.proxy.XLineBreakpointTypeProxy
-import com.intellij.xdebugger.breakpoints.XLineBreakpointPlacement
+import com.intellij.xdebugger.breakpoints.XLineBreakpointVerticalPlacement
 import com.intellij.ui.ExperimentalUI
 import com.intellij.ui.LayeredIcon
 import com.intellij.ui.scale.JBUIScale
@@ -86,7 +86,7 @@ object XBreakpointUIUtil {
     project: Project,
     document: Document,
     line: Int,
-    placement: XLineBreakpointPlacement = XLineBreakpointPlacement.ON_LINE,
+    placement: XLineBreakpointVerticalPlacement = XLineBreakpointVerticalPlacement.ON_LINE,
   ): XLineBreakpointProxy? {
     val breakpointManager = XDebugManagerProxy.getInstance().getBreakpointManagerProxy(project)
     val file = FileDocumentManager.getInstance().getFile(document) ?: return null
@@ -100,8 +100,8 @@ object XBreakpointUIUtil {
   }
 
   @JvmStatic
-  fun supportsPlacement(type: XLineBreakpointTypeProxy, placement: XLineBreakpointPlacement): Boolean {
-    return placement != XLineBreakpointPlacement.INTER_LINE || type.supportsInterLinePlacement()
+  fun supportsPlacement(type: XLineBreakpointTypeProxy, placement: XLineBreakpointVerticalPlacement): Boolean {
+    return placement != XLineBreakpointVerticalPlacement.INTER_LINE || type.supportsInterLinePlacement()
   }
 
   /**
@@ -121,7 +121,7 @@ object XBreakpointUIUtil {
     canRemove: Boolean,
     isLogging: Boolean = false,
     logExpression: String? = null,
-    placement: XLineBreakpointPlacement = XLineBreakpointPlacement.ON_LINE,
+    placement: XLineBreakpointVerticalPlacement = XLineBreakpointVerticalPlacement.ON_LINE,
   ): CompletableFuture<XLineBreakpointProxy?> {
     // TODO: Replace with `coroutineScope.future` after IJPL-184112 is fixed
     val future = CompletableFuture<XLineBreakpointProxy?>()
@@ -159,7 +159,7 @@ object XBreakpointUIUtil {
     position: XSourcePosition,
     selectTypeByPositionColumn: Boolean,
     editor: Editor,
-    placement: XLineBreakpointPlacement,
+    placement: XLineBreakpointVerticalPlacement,
   ): Pair<List<XLineBreakpointTypeProxy>, Int> {
     val breakpointManager = XDebugManagerProxy.getInstance().getBreakpointManagerProxy(project)
     val lineTypes = breakpointManager.getLineBreakpointTypes()

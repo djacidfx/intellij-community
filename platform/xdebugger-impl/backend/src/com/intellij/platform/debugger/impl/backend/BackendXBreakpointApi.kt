@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.platform.debugger.impl.backend
 
 import com.intellij.ide.rpc.DocumentPatchVersion
@@ -17,7 +17,7 @@ import com.intellij.platform.project.ProjectId
 import com.intellij.platform.project.findProject
 import com.intellij.xdebugger.XDebuggerManager
 import com.intellij.xdebugger.breakpoints.SuspendPolicy
-import com.intellij.xdebugger.breakpoints.XLineBreakpointPlacement
+import com.intellij.xdebugger.breakpoints.XLineBreakpointVerticalPlacement
 import com.intellij.xdebugger.evaluation.EvaluationMode
 import com.intellij.xdebugger.impl.breakpoints.XBreakpointManagerImpl
 import com.intellij.xdebugger.impl.breakpoints.XBreakpointUtil
@@ -80,7 +80,7 @@ internal class BackendXBreakpointApi : XBreakpointApi {
     }
   }
 
-  override suspend fun setPlacement(breakpointId: XBreakpointId, requestId: Long, placement: XLineBreakpointPlacement) {
+  override suspend fun setPlacement(breakpointId: XBreakpointId, requestId: Long, placement: XLineBreakpointVerticalPlacement) {
     val breakpoint = breakpointId.findValue() as? XLineBreakpointImpl<*> ?: return
     edtWriteAction {
       breakpoint.setPlacement(requestId, placement)

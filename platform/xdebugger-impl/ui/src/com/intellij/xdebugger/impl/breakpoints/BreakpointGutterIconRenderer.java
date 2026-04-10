@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.xdebugger.impl.breakpoints;
 
 import com.intellij.openapi.actionSystem.ActionGroup;
@@ -16,7 +16,7 @@ import com.intellij.platform.debugger.impl.ui.XDebuggerEntityConverter;
 import com.intellij.xdebugger.XDebuggerBundle;
 import com.intellij.xdebugger.breakpoints.XBreakpoint;
 import com.intellij.xdebugger.breakpoints.XBreakpointType;
-import com.intellij.xdebugger.breakpoints.XLineBreakpointPlacement;
+import com.intellij.xdebugger.breakpoints.XLineBreakpointVerticalPlacement;
 import com.intellij.xdebugger.impl.actions.EditBreakpointAction;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -39,7 +39,7 @@ public final class BreakpointGutterIconRenderer extends CommonBreakpointGutterIc
   @Override
   public @NotNull VerticalAlignment getVerticalAlignment() {
     if (myBreakpoint instanceof XLightLineBreakpointProxy lineBreakpoint &&
-        lineBreakpoint.getPlacement() == XLineBreakpointPlacement.INTER_LINE) {
+        lineBreakpoint.getPlacement() == XLineBreakpointVerticalPlacement.INTER_LINE) {
       return VerticalAlignment.BETWEEN_LINES;
     }
     return VerticalAlignment.ON_LINE;
