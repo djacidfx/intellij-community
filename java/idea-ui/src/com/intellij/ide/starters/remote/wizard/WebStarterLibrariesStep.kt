@@ -40,7 +40,6 @@ import com.intellij.ui.CheckboxTreeListener
 import com.intellij.ui.CheckedTreeNode
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.ScrollPaneFactory
-import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.dsl.builder.Align
@@ -48,6 +47,7 @@ import com.intellij.ui.dsl.builder.BottomGap
 import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.panel
+import com.intellij.ui.dsl.listCellRenderer.textListCellRenderer
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil.DEFAULT_HGAP
@@ -216,7 +216,7 @@ open class WebStarterLibrariesStep(contextProvider: WebStarterContextProvider) :
               override fun intervalRemoved(e: ListDataEvent?) = updateAvailableDependencies()
               override fun contentsChanged(e: ListDataEvent?) = updateAvailableDependencies()
             })
-            comboBox(frameworkVersionsModel, SimpleListCellRenderer.create("") { it?.title ?: "" })
+            comboBox(frameworkVersionsModel, textListCellRenderer("") { it.title })
               .bindItem(frameworkVersionProperty)
           }
         }.bottomGap(BottomGap.SMALL)

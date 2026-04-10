@@ -13,7 +13,6 @@ import com.intellij.openapi.util.NlsContexts
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.ExperimentalUI
 import com.intellij.ui.JBIntSpinner
-import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.UIBundle
 import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.BrowserLink
@@ -46,6 +45,7 @@ import com.intellij.ui.dsl.builder.components.DslLabel
 import com.intellij.ui.dsl.builder.components.DslLabelType
 import com.intellij.ui.dsl.gridLayout.UnscaledGaps
 import com.intellij.ui.dsl.gridLayout.UnscaledGapsY
+import com.intellij.ui.dsl.listCellRenderer.textListCellRenderer
 import com.intellij.ui.layout.ComponentPredicate
 import com.intellij.util.Function
 import com.intellij.util.IconUtil
@@ -421,7 +421,7 @@ internal open class RowImpl(private val dialogPanelConfig: DialogPanelConfig,
 
     if (renderer == null) {
       if (!ExperimentalUI.isNewUI()) {
-        component.renderer = SimpleListCellRenderer.create("") { it.toString() }
+        component.renderer = textListCellRenderer("") { it.toString() }
       }
     }
     else {

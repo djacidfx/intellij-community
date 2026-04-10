@@ -11,7 +11,7 @@ import com.intellij.platform.searchEverywhere.SeItemData
 import com.intellij.platform.searchEverywhere.SeLegacyItem
 import com.intellij.platform.searchEverywhere.providers.SeLog
 import com.intellij.platform.searchEverywhere.withUuidToReplace
-import com.intellij.ui.SimpleListCellRenderer
+import com.intellij.ui.dsl.listCellRenderer.textListCellRenderer
 import com.intellij.util.Processor
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nls
@@ -108,5 +108,5 @@ private class DummySearchEverywhereContributor<Any>: SearchEverywhereContributor
   override fun processSelectedItem(selected: Any & kotlin.Any, modifiers: Int, searchText: String): Boolean = true
 
   @Suppress("HardCodedStringLiteral")
-  override fun getElementsRenderer(): ListCellRenderer<in Any> = SimpleListCellRenderer.create("Dummy") { "Dummy" }
+  override fun getElementsRenderer(): ListCellRenderer<in Any> = textListCellRenderer("Dummy") { "Dummy" }
 }

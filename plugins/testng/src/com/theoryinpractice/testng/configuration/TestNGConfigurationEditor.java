@@ -43,12 +43,12 @@ import com.intellij.ui.CollectionComboBoxModel;
 import com.intellij.ui.EditorTextField;
 import com.intellij.ui.EditorTextFieldWithBrowseButton;
 import com.intellij.ui.PanelWithAnchor;
-import com.intellij.ui.SimpleListCellRenderer;
 import com.intellij.ui.ToolbarDecorator;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBList;
 import com.intellij.ui.components.JBTabbedPane;
 import com.intellij.ui.components.fields.ExpandableTextField;
+import com.intellij.ui.dsl.listCellRenderer.BuilderKt;
 import com.intellij.ui.table.TableView;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
@@ -363,7 +363,7 @@ public class TestNGConfigurationEditor<T extends TestNGConfiguration> extends Se
     }
     myTestKind.setModel(testKindModel);
     myTestKind.addActionListener(e -> this.model.setType((TestType)myTestKind.getSelectedItem()));
-    myTestKind.setRenderer(SimpleListCellRenderer.create("", value -> value.getPresentableName()));
+    myTestKind.setRenderer(BuilderKt.textListCellRenderer("", value -> value.getPresentableName()));
     registerListener(new JRadioButton[]{packagesInProject, packagesInModule, packagesAcrossModules}, null);
     packagesInProject.addChangeListener(e -> evaluateModuleClassPath());
 

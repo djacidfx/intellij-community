@@ -93,6 +93,7 @@ import com.intellij.ui.TreeUIHelper;
 import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBList;
+import com.intellij.ui.dsl.listCellRenderer.BuilderKt;
 import com.intellij.ui.tabs.JBTabs;
 import com.intellij.ui.tabs.JBTabsFactory;
 import com.intellij.ui.tabs.TabInfo;
@@ -642,9 +643,9 @@ public class PsiViewerDialog extends DialogWrapper implements UiDataProvider {
       myFileTypeComboBox.setSelectedIndex(0);
     }
 
-    myDialectComboBox.setRenderer(SimpleListCellRenderer.create(DevPsiViewerBundle.message("label.none"), value -> value.getDisplayName()));
+    myDialectComboBox.setRenderer(BuilderKt.textListCellRenderer(DevPsiViewerBundle.message("label.none"), value -> value.getDisplayName()));
     myDialectComboBox.addFocusListener(new AutoExpandFocusListener(myDialectComboBox));
-    myExtensionComboBox.setRenderer(SimpleListCellRenderer.create("", value -> "." + value)); //NON-NLS
+    myExtensionComboBox.setRenderer(BuilderKt.textListCellRenderer("", value -> "." + value)); //NON-NLS
     myExtensionComboBox.addFocusListener(new AutoExpandFocusListener(myExtensionComboBox));
     myExtensionComboBox.addActionListener(__ -> WriteIntentReadAction.run(() -> rebuildPsiAndUpdateEditor()));
 

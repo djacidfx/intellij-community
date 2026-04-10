@@ -19,8 +19,8 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.NlsContexts;
 import com.intellij.ui.ScrollPaneFactory;
-import com.intellij.ui.SimpleListCellRenderer;
 import com.intellij.ui.components.JBList;
+import com.intellij.ui.dsl.listCellRenderer.BuilderKt;
 import com.intellij.util.ui.JdkConstants;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
@@ -66,7 +66,7 @@ public class SelectFromListDialog extends DialogWrapper {
 
     myList.setSelectedIndex(0);
 
-    myList.setCellRenderer(SimpleListCellRenderer.create("", myToStringAspect::getToStirng));
+    myList.setCellRenderer(BuilderKt.textListCellRenderer("", myToStringAspect::getToStirng));
 
 
     init();
