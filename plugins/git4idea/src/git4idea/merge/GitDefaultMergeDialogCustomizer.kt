@@ -3,6 +3,8 @@ package git4idea.merge
 
 import com.intellij.diff.DiffEditorTitleCustomizer
 import com.intellij.dvcs.repo.Repository
+import com.intellij.openapi.diagnostic.getOrHandleException
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsContexts
@@ -52,6 +54,8 @@ import git4idea.repo.GitRepository
 import git4idea.repo.GitRepositoryManager
 import org.jetbrains.annotations.Nls
 import javax.swing.JPanel
+
+private val LOG = logger<GitDefaultMergeDialogCustomizer>()
 
 internal open class GitDefaultMergeDialogCustomizer(
   private val project: Project
@@ -191,7 +195,11 @@ internal open class GitDefaultMergeDialogCustomizer(
   }
 
   private fun loadCherryPickCommitDetails(repository: GitRepository): CherryPickDetails? {
-    val result = GitLogUtil.collectMetadataForCommit(project, repository.root, CHERRY_PICK_HEAD) ?: return null
+    val result = runCatching {
+      GitLogUtil.collectMetadataForCommit(project, repository.root, CHERRY_PICK_HEAD)
+    }.getOrHandleException {
+      LOG.warn("Failed to load CHERRY_PICK_HEAD details for ${repository.root.name}", it)
+    } ?: return null
     return CherryPickDetails(result.id.toShortString(), result.author.name, result.fullMessage)
   }
 
