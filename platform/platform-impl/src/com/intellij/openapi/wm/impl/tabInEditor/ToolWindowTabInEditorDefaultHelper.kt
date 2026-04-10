@@ -30,14 +30,18 @@ import javax.swing.JComponent
 import javax.swing.KeyStroke
 
 private val ORIGINAL_PREFERRED_FOCUSABLE_KEY: Key<JComponent?> = Key.create<JComponent>("component.preferredFocusableComponent")
+private const val TERMINAL_TOOL_WINDOW_ID: String = "Terminal"
+private val ALLOWED_TOOL_WINDOW_IDS: Set<String> = setOf(
+  ToolWindowId.VCS,
+  ToolWindowId.RUN,
+  ToolWindowId.SERVICES,
+  TERMINAL_TOOL_WINDOW_ID,
+)
 
 internal class ToolWindowTabInEditorDefaultHelper : ToolWindowTabInEditorHelper {
   override fun updatePresentation(e: AnActionEvent, toolWindow: ToolWindow, tabEditorFile: ToolWindowTabFile?) {
     val content = ToolWindowContextMenuActionBase.getContextContent(e)
-    val enabled = content != null &&
-                  toolWindow.id != ToolWindowId.STRUCTURE_VIEW &&
-                  toolWindow.id != ToolWindowId.PROBLEMS_VIEW ||
-                  tabEditorFile != null
+    val enabled = (content != null && toolWindow.id in ALLOWED_TOOL_WINDOW_IDS) || tabEditorFile != null
 
     e.presentation.isEnabledAndVisible = enabled
     if (!enabled) return
