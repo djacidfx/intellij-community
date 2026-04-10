@@ -158,8 +158,8 @@ internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapM
 
   }
 
-  private class CustomWrapTree(document: Document) : HardReferencingRangeMarkerTree<CustomWrapImpl>(document) {
-    class Node(
+  private inner class CustomWrapTree(document: Document) : HardReferencingRangeMarkerTree<CustomWrapImpl>(document) {
+    inner class Node(
       rangeMarkerTree: RangeMarkerTree<CustomWrapImpl>,
       key: CustomWrapImpl,
       start: Int,
@@ -168,7 +168,7 @@ internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapM
     ) : RMNode<CustomWrapImpl>(rangeMarkerTree, key, start, end, false, false, stickingToRight) {
       override fun addIntervalsFrom(otherNode: IntervalNode<CustomWrapImpl>) {
         super.addIntervalsFrom(otherNode)
-        intervals.firstOrNull()?.get()?.model?.notifyMerged()
+        notifyMerged()
       }
     }
 
@@ -201,7 +201,7 @@ internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapM
     }
 
     override fun fireAfterRemoved(marker: CustomWrapImpl) {
-      marker.model.notifyRemoved(marker)
+      notifyRemoved(marker)
     }
   }
 }
