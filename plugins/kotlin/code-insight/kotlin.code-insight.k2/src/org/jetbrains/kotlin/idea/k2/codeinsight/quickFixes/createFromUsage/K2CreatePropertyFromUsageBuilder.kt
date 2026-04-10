@@ -80,6 +80,7 @@ import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtConstructorDelegationCall
 import org.jetbrains.kotlin.psi.KtDeclaration
+import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtEnumEntry
 import org.jetbrains.kotlin.psi.KtFile
@@ -142,7 +143,8 @@ object K2CreatePropertyFromUsageBuilder {
                 ) to null
             }
           qualifiedElement is KtQualifiedExpression && qualifiedElement.selectorExpression == ref -> {
-              val receiverExpression = qualifiedElement.receiverExpression
+              val receiverExpression = (qualifiedElement.receiverExpression as? KtDotQualifiedExpression)?.selectorExpression
+                  ?: qualifiedElement.receiverExpression
               static = receiverExpression.mainReference?.resolveToSymbol() is KaClassSymbol
               val symbol = receiverExpression.resolveExpression()
               if (symbol is KaCallableSymbol) {

@@ -7845,6 +7845,11 @@ public abstract class K1QuickFixTestGenerated extends AbstractK1QuickFixTest {
                         runTest("testData/quickfix/createFromUsage/createVariable/property/valOnClassObject.kt");
                     }
 
+                    @TestMetadata("valOnNestedUserObject.kt")
+                    public void testValOnNestedUserObject() throws Exception {
+                        runTest("testData/quickfix/createFromUsage/createVariable/property/valOnNestedUserObject.kt");
+                    }
+
                     @TestMetadata("valOnUserObject.kt")
                     public void testValOnUserObject() throws Exception {
                         runTest("testData/quickfix/createFromUsage/createVariable/property/valOnUserObject.kt");
