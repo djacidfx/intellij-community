@@ -491,6 +491,17 @@ public class PyDataclassInspectionTest extends PyInspectionTestCase {
     doMultiFileTest();
   }
 
+  // PY-76861
+  public void testFieldDefaultFactoryReturnsClassObject() {
+    doTestByText("""
+                   from dataclasses import dataclass, field
+                   
+                   @dataclass
+                   class DC:
+                       a: str = <warning descr="Type mismatch: field annotation is 'str', but default_factory returns 'type[str]'">field(default_factory=(lambda: str))</warning>
+                   """);
+  }
+
   @Override
   protected void doTest() {
     myFixture.copyDirectoryToProject("packages/attr", "attr");

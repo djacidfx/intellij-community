@@ -750,18 +750,15 @@ class PyDataclassInspection : PyInspection() {
 
       val annotationExpr = field.annotation?.value ?: return
       val expectedType = PyTypingTypeProvider.getType(annotationExpr, context)?.get() ?: return
-      val expectedInstanceType = (expectedType as? PyClassType)?.toInstance() ?: expectedType
 
       val defaultFactoryExpr = call.getKeywordArgument("default_factory") ?: return
       val defaultFactoryType = context.getType(defaultFactoryExpr) ?: return
       val returnType = (defaultFactoryType as? PyCallableType) ?: return
-
       val actualType = returnType.getReturnType(context)
-      val actualInstanceType = (actualType as? PyClassType)?.toInstance() ?: actualType
 
-      if (!PyTypeChecker.match(expectedInstanceType, actualInstanceType, context)) {
-        val expectedTypeName = PythonDocumentationProvider.getTypeName(expectedInstanceType, context)
-        val actualTypeName = PythonDocumentationProvider.getTypeName(actualInstanceType, context)
+      if (!PyTypeChecker.match(expectedType, actualType, context)) {
+        val expectedTypeName = PythonDocumentationProvider.getTypeName(expectedType, context)
+        val actualTypeName = PythonDocumentationProvider.getTypeName(actualType, context)
 
         registerProblem(call,
                         PyPsiBundle.message("INSP.dataclasses.default.factory.type.incompatible", expectedTypeName, actualTypeName))
