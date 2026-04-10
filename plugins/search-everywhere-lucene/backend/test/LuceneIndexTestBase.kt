@@ -148,14 +148,17 @@ ${searcher.explain(query, score.doc).toString().trim().prependIndent(">   ")}
         results.find { isEquivalent(it.second, expected) }
       }
 
+      log("""
+Found ${results.size} documents:
+${explainResults(results)}
+      """.trimIndent())
+
       if (containsAll) {
         expectedOrder.forEachIndexed { index, doc ->
           if (foundDocs[index] == null) {
             fail<Nothing>("""
               Document not found in results (required by containsAll=true):
               Missing Document: ${doc.asMap()}
-              Total Results (${results.size}):
-              ${explainResults(results)}
             """.trimIndent())
           }
         }
