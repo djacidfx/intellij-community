@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.execution.testframework
 
 import com.intellij.execution.filters.ExceptionInfoCache
@@ -30,7 +30,7 @@ import org.jetbrains.uast.resolveToUElement
 import org.jetbrains.uast.resolveToUElementOfType
 import org.jetbrains.uast.toUElement
 
-class JvmTestDiffProvider : TestDiffProvider {
+open class JvmTestDiffProvider : TestDiffProvider {
   override fun updateExpected(element: PsiElement, actual: String) {
     ElementManipulators.getManipulator(element)?.handleContentChange(element, actual)
   }
@@ -149,7 +149,8 @@ class JvmTestDiffProvider : TestDiffProvider {
   }
 
   private fun getExpectedElement(expression: UExpression, expected: String): PsiElement? {
-    if (expression.asSafely<UInjectionHost>()?.evaluateString()?.withoutLineEndings() == expected) {
+    val value = expression.asSafely<UInjectionHost>()?.evaluateString() ?: return null
+    if (value == expected || value.withoutLineEndings() == expected.withoutLineEndings()) {
       return expression.sourcePsi
     }
     return null

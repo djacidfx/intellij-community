@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.execution.testframework.actions
 
 import com.intellij.diff.DiffContentFactory
@@ -19,7 +19,6 @@ import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.fileTypes.FileTypes
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.psi.ElementManipulators
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPsiElementPointer
@@ -51,7 +50,7 @@ class TestDiffContent(
     override fun onDocumentChanged1(event: DocumentEvent) {
       PsiDocumentManager.getInstance(project).performForCommittedDocument(document1, Runnable {
         val element = elemPtr.element ?: return@Runnable
-        replaceString(myDocument2, ElementManipulators.getValueText(element))
+        replaceString(myDocument2, TestDiffProvider.getProviderByLanguage(element.language).getExpectedValue(element))
       })
     }
 
