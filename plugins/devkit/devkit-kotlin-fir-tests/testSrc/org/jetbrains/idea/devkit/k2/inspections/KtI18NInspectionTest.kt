@@ -748,4 +748,22 @@ class KtI18NInspectionTest : LightJavaCodeInsightFixtureTestCase(), ExpectedPlug
     """.trimIndent())
     myFixture.testHighlighting()
   }
+
+  fun testTypeArgumentAnnotations() {
+    val inspection = I18nInspection()
+    inspection.setIgnoreForAllButNls(true)
+    inspection.setReportUnannotatedReferences(true)
+    myFixture.enableInspections(inspection)
+
+    configureKt("""
+      import org.jetbrains.annotations.Nls
+      val valFunTypeReturnNls: () -> @Nls String = { "" }
+      fun funFunTypeReturnNls(): () -> @Nls String = { "" }
+      fun localVarContainer() {
+          var localVar: @Nls String = ""
+          localVar = valFunTypeReturnNls()
+          localVar = funFunTypeReturnNls()()
+      }""".trimIndent())
+    myFixture.testHighlighting()
+  }
 }
