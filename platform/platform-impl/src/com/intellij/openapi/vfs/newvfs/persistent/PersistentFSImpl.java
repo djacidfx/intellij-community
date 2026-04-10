@@ -409,7 +409,7 @@ public final class PersistentFSImpl extends PersistentFS implements Disposable {
       }
     );
 
-    if(!errorsDuringDispose.isEmpty()){
+    if (!errorsDuringDispose.isEmpty()) {
       RuntimeException compoundError = new RuntimeException("VFS disconnect produced errors");
       errorsDuringDispose.forEach(compoundError::addSuppressed);
       LOG.error("VFS dispose produced errors", compoundError);
@@ -1328,7 +1328,11 @@ public final class PersistentFSImpl extends PersistentFS implements Disposable {
     }
   }
 
-  private static void runSuppressing(@NotNull Runnable r1, @NotNull Runnable r2, @NotNull Runnable r3, @NotNull Runnable r4, @NotNull Runnable r5) {
+  private static void runSuppressing(@NotNull Runnable r1,
+                                     @NotNull Runnable r2,
+                                     @NotNull Runnable r3,
+                                     @NotNull Runnable r4,
+                                     @NotNull Runnable r5) {
     Throwable t = null;
     try {
       r1.run();
@@ -1631,7 +1635,9 @@ public final class PersistentFSImpl extends PersistentFS implements Disposable {
   private static final int INNER_ARRAYS_THRESHOLD = 4096;
 
   @ApiStatus.Internal
-  public void processEventsImpl(@NotNull List<CompoundVFileEvent> events, @NotNull AsyncEventSupport.ChangeAppliers earlyAfterEventChangeAppliers, boolean excludeAsyncListeners) {
+  public void processEventsImpl(@NotNull List<CompoundVFileEvent> events,
+                                @NotNull AsyncEventSupport.ChangeAppliers earlyAfterEventChangeAppliers,
+                                boolean excludeAsyncListeners) {
     ThreadingAssertions.assertWriteAccess();
 
     int startIndex = 0;
@@ -1662,7 +1668,14 @@ public final class PersistentFSImpl extends PersistentFS implements Disposable {
                                     excludeAsyncListeners);
 
       if (!validated.isEmpty()) {
-        applyMultipleEvents(publisherEdt, publisherBackgroundable, earlyAfterEventChangeAppliers, applyActions, validated, excludeAsyncListeners);
+        applyMultipleEvents(
+          publisherEdt,
+          publisherBackgroundable,
+          earlyAfterEventChangeAppliers,
+          applyActions,
+          validated,
+          excludeAsyncListeners
+        );
       }
     }
   }
@@ -2558,7 +2571,9 @@ public final class PersistentFSImpl extends PersistentFS implements Disposable {
 
     int childId = inserter.insertedChildInfo.getId();
     int nameId = inserter.insertedChildInfo.getNameId();//vfsPeer.getNameId(name);
-    VirtualFileSystemEntry child = parentDir.initializeChildDataIfNotYet(childId, nameId, fileAttributesToFlags(childData.first), isEmptyDirectory);
+    VirtualFileSystemEntry child = parentDir.initializeChildDataIfNotYet(
+      childId, nameId, fileAttributesToFlags(childData.first), isEmptyDirectory
+    );
     parentDir.addChild(child);
     incStructuralModificationCount();
   }
@@ -2570,11 +2585,6 @@ public final class PersistentFSImpl extends PersistentFS implements Disposable {
                                              @NotNull NewVirtualFileSystem fs,
                                              @NotNull ChildInfo @Nullable [] children) {
     assert parentId > 0 : parentId; // 0 means it's root => should use .writeRootFields() instead
-
-    //VfsData.DirectoryData directoryData = ((VirtualDirectoryImpl)parentFile).directoryData;
-    //if(!Thread.holdsLock(directoryData)){
-    //  LOG.error("Don't hold .directoryData lock!");
-    //}
 
     FileAttributes attributes = childData.first;
     String symLinkTarget = childData.second;
