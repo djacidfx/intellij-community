@@ -921,7 +921,7 @@ internal class BazelBuildFileGenerator(
     }
     val sectionName = "toolbox deps"
     val dependenciesTxtPath = ultimateRoot / "toolbox" / "dependencies.txt"
-    val targetPath = ultimateRoot / "toolbox" / "deps_bazel" / "MODULE.bazel"
+    val targetPath = ultimateRoot / "toolbox" / "tbx.file.deps.MODULE.bazel"
     val dependenciesTxtContent = Files.readString(dependenciesTxtPath)
     val lines = dependenciesTxtContent.lines()
       .map { it.trimStart() }
