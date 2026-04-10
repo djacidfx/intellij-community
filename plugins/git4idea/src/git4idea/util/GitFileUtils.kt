@@ -4,7 +4,6 @@ package git4idea.util
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.options.advanced.AdvancedSettings
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vcs.FilePath
 import com.intellij.openapi.vcs.VcsException
 import com.intellij.openapi.vfs.VirtualFile
@@ -16,9 +15,11 @@ import git4idea.GitUtil
 import git4idea.commands.Git
 import git4idea.commands.GitBinaryHandler
 import git4idea.commands.GitCommand
+import git4idea.commands.GitHandlerInputProcessorUtil
 import git4idea.commands.GitLineHandler
 import git4idea.config.GitExecutableManager
 import git4idea.config.GitVersion
+import git4idea.config.GitVersionSpecialty
 import git4idea.config.GitVersionSpecialty.CAT_FILE_SUPPORTS_FILTERS
 import git4idea.config.GitVersionSpecialty.CAT_FILE_SUPPORTS_TEXTCONV
 import git4idea.index.GitIndexUtil
@@ -34,17 +35,9 @@ object GitFileUtils {
   @JvmStatic
   @Throws(VcsException::class)
   fun deletePaths(project: Project, root: VirtualFile, files: Collection<FilePath>, vararg additionalOptions: @NonNls String) {
-    for (paths in VcsFileUtil.chunkPaths(root, files)) {
-      doDelete(project, root, paths, *additionalOptions)
+    executeForFiles(project, root, GitCommand.RM, files) {
+      addParameters(*additionalOptions)
     }
-  }
-
-  private fun doDelete(project: Project, root: VirtualFile, paths: List<String>, vararg additionalOptions: @NonNls String) {
-    val handler = GitLineHandler(project, root, GitCommand.RM)
-    handler.addParameters(*additionalOptions)
-    handler.endOptions()
-    handler.addParameters(paths)
-    Git.getInstance().runCommand(handler).throwOnError()
   }
 
   @JvmStatic
@@ -126,10 +119,23 @@ object GitFileUtils {
 
   @JvmStatic
   @Throws(VcsException::class)
-  fun addPaths(project: Project, root: VirtualFile, files: Collection<FilePath>, force: Boolean, filterOutIgnored: Boolean, vararg additionalOptions: String) {
-    for (paths in VcsFileUtil.chunkPaths(root, files)) {
-      addPathsImpl(project, root, paths, force, filterOutIgnored, *additionalOptions)
+  fun addPaths(
+    project: Project,
+    root: VirtualFile,
+    files: Collection<FilePath>,
+    force: Boolean,
+    filterOutIgnored: Boolean,
+    vararg additionalOptions: String,
+  ) {
+    val paths = VcsFileUtil.toRelativePaths(root, files)
+    val effectivePaths = if (filterOutIgnored) excludeIgnoredFiles(project, root, paths) else paths
+
+    executeForPaths(project, root, GitCommand.ADD, effectivePaths) {
+      addParameters("--ignore-errors", "-A")
+      if (force) addParameters("-f")
+      addParameters(*additionalOptions)
     }
+
     updateAndRefresh(project, root, files, force)
   }
 
@@ -141,7 +147,13 @@ object GitFileUtils {
    * @param exceptions a list of exceptions to update
    */
   @JvmStatic
-  fun stageForCommit(project: Project, root: VirtualFile, toAdd: Collection<FilePath>, toRemove: Collection<FilePath>, exceptions: MutableList<in VcsException>) {
+  fun stageForCommit(
+    project: Project,
+    root: VirtualFile,
+    toAdd: Collection<FilePath>,
+    toRemove: Collection<FilePath>,
+    exceptions: MutableList<in VcsException>,
+  ) {
     if (toRemove.isNotEmpty()) {
       try {
         deletePaths(project, root, toRemove, "--ignore-unmatch", "--cached", "-r")
@@ -174,43 +186,22 @@ object GitFileUtils {
     addPaths(project, root, files, true, false)
   }
 
-  private fun addPathsImpl(project: Project, root: VirtualFile, paths: List<String>, force: Boolean, filterOutIgnored: Boolean, vararg additionalOptions: String) {
-    var effectivePaths = paths
-    if (filterOutIgnored) {
-      effectivePaths = excludeIgnoredFiles(project, root, paths)
-      if (effectivePaths.isEmpty()) return
-    }
-
-    val handler = GitLineHandler(project, root, GitCommand.ADD)
-    handler.addParameters("--ignore-errors", "-A")
-    if (force) handler.addParameters("-f")
-    handler.addParameters(*additionalOptions)
-    handler.endOptions()
-    handler.addParameters(effectivePaths)
-    Git.getInstance().runCommand(handler).throwOnError()
-  }
-
   private fun excludeIgnoredFiles(project: Project, root: VirtualFile, paths: List<String>): List<String> {
-    val handler = GitLineHandler(project, root, GitCommand.LS_FILES)
-    handler.setSilent(true)
-    handler.addParameters("--ignored", "--others", "--exclude-standard")
-    handler.endOptions()
-    handler.addParameters(paths)
-    val output = Git.getInstance().runCommand(handler).getOutputOrThrow()
-
-    val ignoredPaths = StringUtil.splitByLines(output).toHashSet()
+    val handler = GitLineHandler(project, root, GitCommand.CHECK_IGNORE).apply {
+      setSilent(true)
+      addParameters("--stdin")
+      addParameters("-z")
+      setInputProcessor(GitHandlerInputProcessorUtil.writeLines(paths, "\u0000", charset, false))
+    }
+    val output = Git.getInstance().runCommand(handler).getOutputOrThrow(1)
+    val ignoredPaths = output.split('\u0000').toHashSet()
     return paths.filterNot { it in ignoredPaths }
   }
 
   @JvmStatic
   @Throws(VcsException::class)
   fun resetPaths(project: Project, root: VirtualFile, files: Collection<FilePath>) {
-    for (filesChunk in VcsFileUtil.chunkPaths(root, files)) {
-      val handler = GitLineHandler(project, root, GitCommand.RESET)
-      handler.endOptions()
-      handler.addParameters(filesChunk)
-      Git.getInstance().runCommand(handler).throwOnError()
-    }
+    executeForFiles(project, root, GitCommand.RESET, files)
     updateUntrackedFilesHolderOnFileReset(project, root, files)
     GitIndexFileSystemRefresher.refreshFilePaths(project, files)
   }
@@ -218,23 +209,14 @@ object GitFileUtils {
   @JvmStatic
   @Throws(VcsException::class)
   fun revertUnstagedPaths(project: Project, root: VirtualFile, files: List<FilePath>) {
-    for (paths in VcsFileUtil.chunkPaths(root, files)) {
-      val handler = GitLineHandler(project, root, GitCommand.CHECKOUT)
-      handler.endOptions()
-      handler.addParameters(paths)
-      Git.getInstance().runCommand(handler).throwOnError()
-    }
+    executeForFiles(project, root, GitCommand.CHECKOUT, files)
   }
 
   @JvmStatic
   @Throws(VcsException::class)
   fun restoreStagedAndWorktree(project: Project, root: VirtualFile, files: List<FilePath>, source: String) {
-    for (paths in VcsFileUtil.chunkPaths(root, files)) {
-      val handler = GitLineHandler(project, root, GitCommand.RESTORE)
-      handler.addParameters("--staged", "--worktree", "--source=$source")
-      handler.endOptions()
-      handler.addParameters(paths)
-      Git.getInstance().runCommand(handler).throwOnError()
+    executeForFiles(project, root, GitCommand.RESTORE, files) {
+      addParameters("--staged", "--worktree", "--source=$source")
     }
   }
 
@@ -280,6 +262,45 @@ object GitFileUtils {
     // '-p' is not needed with '--batch' parameter
     if (addp) {
       h.addParameters("-p")
+    }
+  }
+
+  private fun executeForFiles(
+    project: Project,
+    root: VirtualFile,
+    command: GitCommand,
+    files: Collection<FilePath>,
+    setup: GitLineHandler.() -> Unit = {},
+  ) {
+    executeForPaths(project, root, command, VcsFileUtil.toRelativePaths(root, files), setup)
+  }
+
+  private fun executeForPaths(
+    project: Project,
+    root: VirtualFile,
+    command: GitCommand,
+    paths: List<String>,
+    setup: GitLineHandler.() -> Unit = {},
+  ) {
+    if (paths.isEmpty()) return
+
+    if (GitVersionSpecialty.PATHSPEC_FROM_FILE_SUPPORTED.existsIn(project)) {
+      val handler = GitLineHandler(project, root, command).apply {
+        setup()
+        addParameters("--pathspec-from-file=-", "--pathspec-file-nul")
+        setInputProcessor(GitHandlerInputProcessorUtil.writeLines(paths, "\u0000", charset, false))
+      }
+      Git.getInstance().runCommand(handler).throwOnError()
+    }
+    else {
+      for (paths in VcsFileUtil.chunkArguments(paths)) {
+        val handler = GitLineHandler(project, root, command).apply {
+          setup()
+          endOptions()
+          addParameters(paths)
+        }
+        Git.getInstance().runCommand(handler).throwOnError()
+      }
     }
   }
 }
