@@ -255,19 +255,22 @@ class StyleConfigurable : BoundConfigurable(GrazieBundle.message("grazie.setting
 
   private fun trackNewLanguageAddition() {
     GrazieConfig.subscribe(this) {
-      if (loadLanguages()) {
-        settings.clear()
-        settings.addTextStyle(textStyle, Language.ENGLISH, filterComponent)
-      }
+      val newLanguages = loadLanguages() ?: return@subscribe
+
+      val language = if (langComboModel.selected != null && langComboModel.selected in newLanguages) langComboModel.selected!! else Language.ENGLISH
+      settings.clear()
+      settings.addTextStyle(textStyle, language, filterComponent)
+      repaintSettings(textStyle, language)
+      langCombo.selectedItem = language
     }
   }
 
-  private fun loadLanguages(): Boolean {
+  private fun loadLanguages(): Set<Language>? {
     val langs = GrazieConfig.get().availableLanguages.map { it.toLanguage() }.sortedBy { it.englishName }
-    if (langComboModel.items == langs) return false
+    if (langComboModel.items == langs) return null
     langComboModel.removeAll()
     langComboModel.add(langs)
-    return true
+    return langs.toSet()
   }
 
   override fun getDisplayName(): @NlsContexts.ConfigurableName String = msg("grazie.settings.page.name")
