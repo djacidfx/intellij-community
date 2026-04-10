@@ -32,7 +32,7 @@ object TimeoutAnalyzer {
   private fun detectDialog(runContext: IDERunContext): Error? {
     val threadDump = getLastThreadDump(runContext) ?: return null
     val threadDumpParsed = ThreadDumpParser.parse(threadDump)
-    val edtThread = threadDumpParsed.first { it.isEDT() }
+    val edtThread = threadDumpParsed.firstOrNull { it.isEDT() } ?: return null
 
     if (dialogMethodCalls.any { call -> edtThread.getStackTrace().contains(call) }) {
       val lastCommandNote = getLastCommand(runContext)?.let { System.lineSeparator() + "Last executed command was: $it" } ?: ""
