@@ -12,7 +12,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.io.FileAttributes
 import com.intellij.openapi.util.io.NioFiles
-import com.intellij.openapi.util.registry.Registry
 import com.intellij.platform.eel.EelApi
 import com.intellij.platform.eel.EelDescriptor
 import com.intellij.platform.eel.EelOsFamily
@@ -478,110 +477,12 @@ object EelPathUtils {
     filter: ((Path) -> Boolean)? = null,
   ) {
     LOG.debug { "walkingTransfer($sourceRoot -> $targetRoot)" }
-    if (Registry.`is`("ijent.incremental.walking.transfer")) {
-      runBlockingMaybeCancellable {
-        incrementalWalkingTransfer(sourceRoot, targetRoot, fileAttributesStrategy, absoluteSymlinkHandler, filter)
-        if (removeSource) {
-          val sourceEel = sourceRoot.asEelPath()
-          val sourceEelApi = sourceEel.descriptor.toEelApi()
-          sourceEelApi.fs.delete(sourceEel, true).getOrThrow()
-        }
-      }
-      return
-    }
-
-    val shouldObtainExtendedAttributes = when (fileAttributesStrategy) {
-      FileTransferAttributesStrategy.Skip -> false
-      is FileTransferAttributesStrategy.SourceAware -> true
-    }
-
-    fun processFileAttributesOrSkip(source: Path, target: Path, sourceAttrs: BasicFileAttributes) {
-      when (fileAttributesStrategy) {
-        FileTransferAttributesStrategy.Skip -> Unit
-        is FileTransferAttributesStrategy.SourceAware -> fileAttributesStrategy.handleFileAttributes(source, target, sourceAttrs)
-      }
-    }
-
-    val traversalStack = ArrayDeque<TraversalRecord>()
-    traversalStack.add(TraversalRecord.Pending(sourceRoot, isRoot = true))
-
-    while (true) {
-      val currentTraverseItem = try {
-        traversalStack.removeLast()
-      }
-      catch (_: NoSuchElementException) {
-        break
-      }
-      when (currentTraverseItem) {
-        is TraversalRecord.Pending -> {
-          val source = currentTraverseItem.sourcePath
-          // WindowsPath doesn't support resolve() from paths of different class.
-          val target = source.relativeTo(sourceRoot).fold(targetRoot) { parent, file ->
-            parent.resolve(file.toString())
-          }
-
-          val sourceAttrs: BasicFileAttributes = readSourceAttrs(source, target, withExtendedAttributes = shouldObtainExtendedAttributes)
-
-          when {
-            sourceAttrs.isDirectory -> {
-              traversalStack.add(currentTraverseItem.asListedDirectory(target, sourceAttrs))
-              try {
-                target.createDirectories()
-              }
-              catch (err: FileAlreadyExistsException) {
-                if (!Files.isDirectory(target)) {
-                  throw err
-                }
-              }
-              source.fileSystem.provider().newDirectoryStream(source) { true }.use { children ->
-                traversalStack.addAll(children.toList().asReversed().map { TraversalRecord.Pending(it) })
-              }
-            }
-
-            sourceAttrs.isRegularFile -> {
-              Files.newInputStream(source, READ).use { reader ->
-                try {
-                  Files.newOutputStream(target, CREATE, TRUNCATE_EXISTING, WRITE).use { writer ->
-                    reader.copyTo(writer, bufferSize = 4 * 1024 * 1024)
-                  }
-                }
-                catch (e: IOException) {
-                  val parent = target.parent
-                  val text = "Couldn't open $target for writing ${target.getReadableInfo()}, " +
-                           "and parent: ${parent.getReadableInfo()}"
-                  throw IOException(text, e)
-                }
-              }
-              if (removeSource) {
-                Files.delete(source)
-              }
-              processFileAttributesOrSkip(source, target, sourceAttrs)
-            }
-
-            sourceAttrs.isSymbolicLink -> {
-              Files.copy(source, target, LinkOption.NOFOLLOW_LINKS)
-              processFileAttributesOrSkip(source, target, sourceAttrs)
-              if (removeSource) {
-                Files.delete(source)
-              }
-            }
-
-            else -> {
-              LOG.info("Not copying $source to $target because the source file is neither a regular file nor a directory")
-              if (removeSource) {
-                Files.delete(source)
-              }
-            }
-          }
-        }
-        is TraversalRecord.ListedDirectory -> {
-          if (!currentTraverseItem.isRoot) {
-            if (removeSource) {
-              Files.delete(currentTraverseItem.sourcePath)
-            }
-            processFileAttributesOrSkip(currentTraverseItem.sourcePath, currentTraverseItem.targetPath, currentTraverseItem.sourceAttrs)
-          }
-        }
+    runBlockingMaybeCancellable {
+      incrementalWalkingTransfer(sourceRoot, targetRoot, fileAttributesStrategy, absoluteSymlinkHandler, filter)
+      if (removeSource) {
+        val sourceEel = sourceRoot.asEelPath()
+        val sourceEelApi = sourceEel.descriptor.toEelApi()
+        sourceEelApi.fs.delete(sourceEel, true).getOrThrow()
       }
     }
   }
@@ -1573,67 +1474,6 @@ object EelPathUtils {
     }
   }
 
-  /**
-   * Corresponds to a path stored in the stack during the depth-first search traversing the file tree.
-   */
-  private sealed interface TraversalRecord {
-    /**
-     * Describes a file or a directory that has been listed and is pending for further processing.
-     *
-     * Stored in this state in the stack, the corresponding [sourcePath] has neither been copied, nor listed as a directory,
-     * nor even had its attributes acquired.
-     */
-    data class Pending(
-      val sourcePath: Path,
-      val isRoot: Boolean = false,
-    ) : TraversalRecord {
-      fun asListedDirectory(targetPath: Path, sourceAttrs: BasicFileAttributes): ListedDirectory =
-        ListedDirectory(sourcePath, targetPath, sourceAttrs, isRoot)
-    }
-
-    /**
-     * Describes a directory with its direct children being listed and put right after this record in the stack.
-     *
-     * Taking this element from the stack means that all its direct and indirect descendants have been processed,
-     * and we are now ready to copy the source directory's attributes and/or remove it.
-     */
-    data class ListedDirectory(
-      val sourcePath: Path,
-      val targetPath: Path,
-      val sourceAttrs: BasicFileAttributes,
-      val isRoot: Boolean = false,
-    ) : TraversalRecord
-  }
-
-  private fun readSourceAttrs(
-    source: Path,
-    target: Path,
-    withExtendedAttributes: Boolean,
-  ): BasicFileAttributes {
-    val attributesIntersection =
-      if (withExtendedAttributes)
-        source.fileSystem.supportedFileAttributeViews() intersect target.fileSystem.supportedFileAttributeViews()
-      else
-        setOf()
-
-    val osSpecific =
-      try {
-        when {
-          "posix" in attributesIntersection ->
-            source.fileAttributesView<PosixFileAttributeView>(LinkOption.NOFOLLOW_LINKS).readAttributes()
-
-          "dos" in attributesIntersection ->
-            source.fileAttributesView<DosFileAttributeView>(LinkOption.NOFOLLOW_LINKS).readAttributes()
-
-          else -> null
-        }
-      }
-      catch (err: UnsupportedOperationException) {
-        LOG.info("Failed to read os-specific file attributes from $source", err)
-        null
-      }
-    return osSpecific ?: source.fileAttributesView<BasicFileAttributeView>(LinkOption.NOFOLLOW_LINKS).readAttributes()
-  }
 
   /**
    * Copies file attributes from a source file to the target path, ensuring compatibility with different
@@ -1821,7 +1661,3 @@ private inline fun <reified T : Throwable> runCatching(vararg blocks: () -> Unit
     }
   }
 }
-
-private fun Path.getReadableInfo(): @NlsSafe String = """
-  $this : isFile ${isRegularFile()}, isDir: ${isDirectory()}, exists: ${exists()}
-""".trimIndent()
