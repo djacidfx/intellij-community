@@ -2479,6 +2479,11 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
                 runTest("../../../idea/tests/testData/quickfix/deprecatedSymbolUsage/javaDeprecated.before.Main.kt");
             }
 
+            @TestMetadata("javaDeprecatedNamedArg.before.Main.kt")
+            public void testJavaDeprecatedNamedArg() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/deprecatedSymbolUsage/javaDeprecatedNamedArg.before.Main.kt");
+            }
+
             @TestMetadata("toMethodFromCompanionObject.before.Main.kt")
             public void testToMethodFromCompanionObject() throws Exception {
                 runTest("../../../idea/tests/testData/quickfix/deprecatedSymbolUsage/toMethodFromCompanionObject.before.Main.kt");
