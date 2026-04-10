@@ -7,6 +7,7 @@ import com.intellij.openapi.module.Module
 import com.intellij.psi.xml.XmlFile
 import org.jetbrains.idea.maven.dom.model.MavenDomPluginExecution
 import org.jetbrains.idea.maven.model.MavenId
+import org.jetbrains.idea.maven.project.MavenProjectsManager
 import org.jetbrains.kotlin.idea.configuration.ConfigurationResultBuilder
 import org.jetbrains.kotlin.idea.configuration.KotlinCompilerPluginProjectConfigurator
 import org.jetbrains.kotlin.idea.configuration.KotlinDependencyProvider
@@ -16,23 +17,21 @@ import org.jetbrains.kotlin.idea.maven.addKotlinCompilerPlugin
 import org.jetbrains.kotlin.idea.maven.configuration.KotlinMavenConfigurator.Companion.GROUP_ID
 import org.jetbrains.kotlin.idea.maven.configuration.KotlinMavenConfigurator.Companion.KOTLIN_VERSION_PROPERTY
 import org.jetbrains.kotlin.idea.maven.configuration.KotlinMavenConfigurator.Companion.findModulePomFile
+import org.jetbrains.kotlin.idea.maven.configuration.KotlinMavenConfigurator.Companion.findPomXmlByFile
 import org.jetbrains.kotlin.idea.maven.configuration.KotlinMavenConfigurator.Companion.kotlinPluginId
 import org.jetbrains.kotlin.idea.util.application.executeWriteCommand
 
 abstract class AbstractMavenKotlinCompilerPluginProjectConfigurator: KotlinCompilerPluginProjectConfigurator {
-    override fun isApplicable(module: Module): Boolean {
-        val xmlFile = findModulePomFile(module) as? XmlFile ?: return false
-        return PomFile.forFileOrNull(xmlFile) != null
-    }
+    override fun isApplicable(module: Module): Boolean =
+        module.findPomFileWithPlugin(kotlinPluginId) != null
 
     override fun configureModule(module: Module, configurationResultBuilder: ConfigurationResultBuilder) {
         val project = module.project
-        val xmlFile = findModulePomFile(module) as? XmlFile ?: return
+        val xmlFile = module.findPomFileWithPlugin(kotlinPluginId) ?: return
         configurationResultBuilder.changedFile(xmlFile)
 
         val pom = PomFile.forFileOrNull(xmlFile) ?: return
-
-        val kotlinPlugin = pom.findPlugin(kotlinPluginId(null)) ?: return
+        val kotlinPlugin = pom.findPlugin(kotlinPluginId) ?: return
 
         val execution =
             kotlinPlugin.executions.executions.firstOrNull { execution: MavenDomPluginExecution ->
@@ -57,12 +56,13 @@ abstract class AbstractMavenKotlinCompilerPluginProjectConfigurator: KotlinCompi
     }
 
     override fun configureModuleModCommand(module: Module): ModCommand {
-        val pomFile = findModulePomFile(module) as? XmlFile ?: return ModCommand.nop()
-        val actionContext = ActionContext.from(null, pomFile)
+        val kotlinPluginId = kotlinPluginId
+        val xmlFile = module.findPomFileWithPlugin(kotlinPluginId) ?: return ModCommand.nop()
+        val actionContext = ActionContext.from(null, xmlFile)
         return ModCommand.psiUpdate(actionContext) { updater ->
-            val writablePomFile = updater.getWritable(pomFile)
+            val writablePomFile = updater.getWritable(xmlFile)
             val pom = PomFile.forFileOrNull(writablePomFile) ?: return@psiUpdate
-            val kotlinPlugin = pom.findPlugin(kotlinPluginId(null)) ?: return@psiUpdate
+            val kotlinPlugin = pom.findPlugin(kotlinPluginId) ?: return@psiUpdate
 
             val execution =
                 kotlinPlugin.executions.executions.firstOrNull { execution: MavenDomPluginExecution ->
@@ -82,10 +82,38 @@ abstract class AbstractMavenKotlinCompilerPluginProjectConfigurator: KotlinCompi
                     pom.addPluginDependency(kotlinPlugin, it)
                 }
             }
-        }.andThen(KotlinDependencyProvider.syncModCommand(pomFile))
+        }.andThen(KotlinDependencyProvider.syncModCommand(xmlFile))
     }
 
     protected abstract val pluginDependencyMavenId: MavenId?
+
+    private fun XmlFile.hasPlugin(pluginId: MavenId): Boolean =
+        PomFile.forFileOrNull(this)?.findPlugin(pluginId) != null
+
+    private fun Module.findPomFileWithPlugin(pluginId: MavenId): XmlFile? {
+        val pomFile = findModulePomFile(this) as? XmlFile ?: return null
+        if (pomFile.hasPlugin(pluginId)) return pomFile
+
+        val project = this.project
+        val mavenProjectsManager = MavenProjectsManager.getInstance(project)
+        val mavenProject = mavenProjectsManager.findProject(this) ?: return null
+
+        var parentId: MavenId? = mavenProject.parentId
+
+        // child module could inherit plugin from parent
+        while (parentId != null) {
+            val parentModule = mavenProjectsManager.findProject(parentId) ?: return null
+            val mavenPlugin = parentModule.plugins.firstOrNull {
+                it.mavenId.equals(pluginId.groupId, pluginId.artifactId)
+            }
+            if (mavenPlugin != null) {
+                val psiFile = findPomXmlByFile(parentModule.file) ?: return null
+                if (psiFile.hasPlugin(pluginId)) return psiFile
+            }
+            parentId = parentModule.parentId
+        }
+        return null
+    }
 }
 
 class SpringMavenKotlinCompilerPluginProjectConfigurator : AbstractMavenKotlinCompilerPluginProjectConfigurator() {
