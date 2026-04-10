@@ -15,6 +15,7 @@ repositories {
   intellijPlatform {
     defaultRepositories()
     snapshots()
+    nightly()
   }
 }
 
@@ -43,6 +44,7 @@ dependencies {
     if (platformLocalPath == null) {
       bundledModules(
         "intellij.platform.vcs",
+        "intellij.platform.vcs.impl.shared",
         "intellij.platform.vcs.log",
         "intellij.platform.vcs.log.impl",
         "intellij.platform.vcs.log.graph",

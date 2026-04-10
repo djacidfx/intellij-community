@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
@@ -39,12 +39,29 @@ dependencies {
       local(platformLocalPath)
     } else {
       intellijIdeaUltimate(platformVersion) { useInstaller = false }
+      bundledModules(
+        "intellij.platform.vcs",
+        "intellij.platform.vcs.impl.shared",
+        "intellij.platform.vcs.impl",
+        "intellij.platform.diff",
+        "intellij.platform.diff.impl",
+      )
     }
     jetbrainsRuntime()
   }
 
+  if (platformLocalPath != null) {
+    val ideDir = rootProject.file(platformLocalPath)
+    compileOnly(fileTree(ideDir.resolve("lib")) {
+      include("intellij.platform.vcs*.jar", "intellij.platform.diff*.jar")
+    })
+  }
+
   implementation(project(":common"))
+  implementation(project(":chat"))
   implementation(project(":prompt-core"))
+  implementation(project(":sessions"))
+  implementation(project(":sessions-core"))
 }
 
 kotlin {
