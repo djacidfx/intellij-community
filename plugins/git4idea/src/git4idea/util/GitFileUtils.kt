@@ -4,6 +4,7 @@ package git4idea.util
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.options.advanced.AdvancedSettings
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vcs.FilePath
 import com.intellij.openapi.vcs.VcsException
 import com.intellij.openapi.vfs.VirtualFile
@@ -284,7 +285,7 @@ object GitFileUtils {
   ) {
     if (paths.isEmpty()) return
 
-    if (GitVersionSpecialty.PATHSPEC_FROM_FILE_SUPPORTED.existsIn(project)) {
+    if (GitVersionSpecialty.PATHSPEC_FROM_FILE_SUPPORTED.existsIn(project) && Registry.`is`("git.use.pathspec.from.file")) {
       val handler = GitLineHandler(project, root, command).apply {
         setup()
         addParameters("--pathspec-from-file=-", "--pathspec-file-nul")
