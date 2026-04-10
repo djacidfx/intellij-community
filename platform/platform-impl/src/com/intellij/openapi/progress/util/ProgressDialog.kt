@@ -1,6 +1,4 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-@file:OptIn(FlowPreview::class)
-
 package com.intellij.openapi.progress.util
 
 import com.intellij.concurrency.ContextAwareRunnable
@@ -31,7 +29,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.jetbrains.annotations.ApiStatus.Internal
+import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nls
 import java.awt.Component
 import java.awt.Window
@@ -47,7 +45,9 @@ import javax.swing.SwingUtilities
 import javax.swing.border.Border
 import kotlin.time.Duration.Companion.milliseconds
 
-@Internal
+@Suppress("SplitModeApiUsage")
+@ApiStatus.Internal
+@OptIn(FlowPreview::class)
 class ProgressDialog(
   private val progressWindow: ProgressWindow,
   private val shouldShowBackground: Boolean,
@@ -265,7 +265,7 @@ class ProgressDialog(
     }
     // GTW-1384 - If the parent window is JOptionPane.getRootFrame() then invoke DialogWrapper(Component) instead of DialogWrapper(Project)
     // because otherwise the ToolbarUtil.setTransparentTitleBar(...) is invoked.
-    // AFAIU: It should only affect progresses that are shown without any parent window (like the Gateway started from IDE)
+    // AFAIU: It should only affect progress dialogs that are shown without any parent window (like the Gateway started from IDE).
     if (window.isShowing || window == JOptionPane.getRootFrame()) {
       return MyDialogWrapper(window)
     }
@@ -292,7 +292,7 @@ class ProgressDialog(
         try {
           GlassPaneDialogWrapperPeer(this, parent)
         }
-        catch (e: GlasspanePeerUnavailableException) {
+        catch (_: GlasspanePeerUnavailableException) {
           super.createPeer(parent, canBeParent)
         }
       }
@@ -306,14 +306,12 @@ class ProgressDialog(
         try {
           GlassPaneDialogWrapperPeer(this)
         }
-        catch (e: GlasspanePeerUnavailableException) {
-          super.createPeer(WindowManager.getInstance().suggestParentWindow(progressWindow.myProject), canBeParent,
-                           applicationModalIfPossible)
+        catch (_: GlasspanePeerUnavailableException) {
+          super.createPeer(WindowManager.getInstance().suggestParentWindow(progressWindow.myProject), canBeParent, applicationModalIfPossible)
         }
       }
       else {
-        super.createPeer(WindowManager.getInstance().suggestParentWindow(progressWindow.myProject), canBeParent,
-                         applicationModalIfPossible)
+        super.createPeer(WindowManager.getInstance().suggestParentWindow(progressWindow.myProject), canBeParent, applicationModalIfPossible)
       }
     }
 
@@ -323,7 +321,7 @@ class ProgressDialog(
       return try {
         GlassPaneDialogWrapperPeer(project, this)
       }
-      catch (e: GlasspanePeerUnavailableException) {
+      catch (_: GlasspanePeerUnavailableException) {
         super.createPeer(project, canBeParent)
       }
     }
