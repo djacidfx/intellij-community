@@ -929,6 +929,26 @@ public abstract class K2SafeDeleteTestGenerated extends AbstractK2SafeDeleteTest
             runTest("../../idea/tests/testData/refactoring/safeDelete/deleteValueParameter/kotlinValueParameter/defaultParam2.kt");
         }
 
+        @TestMetadata("defaultParamWithNextArgs.kt")
+        public void testDefaultParamWithNextArgs() throws Exception {
+            runTest("../../idea/tests/testData/refactoring/safeDelete/deleteValueParameter/kotlinValueParameter/defaultParamWithNextArgs.kt");
+        }
+
+        @TestMetadata("defaultParamWithNextVarArgs.kt")
+        public void testDefaultParamWithNextVarArgs() throws Exception {
+            runTest("../../idea/tests/testData/refactoring/safeDelete/deleteValueParameter/kotlinValueParameter/defaultParamWithNextVarArgs.kt");
+        }
+
+        @TestMetadata("defaultParamWithTrailingLambda.kt")
+        public void testDefaultParamWithTrailingLambda() throws Exception {
+            runTest("../../idea/tests/testData/refactoring/safeDelete/deleteValueParameter/kotlinValueParameter/defaultParamWithTrailingLambda.kt");
+        }
+
+        @TestMetadata("defaultVarargsParam.kt")
+        public void testDefaultVarargsParam() throws Exception {
+            runTest("../../idea/tests/testData/refactoring/safeDelete/deleteValueParameter/kotlinValueParameter/defaultVarargsParam.kt");
+        }
+
         @TestMetadata("enumConstructor.kt")
         public void testEnumConstructor() throws Exception {
             runTest("../../idea/tests/testData/refactoring/safeDelete/deleteValueParameter/kotlinValueParameter/enumConstructor.kt");
