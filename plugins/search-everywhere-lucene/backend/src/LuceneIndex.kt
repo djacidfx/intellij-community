@@ -67,10 +67,9 @@ class LuceneIndex(val project: Project, indexName: String, val log: Logger) : Di
    * This method handles writer state management, including reopening the writer and refreshing the associated searcher.
    *
    *
-   * @param changes A lambda function that takes an `IndexWriter` as an argument. It is not marked suspend, to ensure that indexing is not
-   *                interrupted by coroutine context switches.
+   * @param changes A lambda function that takes an `IndexWriter` as an argument.
    */
-  fun processChanges(changes: (IndexWriter) -> Unit) {
+  suspend fun processChanges(changes: suspend (IndexWriter) -> Unit) {
     val indexRW = atomicIndexRW.load()
     try {
       var before = 0

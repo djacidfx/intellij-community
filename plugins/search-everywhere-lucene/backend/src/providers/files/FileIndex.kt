@@ -169,11 +169,9 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
 
         luceneIndex.processChanges { writer ->
           writer.deleteAll()
-        }
+          for (batch in files.chunked(INDEX_BATCH_SIZE)) {
+            val docs = readAction { batch.filter { it.isValid }.map { getDocument(it).second } }
 
-        for (batch in files.chunked(INDEX_BATCH_SIZE)) {
-          val docs = readAction { batch.filter { it.isValid }.map { getDocument(it).second } }
-          luceneIndex.processChanges { writer ->
             writer.addDocuments(docs)
           }
         }
