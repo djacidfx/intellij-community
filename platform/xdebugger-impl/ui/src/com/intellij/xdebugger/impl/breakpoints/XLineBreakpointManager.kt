@@ -14,6 +14,7 @@ import com.intellij.openapi.actionSystem.IdeActions
 import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.EDT
 import com.intellij.openapi.diagnostic.debug
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.diff.impl.DiffUtil
@@ -67,9 +68,12 @@ import com.intellij.xdebugger.SplitDebuggerMode
 import com.intellij.xdebugger.XDebuggerUtil
 import com.intellij.xdebugger.breakpoints.XBreakpoint
 import com.intellij.xdebugger.breakpoints.XLineBreakpoint
+import com.intellij.xdebugger.breakpoints.XLineBreakpointVerticalPlacement
 import com.intellij.xdebugger.impl.actions.ToggleLineBreakpointAction
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.TestOnly
 import java.awt.event.MouseEvent
@@ -205,6 +209,7 @@ class XLineBreakpointManager(
 
   private fun cleanUpBreakpoints(document: Document) {
     val breakpoints = getDocumentBreakpointProxies(document)
+    val file = FileDocumentManager.getInstance().getFile(document)
     val valid = mutableListOf<XLineBreakpointProxy>()
     val invalid = mutableListOf<XLineBreakpointProxy>()
     for (breakpoint in breakpoints) {
@@ -220,7 +225,7 @@ class XLineBreakpointManager(
         invalid.add(breakpoint)
       }
     }
-    removeBreakpoints(invalid)
+    removeInvalidBreakpoints(valid, invalid, document, file)
     // Check if two or more breakpoints occurred at the same position and remove duplicates.
     val areInlineBreakpoints = XDebuggerUtil.areInlineBreakpointsEnabled(FileDocumentManager.getInstance().getFile(document))
     val duplicates = valid
@@ -247,6 +252,77 @@ class XLineBreakpointManager(
       .filter { it.size > 1 }
       .flatMap { it.drop(1) }
     removeBreakpoints(duplicates)
+  }
+
+  private fun XLineBreakpointManager.removeInvalidBreakpoints(
+    valid: MutableList<XLineBreakpointProxy>,
+    invalid: MutableList<XLineBreakpointProxy>,
+    document: Document,
+    file: VirtualFile?,
+  ) {
+    // Inter-line breakpoints aren't, conceptually, tied to a line; they're in-between the lines,
+    // so, if a line numbered N is removed, it's natural for the inter-line breakpoint between lines N-1 and N
+    // to re-attach itself to the new line N
+    val saveCandidates = invalid.mapNotNull { it.createInterLineSaveCandidate(document, file) }
+    val possiblySaveableInterLineBreakpoints = saveCandidates.mapTo(mutableSetOf()) { it.breakpoint }
+    removeBreakpoints(invalid - possiblySaveableInterLineBreakpoints)
+    saveOrRemoveInterLineBreakpointsAsync(
+      saveCandidates = saveCandidates,
+      occupiedLines = valid
+        .filter { it.getPlacement() == XLineBreakpointVerticalPlacement.INTER_LINE }
+        .mapTo(mutableSetOf()) { it.getLine() },
+      )
+  }
+
+  private data class InterLineSaveCandidateBreakpoint(
+    val breakpoint: XLineBreakpointProxy,
+    val file: VirtualFile,
+    val line: Int,
+  )
+
+  private fun XLineBreakpointProxy.createInterLineSaveCandidate(
+    document: Document,
+    file: VirtualFile?,
+  ): InterLineSaveCandidateBreakpoint? {
+    if (file == null || getPlacement() != XLineBreakpointVerticalPlacement.INTER_LINE) {
+      return null
+    }
+
+    // For inter-line breakpoints, deleting the line under the marker shifts the next line
+    // into the same line index stored on the breakpoint.
+    val candidateLine = getLine()
+    if (candidateLine !in 0 until document.lineCount) {
+      return null
+    }
+
+    return InterLineSaveCandidateBreakpoint(this, file, candidateLine)
+  }
+
+  private fun saveOrRemoveInterLineBreakpointsAsync(
+    saveCandidates: List<InterLineSaveCandidateBreakpoint>,
+    occupiedLines: MutableSet<Int>,
+  ) {
+    if (saveCandidates.isEmpty()) {
+      return
+    }
+
+    cs.launch(Dispatchers.EDT) {
+      saveOrRemoveInterLineBreakpoints(saveCandidates, occupiedLines)
+    }
+  }
+
+  private suspend fun saveOrRemoveInterLineBreakpoints(
+    candidates: List<InterLineSaveCandidateBreakpoint>,
+    occupiedLines: MutableSet<Int>,
+  ) {
+    val toRemove = candidates.filterNot { it.shouldMoveToNextLine(occupiedLines) }.map { it.breakpoint }
+    removeBreakpoints(toRemove)
+  }
+
+  private suspend fun InterLineSaveCandidateBreakpoint.shouldMoveToNextLine(
+    occupiedLines: Set<Int>,
+  ): Boolean {
+    return line !in occupiedLines && breakpoint.type.canPutAt(file, line, project)
   }
 
   private fun removeBreakpoints(toRemove: Collection<XBreakpointProxy>?) {
