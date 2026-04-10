@@ -5290,26 +5290,6 @@ f:git4idea.util.CollectionUtilKt
 - sf:without(java.util.Map,java.lang.Object):java.util.Map
 f:git4idea.util.GitFileUtils
 - sf:READ_CONTENT_WITH:java.lang.String
-- s:addFiles(com.intellij.openapi.project.Project,com.intellij.openapi.vfs.VirtualFile,java.util.Collection):V
-- s:addFiles(com.intellij.openapi.project.Project,com.intellij.openapi.vfs.VirtualFile,com.intellij.openapi.vfs.VirtualFile[]):V
-- s:addFilesForce(com.intellij.openapi.project.Project,com.intellij.openapi.vfs.VirtualFile,java.util.Collection):V
-- s:addPaths(com.intellij.openapi.project.Project,com.intellij.openapi.vfs.VirtualFile,java.util.Collection):V
-- s:addPaths(com.intellij.openapi.project.Project,com.intellij.openapi.vfs.VirtualFile,java.util.Collection,Z):V
-- s:addPaths(com.intellij.openapi.project.Project,com.intellij.openapi.vfs.VirtualFile,java.util.Collection,Z,Z):V
-- s:addPaths(com.intellij.openapi.project.Project,com.intellij.openapi.vfs.VirtualFile,java.util.Collection,Z,Z,java.lang.String[]):V
-- s:addPathsForce(com.intellij.openapi.project.Project,com.intellij.openapi.vfs.VirtualFile,java.util.Collection):V
-- s:addPathsToIndex(com.intellij.openapi.project.Project,com.intellij.openapi.vfs.VirtualFile,java.util.Collection):V
-- s:addTextConvParameters(com.intellij.openapi.project.Project,git4idea.commands.GitBinaryHandler,Z):V
-- s:addTextConvParameters(git4idea.config.GitVersion,git4idea.commands.GitBinaryHandler,Z):V
-- s:deleteFiles(com.intellij.openapi.project.Project,com.intellij.openapi.vfs.VirtualFile,java.util.Collection,java.lang.String[]):V
-- s:deleteFiles(com.intellij.openapi.project.Project,com.intellij.openapi.vfs.VirtualFile,com.intellij.openapi.vfs.VirtualFile[]):V
-- s:deleteFilesFromCache(com.intellij.openapi.project.Project,com.intellij.openapi.vfs.VirtualFile,java.util.Collection):V
-- s:deletePaths(com.intellij.openapi.project.Project,com.intellij.openapi.vfs.VirtualFile,java.util.Collection,java.lang.String[]):V
-- s:getFileContent(com.intellij.openapi.project.Project,com.intellij.openapi.vfs.VirtualFile,java.lang.String,java.lang.String):B[]
-- s:resetPaths(com.intellij.openapi.project.Project,com.intellij.openapi.vfs.VirtualFile,java.util.Collection):V
-- s:restoreStagedAndWorktree(com.intellij.openapi.project.Project,com.intellij.openapi.vfs.VirtualFile,java.util.List,java.lang.String):V
-- s:revertUnstagedPaths(com.intellij.openapi.project.Project,com.intellij.openapi.vfs.VirtualFile,java.util.List):V
-- s:stageForCommit(com.intellij.openapi.project.Project,com.intellij.openapi.vfs.VirtualFile,java.util.Collection,java.util.Collection,java.util.List):V
 f:git4idea.util.GitFreezingProcess
 - com.intellij.openapi.vcs.changes.VcsFreezingProcess
 - <init>(com.intellij.openapi.project.Project,java.lang.String,java.lang.Runnable):V
