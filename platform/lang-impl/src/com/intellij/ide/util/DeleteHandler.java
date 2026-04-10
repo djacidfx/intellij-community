@@ -72,8 +72,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+@SuppressWarnings("SplitModeApiUsage")
 public final class DeleteHandler {
-
   private static Boolean ourOverrideNeedsConfirmation;
 
   private DeleteHandler() { }
