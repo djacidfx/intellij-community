@@ -3612,6 +3612,16 @@ public abstract class K1QuickFixTestGenerated extends AbstractK1QuickFixTest {
             runTest("testData/quickfix/changeSignature/changeParameterType.kt");
         }
 
+        @TestMetadata("changeParameterTypeWithContextParameter.kt")
+        public void testChangeParameterTypeWithContextParameter() throws Exception {
+            runTest("testData/quickfix/changeSignature/changeParameterTypeWithContextParameter.kt");
+        }
+
+        @TestMetadata("changeParameterTypeWithContextParameter1.kt")
+        public void testChangeParameterTypeWithContextParameter1() throws Exception {
+            runTest("testData/quickfix/changeSignature/changeParameterTypeWithContextParameter1.kt");
+        }
+
         @TestMetadata("changePropertyTypeToNothing.kt")
         public void testChangePropertyTypeToNothing() throws Exception {
             runTest("testData/quickfix/changeSignature/changePropertyTypeToNothing.kt");

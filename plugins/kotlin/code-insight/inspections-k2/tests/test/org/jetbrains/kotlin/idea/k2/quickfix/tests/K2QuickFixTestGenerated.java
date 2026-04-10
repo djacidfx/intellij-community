@@ -421,6 +421,16 @@ public abstract class K2QuickFixTestGenerated extends AbstractK2QuickFixTest {
             runTest("../../../idea/tests/testData/quickfix/changeSignature/changeParameterType.kt");
         }
 
+        @TestMetadata("changeParameterTypeWithContextParameter.kt")
+        public void testChangeParameterTypeWithContextParameter() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/changeSignature/changeParameterTypeWithContextParameter.kt");
+        }
+
+        @TestMetadata("changeParameterTypeWithContextParameter1.kt")
+        public void testChangeParameterTypeWithContextParameter1() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/changeSignature/changeParameterTypeWithContextParameter1.kt");
+        }
+
         @TestMetadata("changePropertyTypeToNothing.kt")
         public void testChangePropertyTypeToNothing() throws Exception {
             runTest("../../../idea/tests/testData/quickfix/changeSignature/changePropertyTypeToNothing.kt");
