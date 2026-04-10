@@ -47,7 +47,6 @@ import org.jetbrains.kotlin.analysis.api.projectStructure.KaSourceModule
 import org.jetbrains.kotlin.idea.KotlinFileType
 import org.jetbrains.kotlin.idea.base.indices.KotlinPackageIndexUtils
 import org.jetbrains.kotlin.idea.base.projectStructure.openapiModule
-import org.jetbrains.kotlin.idea.base.util.K1ModeProjectStructureApi
 import org.jetbrains.kotlin.idea.caches.PerModulePackageCacheService.Companion.DEBUG_LOG_ENABLE_PerModulePackageCache
 import org.jetbrains.kotlin.idea.util.application.isUnitTestMode
 import org.jetbrains.kotlin.idea.util.getSourceRoot
@@ -61,7 +60,6 @@ import org.jetbrains.kotlin.psi.psiUtil.getChildrenOfType
 import org.jetbrains.kotlin.psi.psiUtil.getParentOfType
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
-import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
 
 class KotlinPackageStatementPsiTreeChangePreprocessor(private val project: Project) : PsiTreeChangePreprocessor {
     override fun treeChanged(event: PsiTreeChangeEventImpl) {
@@ -113,7 +111,7 @@ class KotlinPackageStatementPsiTreeChangePreprocessor(private val project: Proje
     }
 
     companion object {
-        val LOG = Logger.getInstance(this::class.java)
+        val LOG: Logger = Logger.getInstance(this::class.java)
     }
 }
 
@@ -270,14 +268,10 @@ class ImplicitPackagePrefixCache(private val project: Project) {
 @Service(Service.Level.PROJECT)
 class PerModulePackageCacheService(private val project: Project) : Disposable {
 
-    /*
-     * Actually an WeakMap<Module, ConcurrentMap<KaSourceModule, ConcurrentMap<FqName, Boolean>>>
-     */
-    @Volatile
-    private var cacheInstance:ConcurrentMap<Module, ConcurrentMap<KaSourceModule, ConcurrentMap<FqName, Boolean>>>? = null
-
-    private val cacheInstanceUpdater =
-        AtomicReferenceFieldUpdater.newUpdater(PerModulePackageCacheService::class.java, ConcurrentMap::class.java, "cacheInstance")
+    private val cache: Lazy<ConcurrentMap<Module, ConcurrentMap<KaSourceModule, ConcurrentMap<FqName, Boolean>>>> =
+        lazy(LazyThreadSafetyMode.PUBLICATION) {
+            ContainerUtil.createConcurrentWeakMap<Module, ConcurrentMap<KaSourceModule, ConcurrentMap<FqName, Boolean>>>()
+        }
 
     private val implicitPackagePrefixCache = ImplicitPackagePrefixCache(project)
 
@@ -296,19 +290,8 @@ class PerModulePackageCacheService(private val project: Project) : Disposable {
         synchronized(this) {
             pendingVFileChanges.clear()
             pendingKtFileChanges.clear()
-            cacheInstance = null
+            cache.takeIf { it.isInitialized() }?.value?.clear()
             implicitPackagePrefixCache.clear()
-        }
-    }
-
-    private fun cache(): ConcurrentMap<Module, ConcurrentMap<KaSourceModule, ConcurrentMap<FqName, Boolean>>> {
-        cacheInstance?.let { return it }
-        val map =
-            ContainerUtil.createConcurrentWeakMap<Module, ConcurrentMap<KaSourceModule, ConcurrentMap<FqName, Boolean>>>()
-        return if (cacheInstanceUpdater.compareAndSet(this, null, map)) {
-            map
-        } else {
-            cacheInstance!!
         }
     }
 
@@ -322,8 +305,7 @@ class PerModulePackageCacheService(private val project: Project) : Disposable {
 
     private fun invalidateCacheForKaSourceModule(sourceModule: KaSourceModule) {
         LOG.debugIfEnabled(project) { "Invalidated cache for $sourceModule" }
-        val cache = cacheInstance
-        val perSourceInfoData = cache?.get(sourceModule.openapiModule) ?: return
+        val perSourceInfoData = cache.value[sourceModule.openapiModule] ?: return
         val dataForSourceInfo = perSourceInfoData[sourceModule] ?: return
         dataForSourceInfo.clear()
     }
@@ -332,14 +314,13 @@ class PerModulePackageCacheService(private val project: Project) : Disposable {
         if (pendingVFileChanges.size + pendingKtFileChanges.size >= FULL_DROP_THRESHOLD) {
             onTooComplexChange()
         } else {
-            val cache = cacheInstance
             pendingVFileChanges.processPending { event ->
                 val vfile = event.file ?: return@processPending
                 // When VirtualFile !isValid (deleted for example), it impossible to use getModuleInfoByVirtualFile
                 // For directory we must check both is it in some sourceRoot, and is it contains some sourceRoot
                 if (vfile.isDirectory || !vfile.isValid) {
-                    cache?.let { cache ->
-                        for ((module, data) in cache) {
+                    cache.value.let { c ->
+                        for ((module, data) in c) {
                             val sourceRootUrls = module.rootManager.sourceRootUrls
                             if (sourceRootUrls.any { url ->
                                     vfile.containedInOrContains(url)
@@ -407,7 +388,7 @@ class PerModulePackageCacheService(private val project: Project) : Disposable {
         val module = moduleInfo.openapiModule
         checkPendingChanges()
 
-        val perSourceInfoCache = cache().getOrPut(module) {
+        val perSourceInfoCache = cache.value.getOrPut(module) {
             if (useStrongMapForCaching) ConcurrentHashMap() else CollectionFactory.createConcurrentSoftMap()
         }
         val cacheForCurrentModuleInfo = perSourceInfoCache.getOrPut(moduleInfo) {
@@ -448,18 +429,18 @@ class PerModulePackageCacheService(private val project: Project) : Disposable {
     }
 
     companion object {
-        const val FULL_DROP_THRESHOLD = 1000
+        const val FULL_DROP_THRESHOLD: Int = 1000
         private val LOG = Logger.getInstance(this::class.java)
 
         fun getInstance(project: Project): PerModulePackageCacheService = project.service()
 
         var Project.DEBUG_LOG_ENABLE_PerModulePackageCache: Boolean
-                by NotNullableUserDataProperty<Project, Boolean>(Key.create("debug.PerModulePackageCache"), false)
+                by NotNullableUserDataProperty(Key.create("debug.PerModulePackageCache"), false)
     }
 
     class PackageCacheBulkFileListener(private val project: Project) : BulkFileListener {
-        override fun before(events: List<VFileEvent>) = onEvents(events, false)
-        override fun after(events: List<VFileEvent>) = onEvents(events, true)
+        override fun before(events: List<VFileEvent>): Unit = onEvents(events, false)
+        override fun after(events: List<VFileEvent>): Unit = onEvents(events, true)
 
         private fun isRelevant(event: VFileEvent): Boolean = when (event) {
             is VFilePropertyChangeEvent -> false
