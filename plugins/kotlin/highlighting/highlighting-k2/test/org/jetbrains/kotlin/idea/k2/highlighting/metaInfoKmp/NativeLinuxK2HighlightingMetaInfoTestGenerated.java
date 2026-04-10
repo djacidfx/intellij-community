@@ -455,6 +455,11 @@ public abstract class NativeLinuxK2HighlightingMetaInfoTestGenerated extends Abs
             runTest("../../idea/tests/testData/highlighterMetaInfo/unresolved/unresolvedImport.kt");
         }
 
+        @TestMetadata("unresolvedKDocLink.kt")
+        public void testUnresolvedKDocLink() throws Exception {
+            runTest("../../idea/tests/testData/highlighterMetaInfo/unresolved/unresolvedKDocLink.kt");
+        }
+
         @TestMetadata("unresolvedLabel.kt")
         public void testUnresolvedLabel() throws Exception {
             runTest("../../idea/tests/testData/highlighterMetaInfo/unresolved/unresolvedLabel.kt");

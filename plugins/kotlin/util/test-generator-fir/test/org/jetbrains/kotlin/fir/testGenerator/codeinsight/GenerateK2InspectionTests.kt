@@ -6,7 +6,6 @@ import org.jetbrains.kotlin.idea.k2.codeInsight.inspections.shared.AbstractK2Sha
 import org.jetbrains.kotlin.idea.k2.codeInsight.inspections.shared.AbstractSharedK2InspectionTest
 import org.jetbrains.kotlin.idea.k2.codeInsight.inspections.shared.AbstractSharedK2LocalInspectionTest
 import org.jetbrains.kotlin.idea.k2.codeInsight.inspections.shared.AbstractSharedK2MultiFileQuickFixTest
-import org.jetbrains.kotlin.idea.k2.codeInsight.inspections.shared.idea.kdoc.AbstractSharedK2KDocHighlightingTest
 import org.jetbrains.kotlin.idea.k2.inspections.tests.AbstractAllOpenLocalInspectionTest
 import org.jetbrains.kotlin.idea.k2.inspections.tests.AbstractK2ActualExpectTest
 import org.jetbrains.kotlin.idea.k2.inspections.tests.AbstractK2AmbiguousActualsTest
@@ -17,7 +16,6 @@ import org.jetbrains.kotlin.idea.k2.inspections.tests.AbstractK2MultiFileInspect
 import org.jetbrains.kotlin.idea.k2.inspections.tests.AbstractK2MultiFileLocalInspectionTest
 import org.jetbrains.kotlin.idea.k2.quickfix.tests.AbstractK2MultiFileQuickFixTest
 import org.jetbrains.kotlin.idea.k2.quickfix.tests.AbstractK2QuickFixTest
-import org.jetbrains.kotlin.testGenerator.model.GroupCategory.HIGHLIGHTING
 import org.jetbrains.kotlin.testGenerator.model.GroupCategory.INSPECTIONS
 import org.jetbrains.kotlin.testGenerator.model.GroupCategory.QUICKFIXES
 import org.jetbrains.kotlin.testGenerator.model.MutableTWorkspace
@@ -281,13 +279,6 @@ internal fun MutableTWorkspace.generateK2InspectionTests() {
             val pattern = Patterns.forRegex("^(inspections\\.test)$")
             model("inspections", pattern = pattern)
             model("inspectionsLocal", pattern = pattern)
-        }
-    }
-
-    testGroup("code-insight/inspections-shared/tests/k2", category = HIGHLIGHTING, testDataPath = "../testData") {
-        testClass<AbstractSharedK2KDocHighlightingTest> {
-            val pattern = Patterns.forRegex("^([\\w\\-_]+)\\.(kt|kts)$")
-            model("kdoc/highlighting", pattern = pattern)
         }
     }
 
