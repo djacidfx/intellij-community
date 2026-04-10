@@ -33,6 +33,7 @@ import com.intellij.util.ui.html.ParagraphViewEx
 import com.intellij.util.ui.html.SummaryView
 import com.intellij.util.ui.html.WbrView
 import com.intellij.util.ui.html.getIntAttr
+import com.jetbrains.JBR
 import org.jetbrains.annotations.ApiStatus
 import java.awt.AlphaComposite
 import java.awt.Graphics
@@ -106,7 +107,14 @@ class ExtendableHTMLViewFactory internal constructor(
     internal val DEFAULT_WORD_WRAP: ExtendableHTMLViewFactory = ExtendableHTMLViewFactory(DEFAULT_EXTENSIONS_WORD_WRAP)
 
     init {
-      GlyphViewFix.init()
+      try {
+        GlyphViewFix.init()
+      } catch (_: NoClassDefFoundError) {
+        if (JBR.isAvailable()) {
+          thisLogger().error("GlyphViewFix is no longer compatible with JBR")
+        }
+        //else ignore - GlyphViewFix is not available in non-JBR environment
+      }
     }
 
   }
