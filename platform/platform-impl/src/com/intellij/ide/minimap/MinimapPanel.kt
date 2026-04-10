@@ -198,6 +198,14 @@ class MinimapPanel(
     minimapController.refreshSnapshot()
   }
 
+  fun isIndependentScrollEnabled(): Boolean {
+    return minimapController.isIndependentScrollEnabled()
+  }
+
+  fun scrollIndependentViewportBy(deltaPx: Int): Boolean {
+    return minimapController.scrollIndependentViewportBy(deltaPx)
+  }
+
   internal fun updatePreferredWidth(preferredWidth: Int): Boolean {
     if (preferredSize.width == preferredWidth) return false
     preferredSize = Dimension(preferredWidth, 0)

@@ -31,9 +31,10 @@ class MinimapSceneBuilder(
                     panelHeight: Int,
                     scaleData: MinimapScaleData,
                     scaleMode: MinimapScaleMode,
-                    isLegacy: Boolean): MinimapSnapshot {
+                    isLegacy: Boolean,
+                    areaStartOverride: Int? = null): MinimapSnapshot {
     val lineProjection = model.getLineProjection()
-    val geometry = geometryCalculator.compute(panelHeight, scaleData, scaleMode, lineProjection.projectedLineCount)
+    val geometry = geometryCalculator.compute(panelHeight, scaleData, scaleMode, lineProjection.projectedLineCount, areaStartOverride)
     val context = MinimapRenderContext(
       editor = editor,
       panelWidth = panelWidth,

@@ -32,6 +32,9 @@
     <extensionPoint name="minimapClickHandler"
                     interface="com.intellij.ide.minimap.interaction.MinimapClickHandler"
                     dynamic="true"/>
+    <extensionPoint name="minimapScrollPolicy"
+                    interface="com.intellij.ide.minimap.interaction.MinimapScrollPolicy"
+                    dynamic="true"/>
 
     <!-- File support -->
     <extensionPoint name="minimapFileSupportPolicy"

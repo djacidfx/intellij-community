@@ -27,6 +27,7 @@ class MinimapMouseInteractionController(
   private var dragOffset = 0
   private var dragStartY = 0
   private var dragDistancePx = 0
+  private var independentDragLastY = 0
 
   fun install() {
     panel.addMouseListener(this)
@@ -44,6 +45,7 @@ class MinimapMouseInteractionController(
     dragOffset = 0
     dragStartY = 0
     dragDistancePx = 0
+    independentDragLastY = 0
 
     panel.removeMouseListener(this)
     panel.removeMouseWheelListener(this)
@@ -53,12 +55,23 @@ class MinimapMouseInteractionController(
   override fun mousePressed(e: MouseEvent) {
     if (e.button != MouseEvent.BUTTON1) return
 
+    if (panel.isIndependentScrollEnabled()) {
+      interactionState = MinimapMouseInteractionState.DRAGGING
+      dragAnimationDisabled = false
+      dragOffset = 0
+      dragStartY = e.y
+      dragDistancePx = 0
+      independentDragLastY = e.y
+      return
+    }
+
     val geometry = panel.currentSnapshot()?.geometry
     if (geometry == null || geometry.thumbHeight <= 0 || geometry.minimapHeight <= 0) {
       interactionState = MinimapMouseInteractionState.IDLE
       dragOffset = 0
       dragStartY = 0
       dragDistancePx = 0
+      independentDragLastY = 0
       return
     }
 
@@ -66,6 +79,7 @@ class MinimapMouseInteractionController(
     dragAnimationDisabled = false
     dragStartY = e.y
     dragDistancePx = 0
+    independentDragLastY = 0
 
     val thumbTop = geometry.thumbStart - geometry.areaStart
     val thumbBottom = thumbTop + geometry.thumbHeight
@@ -94,6 +108,7 @@ class MinimapMouseInteractionController(
     dragOffset = 0
     dragStartY = 0
     dragDistancePx = 0
+    independentDragLastY = 0
   }
 
   override fun mouseWheelMoved(mouseWheelEvent: MouseWheelEvent) {
@@ -101,13 +116,26 @@ class MinimapMouseInteractionController(
     if (preciseWheelRotation == 0.0) return
     logWheelScrolled(mouseWheelEvent, preciseWheelRotation)
 
+    val deltaPx = (preciseWheelRotation * editor.lineHeight * WHEEL_SCROLL_LINES).toInt()
+    if (panel.isIndependentScrollEnabled()) {
+      panel.scrollIndependentViewportBy(deltaPx)
+      return
+    }
+
     editor.scrollingModel.scrollVertically(
-      editor.scrollingModel.verticalScrollOffset +
-        (preciseWheelRotation * editor.lineHeight * WHEEL_SCROLL_LINES).toInt())
+      editor.scrollingModel.verticalScrollOffset + deltaPx)
   }
 
   override fun mouseDragged(e: MouseEvent) {
     if (interactionState != MinimapMouseInteractionState.DRAGGING) return
+
+    if (panel.isIndependentScrollEnabled()) {
+      dragDistancePx = max(dragDistancePx, abs(e.y - dragStartY))
+      val deltaPx = e.y - independentDragLastY
+      independentDragLastY = e.y
+      panel.scrollIndependentViewportBy(deltaPx)
+      return
+    }
 
     if (!dragAnimationDisabled) {
       editor.scrollingModel.disableAnimation()

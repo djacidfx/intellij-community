@@ -7,6 +7,7 @@ import com.intellij.ide.minimap.geometry.MinimapScaleUtil
 import com.intellij.ide.minimap.layout.MinimapLayoutCalculator
 import com.intellij.ide.minimap.listeners.MinimapStateListeners
 import com.intellij.ide.minimap.listeners.MinimapUiListeners
+import com.intellij.ide.minimap.interaction.MinimapScrollPolicy
 import com.intellij.ide.minimap.model.MinimapModel
 import com.intellij.ide.minimap.scene.MinimapSceneBuilder
 import com.intellij.ide.minimap.settings.MinimapSettings
@@ -56,6 +57,7 @@ class MinimapController(
   private val geometryCalculator = MinimapGeometryCalculator(editor)
   private val sceneBuilder = MinimapSceneBuilder(editor, model, layoutCalculator, geometryCalculator)
   private val caretController = MinimapCaretController(editor, panel)
+  private var independentAreaStart: Int? = null
 
   private val stateListeners = MinimapStateListeners(
     parentDisposable = this,
@@ -115,8 +117,19 @@ class MinimapController(
     }
 
     val panelWidth = max(panel.width, scaleData.width)
-    val snapshot = sceneBuilder.buildSnapshot(panelWidth, panelHeight, scaleData, state.scaleMode, MinimapRegistry.isLegacy())
+    val areaStartOverride = if (isIndependentScrollEnabled()) independentAreaStart else null
+    val snapshot = sceneBuilder.buildSnapshot(
+      panelWidth,
+      panelHeight,
+      scaleData,
+      state.scaleMode,
+      MinimapRegistry.isLegacy(),
+      areaStartOverride,
+    )
     panel.updateSnapshot(snapshot)
+    if (isIndependentScrollEnabled()) {
+      independentAreaStart = snapshot.geometry.areaStart
+    }
   }
 
   /**
@@ -141,7 +154,8 @@ class MinimapController(
 
     val panelWidth = max(panel.width, scaleData.width)
     val lineProjection = model.getLineProjection()
-    val newGeometry = geometryCalculator.compute(panelHeight, scaleData, state.scaleMode, lineProjection.projectedLineCount)
+    val areaStartOverride = if (isIndependentScrollEnabled()) independentAreaStart else null
+    val newGeometry = geometryCalculator.compute(panelHeight, scaleData, state.scaleMode, lineProjection.projectedLineCount, areaStartOverride)
 
     val current = panel.currentSnapshot()
     if (current != null && newGeometry.areaStart == current.geometry.areaStart) {
@@ -158,6 +172,26 @@ class MinimapController(
       panel.updateSnapshot(current.copy(context = newContext, geometry = newGeometry))
     }
     scrollUpdates.tryEmit(Unit)
+  }
+
+  fun isIndependentScrollEnabled(): Boolean {
+    return MinimapScrollPolicy.useIndependentMinimapScroll(editor)
+  }
+
+  fun scrollIndependentViewportBy(deltaPx: Int): Boolean {
+    if (!isIndependentScrollEnabled()) return false
+    if (deltaPx == 0) return false
+
+    val current = panel.currentSnapshot() ?: return false
+    val panelHeight = max(if (panel.height > 0) panel.height else container.height, 0)
+    val maxAreaStart = (current.geometry.minimapHeight - panelHeight).coerceAtLeast(0)
+    val targetAreaStart = (current.geometry.areaStart + deltaPx).coerceIn(0, maxAreaStart)
+    if (targetAreaStart == current.geometry.areaStart) return false
+
+    independentAreaStart = targetAreaStart
+    refreshSnapshot()
+    panel.repaint()
+    return true
   }
 
   private fun updatePanelVisibility(minimapWidth: Int): Boolean {
