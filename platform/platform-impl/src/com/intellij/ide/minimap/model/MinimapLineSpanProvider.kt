@@ -24,6 +24,12 @@ interface MinimapLineSpanProvider {
   fun isApplicable(editor: Editor): Boolean = true
 
   /**
+   * Version used to invalidate cached line projection when external visual geometry changes
+   * (for example, notebook cell output inlay heights).
+   */
+  fun getProjectionVersion(editor: Editor, document: Document, logicalLineCount: Int): Long = 0
+
+  /**
    * Returns logical-line -> span overrides.
    * Invalid line numbers are ignored. Values are normalized to at least `1`.
    */
@@ -63,6 +69,17 @@ interface MinimapLineSpanProvider {
         }
       }
       return merged ?: emptyMap()
+    }
+
+    fun projectionVersion(editor: Editor, document: Document, logicalLineCount: Int): Long {
+      if (logicalLineCount <= 0) return 0
+
+      var version = 0L
+      for (provider in EP_NAME.extensionList) {
+        if (!provider.isApplicable(editor)) continue
+        version = version * 31L + provider.getProjectionVersion(editor, document, logicalLineCount)
+      }
+      return version
     }
 
     fun shouldUseCollapsedFoldRegion(

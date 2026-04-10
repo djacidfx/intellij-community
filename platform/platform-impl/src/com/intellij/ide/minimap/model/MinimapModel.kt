@@ -20,6 +20,7 @@ class MinimapModel(private val editor: Editor): Disposable {
   private var cachedLineProjection: MinimapLineProjection = MinimapLineProjection.identity(0)
   private var cachedLineProjectionDocumentStamp: Long = Long.MIN_VALUE
   private var cachedLineProjectionLineCount: Int = -1
+  private var cachedLineProjectionProviderVersion: Long = Long.MIN_VALUE
   private var lineProjectionVersion: Long = 0
   private var cachedLineProjectionVersion: Long = Long.MIN_VALUE
 
@@ -34,9 +35,11 @@ class MinimapModel(private val editor: Editor): Disposable {
     val document = editor.document
     val lineCount = document.lineCount
     val documentStamp = document.modificationStamp
+    val providerVersion = MinimapLineSpanProvider.projectionVersion(editor, document, lineCount)
     val projectionVersion = lineProjectionVersion
     if (cachedLineProjectionDocumentStamp == documentStamp &&
         cachedLineProjectionLineCount == lineCount &&
+        cachedLineProjectionProviderVersion == providerVersion &&
         cachedLineProjectionVersion == projectionVersion) {
       return cachedLineProjection
     }
@@ -45,6 +48,7 @@ class MinimapModel(private val editor: Editor): Disposable {
     cachedLineProjection = projection
     cachedLineProjectionDocumentStamp = documentStamp
     cachedLineProjectionLineCount = lineCount
+    cachedLineProjectionProviderVersion = providerVersion
     cachedLineProjectionVersion = projectionVersion
     return projection
   }

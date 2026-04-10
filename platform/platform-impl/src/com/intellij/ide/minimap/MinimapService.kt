@@ -71,6 +71,15 @@ class MinimapService(private val scope: CoroutineScope) : Disposable {
     minimapPanel.repaint()
   }
 
+  fun refresh(editor: Editor) {
+    val editorImpl = getMainEditorImpl(editor) ?: return
+    val minimapPanel = editorImpl.getUserData(MINI_MAP_PANEL_KEY)
+                      ?: getPanel(editorImpl)?.components?.filterIsInstance<MinimapPanel>()?.firstOrNull()
+                      ?: return
+    minimapPanel.refreshSnapshot()
+    minimapPanel.repaint()
+  }
+
   private fun getMainEditorImpl(editor: Editor): EditorImpl? {
     val editorImpl = editor as? EditorImpl ?: return null
     if (editorImpl.editorKind != EditorKind.MAIN_EDITOR) return null

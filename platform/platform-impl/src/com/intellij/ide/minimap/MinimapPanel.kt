@@ -194,6 +194,10 @@ class MinimapPanel(
     repaint(0, 0, gutterWidth, height.coerceAtLeast(0))
   }
 
+  fun refreshSnapshot() {
+    minimapController.refreshSnapshot()
+  }
+
   internal fun updatePreferredWidth(preferredWidth: Int): Boolean {
     if (preferredSize.width == preferredWidth) return false
     preferredSize = Dimension(preferredWidth, 0)
