@@ -1432,6 +1432,40 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
     }
 
     @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../../idea/tests/testData/quickfix/makeUpperBoundNonNullable")
+    public static class MakeUpperBoundNonNullable extends AbstractHighLevelQuickFixMultiFileTest {
+        @java.lang.Override
+        @org.jetbrains.annotations.NotNull
+        public final KotlinPluginMode getPluginMode() {
+            return KotlinPluginMode.K2;
+        }
+
+        private void runTest(String testDataFilePath) throws Exception {
+            KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
+        }
+
+        @TestMetadata("withJavaError.before.Main.kt")
+        public void testWithJavaError() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/makeUpperBoundNonNullable/withJavaError.before.Main.kt");
+        }
+
+        @TestMetadata("withJavaOverrideError.before.Main.kt")
+        public void testWithJavaOverrideError() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/makeUpperBoundNonNullable/withJavaOverrideError.before.Main.kt");
+        }
+
+        @TestMetadata("withJavaOverrideWarning.before.Main.kt")
+        public void testWithJavaOverrideWarning() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/makeUpperBoundNonNullable/withJavaOverrideWarning.before.Main.kt");
+        }
+
+        @TestMetadata("withJavaWarning.before.Main.kt")
+        public void testWithJavaWarning() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/makeUpperBoundNonNullable/withJavaWarning.before.Main.kt");
+        }
+    }
+
+    @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../../idea/tests/testData/quickfix/surroundWithNullCheck")
     public static class SurroundWithNullCheck extends AbstractHighLevelQuickFixMultiFileTest {
         @java.lang.Override

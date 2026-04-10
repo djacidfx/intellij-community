@@ -1,6 +1,6 @@
 // "Add 'Any' as upper bound for T to make it non-nullable" "true"
 // LANGUAGE_VERSION: 1.7
-// K2_ERROR: Argument type mismatch: actual type is 'Collection<T#1 (of class Bar<T>)>', but 'Collection<uninferred T (of fun <T> foo)>' was expected.
+// K2_ERROR: Argument type mismatch: actual type is 'Collection<T#1 (of class Bar<T>)>', but 'Collection<uninferred T (of fun <T> foo) & Any>' was expected.
 // K2_ERROR: Cannot infer type for type parameter 'T'. Specify it explicitly.
 
 fun <T> foo(x: Collection<T & Any>) {}

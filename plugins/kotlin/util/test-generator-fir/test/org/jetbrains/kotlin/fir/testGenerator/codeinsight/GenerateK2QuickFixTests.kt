@@ -118,7 +118,7 @@ internal fun MutableTWorkspace.generateK2FixTests() {
             model("$idea/quickfix/makeConstructorParameterProperty", pattern = pattern)
             model("$idea/quickfix/makePrivateAndOverrideMember", pattern = pattern, isIgnored = true)
             model("$idea/quickfix/makeTypeParameterReified", pattern = pattern)
-            model("$idea/quickfix/makeUpperBoundNonNullable", pattern = pattern, isIgnored = true)
+            model("$idea/quickfix/makeUpperBoundNonNullable", pattern = pattern)
             model("$idea/quickfix/memberVisibilityCanBePrivate", pattern = pattern)
             model("$idea/quickfix/migration/commasInWhenWithoutArgument", pattern = pattern)
             model("$idea/quickfix/migration/missingConstructorKeyword", pattern = pattern)
@@ -228,6 +228,11 @@ internal fun MutableTWorkspace.generateK2FixTests() {
             val testMethodName = "doTestWithExtraFile"
             model(
                 "$idea/quickfix/autoImports",
+                pattern = pattern,
+                testMethodName = testMethodName,
+            )
+            model(
+                "$idea/quickfix/makeUpperBoundNonNullable",
                 pattern = pattern,
                 testMethodName = testMethodName,
             )
