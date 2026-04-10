@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://jetbrains.com/intellij/build-server-instance-schema.json",
+  "$id": "https://jetbrains.com/intellij/built-in-server-instance-schema.json",
   "title": "Built-in Server Instance Info",
   "description": "Describes a running IDE instance exposed via the built-in server.",
   "type": "object",

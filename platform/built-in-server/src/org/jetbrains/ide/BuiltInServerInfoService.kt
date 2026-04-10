@@ -34,7 +34,7 @@ import kotlin.io.path.exists
 import kotlin.io.path.readText
 
 private val LOG = logger<BuiltInServerDiscoveryService>()
-private const val FILE_SUFFIX = "-build-in-server.json"
+private const val FILE_SUFFIX = "-built-in-server.json"
 
 @Service(Service.Level.APP)
 internal class BuiltInServerDiscoveryService(private val coroutineScope: CoroutineScope) {
