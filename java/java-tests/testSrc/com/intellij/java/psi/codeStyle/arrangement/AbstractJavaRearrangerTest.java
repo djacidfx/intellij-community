@@ -29,8 +29,12 @@ public abstract class AbstractJavaRearrangerTest extends AbstractRearrangerTest 
     super.setUp();
   }
 
+  protected void doTest(@NotNull @Language("JAVA") String text, @NotNull List<?> rules) {
+    doTest(text, text, rules);
+  }
+
   @Override
-  protected void doTest(@NotNull @Language("JAVA") String initial, @Language("JAVA") @NotNull String expected, @NotNull List<?> rules) {
+  protected void doTest(@NotNull @Language("JAVA") String initial, @NotNull @Language("JAVA") String expected, @NotNull List<?> rules) {
     super.doTest(initial, expected, rules);
   }
 

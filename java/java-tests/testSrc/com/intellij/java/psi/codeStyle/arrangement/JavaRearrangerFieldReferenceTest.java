@@ -2,7 +2,6 @@
 package com.intellij.java.psi.codeStyle.arrangement;
 
 import com.intellij.psi.codeStyle.arrangement.match.StdArrangementMatchRule;
-import org.intellij.lang.annotations.Language;
 
 import java.util.List;
 
@@ -16,6 +15,7 @@ import static com.intellij.psi.codeStyle.arrangement.std.StdArrangementTokens.Mo
 import static com.intellij.psi.codeStyle.arrangement.std.StdArrangementTokens.Modifier.PUBLIC;
 import static com.intellij.psi.codeStyle.arrangement.std.StdArrangementTokens.Modifier.STATIC;
 
+@SuppressWarnings("ALL")
 public class JavaRearrangerFieldReferenceTest extends AbstractJavaRearrangerTest {
   private final List<StdArrangementMatchRule> defaultFieldsArrangement =
     List.of(rule(FIELD, STATIC, FINAL), rule(FIELD, PUBLIC),
@@ -23,53 +23,55 @@ public class JavaRearrangerFieldReferenceTest extends AbstractJavaRearrangerTest
             rule(FIELD, PRIVATE));
   
   public void testMethodReferences() {
-    @Language("JAVA") String text = """
-      public class Foo {
-          private final Runnable mFooRunnable1 = this::runFooRunnable2;
-          private final Runnable mFooRunnable2 = makeFooRunnable2();
-          public Foo() {
-          }
-          private Runnable makeFooRunnable2() {
-              return new Runnable() {
-                  @Override
-                  public void run() {
-                      mFooRunnable1.run();
-                  }
-              };
-          }
-          private void runFooRunnable2() {
-              mFooRunnable2.run();
-          }
-      }
-      """;
-    doTest(text, text, defaultFieldsArrangement); // IDEA-311599
-    text = """
-      public record Test() {
-          static final Integer TEMP0 = 3;
-          static final Integer TEMP1 = run(ITest::temp2);
-          static final Integer TEMP2 = TEMP0 + 2 + TEMP1;
-          static Integer run(final Supplier<Integer> supplier) {
-              return 4;
-          }
-          interface ITest {
-              static int temp2() {
-                  return Test.TEMP2;
-              }
-          }
-      }
-      """;
-    doTest(text, text, defaultFieldsArrangement); // IDEA-314824
-    text = """
-      import java.util.function.Consumer;
-      public class Showcase {
-          Consumer<? super Boolean> foo = this::bar;
-          Object baz;
-          private void bar(Boolean really) {
-              System.out.println(foo);
-          }
-      }
-      """;
-    doTest(text, text, defaultFieldsArrangement); // IDEA-341366
+    // IDEA-311599
+    doTest("""
+             public class Foo {
+                 private final Runnable mFooRunnable1 = this::runFooRunnable2;
+                 private final Runnable mFooRunnable2 = makeFooRunnable2();
+                 public Foo() {
+                 }
+                 private Runnable makeFooRunnable2() {
+                     return new Runnable() {
+                         @Override
+                         public void run() {
+                             mFooRunnable1.run();
+                         }
+                     };
+                 }
+                 private void runFooRunnable2() {
+                     mFooRunnable2.run();
+                 }
+             }
+             """, defaultFieldsArrangement);
+
+    // IDEA-314824
+    doTest("""
+             public record Test() {
+                 static final Integer TEMP0 = 3;
+                 static final Integer TEMP1 = run(ITest::temp2);
+                 static final Integer TEMP2 = TEMP0 + 2 + TEMP1;
+                 static Integer run(final Supplier<Integer> supplier) {
+                     return 4;
+                 }
+                 interface ITest {
+                     static int temp2() {
+                         return Test.TEMP2;
+                     }
+                 }
+             }
+             """, defaultFieldsArrangement);
+
+    // IDEA-341366
+    doTest("""
+             import java.util.function.Consumer;
+             public class Showcase {
+                 Consumer<? super Boolean> foo = this::bar;
+                 Object baz;
+                 private void bar(Boolean really) {
+                     System.out.println(foo);
+                 }
+             }
+             """, defaultFieldsArrangement);
   }
 
   public void test_keep_referenced_package_private_field_before_public_one_which_has_reference_through_binary_expression() {
@@ -369,14 +371,12 @@ public class JavaRearrangerFieldReferenceTest extends AbstractJavaRearrangerTest
 
   public void test_IDEA_128071() {
     doTest("""
-
              public class FormatTest {
                  public int a = 3;
                  private static final String FACEBOOK_CLIENT_ID = "";
                  public static final String FACEBOOK_OAUTH_URL = "".concat(FACEBOOK_CLIENT_ID).concat("");
              }
              """, """
-
              public class FormatTest {
                  private static final String FACEBOOK_CLIENT_ID = "";
                  public static final String FACEBOOK_OAUTH_URL = "".concat(FACEBOOK_CLIENT_ID).concat("");
@@ -388,7 +388,6 @@ public class JavaRearrangerFieldReferenceTest extends AbstractJavaRearrangerTest
 
   public void test_field_dependency_through_method_call() {
     doTest("""
-
              public class TmpTest {
                  private static final Object[] EMPTY_OBJECT_ARRAY = new Object[0];
                  static final String SUB_MESSAGE_REQUEST_SNAPSHOT = create(1);
@@ -402,7 +401,6 @@ public class JavaRearrangerFieldReferenceTest extends AbstractJavaRearrangerTest
                  }
              }
              """, """
-
              public class TmpTest {
                  private static final Object[] EMPTY_OBJECT_ARRAY = new Object[0];
                  static final String SUB_MESSAGE_REQUEST_SNAPSHOT = create(1);
@@ -421,7 +419,6 @@ public class JavaRearrangerFieldReferenceTest extends AbstractJavaRearrangerTest
 
   public void test_only_dependencies_withing_same_initialization_scope() {
     doTest("""
-
              public class TestArrangementBuilder {
                  private String theString = "";
                  private static final TestArrangement DEFAULT = new TestArrangementBuilder().build();
@@ -443,7 +440,6 @@ public class JavaRearrangerFieldReferenceTest extends AbstractJavaRearrangerTest
                  }
              }
              """, """
-
              public class TestArrangementBuilder {
                  private static final TestArrangement DEFAULT = new TestArrangementBuilder().build();
                  private String theString = "";
@@ -468,9 +464,8 @@ public class JavaRearrangerFieldReferenceTest extends AbstractJavaRearrangerTest
                           rule(PRIVATE, FINAL), rule(PRIVATE)));
   }
 
-  public void testIdea264100() {
+  public void test_IDEA_246100() {
     doTest("""
-
              public class Test {
                  private static final String AAA = "aaa";
                  static final String BBB = AAA;
@@ -485,7 +480,6 @@ public class JavaRearrangerFieldReferenceTest extends AbstractJavaRearrangerTest
                  private static final Object B4 = O1.toString() + DA;
              }
              """, """
-
              public class Test {
                  public static final Object O1 = "";
                  public static final Object DR = "";
@@ -502,19 +496,13 @@ public class JavaRearrangerFieldReferenceTest extends AbstractJavaRearrangerTest
              """, List.of(rule(STATIC, FINAL), rule(PRIVATE, STATIC, FINAL)));
   }
 
-  public void testIdea218936() {
+  public void test_IDEA_218936() {
     doTest("""
-
              public class TestOne {
                  int value;
                  public int a = 0, b = value;
              }
-             """, """
-
-             public class TestOne {
-                 int value;
-                 public int a = 0, b = value;
-             }
-             """, List.of(rule(PUBLIC), rule(PACKAGE_PRIVATE)));
+             """,
+           List.of(rule(PUBLIC), rule(PACKAGE_PRIVATE)));
   }
 }
