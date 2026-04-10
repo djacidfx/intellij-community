@@ -7,7 +7,6 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.actionSystem.ActionUpdateThread
-import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.ToggleAction
@@ -40,7 +39,9 @@ import com.intellij.platform.eel.provider.asEelPath
 import com.intellij.platform.eel.provider.asNioPath
 import com.intellij.platform.eel.provider.toEelApi
 import com.intellij.platform.util.coroutines.childScope
+import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.ui.ScrollPaneFactory
+import com.intellij.ui.components.JBList
 import com.intellij.ui.UIBundle
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
@@ -59,6 +60,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.intellij.openapi.util.NlsSafe
 import org.jetbrains.annotations.ApiStatus
+import org.jetbrains.annotations.Nls
 import java.awt.BorderLayout
 import java.awt.CardLayout
 import java.awt.Cursor
@@ -70,8 +72,11 @@ import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.nio.file.Path
 import java.util.function.Predicate
+import javax.swing.Icon
 import javax.swing.JComponent
+import javax.swing.JList
 import javax.swing.JPanel
+import javax.swing.ListSelectionModel
 import javax.swing.SwingConstants
 import javax.swing.tree.TreeSelectionModel
 
@@ -144,7 +149,7 @@ object UniversalFileChooser {
       preferredSize = Dimension(screenSize.width / 2, screenSize.height / 2)
       tabbedPane = JBTabbedPane()
       for (contributor in UniversalFileChooserContributor.EP_NAME.extensionList) {
-        val fileView = FileView(contributor, descriptor, disposable, project, okAction)
+        val fileView = FileView(contributor, descriptor, disposable, project, okAction, ::navigateToFile)
         fileViews.add(fileView)
         tabbedPane.addTab(contributor.tabTitle, fileView.topComponent)
       }
@@ -180,13 +185,24 @@ object UniversalFileChooser {
       return fileView?.getSelectedFiles() ?: emptyList()
     }
 
+    private fun navigateToFile(file: VirtualFile) {
+      val nioPath = runCatching { file.toNioPath() }.getOrNull() ?: return
+      val index = fileViews.indexOfFirst { it.contributor.ownsPath(nioPath) }
+      if (index < 0) return
+      tabbedPane.selectedIndex = index
+      val targetView = fileViews[index]
+      targetView.fileToSelect = file
+      targetView.fileTree.select(file) { targetView.fileTree.expand(file, null) }
+    }
+
 
     class FileView(
       val contributor: UniversalFileChooserContributor,
       private val descriptor: FileChooserDescriptor,
       disposable: Disposable,
-      project: Project,
+      private val project: Project,
       okAction: Runnable,
+      private val navigateToFile: (VirtualFile) -> Unit,
     ) {
       val topComponent: JComponent
       val fileTree: FileSystemTreeImpl
@@ -260,7 +276,7 @@ object UniversalFileChooser {
         contentPanel.add(loadingLabel, LOADING_CARD)
         contentPanel.add(scrollPane, TREE_CARD)
 
-        val tabPanel = panel {
+        val mainPanel = panel {
           row {
             cell(barPanel)
               .align(AlignX.FILL)
@@ -276,7 +292,18 @@ object UniversalFileChooser {
           }.resizableRow()
         }
 
-        toolbar.targetComponent = tabPanel
+        val tabPanel = panel {
+          row {
+            cell(createLocationsPanel())
+              .align(AlignY.FILL)
+            cell(mainPanel)
+              .align(AlignX.FILL)
+              .align(AlignY.FILL)
+              .resizableColumn()
+          }.resizableRow()
+        }
+
+        toolbar.targetComponent = mainPanel
         topComponent = tabPanel
         topComponent.putUserData(FILE_VIEW_KEY, this)
 
@@ -303,37 +330,83 @@ object UniversalFileChooser {
         }
       }
 
-      private fun createToolbar(): ActionToolbar {
-        val homeAction = object : AnAction(
-          IdeBundle.message("universal.file.chooser.action.home.text"),
-          IdeBundle.message("universal.file.chooser.action.home.description"),
-          AllIcons.Nodes.HomeFolder
-        ) {
-          override fun actionPerformed(e: AnActionEvent) {
-            fileTree.selectedFile?.toNioPath()?.let { selectedPath ->
-              topComponent.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR))
-              scope.launch {
-                withContext(Dispatchers.IO) {
-                  val homePath = selectedPath.asEelPath().descriptor.toEelApi().userInfo.home.asNioPath()
-                  val vFile = VfsUtil.findFile(homePath, true)
-                  runOnEdt {
-                    fileTree.select(vFile) { fileTree.expand(vFile, null) }
-                    topComponent.setCursor(Cursor.getDefaultCursor())
-                  }
-                }
-              }
+      private fun navigateToProject() {
+        val basePath = project.basePath ?: return
+        scope.launch {
+          withContext(Dispatchers.IO) {
+            val vFile = VfsUtil.findFile(Path.of(basePath), true)
+            runOnEdt {
+              if (vFile != null) navigateToFile(vFile)
             }
           }
+        }
+      }
 
-          override fun update(e: AnActionEvent) {
-            e.presentation.isEnabled = fileTree.selectedFile != null
-          }
-
-          override fun getActionUpdateThread(): ActionUpdateThread {
-            return ActionUpdateThread.BGT
+      private fun navigateToHome() {
+        topComponent.cursor = Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)
+        scope.launch {
+          withContext(Dispatchers.IO) {
+            val basePath = fileTree.selectedFile?.let { runCatching { it.toNioPath() }.getOrNull() }
+                           ?: contributor.getRoots().firstOrNull()
+                           ?: return@withContext
+            val homePath = basePath.asEelPath().descriptor.toEelApi().userInfo.home.asNioPath()
+            val vFile = VfsUtil.findFile(homePath, true)
+            runOnEdt {
+              fileTree.select(vFile) { fileTree.expand(vFile, null) }
+              topComponent.cursor = Cursor.getDefaultCursor()
+            }
           }
         }
+      }
 
+      data class LocationData (
+        val icon: Icon,
+        val text: @Nls String,
+        val action: Runnable
+      )
+
+      private fun createLocationsPanel(): JComponent {
+        val locations = buildList {
+          add(LocationData(
+            icon = AllIcons.Nodes.HomeFolder,
+            text = IdeBundle.message("universal.file.chooser.action.home.text"),
+            action = { navigateToHome() }
+          ))
+          if (!project.isDefault) {
+            add(LocationData(
+              icon = AllIcons.Nodes.Project,
+              text = IdeBundle.message("universal.file.chooser.location.project"),
+              action = { navigateToProject() }
+            ))
+          }
+        }
+        val locationList = JBList(locations)
+        locationList.selectionMode = ListSelectionModel.SINGLE_SELECTION
+        locationList.cellRenderer = object : ColoredListCellRenderer<LocationData>() {
+          override fun customizeCellRenderer(list: JList<out LocationData>, value: LocationData, index: Int, selected: Boolean, hasFocus: Boolean) {
+            icon = value.icon
+            append(value.text)
+          }
+        }
+        locationList.addMouseListener(object : MouseAdapter() {
+          override fun mouseClicked(e: MouseEvent) {
+            val index = locationList.locationToIndex(e.point)
+            if (index >= 0) {
+              locationList.model.getElementAt(index).action.run()
+              locationList.clearSelection()
+            }
+          }
+        })
+        return panel {
+          group(IdeBundle.message("universal.file.chooser.locations.group"), indent = false) {
+            row {
+              cell(locationList).align(AlignX.FILL)
+            }
+          }
+        }
+      }
+
+      private fun createToolbar(): ActionToolbar {
         val showHiddenAction = object : ToggleAction(
           IdeBundle.message("universal.file.chooser.action.show.hidden.text"),
           IdeBundle.message("universal.file.chooser.action.show.hidden.description"),
@@ -349,7 +422,6 @@ object UniversalFileChooser {
         }
 
         val actionGroup = DefaultActionGroup().apply {
-          add(homeAction)
           add(showHiddenAction)
         }
 
