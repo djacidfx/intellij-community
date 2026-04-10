@@ -62,47 +62,45 @@ abstract class AbstractIjentVerificationAction : DumbAwareAction() {
     GlobalScope.launch {
       LOG.runAndLogException {
         try {
+          val (title, deployingStrategy, descriptor) = deployingStrategy(this)
           withModalProgress(modalTaskOwner, e.presentation.text, TaskCancellation.cancellable()) {
-            coroutineScope {
-              val (title, deployingStrategy, descriptor) = deployingStrategy(this)
-              deployingStrategy.createIjentSession().getIjentInstance(descriptor).use { ijent ->
-                coroutineScope {
-                  launch {
-                    val info = ijent.ijentProcessInfo
-                    withContext(Dispatchers.EDT + ModalityState.any().asContextElement()) {
-                      Messages.showInfoMessage(
-                        """
+            deployingStrategy.createIjentSession().getIjentInstance(descriptor).use { ijent ->
+              coroutineScope {
+                launch {
+                  val info = ijent.ijentProcessInfo
+                  withContext(Dispatchers.EDT + ModalityState.any().asContextElement()) {
+                    Messages.showInfoMessage(
+                      """
                         Architecture: ${info.architecture}
                         Remote PID:   ${info.remotePid}
                         Version:      ${info.version}
                         """.trimIndent(),
-                        title
-                      )
-                    }
+                      title
+                    )
                   }
+                }
 
-                  launch {
-                    val process = ijent.exec.spawnProcess("uname", "-a").eelIt()
-                    val stdout = ByteArrayOutputStream()
-                    copy(process.stdout, stdout.asEelChannel()) // TODO: process errors
-                    withContext(Dispatchers.EDT + ModalityState.any().asContextElement()) {
-                      Messages.showInfoMessage(stdout.toString(), title)
-                    }
+                launch {
+                  val process = ijent.exec.spawnProcess("uname", "-a").eelIt()
+                  val stdout = ByteArrayOutputStream()
+                  copy(process.stdout, stdout.asEelChannel()) // TODO: process errors
+                  withContext(Dispatchers.EDT + ModalityState.any().asContextElement()) {
+                    Messages.showInfoMessage(stdout.toString(), title)
                   }
+                }
 
-                  launch(Dispatchers.IO) {
-                    val path = "/etc"
-                    val isDir =
-                      IjentNioFileSystemProvider.getInstance()
-                        .newFileSystem(
-                          URI("ijent://some-random-string"),
-                          IjentNioFileSystemProvider.newFileSystemMap(ijent.fs),
-                        ).use { nioFs ->
-                          nioFs.getPath(path).isDirectory()
-                        }
-                    withContext(Dispatchers.EDT + ModalityState.any().asContextElement()) {
-                      Messages.showInfoMessage("$path is directory: $isDir", title)
-                    }
+                launch(Dispatchers.IO) {
+                  val path = "/etc"
+                  val isDir =
+                    IjentNioFileSystemProvider.getInstance()
+                      .newFileSystem(
+                        URI("ijent://some-random-string"),
+                        IjentNioFileSystemProvider.newFileSystemMap(ijent.fs),
+                      ).use { nioFs ->
+                        nioFs.getPath(path).isDirectory()
+                      }
+                  withContext(Dispatchers.EDT + ModalityState.any().asContextElement()) {
+                    Messages.showInfoMessage("$path is directory: $isDir", title)
                   }
                 }
               }
