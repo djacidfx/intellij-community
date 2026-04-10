@@ -54,6 +54,7 @@ import com.intellij.xdebugger.XSourcePosition
 import com.intellij.xdebugger.breakpoints.SuspendPolicy
 import com.intellij.xdebugger.breakpoints.XBreakpointProperties
 import com.intellij.xdebugger.breakpoints.XBreakpointType
+import com.intellij.xdebugger.breakpoints.XLineBreakpointPlacement
 import com.intellij.xdebugger.breakpoints.XLineBreakpointType
 import com.intellij.xdebugger.impl.XDebuggerUtilImpl
 import com.intellij.xdebugger.impl.breakpoints.InlineBreakpointsVariantsManager
@@ -231,10 +232,8 @@ internal class BackendXBreakpointTypeApi : XBreakpointTypeApi {
     if (request.isLogging) {
       breakpoint.setSuspendPolicy(SuspendPolicy.NONE)
       if (request.logExpression != null) {
-        breakpoint.setLogExpression(request.logExpression)
-      }
-      else {
         breakpoint.isLogMessage = true
+        breakpoint.setLogExpression(request.logExpression)
       }
     }
     return breakpoint as XBreakpointBase<*, *, *>
