@@ -94,6 +94,7 @@ class CargoAboutLicenseReader(
       environment = listOfNotNull(
         cargoBinary?.let { "CARGO" to it.absolutePathString() },
         rustcBinary?.let { "RUSTC" to it.absolutePathString() },
+        "CARGO_HOME" to workingDir.resolve("cargo_home").absolutePathString() // ensure CARGO_HOME is located to a writable directory, and does not pollute the host machine
       ).toMap(),
       outputListener = object : ProcessOutputListener {
         override fun onStdoutLine(line: String, pid: Long) = logger.info("[cargo-about] [$pid] $line")
