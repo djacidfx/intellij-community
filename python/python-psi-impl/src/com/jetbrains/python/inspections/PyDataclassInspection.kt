@@ -754,9 +754,9 @@ class PyDataclassInspection : PyInspection() {
 
       val defaultFactoryExpr = call.getKeywordArgument("default_factory") ?: return
       val defaultFactoryType = context.getType(defaultFactoryExpr) ?: return
-      val returnType = (defaultFactoryType as? PyCallableType)?.getReturnType(context)
+      val returnType = (defaultFactoryType as? PyCallableType) ?: return
 
-      val actualType = returnType ?: defaultFactoryType
+      val actualType = returnType.getReturnType(context)
       val actualInstanceType = (actualType as? PyClassType)?.toInstance() ?: actualType
 
       if (!PyTypeChecker.match(expectedInstanceType, actualInstanceType, context)) {
