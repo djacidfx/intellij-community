@@ -9,19 +9,19 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module-library" exported="">
       <library name="intellij-coverage" type="repository">
-        <properties include-transitive-deps="false" maven-id="org.jetbrains.intellij.deps:intellij-coverage-agent:1.0.773">
+        <properties include-transitive-deps="false" maven-id="org.jetbrains.intellij.deps:intellij-coverage-agent:1.0.775">
           <verification>
-            <artifact url="file://$MAVEN_REPOSITORY$/org/jetbrains/intellij/deps/intellij-coverage-agent/1.0.773/intellij-coverage-agent-1.0.773.jar">
-              <sha256sum>d8a87a30c47a55cb2a2af42127b1a35e29c5c5cb8b9cf494445afc2964edc650</sha256sum>
+            <artifact url="file://$MAVEN_REPOSITORY$/org/jetbrains/intellij/deps/intellij-coverage-agent/1.0.775/intellij-coverage-agent-1.0.775.jar">
+              <sha256sum>7722b3b63e58b3a55cf06d5a93560b7ede701b6cfe535772fb77e3e5ce055abd</sha256sum>
             </artifact>
           </verification>
         </properties>
         <CLASSES>
-          <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/intellij/deps/intellij-coverage-agent/1.0.773/intellij-coverage-agent-1.0.773.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/intellij/deps/intellij-coverage-agent/1.0.775/intellij-coverage-agent-1.0.775.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
-          <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/intellij/deps/intellij-coverage-agent/1.0.773/intellij-coverage-agent-1.0.773-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/intellij/deps/intellij-coverage-agent/1.0.775/intellij-coverage-agent-1.0.775-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>
