@@ -1,4 +1,4 @@
-// Copyright 2000-2023 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.psi.codeStyle.arrangement.engine;
 
 import com.intellij.application.options.CodeStyle;
@@ -12,7 +12,6 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.ex.DocumentEx;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.util.NlsContexts;
-import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.PsiDocumentManager;
@@ -239,7 +238,7 @@ public final class ArrangementEngine {
   {
     List<E> arranged = new ArrayList<>();
     Set<E> unprocessed = new LinkedHashSet<>();
-    List<Pair<Set<ArrangementEntry>, E>> dependent = new ArrayList<>();
+    MultiMap<E, ArrangementEntry> dependent = MultiMap.createLinked();
     for (E entry : entries) {
       List<? extends ArrangementEntry> dependencies = entry.getDependencies();
       if (dependencies == null) {
@@ -251,8 +250,7 @@ public final class ArrangementEngine {
           arranged.add(entry);
         }
         else {
-          Set<ArrangementEntry> first = new HashSet<>(dependencies);
-          dependent.add(Pair.create(first, entry));
+          dependent.putValues(entry, dependencies);
         }
       }
     }
@@ -288,12 +286,12 @@ public final class ArrangementEngine {
       E e = arranged.get(i);
       List<E> shouldBeAddedAfterCurrentElement = new ArrayList<>();
 
-      for (Iterator<Pair<Set<ArrangementEntry>, E>> iterator = dependent.iterator(); iterator.hasNext(); ) {
-        Pair<Set<ArrangementEntry>, E> pair = iterator.next();
-        pair.first.remove(e);
-        if (pair.first.isEmpty()) {
+      for (Iterator<Map.Entry<E, Collection<ArrangementEntry>>> iterator = dependent.entrySet().iterator(); iterator.hasNext(); ) {
+        Map.Entry<E, Collection<ArrangementEntry>> entry = iterator.next();
+        Collection<ArrangementEntry> deps = entry.getValue();
+        if (deps.remove(e) && deps.isEmpty()) {
           iterator.remove();
-          shouldBeAddedAfterCurrentElement.add(pair.second);
+          shouldBeAddedAfterCurrentElement.add(entry.getKey());
         }
       }
 
