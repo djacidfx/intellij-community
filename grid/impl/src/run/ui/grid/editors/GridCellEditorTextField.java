@@ -216,7 +216,7 @@ public class GridCellEditorTextField extends EditorTextField implements Disposab
       @Override
       public void update(@NotNull AnActionEvent e) {
         KeyEvent keyEvent = ObjectUtils.tryCast(e.getInputEvent(), KeyEvent.class);
-        e.getPresentation().setEnabledAndVisible(keyEvent != null);
+        e.getPresentation().setEnabledAndVisible(keyEvent != null && LookupManager.getActiveLookup(getEditor()) == null);
       }
 
       @Override
