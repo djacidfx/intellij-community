@@ -4,13 +4,14 @@ package org.jetbrains.kotlin.idea.test.events.gradle
 import org.gradle.util.GradleVersion
 import org.jetbrains.kotlin.idea.testFramework.gradle.KotlinGradleTestExecutionTestCase
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
+import org.jetbrains.plugins.gradle.testFramework.util.KOTLIN_SUPPORTED_VERSIONS
 import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
 import org.junit.jupiter.params.ParameterizedTest
 
 class KotlinGradleTestNavigationTest : KotlinGradleTestExecutionTestCase() {
 
     @ParameterizedTest
-    @TargetVersions("5.6.2+", "<7.0")
+    @TargetVersions(KOTLIN_SUPPORTED_VERSIONS, "<7.0")
     @AllGradleVersionsSource
     fun `test display name and navigation with Kotlin and Junit 5 OLD`(gradleVersion: GradleVersion) {
         testKotlinJunit5Project(gradleVersion) {
@@ -146,7 +147,7 @@ class KotlinGradleTestNavigationTest : KotlinGradleTestExecutionTestCase() {
     }
 
     @ParameterizedTest
-    @TargetVersions("5.6.2+")
+    @TargetVersions(KOTLIN_SUPPORTED_VERSIONS)
     @AllGradleVersionsSource
     fun `test display name and navigation with Kotlin and Junit 4`(gradleVersion: GradleVersion) {
         testKotlinJunit4Project(gradleVersion) {
@@ -181,7 +182,7 @@ class KotlinGradleTestNavigationTest : KotlinGradleTestExecutionTestCase() {
     }
 
     @ParameterizedTest
-    @TargetVersions("6.8.3+") // Kotlin multiplatform isn't supported by Gradle older than 6.8.3
+    @TargetVersions("6.8.3+", reason = "Kotlin multiplatform isn't supported by Gradle older than 6.8.3")
     @AllGradleVersionsSource
     fun `test display name and navigation with Kotlin Multiplatform and Kotlin Test`(gradleVersion: GradleVersion) {
         testKotlinMultiplatformProject(gradleVersion) {
@@ -201,7 +202,7 @@ class KotlinGradleTestNavigationTest : KotlinGradleTestExecutionTestCase() {
 
     @ParameterizedTest
     @AllGradleVersionsSource
-    @TargetVersions("5.6.2+")
+    @TargetVersions(KOTLIN_SUPPORTED_VERSIONS)
     fun `test display name and navigation with Kotlin and Test NG`(gradleVersion: GradleVersion) {
         testKotlinTestNGProject(gradleVersion) {
             writeText("src/test/kotlin/org/example/TestCase.kt", KOTLIN_TESTNG_TEST)

@@ -6,6 +6,7 @@ import org.gradle.util.GradleVersion
 import org.jetbrains.kotlin.idea.run.getConfiguration
 import org.jetbrains.kotlin.idea.testFramework.gradle.KotlinGradleProjectTestCase
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
+import org.jetbrains.plugins.gradle.testFramework.util.KOTLIN_SUPPORTED_VERSIONS
 import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
 import org.junit.jupiter.params.ParameterizedTest
 import kotlin.test.assertEquals
@@ -14,7 +15,7 @@ abstract class KotlinGradleProjectRunConfigurationTestCase : KotlinGradleProject
 
     @ParameterizedTest
     @AllGradleVersionsSource
-    @TargetVersions("5.6.2+")
+    @TargetVersions(KOTLIN_SUPPORTED_VERSIONS)
     fun testInternalTest(gradleVersion: GradleVersion) {
         testKotlinProject(gradleVersion) {
             val file = writeText("src/test/kotlin/org/example/TestCase.kt", """

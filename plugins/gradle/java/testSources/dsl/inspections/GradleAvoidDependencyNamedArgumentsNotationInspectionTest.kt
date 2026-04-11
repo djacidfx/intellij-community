@@ -974,7 +974,7 @@ class GradleAvoidDependencyNamedArgumentsNotationInspectionTest : GradleCodeInsi
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("5.0+") // Platform scope is supported since Gradle 5.0
+  @TargetVersions("5.0+", reason = "Platform scope is supported since Gradle 5.0")
   fun testPlatformCall(gradleVersion: GradleVersion) {
     runTest(gradleVersion) {
       testHighlighting(
@@ -1002,7 +1002,7 @@ class GradleAvoidDependencyNamedArgumentsNotationInspectionTest : GradleCodeInsi
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("5.0+") // EnforcedPlatform scope is supported since Gradle 5.0
+  @TargetVersions("5.0+", reason = "EnforcedPlatform scope is supported since Gradle 5.0")
   fun testEnforcedPlatformCall(gradleVersion: GradleVersion) {
     runTest(gradleVersion) {
       testHighlighting(
@@ -1030,7 +1030,7 @@ class GradleAvoidDependencyNamedArgumentsNotationInspectionTest : GradleCodeInsi
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("5.6+") // TestFixtures scope is supported since Gradle 5.6
+  @TargetVersions("5.6+", reason = "TestFixtures scope is supported since Gradle 5.6")
   fun testTestFixturesCall(gradleVersion: GradleVersion) {
     runTest(gradleVersion) {
       testHighlighting(

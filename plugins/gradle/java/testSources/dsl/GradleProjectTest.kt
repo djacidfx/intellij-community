@@ -12,7 +12,6 @@ import org.jetbrains.plugins.gradle.service.resolve.GradleCommonClassNames.GRADL
 import org.jetbrains.plugins.gradle.service.resolve.GradleCommonClassNames.GRADLE_PROCESS_EXEC_SPEC
 import org.jetbrains.plugins.gradle.testFramework.GradleCodeInsightTestCase
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
-import org.jetbrains.plugins.gradle.testFramework.util.assertThatGradleIsOlderThan
 import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
 import org.jetbrains.plugins.groovy.lang.psi.api.statements.expressions.GrMethodCall
 import org.jetbrains.plugins.groovy.lang.psi.api.statements.expressions.GrReferenceExpression
@@ -177,14 +176,12 @@ class GradleProjectTest : GradleCodeInsightTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource(PROJECT_CONTEXTS)
-  @TargetVersions("<9.0")
+  @TargetVersions(
+    "<9.0",
+    reason = "Project.exec and Project.javaexec were removed in Gradle 9.0. " +
+             "See gradle/pull/33141 for more information. "
+  )
   fun `resolve a delegate in exec Closure`(gradleVersion: GradleVersion, decorator: String) {
-    assertThatGradleIsOlderThan(gradleVersion, "9.0") {
-      """
-      Project.exec and Project.javaexec were removed in Gradle 9.0.
-      See gradle/pull/33141 for more information. 
-      """.trimIndent()
-    }
     testEmptyProject(gradleVersion) {
       testBuildscript(decorator, "exec{<caret>}") {
         closureDelegateTest(GRADLE_PROCESS_EXEC_SPEC, DELEGATE_FIRST)

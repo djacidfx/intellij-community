@@ -16,7 +16,6 @@ import org.jetbrains.plugins.gradle.service.resolve.GradleCommonClassNames.GRADL
 import org.jetbrains.plugins.gradle.service.resolve.GradleCommonClassNames.GRADLE_API_DEPENDENCY_HANDLER
 import org.jetbrains.plugins.gradle.testFramework.GradleCodeInsightTestCase
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
-import org.jetbrains.plugins.gradle.testFramework.util.assertThatGradleIsOlderThan
 import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
 import org.junit.jupiter.params.ParameterizedTest
 
@@ -101,14 +100,12 @@ class GradleDependenciesTest : GradleCodeInsightTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("<9.0")
+  @TargetVersions(
+    "<9.0",
+    reason = "ClientModule dependencies were a legacy precursor to ComponentMetadataRules, " +
+             "and have since been replaced and removed in Gradle 9.0. See gradle/pull/32743 for more information."
+  )
   fun `test module delegate`(gradleVersion: GradleVersion) {
-    assertThatGradleIsOlderThan(gradleVersion, "9.0") {
-      """
-      ClientModule dependencies were a legacy precursor to ComponentMetadataRules, and have since been replaced and removed in Gradle 9.0.
-      See gradle/pull/32743 for more information. 
-      """.trimIndent()
-    }
     testJavaProject(gradleVersion) {
       testBuildscript("dependencies { module(':') {<caret>} }") {
         closureDelegateTest(GRADLE_API_ARTIFACTS_CLIENT_MODULE_DEPENDENCY, 1)
@@ -118,14 +115,12 @@ class GradleDependenciesTest : GradleCodeInsightTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("<9.0")
+  @TargetVersions(
+    "<9.0",
+    reason = "ClientModule dependencies were a legacy precursor to ComponentMetadataRules, " +
+             "and have since been replaced and removed in Gradle 9.0. See gradle/pull/32743 for more information. "
+  )
   fun `test module delegate method setter`(gradleVersion: GradleVersion) {
-    assertThatGradleIsOlderThan(gradleVersion, "9.0") {
-      """
-      ClientModule dependencies were a legacy precursor to ComponentMetadataRules, and have since been replaced and removed in Gradle 9.0.
-      See gradle/pull/32743 for more information. 
-      """.trimIndent()
-    }
     testJavaProject(gradleVersion) {
       testBuildscript("dependencies { module(':') { <caret>changing(true) } }") {
         setterMethodTest("changing", "setChanging", GRADLE_API_ARTIFACTS_EXTERNAL_MODULE_DEPENDENCY)

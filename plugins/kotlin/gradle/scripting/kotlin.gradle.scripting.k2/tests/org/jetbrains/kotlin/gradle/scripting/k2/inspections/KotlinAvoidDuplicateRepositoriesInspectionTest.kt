@@ -5,7 +5,7 @@ import org.gradle.util.GradleVersion
 import org.jetbrains.kotlin.gradle.K2GradleCodeInsightTestCase
 import org.jetbrains.plugins.gradle.codeInspection.GradleAvoidDuplicateRepositoriesInspection
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
-import org.jetbrains.plugins.gradle.testFramework.util.assertThatDependencyResolutionManagementIsSupported
+import org.jetbrains.plugins.gradle.testFramework.util.DEPENDENCY_RESOLUTION_MANAGEMENT_SUPPORTED_VERSIONS
 import org.jetbrains.plugins.gradle.testFramework.util.assertThatKotlinDslScriptsModelImportIsSupported
 import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
 import org.junit.jupiter.params.ParameterizedTest
@@ -178,10 +178,9 @@ class KotlinAvoidDuplicateRepositoriesInspectionTest : K2GradleCodeInsightTestCa
 
     @ParameterizedTest
     @AllGradleVersionsSource
-    @TargetVersions("6.8+")
+    @TargetVersions(DEPENDENCY_RESOLUTION_MANAGEMENT_SUPPORTED_VERSIONS)
     fun `test dependency resolution management repositories`(gradleVersion: GradleVersion) {
         runTest(gradleVersion) {
-            assertThatDependencyResolutionManagementIsSupported(gradleVersion)
             testHighlighting(
                 relativePath = "settings.gradle.kts",
                 """

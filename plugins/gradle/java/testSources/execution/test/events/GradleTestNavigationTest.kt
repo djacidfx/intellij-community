@@ -5,13 +5,14 @@ import org.gradle.util.GradleVersion
 import org.intellij.lang.annotations.Language
 import org.jetbrains.plugins.gradle.testFramework.GradleTestExecutionTestCase
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
+import org.jetbrains.plugins.gradle.testFramework.util.JUNIT_5_SUPPORTED_VERSIONS
 import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
 import org.junit.jupiter.params.ParameterizedTest
 
 class GradleTestNavigationTest : GradleTestExecutionTestCase() {
 
-  @ParameterizedTest(allowZeroInvocations = true) // TODO remove flag when `gradle.versions.to.run` is changed from `LAST:*` IDEA-382646
-  @TargetVersions("4.7+", "<7.0")
+  @ParameterizedTest
+  @TargetVersions(JUNIT_5_SUPPORTED_VERSIONS, "<7.0")
   @AllGradleVersionsSource
   fun `test display name and navigation with Java and Junit Platform with Gradle before 7_0`(gradleVersion: GradleVersion) {
     testJunitPlatformProject(gradleVersion) {
@@ -82,7 +83,7 @@ class GradleTestNavigationTest : GradleTestExecutionTestCase() {
   }
 
   @ParameterizedTest
-  @TargetVersions("4.7+")
+  @TargetVersions(JUNIT_5_SUPPORTED_VERSIONS)
   @AllGradleVersionsSource
   fun `test display name generated and navigation with Java and Junit Platform`(gradleVersion: GradleVersion) {
     testJunitPlatformProject(gradleVersion) {

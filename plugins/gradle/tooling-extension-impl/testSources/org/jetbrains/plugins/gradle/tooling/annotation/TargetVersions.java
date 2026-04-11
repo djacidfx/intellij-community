@@ -43,5 +43,7 @@ import java.lang.annotation.Target;
 public @interface TargetVersions {
   String[] value();
 
+  String reason() default "";
+
   boolean checkBaseVersions() default true;
 }

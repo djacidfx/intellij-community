@@ -3,7 +3,7 @@ package org.jetbrains.kotlin.idea.run.gradle
 
 import org.gradle.util.GradleVersion
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
-import org.jetbrains.plugins.gradle.testFramework.util.assertThatKotlinDslScriptsModelImportIsSupported
+import org.jetbrains.plugins.gradle.testFramework.util.KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS
 import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
 import org.junit.jupiter.params.ParameterizedTest
 
@@ -36,9 +36,8 @@ abstract class AbstractKotlinGradleTaskRunConfigurationProducerTest : AbstractKo
         taskName : 'tasks { var task<caret>Name by registering }',
         taskName : 'tasks { var task<caret>Name by creating }'
     """)
-    @TargetVersions("6.0+")
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testTaskHasConfiguration(gradleVersion: GradleVersion, taskName: String, taskDefinition: String) {
-        assertThatKotlinDslScriptsModelImportIsSupported(gradleVersion)
         testKotlinDslEmptyProject(gradleVersion) {
             writeTextAndCommit("build.gradle.kts", taskDefinition)
             verifyGradleConfigurationAtCaret(taskName)
@@ -54,9 +53,8 @@ abstract class AbstractKotlinGradleTaskRunConfigurationProducerTest : AbstractKo
             doLast { println("task<caret>Name") }
         }' 
     """)
-    @TargetVersions("6.0+")
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testOtherLineDontHaveConfiguration(gradleVersion: GradleVersion, taskDefinition: String) {
-        assertThatKotlinDslScriptsModelImportIsSupported(gradleVersion)
         testKotlinDslEmptyProject(gradleVersion) {
             writeTextAndCommit("build.gradle.kts", taskDefinition)
             assertNoConfigurationAtCaret()

@@ -15,7 +15,8 @@ import org.jetbrains.plugins.gradle.service.execution.GradleExecutionContext
 import org.jetbrains.plugins.gradle.service.project.GradleExecutionHelperExtension
 import org.jetbrains.plugins.gradle.testFramework.GradleTestExecutionTestCase
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
-import org.jetbrains.plugins.gradle.testFramework.util.assertThatConfigurationCacheIsSupported
+import org.jetbrains.plugins.gradle.testFramework.util.CONFIGURATION_CACHE_SUPPORTED_VERSIONS
+import org.jetbrains.plugins.gradle.testFramework.util.JUNIT_5_SUPPORTED_VERSIONS
 import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.params.ParameterizedTest
@@ -23,7 +24,7 @@ import org.junit.jupiter.params.ParameterizedTest
 class GradleTestExecutionTest : GradleTestExecutionTestCase() {
 
   @ParameterizedTest
-  @TargetVersions("4.7+")
+  @TargetVersions(JUNIT_5_SUPPORTED_VERSIONS)
   @AllGradleVersionsSource
   fun `test grouping events of the same suite comes from different tasks`(gradleVersion: GradleVersion) {
     testJunitPlatformProject(gradleVersion) {
@@ -472,9 +473,9 @@ class GradleTestExecutionTest : GradleTestExecutionTestCase() {
     }
   }
 
-  @ParameterizedTest(allowZeroInvocations = true) // TODO remove flag when `gradle.versions.to.run` is changed from `LAST:*` IDEA-382646
+  @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("<7.6") // IDEA-340676 flaky test
+  @TargetVersions("<7.6", reason = "IDEA-340676 flaky test")
   fun `test task execution order`(gradleVersion: GradleVersion) {
     testJavaProject(gradleVersion) {
       writeText("src/test/java/org/example/TestCase.java", """
@@ -554,10 +555,9 @@ class GradleTestExecutionTest : GradleTestExecutionTestCase() {
   }
 
   @ParameterizedTest
-  @TargetVersions("8.1+")
   @AllGradleVersionsSource
+  @TargetVersions(CONFIGURATION_CACHE_SUPPORTED_VERSIONS)
   fun `test configuration cache for tests`(gradleVersion: GradleVersion) {
-    assertThatConfigurationCacheIsSupported(gradleVersion)
     testJavaProject(gradleVersion) {
       writeText("src/test/java/org/example/TestCase.java", """
         |package org.example;
@@ -625,7 +625,7 @@ class GradleTestExecutionTest : GradleTestExecutionTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("4.7+")
+  @TargetVersions(JUNIT_5_SUPPORTED_VERSIONS)
   fun `test test task execution with additional gradle listeners`(gradleVersion: GradleVersion) {
     val extension = object : GradleExecutionHelperExtension {
       override fun configureOperation(operation: LongRunningOperation, context: GradleExecutionContext) {

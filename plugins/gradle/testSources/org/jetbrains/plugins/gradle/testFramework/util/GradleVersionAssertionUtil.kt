@@ -14,8 +14,22 @@ import org.jetbrains.plugins.gradle.frameworkSupport.buildscript.isKotlinSupport
 import org.jetbrains.plugins.gradle.frameworkSupport.buildscript.isSpockSupported
 import org.jetbrains.plugins.gradle.frameworkSupport.buildscript.isTopLevelJavaConventionsSupported
 import org.jetbrains.plugins.gradle.frameworkSupport.buildscript.isVersionCatalogsSupported
+import org.jetbrains.plugins.gradle.jvmcompat.GradleJvmSupportMatrix.Companion.OLDEST_NON_DEPRECATED_GRADLE_VERSION_STRING
 import org.junit.jupiter.api.Assertions
 
+const val NON_DEPRECATED_BY_IDEA_VERSIONS = "$OLDEST_NON_DEPRECATED_GRADLE_VERSION_STRING+"
+const val DEPRECATED_BY_IDEA_VERSIONS = "<$OLDEST_NON_DEPRECATED_GRADLE_VERSION_STRING"
+const val JUNIT_5_SUPPORTED_VERSIONS = "4.7+"
+const val GROOVY_5_SUPPORTED_VERSIONS = "7.0+"
+const val KOTLIN_SUPPORTED_VERSIONS = "5.6.2+"
+const val KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS = "6.0+"
+const val SPOCK_SUPPORTED_VERSIONS = "5.6+"
+const val TOP_LEVEL_JAVA_CONVENTIONS_SUPPORTED_VERSIONS = "<8.2"
+const val JAVA_CONVENTIONS_BLOCK_SUPPORTED_VERSIONS = "7.1+"
+const val CONFIGURATION_CACHE_SUPPORTED_VERSIONS = "8.1+"
+const val ISOLATED_PROJECTS_SUPPORTED_VERSIONS = "8.8+"
+const val VERSION_CATALOGS_SUPPORTED_VERSIONS = "7.4+"
+const val DEPENDENCY_RESOLUTION_MANAGEMENT_SUPPORTED_VERSIONS = "6.8+"
 
 fun assertThatGradleIsAtLeast(gradleVersion: GradleVersion, version: String) {
   assertThatGradleIsAtLeast(gradleVersion, version) {
@@ -47,7 +61,7 @@ fun assertThatJunit5IsSupported(gradleVersion: GradleVersion) {
   Assertions.assertTrue(isJunit5Supported(gradleVersion)) {
     """
       Gradle ${gradleVersion.version} doesn't support Junit 5.
-      Please, use @TargetVersions("4.7+") annotation to ignore this version.
+      Please, use @TargetVersions(JUNIT_5_SUPPORTED_VERSIONS) annotation to ignore this version.
     """.trimIndent()
   }
 }
@@ -56,7 +70,7 @@ fun assertThatGroovy5IsSupported(gradleVersion: GradleVersion) {
   Assertions.assertTrue(isGroovy5Supported(gradleVersion)) {
     """
       Gradle ${gradleVersion.version} doesn't support Groovy 5.
-      Please, use @TargetVersions("7.0+") annotation to ignore this version.
+      Please, use @TargetVersions(GROOVY_5_SUPPORTED_VERSIONS) annotation to ignore this version.
     """.trimIndent()
   }
 }
@@ -65,7 +79,7 @@ fun assertThatKotlinIsSupported(gradleVersion: GradleVersion) {
   Assertions.assertTrue(isKotlinSupported(gradleVersion)) {
     """
       Gradle ${gradleVersion.version} doesn't support Kotlin.
-      Please, use @TargetVersions("5.6.2+") annotation to ignore this version.
+      Please, use @TargetVersions(KOTLIN_SUPPORTED_VERSIONS) annotation to ignore this version.
     """.trimIndent()
   }
 }
@@ -74,7 +88,7 @@ fun assertThatKotlinDslScriptsModelImportIsSupported(gradleVersion: GradleVersio
   Assertions.assertTrue(isKotlinDslScriptsModelImportSupported(gradleVersion)) {
     """
       Gradle ${gradleVersion.version} doesn't support KotlinDslScriptsModel import.
-      Please, use @TargetVersions("6.0+") annotation to ignore this version.
+      Please, use @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS) annotation to ignore this version.
     """.trimIndent()
   }
 }
@@ -83,7 +97,7 @@ fun assertThatSpockIsSupported(gradleVersion: GradleVersion) {
   Assertions.assertTrue(isSpockSupported(gradleVersion)) {
     """
       Gradle ${gradleVersion.version} doesn't support Spock.
-      Please, use @TargetVersions("5.6+") annotation to ignore this version.
+      Please, use @TargetVersions(SPOCK_SUPPORTED_VERSIONS) annotation to ignore this version.
     """.trimIndent()
   }
 }
@@ -92,7 +106,7 @@ fun assertThatTopLevelJavaConventionsIsSupported(gradleVersion: GradleVersion) {
   Assertions.assertTrue(isTopLevelJavaConventionsSupported(gradleVersion)) {
     """
       Gradle ${gradleVersion.version} doesn't support top-level java conventions.
-      Please, use @TargetVersions("<8.2") annotation to ignore this version.
+      Please, use @TargetVersions(TOP_LEVEL_JAVA_CONVENTIONS_SUPPORTED_VERSIONS) annotation to ignore this version.
     """.trimIndent()
   }
 }
@@ -101,7 +115,7 @@ fun assertThatJavaConventionsBlockIsSupported(gradleVersion: GradleVersion) {
   Assertions.assertTrue(isJavaConventionsBlockSupported(gradleVersion)) {
     """
       Gradle ${gradleVersion.version} doesn't support java conventions block.
-      Please, use @TargetVersions("7.1+") annotation to ignore this version.
+      Please, use @TargetVersions(JAVA_CONVENTIONS_BLOCK_SUPPORTED_VERSIONS) annotation to ignore this version.
     """.trimIndent()
   }
 }
@@ -110,7 +124,7 @@ fun assertThatConfigurationCacheIsSupported(gradleVersion: GradleVersion) {
   Assertions.assertTrue(isConfigurationCacheSupported(gradleVersion)) {
     """
       Gradle ${gradleVersion.version} doesn't support stable configuration caches.
-      Please, use @TargetVersions("8.1+") annotation to ignore this version.
+      Please, use @TargetVersions(CONFIGURATION_CACHE_SUPPORTED_VERSIONS) annotation to ignore this version.
     """.trimIndent()
   }
 }
@@ -119,7 +133,7 @@ fun assertThatIsolatedProjectsIsSupported(gradleVersion: GradleVersion) {
   Assertions.assertTrue(isIsolatedProjectsSupported(gradleVersion)) {
     """
       Gradle ${gradleVersion.version} doesn't support isolated projects.
-      Please, use @TargetVersions("8.8+") annotation to ignore this version.
+      Please, use @TargetVersions(ISOLATED_PROJECTS_SUPPORTED_VERSIONS) annotation to ignore this version.
     """.trimIndent()
   }
 }
@@ -128,7 +142,7 @@ fun assertThatVersionCatalogsAreSupported(gradleVersion: GradleVersion) {
   Assertions.assertTrue(isVersionCatalogsSupported(gradleVersion)) {
     """
       Gradle ${gradleVersion.version} doesn't support version catalogs.
-      Please, use @TargetVersions("7.4+") annotation to ignore this version.
+      Please, use @TargetVersions(VERSION_CATALOGS_SUPPORTED_VERSIONS) annotation to ignore this version.
     """.trimIndent()
   }
 }
@@ -137,7 +151,7 @@ fun assertThatDependencyResolutionManagementIsSupported(gradleVersion: GradleVer
   Assertions.assertTrue(isDependencyResolutionManagementSupported(gradleVersion)) {
     """
       Gradle ${gradleVersion.version} doesn't support DependencyResolutionManagement.
-      Please use @TargetVersions("6.8+") annotation to ignore this version.
+      Please use @TargetVersions(DEPENDENCY_RESOLUTION_MANAGEMENT_SUPPORTED_VERSIONS) annotation to ignore this version.
     """.trimIndent()
   }
 }

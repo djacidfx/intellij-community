@@ -8,7 +8,7 @@ import org.gradle.util.GradleVersion
 import org.jetbrains.plugins.gradle.execution.build.GroovyGradleProjectTaskRunnerTest.Companion.GROOVY5_PROJECT
 import org.jetbrains.plugins.gradle.testFramework.GradleExecutionTestCase
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
-import org.jetbrains.plugins.gradle.testFramework.util.assertThatGroovy5IsSupported
+import org.jetbrains.plugins.gradle.testFramework.util.GROOVY_5_SUPPORTED_VERSIONS
 import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
 import org.jetbrains.plugins.groovy.runner.GroovyScriptRunConfiguration
 import org.jetbrains.plugins.groovy.runner.GroovyScriptRunConfigurationType
@@ -17,11 +17,10 @@ import org.junit.jupiter.params.ParameterizedTest
 class GroovyGradleApplicationEnvironmentProviderTest : GradleExecutionTestCase() {
   @AllGradleVersionsSource
   @ParameterizedTest
-  @TargetVersions("7.0+")
+  @TargetVersions(GROOVY_5_SUPPORTED_VERSIONS)
   fun `test run groovy 5 via gradle`(
     gradleVersion: GradleVersion,
   ) {
-    assertThatGroovy5IsSupported(gradleVersion)
     test(gradleVersion, GROOVY5_PROJECT) {
 
       writeText("src/main/groovy/org/example/App.groovy", """

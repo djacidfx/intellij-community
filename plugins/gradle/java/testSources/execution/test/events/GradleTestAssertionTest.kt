@@ -1,7 +1,6 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.plugins.gradle.execution.test.events
 
-import com.intellij.gradle.toolingExtension.util.GradleVersionUtil
 import com.intellij.openapi.application.PathManager
 import com.intellij.rt.execution.junit.FileComparisonFailure
 import junit.framework.ComparisonFailure
@@ -9,8 +8,7 @@ import org.gradle.util.GradleVersion
 import org.jetbrains.plugins.gradle.testFramework.GradleTestExecutionTestCase
 import org.jetbrains.plugins.gradle.testFramework.GradleTestFixtureBuilder
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
-import org.jetbrains.plugins.gradle.testFramework.util.assertThatGradleIsAtLeast
-import org.jetbrains.plugins.gradle.testFramework.util.assertThatJunit5IsSupported
+import org.jetbrains.plugins.gradle.testFramework.util.JUNIT_5_SUPPORTED_VERSIONS
 import org.jetbrains.plugins.gradle.testFramework.util.withBuildFile
 import org.jetbrains.plugins.gradle.testFramework.util.withSettingsFile
 import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
@@ -21,7 +19,7 @@ class GradleTestAssertionTest : GradleTestExecutionTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("4.7+")
+  @TargetVersions(JUNIT_5_SUPPORTED_VERSIONS)
   fun `test assertion result of Junit Platform`(gradleVersion: GradleVersion) {
     testJunitPlatformProject(gradleVersion) {
       writeText("src/test/java/org/example/TestCase.java", """
@@ -236,7 +234,8 @@ class GradleTestAssertionTest : GradleTestExecutionTestCase() {
                 |
                 |org.opentest4j.AssertionFailedError: assertion message 3 ==> expected: <expected text 3> but was: <actual text 3>
               """.trimMargin())
-            } else {
+            }
+            else {
               assertTestConsoleContains("""
                 |org.opentest4j.AssertionFailedError: assertion message 1 ==> expected: <expected text 1> but was: <actual text 1>
               """.trimMargin())
@@ -294,7 +293,7 @@ class GradleTestAssertionTest : GradleTestExecutionTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("4.7+")
+  @TargetVersions(JUNIT_5_SUPPORTED_VERSIONS)
   fun `test assertion result of Junit Platform (Opentest4j)`(gradleVersion: GradleVersion) {
     testJunitPlatformProject(gradleVersion) {
       writeText("src/test/java/org/example/TestCase.java", """
@@ -461,7 +460,8 @@ class GradleTestAssertionTest : GradleTestExecutionTestCase() {
                 |
                 |org.opentest4j.AssertionFailedError: assertion message 3
               """.trimMargin())
-            } else {
+            }
+            else {
               assertTestConsoleContains("""
                 |org.opentest4j.AssertionFailedError: assertion message 1
               """.trimMargin())
@@ -479,8 +479,8 @@ class GradleTestAssertionTest : GradleTestExecutionTestCase() {
   }
 
   @ParameterizedTest
-  @TargetVersions("4.7+")
   @AllGradleVersionsSource
+  @TargetVersions(JUNIT_5_SUPPORTED_VERSIONS)
   fun `test assertion result of Junit 5 (AssertJ)`(gradleVersion: GradleVersion) {
     testJunit5AssertJProject(gradleVersion) {
       writeText("src/test/java/org/example/TestCase.java", """
@@ -1176,7 +1176,8 @@ class GradleTestAssertionTest : GradleTestExecutionTestCase() {
                 |
                 |org.opentest4j.AssertionFailedError: assertion message 3
               """.trimMargin())
-            } else {
+            }
+            else {
               assertTestConsoleContains("""
                 |org.opentest4j.AssertionFailedError: assertion message 1
               """.trimMargin())
@@ -1631,15 +1632,13 @@ class GradleTestAssertionTest : GradleTestExecutionTestCase() {
   }
 
   @ParameterizedTest
-  @TargetVersions("8.4+")
   @AllGradleVersionsSource
+  @TargetVersions(
+    "8.4+",
+    reason = "Integration between Intellij and Gradle <7.6 doesn't support custom assertion exceptions " +
+             "and between Junit 4 and Gradle <8.4 doesn't support Opentest4j assertion exceptions."
+  )
   fun `test assertion result of Junit 4 (Opentest4j FileComparisonFailure)`(gradleVersion: GradleVersion) {
-    assertThatGradleIsAtLeast(gradleVersion, "7.6") {
-      "Integration between Intellij and Gradle ${gradleVersion.version} doesn't support custom assertion exceptions."
-    }
-    assertThatGradleIsAtLeast(gradleVersion, "8.4") {
-      "Integration between Junit 4 and Gradle ${gradleVersion.version} doesn't support Opentest4j assertion exceptions."
-    }
     testJunit4Opentest4jProject(gradleVersion) {
       val expectedPath = writeText("expected.txt", "Expected text.").path
       val actualPath = writeText("actual.txt", "Actual text.").path
@@ -1730,28 +1729,25 @@ class GradleTestAssertionTest : GradleTestExecutionTestCase() {
     }
   }
 
-  @ParameterizedTest(allowZeroInvocations = true) // TODO remove flag when `gradle.versions.to.run` is changed from `LAST:*` IDEA-382646
-  @TargetVersions("<7.6")
+  @ParameterizedTest
+  @TargetVersions(
+    "<7.6", reason = "Integration between Junit 4 and Gradle [7.6, 8.4) doesn't support Opentest4j assertion exceptions."
+  )
   @AllGradleVersionsSource
-  fun `test assertion result of Junit 4 (Opentest4j FileInfo) for Gradle older than 7_6`(gradleVersion: GradleVersion) {
+  fun `test assertion result of Junit 4 (Opentest4j FileInfo) 1`(gradleVersion: GradleVersion) {
     `test assertion result of Junit 4 (Opentest4j FileInfo)`(gradleVersion)
   }
 
   @ParameterizedTest
-  @TargetVersions("8.4+")
+  @TargetVersions(
+    "8.4+", reason = "Integration between Junit 4 and Gradle [7.6, 8.4) doesn't support Opentest4j assertion exceptions."
+  )
   @AllGradleVersionsSource
-  fun `test assertion result of Junit 4 (Opentest4j FileInfo) for Gradle at least 8_4`(gradleVersion: GradleVersion) {
+  fun `test assertion result of Junit 4 (Opentest4j FileInfo) 2`(gradleVersion: GradleVersion) {
     `test assertion result of Junit 4 (Opentest4j FileInfo)`(gradleVersion)
   }
 
-  private fun `test assertion result of Junit 4 (Opentest4j FileInfo)`(gradleVersion: GradleVersion) {
-    Assertions.assertTrue(
-      GradleVersionUtil.isGradleOlderThan(gradleVersion, "7.6") ||
-      GradleVersionUtil.isGradleAtLeast(gradleVersion, "8.4")
-    ) {
-      "Integration between Junit 4 and Gradle ${gradleVersion.version} doesn't support Opentest4j assertion exceptions."
-    }
-
+  fun `test assertion result of Junit 4 (Opentest4j FileInfo)`(gradleVersion: GradleVersion) {
     testJunit4Opentest4jProject(gradleVersion) {
       val expectedPath = writeText("expected.txt", "Expected text.").path
       val actualPath = writeText("actual.txt", "Actual text.").path
@@ -1825,10 +1821,9 @@ class GradleTestAssertionTest : GradleTestExecutionTestCase() {
   }
 
   @ParameterizedTest
-  @TargetVersions("4.7+")
   @AllGradleVersionsSource
+  @TargetVersions(JUNIT_5_SUPPORTED_VERSIONS)
   fun `test assertion result of Junit 5 (IJ FileComparisonFailure)`(gradleVersion: GradleVersion) {
-    assertThatJunit5IsSupported(gradleVersion)
     val fixture = GradleTestFixtureBuilder.create("GradleTestAssertionTest-file-comparison-junit-5") {
       withSettingsFile(gradleVersion) {
         setProjectName("GradleTestAssertionTest-file-comparison-junit-5")
@@ -1954,7 +1949,8 @@ class GradleTestAssertionTest : GradleTestExecutionTestCase() {
                 |
                 |com.intellij.rt.execution.junit.FileComparisonFailure: assertion message 3 expected:<[Expected] text 3.> but was:<[Actual] text 3.>
               """.trimMargin())
-            } else {
+            }
+            else {
               assertTestConsoleContains("""
                 |com.intellij.rt.execution.junit.FileComparisonFailure: assertion message 1 expected:<[Expected] text 1.> but was:<[Actual] text 1.>
               """.trimMargin())
@@ -1982,11 +1978,8 @@ class GradleTestAssertionTest : GradleTestExecutionTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("7.6+")
+  @TargetVersions("7.6+", reason = "Integration between Intellij and Gradle <7.6 doesn't support custom assertion exceptions.")
   fun `test assertion result of Junit Platform (Opentest4j FileComparisonFailure)`(gradleVersion: GradleVersion) {
-    assertThatGradleIsAtLeast(gradleVersion, "7.6") {
-      "Integration between Intellij and Gradle ${gradleVersion.version} doesn't support custom assertion exceptions."
-    }
     testJunitPlatformProject(gradleVersion) {
       val expectedPath = writeText("expected.txt", "Expected text.").path
       val actualPath = writeText("actual.txt", "Actual text.").path
@@ -2078,7 +2071,7 @@ class GradleTestAssertionTest : GradleTestExecutionTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("4.7+")
+  @TargetVersions(JUNIT_5_SUPPORTED_VERSIONS)
   fun `test assertion result of Junit Platform (Opentest4j FileInfo)`(gradleVersion: GradleVersion) {
     testJunitPlatformProject(gradleVersion) {
       val expectedPath = writeText("expected.txt", "Expected text.").path

@@ -6,6 +6,7 @@ import org.gradle.util.GradleVersion
 import org.jetbrains.plugins.gradle.testFramework.GradleCodeInsightTestCase
 import org.jetbrains.plugins.gradle.testFramework.GradleTestFixtureBuilder
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
+import org.jetbrains.plugins.gradle.testFramework.util.VERSION_CATALOGS_SUPPORTED_VERSIONS
 import org.jetbrains.plugins.gradle.testFramework.util.assertThatVersionCatalogsAreSupported
 import org.jetbrains.plugins.gradle.testFramework.util.withBuildFile
 import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
@@ -282,7 +283,7 @@ class GradleRedundantKotlinStdLibInspectionTest : GradleCodeInsightTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("7.4+")
+  @TargetVersions(VERSION_CATALOGS_SUPPORTED_VERSIONS)
   fun testDependencyFromVersionCatalog(gradleVersion: GradleVersion) {
     runTest(gradleVersion, WITH_VERSION_CATALOGS_FIXTURE) {
       testHighlighting(
@@ -298,7 +299,7 @@ class GradleRedundantKotlinStdLibInspectionTest : GradleCodeInsightTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("7.4+")
+  @TargetVersions(VERSION_CATALOGS_SUPPORTED_VERSIONS)
   fun testDependencyFromVersionCatalogNoVersion(gradleVersion: GradleVersion) {
     runTest(gradleVersion, WITH_VERSION_CATALOGS_FIXTURE) {
       testHighlighting(
@@ -314,7 +315,7 @@ class GradleRedundantKotlinStdLibInspectionTest : GradleCodeInsightTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("7.4+")
+  @TargetVersions(VERSION_CATALOGS_SUPPORTED_VERSIONS)
   fun testDependencyFromVersionCatalogModuleAndVersion(gradleVersion: GradleVersion) {
     runTest(gradleVersion, WITH_VERSION_CATALOGS_FIXTURE) {
       testHighlighting(
@@ -330,7 +331,7 @@ class GradleRedundantKotlinStdLibInspectionTest : GradleCodeInsightTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("7.4+")
+  @TargetVersions(VERSION_CATALOGS_SUPPORTED_VERSIONS)
   fun testDependencyFromVersionCatalogFull(gradleVersion: GradleVersion) {
     runTest(gradleVersion, WITH_VERSION_CATALOGS_FIXTURE) {
       testHighlighting(
@@ -346,7 +347,7 @@ class GradleRedundantKotlinStdLibInspectionTest : GradleCodeInsightTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("7.4+")
+  @TargetVersions(VERSION_CATALOGS_SUPPORTED_VERSIONS)
   fun testDependencyFromVersionCatalogFullVersionReference(gradleVersion: GradleVersion) {
     runTest(gradleVersion, WITH_VERSION_CATALOGS_FIXTURE) {
       testHighlighting(
@@ -362,7 +363,7 @@ class GradleRedundantKotlinStdLibInspectionTest : GradleCodeInsightTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("7.4+")
+  @TargetVersions(VERSION_CATALOGS_SUPPORTED_VERSIONS)
   fun testDependencyFromVersionCatalogMultilineString(gradleVersion: GradleVersion) {
     runTest(gradleVersion, WITH_VERSION_CATALOGS_FIXTURE) {
       testHighlighting(
@@ -378,7 +379,7 @@ class GradleRedundantKotlinStdLibInspectionTest : GradleCodeInsightTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("7.4+")
+  @TargetVersions(VERSION_CATALOGS_SUPPORTED_VERSIONS)
   fun testDependencyFromVersionCatalogCustomConfiguration(gradleVersion: GradleVersion) {
     runTest(gradleVersion, WITH_VERSION_CATALOGS_FIXTURE) {
       testHighlighting(
@@ -395,7 +396,7 @@ class GradleRedundantKotlinStdLibInspectionTest : GradleCodeInsightTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("7.4+")
+  @TargetVersions(VERSION_CATALOGS_SUPPORTED_VERSIONS)
   fun testDependencyListVersionCatalog(gradleVersion: GradleVersion) {
     runTest(gradleVersion, WITH_VERSION_CATALOGS_FIXTURE) {
       testHighlighting(
@@ -411,7 +412,7 @@ class GradleRedundantKotlinStdLibInspectionTest : GradleCodeInsightTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("7.4+")
+  @TargetVersions(VERSION_CATALOGS_SUPPORTED_VERSIONS)
   fun testDependencyListVersionCatalogInBrackets(gradleVersion: GradleVersion) {
     runTest(gradleVersion, WITH_VERSION_CATALOGS_FIXTURE) {
       testHighlighting(
@@ -473,7 +474,7 @@ class GradleRedundantKotlinStdLibInspectionTest : GradleCodeInsightTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("7.4+")
+  @TargetVersions(VERSION_CATALOGS_SUPPORTED_VERSIONS)
   fun testPluginFromVersionCatalog(gradleVersion: GradleVersion) {
     runTest(gradleVersion, WITH_VERSION_CATALOGS_FIXTURE) {
       testHighlighting(
@@ -489,7 +490,7 @@ class GradleRedundantKotlinStdLibInspectionTest : GradleCodeInsightTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("7.4+")
+  @TargetVersions(VERSION_CATALOGS_SUPPORTED_VERSIONS)
   fun testPluginFromVersionCatalogFull(gradleVersion: GradleVersion) {
     runTest(gradleVersion, WITH_VERSION_CATALOGS_FIXTURE) {
       testHighlighting(
@@ -505,7 +506,7 @@ class GradleRedundantKotlinStdLibInspectionTest : GradleCodeInsightTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("7.4+")
+  @TargetVersions(VERSION_CATALOGS_SUPPORTED_VERSIONS)
   fun testPluginFromVersionCatalogFullWithVersionReference(gradleVersion: GradleVersion) {
     runTest(gradleVersion, WITH_VERSION_CATALOGS_FIXTURE) {
       testHighlighting(
@@ -538,7 +539,7 @@ class GradleRedundantKotlinStdLibInspectionTest : GradleCodeInsightTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("7.4+")
+  @TargetVersions(VERSION_CATALOGS_SUPPORTED_VERSIONS)
   fun testPluginFromVersionCatalogNotApplied(gradleVersion: GradleVersion) {
     runTest(gradleVersion, WITH_VERSION_CATALOGS_FIXTURE) {
       testHighlighting(

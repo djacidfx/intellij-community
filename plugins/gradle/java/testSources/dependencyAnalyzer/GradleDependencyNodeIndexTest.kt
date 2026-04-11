@@ -11,8 +11,8 @@ import org.jetbrains.plugins.gradle.frameworkSupport.GradleDsl
 import org.jetbrains.plugins.gradle.frameworkSupport.buildscript.GradleBuildScriptBuilder.Companion.buildScript
 import org.jetbrains.plugins.gradle.importing.BuildViewMessagesImportingTestCase.Companion.assertNodeWithDeprecatedGradleWarning
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
-import org.jetbrains.plugins.gradle.testFramework.util.assertThatConfigurationCacheIsSupported
-import org.jetbrains.plugins.gradle.testFramework.util.assertThatIsolatedProjectsIsSupported
+import org.jetbrains.plugins.gradle.testFramework.util.CONFIGURATION_CACHE_SUPPORTED_VERSIONS
+import org.jetbrains.plugins.gradle.testFramework.util.ISOLATED_PROJECTS_SUPPORTED_VERSIONS
 import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
 import org.junit.jupiter.params.ParameterizedTest
 
@@ -26,17 +26,15 @@ class GradleDependencyNodeIndexTest : GradleDependencyNodeIndexTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("8.1+")
+  @TargetVersions(CONFIGURATION_CACHE_SUPPORTED_VERSIONS)
   fun `test collecting dependency nodes with configuration cache`(gradleVersion: GradleVersion) {
-    assertThatConfigurationCacheIsSupported(gradleVersion)
     testCollectingDependencyNodes(gradleVersion, "org.gradle.configuration-cache=true")
   }
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("8.8+")
+  @TargetVersions(ISOLATED_PROJECTS_SUPPORTED_VERSIONS)
   fun `test collecting dependency nodes with isolated projects`(gradleVersion: GradleVersion) {
-    assertThatIsolatedProjectsIsSupported(gradleVersion)
     testCollectingDependencyNodes(gradleVersion, "org.gradle.unsafe.isolated-projects=true")
   }
 

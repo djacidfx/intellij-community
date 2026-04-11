@@ -12,9 +12,7 @@ import org.jetbrains.kotlin.idea.test.UseK2PluginMode
 import org.jetbrains.kotlin.idea.testFramework.gradle.KotlinGradleProjectTestCase
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
 import org.jetbrains.plugins.gradle.testFramework.fixtures.application.GradleProjectTestApplication
-import org.jetbrains.plugins.gradle.testFramework.util.assertThatGradleIsAtLeast
-import org.jetbrains.plugins.gradle.testFramework.util.assertThatGradleIsOlderThan
-import org.jetbrains.plugins.gradle.testFramework.util.assertThatKotlinIsSupported
+import org.jetbrains.plugins.gradle.testFramework.util.KOTLIN_SUPPORTED_VERSIONS
 import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
 import org.junit.jupiter.params.ParameterizedTest
 import kotlin.io.path.Path
@@ -32,14 +30,11 @@ class KotlinGradleWorkspaceModelTest : KotlinGradleProjectTestCase() {
 
     @ParameterizedTest
     @AllGradleVersionsSource
-    @TargetVersions("6.0+", "<9.1.0")
+    @TargetVersions(
+        "6.0+", "<9.1.0",
+        reason = "Script definitions were introduced in Gradle 6.0. Script definitions classes were changed in Gradle 9.1.0"
+    )
     fun `wsm should contain script definition entities after gradle sync`(gradleVersion: GradleVersion) {
-        assertThatGradleIsAtLeast(gradleVersion, "6.0") {
-            "Script definitions were introduced in Gradle 6.0"
-        }
-        assertThatGradleIsOlderThan(gradleVersion, "9.1.0") {
-            "Script definitions classes were changed in Gradle 9.1.0"
-        }
         test(gradleVersion, KOTLIN_PROJECT) {
             assertEqualsUnordered(
                 listOf(
@@ -53,11 +48,8 @@ class KotlinGradleWorkspaceModelTest : KotlinGradleProjectTestCase() {
 
     @ParameterizedTest
     @AllGradleVersionsSource
-    @TargetVersions("6.0+")
+    @TargetVersions("6.0+", reason = "Script definitions were introduced in Gradle 6.0")
     fun `wsm should contain script entities after gradle sync`(gradleVersion: GradleVersion) {
-        assertThatGradleIsAtLeast(gradleVersion, "6.0") {
-            "Script definitions were introduced in Gradle 6.0"
-        }
         test(gradleVersion, KOTLIN_PROJECT) {
             val projectPath = gradleFixture.project.basePath!!
             val expected = listOf("build.gradle.kts", "settings.gradle.kts").mapNotNull {
@@ -72,12 +64,8 @@ class KotlinGradleWorkspaceModelTest : KotlinGradleProjectTestCase() {
 
     @ParameterizedTest
     @AllGradleVersionsSource
-    @TargetVersions("5.6.2+", "<6.0")
+    @TargetVersions(KOTLIN_SUPPORTED_VERSIONS, "<6.0", reason = "Script definitions were introduced in Gradle 6.0")
     fun `wsm should not contain script definition entities after gradle sync`(gradleVersion: GradleVersion) {
-        assertThatKotlinIsSupported(gradleVersion)
-        assertThatGradleIsOlderThan(gradleVersion, "6.0") {
-            "Script definitions were introduced in Gradle 6.0"
-        }
         test(gradleVersion, KOTLIN_PROJECT) {
             assert(currentSnapshot.entities(GradleScriptDefinitionEntity::class.java).none())
         }
@@ -85,11 +73,8 @@ class KotlinGradleWorkspaceModelTest : KotlinGradleProjectTestCase() {
 
     @ParameterizedTest
     @AllGradleVersionsSource
-    @TargetVersions("9.1.0+")
+    @TargetVersions("9.1.0+", reason = "Script definitions classes were changed in Gradle 9.1.0")
     fun `wsm should contain new script definition entities after gradle sync`(gradleVersion: GradleVersion) {
-        assertThatGradleIsAtLeast(gradleVersion, "9.1.0") {
-            "Script definitions classes were changed in Gradle 9.1.0"
-        }
         test(gradleVersion, KOTLIN_PROJECT) {
             assertEqualsUnordered(
                 listOf(

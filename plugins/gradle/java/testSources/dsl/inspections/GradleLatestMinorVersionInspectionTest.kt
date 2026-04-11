@@ -7,10 +7,12 @@ import org.jetbrains.plugins.gradle.jvmcompat.GradleJvmSupportMatrix
 import org.jetbrains.plugins.gradle.testFramework.GradleCodeInsightTestCase
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
 import org.jetbrains.plugins.gradle.testFramework.annotations.GradleTestSource
-import org.jetbrains.plugins.gradle.tooling.VersionMatcherRule
+import org.jetbrains.plugins.gradle.testFramework.util.DEPRECATED_BY_IDEA_VERSIONS
+import org.jetbrains.plugins.gradle.testFramework.util.NON_DEPRECATED_BY_IDEA_VERSIONS
+import org.jetbrains.plugins.gradle.tooling.VersionMatcherRule.Companion.BASE_GRADLE_VERSION
 import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
-import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.Assumptions
+import org.junit.jupiter.api.Assumptions.assumeFalse
+import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.params.ParameterizedTest
 
 class GradleLatestMinorVersionInspectionTest : GradleCodeInsightTestCase() {
@@ -24,22 +26,11 @@ class GradleLatestMinorVersionInspectionTest : GradleCodeInsightTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("6.9+")
+  @TargetVersions("6.1+", reason = "Test non-deprecated by Idea Gradle versions and skip 6.0")
   fun testAlreadyLatestMinorVersion(gradleVersion: GradleVersion) {
-    assumeThatGradleVersionIsLatestMinor(gradleVersion)
-    runTest(gradleVersion) {
-      testHighlighting(
-        "gradle/wrapper/gradle-wrapper.properties",
-        "distributionUrl=https\\://services.gradle.org/distributions/gradle-${gradleVersion.version}-bin.zip"
-      )
+    assumeTrue(isLatestMinorGradleVersion(gradleVersion)) {
+      "Gradle ${gradleVersion.version} is not the latest minor version."
     }
-  }
-
-  @ParameterizedTest(allowZeroInvocations = true) // TODO remove flag when `gradle.versions.to.run` is changed from `LAST:*` IDEA-382646
-  @AllGradleVersionsSource
-  @TargetVersions("<6.0")
-  fun testDeprecatedVersion(gradleVersion: GradleVersion) {
-    assertThatGradleVersionIsDeprecated(gradleVersion)
     runTest(gradleVersion) {
       testHighlighting(
         "gradle/wrapper/gradle-wrapper.properties",
@@ -50,10 +41,26 @@ class GradleLatestMinorVersionInspectionTest : GradleCodeInsightTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("6.0+", "!${VersionMatcherRule.BASE_GRADLE_VERSION}")
+  @TargetVersions(DEPRECATED_BY_IDEA_VERSIONS, reason = "Only test deprecated by Idea Gradle versions")
+  fun testDeprecatedVersion(gradleVersion: GradleVersion) {
+    runTest(gradleVersion) {
+      testHighlighting(
+        "gradle/wrapper/gradle-wrapper.properties",
+        "distributionUrl=https\\://services.gradle.org/distributions/gradle-${gradleVersion.version}-bin.zip"
+      )
+    }
+  }
+
+  @ParameterizedTest
+  @AllGradleVersionsSource
+  @TargetVersions(
+    NON_DEPRECATED_BY_IDEA_VERSIONS, "<$BASE_GRADLE_VERSION",
+    reason = "Test non-latest minor Gradle versions, skip current latest"
+  )
   fun testNotLatestMinorVersion(gradleVersion: GradleVersion) {
-    assertThatGradleVersionIsNotDeprecated(gradleVersion)
-    assumeThatGradleVersionIsNotLatestMinor(gradleVersion)
+    assumeFalse(isLatestMinorGradleVersion(gradleVersion)) {
+      "Gradle ${gradleVersion.version} is the latest minor version."
+    }
     runTest(gradleVersion) {
       testHighlighting(
         "gradle/wrapper/gradle-wrapper.properties",
@@ -131,10 +138,15 @@ class GradleLatestMinorVersionInspectionTest : GradleCodeInsightTestCase() {
 
   @ParameterizedTest
   @AllGradleVersionsSource
-  @TargetVersions("6.0+", "!${VersionMatcherRule.BASE_GRADLE_VERSION}")
+  @TargetVersions(
+    NON_DEPRECATED_BY_IDEA_VERSIONS, "<$BASE_GRADLE_VERSION",
+    reason = "Test non-latest minor Gradle versions, skip current latest"
+  )
   fun testUpgradeAllVersions(gradleVersion: GradleVersion) {
-    assertThatGradleVersionIsNotDeprecated(gradleVersion)
-    assumeThatGradleVersionIsNotLatestMinor(gradleVersion)
+    assumeFalse(isLatestMinorGradleVersion(gradleVersion)) {
+      "Gradle ${gradleVersion.version} is the latest minor version."
+    }
+
     val latestGradleMinorVersion = GradleJvmSupportMatrix.getLatestMinorGradleVersion(gradleVersion.majorVersion).version
 
     runTest(gradleVersion) {
@@ -145,30 +157,6 @@ class GradleLatestMinorVersionInspectionTest : GradleCodeInsightTestCase() {
         "Switch to Gradle $latestGradleMinorVersion"
       )
     }
-  }
-}
-
-private fun assumeThatGradleVersionIsLatestMinor(gradleVersion: GradleVersion) {
-  Assumptions.assumeTrue(isLatestMinorGradleVersion(gradleVersion)) {
-    "Gradle ${gradleVersion.version} is the latest minor version."
-  }
-}
-
-private fun assumeThatGradleVersionIsNotLatestMinor(gradleVersion: GradleVersion) {
-  Assumptions.assumeFalse(isLatestMinorGradleVersion(gradleVersion)) {
-    "Gradle ${gradleVersion.version} is not the latest minor version."
-  }
-}
-
-private fun assertThatGradleVersionIsDeprecated(gradleVersion: GradleVersion) {
-  Assertions.assertTrue(GradleJvmSupportMatrix.isGradleDeprecatedByIdea(gradleVersion)) {
-    "Gradle ${gradleVersion.version} is deprecated by IntelliJ IDEA."
-  }
-}
-
-private fun assertThatGradleVersionIsNotDeprecated(gradleVersion: GradleVersion) {
-  Assertions.assertFalse(GradleJvmSupportMatrix.isGradleDeprecatedByIdea(gradleVersion)) {
-    "Gradle ${gradleVersion.version} is not deprecated by IntelliJ IDEA."
   }
 }
 
