@@ -7,7 +7,6 @@ import org.jetbrains.plugins.gradle.testFramework.annotations.ArgumentsProcessor
 import org.jetbrains.plugins.gradle.testFramework.annotations.BaseGradleVersionSource
 import org.jetbrains.plugins.gradle.tooling.VersionMatcherRule
 import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
-import org.jetbrains.plugins.gradle.tooling.util.VersionMatcher
 import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.support.ParameterDeclarations
@@ -23,11 +22,10 @@ class BaseGradleVersionArgumentsProcessor : ArgumentsProcessor<BaseGradleVersion
 
   override fun provideArguments(parameters: ParameterDeclarations, context: ExtensionContext): Stream<out Arguments> {
     val targetVersions = context.testMethod.orNull()?.getAnnotation(TargetVersions::class.java)
-    val gradleVersion = GradleVersion.version(VersionMatcherRule.BASE_GRADLE_VERSION)
+    if (targetVersions != null)
+      throw IllegalArgumentException("@BaseGradleVersionSource does not support Gradle version ranges. Use regular assertions instead.")
 
-    if (!VersionMatcher(gradleVersion).isVersionMatch(targetVersions)) {
-      return Stream.empty()
-    }
+    val gradleVersion = GradleVersion.version(VersionMatcherRule.BASE_GRADLE_VERSION)
 
     return CsvCrossProductArgumentsProcessor.crossProduct(listOf(gradleVersion), annotation.value.toList(), ',', ':')
   }
