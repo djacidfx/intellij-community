@@ -496,11 +496,31 @@ function rewriteRelativePaths(text, sourceDir, targetDir) {
 async function writeSkillStub(targetDir, skillDirName, sourceContent, sourcePath) {
   const skillDir = join(targetDir, skillDirName);
   await mkdir(skillDir, {recursive: true});
+
+  // Copy supporting files (everything except SKILL.md itself) from the source
+  // skill directory to the target. This ensures ${CLAUDE_SKILL_DIR} resolves
+  // to a directory that contains all bundled scripts and assets.
+  const sourceDir = dirname(sourcePath);
+  if (sourceDir !== skillDir) {
+    const sourceEntries = await readdir(sourceDir, {withFileTypes: true});
+    for (const entry of sourceEntries) {
+      if (entry.name === "SKILL.md") {
+        continue; // Written separately below as a generated stub.
+      }
+      const entrySource = join(sourceDir, entry.name);
+      const entryTarget = join(skillDir, entry.name);
+      if (entry.isDirectory()) {
+        await copyDirectory(entrySource, entryTarget);
+      } else if (entry.isFile()) {
+        await copyFile(entrySource, entryTarget);
+      }
+    }
+  }
+
   const targetPath = join(skillDir, "SKILL.md");
   const relSource = toPosixPath(relative(repoRoot, sourcePath));
   const frontmatter = extractFrontmatter(sourceContent);
   let body = frontmatter ? sourceContent.slice(frontmatter.length).replace(/^\n+/, "") : sourceContent;
-  const sourceDir = dirname(sourcePath);
   if (sourceDir !== skillDir) {
     body = rewriteRelativePaths(body, sourceDir, skillDir);
   }
