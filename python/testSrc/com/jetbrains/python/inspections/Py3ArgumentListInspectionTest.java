@@ -682,29 +682,6 @@ public class Py3ArgumentListInspectionTest extends PyInspectionTestCase {
                    """);
   }
 
-  // PY-77611
-  public void testClassDunderNewInPresenceOfInit() {
-    doTestByText("""
-                   class C:
-                       def __new__(cls) -> int: ...
-                   
-                       def __init__(self, x: int): ...
-                   
-                   
-                   c1 = C()
-                   c2 = C(<warning descr="Unexpected argument">1</warning>)
-                   
-                   class Base:
-                       def __new__(cls, x: int) -> Base: ...
-                   
-                   class Derived(Base):
-                       def __init__(self): ...
-
-                   d = Derived(1)
-                   d = Derived(<warning descr="Parameter 'x' unfilled">)</warning>
-                   """);
-  }
-
   // PY-72077
   public void testPydanticPopulateByNameWithAlias() {
     myFixture.copyDirectoryToProject("stubs/pydantic", "pydantic");

@@ -4,6 +4,7 @@ package com.jetbrains.python
 import com.intellij.codeInspection.LocalInspectionTool
 import com.intellij.idea.TestFor
 import com.jetbrains.python.fixtures.PyInspectionTestCase
+import com.jetbrains.python.inspections.PyArgumentListInspection
 import com.jetbrains.python.inspections.PyAssertTypeInspection
 import com.jetbrains.python.inspections.PyTypeCheckerInspection
 import com.jetbrains.python.inspections.unresolvedReference.PyUnresolvedReferencesInspection
@@ -12,6 +13,7 @@ internal class PyConstructorTypeTest : PyInspectionTestCase() {
   override fun getInspectionClass(): Class<PyAssertTypeInspection> = PyAssertTypeInspection::class.java
 
   override fun getAdditionalInspectionClasses(): List<Class<out LocalInspectionTool>> = listOf(
+    PyArgumentListInspection::class.java,
     PyTypeCheckerInspection::class.java,
     PyUnresolvedReferencesInspection::class.java
   )
@@ -31,6 +33,33 @@ internal class PyConstructorTypeTest : PyInspectionTestCase() {
       assert_type(MyClass(1.0), list[float])
       """.trimIndent()
     )
+  }
+
+  @TestFor(issues = ["PY-77611"])
+  fun `test __new__ with incompatible return type`() {
+    doTestByText("""
+      from typing import assert_type
+
+      class C:
+          def __new__(cls) -> int:
+              return 1
+
+          def __init__(self, x: int):
+              ...
+
+      assert_type(C(), int)
+      C(<warning descr="Unexpected argument">1</warning>)
+      
+      
+      class Base:
+          def __new__(cls, x: int) -> Base: ...
+
+      class Derived(Base):
+          def __init__(self): ...
+
+      assert_type(Derived(1), Base)
+      Derived(<warning descr="Parameter 'x' unfilled">)</warning>
+    """.trimIndent())
   }
 
   fun `test generic class __new__ with compatible return type`() {
