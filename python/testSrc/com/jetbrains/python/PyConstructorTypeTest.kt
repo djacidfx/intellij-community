@@ -18,21 +18,97 @@ internal class PyConstructorTypeTest : PyInspectionTestCase() {
     PyUnresolvedReferencesInspection::class.java
   )
 
-  fun `test generic class metaclass __call__ with incompatible return type`() {
+  override fun getTestCaseDirectory(): String = "inspections/PyConstructorType/"
+
+  fun `test metaclass __call__ with incompatible return type`() {
     doTestByText("""
-      from typing import assert_type
+      from typing import assert_type, Self
 
       class Meta(type):
           def __call__[T](cls, t: T) -> list[T]: ...
 
-      class MyClass[T](metaclass=Meta): ...
+      class MyGeneric[T](metaclass=Meta): ...
 
-      assert_type(MyClass[int](1), list[int]) # PY-88644
-      assert_type(MyClass[int](1.0), list[float]) # PY-88644
-      assert_type(MyClass(1), list[int])
-      assert_type(MyClass(1.0), list[float])
+      assert_type(MyGeneric[int](1), list[int]) # PY-88644
+      assert_type(MyGeneric[int](1.0), list[float]) # PY-88644
+      assert_type(MyGeneric(1), list[int])
+      assert_type(MyGeneric(1.0), list[float])
+      
+
+      class MyClass(metaclass=Meta):
+          def __new__(cls) -> Self: ...
+      
+      assert_type(MyClass('ab'), list[str])
       """.trimIndent()
     )
+  }
+
+  fun `test metaclass __call__ returns type var`() {
+    doTestByText("""
+      from typing import assert_type, Self
+      
+      class Meta(type):
+          def __call__[T](cls: type[T], *args, **kwargs) -> T: ...
+      
+      class MyClass(metaclass=Meta):
+          def __new__(cls, p) -> Self: ...
+      
+      assert_type(MyClass(1), MyClass)
+      MyClass(<warning descr="Parameter 'p' unfilled">)</warning>
+      """.trimIndent())
+  }
+
+  fun `test metaclass __call__ returns derived class instance`() {
+    doTestByText("""
+      from typing import assert_type, Self
+      
+      class Meta(type):
+          def __call__(self) -> 'Derived': ...
+      
+      class Base(metaclass=Meta):
+          def __new__(cls, *args, **kwargs) -> Self: ...
+      
+      class Derived(Base): ...
+      
+      assert_type(Base(), Base)
+      assert_type(Derived(), Derived)
+      """.trimIndent())
+  }
+
+  fun `test metaclass __call__ returns object`() {
+    doTestByText("""
+      from typing import assert_type, Self
+      
+      class Meta(type):
+          def call(cls) -> object: ...
+      
+          __call__ = call
+      
+      class MyClass(metaclass=Meta):
+          def __new__(cls, p) -> Self: ...
+      
+      assert_type(MyClass(), object)
+      MyClass(<warning descr="Unexpected argument">1</warning>)
+      """.trimIndent())
+  }
+
+  fun testMetaclassCallReturnsObjectMultifile() {
+    doMultiFileTest("a.py")
+  }
+
+  fun `test metaclass __call__ not annotated`() {
+    doTestByText("""
+      from typing import assert_type, Self
+      
+      class Meta(type):
+          def __call__(cls, p: int): ...
+      
+      class MyClass(metaclass=Meta):
+          def __new__(cls, *args, **kwargs) -> Self: ...
+      
+      assert_type(MyClass(1), MyClass)
+      MyClass(1, 2) # TODO (PY-80602): Missing error 'Unexpected argument'
+      """.trimIndent())
   }
 
   @TestFor(issues = ["PY-77611"])
