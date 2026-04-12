@@ -53,6 +53,7 @@ import org.jetbrains.kotlin.analysis.api.symbols.KaNamedFunctionSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaPropertySymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolModality
 import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolOrigin
+import org.jetbrains.kotlin.analysis.api.symbols.KaTypeAliasSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaTypeParameterSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaValueParameterSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.findClass
@@ -628,6 +629,10 @@ private fun generateClass(
             }
             is KaEnumEntrySymbol -> {
                 KtPsiFactory(project).createEnumEntry(declaration.render(renderer))
+            }
+            is KaTypeAliasSymbol -> {
+                // Skip nested type aliases: expect/actual nested type aliases are forbidden
+                null
             }
             else -> {
                 error("Unsupported declaration type: ${declaration::class}")
