@@ -1405,6 +1405,22 @@ public class NormalCompletionTest extends NormalCompletionTestCase {
 
   public void testNewClassAngleBracketExpected() { doTest("<"); }
 
+  public void testAngleBracketInClassBody() { doTest("<"); }
+
+  public void testAngleBracketInClassBodyAfterMethod() { doTest("<"); }
+
+  public void testAngleBracketInClassBodyBeforeMethod() { doTest("<"); }
+
+  public void testAngleBracketInClassBodyBetweenMethods() { doTest("<"); }
+
+  public void testAngleBracketInFieldInitializer() { doTest("<"); }
+
+  public void testAngleBracketAfterField() { doTest("<"); }
+
+  public void testAngleBracketBeforeField() { doTest("<"); }
+
+  public void testAngleBracketAfterCommentInClassBody() { doTest("<"); }
+
   public void testAngleBracketAfterKeyword() { doTest("<"); }
 
   public void testNewClassSquareBracket() { doTest("["); }

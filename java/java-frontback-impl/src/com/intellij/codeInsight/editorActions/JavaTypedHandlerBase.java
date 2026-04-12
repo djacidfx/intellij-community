@@ -61,7 +61,6 @@ import com.intellij.psi.TokenType;
 import com.intellij.psi.codeStyle.CodeStyleManager;
 import com.intellij.psi.javadoc.PsiDocComment;
 import com.intellij.psi.tree.IElementType;
-import com.intellij.psi.tree.TokenSet;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.util.PsiUtil;
 import com.intellij.util.text.CharArrayUtil;
@@ -70,20 +69,8 @@ import org.jetbrains.annotations.Nullable;
 
 
 public class JavaTypedHandlerBase extends TypedHandlerDelegate {
-  private static final TokenSet KEYWORDS_BEFORE_METHOD_TYPE_PARAMETERS = TokenSet.create(
-    JavaTokenType.PUBLIC_KEYWORD,
-    JavaTokenType.PROTECTED_KEYWORD,
-    JavaTokenType.PRIVATE_KEYWORD,
-    JavaTokenType.STATIC_KEYWORD,
-    JavaTokenType.FINAL_KEYWORD,
-    JavaTokenType.ABSTRACT_KEYWORD,
-    JavaTokenType.DEFAULT_KEYWORD,
-    JavaTokenType.SYNCHRONIZED_KEYWORD,
-    JavaTokenType.NATIVE_KEYWORD,
-    JavaTokenType.STRICTFP_KEYWORD
-  );
-
   private boolean myJavaLTTyped;
+  private boolean myJavaLTTypedInClassBody;
 
   protected JavaTypedHandlerBase() {
   }
@@ -158,11 +145,15 @@ public class JavaTypedHandlerBase extends TypedHandlerDelegate {
     int offsetBefore = editor.getCaretModel().getOffset();
 
     //important to calculate before inserting charTyped
-    myJavaLTTyped = '<' == c &&
-                    !isJspFile(file) &&
-                    CodeInsightSettings.getInstance().AUTOINSERT_PAIR_BRACKET &&
-                    isLanguageLevel5OrHigher(file) &&
-                    isAfterGenericLtStart(offsetBefore, editor);
+    myJavaLTTyped = false;
+    myJavaLTTypedInClassBody = false;
+    if ('<' == c &&
+        !isJspFile(file) &&
+        CodeInsightSettings.getInstance().AUTOINSERT_PAIR_BRACKET &&
+        isLanguageLevel5OrHigher(file)) {
+      myJavaLTTypedInClassBody = isAtTopLevelInClassBody(offsetBefore, editor, file);
+      myJavaLTTyped = myJavaLTTypedInClassBody || isAfterGenericLtStart(offsetBefore, editor);
+    }
 
     if ('>' == c) {
       if (!isJspFile(file) && CodeInsightSettings.getInstance().AUTOINSERT_PAIR_BRACKET && isLanguageLevel5OrHigher(file)) {
@@ -271,7 +262,36 @@ public class JavaTypedHandlerBase extends TypedHandlerDelegate {
     if (offset != iterator.getEnd() && iterator.getStart() > 0) {
       iterator.retreat();
     }
-    return KEYWORDS_BEFORE_METHOD_TYPE_PARAMETERS.contains(iterator.getTokenType());
+    return JavaTypingTokenSets.KEYWORDS_BEFORE_METHOD_TYPE_PARAMETERS.contains(iterator.getTokenType());
+  }
+
+  private static boolean isAtTopLevelInClassBody(int offset, @NotNull Editor editor, @NotNull PsiFile file) {
+    PsiDocumentManager.getInstance(file.getProject()).commitDocument(editor.getDocument());
+    PsiElement element = file.findElementAt(offset);
+    if (element == null && offset > 0) {
+      element = file.findElementAt(offset - 1);
+    }
+    if (element == null || !(element.getParent() instanceof PsiClass aClass)) {
+      return false;
+    }
+
+    if (aClass.isAnnotationType()) {
+      return false;
+    }
+    PsiElement lBrace = aClass.getLBrace();
+    if (lBrace == null || offset <= lBrace.getTextRange().getEndOffset()) {
+      return false;
+    }
+    PsiElement rBrace = aClass.getRBrace();
+    if (rBrace != null && offset > rBrace.getTextRange().getStartOffset()) {
+      return false;
+    }
+    PsiElement previousVisibleLeaf = PsiTreeUtil.prevVisibleLeaf(element);
+    if (previousVisibleLeaf != null &&
+        PsiTreeUtil.getParentOfType(previousVisibleLeaf, PsiExpression.class, false, PsiMember.class) != null) {
+      return false;
+    }
+    return true;
   }
 
   private static @Nullable Result processOpenBraceInOneLineCaseRule(@NotNull Project project,
@@ -382,7 +402,15 @@ public class JavaTypedHandlerBase extends TypedHandlerDelegate {
 
     if (myJavaLTTyped) {
       myJavaLTTyped = false;
-      TypedHandlerUtil.handleAfterGenericLT(editor, JavaTokenType.LT, JavaTokenType.GT, JavaTypingTokenSets.INVALID_INSIDE_REFERENCE);
+      if (myJavaLTTypedInClassBody) {
+        myJavaLTTypedInClassBody = false;
+        int offset = editor.getCaretModel().getOffset();
+        editor.getDocument().insertString(offset, ">");
+        TabOutScopesTracker.getInstance().registerEmptyScope(editor, offset);
+      }
+      else {
+        TypedHandlerUtil.handleAfterGenericLT(editor, JavaTokenType.LT, JavaTokenType.GT, JavaTypingTokenSets.INVALID_INSIDE_REFERENCE);
+      }
       return Result.STOP;
     }
     else if (c == ':') {
