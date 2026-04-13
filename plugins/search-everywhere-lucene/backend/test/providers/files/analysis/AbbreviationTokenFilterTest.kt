@@ -79,13 +79,12 @@ class AbbreviationTokenFilterTest : AnalyzersTestBase() {
   @Test
   fun `multiple abbreviations with allowedSkip`() {
     // SearchEveryWhereUI -> [Search, Every, Where, UI], allowedSkip=1, minLength=2
-    // size=4: "sewu"; size=3: "sew"(skip UI), "seu"(skip Where), "swu"(skip Every), "ewu"(skip Search)
+    // size=4: "sewu"; size=3: "sew"(skip UI), "seu"(skip Where), "swu"(skip Every); first part always included
     tokenizing(abbreviationAnalyzer(1), "SearchEveryWhereUI")
       .producesToken("sewu", FileTokenType.FILENAME_ABBREVIATION)
       .producesToken("sew", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS)
       .producesToken("seu", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS)
       .producesToken("swu", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS)
-      .producesToken("ewu", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS)
       .noDuplicateTokens()
   }
 

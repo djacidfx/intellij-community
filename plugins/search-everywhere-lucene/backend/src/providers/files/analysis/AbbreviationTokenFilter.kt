@@ -10,7 +10,7 @@ import org.apache.lucene.analysis.TokenStream
  * buffered parts are re-emitted lowercased, followed by the flushing non-source token lowercased.
  *
  * [allowedSkip] controls how many parts may be omitted per abbreviation: all ordered subsequences
- * with ≤ [allowedSkip] omissions are emitted. Default 0 produces one abbreviation.
+ * with ≤ [allowedSkip] omissions are emitted, always keeping the first part. Default 0 produces one abbreviation.
  *
  * Abbreviation of a token sequence: first char of each token (lowercased)
  */
@@ -34,20 +34,21 @@ class AbbreviationTokenFilter(
     val minSubsetSize = maxOf(1, parts.size - allowedSkip)
     for (size in parts.size downTo minSubsetSize) {
       val type = if (size < parts.size) skipOutputType else outputType
-      forEachCombination(parts.size, size) { indices ->
-        val subParts = indices.map { parts[it] }
-        val abbrev = buildAbbreviation(subParts)
-        if (abbrev.length >= minLength && seen.add(abbrev)) {
-          result.add(BufferedToken(abbrev, setOf(type), abbrevStart, abbrevEnd))
+      if (size == parts.size) {
+        forEachCombination(parts.size, size) { indices ->
+          val subParts = indices.map { parts[it] }
+          val abbrev = buildAbbreviation(subParts)
+          if (abbrev.length >= minLength && seen.add(abbrev)) {
+            result.add(BufferedToken(abbrev, setOf(type), abbrevStart, abbrevEnd))
+          }
         }
-        // Progressive abbreviations: extend the last part with 2, 3, ... chars
-        // so that e.g. "MHT" can match "MyHTTP" via 'm'+'ht'.
-        val prefix = buildAbbreviation(subParts.dropLast(1))
-        val lastTerm = subParts.last().term.lowercase()
-        for (len in 2..lastTerm.length) {
-          val progressive = prefix + lastTerm.substring(0, len)
-          if (progressive.length >= minLength && seen.add(progressive)) {
-            result.add(BufferedToken(progressive, setOf(type), abbrevStart, abbrevEnd))
+      } else {
+        // Skip combinations: first part (index 0) is always included
+        forEachCombination(parts.size - 1, size - 1) { tailIndices ->
+          val subParts = listOf(parts[0]) + tailIndices.map { parts[it + 1] }
+          val abbrev = buildAbbreviation(subParts)
+          if (abbrev.length >= minLength && seen.add(abbrev)) {
+            result.add(BufferedToken(abbrev, setOf(type), abbrevStart, abbrevEnd))
           }
         }
       }
@@ -67,7 +68,8 @@ class AbbreviationTokenFilter(
   }
 
   private fun forEachCombination(n: Int, k: Int, action: (IntArray) -> Unit) {
-    if (k == 0 || k > n) return
+    if (k > n) return
+    if (k == 0) { action(IntArray(0)); return }
     val indices = IntArray(k) { it }
     while (true) {
       action(indices)

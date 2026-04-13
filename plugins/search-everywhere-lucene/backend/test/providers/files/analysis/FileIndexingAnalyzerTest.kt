@@ -31,7 +31,6 @@ class FileIndexingAnalyzerTest : AnalyzersTestBase() {
       .producesToken("sew", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS, 0, 18)
       .producesToken("seu", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS, 0, 18)
       .producesToken("swu", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS, 0, 18)
-      .producesToken("ewu", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS, 0, 18)
   }
 
   @Test
