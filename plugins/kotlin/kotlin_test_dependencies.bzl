@@ -231,12 +231,6 @@ download_file(
 )
 
 download_file(
-    name = "kotlin-compiler-testdata-for-ide.jar",
-    url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/kotlin-compiler-testdata-for-ide/{0}/kotlin-compiler-testdata-for-ide-{0}.jar".format(kotlinCompilerCliVersion),
-    sha256 = "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3",
-)
-
-download_file(
     name = "kotlin-compiler.jar",
     url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/kotlin/kotlin-compiler/{0}/kotlin-compiler-{0}.jar".format(kotlinCompilerCliVersion),
     sha256 = "e12845ab97e90eceac99b6bcb5675b1316fb18643b79f95fba85c5e26e4c2681",
