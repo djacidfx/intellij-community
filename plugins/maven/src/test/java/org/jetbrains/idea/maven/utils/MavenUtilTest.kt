@@ -18,6 +18,7 @@ import org.jetbrains.idea.maven.utils.MavenUtil.isMaven410
 import java.io.IOException
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
+import java.nio.file.Paths
 import java.util.Properties
 
 class MavenUtilTest : MavenTestCase() {
@@ -256,8 +257,8 @@ class MavenUtilTest : MavenTestCase() {
     createProjectSubFile(".mvn/maven.config", "-t\ntoolchains-path.xml")
     createProjectSubFile("toolchains-path.xml")
     val config = MavenConfigParser.parse(projectPath.toString())
-    val toolchainsFile = MavenEelUtil.getToolchainsFile(project, "/path/to/my-toolchains.xml", config)
-    assertEquals("/path/to/my-toolchains.xml", toolchainsFile.toString())
+    val toolchainsFile = MavenEelUtil.getToolchainsFile(project, "path/to/my-toolchains.xml", config)
+    assertEquals(Paths.get("path", "to", "my-toolchains.xml"), toolchainsFile)
   }
 
   fun testBaseDirIOfNoDotMvn() {
