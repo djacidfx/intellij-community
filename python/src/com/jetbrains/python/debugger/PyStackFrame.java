@@ -24,7 +24,6 @@ import com.jetbrains.python.debugger.pydev.ProcessDebugger;
 import com.jetbrains.python.debugger.pydev.ProtocolParser;
 import com.jetbrains.python.debugger.settings.PyDebuggerSettings;
 import com.jetbrains.python.psi.PyUtil;
-import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -35,15 +34,13 @@ import java.util.Set;
 import static com.jetbrains.python.debugger.PyDebugValueGroupsKt.addGroupValues;
 
 public class PyStackFrame extends XStackFrame {
-  @ApiStatus.Internal
-  protected static final Logger LOG = Logger.getInstance(PyStackFrame.class);
+  private static final Logger LOG = Logger.getInstance(PyStackFrame.class);
 
   private static final Object STACK_FRAME_EQUALITY_OBJECT = new Object();
   public static final @NotNull @NonNls Set<String> COMPREHENSION_NAMES = Set.of("<genexpr>", "<listcomp>", "<dictcomp>",
                                                                                 "<setcomp>");
   private final Project myProject;
-  @ApiStatus.Internal
-  protected final PyFrameAccessor myDebugProcess;
+  private final PyFrameAccessor myDebugProcess;
   private final PyStackFrameInfo myFrameInfo;
   private final XSourcePosition myPosition;
   private volatile boolean isExternal = true;
@@ -214,8 +211,7 @@ public class PyStackFrame extends XStackFrame {
     descriptorsCache.put(threadFrameId, childrenDescriptors);
   }
 
-  @ApiStatus.Internal
-  protected void restoreValueDescriptor(PyDebugValue value) {
+  private void restoreValueDescriptor(PyDebugValue value) {
     if (myChildrenDescriptors != null) {
       PyDebugValueDescriptor descriptor = myChildrenDescriptors.getOrDefault(value.getName(), null);
       if (descriptor == null) {

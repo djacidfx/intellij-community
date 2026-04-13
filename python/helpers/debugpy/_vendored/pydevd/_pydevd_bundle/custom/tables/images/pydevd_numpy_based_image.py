@@ -1,19 +1,47 @@
 #  Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-from pycharm_tables.images.pydevd_image_loader import (save_image_to_storage, GRAYSCALE_MODE, RGB_MODE, RGBA_MODE)
+import numpy as np
+from _pydevd_bundle.custom.tables.images.pydevd_image_loader import (save_image_to_storage, GRAYSCALE_MODE, RGB_MODE, RGBA_MODE)
+
+try:
+    import tensorflow as tf
+except ImportError:
+    pass
+try:
+    import torch
+except ImportError:
+    pass
+
 
 MAX_PIXELS = 144_000_000
-MAX_DIMENSION = 15_000
 
 def create_image(arr):
     # type: (np.ndarray) -> str
     try:
-        import numpy as np
         from PIL import Image
 
-        data_type = arr.dtype.name
+        if hasattr(arr.dtype, 'name'):
+            data_type = arr.dtype.name
+        else:
+            data_type = arr.dtype
         arr_to_convert = arr
-        is_original_bool = np.issubdtype(arr.dtype, np.bool_)
 
+        try:
+            import tensorflow as tf
+            if isinstance(arr_to_convert, tf.SparseTensor):
+                arr_to_convert = tf.sparse.to_dense(tf.sparse.reorder(arr_to_convert))
+        except ImportError:
+            pass
+        try:
+            import torch
+            if isinstance(arr_to_convert, torch.Tensor):
+                if arr_to_convert.requires_grad:
+                    arr_to_convert = arr_to_convert.detach()
+                arr_to_convert = arr_to_convert.to_dense()
+        except Exception:
+            pass
+
+        arr_to_convert = arr_to_convert.numpy()
+        is_original_bool = np.issubdtype(arr_to_convert.dtype, np.bool_)
         arr_to_convert = np.where(arr_to_convert == None, 0, arr_to_convert)
         arr_to_convert = np.nan_to_num(arr_to_convert, nan=0, posinf=255, neginf=0)
 
@@ -28,14 +56,10 @@ def create_image(arr):
         h, w = arr_to_convert.shape[:2]
         channels = arr_to_convert.shape[2] if arr_to_convert.ndim == 3 else 1
         total_pixels = h * w * channels
-        if (total_pixels > MAX_PIXELS) or (h > MAX_DIMENSION) or (w > MAX_DIMENSION):
-            scale_h = min(1.0, MAX_DIMENSION / float(h))
-            scale_w = min(1.0, MAX_DIMENSION / float(w))
-            scale_p = (MAX_PIXELS / float(total_pixels)) ** 0.5 if total_pixels > MAX_PIXELS else 1.0
-            scale = min(scale_h, scale_w, scale_p)
-            new_h, new_w = max(1, int(round(h * scale))), max(1, int(round(w * scale)))
-            if new_h < h or new_w < w:
-                arr_to_convert = average_pooling(arr_to_convert, new_h, new_w)
+        if total_pixels > MAX_PIXELS:
+            scale = (MAX_PIXELS / total_pixels) ** 0.5
+            new_h, new_w = max(1, int(h * scale)), max(1, int(w * scale))
+            arr_to_convert = average_pooling(arr_to_convert, new_h, new_w)
 
         if is_original_bool:
             arr_to_convert = (arr_to_convert.astype(np.uint8) * 255)
@@ -45,8 +69,8 @@ def create_image(arr):
 
             if is_float and 0 <= arr_min <= 1 and 0 <= arr_max <= 1: # float in [0; 1]
                 arr_to_convert = (arr_to_convert * 255).astype(np.uint8)
-            elif arr_min != arr_max and (arr_min < 0 or arr_max > 255):
-                arr_to_convert = ((arr_to_convert - arr_min) * 255 / (arr_max - arr_min)).astype(np.uint8) # other values out of [0; 255]
+            elif arr_min != arr_max and (arr_min < 0 or arr_max > 255): # other values out of [0; 255]
+                arr_to_convert = ((arr_to_convert - arr_min) * 255 / (arr_max - arr_min)).astype(np.uint8)
             elif arr_min == arr_max and (arr_min < 0 or arr_max > 255):
                 arr_to_convert = (np.ones_like(arr_to_convert) * 127).astype(np.uint8)
             else: # values in [0; 255]
