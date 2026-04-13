@@ -30,7 +30,6 @@ import org.jetbrains.annotations.ApiStatus
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 import kotlin.concurrent.Volatile
-import kotlin.time.measureTimedValue
 
 @ApiStatus.Internal
 open class TypeEvalContextImpl internal constructor(
@@ -47,7 +46,7 @@ open class TypeEvalContextImpl internal constructor(
   private val myProcessingContext = ThreadLocal.withInitial { ProcessingContext() }
 
   @ApiStatus.Internal
-  override val typeEngine: PyTypeEngine? = constraints.myOrigin?.let {
+  val typeEngine: PyTypeEngine? = constraints.myOrigin?.let {
     ModuleUtilCore.findModuleForFile(it) }?.let { module ->
     PyTypeEngineProvider.createTypeResolver(module)
   }
@@ -190,19 +189,15 @@ open class TypeEvalContextImpl internal constructor(
     return RecursionManager.doPreventingRecursion(element to this, false) {
       val engine = typeEngine
       val type = if (engine != null && engine.isSupportedForResolve(element)) {
-        val (result, duration) = measureTimedValue {
+        PyTypeEvaluationAggregatesCollector.recordHybridTypeEngineTime(engine) {
           val isUserInitiated = constraints.myAllowStubToAST && constraints.myAllowDataFlow
           engine.resolveType(element, this is LibraryTypeEvalContext, isUserInitiated)?.get()
         }
-        PyTypeEvaluationAggregatesCollector.recordHybridTypeEngineTime(engine.name, duration.inWholeMilliseconds)
-        result
       }
       else {
-        val (result, duration) = measureTimedValue {
+        PyTypeEvaluationAggregatesCollector.recordPyCharmTypeEngineTime {
           element.getType(this, KeyImpl)
         }
-        PyTypeEvaluationAggregatesCollector.recordPyCharmTypeEngineTime(duration.inWholeMilliseconds)
-        result
       }
 
       assertValid(type, element)
