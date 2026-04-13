@@ -1135,7 +1135,6 @@ public abstract class DebugProcessImpl extends UserDataHolderBase implements Deb
       finally {
         if (!(myConnection instanceof RemoteConnectionStub)) {
           VirtualMachineData vmData = new VirtualMachineData(managerThread.getVmProxy(), myConnection, managerThread);
-          myPositionManager = CompoundPositionManager.DISABLED;
           myReturnValueWatcher = null;
           myNodeRenderersMap.clear();
           myRenderers.clear();
@@ -1180,6 +1179,7 @@ public abstract class DebugProcessImpl extends UserDataHolderBase implements Deb
   private void onRootProcessClosed() {
     myDebuggerManagerThread.cancelScope();
     myWaitFor.up();
+    myPositionManager = CompoundPositionManager.DISABLED;
   }
 
   @Contract(pure = true)
