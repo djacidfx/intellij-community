@@ -32,6 +32,10 @@ class DeprecatedSymbolUsageFixSpecialTest : KotlinLightCodeInsightFixtureTestCas
         doTest("""prefix + joinTo(StringBuilder(), separator, "", postfix, limit, truncated, transform)""")
     }
 
+    fun testUnusedLambdaArgument() {
+        doTest("newFunction(x, { it * 2 })")
+    }
+
     private fun doTest(pattern: String) {
         val testPath = getTestName(true) + ".kt"
         myFixture.configureByFile(testPath)
