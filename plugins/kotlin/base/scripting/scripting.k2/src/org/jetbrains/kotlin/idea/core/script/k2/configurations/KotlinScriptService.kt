@@ -11,16 +11,20 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.io.relativizeToClosestAncestor
 import com.intellij.openapi.util.io.toNioPathOrNull
+import com.intellij.openapi.vfs.StandardFileSystems
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.backend.observation.launchTracked
 import com.intellij.platform.backend.workspace.WorkspaceModelChangeListener
 import com.intellij.platform.backend.workspace.toVirtualFileUrl
 import com.intellij.platform.backend.workspace.workspaceModel
+import com.intellij.platform.eel.provider.getEelDescriptor
+import com.intellij.platform.eel.provider.utils.asNio
 import com.intellij.platform.ide.progress.withBackgroundProgress
 import com.intellij.platform.workspace.storage.EntitySource
 import com.intellij.platform.workspace.storage.VersionedStorageChange
 import com.intellij.util.application
 import com.intellij.util.concurrency.ThreadingAssertions
+import com.intellij.util.io.URLUtil
 import kotlinx.coroutines.CoroutineScope
 import org.jetbrains.kotlin.analysis.api.KaPlatformInterface
 import org.jetbrains.kotlin.analysis.api.platform.modification.publishGlobalModuleStateModificationEvent
@@ -41,14 +45,25 @@ import org.jetbrains.kotlin.idea.core.script.v1.scriptingDebugLog
 import org.jetbrains.kotlin.scripting.definitions.ScriptDefinition
 import org.jetbrains.kotlin.scripting.definitions.findScriptDefinition
 import org.jetbrains.kotlin.scripting.resolve.ScriptCompilationConfigurationResult
+import org.jetbrains.kotlin.scripting.resolve.ScriptCompilationConfigurationWrapper
 import org.jetbrains.kotlin.scripting.resolve.VirtualFileScriptSource
 import org.jetbrains.kotlin.scripting.resolve.refineScriptCompilationConfiguration
 import org.jetbrains.kotlin.utils.topologicalSort
 import java.io.File
+import java.nio.file.Path
+import kotlin.io.path.isDirectory
+import kotlin.io.path.isRegularFile
+import kotlin.io.path.notExists
+import kotlin.io.path.pathString
 import kotlin.script.experimental.api.ResultWithDiagnostics
+import kotlin.script.experimental.api.ScriptCompilationConfiguration
 import kotlin.script.experimental.api.ScriptDiagnostic
+import kotlin.script.experimental.api.dependencies
+import kotlin.script.experimental.api.dependenciesSources
+import kotlin.script.experimental.api.ide
 import kotlin.script.experimental.api.valueOrNull
 import kotlin.script.experimental.api.with
+import kotlin.script.experimental.jvm.JvmDependency
 import kotlin.script.experimental.jvm.jdkHome
 import kotlin.script.experimental.jvm.jvm
 
@@ -110,8 +125,7 @@ class KotlinScriptService(val project: Project, val coroutineScope: CoroutineSco
             val importedConfigurations = topologicalSort(nodes = listOf(rootConfiguration), reportCycle = {
                 throw IllegalStateException(
                     KotlinBaseScriptingBundle.message(
-                        "script.part.circular.file.import.chain",
-                        it.valueOrNull()?.script?.name ?: "<null>"
+                        "script.part.circular.file.import.chain", it.valueOrNull()?.script?.name ?: "<null>"
                     )
                 )
             }) {
@@ -122,22 +136,19 @@ class KotlinScriptService(val project: Project, val coroutineScope: CoroutineSco
 
             rootConfiguration to importedConfigurations
         } catch (e: Throwable) {
-            NotificationGroupManager.getInstance()
-                .getNotificationGroup("KotlinScriptNotificationGroup")
-                .createNotification(
-                    KotlinBaseScriptingBundle.message("circular.script.import"),
-                    e.message ?: KotlinBaseScriptingBundle.message("script.configuration.failed.unknown", virtualFile.name),
-                    NotificationType.ERROR,
-                )
-                .notify(project)
+            NotificationGroupManager.getInstance().getNotificationGroup("KotlinScriptNotificationGroup").createNotification(
+                KotlinBaseScriptingBundle.message("circular.script.import"),
+                e.message ?: KotlinBaseScriptingBundle.message("script.configuration.failed.unknown", virtualFile.name),
+                NotificationType.ERROR,
+            ).notify(project)
             return
         }
 
-        if (rootConfiguration is ResultWithDiagnostics.Failure) {
-            rootConfiguration.reports.forEach {
-                NotificationGroupManager.getInstance()
-                    .getNotificationGroup("KotlinScriptNotificationGroup")
-                    .createNotification(
+        val configuration = when (rootConfiguration) {
+            is ResultWithDiagnostics.Success<ScriptCompilationConfigurationWrapper> -> rootConfiguration.value.configuration
+            is ResultWithDiagnostics.Failure -> {
+                rootConfiguration.reports.forEach {
+                    NotificationGroupManager.getInstance().getNotificationGroup("KotlinScriptNotificationGroup").createNotification(
                         KotlinBaseScriptingBundle.message("script.configuration.failed", virtualFile.name),
                         it.message,
                         when (it.severity) {
@@ -145,16 +156,16 @@ class KotlinScriptService(val project: Project, val coroutineScope: CoroutineSco
                             ScriptDiagnostic.Severity.WARNING -> NotificationType.WARNING
                             else -> NotificationType.ERROR
                         },
-                    )
-                    .notify(project)
-                return
+                    ).notify(project)
+                }
+                null
             }
-            return
-        }
+        } ?: return
+
+        configuration.refreshVfsDependencies()
 
         project.workspaceModel.update("updating kotlin script entities [$KotlinScriptEntitySource]") { storage ->
             if (!storage.containsScriptEntity(scriptUrl)) {
-                val configuration = rootConfiguration.valueOrNull()?.configuration ?: return@update
                 val libraryIds = generateScriptLibraryEntities(project, configuration, definition).toList()
                 for ((id, sources) in libraryIds) {
                     val existingLibrary = storage.resolve(id)
@@ -180,6 +191,30 @@ class KotlinScriptService(val project: Project, val coroutineScope: CoroutineSco
             val script = importedConfig.valueOrNull()?.script ?: continue
             val importedFile = getVirtualFile(script) ?: continue
             update(importedFile, importedFile.findScriptDefinition())
+        }
+    }
+
+    // Refresh VFS for any dependency JARs that may have been re-downloaded from the last VFS scan.
+    private fun ScriptCompilationConfiguration.refreshVfsDependencies() {
+        ThreadingAssertions.assertNoReadAccess()
+
+        get(ScriptCompilationConfiguration.dependencies).orEmpty()
+            .plus(get(ScriptCompilationConfiguration.ide.dependenciesSources).orEmpty())
+            .filterIsInstance<JvmDependency>()
+            .flatMap { it.classpath }
+            .map { it.asNio(project.getEelDescriptor()) }
+            .forEach {
+                refreshVfs(it)
+            }
+    }
+
+    private fun refreshVfs(path: Path) {
+        if (path.notExists()) return
+        if (path.isDirectory()) {
+            StandardFileSystems.local()?.refreshAndFindFileByPath(path.pathString)
+        } else if (path.isRegularFile()) {
+            StandardFileSystems.local()?.refreshAndFindFileByPath(path.pathString)
+            StandardFileSystems.jar()?.refreshAndFindFileByPath(path.pathString + URLUtil.JAR_SEPARATOR)
         }
     }
 

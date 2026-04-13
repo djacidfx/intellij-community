@@ -13,7 +13,7 @@
 
   <extensions defaultExtensionNs="com.intellij">
     <notificationGroup id="KotlinScriptNotificationGroup"
-                       displayType="STICKY_BALLOON"
+                       displayType="BALLOON"
                        bundle="messages.KotlinBaseScriptingBundle"
                        key="notification.group.kotlin.script"/>
 
@@ -100,7 +100,7 @@
     <action id="ReloadScriptConfiguration"
             class="org.jetbrains.kotlin.idea.core.script.k2.ReloadScriptConfiguration"
             icon="org.jetbrains.kotlin.idea.KotlinIcons.LOAD_SCRIPT_CONFIGURATION">
-      <keyboard-shortcut keymap="$default" first-keystroke="meta shift C"/>
+      <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift R"/>
       <add-to-group group-id="RunContextGroup"/>
       <add-to-group group-id="KotlinScripts.ReloadConfigurationActionGroup"/>
     </action>

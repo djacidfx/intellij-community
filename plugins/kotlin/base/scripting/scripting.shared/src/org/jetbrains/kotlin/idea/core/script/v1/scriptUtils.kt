@@ -4,7 +4,6 @@ package org.jetbrains.kotlin.idea.core.script.v1
 
 import com.intellij.openapi.application.Application
 import com.intellij.openapi.application.runReadAction
-import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.NlsContexts
 import org.jetbrains.annotations.Nls
 import com.intellij.openapi.externalSystem.service.project.manage.ExternalProjectsManagerImpl
@@ -35,11 +34,14 @@ var Application.isScriptChangesNotifierDisabled: Boolean by NotNullableUserDataP
 )
 
 fun loggingReporter(severity: ScriptDiagnostic.Severity, message: String) {
-    val log = Logger.getInstance("ScriptDefinitionsProviders")
     when (severity) {
-        ScriptDiagnostic.Severity.FATAL, ScriptDiagnostic.Severity.ERROR -> log.error(message)
+        ScriptDiagnostic.Severity.FATAL, ScriptDiagnostic.Severity.ERROR -> {
+            kotlinScriptLogger.error(message)
+        }
 
-        ScriptDiagnostic.Severity.WARNING, ScriptDiagnostic.Severity.INFO -> log.info(message)
+        ScriptDiagnostic.Severity.WARNING, ScriptDiagnostic.Severity.INFO -> {
+            kotlinScriptLogger.info(message)
+        }
 
         else -> {}
     }
