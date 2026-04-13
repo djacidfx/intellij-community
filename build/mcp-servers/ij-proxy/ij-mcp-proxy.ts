@@ -61,6 +61,22 @@ type ToolOutput = {
   isError?: boolean
 }
 
+interface DiscoveredUpstream {
+  conn: UpstreamConnection
+  url: string
+  name: string
+}
+
+type ProjectMatchStatus = 'match' | 'mismatch' | 'unknown'
+
+const PROJECT_MATCH_PROBE_TOOLS: ReadonlyArray<{toolName: string; args: ToolArgs}> = [
+  {toolName: 'get_all_open_file_paths', args: {}},
+  {toolName: 'get_project_dependencies', args: {}},
+  {toolName: 'get_project_modules', args: {}},
+]
+
+const PROJECT_MISMATCH_RE = /\bdoesn['’]t correspond to any open project\b|\bNo exact project is specified while multiple projects are opened\b|\bCurrently open projects:\b/i
+
 function parseEnvInt(name: string, fallback: number): number {
   const raw = env[name]
   if (!raw) return fallback
@@ -283,6 +299,79 @@ function isRiderServerName(name: string): boolean {
   return /rider/i.test(name)
 }
 
+function formatUpstream(candidate: DiscoveredUpstream): string {
+  return `${candidate.url} (${candidate.name})`
+}
+
+function isProjectMismatchError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  return PROJECT_MISMATCH_RE.test(message)
+}
+
+async function probeProjectMatch(candidate: DiscoveredUpstream): Promise<ProjectMatchStatus> {
+  const tools = await candidate.conn.getTools()
+  const availableToolNames = new Set(tools.map((tool) => tool.name))
+
+  for (const probe of PROJECT_MATCH_PROBE_TOOLS) {
+    if (!availableToolNames.has(probe.toolName)) continue
+    try {
+      await candidate.conn.callTool(probe.toolName, {...probe.args})
+      return 'match'
+    } catch (error) {
+      if (isProjectMismatchError(error)) {
+        return 'mismatch'
+      }
+      const message = error instanceof Error ? error.message : String(error)
+      warn(`Failed to verify injected project path for ${formatUpstream(candidate)} via ${probe.toolName}: ${message}`)
+    }
+  }
+
+  return 'unknown'
+}
+
+async function chooseUpstreamForProject(
+  candidates: DiscoveredUpstream[],
+  ideLabel: string,
+  targetProjectPath: string
+): Promise<DiscoveredUpstream | null> {
+  if (candidates.length === 0) return null
+  if (candidates.length === 1) return candidates[0]
+
+  const unknownCandidates: DiscoveredUpstream[] = []
+  for (const candidate of candidates) {
+    const matchStatus = await probeProjectMatch(candidate)
+    if (matchStatus === 'match') {
+      return candidate
+    }
+    if (matchStatus === 'unknown') {
+      unknownCandidates.push(candidate)
+      continue
+    }
+    note(`Skipping ${formatUpstream(candidate)}: injected project path ${targetProjectPath} is not open there`)
+  }
+
+  if (unknownCandidates.length > 0) {
+    const fallback = unknownCandidates[0]
+    warn(`No ${ideLabel} upstream confirmed project path ${targetProjectPath}; using ${formatUpstream(fallback)} without verification`)
+    return fallback
+  }
+
+  const fallback = candidates[0]
+  warn(`No ${ideLabel} upstream matched project path ${targetProjectPath}; using first reachable ${formatUpstream(fallback)}`)
+  return fallback
+}
+
+async function closeUnusedUpstreams(candidates: DiscoveredUpstream[], selected: DiscoveredUpstream | null): Promise<void> {
+  await Promise.allSettled(
+    candidates
+      .filter((candidate) => candidate !== selected)
+      .map(async (candidate) => {
+        try {
+          await candidate.conn.client.close()
+        } catch {}
+      })
+  )
+}
 
 async function ensureDiscovered(): Promise<void> {
   if (ideaUpstream || riderUpstream) return
@@ -319,29 +408,47 @@ async function performDiscovery(): Promise<void> {
       warn
     })
 
+    const ideaCandidates: DiscoveredUpstream[] = []
+    const riderCandidates: DiscoveredUpstream[] = []
+
     for (const {url} of reachable) {
       const conn = createUpstreamForUrl(url)
       try {
         await conn.connect()
         const name = conn.client.getServerVersion()?.name ?? ''
+        const candidate: DiscoveredUpstream = {conn, url, name}
 
-        if (isRiderServerName(name) && !riderUpstream) {
+        if (isRiderServerName(name)) {
           conn.updateProjectPath(path.join(projectPath, RIDER_PROJECT_SUBPATH))
-          riderUpstream = conn
-          setupUpstreamClientHandlers(conn)
-          note(`Rider upstream: ${url} (${name})`)
-        } else if (!isRiderServerName(name) && !ideaUpstream) {
-          ideaUpstream = conn
-          setupUpstreamClientHandlers(conn)
-          note(`IDEA upstream: ${url} (${name})`)
+          riderCandidates.push(candidate)
         } else {
-          // Extra IDE instance — close unused connection
-          try { await conn.client.close() } catch {}
+          ideaCandidates.push(candidate)
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         warn(`Failed to connect to ${url}: ${message}`)
       }
+    }
+
+    const selectedIdea = await chooseUpstreamForProject(ideaCandidates, 'IDEA', projectPath)
+    const selectedRider = await chooseUpstreamForProject(
+      riderCandidates,
+      'Rider',
+      path.join(projectPath, RIDER_PROJECT_SUBPATH)
+    )
+
+    await closeUnusedUpstreams(ideaCandidates, selectedIdea)
+    await closeUnusedUpstreams(riderCandidates, selectedRider)
+
+    if (selectedIdea) {
+      ideaUpstream = selectedIdea.conn
+      setupUpstreamClientHandlers(selectedIdea.conn)
+      note(`IDEA upstream: ${formatUpstream(selectedIdea)}`)
+    }
+    if (selectedRider) {
+      riderUpstream = selectedRider.conn
+      setupUpstreamClientHandlers(selectedRider.conn)
+      note(`Rider upstream: ${formatUpstream(selectedRider)}`)
     }
 
     if (!ideaUpstream && !riderUpstream) {
