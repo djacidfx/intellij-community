@@ -86,7 +86,6 @@ abstract class AbstractKotlinPsiBasedTestFramework : KotlinPsiBasedTestFramework
             declaration.isLocal -> false
             declaration.hasModifier(KtTokens.PRIVATE_KEYWORD) -> false
             declaration.hasModifier(KtTokens.ABSTRACT_KEYWORD) -> false
-            declaration.isExtensionDeclaration() -> false
             else -> {
                 val ktClassOrObject =
                     if (allowTestMethodsInObject) declaration.getStrictParentOfType<KtClassOrObject>() else declaration.containingClass()
