@@ -57,6 +57,11 @@ open class DefaultNotebookEditorAppearance(
            ?: editor.colorsScheme.defaultForeground
   }
 
+  override fun markdownPreviewForeground(): Color {
+    return editor.colorsScheme.getColor(NotebookEditorAppearance.MARKDOWN_PREVIEW_COLOR)
+           ?: editor.colorsScheme.defaultForeground
+  }
+
   override fun executionTimeForeground(): Color {
     return editor.colorsScheme.getColor(NotebookEditorAppearance.EXECUTION_TIME_COLOR)
            ?: UIUtil.getLabelInfoForeground()

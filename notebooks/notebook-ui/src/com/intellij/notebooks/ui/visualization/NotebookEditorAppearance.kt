@@ -17,6 +17,7 @@ interface NotebookEditorAppearance : NotebookEditorAppearanceSizes, NotebookEdit
   fun cellFrameHoveredColor(): Color
   fun caretRowColor(): Color?
   fun cellOutputForeground(): Color?
+  fun markdownPreviewForeground(): Color
   fun executionTimeForeground(): Color
 
   companion object {
@@ -32,5 +33,6 @@ interface NotebookEditorAppearance : NotebookEditorAppearanceSizes, NotebookEdit
     val CELL_FRAME_HOVERED_COLOR: ColorKey = ColorKey.createColorKey("JUPYTER.CELL_FRAME_BORDER_COLOR")
     val CELL_OUTPUT_COLOR: ColorKey = ColorKey.createColorKey("JUPYTER.CELL_OUTPUT_COLOR")
     val EXECUTION_TIME_COLOR: ColorKey = ColorKey.createColorKey("JUPYTER.EXECUTION_TIME_COLOR")
+    val MARKDOWN_PREVIEW_COLOR: ColorKey = ColorKey.createColorKey("JUPYTER.MARKDOWN_PREVIEW_COLOR")
   }
 }
