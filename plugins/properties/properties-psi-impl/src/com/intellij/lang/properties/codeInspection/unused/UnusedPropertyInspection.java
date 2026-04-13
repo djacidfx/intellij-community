@@ -144,7 +144,7 @@ public final class UnusedPropertyInspection extends PropertiesInspectionBase {
           holder.registerProblem(key, message);
         }
         else {
-          holder.registerProblem(key, message, PropertiesQuickFixFactory.getInstance().createRemovePropertyLocalFix(property));
+          holder.registerProblem(key, message, PropertiesQuickFixFactory.getInstance().createRemovePropertyFromBundleLocalFix(property));
         }
       }
     };

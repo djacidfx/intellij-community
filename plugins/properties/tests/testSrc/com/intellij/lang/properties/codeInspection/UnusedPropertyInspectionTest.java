@@ -1,7 +1,7 @@
 package com.intellij.lang.properties.codeInspection;
 
 import com.intellij.lang.properties.PropertiesImplUtil;
-import com.intellij.lang.properties.RemovePropertyFix;
+import com.intellij.lang.properties.RemovePropertyFromBundleFix;
 import com.intellij.lang.properties.codeInspection.unused.UnusedPropertyInspection;
 import com.intellij.lang.properties.psi.Property;
 import com.intellij.modcommand.ActionContext;
@@ -15,12 +15,13 @@ import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.roots.ModuleRootModificationUtil;
 import com.intellij.openapi.roots.SourceFolder;
+import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.project.ProjectKt;
+import com.intellij.psi.PsiFile;
 import com.intellij.testFramework.PsiTestUtil;
 import com.intellij.testFramework.VfsTestUtil;
 import com.intellij.testFramework.builders.ModuleFixtureBuilder;
 import com.intellij.testFramework.fixtures.CodeInsightFixtureTestCase;
-import com.intellij.psi.PsiFile;
 import org.intellij.lang.annotations.Language;
 
 import java.io.IOException;
@@ -60,7 +61,6 @@ public class UnusedPropertyInspectionTest extends CodeInsightFixtureTestCase<Mod
   }
 
   public void testUnused() {
-    myFixture.enableInspections(UnusedPropertyInspection.class);
     myFixture.configureByFile("root_project.properties");
     myFixture.checkHighlighting();
   }
@@ -74,19 +74,17 @@ public class UnusedPropertyInspectionTest extends CodeInsightFixtureTestCase<Mod
     Property property = (Property)PropertiesImplUtil.getPropertiesFile(defaultFile).findPropertyByKey("key");
     assertNotNull(property);
 
-    RemovePropertyFix fix = new RemovePropertyFix(property);
+    RemovePropertyFromBundleFix fix = new RemovePropertyFromBundleFix(property);
     ActionContext context = ActionContext.from(myFixture.getEditor(), defaultFile);
-    ModCommand command = fix.perform(context);
+    ModCommand command = fix.asModCommandAction().perform(context);
 
     CommandProcessor.getInstance().executeCommand(getProject(), () ->
       ModCommandExecutor.getInstance().executeInteractively(context, command, myFixture.getEditor()), null, null);
 
-    // key should be removed from all files
     assertNull(PropertiesImplUtil.getPropertiesFile(defaultFile).findPropertyByKey("key"));
     assertNull(PropertiesImplUtil.getPropertiesFile(enFile).findPropertyByKey("key"));
     assertNull(PropertiesImplUtil.getPropertiesFile(frFile).findPropertyByKey("key"));
 
-    // other properties should remain
     assertNotNull(PropertiesImplUtil.getPropertiesFile(defaultFile).findPropertyByKey("other"));
     assertNotNull(PropertiesImplUtil.getPropertiesFile(enFile).findPropertyByKey("other"));
     assertNotNull(PropertiesImplUtil.getPropertiesFile(frFile).findPropertyByKey("other"));
@@ -95,27 +93,22 @@ public class UnusedPropertyInspectionTest extends CodeInsightFixtureTestCase<Mod
   public void testDuplicateUnusedPropertyHasSingleRemoveFix() {
     myFixture.configureByText("standalone.properties", "<caret>key=value1\nkey=value2\n");
 
-    // At the caret, both the annotator (duplicate key) and unused inspection could offer "Remove property".
-    // Only the annotator's fix should be present — the unused inspection should skip it for duplicates.
     var removeFixes = myFixture.filterAvailableIntentions("Remove property");
     assertEquals("Expected exactly one 'Remove property' fix for duplicate+unused property", 1, removeFixes.size());
   }
 
-  public void testRemovePropertyFromSingleFile() {
-    PsiFile file = myFixture.configureByText("standalone.properties", "key=value\nother=kept");
+  public void testRemoveDuplicatePropertyFromSingleFile() throws IOException {
+    myFixture.addFileToProject("q.properties", "key=value1\nkey=value2\nother=kept\n");
+    myFixture.addFileToProject("q_en.properties", "key=en\nother=kept_en\n");
+    myFixture.configureFromExistingVirtualFile(myFixture.findFileInTempDir("q.properties"));
 
-    Property property = (Property)PropertiesImplUtil.getPropertiesFile(file).findPropertyByKey("key");
-    assertNotNull(property);
+    var fix = myFixture.findSingleIntention("Remove property");
+    myFixture.launchAction(fix);
 
-    RemovePropertyFix fix = new RemovePropertyFix(property);
-    ActionContext context = ActionContext.from(myFixture.getEditor(), file);
-    ModCommand command = fix.perform(context);
-
-    CommandProcessor.getInstance().executeCommand(getProject(), () ->
-      ModCommandExecutor.getInstance().executeInteractively(context, command, myFixture.getEditor()), null, null);
-
-    assertNull(PropertiesImplUtil.getPropertiesFile(file).findPropertyByKey("key"));
-    assertNotNull(PropertiesImplUtil.getPropertiesFile(file).findPropertyByKey("other"));
+    myFixture.checkResult("key=value2\nother=kept\n");
+    // The other locale file should not be affected
+    assertEquals("key=en\nother=kept_en\n",
+                 VfsUtilCore.loadText(myFixture.findFileInTempDir("q_en.properties")));
   }
 
 }
