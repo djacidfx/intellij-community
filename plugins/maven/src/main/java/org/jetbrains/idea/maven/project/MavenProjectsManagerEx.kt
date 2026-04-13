@@ -50,6 +50,7 @@ import org.jetbrains.idea.maven.buildtool.MavenSyncSession
 import org.jetbrains.idea.maven.buildtool.MavenSyncSpec
 import org.jetbrains.idea.maven.buildtool.incrementalMode
 import org.jetbrains.idea.maven.importing.MavenImportStats
+import org.jetbrains.idea.maven.statistics.MavenToolchainCollector
 import org.jetbrains.idea.maven.importing.MavenProjectImporter
 import org.jetbrains.idea.maven.importing.importActivityStarted
 import org.jetbrains.idea.maven.importing.runMavenConfigurationTask
@@ -577,6 +578,8 @@ open class MavenProjectsManagerEx(project: Project, private val cs: CoroutineSco
     tracer.spanBuilder("notifyMavenProblems").useWithScope {
       MavenResolveResultProblemProcessor.notifyMavenProblems(session)
     }
+    MavenToolchainCollector.logSyncStats(session)
+
     setNewTreeFromSync(tree)
     return result
   }

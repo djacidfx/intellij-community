@@ -371,6 +371,7 @@
     <statistics.counterUsagesCollector implementationClass="org.jetbrains.idea.maven.statistics.MavenActionsUsagesCollector"/>
     <statistics.counterUsagesCollector implementationClass="org.jetbrains.idea.maven.statistics.MavenImportCollector"/>
     <statistics.counterUsagesCollector implementationClass="org.jetbrains.idea.maven.statistics.MavenIndexUsageCollector"/>
+    <statistics.counterUsagesCollector implementationClass="org.jetbrains.idea.maven.statistics.MavenToolchainCollector"/>
     <statistics.projectUsagesCollector implementation="org.jetbrains.idea.maven.statistics.MavenPluginCollector"/>
     <statistics.projectUsagesCollector implementation="org.jetbrains.idea.maven.statistics.MavenLibraryScopesCollector"/>
 

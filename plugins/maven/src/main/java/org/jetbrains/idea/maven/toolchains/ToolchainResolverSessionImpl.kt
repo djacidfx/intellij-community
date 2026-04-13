@@ -48,6 +48,7 @@ class ToolchainResolverSession private constructor(
   private val unresolvedSdks = HashSet<ToolchainRequirement>()
 
   fun unresolved(): List<ToolchainRequirement> = unresolvedSdks.toList()
+  fun resolvedCount(): Int = resolvedSdks.size
 
   private suspend fun allToolchains(): List<ToolchainModel> {
     var result = cached

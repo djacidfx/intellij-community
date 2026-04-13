@@ -27,6 +27,7 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.idea.maven.buildtool.MavenSyncSpec
 import org.jetbrains.idea.maven.project.MavenProjectsManager
 import org.jetbrains.idea.maven.project.MavenSettingsCache
+import org.jetbrains.idea.maven.statistics.MavenToolchainCollector
 import org.jetbrains.idea.maven.toolchains.ToolchainModel
 import org.jetbrains.idea.maven.toolchains.ToolchainRequirement
 import org.jetbrains.idea.maven.toolchains.addIntoToolchainsFile
@@ -41,6 +42,7 @@ class AddIntellijSdkInToolchains(val requirement: ToolchainRequirement, val sync
   override val id: String = ID
 
   override fun runQuickFix(project: Project, dataContext: DataContext): CompletableFuture<*> {
+    MavenToolchainCollector.QUICKFIX_INVOKED.log(project)
     val result = CompletableFuture<Void>()
     val sdkPopupFactory = ApplicationManager.getApplication().service<SdkPopupFactory>()
 
