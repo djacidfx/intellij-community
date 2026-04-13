@@ -44,7 +44,7 @@ class PyCallingNonCallableInspection : PyInspection() {
   ): PsiElementVisitor {
     val context = PyInspectionVisitor.getContext(session)
     return Visitor(holder, context).also {
-      it.downgradeHighlightForTypeEngine = context.typeEngine != null
+      it.downgradeHighlightForTypeEngine = context.usesExternalTypeEngine
     }
   }
 

@@ -9,7 +9,6 @@ import com.intellij.psi.PsiFile
 import com.intellij.util.ProcessingContext
 import com.jetbrains.python.psi.PyCallable
 import com.jetbrains.python.psi.PyTypedElement
-import com.jetbrains.python.psi.types.engine.PyTypeEngine
 import org.jetbrains.annotations.ApiStatus
 
 abstract class TypeEvalContext protected constructor() {
@@ -17,9 +16,6 @@ abstract class TypeEvalContext protected constructor() {
   abstract val usesExternalTypeEngine: Boolean
   abstract val processingContext: ProcessingContext
   abstract val origin: PsiFile?
-
-  @get:ApiStatus.Internal
-  abstract val typeEngine: PyTypeEngine?
 
   abstract fun allowDataFlow(element: PsiElement): Boolean
   abstract fun allowReturnTypes(element: PsiElement): Boolean

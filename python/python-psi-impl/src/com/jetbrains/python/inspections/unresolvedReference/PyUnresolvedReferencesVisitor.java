@@ -479,7 +479,7 @@ public abstract class PyUnresolvedReferencesVisitor extends PyInspectionVisitor 
     else {
       hlType = ProblemHighlightType.LIKE_UNKNOWN_SYMBOL;
     }
-    if (myTypeEvalContext.getTypeEngine() != null) {
+    if (myTypeEvalContext.getUsesExternalTypeEngine()) {
       hlType = ProblemHighlightType.INFORMATION;
     }
 
