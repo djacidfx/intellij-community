@@ -125,17 +125,13 @@ class SearchPathTypeFilter(input: TokenStream) : TokenFilterBase(input) {
 
 
 /**
- * Generates non-overlapping bigrams (step 2) from single-word filenames.
+ * Generates overlapping 2-grams and 3-grams from [FileTokenType.FILENAME_PART] tokens of length ≥ 4.
  *
- * Counts [FileTokenType.FILENAME_PART] tokens as they pass through; resets the count on each
- * [FileTokenType.FILENAME] token. When a FILENAME token arrives with exactly one preceding part
- * and the term length is ≥ 4, bigrams are queued as {FILENAME_PART, PATH_SEGMENT_PREFIX} tokens
- * at the FILENAME's offset. The FILENAME token itself is emitted immediately; bigrams follow on
- * subsequent [incrementToken] calls.
+ * For each such token, all contiguous 2-character and 3-character substrings are queued as
+ * {[FileTokenType.FILENAME_PART], [FileTokenType.PATH_SEGMENT_PREFIX]} tokens, allowing short
+ * user-typed fragments (e.g. `"sea"`) to match camelCase word parts (e.g. `"search"`) via prefix queries.
  */
 class FilenameNgramFilter(input: TokenStream) : TokenFilterBase(input) {
-  private var partCount = 0
-
   override fun incrementToken(): Boolean {
     if (pending.isNotEmpty()) {
       emit(pending.removeFirst())
@@ -145,24 +141,19 @@ class FilenameNgramFilter(input: TokenStream) : TokenFilterBase(input) {
     if (!input.incrementToken()) return false
 
     val activeTypes = multiTypeAttr.activeTypes().toSet()
-    when {
-      activeTypes.contains(FileTokenType.FILENAME) -> {
-        if (partCount == 1) {
-          val term = termAttr.toString()
-          if (term.length >= 4) {
-            val start = offsetAttr.startOffset()
-            val end = offsetAttr.endOffset()
-            val ngramTypes = setOf(FileTokenType.FILENAME_PART, FileTokenType.PATH_SEGMENT_PREFIX)
-            var i = 0
-            while (i + 2 <= term.length) {
-              pending.add(BufferedToken(term.substring(i, i + 2), ngramTypes, start, end))
-              i += 2
-            }
-          }
+    if (activeTypes.contains(FileTokenType.FILENAME_PART)) {
+      val term = termAttr.toString()
+      if (term.length >= 4) {
+        val start = offsetAttr.startOffset()
+        val end = offsetAttr.endOffset()
+        val ngramTypes = setOf(FileTokenType.FILENAME_PART, FileTokenType.PATH_SEGMENT_PREFIX)
+        for (i in 0..term.length - 2) {
+          pending.add(BufferedToken(term.substring(i, i + 2), ngramTypes, start, end))
         }
-        partCount = 0
+        for (i in 0..term.length - 3) {
+          pending.add(BufferedToken(term.substring(i, i + 3), ngramTypes, start, end))
+        }
       }
-      activeTypes.contains(FileTokenType.FILENAME_PART) -> partCount++
     }
 
     return true
@@ -170,7 +161,6 @@ class FilenameNgramFilter(input: TokenStream) : TokenFilterBase(input) {
 
   override fun reset() {
     super.reset()
-    partCount = 0
   }
 }
 
