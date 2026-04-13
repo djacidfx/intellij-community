@@ -15,7 +15,12 @@ Reports local variable types that can be inferred from context and replaced with
 </code></pre>
 <!-- tooltip end -->
 <p>
-Use the <b>Only report when variable initializer is "simple"</b> checkbox to only report variables with a new expression or literal
-initializer.
+Use the <b>Only report when the variable type is obvious from the initializer</b> checkbox
+to only report the types of variables initialized with a new expression or a literal.
+<p><b>Example:</b></p>
+<pre><code>
+  int    codePointAt = "hello".codePointAt(1); // not reported
+  Random random      = new Random();           // reported
+</code></pre>
 </body>
 </html>
