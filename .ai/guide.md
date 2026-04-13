@@ -29,7 +29,7 @@ To regenerate, run `node community/.ai/render-guides.mjs`.
 
 ### After Writing Code
 
-- Use `get_file_problems` with `errorsOnly=false` to check files for warnings.
+- Use `mcp__ijproxy__lint_files` with `errorsOnly=false` to check files for warnings.
   Fix any warnings related to the code changes made. You may ignore unrelated warnings.
 
 ## Repository-wide rules
