@@ -61,6 +61,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.intellij.openapi.util.NlsSafe
+import com.intellij.util.containers.toArray
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nls
 import java.awt.BorderLayout
@@ -113,7 +114,12 @@ object UniversalFileChooser {
     override fun getDimensionServiceKey(): String = "UniversalFileChooserDialog"
 
     override fun choose(project: Project?, vararg toSelect: VirtualFile?): Array<out VirtualFile?> {
-      this.showAndGet()
+      if (!toSelect.isEmpty()) {
+        toSelect.first()?.let{ mainPanel.preselectFile(it) }
+      }
+      if (this.showAndGet()) {
+        return mainPanel.getSelectedFiles().toArray(VirtualFile.EMPTY_ARRAY)
+      }
       return emptyArray()
     }
 
