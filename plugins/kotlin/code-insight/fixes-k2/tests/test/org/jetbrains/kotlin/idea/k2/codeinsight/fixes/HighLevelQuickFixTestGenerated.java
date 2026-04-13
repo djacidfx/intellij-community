@@ -7646,6 +7646,11 @@ public abstract class HighLevelQuickFixTestGenerated extends AbstractHighLevelQu
                 public void testTypeReference() throws Exception {
                     runTest("../../../idea/tests/testData/quickfix/deprecatedSymbolUsage/typeArguments/typeReference.kt");
                 }
+
+                @TestMetadata("unsubstitutedTypeParameters.kt")
+                public void testUnsubstitutedTypeParameters() throws Exception {
+                    runTest("../../../idea/tests/testData/quickfix/deprecatedSymbolUsage/typeArguments/unsubstitutedTypeParameters.kt");
+                }
             }
 
             @RunWith(JUnit3RunnerWithInners.class)

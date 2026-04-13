@@ -9301,6 +9301,11 @@ public abstract class K1QuickFixTestGenerated extends AbstractK1QuickFixTest {
                 public void testTypeReference() throws Exception {
                     runTest("testData/quickfix/deprecatedSymbolUsage/typeArguments/typeReference.kt");
                 }
+
+                @TestMetadata("unsubstitutedTypeParameters.kt")
+                public void testUnsubstitutedTypeParameters() throws Exception {
+                    runTest("testData/quickfix/deprecatedSymbolUsage/typeArguments/unsubstitutedTypeParameters.kt");
+                }
             }
 
             @RunWith(JUnit3RunnerWithInners.class)
