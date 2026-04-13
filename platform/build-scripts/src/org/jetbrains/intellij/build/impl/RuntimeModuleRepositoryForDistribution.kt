@@ -19,12 +19,16 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.intellij.build.BuildContext
 import org.jetbrains.intellij.build.ModuleOutputProvider
 import org.jetbrains.intellij.build.classPath.PluginBuildDescriptor
+import org.jetbrains.intellij.build.impl.client.createFrontendContextForLaunchers
+import org.jetbrains.intellij.build.impl.plugins.buildPlugins
 import org.jetbrains.intellij.build.impl.projectStructureMapping.ContentReport
 import org.jetbrains.intellij.build.impl.projectStructureMapping.DistributionFileEntry
 import org.jetbrains.intellij.build.impl.projectStructureMapping.ModuleLibraryFileEntry
 import org.jetbrains.intellij.build.impl.projectStructureMapping.ModuleOutputEntry
 import org.jetbrains.intellij.build.impl.projectStructureMapping.ModuleTestOutputEntry
 import org.jetbrains.intellij.build.impl.projectStructureMapping.ProjectLibraryEntry
+import org.jetbrains.intellij.build.telemetry.TraceManager
+import org.jetbrains.intellij.build.telemetry.use
 import org.jetbrains.jps.model.JpsNamedElement
 import org.jetbrains.jps.model.java.JavaModuleSourceRootTypes
 import org.jetbrains.jps.model.java.JpsJavaExtensionService
@@ -215,7 +219,8 @@ private suspend fun generateRepositoryForDistribution(
   addMappingForModulesWithoutResources(moduleProductionPaths)
   addMappingsForDuplicatingLibraries(libraryPaths, moduleProductionPaths)
 
-  val contentModuleDetector = ContentModuleDetectorImpl(platformLayout, bundledPlugins)
+  val additionalFrontendPlugins = computeDescriptorsForAdditionalFrontendPlugins(context, bundledPlugins, platformLayout)
+  val contentModuleDetector = ContentModuleDetectorImpl(platformLayout, bundledPlugins + additionalFrontendPlugins)
   val distDescriptors = RuntimeModuleRepositoryGenerator.generateRuntimeModuleDescriptors(
     includedProduction = moduleProductionPaths.keySet(),
     includedTests = moduleTestPaths.keySet(),
@@ -250,6 +255,39 @@ private suspend fun generateRepositoryForDistribution(
       targetDirectory = targetDirectory.resolve(RUNTIME_REPOSITORY_MODULES_DIR_NAME)
     )
   }
+}
+
+/**
+ * There are quite a few custom 'Xxx for JetBrains Client' plugins, which are not bundled with the IDE but are used in the frontend process.
+ * Until we get rid of them (see IJPL-220139), we need to generate headers for these plugins to load them in the frontend process started from the big IDE.
+ * This function computes layouts of such additional plugins and converts them to [PluginBuildDescriptor].
+ */
+private suspend fun computeDescriptorsForAdditionalFrontendPlugins(
+  context: BuildContext,
+  bundledPlugins: List<PluginBuildDescriptor>,
+  platformLayout: PlatformLayout,
+): List<PluginBuildDescriptor> {
+  val additionalFrontendPlugins = TraceManager.spanBuilder("compute layout of additional plugins for embedded frontend").use {
+    val frontendContextForLaunchers = createFrontendContextForLaunchers(context)
+    val pluginDescriptorModulesForFrontend = frontendContextForLaunchers?.getBundledPluginModules() ?: return@use emptyList()
+    val additionalPluginModules = pluginDescriptorModulesForFrontend - bundledPlugins.mapTo(HashSet()) { it.layout.mainModule }
+    if (additionalPluginModules.isEmpty()) return@use emptyList()
+
+    val additionalPluginModuleLayouts = getPluginLayoutsByJpsModuleNames(additionalPluginModules, frontendContextForLaunchers.productProperties.productLayout)
+    buildPlugins(
+      plugins = additionalPluginModuleLayouts,
+      os = null,
+      arch = null,
+      targetDir = context.paths.tempDir.resolve("frontend-plugins-layout"),
+      platformEntriesProvider = null,
+      searchableOptionSet = null,
+      descriptorCacheContainer = platformLayout.descriptorCacheContainer,
+      state = context.distributionState(),
+      context = context,
+      copyFiles = false,
+    )
+  }
+  return additionalFrontendPlugins
 }
 
 private class DistributionResourcePathsSchema(

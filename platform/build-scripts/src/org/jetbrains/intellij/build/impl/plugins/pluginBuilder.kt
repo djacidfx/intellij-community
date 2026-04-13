@@ -7,9 +7,9 @@ import com.intellij.openapi.util.io.FileUtilRt
 import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.trace.Span
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -21,7 +21,6 @@ import org.jetbrains.intellij.build.OsFamily
 import org.jetbrains.intellij.build.ScrambleTool
 import org.jetbrains.intellij.build.SearchableOptionSetDescriptor
 import org.jetbrains.intellij.build.antToRegex
-import org.jetbrains.intellij.build.mapConcurrent
 import org.jetbrains.intellij.build.classPath.PluginBuildDescriptor
 import org.jetbrains.intellij.build.hasModuleOutputPath
 import org.jetbrains.intellij.build.impl.BUILT_IN_HELP_MODULE_NAME
@@ -33,6 +32,7 @@ import org.jetbrains.intellij.build.impl.PluginLayout
 import org.jetbrains.intellij.build.impl.layoutDistribution
 import org.jetbrains.intellij.build.impl.patchPluginXml
 import org.jetbrains.intellij.build.impl.projectStructureMapping.DistributionFileEntry
+import org.jetbrains.intellij.build.mapConcurrent
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
 import org.jetbrains.intellij.build.telemetry.use
 import java.nio.file.Path
@@ -49,6 +49,7 @@ internal suspend fun buildPlugins(
   searchableOptionSet: SearchableOptionSetDescriptor?,
   descriptorCacheContainer: DescriptorCacheContainer,
   context: BuildContext,
+  copyFiles: Boolean = true,
   pluginBuilt: (suspend (PluginLayout, pluginDirOrFile: Path) -> List<DistributionFileEntry>)? = null,
 ): List<PluginBuildDescriptor> {
   val scrambleTool = context.proprietaryBuildTools.scrambleTool
@@ -67,6 +68,7 @@ internal suspend fun buildPlugins(
         os = os,
         arch = arch,
         context = context,
+        copyFiles = copyFiles,
         pluginBuilt = pluginBuilt,
       )
     }
@@ -110,6 +112,7 @@ private suspend fun CoroutineScope.buildPlugin(
   os: OsFamily?,
   arch: JvmArchitecture?,
   context: BuildContext,
+  copyFiles: Boolean,
   pluginBuilt: (suspend (PluginLayout, Path) -> List<DistributionFileEntry>)?,
 ): Pair<PluginBuildDescriptor, ScrambleTask?> {
   val directoryName = pluginLayout.directoryName
@@ -146,7 +149,7 @@ private suspend fun CoroutineScope.buildPlugin(
       layout = pluginLayout,
       platformLayout = state.platformLayout,
       targetDir = pluginDir,
-      copyFiles = true,
+      copyFiles = copyFiles,
       moduleOutputPatcher = moduleOutputPatcher,
       includedModules = pluginLayout.includedModules,
       searchableOptionSet = searchableOptionSet,
