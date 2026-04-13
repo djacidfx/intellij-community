@@ -1,20 +1,11 @@
 package com.intellij.searchEverywhereLucene.backend.util
 
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.AbbreviationTokenFilter
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FileTokenType
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.FilenameNgramFilter
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.MultiTypeAttribute
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.PassthroughOptions
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.PositionIncrementFromOffsetFilter
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.SearchPathTypeFilter
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.TokenMergingFilter
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.WordAttribute
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.WordIndexFilter
-import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.WordSplittingTokenFilter
 import org.apache.lucene.analysis.Analyzer
+import org.apache.lucene.analysis.AnalyzerWrapper
 import org.apache.lucene.analysis.TokenFilter
 import org.apache.lucene.analysis.TokenStream
-import org.apache.lucene.analysis.core.WhitespaceTokenizer
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute
 
@@ -61,28 +52,14 @@ class TokenAttributeFilter(
  * This is used for testing to ensure each token type can properly find results.
  */
 internal class TokenTypeFilteringAnalyzer(
-  @Suppress("unused") private val wrapped: Analyzer,
+  private val wrapped: Analyzer,
   private val tokenTypeWhitelist: List<String>,
-) : Analyzer() {
+) : AnalyzerWrapper(wrapped.reuseStrategy) {
 
-  override fun createComponents(fieldName: String): TokenStreamComponents {
-    val tokenizer = WhitespaceTokenizer()
-    var stream: TokenStream = SearchPathTypeFilter(tokenizer)
-    stream =
-      WordSplittingTokenFilter(stream, setOf(FileTokenType.FILENAME), FileTokenType.FILENAME_PART, PassthroughOptions.PassthroughLast)
-    stream = AbbreviationTokenFilter(
-      stream,
-      sourceTypes = setOf(FileTokenType.FILENAME_PART),
-      outputType = FileTokenType.FILENAME_ABBREVIATION,
-      allowedSkip = 1,
-      skipOutputType = FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS,
-      passThrough = PassthroughOptions.PassthroughLast,
-    )
-    stream = FilenameNgramFilter(stream)
-    stream = TokenMergingFilter(stream)
-    stream = PositionIncrementFromOffsetFilter(stream)
-    stream = WordIndexFilter(stream)
-    val typeFilter = TokenAttributeFilter(stream, typePredicate = { it in tokenTypeWhitelist })
-    return TokenStreamComponents(tokenizer, typeFilter)
+  override fun getWrappedAnalyzer(fieldName: String): Analyzer = wrapped
+
+  override fun wrapComponents(fieldName: String, components: TokenStreamComponents): TokenStreamComponents {
+    val filter = TokenAttributeFilter(components.tokenStream, typePredicate = { it in tokenTypeWhitelist })
+    return TokenStreamComponents(components.source, filter)
   }
 }
