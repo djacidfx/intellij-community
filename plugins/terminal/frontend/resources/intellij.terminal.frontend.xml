@@ -51,6 +51,8 @@
 
     <platform.rpc.applicationRemoteTopicListener
         implementation="com.intellij.terminal.frontend.settings.TerminalActionShortcutChangedListener"/>
+
+    <editorAutoClosingHandler implementation="com.intellij.terminal.frontend.editor.TerminalViewEditorAutoClosingHandler"/>
   </extensions>
 
   <extensions defaultExtensionNs="org.jetbrains.plugins.terminal">
