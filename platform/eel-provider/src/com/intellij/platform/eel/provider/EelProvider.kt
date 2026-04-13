@@ -170,10 +170,6 @@ val localEel: LocalEelApi by lazy {
   else ApplicationManager.getApplication().service<LocalPosixEelApi>()
 }
 
-@Deprecated("Use toEelApiBlocking() instead", ReplaceWith("toEelApiBlocking()"))
-@ApiStatus.Internal
-fun EelDescriptor.upgradeBlocking(): EelApi = toEelApiBlocking()
-
 @ApiStatus.Experimental
 fun EelMachine.toEelApiBlocking(descriptor: EelDescriptor): EelApi = runBlockingMaybeCancellable { toEelApi(descriptor) }
 
