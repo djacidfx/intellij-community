@@ -761,4 +761,9 @@ public class Py3ArgumentListInspectionTest extends PyInspectionTestCase {
                    MyModel()
                    """);
   }
+
+  // PY-88828
+  public void testDataclassTransformDecoratorOnOverloadNotImplementation() {
+    doMultiFileTest();
+  }
 }

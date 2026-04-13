@@ -663,13 +663,24 @@ private fun resolveDataclassParameters(
       )
     }
     PyDataclassParameters.PredefinedType.DATACLASS_TRANSFORM -> {
-      val dataclassTransformTargets = (pyClass.decoratorList?.decorators.orEmpty().asSequence().flatMap { resolveDecoratorStubSafe(it, context) }
+      val dataclassTransformTargets = (pyClass.decoratorList?.decorators.orEmpty().asSequence()
+                                         .flatMap { resolveDecoratorStubSafe(it, context) }
+                                         .flatMap {
+                                           // ResolveResult prioritisation in PyResolveUtil.resolveQualifiedNameInScope
+                                           // returns only the implementation if it's present.
+                                           if (it is PyFunction && !PyiUtil.isOverload(it, context)) {
+                                             PyiUtil.getOverloads(it, context).asSequence() + it
+                                           }
+                                           else {
+                                             sequenceOf(it)
+                                           }
+                                         }
                                        + sequence { yieldAll(pyClass.getAncestorClasses(context)) }
                                        + sequence { (pyClass.getMetaClassType(true, context) as? PyClassType)?.let { yield(it.pyClass) } })
       val dataclassTransformDecorator: PyDecorator? = dataclassTransformTargets
         .filterIsInstance<PyDecoratable>()
         .flatMap { it.decoratorList?.decorators.orEmpty().asSequence() }
-        .filter { it.qualifiedName?.lastComponent == "dataclass_transform" }
+        .filter { it.qualifiedName?.lastComponent == PyDataclassNames.DataclassTransform.DATACLASS_TRANSFORM_NAME }
         .firstOrNull()
 
       if (dataclassTransformDecorator != null) {
