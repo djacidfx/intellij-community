@@ -45,25 +45,21 @@ class PathSplittingRule(text: String) : SymbolSplittingRule(text, { it == '/' })
  * Returns an empty sequence when no transitions are found.
  */
 class NumericTransitionSplittingRule(text: String) : WordSplittingRule(text) {
-  override fun split(span: IntRange): Sequence<IntRange> {
-    val result = mutableListOf<IntRange>()
+  override fun split(span: IntRange): Sequence<IntRange> = sequence {
+    if (span.isEmpty()) return@sequence
     var start = span.first
     for (i in span.first + 1..span.last) {
       val prev = text[i - 1]
       val curr = text[i]
       if ((prev.isLetter() && curr.isDigit()) || (prev.isDigit() && curr.isLetter())) {
-        result.add(start until i)
+        yield(start until i)
         start = i
       }
     }
-    return if (result.isEmpty()) emptySequence()
-    else {
-      result.add(start..span.last)
-      result.asSequence()
-    }
+
+    yield(start..span.last)
   }
 }
-
 
 /**
  * Splits at camelCase boundaries:
