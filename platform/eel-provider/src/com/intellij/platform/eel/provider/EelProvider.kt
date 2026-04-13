@@ -114,13 +114,3 @@ fun EelDescriptor.toEelApiBlocking(): EelApi {
   if (this === LocalEelDescriptor) return localEel
   return runBlockingMaybeCancellable { toEelApi() }
 }
-
-@ApiStatus.Internal
-fun EelApi.systemOs(): OS {
-  return when (platform) {
-    is EelPlatform.Linux -> OS.Linux
-    is EelPlatform.Darwin -> OS.macOS
-    is EelPlatform.Windows -> OS.Windows
-    is EelPlatform.FreeBSD -> OS.FreeBSD
-  }
-}

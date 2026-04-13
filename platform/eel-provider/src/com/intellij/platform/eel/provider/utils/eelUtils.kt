@@ -3,6 +3,7 @@ package com.intellij.platform.eel.provider.utils
 
 import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import com.intellij.openapi.util.io.FileTooBigException
+import com.intellij.platform.eel.EelApi
 import com.intellij.platform.eel.EelExecApi
 import com.intellij.platform.eel.EelPlatform
 import com.intellij.platform.eel.EelResult
@@ -55,6 +56,9 @@ fun CpuArch.toEelArch(): EelPlatform.Arch = archMap[this] ?: EelPlatform.Arch.Un
 
 @ApiStatus.Internal
 fun EelPlatform.Arch.toCpuArch(): CpuArch = archMap.getKeysByValue(this)?.single() ?: CpuArch.UNKNOWN
+
+@ApiStatus.Internal
+fun EelApi.systemOs(): OS = platform.toOs()
 
 @Throws(FileSystemException::class)
 @ApiStatus.Internal
