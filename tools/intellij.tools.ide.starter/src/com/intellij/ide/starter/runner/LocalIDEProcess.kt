@@ -51,7 +51,7 @@ class LocalIDEProcess : IDEProcess {
         testContext.setProviderMemoryOnlyOnLinux()
         @Suppress("SSBasedInspection")
         val jdkHome = runBlocking(Dispatchers.Default) {
-          resolveAndDownloadSameJDK()
+          testContext.ide.resolveAndDownloadTheSameJDKOrFallback()
         }
 
         val vmOptions: VMOptions = calculateVmOptions()

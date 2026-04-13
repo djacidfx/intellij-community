@@ -314,19 +314,6 @@ data class IDERunContext(
     return current.format(formatter)
   }
 
-  internal suspend fun resolveAndDownloadSameJDK(): Path {
-    try {
-      return testContext.ide.resolveAndDownloadTheSameJDK()
-    }
-    catch (e: Exception) {
-      logError("Failed to download the same JDK as in ${testContext.ide.build}")
-      logError(e.stackTraceToString())
-
-      val defaultJavaHome = JvmUtils.resolveInstalledJdk()
-      logOutput("JDK is not found in ${testContext.ide.build}. Fallback to default java: $defaultJavaHome")
-      return defaultJavaHome
-    }
-  }
 
   internal fun logStartupInfo(finalOptions: VMOptions) {
     logOutput(buildString {
