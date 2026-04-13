@@ -5,8 +5,6 @@ import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.TokenFilter
 import org.apache.lucene.analysis.TokenStream
 import org.apache.lucene.analysis.core.WhitespaceTokenizer
-import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
-import org.apache.lucene.analysis.tokenattributes.OffsetAttribute
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute
 import org.apache.lucene.util.Attribute
 import org.apache.lucene.util.AttributeImpl
@@ -46,20 +44,7 @@ class FileSearchAnalyzer : Analyzer() {
  * Extension-less single-component: additionally emits PATH_SEGMENT and FILETYPE (lowercased whole term).
  * Both '/' and '\' are treated as path separators.
  */
-class SearchPathTypeFilter(input: TokenStream) : TokenFilter(input) {
-  private val termAttr = addAttribute(CharTermAttribute::class.java)
-  private val multiTypeAttr = addAttribute(MultiTypeAttribute::class.java)
-  private val offsetAttr = addAttribute(OffsetAttribute::class.java)
-
-  private data class PendingToken(
-    val term: String,
-    val types: Set<FileTokenType>,
-    val startOffset: Int,
-    val endOffset: Int,
-  )
-
-  private val pending = ArrayDeque<PendingToken>()
-
+class SearchPathTypeFilter(input: TokenStream) : TokenFilterBase(input) {
   override fun incrementToken(): Boolean {
     if (pending.isNotEmpty()) {
       emit(pending.removeFirst())
@@ -72,7 +57,7 @@ class SearchPathTypeFilter(input: TokenStream) : TokenFilter(input) {
     val segmentStart = offsetAttr.startOffset()
     val segmentEnd = offsetAttr.endOffset()
 
-    pending.add(PendingToken(segment, setOf(FileTokenType.PATH), segmentStart, segmentEnd))
+    pending.add(BufferedToken(segment, setOf(FileTokenType.PATH), segmentStart, segmentEnd))
 
     // Normalize '\' to '/' so PathSplittingRule (which only splits on '/') handles both separators.
     // Character positions are unchanged since both are single chars.
@@ -81,7 +66,7 @@ class SearchPathTypeFilter(input: TokenStream) : TokenFilter(input) {
 
     for (i in 0 until pathSpans.size - 1) {
       val span = pathSpans[i]
-      pending.add(PendingToken(
+      pending.add(BufferedToken(
         segment.substring(span.first, span.last + 1),
         setOf(FileTokenType.PATH_SEGMENT),
         segmentStart + span.first,
@@ -100,52 +85,41 @@ class SearchPathTypeFilter(input: TokenStream) : TokenFilter(input) {
     val partEnd = segmentStart + lastSpan.last + 1
 
     if (pathSpans.size > 1) {
-      pending.add(PendingToken(lastPart, setOf(FileTokenType.PATH_SEGMENT), partStart, partEnd))
+      pending.add(BufferedToken(lastPart, setOf(FileTokenType.PATH_SEGMENT), partStart, partEnd))
     }
 
     val dotIndex = lastPart.lastIndexOf('.')
     when {
       dotIndex < 0 -> {
         // Extension-less file
-        pending.add(PendingToken(lastPart, setOf(FileTokenType.FILENAME), partStart, partEnd))
+        pending.add(BufferedToken(lastPart, setOf(FileTokenType.FILENAME), partStart, partEnd))
         if (lastPart.isNotEmpty()) {
-          pending.add(PendingToken(lastPart.lowercase(), setOf(FileTokenType.FILETYPE), partStart, partEnd))
+          pending.add(BufferedToken(lastPart.lowercase(), setOf(FileTokenType.FILETYPE), partStart, partEnd))
         }
         if (pathSpans.size == 1 && lastPart.isNotEmpty()) {
-          pending.add(PendingToken(lastPart, setOf(FileTokenType.PATH_SEGMENT), partStart, partEnd))
+          pending.add(BufferedToken(lastPart, setOf(FileTokenType.PATH_SEGMENT), partStart, partEnd))
         }
       }
       dotIndex == 0 -> {
         // Hidden file, e.g. ".gitignore": the whole token is FILENAME, body after dot is FILETYPE
-        pending.add(PendingToken(lastPart, setOf(FileTokenType.FILENAME), partStart, partEnd))
+        pending.add(BufferedToken(lastPart, setOf(FileTokenType.FILENAME), partStart, partEnd))
         val filetype = lastPart.substring(1)
         if (filetype.isNotEmpty()) {
-          pending.add(PendingToken(filetype.lowercase(), setOf(FileTokenType.FILETYPE), partStart + 1, partEnd))
+          pending.add(BufferedToken(filetype.lowercase(), setOf(FileTokenType.FILETYPE), partStart + 1, partEnd))
         }
       }
       else -> {
         val filename = lastPart.substring(0, dotIndex)
         val filetype = lastPart.substring(dotIndex + 1)
-        pending.add(PendingToken(filename, setOf(FileTokenType.FILENAME), partStart, partStart + dotIndex))
+        pending.add(BufferedToken(filename, setOf(FileTokenType.FILENAME), partStart, partStart + dotIndex))
         if (filetype.isNotEmpty()) {
-          pending.add(PendingToken(filetype.lowercase(), setOf(FileTokenType.FILETYPE), partStart + dotIndex + 1, partEnd))
+          pending.add(BufferedToken(filetype.lowercase(), setOf(FileTokenType.FILETYPE), partStart + dotIndex + 1, partEnd))
         }
       }
     }
 
     emit(pending.removeFirst())
     return true
-  }
-
-  private fun emit(token: PendingToken) {
-    termAttr.setEmpty().append(token.term)
-    multiTypeAttr.clearTypes().setTypes(token.types)
-    offsetAttr.setOffset(token.startOffset, token.endOffset)
-  }
-
-  override fun reset() {
-    super.reset()
-    pending.clear()
   }
 }
 
@@ -159,19 +133,7 @@ class SearchPathTypeFilter(input: TokenStream) : TokenFilter(input) {
  * at the FILENAME's offset. The FILENAME token itself is emitted immediately; bigrams follow on
  * subsequent [incrementToken] calls.
  */
-class FilenameNgramFilter(input: TokenStream) : TokenFilter(input) {
-  private val termAttr = addAttribute(CharTermAttribute::class.java)
-  private val multiTypeAttr = addAttribute(MultiTypeAttribute::class.java)
-  private val offsetAttr = addAttribute(OffsetAttribute::class.java)
-
-  private data class PendingToken(
-    val term: String,
-    val types: Set<FileTokenType>,
-    val startOffset: Int,
-    val endOffset: Int,
-  )
-
-  private val pending = ArrayDeque<PendingToken>()
+class FilenameNgramFilter(input: TokenStream) : TokenFilterBase(input) {
   private var partCount = 0
 
   override fun incrementToken(): Boolean {
@@ -193,7 +155,7 @@ class FilenameNgramFilter(input: TokenStream) : TokenFilter(input) {
             val ngramTypes = setOf(FileTokenType.FILENAME_PART, FileTokenType.PATH_SEGMENT_PREFIX)
             var i = 0
             while (i + 2 <= term.length) {
-              pending.add(PendingToken(term.substring(i, i + 2), ngramTypes, start, end))
+              pending.add(BufferedToken(term.substring(i, i + 2), ngramTypes, start, end))
               i += 2
             }
           }
@@ -206,15 +168,8 @@ class FilenameNgramFilter(input: TokenStream) : TokenFilter(input) {
     return true
   }
 
-  private fun emit(token: PendingToken) {
-    termAttr.setEmpty().append(token.term)
-    multiTypeAttr.clearTypes().setTypes(token.types)
-    offsetAttr.setOffset(token.startOffset, token.endOffset)
-  }
-
   override fun reset() {
     super.reset()
-    pending.clear()
     partCount = 0
   }
 }

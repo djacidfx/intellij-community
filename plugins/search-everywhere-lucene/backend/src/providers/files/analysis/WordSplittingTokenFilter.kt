@@ -4,10 +4,7 @@ import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.spli
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.splitting.LetterAndDigitSplittingRule
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.splitting.NumericTransitionSplittingRule
 import com.intellij.searchEverywhereLucene.backend.providers.files.analysis.splitting.Span
-import org.apache.lucene.analysis.TokenFilter
 import org.apache.lucene.analysis.TokenStream
-import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
-import org.apache.lucene.analysis.tokenattributes.OffsetAttribute
 
 /**
  * Splits input tokens whose [MultiTypeAttribute] intersects [inputTypes] into sub-tokens.
@@ -22,20 +19,7 @@ class WordSplittingTokenFilter(
   private val inputTypes: Set<FileTokenType>,
   private val outputType: FileTokenType,
   private val passThrough: PassthroughOptions = PassthroughOptions.PassthroughFirst,
-) : TokenFilter(input) {
-
-  private val termAttr = addAttribute(CharTermAttribute::class.java)
-  private val multiTypeAttr = addAttribute(MultiTypeAttribute::class.java)
-  private val offsetAttr = addAttribute(OffsetAttribute::class.java)
-
-  private data class BufferedToken(
-    val term: String,
-    val types: Set<FileTokenType>,
-    val startOffset: Int,
-    val endOffset: Int,
-  )
-
-  private val pending = ArrayDeque<BufferedToken>()
+) : TokenFilterBase(input) {
 
   override fun incrementToken(): Boolean {
     if (pending.isNotEmpty()) {
@@ -72,17 +56,6 @@ class WordSplittingTokenFilter(
 
     emit(pending.removeFirst())
     return true
-  }
-
-  private fun emit(token: BufferedToken) {
-    termAttr.setEmpty().append(token.term)
-    multiTypeAttr.clearTypes().setTypes(token.types)
-    offsetAttr.setOffset(token.startOffset, token.endOffset)
-  }
-
-  override fun reset() {
-    super.reset()
-    pending.clear()
   }
 
 }

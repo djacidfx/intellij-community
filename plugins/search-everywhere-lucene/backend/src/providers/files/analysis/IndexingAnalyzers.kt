@@ -6,8 +6,6 @@ import org.apache.lucene.analysis.LowerCaseFilter
 import org.apache.lucene.analysis.TokenFilter
 import org.apache.lucene.analysis.TokenStream
 import org.apache.lucene.analysis.core.KeywordTokenizer
-import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
-import org.apache.lucene.analysis.tokenattributes.OffsetAttribute
 
 /**
  * Detects the PATH, FILENAME (stem, original case), and FILETYPE (extension, lowercase) of a raw
@@ -16,21 +14,10 @@ import org.apache.lucene.analysis.tokenattributes.OffsetAttribute
  * The FILENAME term is kept in original case so that [AbbreviationTokenFilter] can correctly
  * derive camelCase abbreviations. Lowercasing of FILENAME is deferred to that filter.
  */
-internal class PathAndFilenameTypeFilter(input: TokenStream) : TokenFilter(input) {
-  private val termAttr = addAttribute(CharTermAttribute::class.java)
-  private val multiTypeAttr = addAttribute(MultiTypeAttribute::class.java)
-  private val offsetAttr = addAttribute(OffsetAttribute::class.java)
-
-  private data class TypedToken(val term: String, val types: Set<FileTokenType>, val start: Int, val end: Int)
-
-  private val pending = ArrayDeque<TypedToken>()
-
+internal class PathAndFilenameTypeFilter(input: TokenStream) : TokenFilterBase(input) {
   override fun incrementToken(): Boolean {
     if (pending.isNotEmpty()) {
-      val token = pending.removeFirst()
-      termAttr.setEmpty().append(token.term)
-      multiTypeAttr.clearTypes().setTypes(token.types)
-      offsetAttr.setOffset(token.start, token.end)
+      emit(pending.removeFirst())
       return true
     }
 
@@ -39,7 +26,7 @@ internal class PathAndFilenameTypeFilter(input: TokenStream) : TokenFilter(input
     val fullText = termAttr.toString()
 
     // PATH: full text, case-preserved
-    pending.addLast(TypedToken(fullText, setOf(FileTokenType.PATH), 0, fullText.length))
+    pending.addLast(BufferedToken(fullText, setOf(FileTokenType.PATH), 0, fullText.length))
 
     val dotIndex = fullText.lastIndexOf('.')
     val nameStem: String
@@ -58,23 +45,15 @@ internal class PathAndFilenameTypeFilter(input: TokenStream) : TokenFilter(input
     }
 
     // FILENAME: stem, original case (lowercasing deferred to AbbreviationTokenFilter)
-    pending.addLast(TypedToken(nameStem, setOf(FileTokenType.FILENAME), 0, nameStem.length))
+    pending.addLast(BufferedToken(nameStem, setOf(FileTokenType.FILENAME), 0, nameStem.length))
 
     // FILETYPE: extension, lowercase, highest offset
     if (!ext.isNullOrEmpty()) {
-      pending.addLast(TypedToken(ext.lowercase(), setOf(FileTokenType.FILETYPE), extStart, extStart + ext.length))
+      pending.addLast(BufferedToken(ext.lowercase(), setOf(FileTokenType.FILETYPE), extStart, extStart + ext.length))
     }
 
-    val first = pending.removeFirst()
-    termAttr.setEmpty().append(first.term)
-    multiTypeAttr.clearTypes().setTypes(first.types)
-    offsetAttr.setOffset(first.start, first.end)
+    emit(pending.removeFirst())
     return true
-  }
-
-  override fun reset() {
-    super.reset()
-    pending.clear()
   }
 }
 
@@ -114,20 +93,10 @@ class FilePathAnalyzer : Analyzer() {
 }
 
 /** Splits PATH tokens on '/' into PATH_SEGMENT sub-tokens, keeping the original PATH as passthrough. */
-private class PathSegmentSplittingFilter(input: TokenStream) : TokenFilter(input) {
-  private val termAttr = addAttribute(CharTermAttribute::class.java)
-  private val multiTypeAttr = addAttribute(MultiTypeAttribute::class.java)
-  private val offsetAttr = addAttribute(OffsetAttribute::class.java)
-
-  private data class BufferedToken(val term: String, val types: Set<FileTokenType>, val start: Int, val end: Int)
-
-  private val pending = ArrayDeque<BufferedToken>()
+private class PathSegmentSplittingFilter(input: TokenStream) : TokenFilterBase(input) {
   override fun incrementToken(): Boolean {
     if (pending.isNotEmpty()) {
-      val token = pending.removeFirst()
-      termAttr.setEmpty().append(token.term)
-      multiTypeAttr.clearTypes().setTypes(token.types)
-      offsetAttr.setOffset(token.start, token.end)
+      emit(pending.removeFirst())
       return true
     }
 
@@ -148,16 +117,8 @@ private class PathSegmentSplittingFilter(input: TokenStream) : TokenFilter(input
       ))
     }
 
-    val first = pending.removeFirst()
-    termAttr.setEmpty().append(first.term)
-    multiTypeAttr.clearTypes().setTypes(first.types)
-    offsetAttr.setOffset(first.start, first.end)
+    emit(pending.removeFirst())
     return true
-  }
-
-  override fun reset() {
-    super.reset()
-    pending.clear()
   }
 }
 

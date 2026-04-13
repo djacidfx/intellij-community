@@ -1,9 +1,6 @@
 package com.intellij.searchEverywhereLucene.backend.providers.files.analysis
 
-import org.apache.lucene.analysis.TokenFilter
 import org.apache.lucene.analysis.TokenStream
-import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
-import org.apache.lucene.analysis.tokenattributes.OffsetAttribute
 
 /**
  * Derives abbreviation tokens from groups of [sourceTypes] sub-tokens (e.g., FILENAME_PART).
@@ -25,74 +22,9 @@ class AbbreviationTokenFilter(
   private val allowedSkip: Int = 0,
   private val skipOutputType: FileTokenType = FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS,
   private val passThrough: PassthroughOptions = PassthroughOptions.PassthroughLast,
-) : TokenFilter(input) {
+) : TokenFilterBase(input) {
 
-  private val termAttr = addAttribute(CharTermAttribute::class.java)
-  private val multiTypeAttr = addAttribute(MultiTypeAttribute::class.java)
-  private val offsetAttr = addAttribute(OffsetAttribute::class.java)
-
-  private data class BufferedToken(
-    val term: String,
-    val types: Set<FileTokenType>,
-    val startOffset: Int,
-    val endOffset: Int,
-  )
-
-  private val bufferedParts = mutableListOf<BufferedToken>()
-  private val pending = ArrayDeque<BufferedToken>()
-
-  override fun incrementToken(): Boolean {
-    while (true) {
-      if (pending.isNotEmpty()) {
-        emit(pending.removeFirst())
-        return true
-      }
-
-      if (!input.incrementToken()) {
-        if (bufferedParts.isNotEmpty()) {
-          flushBuffered()
-          continue
-        }
-        return false
-      }
-
-      val activeTypes = multiTypeAttr.activeTypes().toSet()
-
-      if (activeTypes.intersect(sourceTypes).isNotEmpty()) {
-        bufferedParts.add(BufferedToken(termAttr.toString(), activeTypes, offsetAttr.startOffset(), offsetAttr.endOffset()))
-        continue
-      }
-
-      val incoming = BufferedToken(termAttr.toString(), activeTypes, offsetAttr.startOffset(), offsetAttr.endOffset())
-      if (bufferedParts.isNotEmpty()) {
-        flushBuffered()
-        pending.add(incoming.copy(term = incoming.term.lowercase()))
-        continue
-      }
-
-      // Forward unchanged
-      return true
-    }
-  }
-
-  private fun flushBuffered() {
-    val abbreviations = buildAbbreviations(bufferedParts)
-    when (passThrough) {
-      PassthroughOptions.PassthroughLast -> {
-        pending.addAll(abbreviations)
-        bufferedParts.mapTo(pending) { it.copy(term = it.term.lowercase()) }
-      }
-      PassthroughOptions.PassthroughFirst -> {
-        bufferedParts.mapTo(pending) { it.copy(term = it.term.lowercase()) }
-        pending.addAll(abbreviations)
-      }
-      PassthroughOptions.NoPassthrough -> {
-        pending.addAll(abbreviations)
-      }
-    }
-
-    bufferedParts.clear()
-  }
+  override fun incrementToken(): Boolean = incrementWithGrouping(sourceTypes, passThrough, ::buildAbbreviations)
 
   private fun buildAbbreviations(parts: List<BufferedToken>): List<BufferedToken> {
     val abbrevStart = parts.minOf { it.startOffset }
@@ -147,15 +79,4 @@ class AbbreviationTokenFilter(
     }
   }
 
-  private fun emit(token: BufferedToken) {
-    termAttr.setEmpty().append(token.term)
-    multiTypeAttr.clearTypes().setTypes(token.types)
-    offsetAttr.setOffset(token.startOffset, token.endOffset)
-  }
-
-  override fun reset() {
-    super.reset()
-    bufferedParts.clear()
-    pending.clear()
-  }
 }
