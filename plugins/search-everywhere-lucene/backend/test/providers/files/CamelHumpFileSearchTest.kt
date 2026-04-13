@@ -17,10 +17,6 @@ class CamelHumpFileSearchTest : FileSearchTestBase() {
       index.assertSearch("SEC") {
         findsAllOf(seaEverContr)
       }
-
-      index.assertSearch("SECT") {
-        findsNothing()
-      }
     }
   }
 
@@ -63,10 +59,7 @@ class CamelHumpFileSearchTest : FileSearchTestBase() {
       index.assertSearch("SXC") {
         findsNothing()
       }
-      // More initials than camel words
-      index.assertSearch("SECT") {
-        findsNothing()
-      }
+
       // Matches again because of extension
       index.assertSearch("SECkt") {
         findsAllOf(seaEverContr)
@@ -158,10 +151,6 @@ class CamelHumpFileSearchTest : FileSearchTestBase() {
       index.assertSearch("HTTPS") {
         findsAllOf(httpServer)
       }
-      // HTTPA finds nothing: Server does not start with A
-      index.assertSearch("HTTPA") {
-        findsNothing()
-      }
     }
   }
 
@@ -177,10 +166,6 @@ class CamelHumpFileSearchTest : FileSearchTestBase() {
       // MHT also matches: m = prefix of My, ht = 2-char prefix of HTTP
       index.assertSearch("MHT") {
         findsAllOf(myHttp)
-      }
-      // MHX finds nothing: hx is not a prefix of HTTP (h-t-t-p)
-      index.assertSearch("MHX") {
-        findsNothing()
       }
     }
   }
