@@ -172,7 +172,7 @@ public abstract class VirtualFileSystemEntry extends NewVirtualFile {
     PersistentFSImpl owningPersistentFS = owningVfsData.owningPersistentFS();
     if (!owningPersistentFS.isOwnData(owningVfsData)) {
       if (!owningPersistentFS.isConnected()) {
-        return new AlreadyDisposedException("VFS is disconnected, all it's files are invalid now");
+        return new AlreadyDisposedException("VFS is disconnected, all its files are invalid now");
       }
       else {
         //PersistentFSImpl re-creates VfsData on (re-)connect
@@ -186,7 +186,7 @@ public abstract class VirtualFileSystemEntry extends NewVirtualFile {
   /**
    * @return {@link VfsData} this entry is owned by
    * @throws AlreadyDisposedException if {@link PersistentFS} is disconnected
-   * @throws AssertionError           if the entry is 'alien': i.e. currently connected {@link PersistentFS} has {@link VfsData} different
+   * @throws AssertionError           if the entry is 'alien': i.e., currently connected {@link PersistentFS} has {@link VfsData} different
    *                                  from {@link VfsData} this entry is owned by
    */
   VfsData getVfsData() {
