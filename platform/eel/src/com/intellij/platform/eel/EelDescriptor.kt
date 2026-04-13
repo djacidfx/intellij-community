@@ -47,7 +47,7 @@ interface EelMachine {
   @Throws(EelUnavailableException::class)
   suspend fun toEelApi(descriptor: EelDescriptor): EelApi
 
-  fun ownsPath(path: Path): Boolean
+  fun ownsDescriptor(descriptor: EelDescriptor): Boolean
 }
 
 /**

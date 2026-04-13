@@ -76,9 +76,8 @@ class WslEelMachine internal constructor(val distribution: WSLDistribution) : Ee
     return result
   }
 
-  override fun ownsPath(path: Path): Boolean {
-    val descriptor = path.getEelDescriptor() as? WslEelDescriptor ?: return false
-    return descriptor.distribution == distribution
+  override fun ownsDescriptor(descriptor: EelDescriptor): Boolean {
+    return descriptor is WslEelDescriptor && descriptor.distribution == distribution
   }
 }
 

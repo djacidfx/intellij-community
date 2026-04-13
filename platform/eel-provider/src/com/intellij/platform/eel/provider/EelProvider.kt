@@ -79,6 +79,13 @@ fun Path.getEelDescriptor(): EelDescriptor {
 val Path.osFamily: EelOsFamily get() = getEelDescriptor().osFamily
 
 /**
+ * NIO Path compatibility extension for [EelMachine.ownsDescriptor].
+ * Resolves the [EelDescriptor] from the NIO path and delegates.
+ */
+@ApiStatus.Experimental
+fun EelMachine.ownsPath(path: Path): Boolean = ownsDescriptor(path.getEelDescriptor())
+
+/**
  * Retrieves [EelDescriptor] for the environment where [this] is located.
  * If the project is not the real one (i.e., it is default or not backed by a real file), then [LocalEelDescriptor] will be returned,
  * unless an explicit descriptor has been set via [setEelDescriptor] (e.g., for RD thin client with a fake project).
