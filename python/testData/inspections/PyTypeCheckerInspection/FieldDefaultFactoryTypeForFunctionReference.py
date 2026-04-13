@@ -7,4 +7,4 @@ def make_str() -> str:
 
 @dataclass
 class A:
-    x: int = <warning descr="Type mismatch: field annotation is 'int', but default_factory returns 'str'">field(default_factory=make_str)</warning>
+    x: int = <warning descr="Expected type 'int', got 'str' instead">field(default_factory=make_str)</warning>

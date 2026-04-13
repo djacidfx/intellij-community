@@ -8,4 +8,4 @@ def make_factory() -> Callable[[], str]:
 
 @dataclass
 class B:
-    y: int = <warning descr="Type mismatch: field annotation is 'int', but default_factory returns 'str'">field(default_factory=make_factory())</warning>
+    y: int = <warning descr="Expected type 'int', got 'str' instead">field(default_factory=make_factory())</warning>
