@@ -134,7 +134,26 @@ class FileSearchingAnalyzerTest : AnalyzersTestBase() {
       .print()
       .producesToken("cl", FileTokenType.FILENAME_PART)
       .producesToken("cl", FileTokenType.PATH_SEGMENT_PREFIX)
+      .producesToken("la", FileTokenType.FILENAME_PART)
+      .producesToken("la", FileTokenType.PATH_SEGMENT_PREFIX)
       .producesToken("ag", FileTokenType.FILENAME_PART)
       .producesToken("ag", FileTokenType.PATH_SEGMENT_PREFIX)
+      .producesToken("cla", FileTokenType.FILENAME_PART)
+      .producesToken("cla", FileTokenType.PATH_SEGMENT_PREFIX)
+      .producesToken("lag", FileTokenType.FILENAME_PART)
+      .producesToken("lag", FileTokenType.PATH_SEGMENT_PREFIX)
   }
+
+  @Test
+  fun `IJPL-240179 ngrams generated for multi-part filenames`() {
+    // "sea" and "se" should be generated from the "search" part of SearchEveryWhereUI,
+    // enabling queries like "sean" to find SearchAnalyzer via prefix matching.
+    tokenizing(FileSearchAnalyzer(), "SearchEveryWhereUI")
+      .print()
+      .producesToken("se", FileTokenType.FILENAME_PART)
+      .producesToken("se", FileTokenType.PATH_SEGMENT_PREFIX)
+      .producesToken("sea", FileTokenType.FILENAME_PART)
+      .producesToken("sea", FileTokenType.PATH_SEGMENT_PREFIX)
+  }
+
 }
