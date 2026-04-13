@@ -58,7 +58,6 @@ import org.apache.lucene.search.BooleanClause
 import org.apache.lucene.search.BooleanQuery
 import org.apache.lucene.search.BoostQuery
 import org.apache.lucene.search.DisjunctionMaxQuery
-import org.apache.lucene.search.FuzzyQuery
 import org.apache.lucene.search.PrefixQuery
 import org.apache.lucene.search.Query
 import org.jetbrains.annotations.TestOnly
@@ -376,8 +375,7 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
 
             FileTokenType.FILENAME_ABBREVIATION -> {
               wordQuery.add(PrefixQuery(Term(FileTokenType.FILENAME_ABBREVIATION.type, termString)))
-              wordQuery.add(BoostQuery(FuzzyQuery(Term(FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS.type, termString),2,termString.length,1,false), .5f))
-
+              wordQuery.add(BoostQuery(PrefixQuery(Term(FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS.type, termString)), .5f))
             }
             FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS -> throw IllegalStateException("The FileSearchAnalyzer must not create file abbreviations with Skips")
           }
