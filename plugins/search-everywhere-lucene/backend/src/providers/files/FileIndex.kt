@@ -60,6 +60,7 @@ import org.apache.lucene.search.BoostQuery
 import org.apache.lucene.search.DisjunctionMaxQuery
 import org.apache.lucene.search.PrefixQuery
 import org.apache.lucene.search.Query
+import org.apache.lucene.search.TermQuery
 import org.jetbrains.annotations.TestOnly
 import java.io.IOException
 import kotlin.time.Duration
@@ -351,7 +352,7 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
       val wordAttr = tokenStream.addAttribute(WordAttribute::class.java)
       val multiTypeAttr = tokenStream.addAttribute(MultiTypeAttribute::class.java)
 
-      val wordQueries = mutableMapOf<Int, MutableList<Query>>()
+      val wordQueries = mutableMapOf<Int, MutableMap<Float, MutableList<Query>>>()
 
       tokenStream.reset()
       while (tokenStream.incrementToken()) {
@@ -359,27 +360,24 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
         val termString = termAttr.toString()
         val typesToProcess = multiTypeAttr.activeTypes()
 
-        val wordQuery = wordQueries.computeIfAbsent(wordIndex) { mutableListOf() }
+        val byBoost = wordQueries.computeIfAbsent(wordIndex) { mutableMapOf() }
 
         for (tokenType in typesToProcess) {
+          val term = Term(tokenType.type, termString)
 
-          when (tokenType) {
-            FileTokenType.PATH,
-            FileTokenType.PATH_SEGMENT,
-            FileTokenType.PATH_SEGMENT_PREFIX,
-            FileTokenType.FILENAME,
+          val (boost,query) = when (tokenType) {
             FileTokenType.FILENAME_PART,
-            FileTokenType.FILETYPE,
-              -> wordQuery.add(PrefixQuery(Term(tokenType.type, termString)))
-
-
-            FileTokenType.FILENAME_ABBREVIATION -> {
-              wordQuery.add(PrefixQuery(Term(FileTokenType.FILENAME_ABBREVIATION.type, termString)))
-              wordQuery.add(BoostQuery(PrefixQuery(Term(FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS.type, termString)), .5f))
-            }
-            FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS -> throw IllegalStateException("The FileSearchAnalyzer must not create file abbreviations with Skips")
+            FileTokenType.FILENAME                         -> Pair(4f,listOf(PrefixQuery(term)))
+            FileTokenType.PATH_SEGMENT                     -> Pair(1.5f,listOf(PrefixQuery(term)))
+            FileTokenType.FILENAME_ABBREVIATION            -> Pair(0.6f, listOf(PrefixQuery(term), TermQuery(Term(FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS.type, termString))))
+            FileTokenType.PATH_SEGMENT_PREFIX              -> Pair(0.3f,listOf(PrefixQuery(term)))
+            FileTokenType.PATH,
+            FileTokenType.FILETYPE                         -> Pair(0.5f,listOf(PrefixQuery(term)))
+            FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS -> throw IllegalArgumentException("Search Analyzer should not produce FILENAME_ABBREVIATION_WITH_SKIPS tokens")
           }
 
+          byBoost.getOrPut(boost) { mutableListOf() }
+                 .addAll(query)
         }
       }
       tokenStream.end()
@@ -390,20 +388,26 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
       val mainBq = BooleanQuery.Builder()
       val sortedWordIndices = wordQueries.keys.sorted()
       for (index in sortedWordIndices) {
-        val queries = wordQueries[index]!!
-        if (queries.isEmpty()) continue
-        if (queries.size == 1) {
-          mainBq.add(queries[0], BooleanClause.Occur.MUST)
-        }
-        else {
-          mainBq.add(DisjunctionMaxQuery(queries, 0.1f), BooleanClause.Occur.MUST)
-        }
+        val byBoost = wordQueries[index]!!
+        if (byBoost.isEmpty()) continue
+        mainBq.add(buildWordQuery(byBoost), BooleanClause.Occur.MUST)
       }
 
       val query = mainBq.build()
       LOG.debug { "Built query for \"${params.inputQuery}\": $query" }
       return query
     }
+
+    private fun buildWordQuery(byBoost: Map<Float, List<Query>>): Query {
+      val bq = BooleanQuery.Builder().setMinimumNumberShouldMatch(1)
+      for ((boost, queries) in byBoost) {
+        bq.add(BoostQuery(flatDisjMax(queries), boost), BooleanClause.Occur.SHOULD)
+      }
+      return bq.build()
+    }
+
+    private fun flatDisjMax(queries: List<Query>): Query =
+      if (queries.size == 1) queries[0] else DisjunctionMaxQuery(queries, 0f)
 
     private fun getPrimaryKeyTerm(url: String): Term {
       val term = Term(FILE_URL, url)
