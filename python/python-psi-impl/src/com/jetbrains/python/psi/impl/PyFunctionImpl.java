@@ -23,6 +23,7 @@ import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.IconManager;
 import com.intellij.util.IncorrectOperationException;
 import com.intellij.util.PlatformIcons;
+import com.intellij.util.containers.ContainerUtil;
 import com.intellij.util.containers.JBIterable;
 import com.jetbrains.python.PyNames;
 import com.jetbrains.python.PyStubElementTypes;
@@ -54,6 +55,8 @@ import com.jetbrains.python.psi.PyFunction;
 import com.jetbrains.python.psi.PyKnownDecorator;
 import com.jetbrains.python.psi.PyKnownDecoratorUtil;
 import com.jetbrains.python.psi.PyLambdaExpression;
+import com.jetbrains.python.psi.PyNamedParameter;
+import com.jetbrains.python.psi.PyParameter;
 import com.jetbrains.python.psi.PyParameterList;
 import com.jetbrains.python.psi.PyQualifiedExpression;
 import com.jetbrains.python.psi.PyRecursiveElementVisitor;
@@ -85,6 +88,7 @@ import com.jetbrains.python.psi.types.PySelfType;
 import com.jetbrains.python.psi.types.PyType;
 import com.jetbrains.python.psi.types.PyTypeChecker;
 import com.jetbrains.python.psi.types.PyTypeInferenceCspFactory;
+import com.jetbrains.python.psi.types.PyTypedDictType;
 import com.jetbrains.python.psi.types.PyUnionType;
 import com.jetbrains.python.psi.types.TypeEvalContext;
 import com.jetbrains.python.sdk.legacy.PythonSdkUtil;
@@ -478,7 +482,19 @@ public class PyFunctionImpl extends PyBaseElementImpl<PyFunctionStub> implements
         return type;
       }
     }
-    return PyFunctionTypeImpl.create(this, context);
+    List<PyCallableParameter> parameters = new ArrayList<>();
+    for (PyParameter parameter : getParameterList().getParameters()) {
+      if (parameter instanceof PyNamedParameter namedParameter &&
+          namedParameter.isKeywordContainer() &&
+          context.getType(namedParameter) instanceof PyTypedDictType typedDictType) {
+        List<PyCallableParameter> typedDictParameters = typedDictType.toClass().getParameters(context);
+        parameters.addAll(ContainerUtil.notNullize(typedDictParameters));
+      }
+      else {
+        parameters.add(PyCallableParameterImpl.psi(parameter));
+      }
+    }
+    return new PyFunctionTypeImpl(this, parameters);
   }
 
   @Override

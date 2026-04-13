@@ -9,8 +9,6 @@ import com.jetbrains.python.psi.AccessDirection;
 import com.jetbrains.python.psi.PyCallSiteExpression;
 import com.jetbrains.python.psi.PyCallable;
 import com.jetbrains.python.psi.PyExpression;
-import com.jetbrains.python.psi.PyNamedParameter;
-import com.jetbrains.python.psi.PyParameter;
 import com.jetbrains.python.psi.PyReferenceExpression;
 import com.jetbrains.python.psi.PyUtil;
 import com.jetbrains.python.psi.impl.ParamHelper;
@@ -19,30 +17,13 @@ import com.jetbrains.python.psi.resolve.RatedResolveResult;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 /**
- * Type of a particular function that is represented as a {@link PyCallable} in the PSI tree.
+ * Type of particular function that is represented as a {@link PyCallable} in the PSI tree.
  */
 public class PyFunctionTypeImpl implements PyFunctionType {
-  public static PyFunctionType create(@NotNull PyCallable callable, @NotNull TypeEvalContext context) {
-    List<PyCallableParameter> parameters = new ArrayList<>();
-    for (PyParameter parameter : callable.getParameterList().getParameters()) {
-      if (parameter instanceof PyNamedParameter namedParameter &&
-          namedParameter.isKeywordContainer() &&
-          context.getType(namedParameter) instanceof PyTypedDictType typedDictType) {
-        List<PyCallableParameter> typedDictParameters = typedDictType.toClass().getParameters(context);
-        parameters.addAll(ContainerUtil.notNullize(typedDictParameters));
-      }
-      else {
-        parameters.add(PyCallableParameterImpl.psi(parameter));
-      }
-    }
-    return new PyFunctionTypeImpl(callable, parameters);
-  }
-
   private final @NotNull PyCallable myCallable;
   private final @NotNull List<@NotNull PyCallableParameter> myParameters;
 
@@ -83,7 +64,7 @@ public class PyFunctionTypeImpl implements PyFunctionType {
 
   @SuppressWarnings("DuplicatedCode")
   @Override
-  public Object[] getCompletionVariants(String completionPrefix, PsiElement location, ProcessingContext context) {
+  public Object @NotNull [] getCompletionVariants(String completionPrefix, PsiElement location, @NotNull ProcessingContext context) {
     TypeEvalContext typeEvalContext = TypeEvalContext.codeCompletion(location.getProject(), location.getContainingFile());
     PyExpression callee = location instanceof PyReferenceExpression re ? re.getQualifier() : null;
     PyClassType delegate = PyUtil.selectCallableTypeRuntimeClass(this, callee, typeEvalContext);
