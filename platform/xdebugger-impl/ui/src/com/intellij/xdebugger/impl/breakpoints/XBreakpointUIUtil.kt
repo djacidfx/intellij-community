@@ -50,7 +50,11 @@ import kotlin.math.max
 @ApiStatus.Internal
 object XBreakpointUIUtil {
   @JvmStatic
-  fun findSelectedBreakpointProxy(project: Project, editor: Editor): Pair<GutterIconRenderer?, XBreakpointProxy?> {
+  @JvmOverloads
+  fun findSelectedBreakpointProxy(
+    project: Project, editor: Editor,
+    placement: XLineBreakpointVerticalPlacement = XLineBreakpointVerticalPlacement.ON_LINE,
+  ): Pair<GutterIconRenderer?, XBreakpointProxy?> {
     var offset = editor.caretModel.offset
     val editorDocument = editor.document
 
@@ -59,7 +63,7 @@ object XBreakpointUIUtil {
       offset = textLength
     }
 
-    val breakpoint = findBreakpoint(project, editorDocument, editorDocument.getLineNumber(offset))
+    val breakpoint = findBreakpoint(project, editorDocument, editorDocument.getLineNumber(offset), placement)
     if (breakpoint != null) {
       return Pair.create(breakpoint.getGutterIconRenderer(), breakpoint)
     }
@@ -127,7 +131,11 @@ object XBreakpointUIUtil {
     val future = CompletableFuture<XLineBreakpointProxy?>()
     project.service<XBreakpointUtilProjectCoroutineScope>().cs.launch(Dispatchers.EDT) {
       try {
-        val (typeWinner, lineWinner) = getAvailableLineBreakpointInfoProxy(project, position, selectVariantByPositionColumn, editor, placement)
+        val (typeWinner, lineWinner) = getAvailableLineBreakpointInfoProxy(project,
+                                                                           position,
+                                                                           selectVariantByPositionColumn,
+                                                                           editor,
+                                                                           placement)
         if (typeWinner.isEmpty()) {
           fileLogger().warn("Cannot find appropriate type for line breakpoint at $position: ${position.file.url} ${position.line}")
           future.completeExceptionally(RuntimeException("Cannot find appropriate type"))
@@ -135,7 +143,8 @@ object XBreakpointUIUtil {
         }
         val lineStart = position.line
         val winPosition = if (lineStart == lineWinner) position else XSourcePositionImpl.create(position.file, lineWinner)
-        val breakpointInfo = XLineBreakpointInstallationInfo(typeWinner, winPosition, placement, temporary, isLogging, logExpression, canRemove)
+        val breakpointInfo =
+          XLineBreakpointInstallationInfo(typeWinner, winPosition, placement, temporary, isLogging, logExpression, canRemove)
         val res = XBreakpointInstallUtils.toggleAndReturnLineBreakpointProxy(project, editor, breakpointInfo, selectVariantByPositionColumn)
         if (lineStart != lineWinner) {
           val offset = editor.document.getLineStartOffset(lineWinner)
