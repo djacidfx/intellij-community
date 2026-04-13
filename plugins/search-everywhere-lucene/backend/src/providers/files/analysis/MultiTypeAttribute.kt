@@ -16,6 +16,7 @@ interface MultiTypeAttribute : Attribute {
   fun activeTypes(): List<FileTokenType>
 }
 
+@Suppress("unused")
 class MultiTypeAttributeImpl : AttributeImpl(), MultiTypeAttribute {
   override val typeFlags: BooleanArray = BooleanArray(FileTokenType.entries.size)
   override fun setTypes(types: Collection<FileTokenType>): Unit = types.forEach { typeFlags[it.ordinal] = true }
@@ -23,8 +24,8 @@ class MultiTypeAttributeImpl : AttributeImpl(), MultiTypeAttribute {
   override fun clearTypes(): MultiTypeAttributeImpl = apply { typeFlags.fill(false) }
   override fun hasOverlapWith(other: MultiTypeAttribute): Boolean {
     val t = other as MultiTypeAttributeImpl
-    for (i in 0 until typeFlags.size) {
-      if (typeFlags[i] && t.typeFlags[i])
+    for (i in typeFlags.withIndex()) {
+      if (i.value && t.typeFlags[i.index])
         return true
     }
     return false

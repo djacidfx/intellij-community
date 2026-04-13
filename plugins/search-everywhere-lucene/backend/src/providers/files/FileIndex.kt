@@ -118,6 +118,7 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
     }
   }
 
+  @Suppress("unused")
   @TestOnly
   suspend fun awaitIndexCreation() {
     processFileIndexOp(LuceneFileIndexOperation.IndexAll)
