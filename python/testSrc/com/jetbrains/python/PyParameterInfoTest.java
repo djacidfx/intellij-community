@@ -1415,6 +1415,14 @@ public class PyParameterInfoTest extends LightMarkedTestCase {
     });
   }
 
+  // PY-78911
+  public void testPydanticFieldPositionalDefault() {
+    myFixture.copyDirectoryToProject("stubs/pydantic", "pydantic");
+    final Map<String, PsiElement> marks = loadTest(1);
+
+    feignCtrlP(marks.get("<arg1>").getTextOffset()).check("*, a: str | None = ..., b: str | None", ArrayUtilRt.EMPTY_STRING_ARRAY);
+  }
+
   @NotNull
   private Collector feignCtrlP(int offset) {
     return feignCtrlP(offset, myFixture.getFile(), true, myFixture.getEditor());

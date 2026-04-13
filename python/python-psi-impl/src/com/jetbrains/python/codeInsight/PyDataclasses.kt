@@ -149,6 +149,9 @@ object PyDataclassNames {
     const val MODEL_CONFIG: String = "model_config"
     const val MODEL_METACLASS: String = "pydantic._internal._model_construction.ModelMetaclass"
     val BASE_MODEL_QUALIFIED_NAMES: Set<String> = setOf(BASE_MODEL, BASE_MODEL_MAIN, GENERIC_MODEL)
+    const val PYDANTIC_FIELD: String = "pydantic.Field"
+    const val PYDANTIC_FIELDS_FIELD: String = "pydantic.fields.Field"
+    val PYDANTIC_FIELD_QUALIFIED_NAMES: Set<String> = setOf(PYDANTIC_FIELD, PYDANTIC_FIELDS_FIELD)
   }
 }
 

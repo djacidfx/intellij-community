@@ -14,6 +14,7 @@ import com.jetbrains.python.codeInsight.PyDataclassNames.Dataclasses
 import com.jetbrains.python.codeInsight.PyDataclassParameters
 import com.jetbrains.python.codeInsight.resolvesToOmittedDefault
 import com.jetbrains.python.psi.PyCallExpression
+import com.jetbrains.python.psi.PyKeywordArgument
 import com.jetbrains.python.psi.PyReferenceExpression
 import com.jetbrains.python.psi.PyStringLiteralExpression
 import com.jetbrains.python.psi.PyTargetExpression
@@ -63,6 +64,7 @@ class PyDataclassFieldStubImpl private constructor(
         when (originalQName.toString()) {
           Dataclasses.DATACLASSES_FIELD -> return PyDataclassParameters.PredefinedType.STD
           in Attrs.FIELD_FUNCTIONS -> return PyDataclassParameters.PredefinedType.ATTRS
+          in PyDataclassNames.Pydantic.PYDANTIC_FIELD_QUALIFIED_NAMES -> return PyDataclassParameters.PredefinedType.DATACLASS_TRANSFORM
         }
       }
 
@@ -78,7 +80,10 @@ class PyDataclassFieldStubImpl private constructor(
       val qualifiedName = (call.callee as? PyReferenceExpression)?.asQualifiedName() ?: return null
       val initValue = PyEvaluator.evaluateAsBooleanNoResolve(call.getKeywordArgument("init"), true)
       val kwOnly = PyEvaluator.evaluateAsBooleanNoResolve(call.getKeywordArgument("kw_only"))
+      val positionalDefault = call.arguments.firstOrNull { it !is PyKeywordArgument }
       val default = call.getKeywordArgument("default")
+                    ?: if (type == PyDataclassParameters.PredefinedType.DATACLASS_TRANSFORM) positionalDefault
+                    else null
       val defaultFactory = call.getKeywordArgument("default_factory")
       val factory = call.getKeywordArgument("factory")
       val alias = (call.getKeywordArgument("alias") as? PyStringLiteralExpression)?.stringValue

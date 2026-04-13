@@ -1273,6 +1273,19 @@ public class PyStubsTest extends PyTestCase {
     assertNotParsed(file);
   }
 
+  // PY-78911
+  public void testPydanticFieldSpecifierPositionalDefault() {
+    myFixture.copyDirectoryToProject("pydantic", "pydantic");
+    PyFile file = getTestFile();
+    @Nullable PyClass pydanticModel = file.findTopLevelClass("Model");
+    assertNotNull(pydanticModel);
+    @Nullable PyTargetExpression attribute = pydanticModel.findClassAttribute("a", false, TypeEvalContext.codeAnalysis(myFixture.getProject(), myFixture.getFile()));
+    assertNotNull(attribute);
+    PyDataclassFieldStub pydanticFieldStub = attribute.getStub().getCustomStub(PyDataclassFieldStub.class);
+    assertNotNull(pydanticFieldStub);
+    assertTrue(pydanticFieldStub.hasDefault());
+  }
+
   // PY-54560
   public void testDataclassStubForClassDecoratedWithDataclassTransformFactoryFunction() {
     PyFile file = getTestFile();

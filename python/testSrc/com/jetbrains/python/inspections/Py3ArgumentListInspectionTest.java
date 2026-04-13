@@ -746,4 +746,19 @@ public class Py3ArgumentListInspectionTest extends PyInspectionTestCase {
     myFixture.copyDirectoryToProject("stubs/pydantic", "pydantic");
     doTest();
   }
+
+  // PY-78911
+  public void testPydanticFieldWithPositionalDefault() {
+    myFixture.copyDirectoryToProject("stubs/pydantic", "pydantic");
+    doTestByText("""
+                   from pydantic import BaseModel, Field
+                   
+                   class MyModel(BaseModel):
+                       a: str | None = Field(None, alias="A")
+                       b: str | None = Field(None)
+                       c: str | None = Field(default=None)
+                   
+                   MyModel()
+                   """);
+  }
 }
