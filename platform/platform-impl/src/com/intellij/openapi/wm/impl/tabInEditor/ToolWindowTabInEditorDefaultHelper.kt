@@ -9,6 +9,7 @@ import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.addKeyboardAction
+import com.intellij.openapi.ui.getPreferredFocusedComponent
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.text.StringUtil
@@ -118,7 +119,9 @@ internal fun moveContentToEditor(
   toolWindow.contentManager.setSelectedContentCB(content).doWhenProcessed {
     val fileName = if (tabName.isNullOrBlank() || tabName == toolWindow.stripeTitle) toolWindow.stripeTitle
     else "$tabName (${toolWindow.stripeTitle})"
-    val vFile = ToolWindowTabFile(fileName, content.icon ?: toolWindow.icon, toolWindow.id, content.component)
+    val component = content.component
+    val vFile = ToolWindowTabFile(fileName, content.icon ?: toolWindow.icon, toolWindow.id, component,
+                                  content.preferredFocusableComponent ?: component.getPreferredFocusedComponent() ?: component)
     content.component = Placeholder(project, content, vFile)
     val explicitlyRequested = content.preferredFocusableComponent
     if (explicitlyRequested != null && explicitlyRequested !== content.component) {
