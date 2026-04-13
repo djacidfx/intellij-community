@@ -3,10 +3,6 @@
 
 package com.intellij.platform.eel.provider
 
-import com.intellij.openapi.diagnostic.logger
-import com.intellij.openapi.diagnostic.trace
-import com.intellij.openapi.project.Project
-import com.intellij.platform.core.nio.fs.RoutingAwareFileSystemProvider
 import com.intellij.platform.eel.EelDescriptor
 import com.intellij.platform.eel.EelOsFamily
 import com.intellij.platform.eel.EelPathBoundDescriptor
@@ -16,6 +12,9 @@ import com.intellij.platform.eel.path.EelPathException
 import com.intellij.platform.eel.provider.utils.WindowsPathUtils
 import org.jetbrains.annotations.ApiStatus
 import java.nio.file.Path
+import java.util.logging.Logger
+
+private val LOG = Logger.getLogger("com.intellij.platform.eel.provider.EelNioBridge")
 
 /**
  * Converts [EelPath], which is likely a path from a remote machine, to a [Path] for the local machine.
@@ -38,13 +37,6 @@ fun EelPath.asNioPath(): @MultiRoutingFileSystemPath Path {
          ?: throw IllegalArgumentException("Could not convert $this to NIO path, descriptor is $descriptor")
 }
 
-@Throws(IllegalArgumentException::class)
-@ApiStatus.Internal
-@Deprecated("Use asNioPath() instead", replaceWith = ReplaceWith("asNioPath()"))
-fun EelPath.asNioPath(project: Project?): @MultiRoutingFileSystemPath Path {
-  return asNioPath()
-}
-
 /** See docs for [asNioPath] */
 @Deprecated("It never returns null anymore")
 @ApiStatus.Experimental
@@ -57,11 +49,8 @@ fun EelPath.asNioPathOrNull(): @MultiRoutingFileSystemPath Path? {
   // If the project works with `wsl$` paths, this function must return `wsl$` paths, and the same for `wsl.localhost`.
   val root = (descriptor as? EelPathBoundDescriptor)?.rootPath ?: return null
 
-  LOG.trace {
-    "asNioPathOrNull():" +
-    " path=$this" +
-    " descriptor=$descriptor" +
-    " rootPath=$root"
+  if (LOG.isLoggable(java.util.logging.Level.FINEST)) {
+    LOG.finest("asNioPathOrNull(): path=$this descriptor=$descriptor rootPath=$root")
   }
 
   @MultiRoutingFileSystemPath
@@ -71,8 +60,8 @@ fun EelPath.asNioPathOrNull(): @MultiRoutingFileSystemPath Path? {
     }
     EelOsFamily.Posix -> parts.fold(root, Path::resolve)
   }
-  LOG.trace {
-    "asNioPathOrNull(): path=$this basePath=$root result=$result"
+  if (LOG.isLoggable(java.util.logging.Level.FINEST)) {
+    LOG.finest("asNioPathOrNull(): path=$this basePath=$root result=$result")
   }
   return result
 }
@@ -111,8 +100,8 @@ fun Path.asEelPath(descriptor: EelDescriptor): EelPath {
     throw NoSuchElementException("Cannot find a root for $this")
   }
 
-  if ((fileSystem.provider() as? RoutingAwareFileSystemProvider)?.canHandleRouting(this) != true) {
-    // Supposing that there can never be more than one layer of path prefixing.
+  if (EelNioFsBackend.instance?.isRoutingAware(this) != true) {
+    // Path is not managed by a routing-aware filesystem provider — parse as-is.
     return EelPath.parse(toString(), descriptor)
   }
 
@@ -129,15 +118,3 @@ fun Path.asEelPath(descriptor: EelDescriptor): EelPath {
     part.toString().takeIf { it.isNotEmpty() }?.let { path.getChild(it) } ?: path
   }
 }
-
-@ApiStatus.Internal
-fun EelDescriptor.routingPrefixes(): Set<Path> {
-  return EelAlternativeRootProvider.EP_NAME.extensionList
-    .flatMapTo(HashSet()) { provider ->
-      provider.getAlternativeRoots(this)?.map(Path::of) ?: emptySet()
-    } + setOfNotNull((this as? EelPathBoundDescriptor)?.rootPath)
-}
-
-private class EelNioBridgeService
-
-private val LOG = logger<EelNioBridgeService>()

@@ -1,13 +1,11 @@
 *f:com.intellij.platform.eel.provider.EelNioBridgeServiceKt
-- *sf:asEelPath(java.nio.file.Path):com.intellij.platform.eel.path.EelPath
-- *sf:asEelPath(java.nio.file.Path,com.intellij.platform.eel.EelDescriptor):com.intellij.platform.eel.path.EelPath
-- *sf:asNioPath(com.intellij.platform.eel.path.EelPath):java.nio.file.Path
-- *sf:asNioPathOrNull(com.intellij.platform.eel.path.EelPath):java.nio.file.Path
+- s:asEelPath(java.nio.file.Path):com.intellij.platform.eel.path.EelPath
+- s:asEelPath(java.nio.file.Path,com.intellij.platform.eel.EelDescriptor):com.intellij.platform.eel.path.EelPath
+- s:asNioPath(com.intellij.platform.eel.path.EelPath):java.nio.file.Path
+- s:asNioPathOrNull(com.intellij.platform.eel.path.EelPath):java.nio.file.Path
+- s:routingPrefixes(com.intellij.platform.eel.EelDescriptor):java.util.Set
 f:com.intellij.platform.eel.provider.EelProviderProjectUtilKt
 - *sf:getEelDescriptor(com.intellij.openapi.project.Project):com.intellij.platform.eel.EelDescriptor
-- *sf:getEelDescriptor(java.nio.file.Path):com.intellij.platform.eel.EelDescriptor
-- *sf:getOsFamily(java.nio.file.Path):com.intellij.platform.eel.EelOsFamily
-- *sf:ownsPath(com.intellij.platform.eel.EelMachine,java.nio.file.Path):Z
 - *sf:toEelApiBlocking(com.intellij.platform.eel.EelDescriptor):com.intellij.platform.eel.EelApi
 - *sf:toEelApiBlocking(com.intellij.platform.eel.EelMachine,com.intellij.platform.eel.EelDescriptor):com.intellij.platform.eel.EelApi
 *f:com.intellij.platform.eel.provider.EelProviderUtil
@@ -16,7 +14,7 @@ f:com.intellij.platform.eel.provider.EelProviderProjectUtilKt
 - s:getEelMachine(com.intellij.openapi.project.Project):com.intellij.platform.eel.EelMachine
 - s:getLocalEel():com.intellij.platform.eel.LocalEelApi
 - s:getOsFamily(java.nio.file.Path):com.intellij.platform.eel.EelOsFamily
-- s:ownsPath(com.intellij.platform.eel.EelMachine,java.nio.file.Path):java.lang.Boolean
+- s:ownsPath(com.intellij.platform.eel.EelMachine,java.nio.file.Path):Z
 - s:setEelDescriptor(com.intellij.openapi.project.Project,com.intellij.platform.eel.EelDescriptor):V
 - s:setEelMachine(com.intellij.openapi.project.Project,com.intellij.platform.eel.EelMachine):V
 - s:toEelApiBlocking(com.intellij.platform.eel.EelDescriptor):com.intellij.platform.eel.EelApi

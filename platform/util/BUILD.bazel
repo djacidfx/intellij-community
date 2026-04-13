@@ -42,6 +42,7 @@ jvm_library(
     "//platform/util/coroutines",
     "//platform/util/multiplatform",
     "//platform/eel",
+    "//platform/eel-nioFs",
     ":platform_util_troveCompileOnly_provided",
   ],
   exports = [
@@ -91,6 +92,7 @@ jvm_library(
     "//platform/util/coroutines:coroutines_test_lib",
     "//platform/util/multiplatform:multiplatform_test_lib",
     "//platform/eel:eel_test_lib",
+    "//platform/eel-nioFs:eel-nioFs_test_lib",
   ]
 )
 ### auto-generated section `build intellij.platform.util` end

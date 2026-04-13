@@ -21,11 +21,11 @@ public final class EelProviderUtil {
   private EelProviderUtil() { }
 
   public static @NotNull EelDescriptor getEelDescriptor(@NotNull Path path) {
-    return EelProviderProjectUtilKt.getEelDescriptor(path);
+    return EelPathDescriptorKt.getEelDescriptor(path);
   }
 
   public static @NotNull EelOsFamily getOsFamily(@NotNull Path path) {
-    return EelProviderProjectUtilKt.getOsFamily(path);
+    return EelPathDescriptorKt.getOsFamily(path);
   }
 
   public static @NotNull EelMachine getEelMachine(@NotNull Project project) {
@@ -36,8 +36,8 @@ public final class EelProviderUtil {
     return EelProviderProjectUtilKt.getEelDescriptor(project);
   }
 
-  public static @NotNull Boolean ownsPath(@NotNull EelMachine machine, @NotNull Path path) {
-    return EelProviderProjectUtilKt.ownsPath(machine, path);
+  public static boolean ownsPath(@NotNull EelMachine machine, @NotNull Path path) {
+    return EelPathDescriptorKt.ownsPath(machine, path);
   }
 
   public static void setEelMachine(@NotNull Project project, @NotNull EelMachine machine) {

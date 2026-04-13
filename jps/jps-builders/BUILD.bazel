@@ -53,6 +53,7 @@ jvm_library(
     "@lib//:kotlin-metadata",
     "//libraries/kotlinx/coroutines/core",
     "//platform/eel",
+    "//platform/eel-nioFs",
   ],
   runtime_deps = [
     "//java/compiler/instrumentation-util-8:java-compiler-instrumentationUtil-java8",
@@ -103,6 +104,7 @@ jvm_library(
     "//libraries/netty/buffer:buffer_test_lib",
     "//libraries/kotlinx/coroutines/core:core_test_lib",
     "//platform/eel:eel_test_lib",
+    "//platform/eel-nioFs:eel-nioFs_test_lib",
   ]
 )
 ### auto-generated section `build intellij.platform.jps.build` end

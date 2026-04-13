@@ -38,6 +38,7 @@ jvm_library(
     "//platform/syntax/syntax-api:syntax",
     "//platform/eel",
     "//libraries/kotlinx/collections-immutable:libraries-kotlinx-collections-immutable",
+    "//platform/eel-nioFs",
   ],
   exports = ["@lib//:kotlin-stdlib"]
 )
@@ -71,6 +72,7 @@ jvm_library(
     "//platform/syntax/syntax-api:syntax_test_lib",
     "//platform/eel:eel_test_lib",
     "//libraries/kotlinx/collections-immutable:libraries-kotlinx-collections-immutable_test_lib",
+    "//platform/eel-nioFs:eel-nioFs_test_lib",
   ]
 )
 ### auto-generated section `build intellij.platform.core.impl` end

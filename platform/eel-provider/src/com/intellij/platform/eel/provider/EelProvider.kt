@@ -6,14 +6,10 @@ import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
-import com.intellij.platform.core.nio.fs.MultiRoutingFsPath
 import com.intellij.platform.eel.EelApi
 import com.intellij.platform.eel.EelDescriptor
 import com.intellij.platform.eel.EelMachine
-import com.intellij.platform.eel.EelOsFamily
-import com.intellij.platform.eel.EelPlatform
 import com.intellij.platform.eel.annotations.MultiRoutingFileSystemPath
-import com.intellij.util.system.OS
 import org.jetbrains.annotations.ApiStatus
 import java.nio.file.Path
 
@@ -50,28 +46,6 @@ fun Project.getEelMachine(): EelMachine {
 fun Project.setEelMachine(machine: EelMachine) {
   putUserData(EEL_MACHINE_KEY, machine)
 }
-
-@ApiStatus.Experimental
-fun Path.getEelDescriptor(): EelDescriptor {
-  val fs = when (this) {
-    is MultiRoutingFsPath -> currentDelegate.fileSystem
-    else -> fileSystem
-  }
-  if (fs is EelDescriptorOwner) {
-    return fs.eelDescriptor
-  }
-  return LocalEelDescriptor
-}
-
-@get:ApiStatus.Experimental
-val Path.osFamily: EelOsFamily get() = getEelDescriptor().osFamily
-
-/**
- * NIO Path compatibility extension for [EelMachine.ownsDescriptor].
- * Resolves the [EelDescriptor] from the NIO path and delegates.
- */
-@ApiStatus.Experimental
-fun EelMachine.ownsPath(path: Path): Boolean = ownsDescriptor(path.getEelDescriptor())
 
 /**
  * Retrieves [EelDescriptor] for the environment where [this] is located.

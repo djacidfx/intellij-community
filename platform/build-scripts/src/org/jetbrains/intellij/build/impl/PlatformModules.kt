@@ -109,6 +109,7 @@ internal suspend fun createPlatformLayout(projectLibrariesUsedByPlugins: SortedS
     // to ensure that package index will not report one more JAR in a search path
     "intellij.platform.bootstrap.coroutine",
     "intellij.platform.eel",  // EelFiles, which is a replacement for java.nio.file.Files, may be used everywhere
+    "intellij.platform.eel.nioFs",  // NIO bridge for EEL (EelPath <-> Path conversions, EelPathBoundDescriptor)
   ), productLayout = productLayout, layout = layout)
 
   // todo as content module

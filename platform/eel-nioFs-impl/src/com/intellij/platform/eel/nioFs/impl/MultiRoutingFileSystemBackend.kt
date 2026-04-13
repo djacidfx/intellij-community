@@ -1,5 +1,5 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.platform.eel.provider
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+package com.intellij.platform.eel.nioFs.impl
 
 import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.platform.eel.annotations.MultiRoutingFileSystemPath
@@ -39,7 +39,7 @@ interface MultiRoutingFileSystemBackend {
   fun compute(localFS: FileSystem, sanitizedPath: String): FileSystem?
 
   /**
-   * This function is used in [java.nio.file.FileSystem.getRootDirectories].
+   * This function is used in [FileSystem.getRootDirectories].
    *
    * The implementation SHOULD avoid I/O operations
    * because [getRootDirectories](java.nio.file.FileSystem.getRootDirectories) can be called from inside a read action.

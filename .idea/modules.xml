@@ -1306,6 +1306,8 @@
       <module fileurl="file://$PROJECT_DIR$/platform/eel/intellij.platform.eel.iml" filepath="$PROJECT_DIR$/platform/eel/intellij.platform.eel.iml" />
       <module fileurl="file://$PROJECT_DIR$/platform/eel/intellij.platform.eel.codegen.iml" filepath="$PROJECT_DIR$/platform/eel/intellij.platform.eel.codegen.iml" />
       <module fileurl="file://$PROJECT_DIR$/platform/eel-impl/intellij.platform.eel.impl.iml" filepath="$PROJECT_DIR$/platform/eel-impl/intellij.platform.eel.impl.iml" />
+      <module fileurl="file://$PROJECT_DIR$/platform/eel-nioFs/intellij.platform.eel.nioFs.iml" filepath="$PROJECT_DIR$/platform/eel-nioFs/intellij.platform.eel.nioFs.iml" />
+      <module fileurl="file://$PROJECT_DIR$/platform/eel-nioFs-impl/intellij.platform.eel.nioFs.impl.iml" filepath="$PROJECT_DIR$/platform/eel-nioFs-impl/intellij.platform.eel.nioFs.impl.iml" />
       <module fileurl="file://$PROJECT_DIR$/platform/eel-provider/intellij.platform.eel.provider.iml" filepath="$PROJECT_DIR$/platform/eel-provider/intellij.platform.eel.provider.iml" />
       <module fileurl="file://$PROJECT_DIR$/platform/eel-tcp/intellij.platform.eel.tcp.iml" filepath="$PROJECT_DIR$/platform/eel-tcp/intellij.platform.eel.tcp.iml" />
       <module fileurl="file://$PROJECT_DIR$/platform/eel/intellij.platform.eel.tests.iml" filepath="$PROJECT_DIR$/platform/eel/intellij.platform.eel.tests.iml" />

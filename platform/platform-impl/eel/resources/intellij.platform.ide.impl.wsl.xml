@@ -3,6 +3,7 @@
   <dependencies>
     <module name="intellij.libraries.caffeine"/>
     <module name="intellij.platform.core"/>
+    <module name="intellij.platform.eel.nioFs.impl"/>
     <module name="intellij.platform.execution"/>
     <module name="intellij.platform.ide.core"/>
     <module name="intellij.platform.ide.impl"/>

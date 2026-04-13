@@ -414,6 +414,7 @@ object CoreModuleSets {
     embeddedModule("intellij.platform.builtInServer")
     embeddedModule("intellij.platform.externalSystem")
     embeddedModule("intellij.platform.eel.impl")
+    embeddedModule("intellij.platform.eel.nioFs.impl")
     embeddedModule("intellij.platform.diff")
     embeddedModule("intellij.platform.diff.impl")
     embeddedModule("intellij.platform.util.diff")

@@ -181,9 +181,6 @@ f:com.intellij.platform.eel.EelExecWindowsApiHelpersKt
 - s:getEntries():kotlin.enums.EnumEntries
 - s:valueOf(java.lang.String):com.intellij.platform.eel.EelOsFamily
 - s:values():com.intellij.platform.eel.EelOsFamily[]
-*:com.intellij.platform.eel.EelPathBoundDescriptor
-- com.intellij.platform.eel.EelDescriptor
-- a:getRootPath():java.nio.file.Path
 *:com.intellij.platform.eel.EelPlatform
 - *sf:Companion:com.intellij.platform.eel.EelPlatform$Companion
 - *a:getArch():com.intellij.platform.eel.EelPlatform$Arch
@@ -549,14 +546,6 @@ f:com.intellij.platform.eel.channels.EelSendChannelKt
 - f:onConnection(kotlin.jvm.functions.Function1):com.intellij.platform.eel.eelProxyKtHelpers$EelProxy
 - f:onConnectionClosed(kotlin.jvm.functions.Function1):com.intellij.platform.eel.eelProxyKtHelpers$EelProxy
 - f:onConnectionError(kotlin.jvm.functions.Function1):com.intellij.platform.eel.eelProxyKtHelpers$EelProxy
-*f:com.intellij.platform.eel.fs.EelFileUtils
-- sf:INSTANCE:com.intellij.platform.eel.fs.EelFileUtils
-- sf:deleteRecursively(java.nio.file.Path):V
-*f:com.intellij.platform.eel.fs.EelFiles
-- sf:INSTANCE:com.intellij.platform.eel.fs.EelFiles
-- sf:readAllBytes(java.nio.file.Path):B[]
-- sf:readString(java.nio.file.Path):java.lang.String
-- sf:readString(java.nio.file.Path,java.nio.charset.Charset):java.lang.String
 *:com.intellij.platform.eel.path.EelPath
 - *sf:Companion:com.intellij.platform.eel.path.EelPath$Companion
 - a:endsWith(java.util.List):Z

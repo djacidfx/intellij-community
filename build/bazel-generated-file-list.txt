@@ -607,6 +607,8 @@ platform/editor/frontend
 platform/editor/shared
 platform/eel
 platform/eel-impl
+platform/eel-nioFs
+platform/eel-nioFs-impl
 platform/eel-provider
 platform/eel-tcp
 platform/execution

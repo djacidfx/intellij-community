@@ -25,6 +25,7 @@ jvm_library(
     "//platform/ijent",
     "//platform/eel-provider",
     "//platform/core-impl",
+    "//platform/eel-nioFs-impl",
   ]
 )
 
@@ -50,6 +51,7 @@ jvm_library(
     "//platform/ijent:ijent_test_lib",
     "//platform/eel-provider:eel-provider_test_lib",
     "//platform/core-impl:core-impl_test_lib",
+    "//platform/eel-nioFs-impl:eel-nioFs-impl_test_lib",
   ]
 )
 ### auto-generated section `build intellij.platform.ijent.community.impl` end

@@ -18,9 +18,9 @@ import com.intellij.platform.eel.annotations.MultiRoutingFileSystemPath
 import com.intellij.platform.eel.fs.createTemporaryDirectory
 import com.intellij.platform.eel.getOrThrow
 import com.intellij.platform.eel.impl.provider.EelMachineResolverEpBridge
+import com.intellij.platform.eel.nioFs.impl.MultiRoutingFileSystemBackend
 import com.intellij.platform.eel.provider.EelEnvironmentInitializer
 import com.intellij.platform.eel.provider.EelMachineResolver
-import com.intellij.platform.eel.provider.MultiRoutingFileSystemBackend
 import com.intellij.platform.eel.provider.asNioPath
 import com.intellij.platform.eel.provider.getEelDescriptor
 import com.intellij.platform.testFramework.junit5.eel.fixture.IsolatedFileSystem

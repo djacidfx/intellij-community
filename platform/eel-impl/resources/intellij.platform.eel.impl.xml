@@ -6,7 +6,6 @@
     <module name="intellij.libraries.pty4j"/>
     <module name="intellij.platform.core"/>
     <module name="intellij.platform.core.impl"/>
-    <module name="intellij.platform.diagnostic.telemetry"/>
     <module name="intellij.platform.ide.core"/>
     <module name="intellij.platform.util.coroutines"/>
   </dependencies>
@@ -17,8 +16,6 @@
     <applicationService serviceInterface="com.intellij.platform.eel.provider.LocalPosixEelApi"
                         serviceImplementation="com.intellij.platform.eel.impl.local.LocalPosixEelApiImpl" os="unix"/>"/>
 
-    <applicationService serviceInterface="com.intellij.platform.eel.provider.MultiRoutingFileSystemBackend$InitializationService"
-                        serviceImplementation="com.intellij.platform.eel.impl.fs.EelMultiRoutingFileSystemBackendInitializationService"/>
     <registryKey
       description="Using incremental walking transfer for IJent"
       key="ijent.incremental.walking.transfer"
@@ -37,8 +34,6 @@
     <extensionPoint qualifiedName="com.intellij.platform.eel.impl.portAccessibleLocally"
                     dynamic="false"
                     interface="com.intellij.platform.eel.impl.portAccessibleLocally.EelPortAccessibleLocally"/>
-    <extensionPoint name="multiRoutingFileSystemBackend" interface="com.intellij.platform.eel.provider.MultiRoutingFileSystemBackend"
-                    dynamic="true"/>
     <extensionPoint qualifiedName="com.intellij.eelMachineResolver"
                     interface="com.intellij.platform.eel.provider.EelMachineResolver" dynamic="true"/>
   </extensionPoints>

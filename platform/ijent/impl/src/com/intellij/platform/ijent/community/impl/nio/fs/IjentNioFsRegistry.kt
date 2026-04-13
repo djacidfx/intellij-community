@@ -4,7 +4,7 @@ package com.intellij.platform.ijent.community.impl.nio.fs
 import com.intellij.openapi.util.Disposer
 import com.intellij.platform.core.nio.fs.DelegatingFileSystemProvider
 import com.intellij.platform.eel.annotations.MultiRoutingFileSystemPath
-import com.intellij.platform.eel.provider.MultiRoutingFileSystemBackend
+import com.intellij.platform.eel.nioFs.impl.MultiRoutingFileSystemBackend
 import com.intellij.platform.ijent.IjentApi
 import com.intellij.platform.ijent.community.impl.nio.IjentNioFileSystemProvider
 import com.intellij.util.AwaitCancellationAndInvoke

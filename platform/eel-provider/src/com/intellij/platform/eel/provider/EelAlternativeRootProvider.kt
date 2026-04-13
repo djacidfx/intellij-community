@@ -6,6 +6,16 @@ import com.intellij.platform.eel.EelDescriptor
 import com.intellij.platform.eel.EelPathBoundDescriptor
 import com.intellij.platform.eel.annotations.MultiRoutingFileSystemPath
 import org.jetbrains.annotations.ApiStatus
+import java.nio.file.Path
+import java.nio.file.Path.of
+
+@ApiStatus.Internal
+fun EelDescriptor.routingPrefixes(): Set<Path> {
+  return EelAlternativeRootProvider.EP_NAME.extensionList
+           .flatMapTo(HashSet()) { provider ->
+             provider.getAlternativeRoots(this)?.map(Path::of) ?: emptySet()
+           } + setOfNotNull((this as? EelPathBoundDescriptor)?.rootPath)
+}
 
 /**
  * Provides alternative local filesystem roots for environments that are reachable via multiple paths.
