@@ -952,7 +952,10 @@ open class ConsoleViewImpl protected constructor(
               object : FlushRunnable(true) {
                 public override fun doRun() {
                   if (heavyUpdateTicket != currentValue) {
-                    LOG.info("Heavy console filter: outdated, skipping application for '${text.trim()}'")
+                    val fragment = StringUtil.shortenTextWithEllipsis(
+                      documentCopy.text.trim().replace("\n", " \\n "),
+                      20, 5, true)
+                    LOG.info("Heavy console filter: outdated, skipping application for '$fragment'")
                     return
                   }
 
