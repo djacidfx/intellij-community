@@ -63,7 +63,7 @@ class WordSplittingRuleTest {
   @Test
   fun `split - camelCase with numeric suffix`() {
     // The letter-to-digit transition at 'r'→'1' generates an extra numericRule pass over the
-    // pre-transition span, so camelCase sub-parts are also produced without the digit suffix.
+    // pre-transition span, so camelCase subparts are also produced without the digit suffix.
     assertEquals(setOf("naming", "Identifier123", "Identifier", "123"), words("namingIdentifier123"))
   }
 
