@@ -119,14 +119,14 @@ class PyLiteralType private constructor(cls: PyClass, private val value: PyLiter
     /**
      * Tries to construct literal type for index passed to `typing.Literal[...]`
      */
-    fun fromLiteralParameter(expression: PyExpression, context: TypeEvalContext, useFqn: Boolean = false): PyType? =
+    fun fromLiteralParameter(expression: PyExpression, context: TypeEvalContext, typeRepresentation: Boolean = false): PyType? =
       when (expression) {
         is PyTupleExpression -> {
           val elements = expression.elements
-          val classes = elements.mapNotNull { createFromLiteralParameter(it, context, useFqn) }
+          val classes = elements.mapNotNull { createFromLiteralParameter(it, context, typeRepresentation) }
           if (elements.size == classes.size) PyUnionType.union(classes) else null
         }
-        else -> createFromLiteralParameter(expression, context, useFqn)
+        else -> createFromLiteralParameter(expression, context, typeRepresentation)
       }
 
     @JvmStatic
@@ -273,15 +273,15 @@ class PyLiteralType private constructor(cls: PyClass, private val value: PyLiter
              LanguageLevel.forElement(expression).isPython2
     }
 
-    private fun createFromLiteralParameter(expression: PyExpression, context: TypeEvalContext, useFqn: Boolean): PyType? {
+    private fun createFromLiteralParameter(expression: PyExpression, context: TypeEvalContext, typeRepresentation: Boolean): PyType? {
       if (isNone(expression)) return PyBuiltinCache.getInstance(expression).noneType
 
       if (expression is PyReferenceExpression || expression is PySubscriptionExpression) {
-        val subLiteralType = Ref.deref(PyTypingTypeProvider.getType(expression, context, useFqn))
+        val subLiteralType = Ref.deref(PyTypingTypeProvider.getType(expression, context, typeRepresentation))
         if (subLiteralType.toStream().all { it is PyLiteralType }) return subLiteralType
       }
 
-      return literalType(expression, context, true, useFqn)
+      return literalType(expression, context, true, typeRepresentation)
     }
 
     @ApiStatus.Internal
@@ -312,9 +312,9 @@ class PyLiteralType private constructor(cls: PyClass, private val value: PyLiter
       return expression.getLiteralType(context)
     }
 
-    private fun literalType(expression: PyExpression, context: TypeEvalContext, index: Boolean, useFqn: Boolean): PyLiteralType? {
+    private fun literalType(expression: PyExpression, context: TypeEvalContext, index: Boolean, typeRepresentation: Boolean): PyLiteralType? {
       if (expression is PyReferenceExpression && expression.isQualified) {
-        val type = if (useFqn) {
+        val type = if (typeRepresentation) {
           getEnumMemberType(expression)
         }
         else {
@@ -331,9 +331,9 @@ class PyLiteralType private constructor(cls: PyClass, private val value: PyLiter
       return PyLiteralType(cls, value)
     }
 
-    private fun getEnumMemberType(fqRef: PyReferenceExpression): PyLiteralType? {
-      val contextFile = FileContextUtil.getContextFile(fqRef) ?: return null
-      val qualifiedName = fqRef.asQualifiedName() ?: return null
+    private fun getEnumMemberType(typeRepresentationRef: PyReferenceExpression): PyLiteralType? {
+      val contextFile = FileContextUtil.getContextFile(typeRepresentationRef) ?: return null
+      val qualifiedName = typeRepresentationRef.asQualifiedName() ?: return null
       val enumClass = PyPsiFacadeImpl.resolveQName(qualifiedName.removeLastComponent(), contextFile).singleOrNull()
                         as? PyClass ?: return null
       val enumMemberName = qualifiedName.lastComponent ?: return null
