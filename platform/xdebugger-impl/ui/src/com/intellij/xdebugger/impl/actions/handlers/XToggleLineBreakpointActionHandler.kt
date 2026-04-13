@@ -7,6 +7,7 @@ import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.diff.impl.DiffUtil
 import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.editor.ex.EditorEx
+import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.impl.InterLineBreakpointProperties
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.registry.Registry.Companion.`is`
@@ -71,11 +72,14 @@ class XToggleLineBreakpointActionHandler(private val myTemporary: Boolean) : Deb
     val inputEvent = event.inputEvent
     val isAltClick = isFromGutterClick && inputEvent != null && inputEvent.isAltDown
     val isShiftClick = isFromGutterClick && inputEvent != null && inputEvent.isShiftDown
-    val canRemove = !isFromGutterClick || (!isShiftClick && !`is`("debugger.click.disable.breakpoints"))
-    val isInterlineLogging = placement == XLineBreakpointVerticalPlacement.INTER_LINE &&
+    val canCreateInterLineBreakpointFromGutter = EditorUtil.isBreakPointsOnLineNumbers()
+    val isShiftClickForInterLine = isShiftClick && canCreateInterLineBreakpointFromGutter
+    val canRemove = !isFromGutterClick || (!isShiftClickForInterLine && !`is`("debugger.click.disable.breakpoints"))
+    val isInterlineLogging = canCreateInterLineBreakpointFromGutter &&
+                             placement == XLineBreakpointVerticalPlacement.INTER_LINE &&
                              event.getData(InterLineBreakpointProperties.KEY)?.isLogging == true
     val isLoggingBreakpoint = isFromGutterClick && editor != null && inputEvent is MouseEvent
-                              && !isAltClick && (isShiftClick || isInterlineLogging)
+                              && !isAltClick && (isShiftClickForInterLine || isInterlineLogging)
     val selection = if (isLoggingBreakpoint) editor.getSelectionModel().selectedText else null
 
 
