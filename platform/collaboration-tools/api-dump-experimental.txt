@@ -1242,6 +1242,8 @@ f:com.intellij.collaboration.ui.codereview.diff.viewer.DiffViewerUtilKt
 - sf:ERROR_ACTION_HREF:java.lang.String
 - f:simple(java.lang.String,kotlin.jvm.functions.Function1,kotlin.jvm.functions.Function1):com.intellij.collaboration.ui.codereview.list.error.ErrorStatusPresenter$Text
 - bs:simple$default(com.intellij.collaboration.ui.codereview.list.error.ErrorStatusPresenter$Companion,java.lang.String,kotlin.jvm.functions.Function1,kotlin.jvm.functions.Function1,I,java.lang.Object):com.intellij.collaboration.ui.codereview.list.error.ErrorStatusPresenter$Text
+- f:simpleHTML(java.lang.String,kotlin.jvm.functions.Function1,kotlin.jvm.functions.Function1):com.intellij.collaboration.ui.codereview.list.error.ErrorStatusPresenter$HTML
+- bs:simpleHTML$default(com.intellij.collaboration.ui.codereview.list.error.ErrorStatusPresenter$Companion,java.lang.String,kotlin.jvm.functions.Function1,kotlin.jvm.functions.Function1,I,java.lang.Object):com.intellij.collaboration.ui.codereview.list.error.ErrorStatusPresenter$HTML
 *:com.intellij.collaboration.ui.codereview.list.error.ErrorStatusPresenter$HTML
 - com.intellij.collaboration.ui.codereview.list.error.ErrorStatusPresenter
 - a:getHTMLBody(java.lang.Object):java.lang.String
