@@ -7,6 +7,7 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.actionSystem.ActionUpdateThread
+import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.ToggleAction
@@ -29,6 +30,7 @@ import com.intellij.openapi.observable.util.whenDisposed
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.getUserData
 import com.intellij.openapi.ui.putUserData
 import com.intellij.openapi.util.Key
@@ -70,6 +72,7 @@ import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+import java.nio.file.Files
 import java.nio.file.Path
 import java.util.function.Predicate
 import javax.swing.Icon
@@ -421,8 +424,42 @@ object UniversalFileChooser {
           override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
         }
 
+        val createDirectoryAction = object : AnAction(
+          IdeBundle.message("universal.file.chooser.action.create.directory.text"),
+          IdeBundle.message("universal.file.chooser.action.create.directory.description"),
+          AllIcons.Actions.NewFolder
+        ) {
+          override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+
+          override fun update(e: AnActionEvent) {
+            val parent = fileTree.getNewFileParent()
+            val nioPath = parent?.let { runCatching { it.toNioPath() }.getOrNull() }
+            e.presentation.isEnabled = nioPath != null && Files.isDirectory(nioPath) && Files.isWritable(nioPath)
+          }
+
+          override fun actionPerformed(e: AnActionEvent) {
+            val parent = fileTree.getNewFileParent() ?: return
+            val newFolderName = Messages.showInputDialog(
+              UIBundle.message("create.new.folder.enter.new.folder.name.prompt.text"),
+              UIBundle.message("new.folder.dialog.title"),
+              Messages.getQuestionIcon(),
+              "",
+              null
+            ) ?: return
+            val failReason = fileTree.createNewFolder(parent, newFolderName)
+            if (failReason != null) {
+              Messages.showMessageDialog(
+                UIBundle.message("create.new.folder.could.not.create.folder.error.message", newFolderName),
+                UIBundle.message("error.dialog.title"),
+                Messages.getErrorIcon()
+              )
+            }
+          }
+        }
+
         val actionGroup = DefaultActionGroup().apply {
           add(showHiddenAction)
+          add(createDirectoryAction)
         }
 
         return ActionManager.getInstance().createActionToolbar("UniversalFileChooserToolbar", actionGroup, true)
