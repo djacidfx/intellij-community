@@ -15,16 +15,21 @@ internal class XPauseWatchAction : XWatchesTreeActionBase(), SplitDebuggerAction
 
   override fun isEnabled(e: AnActionEvent, tree: XDebuggerTree): Boolean {
     val selectedNodes = getSelectedNodes(tree, WatchNodeImpl::class.java)
-    return selectedNodes.any { it.xWatch.canBePaused }
+    // We cannot cancel evaluation, so do not suggest pause for currently evaluating nodes
+    return selectedNodes.any { it.xWatch.canBePaused && it.isComputed }
   }
 
   override fun update(e: AnActionEvent) {
     super.update(e)
-    e.presentation.isVisible = e.presentation.isEnabled
-    if (e.presentation.isEnabled) {
-      val tree = XDebuggerTree.getTree(e) ?: return
-      val selectedNodes = getSelectedNodes(tree, WatchNodeImpl::class.java)
-        .filter { it.xWatch.canBePaused }
+    val tree = XDebuggerTree.getTree(e) ?: run {
+      e.presentation.isVisible = false
+      return
+    }
+    val selectedNodes = getSelectedNodes(tree, WatchNodeImpl::class.java)
+      .filter { it.xWatch.canBePaused }
+    val hasNodes = selectedNodes.isNotEmpty()
+    e.presentation.isVisible = hasNodes
+    if (hasNodes) {
       // Resume action is shown only if all the breakpoints are paused
       val paused = selectedNodes.all { it.xWatch.isPaused }
       val watchText =
@@ -42,12 +47,15 @@ internal class XPauseWatchAction : XWatchesTreeActionBase(), SplitDebuggerAction
       .filter { it.xWatch.canBePaused }
     val paused = selectedNodes.all { it.xWatch.isPaused }
     for (node in selectedNodes) {
+      val valuePresentation = node.valuePresentation
+      // Skip currently evaluating nodes
+      if (valuePresentation == null) continue
       // Skip nodes that are already in the correct state
       if (node.xWatch.isPaused != paused) continue
       node.xWatch.isPaused = !paused
       if (!paused) {
         // only update icon, keep calculated value
-        node.setPresentation(AllIcons.Actions.Pause, node.valuePresentation!!, !node.isLeaf)
+        node.setPresentation(AllIcons.Actions.Pause, valuePresentation, !node.isLeaf)
       }
       else {
         // resume watch, trigger value evaluation
