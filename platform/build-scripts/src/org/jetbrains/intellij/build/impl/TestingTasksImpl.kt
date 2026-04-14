@@ -1127,8 +1127,12 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
         }
 
         // clean up, don't remove the test process logs
-        ideaConfigPath.deleteRecursively()
-        ideaSystemPath.deleteRecursively()
+        try {
+          ideaConfigPath.deleteRecursively()
+          ideaSystemPath.deleteRecursively()
+        } catch (e: FileSystemException) {
+          messages.warning("Can't delete config or system path: ${e.stackTraceToString()}")
+        }
 
         val hadRunFailures = exitCode == 1
         hadAnyFailures = hadAnyFailures || hadRunFailures
