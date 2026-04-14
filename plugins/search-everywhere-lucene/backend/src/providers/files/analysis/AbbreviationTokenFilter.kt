@@ -24,7 +24,7 @@ class AbbreviationTokenFilter(
   private val passThrough: PassthroughOptions = PassthroughOptions.PassthroughLast,
 ) : TokenFilterBase(input) {
 
-  override fun incrementToken(): Boolean = incrementWithGrouping(sourceTypes, passThrough, ::buildAbbreviations)
+  override fun incrementToken(): Boolean = incrementWithGrouping(sourceTypes, passThrough, ::buildAbbreviations, String::lowercase)
 
   private fun buildAbbreviations(parts: List<BufferedToken>): List<BufferedToken> {
     val abbrevStart = parts.minOf { it.startOffset }

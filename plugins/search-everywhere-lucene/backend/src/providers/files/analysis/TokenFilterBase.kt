@@ -31,11 +31,16 @@ abstract class TokenFilterBase(input: TokenStream) : TokenFilter(input) {
    * Reusable grouping-and-flush loop for filters that accumulate source tokens
    * and emit derived tokens on flush (e.g. AbbreviationTokenFilter).
    * Call this as the body of incrementToken().
+   *
+   * [transformPassthrough] is applied to the term string of every passthrough token
+   * (both source tokens re-emitted after flush and non-source tokens that arrive
+   * while buffered parts are pending). Defaults to identity (no transformation).
    */
   protected fun incrementWithGrouping(
     sourceTypes: Set<FileTokenType>,
     passThrough: PassthroughOptions,
     processBuffered: (List<BufferedToken>) -> List<BufferedToken>,
+    transformPassthrough: (String) -> String = { it },
   ): Boolean {
     while (true) {
       if (pending.isNotEmpty()) {
@@ -45,7 +50,7 @@ abstract class TokenFilterBase(input: TokenStream) : TokenFilter(input) {
 
       if (!input.incrementToken()) {
         if (bufferedParts.isNotEmpty()) {
-          flushBuffered(passThrough, processBuffered)
+          flushBuffered(passThrough, processBuffered, transformPassthrough)
           continue
         }
         return false
@@ -60,8 +65,8 @@ abstract class TokenFilterBase(input: TokenStream) : TokenFilter(input) {
 
       val incoming = BufferedToken(termAttr.toString(), activeTypes, offsetAttr.startOffset(), offsetAttr.endOffset())
       if (bufferedParts.isNotEmpty()) {
-        flushBuffered(passThrough, processBuffered)
-        pending.add(incoming.copy(term = incoming.term.lowercase()))
+        flushBuffered(passThrough, processBuffered, transformPassthrough)
+        pending.add(incoming.copy(term = transformPassthrough(incoming.term)))
         continue
       }
 
@@ -70,15 +75,19 @@ abstract class TokenFilterBase(input: TokenStream) : TokenFilter(input) {
     }
   }
 
-  private fun flushBuffered(passThrough: PassthroughOptions, processBuffered: (List<BufferedToken>) -> List<BufferedToken>) {
+  private fun flushBuffered(
+    passThrough: PassthroughOptions,
+    processBuffered: (List<BufferedToken>) -> List<BufferedToken>,
+    transformPassthrough: (String) -> String,
+  ) {
     val derived = processBuffered(bufferedParts)
     when (passThrough) {
       PassthroughOptions.PassthroughLast -> {
         pending.addAll(derived)
-        bufferedParts.mapTo(pending) { it.copy(term = it.term.lowercase()) }
+        bufferedParts.mapTo(pending) { it.copy(term = transformPassthrough(it.term)) }
       }
       PassthroughOptions.PassthroughFirst -> {
-        bufferedParts.mapTo(pending) { it.copy(term = it.term.lowercase()) }
+        bufferedParts.mapTo(pending) { it.copy(term = transformPassthrough(it.term)) }
         pending.addAll(derived)
       }
       PassthroughOptions.NoPassthrough -> {
