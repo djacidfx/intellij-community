@@ -42,7 +42,7 @@ class PathSplittingRule(text: String) : SymbolSplittingRule(text, { it == '/' })
 
 /**
  * Splits at letter/digit transitions: "File2Open" → [0 until 4, 4 until 5, 5 until 9].
- * Returns an empty sequence when no transitions are found.
+ * Always yields at least the full input span (even when no transitions are found).
  */
 class NumericTransitionSplittingRule(text: String) : WordSplittingRule(text) {
   override fun split(span: IntRange): Sequence<IntRange> = sequence {
@@ -69,6 +69,9 @@ class NumericTransitionSplittingRule(text: String) : WordSplittingRule(text) {
  * At acronym boundaries where the preceding uppercase span has ≤ 2 chars,
  * each letter is emitted as its own span (e.g., "ABManager" → A, B, Manager).
  * Longer acronyms are kept as a single span (e.g., "HTTPServer" → HTTP, Server).
+ * Trailing all-uppercase sequences of ≤ 2 chars are also split individually when
+ * preceded by other content (e.g., "fooAB" → foo, A, B; "fooHTTP" is unchanged since
+ * 4 > 2). Standalone short uppercase sequences like "MF" are kept whole.
  */
 class CamelCaseSplittingRule(text: String) : WordSplittingRule(text) {
   override fun split(span: IntRange): Sequence<IntRange> = sequence {
@@ -94,6 +97,12 @@ class CamelCaseSplittingRule(text: String) : WordSplittingRule(text) {
       }
       i++
     }
-    yield(start..span.last)
+    val trailingSpan = start..span.last
+    if (trailingSpan.count() <= 2 && trailingSpan.all { text[it].isUpperCase() } && start > span.first) {
+      for (j in trailingSpan) yield(j..j)
+    }
+    else {
+      yield(trailingSpan)
+    }
   }
 }
