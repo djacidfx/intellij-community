@@ -14,7 +14,7 @@ plugins {
 // from settings.gradle.kts is overridden and we have to redeclare everything here.
 repositories {
     google()
-    maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
+    maven("https://redirector.kotlinlang.org/maven/compose-dev")
     mavenCentral()
 
     intellijPlatform {
