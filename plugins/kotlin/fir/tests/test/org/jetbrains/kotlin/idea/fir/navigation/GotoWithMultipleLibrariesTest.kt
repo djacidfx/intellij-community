@@ -1,10 +1,12 @@
-// Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
-package org.jetbrains.kotlin.idea.navigation
+package org.jetbrains.kotlin.idea.fir.navigation
 
 import com.intellij.ide.util.gotoByName.GotoSymbolModel2
 import com.intellij.openapi.module.JavaModuleType
 import com.intellij.openapi.vfs.LocalFileSystem
+import org.jetbrains.kotlin.idea.base.plugin.KotlinPluginMode
+import org.jetbrains.kotlin.idea.navigation.GotoCheck
 import org.jetbrains.kotlin.idea.test.AbstractMultiModuleTest
 import org.jetbrains.kotlin.idea.test.IDEA_TEST_DATA_DIR
 import org.jetbrains.kotlin.idea.test.KotlinCompilerStandalone
@@ -19,6 +21,8 @@ import java.io.File
 @RunWith(JUnit38ClassRunner::class)
 class GotoWithMultipleLibrariesTest : AbstractMultiModuleTest() {
     override fun getTestDataDirectory() = IDEA_TEST_DATA_DIR.resolve("multiModuleReferenceResolve/sameJarInDifferentLibraries")
+
+    override val pluginMode: KotlinPluginMode = KotlinPluginMode.K2
 
     fun testOneHasSourceAndOneDoesNot() {
         doTestSameJarSharedByLibrariesWithAndWithoutSourceAttached(withSource = 1, noSource = 1)
