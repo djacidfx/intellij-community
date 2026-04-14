@@ -6,7 +6,6 @@ import com.intellij.platform.eel.EelDescriptor
 import com.intellij.platform.eel.EelMachine
 import com.intellij.platform.eel.annotations.MultiRoutingFileSystemPath
 import com.intellij.platform.eel.provider.EelEnvironmentInitializer
-import com.intellij.platform.eel.provider.EelRoutingPrefixProvider
 import com.intellij.platform.eel.provider.getEelDescriptor
 import com.intellij.platform.eel.provider.resolveEelMachine
 import java.nio.file.Path
@@ -20,11 +19,5 @@ class TcpEelEnvironmentInitializer : EelEnvironmentInitializer {
     val tcpMachine = descriptor.resolveEelMachine() as? TcpEelMachine ?: return null
     tcpMachine.toEelApi(descriptor) // deploy ijent
     return tcpMachine
-  }
-}
-
-class TcpEelRoutingPrefixProvider : EelRoutingPrefixProvider {
-  override fun getRoutingPrefixes(eelDescriptor: EelDescriptor): Collection<@MultiRoutingFileSystemPath String>? {
-    return if (eelDescriptor is TcpEelDescriptor) listOf(eelDescriptor.rootPathString) else null
   }
 }

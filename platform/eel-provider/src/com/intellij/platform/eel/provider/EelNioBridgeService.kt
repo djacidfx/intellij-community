@@ -132,10 +132,10 @@ fun Path.asEelPath(descriptor: EelDescriptor): EelPath {
 
 @ApiStatus.Internal
 fun EelDescriptor.routingPrefixes(): Set<Path> {
-  return EelRoutingPrefixProvider.EP_NAME.extensionList
+  return EelAlternativeRootProvider.EP_NAME.extensionList
     .flatMapTo(HashSet()) { provider ->
-      provider.getRoutingPrefixes(this)?.map(Path::of) ?: emptySet()
-    }
+      provider.getAlternativeRoots(this)?.map(Path::of) ?: emptySet()
+    } + setOfNotNull((this as? EelPathBoundDescriptor)?.rootPath)
 }
 
 private class EelNioBridgeService

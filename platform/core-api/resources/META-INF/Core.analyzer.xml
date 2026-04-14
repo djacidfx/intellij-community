@@ -5,8 +5,8 @@
     <extensionPoint qualifiedName="com.intellij.eelEnvironmentInitializer"
                     interface="com.intellij.platform.eel.provider.EelEnvironmentInitializer" dynamic="true"/>
 
-    <extensionPoint qualifiedName="com.intellij.eelRoutingPrefixProvider"
-                    interface="com.intellij.platform.eel.provider.EelRoutingPrefixProvider" dynamic="true"/>
+    <extensionPoint qualifiedName="com.intellij.eelAlternativeRootProvider"
+                    interface="com.intellij.platform.eel.provider.EelAlternativeRootProvider" dynamic="true"/>
 
     <extensionPoint qualifiedName="com.intellij.languageBundle" beanClass="com.intellij.DynamicBundle$LanguageBundleEP" dynamic="true"/>
 
