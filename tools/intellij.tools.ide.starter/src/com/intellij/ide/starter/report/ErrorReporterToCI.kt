@@ -20,7 +20,7 @@ object ErrorReporterToCI: ErrorReporter {
   /**
    * Read files from errors directories, written by performance testing plugin and report them as errors.
    * Read threadDumps folders and report them as freezes.
-   * Take a look at [com.jetbrains.performancePlugin.ProjectLoaded.reportErrorsFromMessagePool]
+   * Take a look at [com.jetbrains.performancePlugin.ScriptErrorReporter]
    */
   override fun reportErrorsAsFailedTests(runContext: IDERunContext) {
     reportErrors(runContext, collectErrors(runContext.logsDir) + collectScriptErrors(runContext.logsDir))
