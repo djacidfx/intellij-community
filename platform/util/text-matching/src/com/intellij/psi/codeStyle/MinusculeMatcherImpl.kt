@@ -13,11 +13,12 @@ import com.intellij.util.text.matching.indexOfAny
 import com.intellij.util.text.matching.undeprecate
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.NonNls
+import kotlin.math.min
 
 /**
  * Tells whether a string matches a specific pattern. Allows for lowercase camel-hump matching.
  * Used in navigation, code completion, speed search etc.
- * 
+ *
  * @see NameUtil.buildMatcher
  */
 internal class MinusculeMatcherImpl(pattern: String, private val myMatchingMode: MatchingMode, hardSeparators: String) :
@@ -117,7 +118,7 @@ internal class MinusculeMatcherImpl(pattern: String, private val myMatchingMode:
       return matchBySubstring(name)
     }
 
-    if (!nameContainsAllMeaningfulCharsInOrder(name)) {
+    if (!nameContainsAllMeaningfulCharsInOrder(name, myMeaningfulCharacters)) {
       return null
     }
     return matchWildcards(name, 0, 0)?.asReversed()
@@ -150,19 +151,6 @@ internal class MinusculeMatcherImpl(pattern: String, private val myMatchingMode:
     else {
       null
     }
-  }
-
-  private fun nameContainsAllMeaningfulCharsInOrder(name: String): Boolean {
-    var meaningfulCharIndex = 0
-    for (c in name) {
-      if (meaningfulCharIndex >= myMeaningfulCharacters.size) {
-        return true
-      }
-      if (c == myMeaningfulCharacters[meaningfulCharIndex] || c == myMeaningfulCharacters[meaningfulCharIndex + 1]) {
-        meaningfulCharIndex += 2
-      }
-    }
-    return meaningfulCharIndex >= myMeaningfulCharacters.size
   }
 
   private fun meaningfulCharsMatchAt(name: String, nameIndex: Int): Int {

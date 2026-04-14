@@ -13,6 +13,7 @@ import com.intellij.util.text.matching.indexOfAny
 import com.intellij.util.text.matching.undeprecate
 import org.jetbrains.annotations.ApiStatus
 import kotlin.jvm.JvmStatic
+import kotlin.math.min
 
 /**
  * Tells whether a string matches a specific pattern. Allows for lowercase camel-hump matching.
@@ -187,6 +188,26 @@ abstract class MinusculeMatcher protected constructor() : Matcher {
           0
         }
       }
+    }
+
+    internal fun nameContainsAllMeaningfulCharsInOrder(name: String, meaningfulChars: CharArray): Boolean {
+      var meaningfulCharIndex = 0
+      var nameIndex = 0
+      while (meaningfulCharIndex + 1 < meaningfulChars.size) {
+        if (nameIndex >= name.length) {
+          return false
+        }
+        val indexOf1 = name.indexOf(meaningfulChars[meaningfulCharIndex], nameIndex)
+        val indexOf2 = name.indexOf(meaningfulChars[meaningfulCharIndex + 1], nameIndex)
+        nameIndex = when {
+          indexOf1 >= 0 && indexOf2 >= 0 -> min(indexOf1, indexOf2) + 1
+          indexOf1 >= 0 -> indexOf1 + 1
+          indexOf2 >= 0 -> indexOf2 + 1
+          else -> return false
+        }
+        meaningfulCharIndex += 2
+      }
+      return true
     }
   }
 }
