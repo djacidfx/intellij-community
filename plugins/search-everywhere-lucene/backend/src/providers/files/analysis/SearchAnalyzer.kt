@@ -145,13 +145,12 @@ class FilenameNgramFilter(input: TokenStream) : TokenFilterBase(input) {
       val term = termAttr.toString()
       if (term.length >= 2) {
         val start = offsetAttr.startOffset()
-        val end = offsetAttr.endOffset()
         val ngramTypes = setOf(FileTokenType.FILENAME_PART, FileTokenType.PATH_SEGMENT_PREFIX, FileTokenType.FILENAME_ABBREVIATION)
         for (i in 0..term.length - 2) {
-          pending.add(BufferedToken(term.substring(i, i + 2), ngramTypes, start, end))
+          pending.add(BufferedToken(term.substring(i, i + 2), ngramTypes, start + i, start + i + 2))
         }
         for (i in 0..term.length - 3) {
-          pending.add(BufferedToken(term.substring(i, i + 3), ngramTypes, start, end))
+          pending.add(BufferedToken(term.substring(i, i + 3), ngramTypes, start + i, start + i + 3))
         }
       }
     }

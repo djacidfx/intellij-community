@@ -134,16 +134,16 @@ class FileSearchingAnalyzerTest : AnalyzersTestBase() {
   fun `IJPL-220105 ngrams filename parts`() {
     tokenizing(FileSearchAnalyzer(), "clag")
       .print()
-      .producesToken("cl", FileTokenType.FILENAME_PART)
-      .producesToken("cl", FileTokenType.PATH_SEGMENT_PREFIX)
-      .producesToken("la", FileTokenType.FILENAME_PART)
-      .producesToken("la", FileTokenType.PATH_SEGMENT_PREFIX)
-      .producesToken("ag", FileTokenType.FILENAME_PART)
-      .producesToken("ag", FileTokenType.PATH_SEGMENT_PREFIX)
-      .producesToken("cla", FileTokenType.FILENAME_PART)
-      .producesToken("cla", FileTokenType.PATH_SEGMENT_PREFIX)
-      .producesToken("lag", FileTokenType.FILENAME_PART)
-      .producesToken("lag", FileTokenType.PATH_SEGMENT_PREFIX)
+      .producesToken("cl", FileTokenType.FILENAME_PART, 0, 2)
+      .producesToken("cl", FileTokenType.PATH_SEGMENT_PREFIX, 0, 2)
+      .producesToken("la", FileTokenType.FILENAME_PART, 1, 3)
+      .producesToken("la", FileTokenType.PATH_SEGMENT_PREFIX, 1, 3)
+      .producesToken("ag", FileTokenType.FILENAME_PART, 2, 4)
+      .producesToken("ag", FileTokenType.PATH_SEGMENT_PREFIX, 2, 4)
+      .producesToken("cla", FileTokenType.FILENAME_PART, 0, 3)
+      .producesToken("cla", FileTokenType.PATH_SEGMENT_PREFIX, 0, 3)
+      .producesToken("lag", FileTokenType.FILENAME_PART, 1, 4)
+      .producesToken("lag", FileTokenType.PATH_SEGMENT_PREFIX, 1, 4)
   }
 
   @Test
@@ -152,10 +152,10 @@ class FileSearchingAnalyzerTest : AnalyzersTestBase() {
     // enabling queries like "sean" to find SearchAnalyzer via prefix matching.
     tokenizing(FileSearchAnalyzer(), "SearchEveryWhereUI")
       .print()
-      .producesToken("se", FileTokenType.FILENAME_PART)
-      .producesToken("se", FileTokenType.PATH_SEGMENT_PREFIX)
-      .producesToken("sea", FileTokenType.FILENAME_PART)
-      .producesToken("sea", FileTokenType.PATH_SEGMENT_PREFIX)
+      .producesToken("se", FileTokenType.FILENAME_PART, 0, 2)
+      .producesToken("se", FileTokenType.PATH_SEGMENT_PREFIX, 0, 2)
+      .producesToken("sea", FileTokenType.FILENAME_PART, 0, 3)
+      .producesToken("sea", FileTokenType.PATH_SEGMENT_PREFIX, 0, 3)
   }
 
 }
