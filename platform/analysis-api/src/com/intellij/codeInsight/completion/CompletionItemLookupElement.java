@@ -150,11 +150,15 @@ public final class CompletionItemLookupElement extends LookupElement implements 
     MarkupText mainText = itemPresentation.mainText();
     List<MarkupText.Fragment> fragments = mainText.fragments();
     String tailText = "";
+    boolean gray = false;
     if (!fragments.isEmpty()) {
-      MarkupText.Fragment last = fragments.getLast();
-      if (last.kind() == MarkupText.Kind.GRAYED) {
-        tailText = last.text();
-        fragments = fragments.subList(0, fragments.size() - 1);
+      if (fragments.size() > 1) {
+        MarkupText.Fragment last = fragments.getLast();
+        if (last.kind() == MarkupText.Kind.GRAYED || last.kind() == MarkupText.Kind.NORMAL) {
+          gray = last.kind() == MarkupText.Kind.GRAYED;
+          tailText = last.text();
+          fragments = fragments.subList(0, fragments.size() - 1);
+        }
       }
       presentation.setItemText(StringUtil.join(fragments, MarkupText.Fragment::text, ""));
       MarkupText.Fragment onlyFragment = ContainerUtil.getOnlyItem(fragments);
@@ -167,7 +171,7 @@ public final class CompletionItemLookupElement extends LookupElement implements 
       }
     }
     presentation.setIcon(itemPresentation.mainIcon());
-    presentation.setTailText(tailText, true);
+    presentation.setTailText(tailText, gray);
     presentation.setTypeText(itemPresentation.detailText().toText(), itemPresentation.detailIcon());
   }
 
