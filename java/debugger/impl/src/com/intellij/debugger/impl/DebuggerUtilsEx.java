@@ -29,6 +29,7 @@ import com.intellij.debugger.engine.evaluation.expression.ExpressionEvaluator;
 import com.intellij.debugger.engine.evaluation.expression.UnBoxingEvaluator;
 import com.intellij.debugger.engine.jdi.VirtualMachineProxy;
 import com.intellij.debugger.engine.requests.RequestManagerImpl;
+import com.intellij.debugger.engine.requests.StepRequestor;
 import com.intellij.debugger.jdi.GeneratedLocation;
 import com.intellij.debugger.jdi.GeneratedReferenceType;
 import com.intellij.debugger.jdi.JvmtiError;
@@ -368,6 +369,12 @@ public abstract class DebuggerUtilsEx extends DebuggerUtils {
           Requestor requestor = RequestManagerImpl.findRequestor(event.request());
           if (requestor instanceof Breakpoint) {
             eventDescriptors.add(Pair.create((Breakpoint)requestor, event));
+          }
+          if (requestor instanceof StepRequestor stepRequestor) {
+            Requestor originalRequestor = stepRequestor.getOriginalRequestor();
+            if (originalRequestor instanceof Breakpoint<?> originalBreakpoint) {
+              eventDescriptors.add(Pair.create(originalBreakpoint, event));
+            }
           }
         }
         return eventDescriptors;
