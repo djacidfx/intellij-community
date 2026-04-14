@@ -346,8 +346,9 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
     val PROGRESS_DISPLAY_DELAY: Duration = 500.milliseconds
     private const val INDEX_BATCH_SIZE: Int = 5000
     const val FILE_URL: String = "uri"
+    val ANALYZER: Analyzer = FileSearchAnalyzer()
 
-    fun buildQuery(params: SeParams, analyzer: Analyzer = FileSearchAnalyzer()): Query {
+    fun buildQuery(params: SeParams, analyzer: Analyzer = ANALYZER): Query {
       val tokenStream = analyzer.tokenStream("", params.inputQuery)
       val termAttr = tokenStream.addAttribute(CharTermAttribute::class.java)
       val wordAttr = tokenStream.addAttribute(WordAttribute::class.java)
