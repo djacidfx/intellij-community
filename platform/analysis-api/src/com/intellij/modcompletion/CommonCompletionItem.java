@@ -168,6 +168,11 @@ public final class CommonCompletionItem extends PsiUpdateCompletionItem<Object> 
   }
 
   @Override
+  public Set<@NlsSafe String> additionalLookupStrings() {
+    return myAdditionalStrings;
+  }
+
+  @Override
   public ModCompletionItemPresentation presentation() {
     return myPresentation;
   }
