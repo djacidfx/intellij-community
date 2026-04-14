@@ -565,9 +565,15 @@ public final class JavaCompletionUtil {
       return true;
     }
 
-    if (position instanceof PsiIdentifier && position.getParent() instanceof PsiLocalVariable) {
-      PsiType type = ((PsiLocalVariable)position.getParent()).getType();
-      if (type instanceof PsiClassType && ((PsiClassType)type).resolve() == null) {
+    if (position instanceof PsiIdentifier && position.getParent() instanceof PsiLocalVariable variable) {
+      PsiType type = variable.getType();
+      if (type instanceof PsiClassType classType && classType.resolve() == null) {
+        String typeText = variable.getTypeElement().getText();
+        PsiVariable resolved = JavaPsiFacade.getInstance(position.getProject()).getResolveHelper()
+          .resolveReferencedVariable(typeText, position);
+        if (resolved == null) {
+          return false;
+        }
         PsiElement grandParent = position.getParent().getParent();
         return !(grandParent instanceof PsiDeclarationStatement) || !(grandParent.getParent() instanceof PsiForStatement) ||
                ((PsiForStatement)grandParent.getParent()).getInitialization() != grandParent;

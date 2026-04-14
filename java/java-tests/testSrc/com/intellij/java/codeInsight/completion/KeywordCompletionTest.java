@@ -305,6 +305,38 @@ public class KeywordCompletionTest extends LightCompletionTestCase {
     assertContainsItems("import");
   }
 
+  public void testNoInstanceOfAfterUnknownVariable() {
+    configureFromFileText("Test.java", """
+      class Main {
+        void test() {
+          FooBar ins<caret>
+        }
+      }""");
+    complete();
+    checkResultByText("""
+      class Main {
+        void test() {
+          FooBar ins
+        }
+      }""");
+  }
+
+  public void testInstanceOfAfterKnownVariable() {
+    configureFromFileText("Test.java", """
+      class Main {
+        void test(Object fooBar) {
+          fooBar ins<caret>
+        }
+      }""");
+    complete();
+    checkResultByText("""
+      class Main {
+        void test(Object fooBar) {
+          fooBar instanceof <caret>
+        }
+      }""");
+  }
+
   public void testPackageKeyword() {
     configureFromFileText("Test.java", """
       pa<caret>ckage hello.world;
