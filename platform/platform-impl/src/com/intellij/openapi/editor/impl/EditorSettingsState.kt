@@ -25,6 +25,7 @@ import com.intellij.openapi.editor.impl.stickyLines.ui.StickyLineComponent.Compa
 import com.intellij.openapi.editor.state.CustomOutValueModifier
 import com.intellij.openapi.editor.state.ObservableState
 import com.intellij.openapi.editor.state.ObservableStateListener
+import com.intellij.openapi.editor.state.StateProperty
 import com.intellij.openapi.editor.state.SyncDefaultValueCalculator
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.options.advanced.AdvancedSettings
@@ -84,6 +85,11 @@ class EditorSettingsState(private val editor: EditorImpl?,
     private val LOG = logger<EditorSettingsState>()
   }
 
+  // Use for code-style-derived properties: their defaults depend on backend-side data (e.g. .clang-format, .editorconfig)
+  // that the frontend in Remote Development cannot compute independently, so they must always be transferred.
+  private inline fun <reified T> codeStyleProperty(noinline defaultValueCalculator: () -> T): StateProperty<T> =
+    property(alwaysTransfer = true, defaultValueCalculator = defaultValueCalculator)
+
   // This group of settings does not have a UI
   var myAdditionalLinesCount: Int by property(Registry.intValue("editor.virtual.lines", 5))
   var myAdditionalColumnsCount: Int by property(3)
@@ -94,7 +100,7 @@ class EditorSettingsState(private val editor: EditorImpl?,
   var myAreLineNumbersAfterIcons: Boolean by property { false }
 
   // These come from CodeStyleSettings.
-  var myUseTabCharacter: Boolean by property {
+  var myUseTabCharacter: Boolean by codeStyleProperty {
     ReadAction.computeBlocking(ThrowableComputable {
       val file = getVirtualFile()
 
@@ -109,7 +115,7 @@ class EditorSettingsState(private val editor: EditorImpl?,
       }
     })
   }
-  var myWrapWhenTypingReachesRightMargin: Boolean by property {
+  var myWrapWhenTypingReachesRightMargin: Boolean by codeStyleProperty {
     val settings = if (editor == null) {
       CodeStyle.getDefaultSettings()
     }
@@ -118,7 +124,7 @@ class EditorSettingsState(private val editor: EditorImpl?,
     }
     settings.isWrapOnTyping(language)
   }
-  var softMargins: List<Int> by property {
+  var softMargins: List<Int> by codeStyleProperty {
     if (editor == null) {
       mutableListOf()
     }
@@ -126,7 +132,7 @@ class EditorSettingsState(private val editor: EditorImpl?,
       getEditorCodeStyleSettingsOrDefaults(editor).getSoftMargins(language)
     }
   }
-  var rightMargin: Int by property {
+  var rightMargin: Int by codeStyleProperty {
     val settings = if (editor == null) {
       CodeStyle.getProjectOrDefaultSettings(project)
     }
