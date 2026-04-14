@@ -438,7 +438,7 @@ object UniversalFileChooser {
           IdeBundle.message("universal.file.chooser.action.create.directory.description"),
           AllIcons.Actions.NewFolder
         ) {
-          override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+          override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
           override fun update(e: AnActionEvent) {
             val parent = fileTree.getNewFileParent()
@@ -466,6 +466,55 @@ object UniversalFileChooser {
           }
         }
 
+        val deleteAction = object : AnAction(
+          IdeBundle.message("universal.file.chooser.action.delete.text"),
+          IdeBundle.message("universal.file.chooser.action.delete.description"),
+          AllIcons.General.Delete
+        ) {
+          override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+
+          override fun update(e: AnActionEvent) {
+            val selected = fileTree.selectedFile
+            val nioPath = selected?.let { runCatching { it.toNioPath() }.getOrNull() }
+            if (nioPath == null || roots.contains(nioPath) || !Files.isWritable(nioPath)) { e.presentation.isEnabled = false; return }
+            if (Files.isDirectory(nioPath)) {
+              val empty = runCatching { Files.list(nioPath).use { !it.findFirst().isPresent } }.getOrDefault(false)
+              if (!empty) { e.presentation.isEnabled = false; return }
+            }
+            e.presentation.isEnabled = true
+          }
+
+          override fun actionPerformed(e: AnActionEvent) {
+            val selected = fileTree.selectedFile ?: return
+            val parent = selected.parent ?: return
+            val nioPath = runCatching { selected.toNioPath() }.getOrNull() ?: return
+            if (Messages.showYesNoDialog(
+                IdeBundle.message("universal.file.chooser.action.delete.confirm", selected.name),
+                IdeBundle.message("universal.file.chooser.action.delete.text"),
+                Messages.getWarningIcon()
+              ) != Messages.YES) return
+
+            scope.launch {
+              withContext(Dispatchers.IO) {
+                val result = runCatching { Files.delete(nioPath) }
+                if (result.isSuccess) {
+                  (parent as? NewVirtualFile)?.markDirtyRecursively()
+                  RefreshQueue.getInstance().refresh(
+                    true, false, null,
+                    ModalityState.stateForComponent(fileTree.tree), parent
+                  )
+                }
+                else {
+                  runOnEdt {
+                    val message = result.exceptionOrNull()?.message ?: ""
+                    Messages.showErrorDialog(message, IdeBundle.message("universal.file.chooser.action.delete.text"))
+                  }
+                }
+              }
+            }
+          }
+        }
+
         val refreshAction = object : AnAction(
           IdeBundle.message("universal.file.chooser.action.refresh.text"),
           IdeBundle.message("universal.file.chooser.action.refresh.description"),
@@ -487,6 +536,7 @@ object UniversalFileChooser {
         val actionGroup = DefaultActionGroup().apply {
           add(showHiddenAction)
           add(createDirectoryAction)
+          add(deleteAction)
           add(refreshAction)
         }
 
