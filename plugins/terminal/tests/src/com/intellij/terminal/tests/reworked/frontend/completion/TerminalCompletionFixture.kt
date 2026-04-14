@@ -16,7 +16,6 @@ import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
-import com.intellij.openapi.util.registry.Registry
 import com.intellij.platform.util.coroutines.childScope
 import com.intellij.terminal.completion.spec.ShellCommandSpec
 import com.intellij.terminal.frontend.view.TerminalView
@@ -74,7 +73,6 @@ internal class TerminalCompletionFixture(
 
   init {
     val parentDisposable = coroutineScope.asDisposable()
-    Registry.get("terminal.type.ahead").setValue(true, parentDisposable)
     TerminalCommandCompletion.enableForTests(parentDisposable)
     // Terminal completion might still be disabled if not supported yet on some OS.
     Assume.assumeTrue(TerminalCommandCompletion.isEnabled(project))

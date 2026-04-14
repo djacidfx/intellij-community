@@ -7,9 +7,9 @@ import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.asContextElement
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.diagnostic.trace
+import com.intellij.openapi.options.advanced.AdvancedSettings
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsSafe
-import com.intellij.openapi.util.registry.Registry
 import com.intellij.platform.util.coroutines.childScope
 import com.intellij.terminal.frontend.view.impl.TerminalOutputModelController
 import kotlinx.coroutines.CoroutineScope
@@ -76,7 +76,7 @@ class TerminalTypeAheadOutputModelControllerV2(
 
   private fun isTypeAheadEnabled(): Boolean {
     if (AppMode.isMonolith() && !enableInMonolith) return false
-    if (!Registry.`is`("terminal.type.ahead", false)) return false
+    if (!AdvancedSettings.getBoolean("terminal.type.ahead")) return false
 
     val shellIntegration = shellIntegrationDeferred.getNow() ?: return false
     val activeBlock = shellIntegration.blocksModel.activeBlock as? TerminalCommandBlock ?: return false

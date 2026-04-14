@@ -7,9 +7,9 @@ import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.asContextElement
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.diagnostic.trace
+import com.intellij.openapi.options.advanced.AdvancedSettings
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsSafe
-import com.intellij.openapi.util.registry.Registry
 import com.jediterm.terminal.TextStyle
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -70,7 +70,7 @@ internal class TerminalTypeAheadOutputModelControllerV1(
   }
 
   private fun isTypeAheadEnabled(): Boolean {
-    if (AppMode.isMonolith() || !Registry.`is`("terminal.type.ahead", false)) return false
+    if (AppMode.isMonolith() || !AdvancedSettings.getBoolean("terminal.type.ahead")) return false
     val shellIntegration = shellIntegrationDeferred.getNow() ?: return false
     val activeBlock = shellIntegration.blocksModel.activeBlock as? TerminalCommandBlock ?: return false
     // Ensure that the active block has "commandStartOffset" set to protect prompt from deleting in typeahead logic.

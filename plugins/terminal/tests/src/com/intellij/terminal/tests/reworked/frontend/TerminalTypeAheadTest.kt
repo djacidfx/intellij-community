@@ -1,7 +1,8 @@
 package com.intellij.terminal.tests.reworked.frontend
 
 import com.intellij.openapi.application.EDT
-import com.intellij.openapi.util.registry.Registry
+import com.intellij.openapi.options.advanced.AdvancedSettings
+import com.intellij.openapi.util.Disposer
 import com.intellij.platform.util.coroutines.childScope
 import com.intellij.terminal.frontend.view.typeahead.TerminalTypeAheadOutputModelController
 import com.intellij.terminal.frontend.view.typeahead.TerminalTypeAheadOutputModelControllerV2
@@ -114,7 +115,7 @@ internal class TerminalTypeAheadTest : BasePlatformTestCase() {
 
   @Test
   fun `type disabled - no-op`() = doTest { controller ->
-    Registry.get("terminal.type.ahead").setValue(false, testRootDisposable)
+    disableTypeAheadForTest()
     controller.type("a")
     controller.model.assertMatches(outputPattern("<cursor>"))
   }
@@ -185,7 +186,7 @@ internal class TerminalTypeAheadTest : BasePlatformTestCase() {
 
   @Test
   fun `backspace disabled - no-op`() = doTest { controller ->
-    Registry.get("terminal.type.ahead").setValue(false, testRootDisposable)
+    disableTypeAheadForTest()
     controller.updateContent(contentEvent("abc<cursor>"))
     controller.backspace()
     controller.model.assertMatches(outputPattern("abc<cursor>"))
@@ -1126,5 +1127,14 @@ internal class TerminalTypeAheadTest : BasePlatformTestCase() {
       cursorLogicalLineIndex = startLine + cursorLineOffset,
       cursorColumnIndex = cursorCol,
     )
+  }
+
+  private fun disableTypeAheadForTest() {
+    val key = "terminal.type.ahead"
+    val prevValue = AdvancedSettings.getBoolean(key)
+    AdvancedSettings.setBoolean(key, false)
+    Disposer.register(testRootDisposable) {
+      AdvancedSettings.setBoolean(key, prevValue)
+    }
   }
 }

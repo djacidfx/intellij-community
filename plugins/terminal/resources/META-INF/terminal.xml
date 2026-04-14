@@ -71,8 +71,6 @@
                   For WSL environments, the shell process in WSL will be launched via IJEnt instead of using wsl.exe."/>
     <registryKey key="terminal.new.ui.completion.popup" defaultValue="true"
                  description="Whether popup-based command completion feature is enabled in the Reworked Terminal"/>
-    <registryKey key="terminal.type.ahead" defaultValue="true"
-                 description="Whether terminal should predict how shell handles typing to minimize the typing latency"/>
     <registryKey key="terminal.type.ahead.v2" defaultValue="true"
                  description="Whether to use the new experimental terminal type-ahead implementation"/>
     <registryKey key="terminal.generic.hyperlinks" defaultValue="true"
