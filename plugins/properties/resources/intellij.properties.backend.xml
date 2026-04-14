@@ -173,7 +173,7 @@
     <codeInsight.completion.command.provider language="Properties" implementationClass="com.intellij.lang.properties.command.completion.PropertiesFormatCodeCompletionCommandProvider" order="last"/>
     <codeInsight.completion.command.provider language="Properties" implementationClass="com.intellij.lang.properties.command.completion.PropertiesMovePropertyUpCommandProvider" order="last"/>
     <codeInsight.completion.command.provider language="Properties" implementationClass="com.intellij.lang.properties.command.completion.PropertiesMovePropertyDownCommandProvider" order="last"/>
-    <codeInsight.completion.command.provider language="Properties" implementationClass="com.intellij.lang.properties.command.completion.PropertiesCommentPropertyCommandProvider" order="last"/>
+    <codeInsight.completion.command.provider language="Properties" implementationClass="com.intellij.lang.properties.command.completion.PropertiesCommentCommandProvider" order="last"/>
     <codeInsight.completion.command.provider language="Properties" implementationClass="com.intellij.codeInsight.completion.command.commands.UncommentLineCompletionCommandProvider" order="last"/>
 
     <statementUpDownMover implementation="com.intellij.lang.properties.editor.PropertiesStatementUpDownMover"/>
