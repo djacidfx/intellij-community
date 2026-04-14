@@ -60,7 +60,7 @@ class WordSplittingTokenFilter(
 
 }
 
-fun split(text: String): List<Span> {
+internal fun split(text: String): List<Span> {
   if (text.isEmpty()) return emptyList()
   val numericRule = NumericTransitionSplittingRule(text)
   val camelCaseRule = CamelCaseSplittingRule(text)
@@ -80,7 +80,7 @@ fun split(text: String): List<Span> {
 
 
 /** Emits each original element AND all elements produced by [block] for it. */
-fun <T> Sequence<T>.addAllFlatMapped(block: (T) -> Sequence<T>): Sequence<T> {
+internal fun <T> Sequence<T>.addAllFlatMapped(block: (T) -> Sequence<T>): Sequence<T> {
   return this.flatMap { element ->
     sequenceOf(element) + block(element)
   }
