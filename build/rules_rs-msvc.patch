@@ -43,7 +43,7 @@ diff --git a/MODULE.bazel b/MODULE.bazel
  bazel_dep(name = "rules_cc", version = "0.2.8")
  bazel_dep(name = "rules_proto", version = "7.1.0")
 -bazel_dep(name = "llvm", version = "0.6.7")
-+bazel_dep(name = "llvm", version = "0.6.9")
++bazel_dep(name = "llvm", version = "0.7.1")
  bazel_dep(name = "aspect_tools_telemetry", version = "0.3.2")
 
  tel = use_extension("@aspect_tools_telemetry//:extension.bzl", "telemetry")

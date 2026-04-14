@@ -6,8 +6,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/BUILD.bazel b/BUILD.bazel
---- a/BUILD.bazel	(revision 8df53bd3cd581c1cf95f16f656a7bba468e4bbf9)
-+++ b/BUILD.bazel	(revision 32a954c4d60c9ccb0904ffebb6e10c1556925cb7)
+--- a/BUILD.bazel	(revision 6b4b9c8c0e24509bd899ed71c03361e2e7d2ebae)
++++ b/BUILD.bazel	(revision a9eafb11bfa580fa1712a622dc28907c2b90d9bd)
 @@ -1,5 +1,5 @@
  load("@bazel_lib//:bzl_library.bzl", "bzl_library")
 -load("//toolchain:selects.bzl", "LLVM_VERSION")
@@ -15,7 +15,7 @@ diff --git a/BUILD.bazel b/BUILD.bazel
 
  # gazelle:map_kind bzl_library bzl_library @bazel_lib//:bzl_library.bzl
 
-@@ -18,8 +18,8 @@
+@@ -21,8 +21,8 @@
          "//platforms/config:macos_aarch64_prebuilt": "@llvm-toolchain-minimal-%s-darwin-arm64//:builtin_resource_dir" % LLVM_VERSION,
          "//platforms/config:linux_x86_64_prebuilt": "@llvm-toolchain-minimal-%s-linux-amd64//:builtin_resource_dir" % LLVM_VERSION,
          "//platforms/config:linux_aarch64_prebuilt": "@llvm-toolchain-minimal-%s-linux-arm64//:builtin_resource_dir" % LLVM_VERSION,
@@ -32,25 +32,23 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/MODULE.bazel b/MODULE.bazel
---- a/MODULE.bazel	(revision 8df53bd3cd581c1cf95f16f656a7bba468e4bbf9)
-+++ b/MODULE.bazel	(revision 32a954c4d60c9ccb0904ffebb6e10c1556925cb7)
-@@ -26,28 +26,32 @@
+--- a/MODULE.bazel	(revision 6b4b9c8c0e24509bd899ed71c03361e2e7d2ebae)
++++ b/MODULE.bazel	(revision a9eafb11bfa580fa1712a622dc28907c2b90d9bd)
+@@ -30,26 +30,30 @@
 
- LLVM_VERSION = "22.1.0"
+ PREBUILT_LLVM_SUFFIX = "-2"
 
-+WINDOWS_HACK_LLVM_VERSION = "21.1.8"
++WINDOWS_HACK_PREBUILT_LLVM_VERSION = "21.1.8"
 +
- PREBUILT_LLVM_SUFFIX = "-3"
-
 +WINDOWS_HACK_PREBUILT_LLVM_SUFFIX = "-5"
 +
  LLVM_TOOLCHAIN_MINIMAL_SHA256 = {
-     "darwin-amd64": "88c39005ab8c141b4bc2c66c3a945d02214be0171db952cc4dc2efe15fc032bf",
-     "darwin-arm64": "258cda3bf8ae6dd72c80ef50462da0470006a057769ab828f937932dd5451779",
-     "linux-amd64-musl": "e5acf3dcab4dc7e538cfc590e11fde540153b89c465852110be3673f71c618f5",
-     "linux-arm64-musl": "42b5a25dd48cadd619c248ef759640fa697f384785983b98c2c36c0179f96a2c",
--    "windows-amd64": "46bc45ab18ff51714e83895382d1a2f76823f887d74c1435865fea473d45cb84",
--    "windows-arm64": "52111b117a7c1019012bb1c64ffae57b4ec0a84f580338a3b93a33204010a958",
+     "darwin-amd64": "7b92d4dab8263dae507a5e89ba39240b979c0a85450ab174d5c966662068f7ad",
+     "darwin-arm64": "528588085727b9d8be3d509279d91760e4fbca2a9eaeb487425e5d6ae7bf1806",
+     "linux-amd64-musl": "6f92a01acecd3fd72f85b7a32632f47d0e142c2f935af792aa3f50769b1ac7ab",
+     "linux-arm64-musl": "21733a5117ec2c649de454d2e214f8838e4bfd301570d0dc45b72f5b21824827",
+-    "windows-amd64": "39f1563f954d616708fc1cf69af29ee2d58c7e4862f1c08f09570cdaae977aec",
+-    "windows-arm64": "3fab94ceec8fa58f9f36d5dc943808acdfdb2ea6e9849f36a4528291d0dea24f",
 +    "windows-amd64": "9ba42717946ab0c90ceb0db45fcd033dd1e3a46bf7d8b13e7c7d50feb68b8ef7",
 +    "windows-arm64": "24049b3fe7f8ac6c6a59ed0795492b7e427cfbc8511691274b6a412869c4dc73",
  }
@@ -58,16 +56,16 @@ diff --git a/MODULE.bazel b/MODULE.bazel
  [
      http_archive(
          name = "llvm-toolchain-minimal-{llvm_version}-{target}".format(
--            llvm_version = LLVM_VERSION,
-+            llvm_version = LLVM_VERSION if not target.startswith("windows-") else WINDOWS_HACK_LLVM_VERSION,
+-            llvm_version = PREBUILT_LLVM_VERSION,
++            llvm_version = PREBUILT_LLVM_VERSION if not target.startswith("windows-") else WINDOWS_HACK_PREBUILT_LLVM_VERSION,
              target = target.replace("-musl", ""),
          ),
          build_file = "//toolchain/llvm:llvm_release.BUILD.bazel" if "windows" not in target else "//toolchain/llvm:llvm_release_windows.BUILD.bazel",
          sha256 = sha256,
-         urls = ["https://github.com/cerisier/toolchains_llvm_bootstrapped/releases/download/llvm-{llvm_version}{prebuilt_llvm_suffix}/llvm-toolchain-minimal-{llvm_version}-{target}.tar.zst".format(
--            llvm_version = LLVM_VERSION,
+         urls = ["https://github.com/hermeticbuild/hermetic-llvm/releases/download/llvm-{llvm_version}{prebuilt_llvm_suffix}/llvm-toolchain-minimal-{llvm_version}-{target}.tar.zst".format(
+-            llvm_version = PREBUILT_LLVM_VERSION,
 -            prebuilt_llvm_suffix = PREBUILT_LLVM_SUFFIX,
-+            llvm_version = LLVM_VERSION if not target.startswith("windows-") else WINDOWS_HACK_LLVM_VERSION,
++            llvm_version = PREBUILT_LLVM_VERSION if not target.startswith("windows-") else WINDOWS_HACK_PREBUILT_LLVM_VERSION,
 +            prebuilt_llvm_suffix = PREBUILT_LLVM_SUFFIX if not target.startswith("windows-") else WINDOWS_HACK_PREBUILT_LLVM_SUFFIX,
              target = target,
          )],
@@ -78,10 +76,10 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/toolchain/selects.bzl b/toolchain/selects.bzl
---- a/toolchain/selects.bzl	(revision 8df53bd3cd581c1cf95f16f656a7bba468e4bbf9)
-+++ b/toolchain/selects.bzl	(revision 32a954c4d60c9ccb0904ffebb6e10c1556925cb7)
+--- a/toolchain/selects.bzl	(revision 6b4b9c8c0e24509bd899ed71c03361e2e7d2ebae)
++++ b/toolchain/selects.bzl	(revision a9eafb11bfa580fa1712a622dc28907c2b90d9bd)
 @@ -1,4 +1,5 @@
- LLVM_VERSION = "22.1.0"
+ LLVM_VERSION = "22.1.3"
 +WINDOWS_HACK_LLVM_VERSION = "21.1.8"
 
  def platform_llvm_binary(binary):
