@@ -409,7 +409,7 @@ private fun suppressWarnings(project: JpsProject) {
 
 private suspend fun defineJavaSdk(context: CompilationContext) {
   val homePath = context.getStableJdkHome()
-  val jbrVersionName = "jbr-21"
+  val jbrVersionName = "jbr-25"
   defineJdk(global = context.projectModel.global, jdkName = jbrVersionName, homeDir = homePath)
   readModulesFromReleaseFile(model = context.projectModel, sdkName = jbrVersionName, sdkHome = homePath)
 

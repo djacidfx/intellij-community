@@ -343,9 +343,9 @@ class BuildersGeneratorTest {
 
       val jpsModuleQueue = mutableListOf(ultimateProject.findModuleByName(moduleName)!!)
 
-      val jdkName = "jbr-21"
+      val jdkName = "jbr-25"
       val projectJdkTable = ProjectJdkTable.getInstance(tempProject)
-      val projectJdk = JavaSdk.getInstance().createJdk("jbr-21", System.getProperty("java.home"))
+      val projectJdk = JavaSdk.getInstance().createJdk("jbr-25", System.getProperty("java.home"))
       projectJdkTable.addJdk(projectJdk)
       ProjectRootManager.getInstance(tempProject).setProjectSdkName(jdkName, JavaSdk.getInstance().name)
 
