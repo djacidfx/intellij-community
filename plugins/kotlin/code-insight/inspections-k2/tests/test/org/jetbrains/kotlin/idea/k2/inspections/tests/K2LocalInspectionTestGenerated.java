@@ -14863,75 +14863,123 @@ public abstract class K2LocalInspectionTestGenerated extends AbstractK2LocalInsp
 
         @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("testData/inspectionsLocal/removeRedundantQualifierName")
-        public static class RemoveRedundantQualifierName extends AbstractK2LocalInspectionTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
+        public abstract static class RemoveRedundantQualifierName extends AbstractK2LocalInspectionTest {
+            @RunWith(JUnit3RunnerWithInners.class)
+            @TestMetadata("testData/inspectionsLocal/removeRedundantQualifierName/contextSensitiveResolution")
+            public static class ContextSensitiveResolution extends AbstractK2LocalInspectionTest {
+                @java.lang.Override
+                @org.jetbrains.annotations.NotNull
+                public final KotlinPluginMode getPluginMode() {
+                    return KotlinPluginMode.K2;
+                }
+
+                private void runTest(String testDataFilePath) throws Exception {
+                    KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
+                }
+
+                @TestMetadata("enumEntryInEquality.kt")
+                public void testEnumEntryInEquality() throws Exception {
+                    runTest("testData/inspectionsLocal/removeRedundantQualifierName/contextSensitiveResolution/enumEntryInEquality.kt");
+                }
+
+                @TestMetadata("enumEntryInFunctionParameter.kt")
+                public void testEnumEntryInFunctionParameter() throws Exception {
+                    runTest("testData/inspectionsLocal/removeRedundantQualifierName/contextSensitiveResolution/enumEntryInFunctionParameter.kt");
+                }
+
+                @TestMetadata("enumEntryInVariableDeclaration.kt")
+                public void testEnumEntryInVariableDeclaration() throws Exception {
+                    runTest("testData/inspectionsLocal/removeRedundantQualifierName/contextSensitiveResolution/enumEntryInVariableDeclaration.kt");
+                }
+
+                @TestMetadata("enumEntryInWhenCondition.kt")
+                public void testEnumEntryInWhenCondition() throws Exception {
+                    runTest("testData/inspectionsLocal/removeRedundantQualifierName/contextSensitiveResolution/enumEntryInWhenCondition.kt");
+                }
+
+                @TestMetadata("sealedSubObjectInFunctionParameter.kt")
+                public void testSealedSubObjectInFunctionParameter() throws Exception {
+                    runTest("testData/inspectionsLocal/removeRedundantQualifierName/contextSensitiveResolution/sealedSubObjectInFunctionParameter.kt");
+                }
+
+                @TestMetadata("sealedSubObjectInVariableDeclaration.kt")
+                public void testSealedSubObjectInVariableDeclaration() throws Exception {
+                    runTest("testData/inspectionsLocal/removeRedundantQualifierName/contextSensitiveResolution/sealedSubObjectInVariableDeclaration.kt");
+                }
             }
 
-            private void runTest(String testDataFilePath) throws Exception {
-                KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
-            }
+            @RunWith(JUnit3RunnerWithInners.class)
+            @TestMetadata("testData/inspectionsLocal/removeRedundantQualifierName")
+            public static class Uncategorized extends AbstractK2LocalInspectionTest {
+                @java.lang.Override
+                @org.jetbrains.annotations.NotNull
+                public final KotlinPluginMode getPluginMode() {
+                    return KotlinPluginMode.K2;
+                }
 
-            @TestMetadata("builtInType.kt")
-            public void testBuiltInType() throws Exception {
-                runTest("testData/inspectionsLocal/removeRedundantQualifierName/builtInType.kt");
-            }
+                private void runTest(String testDataFilePath) throws Exception {
+                    KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
+                }
 
-            @TestMetadata("companion.kt")
-            public void testCompanion() throws Exception {
-                runTest("testData/inspectionsLocal/removeRedundantQualifierName/companion.kt");
-            }
+                @TestMetadata("builtInType.kt")
+                public void testBuiltInType() throws Exception {
+                    runTest("testData/inspectionsLocal/removeRedundantQualifierName/builtInType.kt");
+                }
 
-            @TestMetadata("companionOnClass.kt")
-            public void testCompanionOnClass() throws Exception {
-                runTest("testData/inspectionsLocal/removeRedundantQualifierName/companionOnClass.kt");
-            }
+                @TestMetadata("companion.kt")
+                public void testCompanion() throws Exception {
+                    runTest("testData/inspectionsLocal/removeRedundantQualifierName/companion.kt");
+                }
 
-            @TestMetadata("companionWithName.kt")
-            public void testCompanionWithName() throws Exception {
-                runTest("testData/inspectionsLocal/removeRedundantQualifierName/companionWithName.kt");
-            }
+                @TestMetadata("companionOnClass.kt")
+                public void testCompanionOnClass() throws Exception {
+                    runTest("testData/inspectionsLocal/removeRedundantQualifierName/companionOnClass.kt");
+                }
 
-            @TestMetadata("dropImportedQualifier.kt")
-            public void testDropImportedQualifier() throws Exception {
-                runTest("testData/inspectionsLocal/removeRedundantQualifierName/dropImportedQualifier.kt");
-            }
+                @TestMetadata("companionWithName.kt")
+                public void testCompanionWithName() throws Exception {
+                    runTest("testData/inspectionsLocal/removeRedundantQualifierName/companionWithName.kt");
+                }
 
-            @TestMetadata("expression.kt")
-            public void testExpression() throws Exception {
-                runTest("testData/inspectionsLocal/removeRedundantQualifierName/expression.kt");
-            }
+                @TestMetadata("dropImportedQualifier.kt")
+                public void testDropImportedQualifier() throws Exception {
+                    runTest("testData/inspectionsLocal/removeRedundantQualifierName/dropImportedQualifier.kt");
+                }
 
-            @TestMetadata("expression2.kt")
-            public void testExpression2() throws Exception {
-                runTest("testData/inspectionsLocal/removeRedundantQualifierName/expression2.kt");
-            }
+                @TestMetadata("expression.kt")
+                public void testExpression() throws Exception {
+                    runTest("testData/inspectionsLocal/removeRedundantQualifierName/expression.kt");
+                }
 
-            @TestMetadata("expressionWithParameter.kt")
-            public void testExpressionWithParameter() throws Exception {
-                runTest("testData/inspectionsLocal/removeRedundantQualifierName/expressionWithParameter.kt");
-            }
+                @TestMetadata("expression2.kt")
+                public void testExpression2() throws Exception {
+                    runTest("testData/inspectionsLocal/removeRedundantQualifierName/expression2.kt");
+                }
 
-            @TestMetadata("innerClassWithImport.kt")
-            public void testInnerClassWithImport() throws Exception {
-                runTest("testData/inspectionsLocal/removeRedundantQualifierName/innerClassWithImport.kt");
-            }
+                @TestMetadata("expressionWithParameter.kt")
+                public void testExpressionWithParameter() throws Exception {
+                    runTest("testData/inspectionsLocal/removeRedundantQualifierName/expressionWithParameter.kt");
+                }
 
-            @TestMetadata("propertyDefinedInCompanion.kt")
-            public void testPropertyDefinedInCompanion() throws Exception {
-                runTest("testData/inspectionsLocal/removeRedundantQualifierName/propertyDefinedInCompanion.kt");
-            }
+                @TestMetadata("innerClassWithImport.kt")
+                public void testInnerClassWithImport() throws Exception {
+                    runTest("testData/inspectionsLocal/removeRedundantQualifierName/innerClassWithImport.kt");
+                }
 
-            @TestMetadata("secondaryConstructor.kt")
-            public void testSecondaryConstructor() throws Exception {
-                runTest("testData/inspectionsLocal/removeRedundantQualifierName/secondaryConstructor.kt");
-            }
+                @TestMetadata("propertyDefinedInCompanion.kt")
+                public void testPropertyDefinedInCompanion() throws Exception {
+                    runTest("testData/inspectionsLocal/removeRedundantQualifierName/propertyDefinedInCompanion.kt");
+                }
 
-            @TestMetadata("type.kt")
-            public void testType() throws Exception {
-                runTest("testData/inspectionsLocal/removeRedundantQualifierName/type.kt");
+                @TestMetadata("secondaryConstructor.kt")
+                public void testSecondaryConstructor() throws Exception {
+                    runTest("testData/inspectionsLocal/removeRedundantQualifierName/secondaryConstructor.kt");
+                }
+
+                @TestMetadata("type.kt")
+                public void testType() throws Exception {
+                    runTest("testData/inspectionsLocal/removeRedundantQualifierName/type.kt");
+                }
             }
         }
 
