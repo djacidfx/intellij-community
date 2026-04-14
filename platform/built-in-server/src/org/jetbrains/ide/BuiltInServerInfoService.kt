@@ -177,8 +177,10 @@ internal class BuiltInServerDiscoveryService(private val coroutineScope: Corouti
             writer.writeNumberField("memoryMb", Runtime.getRuntime().maxMemory() / (1024 * 1024))
           }
 
-          BuiltInServerInfoContributor.EP_NAME.forEachExtensionSafe { contributor ->
-            contributor.contribute(writer)
+          writer.obj("properties") {
+            BuiltInServerInfoContributor.EP_NAME.forEachExtensionSafe { contributor ->
+              contributor.contribute(writer)
+            }
           }
         }
       }

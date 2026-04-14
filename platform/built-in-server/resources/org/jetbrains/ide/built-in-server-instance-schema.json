@@ -82,9 +82,7 @@
     "properties": {
       "type": "object",
       "description": "Additional properties contributed by plugins.",
-      "additionalProperties": {
-        "type": "string"
-      }
+      "additionalProperties": true
     },
     "ideInfo": {
       "type": "object",
