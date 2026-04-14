@@ -29,6 +29,7 @@ import com.intellij.platform.pluginSystem.parser.impl.PluginDescriptorFromXmlStr
 import com.intellij.platform.pluginSystem.parser.impl.PluginDescriptorReaderContext
 import com.intellij.platform.pluginSystem.parser.impl.XIncludeLoader
 import com.intellij.platform.pluginSystem.parser.impl.consume
+import com.intellij.platform.pluginSystem.parser.impl.elements.ContentModuleElement
 import com.intellij.platform.pluginSystem.parser.impl.elements.ModuleLoadingRuleValue
 import com.intellij.platform.pluginSystem.testFramework.PluginSetTestBuilder
 import com.intellij.platform.pluginSystem.testFramework.isModuleSetPath
@@ -110,9 +111,6 @@ class PluginDependenciesValidator private constructor(
   private fun reportPluginLoadingErrors(loadingErrors: List<PluginLoadingError>) {
     for (error in loadingErrors) {
       val errorMessage = error.htmlMessage.toString() + if (error.reason != null) { ":\n  ${error.reason!!.logMessage}" } else ""
-      if (options.pluginErrorPrefixesToIgnore.any { errorMessage.startsWith(it) }) {
-        continue
-      }
       if (errorMessage.startsWith("<a href")) {
         //it's an action, not a real error, so ignore it
         continue
@@ -152,7 +150,7 @@ class PluginDependenciesValidator private constructor(
       }, { descriptor })
     }
 
-    val unusedIgnoredDependenciesPatterns = options.missingDependenciesToIgnore.toMutableSet()
+    val unusedIgnoredDependenciesPatterns = options.missingCompileDeps.toMutableSet()
 
     val modulesToCheck = jpsModuleToRuntimeDescriptors.entries.mapNotNull { (sourceModuleName, sourceDescriptors) ->
       val sourceModule = project.findModuleByName(sourceModuleName) ?: error("Cannot find module $sourceModuleName")
@@ -268,12 +266,12 @@ class PluginDependenciesValidator private constructor(
       }
     }
 
-    for ((fromModulePattern, toModulePattern) in unusedIgnoredDependenciesPatterns) {
-      println("Unused ignored dependency pattern: '$fromModulePattern' -> '$toModulePattern'")
+    unusedIgnoredDependenciesPatterns.forEach { entry ->
+        println("Unused ignored dependency pattern: '${entry.fromModule}' -> '${entry.toModule}' (${entry.issueId})")
     }
   }
 
-  private fun findIgnoredDependencyPattern(fromModule: String, toModule: String): Pair<String, String>? {
+  private fun findIgnoredDependencyPattern(fromModule: String, toModule: String): MissingCompileDep? {
     fun String.matches(pattern: String): Boolean {
       if (pattern.endsWith("*")) {
         return startsWith(pattern.removeSuffix("*"))
@@ -285,7 +283,7 @@ class PluginDependenciesValidator private constructor(
         return this == pattern
       }
     }
-    return options.missingDependenciesToIgnore.find { (fromPattern, toPattern) -> fromModule.matches(fromPattern) && toModule.matches(toPattern) }
+    return options.missingCompileDeps.find { fromModule.matches(it.fromModule) && toModule.matches(it.toModule) }
   }
 
   private val IdeaPluginDescriptorImpl.shortPresentation: String
@@ -295,8 +293,56 @@ class PluginDependenciesValidator private constructor(
       is DependsSubDescriptor -> "depends sub descriptor of plugin '${pluginId}'"
     }
 
+  /**
+   * Creates a stub plugin descriptor with the given [pluginId], optionally hosting content modules
+   * for each ID in [moduleIds]. Use this to satisfy `<plugin id="…"/>` or `<module name="…"/>`
+   * dependency declarations during validation without including the real plugin in the distribution.
+   *
+   * Stubs with [moduleIds] carry embedded content-module descriptors with `visibility="public"`,
+   * so cross-plugin module deps resolve correctly. All stubs have an empty [jarFiles] list, which
+   * means they participate in plugin/module dependency resolution but are skipped by the JPS
+   * compile-dependency check in [checkPluginSet].
+   */
+  private fun createStubPlugin(pluginId: String, moduleIds: List<String>, loadingContext: PluginDescriptorLoadingContext): PluginMainDescriptor {
+    val rootPath = tempDir.resolve("stub-plugin").resolve(pluginId)
+    val raw = PluginDescriptorBuilder.builder().apply {
+      this.id = pluginId
+      if (moduleIds.isNotEmpty()) {
+        // namespace is required for ClassLoaderConfigurator (packagePrefix != null on content modules)
+        this.namespace = "jetbrains"
+        for (moduleId in moduleIds) {
+          // The `package` attribute on the embedded descriptor keeps jarFiles null on the content
+          // module (loadPluginSubDescriptors won't set it), so checkPluginSet skips it.
+          addContentModule(ContentModuleElement(
+            name = moduleId,
+            loadingRule = ModuleLoadingRuleValue.OPTIONAL,
+            requiredIfAvailable = null,
+            embeddedDescriptorContent = "<idea-plugin package=\"com.stub.$moduleId\" visibility=\"public\"/>".toCharArray(),
+          ))
+        }
+      }
+    }.build()
+    val descriptor = PluginMainDescriptor(raw, rootPath, isBundled = true, useCoreClassLoader = false)
+    if (moduleIds.isNotEmpty()) {
+      val pathResolver = object : PathResolver {
+        override fun loadXIncludeReference(dataLoader: DataLoader, path: String): LoadedXIncludeReference? = null
+        override fun resolvePath(readContext: PluginDescriptorReaderContext, dataLoader: DataLoader, relativePath: String): PluginDescriptorBuilder? = null
+        override fun resolveModuleFile(readContext: PluginDescriptorReaderContext, dataLoader: DataLoader, path: String): PluginDescriptorBuilder =
+          error("should not be called for embedded module descriptors")
+      }
+      val dataLoader = object : DataLoader {
+        override fun load(path: String, pluginDescriptorSourceOnly: Boolean): ByteArray? = null
+        override fun toString() = "StubDataLoader($pluginId)"
+      }
+      loadPluginSubDescriptors(descriptor, pathResolver, loadingContext = loadingContext, dataLoader = dataLoader, pluginDir = rootPath, pool = zipPool)
+    }
+    descriptor.setPluginClassLoader(UrlClassLoader.build().get())
+    descriptor.jarFiles = emptyList()
+    return descriptor
+  }
+
   private fun loadPluginSet(): PluginSet {
-    val pluginSetBuilder = PluginSetTestBuilder.fromDescriptors { loadingContext -> 
+    val pluginSetBuilder = PluginSetTestBuilder.fromDescriptors { loadingContext ->
       moduleNameToPluginLayout.values.mapNotNull {
         try {
           createPluginDescriptor(it, loadingContext)
@@ -308,13 +354,15 @@ class PluginDependenciesValidator private constructor(
             pluginLoadingError = PluginLoadingError(reason = null, htmlMessageSupplier = { HtmlChunk.text(e.message ?: e.toString()) }, error = e),
           ))
           null
-        } 
+        }
+      } + options.missingRuntimeDeps.map {
+        createStubPlugin(it.pluginId, it.moduleIds, loadingContext)
       }
     }
       .withProductMode(productMode)
-      .withDisabledPlugins(*options.pluginsToIgnore.map { it.idString }.toTypedArray())
+      .withDisabledPlugins(*options.pluginsToIgnore.toTypedArray())
       .withCustomCoreLoader(UrlClassLoader.build().files(corePluginDescription.jpsModulesInClasspath.map { getModuleOutputDir(it) }).get())
-    
+
     return pluginSetBuilder.build()
   }
 

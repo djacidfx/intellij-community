@@ -132,7 +132,9 @@ private class PluginSetConstraintsResolver(
   private fun applyEnvironmentConfiguredExclusions() {
     for ((moduleId, envConfig) in initContext.environmentConfiguredModules) {
       val module = pluginSet.resolveContentModuleId(moduleId) ?: run {
-        PluginManagerCore.logger.warn("Environment-configured module is not found: $moduleId") // TODO ideally this should be an exception
+        if (envConfig.unavailabilityReason == null) {
+          PluginManagerCore.logger.warn("Environment-configured module is not found: $moduleId") // TODO ideally this should be an exception
+        }
         continue
       }
       if (envConfig.unavailabilityReason != null) {
