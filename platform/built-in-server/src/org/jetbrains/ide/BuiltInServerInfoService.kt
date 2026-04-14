@@ -24,13 +24,18 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import tools.jackson.core.json.JsonFactory
 import tools.jackson.core.util.DefaultPrettyPrinter
+import java.io.OutputStream
 import java.lang.management.ManagementFactory
 import java.net.InetAddress
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardOpenOption
+import java.nio.file.attribute.PosixFilePermissions.asFileAttribute
+import java.nio.file.attribute.PosixFilePermissions.fromString
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.io.path.exists
+import kotlin.io.path.fileStore
 import kotlin.io.path.readText
 
 private val LOG = logger<BuiltInServerDiscoveryService>()
@@ -56,7 +61,7 @@ internal class BuiltInServerDiscoveryService(private val coroutineScope: Corouti
         serverManager.waitForStart()
 
         val instanceDir = Path.of(System.getProperty("user.home"), ".intellij")
-        Files.createDirectories(instanceDir)
+        createDirectories(instanceDir)
         cleanUpStaleFiles(instanceDir)
 
         val pid = ProcessHandle.current().pid()
@@ -120,7 +125,7 @@ internal class BuiltInServerDiscoveryService(private val coroutineScope: Corouti
     val appInfo = ApplicationInfo.getInstance()
     val namesInfo = ApplicationNamesInfo.getInstance()
 
-    Files.newOutputStream(jsonFile).use { out ->
+    openOutputStream(jsonFile).use { out ->
       JsonFactory().createGenerator(out, DefaultPrettyPrinter()).use { writer ->
         writer.obj {
           writer.writeStringField("url", "http://${address.hostAddress}:$port")
@@ -184,6 +189,44 @@ internal class BuiltInServerDiscoveryService(private val coroutineScope: Corouti
           }
         }
       }
+    }
+  }
+
+  private fun createDirectories(path: Path) {
+    val parent = path.parent
+    if (parent != null && supportsPosixPermissions(parent)) {
+      val permissions = fromString("rwx------")
+      Files.createDirectories(path, asFileAttribute(permissions))
+      Files.setPosixFilePermissions(path, permissions) //ensure permissions for already existing directories
+    }
+    else {
+      Files.createDirectories(path)
+    }
+  }
+
+  private fun openOutputStream(path: Path): OutputStream {
+    Files.deleteIfExists(path)
+    val parent = path.parent
+    if (parent != null && supportsPosixPermissions(parent)) {
+      try {
+        Files.createFile(path, asFileAttribute(fromString("rw-------")))
+        return Files.newOutputStream(path, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)
+      }
+      catch (e: Exception) {
+        Files.deleteIfExists(path)
+        throw IllegalStateException("Cannot create $path with owner-only permissions", e)
+      }
+    }
+    return Files.newOutputStream(path)
+  }
+
+  private fun supportsPosixPermissions(path: Path): Boolean {
+    return try {
+      path.fileStore().supportsFileAttributeView("posix")
+    }
+    catch (e: Exception) {
+      LOG.warn("Failed to check support of posix permissions on $path", e)
+      false
     }
   }
 
