@@ -133,6 +133,12 @@ nb["cells"][4]["metadata"].setdefault("tags", []).append("nb:visible")
 
 When any code cell carries `nb:visible`, the tag takes precedence over `--keep`.
 
+After collapsing, open the notebook in the browser to verify the layout before committing:
+
+```bash
+python ${CLAUDE_SKILL_DIR}/scripts/nb.py serve notebook.ipynb
+```
+
 ## Standard cell layout
 
 | # | Type | Purpose |
@@ -196,6 +202,11 @@ double the preparation steps for anyone trying to reproduce the results.
 invocations (different `--module` flags, different log files to locate) forces a two-step recipe.
 Merge the measurements into one test class so a single command generates all data.
 
+**Verify that the experiment code compiles** before embedding the patch in the notebook.
+Run `./tests.cmd --module <module> --test <FQN>` — Bazel compilation runs as part of the
+test launch even if the test fails at runtime. Fix any compilation errors before the diff
+goes into the patch cell.
+
 ## Machine info cell
 
 See [reference/machine-info.md](reference/machine-info.md) for a stdlib-only implementation that works on Windows, macOS, and Linux.
@@ -210,6 +221,8 @@ Some notebooks measure multiple configurations, and a user may
 have run only one of them. In those cases the data-loading cell should set a boolean flag and
 every subsequent analysis cell that depends on that data should check it before running.
 This lets `execute` (or "Run All") complete without errors even when only partial data exists.
+
+For **two variants** the pattern is straightforward:
 
 ```python
 # In the data-loading cell — set flags for each optional configuration:
@@ -229,6 +242,35 @@ else:
     # ... analysis code ...
 ```
 
+For **three or more variants**, keep the loading block uniform and collect results into a
+dict so analysis cells stay readable regardless of how many variants exist:
+
+```python
+# In the data-loading cell:
+_VARIANTS = ['baseline', 'nagle', 'nodelay']
+_data: dict[str, list] = {}
+
+for _variant in _VARIANTS:
+    try:
+        _log = find_log(f'my-test-{_variant}')
+        _data[_variant] = parse_sizes(_log)
+        print(f'{_variant}: {len(_data[_variant])} samples')
+    except FileNotFoundError as e:
+        print(f'Skipping {_variant}: {e}')
+        _data[_variant] = []
+
+# In each analysis cell — iterate only over variants that have data:
+_available = {k: v for k, v in _data.items() if v}
+if not _available:
+    print('No data available — run at least one test variant first.')
+else:
+    for variant, sizes in _available.items():
+        # ... per-variant analysis ...
+        pass
+```
+
+This scales to any number of variants without duplicating the guard logic.
+
 Never `raise` or `sys.exit()` inside an analysis cell — that aborts the entire notebook execution.
 The `find_log` function is intentionally different: it raises because it guards a hard prerequisite
 (the test must have run), while availability guards handle optional configurations.
@@ -242,6 +284,25 @@ To change cell content without running a full Jupyter server:
    # Write the new cell content to a file, then apply it:
    python ${CLAUDE_SKILL_DIR}/scripts/nb.py set-cell notebook.ipynb 3 new_cell3.py
    ```
+
+   `set-cell` preserves the existing cell type — replacing a markdown cell with a `.md`
+   file leaves it as markdown; replacing a code cell leaves it as code. Outputs are
+   cleared only for code cells (stale outputs from old code would be misleading).
+
+   **Windows path pitfall:** the Write tool on Windows creates files at paths like
+   `\tmp\cell.py`, which resolves to `D:\tmp\cell.py` (drive-root `\tmp`). When that
+   path is passed to bash, the leading backslash is treated as an escape character and
+   the path is silently mangled. Always write temp files with an explicit drive letter
+   and forward slashes:
+   ```bash
+   # Good — explicit drive letter, forward slashes:
+   python ${CLAUDE_SKILL_DIR}/scripts/nb.py set-cell notebook.ipynb 3 D:/tmp/cell.py
+
+   # Bad — backslash is consumed by bash as an escape:
+   python ${CLAUDE_SKILL_DIR}/scripts/nb.py set-cell notebook.ipynb 3 \tmp\cell.py
+   ```
+   When using the Write tool, always set the file path to `D:/tmp/cell.py` (not
+   `\tmp\cell.py`) so the path survives round-tripping through bash.
 
 2. **For multi-cell edits** — write a temporary Python script that manipulates the JSON directly,
    run it, then delete the script:
@@ -263,12 +324,96 @@ To change cell content without running a full Jupyter server:
    nb_path.write_text(json.dumps(nb, indent=1, ensure_ascii=False) + '\n', encoding='utf-8')
    ```
 
-3. **Re-execute** to refresh all outputs:
+3. **After modifying experiment source files** (Kotlin, Java, Rust, etc.) that are part
+   of the patch — run `update-patch` to bake the updated diff back into the last cell:
+   ```bash
+   python ${CLAUDE_SKILL_DIR}/scripts/nb.py update-patch notebook.ipynb \
+       --repo D:/src/jetbrains/idea/main
+   # or, if you have staged the changes instead:
+   python ${CLAUDE_SKILL_DIR}/scripts/nb.py update-patch notebook.ipynb \
+       --repo D:/src/jetbrains/idea/main --staged
+   ```
+   Do this after every iteration on the experiment code so the patch cell always
+   reflects exactly what was applied when the data was collected. Forgetting this step
+   is a common source of stale patches in committed notebooks.
+
+4. **Re-execute** to refresh all outputs:
    ```bash
    python ${CLAUDE_SKILL_DIR}/scripts/nb.py execute notebook.ipynb
    ```
 
 The notebook file itself is the artifact to commit; keep any update scripts temporary.
+
+## Cell content guidelines
+
+### Static text: use Markdown, not `print()`
+
+A code cell that only calls `print("...")` or `print("""...""")` with literal strings should
+be a Markdown cell instead. Markdown cells render with proper headings, bold, tables, and
+links; `print()` output is plain monospace with no formatting.
+
+**Do** — markdown cell:
+```
+## Key finding
+
+The root cause is …
+```
+
+**Don't** — code cell:
+```python
+print("""Key finding\n\nThe root cause is …""")
+```
+
+Only use `print()` for values computed at runtime (log paths, parsed numbers, verdicts that
+depend on data).
+
+### Measurements: add visual plots
+
+Every cell that produces a table of measured values should also (or instead) produce a
+`matplotlib` figure. Prefer:
+
+- **Bar charts** for comparing values across configurations or time points.
+- **Histograms** for distributions (e.g. batch-size counts).
+- **Pie / stacked-bar charts** for proportions (e.g. special-channel vs gRPC bytes).
+
+Use `plt.show()` so outputs are embedded in the notebook.  When data for a configuration is
+unavailable (guarded by an `_ok` flag), skip its bars rather than crashing.
+
+### Tabular data: use pandas, not manual formatting
+
+When an analysis cell produces a table — comparison results, per-variant stats, ranked lists — use
+a `pandas` DataFrame instead of building ASCII tables with `print()` and string formatting.
+Jupyter renders DataFrames as HTML automatically; the output is sortable, readable, and
+copy-paste friendly.
+
+**Do** — DataFrame output:
+```python
+import pandas as pd
+
+rows = [
+    {"variant": "baseline", "p50_ms": 120, "p99_ms": 340},
+    {"variant": "nagle",    "p50_ms": 118, "p99_ms": 310},
+    {"variant": "nodelay",  "p50_ms":  95, "p99_ms": 270},
+]
+df = pd.DataFrame(rows)
+display(df)
+```
+
+**Don't** — manual ASCII table:
+```python
+print(f"{'variant':<10} {'p50_ms':>8} {'p99_ms':>8}")
+for r in rows:
+    print(f"{r['variant']:<10} {r['p50_ms']:>8} {r['p99_ms']:>8}")
+```
+
+Use pandas for the full data lifecycle inside notebook cells:
+
+- **Loading:** `pd.read_csv(log_path)` or construct from parsed dicts/lists.
+- **Transforming:** `df.groupby(...).agg(...)`, `df.assign(delta=df.after - df.before)`.
+- **Displaying:** `display(df)` (HTML table) or `display(df.describe())` for quick stats.
+- **Feeding plots:** `df.plot.bar(x="variant", y=["p50_ms", "p99_ms"])` integrates directly with matplotlib.
+
+Declare `pandas` in the imports cell (cell 3) so it is available to all subsequent analysis cells.
 
 ## Anti-patterns
 

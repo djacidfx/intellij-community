@@ -60,6 +60,16 @@ def _to_source_lines(text: str) -> list[str]:
     return lines
 
 
+# On Windows the default stdout encoding is cp1252, which cannot represent
+# Unicode characters such as emoji. Reconfigure to UTF-8 so list-cells and
+# get-cell output is readable when the terminal supports it.
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+
 def _die(msg: str) -> None:
     print(msg, file=sys.stderr)
     sys.exit(1)
@@ -77,7 +87,8 @@ def cmd_list_cells(notebook: str) -> None:
     nb = _load(notebook)
     for i, cell in enumerate(nb["cells"]):
         first = _cell_source(cell).split("\n", 1)[0][:80]
-        print(f"[{i}] {cell['cell_type']:8s}  {first}")
+        line = f"[{i}] {cell['cell_type']:8s}  {first}"
+        sys.stdout.buffer.write((line + "\n").encode(sys.stdout.encoding or "utf-8", errors="replace"))
 
 
 def cmd_get_cell(notebook: str, n: int) -> None:
@@ -270,7 +281,11 @@ def cmd_update_patch(notebook: str, cell_n: int | None, repo: str, staged: bool)
 
     def _replace_first(m: re.Match) -> str:
         nonlocal replaced
-        if not replaced and m.group(2).lstrip().startswith(("diff --git", "--- ")):
+        # Match a ```diff fence (placeholder or real content) or a fence that already
+        # contains a real diff (starts with "diff --git" or "--- ").
+        fence_tag = m.group(1).rstrip("\n")
+        is_diff_fence = fence_tag.endswith("diff") or m.group(2).lstrip().startswith(("diff --git", "--- "))
+        if not replaced and is_diff_fence:
             replaced = True
             return m.group(1) + diff_text + "```"
         return m.group(0)
