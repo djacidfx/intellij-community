@@ -36,11 +36,13 @@ abstract class MinusculeMatcher protected constructor() : Matcher {
   }
 
   @Deprecated("use match(String)", ReplaceWith("match(name)"))
+  @ApiStatus.ScheduledForRemoval
   open fun matchingFragments(name: String): FList<TextRange>? {
     throw UnsupportedOperationException()
   }
 
   @Deprecated("use matchingDegree(String, Boolean, List<MatchedFragment>)", ReplaceWith("matchingDegree(name, valueStartCaseMatch, fragments.map { MatchedFragment(it.startOffset, it.endOffset) })"))
+  @ApiStatus.ScheduledForRemoval
   open fun matchingDegree(name: String, valueStartCaseMatch: Boolean, fragments: FList<out TextRange>?): Int {
     throw UnsupportedOperationException()
   }
@@ -64,6 +66,7 @@ abstract class MinusculeMatcher protected constructor() : Matcher {
 
   companion object {
     @Deprecated("use isStartMatch(List<MatchedFragment>)", ReplaceWith("isStartMatch(fragments as List<MatchedFragment>)"))
+    @ApiStatus.ScheduledForRemoval
     @JvmStatic
     fun isStartMatch(fragments: Iterable<TextRange>): Boolean {
       val iterator = fragments.iterator()

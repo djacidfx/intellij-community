@@ -259,7 +259,7 @@ public final class NameUtil {
   /**
    * @deprecated use {@link NameUtil#splitNameIntoWordList} (String)} to avoid redundant allocations
    */
-  @Deprecated
+  @Deprecated(forRemoval = true)
   public static String @NotNull [] splitNameIntoWords(@NotNull String name) {
     return NameUtilCore.splitNameIntoWords(name);
   }
@@ -272,7 +272,7 @@ public final class NameUtil {
   /**
    * @deprecated use {@link NameUtilCore#nameToWordList(String)} to avoid redundant allocations
    */
-  @Deprecated
+  @Deprecated(forRemoval = true)
   public static String @NotNull [] nameToWords(@NotNull String name) {
     return NameUtilCore.nameToWords(name);
   }
@@ -314,7 +314,7 @@ public final class NameUtil {
     /**
      * @deprecated use {@link #withMatchingMode(MatchingMode)}
      */
-    @Deprecated
+    @Deprecated(forRemoval = true)
     public MatcherBuilder withCaseSensitivity(MatchingCaseSensitivity caseSensitivity) {
       this.matchingMode = caseSensitivity.matchingMode();
       return this;
@@ -365,7 +365,7 @@ public final class NameUtil {
   /**
    * @deprecated use {@link #buildMatcher(String, MatchingMode)}
    */
-  @Deprecated
+  @Deprecated(forRemoval = true)
   public static @NotNull MinusculeMatcher buildMatcher(@NotNull String pattern, @NotNull MatchingCaseSensitivity options) {
     return buildMatcher(pattern, options.matchingMode());
   }
@@ -405,7 +405,7 @@ public final class NameUtil {
   /**
    * @deprecated use {@link MatchingMode} instead
    */
-  @Deprecated
+  @Deprecated(forRemoval = true)
   public enum MatchingCaseSensitivity {
     NONE, FIRST_LETTER, ALL;
 

@@ -199,6 +199,7 @@ class TypoTolerantMatcher @VisibleForTesting constructor(
   }
 
   @Deprecated("use matchingDegree(String, Boolean, List<MatchedFragment>)", replaceWith = ReplaceWith("matchingDegree(name, valueStartCaseMatch, fragments.map { MatchedFragment(it.startOffset, it.endOffset) })"))
+  @ApiStatus.ScheduledForRemoval
   override fun matchingDegree(name: String, valueStartCaseMatch: Boolean, fragments: FList<out TextRange>?): Int {
     return matchingDegree(name, valueStartCaseMatch, fragments?.undeprecate())
   }
@@ -215,6 +216,7 @@ class TypoTolerantMatcher @VisibleForTesting constructor(
   }
 
   @Deprecated("use match(String)", replaceWith = ReplaceWith("match(name)"))
+  @ApiStatus.ScheduledForRemoval
   override fun matchingFragments(name: String): FList<TextRange>? {
     return match(name)?.deprecated()
   }

@@ -11,6 +11,7 @@ import com.intellij.util.text.matching.deprecated
 import com.intellij.util.text.matching.indexOf
 import com.intellij.util.text.matching.indexOfAny
 import com.intellij.util.text.matching.undeprecate
+import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.NonNls
 
 /**
@@ -99,6 +100,7 @@ internal class MinusculeMatcherImpl(pattern: String, private val myMatchingMode:
   }
 
   @Deprecated("use matchingDegree(String, Boolean, List<MatchedFragment>)", replaceWith = ReplaceWith("matchingDegree(name, valueStartCaseMatch, fragments.map { MatchedFragment(it.startOffset, it.endOffset) })"))
+  @ApiStatus.ScheduledForRemoval
   override fun matchingDegree(name: String, valueStartCaseMatch: Boolean, fragments: FList<out TextRange>?): Int {
     return matchingDegree(name, valueStartCaseMatch, fragments?.undeprecate())
   }
@@ -122,6 +124,7 @@ internal class MinusculeMatcherImpl(pattern: String, private val myMatchingMode:
   }
 
   @Deprecated("use match(String)", replaceWith = ReplaceWith("match(name)"))
+  @ApiStatus.ScheduledForRemoval
   override fun matchingFragments(name: String): FList<TextRange>? {
     return match(name)?.deprecated()
   }
