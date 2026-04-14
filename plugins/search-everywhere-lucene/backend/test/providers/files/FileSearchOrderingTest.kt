@@ -25,8 +25,8 @@ class FileSearchOrderingTest : FileSearchTestBase() {
       val out = prefixesOf("Out")
       val action = prefixesOf("Action")
 
-      val zoomIdeOrder = listOf(zoomIdeAction, zeroValueAfterImports)
-      val zoomOutOrder = listOf(zoomOutAction ,zeroValueAfterImports)
+      val zoomIdeOrder = listOf(zoomIdeAction, zoomOutAction, zeroValueAfterImports)
+      val zoomOutOrder = listOf(zoomOutAction, zoomIdeAction, zeroValueAfterImports)
 
 
       index.assertSearch("ZoomIdeAction") {
@@ -42,7 +42,7 @@ class FileSearchOrderingTest : FileSearchTestBase() {
             index.assertSearch(z + i + a) {
               findsAllOf(zoomIdeAction)
               findsWithOrdering(zoomIdeOrder, containsAll = false)
-
+              explainResults()
             }
           }
 
