@@ -1130,7 +1130,7 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
         try {
           ideaConfigPath.deleteRecursively()
           ideaSystemPath.deleteRecursively()
-        } catch (e: FileSystemException) {
+        } catch (e: java.nio.file.FileSystemException) {
           messages.warning("Can't delete config or system path: ${e.stackTraceToString()}")
         }
 
