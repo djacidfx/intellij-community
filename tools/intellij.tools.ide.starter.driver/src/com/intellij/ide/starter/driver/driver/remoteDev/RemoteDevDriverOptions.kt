@@ -25,8 +25,6 @@ class RemoteDevDriverOptions {
    */
   private val remoteDevVmOptions: Map<String, String> =
     mapOf(
-      "ide.mac.file.chooser.native" to "false",
-      "apple.laf.useScreenMenuBar" to "false",
-      "jbScreenMenuBar.enabled" to "false",
+      "ide.mac.file.chooser.native" to "false"
     )
 }
