@@ -9,6 +9,7 @@ data class Error(
   val threadDump: String,
   val type: ErrorType,
   val syntheticTestName: String? = null,
+  val activeTestName: String? = null,
 ) {
   private val generifiedStackTraceContent: String = generifyErrorMessage(stackTraceContent)
 

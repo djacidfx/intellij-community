@@ -8,10 +8,13 @@ import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.application.ex.ApplicationInfoEx
 import com.intellij.openapi.diagnostic.Attachment
 import com.intellij.openapi.diagnostic.Logger
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
+import kotlin.io.path.exists
 
 private val LOG: Logger
   get() = Logger.getInstance("PerformancePlugin")
@@ -20,8 +23,10 @@ private const val ERRORS_DIR = "errors"
 private const val ERROR_DIR_PREFIX = "error-"
 private const val MESSAGE_FILE = "message.txt"
 private const val SYNTHETIC_TEST_NAME_FILE = "syntheticTestName.txt"
+private const val ACTIVE_TEST_NAME_FILE = "activeTestName.txt"
 private const val STACKTRACE_FILE = "stacktrace.txt"
 private const val PRODUCT_INFO_FILE = "product_info.txt"
+internal val activeTestNameFile: Path = Path.of(PathManager.getLogPath(), ACTIVE_TEST_NAME_FILE)
 
 fun reportErrorsFromMessagePool() {
   val messagePool = MessagePool.getInstance()
@@ -41,43 +46,45 @@ fun reportErrorsFromMessagePool() {
 
 @Throws(IOException::class)
 private fun reportScriptError(errorMessage: AbstractMessage) {
-  val throwable = errorMessage.throwable
-  var cause: Throwable? = throwable
-  var causeMessage: String? = ""
-  val maxSyntheticTestNameLength = 250
-  var syntheticTestName: String? = throwable.javaClass.name + ": " + throwable.message
-  while (cause!!.cause != null) {
-    cause = cause.cause
-    causeMessage = cause?.message?.let { "${cause.javaClass.name}: $it" } ?: causeMessage
-  }
-  if (!causeMessage.isNullOrEmpty()) {
-    syntheticTestName = causeMessage
-  }
-  if (causeMessage.isNullOrEmpty()) {
-    causeMessage = errorMessage.message
-    if (causeMessage.isNullOrEmpty()) {
-      val throwableMessage = getNonEmptyThrowableMessage(throwable)
-      val index = throwableMessage.indexOf("\tat ")
-      causeMessage = if (index == -1) throwableMessage else throwableMessage.take(index)
+
+    val throwable = errorMessage.throwable
+    var cause: Throwable? = throwable
+    var causeMessage: String? = ""
+    val maxSyntheticTestNameLength = 250
+    var syntheticTestName: String? = throwable.javaClass.name + ": " + throwable.message
+    while (cause!!.cause != null) {
+      cause = cause.cause
+      causeMessage = cause?.message?.let { "${cause.javaClass.name}: $it" } ?: causeMessage
     }
-  }
-  val scriptErrorsDir = Path.of(PathManager.getLogPath(), ERRORS_DIR)
-  Files.createDirectories(scriptErrorsDir)
-  Files.walk(scriptErrorsDir).use { stream ->
-    val finalCauseMessage = causeMessage
-    val isDuplicated = stream
-      .filter { path -> path.fileName.toString() == MESSAGE_FILE }
-      .anyMatch { path ->
-        try {
-          return@anyMatch Files.readString(path) == finalCauseMessage
-        }
-        catch (e: IOException) {
-          LOG.error(e.message)
-          return@anyMatch false
-        }
+    if (!causeMessage.isNullOrEmpty()) {
+      syntheticTestName = causeMessage
+    }
+    if (causeMessage.isNullOrEmpty()) {
+      causeMessage = errorMessage.message
+      if (causeMessage.isNullOrEmpty()) {
+        val throwableMessage = getNonEmptyThrowableMessage(throwable)
+        val index = throwableMessage.indexOf("\tat ")
+        causeMessage = if (index == -1) throwableMessage else throwableMessage.take(index)
       }
-    if (isDuplicated) {
-      return
+    }
+
+    val scriptErrorsDir = Path.of(PathManager.getLogPath(), ERRORS_DIR)
+    Files.createDirectories(scriptErrorsDir)
+    Files.walk(scriptErrorsDir).use { stream ->
+      val finalCauseMessage = causeMessage
+      val isDuplicated = stream
+        .filter { path -> path.fileName.toString() == MESSAGE_FILE }
+        .anyMatch { path ->
+          try {
+            return@anyMatch Files.readString(path) == finalCauseMessage
+          }
+          catch (e: IOException) {
+            LOG.error(e.message)
+            return@anyMatch false
+          }
+        }
+      if (isDuplicated) {
+        return
     }
   }
 
@@ -94,14 +101,17 @@ private fun reportScriptError(errorMessage: AbstractMessage) {
     Files.createDirectories(errorDir)
     Files.writeString(errorDir.resolve(MESSAGE_FILE), causeMessage)
     Files.writeString(errorDir.resolve(SYNTHETIC_TEST_NAME_FILE), (syntheticTestName ?: causeMessage).take(maxSyntheticTestNameLength))
-    Files.writeString(errorDir.resolve(STACKTRACE_FILE), errorMessage.throwableText)
-    Files.writeString(errorDir.resolve(PRODUCT_INFO_FILE), buildString {
-      appendLine("app.name=${namesInfo.productName}")
-      appendLine("app.name.full=${namesInfo.fullProductName}")
-      appendLine("app.product.code=${build.productCode}")
-    })
-    val attachments = errorMessage.allAttachments
-    val nameConflicts = attachments.groupBy { it.name }.filter { it.value.size > 1 }.keys
+    if (activeTestNameFile.exists()) {
+        Files.copy(activeTestNameFile, errorDir.resolve(ACTIVE_TEST_NAME_FILE))
+      }
+      Files.writeString(errorDir.resolve(STACKTRACE_FILE), errorMessage.throwableText)
+      Files.writeString(errorDir.resolve(PRODUCT_INFO_FILE), buildString {
+        appendLine("app.name=${namesInfo.productName}")
+        appendLine("app.name.full=${namesInfo.fullProductName}")
+        appendLine("app.product.code=${build.productCode}")
+      })
+      val attachments = errorMessage.allAttachments
+      val nameConflicts = attachments.groupBy { it.name }.filter { it.value.size > 1 }.keys
 
     for (j in attachments.indices) {
       val attachment = attachments[j]

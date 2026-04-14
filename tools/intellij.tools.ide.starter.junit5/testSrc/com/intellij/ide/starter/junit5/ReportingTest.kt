@@ -142,7 +142,7 @@ class ReportingTest {
     }
     Mockito.doReturn(testName).`when`(runContextMock).contextName
 
-    val failureDetails = FailureDetailsOnCI.instance.getFailureDetails(runContext = runContextMock)
+    val failureDetails = FailureDetailsOnCI.instance.getFailureDetails(runContext = runContextMock, error = null)
     failureDetails.shouldBe("""
       Test: $testName
       $ciMessagePrefix ${testName.replaceSpecialCharactersWithHyphens()}
@@ -156,7 +156,7 @@ class ReportingTest {
     }
     Mockito.doReturn(testName).`when`(runContextMock).contextName
 
-    val failureDetails = FailureDetailsOnCI.instance.getFailureDetails(runContext = runContextMock)
+    val failureDetails = FailureDetailsOnCI.instance.getFailureDetails(runContext = runContextMock, error = null)
     failureDetails.shouldBe("""
       Test: $testName
       $ciMessagePrefix ${testName.replaceSpecialCharactersWithHyphens()}

@@ -4,6 +4,7 @@ import com.intellij.ide.starter.ci.CIServer
 import com.intellij.ide.starter.report.ErrorReporter.Companion.MESSAGE_FILENAME
 import com.intellij.ide.starter.report.ErrorReporter.Companion.STACKTRACE_FILENAME
 import com.intellij.ide.starter.report.ErrorReporter.Companion.SYNTHETIC_TESTNAME_FILENAME
+import com.intellij.ide.starter.report.ErrorReporter.Companion.ACTIVE_TESTNAME_FILENAME
 import com.intellij.ide.starter.runner.IDERunContext
 import com.intellij.platform.testFramework.teamCity.generifyErrorMessage
 import com.intellij.util.SystemProperties
@@ -64,7 +65,9 @@ object ErrorReporterToCI: ErrorReporter {
         val stacktraceFile = errorDir.resolve(STACKTRACE_FILENAME)
         if (!stacktraceFile.exists()) continue
         val stackTrace = stacktraceFile.readText().trimIndent().trim()
-        errors.add(Error(messageText, stackTrace, "", errorType, syntheticTestName))
+        val activeTestNameFile = errorDir.resolve(ACTIVE_TESTNAME_FILENAME)
+        val activeTestName = if (activeTestNameFile.exists()) activeTestNameFile.readText().trim().takeIf { it.isNotEmpty() } else null
+        errors.add(Error(messageText, stackTrace, "", errorType, syntheticTestName, activeTestName))
       } else if (errorType == ErrorType.FREEZE) {
         errorDir.listDirectoryEntries("dump*").firstOrNull()?.let { threadDump ->
           val dumpContent = Files.readString(threadDump)
@@ -124,7 +127,7 @@ object ErrorReporterToCI: ErrorReporter {
       }
 
       val failureDetailsProvider = FailureDetailsOnCI.instance
-      val failureDetailsMessage = failureDetailsProvider.getFailureDetails(runContext)
+      val failureDetailsMessage = failureDetailsProvider.getFailureDetails(runContext, error)
       val urlToLogs = failureDetailsProvider.getLinkToCIArtifacts(runContext).toString()
       val linkToMuteArticle = "\nThis test fail is an exception! \nYou can find instructions about muting this error in this link https://youtrack.jetbrains.com/articles/IJPL-A-1185/How-to-create-a-new-mapping"
       if (CIServer.instance.isTestFailureShouldBeIgnored(messageText) || CIServer.instance.isTestFailureShouldBeIgnored(stackTraceContent)) {

@@ -31,6 +31,7 @@ open class BackgroundRun(val startResult: Deferred<IDEStartResult>, driverWithou
         throw t
       }
     }
+    TestNameSynchronizer(driverWithoutAwaitedConnection).start()
     driverWithoutAwaitedConnection
   }
 
