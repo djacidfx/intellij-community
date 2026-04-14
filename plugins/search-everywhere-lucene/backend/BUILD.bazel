@@ -38,9 +38,55 @@ jvm_library(
 
 jvm_library(
   name = "backend_test_lib",
+  module_name = "intellij.searchEverywhereLucene.backend",
+  visibility = ["//visibility:public"],
+  srcs = glob([], allow_empty = True),
+  runtime_deps = [
+    ":backend",
+    "//libraries/lucene.common:lucene.common_test_lib",
+    "//platform/core-api:core_test_lib",
+    "//platform/core-ui:core-ui_test_lib",
+    "//platform/lang-api:lang_test_lib",
+    "//platform/lang-impl:lang-impl_test_lib",
+    "//plugins/search-everywhere-lucene/common:common_test_lib",
+    "//platform/backend:backend_test_lib",
+    "//platform/editor-ui-api:editor-ui_test_lib",
+    "//platform/platform-api:ide_test_lib",
+    "//platform/ide-core:ide-core_test_lib",
+    "//platform/projectModel-api:projectModel_test_lib",
+    "//platform/analysis-api:analysis_test_lib",
+    "//platform/searchEverywhere/shared:searchEverywhere_test_lib",
+    "//platform/util/concurrency:concurrency_test_lib",
+    "//platform/indexing-api:indexing_test_lib",
+    "//platform/backend/observation:observation_test_lib",
+    "//platform/progress/shared:ide-progress_test_lib",
+    "//platform/util/text-matching:text-matching_test_lib",
+  ]
+)
+### auto-generated section `build intellij.searchEverywhereLucene.backend` end
+
+### auto-generated section `iml intellij.searchEverywhereLucene.backend` start
+exports_files([
+  "intellij.searchEverywhereLucene.backend.iml",
+], visibility = ["//visibility:public"])
+### auto-generated section `iml intellij.searchEverywhereLucene.backend` end
+
+### auto-generated section `build intellij.searchEverywhereLucene.backend.tests` start
+jvm_library(
+  name = "searchEverywhereLucene-backend-tests",
+  module_name = "intellij.searchEverywhereLucene.backend.tests",
+  visibility = ["//visibility:public"],
+  srcs = glob([], allow_empty = True)
+)
+
+jvm_library(
+  name = "searchEverywhereLucene-backend-tests_test_lib",
   visibility = ["//visibility:public"],
   srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form"], allow_empty = True),
-  associates = [":backend"],
+  associates = [
+    "//plugins/search-everywhere-lucene/backend",
+    "//plugins/search-everywhere-lucene/backend:backend_test_lib",
+  ],
   deps = [
     "@lib//:kotlin-stdlib",
     "//libraries/lucene.common",
@@ -89,23 +135,24 @@ jvm_library(
     "//platform/searchEverywhere/backend:backend_test_lib",
   ],
   runtime_deps = [
+    ":searchEverywhereLucene-backend-tests",
     "//platform/ide-core:ide-core_test_lib",
     "//platform/progress/shared:ide-progress_test_lib",
   ]
 )
-### auto-generated section `build intellij.searchEverywhereLucene.backend` end
+### auto-generated section `build intellij.searchEverywhereLucene.backend.tests` end
 
-### auto-generated section `iml intellij.searchEverywhereLucene.backend` start
+### auto-generated section `iml intellij.searchEverywhereLucene.backend.tests` start
 exports_files([
-  "intellij.searchEverywhereLucene.backend.iml",
+  "intellij.searchEverywhereLucene.backend.tests.iml",
 ], visibility = ["//visibility:public"])
-### auto-generated section `iml intellij.searchEverywhereLucene.backend` end
+### auto-generated section `iml intellij.searchEverywhereLucene.backend.tests` end
 
-### auto-generated section `test intellij.searchEverywhereLucene.backend` start
+### auto-generated section `test intellij.searchEverywhereLucene.backend.tests` start
 load("@community//build:tests-options.bzl", "jps_test")
 
 jps_test(
-  name = "backend_test",
-  runtime_deps = [":backend_test_lib"]
+  name = "searchEverywhereLucene-backend-tests_test",
+  runtime_deps = [":searchEverywhereLucene-backend-tests_test_lib"]
 )
-### auto-generated section `test intellij.searchEverywhereLucene.backend` end
+### auto-generated section `test intellij.searchEverywhereLucene.backend.tests` end
