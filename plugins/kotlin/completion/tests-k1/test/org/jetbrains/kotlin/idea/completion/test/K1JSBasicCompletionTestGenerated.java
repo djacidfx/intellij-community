@@ -719,9 +719,19 @@ public abstract class K1JSBasicCompletionTestGenerated extends AbstractK1JSBasic
                 KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
             }
 
+            @TestMetadata("CompanionObjectAsFactory.kt")
+            public void testCompanionObjectAsFactory() throws Exception {
+                runTest("../testData/basic/common/companionObject/CompanionObjectAsFactory.kt");
+            }
+
             @TestMetadata("ForArguments.kt")
             public void testForArguments() throws Exception {
                 runTest("../testData/basic/common/companionObject/ForArguments.kt");
+            }
+
+            @TestMetadata("ForArgumentsNamedCompanion.kt")
+            public void testForArgumentsNamedCompanion() throws Exception {
+                runTest("../testData/basic/common/companionObject/ForArgumentsNamedCompanion.kt");
             }
 
             @TestMetadata("FunctionsForExpectedType.kt")
@@ -729,14 +739,94 @@ public abstract class K1JSBasicCompletionTestGenerated extends AbstractK1JSBasic
                 runTest("../testData/basic/common/companionObject/FunctionsForExpectedType.kt");
             }
 
+            @TestMetadata("FunctionsForExpectedTypeNamedCompanion.kt")
+            public void testFunctionsForExpectedTypeNamedCompanion() throws Exception {
+                runTest("../testData/basic/common/companionObject/FunctionsForExpectedTypeNamedCompanion.kt");
+            }
+
+            @TestMetadata("InheritedMembersExpectedType.kt")
+            public void testInheritedMembersExpectedType() throws Exception {
+                runTest("../testData/basic/common/companionObject/InheritedMembersExpectedType.kt");
+            }
+
+            @TestMetadata("InheritedMembersExpectedTypeNamedCompanion.kt")
+            public void testInheritedMembersExpectedTypeNamedCompanion() throws Exception {
+                runTest("../testData/basic/common/companionObject/InheritedMembersExpectedTypeNamedCompanion.kt");
+            }
+
+            @TestMetadata("InheritedMembersInNestedScope.kt")
+            public void testInheritedMembersInNestedScope() throws Exception {
+                runTest("../testData/basic/common/companionObject/InheritedMembersInNestedScope.kt");
+            }
+
+            @TestMetadata("InheritedMembersInSubclass.kt")
+            public void testInheritedMembersInSubclass() throws Exception {
+                runTest("../testData/basic/common/companionObject/InheritedMembersInSubclass.kt");
+            }
+
+            @TestMetadata("InterfaceCompanionExpectedType.kt")
+            public void testInterfaceCompanionExpectedType() throws Exception {
+                runTest("../testData/basic/common/companionObject/InterfaceCompanionExpectedType.kt");
+            }
+
+            @TestMetadata("LambdaReturnValue.kt")
+            public void testLambdaReturnValue() throws Exception {
+                runTest("../testData/basic/common/companionObject/LambdaReturnValue.kt");
+            }
+
             @TestMetadata("NoUnrelatedValues.kt")
             public void testNoUnrelatedValues() throws Exception {
                 runTest("../testData/basic/common/companionObject/NoUnrelatedValues.kt");
             }
 
+            @TestMetadata("NullableExpectedType.kt")
+            public void testNullableExpectedType() throws Exception {
+                runTest("../testData/basic/common/companionObject/NullableExpectedType.kt");
+            }
+
+            @TestMetadata("PrivateMembers.kt")
+            public void testPrivateMembers() throws Exception {
+                runTest("../testData/basic/common/companionObject/PrivateMembers.kt");
+            }
+
+            @TestMetadata("SmartCastIsCheck.kt")
+            public void testSmartCastIsCheck() throws Exception {
+                runTest("../testData/basic/common/companionObject/SmartCastIsCheck.kt");
+            }
+
+            @TestMetadata("SmartCastNamedArgument.kt")
+            public void testSmartCastNamedArgument() throws Exception {
+                runTest("../testData/basic/common/companionObject/SmartCastNamedArgument.kt");
+            }
+
+            @TestMetadata("SmartCastNullCheck.kt")
+            public void testSmartCastNullCheck() throws Exception {
+                runTest("../testData/basic/common/companionObject/SmartCastNullCheck.kt");
+            }
+
+            @TestMetadata("SmartCastSafeCast.kt")
+            public void testSmartCastSafeCast() throws Exception {
+                runTest("../testData/basic/common/companionObject/SmartCastSafeCast.kt");
+            }
+
+            @TestMetadata("TypeAliasToUnderlyingClass.kt")
+            public void testTypeAliasToUnderlyingClass() throws Exception {
+                runTest("../testData/basic/common/companionObject/TypeAliasToUnderlyingClass.kt");
+            }
+
             @TestMetadata("ValuesForExpectedType.kt")
             public void testValuesForExpectedType() throws Exception {
                 runTest("../testData/basic/common/companionObject/ValuesForExpectedType.kt");
+            }
+
+            @TestMetadata("ValuesForExpectedTypeNamedCompanion.kt")
+            public void testValuesForExpectedTypeNamedCompanion() throws Exception {
+                runTest("../testData/basic/common/companionObject/ValuesForExpectedTypeNamedCompanion.kt");
+            }
+
+            @TestMetadata("WhenBranchResult.kt")
+            public void testWhenBranchResult() throws Exception {
+                runTest("../testData/basic/common/companionObject/WhenBranchResult.kt");
             }
 
             @TestMetadata("WithinCompanionObject.kt")
