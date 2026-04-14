@@ -3,7 +3,7 @@ package com.intellij.ide.starter.report
 import com.intellij.ide.starter.ci.CIServer
 import com.intellij.ide.starter.report.ErrorReporter.Companion.MESSAGE_FILENAME
 import com.intellij.ide.starter.report.ErrorReporter.Companion.STACKTRACE_FILENAME
-import com.intellij.ide.starter.report.ErrorReporter.Companion.TESTNAME_FILENAME
+import com.intellij.ide.starter.report.ErrorReporter.Companion.SYNTHETIC_TESTNAME_FILENAME
 import com.intellij.ide.starter.runner.IDERunContext
 import com.intellij.platform.testFramework.teamCity.generifyErrorMessage
 import com.intellij.util.SystemProperties
@@ -56,15 +56,15 @@ object ErrorReporterToCI: ErrorReporter {
       if (!messageFile.exists()) continue
 
       val messageText = generifyErrorMessage(messageFile.readText().trimIndent().trim())
-      val testNameFile = errorDir.resolve(TESTNAME_FILENAME)
-      val testName = if (testNameFile.exists()) testNameFile.readText().trim() else null
+      val syntheticTestNameFile = errorDir.resolve(SYNTHETIC_TESTNAME_FILENAME)
+      val syntheticTestName = if (syntheticTestNameFile.exists()) syntheticTestNameFile.readText().trim() else null
 
       val errorType = ErrorType.fromMessage(messageText)
       if (errorType == ErrorType.ERROR) {
         val stacktraceFile = errorDir.resolve(STACKTRACE_FILENAME)
         if (!stacktraceFile.exists()) continue
         val stackTrace = stacktraceFile.readText().trimIndent().trim()
-        errors.add(Error(messageText, stackTrace, "", errorType, testName))
+        errors.add(Error(messageText, stackTrace, "", errorType, syntheticTestName))
       } else if (errorType == ErrorType.FREEZE) {
         errorDir.listDirectoryEntries("dump*").firstOrNull()?.let { threadDump ->
           val dumpContent = Files.readString(threadDump)
@@ -114,9 +114,9 @@ object ErrorReporterToCI: ErrorReporter {
     for (error in errors) {
       val messageText = error.messageText
       val stackTraceContent = error.stackTraceContent
-      val testName = when (error.type) {
+      val syntheticTestName = when (error.type) {
         ErrorType.ERROR -> {
-          error.testName ?: generateTestNameFromException(stackTraceContent, messageText)
+          error.syntheticTestName ?: generateTestNameFromException(stackTraceContent, messageText)
         }
         ErrorType.FREEZE, ErrorType.TIMEOUT -> {
           messageText
@@ -128,11 +128,11 @@ object ErrorReporterToCI: ErrorReporter {
       val urlToLogs = failureDetailsProvider.getLinkToCIArtifacts(runContext).toString()
       val linkToMuteArticle = "\nThis test fail is an exception! \nYou can find instructions about muting this error in this link https://youtrack.jetbrains.com/articles/IJPL-A-1185/How-to-create-a-new-mapping"
       if (CIServer.instance.isTestFailureShouldBeIgnored(messageText) || CIServer.instance.isTestFailureShouldBeIgnored(stackTraceContent)) {
-        CIServer.instance.ignoreTestFailure(testName = "(${generifyErrorMessage(testName)})",
+        CIServer.instance.ignoreTestFailure(testName = "(${generifyErrorMessage(syntheticTestName)})",
                                             message = failureDetailsMessage)
       }
       else {
-        CIServer.instance.reportTestFailure(testName = "(${generifyErrorMessage(testName)})",
+        CIServer.instance.reportTestFailure(testName = "(${generifyErrorMessage(syntheticTestName)})",
                                             message = failureDetailsMessage + linkToMuteArticle,
                                             details = stackTraceContent,
                                             linkToLogs = urlToLogs)

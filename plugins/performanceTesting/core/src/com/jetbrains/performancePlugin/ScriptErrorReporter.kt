@@ -19,7 +19,7 @@ private val LOG: Logger
 private const val ERRORS_DIR = "errors"
 private const val ERROR_DIR_PREFIX = "error-"
 private const val MESSAGE_FILE = "message.txt"
-private const val TEST_NAME_FILE = "testName.txt"
+private const val SYNTHETIC_TEST_NAME_FILE = "syntheticTestName.txt"
 private const val STACKTRACE_FILE = "stacktrace.txt"
 private const val PRODUCT_INFO_FILE = "product_info.txt"
 
@@ -44,14 +44,14 @@ private fun reportScriptError(errorMessage: AbstractMessage) {
   val throwable = errorMessage.throwable
   var cause: Throwable? = throwable
   var causeMessage: String? = ""
-  val maxTestNameLength = 250
-  var testName: String? = throwable.javaClass.name + ": " + throwable.message
+  val maxSyntheticTestNameLength = 250
+  var syntheticTestName: String? = throwable.javaClass.name + ": " + throwable.message
   while (cause!!.cause != null) {
     cause = cause.cause
     causeMessage = cause?.message?.let { "${cause.javaClass.name}: $it" } ?: causeMessage
   }
   if (!causeMessage.isNullOrEmpty()) {
-    testName = causeMessage
+    syntheticTestName = causeMessage
   }
   if (causeMessage.isNullOrEmpty()) {
     causeMessage = errorMessage.message
@@ -93,7 +93,7 @@ private fun reportScriptError(errorMessage: AbstractMessage) {
 
     Files.createDirectories(errorDir)
     Files.writeString(errorDir.resolve(MESSAGE_FILE), causeMessage)
-    Files.writeString(errorDir.resolve(TEST_NAME_FILE), (testName ?: causeMessage).take(maxTestNameLength))
+    Files.writeString(errorDir.resolve(SYNTHETIC_TEST_NAME_FILE), (syntheticTestName ?: causeMessage).take(maxSyntheticTestNameLength))
     Files.writeString(errorDir.resolve(STACKTRACE_FILE), errorMessage.throwableText)
     Files.writeString(errorDir.resolve(PRODUCT_INFO_FILE), buildString {
       appendLine("app.name=${namesInfo.productName}")
