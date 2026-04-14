@@ -9,4 +9,5 @@ fun fooCtx(v: Int) {}
 context(ctx: Context, ctx2: Context2)
 fun example() {
     fooCtx(v = 1, c1 = ctx)
+    fooCtx(v = 1, c1 = ctx,)
 }
