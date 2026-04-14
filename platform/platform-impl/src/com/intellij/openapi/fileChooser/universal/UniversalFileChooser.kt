@@ -20,11 +20,6 @@ import com.intellij.openapi.fileChooser.FileSystemTree
 import com.intellij.openapi.fileChooser.FileTextField
 import com.intellij.openapi.fileChooser.PathChooserDialog
 import com.intellij.openapi.fileChooser.ex.FileSystemTreeImpl
-import com.intellij.openapi.ui.popup.JBPopupFactory
-import com.intellij.ui.SimpleListCellRenderer
-import com.intellij.ui.awt.RelativePoint
-import com.intellij.ui.components.breadcrumbs.Breadcrumbs
-import com.intellij.ui.components.breadcrumbs.Crumb
 import com.intellij.openapi.fileChooser.tree.FileTreeModel
 import com.intellij.openapi.observable.util.whenDisposed
 import com.intellij.openapi.project.Project
@@ -32,36 +27,44 @@ import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.getUserData
+import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.ui.putUserData
 import com.intellij.openapi.util.Key
+import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.newvfs.ManagingFS
+import com.intellij.openapi.vfs.newvfs.NewVirtualFile
+import com.intellij.openapi.vfs.newvfs.RefreshQueue
 import com.intellij.platform.eel.provider.asEelPath
 import com.intellij.platform.eel.provider.asNioPath
 import com.intellij.platform.eel.provider.toEelApi
 import com.intellij.platform.util.coroutines.childScope
 import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.ui.ScrollPaneFactory
-import com.intellij.ui.components.JBList
+import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.UIBundle
-import com.intellij.util.ui.JBUI
-import com.intellij.util.ui.UIUtil
+import com.intellij.ui.awt.RelativePoint
 import com.intellij.ui.components.JBLabel
+import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBTabbedPane
+import com.intellij.ui.components.breadcrumbs.Breadcrumbs
+import com.intellij.ui.components.breadcrumbs.Crumb
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.AlignY
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.tree.AsyncTreeModel
 import com.intellij.ui.treeStructure.Tree
 import com.intellij.util.Consumer
+import com.intellij.util.containers.toArray
+import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.UIUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.intellij.openapi.util.NlsSafe
-import com.intellij.util.containers.toArray
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nls
 import java.awt.BorderLayout
@@ -463,9 +466,28 @@ object UniversalFileChooser {
           }
         }
 
+        val refreshAction = object : AnAction(
+          IdeBundle.message("universal.file.chooser.action.refresh.text"),
+          IdeBundle.message("universal.file.chooser.action.refresh.description"),
+          AllIcons.Actions.Refresh
+        ) {
+          override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+
+          override fun actionPerformed(e: AnActionEvent) {
+            val selected = fileTree.selectedFile
+            val directory = if (selected != null && selected.isDirectory) selected else selected?.parent
+            val filesToRefresh = if (directory != null) arrayOf(directory) else ManagingFS.getInstance().localRoots
+            for (file in filesToRefresh) {
+              (file as? NewVirtualFile)?.markDirtyRecursively()
+            }
+            RefreshQueue.getInstance().refresh(true, true, null, ModalityState.stateForComponent(fileTree.tree), *filesToRefresh)
+          }
+        }
+
         val actionGroup = DefaultActionGroup().apply {
           add(showHiddenAction)
           add(createDirectoryAction)
+          add(refreshAction)
         }
 
         return ActionManager.getInstance().createActionToolbar("UniversalFileChooserToolbar", actionGroup, true)
