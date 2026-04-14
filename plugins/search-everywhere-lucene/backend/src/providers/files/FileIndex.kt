@@ -49,6 +49,7 @@ import kotlinx.coroutines.selects.select
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.TokenStream
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
+import org.apache.lucene.analysis.tokenattributes.OffsetAttribute
 import org.apache.lucene.document.Document
 import org.apache.lucene.document.Field
 import org.apache.lucene.document.StringField
@@ -57,7 +58,9 @@ import org.apache.lucene.index.Term
 import org.apache.lucene.search.BooleanClause
 import org.apache.lucene.search.BooleanQuery
 import org.apache.lucene.search.BoostQuery
+import org.apache.lucene.search.ConstantScoreQuery
 import org.apache.lucene.search.DisjunctionMaxQuery
+import org.apache.lucene.search.MultiTermQuery
 import org.apache.lucene.search.PrefixQuery
 import org.apache.lucene.search.Query
 import org.apache.lucene.search.TermQuery
@@ -354,7 +357,8 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
       val wordAttr = tokenStream.addAttribute(WordAttribute::class.java)
       val multiTypeAttr = tokenStream.addAttribute(MultiTypeAttribute::class.java)
 
-      val wordQueries = mutableMapOf<Int, MutableMap<Float, MutableList<Query>>>()
+      val wordQueries = mutableMapOf<Int, MutableMap<Float, MutableMap<Int, MutableList<Query>>>>()
+      val offsetAttr = tokenStream.addAttribute(OffsetAttribute::class.java)
 
       tokenStream.reset()
       while (tokenStream.incrementToken()) {
@@ -362,6 +366,7 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
         val termString = termAttr.toString()
         val typesToProcess = multiTypeAttr.activeTypes()
 
+        val startOffset = offsetAttr.startOffset()
         val byBoost = wordQueries.computeIfAbsent(wordIndex) { mutableMapOf() }
 
         for (tokenType in typesToProcess) {
@@ -369,16 +374,17 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
 
           val (boost,query) = when (tokenType) {
             FileTokenType.FILENAME_PART,
-            FileTokenType.FILENAME                         -> Pair(4f,listOf(PrefixQuery(term)))
-            FileTokenType.PATH_SEGMENT                     -> Pair(1.5f,listOf(PrefixQuery(term)))
-            FileTokenType.FILENAME_ABBREVIATION            -> Pair(0.6f, listOf(PrefixQuery(term), TermQuery(Term(FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS.type, termString))))
-            FileTokenType.PATH_SEGMENT_PREFIX              -> Pair(0.3f,listOf(PrefixQuery(term)))
+            FileTokenType.FILENAME                         -> Pair(4f,listOf(scoringPrefixQuery(term)))
+            FileTokenType.PATH_SEGMENT                     -> Pair(1.5f,listOf(scoringPrefixQuery(term)))
+            FileTokenType.FILENAME_ABBREVIATION            -> Pair(0.6f, listOf(scoringPrefixQuery(term), ConstantScoreQuery(TermQuery(Term(FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS.type, termString)))))
+            FileTokenType.PATH_SEGMENT_PREFIX              -> Pair(0.3f,listOf(scoringPrefixQuery(term)))
             FileTokenType.PATH,
-            FileTokenType.FILETYPE                         -> Pair(0.5f,listOf(PrefixQuery(term)))
+            FileTokenType.FILETYPE                         -> Pair(0.5f,listOf(scoringPrefixQuery(term)))
             FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS -> throw IllegalArgumentException("Search Analyzer should not produce FILENAME_ABBREVIATION_WITH_SKIPS tokens")
           }
 
-          byBoost.getOrPut(boost) { mutableListOf() }
+          byBoost.getOrPut(boost) { mutableMapOf() }
+                 .getOrPut(startOffset) { mutableListOf() }
                  .addAll(query)
         }
       }
@@ -400,16 +406,25 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
       return query
     }
 
-    private fun buildWordQuery(byBoost: Map<Float, List<Query>>): Query {
+    private fun buildWordQuery(byBoost: Map<Float, Map<Int, List<Query>>>): Query {
       val bq = BooleanQuery.Builder().setMinimumNumberShouldMatch(1)
-      for ((boost, queries) in byBoost) {
-        bq.add(BoostQuery(flatDisjMax(queries), boost), BooleanClause.Occur.SHOULD)
+      for ((boost, byOffset) in byBoost) {
+        val perOffsetQueries = byOffset.values.map { flatDisjMax(it) }
+        val combined = if (perOffsetQueries.size == 1) perOffsetQueries[0]
+                       else BooleanQuery.Builder()
+                              .setMinimumNumberShouldMatch(1)
+                              .apply { perOffsetQueries.forEach { add(it, BooleanClause.Occur.SHOULD) } }
+                              .build()
+        bq.add(BoostQuery(combined, boost), BooleanClause.Occur.SHOULD)
       }
       return bq.build()
     }
 
     private fun flatDisjMax(queries: List<Query>): Query =
       if (queries.size == 1) queries[0] else DisjunctionMaxQuery(queries, 0f)
+
+    private fun scoringPrefixQuery(term: Term): PrefixQuery =
+      PrefixQuery(term, MultiTermQuery.SCORING_BOOLEAN_REWRITE)
 
     private fun getPrimaryKeyTerm(url: String): Term {
       val term = Term(FILE_URL, url)
