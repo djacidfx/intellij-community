@@ -1,6 +1,7 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.kotlin.idea.search.refIndex.bta
 
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.util.containers.generateRecursiveSequence
 import org.jetbrains.kotlin.buildtools.api.ExperimentalBuildToolsApi
 import org.jetbrains.kotlin.buildtools.api.KotlinToolchains
@@ -28,12 +29,19 @@ internal class BtaSubtypeInMemoryStorage private constructor(
 
     @OptIn(ExperimentalBuildToolsApi::class)
     companion object {
+        private val LOG = logger<BtaSubtypeInMemoryStorage>()
+
         fun create(criRoot: Path): BtaSubtypeInMemoryStorage? {
             if (!criRoot.hasSubtypeData()) return null
 
             val subtypesData = criRoot.resolve(CriToolchain.SUBTYPES_FILENAME).readBytes()
 
-            val toolchains = KotlinToolchains.loadImplementation(ClassLoader.getSystemClassLoader())
+            val toolchains = try {
+                KotlinToolchains.loadImplementation(BtaSubtypeInMemoryStorage::class.java.classLoader)
+            } catch (e: IllegalStateException) {
+                LOG.warn("Failed to load BTA toolchain implementation for subtypes in $criRoot", e)
+                return null
+            }
             val subtypeEntries = toolchains.createBuildSession().use { session ->
                 session.executeOperation(
                     session.kotlinToolchains.cri.createCriSubtypeDataDeserializationOperation(subtypesData)
@@ -50,6 +58,7 @@ internal class BtaSubtypeInMemoryStorage private constructor(
             return BtaSubtypeInMemoryStorage(subtypes)
         }
     }
+
 }
 
 @OptIn(ExperimentalBuildToolsApi::class)

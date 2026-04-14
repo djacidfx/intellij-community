@@ -1,6 +1,7 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.kotlin.idea.search.refIndex.bta
 
+import com.intellij.openapi.diagnostic.logger
 import org.jetbrains.kotlin.buildtools.api.ExperimentalBuildToolsApi
 import org.jetbrains.kotlin.buildtools.api.KotlinToolchains
 import org.jetbrains.kotlin.buildtools.api.cri.CriToolchain
@@ -28,6 +29,8 @@ internal class BtaLookupInMemoryStorage private constructor(
 
     @OptIn(ExperimentalBuildToolsApi::class)
     companion object {
+        private val LOG = logger<BtaLookupInMemoryStorage>()
+
         fun create(criRoot: Path, projectPath: String): BtaLookupInMemoryStorage? {
             if (!criRoot.hasLookupData()) return null
 
@@ -35,10 +38,10 @@ internal class BtaLookupInMemoryStorage private constructor(
             val fileIdsToPathsData = criRoot.resolve(CriToolchain.FILE_IDS_TO_PATHS_FILENAME).readBytes()
 
             val toolchains = try {
-                KotlinToolchains.loadImplementation(ClassLoader.getSystemClassLoader())
-            } catch (e: Throwable) {
+                KotlinToolchains.loadImplementation(BtaLookupInMemoryStorage::class.java.classLoader)
+            } catch (e: IllegalStateException) {
+                LOG.warn("Failed to load BTA toolchain implementation for lookups in $criRoot", e)
                 return null
-                // org.jetbrains.kotlin.buildtools.api.NoImplementationFoundException: The classpath contains no implementation for org.jetbrains.kotlin.buildtools.api.KotlinToolchains
             }
             val (lookupEntries, fileIdToPathEntries) = toolchains.createBuildSession().use { session ->
                 val criToolchain = session.kotlinToolchains.cri
@@ -64,6 +67,7 @@ internal class BtaLookupInMemoryStorage private constructor(
             return BtaLookupInMemoryStorage(lookups, fileIdsToPaths, projectPath)
         }
     }
+
 }
 
 @OptIn(ExperimentalBuildToolsApi::class)
