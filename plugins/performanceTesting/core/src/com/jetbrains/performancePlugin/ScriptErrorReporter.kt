@@ -16,6 +16,13 @@ import java.nio.file.StandardOpenOption
 private val LOG: Logger
   get() = Logger.getInstance("PerformancePlugin")
 
+private const val ERRORS_DIR = "errors"
+private const val ERROR_DIR_PREFIX = "error-"
+private const val MESSAGE_FILE = "message.txt"
+private const val TEST_NAME_FILE = "testName.txt"
+private const val STACKTRACE_FILE = "stacktrace.txt"
+private const val PRODUCT_INFO_FILE = "product_info.txt"
+
 fun reportErrorsFromMessagePool() {
   val messagePool = MessagePool.getInstance()
   val ideErrors = messagePool.getFatalErrors(false, true)
@@ -54,12 +61,12 @@ private fun reportScriptError(errorMessage: AbstractMessage) {
       causeMessage = if (index == -1) throwableMessage else throwableMessage.take(index)
     }
   }
-  val scriptErrorsDir = Path.of(PathManager.getLogPath(), "errors")
+  val scriptErrorsDir = Path.of(PathManager.getLogPath(), ERRORS_DIR)
   Files.createDirectories(scriptErrorsDir)
   Files.walk(scriptErrorsDir).use { stream ->
     val finalCauseMessage = causeMessage
     val isDuplicated = stream
-      .filter { path -> path.fileName.toString() == "message.txt" }
+      .filter { path -> path.fileName.toString() == MESSAGE_FILE }
       .anyMatch { path ->
         try {
           return@anyMatch Files.readString(path) == finalCauseMessage
@@ -79,16 +86,16 @@ private fun reportScriptError(errorMessage: AbstractMessage) {
   val build = appInfo.build
 
   for (i in 1..999) {
-    val errorDir = scriptErrorsDir.resolve("error-$i")
+    val errorDir = scriptErrorsDir.resolve("$ERROR_DIR_PREFIX$i")
     if (Files.exists(errorDir)) {
       continue
     }
 
     Files.createDirectories(errorDir)
-    Files.writeString(errorDir.resolve("message.txt"), causeMessage)
-    Files.writeString(errorDir.resolve("testName.txt"), (testName ?: causeMessage).take(maxTestNameLength))
-    Files.writeString(errorDir.resolve("stacktrace.txt"), errorMessage.throwableText)
-    Files.writeString(errorDir.resolve("product_info.txt"), buildString {
+    Files.writeString(errorDir.resolve(MESSAGE_FILE), causeMessage)
+    Files.writeString(errorDir.resolve(TEST_NAME_FILE), (testName ?: causeMessage).take(maxTestNameLength))
+    Files.writeString(errorDir.resolve(STACKTRACE_FILE), errorMessage.throwableText)
+    Files.writeString(errorDir.resolve(PRODUCT_INFO_FILE), buildString {
       appendLine("app.name=${namesInfo.productName}")
       appendLine("app.name.full=${namesInfo.fullProductName}")
       appendLine("app.product.code=${build.productCode}")
