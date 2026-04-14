@@ -69,7 +69,7 @@ internal class UnusedExpressionInspection : KotlinApplicableInspectionBase<KtExp
 
 @OptIn(KaExperimentalApi::class)
 private fun KaSession.isAvailable(element: KtExpression): Boolean =
-    element.diagnostics(KaDiagnosticCheckerFilter.ONLY_EXTENDED_CHECKERS)
+    element.diagnostics(KaDiagnosticCheckerFilter.ONLY_COMMON_CHECKERS)
         .any { it is KaFirDiagnostic.UnusedExpression }
 
 

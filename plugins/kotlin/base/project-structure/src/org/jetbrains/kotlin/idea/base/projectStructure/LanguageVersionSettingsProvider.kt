@@ -165,8 +165,8 @@ class LanguageVersionSettingsProvider(private val project: Project) : Disposable
         )
 
         val languageFeatures = merge(
-            arguments.configureLanguageFeatures(CommonCompilerArgumentsConfigurator.Reporter.DoNothing),
-            additionalArguments.configureLanguageFeatures(CommonCompilerArgumentsConfigurator.Reporter.DoNothing),
+            arguments.configureLanguageFeatures(CommonCompilerArgumentsConfigurator.Reporter.DoNothing, languageVersion),
+            additionalArguments.configureLanguageFeatures(CommonCompilerArgumentsConfigurator.Reporter.DoNothing, languageVersion),
             commonFacetSettings?.languageFeatures
         )
 
@@ -194,7 +194,7 @@ class LanguageVersionSettingsProvider(private val project: Project) : Disposable
         )
 
         val languageFeatures = merge(
-            arguments?.configureLanguageFeatures(CommonCompilerArgumentsConfigurator.Reporter.DoNothing),
+            arguments?.configureLanguageFeatures(CommonCompilerArgumentsConfigurator.Reporter.DoNothing, languageVersion),
             getMultiPlatformLanguageFeatures(module, facetSettings)
         )
 
