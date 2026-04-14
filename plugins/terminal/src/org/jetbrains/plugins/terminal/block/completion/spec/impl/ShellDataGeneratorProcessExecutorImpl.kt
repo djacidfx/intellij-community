@@ -55,8 +55,8 @@ class ShellDataGeneratorProcessExecutorImpl(
       throw ce
     }
     catch (e: ExecuteProcessException) {
-      LOG.error("Failed to execute process using EelApi, options: $options", e)
-      emptyResult()
+      LOG.debug { "Failed to execute process using EelApi, options: $options" }
+      throw e
     }
   }
 
