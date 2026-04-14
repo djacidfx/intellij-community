@@ -513,7 +513,7 @@ object PluginManagerCore {
   @VisibleForTesting
   fun fallbackToOldPluginSetResolution(): Boolean = _fallbackToOldPluginSetResolution
 
-  private val _fallbackToOldPluginSetResolution: Boolean = System.getProperty("revert.IJPL236591", "false") == "true"
+  private val _fallbackToOldPluginSetResolution: Boolean = System.getProperty("revert.IJPL236591", "true") == "true"
 
   @ApiStatus.Internal
   fun initializePlugins(
