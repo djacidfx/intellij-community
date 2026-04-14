@@ -921,9 +921,20 @@ public final class SearchEverywhereUI extends BigPopupUI implements UiDataProvid
 
     Map<SearchEverywhereContributor<?>, Integer> contributorsMap = new HashMap<>();
 
-    List<SearchEverywhereContributor<?>> contributors = myHeader.getSelectedTab().getContributors();
+    SETab selectedTab = myHeader.getSelectedTab();
+    boolean isAllTab = selectedTab.getID().equals(ALL_CONTRIBUTORS_GROUP_ID);
+
+    List<SearchEverywhereContributor<?>> contributors = selectedTab.getContributors();
     int limit = contributors.size() > 1 ? MULTIPLE_CONTRIBUTORS_ELEMENTS_LIMIT : SINGLE_CONTRIBUTOR_ELEMENTS_LIMIT;
-    contributors.forEach(c -> contributorsMap.put(c, limit));
+    contributors.forEach(c -> {
+      if (!isAllTab && (FilesTabSEContributor.asMainFilesContributorOrNull(c) != null)) {
+        // Request more elements from the main Files contributor in Files tab
+        contributorsMap.put(c, SINGLE_CONTRIBUTOR_ELEMENTS_LIMIT);
+      }
+      else {
+        contributorsMap.put(c, limit);
+      }
+    });
 
     if (myProject != null) {
       contributors = DumbService.getInstance(myProject).filterByDumbAwareness(contributorsMap.keySet());
