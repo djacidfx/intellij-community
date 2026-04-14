@@ -60,6 +60,7 @@ jvm_library(
     "//platform/execution",
     "//jps/model-api:model",
     "//platform/util:util-ui",
+    "//platform/util/coroutines",
   ],
   exports = ["//json"],
   runtime_deps = ["//platform/backend"]
@@ -124,6 +125,7 @@ jvm_library(
     "//platform/execution:execution_test_lib",
     "//jps/model-api:model_test_lib",
     "//platform/util:util-ui_test_lib",
+    "//platform/util/coroutines:coroutines_test_lib",
   ]
 )
 ### auto-generated section `build intellij.json.backend` end
