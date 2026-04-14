@@ -159,9 +159,6 @@ class FilenameNgramFilter(input: TokenStream) : TokenFilterBase(input) {
     return true
   }
 
-  override fun reset() {
-    super.reset()
-  }
 }
 
 
