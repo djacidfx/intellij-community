@@ -38,6 +38,7 @@ import com.intellij.openapi.vfs.newvfs.RefreshQueue
 import com.intellij.openapi.vfs.newvfs.RefreshQueueImpl
 import com.intellij.openapi.vfs.newvfs.RefreshSession
 import com.intellij.openapi.vfs.newvfs.monitoring.VfsUsageCollector
+import com.intellij.openapi.vfs.newvfs.persistent.PersistentFSImpl
 import com.intellij.openapi.wm.IdeFrame
 import com.intellij.platform.ide.progress.ModalTaskOwner
 import com.intellij.platform.ide.progress.TaskCancellation
@@ -279,6 +280,8 @@ internal class SaveAndSyncHandlerImpl @JvmOverloads constructor(
               WriteIntentReadAction.run {
                 (FileDocumentManager.getInstance() as FileDocumentManagerImpl).saveAllDocuments(false)
               }
+              //flush pending IO tasks, if any:
+              PersistentFSImpl.flushPendingUpdates()
             }
             if (addToSaveQueue(saveAppAndProjectsSettingsTask)) {
               requestSave()
@@ -321,6 +324,8 @@ internal class SaveAndSyncHandlerImpl @JvmOverloads constructor(
   private fun saveDocumentsInBackgroundWriteAction() {
     coroutineScope.launch(CoroutineName("Saving documents on frame deactivation") + savingDispatcher + NonCancellable) {
       (FileDocumentManager.getInstance() as FileDocumentManagerImpl).saveAllDocuments(false)
+      //flush pending IO tasks, if any:
+      PersistentFSImpl.flushPendingUpdates()
     }
   }
 
