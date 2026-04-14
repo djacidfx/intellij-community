@@ -2,6 +2,7 @@
 package com.intellij.mcpserver.settings
 
 import com.intellij.icons.AllIcons
+import com.intellij.ide.impl.ProjectUtil
 import com.intellij.mcpserver.McpServerBundle
 import com.intellij.mcpserver.McpserverIcons
 import com.intellij.mcpserver.clients.McpClient
@@ -10,6 +11,7 @@ import com.intellij.mcpserver.createStdioMcpServerJsonConfiguration
 import com.intellij.mcpserver.createStreamableServerJsonEntry
 import com.intellij.mcpserver.impl.McpClientDetector
 import com.intellij.mcpserver.impl.McpServerService
+import com.intellij.mcpserver.util.getConsentDialog
 import com.intellij.mcpserver.util.getHelpLink
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -20,8 +22,6 @@ import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.options.SearchableConfigurable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogPanel
-import com.intellij.openapi.ui.MessageDialogBuilder
-import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.platform.ide.progress.ModalTaskOwner
@@ -52,7 +52,6 @@ import kotlinx.serialization.json.encodeToJsonElement
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nls
 import org.jetbrains.annotations.NonNls
-import org.jetbrains.ide.RestService.Companion.getLastFocusedOrOpenedProject
 import java.awt.event.ActionEvent
 import java.nio.file.Files
 import java.nio.file.Path
@@ -121,8 +120,13 @@ class McpServerSettingsConfigurable : SearchableConfigurable {
       }.bottomGap(BottomGap.SMALL)
 
       row {
-        comment(McpServerBundle.message("settings.explanation.when.server.disabled", getHelpLink("mcp-server.html#supported-tools"),
-                                        McpClientDetector.detectGlobalMcpClients().joinToString("<br/>") { " • " + it.mcpClientInfo.displayName }))
+        comment(McpServerBundle.message("settings.explanation.when.server.disabled",
+                                        McpServerBundle.message("mcp.server.status.bar.popup.description"),
+                                        getHelpLink("mcp-server.html#supported-tools"),
+                                        McpServerBundle.message("mcp.server.status.bar.popup.all.mcp.tools"),
+                                        McpServerBundle.message("mcp.server.status.bar.popup.clients.hint"),
+                                        McpClientDetector.detectGlobalMcpClients()
+                                          .joinToString("<br/>") { " • " + it.mcpClientInfo.displayName }))
       }.bottomGap(BottomGap.NONE).visibleIf(enabledCheckboxState!!.not())
 
       group(McpServerBundle.message("settings.client.group"), indent = false) {
@@ -300,7 +304,7 @@ private class CheckboxWithValidation(@Nls checkboxText: String, var validator: C
       val newValue = isSelected
       isSelected = isValidatedSelected
       SwingUtilities.invokeLater {
-        if (validator.isValidNewValue(newValue)) {
+        if (validator.isValidNewValue(newValue, ProjectUtil.getProjectForComponent(this))) {
           isValidatedSelected = newValue
         }
       }
@@ -309,17 +313,12 @@ private class CheckboxWithValidation(@Nls checkboxText: String, var validator: C
 }
 
 private object ConsentValidator : CheckboxValidator {
-  override fun isValidNewValue(isSelected: Boolean): Boolean = if (isSelected) {
-    MessageDialogBuilder.yesNo(McpServerBundle.message("dialog.title.mcp.server.consent"), McpServerBundle.message("dialog.message.mcp.server.consent", getHelpLink("mcp-server.html#supported-tools")), Messages.getWarningIcon())
-      .yesText(McpServerBundle.message("dialog.mcp.server.consent.enable.button"))
-      .noText(McpServerBundle.message("dialog.mcp.server.consent.cancel.button"))
-      .ask(getLastFocusedOrOpenedProject())
-  }
-  else true
+  override fun isValidNewValue(isSelected: Boolean, project: Project?): Boolean =
+    if (isSelected) getConsentDialog(project) else true
 }
 
 private interface CheckboxValidator {
-  fun isValidNewValue(isSelected: Boolean): Boolean
+  fun isValidNewValue(isSelected: Boolean, project: Project?): Boolean
 }
 
 fun configureAdditionalActions(mcpClient: McpClient, cell: Cell<JBOptionButton>, uiHandler: (suspend () -> Unit) -> Unit) {
@@ -355,7 +354,7 @@ fun configureAdditionalActions(mcpClient: McpClient, cell: Cell<JBOptionButton>,
         })
         add(object : AnAction(McpServerBundle.message("open.settings.json")) {
           override fun actionPerformed(e: AnActionEvent) {
-            openFileInEditor(mcpClient.configPath)
+            openFileInEditor(mcpClient.configPath, e.project)
           }
         })
         add(object : AnAction(McpServerBundle.message("copy.mcp.server.configuration")) {
@@ -378,7 +377,7 @@ fun configureAdditionalActions(mcpClient: McpClient, cell: Cell<JBOptionButton>,
 }
 
 @ApiStatus.Internal
-internal fun openFileInEditor(filePath: Path, project: Project? = getLastFocusedOrOpenedProject()) {
+internal fun openFileInEditor(filePath: Path, project: Project?) {
   if (project == null) {
     return
   }

@@ -14,9 +14,11 @@
           </stringArguments>
           <arrayArguments>
             <arrayArg name="pluginClasspaths">
-              <args>$KOTLIN_BUNDLED$/lib/kotlinx-serialization-compiler-plugin.jar</args>
+              <args>
+                <arg>$KOTLIN_BUNDLED$/lib/kotlinx-serialization-compiler-plugin.jar</arg>
+                <arg>$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-compose-compiler-plugin/2.3.21-RC2/kotlin-compose-compiler-plugin-2.3.21-RC2.jar</arg>
+              </args>
             </arrayArg>
-            <arrayArg name="pluginOptions" />
           </arrayArguments>
         </compilerArguments>
       </configuration>
@@ -117,5 +119,6 @@
     <orderEntry type="module" module-name="intellij.platform.util.ex" />
     <orderEntry type="module" module-name="intellij.platform.vcs.impl" />
     <orderEntry type="module" module-name="intellij.platform.eel.provider" />
+    <orderEntry type="module" module-name="intellij.platform.compose" />
   </component>
 </module>

@@ -27,6 +27,7 @@
     <module name="intellij.libraries.ktor.server.cio"/>
     <module name="intellij.libraries.ktor.client.cio"/>
     <!-- region Generated dependencies - run `Generate Product Layouts` to regenerate -->
+    <module name="intellij.platform.compose"/>
     <module name="intellij.platform.vcs.impl"/>
     <!-- endregion -->
   </dependencies>
@@ -93,6 +94,10 @@
     <registryKey defaultValue="false"
                  description="Show advanced filter options UI in MCP tool filter settings"
                  key="mcp.server.show.advanced.filter.options.ui"/>
+
+    <statusBarWidgetFactory id="McpServerStatusBarWidget"
+                             implementation="com.intellij.mcpserver.widget.McpServerStatusBarWidgetFactory"
+                             order="after PowerSaveMode"/>
 
     <applicationConfigurable
       instance="com.intellij.mcpserver.settings.McpServerSettingsConfigurable"
