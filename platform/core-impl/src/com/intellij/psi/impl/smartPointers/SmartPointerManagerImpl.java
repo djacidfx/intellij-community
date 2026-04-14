@@ -163,7 +163,7 @@ public final class SmartPointerManagerImpl extends SmartPointerManagerEx {
     if (tracker == null) {
       tracker = getOrCreateTracker(containingFile);
     }
-    tracker.addReference(pointer);
+    tracker.startTracking(pointer);
   }
 
   @Override
@@ -192,7 +192,7 @@ public final class SmartPointerManagerImpl extends SmartPointerManagerEx {
         if (reference.get() != pointer) {
           throw new IllegalStateException("Reference points to " + reference.get());
         }
-        reference.getTracker().removeReference(reference);
+        reference.delete();
       }
     }
   }

@@ -32,9 +32,9 @@ class SmartPointerTracker {
   private val markerCache = MarkerCache(this)
   private var mySorted = false
 
-  @JvmName("addReference")
+  @JvmName("startTracking")
   @Synchronized
-  internal fun addReference(pointer: SmartPsiElementPointerImpl<*>) {
+  internal fun startTracking(pointer: SmartPsiElementPointerImpl<*>) {
     val elementInfo = pointer.elementInfo
     require(elementInfo is SelfElementInfo)
     val reference = PointerReference(pointer, this)
@@ -45,9 +45,8 @@ class SmartPointerTracker {
     }
   }
 
-  @JvmName("removeReference")
   @Synchronized
-  internal fun removeReference(reference: PointerReference) {
+  private fun removeReference(reference: PointerReference) {
     refList.remove(reference)
   }
 
@@ -173,20 +172,43 @@ class SmartPointerTracker {
   private val SmartPsiElementPointerImpl<*>.selfInfo: SelfElementInfo
     get() = this.elementInfo as SelfElementInfo
 
+  /**
+   * A weak reference to a `SmartPsiElementPointerImpl`.
+   * Is used for storing smart pointers in [WeakPointerReferenceList].
+   * Gets automatically removed from the list once the referent is garbage-collected.
+   *
+   * There are two subclasses:
+   * - [SelfElementPointerReference] for self-pointers
+   * - [FilePointerReference] for file-pointers
+   *
+   * We need them to be able to remove the reference from the corresponding list ([selfInfoList] or [fileInfoList]) when the referent is garbage-collected.
+   */
   internal class PointerReference(
     pointer: SmartPsiElementPointerImpl<*>,
-    val tracker: SmartPointerTracker
+    private val tracker: SmartPointerTracker
   ) : WeakReference<SmartPsiElementPointerImpl<*>?>(pointer, ourQueue) {
     var index = -2
 
     init {
       pointer.pointerReference = this
     }
+
+    fun delete() {
+      tracker.removeReference(this)
+    }
   }
 
+  /**
+   * Manages a list of weak references to `SmartPsiElementPointerImpl` objects.
+   *
+   * Works in collaboration with [PointerReference].
+   *
+   * Not synchronized.
+   */
   private class WeakPointerReferenceList {
     private var references = arrayOfNulls<PointerReference>(10)
     private var nextAvailableIndex = 0
+
     var size: Int = 0
       private set
 
@@ -203,37 +225,12 @@ class SmartPointerTracker {
       size++
     }
 
-    private fun needsExpansion(): Boolean =
-      nextAvailableIndex >= references.size
-
-    private fun isTooSparse(): Boolean =
-      nextAvailableIndex > size * 2
-
-    private fun resize() {
-      val newReferences = arrayOfNulls<PointerReference>(size * 3 / 2 + 1)
-      var index = 0
-      // don't use processAlivePointers/removeReference since it can unregister the whole pointer list, and we're not prepared to that
-      for (ref in references) {
-        if (ref != null) {
-          storePointerReference(newReferences, index++, ref)
-        }
-      }
-      assert(index == size) { "$index != $size" }
-      references = newReferences
-      nextAvailableIndex = index
-    }
-
-    private fun storePointerReference(references: Array<PointerReference?>, index: Int, ref: PointerReference) {
-      references[index] = ref
-      ref.index = index
-    }
-
     fun remove(reference: PointerReference) {
       val index = reference.index
       if (index < 0) return
 
       if (reference != references[index]) {
-        throw AssertionError("At " + index + " expected " + reference + ", found " + references[index])
+        throw AssertionError("At $index expected $reference, found ${references[index]}")
       }
       reference.index = -1
       references[index] = null
@@ -268,6 +265,31 @@ class SmartPointerTracker {
       Arrays.fill(references, pointers.size, nextAvailableIndex, null)
       nextAvailableIndex = pointers.size
     }
+
+    private fun needsExpansion(): Boolean =
+      nextAvailableIndex >= references.size
+
+    private fun isTooSparse(): Boolean =
+      nextAvailableIndex > size * 2
+
+    private fun resize() {
+      val newReferences = arrayOfNulls<PointerReference>(size * 3 / 2 + 1)
+      var index = 0
+      // don't use processAlivePointers/removeReference since it can unregister the whole pointer list, and we're not prepared to that
+      for (ref in references) {
+        if (ref != null) {
+          storePointerReference(newReferences, index++, ref)
+        }
+      }
+      assert(index == size) { "$index != $size" }
+      references = newReferences
+      nextAvailableIndex = index
+    }
+
+    private fun storePointerReference(references: Array<PointerReference?>, index: Int, ref: PointerReference) {
+      references[index] = ref
+      ref.index = index
+    }
   }
 
   companion object {
@@ -288,7 +310,7 @@ class SmartPointerTracker {
 
         check(reference.get() == null) { "Queued reference has referent!" }
 
-        reference.tracker.removeReference(reference)
+        reference.delete()
       }
     }
   }
