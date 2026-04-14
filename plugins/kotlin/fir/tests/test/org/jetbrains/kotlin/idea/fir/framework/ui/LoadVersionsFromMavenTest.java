@@ -1,11 +1,16 @@
-// Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
-package org.jetbrains.kotlin.idea.framework.ui;
+package org.jetbrains.kotlin.idea.fir.framework.ui;
 
 import com.intellij.platform.testFramework.io.ExternalResourcesChecker;
 import com.intellij.testFramework.JUnit38AssumeSupportRunner;
 import com.intellij.testFramework.LightIdeaTestCase;
 import com.intellij.util.text.VersionComparatorUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.kotlin.idea.base.plugin.KotlinPluginMode;
+import org.jetbrains.kotlin.idea.framework.ui.ConfigureDialogWithModulesAndVersion;
+import org.jetbrains.kotlin.idea.test.ExpectedPluginModeProvider;
+import org.jetbrains.kotlin.idea.test.ExpectedPluginModeProviderKt;
 import org.junit.runner.RunWith;
 
 import java.io.IOException;
@@ -13,11 +18,11 @@ import java.util.Collection;
 import java.util.Locale;
 
 @RunWith(JUnit38AssumeSupportRunner.class)
-public class LoadVersionsFromMavenTest extends LightIdeaTestCase {
+public class LoadVersionsFromMavenTest extends LightIdeaTestCase implements ExpectedPluginModeProvider {
     public void testDownload() {
         Collection<String> versions;
         try {
-            versions = ConfigureDialogWithModulesAndVersion.loadVersions(getProject(), "1.0.0");
+            versions = ConfigureDialogWithModulesAndVersion.loadVersions(getProject(), "2.0.0");
         } catch (IOException e) {
             ExternalResourcesChecker.reportUnavailability("Kotlin artifact repository", e);
             return;
@@ -31,5 +36,15 @@ public class LoadVersionsFromMavenTest extends LightIdeaTestCase {
             assertFalse(version.toLowerCase(Locale.ROOT).contains("beta"));
             assertFalse(version.toLowerCase(Locale.ROOT).contains("rc"));
         }
+    }
+
+    @Override
+    protected void setUp() throws Exception {
+        ExpectedPluginModeProviderKt.setUpWithKotlinPlugin(this, getTestRootDisposable(), () -> super.setUp());
+    }
+
+    @Override
+    public @NotNull KotlinPluginMode getPluginMode() {
+        return KotlinPluginMode.K2;
     }
 }

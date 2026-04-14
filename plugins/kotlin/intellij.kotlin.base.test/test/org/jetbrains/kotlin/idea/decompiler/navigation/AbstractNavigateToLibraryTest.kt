@@ -8,6 +8,7 @@ import com.intellij.psi.PsiJavaCodeReferenceElement
 import com.intellij.psi.PsiReference
 import com.intellij.psi.PsiReferenceExpression
 import com.intellij.psi.impl.source.resolve.reference.impl.PsiMultiReference
+import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.util.ThrowableRunnable
 import org.jetbrains.kotlin.idea.base.projectStructure.RootKindFilter
 import org.jetbrains.kotlin.idea.base.projectStructure.matches
@@ -33,7 +34,6 @@ abstract class AbstractNavigateToLibraryTest : KotlinLightCodeInsightFixtureTest
     }
 
     override fun tearDown() = runAll(
-        ThrowableRunnable { SourceNavigationHelper.resetForceResolve() },
         ThrowableRunnable { super.tearDown() }
     )
 }
@@ -163,14 +163,7 @@ class NavigationChecker(val file: PsiFile, val referenceTargetChecker: (PsiEleme
     companion object {
         fun checkAnnotatedCode(file: PsiFile, expectedFile: File, referenceTargetChecker: (PsiElement) -> Unit = {}) {
             val navigationChecker = NavigationChecker(file, referenceTargetChecker)
-            try {
-                for (forceResolve in listOf(false, true)) {
-                    SourceNavigationHelper.setForceResolve(forceResolve)
-                    KotlinTestUtils.assertEqualsToFile(expectedFile, navigationChecker.annotatedLibraryCode())
-                }
-            } finally {
-                SourceNavigationHelper.resetForceResolve()
-            }
+            KotlinTestUtils.assertEqualsToFile(expectedFile, navigationChecker.annotatedLibraryCode())
         }
     }
 }

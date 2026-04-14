@@ -13,7 +13,6 @@ import org.jetbrains.fir.uast.test.AbstractFirUastTypesTest
 import org.jetbrains.fir.uast.test.AbstractFirUastValuesTest
 import org.jetbrains.kotlin.fir.testGenerator.codeinsight.generateK2CodeInsightTests
 import org.jetbrains.kotlin.fir.testGenerator.gradle.generateK2GradleTests
-import org.jetbrains.kotlin.formatter.AbstractEnterHandlerTest
 import org.jetbrains.kotlin.idea.base.fir.analysisApiPlatform.AbstractIdeKotlinAnnotationsResolverTest
 import org.jetbrains.kotlin.idea.base.fir.analysisApiPlatform.dependents.AbstractModuleDependentsTest
 import org.jetbrains.kotlin.idea.base.fir.analysisApiPlatform.inheritors.AbstractDirectInheritorsProviderTest
@@ -71,10 +70,10 @@ import org.jetbrains.kotlin.idea.fir.findUsages.AbstractKotlinGroupUsagesBySimil
 import org.jetbrains.kotlin.idea.fir.findUsages.AbstractKotlinScriptFindUsagesFirTest
 import org.jetbrains.kotlin.idea.fir.folding.AbstractFirFoldingTest
 import org.jetbrains.kotlin.idea.fir.formatter.AbstractK2FormatterTest
-import org.jetbrains.kotlin.idea.fir.imports.AbstractK2AutoImportTest
-import org.jetbrains.kotlin.idea.fir.imports.AbstractK2FilteringAutoImportTest
 import org.jetbrains.kotlin.idea.fir.imports.AbstractK2AddImportAliasTest53
 import org.jetbrains.kotlin.idea.fir.imports.AbstractK2AddImportTest
+import org.jetbrains.kotlin.idea.fir.imports.AbstractK2AutoImportTest
+import org.jetbrains.kotlin.idea.fir.imports.AbstractK2FilteringAutoImportTest
 import org.jetbrains.kotlin.idea.fir.imports.AbstractK2JsOptimizeImportsTest
 import org.jetbrains.kotlin.idea.fir.imports.AbstractK2JvmOptimizeImportsTest
 import org.jetbrains.kotlin.idea.fir.kmp.AbstractK2KmpLightFixtureHighlightingTest
@@ -83,6 +82,11 @@ import org.jetbrains.kotlin.idea.fir.navigation.AbstractFirGotoRelatedSymbolMult
 import org.jetbrains.kotlin.idea.fir.navigation.AbstractFirGotoTest
 import org.jetbrains.kotlin.idea.fir.navigation.AbstractFirGotoTypeDeclarationTest
 import org.jetbrains.kotlin.idea.fir.navigation.AbstractFirMoveToNextMethodTest
+import org.jetbrains.kotlin.idea.fir.navigation.AbstractFirNavigateJavaSourceToLibrarySourceTest
+import org.jetbrains.kotlin.idea.fir.navigation.AbstractFirNavigateJavaSourceToLibraryTest
+import org.jetbrains.kotlin.idea.fir.navigation.AbstractFirNavigateToDecompiledLibraryTest
+import org.jetbrains.kotlin.idea.fir.navigation.AbstractFirNavigateToLibrarySourceTest
+import org.jetbrains.kotlin.idea.fir.navigation.AbstractFirNavigateToLibrarySourceTestWithJS
 import org.jetbrains.kotlin.idea.fir.parameterInfo.AbstractFirMultilineParameterInfoTest
 import org.jetbrains.kotlin.idea.fir.parameterInfo.AbstractFirParameterInfoTest
 import org.jetbrains.kotlin.idea.fir.projectView.AbstractK2ProjectViewTest
@@ -140,14 +144,12 @@ import org.jetbrains.kotlin.testGenerator.model.Patterns.KT_WITHOUT_DOTS
 import org.jetbrains.kotlin.testGenerator.model.Patterns.KT_WITHOUT_DOT_AND_FIR_PREFIX
 import org.jetbrains.kotlin.testGenerator.model.Patterns.KT_WITHOUT_FIR_PREFIX
 import org.jetbrains.kotlin.testGenerator.model.Patterns.TEST
-import org.jetbrains.kotlin.testGenerator.model.TAnnotation
 import org.jetbrains.kotlin.testGenerator.model.TWorkspace
 import org.jetbrains.kotlin.testGenerator.model.model
 import org.jetbrains.kotlin.testGenerator.model.or
 import org.jetbrains.kotlin.testGenerator.model.testClass
 import org.jetbrains.kotlin.testGenerator.model.testGroup
 import org.jetbrains.kotlin.testGenerator.model.workspace
-import org.junit.Ignore
 
 fun main(@Suppress("UNUSED_PARAMETER", "unused") args: Array<String>) {
     generateK2Tests()
@@ -411,6 +413,26 @@ private fun assembleWorkspace(): TWorkspace = workspace(KotlinPluginMode.K2) {
 
         testClass<AbstractFirGotoDeclarationTest> {
             model("navigation/gotoDeclaration", pattern = TEST)
+        }
+
+        testClass<AbstractFirNavigateToLibrarySourceTest> {
+            model("decompiler/navigation/usercode")
+        }
+
+        testClass<AbstractFirNavigateJavaSourceToLibraryTest> {
+            model("decompiler/navigation/userJavaCode", pattern = Patterns.forRegex("^(.+)\\.java$"))
+        }
+
+        testClass<AbstractFirNavigateJavaSourceToLibrarySourceTest> {
+            model("navigation/javaSource", pattern = Patterns.forRegex("^(.+)\\.java$"))
+        }
+
+        testClass<AbstractFirNavigateToLibrarySourceTestWithJS> {
+            model("decompiler/navigation/usercode", testClassName = "UsercodeWithJSModule")
+        }
+
+        testClass<AbstractFirNavigateToDecompiledLibraryTest> {
+            model("decompiler/navigation/usercode")
         }
     }
 

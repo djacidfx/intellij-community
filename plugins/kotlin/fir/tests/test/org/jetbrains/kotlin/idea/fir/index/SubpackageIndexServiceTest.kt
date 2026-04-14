@@ -1,13 +1,14 @@
-// Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package org.jetbrains.kotlin.idea.index
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+package org.jetbrains.kotlin.idea.fir.index
 
 import org.jetbrains.kotlin.idea.base.indices.KotlinPackageIndexUtils
+import org.jetbrains.kotlin.idea.base.plugin.KotlinPluginMode
 import org.jetbrains.kotlin.idea.test.KotlinLightCodeInsightFixtureTestCase
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
-import org.jetbrains.kotlin.resolve.scopes.MemberScope
 
 class SubpackageIndexServiceTest : KotlinLightCodeInsightFixtureTestCase() {
+    override val pluginMode: KotlinPluginMode = KotlinPluginMode.K2
 
     fun testBasicWithoutCaching() {
         setupSimpleTest()
@@ -40,13 +41,13 @@ class SubpackageIndexServiceTest : KotlinLightCodeInsightFixtureTestCase() {
             assertFalse("fqName `${it.asString()}` shouldn't exist", KotlinPackageIndexUtils.packageExists(it, scope))
         }
 
-        assertSameElements(listOf(fqName1), KotlinPackageIndexUtils.getSubpackages(FqName.ROOT, scope, MemberScope.ALL_NAME_FILTER))
-        assertSameElements(listOf(fqName2), KotlinPackageIndexUtils.getSubpackages(fqName1, scope, MemberScope.ALL_NAME_FILTER))
-        assertSameElements(listOf(fqName31, fqName30), KotlinPackageIndexUtils.getSubpackages(fqName2, scope, MemberScope.ALL_NAME_FILTER)
+        assertSameElements(listOf(fqName1), KotlinPackageIndexUtils.getSubpackages(FqName.ROOT, scope) { true })
+        assertSameElements(listOf(fqName2), KotlinPackageIndexUtils.getSubpackages(fqName1, scope, { true }))
+        assertSameElements(listOf(fqName31, fqName30), KotlinPackageIndexUtils.getSubpackages(fqName2, scope, { true })
             .sortedBy(FqName::asString))
 
         listOf(fqName31, fqName30, fqName31.child(Name.identifier("a")), fqName30.child(Name.identifier("a"))).forEach {
-            assertTrue(KotlinPackageIndexUtils.getSubpackages(it, scope, MemberScope.ALL_NAME_FILTER).isEmpty())
+            assertTrue(KotlinPackageIndexUtils.getSubpackages(it, scope, { true }).isEmpty())
         }
     }
 

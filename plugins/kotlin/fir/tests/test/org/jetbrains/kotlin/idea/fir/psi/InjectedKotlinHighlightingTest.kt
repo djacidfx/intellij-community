@@ -1,15 +1,16 @@
-// Copyright 2000-2023 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package org.jetbrains.kotlin.psi
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+package org.jetbrains.kotlin.idea.fir.psi
 
 import com.intellij.openapi.application.impl.NonBlockingReadActionImpl.waitForAsyncTaskCompletion
 import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue
 import com.intellij.testFramework.fixtures.InjectionTestFixture
-import org.jetbrains.kotlin.idea.core.script.k1.configuration.DefaultScriptingSupport
+import org.jetbrains.kotlin.idea.base.plugin.KotlinPluginMode
 import org.jetbrains.kotlin.idea.test.KotlinLightCodeInsightFixtureTestCase
 import org.jetbrains.kotlin.idea.test.KotlinWithJdkAndRuntimeLightProjectDescriptor
 
 class InjectedKotlinHighlightingTest : KotlinLightCodeInsightFixtureTestCase() {
+    override val pluginMode: KotlinPluginMode = KotlinPluginMode.K2
     // Kotlin disables several diagnostics inside injected fragments, e.g. inside Markdown fence blocks
 
     private val injectionTestFixture: InjectionTestFixture get() = InjectionTestFixture(myFixture)
@@ -48,13 +49,7 @@ class InjectedKotlinHighlightingTest : KotlinLightCodeInsightFixtureTestCase() {
     }
 
     private fun doTest(fileName: String, text: String) {
-        val file = myFixture.configureByText(fileName, text)
-
-        // this is required to configure Script roots out of DaemonCodeAnalyzer run,
-        // otherwise it throws errors from EDT.dispatchAllInvocationEvents():
-        // > PSI/document/model changes are not allowed during highlighting
-        DefaultScriptingSupport.getInstance(myFixture.project)
-            .getOrLoadConfiguration(file.virtualFile, null)
+        myFixture.configureByText(fileName, text)
 
         dispatchAllInvocationEventsInIdeEventQueue()
         waitForAsyncTaskCompletion()

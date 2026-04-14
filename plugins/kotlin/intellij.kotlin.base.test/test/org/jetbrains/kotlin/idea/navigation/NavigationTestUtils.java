@@ -17,6 +17,7 @@ import com.intellij.psi.PsiFile;
 import com.intellij.testFramework.UsefulTestCase;
 import com.intellij.testFramework.fixtures.CodeInsightTestUtil;
 import com.intellij.util.PathUtil;
+import com.intellij.util.containers.ContainerUtil;
 import com.intellij.util.containers.MultiMap;
 import junit.framework.TestCase;
 import kotlin.collections.ArraysKt;
@@ -66,10 +67,10 @@ public final class NavigationTestUtils {
                 targets = Arrays.asList(gotoData.targets);
             }
             // Transform given reference result to strings
-            List<String> psiElements = targets.stream().map(element -> {
+            List<String> psiElements = ContainerUtil.map(targets, element -> {
                 Assert.assertNotNull(element);
                 return ReferenceUtils.renderAsGotoImplementation(element, renderModule);
-            }).collect(Collectors.toList());
+            });
 
             // Compare
             UsefulTestCase.assertOrderedEquals(Ordering.natural().sortedCopy(psiElements), expectedReferences);
