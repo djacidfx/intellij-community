@@ -8727,6 +8727,11 @@ public abstract class K1QuickFixTestGenerated extends AbstractK1QuickFixTest {
                 runTest("testData/quickfix/deprecatedSymbolUsage/keepComments/multipleArguments.kt");
             }
 
+            @TestMetadata("replaceWithComment.kt")
+            public void testReplaceWithComment() throws Exception {
+                runTest("testData/quickfix/deprecatedSymbolUsage/keepComments/replaceWithComment.kt");
+            }
+
             @TestMetadata("simple.kt")
             public void testSimple() throws Exception {
                 runTest("testData/quickfix/deprecatedSymbolUsage/keepComments/simple.kt");

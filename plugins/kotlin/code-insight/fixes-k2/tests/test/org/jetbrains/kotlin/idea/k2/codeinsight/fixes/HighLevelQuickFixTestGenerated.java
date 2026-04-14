@@ -7072,6 +7072,11 @@ public abstract class HighLevelQuickFixTestGenerated extends AbstractHighLevelQu
                 runTest("../../../idea/tests/testData/quickfix/deprecatedSymbolUsage/keepComments/multipleArguments.kt");
             }
 
+            @TestMetadata("replaceWithComment.kt")
+            public void testReplaceWithComment() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/deprecatedSymbolUsage/keepComments/replaceWithComment.kt");
+            }
+
             @TestMetadata("simple.kt")
             public void testSimple() throws Exception {
                 runTest("../../../idea/tests/testData/quickfix/deprecatedSymbolUsage/keepComments/simple.kt");
