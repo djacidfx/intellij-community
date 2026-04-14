@@ -82,6 +82,7 @@ internal class JpsModuleToBazel {
       println("Bazel output base: $bazelOutputBase")
 
       val projectDir = ultimateRoot ?: communityRoot
+      val m2RepoPath = Path.of(m2Repo)
 
       val project = JpsSerializationManager.getInstance().loadProject(
         /* projectPath = */ projectDir,
@@ -106,14 +107,20 @@ internal class JpsModuleToBazel {
         urlCache = urlCache,
         customModules = if (defaultCustomModules.toBooleanStrict()) DEFAULT_CUSTOM_MODULES else emptyMap(),
       )
-      val moduleList = generator.computeModuleList(Path.of(m2Repo))
+      val moduleList = generator.computeModuleList(m2RepoPath)
       // first, generate community to collect libs, that used by community (to separate community and ultimate libs)
       val communityResult = generator.generateModuleBuildFiles(moduleList, isCommunity = true)
       val ultimateResult = generator.generateModuleBuildFiles(moduleList, isCommunity = false)
       generator.save(communityResult.moduleBuildFiles)
       generator.save(ultimateResult.moduleBuildFiles)
 
-      generator.generateLibs(jarRepositories = jarRepositories, m2Repo = Path.of(m2Repo))
+      generator.generateLibs(jarRepositories = jarRepositories, m2Repo = m2RepoPath)
+      generateDebuggerTestDepsModuleBazel(
+        communityRoot = communityRoot,
+        allLibraries = generator.allLibraries,
+        urlCache = urlCache,
+        m2Repo = m2RepoPath,
+      )
 
       // Check that after all workings of generator, all checksums from urls with checksums
       // are saved to MODULE.bazel correctly
