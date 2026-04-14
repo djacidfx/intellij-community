@@ -382,13 +382,6 @@ public final class PersistentFSImpl extends PersistentFS implements Disposable {
     return publisher;
   }
 
-  @TestOnly
-  @ApiStatus.Internal
-  public void resetPublishersForTesting() {
-    this.publisher = null;
-    this.publisherBackgroundable = null;
-  }
-
   @Override
   public void dispose() {
     List<? extends Throwable> errorsDuringDispose = runAllAndCollectExceptions(
