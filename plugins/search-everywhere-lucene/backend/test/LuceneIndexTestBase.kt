@@ -58,7 +58,7 @@ abstract class LuceneIndexTestBase {
       this@LuceneIndexTestBase.log.info("[DEBUG_LOG] $message")
     }
 
-    private fun explainResults(resultsToExplain: List<Pair<ScoreDoc, Document>>, limit: Int = 3): String {
+    fun explainResults(resultsToExplain: List<Pair<ScoreDoc, Document>> = results, limit: Int = 3): String {
       return index.withSearcher { searcher ->
         resultsToExplain.joinToString(
           separator = "\n\n",

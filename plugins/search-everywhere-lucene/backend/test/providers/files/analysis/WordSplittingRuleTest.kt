@@ -126,4 +126,18 @@ class WordSplittingRuleTest {
     assertEquals(setOf("Point3D", "Point", "3", "D"), words("Point3D"))
   }
 
+  @Test
+  fun `split - trailing short uppercase acronym`() {
+    // Trailing ≤ 2-char uppercase sequences are split individually when preceded by other content
+    assertEquals(setOf("foo", "A", "B"), words("fooAB"))
+    assertEquals(setOf("Foo", "A", "B"), words("FooAB"))
+    // 3+ char trailing uppercase stays as one word
+    assertEquals(setOf("foo", "ABC"), words("fooABC"))
+    // Long trailing acronyms are unchanged
+    assertEquals(setOf("HTTP", "Server"), words("HTTPServer"))
+    // Standalone short uppercase sequences are kept whole (not split into individual letters)
+    assertEquals(setOf("MF"), words("MF"))
+    assertEquals(setOf("RM"), words("RM"))
+  }
+
 }

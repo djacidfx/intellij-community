@@ -19,18 +19,20 @@ class FileIndexingAnalyzerTest : AnalyzersTestBase() {
       .producesToken("search", FileTokenType.FILENAME_PART, 0, 6)
       .producesToken("every", FileTokenType.FILENAME_PART, 6, 11)
       .producesToken("where", FileTokenType.FILENAME_PART, 11, 16)
-      .producesToken("sewu", FileTokenType.FILENAME_ABBREVIATION, 0, 18)
-      .producesToken("ui", FileTokenType.FILENAME_PART, 16, 18)
+      .producesToken("sewui", FileTokenType.FILENAME_ABBREVIATION, 0, 18)
+      .producesToken("u", FileTokenType.FILENAME_PART, 16, 17)
+      .producesToken("i", FileTokenType.FILENAME_PART, 17, 18)
       .noDuplicateTokens()
   }
 
   @Test
   fun `test FileNameAnalyzer emits skip abbreviations`() {
-    // SearchEveryWhereUI has 4 camel parts; with allowedSkip=1 the filter emits skip variants
+    // SearchEveryWhereUI has 5 camel parts (Search, Every, Where, U, I); with allowedSkip=1 the filter emits skip variants
     tokenizing(FileNameAnalyzer(), "SearchEveryWhereUI.java")
-      .producesToken("sew", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS, 0, 18)
-      .producesToken("seu", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS, 0, 18)
-      .producesToken("swu", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS, 0, 18)
+      .producesToken("sewu", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS, 0, 18)
+      .producesToken("sewi", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS, 0, 18)
+      .producesToken("seui", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS, 0, 18)
+      .producesToken("swui", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS, 0, 18)
   }
 
   @Test

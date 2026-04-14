@@ -45,14 +45,14 @@ class AbbreviationTokenFilterTest : AnalyzersTestBase() {
 
   @Test
   fun `abbreviation derived from camelCase parts`() {
-    // SearchEveryWhereUI -> Search+Every+Where+UI -> s+e+w+ui = "sewui"
-    // SearchEveryWhereUI -> Search+Every+Where+UI -> s+e+w+u = "sewu"
+    // SearchEveryWhereUI -> Search+Every+Where+U+I (trailing "UI" is split) -> s+e+w+u+i = "sewui"
     tokenizing(abbreviationAnalyzer(), "SearchEveryWhereUI")
-      .producesToken("sewu", FileTokenType.FILENAME_ABBREVIATION)
+      .producesToken("sewui", FileTokenType.FILENAME_ABBREVIATION)
       .producesToken("search", FileTokenType.FILENAME_PART, 0, 6)
       .producesToken("every", FileTokenType.FILENAME_PART, 6, 11)
       .producesToken("where", FileTokenType.FILENAME_PART, 11, 16)
-      .producesToken("ui", FileTokenType.FILENAME_PART, 16, 18)
+      .producesToken("u", FileTokenType.FILENAME_PART, 16, 17)
+      .producesToken("i", FileTokenType.FILENAME_PART, 17, 18)
       .producesToken("searcheverywhereui", FileTokenType.FILENAME, 0, 18)
       .noDuplicateTokens()
   }
@@ -78,13 +78,14 @@ class AbbreviationTokenFilterTest : AnalyzersTestBase() {
 
   @Test
   fun `multiple abbreviations with allowedSkip`() {
-    // SearchEveryWhereUI -> [Search, Every, Where, UI], allowedSkip=1, minLength=2
-    // size=4: "sewu"; size=3: "sew" (skip UI), "seu" (skip Where), "swu" (skip Every); first part always included
+    // SearchEveryWhereUI -> [Search, Every, Where, U, I], allowedSkip=1, minLength=2
+    // size=5: "sewui"; size=4: "sewu" (skip I), "sewi" (skip U), "seui" (skip Where), "swui" (skip Every)
     tokenizing(abbreviationAnalyzer(1), "SearchEveryWhereUI")
-      .producesToken("sewu", FileTokenType.FILENAME_ABBREVIATION)
-      .producesToken("sew", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS)
-      .producesToken("seu", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS)
-      .producesToken("swu", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS)
+      .producesToken("sewui", FileTokenType.FILENAME_ABBREVIATION)
+      .producesToken("sewu", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS)
+      .producesToken("sewi", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS)
+      .producesToken("seui", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS)
+      .producesToken("swui", FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS)
       .noDuplicateTokens()
   }
 
