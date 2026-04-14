@@ -17,13 +17,14 @@ import org.jetbrains.intellij.build.impl.projectStructureMapping.ModuleLibraryFi
 import org.jetbrains.intellij.build.impl.projectStructureMapping.ModuleOutputEntry
 import org.jetbrains.intellij.build.impl.projectStructureMapping.ModuleTestOutputEntry
 import org.jetbrains.intellij.build.impl.projectStructureMapping.ProjectLibraryEntry
+import org.jetbrains.jps.model.JpsProject
 import org.jetbrains.jps.model.module.JpsModule
 import kotlin.io.path.pathString
 
 /**
  * Provide information about [JpsModule] registered as content modules using data [DescriptorCacheContainer].
  */
-internal class ContentModuleDetectorImpl(platformLayout: PlatformLayout, bundledPlugins: List<PluginBuildDescriptor>) : ContentModuleDetector {
+internal class ContentModuleDetectorImpl(platformLayout: PlatformLayout, bundledPlugins: List<PluginBuildDescriptor>, project: JpsProject) : ContentModuleDetector {
   private val contentModules = mutableMapOf<String, ContentModuleRegistrationData>()
   private val loadingRulesForContentModules = mutableMapOf<String, RuntimeModuleLoadingRule>()
   private val requiredIfAvailableAttributeForContentModules = mutableMapOf<String, RuntimeModuleId>()
@@ -42,7 +43,7 @@ internal class ContentModuleDetectorImpl(platformLayout: PlatformLayout, bundled
       pluginDescriptorModuleNameToId[plugin.layout.mainModule] = pluginId
     }
     pluginHeaders = bundledPlugins.map { plugin ->
-      createPluginHeader(plugin, pluginId = pluginDescriptorModuleNameToId.getValue(plugin.layout.mainModule))
+      createPluginHeader(plugin, pluginId = pluginDescriptorModuleNameToId.getValue(plugin.layout.mainModule), project = project)
     }
   }
 
@@ -79,8 +80,18 @@ internal class ContentModuleDetectorImpl(platformLayout: PlatformLayout, bundled
     return contentModules[jpsModule.name]
   }
 
-  private fun createPluginHeader(plugin: PluginBuildDescriptor, pluginId: String): RawRuntimePluginHeader {
-    val pluginDescriptorModuleId = createModuleId(plugin.layout.mainModule)
+  override fun findContentModuleDataForTests(jpsModule: JpsModule): ContentModuleRegistrationData? {
+    val data = contentModules["${jpsModule.name}._test"]
+    if (data != null) return data
+    if (hasTestSourcesAndNoProductionSources(jpsModule)) {
+      //some modules (e.g. intellij.rider.test.cases.common) don't use `._test` suffix
+      return contentModules[jpsModule.name]
+    }
+    return null
+  }
+
+  private fun createPluginHeader(plugin: PluginBuildDescriptor, pluginId: String, project: JpsProject): RawRuntimePluginHeader {
+    val pluginDescriptorModuleId = createModuleId(plugin.layout.mainModule, project)
     val includedModules = plugin.distribution.mapNotNull { entry ->
       val relativeOutputPath = entry.relativeOutputFile ?: ""
       if (relativeOutputPath.removePrefix("modules/").contains('/')) {
@@ -91,7 +102,7 @@ internal class ContentModuleDetectorImpl(platformLayout: PlatformLayout, bundled
           val moduleName = entry.owner.moduleName
           val loadingRule = loadingRulesForContentModules[moduleName] ?: RuntimeModuleLoadingRule.EMBEDDED
           val requiredIfAvailableId = requiredIfAvailableAttributeForContentModules[moduleName]
-          RawIncludedRuntimeModule(createModuleId(moduleName), loadingRule, requiredIfAvailableId)
+          RawIncludedRuntimeModule(createModuleId(moduleName, project), loadingRule, requiredIfAvailableId)
         }
         is ProjectLibraryEntry -> {
           RawIncludedRuntimeModule(RuntimeModuleId.projectLibrary(entry.data.libraryName), RuntimeModuleLoadingRule.EMBEDDED, null)
@@ -105,13 +116,19 @@ internal class ContentModuleDetectorImpl(platformLayout: PlatformLayout, bundled
     return RawRuntimePluginHeader.create(pluginId, pluginDescriptorModuleId, includedModules)
   }
 
-  private fun createModuleId(moduleName: String): RuntimeModuleId {
+  private fun createModuleId(moduleName: String, project: JpsProject): RuntimeModuleId {
     val pluginDescriptorModuleData = contentModules[moduleName]
     val pluginDescriptorModuleId = if (pluginDescriptorModuleData != null) {
       RuntimeModuleId.contentModule(pluginDescriptorModuleData.name, pluginDescriptorModuleData.namespace)
     }
     else {
-      RuntimeModuleId.legacyJpsModule(moduleName)
+      val module = project.findModuleByName(moduleName)
+      if (module != null && hasTestSourcesAndNoProductionSources(module)) {
+        return RuntimeModuleId.moduleTests(moduleName)
+      }
+      else {
+        RuntimeModuleId.legacyJpsModule(moduleName)
+      }
     }
     return pluginDescriptorModuleId
   }

@@ -10,6 +10,12 @@ import org.jetbrains.jps.model.module.JpsModule
  */
 interface ContentModuleDetector {
   fun findContentModuleData(jpsModule: JpsModule): ContentModuleRegistrationData?
+
+  /**
+   * A separate method is needed because content module descriptors for test sources use a special `._test` suffix.
+   * This method won't be needed after IJPL-242652 is implemented.
+   */
+  fun findContentModuleDataForTests(jpsModule: JpsModule): ContentModuleRegistrationData?
 }
 
 data class ContentModuleRegistrationData(
@@ -24,4 +30,5 @@ data class ContentModuleRegistrationData(
  */
 object NoContentModuleDetector : ContentModuleDetector {
   override fun findContentModuleData(jpsModule: JpsModule): ContentModuleRegistrationData? = null
+  override fun findContentModuleDataForTests(jpsModule: JpsModule): ContentModuleRegistrationData? = null
 }

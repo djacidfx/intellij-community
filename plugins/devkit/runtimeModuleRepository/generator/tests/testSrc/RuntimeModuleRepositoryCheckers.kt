@@ -46,6 +46,8 @@ internal fun generateAndValidateRuntimeModuleRepository(project: JpsProject): Li
                                            namespace = RuntimeModuleId.DEFAULT_NAMESPACE,
                                            visibility = RuntimeModuleVisibility.PUBLIC)
     }
+
+    override fun findContentModuleDataForTests(jpsModule: JpsModule): ContentModuleRegistrationData? = null
   }
   val generatedDescriptors =
     RuntimeModuleRepositoryGenerator.generateRuntimeModuleDescriptorsForWholeProject(project,

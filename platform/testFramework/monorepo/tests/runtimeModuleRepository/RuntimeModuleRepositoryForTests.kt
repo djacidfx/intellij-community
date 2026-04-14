@@ -18,6 +18,7 @@ import org.jetbrains.jps.model.library.JpsLibrary
 import org.jetbrains.jps.model.library.JpsOrderRootType
 import org.jetbrains.jps.model.module.JpsModule
 import org.jetbrains.jps.model.serialization.JpsModelSerializationDataService
+import kotlin.io.path.exists
 import kotlin.io.path.invariantSeparatorsPathString
 
 /**
@@ -41,6 +42,7 @@ fun generateRuntimeModuleRepositoryForTests(monorepoProject: JpsProject): Runtim
 
 class ContentModuleDetectorInSourceCode : ContentModuleDetector {
   private val hasContentModuleDescriptor = HashMap<JpsModule, Boolean>()
+  private val hasContentModuleDescriptorForTests = HashMap<JpsModule, Boolean>()
 
   override fun findContentModuleData(jpsModule: JpsModule): ContentModuleRegistrationData? {
     val hasDescriptor = hasContentModuleDescriptor.getOrPut(jpsModule) {
@@ -48,6 +50,15 @@ class ContentModuleDetectorInSourceCode : ContentModuleDetector {
     }
     if (!hasDescriptor) return null
     return ContentModuleRegistrationData(jpsModule.name, "jetbrains", RuntimeModuleVisibility.PUBLIC)
+  }
+
+  override fun findContentModuleDataForTests(jpsModule: JpsModule): ContentModuleRegistrationData? {
+    val testModuleName = "${jpsModule.name}._test"
+    val hasDescriptor = hasContentModuleDescriptorForTests.getOrPut(jpsModule) {
+      jpsModule.sourceRoots.any { it.rootType.isForTests && it.path.resolve("$testModuleName.xml").exists() }
+    }
+    if (!hasDescriptor) return null
+    return ContentModuleRegistrationData(testModuleName, "jetbrains", RuntimeModuleVisibility.PUBLIC)
   }
 }
 

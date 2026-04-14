@@ -94,6 +94,10 @@ private fun generateDescriptorsForModules(
   fun getRuntimeModuleId(module: JpsModule, tests: Boolean): RuntimeModuleId {
     val moduleName = module.name
     if (tests) {
+      val contentModuleData = contentModuleDetector.findContentModuleDataForTests(module)
+      if (contentModuleData != null) {
+        return RuntimeModuleId.contentModule(contentModuleData.name, contentModuleData.namespace)
+      }
       return RuntimeModuleId.moduleTests(moduleName)
     }
     val contentModuleData = contentModuleDetector.findContentModuleData(module)

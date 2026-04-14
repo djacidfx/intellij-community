@@ -187,12 +187,18 @@ private suspend fun generateRepositoryForDistribution(
   val moduleProductionPaths = MultiMap.createOrderedSet<JpsModule, String>()
   val moduleTestPaths = MultiMap.createOrderedSet<JpsModule, String>()
   val libraryPaths = MultiMap.createOrderedSet<JpsLibrary, String>()
+  val jarPackagerDependencyHelper = (context as BuildContextImpl).jarPackagerDependencyHelper
   for (entry in entries) {
     when (entry.origin) {
       is ModuleOutputEntry -> {
         val module = context.outputProvider.findRequiredModule(entry.origin.owner.moduleName)
         if (isMainPath(module, entry.relativePath)) {
-          moduleProductionPaths.putValue(module, entry.relativePath)
+          if (!jarPackagerDependencyHelper.isTestPluginModule(entry.origin.owner.moduleName, module) && !hasTestSourcesAndNoProductionSources(module)) {
+            moduleProductionPaths.putValue(module, entry.relativePath)
+          }
+          else {
+            moduleTestPaths.putValue(module, entry.relativePath)
+          }
         }
       }
       is ModuleTestOutputEntry -> {
@@ -220,7 +226,7 @@ private suspend fun generateRepositoryForDistribution(
   addMappingsForDuplicatingLibraries(libraryPaths, moduleProductionPaths)
 
   val additionalFrontendPlugins = computeDescriptorsForAdditionalFrontendPlugins(context, bundledPlugins, platformLayout)
-  val contentModuleDetector = ContentModuleDetectorImpl(platformLayout, bundledPlugins + additionalFrontendPlugins)
+  val contentModuleDetector = ContentModuleDetectorImpl(platformLayout, bundledPlugins + additionalFrontendPlugins, context.project)
   val distDescriptors = RuntimeModuleRepositoryGenerator.generateRuntimeModuleDescriptors(
     includedProduction = moduleProductionPaths.keySet(),
     includedTests = moduleTestPaths.keySet(),
@@ -288,6 +294,11 @@ private suspend fun computeDescriptorsForAdditionalFrontendPlugins(
     )
   }
   return additionalFrontendPlugins
+}
+
+internal fun hasTestSourcesAndNoProductionSources(module: JpsModule): Boolean {
+  val sourceRoots = module.sourceRoots
+  return sourceRoots.isNotEmpty() && sourceRoots.all { it.rootType.isForTests }
 }
 
 private class DistributionResourcePathsSchema(
