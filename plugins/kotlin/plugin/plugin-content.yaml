@@ -179,6 +179,7 @@
   - name: kotlin.completion.impl.shared
   - name: kotlin.completion.impl.k1
   - name: intellij.kotlin.completion.impl
+  - name: intellij.kotlin.lombok
   - name: intellij.kotlin.maven
   - name: intellij.kotlin.gradle.tooling
   - name: intellij.kotlin.gradle.gradle

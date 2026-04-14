@@ -59,6 +59,7 @@
     <orderEntry type="module" module-name="kotlin.inspections" scope="RUNTIME" />
     <orderEntry type="module" module-name="kotlin.j2k.shared" scope="RUNTIME" />
     <orderEntry type="module" module-name="intellij.kotlin.j2k" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.kotlin.lombok" scope="RUNTIME" />
     <orderEntry type="module" module-name="intellij.kotlin.maven" scope="RUNTIME" />
     <orderEntry type="module" module-name="intellij.kotlin.migration" scope="RUNTIME" />
     <orderEntry type="module" module-name="intellij.kotlin.completion.ml" scope="RUNTIME" />

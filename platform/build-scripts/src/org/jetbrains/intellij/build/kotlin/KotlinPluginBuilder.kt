@@ -101,6 +101,7 @@ abstract class KotlinPluginBuilder(val kind : KotlinPluginKind = System.getPrope
       "kotlin.completion.impl.shared",
       "kotlin.completion.impl.k1",
       "intellij.kotlin.completion.impl",
+      "intellij.kotlin.lombok",
       "intellij.kotlin.maven",
       "intellij.kotlin.gradle.tooling",
       "intellij.kotlin.gradle.gradle",
