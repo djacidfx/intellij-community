@@ -348,7 +348,9 @@ public enum GitVersionSpecialty {
   },
 
   /**
-   * Options "--pathspec-from-file=" and "--pathspec-file-nul" for git add, rm, checkout, reset, restore commands
+   * Options "--pathspec-from-file=" and "--pathspec-file-nul" for git commands that take paths
+   *
+   * @see git4idea.util.GitFileUtils#PATHSPEC_FROM_FILE_SUPPORTED_COMMANDS
    */
   PATHSPEC_FROM_FILE_SUPPORTED {
     @Override

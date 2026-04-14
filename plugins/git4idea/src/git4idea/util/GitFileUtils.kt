@@ -26,11 +26,16 @@ import git4idea.config.GitVersionSpecialty.CAT_FILE_SUPPORTS_TEXTCONV
 import git4idea.index.GitIndexUtil
 import git4idea.index.vfs.GitIndexFileSystemRefresher
 import git4idea.repo.GitRepository
+import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.NonNls
 import java.io.ByteArrayInputStream
 
 object GitFileUtils {
   private val LOG = logger<GitFileUtils>()
+
+  /** Commands that support `--pathspec-from-file`; see [git4idea.config.GitVersionSpecialty.PATHSPEC_FROM_FILE_SUPPORTED]. */
+  private val PATHSPEC_FROM_FILE_SUPPORTED_COMMANDS =
+    setOf(GitCommand.ADD, GitCommand.RM, GitCommand.CHECKOUT, GitCommand.RESET, GitCommand.RESTORE)
   const val READ_CONTENT_WITH: String = "git.read.content.with"
 
   @JvmStatic
@@ -266,7 +271,20 @@ object GitFileUtils {
     }
   }
 
-  private fun executeForFiles(
+  /**
+   * Runs [command] against [files] in [root], handling arbitrarily large path lists.
+   *
+   * Paths are fed via `--pathspec-from-file` when all of the following hold:
+   * [git4idea.config.GitVersionSpecialty.PATHSPEC_FROM_FILE_SUPPORTED] is satisfied,
+   * the `git.use.pathspec.from.file` registry key is enabled,
+   * and [command] is listed in [PATHSPEC_FROM_FILE_SUPPORTED_COMMANDS].
+   * Otherwise, paths are chunked and the command is invoked multiple times.
+   */
+  @JvmStatic
+  @JvmOverloads
+  @Throws(VcsException::class)
+  @ApiStatus.Internal
+  fun executeForFiles(
     project: Project,
     root: VirtualFile,
     command: GitCommand,
@@ -285,7 +303,8 @@ object GitFileUtils {
   ) {
     if (paths.isEmpty()) return
 
-    if (GitVersionSpecialty.PATHSPEC_FROM_FILE_SUPPORTED.existsIn(project) && Registry.`is`("git.use.pathspec.from.file")) {
+    val pathspecFromFileEnabled = GitVersionSpecialty.PATHSPEC_FROM_FILE_SUPPORTED.existsIn(project) && Registry.`is`("git.use.pathspec.from.file")
+    if (pathspecFromFileEnabled && command in PATHSPEC_FROM_FILE_SUPPORTED_COMMANDS) {
       val handler = GitLineHandler(project, root, command).apply {
         setup()
         addParameters("--pathspec-from-file=-", "--pathspec-file-nul")
@@ -294,6 +313,9 @@ object GitFileUtils {
       Git.getInstance().runCommand(handler).throwOnError()
     }
     else {
+      if (pathspecFromFileEnabled) {
+        LOG.debug("Command '$command' does not support --pathspec-from-file, falling back to chunked arguments")
+      }
       for (paths in VcsFileUtil.chunkArguments(paths)) {
         val handler = GitLineHandler(project, root, command).apply {
           setup()
