@@ -102,6 +102,7 @@ f:com.intellij.collaboration.api.json.JsonHttpApiHelperKt
 - <init>(kotlinx.coroutines.CoroutineScope,com.intellij.collaboration.auth.AccountManager,com.intellij.collaboration.auth.ui.AccountsListModel):V
 - f:accountsPanelCell(com.intellij.ui.dsl.builder.Row,com.intellij.collaboration.auth.ui.LoadingAccountsDetailsProvider,com.intellij.collaboration.auth.ui.AccountsPanelActionsController):com.intellij.ui.dsl.builder.Cell
 *f:com.intellij.collaboration.auth.ui.AccountsPanelFactory$Companion
+- f:addWarningForEnabledCredentialHelper(Z,kotlin.jvm.functions.Function1):com.intellij.ui.dsl.builder.CellBase
 - f:addWarningForMemoryOnlyPasswordSafe(kotlinx.coroutines.CoroutineScope,kotlinx.coroutines.flow.Flow,kotlin.jvm.functions.Function1):V
 - f:addWarningForMemoryOnlyPasswordSafeAndGet(kotlinx.coroutines.CoroutineScope,kotlinx.coroutines.flow.Flow,kotlin.jvm.functions.Function1):com.intellij.ui.dsl.builder.CellBase
 - f:addWarningForPersistentCredentials(kotlinx.coroutines.CoroutineScope,kotlinx.coroutines.flow.Flow,kotlin.jvm.functions.Function1,kotlin.jvm.functions.Function1):com.intellij.ui.dsl.builder.CellBase

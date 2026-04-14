@@ -29,6 +29,7 @@ import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBList
+import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.Cell
 import com.intellij.ui.dsl.builder.CellBase
 import com.intellij.ui.dsl.builder.Panel
@@ -203,6 +204,14 @@ private constructor(private val accountManager: AccountManager<A, Cred>,
   }
 
   companion object {
+    fun addWarningForEnabledCredentialHelper(isCredentialHelperUsed: Boolean, panel: (Panel.() -> Unit) -> Panel): CellBase<Panel> = panel {
+      row {
+        @Suppress("HardCodedStringLiteral")
+        comment("<icon src='AllIcons.General.Warning'>&nbsp;${message("accounts.warning.credentialsHelper.used")}")
+          .align(AlignX.LEFT)
+      }
+    }.visible(isCredentialHelperUsed)
+
     /**
      * Adds a warning to a panel that tells the user that passwords and other credentials
      * are currently not persisted to disk.
