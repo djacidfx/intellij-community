@@ -562,14 +562,17 @@ private class JUnitMalformedSignatureVisitor(
     if (!type.isInheritorOf(ORG_JUNIT_JUPITER_API_EXTENSION_BEFORE_ALL_CALLBACK, ORG_JUNIT_JUPITER_API_EXTENSION_AFTER_ALL_CALLBACK)) return
     val containingClass = javaField.containingClass ?: return
     if (TestUtils.testInstancePerClass(containingClass)) return
+
+    val fixes = createModifierQuickfixes(field, modifierRequest(JvmModifier.STATIC, shouldBePresent = true))
     if (type.isInheritorOf(ORG_JUNIT_JUPITER_API_EXTENSION_BEFORE_EACH_CALLBACK, ORG_JUNIT_JUPITER_API_EXTENSION_AFTER_EACH_CALLBACK)) {
-      val message = JUnitBundle.message("jvm.inspections.junit.malformed.extension.instance.level.descriptor", type.presentableText)
-      holder.registerUProblem(field, message, highlightType = ProblemHighlightType.WEAK_WARNING)
+      holder.registerUProblem(field,
+                              JUnitBundle.message("jvm.inspections.junit.malformed.extension.instance.level.descriptor", type.presentableText),
+                              *fixes, highlightType = ProblemHighlightType.INFORMATION)
     }
     else {
-      val message = JUnitBundle.message("jvm.inspections.junit.malformed.extension.class.level.descriptor", type.presentableText)
-      val fixes = createModifierQuickfixes(field, modifierRequest(JvmModifier.STATIC, shouldBePresent = true))
-      holder.registerUProblem(field, message, *fixes)
+      holder.registerUProblem(field,
+                              JUnitBundle.message("jvm.inspections.junit.malformed.extension.class.level.descriptor", type.presentableText),
+                              *fixes, highlightType = ProblemHighlightType.GENERIC_ERROR_OR_WARNING)
     }
   }
 
