@@ -134,7 +134,7 @@
   </extensions>
 
   <extensions defaultExtensionNs="com.intellij.spellchecker">
-    <support language="yaml" implementationClass="org.jetbrains.yaml.YAMLSpellcheckerStrategy"/>
+    <support language="yaml" id="yaml" implementationClass="org.jetbrains.yaml.YAMLSpellcheckerStrategy"/>
   </extensions>
 
   <extensions defaultExtensionNs="com.intellij">
