@@ -146,7 +146,7 @@ open class MultipleFileMergeDialog(
     getGroupByDirectory = { groupByDirectory },
     resolveAutomatically = { resolveAutomatically(project, iterativeDataHolder) },
     updateTable = ::updateModelFromFiles,
-    getMergeDialogContext = { createMergeDialogContext(closeDialogForAgentHandoff = ::handoffToAgent) }
+    getMergeDialogContext = { createMergeDialogContext(closeDialog = ::handoffToAgent) }
   )
   else OneShotMergeFlowDelegate(
     project = project,
@@ -540,15 +540,15 @@ open class MultipleFileMergeDialog(
 
   @RequiresEdt
   @Internal
-  fun createMergeDialogContext(closeDialogForAgentHandoff: (() -> Unit)? = null): MergeDialogContext? {
+  fun createMergeDialogContext(closeDialog: (() -> Unit)? = null): MergeDialogContext? {
     val project = project ?: return null
     return MergeDialogContext(
       project = project,
       mergeProvider = mergeProvider,
       mergeDialogCustomizer = mergeDialogCustomizer,
-      getUnresolvedFiles = ::getUnresolvedFiles,
+      getSelectionHintFiles = { table.selectedFiles },
       isModalDialogProvider = ::isModal,
-      closeDialogForAgentHandoffHandler = closeDialogForAgentHandoff,
+      closeDialogHandler = closeDialog,
     )
   }
 

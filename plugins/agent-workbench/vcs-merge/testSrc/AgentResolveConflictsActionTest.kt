@@ -12,10 +12,15 @@ import com.intellij.agent.workbench.sessions.core.providers.AgentSessionTerminal
 import com.intellij.openapi.actionSystem.ActionUiKind
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
-import com.intellij.openapi.vcs.merge.MergeResolveWithAgentContext
+import com.intellij.openapi.vcs.merge.MergeData
+import com.intellij.openapi.vcs.merge.MergeDialogContext
+import com.intellij.openapi.vcs.merge.MergeDialogCustomizer
+import com.intellij.openapi.vcs.merge.MergeProvider
+import com.intellij.openapi.vcs.merge.MergeResolveActionContext
 import com.intellij.testFramework.LightVirtualFile
 import com.intellij.testFramework.junit5.TestApplication
 import com.intellij.ui.components.BasicOptionButtonUI
@@ -130,6 +135,54 @@ internal class AgentResolveConflictsActionTest {
     assertThat(component.isEnabled).isTrue()
   }
 
+  @Test
+  fun resolveContextUsesDirectSelectionHintFiles() {
+    val project = ProjectManager.getInstance().defaultProject
+    val allFiles = listOf(
+      LightVirtualFile("first.txt", "content"),
+      LightVirtualFile("second.txt", "content"),
+    )
+    val selectedFiles = listOf(allFiles[1])
+    val mergeContext = MergeResolveActionContext(
+      project = project,
+      selectionHintFilesProvider = { selectedFiles },
+    )
+    val dataContext = SimpleDataContext.builder()
+      .add(CommonDataKeys.PROJECT, project)
+      .add(MergeResolveActionContext.KEY, mergeContext)
+      .build()
+
+    val request = resolveRequest(AgentResolveConflictsAction(), dataContext)
+
+    assertThat(request.selectionHintFiles).containsExactlyElementsOf(selectedFiles)
+  }
+
+  @Test
+  fun resolveContextUsesDialogSelectionHintFiles() {
+    val project = ProjectManager.getInstance().defaultProject
+    val allFiles = listOf(
+      LightVirtualFile("first.txt", "content"),
+      LightVirtualFile("second.txt", "content"),
+    )
+    val selectedFiles = listOf(allFiles[1])
+    val mergeContext = MergeDialogContext(
+      project = project,
+      mergeProvider = TestMergeProvider(),
+      mergeDialogCustomizer = MergeDialogCustomizer(),
+      getSelectionHintFiles = { selectedFiles },
+      isModalDialogProvider = { false },
+      closeDialogHandler = null,
+    )
+    val dataContext = SimpleDataContext.builder()
+      .add(CommonDataKeys.PROJECT, project)
+      .add(MergeDialogContext.KEY, mergeContext)
+      .build()
+
+    val request = resolveRequest(AgentResolveConflictsAction(), dataContext)
+
+    assertThat(request.selectionHintFiles).containsExactlyElementsOf(selectedFiles)
+  }
+
   private fun createLaunchRequest(): AgentVcsMergeLaunchRequest {
     return AgentVcsMergeLaunchRequest(
       selectionHintFiles = listOf(LightVirtualFile("conflicts.txt", "content")),
@@ -149,14 +202,15 @@ internal class AgentResolveConflictsActionTest {
 
   private fun createOneShotDialogComponent(action: AgentResolveConflictsAction): JComponent {
     val project = ProjectManager.getInstance().defaultProject
-    val mergeContext = MergeResolveWithAgentContext(
+    val file = LightVirtualFile("conflicts.txt", "content")
+    val mergeContext = MergeResolveActionContext(
       project = project,
-      files = listOf(LightVirtualFile("conflicts.txt", "content")),
+      selectionHintFilesProvider = { listOf(file) },
     )
     action.templatePresentation.text = "Resolve with Agent"
     val dataContext = SimpleDataContext.builder()
       .add(CommonDataKeys.PROJECT, project)
-      .add(MergeResolveWithAgentContext.KEY, mergeContext)
+      .add(MergeResolveActionContext.KEY, mergeContext)
       .build()
     val presentation = action.templatePresentation.clone()
     action.update(AnActionEvent.createEvent(dataContext, presentation, "Merge.OneShotDialog", ActionUiKind.NONE, null))
@@ -165,6 +219,26 @@ internal class AgentResolveConflictsActionTest {
       action.updateCustomComponent(component, presentation)
     }
   }
+
+  private fun resolveRequest(action: AgentResolveConflictsAction, dataContext: DataContext): AgentVcsMergeLaunchRequest {
+    val method = AgentResolveConflictsAction::class.java.getDeclaredMethod("resolveContext", DataContext::class.java)
+    method.isAccessible = true
+    val resolveWithAgentContext = checkNotNull(method.invoke(action, dataContext))
+    val requestMethod = resolveWithAgentContext.javaClass.getDeclaredMethod("getRequest")
+    requestMethod.isAccessible = true
+    return requestMethod.invoke(resolveWithAgentContext) as AgentVcsMergeLaunchRequest
+  }
+}
+
+private class TestMergeProvider : MergeProvider {
+  override fun loadRevisions(file: com.intellij.openapi.vfs.VirtualFile): MergeData {
+    error("Not needed for this test")
+  }
+
+  override fun conflictResolvedForFile(file: com.intellij.openapi.vfs.VirtualFile) {
+  }
+
+  override fun isBinary(file: com.intellij.openapi.vfs.VirtualFile): Boolean = false
 }
 
 private class TestAgentSessionProviderDescriptor(

@@ -7,8 +7,8 @@ import com.intellij.openapi.actionSystem.Presentation
 import com.intellij.openapi.actionSystem.ex.CustomComponentAction
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.vcs.merge.MergeDialogCustomizer
+import com.intellij.openapi.vcs.merge.MergeResolveActionContext
 import com.intellij.openapi.vcs.merge.MergeResolveActionProvider
-import com.intellij.openapi.vcs.merge.MergeResolveWithAgentContext
 import com.intellij.testFramework.ExtensionTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.util.ui.UIUtil
@@ -26,7 +26,8 @@ class OneShotMergeFlowDelegateTest : BasePlatformTestCase() {
       TestProvider(order = -1, action = firstAction),
     )
 
-    val file = myFixture.tempDirFixture.createFile("conflicts/sample.txt", "text")
+    val firstFile = myFixture.tempDirFixture.createFile("conflicts/sample.txt", "text")
+    val secondFile = myFixture.tempDirFixture.createFile("conflicts/selected.txt", "text")
     val mergeDialogCustomizer = MergeDialogCustomizer()
     var closeRequested = false
     val rootPane = JRootPane()
@@ -35,7 +36,7 @@ class OneShotMergeFlowDelegateTest : BasePlatformTestCase() {
       table = JPanel(),
       mergeDialogCustomizer = mergeDialogCustomizer,
       rootPane = rootPane,
-      files = listOf(file),
+      files = listOf(firstFile, secondFile),
       onClose = { closeRequested = true },
       acceptForResolution = {},
       showMergeDialog = {},
@@ -44,6 +45,7 @@ class OneShotMergeFlowDelegateTest : BasePlatformTestCase() {
     )
 
     val panel = delegate.createCenterPanel()
+    delegate.onTreeChanged(listOf(secondFile), unmergeableFileSelected = false, unacceptableFileSelected = false)
     val buttons = UIUtil.findComponentsOfType(panel, JButton::class.java).filter { it.text == "First" || it.text == "Second" }
     assertEquals(listOf("First", "Second"), buttons.map(JButton::getText))
     buttons.first().doClick()
@@ -51,10 +53,10 @@ class OneShotMergeFlowDelegateTest : BasePlatformTestCase() {
     val context = firstAction.performedContext
     assertNotNull(context)
     assertSame(project, context!!.project)
-    assertEquals(listOf(file), context.files)
-    assertEquals(rootPane.isDisplayable, context.isLaunchContextValid())
+    assertEquals(listOf(secondFile), context.selectionHintFiles)
+    assertEquals(rootPane.isDisplayable, context.isContextValid())
     assertFalse(closeRequested)
-    context.closeDialogForAgentHandoff()
+    context.closeSourceUi()
     assertTrue(closeRequested)
   }
 
@@ -118,7 +120,7 @@ class OneShotMergeFlowDelegateTest : BasePlatformTestCase() {
     text: String,
     private val enabled: Boolean = true,
   ) : DumbAwareAction(text) {
-    var performedContext: MergeResolveWithAgentContext? = null
+    var performedContext: MergeResolveActionContext? = null
       private set
 
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
@@ -129,7 +131,7 @@ class OneShotMergeFlowDelegateTest : BasePlatformTestCase() {
     }
 
     override fun actionPerformed(e: AnActionEvent) {
-      performedContext = e.getData(MergeResolveWithAgentContext.KEY)
+      performedContext = e.getData(MergeResolveActionContext.KEY)
     }
   }
 

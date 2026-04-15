@@ -15,16 +15,16 @@ class MergeDialogContext(
   val project: Project,
   val mergeProvider: MergeProvider,
   val mergeDialogCustomizer: MergeDialogCustomizer,
-  private val getUnresolvedFiles: () -> List<VirtualFile>,
+  private val getSelectionHintFiles: () -> List<VirtualFile>,
   private val isModalDialogProvider: () -> Boolean,
-  private val closeDialogForAgentHandoffHandler: (() -> Unit)?,
+  private val closeDialogHandler: (() -> Unit)?,
 ) {
-  val unresolvedFiles: List<VirtualFile> get() = getUnresolvedFiles()
+  val selectionHintFiles: List<VirtualFile> get() = getSelectionHintFiles()
 
   fun isModalDialog(): Boolean = isModalDialogProvider()
 
-  fun closeDialogForAgentHandoff() {
-    closeDialogForAgentHandoffHandler?.invoke()
+  fun closeDialog() {
+    closeDialogHandler?.invoke()
   }
 
   companion object {

@@ -53,6 +53,11 @@ class AgentVcsMergeSessionSupportTest {
   }
 
   @Test
+  fun buildSelectionHintContextItemReturnsNullForEmptySelection() {
+    assertThat(AgentVcsMergeSessionSupport.buildSelectionHintContextItem(emptyList())).isNull()
+  }
+
+  @Test
   fun collectExternallyResolvedFilesReturnsOnlyNonConflictingFiles() {
     val resolved = LightVirtualFile("resolved.txt", "resolved")
     val conflicted = LightVirtualFile("conflicted.txt", "conflicted")

@@ -7,21 +7,22 @@ import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.ex.ActionUtil
-import com.intellij.openapi.util.BooleanGetter
 import com.intellij.openapi.vcs.FilePath
 import com.intellij.openapi.vcs.changes.Change
 import com.intellij.openapi.vcs.changes.ContentRevision
+import com.intellij.openapi.vcs.merge.MergeResolveActionContext
 import com.intellij.openapi.vcs.merge.MergeResolveActionProvider
-import com.intellij.openapi.vcs.merge.MergeResolveWithAgentContext
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.vcs.impl.changes.ChangesViewTestBase
 import com.intellij.testFramework.ExtensionTestUtil
 import com.intellij.testFramework.VfsTestUtil
 import com.intellij.ui.SimpleTextAttributes
 import javax.swing.JTree
+import javax.swing.tree.TreePath
 
 internal class ChangesBrowserConflictsNodeTest : ChangesViewTestBase() {
   fun `test renders contributed actions using update presentation order`() {
-    val node = createConflictsNode()
+    val fixture = createConflictsNode("sample.txt")
     maskProviders(
       TestProvider(
         order = 10,
@@ -39,12 +40,12 @@ internal class ChangesBrowserConflictsNodeTest : ChangesViewTestBase() {
       ),
     )
 
-    val rendered = render(node)
+    val rendered = render(fixture)
     assertEquals(listOf("First", "Second"), rendered.fragments.filter { it.text == "First" || it.text == "Second" }.map(RenderedFragment::text))
   }
 
   fun `test renders disabled contributed action as grayed with tooltip`() {
-    val node = createConflictsNode()
+    val fixture = createConflictsNode("sample.txt")
     maskProviders(
       TestProvider(
         action = TestAction(templateText = "Resolve with Agent") { e ->
@@ -55,7 +56,7 @@ internal class ChangesBrowserConflictsNodeTest : ChangesViewTestBase() {
       ),
     )
 
-    val rendered = render(node)
+    val rendered = render(fixture)
     val fragment = rendered.fragments.single { it.text == "Resolve with Agent" }
     assertEquals(SimpleTextAttributes.GRAYED_BOLD_ATTRIBUTES, fragment.attributes)
     assertNull(fragment.tag)
@@ -63,38 +64,81 @@ internal class ChangesBrowserConflictsNodeTest : ChangesViewTestBase() {
   }
 
   fun `test click path goes through ActionUtil performAction`() {
-    val node = createConflictsNode()
+    val fixture = createConflictsNode("sample.txt")
     val action = TestAction(templateText = "Resolve with Agent") { e ->
       e.presentation.isEnabledAndVisible = true
       e.presentation.putClientProperty(ActionUtil.SKIP_ACTION_EXECUTION, true)
     }
     maskProviders(TestProvider(action = action))
 
-    val rendered = render(node)
+    val rendered = render(fixture)
     assertSame(project, action.lastContext?.project)
-    assertEquals(1, action.lastContext?.files?.size)
+    assertEquals(emptyList<VirtualFile>(), action.lastContext?.selectionHintFiles)
     val actionTag = rendered.fragments.single { it.text == "Resolve with Agent" }.tag as Runnable
     actionTag.run()
 
     assertEquals(0, action.performedCount)
   }
 
-  private fun createConflictsNode(): ChangesBrowserConflictsNode {
-    val file = VfsTestUtil.createFile(getSourceRoot(), "conflicts/sample.txt", "text")
-    val change = Change(null, TestContentRevision(com.intellij.openapi.vcs.actions.VcsContextFactory.getInstance().createFilePathOn(file)))
-    return ChangesBrowserConflictsNode(project).apply {
-      add(ChangesBrowserNode.createChange(project, change))
-      add(ChangesBrowserNode.createFile(project, file))
+  fun `test selected conflict file contributes only selected files as launch hint`() {
+    val fixture = createConflictsNode("first.txt", "second.txt")
+    val action = TestAction(templateText = "Resolve with Agent") { e ->
+      e.presentation.isEnabledAndVisible = true
     }
+    maskProviders(TestProvider(action = action))
+
+    render(fixture, fixture.fileNodes[1])
+
+    assertEquals(listOf(fixture.files[1]), action.lastContext?.selectionHintFiles)
+  }
+
+  fun `test selecting conflicts root omits launch hint`() {
+    val fixture = createConflictsNode("first.txt", "second.txt")
+    val action = TestAction(templateText = "Resolve with Agent") { e ->
+      e.presentation.isEnabledAndVisible = true
+    }
+    maskProviders(TestProvider(action = action))
+
+    render(fixture, fixture.node)
+
+    assertEquals(emptyList<VirtualFile>(), action.lastContext?.selectionHintFiles)
+  }
+
+  private fun createConflictsNode(vararg fileNames: String): ConflictsNodeFixture {
+    val root = ChangesBrowserNode.createRoot()
+    val node = ChangesBrowserConflictsNode(project)
+    root.add(node)
+    val basePath = "conflicts/${System.nanoTime()}"
+
+    val files = mutableListOf<VirtualFile>()
+    val changeNodes = mutableListOf<ChangesBrowserNode<*>>()
+    val fileNodes = mutableListOf<ChangesBrowserNode<*>>()
+    for (fileName in fileNames) {
+      val file = VfsTestUtil.createFile(getSourceRoot(), "$basePath/$fileName", "text")
+      val change = Change(null, TestContentRevision(com.intellij.openapi.vcs.actions.VcsContextFactory.getInstance().createFilePathOn(file)))
+      val changeNode = ChangesBrowserNode.createChange(project, change)
+      val fileNode = ChangesBrowserNode.createFile(project, file)
+      files += file
+      changeNodes += changeNode
+      fileNodes += fileNode
+      node.add(changeNode)
+      node.add(fileNode)
+    }
+
+    return ConflictsNodeFixture(root, node, files, changeNodes, fileNodes)
   }
 
   private fun maskProviders(vararg providers: MergeResolveActionProvider) {
     ExtensionTestUtil.maskExtensions(MergeResolveActionProvider.EP_NAME, providers.toList(), testRootDisposable)
   }
 
-  private fun render(node: ChangesBrowserConflictsNode): RenderedNode {
-    val renderer = ChangesBrowserNodeRenderer(project, BooleanGetter { false }, true)
-    renderer.getTreeCellRendererComponent(JTree(), node, false, true, false, 0, false)
+  private fun render(fixture: ConflictsNodeFixture, vararg selectedNodes: ChangesBrowserNode<*>): RenderedNode {
+    val tree = JTree(fixture.root)
+    if (selectedNodes.isNotEmpty()) {
+      tree.selectionPaths = selectedNodes.map { node -> pathToNode(fixture, node) }.toTypedArray()
+    }
+    val renderer = ChangesBrowserNodeRenderer(project, { false }, true)
+    renderer.getTreeCellRendererComponent(tree, fixture.node, false, true, false, 0, false)
 
     val fragments = buildList {
       val iterator = renderer.iterator()
@@ -105,6 +149,22 @@ internal class ChangesBrowserConflictsNodeTest : ChangesViewTestBase() {
     }
     return RenderedNode(fragments, renderer.toolTipText)
   }
+
+  private fun pathToNode(fixture: ConflictsNodeFixture, node: ChangesBrowserNode<*>): TreePath {
+    return when (node) {
+      fixture.node -> TreePath(arrayOf(fixture.root, fixture.node))
+      in fixture.changeNodes, in fixture.fileNodes -> TreePath(arrayOf(fixture.root, fixture.node, node))
+      else -> error("Unexpected node: $node")
+    }
+  }
+
+  private data class ConflictsNodeFixture(
+    val root: ChangesBrowserNode<*>,
+    val node: ChangesBrowserConflictsNode,
+    val files: List<VirtualFile>,
+    val changeNodes: List<ChangesBrowserNode<*>>,
+    val fileNodes: List<ChangesBrowserNode<*>>,
+  )
 
   private data class RenderedNode(
     val fragments: List<RenderedFragment>,
@@ -139,18 +199,18 @@ internal class ChangesBrowserConflictsNodeTest : ChangesViewTestBase() {
   ) : AnAction(templateText) {
     var performedCount: Int = 0
       private set
-    var lastContext: MergeResolveWithAgentContext? = null
+    var lastContext: MergeResolveActionContext? = null
       private set
 
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
 
     override fun update(e: AnActionEvent) {
-      lastContext = e.getData(MergeResolveWithAgentContext.KEY)
+      lastContext = e.getData(MergeResolveActionContext.KEY)
       updateHandler(e)
     }
 
     override fun actionPerformed(e: AnActionEvent) {
-      lastContext = e.getData(MergeResolveWithAgentContext.KEY)
+      lastContext = e.getData(MergeResolveActionContext.KEY)
       performedCount++
     }
   }

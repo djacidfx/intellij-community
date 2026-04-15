@@ -16,7 +16,7 @@ targets:
   - ../../../../platform/vcs-impl/shared/src/com/intellij/openapi/vcs/changes/ui/ChangesBrowserConflictsNode.kt
   - ../../../../platform/vcs-impl/shared/src/com/intellij/openapi/vcs/merge/MergeResolveActionProvider.kt
   - ../../../../platform/vcs-impl/shared/src/com/intellij/openapi/vcs/merge/MergeResolveActionSupport.kt
-  - ../../../../platform/vcs-impl/shared/src/com/intellij/openapi/vcs/merge/MergeResolveWithAgentContext.kt
+  - ../../../../platform/vcs-impl/shared/src/com/intellij/openapi/vcs/merge/MergeResolveActionContext.kt
   - ../../../../platform/vcs-impl/src/com/intellij/openapi/vcs/merge/MultipleFileMergeDialog.kt
   - ../../../../platform/vcs-impl/src/com/intellij/openapi/vcs/merge/flow/OneShotMergeFlowDelegate.kt
   - ../../../../platform/vcs-impl/testSrc/com/intellij/openapi/vcs/merge/flow/OneShotMergeFlowDelegateTest.kt
@@ -55,12 +55,12 @@ Agent Workbench owns the only concrete contributed action today. Platform and `g
 ## Requirements
 - The platform must define a generic extension point `com.intellij.openapi.vcs.merge.resolveActionProvider` for non-iterative merge actions, and non-iterative merge surfaces must consume contributed actions through that EP rather than referencing agent-specific action ids.
 
-- `MergeResolveActionSupport` must build action events with `PROJECT`, `CONTEXT_COMPONENT`, and `MergeResolveWithAgentContext.KEY`, and it must drive contributed actions through normal `ActionUtil.updateAction` and `ActionUtil.performAction` calls.
+- `MergeResolveActionSupport` must build action events with `PROJECT`, `CONTEXT_COMPONENT`, and `MergeResolveActionContext.KEY`, and it must drive contributed actions through normal `ActionUtil.updateAction` and `ActionUtil.performAction` calls.
   [@test] ../../../../platform/vcs-impl/shared/testSrc/com/intellij/openapi/vcs/changes/ui/ChangesBrowserConflictsNodeTest.kt
   [@test] ../../../../platform/vcs-impl/testSrc/com/intellij/openapi/vcs/merge/flow/OneShotMergeFlowDelegateTest.kt
   [@test] ../../git4idea/tests/git4idea/conflicts/GitMergeConflictEditorNotificationProviderTest.kt
 
-- `MergeResolveWithAgentContext` for non-iterative launch surfaces must remain lightweight and contain only the project, conflicted files, and optional launch-handoff callbacks. It must not carry `MergeProvider` or `MergeDialogCustomizer`.
+- `MergeResolveActionContext` for non-iterative launch surfaces must remain lightweight and contain only the project, an optional current-selection hint, and optional launch-surface callbacks. It must not carry conflicted-file inventories, `MergeProvider`, or `MergeDialogCustomizer`.
 
 - Contributed non-iterative merge actions must be ordered by `MergeResolveActionProvider.order` across all launch surfaces.
   [@test] ../../../../platform/vcs-impl/shared/testSrc/com/intellij/openapi/vcs/changes/ui/ChangesBrowserConflictsNodeTest.kt
@@ -73,7 +73,7 @@ Agent Workbench owns the only concrete contributed action today. Platform and `g
 - Invoking the Changes conflicts action must go through `ActionUtil.performAction` rather than bypassing the standard action pipeline.
   [@test] ../../../../platform/vcs-impl/shared/testSrc/com/intellij/openapi/vcs/changes/ui/ChangesBrowserConflictsNodeTest.kt
 
-- The one-shot modal merge dialog must expose visible contributed merge actions in the right-side action column, provide shared merge action context containing project, unresolved files, a dialog-close callback, and a launch-validity check, and allow contributed actions to render custom dialog components through the standard IntelliJ custom-component action contract.
+- The one-shot modal merge dialog must expose visible contributed merge actions in the right-side action column, provide shared merge action context containing project, a dialog-close callback, a launch-validity check, and an optional current-selection hint, and allow contributed actions to render custom dialog components through the standard IntelliJ custom-component action contract.
   [@test] ../../../../platform/vcs-impl/testSrc/com/intellij/openapi/vcs/merge/flow/OneShotMergeFlowDelegateTest.kt
   [@test] ../../vcs-merge/testSrc/AgentResolveConflictsActionTest.kt
 
@@ -82,7 +82,8 @@ Agent Workbench owns the only concrete contributed action today. Platform and `g
 - The existing Git “resolve in progress” banner remains manual-window-only and must not gain agent-session state in v1.
   [@test] ../../git4idea/tests/git4idea/conflicts/GitMergeConflictEditorNotificationProviderTest.kt
 
-- For non-iterative launch surfaces, the agent plugin may treat launch-surface conflicted files as a user-focus hint rather than the authoritative backend merge scope. Backend merge-provider resolution for agent-assisted merge sessions must happen from current project conflict state rather than from merge-specific objects stored in the shared action context.
+- For non-iterative launch surfaces, the agent plugin may treat launch-surface conflicted files as surface scope rather than the authoritative backend merge scope. Backend merge-provider resolution for agent-assisted merge sessions must happen from current project conflict state rather than from merge-specific objects stored in the shared action context.
+- Selection-capable launch surfaces may attach only their current concrete file selection as an optional launch-selection hint. If no concrete file selection exists, they must omit that hint instead of falling back to the full conflicted-file inventory. Single-file launch surfaces may attach that one file as the launch-selection hint.
 
 - Modal merge dialogs must close immediately after the user activates `Resolve with Agent` with a concrete provider choice, before the Agent thread is launched or focused.
 - If provider selection fails before launch begins, the source merge UI must remain usable.
@@ -120,6 +121,7 @@ Agent Workbench owns the only concrete contributed action today. Platform and `g
 - Changes renders contributed merge actions inline with the built-in `Resolve` link, using standard enabled or disabled action presentation. Disabled contributed actions remain visible and surface their descriptions in the tooltip.
 - The Git conflicted-file editor banner keeps `Resolve conflicts…` as its primary manual link and, when eligible, shows each enabled contributed merge action as an additional link in provider order. Disabled contributed actions are omitted there.
 - The one-shot modal merge dialog shows one visible control per contributed merge action beside `Accept Yours`, `Accept Theirs`, and `Merge...`. Standard contributed actions render as ordinary dialog buttons; contributed custom components may render compound dialog controls. `Resolve with Agent` uses a dialog-native button-with-selector pattern when multiple provider entries are available, while preserving provider order, icon, enabled state, and description tooltip.
+- When the Changes conflicts node, one-shot merge dialog, or iterative merge dialog has an explicit file selection, the launch-selection hint contains only that selection. When those surfaces have no explicit file selection, no launch-selection hint is attached.
 - After the dialog closes, focus moves to a pinned deferred-start Agent Workbench thread instead of a second merge dialog.
 - The agent may ask clarifying questions in that pinned thread, and the user replies there.
 - Review after handoff happens in normal IDE editors, Changes, and VCS surfaces.
@@ -129,7 +131,7 @@ Agent Workbench owns the only concrete contributed action today. Platform and `g
 - The backend session must be project-scoped so duplicate launches for the same worktree converge on one active merge session in that project.
 - The merge session owns unresolved-file tracking, merge-model preparation, file finalization, dirty-scope updates, and pin cleanup.
 - The generic non-iterative action layer owns only action presentation and event wiring; merge-specific object lookup for non-iterative launches stays in the agent plugin.
-- The merge prompt may include a compact launch-selection hint, but the thread itself remains a normal Agent Workbench chat/editor surface and must not rely on an exhaustive conflicted-file prompt attachment.
+- The merge prompt may include a compact launch-selection hint, but the thread itself remains a normal Agent Workbench chat/editor surface and must not rely on an exhaustive conflicted-file prompt attachment or any fallback to full launch-surface conflict inventories when no explicit selection exists.
 - Unsupported binary files may remain in the active merge set for manual resolution. Text conflicts may still launch and are expected to be resolved through normal workflow.
 
 ## Error Handling

@@ -27,7 +27,7 @@ data class MergeResolveActionPresentation(
 @ApiStatus.Internal
 object MergeResolveActionSupport {
   fun collectActionPresentations(
-    mergeContext: MergeResolveWithAgentContext,
+    mergeContext: MergeResolveActionContext,
     contextComponent: JComponent?,
     place: String,
   ): List<MergeResolveActionPresentation> {
@@ -38,7 +38,7 @@ object MergeResolveActionSupport {
 
   fun createActionPresentation(
     provider: MergeResolveActionProvider,
-    mergeContext: MergeResolveWithAgentContext,
+    mergeContext: MergeResolveActionContext,
     contextComponent: JComponent?,
     place: String,
   ): MergeResolveActionPresentation? {
@@ -56,7 +56,7 @@ object MergeResolveActionSupport {
 
   fun getUpdatedPresentation(
     action: AnAction,
-    mergeContext: MergeResolveWithAgentContext,
+    mergeContext: MergeResolveActionContext,
     contextComponent: JComponent?,
     place: String,
   ): Presentation? {
@@ -69,7 +69,7 @@ object MergeResolveActionSupport {
 
   fun performAction(
     provider: MergeResolveActionProvider,
-    mergeContext: MergeResolveWithAgentContext,
+    mergeContext: MergeResolveActionContext,
     contextComponent: JComponent?,
     place: String,
     inputEvent: InputEvent? = null,
@@ -85,7 +85,7 @@ object MergeResolveActionSupport {
 
   private fun createActionEvent(
     action: AnAction,
-    mergeContext: MergeResolveWithAgentContext,
+    mergeContext: MergeResolveActionContext,
     contextComponent: JComponent?,
     place: String,
     inputEvent: InputEvent?,
@@ -95,7 +95,7 @@ object MergeResolveActionSupport {
       when {
         CommonDataKeys.PROJECT.`is`(dataId) -> mergeContext.project
         PlatformCoreDataKeys.CONTEXT_COMPONENT.`is`(dataId) -> contextComponent
-        MergeResolveWithAgentContext.KEY.`is`(dataId) -> mergeContext
+        MergeResolveActionContext.KEY.`is`(dataId) -> mergeContext
         else -> null
       }
     }

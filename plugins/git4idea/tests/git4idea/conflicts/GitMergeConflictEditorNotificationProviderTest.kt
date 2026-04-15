@@ -7,8 +7,8 @@ import com.intellij.openapi.application.runReadActionBlocking
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorState
 import com.intellij.openapi.util.UserDataHolderBase
+import com.intellij.openapi.vcs.merge.MergeResolveActionContext
 import com.intellij.openapi.vcs.merge.MergeResolveActionProvider
-import com.intellij.openapi.vcs.merge.MergeResolveWithAgentContext
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.testFramework.ExtensionTestUtil
@@ -53,8 +53,8 @@ internal class GitMergeConflictEditorNotificationProviderTest : GitSingleRepoTes
       val context = firstAction.performedContext
       assertNotNull(context)
       assertSame(project, context!!.project)
-      assertEquals(listOf(conflictFile), context.files)
-      assertTrue(context.isLaunchContextValid())
+      assertEquals(listOf(conflictFile), context.selectionHintFiles)
+      assertTrue(context.isContextValid())
     }
   }
 
@@ -102,7 +102,7 @@ internal class GitMergeConflictEditorNotificationProviderTest : GitSingleRepoTes
     text: String,
     private val enabled: Boolean = true,
   ) : com.intellij.openapi.project.DumbAwareAction(text) {
-    var performedContext: MergeResolveWithAgentContext? = null
+    var performedContext: MergeResolveActionContext? = null
       private set
     var performedCount: Int = 0
       private set
@@ -110,13 +110,13 @@ internal class GitMergeConflictEditorNotificationProviderTest : GitSingleRepoTes
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
 
     override fun update(e: AnActionEvent) {
-      e.presentation.isVisible = e.getData(MergeResolveWithAgentContext.KEY) != null
+      e.presentation.isVisible = e.getData(MergeResolveActionContext.KEY) != null
       e.presentation.isEnabled = enabled
     }
 
     override fun actionPerformed(e: AnActionEvent) {
       performedCount++
-      performedContext = e.getData(MergeResolveWithAgentContext.KEY)
+      performedContext = e.getData(MergeResolveActionContext.KEY)
     }
   }
 

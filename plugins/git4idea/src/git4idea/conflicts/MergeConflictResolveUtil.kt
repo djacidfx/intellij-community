@@ -27,8 +27,8 @@ import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.UserDataHolder
 import com.intellij.openapi.vcs.impl.BackgroundableActionLock
 import com.intellij.openapi.vcs.merge.MergeDialogCustomizer
+import com.intellij.openapi.vcs.merge.MergeResolveActionContext
 import com.intellij.openapi.vcs.merge.MergeResolveActionSupport
-import com.intellij.openapi.vcs.merge.MergeResolveWithAgentContext
 import com.intellij.openapi.vcs.merge.MergeUtils
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
@@ -200,7 +200,7 @@ object MergeConflictResolveUtil {
     fileEditor: FileEditor,
     private val file: VirtualFile,
   ) : EditorNotificationPanel(fileEditor, Status.Warning) {
-    private val mergeContext: MergeResolveWithAgentContext = createMergeResolveWithAgentContext(project, file)
+    private val mergeContext: MergeResolveActionContext = createMergeResolveActionContext(project, file)
 
     init {
       text = GitBundle.message("link.label.editor.notification.merge.conflicts.suggest.resolve")
@@ -239,8 +239,11 @@ object MergeConflictResolveUtil {
     }
   }
 
-  private fun createMergeResolveWithAgentContext(project: Project, file: VirtualFile): MergeResolveWithAgentContext {
-    return MergeResolveWithAgentContext(project = project, files = listOf(file))
+  private fun createMergeResolveActionContext(project: Project, file: VirtualFile): MergeResolveActionContext {
+    return MergeResolveActionContext(
+      project = project,
+      selectionHintFilesProvider = { listOf(file) },
+    )
   }
 
   private fun showMergeWindow(project: Project, file: VirtualFile) {

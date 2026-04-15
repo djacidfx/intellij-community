@@ -15,10 +15,10 @@ import com.intellij.openapi.vcs.VcsBundle
 import com.intellij.openapi.vcs.changes.ui.ChangesGroupingPolicyFactory
 import com.intellij.openapi.vcs.changes.ui.TreeModelBuilder
 import com.intellij.openapi.vcs.merge.MergeDialogCustomizer
+import com.intellij.openapi.vcs.merge.MergeResolveActionContext
 import com.intellij.openapi.vcs.merge.MergeResolveActionPresentation
 import com.intellij.openapi.vcs.merge.MergeResolveActionProvider
 import com.intellij.openapi.vcs.merge.MergeResolveActionSupport
-import com.intellij.openapi.vcs.merge.MergeResolveWithAgentContext
 import com.intellij.openapi.vcs.merge.MergeSession
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.dsl.builder.Align
@@ -54,6 +54,7 @@ internal class OneShotMergeFlowDelegate(
   private lateinit var acceptYoursButton: JButton
   private lateinit var acceptTheirsButton: JButton
   private lateinit var mergeButton: JButton
+  private var selectionHintFiles: List<VirtualFile> = emptyList()
 
   override fun createCenterPanel(): JComponent {
     return panel {
@@ -132,6 +133,7 @@ internal class OneShotMergeFlowDelegate(
   }
 
   override fun onTreeChanged(selectedFiles: List<VirtualFile>, unmergeableFileSelected: Boolean, unacceptableFileSelected: Boolean) {
+    selectionHintFiles = selectedFiles
     val haveSelection = selectedFiles.any()
     acceptYoursButton.isEnabled = haveSelection && !unacceptableFileSelected
     acceptTheirsButton.isEnabled = haveSelection && !unacceptableFileSelected
@@ -148,11 +150,11 @@ internal class OneShotMergeFlowDelegate(
 
   private fun createResolveActionButtons(): List<JComponent> {
     val project = project ?: return emptyList()
-    val mergeContext = MergeResolveWithAgentContext(
+    val mergeContext = MergeResolveActionContext(
       project = project,
-      files = files,
-      closeDialogForAgentHandoffHandler = onClose,
-      isLaunchContextValidHandler = { rootPane.isDisplayable },
+      selectionHintFilesProvider = { selectionHintFiles },
+      closeSourceUiHandler = onClose,
+      isContextValidHandler = { rootPane.isDisplayable },
     )
     return MergeResolveActionProvider.EP_NAME.extensionList
       .sortedBy(MergeResolveActionProvider::order)
@@ -161,7 +163,7 @@ internal class OneShotMergeFlowDelegate(
 
   private fun createResolveActionComponent(
     provider: MergeResolveActionProvider,
-    mergeContext: MergeResolveWithAgentContext,
+    mergeContext: MergeResolveActionContext,
   ): JComponent? {
     val action = provider.action
     return if (action is CustomComponentAction) {
@@ -174,7 +176,7 @@ internal class OneShotMergeFlowDelegate(
 
   private fun createResolveActionButton(
     provider: MergeResolveActionProvider,
-    mergeContext: MergeResolveWithAgentContext,
+    mergeContext: MergeResolveActionContext,
   ): JButton? {
     val button = JButton()
     updateResolveActionButton(provider, mergeContext, button)
@@ -188,7 +190,7 @@ internal class OneShotMergeFlowDelegate(
 
   private fun createResolveActionCustomComponent(
     action: CustomComponentAction,
-    mergeContext: MergeResolveWithAgentContext,
+    mergeContext: MergeResolveActionContext,
   ): JComponent? {
     val anAction = action as? com.intellij.openapi.actionSystem.AnAction ?: return null
     val presentation = MergeResolveActionSupport.getUpdatedPresentation(anAction, mergeContext, null, MERGE_DIALOG_ACTION_PLACE)
@@ -200,7 +202,7 @@ internal class OneShotMergeFlowDelegate(
 
   private fun updateResolveActionButton(
     provider: MergeResolveActionProvider,
-    mergeContext: MergeResolveWithAgentContext,
+    mergeContext: MergeResolveActionContext,
     button: JButton,
   ) {
     syncResolveActionButton(button, MergeResolveActionSupport.createActionPresentation(provider, mergeContext, button, MERGE_DIALOG_ACTION_PLACE))
@@ -221,12 +223,12 @@ internal class OneShotMergeFlowDelegate(
 
   private fun wrapResolveActionComponent(
     component: JComponent,
-    mergeContext: MergeResolveWithAgentContext,
+    mergeContext: MergeResolveActionContext,
   ): JComponent {
     return UiDataProvider.wrapComponent(component) { sink ->
       sink[CommonDataKeys.PROJECT] = mergeContext.project
       sink[PlatformCoreDataKeys.CONTEXT_COMPONENT] = component
-      sink[MergeResolveWithAgentContext.KEY] = mergeContext
+      sink[MergeResolveActionContext.KEY] = mergeContext
     }
   }
 

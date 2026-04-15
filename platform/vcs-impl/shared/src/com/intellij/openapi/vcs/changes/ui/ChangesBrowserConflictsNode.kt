@@ -4,15 +4,18 @@ package com.intellij.openapi.vcs.changes.ui
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.VcsBundle
+import com.intellij.openapi.vcs.changes.Change
 import com.intellij.openapi.vcs.changes.ConflictsResolutionService
+import com.intellij.openapi.vcs.merge.MergeResolveActionContext
 import com.intellij.openapi.vcs.merge.MergeResolveActionPresentation
 import com.intellij.openapi.vcs.merge.MergeResolveActionProvider
 import com.intellij.openapi.vcs.merge.MergeResolveActionSupport
-import com.intellij.openapi.vcs.merge.MergeResolveWithAgentContext
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.util.FontUtil
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nls
+import javax.swing.JTree
 
 private const val CONFLICTS_NODE_ACTION_PLACE = "ChangesView.ConflictsNode"
 
@@ -30,8 +33,8 @@ internal val CONFLICTS_NODE_TAG: ChangesBrowserNode.Tag = object : ChangesBrowse
 class ChangesBrowserConflictsNode(val project: Project)
   : TagChangesBrowserNode(CONFLICTS_NODE_TAG, SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES, true) {
   @Suppress("Nls")
-  override fun render(renderer: ChangesBrowserNodeRenderer, selected: Boolean, expanded: Boolean, hasFocus: Boolean) {
-    val contributedActions = getContributedActions()
+  override fun render(tree: JTree, renderer: ChangesBrowserNodeRenderer, selected: Boolean, expanded: Boolean, hasFocus: Boolean) {
+    val contributedActions = getContributedActions(tree)
     renderer.append(VcsBundle.message("changes.nodetitle.merge.conflicts"), SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES)
     renderer.append(FontUtil.spaceAndThinSpace(), SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES)
     renderer.append(VcsBundle.message("changes.nodetitle.merge.conflicts.resolve.link.label"), SimpleTextAttributes.LINK_BOLD_ATTRIBUTES, Runnable { showResolveConflictsDialog() })
@@ -39,7 +42,7 @@ class ChangesBrowserConflictsNode(val project: Project)
       renderer.append(" / ", SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES)
       if (actionPresentation.isEnabled) {
         renderer.append(actionPresentation.text, SimpleTextAttributes.LINK_BOLD_ATTRIBUTES, Runnable {
-          performContributedAction(actionPresentation.provider)
+          performContributedAction(tree, actionPresentation.provider)
         })
       }
       else {
@@ -61,9 +64,9 @@ class ChangesBrowserConflictsNode(val project: Project)
     project.service<ConflictsResolutionService>().showConflictResolutionDialog(allChangesUnder)
   }
 
-  private fun getContributedActions(): List<ConflictNodeActionPresentation> {
-    val mergeContext = createMergeContext() ?: return emptyList()
-    return MergeResolveActionSupport.collectActionPresentations(mergeContext, null, CONFLICTS_NODE_ACTION_PLACE)
+  private fun getContributedActions(tree: JTree): List<ConflictNodeActionPresentation> {
+    val mergeContext = createMergeContext(tree) ?: return emptyList()
+    return MergeResolveActionSupport.collectActionPresentations(mergeContext, tree, CONFLICTS_NODE_ACTION_PLACE)
       .map(::createActionPresentation)
   }
 
@@ -76,21 +79,29 @@ class ChangesBrowserConflictsNode(val project: Project)
     )
   }
 
-  private fun performContributedAction(provider: MergeResolveActionProvider) {
-    val mergeContext = createMergeContext() ?: return
-    MergeResolveActionSupport.performAction(provider, mergeContext, null, CONFLICTS_NODE_ACTION_PLACE)
+  private fun performContributedAction(tree: JTree, provider: MergeResolveActionProvider) {
+    val mergeContext = createMergeContext(tree) ?: return
+    MergeResolveActionSupport.performAction(provider, mergeContext, tree, CONFLICTS_NODE_ACTION_PLACE)
   }
 
-  private fun createMergeContext(): MergeResolveWithAgentContext? {
-    val files = LinkedHashSet<com.intellij.openapi.vfs.VirtualFile>()
-    iterateFilesUnder().forEach(files::add)
-    for (change in allChangesUnder) {
-      change.afterRevision?.file?.virtualFile?.takeIf { file -> file.isValid }?.let(files::add)
-      change.beforeRevision?.file?.virtualFile?.takeIf { file -> file.isValid }?.let(files::add)
-    }
-    if (files.isEmpty()) return null
+  private fun createMergeContext(tree: JTree): MergeResolveActionContext? {
+    if (collectConflictFiles(this).isEmpty()) return null
 
-    return MergeResolveWithAgentContext(project = project, files = files.toList())
+    return MergeResolveActionContext(
+      project = project,
+      selectionHintFilesProvider = { collectSelectionHintFiles(tree) },
+    )
+  }
+
+  private fun collectSelectionHintFiles(tree: JTree): List<VirtualFile> {
+    val selectedNodes = tree.selectionPaths
+                        ?.mapNotNull { path -> path.lastPathComponent as? ChangesBrowserNode<*> }
+                        .orEmpty()
+    val files = LinkedHashSet<VirtualFile>()
+    selectedNodes
+      .filter { node -> node !== this && node.isUnderTag(CONFLICTS_NODE_TAG) }
+      .forEach { node -> files.addAll(collectConflictFiles(node)) }
+    return files.toList()
   }
 
   override fun getTextPresentation(): String {
@@ -98,4 +109,26 @@ class ChangesBrowserConflictsNode(val project: Project)
   }
 
   override fun getSortWeight(): Int = CONFLICTS_SORT_WEIGHT
+}
+
+private fun collectConflictFiles(node: ChangesBrowserNode<*>): List<VirtualFile> {
+  val files = LinkedHashSet<VirtualFile>()
+  for (userObject in node.traverseObjectsUnder()) {
+    when (userObject) {
+      is VirtualFile -> if (userObject.isValid) {
+        files.add(userObject)
+      }
+      is Change -> resolveConflictFile(userObject)?.let(files::add)
+    }
+  }
+  return files.toList()
+}
+
+private fun resolveConflictFile(change: Change): VirtualFile? {
+  val afterFile = change.afterRevision?.file?.virtualFile
+  if (afterFile != null && afterFile.isValid) {
+    return afterFile
+  }
+  val beforeFile = change.beforeRevision?.file?.virtualFile
+  return beforeFile?.takeIf(VirtualFile::isValid)
 }

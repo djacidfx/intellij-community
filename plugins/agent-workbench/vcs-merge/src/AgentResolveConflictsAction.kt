@@ -36,7 +36,7 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.text.HtmlChunk
 import com.intellij.openapi.vcs.merge.MergeDialogContext
-import com.intellij.openapi.vcs.merge.MergeResolveWithAgentContext
+import com.intellij.openapi.vcs.merge.MergeResolveActionContext
 import com.intellij.ui.components.JBOptionButton
 import org.jetbrains.annotations.Nls
 import java.awt.event.ActionEvent
@@ -202,24 +202,24 @@ internal class AgentResolveConflictsAction @JvmOverloads constructor(
       return ResolveWithAgentContext(
         project = mergeDialogContext.project,
         request = AgentVcsMergeLaunchRequest(
-          selectionHintFiles = mergeDialogContext.unresolvedFiles,
+          selectionHintFiles = mergeDialogContext.selectionHintFiles,
           agentProvider = AgentSessionProvider.CODEX,
           launchMode = AgentSessionLaunchMode.STANDARD,
         ),
-        closeDialog = mergeDialogContext.takeIf(MergeDialogContext::isModalDialog)?.let { it::closeDialogForAgentHandoff },
+        closeDialog = mergeDialogContext.takeIf(MergeDialogContext::isModalDialog)?.let { it::closeDialog },
       )
     }
 
-    val directContext = MergeResolveWithAgentContext.KEY.getData(dataContext) ?: return null
-    if (!directContext.isLaunchContextValid()) return null
+    val directContext = MergeResolveActionContext.KEY.getData(dataContext) ?: return null
+    if (!directContext.isContextValid()) return null
     return ResolveWithAgentContext(
       project = directContext.project,
       request = AgentVcsMergeLaunchRequest(
-        selectionHintFiles = directContext.files,
+        selectionHintFiles = directContext.selectionHintFiles,
         agentProvider = AgentSessionProvider.CODEX,
         launchMode = AgentSessionLaunchMode.STANDARD,
       ),
-      closeDialog = directContext::closeDialogForAgentHandoff,
+      closeDialog = directContext::closeSourceUi,
     )
   }
 
