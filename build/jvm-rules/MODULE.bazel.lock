@@ -207,7 +207,7 @@
     "//:test_bazel_tool.bzl%extension": {
       "general": {
         "bzlTransitiveDigest": "qGkIs/3yNSU+RyxsUfa8+9i0jlmnXoYwohYDio9VQt8=",
-        "usagesDigest": "KQUr4GdJxXEUbaolbdZkkNzIaooOBSwXLJsmv7bPIdc=",
+        "usagesDigest": "P0VborB3LlneBNoCBXwe5E8oj0FdRaGsD6ZIsIOHa+c=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {},
@@ -215,18 +215,18 @@
           "test_bazel_tool": {
             "repoRuleId": "@@//:test_bazel_tool.bzl%_repo",
             "attributes": {
-              "url_darwin_arm64": "https://github.com/JetBrains/bazel/releases/download/8.4.2-jb_20251027_92/bazel-8.4.2-jb_20251027_92-darwin-arm64",
-              "url_darwin_x86_64": "https://github.com/JetBrains/bazel/releases/download/8.4.2-jb_20251027_92/bazel-8.4.2-jb_20251027_92-darwin-x86_64",
-              "url_linux_arm64": "https://github.com/JetBrains/bazel/releases/download/8.4.2-jb_20251027_92/bazel-8.4.2-jb_20251027_92-linux-arm64",
-              "url_linux_x86_64": "https://github.com/JetBrains/bazel/releases/download/8.4.2-jb_20251027_92/bazel-8.4.2-jb_20251027_92-linux-x86_64",
-              "url_windows_arm64": "https://github.com/JetBrains/bazel/releases/download/8.4.2-jb_20251027_92/bazel-8.4.2-jb_20251027_92-windows-arm64.exe",
-              "url_windows_x86_64": "https://github.com/JetBrains/bazel/releases/download/8.4.2-jb_20251027_92/bazel-8.4.2-jb_20251027_92-windows-x86_64.exe",
-              "sha256_darwin_arm64": "ac07be2a25647be6ecdcf780cd9ebded1048149ebadd7a81087e19f7372da706",
-              "sha256_darwin_x86_64": "681ed55cac703c63a31ae46b94f5dcf283c002ce989ab893d230572b4d913ee7",
-              "sha256_linux_arm64": "06513528cff8eacc8674585463bce6e72dd229c52fe53fd14dc1bdbc83e38977",
-              "sha256_linux_x86_64": "b85195356864e3a6dbaf21ab438e66b6e686229f83e3d4e08ac2fb9b79d57d45",
-              "sha256_windows_arm64": "35857356462fd05ebee367278c3008c3da43300a122cc25d5d246406404de07e",
-              "sha256_windows_x86_64": "3f1922b13c84a6ccb0f2c738bc80e0eb90cefd118fa066109d1d3aaa0d44a828"
+              "url_darwin_arm64": "https://github.com/JetBrains/bazel/releases/download/8.5.1-jb_20260304_104/bazel-8.5.1-jb_20260304_104-darwin-arm64",
+              "url_darwin_x86_64": "https://github.com/JetBrains/bazel/releases/download/8.5.1-jb_20260304_104/bazel-8.5.1-jb_20260304_104-darwin-x86_64",
+              "url_linux_arm64": "https://github.com/JetBrains/bazel/releases/download/8.5.1-jb_20260304_104/bazel-8.5.1-jb_20260304_104-linux-arm64",
+              "url_linux_x86_64": "https://github.com/JetBrains/bazel/releases/download/8.5.1-jb_20260304_104/bazel-8.5.1-jb_20260304_104-linux-x86_64",
+              "url_windows_arm64": "https://github.com/JetBrains/bazel/releases/download/8.5.1-jb_20260304_104/bazel-8.5.1-jb_20260304_104-windows-arm64.exe",
+              "url_windows_x86_64": "https://github.com/JetBrains/bazel/releases/download/8.5.1-jb_20260304_104/bazel-8.5.1-jb_20260304_104-windows-x86_64.exe",
+              "sha256_darwin_arm64": "51f42e106a8b261b09aaa1982b21f430152763ac14a080e655755ca551cba8db",
+              "sha256_darwin_x86_64": "d3bedc58ec12d3b2f2b26711be6bb5c2bd7e4ef693c83561631c20cc4efecff9",
+              "sha256_linux_arm64": "10f6f09284858a556adfe17752a612158a6d7d86576dca32a9df88b971ce0cdf",
+              "sha256_linux_x86_64": "4cd2845811b1b8697f38f45323973b2554944078ed2bd747503711fbefacf3f1",
+              "sha256_windows_arm64": "8a955c29bc307d62f7cb0d798f4f3f9d0eb9a3b98035b29debd0f37e596e391a",
+              "sha256_windows_x86_64": "62bca4283de9aa3d924d6859ba3548effaff46e605be3f95f135513c66e8742b"
             }
           }
         },
