@@ -419,6 +419,11 @@ public final class PythonLanguageLevelPusher implements FilePropertyPusher<Langu
     }
 
     private Boolean visitFileToPush(@NotNull VirtualFile file, PushedFilePropertiesUpdater propertiesUpdater) {
+      // Copied from `com.intellij.openapi.roots.impl.PushedFilePropertiesUpdaterImpl.applyPushersToFile`.
+      // Preload children outside read action to avoid freezes.
+      if (file.isDirectory()) {
+        file.getChildren();
+      }
       return ReadAction.compute(() -> {
         if (!file.isValid() || FileTypeManager.getInstance().isFileIgnored(file)) {
           return false;
