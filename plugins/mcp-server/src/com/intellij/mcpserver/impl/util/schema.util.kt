@@ -39,18 +39,17 @@ import kotlin.reflect.KParameter
 import kotlin.reflect.full.isSubtypeOf
 import kotlin.reflect.typeOf
 
-
-fun KCallable<*>.parametersSchema(vararg additionalImplicitParameters: KParameter): McpToolSchema {
+internal fun parametersSchema(callable: KCallable<*>, vararg additionalImplicitParameters: KParameter): McpToolSchema {
   val parameterSchemas = mutableMapOf<String, JsonElement>()
   val definitions = mutableMapOf<String, JsonElement>()
   val requiredParameters = mutableSetOf<String>()
 
   // probably passthrough something like `additionalImplicitParameters` from outsise
   // but it isn't neccessary right now
-  for (parameter in this.parameters + additionalImplicitParameters) {
+  for (parameter in callable.parameters + additionalImplicitParameters) {
     if (parameter.kind != KParameter.Kind.VALUE) continue
 
-    val parameterName = parameter.name ?: error("Parameter has no name: ${parameter.name} in $this")
+    val parameterName = parameter.name ?: error("Parameter has no name: ${parameter.name} in $callable")
 
     val parameterType = parameter.type
 
@@ -97,8 +96,8 @@ private fun projectPathParameterStub(
 internal val projectPathParameter: KParameter get() = ::projectPathParameterStub.parameters.single()
 val projectPathParameterName: String get() = McpProjectPathCustomizer.EP.extensionList.firstOrNull()?.parameterName ?: "projectPath"
 
-fun KCallable<*>.returnTypeSchema(): McpToolSchema? {
-  val type = this.returnType
+internal fun returnTypeSchema(callable: KCallable<*>): McpToolSchema? {
+  val type = callable.returnType
   // output schema should be provided only for non-primitive types and serializable types
   if (type == typeOf<String>()) return null
   if (type == typeOf<Char>()) return null
@@ -120,14 +119,14 @@ fun KCallable<*>.returnTypeSchema(): McpToolSchema? {
     .analyzeTypeUsingKotlinxSerialization()
     .generateJsonSchema()
     .handleCoreAnnotations()
-    .handleMcpDescriptionAnnotations(this)
+    .handleMcpDescriptionAnnotations(callable)
     .removeNumericBounds()
     .addStringTypeToEnums()
 
   val schema = intermediateJsonSchemaData.compileInlining()
-  val jsonSchema = schema.json.toKt() as? kotlinx.serialization.json.JsonObject ?: error("Non-primitive type is expected in return type: ${type.classifier} in $this")
-  val properties = jsonSchema["properties"] as? kotlinx.serialization.json.JsonObject ?: error("Properties are expected in return type: ${type.classifier} in $this")
-  val required = jsonSchema["required"] as? kotlinx.serialization.json.JsonArray ?: error("Required is expected in return type: ${type.classifier} in $this")
+  val jsonSchema = schema.json.toKt() as? kotlinx.serialization.json.JsonObject ?: error("Non-primitive type is expected in return type: ${type.classifier} in $callable")
+  val properties = jsonSchema["properties"] as? kotlinx.serialization.json.JsonObject ?: error("Properties are expected in return type: ${type.classifier} in $callable")
+  val required = jsonSchema["required"] as? kotlinx.serialization.json.JsonArray ?: error("Required is expected in return type: ${type.classifier} in $callable")
   val requiredProperties = required.map { it.jsonPrimitive.content }.toSet()
   val adjustedRequired = removeRequiredForDefaultValues(requiredProperties, serializer)
   return McpToolSchema.ofPropertiesSchema(properties = properties, requiredProperties = adjustedRequired, definitions = emptyMap(), definitionsPath = McpToolSchema.DEFAULT_DEFINITIONS_PATH)
