@@ -9,6 +9,10 @@ import java.nio.file.Path
 
 @ApiStatus.Internal
 interface UniversalFileChooserContributor {
+  enum class MountStatus {
+    Permanent, Mounted, Unmounted
+  }
+
   companion object {
     @JvmField
     val EP_NAME: ExtensionPointName<UniversalFileChooserContributor> = ExtensionPointName("com.intellij.universalFileChooserContributor")
@@ -23,6 +27,11 @@ interface UniversalFileChooserContributor {
 
   fun ownsPath(path: Path): Boolean
 
+  suspend fun getMountStatus(path: Path): MountStatus = MountStatus.Permanent
+
+  suspend fun mount(path: Path) {}
+
+  suspend fun unmount(path: Path) {}
 }
 
 fun getFilteredSystemRoots(predicate: (Path) -> Boolean): List<Path> {
