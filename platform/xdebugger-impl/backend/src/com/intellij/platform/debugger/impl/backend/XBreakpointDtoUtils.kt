@@ -81,6 +81,7 @@ private suspend fun XBreakpointBase<*, *, *>.getDtoState(): XBreakpointDtoState 
       timestamp = timeStamp,
       lineBreakpointInfo = readAction { (breakpoint as? XLineBreakpointImpl<*>)?.getInfo() },
       requestId = completedRequestId,
+      hasCustomCondition = XBreakpointUtil.hasCustomCondition(breakpoint)
     )
   }
 }

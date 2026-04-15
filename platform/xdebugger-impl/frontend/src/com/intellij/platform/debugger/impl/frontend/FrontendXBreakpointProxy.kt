@@ -307,6 +307,10 @@ internal open class FrontendXBreakpointProxy(
     }
   }
 
+  override fun hasCustomCondition(): Boolean {
+    return currentState.hasCustomCondition
+  }
+
   override fun getGeneralDescription(): String {
     return currentState.generalDescription
   }
@@ -334,6 +338,7 @@ internal open class FrontendXBreakpointProxy(
            currentState.suspendPolicy == otherState.suspendPolicy &&
            currentState.group == otherState.group &&
            currentState.lineBreakpointInfo == otherState.lineBreakpointInfo &&
+           currentState.hasCustomCondition == otherState.hasCustomCondition &&
            dependentBreakpointManager.getMasterBreakpoint(this) == dependentBreakpointManager.getMasterBreakpoint(other) &&
            dependentBreakpointManager.isLeaveEnabled(this) == dependentBreakpointManager.isLeaveEnabled(other)
   }

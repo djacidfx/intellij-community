@@ -300,6 +300,7 @@ a:com.intellij.xdebugger.breakpoints.XBreakpointType
 - getSuspendNoneIcon():javax.swing.Icon
 - getTitle():java.lang.String
 - getVisibleStandardPanels():java.util.EnumSet
+- hasCustomCondition(com.intellij.xdebugger.breakpoints.XBreakpoint):Z
 - isAddBreakpointButtonVisible():Z
 - isSuspendThreadSupported():Z
 - shouldShowInBreakpointsDialog(com.intellij.openapi.project.Project):Z

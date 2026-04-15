@@ -111,6 +111,7 @@ data class XBreakpointDtoState(
   val timestamp: Long,
   val lineBreakpointInfo: XLineBreakpointInfo?,
   val requestId: Long,
+  val hasCustomCondition: Boolean,
 )
 
 @ApiStatus.Internal

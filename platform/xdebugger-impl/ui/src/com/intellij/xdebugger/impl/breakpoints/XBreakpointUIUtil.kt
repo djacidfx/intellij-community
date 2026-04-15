@@ -351,7 +351,7 @@ object XBreakpointUIUtil {
   }
 
   private fun withQuestionBadgeIfNeeded(icon: Icon, breakpoint: XBreakpointProxy): Icon {
-    if (DebuggerUIUtil.isEmptyExpression(breakpoint.getConditionExpression())) {
+    if (DebuggerUIUtil.isEmptyExpression(breakpoint.getConditionExpression()) && !breakpoint.hasCustomCondition()) {
       return icon
     }
     val newIcon = LayeredIcon(2)

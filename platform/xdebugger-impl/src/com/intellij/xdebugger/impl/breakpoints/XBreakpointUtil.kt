@@ -57,6 +57,14 @@ object XBreakpointUtil {
   fun getPropertyXMLDescriptions(breakpoint: XBreakpoint<*>): List<String> =
     breakpoint.propertyXMLDescriptions
 
+  /**
+   * @see XBreakpointType.hasCustomCondition
+   */
+  @JvmStatic
+  fun hasCustomCondition(breakpoint: XBreakpoint<*>): Boolean {
+    return breakpoint.hasCustomCondition
+  }
+
   @JvmStatic
   fun findType(id: @NonNls String): XBreakpointType<*, *>? =
     breakpointTypes().find { it.id == id }
@@ -173,6 +181,13 @@ val XBreakpoint<*>.propertyXMLDescriptions: List<@Nls String>
     @Suppress("UNCHECKED_CAST") val t = type as XBreakpointType<XBreakpoint<*>, *>
     return t.getPropertyXMLDescriptions(this)
   }
+
+val XBreakpoint<*>.hasCustomCondition: Boolean
+  get() {
+    @Suppress("UNCHECKED_CAST") val t = type as XBreakpointType<XBreakpoint<*>, *>
+    return t.hasCustomCondition(this)
+  }
+
 
 val <P : XBreakpointProperties<*>> XLineBreakpoint<P>.highlightRange: TextRange?
   get() =
