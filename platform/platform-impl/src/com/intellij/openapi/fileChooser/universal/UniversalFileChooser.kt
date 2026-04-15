@@ -42,6 +42,7 @@ import com.intellij.platform.eel.provider.asNioPath
 import com.intellij.platform.eel.provider.toEelApi
 import com.intellij.platform.util.coroutines.childScope
 import com.intellij.ui.ColoredListCellRenderer
+import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.UIBundle
@@ -60,6 +61,7 @@ import com.intellij.util.Consumer
 import com.intellij.util.containers.toArray
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.cancel
@@ -144,16 +146,20 @@ object UniversalFileChooser {
   class Panel(
     disposable: Disposable,
     descriptor: FileChooserDescriptor,
-    project: Project,
+    private val project: Project,
     okAction: Runnable,
   ) : JPanel() {
 
     companion object {
       private val FILE_VIEW_KEY: Key<FileView?> = Key.create<FileView>("universalFileChooser.fileView")
+      private const val LOCATIONS_PROPORTION_KEY = "universalFileChooser.locationsProportion"
+      private const val LOCATIONS_DEFAULT_PROPORTION = 0.2f
     }
 
     private val tabbedPane: JBTabbedPane
     private val fileViews: MutableList<FileView> = mutableListOf()
+    @Suppress("OPT_IN_USAGE")
+    private val scope = GlobalScope.childScope("UniversalFileChooser")
 
     init {
       layout = BorderLayout()
@@ -161,14 +167,21 @@ object UniversalFileChooser {
       preferredSize = Dimension(screenSize.width / 2, screenSize.height / 2)
       tabbedPane = JBTabbedPane()
       for (contributor in UniversalFileChooserContributor.EP_NAME.extensionList) {
-        val fileView = FileView(contributor, descriptor, disposable, project, okAction, ::navigateToFile)
+        val fileView = FileView(contributor, descriptor, disposable, project, okAction, scope)
         fileViews.add(fileView)
         tabbedPane.addTab(contributor.tabTitle, fileView.topComponent)
       }
 
       preselectProjectTab(project)
 
-      add(tabbedPane, BorderLayout.CENTER)
+      val splitter = OnePixelSplitter(false, LOCATIONS_PROPORTION_KEY, LOCATIONS_DEFAULT_PROPORTION)
+      splitter.firstComponent = createLocationsPanel(project)
+      splitter.secondComponent = tabbedPane
+      add(splitter, BorderLayout.CENTER)
+
+      disposable.whenDisposed {
+        scope.cancel()
+      }
     }
 
     private fun preselectProjectTab(project: Project) {
@@ -207,14 +220,76 @@ object UniversalFileChooser {
       targetView.fileTree.select(file) { targetView.fileTree.expand(file, null) }
     }
 
+    private fun getActiveFileView(): FileView? {
+      val component = tabbedPane.selectedComponent as? JComponent ?: return null
+      return component.getUserData(FILE_VIEW_KEY)
+    }
+
+    private data class LocationData(
+      val icon: Icon,
+      val text: @Nls String,
+      val action: Runnable,
+    )
+
+    private fun createLocationsPanel(project: Project): JComponent {
+      val locations = buildList {
+        add(LocationData(
+          icon = AllIcons.Nodes.HomeFolder,
+          text = IdeBundle.message("universal.file.chooser.action.home.text"),
+          action = { getActiveFileView()?.navigateToHome() }
+        ))
+        if (!project.isDefault) {
+          add(LocationData(
+            icon = AllIcons.Nodes.Project,
+            text = IdeBundle.message("universal.file.chooser.location.project"),
+            action = { navigateToProject() }
+          ))
+        }
+      }
+      val locationList = JBList(locations)
+      locationList.selectionMode = ListSelectionModel.SINGLE_SELECTION
+      locationList.cellRenderer = object : ColoredListCellRenderer<LocationData>() {
+        override fun customizeCellRenderer(list: JList<out LocationData>, value: LocationData, index: Int, selected: Boolean, hasFocus: Boolean) {
+          icon = value.icon
+          append(value.text)
+        }
+      }
+      locationList.addMouseListener(object : MouseAdapter() {
+        override fun mouseClicked(e: MouseEvent) {
+          val index = locationList.locationToIndex(e.point)
+          if (index >= 0) {
+            locationList.model.getElementAt(index).action.run()
+            locationList.clearSelection()
+          }
+        }
+      })
+      return panel {
+        row {
+          cell(locationList).align(AlignX.FILL)
+        }
+      }
+    }
+
+    private fun navigateToProject() {
+      val basePath = project.basePath ?: return
+      scope.launch {
+        withContext(Dispatchers.IO) {
+          val vFile = VfsUtil.findFile(Path.of(basePath), true)
+          runOnEdt {
+            if (vFile != null) navigateToFile(vFile)
+          }
+        }
+      }
+    }
+
 
     class FileView(
       val contributor: UniversalFileChooserContributor,
       private val descriptor: FileChooserDescriptor,
       disposable: Disposable,
-      private val project: Project,
+      project: Project,
       okAction: Runnable,
-      private val navigateToFile: (VirtualFile) -> Unit,
+      val scope: CoroutineScope
     ) {
       val topComponent: JComponent
       val fileTree: FileSystemTreeImpl
@@ -232,9 +307,6 @@ object UniversalFileChooser {
         private const val BREADCRUMBS_CARD = "breadcrumbs"
         private const val PATH_CARD = "path"
       }
-
-      @Suppress("OPT_IN_USAGE")
-      private val scope = GlobalScope.childScope("FileWatcher")
 
       private val cardLayout = CardLayout()
       private val contentPanel = JPanel(cardLayout)
@@ -304,26 +376,12 @@ object UniversalFileChooser {
           }.resizableRow()
         }
 
-        val tabPanel = panel {
-          row {
-            cell(createLocationsPanel())
-              .align(AlignY.FILL)
-            cell(mainPanel)
-              .align(AlignX.FILL)
-              .align(AlignY.FILL)
-              .resizableColumn()
-          }.resizableRow()
-        }
-
         toolbar.targetComponent = mainPanel
-        topComponent = tabPanel
+        topComponent = mainPanel
         topComponent.putUserData(FILE_VIEW_KEY, this)
 
         loadRoots()
 
-        disposable.whenDisposed {
-          scope.cancel()
-        }
       }
 
       private fun loadRoots() {
@@ -342,19 +400,7 @@ object UniversalFileChooser {
         }
       }
 
-      private fun navigateToProject() {
-        val basePath = project.basePath ?: return
-        scope.launch {
-          withContext(Dispatchers.IO) {
-            val vFile = VfsUtil.findFile(Path.of(basePath), true)
-            runOnEdt {
-              if (vFile != null) navigateToFile(vFile)
-            }
-          }
-        }
-      }
-
-      private fun navigateToHome() {
+      fun navigateToHome() {
         topComponent.cursor = Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)
         scope.launch {
           withContext(Dispatchers.IO) {
@@ -366,53 +412,6 @@ object UniversalFileChooser {
             runOnEdt {
               fileTree.select(vFile) { fileTree.expand(vFile, null) }
               topComponent.cursor = Cursor.getDefaultCursor()
-            }
-          }
-        }
-      }
-
-      data class LocationData (
-        val icon: Icon,
-        val text: @Nls String,
-        val action: Runnable
-      )
-
-      private fun createLocationsPanel(): JComponent {
-        val locations = buildList {
-          add(LocationData(
-            icon = AllIcons.Nodes.HomeFolder,
-            text = IdeBundle.message("universal.file.chooser.action.home.text"),
-            action = { navigateToHome() }
-          ))
-          if (!project.isDefault) {
-            add(LocationData(
-              icon = AllIcons.Nodes.Project,
-              text = IdeBundle.message("universal.file.chooser.location.project"),
-              action = { navigateToProject() }
-            ))
-          }
-        }
-        val locationList = JBList(locations)
-        locationList.selectionMode = ListSelectionModel.SINGLE_SELECTION
-        locationList.cellRenderer = object : ColoredListCellRenderer<LocationData>() {
-          override fun customizeCellRenderer(list: JList<out LocationData>, value: LocationData, index: Int, selected: Boolean, hasFocus: Boolean) {
-            icon = value.icon
-            append(value.text)
-          }
-        }
-        locationList.addMouseListener(object : MouseAdapter() {
-          override fun mouseClicked(e: MouseEvent) {
-            val index = locationList.locationToIndex(e.point)
-            if (index >= 0) {
-              locationList.model.getElementAt(index).action.run()
-              locationList.clearSelection()
-            }
-          }
-        })
-        return panel {
-          group(IdeBundle.message("universal.file.chooser.locations.group"), indent = false) {
-            row {
-              cell(locationList).align(AlignX.FILL)
             }
           }
         }
