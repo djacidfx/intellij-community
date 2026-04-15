@@ -13,6 +13,7 @@ import com.intellij.mcpserver.util.relativizeIfPossible
 import com.intellij.openapi.application.edtWriteAction
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
+import com.intellij.openapi.project.waitForSmartMode
 import com.intellij.openapi.roots.ModuleRootModificationUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
@@ -425,6 +426,8 @@ class ReadToolsetTest : GeneralMcpToolsetTestBase() {
 
   private suspend fun searchExternalSymbolPath(symbolName: String): String {
     var resultPath: String? = null
+    var searchResultText: String? = null
+    project.waitForSmartMode()
     withConnection { client ->
       val actualResult = client.callTool(
         SearchToolset::search_symbol.name,
@@ -434,10 +437,14 @@ class ReadToolsetTest : GeneralMcpToolsetTestBase() {
         },
         options = RequestOptions(timeout = 180.seconds),
       )
-      val payload = json.decodeFromString(SearchResult.serializer(), actualResult.textContent.text)
+      val resultText = actualResult.textContent.text
+      searchResultText = resultText
+      val payload = json.decodeFromString(SearchResult.serializer(), resultText)
       resultPath = payload.items.firstOrNull { it.filePath.contains("$symbolName.class") }?.filePath
     }
-    return requireNotNull(resultPath) { "Cannot find external symbol $symbolName" }
+    return requireNotNull(resultPath) {
+      "Cannot find external symbol $symbolName in search results: $searchResultText"
+    }
   }
 
 }
