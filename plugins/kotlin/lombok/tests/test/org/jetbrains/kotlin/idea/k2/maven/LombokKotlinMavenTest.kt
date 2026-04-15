@@ -17,7 +17,7 @@ internal class LombokKotlinMavenTest : AbstractMavenUpdateConfigurationQuickFixT
     @Test
     fun testAddKotlinLombokCompilerPlugin() = runBlocking {
         codeInsightTestFixture.enableInspections(/* ...inspections = */ LombokKotlinCompilerPluginInspection::class.java)
-        doTest("Add Kotlin Lombok compiler plugin")
+        doMultiFileTest()
     }
 
 }

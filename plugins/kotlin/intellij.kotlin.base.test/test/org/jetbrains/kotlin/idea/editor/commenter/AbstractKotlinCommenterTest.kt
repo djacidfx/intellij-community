@@ -4,6 +4,7 @@ package org.jetbrains.kotlin.idea.editor.commenter
 import com.intellij.openapi.actionSystem.IdeActions
 import com.intellij.openapi.util.io.FileUtil
 import org.jetbrains.kotlin.formatter.FormatSettingsUtil
+import org.jetbrains.kotlin.idea.test.DirectiveBasedActionUtils.ACTION_DIRECTIVE
 import org.jetbrains.kotlin.idea.test.KotlinLightCodeInsightFixtureTestCase
 import org.jetbrains.kotlin.idea.test.configureCodeStyleAndRun
 import org.jetbrains.kotlin.test.InTextDirectivesUtils
@@ -24,8 +25,8 @@ abstract class AbstractKotlinCommenterTest : KotlinLightCodeInsightFixtureTestCa
     }
 
     private fun doTest(text: String, testPath: String) {
-        val action = InTextDirectivesUtils.findStringWithPrefixes(text, "// ACTION:")
-            ?: error("'// ACTION:' directive is not found")
+        val action = InTextDirectivesUtils.findStringWithPrefixes(text, ACTION_DIRECTIVE)
+            ?: error("'${ACTION_DIRECTIVE}' directive is not found")
 
         val actionId = when (action) {
             "line" -> IdeActions.ACTION_COMMENT_LINE
