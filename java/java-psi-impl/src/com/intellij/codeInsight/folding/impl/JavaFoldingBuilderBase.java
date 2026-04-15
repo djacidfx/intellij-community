@@ -16,26 +16,18 @@ import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.util.registry.Registry;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.JavaRecursiveElementWalkingVisitor;
-import com.intellij.psi.JavaResolveResult;
 import com.intellij.psi.JavaTokenType;
 import com.intellij.psi.PsiAnonymousClass;
-import com.intellij.psi.PsiArrayType;
-import com.intellij.psi.PsiAssignmentExpression;
-import com.intellij.psi.PsiCapturedWildcardType;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiClassInitializer;
-import com.intellij.psi.PsiClassType;
 import com.intellij.psi.PsiCodeBlock;
 import com.intellij.psi.PsiComment;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiEnumConstant;
 import com.intellij.psi.PsiExpression;
-import com.intellij.psi.PsiExpressionList;
-import com.intellij.psi.PsiExpressionStatement;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiIdentifier;
-import com.intellij.psi.PsiJavaCodeReferenceElement;
 import com.intellij.psi.PsiJavaFile;
 import com.intellij.psi.PsiJavaModule;
 import com.intellij.psi.PsiJavaToken;
@@ -45,23 +37,13 @@ import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.psi.PsiNewExpression;
 import com.intellij.psi.PsiParameter;
 import com.intellij.psi.PsiRecordHeader;
-import com.intellij.psi.PsiReferenceExpression;
-import com.intellij.psi.PsiReferenceParameterList;
-import com.intellij.psi.PsiReturnStatement;
 import com.intellij.psi.PsiStatement;
-import com.intellij.psi.PsiType;
-import com.intellij.psi.PsiTypeElement;
-import com.intellij.psi.PsiTypes;
 import com.intellij.psi.PsiVariable;
-import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.impl.source.tree.JavaElementType;
 import com.intellij.psi.tree.IElementType;
-import com.intellij.psi.util.PropertyUtilBase;
-import com.intellij.psi.util.PsiUtil;
 import com.intellij.util.PlatformUtils;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -69,166 +51,6 @@ import java.util.Set;
 
 public abstract class JavaFoldingBuilderBase extends CustomFoldingBuilder implements DumbAware {
   private static final Logger LOG = Logger.getInstance(JavaFoldingBuilderBase.class);
-
-  // todo BACKEND-ONLY: whole method requires resolve (DumbService guard, PropertyUtilBase getter/setter checks)
-  private static boolean isSimplePropertyAccessor(@NotNull PsiMethod method) {
-    if (DumbService.isDumb(method.getProject())) return false;
-
-    PsiCodeBlock body = method.getBody();
-    if (body == null || body.getLBrace() == null || body.getRBrace() == null) return false;
-    PsiStatement[] statements = body.getStatements();
-    if (statements.length == 0) return false;
-
-    PsiStatement statement = statements[0];
-    if (PropertyUtilBase.isSimplePropertyGetter(method)) {
-      if (statement instanceof PsiReturnStatement) {
-        return ((PsiReturnStatement)statement).getReturnValue() instanceof PsiReferenceExpression;
-      }
-      return false;
-    }
-
-    // builder-style setter?
-    if (statements.length > 1 && !(statements[1] instanceof PsiReturnStatement)) return false;
-
-    // any setter?
-    if (statement instanceof PsiExpressionStatement) {
-      PsiExpression expr = ((PsiExpressionStatement)statement).getExpression();
-      if (expr instanceof PsiAssignmentExpression) {
-        PsiExpression lhs = ((PsiAssignmentExpression)expr).getLExpression();
-        PsiExpression rhs = ((PsiAssignmentExpression)expr).getRExpression();
-        return lhs instanceof PsiReferenceExpression &&
-               rhs instanceof PsiReferenceExpression &&
-               !((PsiReferenceExpression)rhs).isQualified() &&
-               PropertyUtilBase.isSimplePropertySetter(method); // last check because it can perform long return type resolve
-      }
-    }
-    return false;
-  }
-
-  // todo BACKEND-ONLY: resolvesCorrectly() calls multiResolve (guarded by !quick)
-  private static void addMethodGenericParametersFolding(@NotNull List<? super FoldingDescriptor> list,
-                                                        @NotNull PsiMethodCallExpression expression,
-                                                        @NotNull Document document,
-                                                        boolean quick) {
-    final PsiReferenceExpression methodExpression = expression.getMethodExpression();
-    final PsiReferenceParameterList parameterList = methodExpression.getParameterList();
-    if (parameterList == null || parameterList.getTextLength() <= 5) {
-      return;
-    }
-
-    PsiMethodCallExpression element = expression;
-    while (true) {
-      if (!quick && !resolvesCorrectly(element.getMethodExpression())) return;
-      final PsiElement parent = element.getParent();
-      if (!(parent instanceof PsiExpressionList) || !(parent.getParent() instanceof PsiMethodCallExpression)) break;
-      element = (PsiMethodCallExpression)parent.getParent();
-    }
-
-    addTypeParametersFolding(list, document, parameterList, 3, quick);
-  }
-
-  // todo BACKEND-ONLY: type inference for 'var' — expression.getType() requires resolve (guarded by quick)
-  private static void addLocalVariableTypeFolding(@NotNull List<? super FoldingDescriptor> list,
-                                                  @NotNull PsiVariable expression,
-                                                  boolean quick) {
-    if (quick) return; // presentable text may require resolve
-    PsiTypeElement typeElement = expression.getTypeElement();
-    if (typeElement == null) return;
-    if (!typeElement.isInferredType()) return;
-    PsiType type = expression.getType();
-    if (type instanceof PsiCapturedWildcardType || type.equals(PsiTypes.nullType())) return;
-    String presentableText = type.getPresentableText();
-    if (presentableText.length() > 25) return;
-    list.add(new FoldingDescriptor(typeElement.getNode(), typeElement.getTextRange(), null, presentableText, true, Collections.emptySet()));
-  }
-
-  // todo BACKEND-ONLY: multiResolve
-  private static boolean resolvesCorrectly(@NotNull PsiReferenceExpression expression) {
-    for (final JavaResolveResult result : expression.multiResolve(true)) {
-      if (!result.isValidResult()) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  // todo BACKEND-ONLY: type resolution for generic parameters (variable type, class type parameters, superclass resolve)
-  private static void addGenericParametersFolding(@NotNull List<? super FoldingDescriptor> list,
-                                                  @NotNull PsiNewExpression expression,
-                                                  @NotNull Document document,
-                                                  boolean quick) {
-    final PsiElement parent = expression.getParent();
-    if (!(parent instanceof PsiVariable)) {
-      return;
-    }
-
-    final PsiType declType = ((PsiVariable)parent).getType();
-    if (!(declType instanceof PsiClassReferenceType)) {
-      return;
-    }
-
-    final PsiType[] parameters = ((PsiClassType)declType).getParameters();
-    if (parameters.length == 0) {
-      return;
-    }
-
-    PsiJavaCodeReferenceElement classReference = expression.getClassReference();
-    if (classReference == null) {
-      final PsiAnonymousClass anonymousClass = expression.getAnonymousClass();
-      if (anonymousClass != null) {
-        classReference = anonymousClass.getBaseClassReference();
-
-        if (quick || ClosureFolding.seemsLikeLambda(anonymousClass.getSuperClass(), anonymousClass)) {
-          return;
-        }
-      }
-    }
-
-    if (classReference != null) {
-      final PsiReferenceParameterList parameterList = classReference.getParameterList();
-      if (parameterList != null) {
-        if (quick) {
-          final PsiJavaCodeReferenceElement declReference = ((PsiClassReferenceType)declType).getReference();
-          final PsiReferenceParameterList declList = declReference.getParameterList();
-          if (declList == null || !parameterList.getText().equals(declList.getText())) {
-            return;
-          }
-        }
-        else if (!Arrays.equals(parameterList.getTypeArguments(), parameters)) {
-          return;
-        }
-
-        addTypeParametersFolding(list, document, parameterList, 5, quick);
-      }
-    }
-  }
-
-  // todo BACKEND-ONLY (non-quick path): resolveClassInType on type arguments
-  private static void addTypeParametersFolding(@NotNull List<? super FoldingDescriptor> list,
-                                               @NotNull Document document,
-                                               @NotNull PsiReferenceParameterList parameterList,
-                                               int ifLongerThan,
-                                               boolean quick) {
-    if (!quick) {
-      for (final PsiType type : parameterList.getTypeArguments()) {
-        if (!type.isValid()) {
-          return;
-        }
-        if (type instanceof PsiClassType || type instanceof PsiArrayType) {
-          if (PsiUtil.resolveClassInType(type) == null) {
-            return;
-          }
-        }
-      }
-    }
-
-    final String text = parameterList.getText();
-    if (text.startsWith("<") && text.endsWith(">") && text.length() > ifLongerThan) {
-      final TextRange range = parameterList.getTextRange();
-      JavaFoldingUtil.addFoldRegion(list, parameterList, document, true, range, "<~>",
-                    JavaCodeFoldingSettings.getInstance().isCollapseConstructorGenericParameters());
-    }
-  }
 
   //todo backend
   protected abstract boolean shouldShowExplicitLambdaType(@NotNull PsiAnonymousClass anonymousClass, @NotNull PsiNewExpression expression);
@@ -239,7 +61,6 @@ public abstract class JavaFoldingBuilderBase extends CustomFoldingBuilder implem
                                           @NotNull Document document,
                                           boolean quick) {
     if (!(root instanceof PsiJavaFile)) return;
-    if (PlatformUtils.isJetBrainsClient()) return;
     PsiJavaFile file = (PsiJavaFile)root;
     Set<PsiElement> processedComments = new HashSet<>();
 
@@ -326,8 +147,9 @@ public abstract class JavaFoldingBuilderBase extends CustomFoldingBuilder implem
     boolean oneLiner = addOneLineMethodFolding(list, method);
     if (!oneLiner) {
       //todo BACKEND-ONLY
+      boolean collapseMethodByDefault = JavaBackendFoldings.isCollapseMethodByDefault(method);
       JavaFoldingUtil.addToFold(list, method, document, true, JavaFoldingUtil.getCodeBlockPlaceholder(method.getBody()), JavaFoldingUtil.methodRange(method),
-                isCollapseMethodByDefault(method));
+                                collapseMethodByDefault);
     }
 
     JavaFoldingUtil.addAnnotationsToFold(list, method.getModifierList(), document);
@@ -416,18 +238,6 @@ public abstract class JavaFoldingBuilderBase extends CustomFoldingBuilder implem
     return false;
   }
 
-  //todo backend-only
-  private static boolean isCollapseMethodByDefault(@NotNull PsiMethod element) {
-    JavaCodeFoldingSettings settings = JavaCodeFoldingSettings.getInstance();
-    if (!settings.isCollapseAccessors() && !settings.isCollapseMethods()) {
-      return false;
-    }
-
-    if (isSimplePropertyAccessor(element)) {
-      return settings.isCollapseAccessors();
-    }
-    return settings.isCollapseMethods();
-  }
   // todo can be BACKEND-ONLY
   private void addCodeBlockFolds(final @NotNull List<? super FoldingDescriptor> list, @NotNull PsiElement scope,
                                  final @NotNull Set<? super PsiElement> processedComments,
@@ -449,7 +259,7 @@ public abstract class JavaFoldingBuilderBase extends CustomFoldingBuilder implem
       @Override
       public void visitVariable(@NotNull PsiVariable variable) {
         if (!dumb && JavaCodeFoldingSettings.getInstance().isReplaceVarWithInferredType()) {
-          addLocalVariableTypeFolding(list, variable, quick);
+          JavaBackendFoldings.addLocalVariableTypeFolding(list, variable, quick);
         }
 
         super.visitVariable(variable);
@@ -459,7 +269,7 @@ public abstract class JavaFoldingBuilderBase extends CustomFoldingBuilder implem
       @Override
       public void visitMethodCallExpression(@NotNull PsiMethodCallExpression expression) {
         if (!dumb) {
-          addMethodGenericParametersFolding(list, expression, document, quick);
+          JavaBackendFoldings.addMethodGenericParametersFolding(list, expression, document, quick);
         }
 
         super.visitMethodCallExpression(expression);
@@ -469,7 +279,7 @@ public abstract class JavaFoldingBuilderBase extends CustomFoldingBuilder implem
       @Override
       public void visitNewExpression(@NotNull PsiNewExpression expression) {
         if (!dumb) {
-          addGenericParametersFolding(list, expression, document, quick);
+          JavaBackendFoldings.addGenericParametersFolding(list, expression, document, quick);
         }
 
         super.visitNewExpression(expression);

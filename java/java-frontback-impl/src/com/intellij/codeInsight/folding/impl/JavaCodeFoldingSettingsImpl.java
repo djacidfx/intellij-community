@@ -8,6 +8,7 @@ import com.intellij.openapi.components.Storage;
 import com.intellij.util.xmlb.XmlSerializerUtil;
 import org.jetbrains.annotations.NotNull;
 
+//todo check if it is synch-ed
 @State(name = "JavaCodeFoldingSettings", storages = @Storage("editor.xml"), category = SettingsCategory.CODE)
 public final class JavaCodeFoldingSettingsImpl extends JavaCodeFoldingSettingsBase implements PersistentStateComponent<JavaCodeFoldingSettingsImpl> {
   @Override
