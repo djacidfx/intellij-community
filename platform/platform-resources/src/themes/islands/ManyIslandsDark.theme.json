@@ -600,6 +600,36 @@
       "EvaluateExpression.background": "tool-window-bg"
     },
 
+    "Profiler": {
+      "ChartSlider": {
+        "foreground": "Gray12",
+        "lineColor": "Gray5"
+      },
+      "CpuChart": {
+        "background": "Green3",
+        "borderColor": "Green6",
+        "inactiveBackground": "Green1",
+        "inactiveBorderColor": "Green3",
+        "pointBackground": "Green6",
+        "pointBorderColor": "Gray2"
+      },
+      "MemoryChart": {
+        "background": "Blue2",
+        "borderColor": "Blue8",
+        "inactiveBackground": "Blue1",
+        "inactiveBorderColor": "Blue3",
+        "pointBackground": "Blue5",
+        "pointBorderColor": "Gray2"
+      },
+      "Timer": {
+        "foreground": "Gray12",
+        "disabledForeground": "Gray7"
+      },
+      "LiveChart": {
+        "horizontalAxisColor": "Gray4"
+      }
+    },
+
     "FileColor": {
       "Yellow": "#291f1c",
       "Green": "#1c261c",
