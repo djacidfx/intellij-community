@@ -100,7 +100,11 @@ import com.intellij.vcsUtil.FilesProgress;
 import com.intellij.vcsUtil.VcsImplUtil;
 import com.intellij.vcsUtil.VcsUtil;
 import io.opentelemetry.api.trace.Tracer;
+import kotlin.Unit;
+import kotlin.coroutines.EmptyCoroutineContext;
 import kotlinx.coroutines.CoroutineScope;
+import kotlinx.coroutines.CoroutineStart;
+import kotlinx.coroutines.Deferred;
 import org.jdom.Element;
 import org.jdom.Parent;
 import org.jetbrains.annotations.ApiStatus;
@@ -152,6 +156,7 @@ import static com.intellij.openapi.vcs.changes.ui.ChangesViewContentManager.SHEL
 import static com.intellij.openapi.vcs.changes.ui.ChangesViewContentManager.getToolWindowFor;
 import static com.intellij.platform.diagnostic.telemetry.helpers.TraceUtil.computeWithSpanThrows;
 import static com.intellij.platform.diagnostic.telemetry.helpers.TraceUtil.runWithSpanThrows;
+import static kotlinx.coroutines.BuildersKt.async;
 
 @Service(Service.Level.PROJECT)
 @State(name = "ShelveChangesManager", storages = @Storage(StoragePathMacros.WORKSPACE_FILE))
@@ -174,6 +179,7 @@ public final class ShelveChangesManager implements PersistentStateComponent<Elem
   private @NotNull SchemeManager<ShelvedChangeList> schemeManager;
   private ScheduledFuture<?> myCleaningFuture;
   private @Nullable Set<VirtualFile> myShelvingFiles;
+  private final @NotNull Deferred<Unit> deferredInit;
 
   ShelveChangesManager(@NotNull Project project, @NotNull CoroutineScope coroutineScope) {
     myPathMacroSubstitutor = PathMacroManager.getInstance(project);
@@ -189,6 +195,20 @@ public final class ShelveChangesManager implements PersistentStateComponent<Elem
       public void dispose() {
         stopCleanScheduler();
       }
+    });
+    deferredInit = async(coroutineScope, EmptyCoroutineContext.INSTANCE, CoroutineStart.DEFAULT, (scope, continuation) -> {
+      try {
+        schemeManager.loadSchemes();
+        //workaround for ignoring not valid patches, because readScheme doesn't support nullable value as it should be
+        filterNonValidShelvedChangeLists();
+        markDeletedSystemUnshelved();
+        cleanDeletedOlderOneWeek();
+        notifyStateChanged();
+      }
+      catch (Exception e) {
+        LOG.error("Couldn't read shelf information", e);
+      }
+      return Unit.INSTANCE;
     });
   }
 
@@ -239,18 +259,11 @@ public final class ShelveChangesManager implements PersistentStateComponent<Elem
               }, null, customPath != null ? Paths.get(customPath) : null);
   }
 
-  void projectOpened() {
-    try {
-      schemeManager.loadSchemes();
-      //workaround for ignoring not valid patches, because readScheme doesn't support nullable value as it should be
-      filterNonValidShelvedChangeLists();
-      markDeletedSystemUnshelved();
-      cleanDeletedOlderOneWeek();
-      notifyStateChanged();
-    }
-    catch (Exception e) {
-      LOG.error("Couldn't read shelf information", e);
-    }
+  @ApiStatus.Internal
+  @VisibleForTesting
+  public Deferred<Unit> scheduleShelvesLoading() {
+    deferredInit.start();
+    return deferredInit;
   }
 
   private void filterNonValidShelvedChangeLists() {
