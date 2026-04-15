@@ -6,13 +6,14 @@ import com.intellij.internal.statistic.eventLog.EventLogGroup
 import com.intellij.internal.statistic.eventLog.events.EventFields
 import com.intellij.internal.statistic.eventLog.validator.rules.impl.CustomValidationRule
 import com.intellij.internal.statistic.service.fus.collectors.CounterUsagesCollector
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import com.intellij.platform.whatsNew.WhatsNewMultipageIdsCache
+import com.intellij.platform.whatsNew.WhatsNewInVisionContentProvider
 import com.jetbrains.fus.reporting.api.IEventContext
 import com.jetbrains.fus.reporting.api.ValidationResultType
 
 internal object WhatsNewCounterUsageCollector : CounterUsagesCollector() {
-  private val eventLogGroup: EventLogGroup = EventLogGroup("whatsnew", 4)
+  private val eventLogGroup: EventLogGroup = EventLogGroup("whatsnew", 5)
 
   private val pageId = EventFields.StringValidatedByCustomRule("page_id", WhatsNewMultipageIdValidationRule::class.java)
   private val opened = eventLogGroup.registerEvent("tab_opened", pageId, EventFields.Enum(("type"), OpenedType::class.java))
@@ -31,11 +32,11 @@ internal object WhatsNewCounterUsageCollector : CounterUsagesCollector() {
 
 
   fun openedPerformed(project: Project?, id: String?, byClient: Boolean) {
-    opened.log(project, id ?: DEFAULT_ID, if (byClient) OpenedType.ByClient else OpenedType.Auto)
+    opened.log(project, id ?: WhatsNewInVisionContentProvider.DEFAULT_MULTIPAGE_ID, if (byClient) OpenedType.ByClient else OpenedType.Auto)
   }
 
   fun closedPerformed(project: Project?, id: String?, seconds: Long) {
-    closed.log(project, id ?: DEFAULT_ID, seconds)
+    closed.log(project, id ?: WhatsNewInVisionContentProvider.DEFAULT_MULTIPAGE_ID, seconds)
   }
 
   fun actionPerformed(project: Project?, id: String) {
@@ -77,11 +78,9 @@ internal class WhatsNewMultipageIdValidationRule : CustomValidationRule() {
     id: String,
     context: IEventContext,
   ): ValidationResultType {
-    if (id == DEFAULT_ID) return ValidationResultType.ACCEPTED
-
-    val cache = WhatsNewMultipageIdsCache.getInstance()
-    return if (cache.isValidId(id)) ValidationResultType.ACCEPTED else ValidationResultType.REJECTED
+    return if (id in service<WhatsNewInVisionContentProvider>().getAllowedMultipageIds()) {
+      ValidationResultType.ACCEPTED
+    }
+    else ValidationResultType.REJECTED
   }
 }
-
-private const val DEFAULT_ID = "Default"
