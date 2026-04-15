@@ -9,7 +9,7 @@ import com.intellij.polySymbols.PolySymbolApiStatus
 import com.intellij.polySymbols.PolySymbolNameSegment
 import com.intellij.polySymbols.PolySymbolProperty
 import com.intellij.polySymbols.completion.PolySymbolCodeCompletionItem
-import com.intellij.polySymbols.css.PROP_CSS_ARGUMENTS
+import com.intellij.polySymbols.css.CssArgumentProperty
 import com.intellij.polySymbols.documentation.PolySymbolDocumentationTarget
 import com.intellij.polySymbols.html.PolySymbolHtmlAttributeValue
 import com.intellij.polySymbols.html.getHtmlAttributeValue
@@ -35,7 +35,7 @@ open class PolySymbolsDebugOutputPrinter : DebugOutputPrinter() {
   protected open val propertiesToPrint: List<PolySymbolProperty<*>> =
     listOf(
       HideFromCompletionProperty, DocHidePatternProperty, InjectLanguageProperty,
-      PROP_CSS_ARGUMENTS, JsSymbolKindProperty, WebTypesSymbol.PROP_NO_DOC,
+      CssArgumentProperty, JsSymbolKindProperty, WebTypesSymbol.PROP_NO_DOC,
     )
 
   override fun printValueImpl(builder: StringBuilder, level: Int, value: Any?): StringBuilder =

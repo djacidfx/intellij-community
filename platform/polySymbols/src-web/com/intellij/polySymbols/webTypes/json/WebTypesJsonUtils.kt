@@ -24,7 +24,7 @@ import com.intellij.polySymbols.css.CSS_PROPERTIES
 import com.intellij.polySymbols.css.CSS_PSEUDO_CLASSES
 import com.intellij.polySymbols.css.CSS_PSEUDO_ELEMENTS
 import com.intellij.polySymbols.css.NAMESPACE_CSS
-import com.intellij.polySymbols.css.PROP_CSS_ARGUMENTS
+import com.intellij.polySymbols.css.CssArgumentProperty
 import com.intellij.polySymbols.framework.FrameworkId
 import com.intellij.polySymbols.html.HTML_ATTRIBUTES
 import com.intellij.polySymbols.html.HTML_ELEMENTS
@@ -168,8 +168,8 @@ internal val GenericContributionsHost.genericProperties: Map<String, Any>
       }
       .plus(
         when (this) {
-          is CssPseudoClass -> sequenceOf(Pair(PROP_CSS_ARGUMENTS.name, this.arguments ?: false))
-          is CssPseudoElement -> sequenceOf(Pair(PROP_CSS_ARGUMENTS.name, this.arguments ?: false))
+          is CssPseudoClass -> sequenceOf(Pair(CssArgumentProperty.name, this.arguments ?: false))
+          is CssPseudoElement -> sequenceOf(Pair(CssArgumentProperty.name, this.arguments ?: false))
           is JsSymbol -> this.kind?.let { kind -> JsSymbolSymbolKind.entries.firstOrNull { it.name.equals(kind.value(), true) } }
                            ?.let { sequenceOf(Pair(JsSymbolKindProperty.name, it)) }
                          ?: emptySequence()

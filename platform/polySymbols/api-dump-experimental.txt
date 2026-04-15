@@ -462,6 +462,9 @@
 - sf:INSTANCE:com.intellij.polySymbols.context.PolyContextSourceProximityProvider$SourceKind$ProjectToolExecutable
 - equals(java.lang.Object):Z
 - hashCode():I
+*f:com.intellij.polySymbols.css.CssArgumentProperty
+- com.intellij.polySymbols.PolySymbolProperty
+- sf:INSTANCE:com.intellij.polySymbols.css.CssArgumentProperty
 *f:com.intellij.polySymbols.css.CssSymbolKinds
 - sf:CSS_CLASSES:com.intellij.polySymbols.PolySymbolKind
 - sf:CSS_FUNCTIONS:com.intellij.polySymbols.PolySymbolKind
@@ -470,7 +473,6 @@
 - sf:CSS_PSEUDO_CLASSES:com.intellij.polySymbols.PolySymbolKind
 - sf:CSS_PSEUDO_ELEMENTS:com.intellij.polySymbols.PolySymbolKind
 - sf:NAMESPACE_CSS:java.lang.String
-- sf:PROP_CSS_ARGUMENTS:com.intellij.polySymbols.PolySymbolProperty
 *:com.intellij.polySymbols.customElements.CustomElementsSymbol
 - com.intellij.polySymbols.PolySymbol
 - com.intellij.polySymbols.query.PolySymbolScope
