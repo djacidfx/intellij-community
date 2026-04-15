@@ -44,8 +44,8 @@ jvm_library(
     "//platform/core-impl:core-impl_test_lib",
     "//platform/testFramework/core",
     "//platform/testFramework/core:core_test_lib",
-    "//plugins/kotlin/base/test",
-    "//plugins/kotlin/base/test:test_test_lib",
+    "//plugins/kotlin/base/testFramework",
+    "//plugins/kotlin/base/testFramework:testFramework_test_lib",
   ],
   runtime_deps = [":testFramework"]
 )

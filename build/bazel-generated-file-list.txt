@@ -1164,6 +1164,8 @@ plugins/kotlin/base/kotlin.base.serialization
 plugins/kotlin/base/obsolete-compat
 plugins/kotlin/base/platforms
 plugins/kotlin/base/plugin
+plugins/kotlin/base/pluginTestFramework
+plugins/kotlin/base/pluginTests
 plugins/kotlin/base/project-model
 plugins/kotlin/base/project-structure
 plugins/kotlin/base/psi
@@ -1173,7 +1175,7 @@ plugins/kotlin/base/scripting/scripting.k2
 plugins/kotlin/base/scripting/scripting.scratch.definition
 plugins/kotlin/base/scripting/scripting.shared
 plugins/kotlin/base/statistics
-plugins/kotlin/base/test
+plugins/kotlin/base/testFramework
 plugins/kotlin/base/util
 plugins/kotlin/bundled-compiler-plugins-support
 plugins/kotlin/code-insight/api

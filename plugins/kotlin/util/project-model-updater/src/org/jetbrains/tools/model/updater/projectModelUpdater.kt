@@ -109,7 +109,7 @@ private fun updateLatestGradlePluginVersion(communityRoot: Path, kotlinGradlePlu
 
 private fun updateKGPVersionForKotlinNativeTests(communityRoot: Path, kotlinGradlePluginVersion: String) {
     val kotlinNativeVersionsKt = communityRoot.resolve(
-        "plugins/kotlin/base/plugin/test/org/jetbrains/kotlin/idea/artifacts/KotlinNativeVersion.kt"
+        "plugins/kotlin/base/pluginTestFramework/src/org/jetbrains/kotlin/idea/artifacts/KotlinNativeVersion.kt"
     )
     updateFile(
         kotlinNativeVersionsKt,

@@ -782,7 +782,8 @@
       <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/base/kdoc/intellij.kotlin.base.kdoc.iml" filepath="$PROJECT_DIR$/plugins/kotlin/base/kdoc/intellij.kotlin.base.kdoc.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/base/platforms/intellij.kotlin.base.platforms.iml" filepath="$PROJECT_DIR$/plugins/kotlin/base/platforms/intellij.kotlin.base.platforms.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/base/plugin/intellij.kotlin.base.plugin.iml" filepath="$PROJECT_DIR$/plugins/kotlin/base/plugin/intellij.kotlin.base.plugin.iml" />
-      <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/base/plugin/intellij.kotlin.base.plugin.tests.iml" filepath="$PROJECT_DIR$/plugins/kotlin/base/plugin/intellij.kotlin.base.plugin.tests.iml" />
+      <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/base/pluginTestFramework/intellij.kotlin.base.plugin.testFramework.iml" filepath="$PROJECT_DIR$/plugins/kotlin/base/pluginTestFramework/intellij.kotlin.base.plugin.testFramework.iml" />
+      <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/base/pluginTests/intellij.kotlin.base.plugin.tests.iml" filepath="$PROJECT_DIR$/plugins/kotlin/base/pluginTests/intellij.kotlin.base.plugin.tests.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/base/project-model/intellij.kotlin.base.projectModel.iml" filepath="$PROJECT_DIR$/plugins/kotlin/base/project-model/intellij.kotlin.base.projectModel.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/base/project-structure/intellij.kotlin.base.projectStructure.iml" filepath="$PROJECT_DIR$/plugins/kotlin/base/project-structure/intellij.kotlin.base.projectStructure.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/base/project-structure/intellij.kotlin.base.projectStructure.tests.iml" filepath="$PROJECT_DIR$/plugins/kotlin/base/project-structure/intellij.kotlin.base.projectStructure.tests.iml" />
@@ -795,6 +796,7 @@
       <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/base/kotlin.base.serialization/intellij.kotlin.base.serialization.iml" filepath="$PROJECT_DIR$/plugins/kotlin/base/kotlin.base.serialization/intellij.kotlin.base.serialization.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/base/statistics/intellij.kotlin.base.statistics.iml" filepath="$PROJECT_DIR$/plugins/kotlin/base/statistics/intellij.kotlin.base.statistics.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/intellij.kotlin.base.test/intellij.kotlin.base.test.iml" filepath="$PROJECT_DIR$/plugins/kotlin/intellij.kotlin.base.test/intellij.kotlin.base.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/base/testFramework/intellij.kotlin.base.testFramework.iml" filepath="$PROJECT_DIR$/plugins/kotlin/base/testFramework/intellij.kotlin.base.testFramework.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/base/util/intellij.kotlin.base.util.iml" filepath="$PROJECT_DIR$/plugins/kotlin/base/util/intellij.kotlin.base.util.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/base/util/intellij.kotlin.base.util.tests.iml" filepath="$PROJECT_DIR$/plugins/kotlin/base/util/intellij.kotlin.base.util.tests.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/code-insight/kotlin.code-insight.k2/intellij.kotlin.codeInsight.iml" filepath="$PROJECT_DIR$/plugins/kotlin/code-insight/kotlin.code-insight.k2/intellij.kotlin.codeInsight.iml" />
@@ -1944,7 +1946,6 @@
       <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/base/obsolete-compat/kotlin.base.obsolete-compat.iml" filepath="$PROJECT_DIR$/plugins/kotlin/base/obsolete-compat/kotlin.base.obsolete-compat.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/base/scripting/scripting.k1/kotlin.base.scripting.k1.iml" filepath="$PROJECT_DIR$/plugins/kotlin/base/scripting/scripting.k1/kotlin.base.scripting.k1.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/base/scripting/scripting.k1/kotlin.base.scripting.k1.tests.iml" filepath="$PROJECT_DIR$/plugins/kotlin/base/scripting/scripting.k1/kotlin.base.scripting.k1.tests.iml" />
-      <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/base/test/kotlin.base.test.iml" filepath="$PROJECT_DIR$/plugins/kotlin/base/test/kotlin.base.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/code-insight/inspections-shared/tests/k1/kotlin.code-insight.inspections-shared.tests.k1.iml" filepath="$PROJECT_DIR$/plugins/kotlin/code-insight/inspections-shared/tests/k1/kotlin.code-insight.inspections-shared.tests.k1.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/code-insight/inspections-shared/tests/k2/kotlin.code-insight.inspections-shared.tests.k2.iml" filepath="$PROJECT_DIR$/plugins/kotlin/code-insight/inspections-shared/tests/k2/kotlin.code-insight.inspections-shared.tests.k2.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/code-insight/inspections-k1/kotlin.code-insight.inspections.k1.iml" filepath="$PROJECT_DIR$/plugins/kotlin/code-insight/inspections-k1/kotlin.code-insight.inspections.k1.iml" />

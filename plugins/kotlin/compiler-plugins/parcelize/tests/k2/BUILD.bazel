@@ -33,8 +33,8 @@ jvm_library(
     "//plugins/kotlin/compiler-plugins/parcelize/k2:kotlin-compilerPlugins-parcelize_test_lib",
     "//plugins/kotlin/test-framework",
     "//plugins/kotlin/test-framework:test-framework_test_lib",
-    "//plugins/kotlin/base/test",
-    "//plugins/kotlin/base/test:test_test_lib",
+    "//plugins/kotlin/base/testFramework",
+    "//plugins/kotlin/base/testFramework:testFramework_test_lib",
     "//plugins/kotlin/tests-common:common-tests",
     "//plugins/kotlin/tests-common:common-tests_test_lib",
     "//java/testFramework",
@@ -46,8 +46,8 @@ jvm_library(
     "//plugins/kotlin/intellij.kotlin.base.test:base-test",
     "//plugins/kotlin/intellij.kotlin.base.test:base-test_test_lib",
     "@lib//:kotlinc-analysis-api-impl-base",
-    "//plugins/kotlin/base/plugin:kotlin-base-plugin-tests",
-    "//plugins/kotlin/base/plugin:kotlin-base-plugin-tests_test_lib",
+    "//plugins/kotlin/base/pluginTestFramework:kotlin-base-plugin-testFramework",
+    "//plugins/kotlin/base/pluginTestFramework:kotlin-base-plugin-testFramework_test_lib",
   ],
   runtime_deps = [":kotlin-compilerPlugins-parcelize-tests"]
 )
