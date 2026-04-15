@@ -20,7 +20,7 @@ import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtVisitor
 import org.jetbrains.kotlin.psi.KtVisitorVoid
 
-internal class ConvertNameBasedDestructuringShortFormToFullInspection : KotlinApplicableInspectionBase.Simple<KtDestructuringDeclaration, Unit>() {
+internal class ConvertNameBasedDestructuringShortFormToFullInspection : KotlinApplicableInspectionBase.Simple<KtDestructuringDeclaration, String>() {
 
     override fun buildVisitor(
         holder: ProblemsHolder,
@@ -40,27 +40,27 @@ internal class ConvertNameBasedDestructuringShortFormToFullInspection : KotlinAp
         return true
     }
 
-    override fun getProblemDescription(element: KtDestructuringDeclaration, context: Unit): String {
+    override fun getProblemDescription(element: KtDestructuringDeclaration, context: String): String {
         return KotlinBundle.message("convert.to.full.name.based.form.destructing")
     }
 
     override fun createQuickFix(
         element: KtDestructuringDeclaration,
-        context: Unit
+        context: String
     ): KotlinModCommandQuickFix<KtDestructuringDeclaration> {
-        return ConvertNameBasedDestructuringShortFormToFullFix()
+        return ConvertNameBasedDestructuringShortFormToFullFix(context)
     }
 
-    override fun KaSession.prepareContext(element: KtDestructuringDeclaration): Unit? {
+    override fun KaSession.prepareContext(element: KtDestructuringDeclaration): String? {
         // Just verify that we can extract primary parameters - the actual work will be done in the QuickFix
         if (extractPrimaryParameters(element) == null) return null
         // Exclude stdlib types - they should use brackets [x, y] instead
         if (element.isPositionalDestructuringType()) return null
-        return Unit
+        return element.buildNameBasedDestructuringText()
     }
 }
 
-internal class ConvertNameBasedDestructuringShortFormToFullFix : KotlinModCommandQuickFix<KtDestructuringDeclaration>() {
+internal class ConvertNameBasedDestructuringShortFormToFullFix(private val newDestructuringText: String) : KotlinModCommandQuickFix<KtDestructuringDeclaration>() {
 
     override fun getFamilyName(): String = KotlinBundle.message("convert.to.full.name.based.form.destructing")
 
@@ -69,8 +69,6 @@ internal class ConvertNameBasedDestructuringShortFormToFullFix : KotlinModComman
         element: KtDestructuringDeclaration,
         updater: ModPsiUpdater
     ) {
-        val newDestructuringText = analyze(element) { element.buildNameBasedDestructuringText() } ?: return
-
         // Create the new destructuring declaration and replace the entire declaration
         val psiFactory = KtPsiFactory(project)
         val newDestructuringDeclaration = psiFactory.createDestructuringDeclaration(newDestructuringText)
