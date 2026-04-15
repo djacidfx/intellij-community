@@ -50,10 +50,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-final class JavaBackendFoldings {
+public final class JavaBackendFoldings {
 
-
-  static void buildBackendFoldRegions(@NotNull JavaFoldingBuilderBase builder,
+  public static void buildBackendFoldRegions(@NotNull JavaFoldingBuilderBase builder,
                                       @NotNull List<FoldingDescriptor> descriptors,
                                       @NotNull PsiJavaFile file,
                                       @NotNull Document document,
@@ -61,7 +60,6 @@ final class JavaBackendFoldings {
     PsiClass[] classes = file.getClasses();
     for (PsiClass aClass : classes) {
       ProgressManager.checkCanceled();
-      ProgressIndicatorProvider.checkCanceled();
       addFoldsForClass(builder, descriptors, aClass, document, quick);
     }
   }
@@ -191,9 +189,6 @@ final class JavaBackendFoldings {
       public void visitClass(@NotNull PsiClass aClass) {
         if (aClass instanceof PsiAnonymousClass) {
           if ((dumb || !addClosureFolding(builder, aClass, document, list, quick))) {
-            JavaFoldingUtil.addToFold(list, aClass, document, true, JavaFoldingUtil.getCodeBlockPlaceholder(null),
-                                      JavaFoldingUtil.classRange(aClass),
-                                      JavaCodeFoldingSettings.getInstance().isCollapseInnerClasses());
             addFoldsForClass(builder, list, aClass, document, quick);
             JavaFrontendFoldings.addFrontendFoldsForClass(list, aClass, document);
           }

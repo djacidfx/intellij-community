@@ -20,7 +20,7 @@ open class IdeJavaFoldingBuilderBase: JavaFoldingBuilderBase() {
     return lineLength <= settings.getRightMargin(JavaLanguage.INSTANCE)
   }
 
-  protected override fun shouldShowExplicitLambdaType(anonymousClass: PsiAnonymousClass, expression: PsiNewExpression): Boolean {
+  protected open override fun shouldShowExplicitLambdaType(anonymousClass: PsiAnonymousClass, expression: PsiNewExpression): Boolean {
     val parent = expression.getParent()
     return parent is PsiReferenceExpression || parent is PsiAssignmentExpression
   }

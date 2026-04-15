@@ -41,7 +41,6 @@ public final class JavaFrontendFoldings {
     PsiClass[] classes = file.getClasses();
     for (PsiClass aClass : classes) {
       ProgressManager.checkCanceled();
-      ProgressIndicatorProvider.checkCanceled();
       addFrontendFoldsForClass(descriptors, aClass, document);
     }
 
@@ -126,7 +125,6 @@ public final class JavaFrontendFoldings {
                                   JavaCodeFoldingSettings.getInstance().isCollapseInnerClasses());
         addFrontendFoldsForClass(list, aClass, document);
       }
-
 
       @Override
       public void visitLambdaExpression(@NotNull PsiLambdaExpression expression) {
