@@ -27,8 +27,6 @@ import org.jetbrains.kotlin.analysis.api.symbols.classSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.contextParameters
 import org.jetbrains.kotlin.idea.KotlinIconProvider
 import org.jetbrains.kotlin.idea.codeinsight.api.applicators.fixes.KotlinQuickFixFactory
-import org.jetbrains.kotlin.idea.core.overrideImplement.KtImplementMembersHandler.Companion.getUnimplementedMemberSymbols
-import org.jetbrains.kotlin.idea.core.overrideImplement.KtImplementMembersHandler.Companion.getUnimplementedMembers
 import org.jetbrains.kotlin.idea.core.util.KotlinIdeaCoreBundle
 import org.jetbrains.kotlin.idea.search.ExpectActualSupport
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
@@ -64,41 +62,6 @@ open class KtImplementMembersHandler : KtGenerateMembersHandler(true) {
         }
     }
 
-    companion object {
-        context(_: KaSession)
-        fun getUnimplementedMembers(classWithUnimplementedMembers: KtClassOrObject): List<KtClassMemberInfo> =
-            classWithUnimplementedMembers.classSymbol?.let { getUnimplementedMemberSymbols(it) }.orEmpty()
-                .mapToKtClassMemberInfo()
-
-        context(_: KaSession)
-        @OptIn(KaExperimentalApi::class)
-        internal fun getUnimplementedMemberSymbols(classWithUnimplementedMembers: KaClassSymbol): List<KaCallableSymbol> {
-            return buildList {
-                classWithUnimplementedMembers.memberScope.callables.forEach { symbol ->
-                    if (!symbol.isVisibleInClass(classWithUnimplementedMembers)) return@forEach
-                    when (symbol.getImplementationStatus(classWithUnimplementedMembers)) {
-                        ImplementationStatus.NOT_IMPLEMENTED -> add(symbol)
-                        ImplementationStatus.AMBIGUOUSLY_INHERITED,
-                        ImplementationStatus.INHERITED_OR_SYNTHESIZED -> {
-                            val intersectionOverriddenSymbols = symbol.intersectionOverriddenSymbols
-                            val (abstractSymbols, nonAbstractSymbols) = intersectionOverriddenSymbols.partition {
-                                it.modality == KaSymbolModality.ABSTRACT
-                            }
-                            if (isManyMemberNotImplementedError(intersectionOverriddenSymbols)) {
-                                // This for the [MANY_INTERFACES_MEMBER_NOT_IMPLEMENTED] and [MANY_IMPL_MEMBER_NOT_IMPLEMENTED] compiler errors.
-                                addAll(abstractSymbols.ifEmpty { intersectionOverriddenSymbols })
-                            } else if (abstractSymbols.isNotEmpty() && nonAbstractSymbols.isEmpty()) {
-                                addAll(abstractSymbols)
-                            }
-                        }
-
-                        else -> {
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
 
 internal class KtImplementMembersQuickfix(private val members: Collection<KtClassMemberInfo>) : KtImplementMembersHandler(),
@@ -231,4 +194,38 @@ private fun isManyMemberNotImplementedError(callableSymbols: Collection<KaCallab
     // class Circle : Shape(), Drawable
     val singleOpenMethod = callableSymbols.singleOrNull { it.modality == KaSymbolModality.OPEN } ?: return true
     return (singleOpenMethod.containingSymbol as? KaClassSymbol)?.classKind != KaClassKind.CLASS
+}
+
+context(_: KaSession)
+fun getUnimplementedMembers(classWithUnimplementedMembers: KtClassOrObject): List<KtClassMemberInfo> =
+    classWithUnimplementedMembers.classSymbol?.let { getUnimplementedMemberSymbols(it) }.orEmpty()
+        .mapToKtClassMemberInfo()
+
+context(_: KaSession)
+@OptIn(KaExperimentalApi::class)
+internal fun getUnimplementedMemberSymbols(classWithUnimplementedMembers: KaClassSymbol): List<KaCallableSymbol> {
+    return buildList {
+        classWithUnimplementedMembers.memberScope.callables.forEach { symbol ->
+            if (!symbol.isVisibleInClass(classWithUnimplementedMembers)) return@forEach
+            when (symbol.getImplementationStatus(classWithUnimplementedMembers)) {
+                ImplementationStatus.NOT_IMPLEMENTED -> add(symbol)
+                ImplementationStatus.AMBIGUOUSLY_INHERITED,
+                ImplementationStatus.INHERITED_OR_SYNTHESIZED -> {
+                    val intersectionOverriddenSymbols = symbol.intersectionOverriddenSymbols
+                    val (abstractSymbols, nonAbstractSymbols) = intersectionOverriddenSymbols.partition {
+                        it.modality == KaSymbolModality.ABSTRACT
+                    }
+                    if (isManyMemberNotImplementedError(intersectionOverriddenSymbols)) {
+                        // This for the [MANY_INTERFACES_MEMBER_NOT_IMPLEMENTED] and [MANY_IMPL_MEMBER_NOT_IMPLEMENTED] compiler errors.
+                        addAll(abstractSymbols.ifEmpty { intersectionOverriddenSymbols })
+                    } else if (abstractSymbols.isNotEmpty() && nonAbstractSymbols.isEmpty()) {
+                        addAll(abstractSymbols)
+                    }
+                }
+
+                else -> {
+                }
+            }
+        }
+    }
 }
