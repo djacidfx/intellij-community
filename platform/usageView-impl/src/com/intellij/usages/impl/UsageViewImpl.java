@@ -35,6 +35,7 @@ import com.intellij.openapi.actionSystem.Separator;
 import com.intellij.openapi.actionSystem.UiDataProvider;
 import com.intellij.openapi.application.AccessToken;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.CoroutineSupport;
 import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.application.WriteIntentReadAction;
@@ -107,7 +108,6 @@ import com.intellij.util.Consumer;
 import com.intellij.util.EditSourceOnDoubleClickHandler;
 import com.intellij.util.EditSourceOnEnterKeyHandler;
 import com.intellij.util.ObjectUtils;
-import com.intellij.util.SingleAlarm;
 import com.intellij.util.SlowOperations;
 import com.intellij.util.concurrency.AppJavaExecutorUtil;
 import com.intellij.util.concurrency.CoroutineDispatcherBackedExecutor;
@@ -121,8 +121,12 @@ import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
 import com.intellij.util.ui.tree.TreeModelAdapter;
 import com.intellij.util.ui.tree.TreeUtil;
+import com.intellij.util.ui.update.DebouncedUpdates;
+import com.intellij.util.ui.update.UpdateQueue;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+import kotlin.Unit;
+import kotlin.coroutines.CoroutineContext;
 import kotlinx.coroutines.CoroutineScope;
 import kotlinx.coroutines.JobKt;
 import org.jetbrains.annotations.ApiStatus;
@@ -211,7 +215,7 @@ public class UsageViewImpl implements UsageViewEx {
 
   private volatile boolean mySearchInProgress = true;
   private final ExporterToTextFile myTextFileExporter = new ExporterToTextFile(this, getUsageViewSettings());
-  private final SingleAlarm updateAlarm;
+  private final @NotNull UpdateQueue<Object> updateAlarm;
 
   private final ExclusionHandlerEx<DefaultMutableTreeNode> myExclusionHandler;
   private final Map<Usage, UsageNode> myUsageNodes = new ConcurrentHashMap<>();
@@ -412,11 +416,14 @@ public class UsageViewImpl implements UsageViewEx {
     };
     updateRequests = AppJavaExecutorUtil
       .createBoundedTaskExecutor("Usage View Update Requests", coroutineScope, JobSchedulerImpl.getJobPoolParallelism());
-    updateAlarm = SingleAlarm.singleEdtAlarm(300, coroutineScope, () -> {
-      if (!isDisposed()) {
-        updateImmediately();
-      }
-    });
+    CoroutineContext edtDispatcher = ApplicationManager.getApplication().getService(CoroutineSupport.class).uiDispatcher(CoroutineSupport.UiDispatcherKind.LEGACY, false);
+    updateAlarm = DebouncedUpdates.forScope(coroutineScope, "Usage View Update Requests", 300)
+      .withContext(edtDispatcher)
+      .runLatest(unit -> {
+        if (!isDisposed()) {
+          updateImmediately();
+        }
+      });
   }
 
   @Override
@@ -1696,7 +1703,7 @@ public class UsageViewImpl implements UsageViewEx {
   }
 
   void updateLater() {
-    updateAlarm.cancelAndRequest();
+    updateAlarm.queue(Unit.INSTANCE);
   }
 
   @Override
@@ -1718,7 +1725,7 @@ public class UsageViewImpl implements UsageViewEx {
       ThreadingAssertions.assertEventDispatchThread();
       disposeUsageContextPanels();
       isDisposed = true;
-      updateAlarm.cancelAllRequests();
+      updateAlarm.queue(Unit.INSTANCE);
       fusRunnable = null; // Release reference to this
 
       cancelCurrentSearch();
