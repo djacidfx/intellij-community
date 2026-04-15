@@ -226,7 +226,7 @@ internal class BackendXBreakpointTypeApi : XBreakpointTypeApi {
   ): XBreakpointBase<*, *, *> {
     val breakpointManager = XDebuggerManager.getInstance(project).breakpointManager
     val placement = request.placement
-    val breakpoint = readAction {
+    val breakpoint = edtWriteAction {
       XDebuggerUtilImpl.addLineBreakpoint(breakpointManager, variant, position.file, position.line, request.isTemporary, placement)
     }
     if (request.isLogging) {
