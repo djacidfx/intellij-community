@@ -95,8 +95,15 @@ class IjentWslNioPath(
     return originalPath.toIjentWslPath()
   }
 
-  override fun register(watcher: WatchService, events: Array<out WatchEvent.Kind<*>?>?, vararg modifiers: WatchEvent.Modifier?): WatchKey =
-    actualPath.register(watcher, events, *modifiers)  // TODO Not well tested.
+  override fun register(watcher: WatchService, events: Array<out WatchEvent.Kind<*>?>?, vararg modifiers: WatchEvent.Modifier?): WatchKey {
+    val ijentPath: Path = fileSystem.provider().toIjentNioPath(this)
+    @Suppress("UNCHECKED_CAST")
+    return ijentPath.register(
+      watcher,
+      (events ?: emptyArray()) as Array<out WatchEvent.Kind<*>>,
+      *modifiers.filterNotNull().toTypedArray()
+    )
+  }
 
   override fun compareTo(other: Path): Int = presentablePath.compareTo(other.toOriginalPath())
 

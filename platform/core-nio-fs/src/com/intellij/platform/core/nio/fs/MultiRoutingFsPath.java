@@ -169,9 +169,11 @@ public final class MultiRoutingFsPath implements Path, sun.nio.fs.BasicFileAttri
   @Override
   public WatchKey register(WatchService watcher, WatchEvent.Kind<?>[] events, WatchEvent.Modifier... modifiers) throws IOException {
     if (watcher instanceof MultiRoutingWatchServiceDelegate delegated) {
-      // Registration must happen against the backend watch service, but the wrapped API must return
-      // the same watch-key shape that poll()/take() expose to callers.
-      return delegated.wrapDelegateKey(myDelegate.register(delegated.myDelegate, events, modifiers));
+      // Use getCurrentDelegate() to re-resolve through current routing, so WSL paths
+      // that were initially created with a Windows delegate get routed to the IJent backend.
+      Path delegate = getCurrentDelegate();
+      WatchService backendWs = delegated.getBackendWatchService(delegate.getFileSystem());
+      return delegated.wrapDelegateKey(delegate.register(backendWs, events, modifiers));
     }
     return myDelegate.register(watcher, events, modifiers);
   }
@@ -179,9 +181,9 @@ public final class MultiRoutingFsPath implements Path, sun.nio.fs.BasicFileAttri
   @Override
   public WatchKey register(WatchService watcher, WatchEvent.Kind<?>... events) throws IOException {
     if (watcher instanceof MultiRoutingWatchServiceDelegate delegated) {
-      // Callers may store the key returned by register() and later compare it with keys received from
-      // the watch service, so keep registration and delivery symmetric.
-      return delegated.wrapDelegateKey(myDelegate.register(delegated.myDelegate, events));
+      Path delegate = getCurrentDelegate();
+      WatchService backendWs = delegated.getBackendWatchService(delegate.getFileSystem());
+      return delegated.wrapDelegateKey(delegate.register(backendWs, events));
     }
     return myDelegate.register(watcher, events);
   }

@@ -62,7 +62,10 @@ sealed class IjentNioPath protected constructor(
 
 
   override fun register(watcher: WatchService, events: Array<out WatchEvent.Kind<*>>, vararg modifiers: WatchEvent.Modifier): WatchKey {
-    TODO("Not yet implemented")
+    if (watcher is IjentNioWatchService) {
+      return watcher.register(this, events)
+    }
+    throw UnsupportedOperationException("Unsupported WatchService: $watcher")
   }
 
   override fun compareTo(other: Path): Int {

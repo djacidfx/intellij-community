@@ -89,9 +89,8 @@ class IjentNioFileSystem internal constructor(
     TODO("Not yet implemented")
   }
 
-  override fun newWatchService(): WatchService {
-    TODO("Not yet implemented")
-  }
+  override fun newWatchService(): WatchService =
+    IjentNioWatchService(ijentFs, this)
 
   override fun equals(other: Any?): Boolean =
     other is IjentNioFileSystem && other.uri == uri && other.fsProvider == fsProvider

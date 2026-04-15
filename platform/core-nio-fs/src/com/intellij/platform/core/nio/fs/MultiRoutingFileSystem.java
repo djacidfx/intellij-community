@@ -175,6 +175,6 @@ public final class MultiRoutingFileSystem extends DelegatingFileSystem<MultiRout
   @Override
   public WatchService newWatchService() throws IOException {
     // TODO Move it to DelegatingFileSystem.
-    return new MultiRoutingWatchServiceDelegate(super.newWatchService(), myProvider);
+    return new MultiRoutingWatchServiceDelegate(super.newWatchService(), myProvider, myLocalFS);
   }
 }

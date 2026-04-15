@@ -69,5 +69,5 @@ class IjentWslNioFileSystem internal constructor(
     originalFs.userPrincipalLookupService
 
   override fun newWatchService(): WatchService =
-    originalFs.newWatchService()
+    ijentFs.newWatchService()
 }

@@ -153,9 +153,8 @@ class IjentEphemeralRootAwarePath(
     return IjentEphemeralRootAwarePath(fileSystem, rootPath, ijentNioRealPath)
   }
 
-  override fun register(watcher: WatchService, events: Array<out WatchEvent.Kind<*>>, vararg modifiers: WatchEvent.Modifier?): WatchKey {
-    return actualPath.register(watcher, events, *modifiers)  // TODO Not well tested.
-  }
+  override fun register(watcher: WatchService, events: Array<out WatchEvent.Kind<*>>, vararg modifiers: WatchEvent.Modifier?): WatchKey =
+    originalPath.register(watcher, events, *modifiers.filterNotNull().toTypedArray())
 
   override fun compareTo(other: Path): Int {
     val other = other.unwrap()
@@ -341,7 +340,7 @@ class IjentEphemeralRootAwareFileSystemProvider(
 class IjentEphemeralRootAwareFileSystem(
   private val rootAwareFileSystemProvider: IjentEphemeralRootAwareFileSystemProvider,
   private val ijentFs: FileSystem,
-  private val originalFs: FileSystem,
+  internal val originalFs: FileSystem,
   private val useRootDirectoriesFromOriginalFs: Boolean,
   override val eelDescriptor: EelDescriptor
 ) : DelegatingFileSystem<IjentEphemeralRootAwareFileSystemProvider>(), EelDescriptorOwner {
@@ -386,7 +385,7 @@ class IjentEphemeralRootAwareFileSystem(
 
   override fun getUserPrincipalLookupService(): UserPrincipalLookupService = originalFs.userPrincipalLookupService
 
-  override fun newWatchService(): WatchService = originalFs.newWatchService()
+  override fun newWatchService(): WatchService = ijentFs.newWatchService()
 
   override fun getFileStores(): Iterable<FileStore> = originalFs.fileStores + ijentFs.fileStores
 

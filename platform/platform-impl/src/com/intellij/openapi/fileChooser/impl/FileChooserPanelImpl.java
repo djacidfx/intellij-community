@@ -234,7 +234,7 @@ final class FileChooserPanelImpl extends JBPanel<FileChooserPanelImpl> implement
             if (!events.isEmpty() && !myReloadSuppressed) {
               UIUtil.invokeLaterIfNeeded(() -> {
                 synchronized (myLock) {
-                  if (key == myWatchKey && myCurrentDirectory != null) {
+                  if (keysMatch(key, myWatchKey) && myCurrentDirectory != null) {
                     reload(null);
                   }
                 }
@@ -253,6 +253,10 @@ final class FileChooserPanelImpl extends JBPanel<FileChooserPanelImpl> implement
       LOG.warn(e);
       return null;
     }
+  }
+
+  private static boolean keysMatch(@NotNull WatchKey key, @Nullable WatchKey myKey) {
+    return key == myKey || key.equals(myKey);
   }
 
   private void setupPathBar() {
@@ -682,25 +686,25 @@ final class FileChooserPanelImpl extends JBPanel<FileChooserPanelImpl> implement
 
     if (!cancelled.get()) {
       WatchKey watchKey = null;
-      if (myWatcher != null && isLocalFs(directory)) {
+      if (myWatcher != null) {
         try {
           watchKey = directory.register(myWatcher, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE);
         }
         catch (Exception e) {
-          if (LOG.isDebugEnabled()) LOG.debug("cannot watch " + directory, e);
+          LOG.warn("FileChooser: cannot watch " + directory, e);
         }
       }
 
-      var _watchKey = watchKey;
+      var finalWatchKey = watchKey;
       update(
         id,
         () -> {
           myList.setPaintBusy(false);
           updateSelection(selection);
           reportError("file.chooser.cannot.load.dir", error);
-          myWatchKey = _watchKey;
+          myWatchKey = finalWatchKey;
         },
-        () -> { if (_watchKey != null) _watchKey.cancel(); });
+        () -> { if (finalWatchKey != null) finalWatchKey.cancel(); });
     }
   }
 

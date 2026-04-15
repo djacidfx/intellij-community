@@ -334,6 +334,15 @@ private class IjentFailSafeFileSystemPosixApiImpl(
   override suspend fun createTemporaryFile(options: EelFileSystemApi.CreateTemporaryEntryOptions): EelResult<EelPath, EelFileSystemApi.CreateTemporaryEntryError> = holder.withDelegateRetrying {
     createTemporaryFile(options)
   }
+
+  override suspend fun watchChanges(): Flow<EelFileSystemApi.PathChange> =
+    holder.withDelegateRetrying { watchChanges() }
+
+  override suspend fun addWatchRoots(watchOptions: EelFileSystemApi.WatchOptions): Boolean =
+    holder.withDelegateRetrying { addWatchRoots(watchOptions) }
+
+  override suspend fun unwatch(unwatchOptions: EelFileSystemApi.UnwatchOptions): Boolean =
+    holder.withDelegateRetrying { unwatch(unwatchOptions) }
 }
 
 /**
@@ -508,6 +517,15 @@ private class IjentFailSafeFileSystemWindowsApiImpl(
   override suspend fun createTemporaryFile(options: EelFileSystemApi.CreateTemporaryEntryOptions): EelResult<EelPath, EelFileSystemApi.CreateTemporaryEntryError> = holder.withDelegateRetrying {
     createTemporaryFile(options)
   }
+
+  override suspend fun watchChanges(): Flow<EelFileSystemApi.PathChange> =
+    holder.withDelegateRetrying { watchChanges() }
+
+  override suspend fun addWatchRoots(watchOptions: EelFileSystemApi.WatchOptions): Boolean =
+    holder.withDelegateRetrying { addWatchRoots(watchOptions) }
+
+  override suspend fun unwatch(unwatchOptions: EelFileSystemApi.UnwatchOptions): Boolean =
+    holder.withDelegateRetrying { unwatch(unwatchOptions) }
 }
 
 private val LOG = logger<IjentFailSafeFileSystemPosixApiImpl>()
