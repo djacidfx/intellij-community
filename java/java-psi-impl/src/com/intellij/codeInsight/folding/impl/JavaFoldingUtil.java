@@ -43,8 +43,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 final public class JavaFoldingUtil {
   private static final Logger LOG = Logger.getInstance(JavaFoldingUtil.class);
@@ -174,24 +174,21 @@ final public class JavaFoldingUtil {
 
   static void addCommentsToFold(@NotNull List<? super FoldingDescriptor> list,
                                 @NotNull PsiElement element,
-                                @NotNull Document document,
-                                @NotNull Set<? super PsiElement> processedComments) {
+                                @NotNull Document document) {
     final PsiComment[] comments = PsiTreeUtil.getChildrenOfType(element, PsiComment.class);
     if (comments == null) return;
 
     for (PsiComment comment : comments) {
-      addCommentToFold(list, comment, document, processedComments);
+      addCommentToFold(list, comment, document);
     }
   }
 
   static void addCommentToFold(@NotNull List<? super FoldingDescriptor> list,
                                @NotNull PsiComment comment,
-                               @NotNull Document document,
-                               @NotNull Set<? super PsiElement> processedComments) {
+                               @NotNull Document document) {
     final FoldingDescriptor commentDescriptor;
     if (comment instanceof PsiDocComment && ((PsiDocComment)comment).isMarkdownComment()) {
       // FIXME: inline documentation comments aren't supported in the Commenter interface
-      if (!processedComments.add(comment)) return;
       String placeholder = CommentFoldingUtil.getCommentPlaceholder(document, JavaDocElementType.DOC_COMMENT, comment.getTextRange());
       if (placeholder == null) placeholder = "/// ...";
       // Hack: Markdown comments aren't documented in the Commenter for the Java language
@@ -202,7 +199,7 @@ final public class JavaFoldingUtil {
                               Collections.emptySet());
     }
     else {
-      commentDescriptor = CommentFoldingUtil.getCommentDescriptor(comment, document, processedComments,
+      commentDescriptor = CommentFoldingUtil.getCommentDescriptor(comment, document, new HashSet<>(),
                                                                   element -> CustomFoldingBuilder.isCustomRegionElement(element),
                                                                   isCollapseCommentByDefault(comment));
     }
@@ -327,10 +324,9 @@ final public class JavaFoldingUtil {
 
   static void addFoldsForModule(@NotNull List<? super FoldingDescriptor> list,
                                         @NotNull PsiJavaModule module,
-                                        @NotNull Document document,
-                                        @NotNull Set<? super PsiElement> processedComments) {
+                                        @NotNull Document document) {
     addToFold(list, module, document, true, getCodeBlockPlaceholder(null), moduleRange(module), false);
-    addCommentsToFold(list, module, document, processedComments);
+    addCommentsToFold(list, module, document);
     addAnnotationsToFold(list, module.getModifierList(), document);
   }
 }
