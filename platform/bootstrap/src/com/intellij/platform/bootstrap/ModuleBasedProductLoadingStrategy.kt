@@ -17,7 +17,6 @@ import com.intellij.ide.plugins.deprecatedLoadCorePluginForModuleBasedLoader
 import com.intellij.ide.plugins.loadDescriptorFromDir
 import com.intellij.ide.plugins.loadDescriptorFromFileOrDir
 import com.intellij.ide.plugins.loadDescriptorFromJar
-import com.intellij.idea.AppMode
 import com.intellij.openapi.diagnostic.debug
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.diagnostic.thisLogger
@@ -104,19 +103,12 @@ internal class ModuleBasedProductLoadingStrategy(internal val moduleRepository: 
     mainClassLoader: ClassLoader,
   ): Deferred<List<DiscoveredPluginsList>> {
     val platformPrefix = PlatformUtils.getPlatformPrefix()
-    val isRunningFromSourcesWithoutDevBuild = isRunningFromSources && !isInDevServerMode
     val classpathPathResolver = ClassPathXmlPathResolver(
       classLoader = mainClassLoader,
-      isRunningFromSourcesWithoutDevBuild = isRunningFromSourcesWithoutDevBuild,
+      isRunningFromSourcesWithoutDevBuild = false,
       isOptionalProductModule = { moduleId -> this@ModuleBasedProductLoadingStrategy.isOptionalProductModule(moduleId) },
     )
     val useCoreClassLoader = platformPrefix.startsWith("CodeServer") || java.lang.Boolean.getBoolean("idea.force.use.core.classloader")
-    val pathResolver = if (isRunningFromSourcesWithoutDevBuild) {
-      RunningFromSourceModuleBasedPathResolver(moduleRepository, fallbackResolver = classpathPathResolver)
-    }
-    else {
-      classpathPathResolver
-    }
     val corePlugin = scope.async(Dispatchers.IO) {
       deprecatedLoadCorePluginForModuleBasedLoader(
         platformPrefix = platformPrefix,
@@ -124,7 +116,7 @@ internal class ModuleBasedProductLoadingStrategy(internal val moduleRepository: 
         isUnitTestMode = isUnitTestMode,
         isRunningFromSources = isRunningFromSources,
         loadingContext = loadingContext,
-        pathResolver = pathResolver,
+        pathResolver = classpathPathResolver,
         useCoreClassLoader = useCoreClassLoader,
         classLoader = mainClassLoader,
         jarFileForModule = { moduleId, _ -> findProductContentModuleClassesRoot(moduleId) },
@@ -384,11 +376,7 @@ internal class ModuleBasedProductLoadingStrategy(internal val moduleRepository: 
 
     val paths = resolvedModule.resourceRootPaths
     val singlePath = paths.singleOrNull()
-    val isRunningFromSourcesWithoutDevBuild = PluginManagerCore.isRunningFromSources() && !AppMode.isRunningFromDevBuild()
-    /* when running from sources without dev build, resources of a content module may include the module output directory and paths to its
-       module-level libraries, so this function may return null so resolveModuleFile and resolveCustomModuleClassesRoots from
-       ModuleBasedPluginXmlPathResolver will be used to load the module */
-    if (singlePath == null && !isRunningFromSourcesWithoutDevBuild) {
+    if (singlePath == null) {
       error("Content modules are supposed to have only one resource root, but $moduleId have multiple: $paths")
     }
 
