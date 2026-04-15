@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
 import java.nio.file.Path
 
-class JarRepositorySerializationTest {
+class RuntimeModuleRepositorySerializationTest {
   @JvmField
   @RegisterExtension
   val tempDirectory = TempDirectoryExtension()
