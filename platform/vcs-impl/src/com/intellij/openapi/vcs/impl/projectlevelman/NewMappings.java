@@ -65,6 +65,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+/**
+ * A project-level holder of VCS mappings
+ */
 @ApiStatus.Internal
 public final class NewMappings implements Disposable {
   private static final Comparator<MappedRoot> ROOT_COMPARATOR = Comparator.comparing(it -> it.root.getPath());
@@ -73,7 +76,7 @@ public final class NewMappings implements Disposable {
   private static final Logger LOG = Logger.getInstance(NewMappings.class);
   private final Object myUpdateLock = new Object();
 
-  private FileWatchRequestsManager myFileWatchRequestsManager;
+  private VcsMappingsFileWatchesManager myFileWatchRequestsManager;
 
   private final ProjectLevelVcsManagerImpl myVcsManager;
   private final Project myProject;
@@ -94,7 +97,7 @@ public final class NewMappings implements Disposable {
   public NewMappings(@NotNull Project project, @NotNull ProjectLevelVcsManagerImpl vcsManager, @NotNull CoroutineScope coroutineScope) {
     myProject = project;
     myVcsManager = vcsManager;
-    myFileWatchRequestsManager = new FileWatchRequestsManager(myProject, this);
+    myFileWatchRequestsManager = new VcsMappingsFileWatchesManager(myProject, this);
 
     myRootUpdateQueue = MergingUpdateQueue.Companion.mergingUpdateQueue("NewMappings", 1000, coroutineScope).usePassThroughInUnitTestMode();
 
@@ -108,7 +111,7 @@ public final class NewMappings implements Disposable {
   }
 
   @TestOnly
-  public void setFileWatchRequestsManager(FileWatchRequestsManager fileWatchRequestsManager) {
+  public void setFileWatchRequestsManager(VcsMappingsFileWatchesManager fileWatchRequestsManager) {
     assert ApplicationManager.getApplication().isUnitTestMode();
     myFileWatchRequestsManager = fileWatchRequestsManager;
   }

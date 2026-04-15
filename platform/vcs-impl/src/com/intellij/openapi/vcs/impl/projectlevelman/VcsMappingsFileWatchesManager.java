@@ -8,17 +8,22 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.TestOnly;
 
+/**
+ * Maintains the VFS file watches for VCS mappings
+ */
 @ApiStatus.Internal
-public class FileWatchRequestsManager {
-  private final FileWatchRequestModifier myModifier;
+public class VcsMappingsFileWatchesManager {
+  private final VcsMappingsWatchRootsModifier myModifier;
   private final Alarm myAlarm;
 
-  public FileWatchRequestsManager(@NotNull Project project, @NotNull NewMappings newMappings) {
+  public VcsMappingsFileWatchesManager(@NotNull Project project, @NotNull NewMappings newMappings) {
     this(project, newMappings, LocalFileSystem.getInstance());
   }
 
-  public FileWatchRequestsManager(@NotNull Project project, @NotNull NewMappings newMappings, @NotNull LocalFileSystem localFileSystem) {
-    myModifier = new FileWatchRequestModifier(project, newMappings, localFileSystem);
+  public VcsMappingsFileWatchesManager(@NotNull Project project,
+                                       @NotNull NewMappings newMappings,
+                                       @NotNull LocalFileSystem localFileSystem) {
+    myModifier = new VcsMappingsWatchRootsModifier(project, newMappings, localFileSystem);
     myAlarm = new Alarm(Alarm.ThreadToUse.POOLED_THREAD, newMappings);
   }
 
