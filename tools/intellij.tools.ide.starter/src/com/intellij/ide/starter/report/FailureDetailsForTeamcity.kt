@@ -39,7 +39,9 @@ object FailureDetailsForTeamcity : FailureDetailsOnCI {
   override fun getLinkToCIArtifacts(runContext: IDERunContext): String {
     val teamCityCI = CIServer.instance.asTeamCity()
     val urlString = "${teamCityCI.serverUri}/buildConfiguration/${teamCityCI.buildTypeId}/${teamCityCI.buildId}" +
-                    "?buildTab=artifacts#${URLEncoder.encode("/" + runContext.contextName.replaceSpecialCharactersWithHyphens(), CharsetToolkit.UTF8)}"
+                    "?buildTab=artifacts#" +
+                    URLEncoder.encode("/" + runContext.contextName.replaceSpecialCharactersWithHyphens(), CharsetToolkit.UTF8)
+
     return URI(urlString).normalize().toString()
   }
 

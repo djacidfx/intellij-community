@@ -18,10 +18,12 @@ interface FailureDetailsOnCI {
     }
   }
 
-  fun getFailureDetails(runContext: IDERunContext, error: Error?): String = "Test: ${getActiveTestName(runContext, error)}" + System.lineSeparator() +
+  fun getFailureDetails(runContext: IDERunContext, error: Error?): String =
+    "Test: ${getActiveTestName(runContext, error)}" + System.lineSeparator() +
     "You can find logs and other useful info in CI artifacts under the path ${runContext.contextName.replaceSpecialCharactersWithHyphens()}"
 
-  fun getActiveTestName(runContext: IDERunContext, error: Error?): String = error?.activeTestName ?: getActiveTestName().ifEmpty { runContext.contextName }
+  fun getActiveTestName(runContext: IDERunContext, error: Error?): String =
+    error?.activeTestName ?: getActiveTestName().ifEmpty { runContext.contextName }
 
   fun getLinkToCIArtifacts(runContext: IDERunContext): String? = null
 }

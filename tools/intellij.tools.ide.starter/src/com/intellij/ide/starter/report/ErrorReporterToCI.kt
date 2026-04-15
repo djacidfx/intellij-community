@@ -17,7 +17,7 @@ import kotlin.io.path.name
 import kotlin.io.path.readText
 import kotlin.jvm.optionals.getOrNull
 
-object ErrorReporterToCI: ErrorReporter {
+object ErrorReporterToCI : ErrorReporter {
   /**
    * Read files from errors directories, written by performance testing plugin and report them as errors.
    * Read threadDumps folders and report them as freezes.
@@ -38,7 +38,9 @@ object ErrorReporterToCI: ErrorReporter {
    * To support legacy formant of errors reporting in "script-errors" dir
    */
   fun collectScriptErrors(logsDir: Path): List<Error> {
-    val rootErrorsDir = Files.find(logsDir, 3, { path, _ -> path.name == "script-" + ErrorReporter.ERRORS_DIR_NAME }).findFirst().getOrNull()
+    val rootErrorsDir = Files.find(logsDir, 3, { path, _ -> path.name == "script-" + ErrorReporter.ERRORS_DIR_NAME })
+      .findFirst().getOrNull()
+
     if (SystemProperties.getBooleanProperty("DO_NOT_REPORT_ERRORS", false)) return listOf()
     return collectExceptions(rootErrorsDir)
   }
@@ -68,7 +70,8 @@ object ErrorReporterToCI: ErrorReporter {
         val activeTestNameFile = errorDir.resolve(ACTIVE_TESTNAME_FILENAME)
         val activeTestName = if (activeTestNameFile.exists()) activeTestNameFile.readText().trim().takeIf { it.isNotEmpty() } else null
         errors.add(Error(messageText, stackTrace, "", errorType, syntheticTestName, activeTestName))
-      } else if (errorType == ErrorType.FREEZE) {
+      }
+      else if (errorType == ErrorType.FREEZE) {
         errorDir.listDirectoryEntries("dump*").firstOrNull()?.let { threadDump ->
           val dumpContent = Files.readString(threadDump)
           val fallbackName = "Not analyzed freeze: " + (inferClassMethodNamesFromFolderName(threadDump)
@@ -129,7 +132,8 @@ object ErrorReporterToCI: ErrorReporter {
       val failureDetailsProvider = FailureDetailsOnCI.instance
       val failureDetailsMessage = failureDetailsProvider.getFailureDetails(runContext, error)
       val urlToLogs = failureDetailsProvider.getLinkToCIArtifacts(runContext).toString()
-      val linkToMuteArticle = "\nThis test fail is an exception! \nYou can find instructions about muting this error in this link https://youtrack.jetbrains.com/articles/IJPL-A-1185/How-to-create-a-new-mapping"
+      val linkToMuteArticle = "\nThis test fail is an exception! \n" +
+                              "You can find instructions about muting this error in this link https://youtrack.jetbrains.com/articles/IJPL-A-1185/How-to-create-a-new-mapping"
       if (CIServer.instance.isTestFailureShouldBeIgnored(messageText) || CIServer.instance.isTestFailureShouldBeIgnored(stackTraceContent)) {
         CIServer.instance.ignoreTestFailure(testName = "(${generifyErrorMessage(syntheticTestName)})",
                                             message = failureDetailsMessage)
@@ -141,7 +145,8 @@ object ErrorReporterToCI: ErrorReporter {
                                             linkToLogs = urlToLogs)
         AllureReport.reportFailure(runContext.contextName, messageText + linkToMuteArticle,
                                    stackTraceContent,
-                                   links = AllureLink.single("Link to Logs and artifacts", failureDetailsProvider.getLinkToCIArtifacts(runContext) ?: "fail to get link"))
+                                   links = AllureLink.single("Link to Logs and artifacts",
+                                                             failureDetailsProvider.getLinkToCIArtifacts(runContext) ?: "fail to get link"))
       }
     }
   }
