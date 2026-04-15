@@ -107,7 +107,6 @@ class WindowsCustomizerBuilder @PublishedApi internal constructor(private val pr
   private var copyAdditionalFilesHandler: (suspend (Path, JvmArchitecture, BuildContext) -> Unit)? = null
   private var fullNameHandler: ((ApplicationInfoProperties) -> String)? = null
   private var alternativeFullNameHandler: ((ApplicationInfoProperties) -> String?)? = null
-  private var fullNameAndVendorHandler: ((ApplicationInfoProperties) -> String)? = null
   private var uninstallFeedbackUrlHandler: ((ApplicationInfoProperties) -> String?)? = null
   private var binariesToSignHandler: ((BuildContext) -> List<String>)? = null
   
@@ -145,16 +144,7 @@ class WindowsCustomizerBuilder @PublishedApi internal constructor(private val pr
   fun alternativeFullName(handler: (ApplicationInfoProperties) -> String?) {
     this.alternativeFullNameHandler = handler
   }
-  
-  /**
-   * Sets the full name including edition and vendor used to create Desktop links.
-   *
-   * @param handler Lambda receiving ApplicationInfoProperties and returning the full name with vendor
-   */
-  fun fullNameAndVendor(handler: (ApplicationInfoProperties) -> String) {
-    this.fullNameAndVendorHandler = handler
-  }
-  
+
   /**
    * Sets the uninstall feedback page URL shown after uninstallation.
    *
@@ -219,10 +209,6 @@ class WindowsCustomizerBuilder @PublishedApi internal constructor(private val pr
       return builder.alternativeFullNameHandler?.invoke(appInfo) ?: super.getAlternativeFullNameIncludingEdition(appInfo)
     }
 
-    override fun getFullNameIncludingEditionAndVendor(appInfo: ApplicationInfoProperties): String {
-      return builder.fullNameAndVendorHandler?.invoke(appInfo) ?: super.getFullNameIncludingEditionAndVendor(appInfo)
-    }
-
     override fun getUninstallFeedbackPageUrl(appInfo: ApplicationInfoProperties): String? {
       return builder.uninstallFeedbackUrlHandler?.invoke(appInfo) ?: super.getUninstallFeedbackPageUrl(appInfo)
     }
@@ -244,25 +230,22 @@ class WindowsCustomizerBuilder @PublishedApi internal constructor(private val pr
  * }
  * ```
  */
-inline fun communityWindowsCustomizer(projectHome: Path, configure: WindowsCustomizerBuilder.() -> Unit = {}): WindowsDistributionCustomizer {
-  return windowsCustomizer(projectHome) {
-    // Set Community defaults
-    icoPath = "build/conf/ideaCE/win/images/idea_CE.ico"
-    icoPathForEAP = "build/conf/ideaCE/win/images/idea_CE_EAP.ico"
-    installerImagesPath = "build/conf/ideaCE/win/images"
-    fileAssociations = listOf("java", "gradle", "groovy", "kt", "kts", "pom")
-    
-    fullName { "IntelliJ IDEA Community Edition" }
-    
-    fullNameAndVendor { "IntelliJ IDEA Community Edition" }
-    
-    uninstallFeedbackUrl { appInfo ->
-      "https://www.jetbrains.com/idea/uninstall/?edition=IC-${appInfo.majorVersion}.${appInfo.minorVersion}"
-    }
-    
-    // Apply user configuration
-    configure()
+inline fun communityWindowsCustomizer(
+  projectHome: Path,
+  configure: WindowsCustomizerBuilder.() -> Unit = {}
+): WindowsDistributionCustomizer = windowsCustomizer(projectHome) {
+  icoPath = "build/conf/ideaCE/win/images/idea_CE.ico"
+  icoPathForEAP = "build/conf/ideaCE/win/images/idea_CE_EAP.ico"
+  installerImagesPath = "build/conf/ideaCE/win/images"
+  fileAssociations = listOf("java", "gradle", "groovy", "kt", "kts", "pom")
+
+  fullName { "IntelliJ IDEA Open Source" }
+
+  uninstallFeedbackUrl { appInfo ->
+    "https://www.jetbrains.com/idea/uninstall/?edition=IC-${appInfo.majorVersion}.${appInfo.minorVersion}"
   }
+
+  configure()
 }
 
 abstract class WindowsDistributionCustomizer {
@@ -351,13 +334,6 @@ abstract class WindowsDistributionCustomizer {
    * The returned name will be used in the Windows Installer to look for previous versions.
    */
   open fun getAlternativeFullNameIncludingEdition(appInfo: ApplicationInfoProperties): String? = null
-
-  /**
-   * The returned name will be used to create links on Desktop.
-   */
-  open fun getFullNameIncludingEditionAndVendor(appInfo: ApplicationInfoProperties): String {
-    return appInfo.shortCompanyName + ' ' + getFullNameIncludingEdition(appInfo)
-  }
 
   open fun getUninstallFeedbackPageUrl(appInfo: ApplicationInfoProperties): String? = null
 

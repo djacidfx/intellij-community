@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.intellij.build.impl
 
 import com.intellij.openapi.util.io.NioFiles
@@ -203,7 +203,6 @@ private suspend fun prepareConfigurationFiles(nsiConfDir: Path, uninstallerFileN
     !define MANUFACTURER "$${appInfo.shortCompanyName}"
     !define MUI_PRODUCT "$${customizer.getFullNameIncludingEdition(appInfo)}"
     !define MUI_PRODUCT_ALT "$${customizer.getAlternativeFullNameIncludingEdition(appInfo) ?: ""}"
-    !define PRODUCT_FULL_NAME "$${customizer.getFullNameIncludingEditionAndVendor(appInfo)}"
     !define PRODUCT_EXE_FILE "$${context.productProperties.baseFileName}64.exe"
     !define PRODUCT_ICON_FILE "install.ico"
     !define PRODUCT_UNINSTALL_ICON_FILE "uninstall.ico"
