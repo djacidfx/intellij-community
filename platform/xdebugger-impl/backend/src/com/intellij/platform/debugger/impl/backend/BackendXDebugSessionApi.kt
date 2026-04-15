@@ -8,7 +8,6 @@ import com.intellij.ide.ui.colors.rpcId
 import com.intellij.ide.ui.icons.rpcId
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.readAction
-import com.intellij.openapi.application.runReadActionBlocking
 import com.intellij.openapi.application.smartReadAction
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
@@ -505,12 +504,12 @@ private fun XStackFrame.captionInfo(): XStackFrameCaptionInfo {
   }
 }
 
-private fun XStackFrame.backgroundInfo(project: Project): XStackFrameBackgroundColor? {
+private suspend fun XStackFrame.backgroundInfo(project: Project): XStackFrameBackgroundColor? {
   if (this is XStackFrameWithCustomBackgroundColor) {
     return XStackFrameBackgroundColor(backgroundColor?.rpcId())
   }
   val file = sourcePosition?.file ?: return null
-  val fileColor = runReadActionBlocking {
+  val fileColor = readAction {
     FileColorManager.getInstance(project).getFileColor(file)
   } ?: return null
   return XStackFrameBackgroundColor(fileColor.rpcId())
