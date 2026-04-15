@@ -2642,6 +2642,7 @@ Fc:com.intellij.ui.RoundedLineBorder
 f:com.intellij.ui.ScreenUtil
 - sf:DISPOSE_TEMPORARY:java.lang.String
 - s:cropRectangleToFitTheScreen(java.awt.Rectangle):V
+- s:cropRectangleToFitTheScreen(java.awt.Rectangle,java.awt.Rectangle):V
 - s:findNearestPointOnBorder(java.awt.Rectangle,java.awt.Point):java.awt.Point
 - s:fitToScreen(java.awt.Rectangle):V
 - s:fitToScreenVertical(java.awt.Rectangle,I,I,Z):V
