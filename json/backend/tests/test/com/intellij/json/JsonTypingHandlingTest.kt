@@ -204,6 +204,35 @@ class JsonTypingHandlingTest : JsonTestCase() {
       """.trimIndent())
   }
 
+  fun testAutoQuotesForPropNameMulticaret() {
+    doTestColon(
+      """
+      [
+        {
+          "a": 1,
+          x<caret>
+        },
+        {
+          "b": 2,
+          y<caret>
+        }
+      ]
+      """.trimIndent(),
+      """
+      [
+        {
+          "a": 1,
+          "x": <caret>
+        },
+        {
+          "b": 2,
+          "y": <caret>
+        }
+      ]
+      """.trimIndent()
+    )
+  }
+
   fun testAutoQuotesForPropNameFalse1() {
     doTestColon(
       """{ "x"<caret>}""",
