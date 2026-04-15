@@ -22,6 +22,7 @@ import com.intellij.openapi.util.Pair
 import com.intellij.openapi.util.component1
 import com.intellij.openapi.util.component2
 import com.intellij.openapi.util.text.StringUtil
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.debugger.impl.shared.proxy.XBreakpointProxy
 import com.intellij.platform.debugger.impl.shared.proxy.XDebugManagerProxy
 import com.intellij.platform.debugger.impl.shared.proxy.XLineBreakpointInstallationInfo
@@ -88,12 +89,11 @@ object XBreakpointUIUtil {
 
   fun findBreakpoint(
     project: Project,
-    document: Document,
+    file: VirtualFile,
     line: Int,
     placement: XLineBreakpointVerticalPlacement = XLineBreakpointVerticalPlacement.ON_LINE,
   ): XLineBreakpointProxy? {
     val breakpointManager = XDebugManagerProxy.getInstance().getBreakpointManagerProxy(project)
-    val file = FileDocumentManager.getInstance().getFile(document) ?: return null
     for (type in breakpointManager.getLineBreakpointTypes()) {
       val breakpoint = breakpointManager.findBreakpointAtLine(type, file, line, placement)
       if (breakpoint != null) {
@@ -101,6 +101,16 @@ object XBreakpointUIUtil {
       }
     }
     return null
+  }
+
+  fun findBreakpoint(
+    project: Project,
+    document: Document,
+    line: Int,
+    placement: XLineBreakpointVerticalPlacement = XLineBreakpointVerticalPlacement.ON_LINE,
+  ): XLineBreakpointProxy? {
+    val file = FileDocumentManager.getInstance().getFile(document) ?: return null
+    return findBreakpoint(project, file, line, placement)
   }
 
   @JvmStatic
