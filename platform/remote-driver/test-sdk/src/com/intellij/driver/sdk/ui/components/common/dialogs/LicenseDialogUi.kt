@@ -84,12 +84,14 @@ class EducationalLicenseExpirationDialogUi(data: ComponentData) : UiComponent(da
 }
 
 fun LicenseDialogUi.exitConfirmationDialog(action: ExitConfirmationDialogUi.() -> Unit) {
-  x(ExitConfirmationDialogUi::class.java) { byTitle("Confirm Exit") }.action()
+  val title = if (isRemDevMode) "Stop the IDE Backend or Keep It Running"
+  else "Confirm Exit"
+  x(ExitConfirmationDialogUi::class.java) { byTitle(title) }.action()
 }
 
 class ExitConfirmationDialogUi(data: ComponentData) : DialogUiComponent(data) {
-  val exitConfirmButton: UiComponent = x { byAccessibleName("Exit") }
-  val backToActivationButton: UiComponent = x { byAccessibleName("Back to Activation") }
+  val exitConfirmButton: UiComponent = x { byAccessibleName(if (isRemDevMode) "Close and Stop" else "Exit") }
+  val backToActivationButton: UiComponent = x { byAccessibleName(if (isRemDevMode) "Cancel" else "Back to Activation") }
 }
 
 fun LicenseDialogUi.removeLicenseConfirmationDialog(action: RemoveLicenseConfirmationDialogUi.() -> Unit) {
