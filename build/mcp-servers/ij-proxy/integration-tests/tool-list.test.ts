@@ -19,6 +19,7 @@ function assertExcludesAll(names, excluded) {
 
 describe('ij MCP proxy tool list', {timeout: SUITE_TIMEOUT_MS}, () => {
   const defaultHasSearchSymbol = defaultUpstreamTools.some((tool) => tool.name === 'search_symbol')
+  const readOnlyAnnotations = {readOnlyHint: true, openWorldHint: false}
   const upstreamToolsWithLegacySearch = [
     buildUpstreamTool('search_in_files_by_text', {project_path: {type: 'string'}}, ['project_path']),
     buildUpstreamTool('search_in_files_by_regex', {project_path: {type: 'string'}}, ['project_path']),
@@ -34,7 +35,7 @@ describe('ij MCP proxy tool list', {timeout: SUITE_TIMEOUT_MS}, () => {
       mode: {type: 'string'},
       start_line: {type: 'number'},
       max_lines: {type: 'number'}
-    }, ['file_path'])
+    }, ['file_path'], readOnlyAnnotations)
   ]
   const upstreamToolsWithApplyPatch = [
     buildUpstreamTool('apply_patch', {patch: {type: 'string'}}, ['patch'])
@@ -84,6 +85,20 @@ describe('ij MCP proxy tool list', {timeout: SUITE_TIMEOUT_MS}, () => {
     })
   })
 
+  it('exposes read-only annotations for proxy shims', async () => {
+    await withProxy({}, async ({proxyClient}) => {
+      const listResponse = await proxyClient.send('tools/list')
+      const expectedReadOnlyTools = ['read_file', 'search_text', 'search_regex', 'search_file', 'lint_files', 'list_dir']
+
+      for (const name of expectedReadOnlyTools) {
+        const tool = listResponse.result.tools.find((candidate) => candidate.name === name)
+        ok(tool)
+        ok(tool.annotations?.readOnlyHint === true, `Expected readOnlyHint for ${name}`)
+        ok(tool.annotations?.openWorldHint === false, `Expected openWorldHint for ${name}`)
+      }
+    })
+  })
+
   it('does not expose search_symbol when upstream search_symbol is unavailable', async () => {
     await withProxy({tools: upstreamToolsWithLegacySearch}, async ({proxyClient}) => {
       const listResponse = await proxyClient.send('tools/list')
@@ -111,6 +126,8 @@ describe('ij MCP proxy tool list', {timeout: SUITE_TIMEOUT_MS}, () => {
       const properties = readTool.inputSchema?.properties ?? {}
       ok('file_path' in properties)
       ok('mode' in properties)
+      ok(readTool.annotations?.readOnlyHint === true)
+      ok(readTool.annotations?.openWorldHint === false)
     })
   })
 

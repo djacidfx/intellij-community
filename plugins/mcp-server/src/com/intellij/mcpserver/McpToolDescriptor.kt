@@ -1,6 +1,7 @@
 package com.intellij.mcpserver
 
 import com.intellij.openapi.util.NlsSafe
+import io.modelcontextprotocol.kotlin.sdk.types.ToolAnnotations
 
 class McpToolDescriptor(
   /**
@@ -30,4 +31,5 @@ class McpToolDescriptor(
    */
   val inputSchema: McpToolSchema,
   val outputSchema: McpToolSchema? = null,
+  val annotations: ToolAnnotations? = null,
 )

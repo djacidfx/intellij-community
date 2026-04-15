@@ -1,6 +1,9 @@
 package com.intellij.mcpserver
 
 import com.intellij.mcpserver.annotations.McpDescription
+import com.intellij.mcpserver.annotations.McpToolHintValue.FALSE
+import com.intellij.mcpserver.annotations.McpToolHintValue.TRUE
+import com.intellij.mcpserver.annotations.McpToolHints
 import com.intellij.mcpserver.impl.McpServerService
 import com.intellij.mcpserver.impl.util.asTool
 import com.intellij.mcpserver.impl.util.network.McpServerConnectionAddressProvider
@@ -79,6 +82,23 @@ class TransportTest {
 
   @ParameterizedTest
   @MethodSource("getTransports")
+  fun list_tools_has_annotations(transport: TransportHolder) = transportTest(transport) { client ->
+    delay(500.milliseconds)
+    Disposer.newDisposable().use { disposable ->
+      application.extensionArea.getExtensionPoint(McpToolsProvider.EP).registerExtension(object : McpToolsProvider {
+        override fun getTools(): List<McpTool> = listOf(this@TransportTest::test_tool.asTool())
+      }, disposable)
+      delay(500.milliseconds)
+
+      val tool = client.listTools().tools.single { it.name == "test_tool" }
+      assertThat(tool.annotations?.readOnlyHint).isTrue()
+      assertThat(tool.annotations?.openWorldHint).isFalse()
+    }
+    delay(500.milliseconds)
+  }
+
+  @ParameterizedTest
+  @MethodSource("getTransports")
   fun tool_call_has_project(transport: TransportHolder) = transportTest(transport) { client ->
     delay(500.milliseconds)
     Disposer.newDisposable().use { disposable ->
@@ -99,6 +119,7 @@ class TransportTest {
   val projectFromTool = CompletableDeferred<Project?>()
 
   @com.intellij.mcpserver.annotations.McpTool(title = "Test title")
+  @McpToolHints(readOnlyHint = TRUE, openWorldHint = FALSE)
   @McpDescription("Test description")
   suspend fun test_tool() {
     projectFromTool.complete(currentCoroutineContext().projectOrNull)

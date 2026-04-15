@@ -16,6 +16,9 @@ import com.intellij.mcpserver.McpServerBundle
 import com.intellij.mcpserver.McpToolset
 import com.intellij.mcpserver.annotations.McpDescription
 import com.intellij.mcpserver.annotations.McpTool
+import com.intellij.mcpserver.annotations.McpToolHintValue.FALSE
+import com.intellij.mcpserver.annotations.McpToolHintValue.TRUE
+import com.intellij.mcpserver.annotations.McpToolHints
 import com.intellij.mcpserver.mcpCallInfo
 import com.intellij.mcpserver.mcpFail
 import com.intellij.mcpserver.project
@@ -53,6 +56,7 @@ import kotlin.time.Duration.Companion.milliseconds
 private val logger = logger<AnalysisToolset>()
 
 class AnalysisToolset : McpToolset {
+  @McpToolHints(readOnlyHint = TRUE, openWorldHint = FALSE)
   @McpTool
   @McpDescription("""
         |Analyzes the specified files for errors and warnings using IntelliJ's inspections.
@@ -79,6 +83,7 @@ class AnalysisToolset : McpToolset {
     )
   }
 
+  @McpToolHints(readOnlyHint = TRUE, openWorldHint = FALSE)
   @McpTool
   @McpDescription("""
         |Analyzes the specified file for errors and warnings using IntelliJ's inspections.
@@ -287,6 +292,7 @@ class AnalysisToolset : McpToolset {
     )
   }
 
+  @McpToolHints(readOnlyHint = TRUE, openWorldHint = FALSE)
   @McpTool
   @McpDescription("""
     |Get a list of all modules in the project with their types.
@@ -309,6 +315,7 @@ class AnalysisToolset : McpToolset {
     return ProjectModulesResult(modules)
   }
 
+  @McpToolHints(readOnlyHint = TRUE, openWorldHint = FALSE)
   @McpTool
   @McpDescription("""
     |Get a list of all dependencies defined in the project.

@@ -11,18 +11,18 @@ import com.intellij.mcpserver.FileMovedEvent
 import com.intellij.mcpserver.McpCallAdditionalDataElement
 import com.intellij.mcpserver.McpCallInfo
 import com.intellij.mcpserver.McpExpectedError
+import com.intellij.mcpserver.McpSessionInvocationMode
 import com.intellij.mcpserver.McpTool
 import com.intellij.mcpserver.McpToolCallResult
 import com.intellij.mcpserver.McpToolCallResultContent
+import com.intellij.mcpserver.McpToolInvocationMode
 import com.intellij.mcpserver.McpToolSideEffectEvent
 import com.intellij.mcpserver.ToolCallListener
 import com.intellij.mcpserver.impl.util.network.httpRequestOrNull
 import com.intellij.mcpserver.impl.util.projectPathParameterName
-import com.intellij.mcpserver.McpSessionInvocationMode
-import com.intellij.mcpserver.McpToolInvocationMode
 import com.intellij.mcpserver.mcpCallInfoOrNull
-import com.intellij.mcpserver.settings.McpToolFilterSettings
 import com.intellij.mcpserver.noSuitableProjectError
+import com.intellij.mcpserver.settings.McpToolFilterSettings
 import com.intellij.mcpserver.statistics.McpServerCounterUsagesCollector
 import com.intellij.mcpserver.stdio.IJ_MCP_SERVER_PROJECT_PATH
 import com.intellij.mcpserver.util.findMostRelevantProject
@@ -37,7 +37,6 @@ import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
-
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.AsyncFileListener
@@ -89,7 +88,6 @@ import kotlinx.serialization.json.JsonPrimitive
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicReference
-import kotlin.collections.iterator
 import kotlin.coroutines.cancellation.CancellationException
 
 private val logger = logger<McpSessionHandler>()
@@ -573,13 +571,16 @@ private fun McpTool.toSdkTool(): Tool {
     }
   }
   else null
-  val tool = Tool(name = descriptor.name,
-                  title = descriptor.title,
-                  description = descriptor.description,
-                  inputSchema = ToolSchema(
-                    properties = descriptor.inputSchema.propertiesSchema,
-                    required = descriptor.inputSchema.requiredProperties.toList()),
-                  outputSchema = outputSchema,
-                  annotations = null)
+  val tool = Tool(
+    name = descriptor.name,
+    title = descriptor.title,
+    description = descriptor.description,
+    inputSchema = ToolSchema(
+      properties = descriptor.inputSchema.propertiesSchema,
+      required = descriptor.inputSchema.requiredProperties.toList(),
+    ),
+    outputSchema = outputSchema,
+    annotations = descriptor.annotations,
+  )
   return tool
 }

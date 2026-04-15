@@ -9,6 +9,9 @@ import com.intellij.mcpserver.McpServerBundle
 import com.intellij.mcpserver.McpToolset
 import com.intellij.mcpserver.annotations.McpDescription
 import com.intellij.mcpserver.annotations.McpTool
+import com.intellij.mcpserver.annotations.McpToolHintValue.FALSE
+import com.intellij.mcpserver.annotations.McpToolHintValue.TRUE
+import com.intellij.mcpserver.annotations.McpToolHints
 import com.intellij.mcpserver.mcpFail
 import com.intellij.mcpserver.project
 import com.intellij.mcpserver.reportToolActivity
@@ -31,6 +34,7 @@ import kotlin.io.path.pathString
 
 class ExecutionToolset : McpToolset {
 
+  @McpToolHints(readOnlyHint = TRUE, openWorldHint = FALSE)
   @McpTool
   @McpDescription("""
     |Returns either project run configurations or executable code locations, depending on the input.

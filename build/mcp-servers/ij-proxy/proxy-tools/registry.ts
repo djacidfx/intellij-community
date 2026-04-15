@@ -21,6 +21,7 @@ import type {
   AnalysisCapabilities,
   ReadCapabilities,
   SearchCapabilities,
+  ToolAnnotationsLike,
   ToolArgs,
   ToolInputSchema,
   ToolSpecLike,
@@ -47,6 +48,7 @@ interface ToolVariant {
   description: ToolDescription
   schemaFactory: (context: ToolContext) => ToolInputSchema
   handlerFactory: (context: ToolContext) => ToolHandler
+  annotations?: ToolAnnotationsLike
   upstreamNames?: string[]
   expose?: ToolExpose
 }
@@ -63,6 +65,7 @@ const EXTRA_REPLACED_TOOL_NAMES = [
   'execute_terminal_command'
 ]
 const RENAME_TOOL_DESCRIPTION = 'Rename a symbol (class/function/variable/etc.) using IDE refactoring. Updates all references across the project; do not use edit/apply_patch for renames.'
+const READ_ONLY_TOOL_ANNOTATIONS: ToolAnnotationsLike = {readOnlyHint: true, openWorldHint: false}
 
 function resolveToolDescription(description: ToolDescription, context: ToolContext): string {
   return typeof description === 'function' ? description(context) : description
@@ -78,12 +81,14 @@ function buildToolSpec(
   name: string,
   description: ToolDescription,
   inputSchema: ToolInputSchema,
+  annotations: ToolAnnotationsLike | undefined,
   context: ToolContext
 ): ToolSpecLike {
   return {
     name,
     description: resolveToolDescription(description, context),
-    inputSchema
+    inputSchema,
+    ...(annotations ? {annotations} : {})
   }
 }
 
@@ -94,6 +99,7 @@ const TOOL_VARIANTS: ToolVariant[] = [
     schemaFactory: () => createReadSchema(true),
     handlerFactory: ({projectPath, callUpstreamTool, readCapabilities}) => (args) =>
       handleReadTool(args, projectPath, callUpstreamTool, readCapabilities, {format: 'numbered'}),
+    annotations: READ_ONLY_TOOL_ANNOTATIONS,
     upstreamNames: ['get_file_text_by_path'],
     expose: ({readCapabilities}) => !readCapabilities.hasReadFile
   },
@@ -103,6 +109,7 @@ const TOOL_VARIANTS: ToolVariant[] = [
     schemaFactory: () => createSearchTextSchema(),
     handlerFactory: ({projectPath, callUpstreamTool, searchCapabilities}) => (args) =>
       handleSearchTextTool(args, projectPath, callUpstreamTool, searchCapabilities),
+    annotations: READ_ONLY_TOOL_ANNOTATIONS,
     upstreamNames: ['search_text'],
     expose: ({searchCapabilities}) => !searchCapabilities.hasSearchText && searchCapabilities.supportsText
   },
@@ -112,6 +119,7 @@ const TOOL_VARIANTS: ToolVariant[] = [
     schemaFactory: () => createSearchRegexSchema(),
     handlerFactory: ({projectPath, callUpstreamTool, searchCapabilities, shouldApplyWorkaround}) => (args) =>
       handleSearchRegexTool(args, projectPath, callUpstreamTool, searchCapabilities, shouldApplyWorkaround),
+    annotations: READ_ONLY_TOOL_ANNOTATIONS,
     upstreamNames: ['search_regex'],
     expose: ({searchCapabilities}) => !searchCapabilities.hasSearchRegex && searchCapabilities.supportsRegex
   },
@@ -121,6 +129,7 @@ const TOOL_VARIANTS: ToolVariant[] = [
     schemaFactory: () => createSearchFileSchema(),
     handlerFactory: ({projectPath, callUpstreamTool, searchCapabilities}) => (args) =>
       handleSearchFileTool(args, projectPath, callUpstreamTool, searchCapabilities),
+    annotations: READ_ONLY_TOOL_ANNOTATIONS,
     upstreamNames: ['search_file'],
     expose: ({searchCapabilities}) => !searchCapabilities.hasSearchFile && searchCapabilities.supportsFile
   },
@@ -130,6 +139,7 @@ const TOOL_VARIANTS: ToolVariant[] = [
     schemaFactory: () => createSearchSymbolSchema(),
     handlerFactory: ({projectPath, callUpstreamTool, searchCapabilities}) => (args) =>
       handleSearchSymbolTool(args, projectPath, callUpstreamTool, searchCapabilities),
+    annotations: READ_ONLY_TOOL_ANNOTATIONS,
     upstreamNames: ['search_symbol'],
     expose: ({searchCapabilities}) => !searchCapabilities.hasSearchSymbol && searchCapabilities.supportsSymbol
   },
@@ -139,6 +149,7 @@ const TOOL_VARIANTS: ToolVariant[] = [
     schemaFactory: () => createLintFilesSchema(),
     handlerFactory: ({callUpstreamTool, analysisCapabilities}) => (args) =>
       handleLintFilesTool(args, callUpstreamTool, analysisCapabilities),
+    annotations: READ_ONLY_TOOL_ANNOTATIONS,
     upstreamNames: ['get_file_problems'],
     expose: ({analysisCapabilities}) => !analysisCapabilities.hasLintFiles && analysisCapabilities.supportsLintFiles
   },
@@ -148,6 +159,7 @@ const TOOL_VARIANTS: ToolVariant[] = [
     schemaFactory: () => createListDirSchema(),
     handlerFactory: ({projectPath, callUpstreamTool}) => (args) =>
       handleListDirTool(args, projectPath, callUpstreamTool),
+    annotations: READ_ONLY_TOOL_ANNOTATIONS,
     upstreamNames: ['list_directory_tree']
   },
   {
@@ -189,7 +201,7 @@ export function buildProxyToolingData(context: ToolContext): {
   }
   return {
     proxyToolSpecs: variants.map((tool) =>
-      buildToolSpec(tool.name, tool.description, tool.schemaFactory(context), context)
+      buildToolSpec(tool.name, tool.description, tool.schemaFactory(context), tool.annotations, context)
     ),
     proxyToolNames: new Set(variants.map((tool) => tool.name)),
     handlers

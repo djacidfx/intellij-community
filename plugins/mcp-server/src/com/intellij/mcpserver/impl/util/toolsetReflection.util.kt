@@ -5,8 +5,11 @@ import com.intellij.mcpserver.McpToolDescriptor
 import com.intellij.mcpserver.McpToolset
 import com.intellij.mcpserver.annotations.McpDescription
 import com.intellij.mcpserver.annotations.McpTool
+import com.intellij.mcpserver.annotations.McpToolHintValue
+import com.intellij.mcpserver.annotations.McpToolHints
 import com.intellij.mcpserver.impl.ReflectionCallableMcpTool
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
+import io.modelcontextprotocol.kotlin.sdk.types.ToolAnnotations
 import kotlinx.serialization.json.Json
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
@@ -177,10 +180,11 @@ fun KFunction<*>.asTool(json: Json = McpServerJson, thisRef: Any? = null, name: 
 private val unknownCategory = McpToolCategory(shortName = "Unknown", fullyQualifiedName = "Unknown")
 
 fun KFunction<*>.asToolDescriptor(name: String? = null, description: String? = null, category: McpToolCategory? = null, fullyQualifiedName: String? = null, vararg additionalImplicitParameters: KParameter): McpToolDescriptor {
-    val preferredToolAnnotation = this.getPreferredToolAnnotation()
-    val toolName = name ?: preferredToolAnnotation?.name?.ifBlank { this.name } ?: this.name
-    val toolTitle = preferredToolAnnotation?.title?.ifEmpty { null }
-    val toolDescription = description ?: this.getPreferredToolDescriptionAnnotation()?.description?.trimMargin() ?: this.name
+  val preferredToolAnnotation = this.getPreferredToolAnnotation()
+  val toolName = name ?: preferredToolAnnotation?.name?.ifBlank { this.name } ?: this.name
+  val toolTitle = preferredToolAnnotation?.title?.ifEmpty { null }
+  val toolDescription = description ?: this.getPreferredToolDescriptionAnnotation()?.description?.trimMargin() ?: this.name
+  val toolAnnotations = this.resolveToolAnnotations()
 
   val parametersSchema = this.parametersSchema(*additionalImplicitParameters)
   val returnTypeSchema = this.returnTypeSchema()
@@ -191,7 +195,8 @@ fun KFunction<*>.asToolDescriptor(name: String? = null, description: String? = n
     category = category ?: unknownCategory,
     fullyQualifiedName = fullyQualifiedName ?: toolName,
     inputSchema = parametersSchema,
-    outputSchema = returnTypeSchema)
+    outputSchema = returnTypeSchema,
+    annotations = toolAnnotations)
 }
 
 private fun KFunction<*>.getPreferredToolAnnotation(): McpTool? {
@@ -199,34 +204,70 @@ private fun KFunction<*>.getPreferredToolAnnotation(): McpTool? {
 }
 
 private fun KFunction<*>.getPreferredToolDescriptionAnnotation(): McpDescription? {
-    return getPreferredToolDescriptionAndMethod()?.second
+  return getPreferredToolDescriptionAndMethod()?.second
+}
+
+private fun KFunction<*>.resolveToolAnnotations(): ToolAnnotations? {
+  val readOnlyHint = resolveToolHint(McpToolHints::readOnlyHint)
+  val destructiveHint = resolveToolHint(McpToolHints::destructiveHint)
+  val idempotentHint = resolveToolHint(McpToolHints::idempotentHint)
+  val openWorldHint = resolveToolHint(McpToolHints::openWorldHint)
+  if (readOnlyHint == null && destructiveHint == null && idempotentHint == null && openWorldHint == null) {
+    return null
+  }
+
+  return ToolAnnotations(
+    readOnlyHint = readOnlyHint,
+    destructiveHint = destructiveHint,
+    idempotentHint = idempotentHint,
+    openWorldHint = openWorldHint,
+  )
+}
+
+private fun KFunction<*>.resolveToolHint(selector: (McpToolHints) -> McpToolHintValue): Boolean? {
+  for (method in toolAnnotationCandidates()) {
+    val annotation = method.findAnnotation<McpToolHints>() ?: continue
+    when (selector(annotation)) {
+      McpToolHintValue.TRUE -> return true
+      McpToolHintValue.FALSE -> return false
+      McpToolHintValue.UNSPECIFIED -> Unit
+    }
+  }
+  return null
+}
+
+private fun KFunction<*>.toolAnnotationCandidates(): Sequence<KFunction<*>> {
+  return sequence {
+    yield(this@toolAnnotationCandidates)
+    yieldAll(getImplementedMethods())
+  }
 }
 
 private fun KParameter.getPreferredParameterDescriptionAnnotation(method: KFunction<*>): McpDescription? {
-    val thisParameterDescription = findAnnotation<McpDescription>()
-    if (thisParameterDescription != null) return thisParameterDescription
-    val (toolMarkedMethod, _) = method.getToolMethodAndAnnotation() ?: return null
-    toolMarkedMethod.parameters.getOrNull(this.index)?.let { m ->
-        return m.findAnnotation<McpDescription>()
-    }
-    return null
+  val thisParameterDescription = findAnnotation<McpDescription>()
+  if (thisParameterDescription != null) return thisParameterDescription
+  val (toolMarkedMethod, _) = method.getToolMethodAndAnnotation() ?: return null
+  toolMarkedMethod.parameters.getOrNull(this.index)?.let { m ->
+    return m.findAnnotation<McpDescription>()
+  }
+  return null
 }
 
 private fun KFunction<*>.getToolMethodAndAnnotation(): Pair<KFunction<*>, McpTool>? {
-    // Annotation exactly on this function is preferred
-    val thisAnnotation = findAnnotation<McpTool>()
-    if (thisAnnotation != null) return this to thisAnnotation
-    return getImplementedMethods().mapNotNull { m -> m.findAnnotation<McpTool>()?.let { m to it } }.firstOrNull()
+  // Annotation exactly on this function is preferred
+  val thisAnnotation = findAnnotation<McpTool>()
+  if (thisAnnotation != null) return this to thisAnnotation
+  return getImplementedMethods().firstNotNullOfOrNull { m -> m.findAnnotation<McpTool>()?.let { m to it } }
 }
 
 private fun KFunction<*>.getPreferredToolDescriptionAndMethod(): Pair<KFunction<*>, McpDescription>? {
-    // Annotation exactly on this function is preferred
-    val thisAnnotation = findAnnotation<McpDescription>()
-    if (thisAnnotation != null) return this to thisAnnotation
+  // Annotation exactly on this function is preferred
+  val thisAnnotation = findAnnotation<McpDescription>()
+  if (thisAnnotation != null) return this to thisAnnotation
 
-    val (toolMethod, _) = getToolMethodAndAnnotation() ?: return null
-    val mcpDescriptionAnnotation = toolMethod.findAnnotation<McpDescription>() ?: return null
-    return toolMethod to mcpDescriptionAnnotation
+  val (toolMethod, _) = getToolMethodAndAnnotation() ?: return null
+  val mcpDescriptionAnnotation = toolMethod.findAnnotation<McpDescription>() ?: return null
+  return toolMethod to mcpDescriptionAnnotation
 }
 
 /**
@@ -242,39 +283,40 @@ private fun KFunction<*>.getPreferredToolDescriptionAndMethod(): Pair<KFunction<
  *         related to the current function.
  */
 private fun KFunction<*>.getImplementedMethods(): Sequence<KFunction<*>> {
-    return sequence {
-        val javaMethod = this@getImplementedMethods.javaMethod ?: return@sequence
-        val methodName = javaMethod.name
-        val parameterTypes = javaMethod.parameterTypes
-        val visited = mutableSetOf<Class<*>>()
-        val queue = ArrayDeque<Class<*>>()
+  return sequence {
+    val javaMethod = this@getImplementedMethods.javaMethod ?: return@sequence
+    val methodName = javaMethod.name
+    val parameterTypes = javaMethod.parameterTypes
+    val visited = mutableSetOf<Class<*>>()
+    val queue = ArrayDeque<Class<*>>()
 
-        queue.add(javaMethod.declaringClass)
+    queue.add(javaMethod.declaringClass)
 
-        while (queue.isNotEmpty()) {
-            val currentClass = queue.removeFirstOrNull() ?: break
-            if (!visited.add(currentClass)) continue
+    while (queue.isNotEmpty()) {
+      val currentClass = queue.removeFirstOrNull() ?: break
+      if (!visited.add(currentClass)) continue
 
-            // Check superclass
-            currentClass.superclass?.let { superclass ->
-                if (!visited.contains(superclass)) {
-                    queue.addLast(superclass)
-                }
-            }
-
-            // Check interfaces
-            for (iface in currentClass.interfaces) {
-                if (!visited.contains(iface)) {
-                    queue.add(iface)
-                }
-            }
-
-            try {
-                val kotlinMethod = currentClass.getDeclaredMethod(methodName, *parameterTypes).kotlinFunction ?: continue
-                if (kotlinMethod != this@getImplementedMethods) yield(kotlinMethod)
-            } catch (_: NoSuchMethodException) {
-                // Method not found in this class/interface, continue traversal
-            }
+      // Check superclass
+      currentClass.superclass?.let { superclass ->
+        if (!visited.contains(superclass)) {
+          queue.addLast(superclass)
         }
+      }
+
+      // Check interfaces
+      for (iface in currentClass.interfaces) {
+        if (!visited.contains(iface)) {
+          queue.add(iface)
+        }
+      }
+
+      try {
+        val kotlinMethod = currentClass.getDeclaredMethod(methodName, *parameterTypes).kotlinFunction ?: continue
+        if (kotlinMethod != this@getImplementedMethods) yield(kotlinMethod)
+      }
+      catch (_: NoSuchMethodException) {
+        // Method not found in this class/interface, continue traversal
+      }
     }
+  }
 }

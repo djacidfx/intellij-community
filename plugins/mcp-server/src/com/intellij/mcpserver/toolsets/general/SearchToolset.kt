@@ -9,6 +9,9 @@ import com.intellij.mcpserver.McpServerBundle
 import com.intellij.mcpserver.McpToolset
 import com.intellij.mcpserver.annotations.McpDescription
 import com.intellij.mcpserver.annotations.McpTool
+import com.intellij.mcpserver.annotations.McpToolHintValue.FALSE
+import com.intellij.mcpserver.annotations.McpToolHintValue.TRUE
+import com.intellij.mcpserver.annotations.McpToolHints
 import com.intellij.mcpserver.mcpFail
 import com.intellij.mcpserver.project
 import com.intellij.mcpserver.reportToolActivity
@@ -75,6 +78,7 @@ private val DEFAULT_FILE_SYSTEM = FileSystems.getDefault()
  * precise post-filtering where needed.
  */
 internal class SearchToolset : McpToolset {
+  @McpToolHints(readOnlyHint = TRUE, openWorldHint = FALSE)
   @McpTool
   @McpDescription("""
         |Searches for a text substring within project files.
@@ -94,6 +98,7 @@ internal class SearchToolset : McpToolset {
     return searchInFiles(q, paths, limit, isRegex = false)
   }
 
+  @McpToolHints(readOnlyHint = TRUE, openWorldHint = FALSE)
   @McpTool
   @McpDescription("""
         |Searches for regex matches within project files.
@@ -113,6 +118,7 @@ internal class SearchToolset : McpToolset {
     return searchInFiles(q, paths, limit, isRegex = true)
   }
 
+  @McpToolHints(readOnlyHint = TRUE, openWorldHint = FALSE)
   @McpTool
   @McpDescription("""
         |Searches for symbols (classes, methods, fields).
@@ -140,6 +146,7 @@ internal class SearchToolset : McpToolset {
     }
   }
 
+  @McpToolHints(readOnlyHint = TRUE, openWorldHint = FALSE)
   @McpTool
   @McpDescription("""
         |Searches for files by glob pattern within the project.

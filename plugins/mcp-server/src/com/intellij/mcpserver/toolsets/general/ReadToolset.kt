@@ -6,6 +6,9 @@ import com.intellij.mcpserver.McpServerBundle
 import com.intellij.mcpserver.McpToolset
 import com.intellij.mcpserver.annotations.McpDescription
 import com.intellij.mcpserver.annotations.McpTool
+import com.intellij.mcpserver.annotations.McpToolHintValue.FALSE
+import com.intellij.mcpserver.annotations.McpToolHintValue.TRUE
+import com.intellij.mcpserver.annotations.McpToolHints
 import com.intellij.mcpserver.mcpFail
 import com.intellij.mcpserver.project
 import com.intellij.mcpserver.reportToolActivity
@@ -50,6 +53,7 @@ internal class ReadToolset : McpToolset {
    * This matches Codex CLI's read_file convention, keeps responses compact for LLMs,
    * and makes line references unambiguous without extra parsing overhead.
    */
+  @McpToolHints(readOnlyHint = TRUE, openWorldHint = FALSE)
   @McpTool
   @McpDescription("""
         Reads a file in the project directory or from any project dependency or other project source root.

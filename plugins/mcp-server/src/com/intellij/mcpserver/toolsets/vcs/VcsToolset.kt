@@ -5,6 +5,9 @@ package com.intellij.mcpserver.toolsets.vcs
 import com.intellij.mcpserver.McpToolset
 import com.intellij.mcpserver.annotations.McpDescription
 import com.intellij.mcpserver.annotations.McpTool
+import com.intellij.mcpserver.annotations.McpToolHintValue.FALSE
+import com.intellij.mcpserver.annotations.McpToolHintValue.TRUE
+import com.intellij.mcpserver.annotations.McpToolHints
 import com.intellij.mcpserver.mcpFail
 import com.intellij.mcpserver.project
 import com.intellij.mcpserver.util.projectDirectory
@@ -88,6 +91,7 @@ class VcsToolset : McpToolset {
     val currentBranch: String?,
   )
 
+  @McpToolHints(readOnlyHint = TRUE, openWorldHint = FALSE)
   @McpTool
   @McpDescription("""Retrieves the list of VCS roots in the project.
     |This is useful to detect all repositories in a multi-repository project.""")
@@ -99,6 +103,7 @@ class VcsToolset : McpToolset {
     return VcsRoots(vcs.toTypedArray())
   }
 
+  @McpToolHints(readOnlyHint = TRUE, openWorldHint = FALSE)
   @McpTool
   @McpDescription("""
     |Retrieves Git status for one or more repositories in the current project.

@@ -11,7 +11,7 @@ import {Server} from '@modelcontextprotocol/sdk/server/index.js'
 import {StreamableHTTPServerTransport} from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import {CallToolRequestSchema, ListToolsRequestSchema} from '@modelcontextprotocol/sdk/types.js'
 import {BLOCKED_TOOL_NAMES, getReplacedToolNames} from './proxy-tools/registry'
-import type {ToolSpecLike} from './proxy-tools/types'
+import type {ToolAnnotationsLike, ToolSpecLike} from './proxy-tools/types'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -128,7 +128,8 @@ export class McpTestClient {
 export function buildUpstreamTool(
   name: string,
   properties: Record<string, unknown> = {},
-  required?: string[]
+  required?: string[],
+  annotations?: ToolAnnotationsLike
 ): ToolSpecLike {
   return {
     name,
@@ -137,7 +138,8 @@ export function buildUpstreamTool(
       type: 'object',
       properties,
       required: required && required.length > 0 ? required : undefined
-    }
+    },
+    ...(annotations ? {annotations} : {})
   }
 }
 

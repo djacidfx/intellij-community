@@ -3,25 +3,40 @@
 var __create = Object.create;
 var { getPrototypeOf: __getProtoOf, defineProperty: __defProp, getOwnPropertyNames: __getOwnPropNames } = Object;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __toESM = (mod, isNodeMode, target) => {
+function __accessProp(key) {
+  return this[key];
+}
+var __toESMCache_node, __toESMCache_esm, __toESM = (mod, isNodeMode, target) => {
+  var canCache = mod != null && typeof mod === "object";
+  if (canCache) {
+    var cache = isNodeMode ? __toESMCache_node ??= /* @__PURE__ */ new WeakMap : __toESMCache_esm ??= /* @__PURE__ */ new WeakMap, cached = cache.get(mod);
+    if (cached)
+      return cached;
+  }
   target = mod != null ? __create(__getProtoOf(mod)) : {};
   let to = isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: !0 }) : target;
   for (let key of __getOwnPropNames(mod))
     if (!__hasOwnProp.call(to, key))
       __defProp(to, key, {
-        get: () => mod[key],
+        get: __accessProp.bind(mod, key),
         enumerable: !0
       });
+  if (canCache)
+    cache.set(mod, to);
   return to;
 };
 var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
+var __returnValue = (v) => v;
+function __exportSetter(name, newValue) {
+  this[name] = __returnValue.bind(null, newValue);
+}
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, {
       get: all[name],
       enumerable: !0,
       configurable: !0,
-      set: (newValue) => all[name] = () => newValue
+      set: __exportSetter.bind(all, name)
     });
 };
 var __require = import.meta.require;
@@ -24695,7 +24710,7 @@ var BLOCKED_TOOL_NAMES = /* @__PURE__ */ new Set(["create_new_file", "execute_te
   "replace_text_in_file",
   "search",
   "execute_terminal_command"
-], RENAME_TOOL_DESCRIPTION = "Rename a symbol (class/function/variable/etc.) using IDE refactoring. Updates all references across the project; do not use edit/apply_patch for renames.";
+], RENAME_TOOL_DESCRIPTION = "Rename a symbol (class/function/variable/etc.) using IDE refactoring. Updates all references across the project; do not use edit/apply_patch for renames.", READ_ONLY_TOOL_ANNOTATIONS = { readOnlyHint: !0, openWorldHint: !1 };
 function resolveToolDescription(description, context) {
   return typeof description === "function" ? description(context) : description;
 }
@@ -24706,11 +24721,12 @@ function resolveToolExpose(expose, context) {
     return expose(context);
   return expose !== !1;
 }
-function buildToolSpec(name, description, inputSchema, context) {
+function buildToolSpec(name, description, inputSchema, annotations, context) {
   return {
     name,
     description: resolveToolDescription(description, context),
-    inputSchema
+    inputSchema,
+    ...annotations ? { annotations } : {}
   };
 }
 var TOOL_VARIANTS = [
@@ -24719,6 +24735,7 @@ var TOOL_VARIANTS = [
     description: "Reads a local file and returns numbered lines (1-indexed) as text. Supports slice, lines, line_columns, offsets, and indentation modes.",
     schemaFactory: () => createReadSchema(!0),
     handlerFactory: ({ projectPath, callUpstreamTool, readCapabilities }) => (args) => handleReadTool(args, projectPath, callUpstreamTool, readCapabilities, { format: "numbered" }),
+    annotations: READ_ONLY_TOOL_ANNOTATIONS,
     upstreamNames: ["get_file_text_by_path"],
     expose: ({ readCapabilities }) => !readCapabilities.hasReadFile
   },
@@ -24727,6 +24744,7 @@ var TOOL_VARIANTS = [
     description: "Search for a text substring in project files.",
     schemaFactory: () => createSearchTextSchema(),
     handlerFactory: ({ projectPath, callUpstreamTool, searchCapabilities }) => (args) => handleSearchTextTool(args, projectPath, callUpstreamTool, searchCapabilities),
+    annotations: READ_ONLY_TOOL_ANNOTATIONS,
     upstreamNames: ["search_text"],
     expose: ({ searchCapabilities }) => !searchCapabilities.hasSearchText && searchCapabilities.supportsText
   },
@@ -24735,6 +24753,7 @@ var TOOL_VARIANTS = [
     description: "Search for a regular expression in project files.",
     schemaFactory: () => createSearchRegexSchema(),
     handlerFactory: ({ projectPath, callUpstreamTool, searchCapabilities, shouldApplyWorkaround: shouldApplyWorkaround2 }) => (args) => handleSearchRegexTool(args, projectPath, callUpstreamTool, searchCapabilities, shouldApplyWorkaround2),
+    annotations: READ_ONLY_TOOL_ANNOTATIONS,
     upstreamNames: ["search_regex"],
     expose: ({ searchCapabilities }) => !searchCapabilities.hasSearchRegex && searchCapabilities.supportsRegex
   },
@@ -24743,6 +24762,7 @@ var TOOL_VARIANTS = [
     description: "Search for files using a glob pattern.",
     schemaFactory: () => createSearchFileSchema(),
     handlerFactory: ({ projectPath, callUpstreamTool, searchCapabilities }) => (args) => handleSearchFileTool(args, projectPath, callUpstreamTool, searchCapabilities),
+    annotations: READ_ONLY_TOOL_ANNOTATIONS,
     upstreamNames: ["search_file"],
     expose: ({ searchCapabilities }) => !searchCapabilities.hasSearchFile && searchCapabilities.supportsFile
   },
@@ -24751,6 +24771,7 @@ var TOOL_VARIANTS = [
     description: "Search for symbols (classes, methods, fields) by name.",
     schemaFactory: () => createSearchSymbolSchema(),
     handlerFactory: ({ projectPath, callUpstreamTool, searchCapabilities }) => (args) => handleSearchSymbolTool(args, projectPath, callUpstreamTool, searchCapabilities),
+    annotations: READ_ONLY_TOOL_ANNOTATIONS,
     upstreamNames: ["search_symbol"],
     expose: ({ searchCapabilities }) => !searchCapabilities.hasSearchSymbol && searchCapabilities.supportsSymbol
   },
@@ -24759,6 +24780,7 @@ var TOOL_VARIANTS = [
     description: "Analyze several files and return per-file problems with severity, description, line text, and location.",
     schemaFactory: () => createLintFilesSchema(),
     handlerFactory: ({ callUpstreamTool, analysisCapabilities }) => (args) => handleLintFilesTool(args, callUpstreamTool, analysisCapabilities),
+    annotations: READ_ONLY_TOOL_ANNOTATIONS,
     upstreamNames: ["get_file_problems"],
     expose: ({ analysisCapabilities }) => !analysisCapabilities.hasLintFiles && analysisCapabilities.supportsLintFiles
   },
@@ -24767,6 +24789,7 @@ var TOOL_VARIANTS = [
     description: "Lists entries in a local directory with 1-indexed entry numbers and simple type labels.",
     schemaFactory: () => createListDirSchema(),
     handlerFactory: ({ projectPath, callUpstreamTool }) => (args) => handleListDirTool(args, projectPath, callUpstreamTool),
+    annotations: READ_ONLY_TOOL_ANNOTATIONS,
     upstreamNames: ["list_directory_tree"]
   },
   {
@@ -24793,7 +24816,7 @@ function buildProxyToolingData(context) {
   for (let tool of variants)
     handlers.set(tool.name, tool.handlerFactory(context));
   return {
-    proxyToolSpecs: variants.map((tool) => buildToolSpec(tool.name, tool.description, tool.schemaFactory(context), context)),
+    proxyToolSpecs: variants.map((tool) => buildToolSpec(tool.name, tool.description, tool.schemaFactory(context), tool.annotations, context)),
     proxyToolNames: new Set(variants.map((tool) => tool.name)),
     handlers
   };

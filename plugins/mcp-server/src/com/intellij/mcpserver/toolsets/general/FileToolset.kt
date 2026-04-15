@@ -7,6 +7,9 @@ import com.intellij.mcpserver.McpServerBundle
 import com.intellij.mcpserver.McpToolset
 import com.intellij.mcpserver.annotations.McpDescription
 import com.intellij.mcpserver.annotations.McpTool
+import com.intellij.mcpserver.annotations.McpToolHintValue.FALSE
+import com.intellij.mcpserver.annotations.McpToolHintValue.TRUE
+import com.intellij.mcpserver.annotations.McpToolHints
 import com.intellij.mcpserver.mcpFail
 import com.intellij.mcpserver.project
 import com.intellij.mcpserver.reportToolActivity
@@ -41,6 +44,7 @@ import kotlin.io.path.pathString
 import kotlin.time.Duration.Companion.milliseconds
 
 class FileToolset : McpToolset {
+  @McpToolHints(readOnlyHint = TRUE, openWorldHint = FALSE)
   @McpTool
   @McpDescription("""
         |Provides a tree representation of the specified directory in the pseudo graphic format like `tree` utility does.
@@ -98,6 +102,7 @@ class FileToolset : McpToolset {
     }
   }
 
+  @McpToolHints(readOnlyHint = TRUE, openWorldHint = FALSE)
   @McpTool
   @McpDescription("""
         |Returns active editor's and other open editors' file paths relative to the project root.

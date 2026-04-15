@@ -61,9 +61,18 @@ export interface ToolInputSchema {
   additionalProperties?: boolean
 }
 
+export interface ToolAnnotationsLike {
+  title?: string
+  readOnlyHint?: boolean
+  destructiveHint?: boolean
+  idempotentHint?: boolean
+  openWorldHint?: boolean
+}
+
 export interface ToolSpecLike {
   name?: string
   description?: string
   inputSchema?: ToolInputSchema
+  annotations?: ToolAnnotationsLike
   [key: string]: unknown
 }
