@@ -81,6 +81,26 @@ class IDERemDevTestContext private constructor(
     super.wipeWorkspaceState()
   }
 
+  /**
+   * Adds the specified [domains] to the list of trusted domains using frontend IDE context.
+   * This is useful to avoid the "Remote host wants to open the following URL" confirmation dialog.
+   */
+  fun setupTrustedDomains(domains: List<String>): IDERemDevTestContext {
+    val domainsXml = domains.joinToString("\n") {
+      "<option value=\"$it\" />"
+    }
+    writeConfigFile("options/trusted-domains.xml", """
+      <application>
+        <component name="trustedDomains">
+          <option name="trustedDomains">
+            $domainsXml
+          </option>
+        </component>
+      </application>
+    """)
+    return this
+  }
+
   companion object {
 
     fun from(backendContext: IDETestContext, frontendCtx: IDETestContext): IDERemDevTestContext {
