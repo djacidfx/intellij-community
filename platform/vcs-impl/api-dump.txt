@@ -692,12 +692,13 @@ a:com.intellij.openapi.vcs.changes.ChangeViewDiffRequestProcessor
 - clear():V
 - collectDiffProducers(Z):com.intellij.openapi.ListSelection
 - p:createGoToChangeAction():com.intellij.openapi.actionSystem.AnAction
-- p:getGoToChangeActions():java.util.List
 - forceKeepCurrentFileWhileFocused():Z
 - getAllChanges():java.util.stream.Stream
 - getCurrentChange():com.intellij.openapi.vcs.changes.ChangeViewDiffRequestProcessor$Wrapper
 - getCurrentChangeName():java.lang.String
 - p:getCurrentRequestProvider():com.intellij.diff.chains.DiffRequestProducer
+- p:getGoToChangePopupMenuActions():java.util.List
+- p:getGoToChangeToolbarActions():java.util.List
 - getProject():com.intellij.openapi.project.Project
 - getSelectedChanges():java.util.stream.Stream
 - p:goToNextChange(Z):V
