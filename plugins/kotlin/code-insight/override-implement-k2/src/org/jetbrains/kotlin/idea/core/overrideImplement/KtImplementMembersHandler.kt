@@ -17,16 +17,17 @@ import org.jetbrains.kotlin.analysis.api.components.getImplementationStatus
 import org.jetbrains.kotlin.analysis.api.components.intersectionOverriddenSymbols
 import org.jetbrains.kotlin.analysis.api.components.isVisibleInClass
 import org.jetbrains.kotlin.analysis.api.components.memberScope
-import org.jetbrains.kotlin.analysis.api.components.render
 import org.jetbrains.kotlin.analysis.api.fir.diagnostics.KaFirDiagnostic
 import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassKind
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaPropertySymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolModality
 import org.jetbrains.kotlin.analysis.api.symbols.classSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.contextParameters
 import org.jetbrains.kotlin.idea.KotlinIconProvider
 import org.jetbrains.kotlin.idea.codeinsight.api.applicators.fixes.KotlinQuickFixFactory
+import org.jetbrains.kotlin.idea.core.overrideImplement.KtImplementMembersHandler.Companion.getUnimplementedMemberSymbols
 import org.jetbrains.kotlin.idea.core.overrideImplement.KtImplementMembersHandler.Companion.getUnimplementedMembers
 import org.jetbrains.kotlin.idea.core.util.KotlinIdeaCoreBundle
 import org.jetbrains.kotlin.idea.search.ExpectActualSupport
@@ -71,7 +72,7 @@ open class KtImplementMembersHandler : KtGenerateMembersHandler(true) {
 
         context(_: KaSession)
         @OptIn(KaExperimentalApi::class)
-        private fun getUnimplementedMemberSymbols(classWithUnimplementedMembers: KaClassSymbol): List<KaCallableSymbol> {
+        internal fun getUnimplementedMemberSymbols(classWithUnimplementedMembers: KaClassSymbol): List<KaCallableSymbol> {
             return buildList {
                 classWithUnimplementedMembers.memberScope.callables.forEach { symbol ->
                     if (!symbol.isVisibleInClass(classWithUnimplementedMembers)) return@forEach
@@ -108,7 +109,12 @@ internal class KtImplementMembersQuickfix(private val members: Collection<KtClas
     override fun isAvailable(project: Project, editor: Editor, file: PsiFile) = true
 
     override fun collectMembersToGenerate(classOrObject: KtClassOrObject): Collection<KtClassMember> {
-        return members.map { createKtClassMember(it, BodyType.FromTemplate, false) }
+        return analyze(classOrObject) {
+            members
+                .mapNotNull { memberInfo -> memberInfo.symbolPointer.restoreSymbol() }
+                .mapToKtClassMemberInfo()
+                .map { createKtClassMember(it, BodyType.FromTemplate, false) }
+        }
     }
 }
 
@@ -121,7 +127,13 @@ internal class KtImplementAsConstructorParameterQuickfix(private val members: Co
     override fun isAvailable(project: Project, editor: Editor, file: PsiFile) = true
 
     override fun collectMembersToGenerate(classOrObject: KtClassOrObject): Collection<KtClassMember> {
-        return members.filter { it.isProperty }.map { createKtClassMember(it, BodyType.FromTemplate, true) }
+        return analyze(classOrObject) {
+            members
+                .mapNotNull { memberInfo -> memberInfo.symbolPointer.restoreSymbol() }
+                .mapToKtClassMemberInfo()
+                .filter { it.isProperty }
+                .map { createKtClassMember(it, BodyType.FromTemplate, true) }
+        }
     }
 }
 
@@ -151,7 +163,7 @@ object MemberNotImplementedQuickfixFactories {
         KotlinQuickFixFactory.IntentionBased { diagnostic: KaFirDiagnostic.AbstractMemberNotImplementedByEnumEntry ->
             val missingDeclarations = diagnostic.missingDeclarations
             if (missingDeclarations.isEmpty()) return@IntentionBased emptyList()
-            listOf(KtImplementMembersQuickfix(missingDeclarations.mapToKtClassMemberInfo()))
+            listOf(KtImplementMembersQuickfix(missingDeclarations.map { KtClassMemberInfo.create(it) }))
         }
 
     @OptIn(KaExperimentalApi::class)
@@ -160,8 +172,10 @@ object MemberNotImplementedQuickfixFactories {
         classWithUnimplementedMembers: KtClassOrObject,
         includeImplementAsConstructorParameterQuickfix: Boolean = true
     ): List<IntentionAction> {
-        val unimplementedMembers = getUnimplementedMembers(classWithUnimplementedMembers)
-        if (unimplementedMembers.isEmpty()) return emptyList()
+        val classSymbol = classWithUnimplementedMembers.classSymbol ?: return emptyList()
+        val unimplementedMemberSymbols = getUnimplementedMemberSymbols(classSymbol)
+
+        val unimplementedMembers = unimplementedMemberSymbols.map { symbol -> KtClassMemberInfo.create(symbol = symbol) }
 
         return buildList {
             add(KtImplementMembersQuickfix(unimplementedMembers))
@@ -172,7 +186,9 @@ object MemberNotImplementedQuickfixFactories {
                 !(classWithUnimplementedMembers.hasActualModifier() && (ExpectActualSupport.getInstance(classWithUnimplementedMembers.project)
                     .expectDeclarationIfAny(classWithUnimplementedMembers) as? KtClass)?.primaryConstructor != null)
             ) {
-                val unimplementedProperties = unimplementedMembers.filter { memberInfo -> memberInfo.isProperty && with(session) { memberInfo.symbolPointer.restoreSymbol() }?.let { symbol -> symbol.contextParameters.isEmpty() && symbol.receiverParameter == null } != false }
+                val unimplementedProperties = unimplementedMemberSymbols
+                    .filter { symbol -> symbol is KaPropertySymbol && symbol.contextParameters.isEmpty() && symbol.receiverParameter == null }
+                    .map { symbol -> KtClassMemberInfo.create(symbol = symbol) }
                 if (unimplementedProperties.isNotEmpty()) {
                     add(KtImplementAsConstructorParameterQuickfix(unimplementedProperties))
                 }
@@ -191,7 +207,7 @@ private fun List<KaCallableSymbol>.mapToKtClassMemberInfo(): List<KtClassMemberI
         val fqName = (containingSymbol?.classId?.asSingleFqName()?.toString() ?: containingSymbol?.name?.asString())
         KtClassMemberInfo.create(
             symbol = unimplementedMemberSymbol,
-            memberText = unimplementedMemberSymbol.render(KtGenerateMembersHandler.renderer),
+            memberText = renderMemberText(unimplementedMemberSymbol),
             memberIcon = KotlinIconProvider.getIcon(unimplementedMemberSymbol),
             containingSymbolText = fqName,
             containingSymbolIcon = containingSymbol?.let { symbol -> KotlinIconProvider.getIcon(symbol) }

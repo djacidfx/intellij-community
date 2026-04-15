@@ -16,6 +16,7 @@ import com.intellij.ui.SimpleTextAttributes
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaImplementationDetail
+import org.jetbrains.kotlin.analysis.api.KaNonPublicApi
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.annotations.KaAnnotation
 import org.jetbrains.kotlin.analysis.api.base.KaContextReceiver
@@ -29,6 +30,7 @@ import org.jetbrains.kotlin.analysis.api.components.isSubClassOf
 import org.jetbrains.kotlin.analysis.api.components.isUnitType
 import org.jetbrains.kotlin.analysis.api.components.render
 import org.jetbrains.kotlin.analysis.api.renderer.base.annotations.KaRendererAnnotationsFilter
+import org.jetbrains.kotlin.analysis.api.renderer.declarations.KaCallableReturnTypeFilter
 import org.jetbrains.kotlin.analysis.api.renderer.base.contextReceivers.KaContextReceiversRenderer
 import org.jetbrains.kotlin.analysis.api.renderer.base.contextReceivers.renderers.KaContextReceiverLabelRenderer
 import org.jetbrains.kotlin.analysis.api.renderer.base.contextReceivers.renderers.KaContextReceiverListRenderer
@@ -40,6 +42,8 @@ import org.jetbrains.kotlin.analysis.api.renderer.declarations.modifiers.rendere
 import org.jetbrains.kotlin.analysis.api.renderer.declarations.renderers.callables.KaPropertyAccessorsRenderer
 import org.jetbrains.kotlin.analysis.api.renderer.declarations.superTypes.KaSuperTypesCallArgumentsRenderer
 import org.jetbrains.kotlin.analysis.api.renderer.types.KaTypeRenderer
+import org.jetbrains.kotlin.analysis.api.types.KaErrorType
+import org.jetbrains.kotlin.analysis.api.types.KaType
 import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassKind
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
@@ -239,12 +243,10 @@ context(_: KaSession)
 @ApiStatus.Internal
 fun generateClassWithMembers(
     project: Project,
-    ktClassMember: KtClassMember?,
     symbol: KaClassSymbol,
     targetClass: KtClassOrObject?,
     mode: MemberGenerateMode = MemberGenerateMode.OVERRIDE
-): KtClassOrObject = with(ktClassMember) {
-
+): KtClassOrObject {
     val renderer = createRenderer(targetClass, mode, symbol)
 
     val newClass = generateClass(project, symbol, renderer, mode)
@@ -439,6 +441,29 @@ private fun createRenderer(
     return renderer
 }
 
+// When the return type is an error type (e.g. from an unresolved or malformed type in compiled bytecode),
+// fall back to the PSI type reference text from the original declaration to avoid generating "ERROR" as the type.
+context(_: KaSession)
+@OptIn(KaExperimentalApi::class, KaNonPublicApi::class)
+private fun renderCallableWithPsiFallbackForErrorType(
+    targetSymbol: KaCallableSymbol,
+    renderer: KaDeclarationRenderer
+): String {
+    if (targetSymbol.returnType is KaErrorType) {
+        val psiReturnType = (targetSymbol.fakeOverrideOriginal.psi as? KtCallableDeclaration)?.typeReference?.text
+        if (psiReturnType != null) {
+            val rendererWithoutReturnType = renderer.with {
+                returnTypeFilter = object : KaCallableReturnTypeFilter {
+                    override fun shouldRenderReturnType(analysisSession: KaSession, type: KaType, symbol: KaCallableSymbol): Boolean =
+                        symbol !== targetSymbol
+                }
+            }
+            return targetSymbol.render(rendererWithoutReturnType) + ": $psiReturnType"
+        }
+    }
+    return targetSymbol.render(renderer)
+}
+
 @OptIn(KaExperimentalApi::class, KaImplementationDetail::class)
 fun KaDeclarationRenderer.Builder.withoutLabel() {
     contextReceiversRenderer = contextReceiversRenderer.with {
@@ -526,7 +551,7 @@ private fun generateConstructorParameter(
     symbol: KaCallableSymbol,
     renderer: KaDeclarationRenderer,
 ): KtCallableDeclaration {
-    return KtPsiFactory(project).createParameter(symbol.render(renderer))
+    return KtPsiFactory(project).createParameter(renderMemberText(symbol, renderer))
 }
 
 context(_: KaSession)
@@ -554,7 +579,7 @@ private fun generateFunction(
     }
 
     val factory = KtPsiFactory(project)
-    val functionText = symbol.render(renderer) + body
+    val functionText = renderCallableWithPsiFallbackForErrorType(symbol, renderer) + body
 
     if (symbol is KaConstructorSymbol) {
         return if (symbol.isPrimary) {
@@ -688,7 +713,7 @@ private fun generateProperty(
             }
         }
     } else ""
-    return KtPsiFactory(project).createProperty(symbol.render(renderer) + body)
+    return KtPsiFactory(project).createProperty(renderCallableWithPsiFallbackForErrorType(symbol, renderer) + body)
 }
 
 context(_: KaSession)

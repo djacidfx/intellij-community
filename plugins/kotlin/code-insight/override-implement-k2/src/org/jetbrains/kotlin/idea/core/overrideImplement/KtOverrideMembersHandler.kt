@@ -15,7 +15,6 @@ import org.jetbrains.kotlin.analysis.api.components.intersectionOverriddenSymbol
 import org.jetbrains.kotlin.analysis.api.components.isAnyType
 import org.jetbrains.kotlin.analysis.api.components.isVisibleInClass
 import org.jetbrains.kotlin.analysis.api.components.memberScope
-import org.jetbrains.kotlin.analysis.api.components.render
 import org.jetbrains.kotlin.analysis.api.lifetime.KaLifetimeOwner
 import org.jetbrains.kotlin.analysis.api.lifetime.KaLifetimeToken
 import org.jetbrains.kotlin.analysis.api.lifetime.validityAsserted
@@ -59,7 +58,7 @@ private fun collectMembers(classOrObject: KtClassOrObject): List<KtClassMember> 
         KtClassMember(
             KtClassMemberInfo.create(
                 symbol,
-                symbol.render(renderer),
+                renderMemberText(symbol),
                 KotlinIconProvider.getIcon(symbol),
                 fqName,
                 containingSymbol?.let { KotlinIconProvider.getIcon(it) },

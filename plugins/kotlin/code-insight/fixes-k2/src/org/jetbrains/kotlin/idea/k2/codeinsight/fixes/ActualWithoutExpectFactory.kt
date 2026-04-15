@@ -353,7 +353,6 @@ internal class CreateExpectedClassFix(
 
             generateClassWithMembers(
                 project = klass.project,
-                ktClassMember = null,
                 symbol = classSymbol,
                 targetClass = targetExpectedClass,
                 mode = MemberGenerateMode.EXPECT,

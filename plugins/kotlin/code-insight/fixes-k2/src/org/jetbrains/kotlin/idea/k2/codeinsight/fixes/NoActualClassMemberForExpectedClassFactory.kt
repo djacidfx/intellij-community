@@ -63,7 +63,7 @@ private class AddActualFix(
                 val declarationSymbol = missedDeclaration.symbol
                 when (missedDeclaration) {
                     is KtClassOrObject ->
-                        generateClassWithMembers(project, null, declarationSymbol as KaClassSymbol, element, MemberGenerateMode.ACTUAL)
+                        generateClassWithMembers(project, declarationSymbol as KaClassSymbol, element, MemberGenerateMode.ACTUAL)
 
                     is KtFunction, is KtProperty ->
                         generateMember(project, null, declarationSymbol as KaCallableSymbol, element, false, MemberGenerateMode.ACTUAL)
