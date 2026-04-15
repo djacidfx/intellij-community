@@ -429,7 +429,7 @@ public final class DebuggerUIUtil {
       public void breakpointRemoved(@NotNull XBreakpoint<?> removedBreakpoint) {
         XBreakpointProxy removedBreakpointProxy = XDebuggerEntityConverter.asProxy(removedBreakpoint);
         if (removedBreakpointProxy != null && removedBreakpointProxy.equals(breakpoint)) {
-          balloon.hide();
+          ApplicationManager.getApplication().invokeLater(() -> balloon.hide());
         }
       }
     });

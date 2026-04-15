@@ -36,14 +36,15 @@ import com.intellij.xdebugger.SplitDebuggerMode;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerUtil;
 import com.intellij.xdebugger.XSourcePosition;
+import com.intellij.xdebugger.breakpoints.SuspendPolicy;
 import com.intellij.xdebugger.breakpoints.XBreakpoint;
 import com.intellij.xdebugger.breakpoints.XBreakpointListener;
 import com.intellij.xdebugger.breakpoints.XBreakpointManager;
 import com.intellij.xdebugger.breakpoints.XBreakpointProperties;
 import com.intellij.xdebugger.breakpoints.XBreakpointType;
 import com.intellij.xdebugger.breakpoints.XLineBreakpoint;
-import com.intellij.xdebugger.breakpoints.XLineBreakpointVerticalPlacement;
 import com.intellij.xdebugger.breakpoints.XLineBreakpointType;
+import com.intellij.xdebugger.breakpoints.XLineBreakpointVerticalPlacement;
 import com.intellij.xdebugger.impl.BreakpointManagerState;
 import com.intellij.xdebugger.impl.XDebuggerManagerImpl;
 import com.intellij.xdebugger.impl.XDebuggerUtilImpl;
@@ -729,11 +730,13 @@ public final class XBreakpointManagerImpl implements XBreakpointManager {
   }
 
   public @Nullable String getDefaultGroup() {
-    return myDefaultGroup;
+    return withLockMaybeCancellable(myLock, () -> myDefaultGroup);
   }
 
   public void setDefaultGroup(@Nullable String defaultGroup) {
-    myDefaultGroup = defaultGroup;
+    withLockMaybeCancellable(myLock, () -> {
+      myDefaultGroup = defaultGroup;
+    });
   }
 
   private @Nullable XBreakpointBase<?,?,?> createBreakpoint(final BreakpointState breakpointState) {
@@ -770,6 +773,12 @@ public final class XBreakpointManagerImpl implements XBreakpointManager {
   public @NotNull BreakpointState getBreakpointDefaults(@NotNull XBreakpointType type) {
     return withLockMaybeCancellable(myLock, () ->
       myBreakpointsDefaults.computeIfAbsent(type, k -> createBreakpointDefaults(type)));
+  }
+
+  public void setDefaultSuspendPolicy(@NotNull XBreakpointType type, @NotNull SuspendPolicy suspendPolicy) {
+    withLockMaybeCancellable(myLock, () -> {
+      getBreakpointDefaults(type).setSuspendPolicy(suspendPolicy);
+    });
   }
 
   @Nullable
@@ -816,25 +825,29 @@ public final class XBreakpointManagerImpl implements XBreakpointManager {
   }
 
   public void rememberRemovedBreakpoint(@NotNull XBreakpointBase breakpoint) {
-    myLastRemovedBreakpoint = new RemovedBreakpointData(breakpoint);
+    withLockMaybeCancellable(myLock, () -> {
+      myLastRemovedBreakpoint = new RemovedBreakpointData(breakpoint);
+    });
   }
 
   public @Nullable XBreakpointBase getLastRemovedBreakpoint() {
-    return myLastRemovedBreakpoint != null ? myLastRemovedBreakpoint.myBreakpoint : null;
+    return withLockMaybeCancellable(myLock, () -> myLastRemovedBreakpoint != null ? myLastRemovedBreakpoint.myBreakpoint : null);
   }
 
   public @Nullable XBreakpoint restoreLastRemovedBreakpoint() {
     // FIXME[inline-bp]: support multiple breakpoints restore
-    if (myLastRemovedBreakpoint != null) {
-      XBreakpoint breakpoint = myLastRemovedBreakpoint.restore();
+    RemovedBreakpointData data = withLockMaybeCancellable(myLock, () -> {
+      RemovedBreakpointData d = myLastRemovedBreakpoint;
       myLastRemovedBreakpoint = null;
-      return breakpoint;
-    }
-    return null;
+      return d;
+    });
+    return data != null ? data.restore() : null;
   }
 
   public boolean canRestoreLastRemovedBreakpoint() {
-    return myLastRemovedBreakpoint != null && myLastRemovedBreakpoint.isRestorable();
+    return withLockMaybeCancellable(myLock, () -> {
+      return myLastRemovedBreakpoint != null && myLastRemovedBreakpoint.isRestorable();
+    });
   }
 
   private final class RemovedBreakpointData {

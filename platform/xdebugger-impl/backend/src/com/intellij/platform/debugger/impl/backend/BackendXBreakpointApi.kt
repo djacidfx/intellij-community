@@ -42,10 +42,8 @@ internal class BackendXBreakpointApi : XBreakpointApi {
 
   override suspend fun setDefaultSuspendPolicy(project: ProjectId, breakpointTypeId: XBreakpointTypeId, policy: SuspendPolicy) {
     val project = project.findProject()
-    edtWriteAction {
-      val type = XBreakpointUtil.findType(breakpointTypeId.id) ?: return@edtWriteAction
-      (XDebuggerManager.getInstance(project).breakpointManager as XBreakpointManagerImpl).getBreakpointDefaults(type).suspendPolicy = policy
-    }
+    val type = XBreakpointUtil.findType(breakpointTypeId.id) ?: return
+    getBreakpointManager(project).setDefaultSuspendPolicy(type, policy)
   }
 
   override suspend fun getDefaultGroup(project: ProjectId): String? {
@@ -161,6 +159,9 @@ internal class BackendXBreakpointApi : XBreakpointApi {
     val editorsProvider = getEditorsProvider(breakpoint.type, breakpoint, breakpoint.project) ?: return null
     return createBackendDocument(project, frontendDocumentId, editorsProvider, expression, sourcePosition, evaluationMode)
   }
+
+  private fun getBreakpointManager(project: Project): XBreakpointManagerImpl =
+    XDebuggerManager.getInstance(project).breakpointManager as XBreakpointManagerImpl
 }
 
 private suspend fun XLineBreakpointImpl<*>.awaitDocumentIsInSyncAndCommitted(version: DocumentPatchVersion?): Boolean {
