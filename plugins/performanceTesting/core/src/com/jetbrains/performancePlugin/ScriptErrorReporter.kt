@@ -147,11 +147,5 @@ private fun writeAttachmentToErrorDir(attachment: Attachment, path: Path) {
   }
 }
 
-private fun getNonEmptyThrowableMessage(throwable: Throwable): String {
-  if (throwable.message != null && !throwable.message!!.isEmpty()) {
-    return throwable.message!!
-  }
-  else {
-    return throwable.javaClass.name
-  }
-}
+private fun getNonEmptyThrowableMessage(throwable: Throwable): String =
+  throwable.message?.takeIf { it.isNotEmpty() } ?: throwable.javaClass.name
