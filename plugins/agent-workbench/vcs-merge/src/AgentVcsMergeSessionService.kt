@@ -6,10 +6,12 @@ import com.intellij.agent.workbench.common.session.AgentSessionProvider
 import com.intellij.agent.workbench.prompt.core.AgentPromptContextItem
 import com.intellij.agent.workbench.prompt.core.AgentPromptContextRendererIds
 import com.intellij.agent.workbench.prompt.core.AgentPromptContextTruncation
+import com.intellij.agent.workbench.prompt.core.AgentPromptContextTruncationReason
 import com.intellij.agent.workbench.prompt.core.AgentPromptInitialMessageRequest
 import com.intellij.agent.workbench.prompt.core.AgentPromptLaunchError
 import com.intellij.agent.workbench.prompt.core.AgentPromptLaunchResult
 import com.intellij.agent.workbench.prompt.core.AgentPromptPayload
+import com.intellij.agent.workbench.prompt.core.AgentPromptPayloadValue
 import com.intellij.agent.workbench.sessions.core.statistics.AgentWorkbenchEntryPoint
 import com.intellij.agent.workbench.sessions.service.AgentSessionLaunchService
 import com.intellij.agent.workbench.sessions.state.AgentSessionUiPreferencesStateService
@@ -35,15 +37,17 @@ import com.intellij.openapi.util.CheckedDisposable
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.NlsContexts
 import com.intellij.openapi.util.io.FileTooBigException
-import com.intellij.openapi.util.io.FileUtil
+import com.intellij.openapi.util.io.FileUtilRt
 import com.intellij.openapi.vcs.FileStatus
 import com.intellij.openapi.vcs.FileStatusListener
 import com.intellij.openapi.vcs.FileStatusManager
+import com.intellij.openapi.vcs.ProjectLevelVcsManager
 import com.intellij.openapi.vcs.VcsBundle
 import com.intellij.openapi.vcs.VcsException
 import com.intellij.openapi.vcs.VcsNotifier
+import com.intellij.openapi.vcs.changes.Change
+import com.intellij.openapi.vcs.changes.ChangeListManager
 import com.intellij.openapi.vcs.changes.VcsDirtyScopeManager
-import com.intellij.openapi.vcs.merge.MergeConflictAiFileSnapshot
 import com.intellij.openapi.vcs.merge.MergeConflictIterativeDataHolder
 import com.intellij.openapi.vcs.merge.MergeData
 import com.intellij.openapi.vcs.merge.MergeDialogCustomizer
@@ -53,6 +57,7 @@ import com.intellij.openapi.vcs.merge.MergeSession
 import com.intellij.openapi.vcs.merge.MergeSessionEx
 import com.intellij.openapi.vcs.merge.MergeUtils
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.platform.vcs.changes.ChangesUtil
 import com.intellij.vcsUtil.VcsUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -61,44 +66,41 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.annotations.ApiStatus.Internal
 import org.jetbrains.annotations.Nls
 import java.util.Collections
-import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 internal data class AgentVcsMergeLaunchRequest(
-  @JvmField val files: List<VirtualFile>,
-  @JvmField val mergeProvider: MergeProvider,
-  @JvmField val mergeDialogCustomizer: MergeDialogCustomizer,
+  @JvmField val selectionHintFiles: List<VirtualFile>,
   val agentProvider: AgentSessionProvider,
   @JvmField val launchMode: AgentSessionLaunchMode,
 )
 
-@Internal
-data class AgentVcsMergePromptFileContext(
-  @JvmField val projectRelativePath: String,
-  @JvmField val binary: Boolean,
-  @JvmField val totalConflicts: Int?,
-  @JvmField val resolvedConflicts: Int?,
-  @JvmField val unresolvedConflicts: Int?,
-  @JvmField val yoursTitle: String?,
-  @JvmField val baseTitle: String?,
-  @JvmField val theirsTitle: String?,
-  @JvmField val yoursRevision: String?,
-  @JvmField val baseRevision: String?,
-  @JvmField val theirsRevision: String?,
-)
-
-private data class ActiveAgentVcsMergeSession(
-  @JvmField val sessionId: String,
-  @JvmField val files: List<VirtualFile>,
+private data class MergeProviderScope(
   @JvmField val mergeProvider: MergeProvider,
   @JvmField val mergeDialogCustomizer: MergeDialogCustomizer,
   @JvmField val mergeSession: MergeSession?,
+  @JvmField val files: MutableSet<VirtualFile>,
+)
+
+private data class DiscoveredMergeProviderScope(
+  @JvmField val mergeProvider: MergeProvider,
+  @JvmField val mergeDialogCustomizer: MergeDialogCustomizer,
+  @JvmField val files: List<VirtualFile>,
+)
+
+private data class DiscoveredProjectConflicts(
+  @JvmField val hadConflicts: Boolean,
+  @JvmField val scopes: List<DiscoveredMergeProviderScope>,
+)
+
+private data class ActiveAgentVcsMergeSession(
+  @JvmField val providerScopes: MutableList<MergeProviderScope>,
+  @JvmField val fileScopes: MutableMap<VirtualFile, MergeProviderScope>,
   @JvmField val iterativeDataHolder: MergeConflictIterativeDataHolder,
   val agentProvider: AgentSessionProvider,
   @JvmField val launchMode: AgentSessionLaunchMode,
   @JvmField val disposable: CheckedDisposable,
   @JvmField val unresolvedFiles: MutableList<VirtualFile>,
-  @JvmField val promptFileContexts: MutableMap<VirtualFile, AgentVcsMergePromptFileContext>,
+  @JvmField val selectionHintFiles: List<VirtualFile>,
   @Volatile @JvmField var threadFile: VirtualFile? = null,
 )
 
@@ -116,18 +118,17 @@ internal class AgentVcsMergeSessionService(
   private val sessions = ConcurrentHashMap<String, ActiveAgentVcsMergeSession>()
 
   fun startOrFocusSession(request: AgentVcsMergeLaunchRequest) {
-    val sessionKey = buildSessionKey(request.files)
-    val existing = sessions[sessionKey]
+    val existing = sessions[PROJECT_WIDE_SESSION_KEY]
     if (existing != null) {
       if (!existing.disposable.isDisposed) {
         focusSession(existing)
         return
       }
-      sessions.remove(sessionKey, existing)
+      sessions.remove(PROJECT_WIDE_SESSION_KEY, existing)
     }
 
-    val session = createSession(request, sessionKey)
-    val activeSession = sessions.putIfAbsent(sessionKey, session)
+    val session = createSession(request)
+    val activeSession = sessions.putIfAbsent(PROJECT_WIDE_SESSION_KEY, session)
     if (activeSession != null) {
       Disposer.dispose(session.disposable)
       if (!activeSession.disposable.isDisposed) {
@@ -153,52 +154,65 @@ internal class AgentVcsMergeSessionService(
     }
   }
 
-  private fun createSession(
-    request: AgentVcsMergeLaunchRequest,
-    sessionKey: String,
-  ): ActiveAgentVcsMergeSession {
-    val disposable = Disposer.newCheckedDisposable(this, "AgentVcsMergeSession:$sessionKey")
+  private fun createSession(request: AgentVcsMergeLaunchRequest): ActiveAgentVcsMergeSession {
+    val disposable = Disposer.newCheckedDisposable(this, "AgentVcsMergeSession:$PROJECT_WIDE_SESSION_KEY")
     val session = ActiveAgentVcsMergeSession(
-      sessionId = UUID.randomUUID().toString(),
-      files = request.files,
-      mergeProvider = request.mergeProvider,
-      mergeDialogCustomizer = request.mergeDialogCustomizer,
-      mergeSession = (request.mergeProvider as? MergeProvider2)?.createMergeSession(request.files),
+      providerScopes = Collections.synchronizedList(ArrayList()),
+      fileScopes = ConcurrentHashMap(),
       iterativeDataHolder = MergeConflictIterativeDataHolder(project, disposable),
       agentProvider = request.agentProvider,
       launchMode = request.launchMode,
       disposable = disposable,
-      unresolvedFiles = Collections.synchronizedList(request.files.toMutableList()),
-      promptFileContexts = ConcurrentHashMap(),
+      unresolvedFiles = Collections.synchronizedList(ArrayList()),
+      selectionHintFiles = normalizeSelectionHintFiles(request.selectionHintFiles),
     )
     registerExternalResolutionListener(session)
     Disposer.register(disposable) {
       releasePinnedThread(session)
-      sessions.remove(sessionKey, session)
+      sessions.remove(PROJECT_WIDE_SESSION_KEY, session)
     }
     return session
   }
 
   private suspend fun prepareSession(session: ActiveAgentVcsMergeSession): PreparationOutcome {
     return try {
+      val discoveredConflicts = discoverProjectConflicts(project)
+      if (!discoveredConflicts.hadConflicts) {
+        return PreparationOutcome.AutoResolved
+      }
+      if (discoveredConflicts.scopes.isEmpty()) {
+        return PreparationOutcome.Failed(AgentVcsMergeBundle.message("merge.agent.resolve.launch.failed.unsupported"))
+      }
+
       val requestFactory = DiffRequestFactory.getInstance()
-      for (file in session.files) {
-        val conflictData = loadConflictData(file, session.mergeProvider, session.mergeDialogCustomizer)
-        val request = createMergeRequest(project, file, requestFactory, session.mergeProvider, conflictData)
-        session.iterativeDataHolder.prepareModelIfSupported(file, request)
-        val snapshot = withContext(Dispatchers.EDT) {
-          session.iterativeDataHolder.resolveAutoResolvableConflicts(file)
-          session.iterativeDataHolder.getAiFileSnapshot(file)
+      for (scope in discoveredConflicts.scopes) {
+        val mergeSession = (scope.mergeProvider as? MergeProvider2)?.createMergeSession(scope.files)
+        val providerScope = MergeProviderScope(
+          mergeProvider = scope.mergeProvider,
+          mergeDialogCustomizer = scope.mergeDialogCustomizer,
+          mergeSession = mergeSession,
+          files = Collections.synchronizedSet(LinkedHashSet(scope.files)),
+        )
+        session.providerScopes.add(providerScope)
+
+        for (file in scope.files) {
+          session.fileScopes[file] = providerScope
+          session.addUnresolvedFile(file)
+
+          val conflictData = loadConflictData(file, providerScope.mergeProvider, providerScope.mergeDialogCustomizer)
+          val request = createMergeRequest(project, file, requestFactory, providerScope.mergeProvider, conflictData)
+          session.iterativeDataHolder.prepareModelIfSupported(file, request)
+          withContext(Dispatchers.EDT) {
+            session.iterativeDataHolder.resolveAutoResolvableConflicts(file)
+          }
         }
-        session.promptFileContexts[file] =
-          buildPromptFileContext(project, file, conflictData, snapshot, session.mergeProvider.isBinary(file))
       }
 
       val autoResolvedFiles = withContext(Dispatchers.EDT) {
-        session.files.filter(session.iterativeDataHolder::isFileResolved)
+        session.snapshotUnresolvedFiles().filter(session.iterativeDataHolder::isFileResolved)
       }
       autoResolvedFiles.forEach { file ->
-        finalizeResolvedFile(session, file)
+        finalizeResolvedFile(session, file, disposeWhenEmpty = false)
       }
 
       val unresolvedFiles = session.snapshotUnresolvedFiles()
@@ -207,7 +221,7 @@ internal class AgentVcsMergeSessionService(
       }
       else {
         val launchableFiles = unresolvedFiles.filter { file ->
-          session.promptFileContexts[file]?.binary != true
+          session.fileScopes[file]?.mergeProvider?.isBinary(file) != true
         }
         if (launchableFiles.isEmpty()) PreparationOutcome.Failed(AgentVcsMergeBundle.message("merge.agent.resolve.launch.failed.unsupported"))
         else PreparationOutcome.Ready
@@ -221,7 +235,11 @@ internal class AgentVcsMergeSessionService(
     }
   }
 
-  private suspend fun finalizeResolvedFile(session: ActiveAgentVcsMergeSession, file: VirtualFile) {
+  private suspend fun finalizeResolvedFile(
+    session: ActiveAgentVcsMergeSession,
+    file: VirtualFile,
+    disposeWhenEmpty: Boolean = true,
+  ) {
     if (!session.isUnresolved(file)) return
 
     withContext(Dispatchers.UiWithModelAccess) {
@@ -231,7 +249,7 @@ internal class AgentVcsMergeSessionService(
     withContext(Dispatchers.Default) {
       markFilesProcessed(session, listOf(file))
     }
-    if (session.snapshotUnresolvedFiles().isEmpty()) {
+    if (disposeWhenEmpty && session.snapshotUnresolvedFiles().isEmpty()) {
       disposeSession(session)
     }
   }
@@ -244,10 +262,7 @@ internal class AgentVcsMergeSessionService(
       return
     }
 
-    val unresolvedContexts = session.snapshotUnresolvedFiles()
-      .mapNotNull { file -> session.promptFileContexts[file] }
-      .sortedBy(AgentVcsMergePromptFileContext::projectRelativePath)
-    if (unresolvedContexts.isEmpty()) {
+    if (session.snapshotUnresolvedFiles().isEmpty()) {
       disposeSession(session)
       notifySuccess(AgentVcsMergeBundle.message("merge.agent.resolve.launch.success.auto.resolved"))
       return
@@ -256,7 +271,11 @@ internal class AgentVcsMergeSessionService(
     val initialMessageRequest = AgentPromptInitialMessageRequest(
       prompt = AgentVcsMergeSessionSupport.buildInitialPrompt(),
       projectPath = projectPath,
-      contextItems = AgentVcsMergeSessionSupport.buildContextItems(unresolvedContexts),
+      contextItems = listOfNotNull(
+        AgentVcsMergeSessionSupport.buildSelectionHintContextItem(
+          session.selectionHintFiles.map { file -> toProjectRelativePath(file, project) },
+        ),
+      ),
     )
     serviceAsync<AgentSessionLaunchService>().createNewSession(
       path = projectPath,
@@ -278,7 +297,7 @@ internal class AgentVcsMergeSessionService(
           showError(result.asMessage())
         }
       },
-      singleFlightDiscriminator = session.sessionId,
+      singleFlightDiscriminator = PROJECT_WIDE_SESSION_KEY,
       updateGeneralProviderPreferences = false,
       threadTitle = AgentVcsMergeBundle.message("merge.agent.thread.title"),
     )
@@ -351,31 +370,39 @@ internal class AgentVcsMergeSessionService(
   }
 
   private fun markFilesProcessed(session: ActiveAgentVcsMergeSession, files: List<VirtualFile>) {
-    session.removeUnresolvedFiles(files)
     val resolution = MergeSession.Resolution.Merged
-    val mergeSession = session.mergeSession
-    if (mergeSession is MergeSessionEx) {
-      mergeSession.conflictResolvedForFiles(files, resolution)
+    val filesByScope = LinkedHashMap<MergeProviderScope, MutableList<VirtualFile>>()
+    for (file in files) {
+      val scope = session.fileScopes[file] ?: continue
+      filesByScope.getOrPut(scope) { ArrayList() }.add(file)
     }
-    else if (mergeSession != null) {
-      files.forEach { file ->
-        mergeSession.conflictResolvedForFile(file, resolution)
+
+    filesByScope.forEach { (scope, scopeFiles) ->
+      val mergeSession = scope.mergeSession
+      if (mergeSession is MergeSessionEx) {
+        mergeSession.conflictResolvedForFiles(scopeFiles, resolution)
       }
-    }
-    else {
-      files.forEach { file ->
-        session.mergeProvider.conflictResolvedForFile(file)
+      else if (mergeSession != null) {
+        scopeFiles.forEach { file ->
+          mergeSession.conflictResolvedForFile(file, resolution)
+        }
+      }
+      else {
+        scopeFiles.forEach { file ->
+          scope.mergeProvider.conflictResolvedForFile(file)
+        }
+      }
+
+      scopeFiles.forEach { file ->
+        session.fileScopes.remove(file)
+      }
+      synchronized(scope.files) {
+        scope.files.removeAll(scopeFiles.toSet())
       }
     }
 
+    session.removeUnresolvedFiles(files)
     VcsDirtyScopeManager.getInstance(project).filesDirty(files, emptyList())
-  }
-
-  private fun buildSessionKey(files: List<VirtualFile>): String {
-    return files
-      .map { file -> FileUtil.toSystemIndependentName(file.path) }
-      .sorted()
-      .joinToString(separator = "\u0000")
   }
 
   private fun showError(message: @Nls String) {
@@ -408,12 +435,52 @@ internal class AgentVcsMergeSessionService(
 
   private companion object {
     private const val AUTO_RESOLVED_NOTIFICATION_ID = "agent.merge.auto.resolved"
+    private const val PROJECT_WIDE_SESSION_KEY = "project-wide"
   }
+}
+
+private fun discoverProjectConflicts(project: Project): DiscoveredProjectConflicts {
+  val scopes = LinkedHashMap<MergeProvider, MutableList<VirtualFile>>()
+  val mergeCustomizers = LinkedHashMap<MergeProvider, MergeDialogCustomizer>()
+  val seenPaths = LinkedHashSet<String>()
+  val vcsManager = ProjectLevelVcsManager.getInstance(project)
+  var hadConflicts = false
+
+  for (change in ChangeListManager.getInstance(project).allChanges) {
+    if (!ChangesUtil.isMergeConflict(change)) continue
+    hadConflicts = true
+
+    val file = resolveConflictVirtualFile(change) ?: continue
+    if (!seenPaths.add(file.path)) continue
+
+    val mergeProvider = vcsManager.getVcsFor(file)?.mergeProvider ?: continue
+    scopes.getOrPut(mergeProvider) { ArrayList() }.add(file)
+    mergeCustomizers.putIfAbsent(mergeProvider, mergeProvider.createDefaultMergeDialogCustomizer())
+  }
+
+  return DiscoveredProjectConflicts(
+    hadConflicts = hadConflicts,
+    scopes = scopes.entries.map { (mergeProvider, files) ->
+      DiscoveredMergeProviderScope(
+        mergeProvider = mergeProvider,
+        mergeDialogCustomizer = mergeCustomizers.getValue(mergeProvider),
+        files = files,
+      )
+    },
+  )
 }
 
 private fun ActiveAgentVcsMergeSession.snapshotUnresolvedFiles(): List<VirtualFile> {
   synchronized(unresolvedFiles) {
     return unresolvedFiles.toList()
+  }
+}
+
+private fun ActiveAgentVcsMergeSession.addUnresolvedFile(file: VirtualFile) {
+  synchronized(unresolvedFiles) {
+    if (!unresolvedFiles.contains(file)) {
+      unresolvedFiles.add(file)
+    }
   }
 }
 
@@ -450,7 +517,7 @@ private fun createMergeRequest(
       mergeData.CONFLICT_TYPE,
       conflictData.title,
       conflictData.contentTitles,
-      null
+      null,
     )
   }.also { request ->
     MergeUtils.putRevisionInfos(request, mergeData)
@@ -479,29 +546,6 @@ private suspend fun loadConflictData(
   val titleCustomizer = tryCompute { mergeDialogCustomizer.getTitleCustomizerList(filePath) }
                         ?: MergeDialogCustomizer.DEFAULT_CUSTOMIZER_LIST
   return ConflictData(mergeData, title, conflictTitles, titleCustomizer)
-}
-
-private fun buildPromptFileContext(
-  project: Project,
-  file: VirtualFile,
-  conflictData: ConflictData,
-  snapshot: MergeConflictAiFileSnapshot?,
-  isBinary: Boolean,
-): AgentVcsMergePromptFileContext {
-  val mergeData = conflictData.mergeData
-  return AgentVcsMergePromptFileContext(
-    projectRelativePath = file.toProjectRelativePath(project),
-    binary = isBinary,
-    totalConflicts = snapshot?.totalConflicts,
-    resolvedConflicts = snapshot?.resolvedConflicts,
-    unresolvedConflicts = snapshot?.unresolvedConflicts,
-    yoursTitle = conflictData.contentTitles.getOrNull(0),
-    baseTitle = conflictData.contentTitles.getOrNull(1),
-    theirsTitle = conflictData.contentTitles.getOrNull(2),
-    yoursRevision = mergeData.CURRENT_REVISION_NUMBER?.asString(),
-    baseRevision = mergeData.ORIGINAL_REVISION_NUMBER?.asString(),
-    theirsRevision = mergeData.LAST_REVISION_NUMBER?.asString(),
-  )
 }
 
 private fun InvalidDiffRequestException.asUserMessage(): @Nls String {
@@ -554,8 +598,9 @@ object AgentVcsMergeSessionSupport {
   fun buildInitialPrompt(): String {
     return buildString {
       appendLine("Resolve the current merge conflicts for this IntelliJ IDEA worktree.")
+      appendLine("Determine the active conflicted files yourself using normal IDE tools, VCS integrations, or git commands.")
       appendLine("Use normal IDE tools, git workflow, file edits, and any installed skills.")
-      appendLine("Success means every conflicted file leaves VCS conflict state for this merge.")
+      appendLine("Success means this worktree leaves VCS conflict state for the current merge-related operation.")
       appendLine(
         "If this worktree is in the middle of a Git merge, rebase, or cherry-pick, stage resolved files and continue that operation when needed.",
       )
@@ -563,16 +608,52 @@ object AgentVcsMergeSessionSupport {
     }
   }
 
-  fun buildContextItems(fileContexts: List<AgentVcsMergePromptFileContext>): List<AgentPromptContextItem> {
-    if (fileContexts.isEmpty()) return emptyList()
+  fun buildSelectionHintContextItem(selectionHintPaths: List<String>): AgentPromptContextItem? {
+    if (selectionHintPaths.isEmpty()) return null
 
-    val orderedContexts = fileContexts.sortedBy(AgentVcsMergePromptFileContext::projectRelativePath)
-    return buildList {
-      add(buildSummaryContextItem(orderedContexts))
-      orderedContexts.forEach { fileContext ->
-        add(buildFileContextItem(fileContext))
+    val normalizedPaths = LinkedHashSet<String>()
+    selectionHintPaths.forEach { path ->
+      val normalizedPath = path.trim()
+      if (normalizedPath.isNotEmpty()) {
+        normalizedPaths.add(normalizedPath)
       }
     }
+    if (normalizedPaths.isEmpty()) return null
+
+    val includedPaths = normalizedPaths.take(MAX_SELECTION_HINT_PATHS)
+    val fullBody = normalizedPaths.joinToString(separator = "\n") { path -> "file: $path" }
+    val body = includedPaths.joinToString(separator = "\n") { path -> "file: $path" }
+    val payloadEntries = includedPaths.map { path ->
+      AgentPromptPayload.obj(
+        "kind" to AgentPromptPayload.str("file"),
+        "path" to AgentPromptPayload.str(path),
+      )
+    }
+    val truncationReason = if (normalizedPaths.size > includedPaths.size) {
+      AgentPromptContextTruncationReason.SOURCE_LIMIT
+    }
+    else {
+      AgentPromptContextTruncationReason.NONE
+    }
+
+    return AgentPromptContextItem(
+      rendererId = AgentPromptContextRendererIds.PATHS,
+      title = "Launch Selection",
+      body = body,
+      payload = AgentPromptPayload.obj(
+        "entries" to AgentPromptPayloadValue.Arr(payloadEntries),
+        "selectedCount" to AgentPromptPayload.num(normalizedPaths.size),
+        "includedCount" to AgentPromptPayload.num(includedPaths.size),
+        "fileCount" to AgentPromptPayload.num(includedPaths.size),
+      ),
+      itemId = "vcsMerge.selection",
+      source = "vcsMerge",
+      truncation = AgentPromptContextTruncation(
+        originalChars = fullBody.length,
+        includedChars = body.length,
+        reason = truncationReason,
+      ),
+    )
   }
 
   fun isMergeConflictStatus(status: FileStatus): Boolean {
@@ -589,75 +670,32 @@ object AgentVcsMergeSessionSupport {
   }
 }
 
-private fun buildSummaryContextItem(
-  fileContexts: List<AgentVcsMergePromptFileContext>,
-): AgentPromptContextItem {
-  val first = fileContexts.first()
-  val body = buildString {
-    appendLine("Conflicted files: ${fileContexts.size}")
-    appendContextLine(this, "Yours", formatRevisionSummary(first.yoursRevision, first.yoursTitle))
-    appendContextLine(this, "Base", formatRevisionSummary(first.baseRevision, first.baseTitle))
-    appendContextLine(this, "Theirs", formatRevisionSummary(first.theirsRevision, first.theirsTitle))
-  }.trimEnd()
-  return AgentPromptContextItem(
-    rendererId = AgentPromptContextRendererIds.SNIPPET,
-    title = "Merge Session",
-    body = body,
-    payload = AgentPromptPayload.obj(
-      "fileCount" to AgentPromptPayload.num(fileContexts.size),
-    ),
-    itemId = "vcsMerge.session",
-    source = "vcsMerge",
-    truncation = AgentPromptContextTruncation.none(body.length),
-  )
-}
-
-private fun formatRevisionSummary(revision: String?, title: String?): String? {
-  if (revision == null && title == null) return null
-  return buildString {
-    if (revision != null) append(revision)
-    if (title != null) {
-      if (revision != null) append(" ")
-      append("($title)")
-    }
-  }
-}
-
-private fun buildFileContextItem(fileContext: AgentVcsMergePromptFileContext): AgentPromptContextItem {
-  val body = buildString {
-    appendLine("Path: ${fileContext.projectRelativePath}")
-    if (fileContext.binary) {
-      appendLine("Binary conflict: requires manual or VCS-specific workflow.")
-    }
-    if (fileContext.totalConflicts != null && fileContext.resolvedConflicts != null && fileContext.unresolvedConflicts != null) {
-      appendLine(
-        "Conflict counts: total=${fileContext.totalConflicts} resolved=${fileContext.resolvedConflicts} unresolved=${fileContext.unresolvedConflicts}",
-      )
-    }
-  }.trimEnd()
-  return AgentPromptContextItem(
-    rendererId = AgentPromptContextRendererIds.SNIPPET,
-    title = "Merge File: ${fileContext.projectRelativePath}",
-    body = body,
-    payload = AgentPromptPayload.obj(
-      "path" to AgentPromptPayload.str(fileContext.projectRelativePath),
-      "binary" to AgentPromptPayload.bool(fileContext.binary),
-    ),
-    itemId = "vcsMerge.file.${fileContext.projectRelativePath}",
-    source = "vcsMerge",
-    truncation = AgentPromptContextTruncation.none(body.length),
-  )
-}
-
-private fun appendContextLine(builder: StringBuilder, label: String, value: String?) {
-  if (!value.isNullOrBlank()) {
-    builder.appendLine("$label: $value")
-  }
-}
-
 private val LOG = Logger.getInstance(AgentVcsMergeSessionService::class.java)
 
-internal fun VirtualFile.toProjectRelativePath(project: Project): String {
-  val basePath = project.basePath ?: return FileUtil.toSystemIndependentName(path)
-  return FileUtil.getRelativePath(basePath, path, '/') ?: FileUtil.toSystemIndependentName(path)
+private const val MAX_SELECTION_HINT_PATHS = 20
+
+private fun normalizeSelectionHintFiles(files: List<VirtualFile>): List<VirtualFile> {
+  val uniquePaths = LinkedHashSet<String>()
+  val result = ArrayList<VirtualFile>()
+  for (file in files) {
+    if (!file.isValid) continue
+    if (uniquePaths.add(file.path)) {
+      result.add(file)
+    }
+  }
+  return result
+}
+
+private fun resolveConflictVirtualFile(change: Change): VirtualFile? {
+  val afterFile = change.afterRevision?.file?.virtualFile
+  if (afterFile != null && afterFile.isValid) {
+    return afterFile
+  }
+  val fallbackFile = ChangesUtil.getFilePath(change).virtualFile
+  return fallbackFile?.takeIf(VirtualFile::isValid)
+}
+
+internal fun toProjectRelativePath(file: VirtualFile, project: Project): String {
+  val basePath = project.basePath ?: return file.path
+  return FileUtilRt.getRelativePath(basePath, file.path, '/') ?: file.path
 }

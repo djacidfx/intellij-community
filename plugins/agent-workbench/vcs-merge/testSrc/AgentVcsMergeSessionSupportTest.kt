@@ -2,9 +2,11 @@
 package com.intellij.agent.workbench.vcs.merge
 
 import com.intellij.agent.workbench.prompt.core.AgentPromptContextEnvelopeFormatter
-import com.intellij.agent.workbench.prompt.core.AgentPromptContextItem
 import com.intellij.agent.workbench.prompt.core.AgentPromptContextRendererIds
+import com.intellij.agent.workbench.prompt.core.AgentPromptContextTruncationReason
 import com.intellij.agent.workbench.prompt.core.AgentPromptInitialMessageRequest
+import com.intellij.agent.workbench.prompt.core.number
+import com.intellij.agent.workbench.prompt.core.objOrNull
 import com.intellij.openapi.vcs.FileStatus
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.testFramework.LightVirtualFile
@@ -13,54 +15,41 @@ import org.junit.jupiter.api.Test
 
 class AgentVcsMergeSessionSupportTest {
   @Test
-  fun composeInitialMessageUsesNormalWorkflowPromptAndMergeContext() {
+  fun composeInitialMessageUsesMinimalMergePromptWithoutConflictInventory() {
     val message = AgentPromptContextEnvelopeFormatter.composeInitialMessage(
       AgentPromptInitialMessageRequest(
         prompt = AgentVcsMergeSessionSupport.buildInitialPrompt(),
         projectPath = "/repo",
-        contextItems = AgentVcsMergeSessionSupport.buildContextItems(
-          fileContexts = listOf(
-            supportedTextContext("src/Foo.kt"),
-            unsupportedTextContext("src/Bar.kt"),
-            binaryContext(),
-          ),
-        ),
       ),
     )
 
+    assertThat(message).contains("Determine the active conflicted files yourself using normal IDE tools, VCS integrations, or git commands.")
     assertThat(message).contains("Use normal IDE tools, git workflow, file edits, and any installed skills.")
-    assertThat(message).contains("Success means every conflicted file leaves VCS conflict state for this merge.")
+    assertThat(message).contains("Success means this worktree leaves VCS conflict state for the current merge-related operation.")
     assertThat(message).contains(
       "If this worktree is in the middle of a Git merge, rebase, or cherry-pick, stage resolved files and continue that operation when needed.",
     )
-    assertThat(message).doesNotContain("Merge session id:")
-    assertThat(message).doesNotContain("context: renderer=paths title=Conflicted Files")
-    assertThat(message).doesNotContain("Merge helper snapshot")
-    assertThat(message).contains("Conflict counts: total=2 resolved=1 unresolved=1")
-    assertThat(message).contains("Theirs: 333ccc")
-    assertThat(message).contains("Binary conflict: requires manual or VCS-specific workflow.")
-    assertThat(message).doesNotContain("Binary conflict: no")
+    assertThat(message).doesNotContain("### IDE Context")
+    assertThat(message).doesNotContain("Merge Session")
+    assertThat(message).doesNotContain("Conflict counts:")
   }
 
   @Test
-  fun buildContextItemsOrdersSummaryThenFiles() {
-    val items = AgentVcsMergeSessionSupport.buildContextItems(
-      fileContexts = listOf(
-        unsupportedTextContext("z-last.txt"),
-        supportedTextContext("a-first.txt"),
+  fun buildSelectionHintContextItemUsesPathsRendererAndCapsIncludedPaths() {
+    val item = checkNotNull(
+      AgentVcsMergeSessionSupport.buildSelectionHintContextItem(
+        (1..22).map { index -> "src/File$index.txt" },
       ),
     )
 
-    assertThat(items.map { it.rendererId }).containsExactly(
-      AgentPromptContextRendererIds.SNIPPET,
-      AgentPromptContextRendererIds.SNIPPET,
-      AgentPromptContextRendererIds.SNIPPET,
-    )
-    assertThat(items[0].title).isEqualTo("Merge Session")
-    assertThat(items.drop(1).map(AgentPromptContextItem::title)).containsExactly(
-      "Merge File: a-first.txt",
-      "Merge File: z-last.txt",
-    )
+    assertThat(item.rendererId).isEqualTo(AgentPromptContextRendererIds.PATHS)
+    assertThat(item.title).isEqualTo("Launch Selection")
+    assertThat(item.body.lines()).hasSize(20)
+    val payload = item.payload.objOrNull()!!
+    assertThat(payload.number("selectedCount")).isEqualTo("22")
+    assertThat(payload.number("includedCount")).isEqualTo("20")
+    assertThat(payload.number("fileCount")).isEqualTo("20")
+    assertThat(item.truncation.reason).isEqualTo(AgentPromptContextTruncationReason.SOURCE_LIMIT)
   }
 
   @Test
@@ -89,53 +78,5 @@ class AgentVcsMergeSessionSupportTest {
     assertThat(AgentVcsMergeSessionSupport.isMergeConflictStatus(FileStatus.MERGED_WITH_CONFLICTS)).isTrue()
     assertThat(AgentVcsMergeSessionSupport.isMergeConflictStatus(FileStatus.MERGED_WITH_BOTH_CONFLICTS)).isTrue()
     assertThat(AgentVcsMergeSessionSupport.isMergeConflictStatus(FileStatus.MODIFIED)).isFalse()
-  }
-
-  private fun supportedTextContext(path: String): AgentVcsMergePromptFileContext {
-    return AgentVcsMergePromptFileContext(
-      projectRelativePath = path,
-      binary = false,
-      totalConflicts = 2,
-      resolvedConflicts = 1,
-      unresolvedConflicts = 1,
-      yoursTitle = "Yours",
-      baseTitle = "Base",
-      theirsTitle = "Theirs",
-      yoursRevision = "aaa111",
-      baseRevision = "bbb222",
-      theirsRevision = "ccc333",
-    )
-  }
-
-  private fun unsupportedTextContext(path: String): AgentVcsMergePromptFileContext {
-    return AgentVcsMergePromptFileContext(
-      projectRelativePath = path,
-      binary = false,
-      totalConflicts = null,
-      resolvedConflicts = null,
-      unresolvedConflicts = null,
-      yoursTitle = null,
-      baseTitle = null,
-      theirsTitle = null,
-      yoursRevision = "ddd444",
-      baseRevision = "eee555",
-      theirsRevision = "fff666",
-    )
-  }
-
-  private fun binaryContext(): AgentVcsMergePromptFileContext {
-    return AgentVcsMergePromptFileContext(
-      projectRelativePath = "assets/logo.png",
-      binary = true,
-      totalConflicts = null,
-      resolvedConflicts = null,
-      unresolvedConflicts = null,
-      yoursTitle = null,
-      baseTitle = null,
-      theirsTitle = null,
-      yoursRevision = "111aaa",
-      baseRevision = "222bbb",
-      theirsRevision = "333ccc",
-    )
   }
 }

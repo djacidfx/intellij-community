@@ -15,11 +15,7 @@ import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
-import com.intellij.openapi.vcs.merge.MergeData
-import com.intellij.openapi.vcs.merge.MergeDialogCustomizer
-import com.intellij.openapi.vcs.merge.MergeProvider
 import com.intellij.openapi.vcs.merge.MergeResolveWithAgentContext
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.testFramework.LightVirtualFile
 import com.intellij.testFramework.junit5.TestApplication
 import com.intellij.ui.components.BasicOptionButtonUI
@@ -136,9 +132,7 @@ internal class AgentResolveConflictsActionTest {
 
   private fun createLaunchRequest(): AgentVcsMergeLaunchRequest {
     return AgentVcsMergeLaunchRequest(
-      files = listOf(LightVirtualFile("conflicts.txt", "content")),
-      mergeProvider = TestMergeProvider(),
-      mergeDialogCustomizer = MergeDialogCustomizer(),
+      selectionHintFiles = listOf(LightVirtualFile("conflicts.txt", "content")),
       agentProvider = AgentSessionProvider.CODEX,
       launchMode = AgentSessionLaunchMode.STANDARD,
     )
@@ -171,17 +165,6 @@ internal class AgentResolveConflictsActionTest {
       action.updateCustomComponent(component, presentation)
     }
   }
-}
-
-private class TestMergeProvider : MergeProvider {
-  override fun loadRevisions(file: VirtualFile): MergeData {
-    error("Not needed for this test")
-  }
-
-  override fun conflictResolvedForFile(file: VirtualFile) {
-  }
-
-  override fun isBinary(file: VirtualFile): Boolean = false
 }
 
 private class TestAgentSessionProviderDescriptor(

@@ -35,7 +35,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.text.HtmlChunk
-import com.intellij.openapi.vcs.ProjectLevelVcsManager
 import com.intellij.openapi.vcs.merge.MergeDialogContext
 import com.intellij.openapi.vcs.merge.MergeResolveWithAgentContext
 import com.intellij.ui.components.JBOptionButton
@@ -86,7 +85,7 @@ internal class AgentResolveConflictsAction @JvmOverloads constructor(
     val enabledItems = enabledItems(actionModel.menuModel)
     val rememberedQuickStartItem = rememberedQuickStartItem(actionModel.menuModel)
 
-    presentation.isEnabled = context.request.files.isNotEmpty() && enabledItems.isNotEmpty()
+    presentation.isEnabled = enabledItems.isNotEmpty()
     presentation.description = when {
       presentation.isEnabled -> templatePresentation.description
       menuItems(actionModel.menuModel).isEmpty() -> AgentVcsMergeBundle.message("merge.agent.resolve.no.providers")
@@ -203,9 +202,7 @@ internal class AgentResolveConflictsAction @JvmOverloads constructor(
       return ResolveWithAgentContext(
         project = mergeDialogContext.project,
         request = AgentVcsMergeLaunchRequest(
-          files = mergeDialogContext.unresolvedFiles,
-          mergeProvider = mergeDialogContext.mergeProvider,
-          mergeDialogCustomizer = mergeDialogContext.mergeDialogCustomizer,
+          selectionHintFiles = mergeDialogContext.unresolvedFiles,
           agentProvider = AgentSessionProvider.CODEX,
           launchMode = AgentSessionLaunchMode.STANDARD,
         ),
@@ -214,28 +211,15 @@ internal class AgentResolveConflictsAction @JvmOverloads constructor(
     }
 
     val directContext = MergeResolveWithAgentContext.KEY.getData(dataContext) ?: return null
-    val mergeRequest = createDirectMergeRequest(directContext) ?: return null
+    if (!directContext.isLaunchContextValid()) return null
     return ResolveWithAgentContext(
       project = directContext.project,
-      request = mergeRequest,
+      request = AgentVcsMergeLaunchRequest(
+        selectionHintFiles = directContext.files,
+        agentProvider = AgentSessionProvider.CODEX,
+        launchMode = AgentSessionLaunchMode.STANDARD,
+      ),
       closeDialog = directContext::closeDialogForAgentHandoff,
-    )
-  }
-
-  private fun createDirectMergeRequest(context: MergeResolveWithAgentContext): AgentVcsMergeLaunchRequest? {
-    val files = context.files
-    if (files.isEmpty()) return null
-
-    val mergeProvider = ProjectLevelVcsManager.getInstance(context.project)
-                          .let { vcsManager -> files.firstNotNullOfOrNull { file -> vcsManager.getVcsFor(file)?.mergeProvider } }
-                        ?: return null
-
-    return AgentVcsMergeLaunchRequest(
-      files = files,
-      mergeProvider = mergeProvider,
-      mergeDialogCustomizer = mergeProvider.createDefaultMergeDialogCustomizer(),
-      agentProvider = AgentSessionProvider.CODEX,
-      launchMode = AgentSessionLaunchMode.STANDARD,
     )
   }
 
