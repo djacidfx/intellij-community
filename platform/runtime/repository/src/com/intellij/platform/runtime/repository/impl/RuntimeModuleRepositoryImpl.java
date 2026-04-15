@@ -7,6 +7,7 @@ import com.intellij.platform.runtime.repository.RuntimeModuleId;
 import com.intellij.platform.runtime.repository.RuntimeModuleRepository;
 import com.intellij.platform.runtime.repository.serialization.RawRuntimeModuleDescriptor;
 import com.intellij.platform.runtime.repository.serialization.RawRuntimeModuleRepositoryData;
+import com.intellij.platform.runtime.repository.serialization.RawRuntimePluginHeader;
 import com.intellij.platform.runtime.repository.serialization.RuntimeModuleRepositorySerialization;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -139,6 +140,11 @@ public class RuntimeModuleRepositoryImpl implements RuntimeModuleRepository {
       }
     }
     return getModule(RuntimeModuleId.legacyJpsModule(bootstrapModuleName)).getModuleClasspath();
+  }
+
+  @Override
+  public @NotNull List<@NotNull RawRuntimePluginHeader> getBundledPluginHeaders() {
+    return getRawData().getPluginHeaders();
   }
 
   @Override

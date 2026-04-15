@@ -32,6 +32,7 @@
 *:com.intellij.platform.runtime.repository.RuntimeModuleRepository
 - s:create(java.nio.file.Path):com.intellij.platform.runtime.repository.RuntimeModuleRepository
 - a:getBootstrapClasspath(java.lang.String):java.util.List
+- a:getBundledPluginHeaders():java.util.List
 - a:getModule(com.intellij.platform.runtime.repository.RuntimeModuleId):com.intellij.platform.runtime.repository.RuntimeModuleDescriptor
 - a:getModuleResourcePaths(com.intellij.platform.runtime.repository.RuntimeModuleId):java.util.List
 - a:resolveModule(com.intellij.platform.runtime.repository.RuntimeModuleId):com.intellij.platform.runtime.repository.RuntimeModuleRepository$ResolveResult

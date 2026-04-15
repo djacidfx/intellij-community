@@ -2,6 +2,7 @@
 package com.intellij.platform.runtime.repository;
 
 import com.intellij.platform.runtime.repository.impl.RuntimeModuleRepositoryImpl;
+import com.intellij.platform.runtime.repository.serialization.RawRuntimePluginHeader;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -58,4 +59,10 @@ public interface RuntimeModuleRepository {
    * bootstrap module is cached in MANIFEST.MF, because in that case it isn't needed to read and parse module descriptors.
    */
   @NotNull List<@NotNull Path> getBootstrapClasspath(@NotNull String bootstrapModuleName);
+
+  /**
+   * Returns the list of headers of plugins bundled with the current distribution.
+   * For a monolithic IDE, it also includes plugins bundled with its embedded frontend.
+   */
+  @NotNull List<@NotNull RawRuntimePluginHeader> getBundledPluginHeaders();
 }
