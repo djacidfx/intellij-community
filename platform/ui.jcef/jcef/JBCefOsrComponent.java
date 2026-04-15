@@ -225,11 +225,7 @@ class JBCefOsrComponent extends JPanel {
                                                  CefTouchEvent.PointerType.UNKNOWN));
     }
     else {
-      // On Windows, scrollType is WHEEL_UNIT_SCROLL with scrollAmount=3 (OS lines-per-notch),
-      // while on Mac trackpads use continuous precision events with scrollAmount=1.
-      // Multiplying by scrollAmount matches Swing's getUnitsToScroll() behavior.
-      int scrollAmount = e.getScrollType() == MouseWheelEvent.WHEEL_UNIT_SCROLL ? e.getScrollAmount() : 1;
-      double val = e.getPreciseWheelRotation() * scrollAmount * WHEEL_ROTATION_FACTOR;
+      double val = e.getPreciseWheelRotation() * WHEEL_ROTATION_FACTOR;
       if (SystemInfoRt.isLinux || SystemInfoRt.isMac) {
         val *= -1;
       }
@@ -245,8 +241,8 @@ class JBCefOsrComponent extends JPanel {
         e.getClickCount(),
         e.isPopupTrigger(),
         e.getScrollType(),
-        e.getScrollAmount(),
-        (int)val,
+        e.getScrollType() == MouseWheelEvent.WHEEL_UNIT_SCROLL ? e.getScrollAmount() : 1,
+        (int)Math.round(val),
         val));
     }
   }
