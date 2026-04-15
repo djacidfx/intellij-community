@@ -103,7 +103,7 @@ class RepositoryTest {
   fun `resource path macros`() {
     val repository = createRepository(
       tempDirectory.rootPath,
-      createModuleDescriptor("ij.foo", listOf("\$PROJECT_DIR$/foo.jar"), emptyList()),
+      createModuleDescriptor("ij.foo", listOf($$"$PROJECT_DIR$/foo.jar"), emptyList()),
       createModuleDescriptor("ij.bar", listOf("${getLocalMavenRepo()}/bar/bar.jar"), emptyList()),
     )
     
@@ -127,9 +127,9 @@ class RepositoryTest {
   @Test
   fun `invalid macro usage`() {
     val incorrectPaths = listOf(
-      "\$UNKNOWN_MACRO$/foo.jar",
-      "\$PROJECT_DIR$-foo.jar",
-      "\$PROJECT_DIR$/../foo.jar",
+      $$"$UNKNOWN_MACRO$/foo.jar",
+      $$"$PROJECT_DIR$-foo.jar",
+      $$"$PROJECT_DIR$/../foo.jar",
     )
     for (path in incorrectPaths) {
       val repository = createRepository(
@@ -180,5 +180,5 @@ class RepositoryTest {
     assertEquals(listOf(basePath.resolve("bar.jar"), basePath.resolve("foo.jar")), repository.getBootstrapClasspath("ij.bar"))
   }
 
-  private fun moduleId(moduleName: String): RuntimeModuleId = RuntimeModuleId.raw(moduleName, RuntimeModuleId.DEFAULT_NAMESPACE)
+  private fun moduleId(moduleName: String): RuntimeModuleId = raw(moduleName, RuntimeModuleId.DEFAULT_NAMESPACE)
 }
