@@ -127,11 +127,6 @@ public final class SoftWrapApplianceManager implements Dumpable {
   }
 
   @ApiStatus.Internal
-  public void registerSoftWrapIfNecessary() {
-    recalculateIfNecessary();
-  }
-
-  @ApiStatus.Internal
   public void reset() {
     myIsDirty = true;
     mySoftWrapNotifier.notifyReset();
@@ -470,12 +465,6 @@ public final class SoftWrapApplianceManager implements Dumpable {
   @Override
   public String toString() {
     return dumpState();
-  }
-
-  @ApiStatus.Internal
-  @ApiStatus.Experimental
-  public SoftWrapPainter getSoftWrapPainter() {
-    return myPainter;
   }
 
   @ApiStatus.Internal

@@ -14,7 +14,6 @@ import com.intellij.openapi.editor.impl.softwrap.SoftWrapEx;
 import com.intellij.openapi.editor.impl.softwrap.SoftWrapPainter;
 import com.intellij.openapi.editor.impl.softwrap.mapping.SoftWrapApplianceManager;
 import com.intellij.openapi.editor.impl.softwrap.mapping.SoftWrapParsingListener;
-import com.intellij.openapi.util.registry.Registry;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
