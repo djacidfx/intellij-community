@@ -1,5 +1,3 @@
-@file:Suppress("ReplaceGetOrSet")
-
 package com.intellij.mcpserver.toolsets.general
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
@@ -15,16 +13,22 @@ import com.intellij.codeInspection.ex.InspectionProfileWrapper
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.mcpserver.mcpFail
 import com.intellij.mcpserver.util.awaitExternalChangesAndIndexing
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.WriteAction
+import com.intellij.openapi.application.WriteActionListener
+import com.intellij.openapi.application.ex.ApplicationManagerEx
 import com.intellij.openapi.application.readAction
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.serviceAsync
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.diagnostic.trace
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.progress.ProcessCanceledException
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.jobToIndicator
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.Key
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.ProperTextRange
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.vfs.LocalFileSystem
@@ -33,21 +37,44 @@ import com.intellij.platform.util.coroutines.forEachConcurrent
 import com.intellij.profile.codeInspection.InspectionProjectProfileManager
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
+import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.job
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.jetbrains.annotations.ApiStatus.Internal
 import org.jetbrains.annotations.TestOnly
 import java.util.function.Function
 import kotlin.coroutines.resume
 
 private val LOG = logger<AnalysisToolset>()
-private val LINT_FILES_COLLECTOR_OVERRIDE_KEY = Key.create<LintFilesCollectorOverride>("mcpserver.lintFilesCollectorOverride")
 
 private typealias LintFilesCollectorOverride = suspend (
   LintFilesCollectorRequest,
   (AnalysisToolset.LintFileResult) -> Unit,
 ) -> Unit
+
+private typealias LintBeforeMainPassesOverride = suspend (String) -> Unit
+
+private typealias LintMainPassesRunnerOverride = suspend (LintMainPassesRunnerRequest) -> List<HighlightInfo>
+
+@Service(Service.Level.PROJECT)
+private class LintFilesAnalysisSupportState {
+  val mainPassesMutex = Mutex()
+
+  @Volatile
+  var collectorOverride: LintFilesCollectorOverride? = null
+
+  @Volatile
+  var beforeMainPassesOverride: LintBeforeMainPassesOverride? = null
+
+  @Volatile
+  var mainPassesRunnerOverride: LintMainPassesRunnerOverride? = null
+}
+
+private suspend fun getLintFilesAnalysisSupportState(project: Project): LintFilesAnalysisSupportState = project.serviceAsync<LintFilesAnalysisSupportState>()
 
 @Internal
 class LintFilesCollectorRequest internal constructor(
@@ -57,12 +84,18 @@ class LintFilesCollectorRequest internal constructor(
 )
 
 @Internal
+class LintMainPassesRunnerRequest internal constructor(
+  @JvmField val filePath: String,
+  @JvmField val attempt: Int,
+)
+
+@Internal
 internal suspend fun collectLintFiles(
   project: Project,
   request: LintFilesCollectorRequest,
   onFileResult: (AnalysisToolset.LintFileResult) -> Unit,
 ) {
-  val override = project.getUserData(LINT_FILES_COLLECTOR_OVERRIDE_KEY)
+  val override = getLintFilesAnalysisSupportState(project).collectorOverride
   if (override != null) {
     override(request, onFileResult)
     return
@@ -91,23 +124,70 @@ internal suspend fun <T> withLintFilesCollectorOverride(
   project: Project,
   collector: suspend (LintFilesCollectorRequest, (AnalysisToolset.LintFileResult) -> Unit) -> Unit,
   action: suspend () -> T,
+): T = withLintFilesAnalysisSupportOverride(
+  project = project,
+  newValue = collector,
+  getCurrent = { it.collectorOverride },
+  setCurrent = { state, value -> state.collectorOverride = value },
+  action = action,
+)
+
+@TestOnly
+internal suspend fun <T> withLintMainPassesRunnerOverride(
+  project: Project,
+  runner: suspend (LintMainPassesRunnerRequest) -> List<HighlightInfo>,
+  action: suspend () -> T,
+): T = withLintFilesAnalysisSupportOverride(
+  project = project,
+  newValue = runner,
+  getCurrent = { it.mainPassesRunnerOverride },
+  setCurrent = { state, value -> state.mainPassesRunnerOverride = value },
+  action = action,
+)
+
+@TestOnly
+internal suspend fun <T> withLintBeforeMainPassesOverride(
+  project: Project,
+  actionOverride: suspend (String) -> Unit,
+  action: suspend () -> T,
+): T = withLintFilesAnalysisSupportOverride(
+  project = project,
+  newValue = actionOverride,
+  getCurrent = { it.beforeMainPassesOverride },
+  setCurrent = { state, value -> state.beforeMainPassesOverride = value },
+  action = action,
+)
+
+@TestOnly
+private suspend fun <T, V> withLintFilesAnalysisSupportOverride(
+  project: Project,
+  newValue: V,
+  getCurrent: (LintFilesAnalysisSupportState) -> V?,
+  setCurrent: (LintFilesAnalysisSupportState, V?) -> Unit,
+  action: suspend () -> T,
 ): T {
-  val previousCollector = project.getUserData(LINT_FILES_COLLECTOR_OVERRIDE_KEY)
-  project.putUserData(LINT_FILES_COLLECTOR_OVERRIDE_KEY, collector)
+  val state = getLintFilesAnalysisSupportState(project)
+  val previousValue = synchronized(state) {
+    getCurrent(state).also {
+      setCurrent(state, newValue)
+    }
+  }
   try {
     return action()
   }
   finally {
-    project.putUserData(LINT_FILES_COLLECTOR_OVERRIDE_KEY, previousCollector)
+    synchronized(state) {
+      setCurrent(state, previousValue)
+    }
   }
 }
 
-internal suspend inline fun collectLintFileResults(
+internal suspend fun collectLintFileResults(
   project: Project,
   resolvedFiles: List<ResolvedLintFile>,
   minSeverity: HighlightSeverity,
   inspectionProfile: InspectionProfile,
-  crossinline onFileResult: (AnalysisToolset.LintFileResult) -> Unit,
+  onFileResult: (AnalysisToolset.LintFileResult) -> Unit,
 ) {
   if (resolvedFiles.isEmpty()) {
     return
@@ -117,8 +197,11 @@ internal suspend inline fun collectLintFileResults(
   val fileDocumentManager = serviceAsync<FileDocumentManager>()
   val psiManager = project.serviceAsync<PsiManager>()
   val codeAnalyzerSettings = serviceAsync<DaemonCodeAnalyzerSettings>()
+  // `runMainPasses()` is serialized separately; file preparation and result delivery can proceed concurrently.
+  // Callers must treat `onFileResult` as a concurrent callback and restore request ordering themselves when needed.
   resolvedFiles.forEachConcurrent { resolvedFile ->
     val result = collectLintFileResult(
+      project = project,
       resolvedFile = resolvedFile,
       minSeverity = minSeverity,
       inspectionProfile = inspectionProfile,
@@ -132,6 +215,7 @@ internal suspend inline fun collectLintFileResults(
 }
 
 private suspend fun collectLintFileResult(
+  project: Project,
   resolvedFile: ResolvedLintFile,
   minSeverity: HighlightSeverity,
   inspectionProfile: InspectionProfile,
@@ -158,32 +242,58 @@ private suspend fun collectLintFileResult(
     return createEmptyLintFileResult(resolvedFile.relativePath)
   }
 
-  val range = ProperTextRange.create(0, fileContext.document.textLength)
-  val daemonIndicator = DaemonProgressIndicator()
-  var collectedHighlightInfos: List<HighlightInfo>? = null
-  val highlightInfos = jobToIndicator(currentCoroutineContext().job, daemonIndicator) {
-    HighlightingSessionImpl.runInsideHighlightingSession(fileContext.psiFile, null, range, false) { session ->
-      (session as HighlightingSessionImpl).setMinimumSeverity(minSeverity)
-      collectedHighlightInfos = runLintMainPasses(
-        psiFile = fileContext.psiFile,
-        document = fileContext.document,
-        inspectionProfile = inspectionProfile,
-        daemonIndicator = daemonIndicator,
-        codeAnalyzer = codeAnalyzer,
-        codeAnalyzerSettings = codeAnalyzerSettings,
-      )
-    }
-    collectedHighlightInfos.orEmpty()
-  }
+  getLintFilesAnalysisSupportState(project).beforeMainPassesOverride?.invoke(resolvedFile.relativePath)
+
+  val highlightInfos = runLintMainPasses(
+    project = project,
+    relativePath = resolvedFile.relativePath,
+    psiFile = fileContext.psiFile,
+    document = fileContext.document,
+    minSeverity = minSeverity,
+    inspectionProfile = inspectionProfile,
+    codeAnalyzer = codeAnalyzer,
+    codeAnalyzerSettings = codeAnalyzerSettings,
+  )
   LOG.trace { "Main passes completed for ${resolvedFile.relativePath}, found ${highlightInfos.size} highlights" }
   return createLintFileResult(resolvedFile.relativePath, fileContext.document, highlightInfos, minSeverity)
 }
 
-private fun runLintMainPasses(
+/**
+ * Keep MCP's main-pass orchestration local. `DaemonCodeAnalyzerImpl.runMainPasses()` resets shared daemon state,
+ * so concurrent MCP lint requests contend badly and can freeze the IDE. We intentionally do not reuse or edit the
+ * legacy `MainPassesRunner` implementation for this tool.
+ */
+private suspend fun runLintMainPasses(
+  project: Project,
+  relativePath: String,
   psiFile: PsiFile,
   document: Document,
+  minSeverity: HighlightSeverity,
   inspectionProfile: InspectionProfile,
-  daemonIndicator: DaemonProgressIndicator,
+  codeAnalyzer: DaemonCodeAnalyzerImpl,
+  codeAnalyzerSettings: DaemonCodeAnalyzerSettings,
+): List<HighlightInfo> {
+  return getLintFilesMainPassesMutex(project).withLock {
+    runLintMainPassesLocked(
+      project = project,
+      relativePath = relativePath,
+      psiFile = psiFile,
+      document = document,
+      minSeverity = minSeverity,
+      inspectionProfile = inspectionProfile,
+      codeAnalyzer = codeAnalyzer,
+      codeAnalyzerSettings = codeAnalyzerSettings,
+    )
+  }
+}
+
+private suspend fun runLintMainPassesLocked(
+  project: Project,
+  relativePath: String,
+  psiFile: PsiFile,
+  document: Document,
+  minSeverity: HighlightSeverity,
+  inspectionProfile: InspectionProfile,
   codeAnalyzer: DaemonCodeAnalyzerImpl,
   codeAnalyzerSettings: DaemonCodeAnalyzerSettings,
 ): List<HighlightInfo> {
@@ -191,30 +301,129 @@ private fun runLintMainPasses(
     InspectionProfileWrapper(inspectionProfile, (profile as InspectionProfileImpl).profileManager)
   }
   var exception: ProcessCanceledException? = null
-  var highlightInfos: List<HighlightInfo>? = null
 
-  repeat(100) {
-    daemonIndicator.checkCanceled()
-    try {
-      codeAnalyzerSettings.forceUseZeroAutoReparseDelayIn<RuntimeException> {
-        InspectionProfileWrapper.runWithCustomInspectionWrapper(psiFile, profileProvider) {
-          highlightInfos = codeAnalyzer.runMainPasses(psiFile, document, daemonIndicator)
-        }
+  repeat(100) { attemptIndex ->
+    currentCoroutineContext().ensureActive()
+    val attempt = attemptIndex + 1
+    val daemonIndicator = DaemonProgressIndicator()
+    val listenerDisposable = Disposer.newDisposable()
+    var canceledByWriteAction = false
+
+    ApplicationManagerEx.getApplicationEx().addWriteActionListener(object : WriteActionListener {
+      override fun beforeWriteActionStart(action: Class<*>) {
+        canceledByWriteAction = true
+        daemonIndicator.cancel("beforeWriteActionStart: $action")
       }
-      return highlightInfos ?: emptyList()
+    }, listenerDisposable)
+
+    try {
+      if (ApplicationManagerEx.getApplicationEx().isWriteActionPending()) {
+        canceledByWriteAction = true
+        throw ProcessCanceledException()
+      }
+
+      return runLintMainPassesAttempt(
+        project = project,
+        relativePath = relativePath,
+        attempt = attempt,
+        psiFile = psiFile,
+        document = document,
+        minSeverity = minSeverity,
+        daemonIndicator = daemonIndicator,
+        profileProvider = profileProvider,
+        codeAnalyzer = codeAnalyzer,
+        codeAnalyzerSettings = codeAnalyzerSettings,
+      )
     }
     catch (e: ProcessCanceledException) {
-      val cause = e.cause
-      if (cause != null && cause.javaClass != Throwable::class.java) {
+      currentCoroutineContext().ensureActive()
+      if (!isRetriableProcessCanceledException(e)) {
         throw e
       }
-      daemonIndicator.checkCanceled()
+
       exception = e
+
+      if (canceledByWriteAction || ApplicationManagerEx.getApplicationEx().isWriteActionPending()) {
+        LOG.trace { "Retrying main passes for $relativePath after write action contention" }
+        waitForWriteActionCompletion()
+      }
+    }
+    finally {
+      Disposer.dispose(listenerDisposable)
     }
   }
 
   throw exception ?: ProcessCanceledException()
 }
+
+private suspend fun runLintMainPassesAttempt(
+  project: Project,
+  relativePath: String,
+  attempt: Int,
+  psiFile: PsiFile,
+  document: Document,
+  minSeverity: HighlightSeverity,
+  daemonIndicator: DaemonProgressIndicator,
+  profileProvider: Function<InspectionProfile, InspectionProfileWrapper>,
+  codeAnalyzer: DaemonCodeAnalyzerImpl,
+  codeAnalyzerSettings: DaemonCodeAnalyzerSettings,
+): List<HighlightInfo> {
+  val override = getLintFilesAnalysisSupportState(project).mainPassesRunnerOverride
+  if (override != null) {
+    return override(LintMainPassesRunnerRequest(relativePath, attempt))
+  }
+
+  val range = ProperTextRange.create(0, document.textLength)
+  var collectedHighlightInfos: List<HighlightInfo>? = null
+
+  return jobToIndicator(currentCoroutineContext().job, daemonIndicator) {
+    ProgressManager.checkCanceled()
+    HighlightingSessionImpl.runInsideHighlightingSession(psiFile, null, range, false) { session ->
+      (session as HighlightingSessionImpl).setMinimumSeverity(minSeverity)
+      codeAnalyzerSettings.forceUseZeroAutoReparseDelayIn<RuntimeException> {
+        InspectionProfileWrapper.runWithCustomInspectionWrapper(psiFile, profileProvider) {
+          collectedHighlightInfos = codeAnalyzer.runMainPasses(psiFile, document, daemonIndicator)
+        }
+      }
+    }
+    collectedHighlightInfos.orEmpty()
+  }
+}
+
+private fun isRetriableProcessCanceledException(e: ProcessCanceledException): Boolean {
+  val cause = e.cause
+  return cause == null || cause.javaClass == Throwable::class.java
+}
+
+private suspend fun waitForWriteActionCompletion() {
+  val threadingSupport = ApplicationManager.getApplication().threadingSupport
+  if (threadingSupport == null) {
+    WriteAction.runAndWait<RuntimeException> { }
+    return
+  }
+
+  suspendCancellableCoroutine { continuation ->
+    val resumeContinuation = ResumeContinuationAction(continuation)
+    threadingSupport.runWhenWriteActionIsCompleted(resumeContinuation::run)
+  }
+}
+
+private class ResumeContinuationAction(continuation: CancellableContinuation<Unit>) {
+  @Volatile
+  private var continuation: CancellableContinuation<Unit>? = continuation
+
+  init {
+    continuation.invokeOnCancellation {
+      this.continuation = null
+    }
+  }
+
+  fun run() {
+    continuation?.resume(Unit)
+  }
+}
+
+private suspend fun getLintFilesMainPassesMutex(project: Project): Mutex = getLintFilesAnalysisSupportState(project).mainPassesMutex
 
 private fun createLintFileResult(
   filePath: String,
