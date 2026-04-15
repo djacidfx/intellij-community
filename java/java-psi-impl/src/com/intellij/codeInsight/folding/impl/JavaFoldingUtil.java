@@ -177,18 +177,21 @@ final public class JavaFoldingUtil {
                                    @NotNull PsiElement element,
                                    @NotNull Document document) {
     final Collection<PsiComment> comments = PsiTreeUtil.collectElementsOfType(element, PsiComment.class);
+    final HashSet<PsiElement> processedComments = new HashSet<>();
 
     for (PsiComment comment : comments) {
-      addCommentToFold(list, comment, document);
+      addCommentToFold(list, comment, document, processedComments);
     }
   }
 
   private static void addCommentToFold(@NotNull List<? super FoldingDescriptor> list,
-                               @NotNull PsiComment comment,
-                               @NotNull Document document) {
+                                       @NotNull PsiComment comment,
+                                       @NotNull Document document,
+                                       @NotNull HashSet<PsiElement> processedComments) {
     final FoldingDescriptor commentDescriptor;
     if (comment instanceof PsiDocComment && ((PsiDocComment)comment).isMarkdownComment()) {
       // FIXME: inline documentation comments aren't supported in the Commenter interface
+      if (!processedComments.add(comment)) return;
       String placeholder = CommentFoldingUtil.getCommentPlaceholder(document, JavaDocElementType.DOC_COMMENT, comment.getTextRange());
       if (placeholder == null) placeholder = "/// ...";
       // Hack: Markdown comments aren't documented in the Commenter for the Java language
@@ -199,7 +202,7 @@ final public class JavaFoldingUtil {
                               Collections.emptySet());
     }
     else {
-      commentDescriptor = CommentFoldingUtil.getCommentDescriptor(comment, document, new HashSet<>(),
+      commentDescriptor = CommentFoldingUtil.getCommentDescriptor(comment, document, processedComments,
                                                                   element -> CustomFoldingBuilder.isCustomRegionElement(element),
                                                                   isCollapseCommentByDefault(comment));
     }
