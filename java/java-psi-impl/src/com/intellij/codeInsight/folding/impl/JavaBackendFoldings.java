@@ -243,12 +243,12 @@ final class JavaBackendFoldings {
 
     if (aClass instanceof PsiAnonymousClass) {
       final PsiAnonymousClass anonymousClass = (PsiAnonymousClass)aClass;
-      ClosureFolding closureFolding = ClosureFolding.prepare(anonymousClass, quick, builder);
-      List<FoldingDescriptor> descriptors = closureFolding == null ? null : closureFolding.process(document);
+      BackendClosureFolding backendClosureFolding = BackendClosureFolding.prepare(anonymousClass, quick, builder);
+      List<FoldingDescriptor> descriptors = backendClosureFolding == null ? null : backendClosureFolding.process(document);
       if (descriptors != null) {
         list.addAll(descriptors);
-        addCodeBlockFolds(builder, list, closureFolding.methodBody, document, quick);
-        JavaFrontendFoldings.addFrontendCodeBlockFolds(list, closureFolding.methodBody, document);
+        addCodeBlockFolds(builder, list, backendClosureFolding.methodBody, document, quick);
+        JavaFrontendFoldings.addFrontendCodeBlockFolds(list, backendClosureFolding.methodBody, document);
         return true;
       }
     }
@@ -358,7 +358,7 @@ final class JavaBackendFoldings {
       if (anonymousClass != null) {
         classReference = anonymousClass.getBaseClassReference();
 
-        if (quick || ClosureFolding.seemsLikeLambda(anonymousClass.getSuperClass(), anonymousClass)) {
+        if (quick || BackendClosureFolding.seemsLikeLambda(anonymousClass.getSuperClass(), anonymousClass)) {
           return;
         }
       }

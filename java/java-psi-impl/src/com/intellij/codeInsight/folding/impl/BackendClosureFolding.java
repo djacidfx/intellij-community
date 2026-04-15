@@ -33,7 +33,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-final class ClosureFolding {
+final class BackendClosureFolding {
   private final @NotNull PsiAnonymousClass myAnonymousClass;
   private final @NotNull PsiNewExpression myNewExpression;
   private final @Nullable PsiClass myBaseClass;
@@ -42,13 +42,13 @@ final class ClosureFolding {
   final @NotNull PsiCodeBlock methodBody;
   private final boolean myQuick;
 
-  private ClosureFolding(@NotNull PsiAnonymousClass anonymousClass,
-                         @NotNull PsiNewExpression newExpression,
-                         boolean quick,
-                         @Nullable PsiClass baseClass,
-                         @NotNull JavaFoldingBuilderBase builder,
-                         @NotNull PsiMethod method,
-                         @NotNull PsiCodeBlock methodBody) {
+  private BackendClosureFolding(@NotNull PsiAnonymousClass anonymousClass,
+                                @NotNull PsiNewExpression newExpression,
+                                boolean quick,
+                                @Nullable PsiClass baseClass,
+                                @NotNull JavaFoldingBuilderBase builder,
+                                @NotNull PsiMethod method,
+                                @NotNull PsiCodeBlock methodBody) {
     myAnonymousClass = anonymousClass;
     myNewExpression = newExpression;
     myQuick = quick;
@@ -150,7 +150,7 @@ final class ClosureFolding {
     return type + methodName + "(" + params + ") " + myBuilder.rightArrow() + " {";
   }
 
-  static @Nullable ClosureFolding prepare(@NotNull PsiAnonymousClass anonymousClass, boolean quick, @NotNull JavaFoldingBuilderBase builder) {
+  static @Nullable BackendClosureFolding prepare(@NotNull PsiAnonymousClass anonymousClass, boolean quick, @NotNull JavaFoldingBuilderBase builder) {
     PsiElement parent = anonymousClass.getParent();
     if (parent instanceof PsiNewExpression && hasNoArguments((PsiNewExpression)parent)) {
       PsiClass baseClass = quick ? null : anonymousClass.getBaseClassType().resolve();
@@ -158,7 +158,7 @@ final class ClosureFolding {
         PsiMethod method = anonymousClass.getMethods()[0];
         PsiCodeBlock body = method.getBody();
         if (body != null) {
-          return new ClosureFolding(anonymousClass, (PsiNewExpression)parent, quick, baseClass, builder, method, body);
+          return new BackendClosureFolding(anonymousClass, (PsiNewExpression)parent, quick, baseClass, builder, method, body);
         }
       }
     }

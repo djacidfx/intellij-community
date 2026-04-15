@@ -27,8 +27,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-final class JavaFrontendFoldings {
-  static void buildFrontendFoldRegions(@NotNull List<FoldingDescriptor> descriptors,
+public final class JavaFrontendFoldings {
+  public static void buildFrontendFoldRegions(@NotNull List<FoldingDescriptor> descriptors,
                                        @NotNull PsiJavaFile file,
                                        @NotNull Document document) {
     JavaFoldingUtil.addFoldsForImports(descriptors, file);

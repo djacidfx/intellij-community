@@ -101,6 +101,8 @@
 
     <completion.frontendFriendlyInsertHandler target="com.intellij.codeInsight.completion.FrontendFriendlyOverridableSpaceInsertHandler"/>
 
+    <registryKey key="java.folding.split.frontend.backend" defaultValue="false"
+                 description="Split Java code folding between frontend (syntax-based) and backend (resolve-based) builders"/>
     <applicationSettings service="com.intellij.codeInsight.folding.impl.JavaCodeFoldingSettingsImpl"/>
   </extensions>
 </idea-plugin>

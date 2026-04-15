@@ -15,11 +15,12 @@ import org.jetbrains.annotations.ApiStatus
 @ApiStatus.Internal
 open class IdeJavaFoldingBuilderBase: JavaFoldingBuilderBase() {
   override fun isBelowRightMargin(file: PsiFile, lineLength: Int): Boolean {
+    //todo check if it is sync
     val settings: CodeStyleSettings = com.intellij.application.options.CodeStyle.getSettings(file)
     return lineLength <= settings.getRightMargin(JavaLanguage.INSTANCE)
   }
 
-  protected open override fun shouldShowExplicitLambdaType(anonymousClass: PsiAnonymousClass, expression: PsiNewExpression): Boolean {
+  protected override fun shouldShowExplicitLambdaType(anonymousClass: PsiAnonymousClass, expression: PsiNewExpression): Boolean {
     val parent = expression.getParent()
     return parent is PsiReferenceExpression || parent is PsiAssignmentExpression
   }
