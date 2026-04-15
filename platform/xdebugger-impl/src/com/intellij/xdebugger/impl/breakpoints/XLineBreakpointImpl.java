@@ -65,17 +65,17 @@ public final class XLineBreakpointImpl<P extends XBreakpointProperties> extends 
 
   @Override
   public @NotNull XLineBreakpointVerticalPlacement getPlacement() {
-    return myState.getPlacement();
+    return withStateLock(() -> myState.getPlacement());
   }
 
   @Override
   public int getLine() {
-    return myState.getLine();
+    return withStateLock(() -> myState.getLine());
   }
 
   @Override
   public String getFileUrl() {
-    return myState.getFileUrl();
+    return withStateLock(() -> myState.getFileUrl());
   }
 
   @Override
@@ -209,7 +209,7 @@ public final class XLineBreakpointImpl<P extends XBreakpointProperties> extends 
 
   @Override
   public boolean isTemporary() {
-    return myState.isTemporary();
+    return withStateLock(() -> myState.isTemporary());
   }
 
   @Override
