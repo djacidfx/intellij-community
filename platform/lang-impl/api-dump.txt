@@ -774,6 +774,10 @@ f:com.intellij.ide.fileTemplates.VelocityWrapper
 - <init>():V
 f:com.intellij.ide.fileTemplates.impl.FileTemplateManagerImpl
 - getDefaultContextMap():java.util.Map
+a:com.intellij.ide.hierarchy.CallHierarchyBrowserBase
+- setContent(com.intellij.ui.content.Content):V
+a:com.intellij.ide.hierarchy.HierarchyBrowserBaseEx
+- p:disposeAllSheets():V
 f:com.intellij.ide.hierarchy.HierarchyBrowserScopes
 - sf:SCOPE_ALL:java.lang.String
 - sf:SCOPE_CLASS:java.lang.String
