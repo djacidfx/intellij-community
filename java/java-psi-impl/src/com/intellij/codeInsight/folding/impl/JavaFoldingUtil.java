@@ -326,7 +326,6 @@ final public class JavaFoldingUtil {
                                         @NotNull PsiJavaModule module,
                                         @NotNull Document document) {
     addToFold(list, module, document, true, getCodeBlockPlaceholder(null), moduleRange(module), false);
-    addCommentsToFold(list, module, document);
     addAnnotationsToFold(list, module.getModifierList(), document);
   }
 }

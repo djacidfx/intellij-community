@@ -59,13 +59,7 @@ public abstract class JavaFoldingBuilderBase extends CustomFoldingBuilder implem
                                           boolean quick) {
     if (!(root instanceof PsiJavaFile)) return;
     PsiJavaFile file = (PsiJavaFile)root;
-
-    JavaFoldingUtil.addFoldsForImports(descriptors, file);
-
-    PsiJavaModule module = file.getModuleDeclaration();
-    if (module != null) {
-      JavaFoldingUtil.addFoldsForModule(descriptors, module, document);
-    }
+    JavaFrontendFoldings.buildFrontendFoldRegions(descriptors, file, document, quick);
 
     PsiClass[] classes = file.getClasses();
     for (PsiClass aClass : classes) {
@@ -73,9 +67,6 @@ public abstract class JavaFoldingBuilderBase extends CustomFoldingBuilder implem
       ProgressIndicatorProvider.checkCanceled();
       addFoldsForClass(descriptors, aClass, document, quick);
     }
-
-    JavaFoldingUtil.addFoldsForFileHeader(descriptors, file, document);
-    JavaFoldingUtil.addCommentsToFold(descriptors, root, document);
   }
 
   private void addFoldsForClass(@NotNull List<? super FoldingDescriptor> list,
@@ -100,8 +91,6 @@ public abstract class JavaFoldingBuilderBase extends CustomFoldingBuilder implem
       }
       else if (child instanceof PsiField) {
         PsiField field = (PsiField)child;
-
-        JavaFoldingUtil.addCommentsToFold(list, field, document);
 
         JavaFoldingUtil.addAnnotationsToFold(list, field.getModifierList(), document);
 
@@ -148,8 +137,6 @@ public abstract class JavaFoldingBuilderBase extends CustomFoldingBuilder implem
     }
 
     JavaFoldingUtil.addAnnotationsToFold(list, method.getModifierList(), document);
-
-    JavaFoldingUtil.addCommentsToFold(list, method, document);
 
     for (PsiParameter parameter : method.getParameterList().getParameters()) {
       JavaFoldingUtil.addAnnotationsToFold(list, parameter.getModifierList(), document);
