@@ -28,7 +28,6 @@ import org.jetbrains.intellij.build.WindowsLibcImpl
 import org.jetbrains.intellij.build.add64IfNeeded
 import org.jetbrains.intellij.build.executeStep
 import org.jetbrains.intellij.build.impl.OsSpecificDistributionBuilder.Companion.suffix
-import org.jetbrains.intellij.build.impl.client.createFrontendContextForLaunchers
 import org.jetbrains.intellij.build.impl.productInfo.PRODUCT_INFO_FILE_NAME
 import org.jetbrains.intellij.build.impl.productInfo.generateEmbeddedFrontendLaunchData
 import org.jetbrains.intellij.build.impl.productInfo.generateProductInfoJson
@@ -94,7 +93,7 @@ internal class WindowsDistributionBuilder(
 
         copyFileToDir(NativeBinaryDownloader.getRestarter(context, OsFamily.WINDOWS, arch), distBinDir)
 
-        createFrontendContextForLaunchers(context)?.let { clientContext ->
+        context.getEmbeddedFrontendProductContext()?.let { clientContext ->
           writeWindowsVmOptions(distBinDir, clientContext)
           buildWinLauncher(winDistPath = targetPath, arch = arch, copyLicense = false, customizer = customizer, context = clientContext)
         }

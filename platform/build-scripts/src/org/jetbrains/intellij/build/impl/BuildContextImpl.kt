@@ -351,6 +351,18 @@ class BuildContextImpl internal constructor(
 
   override suspend fun getFrontendModuleFilter(): FrontendModuleFilter = _frontendModuleFilter.await()
 
+  private val embeddedFrontendProductContext = suspendingLazy("embedded frontend product context") {
+    if (options.enableEmbeddedFrontend) {
+      val factory = productProperties.embeddedFrontendProperties
+      if (factory != null) {
+        return@suspendingLazy createCopyForProduct(factory(), paths.projectHome, prepareForBuild = false)
+      }
+    }
+    null
+  }
+
+  override suspend fun getEmbeddedFrontendProductContext(): BuildContext? = embeddedFrontendProductContext.await()
+
   private val _contentModuleFilter by lazy { computeContentModuleFilter() }
 
   private fun computeContentModuleFilter(): ContentModuleFilter {

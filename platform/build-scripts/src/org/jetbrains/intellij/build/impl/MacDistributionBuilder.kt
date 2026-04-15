@@ -29,7 +29,6 @@ import org.jetbrains.intellij.build.NativeBinaryDownloader
 import org.jetbrains.intellij.build.OsFamily
 import org.jetbrains.intellij.build.executeStep
 import org.jetbrains.intellij.build.impl.OsSpecificDistributionBuilder.Companion.suffix
-import org.jetbrains.intellij.build.impl.client.createFrontendContextForLaunchers
 import org.jetbrains.intellij.build.impl.macOS.MachOUuid
 import org.jetbrains.intellij.build.impl.productInfo.PRODUCT_INFO_FILE_NAME
 import org.jetbrains.intellij.build.impl.productInfo.generateEmbeddedFrontendLaunchData
@@ -135,7 +134,7 @@ class MacDistributionBuilder(
       copyDirWithFileFilter(context.paths.communityHomeDir.resolve("bin/mac"), macBinDir, customizer.binFilesFilter)
       copyFileToDir(NativeBinaryDownloader.getRestarter(context, OsFamily.MACOS, arch), macBinDir)
 
-      createFrontendContextForLaunchers(context)?.let { clientContext ->
+      context.getEmbeddedFrontendProductContext()?.let { clientContext ->
         writeMacOsVmOptions(macBinDir, clientContext)
       }
       val executable = context.productProperties.baseFileName

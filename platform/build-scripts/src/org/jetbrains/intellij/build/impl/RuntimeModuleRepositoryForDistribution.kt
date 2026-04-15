@@ -19,7 +19,6 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.intellij.build.BuildContext
 import org.jetbrains.intellij.build.ModuleOutputProvider
 import org.jetbrains.intellij.build.classPath.PluginBuildDescriptor
-import org.jetbrains.intellij.build.impl.client.createFrontendContextForLaunchers
 import org.jetbrains.intellij.build.impl.plugins.buildPlugins
 import org.jetbrains.intellij.build.impl.projectStructureMapping.ContentReport
 import org.jetbrains.intellij.build.impl.projectStructureMapping.DistributionFileEntry
@@ -274,7 +273,7 @@ private suspend fun computeDescriptorsForAdditionalFrontendPlugins(
   platformLayout: PlatformLayout,
 ): List<PluginBuildDescriptor> {
   val additionalFrontendPlugins = TraceManager.spanBuilder("compute layout of additional plugins for embedded frontend").use {
-    val frontendContextForLaunchers = createFrontendContextForLaunchers(context)
+    val frontendContextForLaunchers = context.getEmbeddedFrontendProductContext()
     val pluginDescriptorModulesForFrontend = frontendContextForLaunchers?.getBundledPluginModules() ?: return@use emptyList()
     val additionalPluginModules = pluginDescriptorModulesForFrontend - bundledPlugins.mapTo(HashSet()) { it.layout.mainModule }
     if (additionalPluginModules.isEmpty()) return@use emptyList()

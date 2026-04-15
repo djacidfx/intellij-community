@@ -21,7 +21,6 @@ import org.jetbrains.intellij.build.OsFamily
 import org.jetbrains.intellij.build.add64IfNeeded
 import org.jetbrains.intellij.build.executeStep
 import org.jetbrains.intellij.build.impl.OsSpecificDistributionBuilder.Companion.suffix
-import org.jetbrains.intellij.build.impl.client.createFrontendContextForLaunchers
 import org.jetbrains.intellij.build.impl.client.getAdditionalEmbeddedClientVmOptions
 import org.jetbrains.intellij.build.impl.productInfo.PRODUCT_INFO_FILE_NAME
 import org.jetbrains.intellij.build.impl.productInfo.generateEmbeddedFrontendLaunchData
@@ -82,7 +81,7 @@ class LinuxDistributionBuilder(
           copyFileToDir(NativeBinaryDownloader.getRestarter(context, OsFamily.LINUX, arch), distBinDir)
           copyFileToDir(sourceBinDir.resolve("${arch.dirName}/fsnotifier"), distBinDir)
 
-          createFrontendContextForLaunchers(context)?.let { clientContext ->
+          context.getEmbeddedFrontendProductContext()?.let { clientContext ->
             writeLinuxVmOptions(distBinDir, clientContext)
             generateLauncherScript(
               distBinDir, arch, getAdditionalEmbeddedClientVmOptions(OsFamily.LINUX, context), targetLibcImpl, clientContext

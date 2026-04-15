@@ -150,7 +150,14 @@ interface BuildContext : CompilationContext {
   }
 
   suspend fun getFrontendModuleFilter(): FrontendModuleFilter
-  
+
+  /**
+   * Creates a copy of this context with [org.jetbrains.intellij.build.ProductProperties] changed to a frontend variant (JetBrains Client) properties.
+   * This is necessary to generate launchers and other data for the embedded frontend process in a distribution of the full IDE.
+   */
+  @Internal
+  suspend fun getEmbeddedFrontendProductContext(): BuildContext?
+
   fun getContentModuleFilter(): ContentModuleFilter
 
   val isEmbeddedFrontendEnabled: Boolean
