@@ -226,9 +226,6 @@ object CommunityRepositoryModules {
       spec.bundlingRestrictions.includeInDistribution = PluginDistribution.NOT_FOR_RELEASE
     },
     pluginAuto(listOf("intellij.lombok", "intellij.lombok.generated")),
-    pluginAuto(listOf("intellij.performanceTesting")) { spec ->
-      spec.withModuleLibrary(libraryName = "assertJ", moduleName = "intellij.libraries.assertj.core", relativeOutputPath = "assertj.jar")
-    },
     pluginAuto(listOf("intellij.performanceTesting.ui")),
     pluginAuto(listOf("intellij.vcs.github")),
     pluginAuto(listOf("intellij.vcs.gitlab")),

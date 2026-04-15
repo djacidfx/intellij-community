@@ -1,4 +1,4 @@
-<idea-plugin package="com.jetbrains.performancePlugin" allow-bundled-update="true">
+<idea-plugin allow-bundled-update="true">
   <id>com.jetbrains.performancePlugin</id>
   <name>Performance Testing</name>
   <vendor>JetBrains</vendor>
@@ -23,11 +23,8 @@
     <module name="intellij.driver.model" loading="embedded"/>
     <module name="intellij.driver.impl" loading="embedded"/>
     <module name="intellij.driver.client" loading="embedded"/>
+    <module name="intellij.libraries.assertj.core" loading="embedded"/>
   </content>
-
-  <dependencies>
-    <plugin id="com.intellij.modules.lang"/>
-  </dependencies>
 
   <actions>
     <group id="StartProfileGroup">

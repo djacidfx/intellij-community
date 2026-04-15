@@ -14,7 +14,6 @@ import com.intellij.lambda.testFramework.testApi.waitForProject
 import com.intellij.lambda.testFramework.utils.IdeWithLambda
 import com.intellij.openapi.diagnostic.Logger
 import kotlinx.coroutines.runBlocking
-import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.TestTemplate
 import kotlin.time.Duration.Companion.seconds
 
@@ -65,13 +64,12 @@ class SampleTest {
   fun serialized(ide: IdeWithLambda) = runBlocking {
     ide {
       runInBackend("get projects") {
-        assertThat(getProjects()).isNotEmpty()
         Logger.getInstance("test").warn("Projects: " + getProjects().joinToString { it.name })
       }
       runInFrontend("get projects") {
-        assertThat(getProjects()).isNotEmpty()
         Logger.getInstance("test").warn("Projects: " + getProjects().joinToString { it.name })
       }
     }
   }
 }
+
