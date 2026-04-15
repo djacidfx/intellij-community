@@ -47,6 +47,7 @@ import com.intellij.ui.ScrollPaneFactory;
 import com.intellij.ui.components.JBLayeredPane;
 import com.intellij.ui.components.JBList;
 import com.intellij.ui.components.JBScrollPane;
+import com.intellij.ui.wayland.WaylandUtilKt;
 import com.intellij.util.Alarm;
 import com.intellij.util.PlatformIcons;
 import com.intellij.util.concurrency.AppExecutorUtil;
@@ -55,6 +56,7 @@ import com.intellij.util.ui.AbstractLayoutManager;
 import com.intellij.util.ui.Advertiser;
 import com.intellij.util.ui.AsyncProcessIcon;
 import com.intellij.util.ui.JBUI;
+import com.intellij.util.ui.StartupUiUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -338,7 +340,7 @@ final class LookupUi {
 
     JComponent editorComponent = editor.getContentComponent();
     SwingUtilities.convertPointToScreen(location, editorComponent);
-    final Rectangle screenRectangle = ScreenUtil.getScreenRectangle(editorComponent);
+    final Rectangle screenRectangle = getAllowedBoundsRectangle(editorComponent);
     if (LOG.isDebugEnabled()) {
       var editorLocation = editorComponent.getLocationOnScreen();
       LOG.debug("Location after converting to screen coordinates (editor component bounds " +
@@ -348,16 +350,22 @@ final class LookupUi {
       LOG.debug("Editor component screen rectangle is: " + screenRectangle);
     }
 
-    int yLocationAboveCaret = location.y - lineHeight - dim.height;
+    int yLineTop = location.y - lineHeight;
+    int yPopupLocationAboveCaret = yLineTop - dim.height;
     if (!isPositionedAboveCaret()) {
       int yScreenBottom = screenRectangle.y + screenRectangle.height;
       int yPopupBottom = location.y + dim.height;
-      if (yPopupBottom > yScreenBottom && yLocationAboveCaret >= screenRectangle.y
+      var spaceAbove = Math.max(yLineTop - screenRectangle.y, 0);
+      var spaceBelow = Math.max(yScreenBottom - location.y, 0);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("We have " + spaceBelow + " below and " + spaceAbove + " above, the popup height is " + dim.height);
+      }
+      if (yPopupBottom > yScreenBottom && spaceAbove > spaceBelow
           || lookup.getPresentation().getPositionStrategy() == LookupPositionStrategy.ONLY_ABOVE) {
         if (LOG.isDebugEnabled()) {
           String reason = lookup.getPresentation().getPositionStrategy() == LookupPositionStrategy.ONLY_ABOVE
                           ? "LookupPositionStrategy.ONLY_ABOVE is specified"
-                          : "the popup won't fit below, but will fit above";
+                          : "the popup won't fit below, and there's more space above than below";
           LOG.debug("Positioning above the line because " + reason);
         }
         myPositionedAbove = true;
@@ -367,7 +375,7 @@ final class LookupUi {
       }
     }
     if (isPositionedAboveCaret()) {
-      location.y = yLocationAboveCaret;
+      location.y = yPopupLocationAboveCaret;
       if (LOG.isDebugEnabled()) {
         LOG.debug("Location after shifting upwards by popup height plus line height to show above the line: " + location);
       }
@@ -381,7 +389,7 @@ final class LookupUi {
     }
 
     Rectangle candidate = new Rectangle(location, dim);
-    ScreenUtil.cropRectangleToFitTheScreen(candidate);
+    cropRectangleToFitTheScreen(candidate, screenRectangle);
     if (LOG.isDebugEnabled()) {
       LOG.debug("Bounds after cropping to fit into the screen: " + candidate);
     }
@@ -425,6 +433,22 @@ final class LookupUi {
       LOG.debug("END calculating lookup bounds, result: " + result);
     }
     return result;
+  }
+
+  private static void cropRectangleToFitTheScreen(@NotNull Rectangle candidate, @NotNull Rectangle screenRectangle) {
+    if (StartupUiUtil.isWaylandToolkit()) {
+      ScreenUtil.cropRectangleToFitTheScreen(candidate, screenRectangle);
+      return;
+    }
+    ScreenUtil.cropRectangleToFitTheScreen(candidate);
+  }
+
+  private static @NotNull Rectangle getAllowedBoundsRectangle(@NotNull JComponent editorComponent) {
+    if (StartupUiUtil.isWaylandToolkit()) {
+      var waylandBounds = WaylandUtilKt.getValidBoundsForPopup(editorComponent);
+      if (waylandBounds != null) return waylandBounds; // shouldn't be possible if the editor is showing
+    }
+    return ScreenUtil.getScreenRectangle(editorComponent);
   }
 
   private static final class ShowCompletionSettingsAction extends AnAction implements DumbAware {
