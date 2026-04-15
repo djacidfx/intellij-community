@@ -702,6 +702,161 @@ class JavaTestDiffUpdateTest : JvmTestDiffUpdateTest() {
     """.trimIndent())
   }
 
+  fun `test accept text block diff with backslash actual`() {
+    checkAcceptFullDiff("""
+      import org.junit.Assert;
+      import org.junit.Test;
+
+      public class MyJUnitTest {
+        @Test
+        public void testFoo() {
+          Assert.assertEquals(""${'"'}
+            \\
+            ""${'"'}, "\\\n\\");
+        }
+      }
+    """.trimIndent(), """
+      import org.junit.Assert;
+      import org.junit.Test;
+
+      public class MyJUnitTest {
+        @Test
+        public void testFoo() {
+          Assert.assertEquals(""${'"'}
+                  \\
+                  \\""${'"'}, "\\\n\\");
+        }
+      }
+    """.trimIndent(), "MyJUnitTest", "testFoo", "\\\n", "\\\n\\", """
+      at org.junit.Assert.assertEquals(Assert.java:117)
+      at org.junit.Assert.assertEquals(Assert.java:146)
+      at MyJUnitTest.testFoo(MyJUnitTest.java:7)
+    """.trimIndent())
+  }
+
+  fun `test accept text block diff with double quote actual`() {
+    checkAcceptFullDiff("""
+      import org.junit.Assert;
+      import org.junit.Test;
+
+      public class MyJUnitTest {
+        @Test
+        public void testFoo() {
+          Assert.assertEquals(""${'"'}
+                  ""${'"'}, "\"");
+        }
+      }
+    """.trimIndent(), """
+      import org.junit.Assert;
+      import org.junit.Test;
+
+      public class MyJUnitTest {
+        @Test
+        public void testFoo() {
+          Assert.assertEquals(""${'"'}
+                  \${"\""}""${'"'}, "\"");
+        }
+      }
+    """.trimIndent(), "MyJUnitTest", "testFoo", "", "\"", """
+      at org.junit.Assert.assertEquals(Assert.java:117)
+      at org.junit.Assert.assertEquals(Assert.java:146)
+      at MyJUnitTest.testFoo(MyJUnitTest.java:7)
+    """.trimIndent())
+  }
+
+  fun `test accept text block diff with trailing spaces actual`() {
+    checkAcceptFullDiff("""
+      import org.junit.Assert;
+      import org.junit.Test;
+
+      public class MyJUnitTest {
+        @Test
+        public void testFoo() {
+          Assert.assertEquals(""${'"'}
+                  ""${'"'}, "                      1                  \n");
+        }
+      }
+    """.trimIndent(), """
+      import org.junit.Assert;
+      import org.junit.Test;
+
+      public class MyJUnitTest {
+        @Test
+        public void testFoo() {
+          Assert.assertEquals(""${'"'}
+                                        1                 \s
+                  ""${'"'}, "                      1                  \n");
+        }
+      }
+    """.trimIndent(), "MyJUnitTest", "testFoo", "", "                      1                  \n", """
+      at org.junit.Assert.assertEquals(Assert.java:117)
+      at org.junit.Assert.assertEquals(Assert.java:146)
+      at MyJUnitTest.testFoo(MyJUnitTest.java:7)
+    """.trimIndent())
+  }
+
+  fun `test accept text block diff update with existing trailing space marker`() {
+    checkAcceptFullDiff("""
+      import org.junit.Assert;
+      import org.junit.Test;
+
+      public class MyJUnitTest {
+        @Test
+        public void testFoo() {
+          Assert.assertEquals(""${'"'}
+                  1""${'"'}, "                      1                  \n");
+        }
+      }
+    """.trimIndent(), """
+      import org.junit.Assert;
+      import org.junit.Test;
+
+      public class MyJUnitTest {
+        @Test
+        public void testFoo() {
+          Assert.assertEquals(""${'"'}
+                                        1                 \s
+                  ""${'"'}, "                      1                  \n");
+        }
+      }
+    """.trimIndent(), "MyJUnitTest", "testFoo", "1", "                      1                  \n", """
+      at org.junit.Assert.assertEquals(Assert.java:117)
+      at org.junit.Assert.assertEquals(Assert.java:146)
+      at MyJUnitTest.testFoo(MyJUnitTest.java:7)
+    """.trimIndent())
+  }
+
+  fun `test accept text block diff update with existing ending space marker`() {
+    checkAcceptFullDiff("""
+      import org.junit.Assert;
+      import org.junit.Test;
+
+      public class MyJUnitTest {
+        @Test
+        public void testFoo() {
+          Assert.assertEquals(""${'"'}
+                  1""${'"'}, "                      1                  ");
+        }
+      }
+    """.trimIndent(), """
+      import org.junit.Assert;
+      import org.junit.Test;
+
+      public class MyJUnitTest {
+        @Test
+        public void testFoo() {
+          Assert.assertEquals(""${'"'}
+                                        1                  \
+                  ""${'"'}, "                      1                  ");
+        }
+      }
+    """.trimIndent(), "MyJUnitTest", "testFoo", "1", "                      1                  ", """
+      at org.junit.Assert.assertEquals(Assert.java:117)
+      at org.junit.Assert.assertEquals(Assert.java:146)
+      at MyJUnitTest.testFoo(MyJUnitTest.java:7)
+    """.trimIndent())
+  }
+
   companion object {
     private const val fileExt = "java"
   }

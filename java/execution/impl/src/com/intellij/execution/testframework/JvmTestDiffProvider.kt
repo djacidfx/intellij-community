@@ -11,8 +11,10 @@ import com.intellij.psi.ElementManipulators
 import com.intellij.psi.PsiCompiledElement
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiLiteralExpression
 import com.intellij.psi.PsiType
 import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.psi.util.PsiLiteralUtil
 import com.intellij.psi.util.startOffset
 import com.intellij.util.asSafely
 import com.siyeh.ig.testFrameworks.UAssertHint
@@ -30,10 +32,14 @@ import org.jetbrains.uast.resolveToUElement
 import org.jetbrains.uast.resolveToUElementOfType
 import org.jetbrains.uast.toUElement
 
-open class JvmTestDiffProvider : TestDiffProvider {
+class JvmTestDiffProvider : TestDiffProvider {
   override fun updateExpected(element: PsiElement, actual: String) {
-    ElementManipulators.getManipulator(element)?.handleContentChange(element, actual)
+    ElementManipulators.getManipulator(element)?.handleContentChange(element, element.prepareContent(actual))
   }
+
+  private fun PsiElement.prepareContent(content: String) =
+    if (this !is PsiLiteralExpression || !this.isTextBlock) content
+    else PsiLiteralUtil.escapeBackSlashesInTextBlock(content)
 
   /**
    * Finds the expected value from a [stackTrace]. To do this the following algorithm is used:
@@ -157,4 +163,12 @@ open class JvmTestDiffProvider : TestDiffProvider {
   }
 
   private fun String.withoutLineEndings() = replace("\n", "").replace("\r", "")
+
+  override fun getExpectedValue(element: PsiElement): String {
+    if (element is PsiLiteralExpression) {
+      val value = element.value
+      if (value is String) return value
+    }
+    return ElementManipulators.getValueText(element)
+  }
 }
