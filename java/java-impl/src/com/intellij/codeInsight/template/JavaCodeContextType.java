@@ -1,6 +1,7 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.codeInsight.template;
 
+import com.intellij.codeInsight.completion.JavaCompletionUtil;
 import com.intellij.codeInsight.completion.JavaKeywordCompletion;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.ide.highlighter.JavaFileHighlighter;
@@ -233,7 +234,7 @@ public abstract class JavaCodeContextType extends TemplateContextType {
         }
       }
 
-      if (JavaKeywordCompletion.isInsideParameterList(element)) {
+      if (JavaCompletionUtil.isInsideParameterList(element)) {
         return false;
       }
 
@@ -270,7 +271,7 @@ public abstract class JavaCodeContextType extends TemplateContextType {
 
       return isInRecordHeader(element) ||
              JavaKeywordCompletion.isSuitableForClass(element) ||
-             JavaKeywordCompletion.isInsideParameterList(element) ||
+             JavaCompletionUtil.isInsideParameterList(element) ||
              PsiTreeUtil.getParentOfType(element, PsiReferenceParameterList.class) != null;
     }
 

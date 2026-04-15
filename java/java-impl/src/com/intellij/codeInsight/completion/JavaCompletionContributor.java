@@ -306,7 +306,7 @@ public final class JavaCompletionContributor extends CompletionContributor imple
     }
 
     if (JavaKeywordCompletion.isDeclarationStart(position) ||
-        JavaKeywordCompletion.isInsideParameterList(position) ||
+        JavaCompletionUtil.isInsideParameterList(position) ||
         isInsideAnnotationName(position) ||
         PsiTreeUtil.getParentOfType(position, PsiReferenceParameterList.class, false, PsiAnnotation.class) != null ||
         IN_VARIABLE_TYPE.accepts(position)) {
@@ -337,8 +337,8 @@ public final class JavaCompletionContributor extends CompletionContributor imple
 
     if (CATCH_OR_FINALLY.accepts(position) ||
         JavaKeywordCompletion.START_SWITCH.accepts(position) ||
-        JavaKeywordCompletion.isInstanceofPlace(position) ||
-        JavaKeywordCompletion.isAfterPrimitiveOrArrayType(position)) {
+        JavaCompletionUtil.isInstanceofPlace(position) ||
+        JavaCompletionUtil.isAfterPrimitiveOrArrayType(position)) {
       return null;
     }
 
@@ -747,7 +747,7 @@ public final class JavaCompletionContributor extends CompletionContributor imple
   }
 
   public static @Nullable PsiAnnotation findAnnotationWhoseAttributeIsCompleted(@NotNull PsiElement position) {
-    return ANNOTATION_ATTRIBUTE_NAME.accepts(position) && !JavaKeywordCompletion.isAfterPrimitiveOrArrayType(position)
+    return ANNOTATION_ATTRIBUTE_NAME.accepts(position) && !JavaCompletionUtil.isAfterPrimitiveOrArrayType(position)
            ? Objects.requireNonNull(PsiTreeUtil.getParentOfType(position, PsiAnnotation.class))
            : null;
   }
@@ -1060,7 +1060,7 @@ public final class JavaCompletionContributor extends CompletionContributor imple
     boolean isSecondCompletion = parameters.getInvocationCount() >= 2;
 
     PsiElement position = parameters.getPosition();
-    if (JavaKeywordCompletion.isInstanceofPlace(position) ||
+    if (JavaCompletionUtil.isInstanceofPlace(position) ||
         JavaMemberNameCompletionContributor.INSIDE_TYPE_PARAMS_PATTERN.accepts(position) ||
         AFTER_ENUM_CONSTANT.accepts(position)) {
       return false;
@@ -1091,7 +1091,7 @@ public final class JavaCompletionContributor extends CompletionContributor imple
       return false;
     }
 
-    return !JavaKeywordCompletion.isAfterPrimitiveOrArrayType(position);
+    return !JavaCompletionUtil.isAfterPrimitiveOrArrayType(position);
   }
 
   public static boolean mayStartClassName(CompletionResultSet result) {

@@ -8,7 +8,6 @@ import com.intellij.codeInsight.completion.JavaClassNameCompletionContributor;
 import com.intellij.codeInsight.completion.JavaClassReferenceCompletionContributor;
 import com.intellij.codeInsight.completion.JavaCompletionContributor;
 import com.intellij.codeInsight.completion.JavaCompletionUtil;
-import com.intellij.codeInsight.completion.JavaKeywordCompletion;
 import com.intellij.codeInsight.completion.JavaMemberNameCompletionContributor;
 import com.intellij.codeInsight.completion.JavaPatternCompletionUtil;
 import com.intellij.codeInsight.completion.LimitedAccessibleClassPreprocessor;
@@ -241,7 +240,7 @@ final class NonImportedClassProvider extends JavaModCompletionItemProvider {
     boolean isSecondCompletion = context.invocationCount() >= 2;
 
     PsiElement position = context.getPosition();
-    if (JavaKeywordCompletion.isInstanceofPlace(position) ||
+    if (JavaCompletionUtil.isInstanceofPlace(position) ||
         JavaMemberNameCompletionContributor.INSIDE_TYPE_PARAMS_PATTERN.accepts(position) ||
         AFTER_ENUM_CONSTANT.accepts(position)) {
       return false;
@@ -272,7 +271,7 @@ final class NonImportedClassProvider extends JavaModCompletionItemProvider {
       return false;
     }
 
-    return !JavaKeywordCompletion.isAfterPrimitiveOrArrayType(position);
+    return !JavaCompletionUtil.isAfterPrimitiveOrArrayType(position);
   }
 
   static List<ClassReferenceCompletionItem> createClassLookupItems(final PsiClass psiClass,

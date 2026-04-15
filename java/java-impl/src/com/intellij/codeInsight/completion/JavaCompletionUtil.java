@@ -22,9 +22,9 @@ import com.intellij.codeInsight.lookup.PsiTypeLookupItem;
 import com.intellij.codeInsight.lookup.TypedLookupItem;
 import com.intellij.codeInsight.lookup.VariableLookupItem;
 import com.intellij.java.codeserver.core.JavaPsiModuleUtil;
+import com.intellij.java.syntax.parser.JavaKeywords;
 import com.intellij.lang.java.JavaLanguage;
 import com.intellij.openapi.application.ReadAction;
-import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.RangeMarker;
 import com.intellij.openapi.module.JdkApiCompatibilityService;
@@ -37,19 +37,24 @@ import com.intellij.openapi.util.NullableLazyKey;
 import com.intellij.openapi.util.Ref;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.patterns.PsiJavaPatterns;
+import com.intellij.patterns.ElementPattern;
+import com.intellij.patterns.PsiJavaElementPattern;
 import com.intellij.pom.java.JavaFeature;
 import com.intellij.pom.java.LanguageLevel;
 import com.intellij.psi.CommonClassNames;
 import com.intellij.psi.HierarchicalMethodSignature;
 import com.intellij.psi.JavaPsiFacade;
+import com.intellij.psi.PsiAnnotation;
+import com.intellij.psi.PsiAnnotationParameterList;
 import com.intellij.psi.PsiAnonymousClass;
 import com.intellij.psi.PsiArrayType;
 import com.intellij.psi.PsiCall;
 import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiClassObjectAccessExpression;
 import com.intellij.psi.PsiClassOwner;
 import com.intellij.psi.PsiClassType;
 import com.intellij.psi.PsiCompiledElement;
+import com.intellij.psi.PsiDeclarationStatement;
 import com.intellij.psi.PsiDocCommentOwner;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
@@ -58,6 +63,7 @@ import com.intellij.psi.PsiExpression;
 import com.intellij.psi.PsiExpressionList;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiForStatement;
 import com.intellij.psi.PsiIdentifier;
 import com.intellij.psi.PsiImplicitClass;
 import com.intellij.psi.PsiImportStatementBase;
@@ -65,18 +71,23 @@ import com.intellij.psi.PsiImportStaticReferenceElement;
 import com.intellij.psi.PsiImportStaticStatement;
 import com.intellij.psi.PsiInstanceOfExpression;
 import com.intellij.psi.PsiIntersectionType;
+import com.intellij.psi.PsiJavaCodeReferenceCodeFragment;
 import com.intellij.psi.PsiJavaCodeReferenceElement;
 import com.intellij.psi.PsiJavaModule;
 import com.intellij.psi.PsiJavaReference;
+import com.intellij.psi.PsiLocalVariable;
 import com.intellij.psi.PsiManager;
 import com.intellij.psi.PsiMember;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodReferenceExpression;
 import com.intellij.psi.PsiModifier;
+import com.intellij.psi.PsiModifierList;
 import com.intellij.psi.PsiModifierListOwner;
 import com.intellij.psi.PsiNewExpression;
 import com.intellij.psi.PsiPackage;
 import com.intellij.psi.PsiPackageStatement;
+import com.intellij.psi.PsiParameter;
+import com.intellij.psi.PsiParameterList;
 import com.intellij.psi.PsiPolyVariantReference;
 import com.intellij.psi.PsiReference;
 import com.intellij.psi.PsiReferenceExpression;
@@ -140,18 +151,21 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static com.intellij.codeInsight.completion.ReferenceExpressionCompletionContributor.findConstantsUsedInSwitch;
+import static com.intellij.patterns.PsiJavaPatterns.psiClass;
+import static com.intellij.patterns.PsiJavaPatterns.psiElement;
+import static com.intellij.patterns.PsiJavaPatterns.psiReferenceExpression;
+import static com.intellij.patterns.StandardPatterns.not;
 import static com.intellij.psi.util.proximity.ReferenceListWeigher.ReferenceListApplicability.inapplicable;
 
 public final class JavaCompletionUtil {
   public static final Key<Boolean> FORCE_SHOW_SIGNATURE_ATTR = Key.create("forceShowSignature");
-  private static final Logger LOG = Logger.getInstance(JavaCompletionUtil.class);
   public static final Key<PairFunction<PsiExpression, CompletionParameters, PsiType>> DYNAMIC_TYPE_EVALUATOR = Key.create("DYNAMIC_TYPE_EVALUATOR");
 
   private static final Key<PsiType> QUALIFIER_TYPE_ATTR = Key.create("qualifierType"); // SmartPsiElementPointer to PsiType of "qualifier"
   static final NullableLazyKey<ExpectedTypeInfo[], CompletionLocation> EXPECTED_TYPES = NullableLazyKey.create(
     "expectedTypes",
     location -> {
-      if (PsiJavaPatterns.psiElement().beforeLeaf(PsiJavaPatterns.psiElement().withText("."))
+      if (psiElement().beforeLeaf(psiElement().withText("."))
         .accepts(location.getBaseCompletionParameters().getPosition())) {
         return ExpectedTypeInfo.EMPTY_ARRAY;
       }
@@ -160,6 +174,16 @@ public final class JavaCompletionUtil {
     });
 
   public static final Key<Boolean> SUPER_METHOD_PARAMETERS = Key.create("SUPER_METHOD_PARAMETERS");
+  private static final ElementPattern<PsiElement> INSIDE_PARAMETER_LIST =
+    psiElement().withParent(
+      psiElement(PsiJavaCodeReferenceElement.class).insideStarting(
+        psiElement().withTreeParent(
+          psiElement(PsiParameterList.class).andNot(psiElement(PsiAnnotationParameterList.class)))));
+  private static final PsiJavaElementPattern.Capture<PsiElement> AFTER_PRIMITIVE_OR_ARRAY = psiElement().withParent(
+    psiReferenceExpression().withFirstChild(
+      psiElement(PsiClassObjectAccessExpression.class).withLastChild(not(psiElement().withText(JavaKeywords.CLASS)))));
+  private static final ElementPattern<PsiElement> CLASS_REFERENCE =
+    psiElement().withParent(psiReferenceExpression().referencing(psiClass().andNot(psiElement(PsiTypeParameter.class))));
 
   public static @Nullable Set<PsiType> getExpectedTypes(@NotNull BaseCompletionParameters parameters) {
     PsiExpression expr = PsiTreeUtil.getContextOfType(parameters.getPosition(), PsiExpression.class, true);
@@ -503,6 +527,54 @@ public final class JavaCompletionUtil {
 
   private static @Nullable PsiType toRaw(@Nullable PsiType type) {
     return type instanceof PsiClassType ? ((PsiClassType)type).rawType() : type;
+  }
+
+  public static boolean isInsideParameterList(PsiElement position) {
+    PsiElement prev = PsiTreeUtil.prevVisibleLeaf(position);
+    PsiModifierList modifierList = PsiTreeUtil.getParentOfType(prev, PsiModifierList.class);
+    if (modifierList != null) {
+      if (PsiTreeUtil.isAncestor(modifierList, position, false)) {
+        return false;
+      }
+      PsiElement parent = modifierList.getParent();
+      return parent instanceof PsiParameterList || parent instanceof PsiParameter && parent.getParent() instanceof PsiParameterList;
+    }
+    return INSIDE_PARAMETER_LIST.accepts(position);
+  }
+
+  public static boolean isAfterPrimitiveOrArrayType(PsiElement element) {
+    return AFTER_PRIMITIVE_OR_ARRAY.accepts(element);
+  }
+
+  public static boolean isAfterTypeDot(PsiElement position) {
+    if (isInsideParameterList(position) || position.getContainingFile() instanceof PsiJavaCodeReferenceCodeFragment) {
+      return false;
+    }
+
+    return psiElement().afterLeaf(psiElement().withText(".").afterLeaf(CLASS_REFERENCE)).accepts(position) ||
+           isAfterPrimitiveOrArrayType(position);
+  }
+
+  public static boolean isInstanceofPlace(PsiElement position) {
+    PsiElement prev = PsiTreeUtil.prevVisibleLeaf(position);
+    if (prev == null) return false;
+
+    PsiElement expr = PsiTreeUtil.getParentOfType(prev, PsiExpression.class);
+    if (expr != null && expr.getTextRange().getEndOffset() == prev.getTextRange().getEndOffset() &&
+        PsiTreeUtil.getParentOfType(expr, PsiAnnotation.class) == null) {
+      return true;
+    }
+
+    if (position instanceof PsiIdentifier && position.getParent() instanceof PsiLocalVariable) {
+      PsiType type = ((PsiLocalVariable)position.getParent()).getType();
+      if (type instanceof PsiClassType && ((PsiClassType)type).resolve() == null) {
+        PsiElement grandParent = position.getParent().getParent();
+        return !(grandParent instanceof PsiDeclarationStatement) || !(grandParent.getParent() instanceof PsiForStatement) ||
+               ((PsiForStatement)grandParent.getParent()).getInitialization() != grandParent;
+      }
+    }
+
+    return false;
   }
 
   static class JavaLookupElementHighlighter {
