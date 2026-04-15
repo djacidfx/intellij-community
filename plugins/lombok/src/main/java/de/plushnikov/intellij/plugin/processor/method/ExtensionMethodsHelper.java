@@ -283,12 +283,37 @@ public final class ExtensionMethodsHelper {
                                                          PsiParameter receiverParameter,
                                                          PsiType qualifierType,
                                                          PsiReferenceExpression referenceExpression) {
-    PsiTypeParameter[] typeParameters = staticMethod.getTypeParameters();
-    if (typeParameters.length == 0) {
+    PsiTypeParameter[] methodTypeParameters = staticMethod.getTypeParameters();
+    if (methodTypeParameters.length == 0) {
       return PsiSubstitutor.EMPTY;
     }
-    return JavaPsiFacade.getInstance(staticMethod.getProject()).getResolveHelper()
-      .inferTypeArguments(typeParameters, new PsiType[]{receiverParameter.getType()}, new PsiType[]{qualifierType},
+
+    PsiType receiverType = receiverParameter.getType();
+    Set<PsiTypeParameter> receiverTypeParameters = getReceiverTypeParameters(receiverType, methodTypeParameters);
+    if (receiverTypeParameters.isEmpty()) {
+      return PsiSubstitutor.EMPTY;
+    }
+
+    PsiSubstitutor inferredSubstitutor = JavaPsiFacade.getInstance(staticMethod.getProject()).getResolveHelper()
+      .inferTypeArguments(methodTypeParameters, new PsiType[]{receiverType}, new PsiType[]{qualifierType},
                           PsiUtil.getLanguageLevel(referenceExpression));
+    return substitutorWithRetainedTypeParameters(inferredSubstitutor, receiverTypeParameters);
+  }
+
+  private static Set<PsiTypeParameter> getReceiverTypeParameters(PsiType receiverType, PsiTypeParameter[] methodTypeParameters) {
+    PsiTypesUtil.TypeParameterSearcher searcher = new PsiTypesUtil.TypeParameterSearcher();
+    receiverType.accept(searcher);
+    Set<PsiTypeParameter> receiverTypeParameters = searcher.getTypeParameters();
+    receiverTypeParameters.retainAll(Arrays.asList(methodTypeParameters));
+    return receiverTypeParameters;
+  }
+
+  private static PsiSubstitutor substitutorWithRetainedTypeParameters(PsiSubstitutor substitutor,
+                                                                      Set<PsiTypeParameter> typeParameters) {
+    PsiSubstitutor result = PsiSubstitutor.EMPTY;
+    for (PsiTypeParameter typeParameter : typeParameters) {
+      result = result.put(typeParameter, substitutor.substitute(typeParameter));
+    }
+    return result;
   }
 }

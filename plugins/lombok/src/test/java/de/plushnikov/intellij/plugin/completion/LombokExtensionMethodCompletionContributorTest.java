@@ -77,6 +77,11 @@ public class LombokExtensionMethodCompletionContributorTest extends AbstractLomb
     doTest(SMART);
   }
 
+  public void testGenericReceiverAndParamContributingToGenericResult() {
+    doTest(BASIC, suggestion("pairWith", "(S e2)", "Pair<String, S>"));
+    doTest(SMART, suggestion("pairWith", "(S e2)", "Pair<String, S>"));
+  }
+
   public void testWithPrefix() {
     doTest(BASIC,
            suggestion("myExtensionMethod", "()", "void"),
