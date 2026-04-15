@@ -61,6 +61,20 @@ class AgentSessionsBindPendingThreadFromEditorTabActionTest {
   }
 
   @Test
+  fun actionHiddenForFinishedNoStartPendingContext() {
+    val action = AgentSessionsBindPendingThreadFromEditorTabAction(
+      resolveContext = { editorContext(isPendingThread = true, participatesInPendingThreadLifecycle = false) },
+      resolveTarget = { _, _ -> error("resolveTarget must not be called for finished no-start pending context") },
+      rebindPendingTab = { _, _ -> error("rebindPendingTab must not be called for finished no-start pending context") },
+    )
+    val event = TestActionEvent.createTestEvent(action)
+
+    action.update(event)
+
+    assertThat(event.presentation.isEnabledAndVisible).isFalse()
+  }
+
+  @Test
   fun actionVisibleAndEnabledForClaudeWhenTargetIsAvailable() {
     val normalizedPath = normalizeAgentWorkbenchPath("/tmp/project")
     val context = editorContext(
@@ -154,6 +168,7 @@ private fun editorContext(
   provider: AgentSessionProvider? = AgentSessionProvider.CODEX,
   sessionId: String = "thread-1",
   isPendingThread: Boolean = false,
+  participatesInPendingThreadLifecycle: Boolean = isPendingThread,
 ): AgentChatEditorTabActionContext {
   val threadCoordinates = provider
     ?.takeIf { sessionId.isNotBlank() }
@@ -162,6 +177,7 @@ private fun editorContext(
         provider = resolvedProvider,
         sessionId = sessionId,
         isPending = isPendingThread,
+        participatesInPendingThreadLifecycle = participatesInPendingThreadLifecycle,
       )
     }
   return AgentChatEditorTabActionContext(

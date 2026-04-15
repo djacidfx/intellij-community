@@ -188,6 +188,20 @@ class AgentChatEditorServiceTest {
 
   @Test
   fun testExistingTabIgnoresStartupCommandOverrideAndKeepsInitialMessageMetadata(): Unit = timeoutRunBlocking {
+    val terminalTabs = EditorServiceFakeAgentChatTerminalTabs()
+    customFileEditorFactory = { editorProject, file ->
+      AgentChatFileEditor(
+        project = editorProject,
+        file = file,
+        terminalTabs = terminalTabs,
+        tabSnapshotWriter = AgentChatTabSnapshotWriter { snapshot ->
+          editorProject.service<AgentChatTabsService>().upsert(snapshot)
+        },
+      ).also { editor ->
+        editor.putUserData(CUSTOM_AGENT_CHAT_EDITOR_KEY, true)
+      }
+    }
+
     openChatInModal(
       threadIdentity = "CODEX:thread-existing-startup",
       shellCommand = codexCommand,
@@ -304,6 +318,95 @@ class AgentChatEditorServiceTest {
 
     val persisted = checkNotNull(service<AgentChatTabsService>().load(file.tabKey))
     assertThat(persisted.runtime.initialMessageSent).isTrue()
+  }
+
+  @Test
+  fun deferredTabStateIsNotPersistedUntilExplicitlyPersisted(): Unit = timeoutRunBlocking {
+    openChatInModal(
+      threadIdentity = "CODEX:thread-deferred-start",
+      shellCommand = codexCommand,
+      threadId = "thread-deferred-start",
+      threadTitle = "Deferred start thread",
+      subAgentId = null,
+      persistSnapshot = false,
+      deferredStartState = AgentChatDeferredStartState(
+        phase = AgentChatDeferredStartPhase.WAITING,
+        title = "Preparing merge resolution",
+        message = "Still preparing conflicts",
+      ),
+    )
+
+    val file = openedChatFiles().single()
+    val tabsService = service<AgentChatTabsService>()
+    assertThat(tabsService.load(file.tabKey)).isNull()
+
+    tabsService.upsert(file.toSnapshot())
+
+    assertThat(tabsService.load(file.tabKey)).isNotNull()
+  }
+
+  @Test
+  fun deferredSuccessNoStartTabIsExcludedFromPendingCollections(): Unit = timeoutRunBlocking {
+    openChatInModal(
+      threadIdentity = "CODEX:new-deferred-success",
+      shellCommand = codexCommand,
+      threadId = "",
+      threadTitle = "Deferred merge thread",
+      subAgentId = null,
+      persistSnapshot = false,
+      deferredStartState = AgentChatDeferredStartState(
+        phase = AgentChatDeferredStartPhase.WAITING,
+        title = "Preparing merge resolution",
+        message = "Still preparing conflicts",
+      ),
+    )
+
+    val file = openedChatFiles().single()
+    assertThat(collectOpenPendingCodexTabsByPath()[projectPath].orEmpty().map { it.pendingTabKey }).containsExactly(file.tabKey)
+    assertThat(collectOpenPendingAgentChatProjectPaths()).containsExactly(projectPath)
+
+    file.updateDeferredStartState(
+      AgentChatDeferredStartState(
+        phase = AgentChatDeferredStartPhase.SUCCESS_NO_START,
+        title = "Merge conflicts resolved",
+        message = "All conflicts were resolved automatically.",
+      )
+    )
+
+    assertThat(collectOpenPendingCodexTabsByPath()).isEmpty()
+    assertThat(collectOpenPendingAgentChatProjectPaths()).isEmpty()
+  }
+
+  @Test
+  fun deferredFailureNoStartTabIsExcludedFromPendingCollections(): Unit = timeoutRunBlocking {
+    openChatInModal(
+      threadIdentity = "CODEX:new-deferred-failure",
+      shellCommand = codexCommand,
+      threadId = "",
+      threadTitle = "Deferred merge thread",
+      subAgentId = null,
+      persistSnapshot = false,
+      deferredStartState = AgentChatDeferredStartState(
+        phase = AgentChatDeferredStartPhase.WAITING,
+        title = "Preparing merge resolution",
+        message = "Still preparing conflicts",
+      ),
+    )
+
+    val file = openedChatFiles().single()
+    assertThat(collectOpenPendingCodexTabsByPath()[projectPath].orEmpty().map { it.pendingTabKey }).containsExactly(file.tabKey)
+    assertThat(collectOpenPendingAgentChatProjectPaths()).containsExactly(projectPath)
+
+    file.updateDeferredStartState(
+      AgentChatDeferredStartState(
+        phase = AgentChatDeferredStartPhase.FAILURE_NO_START,
+        title = "Couldn't prepare merge resolution",
+        message = "The merge session could not be prepared for agent-assisted resolution.",
+      )
+    )
+
+    assertThat(collectOpenPendingCodexTabsByPath()).isEmpty()
+    assertThat(collectOpenPendingAgentChatProjectPaths()).isEmpty()
   }
 
   @Test
@@ -1311,6 +1414,8 @@ class AgentChatEditorServiceTest {
     initialComposedMessage: String? = null,
     postStartDispatchSteps: List<AgentInitialMessageDispatchStep> = emptyList(),
     initialMessageToken: String? = null,
+    persistSnapshot: Boolean = true,
+    deferredStartState: AgentChatDeferredStartState? = null,
   ) {
     val effectivePostStartDispatchSteps = postStartDispatchSteps.ifEmpty {
       initialComposedMessage
@@ -1339,6 +1444,8 @@ class AgentChatEditorServiceTest {
       pendingFirstInputAtMs = pendingFirstInputAtMs,
       pendingLaunchMode = pendingLaunchMode,
       initialMessageDispatchPlan = initialMessageDispatchPlan,
+      persistSnapshot = persistSnapshot,
+      deferredStartState = deferredStartState,
     )
     waitForCondition(timeoutMs = 10_000) {
       openedChatFiles().any { file ->

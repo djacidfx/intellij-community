@@ -19,11 +19,16 @@ import com.intellij.openapi.fileEditor.FileEditorState
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.UserDataHolderBase
+import org.jetbrains.annotations.Nls
 import java.awt.BorderLayout
 import java.beans.PropertyChangeListener
 import java.util.concurrent.CancellationException
+import javax.swing.BorderFactory
+import javax.swing.Box
+import javax.swing.BoxLayout
 import javax.swing.JComponent
 import javax.swing.JPanel
+import javax.swing.JTextArea
 
 internal class AgentChatFileEditor(
   private val project: Project,
@@ -124,11 +129,22 @@ internal class AgentChatFileEditor(
   }
 
   private fun ensureInitialized() {
-    if (initializationStarted || disposed) {
+    if (disposed) {
+      return
+    }
+    val deferredStartState = file.deferredStartState
+    if (shouldBlockTerminalInitialization(deferredStartState)) {
+      renderDeferredStartState(checkNotNull(deferredStartState))
+      return
+    }
+    if (initializationStarted) {
       return
     }
     initializationStarted = true
     try {
+      if (deferredStartState?.phase == AgentChatDeferredStartPhase.READY_TO_START) {
+        file.updateDeferredStartState(null)
+      }
       val createdTab = liveTerminalRegistry.acquireOrCreate(file = file, terminalTabs = terminalTabs)
       tab = createdTab
       pendingThreadRefreshController.attach(createdTab)
@@ -150,6 +166,18 @@ internal class AgentChatFileEditor(
     }
   }
 
+  internal fun refreshForFileStateChange() {
+    if (disposed) {
+      return
+    }
+    val deferredStartState = file.deferredStartState
+    if (tab == null && shouldBlockTerminalInitialization(deferredStartState)) {
+      renderDeferredStartState(checkNotNull(deferredStartState))
+      return
+    }
+    ensureInitialized()
+  }
+
   internal fun flushPendingInitialMessageIfInitialized() {
     val initializedTab = tab ?: return
     initialMessageDispatcher.schedule(initializedTab)
@@ -161,6 +189,52 @@ internal class AgentChatFileEditor(
 
   internal fun navigateProposedPlan(direction: AgentChatSemanticNavigationDirection): Boolean {
     return semanticRegionController?.navigate(direction) == true
+  }
+
+  private fun renderDeferredStartState(state: AgentChatDeferredStartState) {
+    component.removeAll()
+    component.add(createDeferredStartComponent(state), BorderLayout.CENTER)
+    component.revalidate()
+    component.repaint()
+  }
+
+  private fun createDeferredStartComponent(state: AgentChatDeferredStartState): JComponent {
+    val content = JPanel().apply {
+      layout = BoxLayout(this, BoxLayout.Y_AXIS)
+      border = BorderFactory.createEmptyBorder(16, 16, 16, 16)
+    }
+    content.add(createMessageArea(state.title, bold = true))
+    val stateMessage = state.message
+    if (!stateMessage.isNullOrBlank()) {
+      content.add(Box.createVerticalStrut(8))
+      content.add(createMessageArea(stateMessage, bold = false))
+    }
+    return JPanel(BorderLayout()).apply {
+      add(content, BorderLayout.NORTH)
+    }
+  }
+
+  private fun createMessageArea(text: @Nls String, bold: Boolean): JComponent {
+    return JTextArea(text).apply {
+      isEditable = false
+      isFocusable = false
+      lineWrap = true
+      wrapStyleWord = true
+      isOpaque = false
+      border = null
+      font = if (bold) font.deriveFont(font.style or java.awt.Font.BOLD) else font
+    }
+  }
+}
+
+private fun shouldBlockTerminalInitialization(state: AgentChatDeferredStartState?): Boolean {
+  return when (state?.phase) {
+    AgentChatDeferredStartPhase.WAITING,
+    AgentChatDeferredStartPhase.SUCCESS_NO_START,
+    AgentChatDeferredStartPhase.FAILURE_NO_START,
+      -> true
+
+    else -> false
   }
 }
 

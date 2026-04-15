@@ -13,11 +13,25 @@ import com.intellij.openapi.fileEditor.FileEditorManagerKeys
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.vfs.VirtualFileSystem
 import com.intellij.testFramework.LightVirtualFile
+import org.jetbrains.annotations.Nls
 import org.jetbrains.annotations.TestOnly
 
 private class AgentChatVirtualFileLog
 
 private val LOG = logger<AgentChatVirtualFileLog>()
+
+enum class AgentChatDeferredStartPhase {
+  WAITING,
+  READY_TO_START,
+  SUCCESS_NO_START,
+  FAILURE_NO_START,
+}
+
+data class AgentChatDeferredStartState(
+  @JvmField val phase: AgentChatDeferredStartPhase,
+  @JvmField val title: @Nls String,
+  @JvmField val message: @Nls String? = null,
+)
 
 internal class AgentChatVirtualFile internal constructor(
   private val fileSystem: AgentChatVirtualFileSystem,
@@ -96,6 +110,10 @@ internal class AgentChatVirtualFile internal constructor(
     private set
 
   private var initialMessageDispatchInFlight: AgentChatInitialMessageDispatch? = null
+
+  @Volatile
+  var deferredStartState: AgentChatDeferredStartState? = null
+    private set
 
   @TestOnly
   internal constructor(
@@ -176,6 +194,27 @@ internal class AgentChatVirtualFile internal constructor(
     this.shellCommand = shellCommand
     this.shellEnvVariables = shellEnvVariables
     this.threadId = threadId
+  }
+
+  fun updateDeferredStartState(deferredStartState: AgentChatDeferredStartState?): Boolean {
+    if (this.deferredStartState == deferredStartState) {
+      return false
+    }
+    this.deferredStartState = deferredStartState
+    return true
+  }
+
+  fun participatesInPendingThreadLifecycle(): Boolean {
+    if (!isPendingThread) {
+      return false
+    }
+    return when (deferredStartState?.phase) {
+      AgentChatDeferredStartPhase.SUCCESS_NO_START,
+      AgentChatDeferredStartPhase.FAILURE_NO_START,
+        -> false
+
+      else -> true
+    }
   }
 
   @Synchronized

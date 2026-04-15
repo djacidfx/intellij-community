@@ -55,7 +55,7 @@ class AgentSessionsBindPendingThreadFromEditorTabAction @JvmOverloads constructo
 
 private fun resolvePendingRebindProvider(context: AgentChatEditorTabActionContext): AgentSessionProvider? {
   val threadCoordinates = context.threadCoordinates ?: return null
-  if (!threadCoordinates.isPending) {
+  if (!threadCoordinates.isPending || !threadCoordinates.participatesInPendingThreadLifecycle) {
     return null
   }
 

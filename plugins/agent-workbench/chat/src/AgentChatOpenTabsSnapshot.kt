@@ -72,8 +72,9 @@ internal fun collectOpenAgentChatTabsSnapshot(
     for (openFile in manager.openFiles) {
       val chatFile = openFile as? AgentChatVirtualFile ?: continue
       val normalizedProjectPath = normalizeAgentWorkbenchPath(chatFile.projectPath)
-      val isPendingThread = isPendingThreadIdentity(chatFile.threadIdentity)
-      val pendingProvider = pendingProviderForThreadIdentity(chatFile.threadIdentity)
+      val hasPendingThreadIdentity = chatFile.isPendingThread
+      val participatesInPendingThreadLifecycle = chatFile.participatesInPendingThreadLifecycle()
+      val pendingProvider = if (participatesInPendingThreadLifecycle) pendingProviderForThreadIdentity(chatFile.threadIdentity) else null
       entries.add(
         AgentChatOpenFileEntry(
           manager = manager,
@@ -83,7 +84,7 @@ internal fun collectOpenAgentChatTabsSnapshot(
       )
       filesByTabKey.putIfAbsent(chatFile.tabKey, chatFile)
       openProjectPaths.add(normalizedProjectPath)
-      if (isPendingThread) {
+      if (participatesInPendingThreadLifecycle) {
         pendingProjectPaths.add(normalizedProjectPath)
       }
 
@@ -94,7 +95,7 @@ internal fun collectOpenAgentChatTabsSnapshot(
           .putIfAbsent(chatFile.tabKey, chatFile)
       }
 
-      if (!isPendingThread) {
+      if (!hasPendingThreadIdentity) {
         concreteThreadIdentitiesByPath.computeIfAbsent(normalizedProjectPath) { LinkedHashSet() }.add(chatFile.threadIdentity)
         if (exManager != null) {
           concreteThreadIdentitiesByPathAndManager
@@ -108,7 +109,7 @@ internal fun collectOpenAgentChatTabsSnapshot(
         managerByFile.computeIfAbsent(chatFile) { LinkedHashSet() }.add(exManager)
       }
 
-      if (chatFile.provider != null && !isPendingThread && chatFile.subAgentId == null) {
+      if (chatFile.provider != null && !hasPendingThreadIdentity && chatFile.subAgentId == null) {
         concreteFilesByProviderAndPathAndTabKey
           .computeIfAbsent(chatFile.provider!!) { LinkedHashMap() }
           .computeIfAbsent(normalizedProjectPath) { LinkedHashMap() }
@@ -307,10 +308,6 @@ internal class AgentChatOpenTabsSnapshot(
       concreteThreadIdentitiesByPath = concreteThreadIdentitiesByPath(),
     )
   }
-}
-
-internal fun isPendingThreadIdentity(threadIdentity: String): Boolean {
-  return splitAgentThreadIdentity(threadIdentity)?.second?.startsWith("new-") == true
 }
 
 internal fun isPendingThreadIdentityForProvider(threadIdentity: String, provider: AgentSessionProvider): Boolean {

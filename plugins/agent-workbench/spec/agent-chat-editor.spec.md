@@ -110,7 +110,10 @@ Define how Agent chat tabs are opened, restored, reused, and rendered in editor 
 - Pending Codex tabs must capture first user-input timestamp once (on first terminal key event) and persist it for later rebind matching.
 - After the first pending Codex key event, chat must emit an immediate scoped refresh for the tab path and keep a bounded pending-only scoped refresh retry loop active until the tab rebinds, the tab closes, or the pending rebind window expires.
 - Restored pending Codex tabs with persisted first-input metadata must resume the same bounded scoped refresh retries on initialization.
+- Pending-identity tabs that finish in a deferred no-start outcome must remain open for inline result rendering, but must drop out of pending-thread projection and editor-tab rebind eligibility for the rest of the runtime.
   [@test] ../chat/testSrc/AgentChatEditorServiceTest.kt
+  [@test] ../sessions/testSrc/PendingThreadRebindTargetResolverTest.kt
+  [@test] ../sessions-actions/testSrc/actions/AgentSessionsBindPendingThreadFromEditorTabActionTest.kt
 
 - Concrete top-level Codex tabs must detect execution of exact terminal command `/new`, persist a single rebind anchor timestamp (`newThreadRebindRequestedAtMs`), and request scoped refresh for the tab path.
 - `/new` detection must track the typed command line, handle backspace/delete and escape reset, and must not arm on partial commands or incidental `/new` substrings.
@@ -158,8 +161,10 @@ Define how Agent chat tabs are opened, restored, reused, and rendered in editor 
   [@test] ../chat/testSrc/AgentChatRestoreNotificationServiceTest.kt
 
 - Editor tab actions must include `Bind Pending Thread` for providers that support pending editor-tab rebinding, invoking targeted rebind for the active pending tab only.
+- `Bind Pending Thread` must stay hidden for pending-identity tabs whose deferred launch already finished without starting a terminal session.
   [@test] ../sessions/testSrc/AgentSessionsEditorTabActionsTest.kt
   [@test] ../chat/testSrc/AgentChatEditorServiceTest.kt
+  [@test] ../sessions-actions/testSrc/actions/AgentSessionsBindPendingThreadFromEditorTabActionTest.kt
 
 ## User Experience
 - Clicking a thread opens its chat tab.

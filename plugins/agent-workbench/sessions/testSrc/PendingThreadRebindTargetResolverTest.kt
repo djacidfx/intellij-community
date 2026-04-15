@@ -138,4 +138,38 @@ class PendingThreadRebindTargetResolverTest {
     assertThat(target?.threadId).isEqualTo("claude-42")
     assertThat(target?.threadTitle).isEqualTo("Recovered Claude")
   }
+
+  @Test
+  fun resolveSkipsPendingContextThatNoLongerParticipatesInPendingLifecycle() {
+    val readService = AgentSessionReadService(
+      stateProvider = {
+        AgentSessionsState(
+          projects = listOf(
+            AgentProjectSessions(
+              path = PROJECT_PATH,
+              name = "Project A",
+              isOpen = true,
+              hasLoaded = true,
+              threads = listOf(thread(id = "codex-42", updatedAt = 500L, provider = AgentSessionProvider.CODEX, title = "Recovered")),
+            )
+          )
+        )
+      },
+    )
+
+    val context = AgentChatEditorTabActionContext(
+      project = ProjectManager.getInstance().defaultProject,
+      path = PROJECT_PATH,
+      tabKey = "pending-codex:new-1",
+      threadIdentity = "codex:new-1",
+      threadCoordinates = AgentChatThreadCoordinates(
+        provider = AgentSessionProvider.CODEX,
+        sessionId = "new-1",
+        isPending = true,
+        participatesInPendingThreadLifecycle = false,
+      ),
+    )
+
+    assertThat(readService.resolvePendingThreadRebindTarget(context, AgentSessionProvider.CODEX)).isNull()
+  }
 }

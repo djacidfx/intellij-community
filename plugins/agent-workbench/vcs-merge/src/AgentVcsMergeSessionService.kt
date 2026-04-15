@@ -44,7 +44,6 @@ import com.intellij.openapi.vcs.FileStatusManager
 import com.intellij.openapi.vcs.ProjectLevelVcsManager
 import com.intellij.openapi.vcs.VcsBundle
 import com.intellij.openapi.vcs.VcsException
-import com.intellij.openapi.vcs.VcsNotifier
 import com.intellij.openapi.vcs.changes.Change
 import com.intellij.openapi.vcs.changes.ChangeListManager
 import com.intellij.openapi.vcs.changes.VcsDirtyScopeManager
@@ -60,6 +59,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.vcs.changes.ChangesUtil
 import com.intellij.vcsUtil.VcsUtil
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -138,17 +138,68 @@ internal class AgentVcsMergeSessionService(
     }
 
     coroutineScope.launch(Dispatchers.Default) {
+      val projectPath = project.basePath
+      if (projectPath.isNullOrBlank()) {
+        disposeSession(session)
+        showError(AgentVcsMergeBundle.message("merge.agent.resolve.launch.failed.project.path"))
+        return@launch
+      }
+
+      val deferredLaunch = try {
+        serviceAsync<AgentSessionLaunchService>().createDeferredNewSession(
+          path = projectPath,
+          provider = session.agentProvider,
+          mode = session.launchMode,
+          entryPoint = AgentWorkbenchEntryPoint.TOOLBAR,
+          preferredDedicatedFrame = false,
+          openedChatHandler = { _, file ->
+            session.threadFile = file
+            pinThread(file)
+            serviceAsync<AgentSessionUiPreferencesStateService>()
+              .updateVcsMergeProviderPreferencesOnLaunch(session.agentProvider, session.launchMode)
+          },
+          updateGeneralProviderPreferences = false,
+          threadTitle = AgentVcsMergeBundle.message("merge.agent.thread.title"),
+          waitingTitle = AgentVcsMergeBundle.message("merge.agent.thread.preparing.title"),
+          waitingMessage = AgentVcsMergeBundle.message("merge.agent.thread.preparing.body"),
+        )
+      }
+      catch (e: CancellationException) {
+        throw e
+      }
+      catch (t: Throwable) {
+        LOG.warn("Failed to open deferred merge agent thread", t)
+        disposeSession(session)
+        showError(AgentVcsMergeBundle.message("merge.agent.resolve.launch.failed.generic"))
+        return@launch
+      }
+
+      val deferredHandle = deferredLaunch.handle
+      if (deferredHandle == null) {
+        disposeSession(session)
+        showError(AgentPromptLaunchResult.failure(deferredLaunch.error ?: AgentPromptLaunchError.INTERNAL_ERROR).asMessage())
+        return@launch
+      }
+
       when (val outcome = prepareSession(session)) {
         PreparationOutcome.AutoResolved -> {
+          deferredHandle.completeWithoutStart(
+            title = AgentVcsMergeBundle.message("merge.agent.thread.completed.title"),
+            message = AgentVcsMergeBundle.message("merge.agent.resolve.launch.success.auto.resolved"),
+          )
           disposeSession(session)
-          notifySuccess(AgentVcsMergeBundle.message("merge.agent.resolve.launch.success.auto.resolved"))
         }
 
-        PreparationOutcome.Ready -> launchAgentThread(session)
+        PreparationOutcome.Ready -> {
+          deferredHandle.start(buildInitialMessageRequest(projectPath, session))
+        }
 
         is PreparationOutcome.Failed -> {
+          deferredHandle.fail(
+            title = AgentVcsMergeBundle.message("merge.agent.thread.failed.title"),
+            message = outcome.message,
+          )
           disposeSession(session)
-          showError(outcome.message)
         }
       }
     }
@@ -254,21 +305,11 @@ internal class AgentVcsMergeSessionService(
     }
   }
 
-  private suspend fun launchAgentThread(session: ActiveAgentVcsMergeSession) {
-    val projectPath = project.basePath
-    if (projectPath.isNullOrBlank()) {
-      disposeSession(session)
-      showError(AgentVcsMergeBundle.message("merge.agent.resolve.launch.failed.project.path"))
-      return
-    }
-
-    if (session.snapshotUnresolvedFiles().isEmpty()) {
-      disposeSession(session)
-      notifySuccess(AgentVcsMergeBundle.message("merge.agent.resolve.launch.success.auto.resolved"))
-      return
-    }
-
-    val initialMessageRequest = AgentPromptInitialMessageRequest(
+  private fun buildInitialMessageRequest(
+    projectPath: String,
+    session: ActiveAgentVcsMergeSession,
+  ): AgentPromptInitialMessageRequest {
+    return AgentPromptInitialMessageRequest(
       prompt = AgentVcsMergeSessionSupport.buildInitialPrompt(),
       projectPath = projectPath,
       contextItems = listOfNotNull(
@@ -276,30 +317,6 @@ internal class AgentVcsMergeSessionService(
           session.selectionHintFiles.map { file -> toProjectRelativePath(file, project) },
         ),
       ),
-    )
-    serviceAsync<AgentSessionLaunchService>().createNewSession(
-      path = projectPath,
-      provider = session.agentProvider,
-      mode = session.launchMode,
-      entryPoint = AgentWorkbenchEntryPoint.TOOLBAR,
-      currentProject = project,
-      initialMessageRequest = initialMessageRequest,
-      preferredDedicatedFrame = false,
-      openedChatHandler = { _, file ->
-        session.threadFile = file
-        pinThread(file)
-        serviceAsync<AgentSessionUiPreferencesStateService>()
-          .updateVcsMergeProviderPreferencesOnLaunch(session.agentProvider, session.launchMode)
-      },
-      promptLaunchResolved = { result ->
-        if (!result.launched) {
-          disposeSession(session)
-          showError(result.asMessage())
-        }
-      },
-      singleFlightDiscriminator = PROJECT_WIDE_SESSION_KEY,
-      updateGeneralProviderPreferences = false,
-      threadTitle = AgentVcsMergeBundle.message("merge.agent.thread.title"),
     )
   }
 
@@ -411,12 +428,6 @@ internal class AgentVcsMergeSessionService(
     }
   }
 
-  private fun notifySuccess(message: @Nls String) {
-    coroutineScope.launch(Dispatchers.UiWithModelAccess) {
-      VcsNotifier.getInstance(project).notifySuccess(AUTO_RESOLVED_NOTIFICATION_ID, "", message)
-    }
-  }
-
   private fun AgentPromptLaunchResult.asMessage(): @Nls String {
     return when (error) {
       AgentPromptLaunchError.PROVIDER_UNAVAILABLE -> AgentVcsMergeBundle.message("merge.agent.resolve.launch.failed.provider")
@@ -434,7 +445,6 @@ internal class AgentVcsMergeSessionService(
   }
 
   private companion object {
-    private const val AUTO_RESOLVED_NOTIFICATION_ID = "agent.merge.auto.resolved"
     private const val PROJECT_WIDE_SESSION_KEY = "project-wide"
   }
 }

@@ -13,6 +13,7 @@ import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessageD
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProviders
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionTerminalLaunchSpec
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.UI
 import com.intellij.openapi.components.service
 import com.intellij.openapi.components.serviceAsync
@@ -156,6 +157,8 @@ suspend fun openChat(
   pendingFirstInputAtMs: Long? = null,
   pendingLaunchMode: String? = null,
   initialMessageDispatchPlan: AgentInitialMessageDispatchPlan = AgentInitialMessageDispatchPlan.EMPTY,
+  persistSnapshot: Boolean = true,
+  deferredStartState: AgentChatDeferredStartState? = null,
 ): VirtualFile {
   val manager = FileEditorManagerEx.getInstanceExAsync(project)
 
@@ -205,6 +208,7 @@ suspend fun openChat(
     existing.updateCommandAndThreadId(shellCommand = shellCommand, shellEnvVariables = shellEnvVariables, threadId = threadId)
     val titleUpdated = existing.updateThreadTitle(threadTitle)
     val activityUpdated = existing.updateThreadActivity(threadActivity)
+    val deferredStartStateUpdated = existing.updateDeferredStartState(deferredStartState)
     val pendingUpdated = if (
       pendingCreatedAtMs != null ||
       pendingFirstInputAtMs != null ||
@@ -227,21 +231,31 @@ suspend fun openChat(
         initialMessageSent = false,
       )
     }
-    tabsService.upsert(existing.toSnapshot())
+    if (persistSnapshot) {
+      tabsService.upsert(existing.toSnapshot())
+    }
     LOG.debug {
       "openChat existing tab update(identity=$threadIdentity, subAgentId=$subAgentId): " +
       "titleUpdated=$titleUpdated, activityUpdated=$activityUpdated, currentName=${existing.name}," +
       " currentTitle=${existing.threadTitle}, currentActivity=${existing.threadActivity}"
     }
-    if (titleUpdated || activityUpdated || pendingUpdated || hasExplicitInitialMessageDispatch) {
-      manager.updateFilePresentation(existing)
+    if (titleUpdated || activityUpdated || pendingUpdated || hasExplicitInitialMessageDispatch || deferredStartStateUpdated) {
+      withContext(Dispatchers.EDT) {
+        manager.updateFilePresentation(existing)
+        if (deferredStartStateUpdated) {
+          refreshOpenEditors(manager = manager, file = existing)
+        }
+      }
     }
   }
   else {
+    file.updateDeferredStartState(deferredStartState)
     if (startupOverrideForNewTab != null) {
       file.setStartupLaunchSpecOverride(startupOverrideForNewTab)
     }
-    tabsService.upsert(file.toSnapshot())
+    if (persistSnapshot) {
+      tabsService.upsert(file.toSnapshot())
+    }
     LOG.debug {
       "openChat created new tab(identity=$threadIdentity, subAgentId=$subAgentId, fileName=${file.name}, activity=$threadActivity)"
     }
@@ -267,6 +281,51 @@ suspend fun openChat(
   }
 
   return file
+}
+
+fun persistAgentChatTabMetadata(file: VirtualFile) {
+  val chatFile = file as? AgentChatVirtualFile ?: return
+  service<AgentChatTabsService>().upsert(chatFile.toSnapshot())
+}
+
+suspend fun refreshOpenAgentChatFile(project: Project, file: VirtualFile) {
+  val chatFile = file as? AgentChatVirtualFile ?: return
+  val manager = FileEditorManagerEx.getInstanceExAsync(project)
+  withContext(Dispatchers.EDT) {
+    manager.updateFilePresentation(chatFile)
+    refreshOpenEditors(manager = manager, file = chatFile)
+  }
+}
+
+suspend fun updateAgentChatDeferredStartState(
+  project: Project,
+  file: VirtualFile,
+  deferredStartState: AgentChatDeferredStartState?,
+  threadActivity: AgentThreadActivity? = null,
+  startupLaunchSpecOverride: AgentSessionTerminalLaunchSpec? = null,
+  initialMessageDispatchPlan: AgentInitialMessageDispatchPlan? = null,
+  persistSnapshot: Boolean = false,
+  forgetPersistedSnapshot: Boolean = false,
+) {
+  val chatFile = file as? AgentChatVirtualFile ?: return
+  startupLaunchSpecOverride?.let(chatFile::setStartupLaunchSpecOverride)
+  chatFile.updateDeferredStartState(deferredStartState)
+  threadActivity?.let(chatFile::updateThreadActivity)
+  initialMessageDispatchPlan?.let { dispatchPlan ->
+    chatFile.updateInitialMessageMetadata(
+      initialMessageDispatchSteps = dispatchPlan.postStartDispatchSteps,
+      initialMessageDispatchStepIndex = 0,
+      initialMessageToken = dispatchPlan.initialMessageToken,
+      initialMessageSent = false,
+    )
+  }
+  if (persistSnapshot) {
+    persistAgentChatTabMetadata(chatFile)
+  }
+  else if (forgetPersistedSnapshot) {
+    forgetAgentChatTabMetadata(chatFile.tabKey)
+  }
+  refreshOpenAgentChatFile(project = project, file = chatFile)
 }
 
 suspend fun collectOpenPendingAgentChatProjectPaths(): Set<String> {
@@ -881,5 +940,16 @@ private fun flushPendingInitialMessageForOpenEditors(
     .filterIsInstance<AgentChatFileEditor>()
     .forEach { editor ->
       editor.flushPendingInitialMessageIfInitialized()
+    }
+}
+
+private fun refreshOpenEditors(
+  manager: FileEditorManagerEx,
+  file: AgentChatVirtualFile,
+) {
+  manager.getAllEditors(file)
+    .filterIsInstance<AgentChatFileEditor>()
+    .forEach { editor ->
+      editor.refreshForFileStateChange()
     }
 }

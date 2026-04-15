@@ -24,6 +24,7 @@ data class AgentChatThreadCoordinates(
   val provider: AgentSessionProvider,
   @JvmField val sessionId: String,
   @JvmField val isPending: Boolean,
+  @JvmField val participatesInPendingThreadLifecycle: Boolean = isPending,
 )
 
 internal fun resolveAgentChatThreadCoordinates(threadIdentity: String): AgentChatThreadCoordinates? {
@@ -65,6 +66,7 @@ fun resolveAgentChatEditorTabActionContext(event: AnActionEvent): AgentChatEdito
         provider = provider,
         sessionId = selectedChatFile.sessionId,
         isPending = selectedChatFile.isPendingThread,
+        participatesInPendingThreadLifecycle = selectedChatFile.participatesInPendingThreadLifecycle(),
       )
     }
   return AgentChatEditorTabActionContext(

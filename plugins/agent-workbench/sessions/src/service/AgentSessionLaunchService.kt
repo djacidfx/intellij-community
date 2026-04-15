@@ -7,7 +7,10 @@ package com.intellij.agent.workbench.sessions.service
 // @spec community/plugins/agent-workbench/spec/actions/global-prompt-entry.spec.md
 // @spec community/plugins/agent-workbench/spec/agent-workbench-telemetry.spec.md
 
+import com.intellij.agent.workbench.chat.AgentChatDeferredStartPhase
+import com.intellij.agent.workbench.chat.AgentChatDeferredStartState
 import com.intellij.agent.workbench.chat.openChat
+import com.intellij.agent.workbench.chat.updateAgentChatDeferredStartState
 import com.intellij.agent.workbench.common.normalizeAgentWorkbenchPath
 import com.intellij.agent.workbench.common.parseAgentWorkbenchPathOrNull
 import com.intellij.agent.workbench.common.session.AgentSessionLaunchMode
@@ -73,6 +76,8 @@ import kotlinx.coroutines.withContext
 import java.nio.file.Path
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.io.path.invariantSeparatorsPathString
+import java.util.concurrent.atomic.AtomicBoolean
+import org.jetbrains.annotations.Nls
 
 private val LOG = logger<AgentSessionLaunchService>()
 
@@ -107,6 +112,21 @@ internal interface AgentSessionChatOpenExecutor {
     openedChatHandler: (suspend (Project, VirtualFile) -> Unit)?,
     threadTitle: String? = null,
   )
+}
+
+data class AgentDeferredNewSessionLaunchResult(
+  @JvmField val handle: AgentDeferredNewSessionHandle? = null,
+  @JvmField val error: AgentPromptLaunchError? = null,
+)
+
+interface AgentDeferredNewSessionHandle {
+  val file: VirtualFile
+
+  suspend fun start(initialMessageRequest: AgentPromptInitialMessageRequest? = null)
+
+  suspend fun completeWithoutStart(title: @Nls String, message: @Nls String? = null)
+
+  suspend fun fail(title: @Nls String, message: @Nls String? = null)
 }
 
 private object DefaultAgentSessionChatOpenExecutor : AgentSessionChatOpenExecutor {
@@ -348,7 +368,7 @@ class AgentSessionLaunchService internal constructor(
           return@launchDropAction
         }
         if (mode !in descriptor.supportedLaunchModes) {
-          LOG.warn("Session provider ${provider.value} does not support launch mode $mode")
+          logUnsupportedLaunchMode(provider = provider, mode = mode)
           syncService.appendProviderUnavailableWarning(normalizedPath, provider)
           promptLaunchResolved?.invoke(AgentPromptLaunchResult.failure(AgentPromptLaunchError.UNSUPPORTED_LAUNCH_MODE))
           return@launchDropAction
@@ -405,6 +425,129 @@ class AgentSessionLaunchService internal constructor(
         throw t
       }
     }
+  }
+
+  suspend fun createDeferredNewSession(
+    path: String,
+    provider: AgentSessionProvider,
+    mode: AgentSessionLaunchMode = AgentSessionLaunchMode.STANDARD,
+    entryPoint: AgentWorkbenchEntryPoint,
+    preferredDedicatedFrame: Boolean? = null,
+    openedChatHandler: (suspend (Project, VirtualFile) -> Unit)? = null,
+    updateGeneralProviderPreferences: Boolean = true,
+    launchModalityState: ModalityState? = null,
+    threadTitle: String? = null,
+    waitingTitle: @Nls String,
+    waitingMessage: @Nls String? = null,
+  ): AgentDeferredNewSessionLaunchResult {
+    val normalizedPath = normalizeAgentWorkbenchPath(path)
+    AgentSessionProviders.find(provider)?.onConversationOpened()
+    if (updateGeneralProviderPreferences) {
+      uiPreferencesState.updateProviderPreferencesOnLaunch(provider, mode, initialMessageRequest = null)
+    }
+
+    val descriptor = AgentSessionProviders.find(provider)
+    if (descriptor == null) {
+      logMissingProviderDescriptor(provider)
+      syncService.appendProviderUnavailableWarning(normalizedPath, provider)
+      return AgentDeferredNewSessionLaunchResult(error = AgentPromptLaunchError.PROVIDER_UNAVAILABLE)
+    }
+    if (mode !in descriptor.supportedLaunchModes) {
+      logUnsupportedLaunchMode(provider = provider, mode = mode)
+      syncService.appendProviderUnavailableWarning(normalizedPath, provider)
+      return AgentDeferredNewSessionLaunchResult(error = AgentPromptLaunchError.UNSUPPORTED_LAUNCH_MODE)
+    }
+
+    val baseLaunchSpec = descriptor.buildNewSessionLaunchSpec(mode)
+    val launchSpec = AgentSessionLaunchSpecs.augment(
+      projectPath = normalizedPath,
+      provider = provider,
+      launchSpec = baseLaunchSpec,
+    )
+    val identity = buildAgentSessionNewIdentity(provider)
+    val waitingState = AgentChatDeferredStartState(
+      phase = AgentChatDeferredStartPhase.WAITING,
+      title = waitingTitle,
+      message = waitingMessage,
+    )
+    AgentWorkbenchTelemetry.logThreadCreateRequested(entryPoint, provider, mode)
+    val openedChat = withContext(launchModalityState?.asContextElement() ?: EmptyCoroutineContext) {
+      openAgentSessionDeferredNewChat(
+        normalizedPath = normalizedPath,
+        identity = identity,
+        launchSpec = launchSpec,
+        preferredDedicatedFrame = preferredDedicatedFrame,
+        openedChatHandler = openedChatHandler,
+        threadTitle = threadTitle,
+        waitingState = waitingState,
+      )
+    }
+    val resolutionRecorded = AtomicBoolean(false)
+    return AgentDeferredNewSessionLaunchResult(
+      handle = object : AgentDeferredNewSessionHandle {
+        override val file: VirtualFile = openedChat.file
+
+        override suspend fun start(initialMessageRequest: AgentPromptInitialMessageRequest?) {
+          if (!resolutionRecorded.compareAndSet(false, true)) {
+            return
+          }
+          val initialMessagePlan = initialMessageRequest?.let(descriptor::buildInitialMessagePlan) ?: AgentInitialMessagePlan.EMPTY
+          val initialMessageDispatchPlan = buildInitialMessageDispatchPlan(
+            descriptor = descriptor,
+            baseLaunchSpec = launchSpec,
+            identity = identity,
+            initialMessagePlan = initialMessagePlan,
+            allowStartupPromptOverride = true,
+          )
+          updateAgentChatDeferredStartState(
+            project = openedChat.project,
+            file = file,
+            deferredStartState = AgentChatDeferredStartState(AgentChatDeferredStartPhase.READY_TO_START, title = ""),
+            threadActivity = com.intellij.agent.workbench.common.AgentThreadActivity.READY,
+            startupLaunchSpecOverride = initialMessageDispatchPlan.startupLaunchSpecOverride,
+            initialMessageDispatchPlan = initialMessageDispatchPlan,
+            persistSnapshot = true,
+          )
+          if (descriptor.refreshPathAfterCreateNewSession) {
+            syncService.refreshProviderForPath(path = normalizedPath, provider = provider)
+          }
+        }
+
+        override suspend fun completeWithoutStart(title: @Nls String, message: @Nls String?) {
+          if (!resolutionRecorded.compareAndSet(false, true)) {
+            return
+          }
+          updateAgentChatDeferredStartState(
+            project = openedChat.project,
+            file = file,
+            deferredStartState = AgentChatDeferredStartState(
+              phase = AgentChatDeferredStartPhase.SUCCESS_NO_START,
+              title = title,
+              message = message,
+            ),
+            threadActivity = com.intellij.agent.workbench.common.AgentThreadActivity.READY,
+            forgetPersistedSnapshot = true,
+          )
+        }
+
+        override suspend fun fail(title: @Nls String, message: @Nls String?) {
+          if (!resolutionRecorded.compareAndSet(false, true)) {
+            return
+          }
+          updateAgentChatDeferredStartState(
+            project = openedChat.project,
+            file = file,
+            deferredStartState = AgentChatDeferredStartState(
+              phase = AgentChatDeferredStartPhase.FAILURE_NO_START,
+              title = title,
+              message = message,
+            ),
+            threadActivity = com.intellij.agent.workbench.common.AgentThreadActivity.READY,
+            forgetPersistedSnapshot = true,
+          )
+        }
+      }
+    )
   }
 
   fun launchPromptRequest(request: AgentPromptLaunchRequest): AgentPromptLaunchResult {
@@ -721,6 +864,10 @@ private fun logMissingProviderDescriptor(provider: AgentSessionProvider) {
   LOG.warn("No session provider registered for ${provider.value}")
 }
 
+private fun logUnsupportedLaunchMode(provider: AgentSessionProvider, mode: AgentSessionLaunchMode) {
+  LOG.warn("Session provider ${provider.value} does not support launch mode $mode")
+}
+
 private fun dedicatedFrameOpenProgressRequest(currentProject: Project?): SingleFlightProgressRequest? {
   if (!AgentChatOpenModeSettings.openInDedicatedFrame()) return null
   return SingleFlightProgressRequest(
@@ -768,6 +915,44 @@ private suspend fun openAgentSessionNewChat(
     title = title,
     initialMessageDispatchPlan = initialMessageDispatchPlan,
     openedChatHandler = openedChatHandler,
+  )
+}
+
+private data class DeferredAgentSessionChatOpenResult(
+  @JvmField val project: Project,
+  @JvmField val file: VirtualFile,
+)
+
+private suspend fun openAgentSessionDeferredNewChat(
+  normalizedPath: String,
+  identity: String,
+  launchSpec: AgentSessionTerminalLaunchSpec,
+  preferredDedicatedFrame: Boolean?,
+  openedChatHandler: (suspend (Project, VirtualFile) -> Unit)? = null,
+  threadTitle: String? = null,
+  waitingState: AgentChatDeferredStartState,
+): DeferredAgentSessionChatOpenResult {
+  val title = threadTitle ?: AgentSessionsBundle.message("toolwindow.action.new.thread")
+  val dedicatedFrame = preferredDedicatedFrame ?: AgentChatOpenModeSettings.openInDedicatedFrame()
+  if (dedicatedFrame) {
+    return openDeferredNewChatInDedicatedFrame(
+      normalizedPath = normalizedPath,
+      identity = identity,
+      launchSpec = launchSpec,
+      title = title,
+      openedChatHandler = openedChatHandler,
+      waitingState = waitingState,
+    )
+  }
+  val openProject = openOrReuseSourceProjectByPath(normalizedPath) ?: error("Project could not be opened for $normalizedPath")
+  return openDeferredNewChatInProject(
+    project = openProject,
+    projectPath = normalizedPath,
+    identity = identity,
+    launchSpec = launchSpec,
+    title = title,
+    openedChatHandler = openedChatHandler,
+    waitingState = waitingState,
   )
 }
 
@@ -819,6 +1004,53 @@ private suspend fun openNewChatInDedicatedFrame(
   )
 }
 
+private suspend fun openDeferredNewChatInDedicatedFrame(
+  normalizedPath: String,
+  identity: String,
+  launchSpec: AgentSessionTerminalLaunchSpec,
+  title: String,
+  openedChatHandler: (suspend (Project, VirtualFile) -> Unit)? = null,
+  waitingState: AgentChatDeferredStartState,
+): DeferredAgentSessionChatOpenResult {
+  val dedicatedProjectPath = AgentWorkbenchDedicatedFrameProjectManager.dedicatedProjectPath()
+  val openProject = findOpenProject(dedicatedProjectPath)
+  if (openProject != null) {
+    AgentWorkbenchDedicatedFrameProjectManager.configureProject(openProject)
+    return openDeferredNewChatInProject(
+      project = openProject,
+      projectPath = normalizedPath,
+      identity = identity,
+      launchSpec = launchSpec,
+      title = title,
+      openedChatHandler = openedChatHandler,
+      waitingState = waitingState,
+    )
+  }
+
+  val dedicatedProjectDir = try {
+    AgentWorkbenchDedicatedFrameProjectManager.ensureProjectPath()
+  }
+  catch (e: CancellationException) {
+    throw e
+  }
+  catch (e: Throwable) {
+    LOG.warn("Failed to prepare dedicated chat frame project", e)
+    throw e
+  }
+
+  val dedicatedProject = openDedicatedFrameProject(dedicatedProjectDir) ?: error("Dedicated frame project could not be opened")
+  AgentWorkbenchDedicatedFrameProjectManager.configureProject(dedicatedProject)
+  return openDeferredNewChatInProject(
+    project = dedicatedProject,
+    projectPath = normalizedPath,
+    identity = identity,
+    launchSpec = launchSpec,
+    title = title,
+    openedChatHandler = openedChatHandler,
+    waitingState = waitingState,
+  )
+}
+
 private suspend fun openNewChatInProject(
   project: Project,
   projectPath: String,
@@ -846,6 +1078,38 @@ private suspend fun openNewChatInProject(
   )
   focusProjectWindow(project)
   openedChatHandler?.invoke(project, file)
+}
+
+private suspend fun openDeferredNewChatInProject(
+  project: Project,
+  projectPath: String,
+  identity: String,
+  launchSpec: AgentSessionTerminalLaunchSpec,
+  title: String,
+  openedChatHandler: (suspend (Project, VirtualFile) -> Unit)? = null,
+  waitingState: AgentChatDeferredStartState,
+): DeferredAgentSessionChatOpenResult {
+  val threadId = resolveAgentSessionId(identity)
+  val pendingMetadata = resolvePendingSessionMetadata(identity = identity, launchSpec = launchSpec)
+  val file = openChat(
+    project = project,
+    projectPath = projectPath,
+    threadIdentity = identity,
+    shellCommand = launchSpec.command,
+    shellEnvVariables = launchSpec.envVariables,
+    threadId = threadId,
+    threadTitle = title,
+    subAgentId = null,
+    threadActivity = com.intellij.agent.workbench.common.AgentThreadActivity.PROCESSING,
+    pendingCreatedAtMs = pendingMetadata?.createdAtMs,
+    pendingLaunchMode = pendingMetadata?.launchMode,
+    initialMessageDispatchPlan = AgentInitialMessageDispatchPlan.EMPTY,
+    persistSnapshot = false,
+    deferredStartState = waitingState,
+  )
+  focusProjectWindow(project)
+  openedChatHandler?.invoke(project, file)
+  return DeferredAgentSessionChatOpenResult(project = project, file = file)
 }
 
 private suspend fun openChatInDedicatedFrame(

@@ -96,6 +96,32 @@ class AgentChatFileEditorLifecycleTest {
   }
 
   @Test
+  fun deferredStartBlocksTerminalInitializationUntilReleased() {
+    val terminalTabs = FakeAgentChatTerminalTabs()
+    val file = testFile().also {
+      it.updateDeferredStartState(
+        AgentChatDeferredStartState(
+          phase = AgentChatDeferredStartPhase.WAITING,
+          title = "Preparing merge resolution",
+          message = "Still preparing conflicts",
+        )
+      )
+    }
+    val editor = testEditor(file = file, terminalTabs = terminalTabs)
+
+    editor.selectNotify()
+
+    assertThat(terminalTabs.createCalls).isEqualTo(0)
+    assertThat(editor.preferredFocusedComponent).isSameAs(editor.component)
+
+    file.updateDeferredStartState(AgentChatDeferredStartState(AgentChatDeferredStartPhase.READY_TO_START, title = ""))
+    editor.refreshForFileStateChange()
+
+    assertThat(terminalTabs.createCalls).isEqualTo(1)
+    assertThat(editor.preferredFocusedComponent).isSameAs(terminalTabs.tab.preferredFocusableComponent)
+  }
+
+  @Test
   fun disposeKeepsInitializedTerminalTabAliveUntilFileClose() {
     val project = testProject()
     val terminalTabs = FakeAgentChatTerminalTabs()
