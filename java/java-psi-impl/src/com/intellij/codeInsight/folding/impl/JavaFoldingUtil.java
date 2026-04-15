@@ -42,6 +42,7 @@ import com.intellij.util.text.CharArrayUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -172,18 +173,17 @@ final public class JavaFoldingUtil {
     }
   }
 
-  static void addCommentsToFold(@NotNull List<? super FoldingDescriptor> list,
-                                @NotNull PsiElement element,
-                                @NotNull Document document) {
-    final PsiComment[] comments = PsiTreeUtil.getChildrenOfType(element, PsiComment.class);
-    if (comments == null) return;
+  static void addAllCommentsToFold(@NotNull List<? super FoldingDescriptor> list,
+                                   @NotNull PsiElement element,
+                                   @NotNull Document document) {
+    final Collection<PsiComment> comments = PsiTreeUtil.collectElementsOfType(element, PsiComment.class);
 
     for (PsiComment comment : comments) {
       addCommentToFold(list, comment, document);
     }
   }
 
-  static void addCommentToFold(@NotNull List<? super FoldingDescriptor> list,
+  private static void addCommentToFold(@NotNull List<? super FoldingDescriptor> list,
                                @NotNull PsiComment comment,
                                @NotNull Document document) {
     final FoldingDescriptor commentDescriptor;
