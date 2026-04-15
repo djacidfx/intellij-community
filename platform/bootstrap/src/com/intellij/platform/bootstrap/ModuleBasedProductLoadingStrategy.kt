@@ -41,7 +41,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.io.path.exists
 import kotlin.io.path.extension
 
 internal class ModuleBasedProductLoadingStrategy(internal val moduleRepository: RuntimeModuleRepository) : ProductLoadingStrategy() {
@@ -234,21 +233,14 @@ internal class ModuleBasedProductLoadingStrategy(internal val moduleRepository: 
     }
     val deferredDescriptors = ArrayList<Deferred<PluginMainDescriptor?>>()
     Files.newDirectoryStream(customPluginDir).use { dirStream ->
-      val additionalRepositoryPaths = ArrayList<Path>()
       dirStream.forEach { file ->
-        val moduleRepository = file.resolve("module-descriptors.jar")
-        if (moduleRepository.exists()) {
-          additionalRepositoryPaths.add(moduleRepository)
-        }
-        else {
-          deferredDescriptors.add(scope.async {
-            loadDescriptorFromFileOrDir(
-              file = file,
-              loadingContext = context,
-              pool = zipFilePool,
-            )
-          })
-        }
+        deferredDescriptors.add(scope.async {
+          loadDescriptorFromFileOrDir(
+            file = file,
+            loadingContext = context,
+            pool = zipFilePool,
+          )
+        })
       }
     }
     return scope.async { DiscoveredPluginsList(deferredDescriptors.awaitAll().filterNotNull(), PluginsSourceContext.Custom) }
