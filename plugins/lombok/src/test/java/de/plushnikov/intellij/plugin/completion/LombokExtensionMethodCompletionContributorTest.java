@@ -3,8 +3,7 @@ package de.plushnikov.intellij.plugin.completion;
 
 import com.intellij.codeInsight.completion.CompletionType;
 import com.intellij.codeInsight.lookup.LookupElement;
-import com.intellij.codeInsight.template.impl.TemplateManagerImpl;
-import com.intellij.codeInsight.template.impl.TemplateState;
+import com.intellij.codeInsight.lookup.LookupElementPresentation;
 import com.intellij.util.containers.ContainerUtil;
 import de.plushnikov.intellij.plugin.AbstractLombokLightCodeInsightTestCase;
 import de.plushnikov.intellij.plugin.psi.LombokExtensionMethod;
@@ -26,11 +25,11 @@ public class LombokExtensionMethodCompletionContributorTest extends AbstractLomb
   }
 
   public void testStringReceiverAndStringArgument() {
-    doTestBothCompletionTypes("myExtensionMethod");
+    doTestBothCompletionTypes(suggestion("myExtensionMethod", "()", "void"));
   }
 
   public void testObjectReceiverAndStringArgument() {
-    doTestBothCompletionTypes("myExtensionMethod");
+    doTestBothCompletionTypes(suggestion("myExtensionMethod", "()", "void"));
   }
 
   public void testStringReceiverAndObjectArgument() {
@@ -38,15 +37,15 @@ public class LombokExtensionMethodCompletionContributorTest extends AbstractLomb
   }
 
   public void testWildcardListReceiverAndListArgument() {
-    doTestBothCompletionTypes("myExtensionMethod");
+    doTestBothCompletionTypes(suggestion("myExtensionMethod", "()", "void"));
   }
 
   public void testStringReceiverAndWildcardWithUpperBoundStringArgument() {
-    doTestBothCompletionTypes("myExtensionMethod");
+    doTestBothCompletionTypes(suggestion("myExtensionMethod", "()", "void"));
   }
 
   public void testMoreThanTwoArguments() {
-    doTestBothCompletionTypes("myExtensionMethod");
+    doTestBothCompletionTypes(suggestion("myExtensionMethod", "(String b, String c)", "void"));
   }
 
   public void testLowerBoundedListReceiver() {
@@ -54,7 +53,7 @@ public class LombokExtensionMethodCompletionContributorTest extends AbstractLomb
   }
 
   public void testVarargReceiverAndArrayArgument() {
-    doTestBothCompletionTypes("myExtensionMethod");
+    doTestBothCompletionTypes(suggestion("myExtensionMethod", "()", "void"));
   }
 
   public void testVarargReceiverAndSingleElemArgument() {
@@ -62,23 +61,29 @@ public class LombokExtensionMethodCompletionContributorTest extends AbstractLomb
   }
 
   public void testMatchingExpressionType() {
-    doTest(BASIC, "myIntegerMethod", "myStringMethod");
-    doTest(SMART, "myIntegerMethod");
+    doTest(BASIC,
+           suggestion("myIntegerMethod", "()", "Integer"),
+           suggestion("myStringMethod", "()", "String"));
+    doTest(SMART, suggestion("myIntegerMethod", "()", "Integer"));
   }
 
-  public void testGenericMethodMatchedByExpectedType() {
-    doTest(BASIC, "myGenericMethod");
-    doTest(SMART, "myGenericMethod");
+  public void testMatchingExpressionTypeGenericResult() {
+    doTest(BASIC, suggestion("myGenericMethod", "(Class<T> type)", "T"));
+    doTest(SMART, suggestion("myGenericMethod", "(Class<T> type)", "T"));
   }
 
-  public void testBoundedGenericMethodDoesNotMatchExpectedType() {
-    doTest(BASIC, "myBoundedGenericMethod");
+  public void testMatchingExpressionTypeGenericResultWithWrongBounds() {
+    doTest(BASIC, suggestion("myBoundedGenericMethod", "(Class<T> type)", "T"));
     doTest(SMART);
   }
 
   public void testWithPrefix() {
-    doTest(BASIC, "myExtensionMethod", "myExtensionMethod2");
-    doTest(SMART, "myExtensionMethod", "myExtensionMethod2");
+    doTest(BASIC,
+           suggestion("myExtensionMethod", "()", "void"),
+           suggestion("myExtensionMethod2", "()", "void"));
+    doTest(SMART,
+           suggestion("myExtensionMethod", "()", "void"),
+           suggestion("myExtensionMethod2", "()", "void"));
   }
 
   public void testNonStaticExtensionMethod() {
@@ -90,40 +95,40 @@ public class LombokExtensionMethodCompletionContributorTest extends AbstractLomb
   }
 
   public void testSameNameButDifferentSignatureThanInstanceMethod() {
-    doTestBothCompletionTypes("myInstanceMethod");
+    doTestBothCompletionTypes(suggestion("myInstanceMethod", "(String value, int x)", "void"));
   }
 
   public void testSameSignatureAsInstanceMethod() {
-    extensionMethodIsNotSuggestedWhenReceiverSuperClassHasSameInstanceMethod(BASIC, "myInstanceMethod");
-    extensionMethodIsNotSuggestedWhenReceiverSuperClassHasSameInstanceMethod(SMART, "myInstanceMethod");
+    extensionMethodIsNotSuggestedWhenReceiverSuperClassHasSameInstanceMethod(BASIC);
+    extensionMethodIsNotSuggestedWhenReceiverSuperClassHasSameInstanceMethod(SMART);
   }
 
   public void testSameSignatureAsSuperClassInstanceMethod() {
-    extensionMethodIsNotSuggestedWhenReceiverSuperClassHasSameInstanceMethod(BASIC, "myInstanceMethod");
-    extensionMethodIsNotSuggestedWhenReceiverSuperClassHasSameInstanceMethod(SMART, "myInstanceMethod");
+    extensionMethodIsNotSuggestedWhenReceiverSuperClassHasSameInstanceMethod(SMART);
+    extensionMethodIsNotSuggestedWhenReceiverSuperClassHasSameInstanceMethod(BASIC);
   }
 
-  private void extensionMethodIsNotSuggestedWhenReceiverSuperClassHasSameInstanceMethod(CompletionType completionType, String methodName) {
+  private void extensionMethodIsNotSuggestedWhenReceiverSuperClassHasSameInstanceMethod(CompletionType completionType) {
     LookupElement[] lookupElements = configureAndGetAllCompletionSuggestions(completionType);
     List<String> allSuggestions = ContainerUtil.map(lookupElements, LookupElement::getLookupString);
 
-    assertContainsElements(allSuggestions, methodName);
+    assertContainsElements(allSuggestions, "myInstanceMethod");
     assertEquals(Set.of(), filterLombokSuggestions(lookupElements));
   }
 
-  private void doTestBothCompletionTypes(String... methodNames) {
-    doTest(BASIC, methodNames);
-    doTest(SMART, methodNames);
+  private void doTestBothCompletionTypes(Suggestion... expectedSuggestions) {
+    doTest(BASIC, expectedSuggestions);
+    doTest(SMART, expectedSuggestions);
   }
 
-  /// Verifies that all lombok generated suggestions in code completion are exactly equal to `methodNames`.
-  private void doTest(CompletionType completionType, String... methodNames) {
-    Set<String> actualSuggestions = configureAndGetLombokCompletionSuggestions(completionType);
-    Set<String> expectedSuggestions = Set.of(methodNames);
-    assertEquals(expectedSuggestions, actualSuggestions);
+  /// Verifies that all Lombok-generated suggestions in code completion exactly match `expectedSuggestions`.
+  private void doTest(CompletionType completionType, Suggestion... expectedSuggestions) {
+    Set<Suggestion> actualSuggestions = configureAndGetLombokCompletionSuggestions(completionType);
+    Set<Suggestion> expectedSuggestionSet = Set.of(expectedSuggestions);
+    assertEquals(expectedSuggestionSet, actualSuggestions);
   }
 
-  private Set<String> configureAndGetLombokCompletionSuggestions(CompletionType completionType) {
+  private Set<Suggestion> configureAndGetLombokCompletionSuggestions(CompletionType completionType) {
     LookupElement[] elements = configureAndGetAllCompletionSuggestions(completionType);
     return filterLombokSuggestions(elements);
   }
@@ -137,10 +142,28 @@ public class LombokExtensionMethodCompletionContributorTest extends AbstractLomb
     return lookupElements;
   }
 
-  private static Set<String> filterLombokSuggestions(LookupElement[] lookupElements) {
+  private static Suggestion renderCompletionSuggestion(LookupElement lookupElement) {
+    LookupElementPresentation presentation = new LookupElementPresentation();
+    lookupElement.renderElement(presentation);
+    return new Suggestion(
+      lookupElement.getLookupString(),
+      presentation.getItemText(),
+      presentation.getTailText(),
+      presentation.getTypeText()
+    );
+  }
+
+  private static Set<Suggestion> filterLombokSuggestions(LookupElement[] lookupElements) {
     return Arrays.stream(lookupElements)
-      .filter(l -> l.getObject() instanceof LombokExtensionMethod)
-      .map(l -> l.getLookupString())
+      .filter(lookupElement -> lookupElement.getObject() instanceof LombokExtensionMethod)
+      .map(LombokExtensionMethodCompletionContributorTest::renderCompletionSuggestion)
       .collect(Collectors.toSet());
+  }
+
+  private static Suggestion suggestion(String lookupString, String tailText, String typeText) {
+    return new Suggestion(lookupString, lookupString, tailText, typeText);
+  }
+
+  private record Suggestion(String lookupString, String itemText, String tailText, String typeText) {
   }
 }
