@@ -95,7 +95,8 @@ public final class ProductModulesSerialization {
         notLoadedBundledPluginModules.put(pluginMainModule, resolveResult.getFailedDependencyPath());
       }
     }
-    return new ProductModulesImpl(debugName, mainGroup, bundledPluginModuleGroups, notLoadedBundledPluginModules);
+    return new ProductModulesImpl(debugName, mainGroup, bundledPluginModuleGroups, rawProductModules.getBundledPluginMainModules(),
+                                  notLoadedBundledPluginModules);
   }
 
   private static void mergeIncludedFiles(@NotNull RawProductModules rawProductModules,

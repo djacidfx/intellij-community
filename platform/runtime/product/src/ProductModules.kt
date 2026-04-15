@@ -20,6 +20,11 @@ interface ProductModules {
   val bundledPluginModuleGroups: List<PluginModuleGroup>
 
   /**
+   * Returns IDs of modules containing `META-INF/plugin.xml` files of the bundled plugins.
+   */
+  val bundledPluginDescriptorModules: List<RuntimeModuleId>
+
+  /**
    * Returns mapping from an ID of a bundled plugin module which wasn't loaded because some dependency wasn't found, to the path to the
    * transitive dependency which wasn't found.
    */
