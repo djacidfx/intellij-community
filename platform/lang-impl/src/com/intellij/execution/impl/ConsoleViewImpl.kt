@@ -955,7 +955,7 @@ open class ConsoleViewImpl protected constructor(
                     val fragment = StringUtil.shortenTextWithEllipsis(
                       documentCopy.text.trim().replace("\n", " \\n "),
                       20, 5, true)
-                    LOG.info("Heavy console filter: outdated, skipping application for '$fragment'")
+                    LOG.debug("Heavy console filter: outdated, skipping application for '$fragment'")
                     return
                   }
 
