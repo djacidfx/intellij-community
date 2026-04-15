@@ -692,6 +692,7 @@ a:com.intellij.openapi.vcs.changes.ChangeViewDiffRequestProcessor
 - clear():V
 - collectDiffProducers(Z):com.intellij.openapi.ListSelection
 - p:createGoToChangeAction():com.intellij.openapi.actionSystem.AnAction
+- p:getGoToChangeActions():java.util.List
 - forceKeepCurrentFileWhileFocused():Z
 - getAllChanges():java.util.stream.Stream
 - getCurrentChange():com.intellij.openapi.vcs.changes.ChangeViewDiffRequestProcessor$Wrapper
@@ -1104,6 +1105,8 @@ a:com.intellij.openapi.vcs.changes.actions.diff.PresentableGoToChangePopupAction
 - <init>():V
 - p:canNavigate():Z
 - p:createPopup(com.intellij.openapi.actionSystem.AnActionEvent):com.intellij.openapi.ui.popup.JBPopup
+- p:createPopupMenuActions():java.util.List
+- p:createToolbarActions():java.util.List
 - pa:getChanges():com.intellij.openapi.ListSelection
 - pa:getPresentation(java.lang.Object):com.intellij.openapi.vcs.changes.ui.PresentableChange
 - pa:onSelected(java.lang.Object):V
