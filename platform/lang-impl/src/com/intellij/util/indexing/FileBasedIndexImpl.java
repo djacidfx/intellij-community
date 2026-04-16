@@ -10,6 +10,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.application.WriteIntentReadAction;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.diagnostic.ThrottledLogger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.impl.EditorHighlighterCache;
 import com.intellij.openapi.extensions.ExtensionPointListener;
@@ -162,6 +163,7 @@ public final class FileBasedIndexImpl extends FileBasedIndexEx {
 
   @Internal
   public static final Logger LOG = Logger.getInstance(FileBasedIndexImpl.class);
+  private static final ThrottledLogger THROTTLED_LOG = new ThrottledLogger(LOG, 10 /*ms*/);
 
   /** How often, on average, flush each index to the disk */
   private static final long FLUSHING_PERIOD_MS = SECONDS.toMillis(FlushingDaemon.FLUSHING_PERIOD_IN_SECONDS);
@@ -1945,7 +1947,7 @@ public final class FileBasedIndexImpl extends FileBasedIndexEx {
     long currentModCount = myFilesToUpdateCollector.modificationCount();
     if (lastProcessedModCount != null && lastProcessedModCount >= currentModCount) {
       if (LOG.isDebugEnabled()) {
-        LOG.debug("modCountCheck[last: " + lastProcessedModCount + " >= current: " + currentModCount + "] -> skip updates");
+        THROTTLED_LOG.debug(() -> "modCountCheck[last: " + lastProcessedModCount + " >= current: " + currentModCount + "] -> skip updates");
       }
       //everything is already processed
       return;
