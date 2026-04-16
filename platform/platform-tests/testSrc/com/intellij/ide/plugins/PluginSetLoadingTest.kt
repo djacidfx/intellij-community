@@ -638,6 +638,21 @@ class PluginSetLoadingTest {
     assert(moduleOrder in validOrders) { "Invalid module order: $moduleOrder" }
   }
 
+  @Test
+  fun `incompatible-with's origin gets excluded instead of target`() {
+    plugin("foo") {}.buildDir(pluginsDirPath.resolve("foo"))
+    plugin("bar") {
+      incompatibleWith = listOf("foo")
+    }.buildDir(pluginsDirPath.resolve("bar"))
+
+    val pluginSet = buildPluginSet()
+    assertThat(pluginSet).hasExactlyEnabledPlugins("foo")
+    val errors = PluginManagerCore.getAndClearPluginLoadingErrors()
+    assertThat(errors).hasSize(1)
+    val error = errors[0]
+    assertThat(error.htmlMessage.toString()).contains("bar", "not compatible", "foo")
+  }
+
   private fun writeDescriptor(id: String, @Language("xml") data: String) {
     pluginsDirPath.resolve(id)
       .resolve(PluginManagerCore.PLUGIN_XML_PATH)
