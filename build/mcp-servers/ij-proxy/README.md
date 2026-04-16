@@ -74,6 +74,7 @@ The proxy is not a pure pass-through: it exposes a fixed proxy tool set (unless 
 Notes:
 - Upstream JetBrains file tools that are replaced by proxy tools (for example `get_file_text_by_path`, `replace_text_in_file`, `list_directory_tree`) are hidden.
 - If the upstream server exposes `read_file` or `search_*`, ij-proxy passes them through unchanged and does not expose proxy shims for those names.
+- `lint_files` responses may include file entries with `timedOut: true` and empty `problems`; top-level `more: true` still means the overall batch is incomplete.
 - Search tools and their compatibility are documented in `search.md`.
 - Use `apply_patch` to create files.
 

@@ -138,6 +138,62 @@ class AnalysisToolsetTest : GeneralMcpToolsetTestBase() {
   }
 
   @Test
+  fun lint_files_includes_timed_out_files_and_omits_clean_files() = runBlocking(Dispatchers.Default) {
+    val mainPath = project.projectDirectory.relativizeIfPossible(mainJavaFile)
+    val classPath = project.projectDirectory.relativizeIfPossible(classJavaFile)
+
+    withLintFilesCollector(
+      collector = { _, onFileResult ->
+        onFileResult(AnalysisToolset.LintFileResult(filePath = mainPath, timedOut = true))
+        onFileResult(AnalysisToolset.LintFileResult(filePath = classPath))
+      },
+    ) {
+      testMcpTool(
+        AnalysisToolset::lint_files.name,
+        buildJsonObject {
+          put("file_paths", buildJsonArray {
+            add(JsonPrimitive(mainPath))
+            add(JsonPrimitive(classPath))
+          })
+        },
+      ) { result ->
+        val text = result.textContent.text
+        assertThat(text).containsOnlyOnce(""""filePath":"src/Main.java"""")
+        assertThat(text).contains(""""timedOut":true""")
+        assertThat(text).contains(""""problems":[]""")
+        assertThat(text).doesNotContain(""""filePath":"src/Class.java"""")
+        assertThat(text).doesNotContain(""""more":true""")
+      }
+    }
+  }
+
+  @Test
+  fun lint_files_keeps_timed_out_files_in_request_order() = runBlocking(Dispatchers.Default) {
+    val mainPath = project.projectDirectory.relativizeIfPossible(mainJavaFile)
+    val classPath = project.projectDirectory.relativizeIfPossible(classJavaFile)
+
+    withLintFilesCollector(
+      collector = { _, onFileResult ->
+        onFileResult(lintFileResultWithProblem(classPath))
+        onFileResult(AnalysisToolset.LintFileResult(filePath = mainPath, timedOut = true))
+      },
+    ) {
+      testMcpTool(
+        AnalysisToolset::lint_files.name,
+        buildJsonObject {
+          put("file_paths", buildJsonArray {
+            add(JsonPrimitive(mainPath))
+            add(JsonPrimitive(classPath))
+          })
+        },
+      ) { result ->
+        val text = result.textContent.text
+        assertThat(text.indexOf(""""filePath":"src/Main.java"""")).isLessThan(text.indexOf(""""filePath":"src/Class.java"""))
+      }
+    }
+  }
+
+  @Test
   fun get_file_problems_returns_empty_errors_when_file_is_clean() = runBlocking(Dispatchers.Default) {
     val mainPath = project.projectDirectory.relativizeIfPossible(mainJavaFile)
 

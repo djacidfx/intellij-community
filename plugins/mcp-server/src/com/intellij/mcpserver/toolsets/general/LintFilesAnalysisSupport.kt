@@ -42,14 +42,43 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.job
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.jetbrains.annotations.ApiStatus.Internal
 import org.jetbrains.annotations.TestOnly
 import java.util.function.Function
 import kotlin.coroutines.resume
+import kotlin.time.Duration.Companion.milliseconds
 
 private val LOG = logger<AnalysisToolset>()
+
+internal const val LINT_FILES_DEFAULT_TIMEOUT_MILLISECONDS_VALUE: Int = 120_000
+
+private const val LINT_FILES_PER_FILE_TIMEOUT_MILLISECONDS: Int = 20_000
+private const val LINT_FILES_TIMEOUT_HEADROOM_DIVISOR: Int = 20
+private const val LINT_FILES_MIN_TIMEOUT_HEADROOM_MILLISECONDS: Int = 50
+private const val LINT_FILES_MAX_TIMEOUT_HEADROOM_MILLISECONDS: Int = 5_000
+
+internal data class LintFilesTimeoutContext(
+  @JvmField val requestDeadlineMs: Long,
+  @JvmField val perFileTimeoutMs: Int = LINT_FILES_PER_FILE_TIMEOUT_MILLISECONDS,
+)
+
+internal data class LintFilesBatchTimeouts(
+  @JvmField val analysisTimeoutMs: Int,
+  @JvmField val timeoutContext: LintFilesTimeoutContext,
+)
+
+internal fun createLintFilesBatchTimeouts(timeoutMs: Int, currentTimeMs: Long = System.currentTimeMillis()): LintFilesBatchTimeouts {
+  val headroomMs = (timeoutMs / LINT_FILES_TIMEOUT_HEADROOM_DIVISOR)
+    .coerceIn(LINT_FILES_MIN_TIMEOUT_HEADROOM_MILLISECONDS, LINT_FILES_MAX_TIMEOUT_HEADROOM_MILLISECONDS)
+  val analysisTimeoutMs = (timeoutMs - headroomMs).coerceAtLeast(0)
+  return LintFilesBatchTimeouts(
+    analysisTimeoutMs = analysisTimeoutMs,
+    timeoutContext = LintFilesTimeoutContext(requestDeadlineMs = currentTimeMs + analysisTimeoutMs),
+  )
+}
 
 private typealias LintFilesCollectorOverride = suspend (
   LintFilesCollectorRequest,
@@ -94,6 +123,7 @@ internal suspend fun collectLintFiles(
   project: Project,
   request: LintFilesCollectorRequest,
   onFileResult: (AnalysisToolset.LintFileResult) -> Unit,
+  timeoutContext: LintFilesTimeoutContext? = null,
 ) {
   val override = getLintFilesAnalysisSupportState(project).collectorOverride
   if (override != null) {
@@ -116,6 +146,7 @@ internal suspend fun collectLintFiles(
     minSeverity = request.minSeverity,
     inspectionProfile = project.serviceAsync<InspectionProjectProfileManager>().currentProfile,
     onFileResult = onFileResult,
+    timeoutContext = timeoutContext,
   )
 }
 
@@ -188,6 +219,7 @@ internal suspend fun collectLintFileResults(
   minSeverity: HighlightSeverity,
   inspectionProfile: InspectionProfile,
   onFileResult: (AnalysisToolset.LintFileResult) -> Unit,
+  timeoutContext: LintFilesTimeoutContext? = null,
 ) {
   if (resolvedFiles.isEmpty()) {
     return
@@ -209,6 +241,7 @@ internal suspend fun collectLintFileResults(
       fileDocumentManager = fileDocumentManager,
       codeAnalyzer = daemonCodeAnalyzer,
       codeAnalyzerSettings = codeAnalyzerSettings,
+      timeoutContext = timeoutContext,
     )
     onFileResult(result)
   }
@@ -223,6 +256,7 @@ private suspend fun collectLintFileResult(
   fileDocumentManager: FileDocumentManager,
   codeAnalyzer: DaemonCodeAnalyzerImpl,
   codeAnalyzerSettings: DaemonCodeAnalyzerSettings,
+  timeoutContext: LintFilesTimeoutContext? = null,
 ): AnalysisToolset.LintFileResult {
   val fileContext = readAction {
     val virtualFile = resolvedFile.virtualFile
@@ -253,7 +287,8 @@ private suspend fun collectLintFileResult(
     inspectionProfile = inspectionProfile,
     codeAnalyzer = codeAnalyzer,
     codeAnalyzerSettings = codeAnalyzerSettings,
-  )
+    timeoutContext = timeoutContext,
+  ) ?: return createTimedOutLintFileResult(resolvedFile.relativePath)
   LOG.trace { "Main passes completed for ${resolvedFile.relativePath}, found ${highlightInfos.size} highlights" }
   return createLintFileResult(resolvedFile.relativePath, fileContext.document, highlightInfos, minSeverity)
 }
@@ -272,8 +307,28 @@ private suspend fun runLintMainPasses(
   inspectionProfile: InspectionProfile,
   codeAnalyzer: DaemonCodeAnalyzerImpl,
   codeAnalyzerSettings: DaemonCodeAnalyzerSettings,
-): List<HighlightInfo> {
+  timeoutContext: LintFilesTimeoutContext? = null,
+): List<HighlightInfo>? {
   return getLintFilesMainPassesMutex(project).withLock {
+    val fileTimeoutMs = timeoutContext?.fileTimeoutMs()
+    if (fileTimeoutMs != null) {
+      if (fileTimeoutMs <= 0) {
+        return@withLock null
+      }
+      return@withLock withTimeoutOrNull(fileTimeoutMs.milliseconds) {
+        runLintMainPassesLocked(
+          project = project,
+          relativePath = relativePath,
+          psiFile = psiFile,
+          document = document,
+          minSeverity = minSeverity,
+          inspectionProfile = inspectionProfile,
+          codeAnalyzer = codeAnalyzer,
+          codeAnalyzerSettings = codeAnalyzerSettings,
+        )
+      }
+    }
+
     runLintMainPassesLocked(
       project = project,
       relativePath = relativePath,
@@ -447,6 +502,11 @@ private fun createEmptyLintFileResult(filePath: String): AnalysisToolset.LintFil
   return AnalysisToolset.LintFileResult(filePath = filePath, problems = emptyList(), timedOut = false)
 }
 
+private fun createTimedOutLintFileResult(filePath: String): AnalysisToolset.LintFileResult {
+  LOG.trace { "Timed out while collecting highlights for $filePath" }
+  return AnalysisToolset.LintFileResult(filePath = filePath, problems = emptyList(), timedOut = true)
+}
+
 private fun createLintProblem(document: Document, info: HighlightInfo): AnalysisToolset.LintProblem {
   val startLine = document.getLineNumber(info.startOffset)
   val lineStartOffset = document.getLineStartOffset(startLine)
@@ -514,3 +574,8 @@ private data class LintFileContext(
   @JvmField val psiFile: PsiFile,
   @JvmField val document: Document,
 )
+
+private fun LintFilesTimeoutContext.fileTimeoutMs(currentTimeMs: Long = System.currentTimeMillis()): Int {
+  val remainingRequestBudgetMs = (requestDeadlineMs - currentTimeMs).coerceAtLeast(0L)
+  return minOf(remainingRequestBudgetMs, perFileTimeoutMs.toLong()).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+}

@@ -10,12 +10,26 @@ const legacyLintTool = buildUpstreamTool('get_file_problems', {
   timeout: {type: 'number'}
 }, ['filePath'])
 
+const nativeLintTool = buildUpstreamTool('lint_files', {
+  file_paths: {type: 'array', items: {type: 'string'}},
+  min_severity: {type: 'string'},
+  timeout: {type: 'number'}
+}, ['file_paths'])
+
 function legacyLintResponse(filePath: string, errors: unknown[], timedOut?: boolean) {
   const payload = {
     filePath,
     errors,
     ...(timedOut ? {timedOut: true} : {})
   }
+  return {
+    structuredContent: payload,
+    text: JSON.stringify(payload)
+  }
+}
+
+function nativeLintResponse(items: unknown[], more?: boolean) {
+  const payload = more ? {items, more: true} : {items}
   return {
     structuredContent: payload,
     text: JSON.stringify(payload)
@@ -116,5 +130,107 @@ describe('ij MCP proxy lint_files legacy compatibility', {timeout: SUITE_TIMEOUT
     })
 
     deepStrictEqual(calls, ['src/Main.kt', 'src/Clean.kt'])
+  })
+
+  it('treats null timeout as omitted for native lint_files', async () => {
+    const calls: Array<{filePaths: string[]; timeout: unknown}> = []
+
+    await withProxy({
+      tools: [nativeLintTool],
+      onToolCall({name, args}) {
+        strictEqual(name, 'lint_files')
+        calls.push({filePaths: (args.file_paths as string[]).slice(), timeout: args.timeout})
+        return nativeLintResponse([{
+          filePath: 'src/Main.kt',
+          problems: [{severity: 'WARNING', description: 'warning', lineText: 'warning', line: 1, column: 1}]
+        }])
+      }
+    }, async ({proxyClient}) => {
+      await proxyClient.send('tools/list')
+      const response = await proxyClient.send('tools/call', {
+        name: 'lint_files',
+        arguments: {file_paths: ['src/Main.kt'], timeout: null}
+      })
+
+      const parsed = JSON.parse(response.result.content[0].text)
+      deepStrictEqual(parsed.items.map((item) => item.filePath), ['src/Main.kt'])
+      ok(!('more' in parsed))
+    })
+
+    deepStrictEqual(calls, [{filePaths: ['src/Main.kt'], timeout: undefined}])
+  })
+
+  it('calls native lint_files once and preserves request order', async () => {
+    const requestedPaths = [
+      'src/File1.kt',
+      'src/File2.kt',
+      'src/File3.kt',
+      'src/File4.kt',
+      'src/File5.kt',
+      'src/File6.kt',
+      'src/File7.kt'
+    ]
+    const calls: Array<{filePaths: string[]; timeout?: number}> = []
+
+    await withProxy({
+      tools: [nativeLintTool],
+      onToolCall({name, args}) {
+        strictEqual(name, 'lint_files')
+        const filePaths = (args.file_paths as string[]).slice()
+        calls.push({filePaths, timeout: args.timeout as number | undefined})
+        return nativeLintResponse(filePaths.slice().reverse().map((filePath) => ({
+          filePath,
+          problems: [{severity: 'WARNING', description: filePath, lineText: filePath, line: 1, column: 1}]
+        })))
+      }
+    }, async ({proxyClient}) => {
+      await proxyClient.send('tools/list')
+      const response = await proxyClient.send('tools/call', {
+        name: 'lint_files',
+        arguments: {file_paths: requestedPaths, timeout: 500}
+      })
+
+      const parsed = JSON.parse(response.result.content[0].text)
+      deepStrictEqual(parsed.items.map((item) => item.filePath), requestedPaths)
+    })
+
+    deepStrictEqual(calls, [{filePaths: requestedPaths, timeout: 500}])
+  })
+
+  it('preserves more from a single native lint_files call', async () => {
+    const requestedPaths = [
+      'src/File1.kt',
+      'src/File2.kt',
+      'src/File3.kt',
+      'src/File4.kt',
+      'src/File5.kt',
+      'src/File6.kt'
+    ]
+    const calls: string[][] = []
+
+    await withProxy({
+      tools: [nativeLintTool],
+      onToolCall({name, args}) {
+        strictEqual(name, 'lint_files')
+        const filePaths = (args.file_paths as string[]).slice()
+        calls.push(filePaths)
+        return nativeLintResponse(filePaths.slice(0, 5).reverse().map((filePath) => ({
+          filePath,
+          problems: [{severity: 'WARNING', description: filePath, lineText: filePath, line: 1, column: 1}]
+        })), true)
+      }
+    }, async ({proxyClient}) => {
+      await proxyClient.send('tools/list')
+      const response = await proxyClient.send('tools/call', {
+        name: 'lint_files',
+        arguments: {file_paths: requestedPaths, timeout: 500}
+      })
+
+      const parsed = JSON.parse(response.result.content[0].text)
+      strictEqual(parsed.more, true)
+      deepStrictEqual(parsed.items.map((item) => item.filePath), requestedPaths.slice(0, 5))
+    })
+
+    deepStrictEqual(calls, [requestedPaths])
   })
 })

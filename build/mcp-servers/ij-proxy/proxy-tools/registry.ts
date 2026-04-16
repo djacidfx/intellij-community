@@ -145,7 +145,7 @@ const TOOL_VARIANTS: ToolVariant[] = [
   },
   {
     name: 'lint_files',
-    description: 'Analyze several files and return per-file problems with severity, description, line text, and location.',
+    description: 'Analyze several files and return per-file problems, including timed-out file entries when a batch is incomplete.',
     schemaFactory: () => createLintFilesSchema(),
     handlerFactory: ({callUpstreamTool, analysisCapabilities}) => (args) =>
       handleLintFilesTool(args, callUpstreamTool, analysisCapabilities),

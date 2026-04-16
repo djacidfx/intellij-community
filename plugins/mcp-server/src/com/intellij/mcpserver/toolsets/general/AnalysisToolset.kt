@@ -62,6 +62,8 @@ class AnalysisToolset : McpToolset {
         |Analyzes the specified files for errors and warnings using IntelliJ's inspections.
         |Use this tool to lint several files after editing them.
         |Returns per-file problems with severity, description, and location information.
+        |Batch responses may include file entries with `timedOut: true` and empty `problems` when individual files exceed the available budget.
+        |Top-level `more: true` means the batch is incomplete.
         |`min_severity` must be `warning` or `error`; defaults to `warning`.
         |Note: Only analyzes files within the project directory.
         |Note: Lines and Columns are 1-based.
@@ -72,7 +74,7 @@ class AnalysisToolset : McpToolset {
     @McpDescription("Minimum severity to include: `warning` or `error`. Defaults to `warning`.")
     min_severity: String = LintMinSeverity.WARNING.apiValue,
     @McpDescription(Constants.TIMEOUT_MILLISECONDS_DESCRIPTION)
-    timeout: Int = Constants.MEDIUM_TIMEOUT_MILLISECONDS_VALUE,
+    timeout: Int = LINT_FILES_DEFAULT_TIMEOUT_MILLISECONDS_VALUE,
   ): LintFilesResult {
     currentCoroutineContext().reportToolActivity(McpServerBundle.message("tool.activity.collecting.file.problems.batch", file_paths.size))
     return collectLintFiles(
@@ -80,6 +82,7 @@ class AnalysisToolset : McpToolset {
       minSeverityValue = min_severity,
       timeout = timeout,
       progressTitle = McpServerBundle.message("progress.title.analyzing.files", file_paths.size),
+      useBatchTimeouts = true,
     )
   }
 
@@ -348,10 +351,12 @@ class AnalysisToolset : McpToolset {
     minSeverityValue: String,
     timeout: Int,
     progressTitle: @ProgressTitle String,
+    useBatchTimeouts: Boolean = false,
   ): LintFilesResult {
     val project = currentCoroutineContext().project
     val requestedFiles = prepareRequestedLintFiles(project, filePaths)
     val minSeverity = LintMinSeverity.parse(minSeverityValue)
+    val batchTimeouts = if (useBatchTimeouts) createLintFilesBatchTimeouts(timeout) else null
     val request = LintFilesCollectorRequest(
       requestedFiles = requestedFiles,
       filePaths = requestedFiles.map { it.relativePath },
@@ -361,14 +366,14 @@ class AnalysisToolset : McpToolset {
     val completedFilePaths = ConcurrentHashMap.newKeySet<String>(requestedFiles.size)
     val onFileResult: (LintFileResult) -> Unit = { result ->
       completedFilePaths.add(result.filePath)
-      if (result.problems.isNotEmpty()) {
+      if (result.problems.isNotEmpty() || result.timedOut == true) {
         completedResults.putIfAbsent(result.filePath, result)
       }
     }
 
-    val completedInTime = withTimeoutOrNull(timeout.milliseconds) {
+    val completedInTime = withTimeoutOrNull((batchTimeouts?.analysisTimeoutMs ?: timeout).milliseconds) {
       withBackgroundProgress(project, progressTitle, cancellable = true) {
-        collectLintFiles(project, request, onFileResult)
+        collectLintFiles(project, request, onFileResult, batchTimeouts?.timeoutContext)
       }
     } != null
 

@@ -24777,7 +24777,7 @@ var TOOL_VARIANTS = [
   },
   {
     name: "lint_files",
-    description: "Analyze several files and return per-file problems with severity, description, line text, and location.",
+    description: "Analyze several files and return per-file problems, including timed-out file entries when a batch is incomplete.",
     schemaFactory: () => createLintFilesSchema(),
     handlerFactory: ({ callUpstreamTool, analysisCapabilities }) => (args) => handleLintFilesTool(args, callUpstreamTool, analysisCapabilities),
     annotations: READ_ONLY_TOOL_ANNOTATIONS,
@@ -25494,6 +25494,8 @@ proxyServer.setRequestHandler(CallToolRequestSchema, async (request) => {
     let proxyCall = ideaProxyToolCall ?? riderProxyToolCall;
     if (proxyCall)
       try {
+        if (toolName === "lint_files")
+          return await callSingleLintFilesTool(args);
         return makeToolOutput(await proxyCall(toolName, args));
       } catch (error48) {
         let message = error48 instanceof Error ? error48.message : String(error48);
@@ -25522,6 +25524,8 @@ proxyServer.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
   }
   try {
+    if (toolName === "lint_files")
+      return await callSingleLintFilesTool(args);
     return await primaryUpstream().callToolForClient(toolName, args);
   } catch (error48) {
     let message = error48 instanceof Error ? error48.message : String(error48);
@@ -25551,27 +25555,8 @@ async function callMergedProxyTool(toolName, args) {
 }
 async function callSplitMergedProxyTool(toolName, args) {
   switch (toolName) {
-    case "lint_files": {
-      let splitArgs;
-      try {
-        splitArgs = splitPathListArgsByIde(args, projectPath);
-      } catch (error48) {
-        let message = error48 instanceof Error ? error48.message : String(error48);
-        return makeToolError(message);
-      }
-      let calls = [], transformers = [];
-      if (splitArgs.ideaArgs)
-        calls.push(callLintFilesViaProxyOrNative("idea", splitArgs.ideaArgs)), transformers.push(void 0);
-      if (splitArgs.riderArgs)
-        calls.push(callLintFilesViaProxyOrNative("rider", splitArgs.riderArgs)), transformers.push(riderItemTransformer);
-      let results = await Promise.allSettled(calls);
-      for (let result of results)
-        if (result.status === "rejected") {
-          let message = result.reason instanceof Error ? result.reason.message : String(result.reason);
-          return makeToolError(message);
-        }
-      return mergeSettledResults(results, "proxy", transformers);
-    }
+    case "lint_files":
+      return await callSplitMergedLintFiles(args);
     default:
       return makeToolError(`Tool '${toolName}' is not configured for split-merge proxy routing.`);
   }
@@ -25585,27 +25570,8 @@ async function callMergedPassthroughTool(toolName, args) {
 }
 async function callSplitMergedPassthroughTool(toolName, args) {
   switch (toolName) {
-    case "lint_files": {
-      let splitArgs;
-      try {
-        splitArgs = splitPathListArgsByIde(args, projectPath);
-      } catch (error48) {
-        let message = error48 instanceof Error ? error48.message : String(error48);
-        return makeToolError(message);
-      }
-      let calls = [], transformers = [];
-      if (splitArgs.ideaArgs)
-        calls.push(ideaUpstream.callToolForClient(toolName, splitArgs.ideaArgs)), transformers.push(void 0);
-      if (splitArgs.riderArgs)
-        calls.push(riderUpstream.callToolForClient(toolName, splitArgs.riderArgs)), transformers.push(riderItemTransformer);
-      let results = await Promise.allSettled(calls);
-      for (let result of results)
-        if (result.status === "rejected") {
-          let message = result.reason instanceof Error ? result.reason.message : String(result.reason);
-          return makeToolError(message);
-        }
-      return mergeSettledResults(results, "passthrough", transformers);
-    }
+    case "lint_files":
+      return await callSplitMergedLintFiles(args);
     default:
       return makeToolError(`Tool '${toolName}' is not configured for split-merge routing.`);
   }
@@ -25623,6 +25589,104 @@ async function callLintFilesViaProxyOrNative(side, args) {
       return await riderUpstream.callToolForClient("lint_files", { ...args });
   }
   throw Error(`Tool 'lint_files' is not supported by the ${side === "idea" ? "IDEA" : "Rider"} upstream.`);
+}
+async function callSingleLintFilesTool(args) {
+  let normalizedArgs = normalizeLintFilesArgs(args), side = getSingleLintFilesSide(), result = await callLintFilesForSide(side, normalizedArgs), items = side === "rider" ? riderItemTransformer(result.items) : result.items;
+  return createLintFilesToolOutput(result.more === !0 ? { items, more: !0 } : { items });
+}
+async function callSplitMergedLintFiles(args) {
+  let normalizedArgs = normalizeLintFilesArgs(args), normalizedFilePaths = normalizedArgs.file_paths, splitArgs;
+  try {
+    splitArgs = splitPathListArgsByIde(normalizedArgs, projectPath);
+  } catch (error48) {
+    let message = error48 instanceof Error ? error48.message : String(error48);
+    return makeToolError(message);
+  }
+  let calls = [];
+  if (splitArgs.ideaArgs)
+    calls.push({ promise: callLintFilesForSide("idea", splitArgs.ideaArgs) });
+  if (splitArgs.riderArgs)
+    calls.push({ promise: callLintFilesForSide("rider", splitArgs.riderArgs), transformer: riderItemTransformer });
+  let results = await Promise.allSettled(calls.map((call) => call.promise));
+  for (let result of results)
+    if (result.status === "rejected") {
+      let message = result.reason instanceof Error ? result.reason.message : String(result.reason);
+      return makeToolError(message);
+    }
+  let mergedItems = [], more = !1;
+  for (let i = 0;i < results.length; i++) {
+    let result = results[i];
+    if (result.status !== "fulfilled")
+      continue;
+    mergedItems.push(...transformLintItems(result.value.items, calls[i].transformer)), more = more || result.value.more === !0;
+  }
+  let items = orderLintItems(normalizedFilePaths, mergedItems);
+  return createLintFilesToolOutput(more ? { items, more: !0 } : { items });
+}
+async function callLintFilesForSide(side, args) {
+  let normalizedArgs = normalizeLintFilesArgs(args), result = parseLintFilesToolResult(await callLintFilesViaProxyOrNative(side, normalizedArgs)), filePaths = normalizedArgs.file_paths, items = orderLintItems(filePaths, result.items);
+  return result.more === !0 ? { items, more: !0 } : { items };
+}
+function getSingleLintFilesSide() {
+  if (ideaProxyToolCall || ideaUpstream)
+    return "idea";
+  if (riderProxyToolCall || riderUpstream)
+    return "rider";
+  throw Error("Tool 'lint_files' is not available because no upstream is connected.");
+}
+function normalizeLintFilesArgs(args) {
+  let filePaths = normalizeLintFilePathsArg(args.file_paths), timeout = normalizeLintTimeoutArg(args.timeout), normalizedArgs = {
+    ...args,
+    file_paths: filePaths
+  };
+  if (timeout !== void 0)
+    normalizedArgs.timeout = timeout;
+  else
+    delete normalizedArgs.timeout;
+  return normalizedArgs;
+}
+function normalizeLintFilePathsArg(value) {
+  if (!Array.isArray(value))
+    throw Error("file_paths must be an array of non-empty strings");
+  let result = [], seen = /* @__PURE__ */ new Set;
+  for (let rawPath of value) {
+    if (typeof rawPath !== "string" || rawPath.trim().length === 0)
+      throw Error("file_paths must contain non-empty strings");
+    let normalizedPath = rawPath.trim();
+    if (seen.has(normalizedPath))
+      continue;
+    seen.add(normalizedPath), result.push(normalizedPath);
+  }
+  if (result.length === 0)
+    throw Error("file_paths must contain at least one path");
+  return result;
+}
+function normalizeLintTimeoutArg(value) {
+  if (value === void 0 || value === null)
+    return;
+  if (typeof value !== "number" || !Number.isInteger(value) || !Number.isFinite(value) || value < 0)
+    throw Error("timeout must be a non-negative integer");
+  return value;
+}
+function parseLintFilesToolResult(result) {
+  let structured = extractStructuredContent(result);
+  if (!isRecord3(structured))
+    throw Error("Upstream lint_files returned unexpected result");
+  let items = extractItems({ structuredContent: structured });
+  return structured.more === !0 ? { items, more: !0 } : { items };
+}
+function orderLintItems(filePaths, items) {
+  let itemsByPath = /* @__PURE__ */ new Map;
+  for (let item of items)
+    if (!itemsByPath.has(item.filePath))
+      itemsByPath.set(item.filePath, item);
+  return filePaths.map((filePath) => itemsByPath.get(filePath)).filter((item) => item != null);
+}
+function transformLintItems(items, transformer) {
+  return transformer ? transformer(items) : items;
+}
+function createLintFilesToolOutput(result) {
+  return makeToolOutput(JSON.stringify(result.more === !0 ? { items: result.items, more: !0 } : { items: result.items }));
 }
 function logSettledErrors(results) {
   for (let r of results)

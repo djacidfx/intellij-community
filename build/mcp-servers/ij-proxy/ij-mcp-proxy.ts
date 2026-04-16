@@ -61,6 +61,11 @@ type ToolOutput = {
   isError?: boolean
 }
 
+interface LintFilesToolResult {
+  items: SearchItem[]
+  more?: boolean
+}
+
 interface DiscoveredUpstream {
   conn: UpstreamConnection
   url: string
@@ -545,6 +550,9 @@ proxyServer.setRequestHandler(CallToolRequestSchema, async (request) => {
     const proxyCall = ideaProxyToolCall ?? riderProxyToolCall
     if (proxyCall) {
       try {
+        if (toolName === 'lint_files') {
+          return await callSingleLintFilesTool(args)
+        }
         return makeToolOutput(await proxyCall(toolName, args))
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
@@ -582,6 +590,9 @@ proxyServer.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   // Single IDE
   try {
+    if (toolName === 'lint_files') {
+      return await callSingleLintFilesTool(args)
+    }
     return await primaryUpstream().callToolForClient(toolName, args)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
@@ -623,33 +634,7 @@ async function callMergedProxyTool(toolName: string, args: ToolArgs): Promise<To
 async function callSplitMergedProxyTool(toolName: string, args: ToolArgs): Promise<ToolOutput> {
   switch (toolName) {
     case 'lint_files': {
-      let splitArgs: {ideaArgs?: ToolArgs; riderArgs?: ToolArgs}
-      try {
-        splitArgs = splitPathListArgsByIde(args, projectPath)
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        return makeToolError(message)
-      }
-
-      const calls: Promise<unknown>[] = []
-      const transformers: (ItemTransformer | undefined)[] = []
-      if (splitArgs.ideaArgs) {
-        calls.push(callLintFilesViaProxyOrNative('idea', splitArgs.ideaArgs))
-        transformers.push(undefined)
-      }
-      if (splitArgs.riderArgs) {
-        calls.push(callLintFilesViaProxyOrNative('rider', splitArgs.riderArgs))
-        transformers.push(riderItemTransformer)
-      }
-
-      const results = await Promise.allSettled(calls)
-      for (const result of results) {
-        if (result.status === 'rejected') {
-          const message = result.reason instanceof Error ? result.reason.message : String(result.reason)
-          return makeToolError(message)
-        }
-      }
-      return mergeSettledResults(results, 'proxy', transformers)
+      return await callSplitMergedLintFiles(args)
     }
 
     default:
@@ -668,33 +653,7 @@ async function callMergedPassthroughTool(toolName: string, args: ToolArgs): Prom
 async function callSplitMergedPassthroughTool(toolName: string, args: ToolArgs): Promise<ToolOutput> {
   switch (toolName) {
     case 'lint_files': {
-      let splitArgs: {ideaArgs?: ToolArgs; riderArgs?: ToolArgs}
-      try {
-        splitArgs = splitPathListArgsByIde(args, projectPath)
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        return makeToolError(message)
-      }
-
-      const calls: Promise<unknown>[] = []
-      const transformers: (ItemTransformer | undefined)[] = []
-      if (splitArgs.ideaArgs) {
-        calls.push(ideaUpstream!.callToolForClient(toolName, splitArgs.ideaArgs))
-        transformers.push(undefined)
-      }
-      if (splitArgs.riderArgs) {
-        calls.push(riderUpstream!.callToolForClient(toolName, splitArgs.riderArgs))
-        transformers.push(riderItemTransformer)
-      }
-
-      const results = await Promise.allSettled(calls)
-      for (const result of results) {
-        if (result.status === 'rejected') {
-          const message = result.reason instanceof Error ? result.reason.message : String(result.reason)
-          return makeToolError(message)
-        }
-      }
-      return mergeSettledResults(results, 'passthrough', transformers)
+      return await callSplitMergedLintFiles(args)
     }
 
     default:
@@ -720,6 +679,149 @@ async function callLintFilesViaProxyOrNative(side: 'idea' | 'rider', args: ToolA
   }
 
   throw new Error(`Tool 'lint_files' is not supported by the ${side === 'idea' ? 'IDEA' : 'Rider'} upstream.`)
+}
+
+async function callSingleLintFilesTool(args: ToolArgs): Promise<ToolOutput> {
+  const normalizedArgs = normalizeLintFilesArgs(args)
+  const side = getSingleLintFilesSide()
+  const result = await callLintFilesForSide(side, normalizedArgs)
+  const items = side === 'rider' ? riderItemTransformer(result.items) : result.items
+  return createLintFilesToolOutput(result.more === true ? {items, more: true} : {items})
+}
+
+async function callSplitMergedLintFiles(args: ToolArgs): Promise<ToolOutput> {
+  const normalizedArgs = normalizeLintFilesArgs(args)
+  const normalizedFilePaths = normalizedArgs.file_paths as string[]
+
+  let splitArgs: {ideaArgs?: ToolArgs; riderArgs?: ToolArgs}
+  try {
+    splitArgs = splitPathListArgsByIde(normalizedArgs, projectPath)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    return makeToolError(message)
+  }
+
+  const calls: Array<{promise: Promise<LintFilesToolResult>; transformer?: ItemTransformer}> = []
+  if (splitArgs.ideaArgs) {
+    calls.push({promise: callLintFilesForSide('idea', splitArgs.ideaArgs)})
+  }
+  if (splitArgs.riderArgs) {
+    calls.push({promise: callLintFilesForSide('rider', splitArgs.riderArgs), transformer: riderItemTransformer})
+  }
+
+  const results = await Promise.allSettled(calls.map((call) => call.promise))
+  for (const result of results) {
+    if (result.status === 'rejected') {
+      const message = result.reason instanceof Error ? result.reason.message : String(result.reason)
+      return makeToolError(message)
+    }
+  }
+
+  const mergedItems: SearchItem[] = []
+  let more = false
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i]
+    if (result.status !== 'fulfilled') continue
+    mergedItems.push(...transformLintItems(result.value.items, calls[i].transformer))
+    more = more || result.value.more === true
+  }
+
+  const items = orderLintItems(normalizedFilePaths, mergedItems)
+  return createLintFilesToolOutput(more ? {items, more: true} : {items})
+}
+
+async function callLintFilesForSide(side: 'idea' | 'rider', args: ToolArgs): Promise<LintFilesToolResult> {
+  const normalizedArgs = normalizeLintFilesArgs(args)
+  const result = parseLintFilesToolResult(await callLintFilesViaProxyOrNative(side, normalizedArgs))
+  const filePaths = normalizedArgs.file_paths as string[]
+  const items = orderLintItems(filePaths, result.items)
+  return result.more === true ? {items, more: true} : {items}
+}
+
+function getSingleLintFilesSide(): 'idea' | 'rider' {
+  if (ideaProxyToolCall || ideaUpstream) {
+    return 'idea'
+  }
+  if (riderProxyToolCall || riderUpstream) {
+    return 'rider'
+  }
+  throw new Error("Tool 'lint_files' is not available because no upstream is connected.")
+}
+
+function normalizeLintFilesArgs(args: ToolArgs): ToolArgs {
+  const filePaths = normalizeLintFilePathsArg(args.file_paths)
+  const timeout = normalizeLintTimeoutArg(args.timeout)
+  const normalizedArgs: ToolArgs = {
+    ...args,
+    file_paths: filePaths
+  }
+  if (timeout !== undefined) {
+    normalizedArgs.timeout = timeout
+  } else {
+    delete normalizedArgs.timeout
+  }
+  return normalizedArgs
+}
+
+function normalizeLintFilePathsArg(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    throw new Error('file_paths must be an array of non-empty strings')
+  }
+
+  const result: string[] = []
+  const seen = new Set<string>()
+  for (const rawPath of value) {
+    if (typeof rawPath !== 'string' || rawPath.trim().length === 0) {
+      throw new Error('file_paths must contain non-empty strings')
+    }
+
+    const normalizedPath = rawPath.trim()
+    if (seen.has(normalizedPath)) continue
+    seen.add(normalizedPath)
+    result.push(normalizedPath)
+  }
+
+  if (result.length === 0) {
+    throw new Error('file_paths must contain at least one path')
+  }
+  return result
+}
+
+function normalizeLintTimeoutArg(value: unknown): number | undefined {
+  if (value === undefined || value === null) {
+    return undefined
+  }
+  if (typeof value !== 'number' || !Number.isInteger(value) || !Number.isFinite(value) || value < 0) {
+    throw new Error('timeout must be a non-negative integer')
+  }
+  return value
+}
+
+function parseLintFilesToolResult(result: unknown): LintFilesToolResult {
+  const structured = extractStructuredContent(result)
+  if (!isRecord(structured)) {
+    throw new Error('Upstream lint_files returned unexpected result')
+  }
+  const items = extractItems({structuredContent: structured})
+  return structured.more === true ? {items, more: true} : {items}
+}
+
+function orderLintItems(filePaths: string[], items: SearchItem[]): SearchItem[] {
+  const itemsByPath = new Map<string, SearchItem>()
+  for (const item of items) {
+    if (!itemsByPath.has(item.filePath)) {
+      itemsByPath.set(item.filePath, item)
+    }
+  }
+  return filePaths.map((filePath) => itemsByPath.get(filePath)).filter((item): item is SearchItem => item != null)
+}
+
+function transformLintItems(items: SearchItem[], transformer?: ItemTransformer): SearchItem[] {
+  return transformer ? transformer(items) : items
+}
+
+function createLintFilesToolOutput(result: LintFilesToolResult): ToolOutput {
+  return makeToolOutput(JSON.stringify(result.more === true ? {items: result.items, more: true} : {items: result.items}))
 }
 
 function logSettledErrors(results: PromiseSettledResult<unknown>[]): void {

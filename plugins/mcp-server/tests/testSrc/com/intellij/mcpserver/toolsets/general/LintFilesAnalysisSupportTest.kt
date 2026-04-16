@@ -30,6 +30,17 @@ import kotlin.time.Duration.Companion.milliseconds
 
 class LintFilesAnalysisSupportTest : GeneralMcpToolsetTestBase() {
   @Test
+  fun createLintFilesBatchTimeouts_reserves_clamped_headroom() {
+    val shortTimeouts = createLintFilesBatchTimeouts(timeoutMs = 100, currentTimeMs = 1_000)
+    assertThat(shortTimeouts.analysisTimeoutMs).isEqualTo(50)
+    assertThat(shortTimeouts.timeoutContext.requestDeadlineMs).isEqualTo(1_050)
+
+    val longTimeouts = createLintFilesBatchTimeouts(timeoutMs = 200_000, currentTimeMs = 1_000)
+    assertThat(longTimeouts.analysisTimeoutMs).isEqualTo(195_000)
+    assertThat(longTimeouts.timeoutContext.requestDeadlineMs).isEqualTo(196_000)
+  }
+
+  @Test
   fun collectLintFileResults_serializes_main_passes_within_request(): Unit = runBlocking(Dispatchers.Default) {
     val mainPath = relativePath(mainJavaFile)
     val testPath = relativePath(testJavaFile)
@@ -280,6 +291,53 @@ class LintFilesAnalysisSupportTest : GeneralMcpToolsetTestBase() {
   }
 
   @Test
+  fun collectLintFileResults_times_out_current_file_without_consuming_next_file_budget(): Unit = runBlocking(Dispatchers.Default) {
+    val mainPath = relativePath(mainJavaFile)
+    val testPath = relativePath(testJavaFile)
+    val mainStarted = CompletableDeferred<Unit>()
+    val allowQueuedFile = CompletableDeferred<Unit>()
+
+    withLintBeforeMainPassesOverride(
+      project,
+      actionOverride = { filePath ->
+        if (filePath == testPath) {
+          mainStarted.await()
+          allowQueuedFile.await()
+        }
+      },
+    ) {
+      withLintMainPassesRunnerOverride(
+        project,
+        runner = { request ->
+          when (request.filePath) {
+            mainPath -> {
+              mainStarted.complete(Unit)
+              allowQueuedFile.complete(Unit)
+              awaitCancellation()
+            }
+
+            testPath -> emptyList()
+            else -> emptyList()
+          }
+        },
+      ) {
+        val results = collectResults(
+          filePaths = listOf(mainPath, testPath),
+          timeoutContext = LintFilesTimeoutContext(
+            requestDeadlineMs = System.currentTimeMillis() + 400,
+            perFileTimeoutMs = 100,
+          ),
+        )
+
+        assertThat(results.map { it.filePath }).containsExactly(mainPath, testPath)
+        assertThat(results[0].timedOut).isTrue()
+        assertThat(results[0].problems).isEmpty()
+        assertThat(results[1].timedOut).isFalse()
+      }
+    }
+  }
+
+  @Test
   fun lint_files_returns_partial_results_when_runner_times_out() = runBlocking(Dispatchers.Default) {
     val mainPath = relativePath(mainJavaFile)
 
@@ -305,7 +363,10 @@ class LintFilesAnalysisSupportTest : GeneralMcpToolsetTestBase() {
     }
   }
 
-  private suspend fun collectResults(filePaths: List<String>): List<AnalysisToolset.LintFileResult> {
+  private suspend fun collectResults(
+    filePaths: List<String>,
+    timeoutContext: LintFilesTimeoutContext? = null,
+  ): List<AnalysisToolset.LintFileResult> {
     val requestedFiles = prepareRequestedLintFiles(project, filePaths)
     val resolvedFiles = prepareLintFiles(requestedFiles)
     val inspectionProfile = project.serviceAsync<InspectionProjectProfileManager>().currentProfile
@@ -318,6 +379,7 @@ class LintFilesAnalysisSupportTest : GeneralMcpToolsetTestBase() {
       onFileResult = { result ->
         results[result.filePath] = result
       },
+      timeoutContext = timeoutContext,
     )
     return filePaths.mapNotNull(results::get)
   }

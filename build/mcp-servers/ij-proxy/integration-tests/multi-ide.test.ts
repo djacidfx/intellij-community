@@ -1,6 +1,6 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
-import {ok, strictEqual} from 'node:assert/strict'
+import {deepStrictEqual, ok, strictEqual} from 'node:assert/strict'
 import {mkdtempSync, rmSync} from 'node:fs'
 import {spawn} from 'node:child_process'
 import {tmpdir} from 'node:os'
@@ -224,6 +224,84 @@ describe('ij MCP proxy multi-IDE', {timeout: SUITE_TIMEOUT_MS}, () => {
       strictEqual(ideaCalls[0].name, 'get_file_problems')
       strictEqual(riderCalls.length, 1)
       strictEqual(riderCalls[0].name, 'lint_files')
+    })
+  })
+
+  it('calls native lint_files once per IDE and preserves original interleaved order', async () => {
+    const lintFilesTool = buildUpstreamTool('lint_files', {
+      file_paths: {type: 'array', items: {type: 'string'}},
+      min_severity: {type: 'string'},
+      timeout: {type: 'number'}
+    }, ['file_paths'])
+    const requestedPaths = [
+      'src/File1.kt',
+      'dotnet/Psi/File1.cs',
+      'src/File2.kt',
+      'dotnet/Psi/File2.cs',
+      'src/File3.kt',
+      'dotnet/Psi/File3.cs',
+      'src/File4.kt',
+      'dotnet/Psi/File4.cs',
+      'src/File5.kt',
+      'dotnet/Psi/File5.cs',
+      'src/File6.kt',
+      'dotnet/Psi/File6.cs'
+    ]
+
+    await withConfiguredDualProxy({
+      ideaTools: [lintFilesTool],
+      riderTools: [lintFilesTool],
+      ideaOnToolCall({name, args}) {
+        strictEqual(name, 'lint_files')
+        const filePaths = args.file_paths as string[]
+        const items = filePaths.slice().reverse().map((filePath) => ({
+          filePath,
+          problems: [{severity: 'WARNING', description: filePath, lineText: `idea:${filePath}`, line: 1, column: 1}]
+        }))
+        return {
+          structuredContent: {items},
+          text: JSON.stringify({items})
+        }
+      },
+      riderOnToolCall({name, args}) {
+        strictEqual(name, 'lint_files')
+        const filePaths = args.file_paths as string[]
+        const items = filePaths.slice().reverse().map((filePath) => ({
+          filePath,
+          problems: [{severity: 'WARNING', description: filePath, lineText: `rider:${filePath}`, line: 1, column: 1}]
+        }))
+        return {
+          structuredContent: {items},
+          text: JSON.stringify({items})
+        }
+      }
+    }, async ({proxyClient, ideaCalls, riderCalls}) => {
+      await proxyClient.send('tools/list')
+      const response = await proxyClient.send('tools/call', {
+        name: 'lint_files',
+        arguments: {file_paths: requestedPaths, timeout: 500}
+      })
+
+      const parsed = JSON.parse(response.result.content[0].text)
+      deepStrictEqual(parsed.items.map((item) => item.filePath), requestedPaths)
+      deepStrictEqual(ideaCalls.map((call) => call.args.file_paths), [[
+        'src/File1.kt',
+        'src/File2.kt',
+        'src/File3.kt',
+        'src/File4.kt',
+        'src/File5.kt',
+        'src/File6.kt'
+      ]])
+      deepStrictEqual(riderCalls.map((call) => call.args.file_paths), [[
+        'Psi/File1.cs',
+        'Psi/File2.cs',
+        'Psi/File3.cs',
+        'Psi/File4.cs',
+        'Psi/File5.cs',
+        'Psi/File6.cs'
+      ]])
+      deepStrictEqual(ideaCalls.map((call) => call.args.timeout), [500])
+      deepStrictEqual(riderCalls.map((call) => call.args.timeout), [500])
     })
   })
 })
