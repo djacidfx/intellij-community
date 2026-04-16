@@ -9,16 +9,16 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module-library" exported="">
       <library name="jsonpath" type="repository">
-        <properties maven-id="com.jayway.jsonpath:json-path:2.9.0">
+        <properties maven-id="com.jayway.jsonpath:json-path:2.10.0">
           <verification>
-            <artifact url="file://$MAVEN_REPOSITORY$/com/jayway/jsonpath/json-path/2.9.0/json-path-2.9.0.jar">
-              <sha256sum>11a9ee6f88bb31f1450108d1cf6441377dec84aca075eb6bb2343be157575bea</sha256sum>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/jayway/jsonpath/json-path/2.10.0/json-path-2.10.0.jar">
+              <sha256sum>890daa95dd3892d34d9fabc27cd5153656e6f369358625c88f4dc7b79cbd6c5a</sha256sum>
             </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/net/minidev/json-smart/2.5.0/json-smart-2.5.0.jar">
-              <sha256sum>432b9e545848c4141b80717b26e367f83bf33f19250a228ce75da6e967da2bc7</sha256sum>
+            <artifact url="file://$MAVEN_REPOSITORY$/net/minidev/json-smart/2.6.0/json-smart-2.6.0.jar">
+              <sha256sum>1ae4b561458afb540be8ec5c6dbb4f2e715a319a7ae64854998aaf924770d61b</sha256sum>
             </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/net/minidev/accessors-smart/2.5.0/accessors-smart-2.5.0.jar">
-              <sha256sum>12314fc6881d66a413fd66370787adba16e504fbf7e138690b0f3952e3fbd321</sha256sum>
+            <artifact url="file://$MAVEN_REPOSITORY$/net/minidev/accessors-smart/2.6.0/accessors-smart-2.6.0.jar">
+              <sha256sum>222c9f547bb20a99fc486403a398352d1306fb671b38abd7ecab6401df170e61</sha256sum>
             </artifact>
           </verification>
           <exclude>
@@ -27,15 +27,15 @@
           </exclude>
         </properties>
         <CLASSES>
-          <root url="jar://$MAVEN_REPOSITORY$/com/jayway/jsonpath/json-path/2.9.0/json-path-2.9.0.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/net/minidev/json-smart/2.5.0/json-smart-2.5.0.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/net/minidev/accessors-smart/2.5.0/accessors-smart-2.5.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/jayway/jsonpath/json-path/2.10.0/json-path-2.10.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/net/minidev/json-smart/2.6.0/json-smart-2.6.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/net/minidev/accessors-smart/2.6.0/accessors-smart-2.6.0.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
-          <root url="jar://$MAVEN_REPOSITORY$/com/jayway/jsonpath/json-path/2.9.0/json-path-2.9.0-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/net/minidev/json-smart/2.5.0/json-smart-2.5.0-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/net/minidev/accessors-smart/2.5.0/accessors-smart-2.5.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/jayway/jsonpath/json-path/2.10.0/json-path-2.10.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/net/minidev/json-smart/2.6.0/json-smart-2.6.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/net/minidev/accessors-smart/2.6.0/accessors-smart-2.6.0-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>

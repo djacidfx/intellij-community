@@ -12339,25 +12339,25 @@ jvm_import(
 )
 
 copy_file(
-  name = "com.jayway.jsonpath/json-path-2.9.0.jar_copy",
-  src = "@com_jayway_jsonpath-json-path-2_9_0_http//file",
-  out = "com.jayway.jsonpath/json-path-2.9.0.jar",
+  name = "com.jayway.jsonpath/json-path-2.10.0.jar_copy",
+  src = "@com_jayway_jsonpath-json-path-2_10_0_http//file",
+  out = "com.jayway.jsonpath/json-path-2.10.0.jar",
   allow_symlink = True,
   visibility = ["//visibility:public"]
 )
 
 copy_file(
-  name = "net.minidev/json-smart-2.5.0.jar_copy",
-  src = "@net_minidev-json-smart-2_5_0_http//file",
-  out = "net.minidev/json-smart-2.5.0.jar",
+  name = "net.minidev/json-smart-2.6.0.jar_copy",
+  src = "@net_minidev-json-smart-2_6_0_http//file",
+  out = "net.minidev/json-smart-2.6.0.jar",
   allow_symlink = True,
   visibility = ["//visibility:public"]
 )
 
 copy_file(
-  name = "net.minidev/accessors-smart-2.5.0.jar_copy",
-  src = "@net_minidev-accessors-smart-2_5_0_http//file",
-  out = "net.minidev/accessors-smart-2.5.0.jar",
+  name = "net.minidev/accessors-smart-2.6.0.jar_copy",
+  src = "@net_minidev-accessors-smart-2_6_0_http//file",
+  out = "net.minidev/accessors-smart-2.6.0.jar",
   allow_symlink = True,
   visibility = ["//visibility:public"]
 )
@@ -12365,43 +12365,43 @@ copy_file(
 java_library(
   name = "libraries-jsonpath-jsonpath",
   exports = [
-    ":com_jayway_jsonpath-json-path-2_9_0_http_import",
-    ":net_minidev-json-smart-2_5_0_http_import",
-    ":net_minidev-accessors-smart-2_5_0_http_import",
+    ":com_jayway_jsonpath-json-path-2_10_0_http_import",
+    ":net_minidev-json-smart-2_6_0_http_import",
+    ":net_minidev-accessors-smart-2_6_0_http_import",
   ],
   visibility = ["//visibility:public"]
 )
 
 jvm_import(
-  name = "com_jayway_jsonpath-json-path-2_9_0_http_import",
-  jar = "@com_jayway_jsonpath-json-path-2_9_0_http//file",
-  source_jar = "@com_jayway_jsonpath-json-path-2_9_0-sources_http//file"
+  name = "com_jayway_jsonpath-json-path-2_10_0_http_import",
+  jar = "@com_jayway_jsonpath-json-path-2_10_0_http//file",
+  source_jar = "@com_jayway_jsonpath-json-path-2_10_0-sources_http//file"
 )
 
 jvm_import(
-  name = "net_minidev-json-smart-2_5_0_http_import",
-  jar = "@net_minidev-json-smart-2_5_0_http//file",
-  source_jar = "@net_minidev-json-smart-2_5_0-sources_http//file"
+  name = "net_minidev-json-smart-2_6_0_http_import",
+  jar = "@net_minidev-json-smart-2_6_0_http//file",
+  source_jar = "@net_minidev-json-smart-2_6_0-sources_http//file"
 )
 
 jvm_import(
-  name = "net_minidev-accessors-smart-2_5_0_http_import",
-  jar = "@net_minidev-accessors-smart-2_5_0_http//file",
-  source_jar = "@net_minidev-accessors-smart-2_5_0-sources_http//file"
+  name = "net_minidev-accessors-smart-2_6_0_http_import",
+  jar = "@net_minidev-accessors-smart-2_6_0_http//file",
+  source_jar = "@net_minidev-accessors-smart-2_6_0-sources_http//file"
 )
 
 copy_file(
-  name = "org.jsoup/jsoup-1.21.2.jar_copy",
-  src = "@org_jsoup-jsoup-1_21_2_http//file",
-  out = "org.jsoup/jsoup-1.21.2.jar",
+  name = "org.jsoup/jsoup-1.22.1.jar_copy",
+  src = "@org_jsoup-jsoup-1_22_1_http//file",
+  out = "org.jsoup/jsoup-1.22.1.jar",
   allow_symlink = True,
   visibility = ["//visibility:public"]
 )
 
 jvm_import(
   name = "libraries-jsoup-jsoup",
-  jar = "@org_jsoup-jsoup-1_21_2_http//file",
-  source_jar = "@org_jsoup-jsoup-1_21_2-sources_http//file",
+  jar = "@org_jsoup-jsoup-1_22_1_http//file",
+  source_jar = "@org_jsoup-jsoup-1_22_1-sources_http//file",
   visibility = ["//visibility:public"]
 )
 
@@ -12698,17 +12698,17 @@ jvm_import(
 )
 
 copy_file(
-  name = "com.h2database/h2-mvstore-2.3.232.jar_copy",
-  src = "@com_h2database-h2-mvstore-2_3_232_http//file",
-  out = "com.h2database/h2-mvstore-2.3.232.jar",
+  name = "com.h2database/h2-mvstore-2.4.240.jar_copy",
+  src = "@com_h2database-h2-mvstore-2_4_240_http//file",
+  out = "com.h2database/h2-mvstore-2.4.240.jar",
   allow_symlink = True,
   visibility = ["//visibility:public"]
 )
 
 jvm_import(
   name = "libraries-mvstore-mvstore",
-  jar = "@com_h2database-h2-mvstore-2_3_232_http//file",
-  source_jar = "@com_h2database-h2-mvstore-2_3_232-sources_http//file",
+  jar = "@com_h2database-h2-mvstore-2_4_240_http//file",
+  source_jar = "@com_h2database-h2-mvstore-2_4_240-sources_http//file",
   visibility = ["//visibility:public"]
 )
 
@@ -13153,17 +13153,17 @@ jvm_import(
 )
 
 copy_file(
-  name = "org.bidib.com.github.markusbernhardt/proxy-vole-1.1.6.jar_copy",
-  src = "@org_bidib_com_github_markusbernhardt-proxy-vole-1_1_6_http//file",
-  out = "org.bidib.com.github.markusbernhardt/proxy-vole-1.1.6.jar",
+  name = "org.bidib.com.github.markusbernhardt/proxy-vole-1.1.9.jar_copy",
+  src = "@org_bidib_com_github_markusbernhardt-proxy-vole-1_1_9_http//file",
+  out = "org.bidib.com.github.markusbernhardt/proxy-vole-1.1.9.jar",
   allow_symlink = True,
   visibility = ["//visibility:public"]
 )
 
 copy_file(
-  name = "org.javadelight/delight-rhino-sandbox-0.0.17.jar_copy",
-  src = "@org_javadelight-delight-rhino-sandbox-0_0_17_http//file",
-  out = "org.javadelight/delight-rhino-sandbox-0.0.17.jar",
+  name = "org.javadelight/delight-rhino-sandbox-0.2.2.jar_copy",
+  src = "@org_javadelight-delight-rhino-sandbox-0_2_2_http//file",
+  out = "org.javadelight/delight-rhino-sandbox-0.2.2.jar",
   allow_symlink = True,
   visibility = ["//visibility:public"]
 )
@@ -13171,22 +13171,22 @@ copy_file(
 java_library(
   name = "libraries-proxy-vole-proxy-vole",
   exports = [
-    ":org_bidib_com_github_markusbernhardt-proxy-vole-1_1_6_http_import",
-    ":org_javadelight-delight-rhino-sandbox-0_0_17_http_import",
+    ":org_bidib_com_github_markusbernhardt-proxy-vole-1_1_9_http_import",
+    ":org_javadelight-delight-rhino-sandbox-0_2_2_http_import",
   ],
   visibility = ["//visibility:public"]
 )
 
 jvm_import(
-  name = "org_bidib_com_github_markusbernhardt-proxy-vole-1_1_6_http_import",
-  jar = "@org_bidib_com_github_markusbernhardt-proxy-vole-1_1_6_http//file",
-  source_jar = "@org_bidib_com_github_markusbernhardt-proxy-vole-1_1_6-sources_http//file"
+  name = "org_bidib_com_github_markusbernhardt-proxy-vole-1_1_9_http_import",
+  jar = "@org_bidib_com_github_markusbernhardt-proxy-vole-1_1_9_http//file",
+  source_jar = "@org_bidib_com_github_markusbernhardt-proxy-vole-1_1_9-sources_http//file"
 )
 
 jvm_import(
-  name = "org_javadelight-delight-rhino-sandbox-0_0_17_http_import",
-  jar = "@org_javadelight-delight-rhino-sandbox-0_0_17_http//file",
-  source_jar = "@org_javadelight-delight-rhino-sandbox-0_0_17-sources_http//file"
+  name = "org_javadelight-delight-rhino-sandbox-0_2_2_http_import",
+  jar = "@org_javadelight-delight-rhino-sandbox-0_2_2_http//file",
+  source_jar = "@org_javadelight-delight-rhino-sandbox-0_2_2-sources_http//file"
 )
 
 copy_file(
@@ -13265,17 +13265,17 @@ jvm_import(
 )
 
 copy_file(
-  name = "org.mozilla/rhino-runtime-1.7.15.jar_copy",
-  src = "@org_mozilla-rhino-runtime-1_7_15_http//file",
-  out = "org.mozilla/rhino-runtime-1.7.15.jar",
+  name = "org.mozilla/rhino-runtime-1.7.15.1.jar_copy",
+  src = "@org_mozilla-rhino-runtime-1_7_15_1_http//file",
+  out = "org.mozilla/rhino-runtime-1.7.15.1.jar",
   allow_symlink = True,
   visibility = ["//visibility:public"]
 )
 
 jvm_import(
   name = "libraries-rhino-rhino",
-  jar = "@org_mozilla-rhino-runtime-1_7_15_http//file",
-  source_jar = "@org_mozilla-rhino-runtime-1_7_15-sources_http//file",
+  jar = "@org_mozilla-rhino-runtime-1_7_15_1_http//file",
+  source_jar = "@org_mozilla-rhino-runtime-1_7_15_1-sources_http//file",
   visibility = ["//visibility:public"]
 )
 

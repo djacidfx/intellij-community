@@ -9695,59 +9695,59 @@ http_file(
 )
 
 http_file(
-  name = "com_jayway_jsonpath-json-path-2_9_0_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/jayway/jsonpath/json-path/2.9.0/json-path-2.9.0.jar",
-  sha256 = "11a9ee6f88bb31f1450108d1cf6441377dec84aca075eb6bb2343be157575bea",
-  downloaded_file_path = "json-path-2.9.0.jar"
+  name = "com_jayway_jsonpath-json-path-2_10_0_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/jayway/jsonpath/json-path/2.10.0/json-path-2.10.0.jar",
+  sha256 = "890daa95dd3892d34d9fabc27cd5153656e6f369358625c88f4dc7b79cbd6c5a",
+  downloaded_file_path = "json-path-2.10.0.jar"
 )
 
 http_file(
-  name = "net_minidev-json-smart-2_5_0_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/net/minidev/json-smart/2.5.0/json-smart-2.5.0.jar",
-  sha256 = "432b9e545848c4141b80717b26e367f83bf33f19250a228ce75da6e967da2bc7",
-  downloaded_file_path = "json-smart-2.5.0.jar"
+  name = "net_minidev-json-smart-2_6_0_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/net/minidev/json-smart/2.6.0/json-smart-2.6.0.jar",
+  sha256 = "1ae4b561458afb540be8ec5c6dbb4f2e715a319a7ae64854998aaf924770d61b",
+  downloaded_file_path = "json-smart-2.6.0.jar"
 )
 
 http_file(
-  name = "net_minidev-accessors-smart-2_5_0_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/net/minidev/accessors-smart/2.5.0/accessors-smart-2.5.0.jar",
-  sha256 = "12314fc6881d66a413fd66370787adba16e504fbf7e138690b0f3952e3fbd321",
-  downloaded_file_path = "accessors-smart-2.5.0.jar"
+  name = "net_minidev-accessors-smart-2_6_0_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/net/minidev/accessors-smart/2.6.0/accessors-smart-2.6.0.jar",
+  sha256 = "222c9f547bb20a99fc486403a398352d1306fb671b38abd7ecab6401df170e61",
+  downloaded_file_path = "accessors-smart-2.6.0.jar"
 )
 
 http_file(
-  name = "com_jayway_jsonpath-json-path-2_9_0-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/jayway/jsonpath/json-path/2.9.0/json-path-2.9.0-sources.jar",
-  sha256 = "67d18b2ebb7b946c781310b9c3d0232f44b7a98278be28afe62a9e658806d088",
-  downloaded_file_path = "json-path-2.9.0-sources.jar"
+  name = "com_jayway_jsonpath-json-path-2_10_0-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/jayway/jsonpath/json-path/2.10.0/json-path-2.10.0-sources.jar",
+  sha256 = "357f1c52217497c4251fae715ba8ef76ae310b1aae77ea319260bf4c6ad61440",
+  downloaded_file_path = "json-path-2.10.0-sources.jar"
 )
 
 http_file(
-  name = "net_minidev-json-smart-2_5_0-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/net/minidev/json-smart/2.5.0/json-smart-2.5.0-sources.jar",
-  sha256 = "defc60385f6df8c683ab097874f5057a25a8bfda2e8399256d5e52d9f5bdf541",
-  downloaded_file_path = "json-smart-2.5.0-sources.jar"
+  name = "net_minidev-json-smart-2_6_0-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/net/minidev/json-smart/2.6.0/json-smart-2.6.0-sources.jar",
+  sha256 = "a4af3f3773286fe3f76f94d38d977611fd2493685f589466b76dd25cf70b400c",
+  downloaded_file_path = "json-smart-2.6.0-sources.jar"
 )
 
 http_file(
-  name = "net_minidev-accessors-smart-2_5_0-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/net/minidev/accessors-smart/2.5.0/accessors-smart-2.5.0-sources.jar",
-  sha256 = "15b7153f0dc43209d9e4d8a75791e076ec738a7b66def3fd26ed2f545ed0725c",
-  downloaded_file_path = "accessors-smart-2.5.0-sources.jar"
+  name = "net_minidev-accessors-smart-2_6_0-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/net/minidev/accessors-smart/2.6.0/accessors-smart-2.6.0-sources.jar",
+  sha256 = "10880e44ed732de27ae424a9698a041c398102098b5b1bae3cc597ec62dac43e",
+  downloaded_file_path = "accessors-smart-2.6.0-sources.jar"
 )
 
 http_file(
-  name = "org_jsoup-jsoup-1_21_2_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jsoup/jsoup/1.21.2/jsoup-1.21.2.jar",
-  sha256 = "f05496e255734759f0d4b5632da7b24f81313147c78c69e90ad045d096191344",
-  downloaded_file_path = "jsoup-1.21.2.jar"
+  name = "org_jsoup-jsoup-1_22_1_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jsoup/jsoup/1.22.1/jsoup-1.22.1.jar",
+  sha256 = "cfd3298d8720cddfb0545109ccc6ea0ef39eff7e9c40a10ad95c93a65f01c916",
+  downloaded_file_path = "jsoup-1.22.1.jar"
 )
 
 http_file(
-  name = "org_jsoup-jsoup-1_21_2-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jsoup/jsoup/1.21.2/jsoup-1.21.2-sources.jar",
-  sha256 = "2cbf6a46b1af6bace17f25b3bedb1b0e5d56882083918c30c27608e188870a73",
-  downloaded_file_path = "jsoup-1.21.2-sources.jar"
+  name = "org_jsoup-jsoup-1_22_1-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jsoup/jsoup/1.22.1/jsoup-1.22.1-sources.jar",
+  sha256 = "457c4571fa8c20a03a173ed6ca77290089603798fbdb05b54dca5ed472945ba5",
+  downloaded_file_path = "jsoup-1.22.1-sources.jar"
 )
 
 http_file(
@@ -9961,17 +9961,17 @@ http_file(
 )
 
 http_file(
-  name = "com_h2database-h2-mvstore-2_3_232_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/h2database/h2-mvstore/2.3.232/h2-mvstore-2.3.232.jar",
-  sha256 = "2c8225cd73b2394382b9d0016d9278a00291562224a594eef00c00a6ac50bc04",
-  downloaded_file_path = "h2-mvstore-2.3.232.jar"
+  name = "com_h2database-h2-mvstore-2_4_240_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/h2database/h2-mvstore/2.4.240/h2-mvstore-2.4.240.jar",
+  sha256 = "28d9ead5bc525a66b0da0e35bc56d64c5ecaba5e9be864f917d503180f12d47c",
+  downloaded_file_path = "h2-mvstore-2.4.240.jar"
 )
 
 http_file(
-  name = "com_h2database-h2-mvstore-2_3_232-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/h2database/h2-mvstore/2.3.232/h2-mvstore-2.3.232-sources.jar",
-  sha256 = "48642b96b9fcb08f22326e10edad49fde210ae5884febeb06a0b107bba3f9478",
-  downloaded_file_path = "h2-mvstore-2.3.232-sources.jar"
+  name = "com_h2database-h2-mvstore-2_4_240-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/h2database/h2-mvstore/2.4.240/h2-mvstore-2.4.240-sources.jar",
+  sha256 = "3d24faf3ea3fb0857e3873994196cf20a9958e15ab7e3b6eec0406187166eed4",
+  downloaded_file_path = "h2-mvstore-2.4.240-sources.jar"
 )
 
 http_file(
@@ -10318,31 +10318,31 @@ http_file(
 )
 
 http_file(
-  name = "org_bidib_com_github_markusbernhardt-proxy-vole-1_1_6_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/bidib/com/github/markusbernhardt/proxy-vole/1.1.6/proxy-vole-1.1.6.jar",
-  sha256 = "4b9fb2e5a13b37cf8bd62eebada8d3485c3dc17df752783b68d89d657bcc01fd",
-  downloaded_file_path = "proxy-vole-1.1.6.jar"
+  name = "org_bidib_com_github_markusbernhardt-proxy-vole-1_1_9_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/bidib/com/github/markusbernhardt/proxy-vole/1.1.9/proxy-vole-1.1.9.jar",
+  sha256 = "e1ba3df2f656bea17a07edcacd4e0377a370880b8efd8a7c7122751ff0d92be0",
+  downloaded_file_path = "proxy-vole-1.1.9.jar"
 )
 
 http_file(
-  name = "org_javadelight-delight-rhino-sandbox-0_0_17_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/javadelight/delight-rhino-sandbox/0.0.17/delight-rhino-sandbox-0.0.17.jar",
-  sha256 = "e22941d77d0d01dfc6ee5612ad421860baae8a3a0dea2eeb67658061f34527b4",
-  downloaded_file_path = "delight-rhino-sandbox-0.0.17.jar"
+  name = "org_javadelight-delight-rhino-sandbox-0_2_2_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/javadelight/delight-rhino-sandbox/0.2.2/delight-rhino-sandbox-0.2.2.jar",
+  sha256 = "3cd23f59013acaaacee96733a4e84cf82e902d20cf680db25ddad6f7c9791928",
+  downloaded_file_path = "delight-rhino-sandbox-0.2.2.jar"
 )
 
 http_file(
-  name = "org_bidib_com_github_markusbernhardt-proxy-vole-1_1_6-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/bidib/com/github/markusbernhardt/proxy-vole/1.1.6/proxy-vole-1.1.6-sources.jar",
-  sha256 = "774613b8f03dd7b2199f7be1e37a85f8af514cf138aec2111f5bd5578bf39dbd",
-  downloaded_file_path = "proxy-vole-1.1.6-sources.jar"
+  name = "org_bidib_com_github_markusbernhardt-proxy-vole-1_1_9-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/bidib/com/github/markusbernhardt/proxy-vole/1.1.9/proxy-vole-1.1.9-sources.jar",
+  sha256 = "36701cab405989d5ead438c17be8f956ef4b1c5b25cb9faeaee780d608905291",
+  downloaded_file_path = "proxy-vole-1.1.9-sources.jar"
 )
 
 http_file(
-  name = "org_javadelight-delight-rhino-sandbox-0_0_17-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/javadelight/delight-rhino-sandbox/0.0.17/delight-rhino-sandbox-0.0.17-sources.jar",
-  sha256 = "514492007b8e7398842cf219c13d867a23faaf715283e67029166886fe40e6c9",
-  downloaded_file_path = "delight-rhino-sandbox-0.0.17-sources.jar"
+  name = "org_javadelight-delight-rhino-sandbox-0_2_2-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/javadelight/delight-rhino-sandbox/0.2.2/delight-rhino-sandbox-0.2.2-sources.jar",
+  sha256 = "33bbb032678d98e96170a4c2e6ef5b6153953e44159c803e6e164cc25b1e42a4",
+  downloaded_file_path = "delight-rhino-sandbox-0.2.2-sources.jar"
 )
 
 http_file(
@@ -10416,17 +10416,17 @@ http_file(
 )
 
 http_file(
-  name = "org_mozilla-rhino-runtime-1_7_15_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/mozilla/rhino-runtime/1.7.15/rhino-runtime-1.7.15.jar",
-  sha256 = "4f38c96499c614145b87442700e196df39b0af808b1b1204eaccaa15bef17c2b",
-  downloaded_file_path = "rhino-runtime-1.7.15.jar"
+  name = "org_mozilla-rhino-runtime-1_7_15_1_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/mozilla/rhino-runtime/1.7.15.1/rhino-runtime-1.7.15.1.jar",
+  sha256 = "0b638531df0405ce68878ac5e37bd0aebf18c3e9a153eb81850212181effbe37",
+  downloaded_file_path = "rhino-runtime-1.7.15.1.jar"
 )
 
 http_file(
-  name = "org_mozilla-rhino-runtime-1_7_15-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/mozilla/rhino-runtime/1.7.15/rhino-runtime-1.7.15-sources.jar",
-  sha256 = "483ed04d44c9ac98b2b78c10b3346b88853a9898ee727fb5924f5bfd31c09ad8",
-  downloaded_file_path = "rhino-runtime-1.7.15-sources.jar"
+  name = "org_mozilla-rhino-runtime-1_7_15_1-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/mozilla/rhino-runtime/1.7.15.1/rhino-runtime-1.7.15.1-sources.jar",
+  sha256 = "902dc5c991f5c65bfdd39ad6d7c721a5608bab9d391edc05b7529b9848fb8b2b",
+  downloaded_file_path = "rhino-runtime-1.7.15.1-sources.jar"
 )
 
 http_file(
