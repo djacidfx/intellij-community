@@ -12,6 +12,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.logging.Level;
 
 public final class LoggerFactory implements Logger.Factory {
@@ -20,6 +21,10 @@ public final class LoggerFactory implements Logger.Factory {
   public static @NotNull Path getLogFilePath() {
     return PathManager.getLogDir().resolve(LOG_FILE_NAME);
   }
+
+  // keeps customized loggers reachable, otherwise they will be GCed together with level customization
+  @SuppressWarnings({"FieldCanBeLocal", "unused"})
+  private final Object customizedLoggersHandle;
 
   public LoggerFactory() {
     JulLogger.clearHandlers();
@@ -50,30 +55,7 @@ public final class LoggerFactory implements Logger.Factory {
     dialogAppender.setLevel(Level.SEVERE);
     rootLogger.addHandler(dialogAppender);
 
-    configureLoggersFromSystemProperties();
-  }
-
-  private static void configureLoggersFromSystemProperties() {
-    setLevelsForCategories(System.getProperty(LogLevelConfigurationManager.LOG_DEBUG_CATEGORIES_SYSTEM_PROPERTY), Level.FINE);
-    setLevelsForCategories(System.getProperty(LogLevelConfigurationManager.LOG_TRACE_CATEGORIES_SYSTEM_PROPERTY), Level.FINER);
-    setLevelsForCategories(System.getProperty(LogLevelConfigurationManager.LOG_ALL_CATEGORIES_SYSTEM_PROPERTY), Level.ALL);
-  }
-
-  private static void setLevelsForCategories(@Nullable String categories, Level level) {
-    if (categories == null) {
-      return;
-    }
-    var lastSeparator = -1;
-    for (int i = 0; i <= categories.length(); i++) {
-      if (i == categories.length() || categories.charAt(i) == ',' || categories.charAt(i) == '#') {
-        if (lastSeparator + 1 < i) {
-          var category = categories.substring(lastSeparator + 1, i);
-          java.util.logging.Logger.getLogger(category).setLevel(level);
-          java.util.logging.Logger.getLogger('#' + category).setLevel(level);
-        }
-        lastSeparator = i;
-      }
-    }
+    customizedLoggersHandle = configureLoggersFromSystemProperties();
   }
 
   @Override
@@ -85,5 +67,42 @@ public final class LoggerFactory implements Logger.Factory {
     for (var handler : java.util.logging.Logger.getLogger("").getHandlers()) {
       handler.flush();
     }
+  }
+
+  private static @Nullable Object configureLoggersFromSystemProperties() {
+    String debugCategories = System.getProperty(LogLevelConfigurationManager.LOG_DEBUG_CATEGORIES_SYSTEM_PROPERTY);
+    String traceCategories = System.getProperty(LogLevelConfigurationManager.LOG_TRACE_CATEGORIES_SYSTEM_PROPERTY);
+    String allCategories = System.getProperty(LogLevelConfigurationManager.LOG_ALL_CATEGORIES_SYSTEM_PROPERTY);
+    if (debugCategories == null && traceCategories == null && allCategories == null) {
+      return null;
+    }
+    var customizedCategories = new ArrayList<>();
+    setLevelsForCategories(debugCategories, Level.FINE, customizedCategories);
+    setLevelsForCategories(traceCategories, Level.FINER, customizedCategories);
+    setLevelsForCategories(allCategories, Level.ALL, customizedCategories);
+    return customizedCategories;
+  }
+
+  private static void setLevelsForCategories(@Nullable String categories, Level level, ArrayList<Object> customizedCategories) {
+    if (categories == null) {
+      return;
+    }
+    var lastSeparator = -1;
+    for (int i = 0; i <= categories.length(); i++) {
+      if (i == categories.length() || categories.charAt(i) == ',' || categories.charAt(i) == '#') {
+        if (lastSeparator + 1 < i) {
+          var category = categories.substring(lastSeparator + 1, i);
+          setLevelForCategory(level, category, customizedCategories);
+          setLevelForCategory(level, '#' + category, customizedCategories);
+        }
+        lastSeparator = i;
+      }
+    }
+  }
+
+  private static void setLevelForCategory(Level level, String category, ArrayList<Object> customizedCategories) {
+    var logger = java.util.logging.Logger.getLogger(category);
+    customizedCategories.add(logger);
+    logger.setLevel(level);
   }
 }
