@@ -199,7 +199,7 @@ final class UnindexedFilesFinder {
     }
 
     Supplier<@NotNull Boolean> checker = CachedFileType.getFileTypeChangeChecker();
-    FileType cachedFileType = file.getFileType();
+    FileType cachedFileType = Cancellation.computeInNonCancelableSection(() -> file.getFileType());
     return ReadAction.computeBlocking(() -> {
       if (myProject.isDisposed() || !file.isValid()) {
         return null;
