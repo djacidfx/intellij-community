@@ -14,7 +14,7 @@ val DEFAULT_SYNC_TIMEOUT: Duration = 10.minutes
 @JvmField
 val DEFAULT_SYNC_TIMEOUT_MS: Long = DEFAULT_SYNC_TIMEOUT.inWholeMilliseconds
 
-suspend inline fun awaitOpenProjectActivity(noinline openProject: suspend () -> Project): Project =
+suspend fun awaitOpenProjectActivity(openProject: suspend () -> Project): Project =
   TestObservation.awaitOpenProjectActivity(DEFAULT_SYNC_TIMEOUT, openProject)
 
 suspend fun <R> awaitProjectActivity(project: Project, action: suspend () -> R): R =
