@@ -115,6 +115,9 @@
 - name: lib/modules/intellij.java.featuresTrainer.jar
   contentModules:
   - name: intellij.java.featuresTrainer
+- name: lib/modules/intellij.java.frontend.jar
+  contentModules:
+  - name: intellij.java.frontend
 - name: lib/modules/intellij.java.frontend.split.jar
   contentModules:
   - name: intellij.java.frontend.split

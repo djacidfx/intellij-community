@@ -310,6 +310,7 @@ java/java-frontback-impl
 java/java-frontback-psi-api
 java/java-frontback-psi-impl
 java/java-frontback-tests
+java/java-frontend
 java/java-impl
 java/java-impl-inspections
 java/java-impl-refactorings

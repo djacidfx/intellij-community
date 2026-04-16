@@ -652,6 +652,7 @@
       <module fileurl="file://$PROJECT_DIR$/java/java-frontback-psi-api/intellij.java.frontback.psi.iml" filepath="$PROJECT_DIR$/java/java-frontback-psi-api/intellij.java.frontback.psi.iml" />
       <module fileurl="file://$PROJECT_DIR$/java/java-frontback-psi-impl/intellij.java.frontback.psi.impl.iml" filepath="$PROJECT_DIR$/java/java-frontback-psi-impl/intellij.java.frontback.psi.impl.iml" />
       <module fileurl="file://$PROJECT_DIR$/java/java-frontback-tests/intellij.java.frontback.tests.iml" filepath="$PROJECT_DIR$/java/java-frontback-tests/intellij.java.frontback.tests.iml" />
+      <module fileurl="file://$PROJECT_DIR$/java/java-frontend/intellij.java.frontend.iml" filepath="$PROJECT_DIR$/java/java-frontend/intellij.java.frontend.iml" />
       <module fileurl="file://$PROJECT_DIR$/java/compiler/forms-compiler/intellij.java.guiForms.compiler.iml" filepath="$PROJECT_DIR$/java/compiler/forms-compiler/intellij.java.guiForms.compiler.iml" />
       <module fileurl="file://$PROJECT_DIR$/java/compiler/forms-compiler/intellij.java.guiForms.compiler.tests.iml" filepath="$PROJECT_DIR$/java/compiler/forms-compiler/intellij.java.guiForms.compiler.tests.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/ui-designer/intellij.java.guiForms.designer.iml" filepath="$PROJECT_DIR$/plugins/ui-designer/intellij.java.guiForms.designer.iml" />
