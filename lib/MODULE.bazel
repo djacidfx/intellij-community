@@ -16051,10 +16051,10 @@ http_file(
 )
 
 http_file(
-  name = "org_testcontainers-testcontainers-1_20_3_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/testcontainers/testcontainers/1.20.3/testcontainers-1.20.3.jar",
-  sha256 = "e1d89a13d93337e1b14000d6c7c3e8e047fe244db63231134e52fbc1c0ffc5f7",
-  downloaded_file_path = "testcontainers-1.20.3.jar"
+  name = "org_testcontainers-testcontainers-1_21_4_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/testcontainers/testcontainers/1.21.4/testcontainers-1.21.4.jar",
+  sha256 = "ea81a9ca337bbae7ee83f372b92d55140c7ab976bce73ff1b79f2dd151ca9610",
+  downloaded_file_path = "testcontainers-1.21.4.jar"
 )
 
 http_file(
@@ -16065,31 +16065,31 @@ http_file(
 )
 
 http_file(
-  name = "com_github_docker-java-docker-java-api-3_4_0_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/github/docker-java/docker-java-api/3.4.0/docker-java-api-3.4.0.jar",
-  sha256 = "ad8e9f748380985e0b702bfb2356749a0966afa28a7d637aa3211217ae6a6f2e",
-  downloaded_file_path = "docker-java-api-3.4.0.jar"
+  name = "com_github_docker-java-docker-java-api-3_4_2_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/github/docker-java/docker-java-api/3.4.2/docker-java-api-3.4.2.jar",
+  sha256 = "6789d68f95904cf274a6410fdfcc5530976bc94197c856909459bb8c64db557b",
+  downloaded_file_path = "docker-java-api-3.4.2.jar"
 )
 
 http_file(
-  name = "com_github_docker-java-docker-java-transport-zerodep-3_4_0_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/github/docker-java/docker-java-transport-zerodep/3.4.0/docker-java-transport-zerodep-3.4.0.jar",
-  sha256 = "aac3ba9ed78c73961d13d7b7dac51ba51fe9089629efd4f77ffa4e6e8c6e4048",
-  downloaded_file_path = "docker-java-transport-zerodep-3.4.0.jar"
+  name = "com_github_docker-java-docker-java-transport-zerodep-3_4_2_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/github/docker-java/docker-java-transport-zerodep/3.4.2/docker-java-transport-zerodep-3.4.2.jar",
+  sha256 = "582b772e0c52fa9d24710617ef610655465edd9a2930b0db75fc8667d6a8d02b",
+  downloaded_file_path = "docker-java-transport-zerodep-3.4.2.jar"
 )
 
 http_file(
-  name = "com_github_docker-java-docker-java-transport-3_4_0_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/github/docker-java/docker-java-transport/3.4.0/docker-java-transport-3.4.0.jar",
-  sha256 = "a1a8ce872dbf92423a948443b88b9417283ead5d56cb5ed77803353658b97b34",
-  downloaded_file_path = "docker-java-transport-3.4.0.jar"
+  name = "com_github_docker-java-docker-java-transport-3_4_2_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/github/docker-java/docker-java-transport/3.4.2/docker-java-transport-3.4.2.jar",
+  sha256 = "bc9981224fdc2d4726566fc723470601ceb14378265c865b4c203146a4e39765",
+  downloaded_file_path = "docker-java-transport-3.4.2.jar"
 )
 
 http_file(
-  name = "org_testcontainers-testcontainers-1_20_3-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/testcontainers/testcontainers/1.20.3/testcontainers-1.20.3-sources.jar",
-  sha256 = "04d72cd6c8a65132469a464c7a1cc9c4a5fd3678c81705f52ecb71d52d456a9e",
-  downloaded_file_path = "testcontainers-1.20.3-sources.jar"
+  name = "org_testcontainers-testcontainers-1_21_4-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/testcontainers/testcontainers/1.21.4/testcontainers-1.21.4-sources.jar",
+  sha256 = "a72d55e776d8d15848bfd8ee8d457f01b6dd54c037d851b894a8db286cfcc4bc",
+  downloaded_file_path = "testcontainers-1.21.4-sources.jar"
 )
 
 http_file(
@@ -16100,38 +16100,38 @@ http_file(
 )
 
 http_file(
-  name = "com_github_docker-java-docker-java-api-3_4_0-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/github/docker-java/docker-java-api/3.4.0/docker-java-api-3.4.0-sources.jar",
-  sha256 = "938ea6ef45452884a84a7d1b4b1ee9b6466ab4c26f9997adc2cd07031f301612",
-  downloaded_file_path = "docker-java-api-3.4.0-sources.jar"
+  name = "com_github_docker-java-docker-java-api-3_4_2-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/github/docker-java/docker-java-api/3.4.2/docker-java-api-3.4.2-sources.jar",
+  sha256 = "1a407574c5c7bf2170d7c9bb76db7341b43b3ee06dc44e215c31356a1d9f3c91",
+  downloaded_file_path = "docker-java-api-3.4.2-sources.jar"
 )
 
 http_file(
-  name = "com_github_docker-java-docker-java-transport-zerodep-3_4_0-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/github/docker-java/docker-java-transport-zerodep/3.4.0/docker-java-transport-zerodep-3.4.0-sources.jar",
-  sha256 = "0def8a6699752fd2a5625624218948da9e8c0ae83dacaae5c786c41de26127db",
-  downloaded_file_path = "docker-java-transport-zerodep-3.4.0-sources.jar"
+  name = "com_github_docker-java-docker-java-transport-zerodep-3_4_2-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/github/docker-java/docker-java-transport-zerodep/3.4.2/docker-java-transport-zerodep-3.4.2-sources.jar",
+  sha256 = "c88c4745337a54eeae73788cdba9b1a80cebbd3cadfc701c3f8a9e7d217da314",
+  downloaded_file_path = "docker-java-transport-zerodep-3.4.2-sources.jar"
 )
 
 http_file(
-  name = "com_github_docker-java-docker-java-transport-3_4_0-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/github/docker-java/docker-java-transport/3.4.0/docker-java-transport-3.4.0-sources.jar",
-  sha256 = "0c17df5675583820dacab1c02f3f5c261f837f4ed54195cffd2ef1b155bce09b",
-  downloaded_file_path = "docker-java-transport-3.4.0-sources.jar"
+  name = "com_github_docker-java-docker-java-transport-3_4_2-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/github/docker-java/docker-java-transport/3.4.2/docker-java-transport-3.4.2-sources.jar",
+  sha256 = "a50fd13efc29146e047ac2a34403172ed62bf52752252286335df1b3e5cf1d18",
+  downloaded_file_path = "docker-java-transport-3.4.2-sources.jar"
 )
 
 http_file(
-  name = "org_testcontainers-junit-jupiter-1_20_3_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/testcontainers/junit-jupiter/1.20.3/junit-jupiter-1.20.3.jar",
-  sha256 = "3b0f0422993e571f3460d8436a0e56538bd474147084a6cbb244a6d5cb1a01a5",
-  downloaded_file_path = "junit-jupiter-1.20.3.jar"
+  name = "org_testcontainers-junit-jupiter-1_21_4_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/testcontainers/junit-jupiter/1.21.4/junit-jupiter-1.21.4.jar",
+  sha256 = "92df2a6fd67c30acb5b3521118558033f711c7973fab5f4597211ff3fd13f416",
+  downloaded_file_path = "junit-jupiter-1.21.4.jar"
 )
 
 http_file(
-  name = "org_testcontainers-junit-jupiter-1_20_3-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/testcontainers/junit-jupiter/1.20.3/junit-jupiter-1.20.3-sources.jar",
-  sha256 = "0713c61f0cfc2cfc2ef4d73893999dfacc1ad3569d2da457fdff6885a84b5425",
-  downloaded_file_path = "junit-jupiter-1.20.3-sources.jar"
+  name = "org_testcontainers-junit-jupiter-1_21_4-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/testcontainers/junit-jupiter/1.21.4/junit-jupiter-1.21.4-sources.jar",
+  sha256 = "897b13ab18d4faf950d29563c55a66081a0809435072a3c47953fc6d38f13070",
+  downloaded_file_path = "junit-jupiter-1.21.4-sources.jar"
 )
 
 http_file(
