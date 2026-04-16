@@ -3,7 +3,6 @@ package com.jetbrains.python.documentation;
 import com.intellij.openapi.editor.colors.TextAttributesKey;
 import com.intellij.openapi.util.NlsSafe;
 import com.intellij.openapi.util.Pair;
-import com.intellij.openapi.util.registry.Registry;
 import com.intellij.openapi.util.text.HtmlBuilder;
 import com.intellij.openapi.util.text.HtmlChunk;
 import com.intellij.openapi.util.text.StringUtil;
@@ -657,7 +656,13 @@ public abstract class PyTypeRenderer extends PyTypeVisitorExt<@NotNull HtmlChunk
     }
     if (isRenderingFqn()) {
       PyQualifiedNameOwner declarationElement = type.getDeclarationElement();
-      return declarationElement != null ? declarationElement.getQualifiedName() : null;
+      if (declarationElement != null) {
+        return declarationElement.getQualifiedName();
+      }
+      if (type instanceof PyClassLikeType classLikeType) {
+        return classLikeType.getClassQName();
+      }
+      return null;
     }
     return type.getName();
   }
