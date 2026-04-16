@@ -78,7 +78,8 @@ private class PluginSetConstraintsResolver(
   }
 
   /** DFS exclusion semantics */
-  private fun exclude(candidate: IdeaPluginDescriptorImpl, reason: DescriptorExclusionReason) {
+  private fun exclude(reason: DescriptorExclusionReason) {
+    val candidate = reason.descriptor
     when (val state = candidate.getState()) {
       is Excluded -> return
       is Candidate -> {
@@ -93,13 +94,13 @@ private class PluginSetConstraintsResolver(
   private fun processExclusionListener(excludedDescriptor: IdeaPluginDescriptorImpl, data: ExclusionListenerData) {
     when (data) {
       is ExcludeDependsDescriptorOnParentExclusion ->
-        exclude(data.dependsDescriptor, DependsParentIsExcluded(data.dependsDescriptor))
+        exclude(DependsParentIsExcluded(data.dependsDescriptor))
       is ExcludeContentModuleOnPluginExclusion ->
-        exclude(data.contentModule, ContentModuleParentIsExcluded(data.contentModule))
+        exclude(ContentModuleParentIsExcluded(data.contentModule))
       is ExcludePluginOnRequiredContentModuleExclusion ->
-        exclude(data.plugin, RequiredContentModuleIsExcluded(data.plugin, excludedDescriptor as ContentModuleDescriptor))
+        exclude(RequiredContentModuleIsExcluded(data.plugin, excludedDescriptor as ContentModuleDescriptor))
       is ExcludeDependentDescriptorOnModuleExclusion ->
-        exclude(data.dependentDescriptor, DependencyIsExcluded(data.dependentDescriptor, excludedDescriptor as PluginModuleDescriptor))
+        exclude(DependencyIsExcluded(data.dependentDescriptor, excludedDescriptor as PluginModuleDescriptor))
     }
   }
 
@@ -124,7 +125,7 @@ private class PluginSetConstraintsResolver(
 
   private fun applyProductRulesImposedExclusions() {
     for ((module, reason) in initContext.provideModuleExclusionsImposedByProductRules(pluginSet)) {
-      exclude(module, ProductRulesImposedExclusion(module, reason))
+      exclude(ProductRulesImposedExclusion(module, reason))
     }
   }
 
@@ -135,7 +136,7 @@ private class PluginSetConstraintsResolver(
         continue
       }
       if (envConfig.unavailabilityReason != null) {
-        exclude(module, ExcludedByEnvironmentConfiguration(module, envConfig.unavailabilityReason))
+        exclude(ExcludedByEnvironmentConfiguration(module, envConfig.unavailabilityReason))
       }
     }
   }
@@ -149,12 +150,12 @@ private class PluginSetConstraintsResolver(
     when (candidate) {
       is DependsSubDescriptor ->
         when (val parentState = candidate.parent.getState()) {
-          is Excluded -> exclude(candidate, DependsParentIsExcluded(candidate))
+          is Excluded -> exclude(DependsParentIsExcluded(candidate))
           is Candidate -> parentState.addListener(ExcludeDependsDescriptorOnParentExclusion(candidate))
         }
       is ContentModuleDescriptor ->
         when (val parentState = candidate.parent.getState()) {
-          is Excluded -> exclude(candidate, ContentModuleParentIsExcluded(candidate))
+          is Excluded -> exclude(ContentModuleParentIsExcluded(candidate))
           is Candidate -> parentState.addListener(ExcludeContentModuleOnPluginExclusion(candidate))
         }
       is PluginMainDescriptor -> {
@@ -164,7 +165,7 @@ private class PluginSetConstraintsResolver(
           }
           when (val contentModuleState = contentModule.getState()) {
             is Excluded -> {
-              exclude(candidate, RequiredContentModuleIsExcluded(candidate, contentModule))
+              exclude(RequiredContentModuleIsExcluded(candidate, contentModule))
               break
             }
             is Candidate -> contentModuleState.addListener(ExcludePluginOnRequiredContentModuleExclusion(candidate))
@@ -209,7 +210,7 @@ private class PluginSetConstraintsResolver(
     for (dependencyRef in sequenceAllDependenciesOfCandidateIncludingCompatibility(candidate)) {
       val target = pluginSet.resolveReference(dependencyRef)
       if (target == null) {
-        exclude(candidate, DependencyIsNotResolved(candidate, dependencyRef))
+        exclude(DependencyIsNotResolved(candidate, dependencyRef))
         return
       }
       else if (tryAddDependency(target)) {
@@ -219,13 +220,13 @@ private class PluginSetConstraintsResolver(
             target
           )
           if (visibilityViolation != null) {
-            exclude(candidate, DependencyIsNotVisible(candidate, target, visibilityViolation))
+            exclude(DependencyIsNotVisible(candidate, target, visibilityViolation))
             return
           }
         }
         when (val targetState = target.getState()) {
           is Excluded -> {
-            exclude(candidate, DependencyIsExcluded(candidate, target))
+            exclude(DependencyIsExcluded(candidate, target))
             return
           }
           is Candidate -> targetState.addListener(ExcludeDependentDescriptorOnModuleExclusion(candidate))
@@ -292,8 +293,9 @@ private class PluginSetConstraintsResolver(
       else {
         incompatiblePlugin to candidate
       }
-      exclude(excluded, IncompatibleWithAnotherModule(
-        excluded, survivor as? PluginModuleDescriptor ?: survivor.getMainDescriptor()
+      exclude(IncompatibleWithAnotherModule(
+        descriptor = excluded,
+        preferredIncompatibleModule = survivor as? PluginModuleDescriptor ?: survivor.getMainDescriptor()
       ))
     }
   }
@@ -326,7 +328,7 @@ private class PluginSetConstraintsResolver(
           else {
             candidate to currentSurvivor
           }
-          exclude(excluded, PackagePrefixConflictWithAnotherModule(excluded, survivor))
+          exclude(PackagePrefixConflictWithAnotherModule(excluded, survivor))
           currentSurvivor = survivor
         }
       }
