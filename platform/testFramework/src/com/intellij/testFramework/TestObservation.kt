@@ -35,13 +35,26 @@ private object TestProjectActivityKey : ActivityKey {
 
 object TestObservation {
 
-  @Obsolete(since = "use suspend version nearby")
+  suspend fun awaitOpenProjectActivity(timeout: Duration = DEFAULT_TEST_TIMEOUT, openProject: suspend () -> Project): Project {
+    return openProject().withProjectAsync { project ->
+      awaitConfiguration(project, timeout)
+      IndexingTestUtil.suspendUntilIndexesAreReady(project)
+    }
+  }
+
+  /**
+   * obsolete: Use [awaitProjectActivity] instead.
+   */
+  @Obsolete
   @JvmStatic
   @JvmOverloads
   fun waitForProjectActivity(project: Project, timeout: Long = DEFAULT_TEST_TIMEOUT_MS, action: Runnable): Unit =
     waitForProjectActivity(project, timeout, action::run)
 
-  @Obsolete(since = "use suspend version nearby")
+  /**
+   * obsolete: Use [awaitProjectActivity] instead.
+   */
+  @Obsolete
   @JvmStatic
   @JvmOverloads
   fun <R> waitForProjectActivity(project: Project, timeout: Long = DEFAULT_TEST_TIMEOUT_MS, action: () -> R): R {
@@ -51,13 +64,6 @@ object TestObservation {
     finally {
       waitForConfiguration(project, timeout)
       IndexingTestUtil.waitUntilIndexesAreReady(project)
-    }
-  }
-
-  suspend fun awaitOpenProjectActivity(timeout: Duration = DEFAULT_TEST_TIMEOUT, openProject: suspend () -> Project): Project {
-    return openProject().withProjectAsync { project ->
-      awaitConfiguration(project, timeout)
-      IndexingTestUtil.suspendUntilIndexesAreReady(project)
     }
   }
 
@@ -71,7 +77,10 @@ object TestObservation {
     }
   }
 
-  @Obsolete(since = "use suspend version nearby")
+  /**
+   * obsolete: Use [awaitConfiguration] instead.
+   */
+  @Obsolete
   @JvmStatic
   @JvmOverloads
   fun waitForConfiguration(project: Project, timeout: Long = DEFAULT_TEST_TIMEOUT_MS) {
