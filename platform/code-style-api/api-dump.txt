@@ -1034,6 +1034,7 @@ a:com.intellij.psi.codeStyle.PsiBasedFileIndentOptionsProvider
 - f:getIndentOptions(com.intellij.openapi.project.Project,com.intellij.psi.codeStyle.CodeStyleSettings,com.intellij.openapi.vfs.VirtualFile):com.intellij.psi.codeStyle.CommonCodeStyleSettings$IndentOptions
 - a:getIndentOptionsByPsiFile(com.intellij.psi.codeStyle.CodeStyleSettings,com.intellij.psi.PsiFile):com.intellij.psi.codeStyle.CommonCodeStyleSettings$IndentOptions
 com.intellij.psi.codeStyle.arrangement.ArrangementEntry
+- canBeGrouped():Z
 - a:canBeMatched():Z
 - a:getChildren():java.util.List
 - a:getDependencies():java.util.List

@@ -1,4 +1,4 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.psi.codeStyle.arrangement;
 
 import com.intellij.ide.highlighter.JavaHighlightingColors;
@@ -14,7 +14,6 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.codeStyle.CodeStyleSettings;
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings;
 import com.intellij.psi.codeStyle.JavaCodeStyleSettings;
-import com.intellij.psi.codeStyle.arrangement.engine.ArrangementEngine;
 import com.intellij.psi.codeStyle.arrangement.group.ArrangementGroupingRule;
 import com.intellij.psi.codeStyle.arrangement.match.ArrangementEntryMatcher;
 import com.intellij.psi.codeStyle.arrangement.match.StdArrangementEntryMatcher;
@@ -292,30 +291,15 @@ public final class JavaRearranger implements Rearranger<JavaElementArrangementEn
         setupOverriddenMethods(parseInfo);
       }
     }
-    List<ArrangementEntryDependencyInfo> fieldDependencyRoots = parseInfo.getFieldDependencyRoots();
-    if (!fieldDependencyRoots.isEmpty()) {
-      setupFieldInitializationDependencies(fieldDependencyRoots, settings, parseInfo);
-    }
+    setupFieldInitializationDependencies(parseInfo);
     return parseInfo.getEntries();
   }
 
-  private static void setupFieldInitializationDependencies(@NotNull List<? extends ArrangementEntryDependencyInfo> fieldDependencyRoots,
-                                                           @NotNull ArrangementSettings settings,
-                                                           @NotNull JavaArrangementParseInfo parseInfo) {
-    Collection<JavaElementArrangementEntry> fields = parseInfo.getFields();
-    List<JavaElementArrangementEntry> arrangedFields =
-      ArrangementEngine.arrange(fields, settings.getSections(), settings.getRulesSortedByPriority(), null);
-
-    for (ArrangementEntryDependencyInfo root : fieldDependencyRoots) {
+  private static void setupFieldInitializationDependencies(@NotNull JavaArrangementParseInfo parseInfo) {
+    for (ArrangementEntryDependencyInfo root : parseInfo.getFieldDependencyRoots()) {
       JavaElementArrangementEntry anchorField = root.getAnchorEntry();
-      final int anchorEntryIndex = arrangedFields.indexOf(anchorField);
-
       for (ArrangementEntryDependencyInfo fieldInInitializerInfo : root.getDependentEntriesInfos()) {
-        JavaElementArrangementEntry fieldInInitializer = fieldInInitializerInfo.getAnchorEntry();
-        if (arrangedFields.indexOf(fieldInInitializer) > anchorEntryIndex ||
-            !fieldInInitializerInfo.getDependentEntriesInfos().isEmpty()) {
-          anchorField.addDependency(fieldInInitializer);
-        }
+        anchorField.addDependency(fieldInInitializerInfo.getAnchorEntry());
       }
     }
   }

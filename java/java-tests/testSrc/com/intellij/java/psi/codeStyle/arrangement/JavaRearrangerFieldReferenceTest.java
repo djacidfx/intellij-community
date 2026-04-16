@@ -95,6 +95,103 @@ public class JavaRearrangerFieldReferenceTest extends AbstractJavaRearrangerTest
              }
              """, defaultFieldsArrangement);
   }
+  
+  public void testDependenciesBetweenFields() {
+    // IDEA-286442
+    doTest("""
+             class Scratch {
+                 private static final String COMMA_DELIMITER = ",";
+                 private static final String UUID_REGEXP = "([0-9A-Za-z-]+)";
+                 private static final String URI_REGEXP = "(http://<some_url_pattern>+,?)";
+                 private static final String URIS_REGEXP = "(" + URI_REGEXP + "|" + "(\\"" + URI_REGEXP + "+\\"))";
+                 private static final String TITLE_REGEXP = "((.+)|(\\".+\\"))";
+                 private static final String FULL_REGEXP = UUID_REGEXP + COMMA_DELIMITER
+                         + URIS_REGEXP + COMMA_DELIMITER
+                         + TITLE_REGEXP;
+                 private static final Pattern PATTERN = Pattern.compile(FULL_REGEXP);
+             }
+             """, defaultFieldsArrangement);
+
+    // IDEA-293864
+    doTest("""
+             import java.util.List;
+             public class TestClass {
+                 static int int1 = 1;
+                 static List<Integer> numbers = List.of(int1);
+                 static int int2 = 2;
+                 static boolean int2Present = numbers.contains(int2);
+             }
+             """, defaultFieldsArrangement);
+
+    // IDEA-280036
+    doTest("""
+             class FormatterDependencyIssue {
+                public static final String AA = "aa";
+                public static final String ZZ = "zz";
+                public static final String COMPOSED = AA + ZZ;
+                public static String AA_NON_FINAL = "aa";
+                public static String ZZ_NON_FINAL = "zz";
+                public final String AA_NON_STATIC = "aa";
+                public final String ZZ_NON_STATIC = "zz";
+                public String AA_NON_STATIC_NON_FINAL = "aa";
+                public String ZZ_NON_STATIC_NON_FINAL = "zz";
+                public static String COMPOSED_NON_FINAL = AA_NON_FINAL + ZZ_NON_FINAL;
+                public final String COMPOSED_NON_STATIC = AA_NON_STATIC + ZZ_NON_STATIC;
+                public String COMPOSED_NON_STATIC_NON_FINAL = AA_NON_STATIC_NON_FINAL + ZZ_NON_STATIC_NON_FINAL;
+             }""", defaultFieldsArrangement);
+
+    // IDEA-333223
+    doTest("""
+             class Foo {
+                 public static final String upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                 public static final String lower = upper.toLowerCase(Locale.ROOT);
+                 public static final String digits = "0123456789";
+                 public static final String alphanum = lower + digits;
+             }""", defaultFieldsArrangement);
+
+    // IDEA-321048
+    doTest("""
+             class MyTestKO {
+             
+                 private static final String TENANT_ID = "tenantId";
+                 private static final String ASSET_ID_NAMESPACE_1 = "assetIdNamespace1";
+                 private static final String ASSET_ID_NAMESPACE_2 = "assetIdNamespace2";
+                 private static final String ASSET_ID_1 = "assetId1";
+                 private static final String ASSET_ID_2 = "assetId2";
+                 private static final String DEVICE_ID_1 = "urn:lo:nsid:" + ASSET_ID_NAMESPACE_1 + ":" + ASSET_ID_1;
+             
+                 private static final String RESOURCE_ID_1 = "resourceId1";
+                 private static final String RESOURCE_ID_2 = "resourceId2";
+                 private static final String SOURCE_VERSION_1 = "sourceVersion1";
+                 private static final String SOURCE_VERSION_2 = "sourceVersion2";
+                 private static final String TARGET_VERSION_1 = "targetVersion1";
+                 private static final String TARGET_VERSION_2 = "targetVersion2";
+                 private static final String DEVICE_ID_2 = "urn:lo:nsid:" + ASSET_ID_NAMESPACE_2 + ":" + ASSET_ID_2;
+             
+                 private static final StateModel UPDATE_A = StateModel.builder()
+                         .tenantId(TENANT_ID).deviceId(DEVICE_ID_1)
+                         .resourceId(RESOURCE_ID_1)
+                         .sourceVersion(SOURCE_VERSION_1)
+                         .targetVersion(TARGET_VERSION_1)
+                         .build();
+                 private static final StateModel UPDATE_B = StateModel.builder()
+                         .tenantId(TENANT_ID).deviceId(DEVICE_ID_2)
+                         .resourceId(RESOURCE_ID_2)
+                         .sourceVersion(SOURCE_VERSION_2)
+                         .targetVersion(TARGET_VERSION_2)
+                         .build();
+             }""", defaultFieldsArrangement);
+
+    // IDEA-291785
+    doTest("""
+             class RearrangeCodeBugExample {
+                 int var0;
+                 int var1 = var0 + 1;
+                 int var2 = 2;
+                 int sum = var1 + var2;
+             }
+             """, defaultFieldsArrangement);
+  }
 
   public void test_keep_referenced_package_private_field_before_public_one_which_has_reference_through_binary_expression() {
     doTest("""
