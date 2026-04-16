@@ -157,10 +157,8 @@ private fun createProductionPartDescriptor(
       }
     }
   )
-  val contentModuleData = contentModuleDetector.findContentModuleData(module)
-  val id = if (contentModuleData != null) RuntimeModuleId.contentModule(contentModuleData.name, contentModuleData.namespace)
-           else runtimeModuleIdGenerator(module, false)
-  val visibility = contentModuleData?.visibility ?: RuntimeModuleVisibility.PUBLIC
+  val id = runtimeModuleIdGenerator(module, false)
+  val visibility = contentModuleDetector.findContentModuleData(module)?.visibility ?: RuntimeModuleVisibility.PUBLIC
   return RawRuntimeModuleDescriptor.create(id, visibility, resourcePaths.toList(), dependencies.toList())
 }
 
