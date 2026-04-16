@@ -722,7 +722,7 @@ public class IntToIntBtreeTest {
 
   @Test
   public void multipleFlushesPreserveData() throws IOException {
-    int batchSize = 10_000;
+    int batchSize = 20_000;
     Int2IntMap batch1 = generateKeyValues(batchSize);
     Int2IntMap batch2 = generateKeyValues(batchSize);
     Int2IntMap batch3 = generateKeyValues(batchSize);
@@ -750,30 +750,16 @@ public class IntToIntBtreeTest {
 
     int[] valueHolder = new int[1];
 
-    // Verify batch 1
-    for (Int2IntMap.Entry entry : batch1.int2IntEntrySet()) {
+    Int2IntMap unionOfBatches = new Int2IntOpenHashMap(batch1.size() + batch2.size() + batch3.size());
+    unionOfBatches.putAll(batch1);
+    unionOfBatches.putAll(batch2);
+    unionOfBatches.putAll(batch3);
+    // Verify:
+    for (Int2IntMap.Entry entry : unionOfBatches.int2IntEntrySet()) {
       int key = entry.getIntKey();
-      assertTrue("Batch 1 key[" + key + "] should be found after multiple flushes and reopen",
+      assertTrue("key[" + key + "] should be found after multiple flushes and reopen",
                  bTree.get(key, valueHolder));
-      assertEquals("Batch 1 key[" + key + "] should have correct value",
-                   entry.getIntValue(), valueHolder[0]);
-    }
-
-    // Verify batch 2
-    for (Int2IntMap.Entry entry : batch2.int2IntEntrySet()) {
-      int key = entry.getIntKey();
-      assertTrue("Batch 2 key[" + key + "] should be found after multiple flushes and reopen",
-                 bTree.get(key, valueHolder));
-      assertEquals("Batch 2 key[" + key + "] should have correct value",
-                   entry.getIntValue(), valueHolder[0]);
-    }
-
-    // Verify batch 3
-    for (Int2IntMap.Entry entry : batch3.int2IntEntrySet()) {
-      int key = entry.getIntKey();
-      assertTrue("Batch 3 key[" + key + "] should be found after multiple flushes and reopen",
-                 bTree.get(key, valueHolder));
-      assertEquals("Batch 3 key[" + key + "] should have correct value",
+      assertEquals("key[" + key + "] should have correct value",
                    entry.getIntValue(), valueHolder[0]);
     }
   }
