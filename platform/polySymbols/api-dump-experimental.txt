@@ -561,17 +561,6 @@
 - a:iconProvider(kotlin.jvm.functions.Function1):V
 - a:library(java.lang.String):com.intellij.polySymbols.documentation.PolySymbolDocumentationBuilder
 - a:name(java.lang.String):com.intellij.polySymbols.documentation.PolySymbolDocumentationBuilder
-- a:setApiStatus(com.intellij.polySymbols.PolySymbolApiStatus):V
-- a:setDefaultValue(java.lang.String):V
-- a:setDefinition(java.lang.String):V
-- a:setDefinitionDetails(java.lang.String):V
-- a:setDescription(java.lang.String):V
-- a:setDocUrl(java.lang.String):V
-- a:setFootnote(java.lang.String):V
-- a:setHeader(java.lang.String):V
-- a:setIcon(javax.swing.Icon):V
-- a:setLibrary(java.lang.String):V
-- a:setName(java.lang.String):V
 *:com.intellij.polySymbols.documentation.PolySymbolDocumentationCustomizer
 - *sf:Companion:com.intellij.polySymbols.documentation.PolySymbolDocumentationCustomizer$Companion
 - sf:EP_NAME:com.intellij.openapi.extensions.ExtensionPointName
