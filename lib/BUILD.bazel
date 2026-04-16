@@ -12646,17 +12646,17 @@ jvm_import(
 )
 
 copy_file(
-  name = "org.lz4/lz4-java-1.8.0.jar_copy",
-  src = "@org_lz4-lz4-java-1_8_0_http//file",
-  out = "org.lz4/lz4-java-1.8.0.jar",
+  name = "at.yawk.lz4/lz4-java-1.11.0.jar_copy",
+  src = "@at_yawk_lz4-lz4-java-1_11_0_http//file",
+  out = "at.yawk.lz4/lz4-java-1.11.0.jar",
   allow_symlink = True,
   visibility = ["//visibility:public"]
 )
 
 jvm_import(
   name = "libraries-lz4-lz4-java",
-  jar = "@org_lz4-lz4-java-1_8_0_http//file",
-  source_jar = "@org_lz4-lz4-java-1_8_0-sources_http//file",
+  jar = "@at_yawk_lz4-lz4-java-1_11_0_http//file",
+  source_jar = "@at_yawk_lz4-lz4-java-1_11_0-sources_http//file",
   visibility = ["//visibility:public"]
 )
 
