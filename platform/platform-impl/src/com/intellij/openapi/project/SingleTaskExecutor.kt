@@ -110,14 +110,18 @@ internal class SingleTaskExecutor(private val task: Reportable) {
       return false // there will be at least one more check of shouldContinueBackgroundProcessing in the background thread
     }
     else {
+      // The order is important. The other thread will set states in this order: STOPPING>STOPPED.
+      // We should try changing states in the same order, therwise we may endup in STOPPED state:
+      // {T1: RUNNING => STOPPING},{T2: STOPPED ~> STARTING},{T1: STOPPING => STOPPED},{T2: STOPPING ~> STARTING}
+      val stoppingToStarting = runState.compareAndSet(RunState.STOPPING, RunState.STARTING)
       val stoppedToStarting = runState.compareAndSet(RunState.STOPPED, RunState.STARTING)
-      val thisThreadShouldProcessQueue = stoppedToStarting || runState.compareAndSet(RunState.STOPPING, RunState.STARTING)
+      val thisThreadShouldProcessQueue = stoppingToStarting || stoppedToStarting
       // whatever thread (this or background) wins the competition and sets STARTING - that thread should process the queue
       if (stoppedToStarting) {
         debugLog { "this thread switched STOPPED > STARTING" }
         modificationCount.update { it + 1 }
       } else if (!thisThreadShouldProcessQueue) {
-        debugLog { "this thread could not acquire STARTING  state" }
+        debugLog { "this thread could not acquire STARTING state" }
         return false
       }
     }

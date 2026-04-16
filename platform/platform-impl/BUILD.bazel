@@ -626,6 +626,8 @@ jvm_library(
     "//libraries/rd/core:core_test_lib",
     "//platform/forms_rt:java-guiForms-rt",
     "//platform/forms_rt:java-guiForms-rt_test_lib",
+    "//libraries/junit5",
+    "//libraries/junit5:junit5_test_lib",
   ],
   exports = [
     "//platform/platform-api:ide",
