@@ -14,13 +14,19 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
+
+import static com.intellij.util.progress.CancellationUtil.withLockMaybeCancellable;
 
 @SuppressWarnings("rawtypes")
 @ApiStatus.Internal
 public final class XDependentBreakpointManager {
+  private final ReentrantLock myLock = new ReentrantLock();
   private final Map<XBreakpoint<?>,  XDependentBreakpointInfo> mySlave2Info = new HashMap<>();
   private final MultiMap<XBreakpointBase, XDependentBreakpointInfo> myMaster2Info = new MultiMap<>();
   private final XBreakpointManagerImpl myBreakpointManager;
@@ -32,27 +38,32 @@ public final class XDependentBreakpointManager {
     messageBusConnection.subscribe(XBreakpointListener.TOPIC, new XBreakpointListener<>() {
       @Override
       public void breakpointRemoved(final @NotNull XBreakpoint<?> breakpoint) {
-        XDependentBreakpointInfo info = mySlave2Info.remove(breakpoint);
-        if (info != null) {
-          myMaster2Info.remove(info.myMasterBreakpoint, info);
-        }
+        List<XBreakpoint<?>> breakpointsToClear = withStateLock(() -> {
+          XDependentBreakpointInfo info = mySlave2Info.remove(breakpoint);
+          if (info != null) {
+            myMaster2Info.remove(info.myMasterBreakpoint, info);
+          }
 
-        Collection<XDependentBreakpointInfo> infos = myMaster2Info.remove((XBreakpointBase)breakpoint);
-        if (infos != null) {
+          Collection<XDependentBreakpointInfo> infos = myMaster2Info.remove((XBreakpointBase)breakpoint);
+          if (infos == null) {
+            return Collections.emptyList();
+          }
+
+          List<XBreakpoint<?>> result = new SmartList<>();
           for (XDependentBreakpointInfo breakpointInfo : infos) {
             XDependentBreakpointInfo removed = mySlave2Info.remove(breakpointInfo.mySlaveBreakpoint);
             if (removed != null) {
-              myEventPublisher.dependencyCleared(breakpointInfo.mySlaveBreakpoint);
+              result.add(breakpointInfo.mySlaveBreakpoint);
             }
           }
-        }
+          return result;
+        });
+        breakpointsToClear.forEach(myEventPublisher::dependencyCleared);
       }
     });
   }
 
   public void loadState() {
-    mySlave2Info.clear();
-    myMaster2Info.clear();
     Map<String, XBreakpointBase<?,?,?>> id2Breakpoint = new HashMap<>();
     XBreakpointBase<?, ?, ?>[] allBreakpoints = myBreakpointManager.getAllBreakpoints();
     for (XBreakpointBase<?,?,?> breakpoint : allBreakpoints) {
@@ -64,63 +75,76 @@ public final class XDependentBreakpointManager {
         }
       }
     }
-
-    for (XBreakpointBase<?, ?, ?> breakpoint : allBreakpoints) {
-      XBreakpointDependencyState state = breakpoint.getDependencyState();
-      if (state != null) {
-        String masterId = state.getMasterBreakpointId();
-        if (masterId != null) {
-          XBreakpointBase<?, ?, ?> master = id2Breakpoint.get(masterId);
-          if (master != null) {
-            addDependency(master, breakpoint, state.isLeaveEnabled());
+    withStateLock(() -> {
+      mySlave2Info.clear();
+      myMaster2Info.clear();
+      for (XBreakpointBase<?, ?, ?> breakpoint : allBreakpoints) {
+        XBreakpointDependencyState state = breakpoint.getDependencyState();
+        if (state != null) {
+          String masterId = state.getMasterBreakpointId();
+          if (masterId != null) {
+            XBreakpointBase<?, ?, ?> master = id2Breakpoint.get(masterId);
+            if (master != null) {
+              addDependency(master, breakpoint, state.isLeaveEnabled());
+            }
           }
         }
       }
-    }
+    });
   }
 
   public void saveState() {
-    Map<XBreakpointBase<?,?,?>, String> breakpointToId = new HashMap<>();
-    int id = 0;
-    for (XBreakpointBase breakpoint : myMaster2Info.keySet()) {
-      breakpointToId.put(breakpoint, String.valueOf(id++));
-    }
-
-    for (XDependentBreakpointInfo info : mySlave2Info.values()) {
-      XBreakpointDependencyState state = new XBreakpointDependencyState(breakpointToId.get(info.mySlaveBreakpoint),
-                                                                        breakpointToId.get(info.myMasterBreakpoint),
-                                                                        info.myLeaveEnabled);
-      info.mySlaveBreakpoint.setDependencyState(state);
-    }
-
-    for (Map.Entry<XBreakpointBase<?, ?, ?>, String> entry : breakpointToId.entrySet()) {
-      if (!mySlave2Info.containsKey(entry.getKey())) {
-        entry.getKey().setDependencyState(new XBreakpointDependencyState(entry.getValue()));
+    withStateLock(() -> {
+      Map<XBreakpointBase<?, ?, ?>, String> breakpointToId = new HashMap<>();
+      int id = 0;
+      for (XBreakpointBase breakpoint : myMaster2Info.keySet()) {
+        breakpointToId.put(breakpoint, String.valueOf(id++));
       }
-    }
+
+      for (XDependentBreakpointInfo info : mySlave2Info.values()) {
+        XBreakpointDependencyState state = new XBreakpointDependencyState(breakpointToId.get(info.mySlaveBreakpoint),
+                                                                          breakpointToId.get(info.myMasterBreakpoint),
+                                                                          info.myLeaveEnabled);
+        info.mySlaveBreakpoint.setDependencyState(state);
+      }
+
+      for (Map.Entry<XBreakpointBase<?, ?, ?>, String> entry : breakpointToId.entrySet()) {
+        if (!mySlave2Info.containsKey(entry.getKey())) {
+          entry.getKey().setDependencyState(new XBreakpointDependencyState(entry.getValue()));
+        }
+      }
+    });
   }
 
   public void setMasterBreakpoint(@NotNull XBreakpoint<?> slave, @NotNull XBreakpoint<?> master, boolean leaveEnabled) {
-    XDependentBreakpointInfo info = mySlave2Info.get(slave);
-    if (info == null) {
-      addDependency((XBreakpointBase<?,?,?>)master, (XBreakpointBase<?,?,?>)slave, leaveEnabled);
-    }
-    else if (info.myMasterBreakpoint == master) {
-      info.myLeaveEnabled = leaveEnabled;
-    }
-    else {
-      myMaster2Info.remove(info.myMasterBreakpoint, info);
-      info.myMasterBreakpoint = (XBreakpointBase)master;
-      info.myLeaveEnabled = leaveEnabled;
-      myMaster2Info.putValue((XBreakpointBase)master, info);
-    }
+    withStateLock(() -> {
+      XDependentBreakpointInfo info = mySlave2Info.get(slave);
+      if (info == null) {
+        addDependency((XBreakpointBase<?, ?, ?>)master, (XBreakpointBase<?, ?, ?>)slave, leaveEnabled);
+      }
+      else if (info.myMasterBreakpoint == master) {
+        info.myLeaveEnabled = leaveEnabled;
+      }
+      else {
+        myMaster2Info.remove(info.myMasterBreakpoint, info);
+        info.myMasterBreakpoint = (XBreakpointBase)master;
+        info.myLeaveEnabled = leaveEnabled;
+        myMaster2Info.putValue((XBreakpointBase)master, info);
+      }
+    });
     myEventPublisher.dependencySet(slave, master);
   }
 
   public void clearMasterBreakpoint(@NotNull XBreakpoint<?> slave) {
-    XDependentBreakpointInfo info = mySlave2Info.remove(slave);
-    if (info != null) {
+    boolean dependencyCleared = withStateLock(() -> {
+      XDependentBreakpointInfo info = mySlave2Info.remove(slave);
+      if (info == null) {
+        return false;
+      }
       myMaster2Info.remove(info.myMasterBreakpoint, info);
+      return true;
+    });
+    if (dependencyCleared) {
       myEventPublisher.dependencyCleared(slave);
     }
   }
@@ -132,33 +156,47 @@ public final class XDependentBreakpointManager {
   }
 
   public @Nullable XBreakpoint<?> getMasterBreakpoint(@NotNull XBreakpoint<?> slave) {
-    XDependentBreakpointInfo info = mySlave2Info.get(slave);
-    return info != null ? info.myMasterBreakpoint : null;
+    return withStateLock(() -> {
+      XDependentBreakpointInfo info = mySlave2Info.get(slave);
+      return info != null ? info.myMasterBreakpoint : null;
+    });
   }
 
   public boolean isLeaveEnabled(@NotNull XBreakpoint<?> slave) {
-    XDependentBreakpointInfo info = mySlave2Info.get(slave);
-    return info != null && info.myLeaveEnabled;
+    return withStateLock(() -> {
+      XDependentBreakpointInfo info = mySlave2Info.get(slave);
+      return info != null && info.myLeaveEnabled;
+    });
   }
 
   public List<XBreakpoint<?>> getSlaveBreakpoints(final XBreakpoint<?> breakpoint) {
-    Collection<XDependentBreakpointInfo> slaveInfos = myMaster2Info.get((XBreakpointBase)breakpoint);
-    if (slaveInfos.isEmpty()) {
-      return Collections.emptyList();
-    }
-    List<XBreakpoint<?>> breakpoints = new SmartList<>();
-    for (XDependentBreakpointInfo slaveInfo : slaveInfos) {
-      breakpoints.add(slaveInfo.mySlaveBreakpoint);
-    }
-    return breakpoints;
+    return withStateLock(() -> {
+      Collection<XDependentBreakpointInfo> slaveInfos = myMaster2Info.get((XBreakpointBase)breakpoint);
+      if (slaveInfos.isEmpty()) {
+        return Collections.emptyList();
+      }
+      List<XBreakpoint<?>> breakpoints = new SmartList<>();
+      for (XDependentBreakpointInfo slaveInfo : slaveInfos) {
+        breakpoints.add(slaveInfo.mySlaveBreakpoint);
+      }
+      return breakpoints;
+    });
   }
 
   public boolean isMasterOrSlave(final XBreakpoint<?> breakpoint) {
-    return myMaster2Info.containsKey((XBreakpointBase)breakpoint) || mySlave2Info.containsKey(breakpoint);
+    return withStateLock(() -> myMaster2Info.containsKey((XBreakpointBase)breakpoint) || mySlave2Info.containsKey(breakpoint));
   }
 
   public Set<XBreakpoint<?>> getAllSlaveBreakpoints() {
-    return mySlave2Info.keySet();
+    return withStateLock(() -> new HashSet<>(mySlave2Info.keySet()));
+  }
+
+  private <T> T withStateLock(@NotNull Supplier<T> action) {
+    return withLockMaybeCancellable(myLock, action::get);
+  }
+
+  private void withStateLock(@NotNull Runnable action) {
+    withLockMaybeCancellable(myLock, action);
   }
 
   private static final class XDependentBreakpointInfo {
@@ -179,14 +217,16 @@ public final class XDependentBreakpointManager {
 
     DependenciesData(XBreakpointBase breakpoint) {
       myBreakpoint = breakpoint;
-      ContainerUtil.addIfNotNull(myDependencies, mySlave2Info.get(breakpoint));
-      myDependencies.addAll(myMaster2Info.get(breakpoint));
+      withStateLock(() -> {
+        ContainerUtil.addIfNotNull(myDependencies, mySlave2Info.get(breakpoint));
+        myDependencies.addAll(myMaster2Info.get(breakpoint));
+      });
     }
 
     void restore(XBreakpointBase breakpoint) {
-      myDependencies.forEach(d -> addDependency(replaceSelf(d.myMasterBreakpoint, breakpoint),
-                                                replaceSelf(d.mySlaveBreakpoint, breakpoint),
-                                                d.myLeaveEnabled));
+      withStateLock(() -> myDependencies.forEach(d -> addDependency(replaceSelf(d.myMasterBreakpoint, breakpoint),
+                                                                    replaceSelf(d.mySlaveBreakpoint, breakpoint),
+                                                                    d.myLeaveEnabled)));
     }
 
     private XBreakpointBase replaceSelf(XBreakpointBase breakpoint, XBreakpointBase self) {
