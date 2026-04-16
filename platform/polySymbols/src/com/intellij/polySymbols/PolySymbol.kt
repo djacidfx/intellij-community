@@ -16,6 +16,7 @@ import com.intellij.platform.backend.navigation.NavigationTarget
 import com.intellij.platform.backend.presentation.TargetPresentation
 import com.intellij.polySymbols.context.PolyContext
 import com.intellij.polySymbols.documentation.PolySymbolDocumentationCustomizer
+import com.intellij.polySymbols.documentation.PolySymbolDocumentationDsl
 import com.intellij.polySymbols.impl.PolySymbolPropertyGetter
 import com.intellij.polySymbols.query.PolySymbolMatch
 import com.intellij.polySymbols.query.PolySymbolMatchCustomizer
@@ -116,6 +117,7 @@ import kotlin.reflect.KClass
  * See also: [Implementing Poly Symbols](https://plugins.jetbrains.com/docs/intellij/websymbols-implementation.html)
  */
 @Suppress("INAPPLICABLE_JVM_NAME")
+@PolySymbolDocumentationDsl
 interface PolySymbol : Symbol, NavigatableSymbol, PolySymbolPrioritizedScope {
 
   /**

@@ -14,8 +14,6 @@ import com.intellij.polySymbols.PolySymbolProperty
 import com.intellij.polySymbols.PolySymbolQualifiedName
 import com.intellij.polySymbols.completion.PolySymbolCodeCompletionItem
 import com.intellij.polySymbols.context.PolyContext
-import com.intellij.polySymbols.documentation.PolySymbolDocumentation
-import com.intellij.polySymbols.documentation.PolySymbolDocumentationProvider
 import com.intellij.polySymbols.documentation.PolySymbolDocumentationTarget
 import com.intellij.polySymbols.framework.framework
 import com.intellij.polySymbols.html.HtmlAttributeValueProperty
@@ -179,7 +177,41 @@ open class WebTypesSymbolBase : WebTypesSymbol {
 
   override fun getDocumentationTarget(location: PsiElement?): DocumentationTarget? =
     if (this[PROP_NO_DOC] != true)
-      PolySymbolDocumentationTarget.create(this, location, WebTypesSymbolDocumentationProvider(this))
+      PolySymbolDocumentationTarget.create(this, location) { symbol, location ->
+        val superContributionDocs = symbol.superContributions
+          .mapNotNull { (it.getDocumentationTarget(location) as? PolySymbolDocumentationTarget)?.documentation }
+
+        description(
+          symbol.base.contribution.description
+            ?.let { symbol.base.jsonOrigin.renderDescription(symbol.base.contribution.description) }
+          ?: superContributionDocs.firstNotNullOfOrNull { it.description }
+        )
+        defaultValue(
+          (symbol.base.contribution as? GenericContribution)?.default
+          ?: (symbol.base.contribution as? HtmlAttribute)?.default
+          ?: superContributionDocs.firstNotNullOfOrNull { it.defaultValue }
+          ?: symbol.attributeValue?.default
+        )
+        docUrl(symbol.base.contribution.docUrl
+               ?: superContributionDocs.firstNotNullOfOrNull { it.docUrl }
+        )
+        descriptionSections(
+          (symbol.base.contribution.descriptionSections?.additionalProperties?.asSequence() ?: emptySequence())
+            .plus(superContributionDocs.asSequence().flatMap {
+              it.descriptionSections.asSequence()
+            })
+            .distinctBy { it.key }
+            .associateBy({ it.key }, { symbol.base.jsonOrigin.renderDescription(it.value) })
+        )
+        library(
+          symbol.base.jsonOrigin.library?.let { lib ->
+            lib + (symbol.base.jsonOrigin.version?.takeIf { it != "0.0.0" }?.let { "@$it" } ?: "")
+          }
+        )
+        iconProvider { path ->
+          symbol.base.jsonOrigin.loadIcon(path)
+        }
+      }
     else
       null
 
@@ -266,49 +298,6 @@ open class WebTypesSymbolBase : WebTypesSymbol {
     override val langType: Any?
       get() = value.type?.toLangType()
         ?.let { base.jsonOrigin.typeSupport?.resolve(it.mapToTypeReferences()) }
-
-  }
-
-  private class WebTypesSymbolDocumentationProvider(private val symbol: WebTypesSymbolBase) :
-    PolySymbolDocumentationProvider<WebTypesSymbolBase> {
-
-    override fun loadIcon(path: String): Icon? =
-      symbol.base.jsonOrigin.loadIcon(path)
-
-    override fun createDocumentation(symbol: WebTypesSymbolBase, location: PsiElement?): PolySymbolDocumentation {
-      val superContributionDocs = symbol.superContributions
-        .mapNotNull { (it.getDocumentationTarget(location) as? PolySymbolDocumentationTarget)?.documentation }
-
-      return PolySymbolDocumentation.builder(symbol, location)
-        .description(
-          symbol.base.contribution.description
-            ?.let { symbol.base.jsonOrigin.renderDescription(symbol.base.contribution.description) }
-          ?: superContributionDocs.firstNotNullOfOrNull { it.description }
-        )
-        .defaultValue(
-          (symbol.base.contribution as? GenericContribution)?.default
-          ?: (symbol.base.contribution as? HtmlAttribute)?.default
-          ?: superContributionDocs.firstNotNullOfOrNull { it.defaultValue }
-          ?: symbol.attributeValue?.default
-        )
-        .docUrl(symbol.base.contribution.docUrl
-                ?: superContributionDocs.firstNotNullOfOrNull { it.docUrl }
-        )
-        .descriptionSections(
-          (symbol.base.contribution.descriptionSections?.additionalProperties?.asSequence() ?: emptySequence())
-            .plus(superContributionDocs.asSequence().flatMap {
-              it.descriptionSections.asSequence()
-            })
-            .distinctBy { it.key }
-            .associateBy({ it.key }, { symbol.base.jsonOrigin.renderDescription(it.value) })
-        )
-        .library(
-          symbol.base.jsonOrigin.library?.let { lib ->
-            lib + (symbol.base.jsonOrigin.version?.takeIf { it != "0.0.0" }?.let { "@$it" } ?: "")
-          }
-        )
-        .build()
-    }
 
   }
 }

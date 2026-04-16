@@ -2,10 +2,17 @@
 package com.intellij.polySymbols.documentation
 
 import com.intellij.openapi.util.NlsSafe
+import com.intellij.polySymbols.PolySymbol
 import com.intellij.polySymbols.PolySymbolApiStatus
+import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nls
 import javax.swing.Icon
 
+@DslMarker
+annotation class PolySymbolDocumentationDsl
+
+@PolySymbolDocumentationDsl
+@ApiStatus.NonExtendable
 interface PolySymbolDocumentationBuilder {
   fun name(value: @NlsSafe String): PolySymbolDocumentationBuilder
   var name: @NlsSafe String
@@ -44,5 +51,10 @@ interface PolySymbolDocumentationBuilder {
   fun header(value: @Nls String?): PolySymbolDocumentationBuilder
   var header: @Nls String?
 
+  fun iconProvider(provider: (String) -> Icon?)
+
+  fun copyFrom(other: PolySymbol?): Boolean
+
+  @ApiStatus.Internal
   fun build(): PolySymbolDocumentation
 }

@@ -11,10 +11,6 @@ import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nls
 import javax.swing.Icon
 
-/**
- * INAPPLICABLE_JVM_NAME -> https://youtrack.jetbrains.com/issue/KT-31420
- **/
-@Suppress("INAPPLICABLE_JVM_NAME")
 @ApiStatus.NonExtendable
 interface PolySymbolDocumentation {
 
@@ -113,7 +109,8 @@ interface PolySymbolDocumentation {
     else
       this
 
-  fun build(iconProvider: (String) -> Icon?): DocumentationResult
+  @ApiStatus.Internal
+  fun build(): DocumentationResult
 
   companion object {
 

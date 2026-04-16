@@ -10,6 +10,7 @@ import com.intellij.polySymbols.documentation.PolySymbolDocumentation
 import com.intellij.polySymbols.documentation.PolySymbolDocumentationBuilder
 import com.intellij.polySymbols.documentation.PolySymbolDocumentationCustomizer
 import com.intellij.psi.PsiElement
+import com.intellij.util.asSafely
 import org.jetbrains.annotations.Nls
 import javax.swing.Icon
 
@@ -26,9 +27,10 @@ internal class PolySymbolDocumentationBuilderImpl(
   override var defaultValue: String? = null
   override var library: String? = null
   override var icon: Icon? = symbol.icon?.takeIf { symbol[DocHideIconProperty] != true }
-  override var descriptionSections: MutableMap<@Nls String, @Nls String> = mutableMapOf()
+  override val descriptionSections: MutableMap<@Nls String, @Nls String> = mutableMapOf()
   override var footnote: @Nls String? = null
   override var header: @Nls String? = null
+  private val iconProviders = mutableListOf<(String) -> Icon?>()
 
   override fun name(value: @NlsSafe String): PolySymbolDocumentationBuilder {
     name = value
@@ -95,11 +97,40 @@ internal class PolySymbolDocumentationBuilderImpl(
     return this
   }
 
+  override fun iconProvider(provider: (String) -> Icon?) {
+    iconProviders.add(provider)
+  }
+
+  override fun copyFrom(other: PolySymbol?): Boolean {
+    val target = other
+      ?.getDocumentationTarget(location)
+      ?.asSafely<PolySymbolDocumentationTargetImpl<PolySymbol>>()
+    if (target == null) return false
+    val defaultBuilder = PolySymbolDocumentationBuilderImpl(target.symbol, location)
+    name = defaultBuilder.name
+    definition = defaultBuilder.definition
+    definitionDetails = defaultBuilder.definitionDetails
+    description = defaultBuilder.description
+    docUrl = defaultBuilder.docUrl
+    apiStatus = defaultBuilder.apiStatus
+    defaultValue = defaultBuilder.defaultValue
+    library = defaultBuilder.library
+    icon = defaultBuilder.icon
+    descriptionSections.clear()
+    descriptionSections.putAll(defaultBuilder.descriptionSections)
+    footnote = defaultBuilder.footnote
+    header = defaultBuilder.header
+    iconProviders.clear()
+    iconProviders.addAll(defaultBuilder.iconProviders)
+    target.builder(this, target.symbol, location)
+    return true
+  }
+
   @Suppress("TestOnlyProblems")
   override fun build(): PolySymbolDocumentation =
     PolySymbolDocumentationImpl(
       name, definition, definitionDetails, description, docUrl, apiStatus, defaultValue, library,
-      icon, descriptionSections, footnote, header
+      icon, descriptionSections, footnote, header, iconProviders
     ).let { doc: PolySymbolDocumentation ->
       PolySymbolDocumentationCustomizer.EP_NAME.extensionList.fold(doc) { documentation, customizer ->
         customizer.customize(symbol, location, documentation)
