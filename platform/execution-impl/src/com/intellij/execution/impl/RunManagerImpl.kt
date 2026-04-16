@@ -35,6 +35,7 @@ import com.intellij.execution.runToolbar.RunToolbarSlotManager
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.execution.runners.ExecutionUtil
 import com.intellij.execution.runners.ProgramRunner
+import com.intellij.execution.ui.RunConfigurationStartHistory
 import com.intellij.ide.ActivityTracker
 import com.intellij.ide.plugins.DynamicPluginListener
 import com.intellij.ide.plugins.IdeaPluginDescriptor
@@ -598,17 +599,18 @@ open class RunManagerImpl @NonInjectable constructor(val project: Project, priva
   }
 
   fun checkRecentsLimit() {
+    val pinnedIds = RunConfigurationStartHistory.getInstance(project).pinned()
     var removed: MutableList<RunnerAndConfigurationSettings>? = null
     lock.write {
       trimUsageListToLimit()
 
-      var excess = idToSettings.values.count { it.isTemporary } - config.recentsLimit
+      var excess = idToSettings.values.count { it.isTemporary && !pinnedIds.contains(it.uniqueID) } - config.recentsLimit
       if (excess <= 0) {
         return
       }
 
       for (settings in idToSettings.values) {
-        if (settings.isTemporary && !recentlyUsedTemporaries.contains(settings)) {
+        if (settings.isTemporary && !recentlyUsedTemporaries.contains(settings) && !pinnedIds.contains(settings.uniqueID)) {
           if (removed == null) {
             removed = ArrayList()
           }
