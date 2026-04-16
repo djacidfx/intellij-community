@@ -7,6 +7,7 @@ import com.intellij.modcommand.ModPsiUpdater
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.TextRange
+import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.ElementDescriptionUtil
 import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPsiElementPointer
@@ -18,7 +19,6 @@ import com.intellij.psi.util.startOffset
 import com.intellij.refactoring.util.RefactoringDescriptionLocation
 import org.jetbrains.annotations.Nls
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
 import org.jetbrains.kotlin.analysis.api.types.symbol
 import org.jetbrains.kotlin.asJava.unwrapped
@@ -32,6 +32,7 @@ import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.name.StandardClassIds
 import org.jetbrains.kotlin.psi.KtBlockExpression
 import org.jetbrains.kotlin.psi.KtClass
+import org.jetbrains.kotlin.psi.KtModifierList
 import org.jetbrains.kotlin.psi.KtObjectDeclaration
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtSuperTypeCallEntry
@@ -67,15 +68,12 @@ internal class ConvertSealedClassToEnumIntention : KotlinApplicableModCommandAct
     }
 
     override fun KaSession.prepareContext(element: KtClass): Unit? {
-        val notEmptySuperTypes = analyze(element) {
-            val symbol = element.symbol as? KaClassSymbol ?: return null
-            val superTypesNotAny =
-                symbol.superTypes
-                    .mapNotNull { it.symbol as? KaClassSymbol }
-                    .filter { it.classId != StandardClassIds.Any }
-            superTypesNotAny.isNotEmpty()
-        }
-        if (notEmptySuperTypes) return null
+        val symbol = element.symbol as? KaClassSymbol ?: return null
+        val superTypesNotAny =
+            symbol.superTypes
+                .mapNotNull { it.symbol as? KaClassSymbol }
+                .filter { it.classId != StandardClassIds.Any }
+        if (superTypesNotAny.isNotEmpty()) return null
 
         val klass = liftToExpect(element) as? KtClass ?: element
         val subclassesByContainer =
@@ -89,7 +87,7 @@ internal class ConvertSealedClassToEnumIntention : KotlinApplicableModCommandAct
         }
         val nonSealedClasses = (subclassesByContainer.keys as? Set<*>)
             ?.mapNotNull { (it as? SmartPsiElementPointer<*>)?.element }
-            ?.filter { !klass.isSealed() } ?: emptyList()
+            ?.filter { (it as? KtClass)?.isSealed() == false } ?: emptyList()
         if (nonSealedClasses.isNotEmpty()) {
             // All expected and actual classes must be sealed classes.
             return null
@@ -101,7 +99,12 @@ internal class ConvertSealedClassToEnumIntention : KotlinApplicableModCommandAct
     override fun invoke(actionContext: ActionContext, element: KtClass, elementContext: Unit, updater: ModPsiUpdater) {
         val originalFile = updater.getOriginalFile(element.containingFile)
         // a real file ktClass instance is needed for the search
-        val klass = originalFile.findElementAt(actionContext.offset)?.parent as? KtClass ?: return
+        val parentElement = originalFile.findElementAt(actionContext.offset)?.parent
+        val klass = when(parentElement) {
+            is KtClass -> parentElement
+            is KtModifierList -> parentElement.parent as? KtClass
+            else -> null
+        }  ?: return
         // prepareContext looks up for subclasses of the sealed class within the same file only
         val subclassesByContainer =
             findSubclassesByContainer(klass, klass.useScope)
@@ -167,7 +170,8 @@ internal class ConvertSealedClassToEnumIntention : KotlinApplicableModCommandAct
     @NlsSafe
     private fun errorText(@Nls message: String, elements: List<PsiElement>): String {
         val elementDescriptions = elements.map {
-            ElementDescriptionUtil.getElementDescription(it, RefactoringDescriptionLocation.WITHOUT_PARENT)
+            val description = ElementDescriptionUtil.getElementDescription(it, RefactoringDescriptionLocation.WITHOUT_PARENT)
+            StringUtil.stripHtml(description, true)
         }
 
         return buildString {

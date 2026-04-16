@@ -10127,6 +10127,11 @@ public abstract class K2IntentionTestGenerated extends AbstractK2IntentionTest {
             runTest("../../../idea/tests/testData/intentions/convertSealedClassToEnum/inheritorsWithMultipleSupertypes.kt");
         }
 
+        @TestMetadata("inheritorsWithMultipleSupertypes2.kt")
+        public void testInheritorsWithMultipleSupertypes2() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/convertSealedClassToEnum/inheritorsWithMultipleSupertypes2.kt");
+        }
+
         @TestMetadata("instancesAndMembers.kt")
         public void testInstancesAndMembers() throws Exception {
             runTest("../../../idea/tests/testData/intentions/convertSealedClassToEnum/instancesAndMembers.kt");
@@ -10150,6 +10155,11 @@ public abstract class K2IntentionTestGenerated extends AbstractK2IntentionTest {
         @TestMetadata("notSealedClass.kt")
         public void testNotSealedClass() throws Exception {
             runTest("../../../idea/tests/testData/intentions/convertSealedClassToEnum/notSealedClass.kt");
+        }
+
+        @TestMetadata("onModifierList.kt")
+        public void testOnModifierList() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/convertSealedClassToEnum/onModifierList.kt");
         }
 
         @TestMetadata("outOfRange.kt")
