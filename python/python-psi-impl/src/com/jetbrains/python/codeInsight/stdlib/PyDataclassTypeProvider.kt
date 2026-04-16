@@ -282,6 +282,10 @@ class PyDataclassTypeProvider : PyTypeProviderBase() {
                  || index < indexOfKeywordOnlyAttribute || kwOnly == true)
                 && name !in collected) {
               keywordOnly += name
+
+              if (fieldName != null) {
+                keywordOnlyFieldNames += fieldName
+              }
             }
 
             if (parameter == null) {

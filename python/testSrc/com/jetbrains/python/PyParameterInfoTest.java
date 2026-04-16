@@ -1,6 +1,7 @@
 // Copyright 2000-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
 package com.jetbrains.python;
 
+import com.intellij.idea.TestFor;
 import com.intellij.lang.parameterInfo.CreateParameterInfoContext;
 import com.intellij.lang.parameterInfo.ParameterInfoHandler;
 import com.intellij.lang.parameterInfo.ParameterInfoUIContextEx;
@@ -1421,6 +1422,18 @@ public class PyParameterInfoTest extends LightMarkedTestCase {
     final Map<String, PsiElement> marks = loadTest(1);
 
     feignCtrlP(marks.get("<arg1>").getTextOffset()).check("*, a: str | None = ..., b: str | None", ArrayUtilRt.EMPTY_STRING_ARRAY);
+  }
+
+  @TestFor(issues = "PY-89101")
+  public void testPydanticPopulateByNameKeepsBothSignaturesKeywordOnly() {
+    myFixture.copyDirectoryToProject("stubs/pydantic", "pydantic");
+    final Map<String, PsiElement> marks = loadTest(1);
+
+    final List<String> texts = Arrays.asList("*, z: str", "*, a: str");
+    final List<String[]> highlighted = Arrays.asList(ArrayUtilRt.EMPTY_STRING_ARRAY, ArrayUtilRt.EMPTY_STRING_ARRAY);
+    final List<String[]> disabled = Arrays.asList(ArrayUtilRt.EMPTY_STRING_ARRAY, ArrayUtilRt.EMPTY_STRING_ARRAY);
+
+    feignCtrlP(marks.get("<arg1>").getTextOffset()).check(texts, highlighted, disabled);
   }
 
   @NotNull
