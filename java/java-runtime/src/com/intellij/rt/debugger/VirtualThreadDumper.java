@@ -34,9 +34,9 @@ public final class VirtualThreadDumper {
 
   private VirtualThreadDumper(MethodHandles.Lookup lookup) throws Throwable {
     // ThreadContainer & Co., since Java 21
-    Class<?> threadContainersClass = Class.forName("jdk.internal.vm.ThreadContainers");
-    Class<?> threadContainerClass = Class.forName("jdk.internal.vm.ThreadContainer");
-    Class<?> virtualThreadClass = Class.forName("java.lang.VirtualThread");
+    Class<?> threadContainersClass = Class.forName("jdk.internal.vm.ThreadContainers", false, ClassLoader.getSystemClassLoader());
+    Class<?> threadContainerClass = Class.forName("jdk.internal.vm.ThreadContainer", false, ClassLoader.getSystemClassLoader());
+    Class<?> virtualThreadClass = Class.forName("java.lang.VirtualThread", false, ClassLoader.getSystemClassLoader());
     containersRootHandle = lookup.findStatic(threadContainersClass, "root", MethodType.methodType(threadContainerClass));
     containerChildrenHandle = lookup.findVirtual(threadContainerClass, "children", MethodType.methodType(Stream.class));
     containerThreadsHandle = lookup.findVirtual(threadContainerClass, "threads", MethodType.methodType(Stream.class));
