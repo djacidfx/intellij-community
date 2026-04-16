@@ -1641,6 +1641,7 @@ public class Tree extends JTree implements ComponentWithEmptyText, ComponentWith
         started = System.currentTimeMillis();
       }
       var pathList = toList(paths);
+      if (pathList.isEmpty()) return;
       if (pathList.size() == 1) {
         var path = pathList.get(0);
         if (isNotLeaf(path)) {
@@ -1717,6 +1718,7 @@ public class Tree extends JTree implements ComponentWithEmptyText, ComponentWith
         started = System.currentTimeMillis();
       }
       var pathList = toList(paths);
+      if (pathList.isEmpty()) return;
       if (pathList.size() == 1) {
         var path = pathList.get(0);
         if (isNotLeaf(path)) {
