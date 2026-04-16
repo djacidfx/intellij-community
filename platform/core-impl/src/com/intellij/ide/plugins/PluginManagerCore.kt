@@ -523,10 +523,12 @@ object PluginManagerCore {
     coreLoader: ClassLoader,
     parentActivity: Activity?,
   ): PluginManagerState {
+    val initStagesActivity = parentActivity?.startChild("selectPluginsToLoad") // no safe end() call, because if it fails, it won't matter
     val excludedFromLoading = IdentityHashMap<PluginMainDescriptor, PluginNonLoadReason>()
     val pluginsToLoad = initContext.selectPluginsToLoad(discoveredPlugins.pluginLists) { plugin, reason ->
       excludedFromLoading[plugin] = reason
     }
+    initStagesActivity?.endAndStart("selectPluginsToLoad post-process")
     val incompletePlugins = HashMap<PluginId, PluginMainDescriptor>()
     val shadowedBundledIds = HashSet<PluginId>()
     for (pluginList in discoveredPlugins.pluginLists) {
@@ -552,6 +554,7 @@ object PluginManagerCore {
     val pluginNonLoadReasons = incompletePlugins.values.associateByTo(mutableMapOf(), { it.pluginId }, { excludedFromLoading[it]!! })
     val fullIdMap = totalPluginSet.buildFullPluginIdMapping().mapValues { it.value.first() }
     val fullContentModuleIdMap = totalPluginSet.buildFullContentModuleIdMapping().mapValues { it.value.first() }
+    val idMap = pluginsToLoad.buildFullPluginIdMapping()
 
     if (initContext.checkEssentialPlugins && pluginsToLoad.resolvePluginId(CORE_ID) == null) {
       throw EssentialPluginMissingException(listOf("$CORE_ID (platform prefix: ${System.getProperty(PlatformUtils.PLATFORM_PREFIX_KEY)})"))
@@ -559,6 +562,7 @@ object PluginManagerCore {
     }
 
     if (initContext is ProductPluginInitContext) {
+      initStagesActivity?.endAndStart("third-party privacy consent")
       // TODO: this `if` should not exist and third party plugins without consent should be excluded by [PluginInitializationContext.provideModuleExclusionsImposedByProductRules]
       val checkResult = initContext.checkThirdPartyPluginsPrivacyConsent(parentActivity, pluginsToLoad)
       if (checkResult != null) {
@@ -568,6 +572,7 @@ object PluginManagerCore {
         }
       }
     }
+    initStagesActivity?.endAndStart("third-party privacy consent")
 
     val pluginsToDisable = HashMap<PluginId, PluginStateChangeData>()
     val pluginsToEnable = HashMap<PluginId, PluginStateChangeData>()
@@ -586,11 +591,12 @@ object PluginManagerCore {
       }
     }
 
-    val idMap = pluginsToLoad.buildFullPluginIdMapping()
     val (pluginSet, cycleErrors) = if (fallbackToOldPluginSetResolution()) {
+      initStagesActivity?.endAndStart("pluginSetBuilder")
       oldPluginSetBuilder(initContext, pluginsToLoad, incompletePlugins, idMap, fullIdMap, fullContentModuleIdMap, pluginNonLoadReasons, ::registerLoadingError)
     }
     else {
+      initStagesActivity?.endAndStart("resolveConstraints")
       val resolvedPluginSet = initContext.resolveConstraints(pluginsToLoad)
       PluginInitializationDiagnosticUtils.logExclusionTree(resolvedPluginSet, incompletePlugins)
       val (adaptedPluginSet, cycleErrors) = adaptResolvedPluginSetAsOldPluginSet(
@@ -606,14 +612,19 @@ object PluginManagerCore {
       adaptedPluginSet to cycleErrors
     }
 
+    initStagesActivity?.endAndStart("error reporting")
     pluginsState.addPluginNonLoadReasons(pluginNonLoadReasons.filter { it.value !is PluginIsMarkedDisabled })
     pluginsState.setErrorsForNotificationReporterAndLogger(preparePluginErrors(pluginNonLoadReasons, descriptorLoadingErrors, cycleErrors, initContext))
 
     if (initContext.checkEssentialPlugins) {
+      initStagesActivity?.endAndStart("check essential plugins")
       checkEssentialPluginsAreAvailable(idMap, initContext.essentialPlugins, pluginNonLoadReasons)
     }
 
+    initStagesActivity?.endAndStart("ClassLoaderConfigurator")
     ClassLoaderConfigurator(pluginSet, coreLoader).configure()
+
+    initStagesActivity?.end()
     return PluginManagerState(
       pluginSet = pluginSet,
       pluginToDisable = pluginsToDisable.values.toList(),
