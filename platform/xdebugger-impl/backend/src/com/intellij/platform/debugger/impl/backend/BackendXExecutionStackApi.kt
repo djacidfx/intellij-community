@@ -65,7 +65,7 @@ internal class BackendXExecutionStackApi : XExecutionStackApi {
               val index = framesCopy.indexOf(it)
               if (index >= 0) frameDtos[index].stackFrameId else null
             }
-            trySend(XStackFramesEvent.XNewStackFrames(frameDtos, frameToSelectId, last))
+            this@channelFlow.send(XStackFramesEvent.XNewStackFrames(frameDtos, frameToSelectId, last))
             val framesWithIds = frameDtos.zip(framesCopy) { dto, frame -> dto.stackFrameId to frame }
             subscribeToPresentationUpdates(executionStackId, framesWithIds, last)
           }
@@ -83,7 +83,7 @@ internal class BackendXExecutionStackApi : XExecutionStackApi {
                   }
                 }
                 val newPresentation = XStackFramePresentation(fragments, presentation.icon?.rpcId(), presentation.tooltipText)
-                this@channelFlow.trySend(XStackFramesEvent.NewPresentation(id, newPresentation))
+                this@channelFlow.send(XStackFramesEvent.NewPresentation(id, newPresentation))
               }
             }
           })
