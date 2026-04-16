@@ -34,7 +34,6 @@ class TypoTolerantMatcher @VisibleForTesting constructor(
   private val toUpperCase: CharArray
   private val toLowerCase: CharArray
   private val myMeaningfulCharacters: CharArray
-  private val myMinNameLength: Int
   private val myHardSeparators = hardSeparators.toCharArray()
 
   /**
@@ -93,7 +92,6 @@ class TypoTolerantMatcher @VisibleForTesting constructor(
     myHasSeparators = hasSeparators
 
     myMeaningfulCharacters = meaningful.toCharArray()
-    myMinNameLength = myMeaningfulCharacters.size / 2
   }
 
   override val pattern: String
@@ -199,12 +197,13 @@ class TypoTolerantMatcher @VisibleForTesting constructor(
   }
 
   @Deprecated("use matchingDegree(String, Boolean, List<MatchedFragment>)", replaceWith = ReplaceWith("matchingDegree(name, valueStartCaseMatch, fragments.map { MatchedFragment(it.startOffset, it.endOffset) })"))
+  @ApiStatus.ScheduledForRemoval
   override fun matchingDegree(name: String, valueStartCaseMatch: Boolean, fragments: FList<out TextRange>?): Int {
     return matchingDegree(name, valueStartCaseMatch, fragments?.undeprecate())
   }
 
   override fun match(name: String): List<MatchedFragment>? {
-    return if (name.length >= myMinNameLength) {
+    return if (name.length >= myMeaningfulCharacters.size / 2) {
       val ascii = AsciiUtils.isAscii(name)
       Session(name, myTypoAware = false, ascii).matchingFragments()
       ?: Session(name, myTypoAware = true, ascii).matchingFragments()
@@ -215,6 +214,7 @@ class TypoTolerantMatcher @VisibleForTesting constructor(
   }
 
   @Deprecated("use match(String)", replaceWith = ReplaceWith("match(name)"))
+  @ApiStatus.ScheduledForRemoval
   override fun matchingFragments(name: String): FList<TextRange>? {
     return match(name)?.deprecated()
   }
@@ -264,29 +264,14 @@ class TypoTolerantMatcher @VisibleForTesting constructor(
 
     fun matchingFragments(): List<MatchedFragment>? {
       val length = myName.length
-      if (length < myMinNameLength) {
+      if (length < myMeaningfulCharacters.size / 2) {
         return null
       }
 
       //we're in typo mode, but non-ascii symbols are used. so aborting
       if (myTypoAware && !isAsciiName) return null
 
-      if (!myTypoAware) {
-        var patternIndex = 0
-        if (myMeaningfulCharacters.isNotEmpty()) {
-          for (c in myName) {
-            if (c == myMeaningfulCharacters[patternIndex] || c == myMeaningfulCharacters[patternIndex + 1]) {
-              patternIndex += 2
-              if (patternIndex >= myMeaningfulCharacters.size) {
-                break
-              }
-            }
-          }
-        }
-        if (patternIndex < myMinNameLength * 2) {
-          return null
-        }
-      }
+      if (!myTypoAware && !nameContainsAllMeaningfulCharsInOrder(myName, myMeaningfulCharacters)) return null
 
       return matchWildcards(patternIndex = 0, nameIndex = 0, errorState = ErrorState())?.asReversed()
     }

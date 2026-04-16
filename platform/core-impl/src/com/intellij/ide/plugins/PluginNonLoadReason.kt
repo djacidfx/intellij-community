@@ -50,14 +50,13 @@ class PluginDependencyIsDisabled(
 @ApiStatus.Internal
 class PluginIsIncompatibleWithKotlinMode(
   override val plugin: IdeaPluginDescriptor,
-  val mode: @Nls String
 ): PluginNonLoadReason {
   override val detailedMessage: @NlsContexts.DetailedDescription String
-    get() = CoreBundle.message("plugin.loading.error.long.kotlin.incompatible", plugin.name, mode)
+    get() = CoreBundle.message("plugin.loading.error.long.kotlin.incompatible", plugin.name)
   override val shortMessage: @NlsContexts.Label String
-    get() = CoreBundle.message("plugin.loading.error.short.kotlin.incompatible", mode)
+    get() = CoreBundle.message("plugin.loading.error.short.kotlin.incompatible")
   override val logMessage: @NonNls String
-    get() = "Plugin '${plugin.name}' (${plugin.pluginId}) is incompatible with Kotlin in $mode mode"
+    get() = "Plugin '${plugin.name}' (${plugin.pluginId}) is incompatible with Kotlin in K2 mode"
   override val shouldNotifyUser: Boolean = false
 }
 

@@ -20,8 +20,8 @@ import com.intellij.openapi.vcs.ProjectLevelVcsManager;
 import com.intellij.openapi.vcs.configurable.VcsContentAnnotationConfigurable;
 import com.intellij.threadDumpParser.ThreadDumpParser;
 import com.intellij.ui.GuiUtils;
-import com.intellij.ui.SimpleListCellRenderer;
 import com.intellij.ui.TextFieldWithHistory;
+import com.intellij.ui.dsl.listCellRenderer.BuilderKt;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.util.ArrayUtil;
@@ -384,7 +384,7 @@ public class UnscrambleDialog extends DialogWrapper {
     for (UnscrambleSupport unscrambleSupport : UnscrambleSupport.EP_NAME.getExtensionList()) {
       myUnscrambleChooser.addItem(unscrambleSupport);
     }
-    myUnscrambleChooser.setRenderer(SimpleListCellRenderer.create(
+    myUnscrambleChooser.setRenderer(BuilderKt.textListCellRenderer(
       JavaBundle.message("unscramble.no.unscrambler.item"), UnscrambleSupport::getPresentableName));
   }
 

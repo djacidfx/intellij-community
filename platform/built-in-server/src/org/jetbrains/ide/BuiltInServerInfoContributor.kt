@@ -9,8 +9,8 @@ import tools.jackson.core.JsonGenerator
  * Contributes custom properties to the built-in server instance info JSON file (`{pid}-build-in-server.json`).
  *
  * The JSON file is written to the IDE system directory and allows external tools to discover
- * running IDE instances and their capabilities. Each contributor writes its fields directly
- * to the [JsonGenerator] inside the root JSON object.
+ * running IDE instances and their capabilities. Each contributor writes its fields
+ * to the [JsonGenerator] inside the `"properties"` sub-object of the root JSON object.
  *
  * Implementations that need to update the file dynamically (e.g., on project open/close)
  * should call `BuiltInServerInfoService.notifyUpdate` or `BuiltInServerInfoService.scheduleNotifyUpdate`.

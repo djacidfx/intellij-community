@@ -6,7 +6,6 @@ import com.intellij.modcommand.ModPsiUpdater
 import com.intellij.openapi.util.TextRange
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.components.buildClassType
 import org.jetbrains.kotlin.analysis.api.components.evaluate
 import org.jetbrains.kotlin.analysis.api.components.expressionType
 import org.jetbrains.kotlin.analysis.api.components.isPublicApi
@@ -14,6 +13,7 @@ import org.jetbrains.kotlin.analysis.api.components.isSubtypeOf
 import org.jetbrains.kotlin.analysis.api.components.returnType
 import org.jetbrains.kotlin.analysis.api.components.semanticallyEquals
 import org.jetbrains.kotlin.analysis.api.components.type
+import org.jetbrains.kotlin.analysis.api.components.typeCreator
 import org.jetbrains.kotlin.analysis.api.symbols.receiverType
 import org.jetbrains.kotlin.analysis.api.symbols.symbol
 import org.jetbrains.kotlin.analysis.api.symbols.typeParameters
@@ -137,7 +137,11 @@ internal class RemoveExplicitTypeIntention :
         // `val n: Long = 1` - type of `1` is context-dependent
         is KtConstantExpression -> {
             val classId = initializer.inferClassIdByPsi()
-            val let = classId?.let { buildClassType(it) }
+
+            val let = classId?.let {
+                @OptIn(KaExperimentalApi::class)
+                typeCreator.classType(it)
+            }
             val superType = typeReference.type
             val subTypeOf = let?.isSubtypeOf(superType)
             subTypeOf == true

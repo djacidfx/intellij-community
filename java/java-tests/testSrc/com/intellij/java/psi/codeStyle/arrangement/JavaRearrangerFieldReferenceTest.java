@@ -22,6 +22,28 @@ public class JavaRearrangerFieldReferenceTest extends AbstractJavaRearrangerTest
             rule(FIELD, PROTECTED), rule(FIELD, PACKAGE_PRIVATE),
             rule(FIELD, PRIVATE));
   
+  public void testFieldInitializerDependsOnFieldItSelf() {
+    doTest("""
+             class Improbabilia {
+                 private static final Thread thread = new Thread(new Runnable() {
+                     @Override
+                     public void run() {
+                         while (true) {
+                             synchronized (thread) {
+                                 // field thread would depend on itself if
+                                 // dependency checker visited anonymous class
+                                 System.out.println(thread);
+                             }
+                         }
+                     }
+                 });
+             
+                 static {
+                     thread.start();
+                 }
+             }""", defaultFieldsArrangement);
+  }
+  
   public void testMethodReferences() {
     // IDEA-311599
     doTest("""

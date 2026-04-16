@@ -5,7 +5,6 @@ import com.intellij.ide.impl.ProjectUtilCore
 import com.intellij.ide.plugins.DynamicPluginListener
 import com.intellij.ide.plugins.IdeaPluginDescriptor
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.components.ComponentManagerEx
 import com.intellij.openapi.components.service
 import com.intellij.openapi.components.serviceAsync
 import com.intellij.openapi.editor.Document
@@ -40,10 +39,7 @@ internal class PsiVfsInitProjectActivity : InitProjectActivity {
   override suspend fun run(project: Project) {
     val connection = project.messageBus.simpleConnect()
 
-    @Suppress("UsagesOfObsoleteApi")
-    serviceAsync<LanguageSubstitutors>().point?.addChangeListener((project as ComponentManagerEx).getCoroutineScope()) {
-      processFileTypesChanged(project)
-    }
+    serviceAsync<LanguageSubstitutors>().point?.addChangeListener({ processFileTypesChanged(project) }, project)
 
     connection.subscribe(AdditionalLibraryRootsListener.TOPIC, PsiVfsAdditionalLibraryRootListener(project))
     connection.subscribe(FileTypeManager.TOPIC, object : FileTypeListener {

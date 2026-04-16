@@ -295,7 +295,7 @@ class KtParameterHintsProvider : AbstractKtInlayHintsProvider() {
                 expandedState = {
                     if (lambdaOnly){
                         text("(")
-                    } else {
+                    } else if (callElement.valueArgumentList?.trailingComma == null) {
                         addParametersSeparator(valueParametersWithNames)
                     }
 

@@ -125,6 +125,15 @@ class SpringMavenKotlinCompilerPluginProjectConfigurator : AbstractMavenKotlinCo
 
 }
 
+class LombokMavenKotlinCompilerPluginProjectConfigurator : AbstractMavenKotlinCompilerPluginProjectConfigurator() {
+
+    override val kotlinCompilerPluginId: String = "lombok"
+
+    override val pluginDependencyMavenId: MavenId
+        get() = MavenId(GROUP_ID, "kotlin-maven-lombok", $$"${$$KOTLIN_VERSION_PROPERTY}")
+
+}
+
 class JpaMavenKotlinCompilerPluginProjectConfigurator : AbstractMavenKotlinCompilerPluginProjectConfigurator() {
 
     override val kotlinCompilerPluginId: String = "jpa"

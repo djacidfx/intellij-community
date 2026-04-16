@@ -60,6 +60,7 @@ fun KCallable<*>.parametersSchema(vararg additionalImplicitParameters: KParamete
       .handleCoreAnnotations()
       .handleMcpDescriptionAnnotations(parameter)
       .removeNumericBounds()
+      .addStringTypeToEnums()
 
     val schema = intermediateJsonSchemaData.compileInlining()
 
@@ -121,6 +122,7 @@ fun KCallable<*>.returnTypeSchema(): McpToolSchema? {
     .handleCoreAnnotations()
     .handleMcpDescriptionAnnotations(this)
     .removeNumericBounds()
+    .addStringTypeToEnums()
 
   val schema = intermediateJsonSchemaData.compileInlining()
   val jsonSchema = schema.json.toKt() as? kotlinx.serialization.json.JsonObject ?: error("Non-primitive type is expected in return type: ${type.classifier} in $this")
@@ -170,6 +172,11 @@ private fun IntermediateJsonSchemaData.handleMcpDescriptionAnnotations(customDes
 // to remove unnecessary bounds that can't be processed by some agents/LLMs
 private fun IntermediateJsonSchemaData.removeNumericBounds(): IntermediateJsonSchemaData {
   RemoveNumericBoundsStep().process(this)
+  return this
+}
+
+private fun IntermediateJsonSchemaData.addStringTypeToEnums(): IntermediateJsonSchemaData {
+  AddStringTypeToEnumsStep().process(this)
   return this
 }
 
@@ -235,5 +242,26 @@ private class RemoveNumericBoundsStep {
       json.properties.remove("minimum")
       json.properties.remove("maximum")
     }
+  }
+}
+
+private class AddStringTypeToEnumsStep {
+  fun process(input: IntermediateJsonSchemaData): IntermediateJsonSchemaData {
+    for (schema in input.entries) {
+      process(schema)
+    }
+    return input
+  }
+
+  private fun process(schema: JsonSchemaData) {
+    val json = schema.json as? JsonObject ?: return
+    if (!schema.typeData.isEnum || json.properties.containsKey("type")) return
+
+    val updatedProperties = LinkedHashMap<String, JsonNode>()
+    updatedProperties["type"] = JsonTextValue("string")
+    updatedProperties.putAll(json.properties)
+
+    json.properties.clear()
+    json.properties.putAll(updatedProperties)
   }
 }

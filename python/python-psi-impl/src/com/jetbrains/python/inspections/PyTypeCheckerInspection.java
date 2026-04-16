@@ -70,6 +70,7 @@ import com.jetbrains.python.psi.types.PyNeverType;
 import com.jetbrains.python.psi.types.PyParamSpecType;
 import com.jetbrains.python.psi.types.PyPositionalVariadicType;
 import com.jetbrains.python.psi.types.PySelfType;
+import com.jetbrains.python.psi.types.PySentinelType;
 import com.jetbrains.python.psi.types.PyTupleType;
 import com.jetbrains.python.psi.types.PyType;
 import com.jetbrains.python.psi.types.PyTypeChecker;
@@ -82,8 +83,10 @@ import com.jetbrains.python.psi.types.PyUnpackedTupleTypeImpl;
 import com.jetbrains.python.psi.types.TypeEvalContext;
 import com.jetbrains.python.pyi.PyiUtil;
 import one.util.streamex.StreamEx;
+import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.PropertyKey;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -95,6 +98,7 @@ import java.util.Objects;
 import static com.jetbrains.python.psi.PyUtil.as;
 import static com.jetbrains.python.psi.impl.PyCallExpressionHelper.mapArguments;
 import static com.jetbrains.python.psi.types.PyNoneTypeKt.isNoneType;
+import static com.jetbrains.python.psi.types.PyTypeUtilKt.isObject;
 
 public class PyTypeCheckerInspection extends PyInspection {
   private static final Logger LOG = Logger.getInstance(PyTypeCheckerInspection.class.getName());
@@ -187,11 +191,8 @@ public class PyTypeCheckerInspection extends PyInspection {
 
           PyType actual = returnExpr != null ? tryPromotingType(returnExpr, expected) : PyBuiltinCache.getInstance(node).getNoneType();
           if (!PyTypeChecker.match(expected, actual, myTypeEvalContext)) {
-            final String expectedName = PythonDocumentationProvider.getVerboseTypeName(expected, myTypeEvalContext);
-            final String actualName = PythonDocumentationProvider.getTypeName(actual, myTypeEvalContext);
             getHolder()
-              .problem(returnExpr != null ? returnExpr : node,
-                       PyPsiBundle.message("INSP.type.checker.expected.type.got.type.instead", expectedName, actualName))
+              .problem(returnExpr != null ? returnExpr : node, typeMismatchMessage(expected, actual))
               .highlight(effectiveHighlightType(ProblemHighlightType.GENERIC_ERROR_OR_WARNING))
               .fix(new PyMakeFunctionReturnTypeQuickFix(function, myTypeEvalContext))
               .register();
@@ -259,10 +260,8 @@ public class PyTypeCheckerInspection extends PyInspection {
       if (annotatedGeneratorDesc == null) {
         final PyType inferredReturnType = function.getInferredReturnType(myTypeEvalContext);
         if (!PyTypeChecker.match(annotatedReturnType, inferredReturnType, myTypeEvalContext)) {
-          String expectedName = PythonDocumentationProvider.getVerboseTypeName(annotatedReturnType, myTypeEvalContext);
-          String actualName = PythonDocumentationProvider.getTypeName(inferredReturnType, myTypeEvalContext);
           getHolder()
-            .problem(yieldExpr, PyPsiBundle.message("INSP.type.checker.expected.type.got.type.instead", expectedName, actualName))
+            .problem(yieldExpr, typeMismatchMessage(annotatedReturnType, inferredReturnType))
             .fix(new PyMakeFunctionReturnTypeQuickFix(function, myTypeEvalContext))
             .register();
         }
@@ -311,61 +310,80 @@ public class PyTypeCheckerInspection extends PyInspection {
     @Override
     public void visitPyTargetExpression(@NotNull PyTargetExpression node) {
       checkClassAttributeAccess(node);
-      final PyExpression expr = node.findAssignedValue();
-      if (expr == null) return;
-
-      boolean isDescriptor = false;
-      PyType expected, actual;
+      final PyExpression assignedValue = node.findAssignedValue();
+      if (assignedValue == null) return;
 
       final ScopeOwner scopeOwner = ScopeUtil.getScopeOwner(node);
       if (scopeOwner instanceof PyClass cls && PyStdlibTypeProvider.isCustomEnum(cls, myTypeEvalContext)) {
         final PyStdlibTypeProvider.EnumAttributeInfo info = PyStdlibTypeProvider.getEnumAttributeInfo(cls, node, myTypeEvalContext);
         if (info == null || info.attributeKind() != PyStdlibTypeProvider.EnumAttributeKind.MEMBER) return;
 
-        expected = PyStdlibTypeProvider.getEnumValueType(cls, myTypeEvalContext);
-        actual = info.assignedValueType();
-      }
-      else {
-        expected = myTypeEvalContext.getType(node);
-        if (scopeOwner instanceof PyClass) {
-          if (!hasExplicitType(node)) {
-            PsiElement resolved = node.getReference(PyResolveContext.defaultContext(myTypeEvalContext)).resolve();
-            if (!(resolved instanceof PyTargetExpression resolvedTarget) || !hasExplicitType(resolvedTarget)) return;
-          }
+        PyType expected = PyStdlibTypeProvider.getEnumValueType(cls, myTypeEvalContext);
+        PyType actual = info.assignedValueType();
+        if (!PyTypeChecker.match(expected, actual, myTypeEvalContext)) {
+          registerProblem(assignedValue, typeMismatchMessage(expected, actual));
         }
-
-        if (node.isQualified()) {
-          PyTypeChecker.GenericSubstitutions substitutions = PyTypeChecker.unifyReceiver(node.getQualifier(), myTypeEvalContext);
-          expected = PyTypeChecker.substitute(expected, substitutions, myTypeEvalContext);
-        }
-
-        final Ref<PyType> classAttrType = getClassAttributeType(node);
-        if (classAttrType != null) {
-          final Ref<PyType> dunderSetValueType =
-            PyDescriptorTypeUtil.getExpectedValueTypeForDunderSet(node, classAttrType.get(), myTypeEvalContext);
-          if (dunderSetValueType != null) {
-            expected = dunderSetValueType.get();
-            isDescriptor = true;
-          }
-        }
-
-        actual = tryPromotingType(expr, expected);
-      }
-
-      if (expected instanceof PyTypedDictType expectedTypedDictType && PyTypedDictType.isDictExpression(expr, myTypeEvalContext)) {
-        reportTypedDictProblems(expectedTypedDictType, expr);
         return;
       }
 
+      PyType expected = myTypeEvalContext.getType(node);
+
+      if (scopeOwner instanceof PyClass) {
+        if (!hasExplicitType(node)) {
+          PsiElement resolved = node.getReference(PyResolveContext.defaultContext(myTypeEvalContext)).resolve();
+          if (!(resolved instanceof PyTargetExpression resolvedTarget) || !hasExplicitType(resolvedTarget)) return;
+        }
+      }
+
+      if (node.isQualified()) {
+        PyTypeChecker.GenericSubstitutions substitutions = PyTypeChecker.unifyReceiver(node.getQualifier(), myTypeEvalContext);
+        expected = PyTypeChecker.substitute(expected, substitutions, myTypeEvalContext);
+      }
+
+      boolean isDescriptor = false;
+
+      Ref<PyType> classAttrType = getClassAttributeType(node);
+      if (classAttrType != null) {
+        Ref<PyType> dunderSetValueType =
+          PyDescriptorTypeUtil.getExpectedValueTypeForDunderSet(node, classAttrType.get(), myTypeEvalContext);
+        if (dunderSetValueType != null) {
+          expected = dunderSetValueType.get();
+          isDescriptor = true;
+        }
+      }
+
+      if (expected instanceof PyTypedDictType expectedTypedDictType && PyTypedDictType.isDictExpression(assignedValue, myTypeEvalContext)) {
+        reportTypedDictProblems(expectedTypedDictType, assignedValue);
+        return;
+      }
+
+      PyType actual = tryPromotingType(assignedValue, expected);
+
+      if (expected instanceof PySentinelType) {
+        if (isObject(actual)) return;
+      }
+
       if (!PyTypeChecker.match(expected, actual, myTypeEvalContext)) {
-        String expectedName = PythonDocumentationProvider.getVerboseTypeName(expected, myTypeEvalContext);
-        String actualName = PythonDocumentationProvider.getTypeName(actual, myTypeEvalContext);
-        registerProblem(expr, isDescriptor ?
-                              PyPsiBundle.message("INSP.type.checker.expected.type.from.dunder.set.got.type.instead",
-                                                  expectedName, actualName) :
-                              PyPsiBundle.message("INSP.type.checker.expected.type.got.type.instead", expectedName, actualName),
+        String message =
+          isDescriptor ? typeMismatchMessage(expected, actual, "INSP.type.checker.expected.type.from.dunder.set.got.type.instead")
+                       : typeMismatchMessage(expected, actual);
+        registerProblem(assignedValue,
+                        message,
                         effectiveHighlightType(ProblemHighlightType.GENERIC_ERROR_OR_WARNING));
       }
+    }
+
+    private @NotNull @Nls String typeMismatchMessage(@Nullable PyType expected,
+                                                     @Nullable PyType actual) {
+      return typeMismatchMessage(expected, actual, "INSP.type.checker.expected.type.got.type.instead");
+    }
+
+    private @NotNull @Nls String typeMismatchMessage(@Nullable PyType expected,
+                                                     @Nullable PyType actual,
+                                                     @NotNull @PropertyKey(resourceBundle = PyPsiBundle.BUNDLE) String messageKey) {
+      String expectedName = PythonDocumentationProvider.getVerboseTypeName(expected, myTypeEvalContext);
+      String actualName = PythonDocumentationProvider.getTypeName(actual, myTypeEvalContext);
+      return PyPsiBundle.message(messageKey, expectedName, actualName);
     }
 
     // Using generic classes (parameterized or not) to access attributes will result in type check failure.
@@ -409,9 +427,7 @@ public class PyTypeCheckerInspection extends PyInspection {
       PyTypedDictType.checkExpression(expectedType, expression, myTypeEvalContext, result);
       result.getValueTypeErrors().forEach(error -> {
         registerProblem(error.getActualExpression(),
-                        PyPsiBundle.message("INSP.type.checker.expected.type.got.type.instead",
-                                            PythonDocumentationProvider.getTypeName(error.getExpectedType(), myTypeEvalContext),
-                                            PythonDocumentationProvider.getTypeName(error.getActualType(), myTypeEvalContext)),
+                        typeMismatchMessage(error.getExpectedType(), error.getActualType()),
                         effectiveHighlightType(ProblemHighlightType.GENERIC_ERROR_OR_WARNING));
       });
       result.getExtraKeys().forEach(error -> {
@@ -446,13 +462,11 @@ public class PyTypeCheckerInspection extends PyInspection {
           final boolean hasImplicitReturns = ContainerUtil.exists(returnPoints, it -> !(it instanceof PyReturnStatement));
 
           if (hasImplicitReturns) {
-            final String expectedName = PythonDocumentationProvider.getVerboseTypeName(expected, myTypeEvalContext);
-            final String actualName =
-              PythonDocumentationProvider.getTypeName(node.getReturnStatementType(myTypeEvalContext), myTypeEvalContext);
+            final PyType actual = node.getReturnStatementType(myTypeEvalContext);
             final PsiElement annotationValue = annotation != null ? annotation.getValue() : node.getTypeComment();
             if (annotationValue != null) {
               getHolder()
-                .problem(annotationValue, PyPsiBundle.message("INSP.type.checker.expected.type.got.type.instead", expectedName, actualName))
+                .problem(annotationValue, typeMismatchMessage(expected, actual))
                 .highlight(effectiveHighlightType(ProblemHighlightType.GENERIC_ERROR_OR_WARNING))
                 .fix(new PyMakeFunctionReturnTypeQuickFix(node, myTypeEvalContext))
                 .register();
@@ -474,12 +488,10 @@ public class PyTypeCheckerInspection extends PyInspection {
 
           final PyType inferredType = node.getInferredReturnType(myTypeEvalContext);
           if (wrongSyncAsync || (generatorDesc == null && !PyTypeChecker.match(annotatedType, inferredType, myTypeEvalContext))) {
-            String expectedName = PythonDocumentationProvider.getVerboseTypeName(inferredType, myTypeEvalContext);
-            String actualName = PythonDocumentationProvider.getTypeName(annotatedType, myTypeEvalContext);
             final PsiElement annotationValue = annotation != null ? annotation.getValue() : node.getTypeComment();
             if (annotationValue != null) {
               getHolder()
-                .problem(annotationValue, PyPsiBundle.message("INSP.type.checker.expected.type.got.type.instead", expectedName, actualName))
+                .problem(annotationValue, typeMismatchMessage(inferredType, annotatedType))
                 .fix(new PyMakeFunctionReturnTypeQuickFix(node, myTypeEvalContext))
                 .register();
             }
@@ -505,10 +517,11 @@ public class PyTypeCheckerInspection extends PyInspection {
       if (expectedRef == null) return;
       final var expected = expectedRef.get();
       final var actual = tryPromotingType(defaultValue, expected);
+      
+      if (actual instanceof PySentinelType) return;
+
       if (!PyTypeChecker.match(expected, actual, myTypeEvalContext)) {
-        final String expectedName = PythonDocumentationProvider.getVerboseTypeName(expected, myTypeEvalContext);
-        final String actualName = PythonDocumentationProvider.getTypeName(actual, myTypeEvalContext);
-        registerProblem(defaultValue, PyPsiBundle.message("INSP.type.checker.expected.type.got.type.instead", expectedName, actualName),
+        registerProblem(defaultValue, typeMismatchMessage(expected, actual),
                         effectiveHighlightType(ProblemHighlightType.GENERIC_ERROR_OR_WARNING));
       }
     }

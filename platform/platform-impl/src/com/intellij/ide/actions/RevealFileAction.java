@@ -24,6 +24,7 @@ import com.intellij.openapi.util.NlsActions.ActionText;
 import com.intellij.openapi.util.NlsSafe;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.newvfs.ArchiveFileSystem;
+import com.intellij.platform.eel.provider.EelProviderUtil;
 import com.intellij.platform.eel.provider.LocalEelMachine;
 import com.intellij.util.SystemProperties;
 import com.intellij.util.system.OS;
@@ -286,7 +287,7 @@ public class RevealFileAction extends DumbAwareAction implements LightEditCompat
   }
 
   private static Path canonicalize(Path path) {
-    if (!LocalEelMachine.INSTANCE.ownsPath(path)) {
+    if (!EelProviderUtil.ownsPath(LocalEelMachine.INSTANCE, path)) {
       try {
         return path.toRealPath();
       }

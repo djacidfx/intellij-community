@@ -16,7 +16,7 @@ import com.intellij.platform.eel.EelOsFamily
 import com.intellij.platform.eel.EelPathBoundDescriptor
 import com.intellij.platform.eel.annotations.MultiRoutingFileSystemPath
 import com.intellij.platform.eel.provider.EelEnvironmentInitializer
-import com.intellij.platform.eel.provider.EelRoutingPrefixProvider
+import com.intellij.platform.eel.provider.EelAlternativeRootProvider
 import com.intellij.platform.eel.provider.getEelDescriptor
 import com.intellij.platform.eel.provider.MultiRoutingFileSystemBackend
 import com.intellij.platform.ide.impl.wsl.ijent.nio.IjentWslNioFileSystemProvider
@@ -210,9 +210,9 @@ class WslEelEnvironmentInitializer : EelEnvironmentInitializer {
 }
 
 @ApiStatus.Internal
-class WslEelRoutingPrefixProvider : EelRoutingPrefixProvider {
-  override fun getRoutingPrefixes(eelDescriptor: EelDescriptor): Collection<@MultiRoutingFileSystemPath String>? =
-    (eelDescriptor as? WslEelDescriptor)?.distribution?.roots
+class WslEelAlternativeRootProvider : EelAlternativeRootProvider {
+  override fun getAlternativeRoots(descriptor: EelDescriptor): Collection<@MultiRoutingFileSystemPath String>? =
+    (descriptor as? WslEelDescriptor)?.distribution?.roots
 }
 
 @ApiStatus.Internal

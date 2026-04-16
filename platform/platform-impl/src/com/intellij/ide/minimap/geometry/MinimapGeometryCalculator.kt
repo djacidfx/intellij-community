@@ -12,7 +12,8 @@ class MinimapGeometryCalculator(private val editor: Editor) {
   fun compute(panelHeight: Int,
               scaleData: MinimapScaleData,
               scaleMode: MinimapScaleMode,
-              projectedLineCount: Int): MinimapGeometryData {
+              projectedLineCount: Int,
+              areaStartOverride: Int? = null): MinimapGeometryData {
     val visibleArea = editor.scrollingModel.visibleArea
     val contentHeight = MinimapScaleUtil.contentHeight(editor, projectedLineCount)
 
@@ -33,10 +34,10 @@ class MinimapGeometryCalculator(private val editor: Editor) {
     val thumbHeight = MinimapThumb.computeHeight(visibleHeight, contentHeight, minimapHeight)
     val thumbStart = MinimapThumb.computeStart(visibleArea.y, scrollRange, minimapHeight, thumbHeight)
 
-    val areaStart = if (minimapHeight > thumbHeight) {
+    val panelSpan = (minimapHeight - panelHeight).coerceAtLeast(0)
+    val areaStart = areaStartOverride?.coerceIn(0, panelSpan) ?: if (minimapHeight > thumbHeight) {
       val maxScroll = (minimapHeight - thumbHeight).coerceAtLeast(1)
       val scrollPosition = thumbStart / maxScroll.toFloat()
-      val panelSpan = (minimapHeight - panelHeight).coerceAtLeast(0)
       (scrollPosition * panelSpan).toInt().coerceAtLeast(0)
     }
     else {

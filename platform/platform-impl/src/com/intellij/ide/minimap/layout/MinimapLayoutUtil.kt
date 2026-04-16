@@ -19,8 +19,10 @@ object MinimapLayoutUtil {
     if (lineCount <= 0) return null
 
     val baseLineHeight = MinimapLineGeometryUtil.baseLineHeight(lineCount, context.geometry.minimapHeight)
-    val contentStartX = getContentStartX(context.panelWidth)
-    val contentWidth = (context.panelWidth.toDouble() - contentStartX).coerceAtLeast(1.0)
+    val layoutProfile = MinimapLayoutProfileProvider.forEditor(editor)
+    val minimumContentWidth = layoutProfile.minContentWidthPx.coerceIn(1, context.panelWidth)
+    val contentStartX = getContentStartX(context.panelWidth, layoutProfile.leadingGutterWidthPx, minimumContentWidth)
+    val contentWidth = (context.panelWidth.toDouble() - contentStartX).coerceAtLeast(minimumContentWidth.toDouble())
     val rightMargin = getRightMarginChars(editor)
     val visibleWidth = editor.scrollingModel.visibleArea.width
     val charWidth = EditorUtil.getPlainSpaceWidth(editor)
@@ -122,12 +124,9 @@ object MinimapLayoutUtil {
     }
   }
 
-  private fun getContentStartX(panelWidth: Int): Double {
-    if (panelWidth <= MIN_CONTENT_WIDTH_PX) return 0.0
-    val maxInset = (panelWidth - MIN_CONTENT_WIDTH_PX).toDouble()
-    return CONTENT_LEFT_INSET_PX.coerceAtMost(maxInset)
+  private fun getContentStartX(panelWidth: Int, preferredLeadingInsetPx: Int, minimumContentWidth: Int): Double {
+    if (panelWidth <= minimumContentWidth) return 0.0
+    val maxInset = (panelWidth - minimumContentWidth).toDouble()
+    return preferredLeadingInsetPx.toDouble().coerceAtLeast(0.0).coerceAtMost(maxInset)
   }
-
-  private const val CONTENT_LEFT_INSET_PX: Double = 6.0
-  private const val MIN_CONTENT_WIDTH_PX: Int = 1
 }

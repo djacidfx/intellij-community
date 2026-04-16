@@ -157,15 +157,6 @@ private fun IdeaPluginDescriptorImpl.legacyEquals(other: Any?): Boolean {
 }
 
 @ApiStatus.Internal
-fun executeRegisterTaskForOldContent(mainPluginDescriptor: IdeaPluginDescriptorImpl, task: (IdeaPluginDescriptorImpl) -> Unit) {
-  sequence {
-    sequenceSubDescriptorsForRegistration(mainPluginDescriptor)
-  }.forEach {
-    task(it)
-  }
-}
-
-@ApiStatus.Internal
 suspend fun SequenceScope<IdeaPluginDescriptorImpl>.sequenceSubDescriptorsForRegistration(moduleDescriptor: IdeaPluginDescriptorImpl) {
   if (!moduleDescriptor.isMarkedForLoading) {
     return

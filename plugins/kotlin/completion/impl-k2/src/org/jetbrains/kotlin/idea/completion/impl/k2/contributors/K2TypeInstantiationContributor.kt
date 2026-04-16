@@ -10,7 +10,6 @@ import org.jetbrains.kotlin.analysis.api.KaImplementationDetail
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.components.KaScopeKind
 import org.jetbrains.kotlin.analysis.api.components.allSupertypes
-import org.jetbrains.kotlin.analysis.api.components.buildClassType
 import org.jetbrains.kotlin.analysis.api.components.buildSubstitutor
 import org.jetbrains.kotlin.analysis.api.components.canBeAnalysed
 import org.jetbrains.kotlin.analysis.api.components.compositeScope
@@ -19,6 +18,7 @@ import org.jetbrains.kotlin.analysis.api.components.expandedSymbol
 import org.jetbrains.kotlin.analysis.api.components.isAnyType
 import org.jetbrains.kotlin.analysis.api.components.memberScope
 import org.jetbrains.kotlin.analysis.api.components.namedClassSymbol
+import org.jetbrains.kotlin.analysis.api.components.typeCreator
 import org.jetbrains.kotlin.analysis.api.components.upperBoundIfFlexible
 import org.jetbrains.kotlin.analysis.api.impl.base.types.KaBaseTypeArgumentWithVariance
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassKind
@@ -27,6 +27,7 @@ import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaNamedClassSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaTypeAliasSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaTypeParameterSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.findClassLike
 import org.jetbrains.kotlin.analysis.api.symbols.symbol
 import org.jetbrains.kotlin.analysis.api.symbols.typeParameters
 import org.jetbrains.kotlin.analysis.api.types.KaClassType
@@ -311,7 +312,7 @@ internal class K2TypeInstantiationContributor : K2CompletionContributor<KotlinNa
         // Based on the type arguments, we build a substitutor to map the `inheritorSymbol` to the concrete type that will be used.
         val substitutor = buildSubstitutor {
             inheritorSymbol.typeParameters.zip(mappedTypeArgs).forEach { (typeParam, typeArg) ->
-                val type = typeArg.type ?: buildClassType(StandardClassIds.Any) {
+                val type = typeArg.type ?: typeCreator.classType(StandardClassIds.Any) {
                     isMarkedNullable = true
                 }
                 substitution(typeParam, type)
@@ -458,7 +459,7 @@ internal class K2TypeInstantiationContributor : K2CompletionContributor<KotlinNa
     context(_: KaSession)
     private fun FqName.mapToJavaElement(): PsiElement? {
         val mappedJavaType = JavaToKotlinClassMap.mapKotlinToJava(toUnsafe()) ?: return null
-        return buildClassType(mappedJavaType).symbol?.psi
+        return findClassLike(mappedJavaType)?.psi
     }
 
     /**
@@ -471,7 +472,7 @@ internal class K2TypeInstantiationContributor : K2CompletionContributor<KotlinNa
         val javaFqName = classId?.asSingleFqName() ?: return this
         val apiVersion = context.completionContext.originalFile.languageVersionSettings.apiVersion
         val kotlinAliasFqName = ImportMapper.findCorrespondingKotlinFqName(javaFqName, apiVersion) ?: return this
-        return buildClassType(ClassId.topLevel(kotlinAliasFqName)).symbol ?: this
+        return findClassLike(ClassId.topLevel(kotlinAliasFqName)) ?: this
     }
 
     /**

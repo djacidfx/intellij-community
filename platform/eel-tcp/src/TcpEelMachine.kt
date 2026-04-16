@@ -112,9 +112,10 @@ abstract class TcpEelMachine(override val internalName: String) : EelMachine {
     }
   }
 
-  override fun ownsPath(path: Path): Boolean {
-    val pathInternalName = TcpEelPathParser.extractInternalMachineId(path)?.first ?: return false
-    return pathInternalName == this.internalName
+  override fun ownsDescriptor(descriptor: EelDescriptor): Boolean {
+    if (descriptor !is TcpEelDescriptor) return false
+    val descInternalName = TcpEelPathParser.extractInternalMachineId(descriptor.rootPathString)?.first ?: return false
+    return descInternalName == this.internalName
   }
 
   companion object {

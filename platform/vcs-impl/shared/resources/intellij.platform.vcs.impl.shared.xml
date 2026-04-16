@@ -41,6 +41,9 @@
                     interface="com.intellij.openapi.vcs.changes.ChangesViewModifier"
                     area="IDEA_PROJECT"
                     dynamic="true"/>
+    <extensionPoint qualifiedName="com.intellij.openapi.vcs.merge.resolveActionProvider"
+                    interface="com.intellij.openapi.vcs.merge.MergeResolveActionProvider"
+                    dynamic="true"/>
   </extensionPoints>
 
   <extensions defaultExtensionNs="com.intellij">

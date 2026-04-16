@@ -43,6 +43,8 @@
     <fileBasedIndex implementation="com.intellij.psi.impl.search.JavaNullMethodArgumentIndex"/>
     <fileBasedIndex implementation="com.intellij.psi.impl.java.stubs.index.ExternalAnnotationsIndex"/>
     <fileBasedIndex implementation="com.intellij.psi.impl.java.JavaFunctionalExpressionIndex"/>
+    <workspaceModel.fileIndexContributor implementation="com.intellij.psi.impl.java.stubs.index.ExternalAnnotationsLibraryRootFileIndexContributor"/>
+    <workspaceModel.fileIndexContributor implementation="com.intellij.psi.impl.java.stubs.index.ExternalAnnotationsSdkRootFileIndexContributor"/>
     <stubIndex implementation="com.intellij.psi.impl.java.stubs.index.JavaModuleNameIndex"/>
     <stubIndex implementation="com.intellij.psi.impl.java.stubs.index.JavaMethodParameterTypesIndex"/>
     <stubIndex implementation="com.intellij.psi.impl.java.stubs.index.JavaSuperClassNameOccurenceIndex"/>

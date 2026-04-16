@@ -272,6 +272,7 @@ com.intellij.modcommand.ModPsiUpdater
 - com.intellij.modcompletion.PsiUpdateCompletionItem
 - <init>(java.lang.String):V
 - addLookupString(java.lang.String):com.intellij.modcompletion.CommonCompletionItem
+- additionalLookupStrings():java.util.Set
 - adjustIndent():com.intellij.modcompletion.CommonCompletionItem
 - autoCompletionPolicy():com.intellij.codeInsight.lookup.AutoCompletionPolicy
 - isValid():Z

@@ -61,28 +61,11 @@ private fun getSupportKotlinPluginModeEPs(plugin: IdeaPluginDescriptorImpl): Lis
 }
 
 
-internal fun isKotlinPluginK2Mode(): Boolean {
-  return System.getProperty("idea.kotlin.plugin.use.k1", "false").toBoolean().not()
-}
-
 @ApiStatus.Internal
 fun isKotlinPlugin(pluginId: PluginId): Boolean = isKotlinPlugin(pluginId.idString)
 
-@ApiStatus.Internal
-fun isKotlinPluginK1Mode(): Boolean {
-  return !isKotlinPluginK2Mode()
-}
-
 internal fun isIncompatibleWithKotlinPlugin(plugin: IdeaPluginDescriptorImpl): Boolean {
-  if (isKotlinPluginK1Mode() && !pluginCanWorkInK1Mode(plugin)) {
-    return true
-  }
-
-  if (isKotlinPluginK2Mode() && !pluginCanWorkInK2Mode(plugin)) {
-    return true
-  }
-
-  return false
+  return !pluginCanWorkInK2Mode(plugin)
 }
 
 

@@ -40,7 +40,7 @@ import javax.swing.tree.DefaultTreeModel
 
 internal class OneShotMergeFlowDelegate(
   private val project: Project?,
-  private val tableComponent: JComponent,
+  private val table: JComponent,
   private val mergeDialogCustomizer: MergeDialogCustomizer,
   private val rootPane: JRootPane,
   private val files: List<VirtualFile>,
@@ -69,7 +69,7 @@ internal class OneShotMergeFlowDelegate(
       }
 
       row {
-        scrollCell(tableComponent)
+        scrollCell(table)
           .align(Align.FILL)
           .resizableColumn()
 

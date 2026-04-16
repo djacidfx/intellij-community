@@ -77,11 +77,11 @@ abstract class KotlinJUnitMalformedDeclarationInspectionTest : KotlinJUnitMalfor
   }
 
   fun `test malformed callback extension dual mode weak warning`() {
-    myFixture.configureByText("Foo.kt", """
+    myFixture.configureByText("A.kt", """
       class A {
         @JvmField
         @org.junit.jupiter.api.extension.RegisterExtension
-        val <weak_warning descr="MyExt implements both class-level and instance-level callbacks; 'beforeAll' will not be called for a non-static field">ext</weak_warning> = MyExt()
+        val <info descr="MyExt implements both class-level and instance-level callbacks; 'beforeAll' will not be called for a non-static field">ext</info> = MyExt()
 
         class MyExt : org.junit.jupiter.api.extension.BeforeAllCallback,
                       org.junit.jupiter.api.extension.BeforeEachCallback {
@@ -90,12 +90,11 @@ abstract class KotlinJUnitMalformedDeclarationInspectionTest : KotlinJUnitMalfor
         }
       }
     """.trimIndent())
-    myFixture.checkHighlighting(true, false, true)
+    myFixture.checkHighlighting(true, true, true)
   }
 
   fun `test malformed callback extension dual mode no highlighting when per class`() {
-    myFixture.testHighlighting(
-      JvmLanguage.KOTLIN, """
+    myFixture.configureByText("A.kt", """
       @org.junit.jupiter.api.TestInstance(org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS)
       class A {
         @JvmField
@@ -109,11 +108,11 @@ abstract class KotlinJUnitMalformedDeclarationInspectionTest : KotlinJUnitMalfor
         }
       }
     """.trimIndent())
+    myFixture.checkHighlighting(true, true, true)
   }
 
   fun `test malformed callback extension before each static no highlighting`() {
-    myFixture.testHighlighting(
-      JvmLanguage.KOTLIN, """
+    myFixture.configureByText("A.kt", """
       class A {
         companion object {
           @JvmField
@@ -126,6 +125,7 @@ abstract class KotlinJUnitMalformedDeclarationInspectionTest : KotlinJUnitMalfor
         }
       }
     """.trimIndent())
+    myFixture.checkHighlighting(true, true, true)
   }
 
   /* Malformed nested class */

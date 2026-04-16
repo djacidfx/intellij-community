@@ -7,6 +7,7 @@ import com.intellij.ide.minimap.geometry.MinimapScaleUtil
 import com.intellij.ide.minimap.layout.MinimapLayoutCalculator
 import com.intellij.ide.minimap.listeners.MinimapStateListeners
 import com.intellij.ide.minimap.listeners.MinimapUiListeners
+import com.intellij.ide.minimap.interaction.MinimapScrollPolicy
 import com.intellij.ide.minimap.model.MinimapModel
 import com.intellij.ide.minimap.scene.MinimapSceneBuilder
 import com.intellij.ide.minimap.settings.MinimapSettings
@@ -31,6 +32,7 @@ import kotlinx.coroutines.withContext
 import java.awt.Graphics2D
 import javax.swing.JPanel
 import kotlin.math.max
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(FlowPreview::class)
 class MinimapController(
@@ -44,7 +46,6 @@ class MinimapController(
   private val scope = coroutineScope.childScope("MinimapController")
   private val structureUpdates = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
   private val diagnosticsUpdates = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
-  private val scrollUpdates = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
   private val settings = MinimapSettings.getInstance()
   private val editor: Editor = panel.editor
 
@@ -56,6 +57,7 @@ class MinimapController(
   private val geometryCalculator = MinimapGeometryCalculator(editor)
   private val sceneBuilder = MinimapSceneBuilder(editor, model, layoutCalculator, geometryCalculator)
   private val caretController = MinimapCaretController(editor, panel)
+  private var independentAreaStart: Int? = null
 
   private val stateListeners = MinimapStateListeners(
     parentDisposable = this,
@@ -85,8 +87,6 @@ class MinimapController(
     refreshSnapshot()
     initStructureMarkersFlow()
     initDiagnosticsFlow()
-    // TODO: scroll optimization — re-enable once the fast-path approach is validated
-    // initScrollUpdatesFlow()
   }
 
   override fun dispose() {
@@ -115,49 +115,39 @@ class MinimapController(
     }
 
     val panelWidth = max(panel.width, scaleData.width)
-    val snapshot = sceneBuilder.buildSnapshot(panelWidth, panelHeight, scaleData, state.scaleMode, MinimapRegistry.isLegacy())
+    val areaStartOverride = if (isIndependentScrollEnabled()) independentAreaStart else null
+    val snapshot = sceneBuilder.buildSnapshot(
+      panelWidth,
+      panelHeight,
+      scaleData,
+      state.scaleMode,
+      MinimapRegistry.isLegacy(),
+      areaStartOverride,
+    )
     panel.updateSnapshot(snapshot)
+    if (isIndependentScrollEnabled()) {
+      independentAreaStart = snapshot.geometry.areaStart
+    }
   }
 
-  /**
-   * Fast scroll update path. Called on every pure vertical scroll event (width/height unchanged).
-   *
-   * When `areaStart` hasn't changed (the minimap fits entirely in the panel — the common case),
-   * the stored token/diagnostic/fold/breakpoint entries are still valid because their y-coordinates
-   * are computed relative to `areaStart`. We just copy the snapshot with updated geometry (O(1)).
-   *
-   * When `areaStart` changes (large file where the minimap itself scrolls), we immediately apply
-   * a geometry-only copy so the thumb tracks correctly, then schedule a debounced full rebuild
-   * to recompute entries for the new visible window.
-   */
-  fun refreshOnScroll() {
-    val state = settings.state
+  fun isIndependentScrollEnabled(): Boolean {
+    return MinimapScrollPolicy.useIndependentMinimapScroll(editor)
+  }
+
+  fun scrollIndependentViewportBy(deltaPx: Int): Boolean {
+    if (!isIndependentScrollEnabled()) return false
+    if (deltaPx == 0) return false
+
+    val current = panel.currentSnapshot() ?: return false
     val panelHeight = max(if (panel.height > 0) panel.height else container.height, 0)
-    val scaleData = MinimapScaleUtil.computeScale(editor, panelHeight, state.width, state.scaleMode)
-    if (!updatePanelVisibility(scaleData.width)) return
-    if (panel.updatePreferredWidth(scaleData.width)) {
-      panel.revalidate()
-    }
+    val maxAreaStart = (current.geometry.minimapHeight - panelHeight).coerceAtLeast(0)
+    val targetAreaStart = (current.geometry.areaStart + deltaPx).coerceIn(0, maxAreaStart)
+    if (targetAreaStart == current.geometry.areaStart) return false
 
-    val panelWidth = max(panel.width, scaleData.width)
-    val lineProjection = model.getLineProjection()
-    val newGeometry = geometryCalculator.compute(panelHeight, scaleData, state.scaleMode, lineProjection.projectedLineCount)
-
-    val current = panel.currentSnapshot()
-    if (current != null && newGeometry.areaStart == current.geometry.areaStart) {
-      // Fast path: visible window didn't shift, only thumb position changed.
-      val newContext = current.context.copy(panelWidth = panelWidth, panelHeight = panelHeight, geometry = newGeometry)
-      panel.updateSnapshot(current.copy(context = newContext, geometry = newGeometry))
-      return
-    }
-
-    // areaStart changed — the visible set of lines shifted. Apply geometry immediately so the
-    // thumb moves correctly, then schedule a full layout rebuild via debounced flow.
-    if (current != null) {
-      val newContext = current.context.copy(panelWidth = panelWidth, panelHeight = panelHeight, geometry = newGeometry)
-      panel.updateSnapshot(current.copy(context = newContext, geometry = newGeometry))
-    }
-    scrollUpdates.tryEmit(Unit)
+    independentAreaStart = targetAreaStart
+    refreshSnapshot()
+    panel.repaint()
+    return true
   }
 
   private fun updatePanelVisibility(minimapWidth: Int): Boolean {
@@ -188,23 +178,13 @@ class MinimapController(
   }
 
   private fun initStructureMarkersFlow() = scope.launch {
-    structureUpdates.debounce(STRUCTURE_MARKERS_DEBOUNCE_MS).collect {
+    structureUpdates.debounce(STRUCTURE_MARKERS_DEBOUNCE_MS.milliseconds).collect {
       updateStructureMarkersNow()
     }
   }
 
   private fun initDiagnosticsFlow() = scope.launch {
-    diagnosticsUpdates.debounce(DIAGNOSTICS_DEBOUNCE_MS).collect {
-      withContext(Dispatchers.EDT + ModalityState.any().asContextElement()) {
-        if (disposed) return@withContext
-        refreshSnapshot()
-        panel.repaint()
-      }
-    }
-  }
-
-  private fun initScrollUpdatesFlow() = scope.launch {
-    scrollUpdates.debounce(SCROLL_LAYOUT_DEBOUNCE_MS).collect {
+    diagnosticsUpdates.debounce(DIAGNOSTICS_DEBOUNCE_MS.milliseconds).collect {
       withContext(Dispatchers.EDT + ModalityState.any().asContextElement()) {
         if (disposed) return@withContext
         refreshSnapshot()
@@ -216,7 +196,6 @@ class MinimapController(
   companion object {
     private const val STRUCTURE_MARKERS_DEBOUNCE_MS: Long = 125
     private const val DIAGNOSTICS_DEBOUNCE_MS: Long = 125
-    private const val SCROLL_LAYOUT_DEBOUNCE_MS: Long = 50
     private const val HIDE_MINIMAP_EDITOR_WIDTH_MULTIPLIER: Long = 2
   }
 }

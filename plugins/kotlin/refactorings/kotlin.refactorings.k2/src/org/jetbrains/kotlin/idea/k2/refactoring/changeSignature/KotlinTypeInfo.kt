@@ -13,10 +13,10 @@ import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.components.buildSubstitutor
-import org.jetbrains.kotlin.analysis.api.components.buildTypeParameterType
 import org.jetbrains.kotlin.analysis.api.components.callableSymbol
 import org.jetbrains.kotlin.analysis.api.components.containingDeclaration
 import org.jetbrains.kotlin.analysis.api.components.createInheritanceTypeSubstitutor
+import org.jetbrains.kotlin.analysis.api.components.typeCreator
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisFromWriteAction
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisFromWriteAction
@@ -130,10 +130,10 @@ private fun createSubstitutor(inheritorDeclaration: KtDeclaration, baseFunction:
         createInheritanceTypeSubstitutor(inheritor, base)?.let { iSubstitutor ->
             buildSubstitutor {
                 base.typeParameters.forEach {
-                    substitution(it, iSubstitutor.substitute(buildTypeParameterType(it)))
+                    substitution(it, iSubstitutor.substitute(typeCreator.typeParameterType(it)))
                 }
                 baseCallable.typeParameters.zip(inheritorCallable.typeParameters).forEach {
-                    substitution(it.first, buildTypeParameterType(it.second))
+                    substitution(it.first, typeCreator.typeParameterType(it.second))
                 }
             }
         }

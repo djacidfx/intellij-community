@@ -87,9 +87,7 @@ interface PluginInitializationContext {
 @ApiStatus.Internal
 fun PluginInitializationContext.validatePluginIsCompatible(plugin: PluginMainDescriptor): PluginNonLoadReason? {
   if (isPluginWhichDependsOnKotlinPluginAndItsIncompatibleWithIt(plugin)) {
-    // disable plugins which are incompatible with the Kotlin Plugin K1/K2 Modes KTIJ-24797, KTIJ-30474
-    val mode = if (isKotlinPluginK1Mode()) CoreBundle.message("plugin.loading.error.k1.mode") else CoreBundle.message("plugin.loading.error.k2.mode")
-    return PluginIsIncompatibleWithKotlinMode(plugin, mode)
+    return PluginIsIncompatibleWithKotlinMode(plugin)
   }
   if (plugin.isBundled) {
     return null

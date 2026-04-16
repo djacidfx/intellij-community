@@ -13,6 +13,7 @@ import org.jetbrains.kotlin.idea.test.UseK2PluginMode
 import org.jetbrains.plugins.gradle.frameworkSupport.GradleDsl
 import org.jetbrains.plugins.gradle.testFramework.GradleTestFixtureBuilder
 import org.jetbrains.plugins.gradle.testFramework.fixtures.application.GradleProjectTestApplication
+import org.jetbrains.plugins.gradle.testFramework.util.assertThatVersionCatalogsAreSupported
 import org.jetbrains.plugins.gradle.testFramework.util.withBuildFile
 import org.jetbrains.plugins.gradle.testFramework.util.withSettingsFile
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -122,6 +123,7 @@ abstract class K2GradleCodeInsightTestCase : AbstractKotlinGradleCodeInsightBase
         @JvmStatic
         protected val WITH_CUSTOM_CONFIGURATIONS_AND_VERSION_CATALOGS_FIXTURE =
             GradleTestFixtureBuilder.create("with-custom-configurations-and-version-catalogs") { gradleVersion ->
+                assertThatVersionCatalogsAreSupported(gradleVersion)
                 withSettingsFile(gradleVersion, gradleDsl = GradleDsl.KOTLIN) {
                     setProjectName("with-custom-configurations-and-version-catalogs")
                 }

@@ -18,7 +18,7 @@ import com.intellij.psi.PsiFile
  * Is NOT synchronized.
  */
 internal class MarkerCache(
-  private val myPointers: SmartPointerTracker
+  private val myPointers: SmartPointerTracker,
 ) {
 
   /**

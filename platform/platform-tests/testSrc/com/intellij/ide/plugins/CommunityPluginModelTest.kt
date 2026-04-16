@@ -28,13 +28,8 @@ private val communityPluginModelBuilderOptions = SourceCodeBasedPluginModelBuild
   pluginVariantsWithDynamicIncludes = listOf(
     PluginVariantWithDynamicIncludes(
       mainModuleName = "kotlin.plugin",
-      systemPropertyName = "idea.kotlin.plugin.use.k1",
+      systemPropertyName = "idea.kotlin.plugin.use.k1.obsolete",
       systemPropertyValue = "false",
-    ),
-    PluginVariantWithDynamicIncludes(
-      mainModuleName = "kotlin.plugin",
-      systemPropertyName = "idea.kotlin.plugin.use.k1",
-      systemPropertyValue = "true",
     ),
   ),
 )

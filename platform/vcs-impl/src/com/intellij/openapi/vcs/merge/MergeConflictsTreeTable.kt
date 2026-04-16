@@ -1,8 +1,12 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.openapi.vcs.merge
 
+import com.intellij.openapi.actionSystem.DataSink
+import com.intellij.openapi.actionSystem.PlatformDataKeys
+import com.intellij.openapi.actionSystem.UiDataProvider
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.ui.treeStructure.treetable.DefaultTreeTableExpander
 import com.intellij.ui.treeStructure.treetable.ListTreeTableModelOnColumns
 import com.intellij.ui.treeStructure.treetable.TreeTable
 import com.intellij.util.ui.ColumnInfo
@@ -12,7 +16,7 @@ import java.awt.event.MouseEvent
 import kotlin.math.max
 
 @ApiStatus.Internal
-class MergeConflictsTreeTable(private val tableModel: ListTreeTableModelOnColumns) : TreeTable(tableModel) {
+class MergeConflictsTreeTable(private val tableModel: ListTreeTableModelOnColumns) : TreeTable(tableModel), UiDataProvider {
   init {
     getTableHeader().reorderingAllowed = false
     tree.isRootVisible = false
@@ -65,5 +69,11 @@ class MergeConflictsTreeTable(private val tableModel: ListTreeTableModelOnColumn
         toolTipProvider.invoke(file)
       }
     } ?: super.getToolTipText(e)
+  }
+
+  private val treeExpander = DefaultTreeTableExpander(this)
+
+  override fun uiDataSnapshot(sink: DataSink) {
+    sink[PlatformDataKeys.TREE_EXPANDER] = treeExpander
   }
 }

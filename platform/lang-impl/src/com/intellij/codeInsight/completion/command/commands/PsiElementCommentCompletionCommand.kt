@@ -180,7 +180,7 @@ internal class UncommentLineCompletionCommandProvider : ActionCommandProvider(
   previewText = ActionsBundle.message("action.CommentByLineComment.description")) {
 
   override fun isApplicable(offset: Int, psiFile: PsiFile, editor: Editor?): Boolean {
-    if (editor == null || offset - 1 < 0) return false
+    if (editor == null || offset < 1) return false
     val element = getCommandContext(offset, psiFile) ?: return false
     if (element !is PsiComment) return false
     if (element.textRange.endOffset != offset) return false

@@ -7,6 +7,7 @@ import com.intellij.platform.runtime.repository.RuntimeModuleId;
 import com.intellij.platform.runtime.repository.RuntimeModuleRepository;
 import com.intellij.platform.runtime.repository.serialization.RawRuntimeModuleDescriptor;
 import com.intellij.platform.runtime.repository.serialization.RawRuntimeModuleRepositoryData;
+import com.intellij.platform.runtime.repository.serialization.RawRuntimePluginHeader;
 import com.intellij.platform.runtime.repository.serialization.RuntimeModuleRepositorySerialization;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -23,18 +24,17 @@ import java.util.stream.Collectors;
 
 public class RuntimeModuleRepositoryImpl implements RuntimeModuleRepository {
   private final Map<RuntimeModuleId, ResolveResult> myResolveResults;
-  private volatile RawRuntimeModuleRepositoryData myMainData;
-  private volatile List<RawRuntimeModuleRepositoryData> myAdditionalData;
+  private volatile RawRuntimeModuleRepositoryData myRawData;
   private final Path myDescriptorsFilePath;
 
   public RuntimeModuleRepositoryImpl(@NotNull Path descriptorsFilePath) {
     this(descriptorsFilePath, null);
   }
 
-  public RuntimeModuleRepositoryImpl(@NotNull Path descriptorsFilePath, @Nullable RawRuntimeModuleRepositoryData preloadedMainData) {
+  public RuntimeModuleRepositoryImpl(@NotNull Path descriptorsFilePath, @Nullable RawRuntimeModuleRepositoryData preloadedRawData) {
     myDescriptorsFilePath = descriptorsFilePath;
     myResolveResults = new ConcurrentHashMap<>();
-    myMainData = preloadedMainData;
+    myRawData = preloadedRawData;
   }
 
   @Override
@@ -50,7 +50,7 @@ public class RuntimeModuleRepositoryImpl implements RuntimeModuleRepository {
     ResolveResult cached = myResolveResults.get(moduleId);
     if (cached != null) return cached;
 
-    RawRuntimeModuleRepositoryData rawData = getMainData();
+    RawRuntimeModuleRepositoryData rawData = getRawData();
     RawRuntimeModuleDescriptor rawDescriptor = rawData.findDescriptor(moduleId);
     if (rawDescriptor == null && moduleId.getNamespace().equals(RuntimeModuleId.LEGACY_JPS_MODULE_NAMESPACE)) {
       /* we don't have syntax to specify namespace in product-modules.xml, so currently all elements are supposed to be from the
@@ -58,21 +58,10 @@ public class RuntimeModuleRepositoryImpl implements RuntimeModuleRepository {
       rawDescriptor = rawData.findDescriptor(RuntimeModuleId.contentModule(moduleId.getName(), RuntimeModuleId.DEFAULT_NAMESPACE));
     }
     if (rawDescriptor == null) {
-      if (myAdditionalData != null) {
-        for (RawRuntimeModuleRepositoryData data : myAdditionalData) {
-          rawDescriptor = data.findDescriptor(moduleId);
-          if (rawDescriptor != null) {
-            rawData = data;
-            break;
-          }
-        }
-      }
-      if (rawDescriptor == null) {
-        List<RuntimeModuleId> failedPath = new ArrayList<>(dependencyPath.size() + 1);
-        failedPath.addAll(dependencyPath.keySet());
-        failedPath.add(moduleId);
-        return new FailedResolveResult(failedPath);
-      }
+      List<RuntimeModuleId> failedPath = new ArrayList<>(dependencyPath.size() + 1);
+      failedPath.addAll(dependencyPath.keySet());
+      failedPath.add(moduleId);
+      return new FailedResolveResult(failedPath);
     }
     
     List<RuntimeModuleId> rawDependencies = rawDescriptor.getDependencyIds();
@@ -125,21 +114,10 @@ public class RuntimeModuleRepositoryImpl implements RuntimeModuleRepository {
 
   @Override
   public @NotNull List<Path> getModuleResourcePaths(@NotNull RuntimeModuleId moduleId) {
-    RawRuntimeModuleRepositoryData rawData = getMainData();
+    RawRuntimeModuleRepositoryData rawData = getRawData();
     RawRuntimeModuleDescriptor rawDescriptor = rawData.findDescriptor(moduleId);
     if (rawDescriptor == null) {
-      if (myAdditionalData != null) {
-        for (RawRuntimeModuleRepositoryData repository : myAdditionalData) {
-          rawDescriptor = repository.findDescriptor(moduleId);
-          if (rawDescriptor != null) {
-            rawData = repository;
-            break;
-          }
-        }
-      }
-      if (rawDescriptor == null) {
-        throw new MalformedRepositoryException("Cannot find module '" + moduleId.getPresentableName() + "'");
-      }
+      throw new MalformedRepositoryException("Cannot find module '" + moduleId.getPresentableName() + "'");
     }
     //todo improve this to reuse the computed paths if the module is resolved later
     return new RuntimeModuleDescriptorImpl(moduleId, rawData.getBasePath(), rawDescriptor.getResourcePaths(), Collections.emptyList()).getResourceRootPaths();
@@ -147,7 +125,7 @@ public class RuntimeModuleRepositoryImpl implements RuntimeModuleRepository {
 
   @Override
   public @NotNull List<@NotNull Path> getBootstrapClasspath(@NotNull String bootstrapModuleName) {
-    if (myMainData == null) {
+    if (myRawData == null) {
       try {
         String[] bootstrapClasspath = RuntimeModuleRepositorySerialization.loadBootstrapClasspath(myDescriptorsFilePath, bootstrapModuleName);
         if (bootstrapClasspath != null) {
@@ -164,17 +142,9 @@ public class RuntimeModuleRepositoryImpl implements RuntimeModuleRepository {
     return getModule(RuntimeModuleId.legacyJpsModule(bootstrapModuleName)).getModuleClasspath();
   }
 
-  /**
-   * Includes descriptors from {@code repositories} to this instance.
-   * This is an internal function, it's supposed to be used by the platform only.
-   */
-  public void loadAdditionalRepositories(@NotNull List<@NotNull RawRuntimeModuleRepositoryData> repositories) {
-    if (repositories.isEmpty()) return;
-    
-    if (myAdditionalData != null) {
-      throw new IllegalStateException("additional repositories may be loaded only once");
-    }
-    myAdditionalData = repositories;
+  @Override
+  public @NotNull List<@NotNull RawRuntimePluginHeader> getBundledPluginHeaders() {
+    return getRawData().getPluginHeaders();
   }
 
   @Override
@@ -182,17 +152,17 @@ public class RuntimeModuleRepositoryImpl implements RuntimeModuleRepository {
     return "RuntimeModuleRepository{descriptorsFilePath=" + myDescriptorsFilePath + '}';
   }
 
-  private RawRuntimeModuleRepositoryData getMainData() {
-    if (myMainData == null) {
+  private RawRuntimeModuleRepositoryData getRawData() {
+    if (myRawData == null) {
       Path fallbackJarPath = RuntimeModuleRepositorySerialization.getFallbackJarPath(myDescriptorsFilePath);
       if (fallbackJarPath != null) {
-        myMainData = RuntimeModuleRepositorySerialization.loadFromJar(fallbackJarPath);
+        myRawData = RuntimeModuleRepositorySerialization.loadFromJar(fallbackJarPath);
       }
       else {
-        myMainData = RuntimeModuleRepositorySerialization.loadFromCompactFile(myDescriptorsFilePath);
+        myRawData = RuntimeModuleRepositorySerialization.loadFromCompactFile(myDescriptorsFilePath);
       }
     }
-    return myMainData;
+    return myRawData;
   }
 
   private static final class SuccessfulResolveResult implements ResolveResult {

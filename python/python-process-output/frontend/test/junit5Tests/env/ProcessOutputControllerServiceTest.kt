@@ -12,6 +12,7 @@ import com.intellij.python.junit5Tests.framework.env.PythonBinaryPath
 import com.intellij.python.processOutput.common.OutputKindDto
 import com.intellij.python.processOutput.common.OutputLineDto
 import com.intellij.python.processOutput.frontend.CoroutineNames
+import com.intellij.python.processOutput.frontend.LoggedProcess
 import com.intellij.python.processOutput.frontend.OutputFilter
 import com.intellij.python.processOutput.frontend.ProcessOutputControllerService
 import com.intellij.python.processOutput.frontend.ProcessOutputControllerServiceLimits
@@ -114,10 +115,10 @@ class ProcessOutputControllerServiceTest {
                 count++
             }
 
-            val processesToCheck = ProcessOutputControllerServiceLimits.MAX_PROCESSES - 50
+            val processesToCheck = ProcessOutputControllerServiceLimits.MAX_PROCESSES - 10
 
             // should expect to have found and asserted MAX_PROCESSES amount processes
-            // 50 for margin of error
+            // 10 for margin of error
             assert(count > processesToCheck) {
                 "Call to `verifyCurrentProcesses` is expected to check at least $processesToCheck processes, but checked only $count."
             }
@@ -480,6 +481,46 @@ class ProcessOutputControllerServiceTest {
         }
 
         assertEquals(nonAsciiText, lines?.last()?.text)
+    }
+
+    @Test
+    fun `line limits are maintained`(
+        @TempDir cwd: Path,
+        @PythonBinaryPath python: PythonBinary,
+    ): Unit = timeoutRunBlocking {
+        val service = projectFixture.get().service<ProcessOutputControllerService>()
+
+        val binOnEel = BinOnEel(python, cwd)
+        val mainPy = Files.createFile(cwd.resolve(MAIN_PY))
+
+        edtWriteAction {
+            mainPy.toFile().writeText(
+                """
+                    import sys 
+                    
+                    for i in range(${ProcessOutputControllerServiceLimits.MAX_LINES} * 2):
+                        print("line " + str(i))
+                """.trimIndent(),
+            )
+        }
+
+        runBin(binOnEel, Args(MAIN_PY))
+
+        var process: LoggedProcess? = null
+
+        waitUntil {
+            process = service.loggedProcesses.value.find {
+                it.lines.getOrNull(0)?.text == "line ${ProcessOutputControllerServiceLimits.MAX_LINES}"
+            }
+            process != null
+        }
+
+        repeat(ProcessOutputControllerServiceLimits.MAX_LINES) {
+            assertEquals(
+                "line ${ProcessOutputControllerServiceLimits.MAX_LINES + it}",
+                process!!.lines[it].text,
+            )
+        }
     }
 
     companion object {

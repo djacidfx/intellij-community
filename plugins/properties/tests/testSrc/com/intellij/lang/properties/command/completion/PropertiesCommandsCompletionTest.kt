@@ -204,6 +204,14 @@ class PropertiesCommandsCompletionTest : LightFixtureCompletionTestCase() {
       """.trimIndent())
   }
 
+  fun testCommentNotAvailableForCommentedProperty() {
+    myFixture.configureByText(PropertiesFileType.INSTANCE, """
+      #a.b.c=some.value.<caret>
+      """.trimIndent())
+    val elements = myFixture.completeBasic()
+    assertNull(elements.firstOrNull { element -> element.lookupString.contains("Comment", ignoreCase = true) })
+  }
+
   fun testCommentMultilineProperty() {
     myFixture.configureByText(PropertiesFileType.INSTANCE, """
       a.b.c=line1 \
@@ -245,5 +253,46 @@ class PropertiesCommandsCompletionTest : LightFixtureCompletionTestCase() {
     val elements = myFixture.completeBasic()
     assertNotNull("Uncomment command should be available for explicit double-dot invocation at end of comment",
       elements?.firstOrNull { element -> element.lookupString.contains("Uncomment", ignoreCase = true) })
+  }
+
+  fun testUncommentPropertyWithDoubleDotExecution() {
+    myFixture.configureByText(PropertiesFileType.INSTANCE, """
+      #a.b.c=some.value..<caret>
+      """.trimIndent())
+    val elements = myFixture.completeBasic()
+    selectItem(elements.first { element -> element.lookupString.contains("Uncomment", ignoreCase = true) })
+    NonBlockingReadActionImpl.waitForAsyncTaskCompletion()
+    myFixture.checkResult("""
+      a.b.c=some.value
+      """.trimIndent())
+  }
+
+  fun testUncommentMultilineCommentWithDoubleDotExecution() {
+    myFixture.configureByText(PropertiesFileType.INSTANCE, """
+      ###a.b.c=some.value..<caret>
+      """.trimIndent())
+    val elements = myFixture.completeBasic()
+    selectItem(elements.first { element -> element.lookupString.contains("Uncomment", ignoreCase = true) })
+    NonBlockingReadActionImpl.waitForAsyncTaskCompletion()
+    myFixture.checkResult("""
+      ##a.b.c=some.value
+      """.trimIndent())
+  }
+
+  fun testUncommentMultilinePropertyWithDoubleDotExecution() {
+    myFixture.configureByText(PropertiesFileType.INSTANCE, """
+      #a.b.c=line1 \
+      #  line2 \
+      #  line3..<caret>
+      """.trimIndent())
+    val elements = myFixture.completeBasic()
+    selectItem(elements.first { element -> element.lookupString.contains("Uncomment", ignoreCase = true) })
+    NonBlockingReadActionImpl.waitForAsyncTaskCompletion()
+    //here only the line is uncommented, it is expected behavior
+    myFixture.checkResult("""
+      #a.b.c=line1 \
+      #  line2 \
+        line3
+      """.trimIndent())
   }
 }

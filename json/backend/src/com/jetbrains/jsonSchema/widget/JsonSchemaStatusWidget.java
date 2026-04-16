@@ -22,6 +22,7 @@ import com.intellij.openapi.ui.popup.BalloonBuilder;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.ui.popup.ListPopup;
 import com.intellij.openapi.util.Comparing;
+import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.util.NlsContexts.StatusBarText;
 import com.intellij.openapi.util.NlsContexts.Tooltip;
 import com.intellij.openapi.util.NlsSafe;
@@ -90,9 +91,25 @@ final class JsonSchemaStatusWidget extends EditorBasedStatusBarPopup {
     });
   }
 
-  public static JsonSchemaStatusWidget create(@NotNull Project project, @NotNull CoroutineScope scope) {
-    var widget = new JsonSchemaStatusWidget(project, scope);
-    widget.initialize(scope);
+  @NotNull
+  public static JsonSchemaStatusWidget create(@NotNull Project project, @NotNull CoroutineScope parentScope) {
+    CoroutineScope childScope = JsonSchemaStatusWidgetKotlin.INSTANCE.childScope(parentScope, "JsonSchemaStatusWidget::childScope");
+
+    JsonSchemaStatusWidget widget = null;
+    try {
+      widget = new JsonSchemaStatusWidget(project, childScope);
+      widget.initialize(childScope);
+      JsonSchemaStatusWidgetKotlin.INSTANCE.cancelOnDispose(childScope, widget);
+    }
+    catch (Exception e) {
+      JsonSchemaStatusWidgetKotlin.INSTANCE.cancel(childScope);
+      if (widget != null) {
+        Disposer.dispose(widget);
+      }
+
+      throw e;
+    }
+
     return widget;
   }
 

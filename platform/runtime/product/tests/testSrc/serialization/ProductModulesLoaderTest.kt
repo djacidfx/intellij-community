@@ -49,6 +49,7 @@ class ProductModulesLoaderTest {
 
     val pluginGroup = productModules.bundledPluginModuleGroups.single()
     assertEquals("plugin", pluginGroup.includedModules.single().moduleDescriptor.moduleId.name)
+    assertEquals("plugin", productModules.bundledPluginDescriptorModules.single().name)
   }
   
   @Test
@@ -157,6 +158,7 @@ class ProductModulesLoaderTest {
       raw("plugin.util", DEFAULT_NAMESPACE),
       raw("unresolved.module", DEFAULT_NAMESPACE),
     )
+    assertThat(productModules.bundledPluginDescriptorModules.single().name).isEqualTo("plugin")
   }
 
   @Test
@@ -223,6 +225,7 @@ class ProductModulesLoaderTest {
     assertEquals(listOf("additional", "root"), mainModules.map { it.moduleDescriptor.moduleId.name })
     val bundledPlugins = productModules.bundledPluginModuleGroups.map { it.mainModule.moduleId.name }
     assertEquals(listOf("plugin", "common.plugin"), bundledPlugins)
+    assertEquals(listOf("plugin", "common.plugin"), productModules.bundledPluginDescriptorModules.map { it.name })
   }
   
   @Test

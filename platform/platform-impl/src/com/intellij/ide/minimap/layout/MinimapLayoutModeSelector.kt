@@ -11,7 +11,7 @@ object MinimapLayoutModeSelector {
     if (scaleMode != MinimapScaleMode.FIT) return MinimapLayoutMode.EXACT
 
     val minimapHeight = context.geometry.minimapHeight
-    val lineCount = context.editor.document.lineCount
+    val lineCount = context.lineProjection.projectedLineCount
     if (minimapHeight <= 0 || lineCount <= 0) return MinimapLayoutMode.EXACT
 
     val linesPerPixel = lineCount.toDouble() / minimapHeight.toDouble()

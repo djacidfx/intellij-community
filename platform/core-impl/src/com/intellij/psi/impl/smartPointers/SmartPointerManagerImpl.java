@@ -37,6 +37,7 @@ import java.util.concurrent.ConcurrentMap;
 
 import static com.intellij.reference.SoftReference.dereference;
 
+@ApiStatus.Internal
 public final class SmartPointerManagerImpl extends SmartPointerManagerEx {
   private static final Logger LOG = Logger.getInstance(SmartPointerManagerImpl.class);
   private static final Key<Reference<SmartPsiElementPointerImpl<?>>> CACHED_SMART_POINTER_KEY = Key.create("CACHED_SMART_POINTER_KEY");
@@ -196,7 +197,6 @@ public final class SmartPointerManagerImpl extends SmartPointerManagerEx {
     }
   }
 
-  @ApiStatus.Internal
   @Override
   @Nullable
   public SmartPointerTracker getTracker(@NotNull VirtualFile file) {
@@ -231,7 +231,6 @@ public final class SmartPointerManagerImpl extends SmartPointerManagerEx {
     return SmartPsiElementPointerImpl.pointsToTheSameElementAs(pointer1, pointer2);
   }
 
-  @ApiStatus.Internal
   @Override
   public void updatePointers(@NotNull Document document, @NotNull FrozenDocument frozen, @NotNull List<? extends DocumentEvent> events) {
     VirtualFile file = FileDocumentManager.getInstance().getFile(document);
@@ -245,14 +244,12 @@ public final class SmartPointerManagerImpl extends SmartPointerManagerEx {
     if (list != null) list.updatePointerTargetsAfterReparse();
   }
 
-  @ApiStatus.Internal
   @Override
   @NotNull
   public Project getProject() {
     return myProject;
   }
 
-  @ApiStatus.Internal
   @Override
   @NotNull
   public PsiDocumentManagerEx getPsiDocumentManager() {

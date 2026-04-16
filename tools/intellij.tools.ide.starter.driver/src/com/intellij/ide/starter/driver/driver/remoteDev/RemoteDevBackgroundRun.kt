@@ -2,9 +2,7 @@ package com.intellij.ide.starter.driver.driver.remoteDev
 
 import com.intellij.driver.client.Driver
 import com.intellij.driver.client.Remote
-import com.intellij.driver.model.OnDispatcher
 import com.intellij.driver.sdk.hasVisibleWindow
-import com.intellij.driver.sdk.ui.IdeEventQueue
 import com.intellij.driver.sdk.waitFor
 import com.intellij.ide.starter.driver.engine.BackgroundRun
 import com.intellij.ide.starter.models.IDEStartResult
@@ -47,7 +45,6 @@ class RemoteDevBackgroundRun(
     awaitBackendIsConnected()
     awaitVisibleFrameFrontend()
     driver.awaitLuxInitialized()
-    flushEdt()
   }
 
   private fun awaitBackendIsConnected() {
@@ -56,13 +53,6 @@ class RemoteDevBackgroundRun(
 
   private fun awaitVisibleFrameFrontend() {
     waitFor("Frontend has a visible IDE frame", timeout = 100.seconds) { driver.hasVisibleWindow() }
-  }
-
-  private fun flushEdt() {
-    // FrontendToolWindowHost should finish it's work to avoid https://youtrack.jetbrains.com/issue/GTW-9730/Some-UI-tests-are-flaky-because-sometimes-actions-are-not-executed
-    driver.withContext(OnDispatcher.EDT) {
-      driver.utility(IdeEventQueue::class).getInstance().flushQueue()
-    }
   }
 
   @Remote("com.jetbrains.thinclient.lux.LuxClientService", plugin = "com.intellij.jetbrains.client.performanceTesting")

@@ -74,7 +74,6 @@
 
     <applicationService serviceImplementation="com.intellij.notebooks.visualization.settings.NotebookSettings"/>
     <applicationSettings service="com.intellij.notebooks.visualization.settings.NotebookSettings"/>
-    <minimapFileSupportPolicy implementation="com.intellij.notebooks.visualization.minimap.JupyterMinimapFileSupportPolicy"/>
   </extensions>
   <extensions defaultExtensionNs="org.intellij.markdown">
     <actionPromoterExtension implementation="com.intellij.notebooks.visualization.ui.NotebookMarkdownCellActionPromoterExtension"/>

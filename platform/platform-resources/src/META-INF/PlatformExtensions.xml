@@ -488,6 +488,7 @@
     <applicationService serviceInterface="com.intellij.openapi.editor.actionSystem.LatencyRecorder"
                         serviceImplementation="com.intellij.internal.performance.LatencyRecorderImpl"/>
     <applicationService serviceImplementation="com.intellij.util.text.DateTimeFormatManager"/>
+    <applicationSettings service="com.intellij.util.text.DateTimeFormatManager"/>
 
     <applicationService serviceImplementation="com.intellij.openapi.updateSettings.impl.UpdateSettings"/>
     <applicationService serviceImplementation="com.intellij.openapi.updateSettings.UpdateStrategyCustomization" open="true"/>

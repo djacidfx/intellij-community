@@ -269,7 +269,7 @@ public class RequestHint {
   }
 
   protected void doStep(@NotNull DebugProcessImpl debugProcess, SuspendContextImpl suspendContext, ThreadReferenceProxyImpl stepThread, int size, int depth, Object commandToken) {
-    debugProcess.doStep(suspendContext, stepThread, size, depth, this, commandToken, getExplicitSuspendPolicy());
+    debugProcess.doStep(suspendContext, stepThread, size, depth, this, commandToken, getExplicitSuspendPolicy(), null);
   }
 
   final @Nullable RequestHint getParentHint() {

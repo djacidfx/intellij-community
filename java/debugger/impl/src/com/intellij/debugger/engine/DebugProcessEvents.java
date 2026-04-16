@@ -830,7 +830,12 @@ public class DebugProcessEvents extends DebugProcessImpl {
           }
         }
 
-        if (requestHit && requestor instanceof Breakpoint<?> breakpoint) {
+        Requestor adjustedRequestor = requestor;
+        if (requestor instanceof InstrumentedTechnicalBreakpointHit instrumentedTechnicalBreakpointHit) {
+          adjustedRequestor = instrumentedTechnicalBreakpointHit.getOriginalRequestor();
+        }
+
+        if (requestHit && adjustedRequestor instanceof Breakpoint<?> breakpoint) {
           // if requestor is a breakpoint and this breakpoint was hit, no matter its suspend policy
           ApplicationManager.getApplication().runReadAction(() -> {
             XDebugSession session = getSession().getXDebugSession();

@@ -86,7 +86,7 @@ public final class JdkUtil {
   /// @param jdkHomePath path to a directory with JDK.
   /// @return if the JDK can be run on this machine.
   public static boolean isCompatible(@NotNull Path jdkHomePath, @NotNull Project project) {
-    return EelProviderUtil.getEelMachine(project).ownsPath(jdkHomePath);
+    return EelProviderUtil.ownsPath(EelProviderUtil.getEelMachine(project), jdkHomePath);
   }
 
   /// Returns `true` if the given directory hosts a JRE.

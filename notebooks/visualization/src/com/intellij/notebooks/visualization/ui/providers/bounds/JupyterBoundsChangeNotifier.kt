@@ -20,6 +20,7 @@ import com.intellij.util.EventDispatcher
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
 import java.beans.PropertyChangeListener
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Per-editor service on which can one subscribe.
@@ -36,6 +37,7 @@ import java.beans.PropertyChangeListener
 class JupyterBoundsChangeNotifier(val editor: EditorImpl) : Disposable {
   private var isDelayed = false
   private var isShouldBeRecalculated = false
+  private val modificationCounter = AtomicLong(0)
 
   private val dispatcher = EventDispatcher.create(JupyterBoundsChangeListener::class.java)
 
@@ -131,10 +133,14 @@ class JupyterBoundsChangeNotifier(val editor: EditorImpl) : Disposable {
     if (editor.isDisposed)
       return
 
+    modificationCounter.incrementAndGet()
     NotebookVisualizationCoroutine.Utils.launchEdt {
       dispatcher.multicaster.boundsChanged()
     }
   }
+
+  val modificationCount: Long
+    get() = modificationCounter.get()
 
   fun postponeUpdates() {
     isDelayed = true
@@ -159,5 +165,7 @@ class JupyterBoundsChangeNotifier(val editor: EditorImpl) : Disposable {
     }
 
     fun get(editor: Editor): JupyterBoundsChangeNotifier = INSTANCE_KEY.get(editor)
+
+    fun getOrNull(editor: Editor): JupyterBoundsChangeNotifier? = INSTANCE_KEY.get(editor)
   }
 }

@@ -41,9 +41,9 @@ public abstract class StubTreeLoader {
 
   public abstract @Nullable ObjectStubTree<?> readFromVFile(@NotNull Project project, @NotNull VirtualFile vFile);
 
-  public abstract void rebuildStubTree(VirtualFile virtualFile);
+  public abstract void rebuildStubTree(@NotNull VirtualFile virtualFile);
 
-  public abstract boolean canHaveStub(VirtualFile file);
+  public abstract boolean canHaveStub(@NotNull VirtualFile file);
 
   protected boolean hasPsiInManyProjects(@NotNull VirtualFile virtualFile) {
     return false;

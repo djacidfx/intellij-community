@@ -39,5 +39,7 @@
                     interface="com.intellij.platform.eel.impl.portAccessibleLocally.EelPortAccessibleLocally"/>
     <extensionPoint name="multiRoutingFileSystemBackend" interface="com.intellij.platform.eel.provider.MultiRoutingFileSystemBackend"
                     dynamic="true"/>
+    <extensionPoint qualifiedName="com.intellij.eelMachineResolver"
+                    interface="com.intellij.platform.eel.provider.EelMachineResolver" dynamic="true"/>
   </extensionPoints>
 </idea-plugin>

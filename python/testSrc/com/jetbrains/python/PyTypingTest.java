@@ -6275,6 +6275,15 @@ public class PyTypingTest extends PyTestCase {
       """);
   }
 
+  // PY-88828
+  public void testDataclassTransformConstructorSignatureDecoratorWithMarkedOverloadsNotImplementation() {
+    doMultiFileExpressionUnderCaretTest("(*, name: str) -> Document", """
+      from mod import Document
+      
+      Doc<caret>ument(name="foo")
+      """);
+  }
+
   public void testTypeAliasToAny() {
     doTest("int | Any", """
       from typing import Any, TypeAlias
@@ -7099,6 +7108,19 @@ public class PyTypingTest extends PyTestCase {
     assertProjectFilesNotParsed(expr.getContainingFile());
 
     final TypeEvalContext userInitiated = TypeEvalContext.userInitiated(expr.getProject(), expr.getContainingFile()).withTracing();
+    assertType("Failed in user initiated context", expectedType, expr, userInitiated);
+  }
+
+  private void doMultiFileExpressionUnderCaretTest(@NotNull String expectedType, @NotNull String text) {
+    myFixture.copyDirectoryToProject("types/" + getTestName(false), "");
+    myFixture.configureByText(PythonFileType.INSTANCE, text);
+    PyExpression expr = PsiTreeUtil.getParentOfType(myFixture.getFile().findElementAt(myFixture.getCaretOffset()), PyExpression.class);
+
+    TypeEvalContext codeAnalysis = TypeEvalContext.codeAnalysis(expr.getProject(), expr.getContainingFile());
+    assertType("Failed in code analysis context", expectedType, expr, codeAnalysis);
+    assertProjectFilesNotParsed(expr.getContainingFile());
+
+    TypeEvalContext userInitiated = TypeEvalContext.userInitiated(expr.getProject(), expr.getContainingFile()).withTracing();
     assertType("Failed in user initiated context", expectedType, expr, userInitiated);
   }
 }

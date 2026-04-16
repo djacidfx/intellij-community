@@ -415,6 +415,11 @@ public class MergeThreesideViewer extends ThreesideTextDiffViewerEx {
 
     if (event instanceof MergeEvent.ChangeReset changeReset) {
       TextMergeChange change = changeReset.getChange();
+      // If the change was resolved, it was previously removed from counters via onChangeRemoved.
+      // Re-add it since it's being unresolved.
+      if (change.isResolved()) {
+        onChangeAdded(change);
+      }
 
       if (myAggregator != null) {
         if (change.isResolvedWithAI()) {
@@ -817,12 +822,6 @@ public class MergeThreesideViewer extends ThreesideTextDiffViewerEx {
 
   public void repaintDividers() {
     myContentPanel.repaintDividers();
-  }
-
-  @Override
-  protected void onChangeAdded(@NotNull ThreesideDiffChangeBase change) {
-    if (change.isResolved(ThreeSide.LEFT) && change.isResolved(ThreeSide.RIGHT)) return;
-    super.onChangeAdded(change);
   }
 
   private void onChangeResolved(@NotNull TextMergeChange change) {

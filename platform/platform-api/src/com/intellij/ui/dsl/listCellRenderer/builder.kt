@@ -61,7 +61,9 @@ fun <T> textListCellRenderer(nullValue: @Nls String, textExtractor: (T) -> @Nls 
       text(nullValue)
     }
     else {
-      text(textExtractor(value) ?: nullValue)
+      textExtractor(value)?.let {
+        text(it)
+      }
     }
   }
 }

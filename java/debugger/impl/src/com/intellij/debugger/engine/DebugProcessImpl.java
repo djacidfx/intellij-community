@@ -37,6 +37,7 @@ import com.intellij.debugger.jdi.EmptyConnectorArgument;
 import com.intellij.debugger.jdi.StackFrameProxyImpl;
 import com.intellij.debugger.jdi.ThreadReferenceProxyImpl;
 import com.intellij.debugger.jdi.VirtualMachineProxyImpl;
+import com.intellij.debugger.requests.Requestor;
 import com.intellij.debugger.settings.DebuggerSettings;
 import com.intellij.debugger.settings.NodeRendererSettings;
 import com.intellij.debugger.statistics.DebuggerStatistics;
@@ -575,7 +576,7 @@ public abstract class DebugProcessImpl extends UserDataHolderBase implements Deb
   @ApiStatus.Internal
   public void doStep(@NotNull SuspendContextImpl suspendContext, final ThreadReferenceProxyImpl stepThread, int size, int depth,
                      RequestHint hint, Object commandToken) {
-    doStep(suspendContext, stepThread, size, depth, hint, commandToken, -1);
+    doStep(suspendContext, stepThread, size, depth, hint, commandToken, -1, null);
   }
 
   /**
@@ -584,7 +585,7 @@ public abstract class DebugProcessImpl extends UserDataHolderBase implements Deb
    */
   @ApiStatus.Internal
   public void doStep(@NotNull SuspendContextImpl suspendContext, final ThreadReferenceProxyImpl stepThread, int size, int depth,
-                        RequestHint hint, Object commandToken, int explicitSuspendPolicy) {
+                        RequestHint hint, Object commandToken, int explicitSuspendPolicy, @Nullable StepRequestor explicitStepRequestor) {
     if (stepThread == null) {
       return;
     }
@@ -596,8 +597,9 @@ public abstract class DebugProcessImpl extends UserDataHolderBase implements Deb
       deleteStepRequests(suspendContext.getVirtualMachineProxy().eventRequestManager(), stepThreadReference);
       EventRequestManager requestManager = suspendContext.getVirtualMachineProxy().eventRequestManager();
       StepRequest stepRequest = requestManager.createStepRequest(stepThreadReference, size, depth);
-      String policyFromRequestors = suspendContext.getSuspendPolicyFromRequestors();
-      StepRequestor stepRequestor = new StepRequestor(policyFromRequestors);
+      StepRequestor stepRequestor = explicitStepRequestor != null ? explicitStepRequestor :
+                                    new StepRequestor(suspendContext.getSuspendPolicyFromRequestors(), null);
+      String policyFromRequestors = stepRequestor.getSuspendPolicy();
       getRequestsManager().registerRequestInternal(stepRequestor, stepRequest);
       if (!(hint != null && hint.isIgnoreFilters()) && !isPositionFiltered(getLocation(stepThread, suspendContext))) {
         getActiveFilters().forEach(f -> stepRequest.addClassExclusionFilter(f.getPattern()));

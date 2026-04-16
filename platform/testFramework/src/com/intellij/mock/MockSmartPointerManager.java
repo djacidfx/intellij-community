@@ -40,38 +40,8 @@ public class MockSmartPointerManager extends SmartPointerManagerEx {
   }
 
   @Override
-  public @NotNull <E extends PsiElement> SmartPsiElementPointer<E> createSmartPsiElementPointer(@NotNull E element, PsiFile containingFile) {
-    return new SmartPsiElementPointer<>() {
-      @Override
-      public E getElement() {
-        return element;
-      }
-
-      @Override
-      public @Nullable PsiFile getContainingFile() {
-        return containingFile;
-      }
-
-      @Override
-      public @NotNull Project getProject() {
-        return containingFile.getProject();
-      }
-
-      @Override
-      public VirtualFile getVirtualFile() {
-        return containingFile.getVirtualFile();
-      }
-
-      @Override
-      public @Nullable Segment getRange() {
-        return element.getTextRange();
-      }
-
-      @Override
-      public @Nullable Segment getPsiRange() {
-        return getRange();
-      }
-    };
+  public @NotNull <E extends PsiElement> SmartPsiElementPointer<E> createSmartPsiElementPointer(@NotNull E element, @Nullable PsiFile containingFile) {
+    return new MockSmartPsiElementPointer<>(element, containingFile, myProject);
   }
 
   @Override
@@ -129,5 +99,47 @@ public class MockSmartPointerManager extends SmartPointerManagerEx {
   @Override
   public void dispose() {
 
+  }
+
+  private static class MockSmartPsiElementPointer<E extends PsiElement> implements SmartPsiElementPointer<E> {
+    private final @NotNull E myElement;
+    private final @Nullable PsiFile myContainingFile;
+    private final @NotNull Project myProject;
+
+    private MockSmartPsiElementPointer(@NotNull E element, @Nullable PsiFile containingFile, @NotNull Project project) {
+      myElement = element;
+      myContainingFile = containingFile;
+      myProject = project;
+    }
+
+    @Override
+    public @NotNull E getElement() {
+      return myElement;
+    }
+
+    @Override
+    public @Nullable PsiFile getContainingFile() {
+      return myContainingFile;
+    }
+
+    @Override
+    public @NotNull Project getProject() {
+      return myProject;
+    }
+
+    @Override
+    public VirtualFile getVirtualFile() {
+      return myContainingFile != null ? myContainingFile.getVirtualFile() : null;
+    }
+
+    @Override
+    public @Nullable Segment getRange() {
+      return myElement.getTextRange();
+    }
+
+    @Override
+    public @Nullable Segment getPsiRange() {
+      return getRange();
+    }
   }
 }

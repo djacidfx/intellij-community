@@ -56,9 +56,11 @@ class KotlinTypeDescriptor(private val data: IExtractionData) : TypeDescriptor<K
 
     override fun createListType(argTypes: List<KaType>): KaType {
         return analyze(data.commonParent) {
-            buildClassType(StandardClassIds.List) {
-                val commonSupertype = if (argTypes.isNotEmpty()) argTypes.commonSupertype else builtinTypes.nullableAny
-                argument(commonSupertype)
+            @OptIn(KaExperimentalApi::class)
+            typeCreator.classType(StandardClassIds.List) {
+                invariantTypeArgument {
+                    if (argTypes.isNotEmpty()) argTypes.commonSupertype else builtinTypes.nullableAny
+                }
             }
         }
     }
@@ -72,9 +74,10 @@ class KotlinTypeDescriptor(private val data: IExtractionData) : TypeDescriptor<K
                 3 -> findClass(ClassId(StandardClassIds.BASE_KOTLIN_PACKAGE, Name.identifier("Triple")))!!
                 else -> return builtinTypes.unit
             }
-            return buildClassType(boxingClass) {
-                boxingClass.typeParameters.forEachIndexed { idx, s ->
-                    argument(outputValues[idx].valueType)
+            return typeCreator.classType(boxingClass) {
+                // All excessive type arguments are ignored, so it's safe to directly pass all elements of [outputValues]
+                outputValues.forEach { value ->
+                    invariantTypeArgument(value.valueType)
                 }
             }
         }

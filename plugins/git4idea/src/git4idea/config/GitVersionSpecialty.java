@@ -345,6 +345,16 @@ public enum GitVersionSpecialty {
     public boolean existsIn(@NotNull GitVersion version) {
       return version.isLaterOrEqual(new GitVersion(2, 40, 0, 0));
     }
+  },
+
+  /**
+   * Options "--pathspec-from-file=" and "--pathspec-file-nul" for git add, rm, checkout, reset, restore commands
+   */
+  PATHSPEC_FROM_FILE_SUPPORTED {
+    @Override
+    public boolean existsIn(@NotNull GitVersion version) {
+      return version.isLaterOrEqual(new GitVersion(2, 26, 0, 0));
+    }
   };
 
   public abstract boolean existsIn(@NotNull GitVersion version);

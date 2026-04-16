@@ -8,11 +8,12 @@ import org.jetbrains.plugins.gradle.codeInspection.AvoidRepositoriesInBuildGradl
 import org.jetbrains.plugins.gradle.frameworkSupport.GradleDsl
 import org.jetbrains.plugins.gradle.testFramework.GradleTestFixtureBuilder
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
-import org.jetbrains.plugins.gradle.testFramework.util.assumeThatDependencyResolutionManagementIsSupported
-import org.jetbrains.plugins.gradle.testFramework.util.assumeThatGradleIsOlderThan
-import org.jetbrains.plugins.gradle.testFramework.util.assumeThatKotlinDslScriptsModelImportIsSupported
+import org.jetbrains.plugins.gradle.testFramework.util.DEPENDENCY_RESOLUTION_MANAGEMENT_SUPPORTED_VERSIONS
+import org.jetbrains.plugins.gradle.testFramework.util.KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS
+import org.jetbrains.plugins.gradle.testFramework.util.assertThatKotlinDslScriptsModelImportIsSupported
 import org.jetbrains.plugins.gradle.testFramework.util.withBuildFile
 import org.jetbrains.plugins.gradle.testFramework.util.withSettingsFile
+import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
 import org.jetbrains.plugins.gradle.util.GradleConstants
 import org.junit.jupiter.params.ParameterizedTest
 
@@ -23,7 +24,7 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
         projectFixture: GradleTestFixtureBuilder,
         test: () -> Unit
     ) {
-        assumeThatKotlinDslScriptsModelImportIsSupported(gradleVersion)
+        assertThatKotlinDslScriptsModelImportIsSupported(gradleVersion)
         test(gradleVersion, projectFixture) {
             codeInsightFixture.enableInspections(AvoidRepositoriesInBuildGradleInspection::class.java)
             test()
@@ -32,8 +33,8 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(DEPENDENCY_RESOLUTION_MANAGEMENT_SUPPORTED_VERSIONS)
     fun testRepositoriesHighlighted(gradleVersion: GradleVersion) {
-        assumeThatDependencyResolutionManagementIsSupported(gradleVersion)
         runTest(gradleVersion, KOTLIN_DSL_EMPTY_PROJECT) {
             testHighlighting(
                 """
@@ -47,8 +48,11 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(
+        KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS, "<6.8",
+        reason = "dependencyResolutionManagement was added in Gradle 6.8"
+    )
     fun testNoDependencyResolutionManagement(gradleVersion: GradleVersion) {
-        assumeThatGradleIsOlderThan(gradleVersion, "6.8") { "dependencyResolutionManagement was added in Gradle 6.8" }
         runTest(gradleVersion, KOTLIN_DSL_EMPTY_PROJECT) {
             testHighlighting("repositories { mavenCentral() }")
         }
@@ -56,6 +60,7 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testRepositoriesInBuildscriptHighlighted(gradleVersion: GradleVersion) {
         runTest(gradleVersion, KOTLIN_DSL_EMPTY_PROJECT) {
             testHighlighting(
@@ -72,8 +77,8 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(DEPENDENCY_RESOLUTION_MANAGEMENT_SUPPORTED_VERSIONS)
     fun testRepositoriesMoveToSettingsFile(gradleVersion: GradleVersion) {
-        assumeThatDependencyResolutionManagementIsSupported(gradleVersion)
         runTest(gradleVersion, KOTLIN_DSL_EMPTY_PROJECT) {
             testMyIntention(
                 """
@@ -104,6 +109,7 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testRepositoriesMoveFromBuildscriptToSettingsFile(gradleVersion: GradleVersion) {
         runTest(gradleVersion, KOTLIN_DSL_EMPTY_PROJECT) {
             testMyIntention(
@@ -139,8 +145,8 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(DEPENDENCY_RESOLUTION_MANAGEMENT_SUPPORTED_VERSIONS)
     fun testRepositoriesMoveToExistingDependencyResolutionManagement(gradleVersion: GradleVersion) {
-        assumeThatDependencyResolutionManagementIsSupported(gradleVersion)
         runTest(gradleVersion, KOTLIN_DSL_EMPTY_PROJECT) {
             testMyIntention(
                 """
@@ -177,6 +183,7 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testRepositoriesMoveToExistingPluginManagement(gradleVersion: GradleVersion) {
         runTest(gradleVersion, KOTLIN_DSL_EMPTY_PROJECT) {
             testMyIntention(
@@ -217,8 +224,8 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(DEPENDENCY_RESOLUTION_MANAGEMENT_SUPPORTED_VERSIONS)
     fun testRepositoriesMergeToExistingDependencyResolutionManagement(gradleVersion: GradleVersion) {
-        assumeThatDependencyResolutionManagementIsSupported(gradleVersion)
         runTest(gradleVersion, KOTLIN_DSL_EMPTY_PROJECT) {
             testMyIntention(
                 """
@@ -253,8 +260,8 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(DEPENDENCY_RESOLUTION_MANAGEMENT_SUPPORTED_VERSIONS)
     fun testRepositoriesMergeToExistingDependencyResolutionManagementOverlap(gradleVersion: GradleVersion) {
-        assumeThatDependencyResolutionManagementIsSupported(gradleVersion)
         runTest(gradleVersion, KOTLIN_DSL_EMPTY_PROJECT) {
             testMyIntention(
                 """
@@ -291,6 +298,7 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testRepositoriesMergeToExistingPluginManagement(gradleVersion: GradleVersion) {
         runTest(gradleVersion, KOTLIN_DSL_EMPTY_PROJECT) {
             testMyIntention(
@@ -329,8 +337,8 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(DEPENDENCY_RESOLUTION_MANAGEMENT_SUPPORTED_VERSIONS)
     fun testRepositoriesMergeToExistingEmptyDependencyResolutionManagement(gradleVersion: GradleVersion) {
-        assumeThatDependencyResolutionManagementIsSupported(gradleVersion)
         runTest(gradleVersion, KOTLIN_DSL_EMPTY_PROJECT) {
             testMyIntention(
                 """
@@ -358,8 +366,8 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(DEPENDENCY_RESOLUTION_MANAGEMENT_SUPPORTED_VERSIONS)
     fun testRepositoriesMergeToExistingDependencyResolutionManagementEmptyRepositories(gradleVersion: GradleVersion) {
-        assumeThatDependencyResolutionManagementIsSupported(gradleVersion)
         runTest(gradleVersion, KOTLIN_DSL_EMPTY_PROJECT) {
             testMyIntention(
                 """
@@ -389,8 +397,8 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(DEPENDENCY_RESOLUTION_MANAGEMENT_SUPPORTED_VERSIONS)
     fun testRepositoriesMergeWithComments(gradleVersion: GradleVersion) {
-        assumeThatDependencyResolutionManagementIsSupported(gradleVersion)
         runTest(gradleVersion, KOTLIN_DSL_EMPTY_PROJECT) {
             testMyIntention(
                 """
@@ -433,8 +441,8 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(DEPENDENCY_RESOLUTION_MANAGEMENT_SUPPORTED_VERSIONS)
     fun testRepositoriesMergePrefixMatch(gradleVersion: GradleVersion) {
-        assumeThatDependencyResolutionManagementIsSupported(gradleVersion)
         runTest(gradleVersion, KOTLIN_DSL_EMPTY_PROJECT) {
             testMyIntention(
                 """
@@ -474,8 +482,8 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(DEPENDENCY_RESOLUTION_MANAGEMENT_SUPPORTED_VERSIONS)
     fun testRepositoriesMergeTotalMatch(gradleVersion: GradleVersion) {
-        assumeThatDependencyResolutionManagementIsSupported(gradleVersion)
         runTest(gradleVersion, KOTLIN_DSL_EMPTY_PROJECT) {
             testMyIntention(
                 """
@@ -513,6 +521,7 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testRepositoriesMoveToExistingEmptyPluginManagement(gradleVersion: GradleVersion) {
         runTest(gradleVersion, KOTLIN_DSL_EMPTY_PROJECT) {
             testMyIntention(
@@ -546,6 +555,7 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testRepositoriesMoveToExistingPluginManagementEmptyRepositories(gradleVersion: GradleVersion) {
         runTest(gradleVersion, KOTLIN_DSL_EMPTY_PROJECT) {
             testMyIntention(
@@ -581,8 +591,8 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(DEPENDENCY_RESOLUTION_MANAGEMENT_SUPPORTED_VERSIONS)
     fun testRepositoriesWithMultipleStatements(gradleVersion: GradleVersion) {
-        assumeThatDependencyResolutionManagementIsSupported(gradleVersion)
         runTest(gradleVersion, KOTLIN_DSL_EMPTY_PROJECT) {
             testHighlighting(
                 """
@@ -600,8 +610,8 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(DEPENDENCY_RESOLUTION_MANAGEMENT_SUPPORTED_VERSIONS)
     fun testMultipleRepositoriesWithComplexContent(gradleVersion: GradleVersion) {
-        assumeThatDependencyResolutionManagementIsSupported(gradleVersion)
         runTest(gradleVersion, KOTLIN_DSL_EMPTY_PROJECT) {
             testMyIntention(
                 """
@@ -636,6 +646,7 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testNestedRepositoriesNotHighlighted(gradleVersion: GradleVersion) {
         runTest(gradleVersion, EMPTY_PROJECT_WITH_PUBLISHING_PLUGIN) {
             testHighlighting(
@@ -654,8 +665,8 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(DEPENDENCY_RESOLUTION_MANAGEMENT_SUPPORTED_VERSIONS)
     fun testMultipleRepositoriesBlocks(gradleVersion: GradleVersion) {
-        assumeThatDependencyResolutionManagementIsSupported(gradleVersion)
         runTest(gradleVersion, KOTLIN_DSL_EMPTY_PROJECT) {
             testHighlighting(
                 """
@@ -677,8 +688,8 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(DEPENDENCY_RESOLUTION_MANAGEMENT_SUPPORTED_VERSIONS)
     fun testDependencyResolutionManagementAfterPluginManagement(gradleVersion: GradleVersion) {
-        assumeThatDependencyResolutionManagementIsSupported(gradleVersion)
         runTest(gradleVersion, KOTLIN_DSL_EMPTY_PROJECT) {
             testMyIntention(
                 """
@@ -719,8 +730,8 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(DEPENDENCY_RESOLUTION_MANAGEMENT_SUPPORTED_VERSIONS)
     fun testDependencyResolutionManagementAfterPluginsBlock(gradleVersion: GradleVersion) {
-        assumeThatDependencyResolutionManagementIsSupported(gradleVersion)
         runTest(gradleVersion, KOTLIN_DSL_EMPTY_PROJECT) {
             testMyIntention(
                 """
@@ -761,8 +772,8 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(DEPENDENCY_RESOLUTION_MANAGEMENT_SUPPORTED_VERSIONS)
     fun testDependencyResolutionManagementAfterBothPluginManagementAndPlugins(gradleVersion: GradleVersion) {
-        assumeThatDependencyResolutionManagementIsSupported(gradleVersion)
         runTest(gradleVersion, KOTLIN_DSL_EMPTY_PROJECT) {
             testMyIntention(
                 """
@@ -827,6 +838,7 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testPluginManagementOrderingWithBuildscriptRepositories(gradleVersion: GradleVersion) {
         runTest(gradleVersion, KOTLIN_DSL_EMPTY_PROJECT) {
             testMyIntention(
@@ -874,8 +886,8 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(DEPENDENCY_RESOLUTION_MANAGEMENT_SUPPORTED_VERSIONS)
     fun testCorrectOrderingWithAllTopLevelBlocks(gradleVersion: GradleVersion) {
-        assumeThatDependencyResolutionManagementIsSupported(gradleVersion)
         runTest(gradleVersion, KOTLIN_DSL_EMPTY_PROJECT) {
             testMyIntention(
                 """
@@ -930,8 +942,8 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(DEPENDENCY_RESOLUTION_MANAGEMENT_SUPPORTED_VERSIONS)
     fun testEmptySettingsFile(gradleVersion: GradleVersion) {
-        assumeThatDependencyResolutionManagementIsSupported(gradleVersion)
         runTest(gradleVersion, KOTLIN_DSL_EMPTY_PROJECT) {
             testMyIntention(
                 """
@@ -958,8 +970,8 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(DEPENDENCY_RESOLUTION_MANAGEMENT_SUPPORTED_VERSIONS)
     fun testBuildCacheDoesNotAffectOrdering(gradleVersion: GradleVersion) {
-        assumeThatDependencyResolutionManagementIsSupported(gradleVersion)
         runTest(gradleVersion, KOTLIN_DSL_EMPTY_PROJECT) {
             testMyIntention(
                 """
@@ -1000,8 +1012,8 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(DEPENDENCY_RESOLUTION_MANAGEMENT_SUPPORTED_VERSIONS)
     fun testMoveRepositoriesWithoutSettingsFile(gradleVersion: GradleVersion) {
-        assumeThatDependencyResolutionManagementIsSupported(gradleVersion)
         runTest(gradleVersion, EMPTY_PROJECT_WITH_ONLY_BUILD_FILE) {
             testHighlighting(
                 """
@@ -1033,6 +1045,7 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testMoveRepositoriesInBuildscriptWithoutSettingsFile(gradleVersion: GradleVersion) {
         runTest(gradleVersion, EMPTY_PROJECT_WITH_ONLY_BUILD_FILE) {
             testHighlighting(
@@ -1071,8 +1084,8 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(DEPENDENCY_RESOLUTION_MANAGEMENT_SUPPORTED_VERSIONS)
     fun testNoQuickFixWithGroovySettingsFile(gradleVersion: GradleVersion) {
-        assumeThatDependencyResolutionManagementIsSupported(gradleVersion)
         runTest(gradleVersion, EMPTY_PROJECT_WITH_GROOVY_SETTINGS_FILE) {
             testHighlighting("<weak_warning>repositories</weak_warning> { mavenCentral() }")
             testNoIntentions(
@@ -1084,6 +1097,7 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testSubprojectCanFindSettingsFile(gradleVersion: GradleVersion) {
         runTest(gradleVersion, EMPTY_MULTI_MODULE_PROJECT) {
             testHighlighting(
@@ -1124,6 +1138,7 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testSubprojectOutsideRootCanFindSettingsFile(gradleVersion: GradleVersion) {
         runTest(gradleVersion, EMPTY_MULTI_MODULE_PROJECT) {
             testHighlighting(
@@ -1166,6 +1181,7 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testIncludedBuildCanFindSettingsFile(gradleVersion: GradleVersion) {
         runTest(gradleVersion, COMPOSITE_PROJECT_WITH_SETTINGS_FILES) {
             testHighlighting(
@@ -1211,6 +1227,7 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testSubprojectInIncludedBuildCanFindSettingsFile(gradleVersion: GradleVersion) {
         runTest(gradleVersion, COMPOSITE_PROJECT_WITH_SETTINGS_FILES) {
             testHighlighting(
@@ -1258,6 +1275,7 @@ class KotlinAvoidRepositoriesInBuildGradleInspectionTest : K2GradleCodeInsightTe
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testIncludedBuildCreatesSettingsFileInItsOwnRoot(gradleVersion: GradleVersion) {
         runTest(gradleVersion, COMPOSITE_PROJECT_WITHOUT_INCLUDED_SETTINGS_FILE) {
             testHighlighting(

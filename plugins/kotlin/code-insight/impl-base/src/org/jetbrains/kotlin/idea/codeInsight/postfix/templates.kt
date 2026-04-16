@@ -5,7 +5,6 @@ import com.intellij.codeInsight.template.postfix.templates.PostfixTemplateExpres
 import com.intellij.codeInsight.template.postfix.templates.PostfixTemplateProvider
 import com.intellij.codeInsight.template.postfix.templates.PostfixTemplatePsiInfo
 import com.intellij.codeInsight.template.postfix.templates.SurroundPostfixTemplateBase
-import com.intellij.ide.plugins.isKotlinPluginK1Mode
 import com.intellij.openapi.diagnostic.ControlFlowException
 import com.intellij.psi.PsiElement
 import org.jetbrains.annotations.ApiStatus
@@ -85,9 +84,6 @@ fun convertToTypePredicate(
                 }
             } catch (e: Exception) {
                 if (e is ControlFlowException) throw e
-
-                // K1 Repl fails due to inconsistency in module info specification
-                if (isKotlinPluginK1Mode() && expression.containingKtFile.isScript()) return@f false
 
                 throw e
             }

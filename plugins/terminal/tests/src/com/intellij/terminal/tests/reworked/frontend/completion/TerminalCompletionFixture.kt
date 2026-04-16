@@ -113,11 +113,11 @@ internal class TerminalCompletionFixture(
     // Otherwise, the next key typed event might be ignored.
     val fakeKeyPressEvent = KeyEvent(view.outputEditor.component, KeyEvent.KEY_PRESSED, 0, 0,
                                      0, KeyEvent.CHAR_UNDEFINED, KeyEvent.KEY_LOCATION_STANDARD)
-    view.outputEditorEventsHandler.keyPressed(TimedKeyEvent(fakeKeyPressEvent, TimeSource.Monotonic.markNow()))
+    view.outputEditorKeyEventsHandler.keyPressed(TimedKeyEvent(fakeKeyPressEvent, TimeSource.Monotonic.markNow()))
 
     val keyTypedEvent = KeyEvent(view.outputEditor.component, KeyEvent.KEY_TYPED, 0, 0,
                                  VK_UNDEFINED, keyChar, KeyEvent.KEY_LOCATION_UNKNOWN)
-    view.outputEditorEventsHandler.keyTyped(TimedKeyEvent(keyTypedEvent, TimeSource.Monotonic.markNow()))
+    view.outputEditorKeyEventsHandler.keyTyped(TimedKeyEvent(keyTypedEvent, TimeSource.Monotonic.markNow()))
   }
 
   suspend fun callCompletionPopup(waitForPopup: Boolean = true) {
@@ -289,7 +289,7 @@ internal class TerminalCompletionFixture(
       KeyEvent.CHAR_UNDEFINED,
       KeyEvent.KEY_LOCATION_STANDARD
     )
-    view.outputEditorEventsHandler.keyPressed(TimedKeyEvent(keyPressEvent, TimeSource.Monotonic.markNow()))
+    view.outputEditorKeyEventsHandler.keyPressed(TimedKeyEvent(keyPressEvent, TimeSource.Monotonic.markNow()))
   }
 
   private fun runActionById(actionId: String) {

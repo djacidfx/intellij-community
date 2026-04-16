@@ -24,7 +24,6 @@ import com.intellij.openapi.util.NlsSafe;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.patterns.ElementPattern;
 import com.intellij.patterns.PsiElementPattern;
-import com.intellij.patterns.PsiJavaElementPattern;
 import com.intellij.pom.java.JavaFeature;
 import com.intellij.psi.CommonClassNames;
 import com.intellij.psi.JavaCodeFragment;
@@ -149,11 +148,9 @@ import static com.intellij.patterns.PsiJavaPatterns.and;
 import static com.intellij.patterns.PsiJavaPatterns.not;
 import static com.intellij.patterns.PsiJavaPatterns.or;
 import static com.intellij.patterns.PsiJavaPatterns.psiAnnotation;
-import static com.intellij.patterns.PsiJavaPatterns.psiClass;
 import static com.intellij.patterns.PsiJavaPatterns.psiElement;
 import static com.intellij.patterns.PsiJavaPatterns.psiMethod;
 import static com.intellij.patterns.PsiJavaPatterns.psiNameValuePair;
-import static com.intellij.patterns.PsiJavaPatterns.psiReferenceExpression;
 import static com.intellij.patterns.PsiJavaPatterns.string;
 import static com.intellij.psi.SyntaxTraverser.psiApi;
 
@@ -163,11 +160,6 @@ public class JavaKeywordCompletion {
   static final ElementPattern<PsiElement> VARIABLE_AFTER_FINAL =
     psiElement().afterLeaf(JavaKeywords.FINAL).inside(PsiDeclarationStatement.class);
 
-  private static final ElementPattern<PsiElement> INSIDE_PARAMETER_LIST =
-    psiElement().withParent(
-      psiElement(PsiJavaCodeReferenceElement.class).insideStarting(
-        psiElement().withTreeParent(
-          psiElement(PsiParameterList.class).andNot(psiElement(PsiAnnotationParameterList.class)))));
   private static final ElementPattern<PsiElement> INSIDE_RECORD_HEADER =
     psiElement().withParent(
       psiElement(PsiJavaCodeReferenceElement.class).insideStarting(
@@ -184,9 +176,6 @@ public class JavaKeywordCompletion {
     context.commitDocument();
     CodeStyleManager.getInstance(context.getProject()).adjustLineIndent(context.getFile(), context.getStartOffset());
   };
-  public static final PsiJavaElementPattern.Capture<PsiElement> AFTER_PRIMITIVE_OR_ARRAY = psiElement().withParent(
-    psiReferenceExpression().withFirstChild(
-      psiElement(PsiClassObjectAccessExpression.class).withLastChild(not(psiElement().withText(JavaKeywords.CLASS)))));
 
   private static boolean isStatementCodeFragment(PsiFile file) {
     return file instanceof JavaCodeFragment &&
@@ -231,8 +220,6 @@ public class JavaKeywordCompletion {
         not(JavaMemberNameCompletionContributor.INSIDE_TYPE_PARAMS_PATTERN));
 
   static final PsiElementPattern<PsiElement, ?> START_FOR = psiElement().afterLeaf(psiElement().withText("(").afterLeaf("for"));
-  private static final ElementPattern<PsiElement> CLASS_REFERENCE =
-    psiElement().withParent(psiReferenceExpression().referencing(psiClass().andNot(psiElement(PsiTypeParameter.class))));
 
   private final CompletionParameters myParameters;
   private final JavaCompletionSession mySession;
@@ -278,19 +265,6 @@ public class JavaKeywordCompletion {
 
   List<LookupElement> getResults() {
     return myResults;
-  }
-
-  public static boolean isInsideParameterList(PsiElement position) {
-    PsiElement prev = PsiTreeUtil.prevVisibleLeaf(position);
-    PsiModifierList modifierList = PsiTreeUtil.getParentOfType(prev, PsiModifierList.class);
-    if (modifierList != null) {
-      if (PsiTreeUtil.isAncestor(modifierList, position, false)) {
-        return false;
-      }
-      PsiElement parent = modifierList.getParent();
-      return parent instanceof PsiParameterList || parent instanceof PsiParameter && parent.getParent() instanceof PsiParameterList;
-    }
-    return INSIDE_PARAMETER_LIST.accepts(position);
   }
 
   private static TailType getReturnTail(PsiElement position) {
@@ -851,7 +825,7 @@ public class JavaKeywordCompletion {
       }
     }
 
-    if ((isInsideParameterList(myPosition) || isAtCatchOrResourceVariableStart(myPosition)) &&
+    if ((JavaCompletionUtil.isInsideParameterList(myPosition) || isAtCatchOrResourceVariableStart(myPosition)) &&
         !psiElement().afterLeaf(JavaKeywords.FINAL).accepts(myPosition) &&
         !AFTER_DOT.accepts(myPosition)) {
       addKeyword(TailTypeDecorator.withTail(createKeyword(JavaKeywords.FINAL), TailTypes.humbleSpaceBeforeWordType()));
@@ -976,7 +950,7 @@ public class JavaKeywordCompletion {
   }
 
   private void addInstanceof() {
-    if (isInstanceofPlace(myPosition)) {
+    if (JavaCompletionUtil.isInstanceofPlace(myPosition)) {
       addKeyword(LookupElementDecorator.withInsertHandler(
         createKeyword(JavaKeywords.INSTANCEOF),
         (context, item) -> {
@@ -1150,7 +1124,7 @@ public class JavaKeywordCompletion {
   }
 
   private void addClassLiteral() {
-    if (isAfterTypeDot(myPosition)) {
+    if (JavaCompletionUtil.isAfterTypeDot(myPosition)) {
       addKeyword(JavaKeywords.CLASS);
     }
   }
@@ -1233,28 +1207,6 @@ public class JavaKeywordCompletion {
     return true;
   }
 
-  public static boolean isInstanceofPlace(PsiElement position) {
-    PsiElement prev = PsiTreeUtil.prevVisibleLeaf(position);
-    if (prev == null) return false;
-
-    PsiElement expr = PsiTreeUtil.getParentOfType(prev, PsiExpression.class);
-    if (expr != null && expr.getTextRange().getEndOffset() == prev.getTextRange().getEndOffset() &&
-        PsiTreeUtil.getParentOfType(expr, PsiAnnotation.class) == null) {
-      return true;
-    }
-
-    if (position instanceof PsiIdentifier && position.getParent() instanceof PsiLocalVariable) {
-      PsiType type = ((PsiLocalVariable)position.getParent()).getType();
-      if (type instanceof PsiClassType && ((PsiClassType)type).resolve() == null) {
-        PsiElement grandParent = position.getParent().getParent();
-        return !(grandParent instanceof PsiDeclarationStatement) || !(grandParent.getParent() instanceof PsiForStatement) ||
-               ((PsiForStatement)grandParent.getParent()).getInitialization() != grandParent;
-      }
-    }
-
-    return false;
-  }
-
   public static boolean isSuitableForClass(PsiElement position) {
     if (psiElement().afterLeaf("@").accepts(position) ||
         PsiTreeUtil.getNonStrictParentOfType(position, PsiLiteralExpression.class, PsiComment.class, PsiExpressionCodeFragment.class) !=
@@ -1278,19 +1230,6 @@ public class JavaKeywordCompletion {
     }
 
     return isEndOfBlock(position);
-  }
-
-  public static boolean isAfterPrimitiveOrArrayType(PsiElement element) {
-    return AFTER_PRIMITIVE_OR_ARRAY.accepts(element);
-  }
-
-  public static boolean isAfterTypeDot(PsiElement position) {
-    if (isInsideParameterList(position) || position.getContainingFile() instanceof PsiJavaCodeReferenceCodeFragment) {
-      return false;
-    }
-
-    return psiElement().afterLeaf(psiElement().withText(".").afterLeaf(CLASS_REFERENCE)).accepts(position) ||
-           isAfterPrimitiveOrArrayType(position);
   }
 
   static void addPrimitiveTypes(Consumer<? super LookupElement> result, PsiElement position, JavaCompletionSession session) {
@@ -1455,7 +1394,7 @@ public class JavaKeywordCompletion {
       return true;
     }
     return START_FOR.accepts(position) ||
-           isInsideParameterList(position) ||
+           JavaCompletionUtil.isInsideParameterList(position) ||
            INSIDE_RECORD_HEADER.accepts(position) ||
            VARIABLE_AFTER_FINAL.accepts(position) ||
            isStatementPosition(position);

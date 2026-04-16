@@ -20,6 +20,7 @@ class MinimapModel(private val editor: Editor): Disposable {
   private var cachedLineProjection: MinimapLineProjection = MinimapLineProjection.identity(0)
   private var cachedLineProjectionDocumentStamp: Long = Long.MIN_VALUE
   private var cachedLineProjectionLineCount: Int = -1
+  private var cachedLineProjectionProviderVersion: Long = Long.MIN_VALUE
   private var lineProjectionVersion: Long = 0
   private var cachedLineProjectionVersion: Long = Long.MIN_VALUE
 
@@ -34,9 +35,11 @@ class MinimapModel(private val editor: Editor): Disposable {
     val document = editor.document
     val lineCount = document.lineCount
     val documentStamp = document.modificationStamp
+    val providerVersion = MinimapLineSpanProvider.projectionVersion(editor, document, lineCount)
     val projectionVersion = lineProjectionVersion
     if (cachedLineProjectionDocumentStamp == documentStamp &&
         cachedLineProjectionLineCount == lineCount &&
+        cachedLineProjectionProviderVersion == providerVersion &&
         cachedLineProjectionVersion == projectionVersion) {
       return cachedLineProjection
     }
@@ -45,6 +48,7 @@ class MinimapModel(private val editor: Editor): Disposable {
     cachedLineProjection = projection
     cachedLineProjectionDocumentStamp = documentStamp
     cachedLineProjectionLineCount = lineCount
+    cachedLineProjectionProviderVersion = providerVersion
     cachedLineProjectionVersion = projectionVersion
     return projection
   }
@@ -56,26 +60,29 @@ class MinimapModel(private val editor: Editor): Disposable {
   private fun buildLineProjection(document: Document, lineCount: Int): MinimapLineProjection {
     if (lineCount <= 0) return MinimapLineProjection.identity(0)
     val textLength = document.textLength
-    if (textLength <= 0) return MinimapLineProjection.identity(lineCount)
 
     val foldedRegions = ArrayList<Pair<Int, Int>>()
-    val topLevelRegions = (editor.foldingModel as? FoldingModelEx)?.fetchTopLevel() ?: editor.foldingModel.allFoldRegions
-    for (region in topLevelRegions) {
-      if (!region.isValid || region.isExpanded) continue
+    if (textLength > 0) {
+      val topLevelRegions = (editor.foldingModel as? FoldingModelEx)?.fetchTopLevel() ?: editor.foldingModel.allFoldRegions
+      for (region in topLevelRegions) {
+        if (!region.isValid || region.isExpanded) continue
 
-      val startOffset = region.startOffset.coerceIn(0, textLength)
-      val endOffsetExclusive = region.endOffset.coerceIn(startOffset + 1, textLength)
-      if (endOffsetExclusive <= startOffset) continue
+        val startOffset = region.startOffset.coerceIn(0, textLength)
+        val endOffsetExclusive = region.endOffset.coerceIn(startOffset + 1, textLength)
+        if (endOffsetExclusive <= startOffset) continue
 
-      val startLine = document.getLineNumber(startOffset)
-      val endLine = document.getLineNumber((endOffsetExclusive - 1).coerceAtLeast(startOffset))
-      if (endLine <= startLine) continue
-      foldedRegions += startLine to endLine
+        val startLine = document.getLineNumber(startOffset)
+        val endLine = document.getLineNumber((endOffsetExclusive - 1).coerceAtLeast(startOffset))
+        if (endLine <= startLine) continue
+        if (!MinimapLineSpanProvider.shouldUseCollapsedFoldRegion(editor, document, lineCount, region, startLine, endLine)) continue
+        foldedRegions += startLine to endLine
+      }
     }
 
-    if (foldedRegions.isEmpty()) return MinimapLineProjection.identity(lineCount)
+    val lineSpanOverrides = MinimapLineSpanProvider.collect(editor, document, lineCount)
+    if (foldedRegions.isEmpty() && lineSpanOverrides.isEmpty()) return MinimapLineProjection.identity(lineCount)
     foldedRegions.sortBy { it.first }
-    return MinimapLineProjection.create(lineCount, foldedRegions)
+    return MinimapLineProjection.create(lineCount, foldedRegions, lineSpanOverrides)
   }
 
   fun updateStructureMarkers() {

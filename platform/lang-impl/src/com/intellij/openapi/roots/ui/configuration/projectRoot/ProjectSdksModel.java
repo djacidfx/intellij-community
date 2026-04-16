@@ -144,7 +144,7 @@ public class ProjectSdksModel implements SdkModel {
     if (sdkHomePath != null) {
       try {
         Path path = Path.of(sdkHomePath);
-        if (eelMachine.ownsPath(path)) {
+        if (EelProviderUtil.ownsPath(eelMachine, path)) {
           return true;
         }
       }

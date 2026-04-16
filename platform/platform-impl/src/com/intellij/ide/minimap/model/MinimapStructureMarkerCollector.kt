@@ -91,6 +91,7 @@ internal class MinimapStructureMarkerCollector(
 
   private fun resolveStructureMarkerSource(element: StructureViewTreeElement): MinimapStructureMarkerSource {
     val value = element.value
+
     return when (value) {
       is PsiNameIdentifierOwner -> {
         val nameIdentifier = value.nameIdentifier

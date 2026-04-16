@@ -175,10 +175,10 @@ class JavaJUnitMalformedDeclarationInspectionTest {
     }
 
     fun `test malformed callback extension dual mode weak warning`() {
-      myFixture.configureByText("Foo.java", """
+      myFixture.configureByText("A.java", """
       class A {
         @org.junit.jupiter.api.extension.RegisterExtension
-        MyExt <weak_warning descr="MyExt implements both class-level and instance-level callbacks; 'beforeAll' will not be called for a non-static field">ext</weak_warning> = new MyExt();
+        MyExt <info descr="MyExt implements both class-level and instance-level callbacks; 'beforeAll' will not be called for a non-static field">ext</info> = new MyExt();
 
         static class MyExt implements org.junit.jupiter.api.extension.BeforeAllCallback,
                                 org.junit.jupiter.api.extension.BeforeEachCallback {
@@ -187,11 +187,11 @@ class JavaJUnitMalformedDeclarationInspectionTest {
         }
       }
     """.trimIndent())
-      myFixture.checkHighlighting(true, false, true)
+      myFixture.checkHighlighting(true, true, true)
     }
 
     fun `test malformed callback extension dual mode no highlighting when per class`() {
-      myFixture.testHighlighting(JvmLanguage.JAVA, """
+      myFixture.configureByText("A.java", """
       @org.junit.jupiter.api.TestInstance(org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS)
       class A {
         @org.junit.jupiter.api.extension.RegisterExtension
@@ -204,10 +204,11 @@ class JavaJUnitMalformedDeclarationInspectionTest {
         }
       }
     """.trimIndent())
+      myFixture.checkHighlighting(true, true, true)
     }
 
     fun `test malformed callback extension before each static no highlighting`() {
-      myFixture.testHighlighting(JvmLanguage.JAVA, """
+      myFixture.configureByText("A.java", """
       class A {
         @org.junit.jupiter.api.extension.RegisterExtension
         static MyExt ext = new MyExt();
@@ -217,6 +218,7 @@ class JavaJUnitMalformedDeclarationInspectionTest {
         }
       }
     """.trimIndent())
+      myFixture.checkHighlighting(true, true, true)
     }
 
     /* Malformed nested class */

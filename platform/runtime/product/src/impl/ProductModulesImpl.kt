@@ -10,6 +10,7 @@ class ProductModulesImpl(
   private val debugName: @NonNls String,
   override val mainModuleGroup: MainRuntimeModuleGroup,
   override val bundledPluginModuleGroups: List<PluginModuleGroup>,
+  override val bundledPluginDescriptorModules: List<RuntimeModuleId>,
   override val notLoadedBundledPluginModules: Map<RuntimeModuleId, List<RuntimeModuleId>>,
 ) : ProductModules {
   override fun toString(): String {

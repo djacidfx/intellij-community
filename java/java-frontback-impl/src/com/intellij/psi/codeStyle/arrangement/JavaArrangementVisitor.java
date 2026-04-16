@@ -17,6 +17,7 @@ import com.intellij.psi.PsiExpression;
 import com.intellij.psi.PsiExpressionList;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiJavaToken;
+import com.intellij.psi.PsiLambdaExpression;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.psi.PsiMethodReferenceExpression;
@@ -323,6 +324,12 @@ public class JavaArrangementVisitor extends JavaRecursiveElementVisitor {
     fieldInitializer.accept(new JavaRecursiveElementVisitor() {
       int myCurrentMethodLookupDepth;
       private static final int MAX_METHOD_LOOKUP_DEPTH = 3;
+
+      @Override
+      public void visitClass(@NotNull PsiClass aClass) {}
+
+      @Override
+      public void visitLambdaExpression(@NotNull PsiLambdaExpression expression) {}
 
       @Override
       public void visitReferenceExpression(@NotNull PsiReferenceExpression expression) {

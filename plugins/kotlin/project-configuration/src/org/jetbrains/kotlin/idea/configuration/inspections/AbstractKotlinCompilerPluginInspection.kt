@@ -32,7 +32,7 @@ import org.jetbrains.kotlin.psi.KtVisitorVoid
 
 abstract class AbstractKotlinCompilerPluginInspection(protected val kotlinCompilerPluginId: String): LocalInspectionTool() {
     protected fun compilerPluginProjectConfigurators(module: Module): List<KotlinCompilerPluginProjectConfigurator> =
-        compilerPluginProjectConfigurators(kotlinCompilerPluginId,module)
+        compilerPluginProjectConfigurators(kotlinCompilerPluginId, module)
 
     final override fun isAvailableForFile(file: PsiFile): Boolean =
         isAvailableForFile(file) { file, module -> isAvailableForFileInModule(file, module) }

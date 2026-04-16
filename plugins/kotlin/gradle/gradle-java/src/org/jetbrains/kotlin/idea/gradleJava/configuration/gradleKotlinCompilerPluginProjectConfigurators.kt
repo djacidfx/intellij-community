@@ -117,6 +117,13 @@ class SpringGradleKotlinCompilerPluginProjectConfigurator : AbstractGradleKotlin
         if (forKotlinDsl) "kotlin(\"plugin.spring\")" else "id \"org.jetbrains.kotlin.plugin.spring\""
 }
 
+class LombokGradleKotlinCompilerPluginProjectConfigurator : AbstractGradleKotlinCompilerPluginProjectConfigurator() {
+    override val kotlinCompilerPluginId: String = "lombok"
+
+    override fun getKotlinPluginExpression(forKotlinDsl: Boolean): String =
+        if (forKotlinDsl) "kotlin(\"plugin.lombok\")" else "id \"org.jetbrains.kotlin.plugin.lombok\""
+}
+
 class JpaGradleKotlinCompilerPluginProjectConfigurator : AbstractGradleKotlinCompilerPluginProjectConfigurator() {
     override val kotlinCompilerPluginId: String = "jpa"
 

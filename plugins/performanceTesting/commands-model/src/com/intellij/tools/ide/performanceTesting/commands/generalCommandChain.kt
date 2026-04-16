@@ -921,8 +921,9 @@ fun <T : CommandChain> T.selectAll(): T = apply {
   executeEditorAction("\$SelectAll")
 }
 
-fun <T : CommandChain> T.checkoutBranch(branch: String, newBranchName: String = branch): T = apply {
-  addCommand("${CMD_PREFIX}gitCheckout $branch $newBranchName")
+fun <T : CommandChain> T.checkoutBranch(branch: String, newBranchName: String = branch, alwaysSmartCheckout: Boolean = false): T = apply {
+  val alwaysSmart = if (alwaysSmartCheckout) " --alwaysSmartCheckout " else ""
+  addCommand("${CMD_PREFIX}gitCheckout $branch $newBranchName $alwaysSmart")
 }
 
 fun <T : CommandChain> T.showFileHistory(): T = apply {

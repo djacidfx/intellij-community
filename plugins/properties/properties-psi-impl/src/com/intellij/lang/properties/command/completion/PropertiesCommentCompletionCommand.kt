@@ -16,7 +16,7 @@ import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.parentOfType
 
-class PropertiesCommentPropertyCommandProvider :
+class PropertiesCommentCommandProvider :
   ActionCommandProvider(actionId = "CommentByLineComment",
                         synonyms = listOf("Comment property", "Toggle comment"),
                         presentableName = PropertiesBundle.message("command.completion.comment.property.text"),
@@ -25,7 +25,7 @@ class PropertiesCommentPropertyCommandProvider :
                         previewText = ActionsBundle.message("action.CommentByLineComment.description")) {
 
   override fun isApplicable(offset: Int, psiFile: PsiFile, editor: Editor?): Boolean {
-    if (editor == null || offset - 1 < 0) return false
+    if (editor == null || offset < 1) return false
     val commenter = LanguageCommenters.INSTANCE.forLanguage(psiFile.language) ?: return false
     if (commenter.lineCommentPrefix == null) return false
     return isAtEndOfProperty(offset, psiFile)

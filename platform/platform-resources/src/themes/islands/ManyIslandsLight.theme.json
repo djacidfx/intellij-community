@@ -607,6 +607,36 @@
       "EvaluateExpression.background": "tool-window-bg"
     },
 
+    "Profiler": {
+      "ChartSlider": {
+        "foreground": "Gray1",
+        "lineColor": "Gray8"
+      },
+      "CpuChart": {
+        "background": "Green9",
+        "borderColor": "Green5",
+        "inactiveBackground": "#C5E5CC66",
+        "inactiveBorderColor": "Green8",
+        "pointBackground": "Green5",
+        "pointBorderColor": "Gray13"
+      },
+      "MemoryChart": {
+        "background": "Blue10",
+        "borderColor": "Blue5",
+        "inactiveBackground": "#C2D6FC66",
+        "inactiveBorderColor": "Blue9",
+        "pointBackground": "Blue5",
+        "pointBorderColor": "Gray13"
+      },
+      "Timer": {
+        "foreground": "Gray1",
+        "disabledForeground": "Gray8"
+      },
+      "LiveChart": {
+        "horizontalAxisColor": "Gray9"
+      }
+    },
+
     "DragAndDrop": {
       "borderColor": "control-brand-border",
       "rowBackground": "#3573F026"

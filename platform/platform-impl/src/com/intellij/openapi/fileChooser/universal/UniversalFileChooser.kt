@@ -7,6 +7,7 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.actionSystem.ActionUpdateThread
+import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.ToggleAction
@@ -19,46 +20,53 @@ import com.intellij.openapi.fileChooser.FileSystemTree
 import com.intellij.openapi.fileChooser.FileTextField
 import com.intellij.openapi.fileChooser.PathChooserDialog
 import com.intellij.openapi.fileChooser.ex.FileSystemTreeImpl
-import com.intellij.openapi.ui.popup.JBPopupFactory
-import com.intellij.ui.SimpleListCellRenderer
-import com.intellij.ui.awt.RelativePoint
-import com.intellij.ui.components.breadcrumbs.Breadcrumbs
-import com.intellij.ui.components.breadcrumbs.Crumb
 import com.intellij.openapi.fileChooser.tree.FileTreeModel
 import com.intellij.openapi.observable.util.whenDisposed
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.getUserData
+import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.ui.putUserData
 import com.intellij.openapi.util.Key
+import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.newvfs.ManagingFS
+import com.intellij.openapi.vfs.newvfs.NewVirtualFile
+import com.intellij.openapi.vfs.newvfs.RefreshQueue
 import com.intellij.platform.eel.provider.asEelPath
 import com.intellij.platform.eel.provider.asNioPath
 import com.intellij.platform.eel.provider.toEelApi
 import com.intellij.platform.util.coroutines.childScope
 import com.intellij.ui.ColoredListCellRenderer
+import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.ScrollPaneFactory
-import com.intellij.ui.components.JBList
+import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.UIBundle
-import com.intellij.util.ui.JBUI
-import com.intellij.util.ui.UIUtil
+import com.intellij.ui.awt.RelativePoint
 import com.intellij.ui.components.JBLabel
+import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBTabbedPane
+import com.intellij.ui.components.breadcrumbs.Breadcrumbs
+import com.intellij.ui.components.breadcrumbs.Crumb
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.AlignY
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.tree.AsyncTreeModel
 import com.intellij.ui.treeStructure.Tree
 import com.intellij.util.Consumer
+import com.intellij.util.containers.toArray
+import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.UIUtil
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.intellij.openapi.util.NlsSafe
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nls
 import java.awt.BorderLayout
@@ -70,6 +78,7 @@ import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+import java.nio.file.Files
 import java.nio.file.Path
 import java.util.function.Predicate
 import javax.swing.Icon
@@ -110,7 +119,12 @@ object UniversalFileChooser {
     override fun getDimensionServiceKey(): String = "UniversalFileChooserDialog"
 
     override fun choose(project: Project?, vararg toSelect: VirtualFile?): Array<out VirtualFile?> {
-      this.showAndGet()
+      if (!toSelect.isEmpty()) {
+        toSelect.first()?.let{ mainPanel.preselectFile(it) }
+      }
+      if (this.showAndGet()) {
+        return mainPanel.getSelectedFiles().toArray(VirtualFile.EMPTY_ARRAY)
+      }
       return emptyArray()
     }
 
@@ -132,16 +146,20 @@ object UniversalFileChooser {
   class Panel(
     disposable: Disposable,
     descriptor: FileChooserDescriptor,
-    project: Project,
+    private val project: Project,
     okAction: Runnable,
   ) : JPanel() {
 
     companion object {
       private val FILE_VIEW_KEY: Key<FileView?> = Key.create<FileView>("universalFileChooser.fileView")
+      private const val LOCATIONS_PROPORTION_KEY = "universalFileChooser.locationsProportion"
+      private const val LOCATIONS_DEFAULT_PROPORTION = 0.2f
     }
 
     private val tabbedPane: JBTabbedPane
     private val fileViews: MutableList<FileView> = mutableListOf()
+    @Suppress("OPT_IN_USAGE")
+    private val scope = GlobalScope.childScope("UniversalFileChooser")
 
     init {
       layout = BorderLayout()
@@ -149,14 +167,21 @@ object UniversalFileChooser {
       preferredSize = Dimension(screenSize.width / 2, screenSize.height / 2)
       tabbedPane = JBTabbedPane()
       for (contributor in UniversalFileChooserContributor.EP_NAME.extensionList) {
-        val fileView = FileView(contributor, descriptor, disposable, project, okAction, ::navigateToFile)
+        val fileView = FileView(contributor, descriptor, disposable, project, okAction, scope)
         fileViews.add(fileView)
         tabbedPane.addTab(contributor.tabTitle, fileView.topComponent)
       }
 
       preselectProjectTab(project)
 
-      add(tabbedPane, BorderLayout.CENTER)
+      val splitter = OnePixelSplitter(false, LOCATIONS_PROPORTION_KEY, LOCATIONS_DEFAULT_PROPORTION)
+      splitter.firstComponent = createLocationsPanel(project)
+      splitter.secondComponent = tabbedPane
+      add(splitter, BorderLayout.CENTER)
+
+      disposable.whenDisposed {
+        scope.cancel()
+      }
     }
 
     private fun preselectProjectTab(project: Project) {
@@ -195,14 +220,76 @@ object UniversalFileChooser {
       targetView.fileTree.select(file) { targetView.fileTree.expand(file, null) }
     }
 
+    private fun getActiveFileView(): FileView? {
+      val component = tabbedPane.selectedComponent as? JComponent ?: return null
+      return component.getUserData(FILE_VIEW_KEY)
+    }
+
+    private data class LocationData(
+      val icon: Icon,
+      val text: @Nls String,
+      val action: Runnable,
+    )
+
+    private fun createLocationsPanel(project: Project): JComponent {
+      val locations = buildList {
+        add(LocationData(
+          icon = AllIcons.Nodes.HomeFolder,
+          text = IdeBundle.message("universal.file.chooser.action.home.text"),
+          action = { getActiveFileView()?.navigateToHome() }
+        ))
+        if (!project.isDefault) {
+          add(LocationData(
+            icon = AllIcons.Nodes.Project,
+            text = IdeBundle.message("universal.file.chooser.location.project"),
+            action = { navigateToProject() }
+          ))
+        }
+      }
+      val locationList = JBList(locations)
+      locationList.selectionMode = ListSelectionModel.SINGLE_SELECTION
+      locationList.cellRenderer = object : ColoredListCellRenderer<LocationData>() {
+        override fun customizeCellRenderer(list: JList<out LocationData>, value: LocationData, index: Int, selected: Boolean, hasFocus: Boolean) {
+          icon = value.icon
+          append(value.text)
+        }
+      }
+      locationList.addMouseListener(object : MouseAdapter() {
+        override fun mouseClicked(e: MouseEvent) {
+          val index = locationList.locationToIndex(e.point)
+          if (index >= 0) {
+            locationList.model.getElementAt(index).action.run()
+            locationList.clearSelection()
+          }
+        }
+      })
+      return panel {
+        row {
+          cell(locationList).align(AlignX.FILL)
+        }
+      }
+    }
+
+    private fun navigateToProject() {
+      val basePath = project.basePath ?: return
+      scope.launch {
+        withContext(Dispatchers.IO) {
+          val vFile = VfsUtil.findFile(Path.of(basePath), true)
+          runOnEdt {
+            if (vFile != null) navigateToFile(vFile)
+          }
+        }
+      }
+    }
+
 
     class FileView(
       val contributor: UniversalFileChooserContributor,
       private val descriptor: FileChooserDescriptor,
       disposable: Disposable,
-      private val project: Project,
+      project: Project,
       okAction: Runnable,
-      private val navigateToFile: (VirtualFile) -> Unit,
+      val scope: CoroutineScope
     ) {
       val topComponent: JComponent
       val fileTree: FileSystemTreeImpl
@@ -220,9 +307,6 @@ object UniversalFileChooser {
         private const val BREADCRUMBS_CARD = "breadcrumbs"
         private const val PATH_CARD = "path"
       }
-
-      @Suppress("OPT_IN_USAGE")
-      private val scope = GlobalScope.childScope("FileWatcher")
 
       private val cardLayout = CardLayout()
       private val contentPanel = JPanel(cardLayout)
@@ -292,26 +376,12 @@ object UniversalFileChooser {
           }.resizableRow()
         }
 
-        val tabPanel = panel {
-          row {
-            cell(createLocationsPanel())
-              .align(AlignY.FILL)
-            cell(mainPanel)
-              .align(AlignX.FILL)
-              .align(AlignY.FILL)
-              .resizableColumn()
-          }.resizableRow()
-        }
-
         toolbar.targetComponent = mainPanel
-        topComponent = tabPanel
+        topComponent = mainPanel
         topComponent.putUserData(FILE_VIEW_KEY, this)
 
         loadRoots()
 
-        disposable.whenDisposed {
-          scope.cancel()
-        }
       }
 
       private fun loadRoots() {
@@ -330,19 +400,7 @@ object UniversalFileChooser {
         }
       }
 
-      private fun navigateToProject() {
-        val basePath = project.basePath ?: return
-        scope.launch {
-          withContext(Dispatchers.IO) {
-            val vFile = VfsUtil.findFile(Path.of(basePath), true)
-            runOnEdt {
-              if (vFile != null) navigateToFile(vFile)
-            }
-          }
-        }
-      }
-
-      private fun navigateToHome() {
+      fun navigateToHome() {
         topComponent.cursor = Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)
         scope.launch {
           withContext(Dispatchers.IO) {
@@ -354,53 +412,6 @@ object UniversalFileChooser {
             runOnEdt {
               fileTree.select(vFile) { fileTree.expand(vFile, null) }
               topComponent.cursor = Cursor.getDefaultCursor()
-            }
-          }
-        }
-      }
-
-      data class LocationData (
-        val icon: Icon,
-        val text: @Nls String,
-        val action: Runnable
-      )
-
-      private fun createLocationsPanel(): JComponent {
-        val locations = buildList {
-          add(LocationData(
-            icon = AllIcons.Nodes.HomeFolder,
-            text = IdeBundle.message("universal.file.chooser.action.home.text"),
-            action = { navigateToHome() }
-          ))
-          if (!project.isDefault) {
-            add(LocationData(
-              icon = AllIcons.Nodes.Project,
-              text = IdeBundle.message("universal.file.chooser.location.project"),
-              action = { navigateToProject() }
-            ))
-          }
-        }
-        val locationList = JBList(locations)
-        locationList.selectionMode = ListSelectionModel.SINGLE_SELECTION
-        locationList.cellRenderer = object : ColoredListCellRenderer<LocationData>() {
-          override fun customizeCellRenderer(list: JList<out LocationData>, value: LocationData, index: Int, selected: Boolean, hasFocus: Boolean) {
-            icon = value.icon
-            append(value.text)
-          }
-        }
-        locationList.addMouseListener(object : MouseAdapter() {
-          override fun mouseClicked(e: MouseEvent) {
-            val index = locationList.locationToIndex(e.point)
-            if (index >= 0) {
-              locationList.model.getElementAt(index).action.run()
-              locationList.clearSelection()
-            }
-          }
-        })
-        return panel {
-          group(IdeBundle.message("universal.file.chooser.locations.group"), indent = false) {
-            row {
-              cell(locationList).align(AlignX.FILL)
             }
           }
         }
@@ -421,8 +432,111 @@ object UniversalFileChooser {
           override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
         }
 
+        val createDirectoryAction = object : AnAction(
+          IdeBundle.message("universal.file.chooser.action.create.directory.text"),
+          IdeBundle.message("universal.file.chooser.action.create.directory.description"),
+          AllIcons.Actions.NewFolder
+        ) {
+          override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+
+          override fun update(e: AnActionEvent) {
+            val parent = fileTree.getNewFileParent()
+            val nioPath = parent?.let { runCatching { it.toNioPath() }.getOrNull() }
+            e.presentation.isEnabled = nioPath != null && Files.isDirectory(nioPath) && Files.isWritable(nioPath)
+          }
+
+          override fun actionPerformed(e: AnActionEvent) {
+            val parent = fileTree.getNewFileParent() ?: return
+            val newFolderName = Messages.showInputDialog(
+              UIBundle.message("create.new.folder.enter.new.folder.name.prompt.text"),
+              UIBundle.message("new.folder.dialog.title"),
+              Messages.getQuestionIcon(),
+              "",
+              null
+            ) ?: return
+            val failReason = fileTree.createNewFolder(parent, newFolderName)
+            if (failReason != null) {
+              Messages.showMessageDialog(
+                UIBundle.message("create.new.folder.could.not.create.folder.error.message", newFolderName),
+                UIBundle.message("error.dialog.title"),
+                Messages.getErrorIcon()
+              )
+            }
+          }
+        }
+
+        val deleteAction = object : AnAction(
+          IdeBundle.message("universal.file.chooser.action.delete.text"),
+          IdeBundle.message("universal.file.chooser.action.delete.description"),
+          AllIcons.General.Delete
+        ) {
+          override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+
+          override fun update(e: AnActionEvent) {
+            val selected = fileTree.selectedFile
+            val nioPath = selected?.let { runCatching { it.toNioPath() }.getOrNull() }
+            if (nioPath == null || roots.contains(nioPath) || !Files.isWritable(nioPath)) { e.presentation.isEnabled = false; return }
+            if (Files.isDirectory(nioPath)) {
+              val empty = runCatching { Files.list(nioPath).use { !it.findFirst().isPresent } }.getOrDefault(false)
+              if (!empty) { e.presentation.isEnabled = false; return }
+            }
+            e.presentation.isEnabled = true
+          }
+
+          override fun actionPerformed(e: AnActionEvent) {
+            val selected = fileTree.selectedFile ?: return
+            val parent = selected.parent ?: return
+            val nioPath = runCatching { selected.toNioPath() }.getOrNull() ?: return
+            if (Messages.showYesNoDialog(
+                IdeBundle.message("universal.file.chooser.action.delete.confirm", selected.name),
+                IdeBundle.message("universal.file.chooser.action.delete.text"),
+                Messages.getWarningIcon()
+              ) != Messages.YES) return
+
+            scope.launch {
+              withContext(Dispatchers.IO) {
+                val result = runCatching { Files.delete(nioPath) }
+                if (result.isSuccess) {
+                  (parent as? NewVirtualFile)?.markDirtyRecursively()
+                  RefreshQueue.getInstance().refresh(
+                    true, false, null,
+                    ModalityState.stateForComponent(fileTree.tree), parent
+                  )
+                }
+                else {
+                  runOnEdt {
+                    val message = result.exceptionOrNull()?.message ?: ""
+                    Messages.showErrorDialog(message, IdeBundle.message("universal.file.chooser.action.delete.text"))
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        val refreshAction = object : AnAction(
+          IdeBundle.message("universal.file.chooser.action.refresh.text"),
+          IdeBundle.message("universal.file.chooser.action.refresh.description"),
+          AllIcons.Actions.Refresh
+        ) {
+          override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+
+          override fun actionPerformed(e: AnActionEvent) {
+            val selected = fileTree.selectedFile
+            val directory = if (selected != null && selected.isDirectory) selected else selected?.parent
+            val filesToRefresh = if (directory != null) arrayOf(directory) else ManagingFS.getInstance().localRoots
+            for (file in filesToRefresh) {
+              (file as? NewVirtualFile)?.markDirtyRecursively()
+            }
+            RefreshQueue.getInstance().refresh(true, true, null, ModalityState.stateForComponent(fileTree.tree), *filesToRefresh)
+          }
+        }
+
         val actionGroup = DefaultActionGroup().apply {
           add(showHiddenAction)
+          add(createDirectoryAction)
+          add(deleteAction)
+          add(refreshAction)
         }
 
         return ActionManager.getInstance().createActionToolbar("UniversalFileChooserToolbar", actionGroup, true)

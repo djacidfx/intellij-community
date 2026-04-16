@@ -19,7 +19,7 @@ import kotlin.io.path.readText
 import kotlin.io.path.writeText
 
 /**
- * Abstract base class for VSCode fork MCP client tests (VSCode, Cursor, Windsurf).
+ * Abstract base class for JSON-backed MCP client tests (VSCode, Cursor, Windsurf, Claude Code).
  * Extracts common test setup and test methods to eliminate duplication across client implementations.
  *
  * Subclasses must implement:

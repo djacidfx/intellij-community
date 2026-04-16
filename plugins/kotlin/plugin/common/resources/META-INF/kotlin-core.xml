@@ -460,6 +460,10 @@
     <registryKey key="kotlin.copy.paste.allow.import.of.nested.declarations"
                  description="Allows the copy-paste processor to import nested declarations (enum values, static Java members, etc.) if they were imported in the original source."
                  defaultValue="true" />
+
+    <registryKey key="kotlin.shorten.context.sensitive.resolution.qualifiers.by.default"
+                 description="Allows reference shortener to remove explicit qualifiers on references which could be resolved by context-sensitive resolution (when the corresponding language feature is enabled)"
+                 defaultValue="true" />
   </extensions>
 
   <!-- Tips and Tricks -->

@@ -5,8 +5,10 @@ import org.gradle.util.GradleVersion
 import org.jetbrains.kotlin.gradle.K2GradleCodeInsightTestCase
 import org.jetbrains.plugins.gradle.codeInspection.GradleAvoidApplyPluginMethodInspection
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
-import org.jetbrains.plugins.gradle.testFramework.util.assumeThatKotlinDslScriptsModelImportIsSupported
+import org.jetbrains.plugins.gradle.testFramework.util.KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS
+import org.jetbrains.plugins.gradle.testFramework.util.assertThatKotlinDslScriptsModelImportIsSupported
 import org.jetbrains.plugins.gradle.tooling.VersionMatcherRule
+import org.jetbrains.plugins.gradle.tooling.annotation.TargetVersions
 import org.jetbrains.plugins.gradle.util.GradleConstants.GRADLE_CORE_PLUGIN_SHORT_NAMES
 import org.junit.jupiter.params.ParameterizedTest
 import org.junitpioneer.jupiter.cartesian.ArgumentSets
@@ -18,7 +20,7 @@ class KotlinAvoidApplyPluginMethodInspectionTest : K2GradleCodeInsightTestCase()
         gradleVersion: GradleVersion,
         test: () -> Unit
     ) {
-        assumeThatKotlinDslScriptsModelImportIsSupported(gradleVersion)
+        assertThatKotlinDslScriptsModelImportIsSupported(gradleVersion)
         testKotlinDslEmptyProject(gradleVersion) {
             codeInsightFixture.enableInspections(GradleAvoidApplyPluginMethodInspection::class.java)
             test()
@@ -27,6 +29,7 @@ class KotlinAvoidApplyPluginMethodInspectionTest : K2GradleCodeInsightTestCase()
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testSimple(gradleVersion: GradleVersion) {
         runTest(gradleVersion) {
             testHighlighting("<weak_warning>apply(plugin = \"org.hi.mark\")</weak_warning>")
@@ -35,6 +38,7 @@ class KotlinAvoidApplyPluginMethodInspectionTest : K2GradleCodeInsightTestCase()
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testNoQuickFix(gradleVersion: GradleVersion) {
         runTest(gradleVersion) {
             testNoIntentions("apply(plugin = \"org.hi.mark\")<caret>", "Use the ‘plugins’ block")
@@ -43,6 +47,7 @@ class KotlinAvoidApplyPluginMethodInspectionTest : K2GradleCodeInsightTestCase()
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testCorePlugin(gradleVersion: GradleVersion) {
         runTest(gradleVersion) {
             testHighlighting("<weak_warning>apply(plugin = \"java\")</weak_warning>")
@@ -64,6 +69,7 @@ class KotlinAvoidApplyPluginMethodInspectionTest : K2GradleCodeInsightTestCase()
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testCorePluginWithExistingPluginsBlock(gradleVersion: GradleVersion) {
         runTest(gradleVersion) {
             testHighlighting(
@@ -119,6 +125,7 @@ class KotlinAvoidApplyPluginMethodInspectionTest : K2GradleCodeInsightTestCase()
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testExternalPluginNoPluginsBlock(gradleVersion: GradleVersion) {
         runTest(gradleVersion) {
             testHighlighting(
@@ -162,6 +169,7 @@ class KotlinAvoidApplyPluginMethodInspectionTest : K2GradleCodeInsightTestCase()
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testExternalPluginPluginsBlockExists(gradleVersion: GradleVersion) {
         runTest(gradleVersion) {
             testHighlighting(
@@ -214,6 +222,7 @@ class KotlinAvoidApplyPluginMethodInspectionTest : K2GradleCodeInsightTestCase()
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testExternalPluginOnlyDependenciesBlockRemoved(gradleVersion: GradleVersion) {
         runTest(gradleVersion) {
             testHighlighting(
@@ -267,6 +276,7 @@ class KotlinAvoidApplyPluginMethodInspectionTest : K2GradleCodeInsightTestCase()
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testExternalPluginMultipleDependencies(gradleVersion: GradleVersion) {
         runTest(gradleVersion) {
             testHighlighting(
@@ -321,6 +331,7 @@ class KotlinAvoidApplyPluginMethodInspectionTest : K2GradleCodeInsightTestCase()
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testNoIntentionWithMultipleRepositories(gradleVersion: GradleVersion) {
         runTest(gradleVersion) {
             testHighlighting(
@@ -359,6 +370,7 @@ class KotlinAvoidApplyPluginMethodInspectionTest : K2GradleCodeInsightTestCase()
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testNoIntentionWithoutBuildscript(gradleVersion: GradleVersion) {
         runTest(gradleVersion) {
             testHighlighting("<weak_warning>apply(plugin = \"org.real.plugin\")</weak_warning>")
@@ -368,6 +380,7 @@ class KotlinAvoidApplyPluginMethodInspectionTest : K2GradleCodeInsightTestCase()
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testNoIntentionWithoutMatchingClasspath(gradleVersion: GradleVersion) {
         runTest(gradleVersion) {
             testHighlighting(
@@ -404,6 +417,7 @@ class KotlinAvoidApplyPluginMethodInspectionTest : K2GradleCodeInsightTestCase()
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testNoIntentionWithoutRepositoriesBlock(gradleVersion: GradleVersion) {
         runTest(gradleVersion) {
             testHighlighting(
@@ -432,6 +446,7 @@ class KotlinAvoidApplyPluginMethodInspectionTest : K2GradleCodeInsightTestCase()
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testNoIntentionWithWrongRepository(gradleVersion: GradleVersion) {
         runTest(gradleVersion) {
             testHighlighting(
@@ -468,6 +483,7 @@ class KotlinAvoidApplyPluginMethodInspectionTest : K2GradleCodeInsightTestCase()
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testValPluginName(gradleVersion: GradleVersion) {
         runTest(gradleVersion) {
             testHighlighting(
@@ -514,6 +530,7 @@ class KotlinAvoidApplyPluginMethodInspectionTest : K2GradleCodeInsightTestCase()
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testValClasspath(gradleVersion: GradleVersion) {
         runTest(gradleVersion) {
             testHighlighting(
@@ -566,6 +583,7 @@ class KotlinAvoidApplyPluginMethodInspectionTest : K2GradleCodeInsightTestCase()
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testValClasspathGroup(gradleVersion: GradleVersion) {
         runTest(gradleVersion) {
             testHighlighting(
@@ -618,6 +636,7 @@ class KotlinAvoidApplyPluginMethodInspectionTest : K2GradleCodeInsightTestCase()
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testValClasspathVersion(gradleVersion: GradleVersion) {
         runTest(gradleVersion) {
             testHighlighting(
@@ -671,6 +690,7 @@ class KotlinAvoidApplyPluginMethodInspectionTest : K2GradleCodeInsightTestCase()
 
     @ParameterizedTest
     @AllGradleVersionsSource("allprojects,subprojects")
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testApplyInsideBlock(gradleVersion: GradleVersion, blockName: String) {
         runTest(gradleVersion) {
             testHighlighting(
@@ -693,6 +713,7 @@ class KotlinAvoidApplyPluginMethodInspectionTest : K2GradleCodeInsightTestCase()
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testApplyNotOnTopLevel(gradleVersion: GradleVersion) {
         runTest(gradleVersion) {
             testHighlighting("if (true) <weak_warning>apply(plugin = \"java\")</weak_warning>")
@@ -702,6 +723,7 @@ class KotlinAvoidApplyPluginMethodInspectionTest : K2GradleCodeInsightTestCase()
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testCoreDuplicateIdInPlugins(gradleVersion: GradleVersion) {
         runTest(gradleVersion) {
             testHighlighting(
@@ -735,6 +757,7 @@ class KotlinAvoidApplyPluginMethodInspectionTest : K2GradleCodeInsightTestCase()
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testCoreDuplicateBareInPlugins(gradleVersion: GradleVersion) {
         runTest(gradleVersion) {
             testHighlighting(
@@ -768,6 +791,7 @@ class KotlinAvoidApplyPluginMethodInspectionTest : K2GradleCodeInsightTestCase()
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testCoreDuplicateBackTicksInPlugins(gradleVersion: GradleVersion) {
         runTest(gradleVersion) {
             testHighlighting(
@@ -801,6 +825,7 @@ class KotlinAvoidApplyPluginMethodInspectionTest : K2GradleCodeInsightTestCase()
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testDuplicateKotlinInPlugins(gradleVersion: GradleVersion) {
         runTest(gradleVersion) {
             testHighlighting(
@@ -852,6 +877,7 @@ class KotlinAvoidApplyPluginMethodInspectionTest : K2GradleCodeInsightTestCase()
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testCoreDuplicateIdInPluginsVals(gradleVersion: GradleVersion) {
         runTest(gradleVersion) {
             testHighlighting(
@@ -891,6 +917,7 @@ class KotlinAvoidApplyPluginMethodInspectionTest : K2GradleCodeInsightTestCase()
 
     @ParameterizedTest
     @AllGradleVersionsSource
+    @TargetVersions(KOTLIN_DSL_SCRIPTS_MODEL_IMPORT_SUPPORTED_VERSIONS)
     fun testCoreDifferentIdInPluginsVals(gradleVersion: GradleVersion) {
         runTest(gradleVersion) {
             testHighlighting(

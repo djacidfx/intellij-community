@@ -115,6 +115,26 @@ class KotlinPackageStatementPsiTreeChangePreprocessor(private val project: Proje
     }
 }
 
+/**
+ * A lightweight representation of [VFileEvent] that holds only the data needed for cache invalidation.
+ *
+ * We don't cache [VFileEvent] directly because VFS events are project-agnostic (all listeners
+ * receive events from all projects), and [VFileEvent.requestor] can hold transitive references
+ * to other projects. When those projects are disposed, caching the original event would cause
+ * a memory leak by keeping references to disposed projects through the requestor chain.
+ *
+ * See KTIJ-34139 for details.
+ */
+internal sealed class PendingVFileChange {
+    abstract val file: VirtualFile?
+
+    data class Create(override val file: VirtualFile?) : PendingVFileChange()
+    data class Delete(override val file: VirtualFile?) : PendingVFileChange()
+    data class Copy(override val file: VirtualFile?, val newParent: VirtualFile, val newChildName: String) : PendingVFileChange()
+    data class Move(override val file: VirtualFile?, val oldParent: VirtualFile) : PendingVFileChange()
+    data class ContentChange(override val file: VirtualFile?) : PendingVFileChange()
+}
+
 private typealias ImplicitPackageData = MutableMap<FqName, MutableList<VirtualFile>>
 
 class ImplicitPackagePrefixCache(private val project: Project) {
@@ -215,21 +235,25 @@ class ImplicitPackagePrefixCache(private val project: Project) {
         }
     }
 
-    internal fun update(event: VFileEvent) {
-        when (event) {
-            is VFileCreateEvent -> checkNewFileInSourceRoot(event.file)
-            is VFileDeleteEvent -> checkDeletedFileInSourceRoot(event.file)
-            is VFileCopyEvent -> {
-                val newParent = event.newParent
+    internal fun update(change: PendingVFileChange) {
+        when (change) {
+            is PendingVFileChange.Create -> checkNewFileInSourceRoot(change.file)
+            is PendingVFileChange.Delete -> checkDeletedFileInSourceRoot(change.file)
+            is PendingVFileChange.Copy -> {
+                val newParent = change.newParent
                 if (newParent.isValid) {
-                    checkNewFileInSourceRoot(newParent.findChild(event.newChildName))
+                    checkNewFileInSourceRoot(newParent.findChild(change.newChildName))
                 }
             }
-            is VFileMoveEvent -> {
-                checkNewFileInSourceRoot(event.file)
-                if (event.oldParent.getSourceRoot(project) == event.oldParent) {
-                    implicitPackageCache[event.oldParent]?.removeFile(event.file)
+            is PendingVFileChange.Move -> {
+                val file = change.file
+                checkNewFileInSourceRoot(file)
+                if (change.oldParent.getSourceRoot(project) == change.oldParent) {
+                    file?.let { implicitPackageCache[change.oldParent]?.removeFile(it) }
                 }
+            }
+            is PendingVFileChange.ContentChange -> {
+                // do nothing
             }
         }
     }
@@ -277,7 +301,7 @@ class PerModulePackageCacheService(private val project: Project) : Disposable {
 
     private val useStrongMapForCaching: Boolean = Registry.`is`("kotlin.cache.packages.strong.map", false)
 
-    private val pendingVFileChanges: MutableSet<VFileEvent> = mutableSetOf()
+    private val pendingVFileChanges: MutableSet<PendingVFileChange> = mutableSetOf()
     private val pendingKtFileChanges: MutableSet<SmartPsiElementPointer<KtFile>> = mutableSetOf()
 
     private val projectScope: GlobalSearchScope = GlobalSearchScope.projectScope(project)
@@ -295,8 +319,16 @@ class PerModulePackageCacheService(private val project: Project) : Disposable {
         }
     }
 
-    internal fun notifyPackageChange(file: VFileEvent): Unit = synchronized(this) {
-        pendingVFileChanges += file
+    internal fun notifyPackageChange(event: VFileEvent): Unit = synchronized(this) {
+        val change = when (event) {
+            is VFileCreateEvent -> PendingVFileChange.Create(event.file)
+            is VFileDeleteEvent -> PendingVFileChange.Delete(event.file)
+            is VFileCopyEvent -> PendingVFileChange.Copy(event.file, event.newParent, event.newChildName)
+            is VFileMoveEvent -> PendingVFileChange.Move(event.file, event.oldParent)
+            is VFileContentChangeEvent -> PendingVFileChange.ContentChange(event.file)
+            else -> return
+        }
+        pendingVFileChanges += change
     }
 
     internal fun notifyPackageChange(file: KtFile): Unit = synchronized(this) {

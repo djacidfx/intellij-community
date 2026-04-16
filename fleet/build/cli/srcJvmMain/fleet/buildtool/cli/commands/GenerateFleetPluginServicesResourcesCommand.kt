@@ -56,7 +56,8 @@ class GenerateFleetPluginServicesResourcesCommand : CliktCommand(
 
   @OptIn(ExperimentalPathApi::class)
   override fun run() {
-    val workDir = Files.createTempDirectory("fleet-plugin-services-resources-generator")
+    val projectBaseDirPath = Path.of("").toAbsolutePath().normalize()
+    val workDir = Files.createTempDirectory(projectBaseDirPath, "fleet-plugin-services-resources-generator")
     try {
       val normalizedSources = sources.map { it.toAbsolutePath().normalize() }
       val normalizedClasspath = classpath.map { it.toAbsolutePath().normalize() }
@@ -72,8 +73,7 @@ class GenerateFleetPluginServicesResourcesCommand : CliktCommand(
       val javaSourceRootPaths = jvmSourceRootPaths.filter { root ->
         normalizedSources.any { it.startsWith(root) && it.toString().endsWith(".java") }
       }
-      val projectBaseDirPath = Path.of("").toAbsolutePath().normalize()
-      val kspConfig = KSPJvmConfig.Builder().apply {
+      @Suppress("IO_FILE_USAGE") val kspConfig = KSPJvmConfig.Builder().apply {
         moduleName = this@GenerateFleetPluginServicesResourcesCommand.moduleName
         javaSourceRoots = javaSourceRootPaths.map { it.toFile() }
         javaOutputDir = javaOutputDirPath.toFile()

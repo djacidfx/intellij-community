@@ -65,7 +65,7 @@ Ignored: Analysis API doesn't work correctly with K1, and tests on Aggregator ar
 @TestDataPath("/inspections/incorrectCeHandling")
 class KtIncorrectCancellationExceptionHandlingInspectionTest : KtIncorrectCancellationExceptionHandlingInspectionTestBase() {
 
-  private val USE_K1_KEY = "idea.kotlin.plugin.use.k1"
+  private val USE_K1_KEY = "idea.kotlin.plugin.use.k1.obsolete"
   private var previousK1Property: String? = null
 
   override fun setUp() {

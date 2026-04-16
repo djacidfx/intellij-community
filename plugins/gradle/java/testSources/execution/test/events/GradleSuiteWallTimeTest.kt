@@ -7,13 +7,13 @@ import com.intellij.testFramework.junit5.RegistryKey
 import org.assertj.core.api.Assertions
 import org.gradle.util.GradleVersion
 import org.jetbrains.plugins.gradle.testFramework.GradleTestExecutionTestCase
-import org.jetbrains.plugins.gradle.testFramework.annotations.GradleTestSource
+import org.jetbrains.plugins.gradle.testFramework.annotations.BaseGradleVersionSource
 import org.junit.jupiter.params.ParameterizedTest
 
 class GradleSuiteWallTimeTest : GradleTestExecutionTestCase() {
 
   @ParameterizedTest
-  @GradleTestSource("9.4.0")
+  @BaseGradleVersionSource
   @RegistryKey(key = "test.use.suite.duration", value = "true")
   fun `test suite wall time includes class setup`(gradleVersion: GradleVersion) {
     testJunit4Project(gradleVersion) {
@@ -51,7 +51,7 @@ class GradleSuiteWallTimeTest : GradleTestExecutionTestCase() {
   }
 
   @ParameterizedTest
-  @GradleTestSource("9.4.0")
+  @BaseGradleVersionSource
   @RegistryKey(key = "test.use.suite.duration", value = "false")
   fun `test suite uses AUTOMATIC duration strategy when wall time is disabled`(gradleVersion: GradleVersion) {
     testJunit4Project(gradleVersion) {

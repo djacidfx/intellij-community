@@ -121,8 +121,7 @@ private fun applyProjectModel(
   logIfNeeded(projectStorage, "before apply")
 
   for (module in orphanModules) {
-    logger.debug { "Removing orphan Python module: ${module.name}" }
-    projectStorage.removeEntity(module)
+    deleteModule(module, projectStorage)
   }
   for ((entry, module) in matched) {
     updateModule(entry, module, project, projectStorage, virtualFileUrlManager)
@@ -185,6 +184,40 @@ private fun matchEntriesToModules(
   }
 
   return matched
+}
+
+private fun deleteModule(
+  module: ModuleEntity,
+  projectStorage: MutableEntityStorage,
+) {
+  logger.debug { "Removing orphan Python module: ${module.name}" }
+
+  // Preserve source roots and excluded folders by relocating them to the parent module,
+  // but only if the underlying directory still physically exists on disk.
+  val otherContentRoots = projectStorage.entities<ContentRootEntity>().filter { it.module != module }.toList()
+
+  val sourcesByTarget = mutableMapOf<ContentRootEntity, MutableList<SourceRootEntity>>()
+  val excludesByTarget = mutableMapOf<ContentRootEntity, MutableList<ExcludeUrlEntity>>()
+  for (cr in module.contentRoots) {
+    val crPath = cr.url.toPath()
+    val parent = otherContentRoots.filter { crPath.startsWith(it.url.toPath()) }.maxByOrNull { it.url.url.length } ?: continue
+    val existingSources = parent.sourceRoots.map { it.url }.toSet()
+    val existingExcludes = parent.excludedUrls.map { it.url }.toSet()
+    for (sr in cr.sourceRoots) {
+      if (sr.url !in existingSources && sr.url.toPath().exists()) {
+        sourcesByTarget.getOrPut(parent) { mutableListOf() }.add(sr)
+      }
+    }
+    for (eu in cr.excludedUrls) {
+      if (eu.url !in existingExcludes && eu.url.toPath().exists()) {
+        excludesByTarget.getOrPut(parent) { mutableListOf() }.add(eu)
+      }
+    }
+  }
+
+  projectStorage.addRelocatedRoots(sourcesByTarget, excludesByTarget)
+
+  projectStorage.removeEntity(module)
 }
 
 /** Update a matched module: rename + update properties + update/create child entities. */
@@ -289,7 +322,7 @@ private fun updateModule(
   }
 
   existingExModuleOptions?.takeIf {
-     it.externalSystem != PY_PROJECT_SYSTEM_ID.id || it.entitySource != entitySource
+    it.externalSystem != PY_PROJECT_SYSTEM_ID.id || it.entitySource != entitySource
   }?.let {
     projectStorage.modifyExternalSystemModuleOptionsEntity(it) {
       this.externalSystem = PY_PROJECT_SYSTEM_ID.id
@@ -359,111 +392,56 @@ private fun logIfNeeded(projectStorage: MutableEntityStorage, title: String) {
  * Clashing roots are relocated to the innermost owning child module instead of being dropped (PY-89073).
  */
 private fun ensureNoSrcIntersectsWithOtherRoots(projectStorage: MutableEntityStorage) {
-  val moduleEntities = projectStorage.entities<ModuleEntity>().toList()
-  val rootToModules = HashMap<Path, MutableSet<ModuleEntity>>()
-  for (moduleEntity in moduleEntities) {
-    for (contentRoot in moduleEntity.contentRoots) {
-      rootToModules.getOrPut(contentRoot.url.toPath()) { mutableSetOf() }.add(moduleEntity)
+  val allContentRoots = projectStorage.entities<ModuleEntity>().flatMap { it.contentRoots }.toList()
+
+  val pathsToRemove = mutableMapOf<ContentRootEntity, MutableSet<Path>>()
+  val sourcesToAdd = mutableMapOf<ContentRootEntity, MutableList<SourceRootEntity>>()
+  val excludesToAdd = mutableMapOf<ContentRootEntity, MutableList<ExcludeUrlEntity>>()
+
+  /** Find the innermost content root containing [path] that belongs to a different module than [cr]. */
+  fun clashTarget(path: Path, cr: ContentRootEntity): ContentRootEntity? {
+    val innermost = allContentRoots.filter { path.startsWith(it.url.toPath()) }.maxByOrNull { it.url.url.length }
+    return innermost?.takeIf { it.module != cr.module }?.also {
+      pathsToRemove.getOrPut(cr) { mutableSetOf() }.add(path)
     }
   }
 
-  data class SourceRelocation(val sourceRoot: SourceRootEntity, val from: ContentRootEntity, val to: ModuleEntity)
-  data class ExcludeRelocation(val excludeUrl: ExcludeUrlEntity, val from: ContentRootEntity, val to: ModuleEntity)
-
-  val sourceRelocations = ArrayList<SourceRelocation>()
-  val excludeRelocations = ArrayList<ExcludeRelocation>()
-
-  for (moduleEntity in moduleEntities) {
-    for (contentRootEntity in moduleEntity.contentRoots.toList()) {
-      val contentRoot = contentRootEntity.url.toPath()
-
-      for (sourceRoot in contentRootEntity.sourceRoots) {
-        val target = findInnermostOwner(sourceRoot.url.toPath(), contentRoot, moduleEntity, rootToModules)
-        if (target != null) {
-          sourceRelocations.add(SourceRelocation(sourceRoot, contentRootEntity, target))
-        }
-      }
-
-      for (excludeUrl in contentRootEntity.excludedUrls) {
-        val target = findInnermostOwner(excludeUrl.url.toPath(), contentRoot, moduleEntity, rootToModules)
-        if (target != null) {
-          excludeRelocations.add(ExcludeRelocation(excludeUrl, contentRootEntity, target))
-        }
-      }
+  for (cr in allContentRoots) {
+    for (sr in cr.sourceRoots) {
+      val target = clashTarget(sr.url.toPath(), cr) ?: continue
+      if (target.sourceRoots.none { it.url == sr.url })
+        sourcesToAdd.getOrPut(target) { mutableListOf() }.add(sr)
+    }
+    for (eu in cr.excludedUrls) {
+      val target = clashTarget(eu.url.toPath(), cr) ?: continue
+      if (target.excludedUrls.none { it.url == eu.url })
+        excludesToAdd.getOrPut(target) { mutableListOf() }.add(eu)
     }
   }
 
-  if (sourceRelocations.isEmpty() && excludeRelocations.isEmpty()) return
+  // Remove clashing roots from their current content roots and add to targets
+  projectStorage.addRelocatedRoots(sourcesToAdd, excludesToAdd)
 
-  // Remove clashing roots from their current content roots
-  val sourceRemovals = sourceRelocations.groupBy({ it.from }, { it.sourceRoot.url.toPath() })
-  val excludeRemovals = excludeRelocations.groupBy({ it.from }, { it.excludeUrl.url.toPath() })
-  val allAffectedContentRoots = sourceRemovals.keys + excludeRemovals.keys
-  for (contentRootEntity in allAffectedContentRoots) {
-    val srcPaths = sourceRemovals[contentRootEntity]?.toSet() ?: emptySet()
-    val exclPaths = excludeRemovals[contentRootEntity]?.toSet() ?: emptySet()
-    logger.info("Relocating roots from '${contentRootEntity.module.name}': sources=$srcPaths, excludes=$exclPaths")
-    projectStorage.modifyContentRootEntity(contentRootEntity) {
-      if (srcPaths.isNotEmpty()) {
-        sourceRoots = sourceRoots.filterNot { it.url.toPath() in srcPaths }
-      }
-      if (exclPaths.isNotEmpty()) {
-        excludedUrls = excludedUrls.filterNot { it.url.toPath() in exclPaths }
-      }
-    }
-  }
-
-  // Add roots to the target child module's content root
-  val sourceAdditions = sourceRelocations.groupBy({ it.to }, { it.sourceRoot })
-  val excludeAdditions = excludeRelocations.groupBy({ it.to }, { it.excludeUrl })
-  val allTargetModules = sourceAdditions.keys + excludeAdditions.keys
-  for (targetModule in allTargetModules) {
-    val targetContentRoot = targetModule.contentRoots.firstOrNull() ?: continue
-
-    val newSources = sourceAdditions[targetModule]?.let { roots ->
-      val existingUrls = targetContentRoot.sourceRoots.map { it.url.url }.toSet()
-      roots.filter { it.url.url !in existingUrls }
-    } ?: emptyList()
-
-    val newExcludes = excludeAdditions[targetModule]?.let { roots ->
-      val existingUrls = targetContentRoot.excludedUrls.map { it.url.url }.toSet()
-      roots.filter { it.url.url !in existingUrls }
-    } ?: emptyList()
-
-    if (newSources.isEmpty() && newExcludes.isEmpty()) continue
-    projectStorage.modifyContentRootEntity(targetContentRoot) {
-      if (newSources.isNotEmpty()) {
-        this.sourceRoots += newSources.map { SourceRootEntity(it.url, it.rootTypeId, this.entitySource) }
-      }
-      if (newExcludes.isNotEmpty()) {
-        this.excludedUrls += newExcludes.map { ExcludeUrlEntity(it.url, this.entitySource) }
-      }
+  for ((cr, paths) in pathsToRemove) {
+    logger.info("Relocating roots from '${cr.module.name}': $paths")
+    projectStorage.modifyContentRootEntity(cr) {
+      sourceRoots = sourceRoots.filterNot { it.url.toPath() in paths }
+      excludedUrls = excludedUrls.filterNot { it.url.toPath() in paths }
     }
   }
 }
 
-/**
- * Walk from [sourcePath] up to [moduleContentRoot] (exclusive of the module's own root).
- * Return the innermost module that owns a content root on this path (the child module the source root belongs to),
- * or null if no other module's content root is encountered.
- */
-private fun findInnermostOwner(
-  sourcePath: Path,
-  moduleContentRoot: Path,
-  currentModule: ModuleEntity,
-  rootToModules: Map<Path, Set<ModuleEntity>>,
-): ModuleEntity? {
-  var current = sourcePath
-  do {
-    val owners = rootToModules[current]
-    if (owners != null) {
-      val otherOwner = owners.firstOrNull { it != currentModule }
-      if (otherOwner != null) return otherOwner
+/** Add collected source roots and excluded URLs to their target content roots in a single modification per target. */
+private fun MutableEntityStorage.addRelocatedRoots(
+  sourcesByTarget: Map<ContentRootEntity, List<SourceRootEntity>>,
+  excludesByTarget: Map<ContentRootEntity, List<ExcludeUrlEntity>>,
+) {
+  for (target in (sourcesByTarget.keys + excludesByTarget.keys)) {
+    modifyContentRootEntity(target) {
+      sourcesByTarget[target]?.let { roots -> this.sourceRoots += roots.map { SourceRootEntity(it.url, it.rootTypeId, this.entitySource) } }
+      excludesByTarget[target]?.let { roots -> this.excludedUrls += roots.map { ExcludeUrlEntity(it.url, this.entitySource) } }
     }
-    current = current.parent ?: break
   }
-  while (current.startsWith(moduleContentRoot))
-  return null
 }
 
 private suspend fun generatePyProjectTomlEntries(
@@ -491,7 +469,7 @@ private data class RawEntry(
 /** Parse pyproject.toml files into raw entries with natural names (no dedup). */
 private suspend fun parseRawEntries(fsInfo: FSWalkInfoWithToml, tools: List<Tool>): List<RawEntry> {
   val rawEntries = ArrayList<RawEntry>()
-  for ((tomlFile, toml) in fsInfo.tomlFiles.entries) {
+  for ((tomlFile, toml) in fsInfo.tomlFiles.entries.sortedBy { it.key }) {
     val participatedTools = mutableSetOf<ToolId>()
     val root = tomlFile.parent
     var projectNameAsString = toml.project?.name

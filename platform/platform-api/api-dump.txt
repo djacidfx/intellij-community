@@ -1294,6 +1294,7 @@ c:com.intellij.ide.util.treeView.NodeRenderer
 f:com.intellij.ide.util.treeView.TreeBuilderUtil
 - <init>():V
 - s:storePaths(javax.swing.JTree,javax.swing.tree.DefaultMutableTreeNode,java.util.List,java.util.List,Z):V
+- s:storePaths(javax.swing.JTree,javax.swing.tree.DefaultMutableTreeNode,java.util.List,java.util.List,Z,Z):V
 f:com.intellij.ide.util.treeView.TreeState
 - com.intellij.openapi.util.JDOMExternalizable
 - sf:CALLBACK:com.intellij.openapi.util.Key

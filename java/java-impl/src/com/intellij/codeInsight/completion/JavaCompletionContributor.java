@@ -306,7 +306,7 @@ public final class JavaCompletionContributor extends CompletionContributor imple
     }
 
     if (JavaKeywordCompletion.isDeclarationStart(position) ||
-        JavaKeywordCompletion.isInsideParameterList(position) ||
+        JavaCompletionUtil.isInsideParameterList(position) ||
         isInsideAnnotationName(position) ||
         PsiTreeUtil.getParentOfType(position, PsiReferenceParameterList.class, false, PsiAnnotation.class) != null ||
         IN_VARIABLE_TYPE.accepts(position)) {
@@ -337,8 +337,8 @@ public final class JavaCompletionContributor extends CompletionContributor imple
 
     if (CATCH_OR_FINALLY.accepts(position) ||
         JavaKeywordCompletion.START_SWITCH.accepts(position) ||
-        JavaKeywordCompletion.isInstanceofPlace(position) ||
-        JavaKeywordCompletion.isAfterPrimitiveOrArrayType(position)) {
+        JavaCompletionUtil.isInstanceofPlace(position) ||
+        JavaCompletionUtil.isAfterPrimitiveOrArrayType(position)) {
       return null;
     }
 
@@ -747,7 +747,7 @@ public final class JavaCompletionContributor extends CompletionContributor imple
   }
 
   public static @Nullable PsiAnnotation findAnnotationWhoseAttributeIsCompleted(@NotNull PsiElement position) {
-    return ANNOTATION_ATTRIBUTE_NAME.accepts(position) && !JavaKeywordCompletion.isAfterPrimitiveOrArrayType(position)
+    return ANNOTATION_ATTRIBUTE_NAME.accepts(position) && !JavaCompletionUtil.isAfterPrimitiveOrArrayType(position)
            ? Objects.requireNonNull(PsiTreeUtil.getParentOfType(position, PsiAnnotation.class))
            : null;
   }
@@ -977,16 +977,7 @@ public final class JavaCompletionContributor extends CompletionContributor imple
         item.setTailType(TailTypes.noneType());
       }
       if (item instanceof JavaMethodCallElement call) {
-        PsiMethod method = call.getObject();
-        if (method.getTypeParameters().length > 0) {
-          PsiType returned = TypeConversionUtil.erasure(method.getReturnType());
-          ExpectedTypeInfo matchingExpectation = returned == null ? null : ContainerUtil.find(expectedTypes, info ->
-            info.getDefaultType().isAssignableFrom(returned) ||
-            AssignableFromFilter.isAcceptable(method, position, info.getDefaultType(), call.getSubstitutor()));
-          if (matchingExpectation != null) {
-            call.setInferenceSubstitutorFromExpectedType(position, matchingExpectation.getDefaultType());
-          }
-        }
+        prepareMethodCallForExpectedTypes(call, position, expectedTypes);
       }
       items.add(element);
 
@@ -1069,7 +1060,7 @@ public final class JavaCompletionContributor extends CompletionContributor imple
     boolean isSecondCompletion = parameters.getInvocationCount() >= 2;
 
     PsiElement position = parameters.getPosition();
-    if (JavaKeywordCompletion.isInstanceofPlace(position) ||
+    if (JavaCompletionUtil.isInstanceofPlace(position) ||
         JavaMemberNameCompletionContributor.INSIDE_TYPE_PARAMS_PATTERN.accepts(position) ||
         AFTER_ENUM_CONSTANT.accepts(position)) {
       return false;
@@ -1100,7 +1091,7 @@ public final class JavaCompletionContributor extends CompletionContributor imple
       return false;
     }
 
-    return !JavaKeywordCompletion.isAfterPrimitiveOrArrayType(position);
+    return !JavaCompletionUtil.isAfterPrimitiveOrArrayType(position);
   }
 
   public static boolean mayStartClassName(CompletionResultSet result) {
@@ -1531,6 +1522,29 @@ public final class JavaCompletionContributor extends CompletionContributor imple
       return TailTypeDecorator.withTail(lookup, TailTypes.semicolonType());
     }
     return null;
+  }
+
+
+  /**
+   * Prepares a method call element with type inference based on the expected types provided.
+   *
+   * @param call The method call element to be prepared.
+   * @param position The PSI element representing the position in the code where the method call occurs.
+   * @param infos A collection of expected type information that the method call should satisfy.
+   */
+  public static void prepareMethodCallForExpectedTypes(@NotNull JavaMethodCallElement call,
+                                                       @NotNull PsiElement position,
+                                                       @NotNull Collection<? extends ExpectedTypeInfo> infos) {
+    PsiMethod method = call.getObject();
+    if (method.getTypeParameters().length > 0) {
+      PsiType returned = TypeConversionUtil.erasure(method.getReturnType());
+      ExpectedTypeInfo matchingExpectation = returned == null ? null : ContainerUtil.find(infos, info ->
+        info.getDefaultType().isAssignableFrom(returned) ||
+        AssignableFromFilter.isAcceptable(method, position, info.getDefaultType(), call.getSubstitutor()));
+      if (matchingExpectation != null) {
+        call.setInferenceSubstitutorFromExpectedType(position, matchingExpectation.getDefaultType());
+      }
+    }
   }
 
   static class IndentingDecorator extends LookupElementDecorator<LookupElement> {

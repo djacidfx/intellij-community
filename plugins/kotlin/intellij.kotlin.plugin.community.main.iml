@@ -139,6 +139,7 @@
     <orderEntry type="module" module-name="kotlin.code-insight.live-templates.shared" exported="" />
     <orderEntry type="module" module-name="kotlin.code-insight.live-templates.k1" exported="" />
     <orderEntry type="module" module-name="intellij.kotlin.codeInsight.liveTemplates" exported="" />
+    <orderEntry type="module" module-name="intellij.kotlin.lombok" exported="" />
     <orderEntry type="module" module-name="intellij.kotlin.maven" exported="" />
     <orderEntry type="module" module-name="intellij.kotlin.native" exported="" />
     <orderEntry type="module" module-name="intellij.kotlin.projectWizard.cli" exported="" />

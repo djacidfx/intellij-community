@@ -99,6 +99,9 @@ suspend fun buildPrefetchContext(remoteRoots: List<Pair<EelDescriptor, EelPath>>
       prefetcher.prefetchDirectories(roots).collect { (path, info) ->
         val parent = path.parent ?: return@collect
         prefetchData.getOrPut(parent) { HashMap() }[path.fileName] = info
+        if (info.type is EelFileInfo.Type.Directory) {
+          prefetchData.getOrPut(path) { HashMap() }
+        }
       }
     }
 

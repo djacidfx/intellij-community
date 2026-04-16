@@ -32,6 +32,7 @@ import com.intellij.openapi.vfs.newvfs.persistent.PersistentFS;
 import com.intellij.openapi.vfs.newvfs.persistent.PersistentFSImpl;
 import com.intellij.platform.eel.fs.EelFileUtils;
 import com.intellij.platform.eel.provider.LocalEelDescriptor;
+import com.intellij.platform.eel.provider.EelProviderUtil;
 import com.intellij.platform.eel.provider.LocalEelMachine;
 import com.intellij.util.PathUtilRt;
 import com.intellij.util.SlowOperations;
@@ -402,7 +403,7 @@ public abstract class LocalFileSystemBase extends LocalFileSystem {
       if (MOVE_TO_TRASH.get(file) == Boolean.TRUE) {
         TrashBin.moveToTrash(nioFile);
       }
-      else if (LocalEelMachine.INSTANCE.ownsPath(nioFile)) {
+      else if (EelProviderUtil.ownsPath(LocalEelMachine.INSTANCE, nioFile)) {
         var callback = DELETE_CALLBACK.get(file);
         if (callback != null) {
           NioFiles.deleteRecursively(nioFile, callback);

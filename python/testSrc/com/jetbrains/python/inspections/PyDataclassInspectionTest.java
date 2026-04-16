@@ -445,63 +445,6 @@ public class PyDataclassInspectionTest extends PyInspectionTestCase {
                    Child(number=1)""");
   }
 
-  // PY-76861
-  public void testFieldDefaultFactoryType() {
-    doTest();
-  }
-
-  // PY-76861
-  public void testFieldDefaultFactoryTypeForFunctionReference() {
-    doTest();
-  }
-
-  // PY-76861
-  public void testFieldDefaultFactoryTypeForCall() {
-    doTest();
-  }
-
-  // PY-88042
-  public void testFieldDefaultFactoryUnionType() {
-    doTestByText("""
-                   from dataclasses import dataclass, field
-                   
-                   @dataclass
-                   class DC:
-                       a: str | None = field(default_factory=lambda: "")
-                   """);
-  }
-
-  // PY-88043
-  public void testFieldDefaultFactoryReturnsAny() {
-    doTestByText("""
-                   from dataclasses import dataclass, field
-                   from typing import Any
-                   
-                   def factory() -> Any:
-                       pass
-                   
-                   @dataclass
-                   class DC:
-                       a: str | None = field(default_factory=factory)
-                   """);
-  }
-
-  // PY-88043
-  public void testFieldDefaultFactoryNotAnnotatedMultifile() {
-    doMultiFileTest();
-  }
-
-  // PY-76861
-  public void testFieldDefaultFactoryReturnsClassObject() {
-    doTestByText("""
-                   from dataclasses import dataclass, field
-                   
-                   @dataclass
-                   class DC:
-                       a: str = <warning descr="Type mismatch: field annotation is 'str', but default_factory returns 'type[str]'">field(default_factory=(lambda: str))</warning>
-                   """);
-  }
-
   @Override
   protected void doTest() {
     myFixture.copyDirectoryToProject("packages/attr", "attr");

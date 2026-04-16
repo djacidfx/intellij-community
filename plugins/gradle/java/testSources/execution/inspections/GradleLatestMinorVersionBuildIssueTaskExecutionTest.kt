@@ -15,8 +15,8 @@ import org.jetbrains.plugins.gradle.importing.BuildViewMessagesImportingTestCase
 import org.jetbrains.plugins.gradle.jvmcompat.GradleJvmSupportMatrix
 import org.jetbrains.plugins.gradle.testFramework.GradleExecutionTestCase
 import org.jetbrains.plugins.gradle.testFramework.annotations.AllGradleVersionsSource
+import org.jetbrains.plugins.gradle.testFramework.annotations.GradleTestSource
 import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.ValueSource
 
 class GradleLatestMinorVersionBuildIssueTaskExecutionTest : GradleExecutionTestCase() {
 
@@ -50,7 +50,7 @@ class GradleLatestMinorVersionBuildIssueTaskExecutionTest : GradleExecutionTestC
   }
 
   @ParameterizedTest
-  @ValueSource(strings = ["8.0"])
+  @GradleTestSource("8.0.2")
   fun testTaskExecutionDisabledInspection(gradleVersion: GradleVersion) {
     testEmptyProject(gradleVersion) {
       writeText("build.gradle", buildScript(gradleVersion, GradleDsl.GROOVY) {

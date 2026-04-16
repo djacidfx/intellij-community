@@ -57,7 +57,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import org.jetbrains.plugins.github.GithubIcons
 import org.jetbrains.plugins.github.ai.GHPRAISummaryExtension
-import org.jetbrains.plugins.github.exceptions.GithubAuthenticationException
+import org.jetbrains.plugins.github.exceptions.GHAPIExceptionUtil
 import org.jetbrains.plugins.github.i18n.GithubBundle
 import org.jetbrains.plugins.github.pullrequest.ui.GHPRConnectedProjectViewModel
 import org.jetbrains.plugins.github.pullrequest.ui.comment.GHViewModelWithTextCompletion
@@ -65,7 +65,6 @@ import org.jetbrains.plugins.github.pullrequest.ui.details.model.GHPRDetailsFull
 import org.jetbrains.plugins.github.pullrequest.ui.emoji.GHReactionsComponentFactory
 import org.jetbrains.plugins.github.pullrequest.ui.emoji.GHReactionsPickerComponentFactory
 import org.jetbrains.plugins.github.pullrequest.ui.timeline.GHPRTimelineEventComponentFactoryImpl.Companion.branchHTML
-import org.jetbrains.plugins.github.ui.component.GHHtmlErrorPanel
 import org.jetbrains.plugins.github.ui.util.addGithubHyperlinkListener
 import java.awt.Font
 import javax.swing.JComponent
@@ -103,12 +102,9 @@ internal class GHPRFileEditorComponentFactory(
 
     val progressAndErrorPanel = JPanel(ListLayout.vertical(0, ListLayout.Alignment.CENTER)).apply {
       isOpaque = false
-      val errorPanel = ErrorStatusPanelFactory.create(cs, timelineVm.loadingError, ErrorStatusPresenter.simple(
+      val errorPanel = ErrorStatusPanelFactory.create(cs, timelineVm.loadingError, ErrorStatusPresenter.simpleHTML(
         GithubBundle.message("pull.request.timeline.cannot.load"),
-        descriptionProvider = { error ->
-          if (error is GithubAuthenticationException) GithubBundle.message("pull.request.list.error.authorization")
-          else GHHtmlErrorPanel.getLoadingErrorText(error)
-        },
+        descriptionProvider = GHAPIExceptionUtil::getPresentableMessage,
         actionProvider = timelineVm.loadingErrorHandler::getActionForError
       ))
 

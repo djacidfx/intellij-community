@@ -102,6 +102,7 @@ f:com.intellij.collaboration.api.json.JsonHttpApiHelperKt
 - <init>(kotlinx.coroutines.CoroutineScope,com.intellij.collaboration.auth.AccountManager,com.intellij.collaboration.auth.ui.AccountsListModel):V
 - f:accountsPanelCell(com.intellij.ui.dsl.builder.Row,com.intellij.collaboration.auth.ui.LoadingAccountsDetailsProvider,com.intellij.collaboration.auth.ui.AccountsPanelActionsController):com.intellij.ui.dsl.builder.Cell
 *f:com.intellij.collaboration.auth.ui.AccountsPanelFactory$Companion
+- f:addWarningForEnabledCredentialHelper(Z,kotlin.jvm.functions.Function1):com.intellij.ui.dsl.builder.CellBase
 - f:addWarningForMemoryOnlyPasswordSafe(kotlinx.coroutines.CoroutineScope,kotlinx.coroutines.flow.Flow,kotlin.jvm.functions.Function1):V
 - f:addWarningForMemoryOnlyPasswordSafeAndGet(kotlinx.coroutines.CoroutineScope,kotlinx.coroutines.flow.Flow,kotlin.jvm.functions.Function1):com.intellij.ui.dsl.builder.CellBase
 - f:addWarningForPersistentCredentials(kotlinx.coroutines.CoroutineScope,kotlinx.coroutines.flow.Flow,kotlin.jvm.functions.Function1,kotlin.jvm.functions.Function1):com.intellij.ui.dsl.builder.CellBase
@@ -1242,6 +1243,8 @@ f:com.intellij.collaboration.ui.codereview.diff.viewer.DiffViewerUtilKt
 - sf:ERROR_ACTION_HREF:java.lang.String
 - f:simple(java.lang.String,kotlin.jvm.functions.Function1,kotlin.jvm.functions.Function1):com.intellij.collaboration.ui.codereview.list.error.ErrorStatusPresenter$Text
 - bs:simple$default(com.intellij.collaboration.ui.codereview.list.error.ErrorStatusPresenter$Companion,java.lang.String,kotlin.jvm.functions.Function1,kotlin.jvm.functions.Function1,I,java.lang.Object):com.intellij.collaboration.ui.codereview.list.error.ErrorStatusPresenter$Text
+- f:simpleHTML(java.lang.String,kotlin.jvm.functions.Function1,kotlin.jvm.functions.Function1):com.intellij.collaboration.ui.codereview.list.error.ErrorStatusPresenter$HTML
+- bs:simpleHTML$default(com.intellij.collaboration.ui.codereview.list.error.ErrorStatusPresenter$Companion,java.lang.String,kotlin.jvm.functions.Function1,kotlin.jvm.functions.Function1,I,java.lang.Object):com.intellij.collaboration.ui.codereview.list.error.ErrorStatusPresenter$HTML
 *:com.intellij.collaboration.ui.codereview.list.error.ErrorStatusPresenter$HTML
 - com.intellij.collaboration.ui.codereview.list.error.ErrorStatusPresenter
 - a:getHTMLBody(java.lang.Object):java.lang.String

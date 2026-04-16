@@ -1,9 +1,10 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.workspaceModel.ide.impl.legacyBridge.module
 
+import com.intellij.ide.plugins.ContentModuleDescriptor
 import com.intellij.ide.plugins.IdeaPluginDescriptorImpl
 import com.intellij.ide.plugins.PluginManagerCore
-import com.intellij.ide.plugins.executeRegisterTaskForOldContent
+import com.intellij.ide.plugins.getMainDescriptor
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.EDT
@@ -669,14 +670,11 @@ abstract class ModuleManagerBridgeImpl(
 }
 
 private fun checkModuleLevelServiceAndExtensionRegistration() {
-  val plugins = PluginManagerCore.getPluginSet().enabledPlugins
-  for (plugin in plugins) {
-    for (content in plugin.contentModules) {
-      checkModuleLevel(plugin = plugin, child = content, forbid = false)
-    }
-
-    executeRegisterTaskForOldContent(plugin) {
-      checkModuleLevel(plugin = plugin, child = it, forbid = true)
+  for (module in PluginManagerCore.getPluginSet().sequenceResolvedSortedDescriptorsForRegistration()) {
+    if (module is ContentModuleDescriptor) {
+      checkModuleLevel(plugin = module.parent, child = module, forbid = false)
+    } else {
+      checkModuleLevel(plugin = module.getMainDescriptor(), child = module, forbid = true)
     }
   }
 }

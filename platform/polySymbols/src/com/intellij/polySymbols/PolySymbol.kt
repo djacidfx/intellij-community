@@ -65,15 +65,47 @@ import kotlin.reflect.KClass
  * retrieved using [PolySymbolQueryExecutor] acquired using [PolySymbolQueryExecutorFactory].
  * The PolySymbol framework requires an integration into language or framework support through:
  * - completion provider - you can use `com.intellij.polySymbols.completion.PolySymbolsCompletionProviderBase`
- * - reference contributor - use `com.intellij.polySymbols.references.PsiPolySymbolReferenceProvider`
+ * - reference contributor - use [com.intellij.polySymbols.references.PsiPolySymbolReferenceProvider]
+ * - declaration contributor - use [com.intellij.polySymbols.declarations.PolySymbolDeclarationProvider]
+ *
+ * ## Properties
+ *
+ * PolySymbols are meant to be used in as generic a way as possible. So, when you get results from a
+ * [PolySymbolQueryExecutor] query, you should avoid casting symbols to specialized interfaces. For instance,
+ * a query may return symbols of unexpected classes contributed by some 3rd party plugins.
+ * However, you might want to access a very specific property of a symbol, like a type of variable symbol.
+ * To do that, define first a [PolySymbolProperty] object (you need to define an object, to be able to pass it as an annotation parameter):
+ * ```kotlin
+ * object JSTypeProperty : PolySymbolProperty<JSType>("js-type", JSType::class.java)
+ * ```
+ * In the class implementing variable symbol, annotate the type property with [PolySymbol.Property] annotation:
+ * ```kotlin
+ * class JSVariableSymbol(...) : PolySymbol {
+ *   @PolySymbol.Property(JSTypeProperty::class)
+ *   val type: JSType
+ * }
+ * ```
+ * Then, you can access the property using [PolySymbol.get] operator with the property object as a parameter:
+ * ```kotlin
+ * val PolySymbol.jsType: JSType? get() = this[JSTypeProperty]
+ * ```
+ * The PolySymbol property is identified by its name and value type.
+ * You can get a property object by calling [PolySymbolProperty.get] operator, e.g.:
+ * ```kotlin
+ * val jsTypeProperty = PolySymbolProperty["js-type", JSType::class.java]
+ * ```
+ *
+ * ## Patterns
  *
  * The [PolySymbolQueryExecutor] queries support evaluation of [PolySymbolWithPattern] patterns.
  * Symbols, which implement this interface and provide a pattern are expanded to a [PolySymbolMatch]
  * composite symbols during queries. Such patterns allow for handy implementation of a microsyntax.
  *
  * Each symbol can be a scope for other symbols (like a Java class is a scope for its methods and fields). Such symbols
- * should implement [PolySymbolScope] interface. When pattern evaluation is happening, each matched symbol's `queryScope`
+ * should implement [PolySymbolScope] interface. When pattern evaluation is happening, each matched symbol's [PolySymbol.queryScope]
  * is put on the scope stack, allowing for expanding the scope during the pattern match process.
+ *
+ * ## Lifecycle span
  *
  * The symbol lifecycle is a single read action. If you need it to survive between read actions,
  * use [PolySymbol.createPointer] to create a symbol pointer.
@@ -83,9 +115,6 @@ import kotlin.reflect.KClass
  *
  * See also: [Implementing Poly Symbols](https://plugins.jetbrains.com/docs/intellij/websymbols-implementation.html)
  */
-/*
- * INAPPLICABLE_JVM_NAME -> https://youtrack.jetbrains.com/issue/KT-31420
- **/
 @Suppress("INAPPLICABLE_JVM_NAME")
 interface PolySymbol : Symbol, NavigatableSymbol, PolySymbolPrioritizedScope {
 
@@ -161,10 +190,21 @@ interface PolySymbol : Symbol, NavigatableSymbol, PolySymbolPrioritizedScope {
     get() = null
 
   /**
-   * Accessor for various symbol properties. Plugins can use properties to provide additional information on the symbol.
-   * All properties supported by IDEs are defined through `PROP_*` constants of [PolySymbol] interface.
-   * Check their documentation for further reference. To ensure that results are properly casted, use
-   * [PolySymbolProperty.tryCast] method for returned values.
+   * Accessor for various symbol properties. All properties supported by the PolySymbol framework are defined through `*Property`
+   * objects within the [PolySymbol] interface. Check their documentation for further reference. Overall, you should avoid
+   * overriding this method to provide property values and instead define property getters by annotating properties,
+   * fields, or methods with [PolySymbol.Property] annotation.
+   *
+   * E.g., to provide custom presentation for a symbol, implement getter for [TextAttributesKeyProperty]:
+   * ```kotlin
+   * class MySymbol: PolySymbol {
+   *
+   *   @PolySymbol.Property(TextAttributesKeyProperty::class)
+   *   private val textAttributesKey: TextAttributesKey
+   *     get() = EditorColors.REFERENCE_HYPERLINK_COLOR
+   *
+   * }
+   *
    */
   operator fun <T : Any> get(property: PolySymbolProperty<T>): T? =
     PolySymbolPropertyGetter.get(this, property)

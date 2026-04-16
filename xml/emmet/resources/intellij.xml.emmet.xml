@@ -20,6 +20,7 @@
 
   <extensions defaultExtensionNs="com.intellij">
     <applicationService serviceImplementation="com.intellij.application.options.emmet.EmmetOptions"/>
+    <applicationSettings service="com.intellij.application.options.emmet.EmmetOptions"/>
     <customLiveTemplate implementation="com.intellij.codeInsight.template.emmet.ZenCodingTemplate"/>
     <completion.contributor language="any"
                             implementationClass="com.intellij.codeInsight.template.emmet.completion.EmmetCompletionContributor"

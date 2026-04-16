@@ -58,12 +58,12 @@ internal class K2PullUpData(
             ) ?: KaSubstitutor.Empty(token)
 
             targetClassSymbol.typeParameters.forEach { targetTypeParam ->
-                val targetTypeParamType = buildTypeParameterType(targetTypeParam)
+                val targetTypeParamType = typeCreator.typeParameterType(targetTypeParam)
                 val substituted = inheritanceSubstitutor.substitute(targetTypeParamType)
 
                 if (!substituted.semanticallyEquals(targetTypeParamType)) {
                     sourceClass.symbol.typeParameters.forEach { sourceTypeParam ->
-                        val sourceTypeParamType = buildTypeParameterType(sourceTypeParam)
+                        val sourceTypeParamType = typeCreator.typeParameterType(sourceTypeParam)
                         if (substituted.semanticallyEquals(sourceTypeParamType)) {
                             substitution(sourceTypeParam, targetTypeParamType)
                         }

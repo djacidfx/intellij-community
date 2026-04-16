@@ -13,6 +13,7 @@ import com.intellij.util.text.matching.indexOfAny
 import com.intellij.util.text.matching.undeprecate
 import org.jetbrains.annotations.ApiStatus
 import kotlin.jvm.JvmStatic
+import kotlin.math.min
 
 /**
  * Tells whether a string matches a specific pattern. Allows for lowercase camel-hump matching.
@@ -36,11 +37,13 @@ abstract class MinusculeMatcher protected constructor() : Matcher {
   }
 
   @Deprecated("use match(String)", ReplaceWith("match(name)"))
+  @ApiStatus.ScheduledForRemoval
   open fun matchingFragments(name: String): FList<TextRange>? {
     throw UnsupportedOperationException()
   }
 
   @Deprecated("use matchingDegree(String, Boolean, List<MatchedFragment>)", ReplaceWith("matchingDegree(name, valueStartCaseMatch, fragments.map { MatchedFragment(it.startOffset, it.endOffset) })"))
+  @ApiStatus.ScheduledForRemoval
   open fun matchingDegree(name: String, valueStartCaseMatch: Boolean, fragments: FList<out TextRange>?): Int {
     throw UnsupportedOperationException()
   }
@@ -64,6 +67,7 @@ abstract class MinusculeMatcher protected constructor() : Matcher {
 
   companion object {
     @Deprecated("use isStartMatch(List<MatchedFragment>)", ReplaceWith("isStartMatch(fragments as List<MatchedFragment>)"))
+    @ApiStatus.ScheduledForRemoval
     @JvmStatic
     fun isStartMatch(fragments: Iterable<TextRange>): Boolean {
       val iterator = fragments.iterator()
@@ -184,6 +188,43 @@ abstract class MinusculeMatcher protected constructor() : Matcher {
           0
         }
       }
+    }
+
+    internal fun nameContainsAllMeaningfulCharsInOrder(name: String, meaningfulChars: CharArray): Boolean {
+      var meaningfulCharIndex = 0
+      var nameIndex = 0
+      while (meaningfulCharIndex + 1 < meaningfulChars.size) {
+        if (nameIndex >= name.length) {
+          return false
+        }
+        val c1 = meaningfulChars[meaningfulCharIndex]
+        val indexOf1 = name.indexOf(c1, nameIndex)
+        if (indexOf1 == nameIndex) {
+          // for the character found on the very first index – skip second indexOf, there cannot be a better result
+          nameIndex = indexOf1 + 1
+        }
+        else {
+          val c2 = meaningfulChars[meaningfulCharIndex + 1]
+          if (c1 == c2) {
+            // for digits and symbols, toLowerCase == toUpperCase, skip second indexOf
+            when {
+                indexOf1 < 0 -> return false
+                else -> nameIndex = indexOf1 + 1
+            }
+          }
+          else {
+            val indexOf2 = name.indexOf(c2, nameIndex)
+            nameIndex = when {
+              indexOf1 >= 0 && indexOf2 >= 0 -> min(indexOf1, indexOf2) + 1
+              indexOf1 >= 0 -> indexOf1 + 1
+              indexOf2 >= 0 -> indexOf2 + 1
+              else -> return false
+            }
+          }
+        }
+        meaningfulCharIndex += 2
+      }
+      return true
     }
   }
 }

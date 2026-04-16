@@ -8,6 +8,7 @@ import com.intellij.ui.render.RenderingUtil;
 import com.intellij.util.Function;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
+import kotlin.jvm.functions.Function1;
 import org.jetbrains.annotations.NotNull;
 import sun.swing.DefaultLookup;
 
@@ -27,6 +28,12 @@ import java.awt.Rectangle;
  * @author gregsh
  */
 public abstract class SimpleListCellRenderer<T> extends JBLabel implements ListCellRenderer<T> {
+
+  /**
+   * @deprecated Doesn't support rounded selection.
+   * Use {@link com.intellij.ui.dsl.listCellRenderer.BuilderKt#textListCellRenderer(String, Function1)} instead.
+   */
+  @Deprecated(forRemoval = true)
   public static @NotNull <T> SimpleListCellRenderer<T> create(@NotNull @NlsContexts.Label String nullValue,
                                                                         @NotNull Function<? super T, @NlsContexts.Label String> getText) {
     return new SimpleListCellRenderer<>() {

@@ -5,15 +5,30 @@ import com.intellij.driver.sdk.ui.Finder
 import com.intellij.driver.sdk.ui.components.ComponentData
 import com.intellij.driver.sdk.ui.components.UiComponent
 import com.intellij.driver.sdk.ui.components.common.Icon
+import com.intellij.openapi.util.Conditions.and
 
 fun Finder.linkLabel(labelText: String): JLabelUiComponent =
   x(JLabelUiComponent::class.java) { and(byType("com.intellij.ui.components.labels.LinkLabel"), byAccessibleName(labelText)) }
+
+fun Finder.contentTabLabel(labelText: String): ContentTabLabelUi =
+  x(ContentTabLabelUi::class.java) { and(byClass("ContentTabLabel"), byAccessibleName(labelText)) }
+
+fun Finder.tabbedContentTabLabel(labelText: String, contains: Boolean = false): ContentTabLabelUi =
+  x(ContentTabLabelUi::class.java) {
+    and(byClass("TabbedContentTabLabel"),
+        if (contains) contains(byAccessibleName(labelText)) else byAccessibleName(labelText))
+  }
 
 class JLabelUiComponent(data: ComponentData) : UiComponent(data) {
 
   private val fixture by lazy { driver.cast(component, JLabelRef::class) }
 
   fun getText(): String = fixture.getText().orEmpty()
+}
+
+class ContentTabLabelUi(data: ComponentData) : UiComponent(data) {
+  private val tabComponent get() = driver.cast(component, ContentTabLabel::class)
+  val isSelected: Boolean get() = tabComponent.isSelected()
 }
 
 open class TabLabelUi(data: ComponentData) : UiComponent(data) {
@@ -29,6 +44,11 @@ open class TabLabelUi(data: ComponentData) : UiComponent(data) {
     moveMouse()
     closeButton.click()
   }
+}
+
+@Remote("com.intellij.openapi.wm.impl.content.ContentTabLabel")
+interface ContentTabLabel {
+  fun isSelected(): Boolean
 }
 
 @Remote("javax.swing.JLabel")

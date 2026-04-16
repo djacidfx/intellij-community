@@ -11,9 +11,18 @@ import com.intellij.platform.eel.annotations.MultiRoutingFileSystemPath
 import com.intellij.platform.util.coroutines.mapNotNullConcurrent
 import kotlinx.coroutines.CancellationException
 import org.jetbrains.annotations.ApiStatus
+import java.nio.file.InvalidPathException
+import kotlin.io.path.Path
 
 /**
  * Initializes the execution environment for a given path during project opening.
+ *
+ * Use this EP when environment initialization requires **side effects** beyond passive descriptor resolution,
+ * such as starting a Docker container, deploying an IJent agent, or establishing an SSH connection.
+ *
+ * If no initializers are registered, [EelInitialization] falls back to passive resolution via
+ * `Path.getEelDescriptor().resolveEelMachine()`, which works when the MRFS backend and
+ * [EelMachineResolver] are sufficient (e.g., in tests or for already-running environments).
  *
  * This function runs **early**, so implementors need to be careful with performance.
  * This function is called for every opening project,
@@ -33,22 +42,44 @@ interface EelEnvironmentInitializer {
 object EelInitialization {
   private val logger = logger<EelInitialization>()
 
+  private suspend fun initializeCatching(initialize: @ThrowsChecked(EelUnavailableException::class) suspend () -> EelMachine?): EelMachine? {
+    return try {
+      initialize()
+    }
+    catch (e: CancellationException) {
+      throw e
+    }
+    catch (e: EelUnavailableException) {
+      throw e
+    }
+    catch (e: Throwable) {
+      logger.error(e)
+      null
+    }
+  }
+
   @ThrowsChecked(EelUnavailableException::class)
   suspend fun runEelInitialization(path: String): EelMachine {
     val initializers = EelEnvironmentInitializer.EP_NAME.extensionList
-    val machines = initializers.mapNotNullConcurrent { initializer ->
-      try {
-        initializer.tryInitialize(path)
-      }
-      catch (e: CancellationException) {
-        throw e
-      }
-      catch (e: EelUnavailableException) {
-        throw e
-      }
-      catch (e: Throwable) {
-        logger.error(e)
-        null
+
+    val nioPath = try {
+      Path(path)
+    }
+    catch (e: InvalidPathException) {
+      logger.warn("Invalid path: $path", e)
+      return LocalEelMachine
+    }
+
+    val machines = if (initializers.isEmpty()) {
+      listOfNotNull(initializeCatching {
+        nioPath.getEelDescriptor().resolveEelMachine()
+      })
+    }
+    else {
+      initializers.mapNotNullConcurrent { initializer ->
+        initializeCatching {
+          initializer.tryInitialize(path)
+        }
       }
     }
 

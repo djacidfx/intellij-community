@@ -1343,11 +1343,12 @@ plugins/kotlin/jvm/k2
 plugins/kotlin/jvm/shared
 plugins/kotlin/kotlin-compiler-classpath
 plugins/kotlin/kotlin.ide
-plugins/kotlin/kotlin.lombok.tests
 plugins/kotlin/kotlin.performanceExtendedPlugin
 plugins/kotlin/kotlin.searching
 plugins/kotlin/kotlin.searching/base
 plugins/kotlin/kotlin.searching/kotlin.searching.test.k2
+plugins/kotlin/lombok
+plugins/kotlin/lombok/tests
 plugins/kotlin/maven
 plugins/kotlin/maven/tests
 plugins/kotlin/migration

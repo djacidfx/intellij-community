@@ -9,6 +9,7 @@ import com.intellij.codeInsight.ModNavigatorTailType;
 import com.intellij.codeInsight.completion.AllClassesGetter;
 import com.intellij.codeInsight.completion.CompletionUtil;
 import com.intellij.codeInsight.completion.JavaCompletionContributor;
+import com.intellij.codeInsight.completion.JavaCompletionUtil;
 import com.intellij.codeInsight.completion.JavaKeywordCompletion;
 import com.intellij.codeInsight.completion.JavaMemberNameCompletionContributor;
 import com.intellij.codeInsight.completion.JavaPatternCompletionUtil;
@@ -387,7 +388,7 @@ final class KeywordCompletionItemProvider extends JavaModCompletionItemProvider 
     }
     
     private void addClassLiteral() {
-      if (JavaKeywordCompletion.isAfterTypeDot(myPosition)) {
+      if (JavaCompletionUtil.isAfterTypeDot(myPosition)) {
         addKeyword(createKeyword(JavaKeywords.CLASS));
       }
     }
@@ -664,7 +665,7 @@ final class KeywordCompletionItemProvider extends JavaModCompletionItemProvider 
     }
 
     private void addInstanceof() {
-      if (JavaKeywordCompletion.isInstanceofPlace(myPosition)) {
+      if (JavaCompletionUtil.isInstanceofPlace(myPosition)) {
         addKeyword(createKeyword(JavaKeywords.INSTANCEOF)
                      .withInsertCharacterSuppressed(ic -> ic.insertionCharacter() == '!')
                      .withAdditionalUpdater((startOffset, updater, insertionContext) -> {
@@ -1577,7 +1578,7 @@ final class KeywordCompletionItemProvider extends JavaModCompletionItemProvider 
       return true;
     }
     return START_FOR.accepts(position) ||
-           JavaKeywordCompletion.isInsideParameterList(position) ||
+           JavaCompletionUtil.isInsideParameterList(position) ||
            INSIDE_RECORD_HEADER.accepts(position) ||
            VARIABLE_AFTER_FINAL.accepts(position) ||
            isStatementPosition(position);
