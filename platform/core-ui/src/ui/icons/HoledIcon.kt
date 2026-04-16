@@ -7,6 +7,7 @@ import org.jetbrains.annotations.ApiStatus
 import java.awt.Component
 import java.awt.Graphics
 import java.awt.Graphics2D
+import java.awt.Insets
 import java.awt.Rectangle
 import java.awt.RenderingHints
 import java.awt.Shape
@@ -26,6 +27,9 @@ abstract class HoledIcon(val icon: Icon) : JBScalableIcon(), ReplaceableIcon {
   override fun getScale() = (icon as? ScalableIcon)?.scale ?: 1f
   override fun scale(factor: Float) = copyWith(scaleIconOrLoadCustomVersion(icon = icon, scale = factor))
 
+  private val baseIconBounds: Rectangle
+    get() = Rectangle(0, 0, icon.iconWidth, icon.iconHeight)
+
   private val combinedBounds: Rectangle
     get() {
       val iconBounds = Rectangle(0, 0, icon.iconWidth, icon.iconHeight)
@@ -37,12 +41,32 @@ abstract class HoledIcon(val icon: Icon) : JBScalableIcon(), ReplaceableIcon {
       return Rectangle(minX, minY, maxX - minX, maxY - minY)
     }
 
+  /**
+   * Returns the extra size added by the hole, relative to the base icon.
+   *
+   * When the hole is fully inside the base icon, returns zero insets.
+   * Otherwise, the returned insets indicate how much the hole "protrudes" outside and at which sides.
+   * For example, a typical colored badge usually extends a bit upwards, so the top returned inset will be non-zero.
+   *
+   * The returned values take scaling into account and correspond to the actual geometry used when painting the icon.
+   */
+  fun getExtraInsets(): Insets {
+    val combinedBounds = combinedBounds
+    @Suppress("UseDPIAwareInsets") // everything is already scaled
+    return Insets(
+      (baseIconBounds.y - combinedBounds.y).coerceAtLeast(0),
+      (baseIconBounds.x - combinedBounds.x).coerceAtLeast(0),
+      ((combinedBounds.y + combinedBounds.height) - (baseIconBounds.y + baseIconBounds.height)).coerceAtLeast(0),
+      ((combinedBounds.x + combinedBounds.width) - (baseIconBounds.x + baseIconBounds.width)).coerceAtLeast(0),
+    )
+  }
+
   override fun getIconWidth() = combinedBounds.width
   override fun getIconHeight() = combinedBounds.height
 
   override fun paintIcon(c: Component?, graphics: Graphics, x: Int, y: Int) {
     val bounds = combinedBounds
-    val baseIconBounds = Rectangle(0, 0, icon.iconWidth, icon.iconHeight)
+    val baseIconBounds = baseIconBounds
     // (x,y) corresponds to the combined icon position (because that's what we're painting).
     // (bounds.x, bounds.y) corresponds to the combined icon position relative to the base icon (because that's how it's computed).
     val g = graphics.create(x, y, bounds.width, bounds.height)
