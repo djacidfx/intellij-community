@@ -122,6 +122,59 @@ class AgentSessionArchiveServiceIntegrationTest {
   }
 
   @Test
+  fun archiveMultipleThreadsUsesPluralProgressAndArchivesSequentially() = runBlocking(Dispatchers.Default) {
+    val backgroundRunner = RecordingArchiveBackgroundTaskRunner()
+    val archiveCalls = mutableListOf<String>()
+    val sourceThreads = mutableListOf(
+      thread(id = "codex-1", updatedAt = 300, provider = AgentSessionProvider.CODEX),
+      thread(id = "codex-2", updatedAt = 200, provider = AgentSessionProvider.CODEX),
+      thread(id = "codex-3", updatedAt = 100, provider = AgentSessionProvider.CODEX),
+    )
+    val sessionSource = ScriptedSessionSource(
+      provider = AgentSessionProvider.CODEX,
+      listFromOpenProject = { path, _ -> if (path == PROJECT_PATH) sourceThreads.toList() else emptyList() },
+    )
+    val bridge = testCodexBridge(
+      sessionSource = sessionSource,
+      onArchive = { _, threadId ->
+        archiveCalls.add(threadId)
+        sourceThreads.removeIf { it.id == threadId }
+        true
+      },
+    )
+
+    AgentSessionProviders.withRegistryForTest(InMemoryAgentSessionProviderRegistry(listOf(bridge))) {
+      runBlocking(Dispatchers.Default) {
+        withServiceAndArchive(
+          sessionSourcesProvider = { listOf(sessionSource) },
+          projectEntriesProvider = { listOf(openProjectEntry(PROJECT_PATH, "Project A")) },
+          archiveBackgroundTaskRunner = backgroundRunner,
+        ) { service, archiveService ->
+          service.refresh()
+          waitForCondition {
+            service.state.value.projects.firstOrNull()?.threads.orEmpty().map { it.id } == listOf("codex-1", "codex-2", "codex-3")
+          }
+
+          archiveService.archiveThreadsForTest(
+            listOf(
+              ArchiveThreadTarget.Thread(PROJECT_PATH, AgentSessionProvider.CODEX, "codex-1"),
+              ArchiveThreadTarget.Thread(PROJECT_PATH, AgentSessionProvider.CODEX, "codex-2"),
+              ArchiveThreadTarget.Thread(PROJECT_PATH, AgentSessionProvider.CODEX, "codex-3"),
+            )
+          )
+
+          waitForCondition {
+            archiveCalls == listOf("codex-1", "codex-2", "codex-3") &&
+            service.state.value.projects.firstOrNull()?.threads.orEmpty().isEmpty()
+          }
+          assertThat(backgroundRunner.titles)
+            .containsExactly(AgentSessionsBundle.message("toolwindow.progress.archiving.threads"))
+        }
+      }
+    }
+  }
+
+  @Test
   fun archiveThreadRemovesThreadAndRefreshesState() = runBlocking(Dispatchers.Default) {
     val cleanupCalls = mutableListOf<Pair<String, String>>()
     val sourceThreads = mutableListOf(
@@ -331,9 +384,11 @@ class AgentSessionArchiveServiceIntegrationTest {
           waitForCondition {
             service.state.value.projects.firstOrNull()?.threads.orEmpty().none { it.id == "codex-1" }
           }
+          assertThat(backgroundRunner.hasPendingTask()).isTrue()
 
           backgroundRunner.resume()
           waitForCondition {
+            backgroundRunner.completed &&
             service.state.value.projects.firstOrNull()?.threads.orEmpty().map { it.id } == listOf("codex-1", "codex-2")
           }
           assertThat(cleanupCalls).isEmpty()
@@ -659,6 +714,61 @@ class AgentSessionArchiveServiceIntegrationTest {
   }
 
   @Test
+  fun archiveOpenedClaudeThreadFromEditorTabUsesProviderArchiveAndCleanupTarget() = runBlocking(Dispatchers.Default) {
+    val archiveCalls = mutableListOf<Pair<String, String>>()
+    val cleanupCalls = mutableListOf<Triple<String, String, String?>>()
+    val sourceThreads = mutableListOf(
+      thread(id = "claude-1", updatedAt = 200, provider = AgentSessionProvider.CLAUDE),
+      thread(id = "claude-2", updatedAt = 100, provider = AgentSessionProvider.CLAUDE),
+    )
+    val sessionSource = ScriptedSessionSource(
+      provider = AgentSessionProvider.CLAUDE,
+      listFromOpenProject = { path, _ -> if (path == PROJECT_PATH) sourceThreads.toList() else emptyList() },
+    )
+    val bridge = testClaudeBridge(
+      sessionSource = sessionSource,
+      onArchive = { path, threadId ->
+        archiveCalls.add(path to threadId)
+        sourceThreads.removeIf { it.id == threadId }
+        true
+      },
+    )
+
+    AgentSessionProviders.withRegistryForTest(InMemoryAgentSessionProviderRegistry(listOf(bridge))) {
+      runBlocking(Dispatchers.Default) {
+        withServiceAndArchive(
+          sessionSourcesProvider = { listOf(sessionSource) },
+          projectEntriesProvider = { listOf(openProjectEntry(PROJECT_PATH, "Project A")) },
+          archiveChatCleanup = { projectPath, threadIdentity, subAgentId ->
+            cleanupCalls.add(Triple(projectPath, threadIdentity, subAgentId))
+          },
+        ) { service, archiveService ->
+          service.refresh()
+          waitForCondition {
+            service.state.value.projects.firstOrNull()?.threads?.any { it.id == "claude-1" } == true
+          }
+
+          archiveService.archiveThreads(
+            targets = listOf(ArchiveThreadTarget.Thread(PROJECT_PATH, AgentSessionProvider.CLAUDE, "claude-1")),
+            entryPoint = AgentWorkbenchEntryPoint.EDITOR_TAB_POPUP,
+            preferredSingleArchivedLabel = "Claude thread",
+          )
+
+          waitForCondition {
+            val threads = service.state.value.projects.firstOrNull()?.threads.orEmpty()
+            archiveCalls == listOf(PROJECT_PATH to "claude-1") &&
+            cleanupCalls == listOf(
+              Triple(PROJECT_PATH, buildAgentSessionIdentity(AgentSessionProvider.CLAUDE, "claude-1"), null)
+            ) &&
+            threads.none { it.id == "claude-1" } &&
+            threads.any { it.id == "claude-2" }
+          }
+        }
+      }
+    }
+  }
+
+  @Test
   fun unarchiveThreadsRestoresArchivedCodexThread() = runBlocking(Dispatchers.Default) {
     val sourceThreads = mutableListOf(
       thread(id = "codex-1", updatedAt = 200, provider = AgentSessionProvider.CODEX),
@@ -773,6 +883,15 @@ private fun AgentSessionArchiveService.archiveThreadsForTest(
   archiveThreads(targets, AgentWorkbenchEntryPoint.TREE_POPUP, preferredSingleArchivedLabel)
 }
 
+private class RecordingArchiveBackgroundTaskRunner : AgentSessionArchiveBackgroundTaskRunner {
+  val titles = mutableListOf<String>()
+
+  override suspend fun run(project: Project, title: String, block: suspend () -> Unit) {
+    titles.add(title)
+    block()
+  }
+}
+
 private class PausedArchiveBackgroundTaskRunner : AgentSessionArchiveBackgroundTaskRunner {
   private val startedSignal = CompletableDeferred<Unit>()
   private val resumeSignal = CompletableDeferred<Unit>()
@@ -781,7 +900,7 @@ private class PausedArchiveBackgroundTaskRunner : AgentSessionArchiveBackgroundT
   var completed: Boolean = false
     private set
 
-  override suspend fun run(project: Project, block: suspend () -> Unit) {
+  override suspend fun run(project: Project, title: String, block: suspend () -> Unit) {
     startedSignal.complete(Unit)
     resumeSignal.await()
     block()

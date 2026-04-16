@@ -89,7 +89,7 @@ private class AgentChatUnavailableFileEditor(
 
   override fun getPreferredFocusedComponent(): JComponent = component
 
-  override fun getName(): String = file.threadTitle
+  override fun getName(): String = AgentChatBundle.message("chat.filetype.name")
 
   override fun setState(state: FileEditorState) = Unit
 

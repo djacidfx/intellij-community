@@ -221,6 +221,37 @@ class ClaudeSessionSourceTest {
     assertThat(hints.getValue("/any").rebindCandidates.map { it.threadId }).containsExactly("new-visible")
   }
 
+  @Test
+  fun visibleKnownThreadsProduceRefreshActivityHints() {
+    val source = ClaudeSessionSource(
+      backend = staticBackend(
+        listOf(
+          ClaudeBackendThread(id = "known-processing", title = "Known processing", updatedAt = 3_000L, activity = ClaudeSessionActivity.PROCESSING),
+          ClaudeBackendThread(id = "known-ready", title = "Known ready", updatedAt = 2_000L),
+          ClaudeBackendThread(id = "new-visible", title = "New visible", updatedAt = 1_000L),
+        )
+      )
+    )
+
+    val hints = runBlocking(Dispatchers.Default) {
+      source.prefetchRefreshHints(
+        paths = listOf("/any"),
+        refreshThreadSeedsByPath = mapOf(
+          "/any" to setOf("known-processing", "known-ready").toAgentSessionRefreshThreadSeeds()
+        ),
+      )
+    }
+
+    val pathHints = hints.getValue("/any")
+    assertThat(pathHints.activityByThreadId).containsExactlyInAnyOrderEntriesOf(
+      mapOf(
+        "known-processing" to AgentThreadActivity.PROCESSING,
+        "known-ready" to AgentThreadActivity.READY,
+      )
+    )
+    assertThat(pathHints.rebindCandidates.map { it.threadId }).containsExactly("new-visible")
+  }
+
 
 }
 

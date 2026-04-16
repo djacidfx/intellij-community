@@ -23,7 +23,10 @@ internal fun clearAgentChatIconCacheForTests() {
 internal class AgentChatFileIconProvider : FileIconProvider {
   override fun getIcon(file: VirtualFile, flags: Int, project: Project?): Icon? {
     val chatFile = file as? AgentChatVirtualFile ?: return null
-    val icon = providerIcon(provider = chatFile.provider, threadActivity = chatFile.threadActivity)
+    val icon = providerIcon(
+      provider = chatFile.provider,
+      threadActivity = chatFile.threadActivity,
+    )
     if (chatFile.pendingLaunchMode == AgentSessionLaunchMode.YOLO.name) {
       return withYoloModeBadge(icon)
     }

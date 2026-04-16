@@ -366,7 +366,7 @@ internal suspend fun withServiceAndArchive(
   warmState: SessionWarmState = InMemorySessionWarmState(),
   uiPreferencesState: AgentSessionUiPreferencesStateService = AgentSessionUiPreferencesStateService(),
   archiveChatCleanup: suspend (projectPath: String, threadIdentity: String, subAgentId: String?) -> Unit = { _, _, _ -> },
-  archiveBackgroundTaskRunner: AgentSessionArchiveBackgroundTaskRunner = AgentSessionArchiveBackgroundTaskRunner { _, block -> block() },
+  archiveBackgroundTaskRunner: AgentSessionArchiveBackgroundTaskRunner = AgentSessionArchiveBackgroundTaskRunner { _, _, block -> block() },
   chatOpenExecutor: AgentSessionChatOpenExecutor? = null,
   openPendingCodexTabsProvider: suspend () -> Map<String, List<AgentChatPendingTabSnapshot>> =
     ::collectOpenPendingCodexTabsByPath,
@@ -399,7 +399,7 @@ internal suspend fun withServiceAndArchiveAndLaunch(
   warmState: SessionWarmState = InMemorySessionWarmState(),
   uiPreferencesState: AgentSessionUiPreferencesStateService = AgentSessionUiPreferencesStateService(),
   archiveChatCleanup: suspend (projectPath: String, threadIdentity: String, subAgentId: String?) -> Unit = { _, _, _ -> },
-  archiveBackgroundTaskRunner: AgentSessionArchiveBackgroundTaskRunner = AgentSessionArchiveBackgroundTaskRunner { _, block -> block() },
+  archiveBackgroundTaskRunner: AgentSessionArchiveBackgroundTaskRunner = AgentSessionArchiveBackgroundTaskRunner { _, _, block -> block() },
   chatOpenExecutor: AgentSessionChatOpenExecutor? = null,
   openPendingCodexTabsProvider: suspend () -> Map<String, List<AgentChatPendingTabSnapshot>> =
     ::collectOpenPendingCodexTabsByPath,

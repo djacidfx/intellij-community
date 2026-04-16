@@ -4,11 +4,58 @@ package com.intellij.agent.workbench.sessions.core.providers
 import com.intellij.agent.workbench.common.session.AgentSessionProvider
 import com.intellij.agent.workbench.common.session.AgentSessionThread
 import com.intellij.openapi.project.Project
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.map
+import java.util.concurrent.ConcurrentHashMap
 
 abstract class BaseAgentSessionSource(
   final override val provider: AgentSessionProvider,
   final override val canReportExactThreadCount: Boolean = true,
 ) : AgentSessionSource {
+  /**
+   * Tracks the last-seen `updatedAt` for threads the user has opened.
+   * Absent key = never opened -> READY (not UNREAD).
+   * Present key = opened at least once; if `thread.updatedAt > storedValue` -> UNREAD.
+   */
+  protected val readTracker: ConcurrentHashMap<String, Long> = ConcurrentHashMap()
+
+  private val readStateUpdates = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
+  protected val readStateUpdateEvents: Flow<AgentSessionSourceUpdateEvent> =
+    readStateUpdates.map { AgentSessionSourceUpdateEvent(type = AgentSessionSourceUpdate.HINTS_CHANGED) }
+
+  @Volatile
+  protected var activeThreadId: String? = null
+    private set
+
+  final override fun setActiveThreadId(threadId: String?) {
+    activeThreadId = threadId
+  }
+
+  final override fun markThreadAsRead(threadId: String, updatedAt: Long) {
+    readTracker.merge(threadId, updatedAt, ::maxOf)
+    readStateUpdates.tryEmit(Unit)
+  }
+
+  /**
+   * If any thread in [threads] matches [activeThreadId], merge its updatedAt
+   * into [readTracker]. Stops at first match.
+   */
+  protected inline fun <T> rememberActiveThreadRead(
+    threads: Iterable<T>,
+    id: (T) -> String,
+    updatedAt: (T) -> Long,
+  ) {
+    val currentActiveId = activeThreadId ?: return
+    for (thread in threads) {
+      if (id(thread) == currentActiveId) {
+        readTracker.merge(currentActiveId, updatedAt(thread), ::maxOf)
+        return
+      }
+    }
+  }
+
   final override suspend fun listThreadsFromOpenProject(path: String, project: Project): List<AgentSessionThread> {
     return listThreads(path = path, openProject = project)
   }

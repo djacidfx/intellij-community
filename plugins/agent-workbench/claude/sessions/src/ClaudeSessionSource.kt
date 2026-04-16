@@ -13,47 +13,24 @@ import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSourceUp
 import com.intellij.agent.workbench.sessions.core.providers.BaseAgentSessionSource
 import com.intellij.openapi.project.Project
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
-import java.util.concurrent.ConcurrentHashMap
 
 class ClaudeSessionSource(
   private val backend: ClaudeSessionBackend = createDefaultClaudeSessionBackend(),
 ) : BaseAgentSessionSource(provider = AgentSessionProvider.CLAUDE) {
-  /**
-   * Tracks the last-seen `updatedAt` for threads the user has opened.
-   * Absent key = never opened → READY (not UNREAD).
-   * Present key = opened at least once; if `thread.updatedAt > storedValue` → UNREAD.
-   */
-  private val readTracker = ConcurrentHashMap<String, Long>()
-  private val readStateUpdates = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-  @Volatile private var activeThreadId: String? = null
-
   override val supportsUpdates: Boolean get() = true
 
   override val updateEvents: Flow<AgentSessionSourceUpdateEvent>
     get() = merge(
       backend.updates.map { AgentSessionSourceUpdateEvent(type = AgentSessionSourceUpdate.THREADS_CHANGED) },
-      readStateUpdates.map { AgentSessionSourceUpdateEvent(type = AgentSessionSourceUpdate.HINTS_CHANGED) },
+      readStateUpdateEvents,
     )
-
-  override fun setActiveThreadId(threadId: String?) {
-    activeThreadId = threadId
-  }
 
   override suspend fun listThreads(path: String, openProject: Project?): List<AgentSessionThread> {
     val threads = backend.listThreads(path = path, openProject = openProject)
     val visibleThreads = threads.filterNot(ClaudeBackendThread::archived)
-    val currentActiveId = activeThreadId
-    if (currentActiveId != null) {
-      for (thread in visibleThreads) {
-        if (thread.id == currentActiveId) {
-          readTracker.merge(thread.id, thread.updatedAt, ::maxOf)
-          break
-        }
-      }
-    }
+    rememberActiveThreadRead(visibleThreads, ClaudeBackendThread::id, ClaudeBackendThread::updatedAt)
     return visibleThreads.map { it.toAgentSessionThread(readTracker) }
   }
 
@@ -73,6 +50,12 @@ class ClaudeSessionSource(
       }
       val visibleThreads = threads.filterNot(ClaudeBackendThread::archived)
       val knownIds = refreshThreadSeedsByPath[path].orEmpty().asSequence().map { it.threadId }.toCollection(LinkedHashSet())
+      val activityHintsByThreadId = LinkedHashMap<String, AgentThreadActivity>()
+      for (thread in visibleThreads) {
+        if (thread.id in knownIds) {
+          activityHintsByThreadId[thread.id] = thread.effectiveActivity(readTracker)
+        }
+      }
       val rebindCandidates = visibleThreads
         .filter { it.id !in knownIds }
         .map { thread ->
@@ -83,17 +66,15 @@ class ClaudeSessionSource(
             activity = thread.effectiveActivity(readTracker),
           )
         }
-      if (rebindCandidates.isNotEmpty()) {
-        result[path] = AgentSessionRefreshHints(rebindCandidates = rebindCandidates)
+      if (rebindCandidates.isNotEmpty() || activityHintsByThreadId.isNotEmpty()) {
+        result[path] = AgentSessionRefreshHints(
+          rebindCandidates = rebindCandidates,
+          activityByThreadId = activityHintsByThreadId,
+        )
       }
     }
 
     return result
-  }
-
-  override fun markThreadAsRead(threadId: String, updatedAt: Long) {
-    readTracker.merge(threadId, updatedAt, ::maxOf)
-    readStateUpdates.tryEmit(Unit)
   }
 }
 

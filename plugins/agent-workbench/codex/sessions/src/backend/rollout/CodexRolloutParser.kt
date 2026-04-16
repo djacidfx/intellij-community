@@ -12,7 +12,6 @@ import com.intellij.agent.workbench.codex.common.CodexThreadStatusKind
 import com.intellij.agent.workbench.codex.common.forEachObjectField
 import com.intellij.agent.workbench.codex.common.normalizeRootPath
 import com.intellij.agent.workbench.codex.common.readStringOrNull
-import com.intellij.agent.workbench.codex.sessions.backend.CodexActivitySignals
 import com.intellij.agent.workbench.codex.sessions.backend.CodexBackendThread
 import com.intellij.agent.workbench.codex.sessions.backend.resolveCodexSessionActivity
 import com.intellij.agent.workbench.json.WorkbenchJsonlScanner
@@ -54,13 +53,11 @@ internal class CodexRolloutParser(
     val hasUnread = state.latestAgentMessageAt > state.latestUserMessageAt
     val hasPendingUserInput = state.pendingUserInputByCallId.isNotEmpty()
     val activity = resolveCodexSessionActivity(
-      CodexActivitySignals(
-        statusKind = CodexThreadStatusKind.IDLE,
-        activeFlags = if (hasPendingUserInput) setOf(CodexThreadActiveFlag.WAITING_ON_USER_INPUT) else emptySet(),
-        hasUnreadAssistantMessage = hasUnread,
-        isReviewing = state.reviewing,
-        hasInProgressTurn = state.processing,
-      )
+      statusKind = CodexThreadStatusKind.IDLE,
+      activeFlags = if (hasPendingUserInput) setOf(CodexThreadActiveFlag.WAITING_ON_USER_INPUT) else emptySet(),
+      hasUnreadAssistantMessage = hasUnread,
+      isReviewing = state.reviewing,
+      hasInProgressTurn = state.processing,
     )
 
     val fallbackUpdatedAt = runCatching { Files.getLastModifiedTime(path).toMillis() }.getOrDefault(0L)

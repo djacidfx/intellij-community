@@ -117,6 +117,25 @@ class CodexRolloutSessionsWatcherTest {
     }
   }
 
+  @Test
+  fun rootlessPathlessOverflowRequestsFullRescan() = runBlocking(Dispatchers.Default) {
+    withWatcher(this) { watcher, _, _ ->
+      val changeSet = watcher.eventToChangeSet(
+        AgentWorkbenchWatchEvent(
+          eventType = AgentWorkbenchWatchEventType.OVERFLOW,
+          path = null,
+          rootPath = null,
+          isDirectory = false,
+          count = 1,
+        )
+      )
+
+      assertThat(changeSet).isNotNull
+      assertThat(changeSet!!.requiresFullRescan).isTrue()
+      assertThat(changeSet.changedPaths).isEmpty()
+    }
+  }
+
   private fun withWatcher(scope: CoroutineScope, test: (CodexRolloutSessionsWatcher, Path, Path) -> Unit) {
     val codexHome = tempDir.resolve("codex-home")
     val sessionsRoot = codexHome.resolve("sessions")

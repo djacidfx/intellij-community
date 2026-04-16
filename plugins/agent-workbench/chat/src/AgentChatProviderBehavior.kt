@@ -202,7 +202,7 @@ private fun codexTerminalTailLines(text: String): List<String> {
   return stripCodexTerminalAnsi(text)
     .replace("\r", "\n")
     .lineSequence()
-    .map(::normalizeCodexTerminalTailLine)
+    .map(::sanitizeCodexTerminalText)
     .filter(String::isNotEmpty)
     .toList()
     .takeLast(CODEX_TERMINAL_TAIL_LINE_SCAN_LIMIT)
@@ -210,10 +210,6 @@ private fun codexTerminalTailLines(text: String): List<String> {
 
 private fun normalizeCodexTerminalOutput(text: String): String {
   return sanitizeCodexTerminalText(stripCodexTerminalAnsi(text))
-}
-
-private fun normalizeCodexTerminalTailLine(text: String): String {
-  return sanitizeCodexTerminalText(text)
 }
 
 private fun sanitizeCodexTerminalText(text: String): String {

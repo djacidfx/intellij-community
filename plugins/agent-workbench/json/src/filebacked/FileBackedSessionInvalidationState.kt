@@ -1,7 +1,9 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.agent.workbench.json.filebacked
 
+import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.TimeUnit
 
 data class FileBackedSessionFileStat(
   @JvmField val pathKey: String,
@@ -9,6 +11,38 @@ data class FileBackedSessionFileStat(
   @JvmField val lastModifiedNs: Long,
   @JvmField val sizeBytes: Long,
 )
+
+/**
+ * Reads the stat (mtime, size) of [candidate] and returns a [FileBackedSessionFileStat],
+ * or `null` if the file is not a regular file, cannot be stat'd, or its mtime is below
+ * [minLastModifiedNs].
+ */
+fun buildFileBackedSessionFileStat(
+  candidate: Path,
+  minLastModifiedNs: Long = Long.MIN_VALUE,
+): FileBackedSessionFileStat? {
+  if (!Files.isRegularFile(candidate)) return null
+  val lastModifiedNs = try {
+    Files.getLastModifiedTime(candidate).to(TimeUnit.NANOSECONDS)
+  }
+  catch (_: Throwable) {
+    return null
+  }
+  if (lastModifiedNs < minLastModifiedNs) return null
+  val sizeBytes = try {
+    Files.size(candidate)
+  }
+  catch (_: Throwable) {
+    return null
+  }
+  val pathKey = toFileBackedSessionPathKey(candidate)
+  return FileBackedSessionFileStat(
+    pathKey = pathKey,
+    path = candidate,
+    lastModifiedNs = lastModifiedNs,
+    sizeBytes = sizeBytes,
+  )
+}
 
 data class FileBackedSessionCachedFile<Parsed>(
   @JvmField val lastModifiedNs: Long,

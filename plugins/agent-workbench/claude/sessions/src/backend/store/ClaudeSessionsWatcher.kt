@@ -2,10 +2,10 @@
 package com.intellij.agent.workbench.claude.sessions.backend.store
 
 import com.intellij.agent.workbench.filewatch.AgentWorkbenchWatchEvent
-import com.intellij.agent.workbench.filewatch.AgentWorkbenchWatchEventType
 import com.intellij.agent.workbench.json.filebacked.FileBackedSessionChangeSet
 import com.intellij.agent.workbench.json.filebacked.FileBackedSessionWatcher
 import com.intellij.agent.workbench.json.filebacked.FileBackedSessionWatcherSpec
+import com.intellij.agent.workbench.json.filebacked.classifyFileBackedSessionEvent
 import com.intellij.agent.workbench.json.filebacked.normalizeFileBackedSessionPath
 import com.intellij.openapi.diagnostic.logger
 import kotlinx.coroutines.CoroutineScope
@@ -37,40 +37,12 @@ internal class ClaudeSessionsWatcher(
   }
 
   internal fun eventToChangeSet(event: AgentWorkbenchWatchEvent): FileBackedSessionChangeSet? {
-    val eventPath = event.path
-    val rootPath = event.rootPath
-
-    if (event.eventType == AgentWorkbenchWatchEventType.OVERFLOW) {
-      val isRelevant = when {
-        eventPath != null && isUnderRoot(eventPath, projectsRoot) -> true
-        rootPath != null && normalizeFileBackedSessionPath(rootPath) == projectsRoot -> true
-        else -> false
-      }
-      if (!isRelevant) return null
-      return FileBackedSessionChangeSet(requiresFullRescan = true)
-    }
-
-    if (eventPath != null && isJsonlPath(eventPath, projectsRoot)) {
-      return FileBackedSessionChangeSet(changedPaths = setOf(normalizeFileBackedSessionPath(eventPath)))
-    }
-    if (eventPath != null && isIndexPath(eventPath, projectsRoot)) {
-      return FileBackedSessionChangeSet(changedPaths = setOf(normalizeFileBackedSessionPath(eventPath)))
-    }
-
-    val isProjectsEvent = when {
-      eventPath != null -> isUnderRoot(eventPath, projectsRoot)
-      rootPath != null -> normalizeFileBackedSessionPath(rootPath) == projectsRoot
-      else -> false
-    }
-    if (!isProjectsEvent) return null
-
-    val isAmbiguousDirectoryEvent = event.isDirectory || eventPath == null
-    if (isAmbiguousDirectoryEvent) {
-      return FileBackedSessionChangeSet(requiresFullRescan = true)
-    }
-
-    // Non-JSONL files under projects: emit refresh ping.
-    return FileBackedSessionChangeSet()
+    return classifyFileBackedSessionEvent(
+      event = event,
+      isChangedPath = { path -> isJsonlPath(path, projectsRoot) || isIndexPath(path, projectsRoot) },
+      isRelevantPath = { path -> isUnderRoot(path, projectsRoot) },
+      isRelevantRoot = { path -> normalizeFileBackedSessionPath(path) == projectsRoot },
+    )
   }
 }
 

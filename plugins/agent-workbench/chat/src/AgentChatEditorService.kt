@@ -92,6 +92,16 @@ data class AgentChatPendingTabRebindRequest(
   @JvmField val target: AgentChatTabRebindTarget,
 )
 
+private fun AgentChatPendingTabRebindRequest.hasConcreteTargetForProvider(provider: AgentSessionProvider): Boolean {
+  val targetCoordinates = resolveAgentChatThreadCoordinates(target.threadIdentity) ?: return false
+  // Pending tabs may only rebind to discovered concrete identities; `new-*` targets are synthetic
+  // placeholders used for projection and must be rejected here even if a caller passes one in.
+  return target.provider == provider &&
+         targetCoordinates.provider == provider &&
+         !targetCoordinates.isPending &&
+         target.threadIdentity != pendingThreadIdentity
+}
+
 data class AgentChatConcreteTabRebindRequest(
   @JvmField val tabKey: String,
   @JvmField val currentThreadIdentity: String,
@@ -206,8 +216,9 @@ suspend fun openChat(
   if (existing != null) {
     existing.updateFromResolution(AgentChatTabResolution.Resolved(snapshot))
     existing.updateCommandAndThreadId(shellCommand = shellCommand, shellEnvVariables = shellEnvVariables, threadId = threadId)
-    val titleUpdated = existing.updateThreadTitle(threadTitle)
-    val activityUpdated = existing.updateThreadActivity(threadActivity)
+    val titleUpdated = existing.updateBootstrapThreadTitle(threadTitle)
+    val activityUpdated = existing.updateBootstrapThreadActivity(threadActivity)
+    val sharedPresentationUpdated = !syncAgentChatSharedThreadPresentation(existing).isEmpty
     val deferredStartStateUpdated = existing.updateDeferredStartState(deferredStartState)
     val pendingUpdated = if (
       pendingCreatedAtMs != null ||
@@ -236,10 +247,11 @@ suspend fun openChat(
     }
     LOG.debug {
       "openChat existing tab update(identity=$threadIdentity, subAgentId=$subAgentId): " +
-      "titleUpdated=$titleUpdated, activityUpdated=$activityUpdated, currentName=${existing.name}," +
+      "titleUpdated=$titleUpdated, activityUpdated=$activityUpdated, sharedPresentationUpdated=$sharedPresentationUpdated, " +
+      "currentName=${existing.name}," +
       " currentTitle=${existing.threadTitle}, currentActivity=${existing.threadActivity}"
     }
-    if (titleUpdated || activityUpdated || pendingUpdated || hasExplicitInitialMessageDispatch || deferredStartStateUpdated) {
+    if (titleUpdated || activityUpdated || sharedPresentationUpdated || pendingUpdated || hasExplicitInitialMessageDispatch || deferredStartStateUpdated) {
       withContext(Dispatchers.EDT) {
         manager.updateFilePresentation(existing)
         if (deferredStartStateUpdated) {
@@ -250,6 +262,7 @@ suspend fun openChat(
   }
   else {
     file.updateDeferredStartState(deferredStartState)
+    syncAgentChatSharedThreadPresentation(file)
     if (startupOverrideForNewTab != null) {
       file.setStartupLaunchSpecOverride(startupOverrideForNewTab)
     }
@@ -310,7 +323,10 @@ suspend fun updateAgentChatDeferredStartState(
   val chatFile = file as? AgentChatVirtualFile ?: return
   startupLaunchSpecOverride?.let(chatFile::setStartupLaunchSpecOverride)
   chatFile.updateDeferredStartState(deferredStartState)
-  threadActivity?.let(chatFile::updateThreadActivity)
+  threadActivity?.let {
+    chatFile.updateBootstrapThreadActivity(it)
+    syncAgentChatSharedThreadPresentation(chatFile)
+  }
   initialMessageDispatchPlan?.let { dispatchPlan ->
     chatFile.updateInitialMessageMetadata(
       initialMessageDispatchSteps = dispatchPlan.postStartDispatchSteps,
@@ -434,7 +450,9 @@ suspend fun rebindOpenPendingAgentChatTabs(
   }
 
   val launchSpecsByTarget = resolveRebindLaunchSpecs(
-    normalizedRequestsByPath.values.asSequence().flatten().map { request -> request.target }
+    normalizedRequestsByPath.values.asSequence().flatten()
+      .filter { request -> request.hasConcreteTargetForProvider(provider) }
+      .map { request -> request.target }
   )
   val tabsService = serviceAsync<AgentChatTabsService>()
   val report = withContext(Dispatchers.UI) {
@@ -487,6 +505,18 @@ suspend fun rebindOpenPendingAgentChatTabs(
           continue
         }
 
+        if (!request.hasConcreteTargetForProvider(provider)) {
+          outcomes.add(
+            AgentChatPendingTabRebindOutcome(
+              projectPath = normalizedPath,
+              request = request,
+              status = AgentChatPendingTabRebindStatus.INVALID_PENDING_TAB,
+              reboundFiles = 0,
+            )
+          )
+          continue
+        }
+
         val targetIdentityAlreadyOpen = openTabsSnapshot.isConcreteThreadIdentityOpenInAnyManager(
           normalizedPath = normalizedPath,
           managers = managers,
@@ -517,6 +547,8 @@ suspend fun rebindOpenPendingAgentChatTabs(
           continue
         }
 
+        val previousPresentationKey = pendingFile.presentationKeyOrNull()
+          ?.takeIf { pendingFile.isEligibleForSharedPresentationSync() }
         val changed = pendingFile.rebindPendingThread(
           threadIdentity = request.target.threadIdentity,
           shellCommand = launchSpec.command,
@@ -537,6 +569,10 @@ suspend fun rebindOpenPendingAgentChatTabs(
           continue
         }
 
+        syncAgentChatSharedThreadPresentationAfterRebind(
+          file = pendingFile,
+          previousPresentationKey = previousPresentationKey,
+        )
         reboundBindings++
         tabsService.upsert(pendingFile.toSnapshot())
         changedFiles.add(pendingFile)
@@ -687,6 +723,8 @@ suspend fun rebindOpenConcreteAgentChatTabs(
         }
 
         val previousIdentity = concreteFile.threadIdentity
+        val previousPresentationKey = concreteFile.presentationKeyOrNull()
+          ?.takeIf { concreteFile.isEligibleForSharedPresentationSync() }
         val changed = concreteFile.rebindConcreteThread(
           threadIdentity = request.target.threadIdentity,
           shellCommand = launchSpec.command,
@@ -707,6 +745,10 @@ suspend fun rebindOpenConcreteAgentChatTabs(
           continue
         }
 
+        syncAgentChatSharedThreadPresentationAfterRebind(
+          file = concreteFile,
+          previousPresentationKey = previousPresentationKey,
+        )
         reboundBindings++
         tabsService.upsert(concreteFile.toSnapshot())
         changedFiles.add(concreteFile)
@@ -795,69 +837,33 @@ fun clearOpenConcreteAgentChatNewThreadRebindAnchors(
 }
 
 suspend fun updateOpenAgentChatTabPresentation(
+  provider: AgentSessionProvider,
+  refreshedPaths: Set<String>,
   titleByPathAndThreadIdentity: Map<Pair<String, String>, String>,
   activityByPathAndThreadIdentity: Map<Pair<String, String>, AgentThreadActivity>,
 ): Int {
-  if (titleByPathAndThreadIdentity.isEmpty() && activityByPathAndThreadIdentity.isEmpty()) {
+  if (
+    titleByPathAndThreadIdentity.isEmpty() &&
+    activityByPathAndThreadIdentity.isEmpty() &&
+    refreshedPaths.isEmpty()
+  ) {
     return 0
   }
 
-  val normalizedTitlesByPathAndThreadIdentity = normalizePathAndThreadIdentityMap(titleByPathAndThreadIdentity)
-  val normalizedActivitiesByPathAndThreadIdentity = normalizePathAndThreadIdentityMap(activityByPathAndThreadIdentity)
-  val updatedSnapshots = ArrayList<AgentChatTabSnapshot>()
-  var updatedTabs: Int
-  var updatedPresentations: Int
-  val tabsService = serviceAsync<AgentChatTabsService>()
-  withContext(Dispatchers.UI) {
-    val openTabsSnapshot = collectOpenAgentChatTabsSnapshot()
-    val changedFiles = LinkedHashSet<AgentChatVirtualFile>()
-
-    for (chatFile in openTabsSnapshot.files()) {
-      val key = normalizeAgentWorkbenchPath(chatFile.projectPath) to chatFile.threadIdentity
-      val targetTitle = normalizedTitlesByPathAndThreadIdentity[key]
-      val targetActivity = normalizedActivitiesByPathAndThreadIdentity[key]
-      if (targetTitle == null && targetActivity == null) {
-        continue
-      }
-
-      var presentationUpdated = false
-      if (targetTitle != null && chatFile.subAgentId == null && chatFile.updateThreadTitle(targetTitle)) {
-        presentationUpdated = true
-      }
-      if (targetActivity != null && chatFile.updateThreadActivity(targetActivity)) {
-        presentationUpdated = true
-      }
-
-      if (presentationUpdated) {
-        updatedSnapshots.add(chatFile.toSnapshot())
-        changedFiles.add(chatFile)
-      }
-    }
-
-    updatedTabs = changedFiles.size
-    updatedPresentations = 0
-    for (chatFile in changedFiles) {
-      val managers = openTabsSnapshot.managersFor(chatFile)
-      for (manager in managers) {
-        manager.updateFilePresentation(chatFile)
-        updatedPresentations++
-      }
-    }
-  }
-
-  if (updatedSnapshots.isNotEmpty()) {
-    withContext(Dispatchers.IO) {
-      for (snapshot in updatedSnapshots) {
-        tabsService.upsert(snapshot)
-      }
-    }
-  }
+  val changeSet = service<AgentThreadPresentationStore>().applyRefresh(
+    provider = provider,
+    refreshedPaths = refreshedPaths,
+    titleByPathAndThreadIdentity = titleByPathAndThreadIdentity,
+    activityByPathAndThreadIdentity = activityByPathAndThreadIdentity,
+  )
+  val updatedFiles = AgentChatOpenTabPresentationInvalidator.invalidate(changeSet)
 
   LOG.debug {
-    "updateOpenAgentChatTabPresentation updatedTabs=$updatedTabs, updatedPresentations=$updatedPresentations," +
-    " requestedTitles=${normalizedTitlesByPathAndThreadIdentity.size}, requestedActivities=${normalizedActivitiesByPathAndThreadIdentity.size}"
+    "updateOpenAgentChatTabPresentation provider=${provider.value}, updatedTabs=$updatedFiles, " +
+    "refreshedPaths=${refreshedPaths.size}, requestedTitles=${titleByPathAndThreadIdentity.size}, " +
+    "requestedActivities=${activityByPathAndThreadIdentity.size}"
   }
-  return updatedTabs
+  return updatedFiles
 }
 
 suspend fun collectSelectedChatThreadIdentity(): Pair<AgentSessionProvider, String>? = withContext(Dispatchers.UI) {
@@ -873,16 +879,6 @@ private fun <T> normalizePathToListMap(pathToValues: Map<String, List<T>>): Link
     normalizedPathToValues[normalizeAgentWorkbenchPath(projectPath)] = values
   }
   return normalizedPathToValues
-}
-
-private fun <T> normalizePathAndThreadIdentityMap(
-  valuesByPathAndThreadIdentity: Map<Pair<String, String>, T>,
-): LinkedHashMap<Pair<String, String>, T> {
-  val normalizedValuesByPathAndThreadIdentity = LinkedHashMap<Pair<String, String>, T>()
-  for ((key, value) in valuesByPathAndThreadIdentity) {
-    normalizedValuesByPathAndThreadIdentity[normalizeAgentWorkbenchPath(key.first) to key.second] = value
-  }
-  return normalizedValuesByPathAndThreadIdentity
 }
 
 private fun emptyPendingTabRebindReport(): AgentChatPendingTabRebindReport {

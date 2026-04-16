@@ -109,9 +109,10 @@ internal fun collectOpenAgentChatTabsSnapshot(
         managerByFile.computeIfAbsent(chatFile) { LinkedHashSet() }.add(exManager)
       }
 
-      if (chatFile.provider != null && !hasPendingThreadIdentity && chatFile.subAgentId == null) {
+      val provider = chatFile.provider
+      if (provider != null && !hasPendingThreadIdentity && chatFile.subAgentId == null) {
         concreteFilesByProviderAndPathAndTabKey
-          .computeIfAbsent(chatFile.provider!!) { LinkedHashMap() }
+          .computeIfAbsent(provider) { LinkedHashMap() }
           .computeIfAbsent(normalizedProjectPath) { LinkedHashMap() }
           .putIfAbsent(chatFile.tabKey, chatFile)
       }

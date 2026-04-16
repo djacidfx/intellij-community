@@ -50,6 +50,8 @@ internal class AgentSessionRefreshCoordinator(
       agentChatScopedRefreshSignals(provider)
     },
   private val openAgentChatTabPresentationUpdater: suspend (
+    AgentSessionProvider,
+    Set<String>,
     Map<Pair<String, String>, String>,
     Map<Pair<String, String>, AgentThreadActivity>,
   ) -> Int = ::updateOpenAgentChatTabPresentation,

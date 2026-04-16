@@ -884,14 +884,14 @@ class AgentChatFileEditorLifecycleTest {
     terminalTabs.tab.emitMeaningfulOutput("ready for first /plan")
     waitForCondition { terminalTabs.tab.sentTexts.size == 1 }
 
-    file.updateThreadActivity(AgentThreadActivity.PROCESSING)
+    file.updateBootstrapThreadActivity(AgentThreadActivity.PROCESSING)
     Thread.sleep(350)
 
     assertThat(file.initialMessageDispatchStepIndex).isZero()
     assertThat(terminalTabs.tab.sentTexts)
       .containsExactly(SentTerminalText("/plan", shouldExecute = true))
 
-    file.updateThreadActivity(AgentThreadActivity.READY)
+    file.updateBootstrapThreadActivity(AgentThreadActivity.READY)
     terminalTabs.tab.emitMeaningfulOutput(codexIdleTerminalSnapshot())
     waitForCondition(timeoutMs = 5_000) {
       file.initialMessageDispatchStepIndex == 1 &&

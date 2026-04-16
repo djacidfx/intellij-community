@@ -95,7 +95,7 @@ internal class AgentChatFileEditor(
     return tab?.preferredFocusableComponent ?: component
   }
 
-  override fun getName(): String = file.threadTitle
+  override fun getName(): String = AgentChatBundle.message("chat.filetype.name")
 
   override fun getTabActions(): ActionGroup? = editorTabActions
 

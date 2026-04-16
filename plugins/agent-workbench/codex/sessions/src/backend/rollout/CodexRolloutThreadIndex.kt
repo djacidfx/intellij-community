@@ -9,14 +9,13 @@ import com.intellij.agent.workbench.json.filebacked.FileBackedSessionCachedFile
 import com.intellij.agent.workbench.json.filebacked.FileBackedSessionChangeSet
 import com.intellij.agent.workbench.json.filebacked.FileBackedSessionFileStat
 import com.intellij.agent.workbench.json.filebacked.FileBackedSessionInvalidationState
-import com.intellij.agent.workbench.json.filebacked.toFileBackedSessionPathKey
+import com.intellij.agent.workbench.json.filebacked.buildFileBackedSessionFileStat
 import com.intellij.openapi.diagnostic.debug
 import com.intellij.openapi.diagnostic.logger
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.concurrent.TimeUnit
 
 private val LOG = logger<CodexRolloutThreadIndex>()
 
@@ -172,29 +171,10 @@ private fun scanRolloutFiles(sessionsDir: Path): Map<String, FileBackedSessionFi
     val iterator = stream.iterator()
     while (iterator.hasNext()) {
       val candidate = iterator.next()
-      if (!Files.isRegularFile(candidate)) continue
       val fileName = candidate.fileName?.toString() ?: continue
       if (!isRolloutFileName(fileName)) continue
-      val lastModifiedNs = try {
-        Files.getLastModifiedTime(candidate).to(TimeUnit.NANOSECONDS)
-      }
-      catch (_: Throwable) {
-        continue
-      }
-      val sizeBytes = try {
-        Files.size(candidate)
-      }
-      catch (_: Throwable) {
-        continue
-      }
-
-      val pathKey = toFileBackedSessionPathKey(candidate)
-      scannedFiles[pathKey] = FileBackedSessionFileStat(
-        pathKey = pathKey,
-        path = candidate,
-        lastModifiedNs = lastModifiedNs,
-        sizeBytes = sizeBytes,
-      )
+      val stat = buildFileBackedSessionFileStat(candidate) ?: continue
+      scannedFiles[stat.pathKey] = stat
     }
   }
 

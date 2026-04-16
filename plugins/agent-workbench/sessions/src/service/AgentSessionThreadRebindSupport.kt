@@ -801,7 +801,8 @@ private data class PendingTabRef(
 private fun AgentChatPendingTabRebindStatus.shouldDropFromPendingProjection(): Boolean {
   return this == AgentChatPendingTabRebindStatus.REBOUND ||
          this == AgentChatPendingTabRebindStatus.PENDING_TAB_NOT_OPEN ||
-         this == AgentChatPendingTabRebindStatus.INVALID_PENDING_TAB
+         this == AgentChatPendingTabRebindStatus.INVALID_PENDING_TAB ||
+         this == AgentChatPendingTabRebindStatus.TARGET_ALREADY_OPEN
 }
 
 private fun AgentChatPendingTabSnapshot.isEligibleForNoBaselineAutoBind(nowMs: Long): Boolean {

@@ -76,11 +76,18 @@ internal class AgentChatVirtualFile internal constructor(
     private set
 
   @NlsSafe
-  var threadTitle: String = resolveThreadTitle("")
+  var bootstrapThreadTitle: String = resolveThreadTitle("")
     private set
 
-  var threadActivity: AgentThreadActivity = AgentThreadActivity.READY
+  var bootstrapThreadActivity: AgentThreadActivity = AgentThreadActivity.READY
     private set
+
+  @get:NlsSafe
+  val threadTitle: String
+    get() = resolveAgentChatThreadPresentation(this).title
+
+  val threadActivity: AgentThreadActivity
+    get() = resolveAgentChatThreadPresentation(this).activity
 
   var pendingCreatedAtMs: Long? = null
     private set
@@ -157,35 +164,35 @@ internal class AgentChatVirtualFile internal constructor(
     return this.threadIdentity == threadIdentity && this.subAgentId == subAgentId
   }
 
-  fun updateThreadTitle(threadTitle: String): Boolean {
+  fun updateBootstrapThreadTitle(threadTitle: String): Boolean {
     val resolvedTitle = resolveThreadTitle(threadTitle)
-    if (this.threadTitle == resolvedTitle) {
+    if (bootstrapThreadTitle == resolvedTitle) {
       LOG.debug {
-        "Skipped tab title update(identity=$threadIdentity, subAgentId=$subAgentId): unchanged title=$resolvedTitle"
+        "Skipped chat bootstrap title update(identity=$threadIdentity, subAgentId=$subAgentId): unchanged title=$resolvedTitle"
       }
       return false
     }
 
-    val oldTitle = this.threadTitle
-    this.threadTitle = resolvedTitle
+    val oldTitle = bootstrapThreadTitle
+    bootstrapThreadTitle = resolvedTitle
     LOG.debug {
-      "Updated tab title(identity=$threadIdentity, subAgentId=$subAgentId): oldTitle=$oldTitle newTitle=$resolvedTitle"
+      "Updated chat bootstrap title(identity=$threadIdentity, subAgentId=$subAgentId): oldTitle=$oldTitle newTitle=$resolvedTitle"
     }
     return true
   }
 
-  fun updateThreadActivity(threadActivity: AgentThreadActivity): Boolean {
-    if (this.threadActivity == threadActivity) {
+  fun updateBootstrapThreadActivity(threadActivity: AgentThreadActivity): Boolean {
+    if (bootstrapThreadActivity == threadActivity) {
       LOG.debug {
-        "Skipped tab activity update(identity=$threadIdentity, subAgentId=$subAgentId): unchanged activity=$threadActivity"
+        "Skipped chat bootstrap activity update(identity=$threadIdentity, subAgentId=$subAgentId): unchanged activity=$threadActivity"
       }
       return false
     }
 
-    val oldActivity = this.threadActivity
-    this.threadActivity = threadActivity
+    val oldActivity = bootstrapThreadActivity
+    bootstrapThreadActivity = threadActivity
     LOG.debug {
-      "Updated tab activity(identity=$threadIdentity, subAgentId=$subAgentId): oldActivity=$oldActivity newActivity=$threadActivity"
+      "Updated chat bootstrap activity(identity=$threadIdentity, subAgentId=$subAgentId): oldActivity=$oldActivity newActivity=$threadActivity"
     }
     return true
   }
@@ -449,10 +456,10 @@ internal class AgentChatVirtualFile internal constructor(
       updateCommandAndThreadId(shellCommand = shellCommand, shellEnvVariables = shellEnvVariables, threadId = threadId)
       changed = true
     }
-    if (updateThreadTitle(threadTitle)) {
+    if (updateBootstrapThreadTitle(threadTitle)) {
       changed = true
     }
-    if (updateThreadActivity(threadActivity)) {
+    if (updateBootstrapThreadActivity(threadActivity)) {
       changed = true
     }
     if (
@@ -508,9 +515,9 @@ internal class AgentChatVirtualFile internal constructor(
       )
     }
     if (snapshot.runtime.threadTitle.isNotBlank()) {
-      updateThreadTitle(snapshot.runtime.threadTitle)
+      updateBootstrapThreadTitle(snapshot.runtime.threadTitle)
     }
-    updateThreadActivity(snapshot.runtime.threadActivity)
+    updateBootstrapThreadActivity(snapshot.runtime.threadActivity)
     updatePendingMetadata(
       pendingCreatedAtMs = snapshot.runtime.pendingCreatedAtMs,
       pendingFirstInputAtMs = snapshot.runtime.pendingFirstInputAtMs,
@@ -543,10 +550,10 @@ internal class AgentChatVirtualFile internal constructor(
       ),
       runtime = AgentChatTabRuntime(
         threadId = threadId,
-        threadTitle = threadTitle,
+        threadTitle = bootstrapThreadTitle,
         shellCommand = shellCommand,
         shellEnvVariables = shellEnvVariables,
-        threadActivity = threadActivity,
+        threadActivity = bootstrapThreadActivity,
         pendingCreatedAtMs = pendingCreatedAtMs,
         pendingFirstInputAtMs = pendingFirstInputAtMs,
         pendingLaunchMode = pendingLaunchMode,

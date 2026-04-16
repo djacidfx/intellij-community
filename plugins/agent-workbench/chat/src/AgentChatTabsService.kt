@@ -37,11 +37,15 @@ internal class AgentChatTabsService {
   }
 
   fun forget(tabKey: AgentChatTabKey): Boolean {
-    return stateService.delete(tabKey)
+    val deletedSnapshot = stateService.deleteAndGetSnapshot(tabKey)
+    if (deletedSnapshot != null) {
+      removeAgentChatSharedThreadPresentation(deletedSnapshot)
+    }
+    return deletedSnapshot != null
   }
 
   fun forget(tabKey: String): Boolean {
-    return stateService.delete(tabKey)
+    return AgentChatTabKey.parse(tabKey)?.let(::forget) ?: false
   }
 
   fun load(tabKey: String): AgentChatTabSnapshot? {
@@ -56,18 +60,15 @@ internal class AgentChatTabsService {
     val normalizedProjectPath = normalizeAgentWorkbenchPath(projectPath)
     val closedTabs = withContext(Dispatchers.UiWithModelAccess) {
       // FileEditorManager.closeFile() can initiate write-intent, which is disallowed on strict Dispatchers.UI.
-      closeMatchingOpenTabs(normalizedProjectPath, threadIdentity, subAgentId)
+      collectOpenAgentChatTabsSnapshot().closeMatchingOpenTabs(normalizedProjectPath, threadIdentity, subAgentId)
     }
     val deleteResult = withContext(Dispatchers.IO) {
       stateService.deleteByThreadWithKeys(normalizedProjectPath, threadIdentity, subAgentId)
     }
+    removeAgentChatSharedThreadPresentation(deleteResult.deletedTabs)
     return AgentChatThreadCleanupResult(
       closedTabs = closedTabs,
       deletedStates = deleteResult.deletedKeys.size,
     )
   }
-}
-
-private fun closeMatchingOpenTabs(projectPath: String, threadIdentity: String, subAgentId: String?): Int {
-  return collectOpenAgentChatTabsSnapshot().closeMatchingOpenTabs(projectPath, threadIdentity, subAgentId)
 }

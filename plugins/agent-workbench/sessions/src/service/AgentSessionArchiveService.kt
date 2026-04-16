@@ -36,6 +36,7 @@ import com.intellij.openapi.util.NlsContexts
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.platform.ide.progress.TaskCancellation
 import com.intellij.platform.ide.progress.withBackgroundProgress
+import com.intellij.platform.util.progress.reportSequentialProgress
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -96,7 +97,7 @@ class AgentSessionArchiveService internal constructor(
         return@launchDropAction
       }
       val progressProject = resolveArchiveProgressProject(normalizedTargets)
-      backgroundTaskRunner.run(progressProject) {
+      backgroundTaskRunner.run(progressProject, buildArchiveProgressTitle(preparedBatch.providerTargets.size)) {
         val providerOutcome = archivePreparedTargets(preparedBatch.providerTargets)
         finishArchiveBatch(preparedBatch.localOutcome + providerOutcome)
       }
@@ -228,44 +229,48 @@ class AgentSessionArchiveService internal constructor(
     val undoTargets = ArrayList<ArchiveThreadTarget>()
     var refreshDelayMs = 0L
 
-    targets.forEach { preparedTarget ->
-      val target = preparedTarget.target
-      val provider = target.provider
-      val descriptor = preparedTarget.descriptor
-      val archived = try {
-        descriptor.archiveThread(path = target.path, threadId = target.threadId)
-      }
-      catch (t: Throwable) {
-        if (t is CancellationException) {
-          throw t
+    reportSequentialProgress(targets.size) { reporter ->
+      targets.forEachIndexed { index, preparedTarget ->
+        reporter.itemStep(buildArchiveProgressStepText(current = index + 1, total = targets.size)) {
+          val target = preparedTarget.target
+          val provider = target.provider
+          val descriptor = preparedTarget.descriptor
+          val archived = try {
+            descriptor.archiveThread(path = target.path, threadId = target.threadId)
+          }
+          catch (t: Throwable) {
+            if (t is CancellationException) {
+              throw t
+            }
+            LOG.warn("Failed to archive thread ${provider}:${target.threadId}", t)
+            handleArchiveFailure(preparedTarget)
+            return@itemStep
+          }
+
+          if (!archived) {
+            handleArchiveFailure(preparedTarget)
+            return@itemStep
+          }
+
+          refreshDelayMs = maxOf(refreshDelayMs, descriptor.archiveRefreshDelayMs)
+
+          try {
+            archiveChatCleanup(target.path, preparedTarget.cleanupTarget.threadIdentity, preparedTarget.cleanupTarget.subAgentId)
+          }
+          catch (t: Throwable) {
+            if (t is CancellationException) {
+              throw t
+            }
+            // Archive is already successful at provider level; cleanup is best-effort and must not
+            // resurrect the thread in UI by short-circuiting state update/refresh.
+            LOG.warn("Failed to clean archived thread chat metadata for ${provider}:${target.threadId}", t)
+          }
+
+          archivedTargets.add(target)
+          if (descriptor.supportsUnarchiveThread) {
+            undoTargets.add(target)
+          }
         }
-        LOG.warn("Failed to archive thread ${provider}:${target.threadId}", t)
-        handleArchiveFailure(preparedTarget)
-        return@forEach
-      }
-
-      if (!archived) {
-        handleArchiveFailure(preparedTarget)
-        return@forEach
-      }
-
-      refreshDelayMs = maxOf(refreshDelayMs, descriptor.archiveRefreshDelayMs)
-
-      try {
-        archiveChatCleanup(target.path, preparedTarget.cleanupTarget.threadIdentity, preparedTarget.cleanupTarget.subAgentId)
-      }
-      catch (t: Throwable) {
-        if (t is CancellationException) {
-          throw t
-        }
-        // Archive is already successful at provider level; cleanup is best-effort and must not
-        // resurrect the thread in UI by short-circuiting state update/refresh.
-        LOG.warn("Failed to clean archived thread chat metadata for ${provider}:${target.threadId}", t)
-      }
-
-      archivedTargets.add(target)
-      if (descriptor.supportsUnarchiveThread) {
-        undoTargets.add(target)
       }
     }
 
@@ -389,20 +394,38 @@ private operator fun ArchiveBatchOutcome.plus(other: ArchiveBatchOutcome): Archi
 }
 
 internal fun interface AgentSessionArchiveBackgroundTaskRunner {
-  suspend fun run(project: Project, block: suspend () -> Unit)
+  suspend fun run(project: Project, title: @NlsContexts.ProgressTitle String, block: suspend () -> Unit)
 }
 
 private object IdeAgentSessionArchiveBackgroundTaskRunner : AgentSessionArchiveBackgroundTaskRunner {
-  override suspend fun run(project: Project, block: suspend () -> Unit) {
+  override suspend fun run(project: Project, title: @NlsContexts.ProgressTitle String, block: suspend () -> Unit) {
     withBackgroundProgress(
       project = project,
-      title = AgentSessionsBundle.message("toolwindow.progress.archiving.thread"),
+      title = title,
       cancellation = TaskCancellation.nonCancellable(),
       suspender = null,
       visibleInStatusBar = true,
     ) {
       block()
     }
+  }
+}
+
+private fun buildArchiveProgressTitle(count: Int): @NlsContexts.ProgressTitle String {
+  return if (count == 1) {
+    AgentSessionsBundle.message("toolwindow.progress.archiving.thread")
+  }
+  else {
+    AgentSessionsBundle.message("toolwindow.progress.archiving.threads")
+  }
+}
+
+private fun buildArchiveProgressStepText(current: Int, total: Int): @NlsContexts.ProgressText String {
+  return if (total == 1) {
+    AgentSessionsBundle.message("toolwindow.progress.archiving.thread")
+  }
+  else {
+    AgentSessionsBundle.message("toolwindow.progress.archiving.thread.step", current, total)
   }
 }
 

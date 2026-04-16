@@ -41,7 +41,7 @@ This file is the single inventory for where Agent Workbench state is persisted a
   - `AgentSessionUiPreferencesState` (`Service.Level.APP`, `StoragePathMacros.NON_ROAMABLE_FILE`).
   - `AgentPromptUiState` (`Service.Level.PROJECT`, `StoragePathMacros.PRODUCT_WORKSPACE_FILE`).
 
-- `AgentChatTabsState` persistence must remain cache-scoped app state and must store tab snapshots keyed by `tabKey`.
+- `AgentChatTabsState` persistence must remain cache-scoped app state and must store tab snapshots keyed by `tabKey`; persisted thread title/activity remain restore/bootstrap fallback for tabs and must not become the live authority for already-open concrete tab presentation.
   [@test] ../chat/testSrc/AgentChatFileEditorProviderTest.kt
 
 - `AgentSessionWarmState` persistence must remain cache-scoped app state and must store only warm-start session content for open paths (threads, `hasUnknownThreadCount`, snapshot timestamp).

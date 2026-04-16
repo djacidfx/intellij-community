@@ -3,10 +3,10 @@
 package com.intellij.agent.workbench.codex.sessions.backend.rollout
 
 import com.intellij.agent.workbench.filewatch.AgentWorkbenchWatchEvent
-import com.intellij.agent.workbench.filewatch.AgentWorkbenchWatchEventType
 import com.intellij.agent.workbench.json.filebacked.FileBackedSessionChangeSet
 import com.intellij.agent.workbench.json.filebacked.FileBackedSessionWatcher
 import com.intellij.agent.workbench.json.filebacked.FileBackedSessionWatcherSpec
+import com.intellij.agent.workbench.json.filebacked.classifyFileBackedSessionEvent
 import com.intellij.agent.workbench.json.filebacked.normalizeFileBackedSessionPath
 import com.intellij.openapi.diagnostic.logger
 import kotlinx.coroutines.CoroutineScope
@@ -38,40 +38,14 @@ internal class CodexRolloutSessionsWatcher(
   }
 
   internal fun eventToChangeSet(event: AgentWorkbenchWatchEvent): FileBackedSessionChangeSet? {
-    val eventPath = event.path
-    val rootPath = event.rootPath
-    if (event.eventType == AgentWorkbenchWatchEventType.OVERFLOW) {
-      val isRelevantOverflow = when {
-        eventPath != null && isSessionsPath(eventPath) -> true
-        rootPath != null && isRelevantWatcherRoot(rootPath) -> true
-        else -> false
-      }
-      if (!isRelevantOverflow) return null
-      return FileBackedSessionChangeSet(requiresFullRescan = true)
-    }
-
-    if (eventPath != null && isRolloutPath(eventPath)) {
-      return FileBackedSessionChangeSet(changedPaths = setOf(normalizeFileBackedSessionPath(eventPath)))
-    }
-
     // Prefer eventPath when present so codex-home root events outside sessions
     // (for example ~/.codex/config.toml) do not trigger session refresh.
-    val isSessionsEvent = when {
-      eventPath != null -> isSessionsPath(eventPath)
-      rootPath != null -> isRelevantWatcherRoot(rootPath)
-      else -> false
-    }
-    if (!isSessionsEvent) return null
-
-    // Directory-level and path-less events are ambiguous, so force reparse.
-    val isAmbiguousDirectoryEvent = event.isDirectory || eventPath == null
-    if (isAmbiguousDirectoryEvent) {
-      return FileBackedSessionChangeSet(requiresFullRescan = true)
-    }
-
-    // For non-rollout files under sessions (e.g. temp files used by atomic rewrite),
-    // emit a refresh ping. The index will re-scan file stats without forcing full reparse.
-    return FileBackedSessionChangeSet()
+    return classifyFileBackedSessionEvent(
+      event = event,
+      isChangedPath = ::isRolloutPath,
+      isRelevantPath = ::isSessionsPath,
+      isRelevantRoot = ::isRelevantWatcherRoot,
+    )
   }
 
   private fun isSessionsPath(path: Path): Boolean {

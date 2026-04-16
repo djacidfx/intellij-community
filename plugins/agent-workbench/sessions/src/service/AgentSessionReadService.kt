@@ -1,4 +1,5 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// @spec community/plugins/agent-workbench/spec/agent-chat-editor.spec.md
 package com.intellij.agent.workbench.sessions.service
 
 import com.intellij.agent.workbench.chat.AgentChatEditorTabActionContext
@@ -10,6 +11,7 @@ import com.intellij.agent.workbench.sessions.model.AgentSessionProviderWarning
 import com.intellij.agent.workbench.sessions.model.AgentSessionsState
 import com.intellij.agent.workbench.sessions.state.AgentSessionsStateStore
 import com.intellij.agent.workbench.sessions.util.buildAgentSessionIdentity
+import com.intellij.agent.workbench.sessions.util.isAgentSessionNewSessionId
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
@@ -40,10 +42,6 @@ class AgentSessionReadService private constructor(
 
   fun stateFlow(): StateFlow<AgentSessionsState> = requiredStateStoreProvider().state
 
-  internal fun stateSnapshot(): AgentSessionsState = stateFlow().value
-
-  internal fun isRefreshing(): Boolean = stateSnapshot().projects.any { project -> project.isLoading }
-
   fun resolvePendingThreadRebindTarget(
     context: AgentChatEditorTabActionContext,
     provider: AgentSessionProvider,
@@ -52,15 +50,14 @@ class AgentSessionReadService private constructor(
       return null
     }
 
+    val pendingSessionId = context.threadCoordinates?.sessionId ?: return null
     val state = optionalSessionsStateProvider() ?: return null
     val normalizedPath = normalizeAgentWorkbenchPath(context.path)
-    val candidateThreads = resolveThreadsForPath(state, normalizedPath)
+    val thread = resolveThreadsForPath(state, normalizedPath)
       .asSequence()
-      .filter { thread -> thread.provider == provider }
-      .sortedByDescending { thread -> thread.updatedAt }
-      .toList()
-
-    val thread = candidateThreads.firstOrNull() ?: return null
+      .filter { thread -> thread.isConcreteRebindTarget(provider = provider, pendingSessionId = pendingSessionId) }
+      .maxByOrNull { thread -> thread.updatedAt }
+      ?: return null
 
     return AgentChatTabRebindTarget(
       projectPath = normalizedPath,
@@ -113,6 +110,14 @@ fun isPendingEditorContext(context: AgentChatEditorTabActionContext, provider: A
   return threadCoordinates.isPending &&
          threadCoordinates.participatesInPendingThreadLifecycle &&
          threadCoordinates.provider == provider
+}
+
+private fun AgentSessionThread.isConcreteRebindTarget(provider: AgentSessionProvider, pendingSessionId: String): Boolean {
+  // Projected `new-*` rows keep pending tabs visible in the tree but never represent a concrete
+  // provider-backed thread, so binding a pending editor tab to them would self-rebind it.
+  return this.provider == provider &&
+         id != pendingSessionId &&
+         !isAgentSessionNewSessionId(id)
 }
 
 private fun resolveThreadsForPath(state: AgentSessionsState, normalizedPath: String): List<AgentSessionThread> {

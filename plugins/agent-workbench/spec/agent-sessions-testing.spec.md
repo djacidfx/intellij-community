@@ -30,7 +30,7 @@ This file does not redefine runtime behavior; it maps each contract area to requ
 
 ## Requirements
 - Core contract coverage must include identity and command mapping, shared editor-tab popup actions, archive gate behavior (including optional unarchive capability contract), and visibility primitive persistence.
-- Archive service coverage must include single-thread archive, multi-target archive with partial provider support, and unarchive restore behavior for supported providers.
+- Archive service coverage must include single-thread archive, multi-target archive with partial provider support, multi-target progress title and sequential provider order, background-failure rollback, and unarchive restore behavior for supported providers.
 - Claude sessions coverage must include archive-prefix title parsing, full-title preservation for long titles, active-list filtering of archived threads, and provider-backed archive/unarchive/rename command transport with the resumed non-interactive `--resume <id> --permission-mode default --print --name <title> -- <ack prompt>` command shape asserted, plus a plain rename case asserting the same `--name <title>` transport is reused for non-archive renames.
 - Sessions aggregation/service coverage must include ordering, partial warning, blocking error, unknown counts, warm-snapshot bootstrap, on-demand dedup, refresh concurrency, and local read-state synchronization.
 - Swing tree rendering coverage must include warning/error precedence, empty-state exclusivity, `More` row exact/unknown behavior, and thread-row metadata presentation (badge + time, no inline status text, tooltip status preserved).
@@ -43,7 +43,7 @@ This file does not redefine runtime behavior; it maps each contract area to requ
 - Tree-popup action coverage must include platform copy group registration (`CopyReferencePopupGroup`) for project/worktree context menus.
 - Dedicated-frame coverage must include gear toggle setting wiring, routing behavior in both modes, and dedicated-project filtering.
 - Claude quota hint coverage must include visibility/acknowledgement gating and toggle action registration.
-- Chat-editor lifecycle coverage must include protocol v2 restore, state round-trip, lazy initialization, tab title refresh, icon mapping fallback, and archive-triggered close+forget.
+- Chat-editor lifecycle coverage must include protocol v2 restore, state round-trip, lazy initialization, shared tab-presentation refresh, scoped stale-entry replacement, sub-agent activity propagation without title overwrite, stable editor-kind naming, icon mapping fallback, and archive-triggered close+forget.
 - Codex backend coverage must include raw status-kind parsing, rollout parser/title/activity behavior, watcher behavior (path-scoped + overflow/full-rescan), app-server sub-agent hierarchy/orphan handling, app-server-only backend selection, app-server `thread/read` status-and-flag normalization, response-required/read-tracker behavior, started-thread fallback mapping, app-server-first refresh-hints merge with rollout unread fallback, real-TUI rollout ingestion through the production rollout path, prompt-suggestion streamed turn handling, and prompt-suggestion interrupt cleanup.
 - Codex app-server contract tests must run against mock backend in all environments and real backend when CLI is available.
 - Real-backend contract assertions must be invariant-based (ordering and archived consistency) and must not depend on user-specific thread IDs.

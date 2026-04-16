@@ -18,7 +18,7 @@ targets:
 # Agent Chat Editor
 
 Status: Draft
-Date: 2026-04-06
+Date: 2026-04-19
 
 ## Summary
 Define how Agent chat tabs are opened, restored, reused, and rendered in editor tabs. This spec owns tab lifecycle and persistence behavior. Shared command mapping and shared editor-tab popup action semantics are owned by `spec/agent-core-contracts.spec.md`. Semantic transcript navigation and proposed-plan editor affordances are owned by `spec/agent-chat-semantic-navigation.spec.md`.
@@ -61,8 +61,8 @@ Define how Agent chat tabs are opened, restored, reused, and rendered in editor 
 - Persisted tab-state payload must include:
   - project hash/path,
   - thread identity/sub-agent and thread id,
-  - shell command, title, activity,
-  - pending Codex metadata (`pendingCreatedAtMs`, `pendingFirstInputAtMs`, `pendingLaunchMode`),
+  - shell command, persisted bootstrap title/activity fallback,
+  - pending provider metadata for rebinding-capable providers (`pendingCreatedAtMs`, `pendingFirstInputAtMs`, `pendingLaunchMode`),
   - concrete Codex `/new` rebinding metadata (`newThreadRebindRequestedAtMs`),
   - initial prompt dispatch metadata (`initialMessageDispatchSteps`, `initialMessageDispatchStepIndex`, `initialMessageToken`, `initialMessageSent`),
   - updated timestamp.
@@ -96,7 +96,9 @@ Define how Agent chat tabs are opened, restored, reused, and rendered in editor 
   [@test] ../chat/testSrc/AgentChatFileEditorLifecycleTest.kt
   [@test] ../chat/testSrc/AgentChatTerminalTabCloseTest.kt
 
-- Editor tab title must come from thread title with fallback `Agent Chat`, via `EditorTabTitleProvider` (no virtual-file-name mutation dependency).
+- Concrete top-level editor-tab title and activity must resolve from shared thread presentation keyed by normalized project path + canonical thread identity, via `EditorTabTitleProvider` and the shared tab-icon provider, with persisted tab title/activity used only as immediate restore/bootstrap fallback.
+- Sub-agent tabs must keep their own stored title while inheriting parent-thread activity from the shared thread-presentation model.
+- `FileEditor.getName()` for Agent Chat editors must remain a stable editor-kind label and must not mirror mutable thread titles.
 - Tab title must be middle-truncated to 50 characters for presentation; tooltip keeps full title.
   [@test] ../chat/testSrc/AgentChatEditorServiceTest.kt
   [@test] ../chat/testSrc/AgentChatFileEditorProviderTest.kt
@@ -111,6 +113,9 @@ Define how Agent chat tabs are opened, restored, reused, and rendered in editor 
 - After the first pending Codex key event, chat must emit an immediate scoped refresh for the tab path and keep a bounded pending-only scoped refresh retry loop active until the tab rebinds, the tab closes, or the pending rebind window expires.
 - Restored pending Codex tabs with persisted first-input metadata must resume the same bounded scoped refresh retries on initialization.
 - Pending-identity tabs that finish in a deferred no-start outcome must remain open for inline result rendering, but must drop out of pending-thread projection and editor-tab rebind eligibility for the rest of the runtime.
+- Pending editor-tab rebind resolution must only target concrete provider-backed threads for the same normalized path; projected `new-*` rows and self-rebind targets are invalid.
+- Open pending-tab snapshot collection must preserve project path, pending thread identity, and pending metadata for providers that support pending editor-tab rebinding, including Codex and Claude.
+- Successful pending editor-tab rebind must update the tab's stored title/activity and editor-tab title/tooltip without reopening the tab.
   [@test] ../chat/testSrc/AgentChatEditorServiceTest.kt
   [@test] ../sessions/testSrc/PendingThreadRebindTargetResolverTest.kt
   [@test] ../sessions-actions/testSrc/actions/AgentSessionsBindPendingThreadFromEditorTabActionTest.kt
@@ -143,7 +148,7 @@ Define how Agent chat tabs are opened, restored, reused, and rendered in editor 
   [@test] ../chat/testSrc/AgentChatFileEditorLifecycleTest.kt
   [@test] ../sessions/testSrc/AgentSessionPromptLauncherBridgeTest.kt
 
-- Editor tab icon must be provider-specific using canonical identity; every normalized `AgentThreadActivity` state is represented by an activity badge, unknown provider uses the default chat icon as the base icon, and unknown activity defaults to `READY`.
+- Editor tab icon must be provider-specific using canonical identity; concrete tabs resolve live activity from the shared thread-presentation model, pending tabs use bootstrap activity until rebind, every normalized `AgentThreadActivity` state is represented by an activity badge, unknown provider uses the default chat icon as the base icon, and unknown activity defaults to `READY`.
 - Pending YOLO-mode tabs must overlay a red error-dot badge on the provider icon (via `withYoloModeBadge`) to visually distinguish YOLO sessions from standard ones.
   [@test] ../chat/testSrc/AgentChatFileEditorProviderTest.kt
 

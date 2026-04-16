@@ -11,6 +11,7 @@ import com.intellij.agent.workbench.json.filebacked.FileBackedSessionCachedFile
 import com.intellij.agent.workbench.json.filebacked.FileBackedSessionChangeSet
 import com.intellij.agent.workbench.json.filebacked.FileBackedSessionFileStat
 import com.intellij.agent.workbench.json.filebacked.FileBackedSessionInvalidationState
+import com.intellij.agent.workbench.json.filebacked.buildFileBackedSessionFileStat
 import com.intellij.agent.workbench.json.filebacked.toFileBackedSessionPathKey
 import com.intellij.openapi.diagnostic.debug
 import com.intellij.openapi.diagnostic.logger
@@ -134,57 +135,15 @@ private fun scanJsonlFiles(directory: Path, result: MutableMap<String, FileBacke
   val cutoffNs = TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis()) - MAX_AGE_NS
   Files.newDirectoryStream(directory, "*.jsonl").use { files ->
     for (candidate in files) {
-      if (!Files.isRegularFile(candidate)) continue
-      val lastModifiedNs = try {
-        Files.getLastModifiedTime(candidate).to(TimeUnit.NANOSECONDS)
-      }
-      catch (_: Throwable) {
-        continue
-      }
-      if (lastModifiedNs < cutoffNs) continue
-      val sizeBytes = try {
-        Files.size(candidate)
-      }
-      catch (_: Throwable) {
-        continue
-      }
-
-      val pathKey = toFileBackedSessionPathKey(candidate)
-      result[pathKey] = FileBackedSessionFileStat(
-        pathKey = pathKey,
-        path = candidate,
-        lastModifiedNs = lastModifiedNs,
-        sizeBytes = sizeBytes,
-      )
+      val stat = buildFileBackedSessionFileStat(candidate, minLastModifiedNs = cutoffNs) ?: continue
+      result[stat.pathKey] = stat
     }
   }
 }
 
 private fun scanIndexFiles(directory: Path, result: MutableMap<String, FileBackedSessionFileStat>) {
-  val candidate = directory.resolve(CLAUDE_SESSION_INDEX_FILE)
-  if (!Files.isRegularFile(candidate)) {
-    return
-  }
-  val lastModifiedNs = try {
-    Files.getLastModifiedTime(candidate).to(TimeUnit.NANOSECONDS)
-  }
-  catch (_: Throwable) {
-    return
-  }
-  val sizeBytes = try {
-    Files.size(candidate)
-  }
-  catch (_: Throwable) {
-    return
-  }
-
-  val pathKey = toFileBackedSessionPathKey(candidate)
-  result[pathKey] = FileBackedSessionFileStat(
-    pathKey = pathKey,
-    path = candidate,
-    lastModifiedNs = lastModifiedNs,
-    sizeBytes = sizeBytes,
-  )
+  val stat = buildFileBackedSessionFileStat(directory.resolve(CLAUDE_SESSION_INDEX_FILE)) ?: return
+  result[stat.pathKey] = stat
 }
 
 private fun resolveIndexedTitle(

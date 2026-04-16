@@ -8,67 +8,41 @@ import com.intellij.agent.workbench.codex.common.CodexThreadActiveFlag
 import com.intellij.agent.workbench.codex.common.CodexThreadActivitySnapshot
 import com.intellij.agent.workbench.codex.common.CodexThreadStatusKind
 
-internal data class CodexActivitySignals(
-  @JvmField val statusKind: CodexThreadStatusKind,
-  @JvmField val activeFlags: Set<CodexThreadActiveFlag>,
-  @JvmField val hasUnreadAssistantMessage: Boolean,
-  @JvmField val isReviewing: Boolean,
-  @JvmField val hasInProgressTurn: Boolean,
-)
-
-internal fun CodexThread.toCodexActivitySignals(): CodexActivitySignals {
-  return CodexActivitySignals(
-    statusKind = statusKind,
-    activeFlags = activeFlags.toSet(),
-    hasUnreadAssistantMessage = false,
-    isReviewing = false,
-    hasInProgressTurn = false,
-  )
-}
-
-internal fun CodexThreadActivitySnapshot.toCodexActivitySignals(): CodexActivitySignals {
-  return CodexActivitySignals(
-    statusKind = statusKind,
-    activeFlags = activeFlags.toSet(),
-    hasUnreadAssistantMessage = hasUnreadAssistantMessage,
-    isReviewing = isReviewing,
-    hasInProgressTurn = hasInProgressTurn,
-  )
-}
-
-internal fun CodexAppServerStartedThread.toCodexActivitySignals(): CodexActivitySignals {
-  return CodexActivitySignals(
-    statusKind = statusKind,
-    activeFlags = activeFlags.toSet(),
-    hasUnreadAssistantMessage = false,
-    isReviewing = false,
-    hasInProgressTurn = false,
-  )
-}
-
 internal fun Collection<CodexThreadActiveFlag>.isResponseRequired(): Boolean {
   return CodexThreadActiveFlag.WAITING_ON_USER_INPUT in this ||
          CodexThreadActiveFlag.WAITING_ON_APPROVAL in this
 }
 
 internal fun CodexThread.toCodexSessionActivity(): CodexSessionActivity {
-  return resolveCodexSessionActivity(toCodexActivitySignals())
-}
-
-internal fun CodexThreadActivitySnapshot.toCodexSessionActivity(): CodexSessionActivity {
-  return resolveCodexSessionActivity(toCodexActivitySignals())
+  return resolveCodexSessionActivity(statusKind = statusKind, activeFlags = activeFlags)
 }
 
 internal fun CodexAppServerStartedThread.toCodexSessionActivity(): CodexSessionActivity {
-  return resolveCodexSessionActivity(toCodexActivitySignals())
+  return resolveCodexSessionActivity(statusKind = statusKind, activeFlags = activeFlags)
 }
 
-internal fun resolveCodexSessionActivity(signals: CodexActivitySignals): CodexSessionActivity {
+internal fun CodexThreadActivitySnapshot.toCodexSessionActivity(): CodexSessionActivity {
+  return resolveCodexSessionActivity(
+    statusKind = statusKind,
+    activeFlags = activeFlags,
+    hasUnreadAssistantMessage = hasUnreadAssistantMessage,
+    isReviewing = isReviewing,
+    hasInProgressTurn = hasInProgressTurn,
+  )
+}
+
+internal fun resolveCodexSessionActivity(
+  statusKind: CodexThreadStatusKind,
+  activeFlags: Collection<CodexThreadActiveFlag>,
+  hasUnreadAssistantMessage: Boolean = false,
+  isReviewing: Boolean = false,
+  hasInProgressTurn: Boolean = false,
+): CodexSessionActivity {
   return when {
-    signals.activeFlags.isResponseRequired() -> CodexSessionActivity.UNREAD
-    signals.isReviewing -> CodexSessionActivity.REVIEWING
-    signals.hasInProgressTurn || signals.statusKind == CodexThreadStatusKind.ACTIVE -> CodexSessionActivity.PROCESSING
-    signals.hasUnreadAssistantMessage -> CodexSessionActivity.UNREAD
+    activeFlags.isResponseRequired() -> CodexSessionActivity.UNREAD
+    isReviewing -> CodexSessionActivity.REVIEWING
+    hasInProgressTurn || statusKind == CodexThreadStatusKind.ACTIVE -> CodexSessionActivity.PROCESSING
+    hasUnreadAssistantMessage -> CodexSessionActivity.UNREAD
     else -> CodexSessionActivity.READY
   }
 }

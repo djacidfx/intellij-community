@@ -84,13 +84,17 @@ internal class AgentChatTabsStateService(scope: CoroutineScope?)
   }
 
   fun delete(tabKey: AgentChatTabKey): Boolean {
-    var deleted = false
+    return deleteAndGetSnapshot(tabKey) != null
+  }
+
+  fun deleteAndGetSnapshot(tabKey: AgentChatTabKey): AgentChatTabSnapshot? {
+    var deletedSnapshot: AgentChatTabSnapshot? = null
 
     updateState { current ->
       val versionMismatch = hasVersionMismatch(current)
       val baseTabs = normalizeTabsForWrite(current)
-      deleted = tabKey.value in baseTabs
-      if (!deleted && !versionMismatch) {
+      deletedSnapshot = baseTabs[tabKey.value]?.toSnapshot(tabKey)
+      if (deletedSnapshot == null && !versionMismatch) {
         return@updateState current
       }
 
@@ -101,11 +105,7 @@ internal class AgentChatTabsStateService(scope: CoroutineScope?)
         tabsByKey = updatedTabs,
       )
     }
-    return deleted
-  }
-
-  fun delete(tabKey: String): Boolean {
-    return AgentChatTabKey.parse(tabKey)?.let(::delete) ?: false
+    return deletedSnapshot
   }
 
   fun deleteByThread(projectPath: String, threadIdentity: String, subAgentId: String? = null): Int {
@@ -119,17 +119,21 @@ internal class AgentChatTabsStateService(scope: CoroutineScope?)
   ): AgentChatDeleteByThreadResult {
     val normalizedProjectPath = normalizeAgentWorkbenchPath(projectPath)
     var keysToDelete = emptyList<String>()
+    var deletedTabs = emptyList<AgentChatTabSnapshot>()
 
     updateState { current ->
       val versionMismatch = hasVersionMismatch(current)
       val baseTabs = normalizeTabsForWrite(current)
-      keysToDelete = baseTabs.entries
+      val tabsToDelete = baseTabs.entries
         .filter { (_, tab) ->
           normalizeAgentWorkbenchPath(tab.projectPath) == normalizedProjectPath &&
           tab.threadIdentity == threadIdentity &&
           (subAgentId == null || tab.subAgentId == subAgentId)
         }
-        .map { (key, _) -> key }
+      keysToDelete = tabsToDelete.map { (key, _) -> key }
+      deletedTabs = tabsToDelete.mapNotNull { (key, tab) ->
+        AgentChatTabKey.parse(key)?.let(tab::toSnapshot)
+      }
 
       if (keysToDelete.isEmpty() && !versionMismatch) {
         return@updateState current
@@ -142,7 +146,10 @@ internal class AgentChatTabsStateService(scope: CoroutineScope?)
         tabsByKey = updatedTabs,
       )
     }
-    return AgentChatDeleteByThreadResult(keysToDelete)
+    return AgentChatDeleteByThreadResult(
+      deletedKeys = keysToDelete,
+      deletedTabs = deletedTabs,
+    )
   }
 
   fun pruneStale() {
@@ -192,6 +199,7 @@ internal data class AgentChatTabsState(
 
 internal data class AgentChatDeleteByThreadResult(
   @JvmField val deletedKeys: List<String>,
+  @JvmField val deletedTabs: List<AgentChatTabSnapshot>,
 )
 
 @Serializable

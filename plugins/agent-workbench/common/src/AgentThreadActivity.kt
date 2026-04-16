@@ -7,3 +7,6 @@ enum class AgentThreadActivity {
   REVIEWING,
   UNREAD,
 }
+
+val AgentThreadActivity.isWorking: Boolean
+  get() = this == AgentThreadActivity.PROCESSING || this == AgentThreadActivity.REVIEWING

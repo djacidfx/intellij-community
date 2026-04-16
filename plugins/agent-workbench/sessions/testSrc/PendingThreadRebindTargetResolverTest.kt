@@ -58,6 +58,82 @@ class PendingThreadRebindTargetResolverTest {
   }
 
   @Test
+  fun resolvePrefersConcreteCodexThreadOverProjectedPendingThread() {
+    val readService = AgentSessionReadService(
+      stateProvider = {
+        AgentSessionsState(
+          projects = listOf(
+            AgentProjectSessions(
+              path = PROJECT_PATH,
+              name = "Project A",
+              isOpen = true,
+              hasLoaded = true,
+              threads = listOf(
+                thread(id = "new-9", updatedAt = 900L, provider = AgentSessionProvider.CODEX, title = "New thread"),
+                thread(id = "codex-42", updatedAt = 500L, provider = AgentSessionProvider.CODEX, title = "Recovered"),
+              ),
+            )
+          )
+        )
+      },
+    )
+
+    val context = AgentChatEditorTabActionContext(
+      project = ProjectManager.getInstance().defaultProject,
+      path = PROJECT_PATH,
+      tabKey = "pending-codex:new-1",
+      threadIdentity = "codex:new-1",
+      threadCoordinates = AgentChatThreadCoordinates(
+        provider = AgentSessionProvider.CODEX,
+        sessionId = "new-1",
+        isPending = true,
+      ),
+    )
+
+    val target = readService.resolvePendingThreadRebindTarget(context, AgentSessionProvider.CODEX)
+
+    assertThat(target).isNotNull
+    assertThat(target?.threadIdentity).isEqualTo(buildAgentSessionIdentity(AgentSessionProvider.CODEX, "codex-42"))
+    assertThat(target?.threadId).isEqualTo("codex-42")
+    assertThat(target?.threadTitle).isEqualTo("Recovered")
+  }
+
+  @Test
+  fun resolveReturnsNullWhenOnlyProjectedCodexPendingThreadExists() {
+    val readService = AgentSessionReadService(
+      stateProvider = {
+        AgentSessionsState(
+          projects = listOf(
+            AgentProjectSessions(
+              path = PROJECT_PATH,
+              name = "Project A",
+              isOpen = true,
+              hasLoaded = true,
+              threads = listOf(
+                thread(id = "new-9", updatedAt = 900L, provider = AgentSessionProvider.CODEX, title = "New thread"),
+              ),
+            )
+          )
+        )
+      },
+    )
+
+    val context = AgentChatEditorTabActionContext(
+      project = ProjectManager.getInstance().defaultProject,
+      path = PROJECT_PATH,
+      tabKey = "pending-codex:new-1",
+      threadIdentity = "codex:new-1",
+      threadCoordinates = AgentChatThreadCoordinates(
+        provider = AgentSessionProvider.CODEX,
+        sessionId = "new-1",
+        isPending = true,
+      ),
+    )
+
+    assertThat(readService.resolvePendingThreadRebindTarget(context, AgentSessionProvider.CODEX)).isNull()
+  }
+
+  @Test
   fun resolveDoesNotDependOnLaunchSpecAugmenter() {
     runBlocking(Dispatchers.Default) {
       val readService = AgentSessionReadService(
@@ -134,6 +210,47 @@ class PendingThreadRebindTargetResolverTest {
 
     assertThat(target).isNotNull
     assertThat(target?.provider).isEqualTo(AgentSessionProvider.CLAUDE)
+    assertThat(target?.threadIdentity).isEqualTo(buildAgentSessionIdentity(AgentSessionProvider.CLAUDE, "claude-42"))
+    assertThat(target?.threadId).isEqualTo("claude-42")
+    assertThat(target?.threadTitle).isEqualTo("Recovered Claude")
+  }
+
+  @Test
+  fun resolvePrefersConcreteClaudeThreadOverProjectedPendingThread() {
+    val readService = AgentSessionReadService(
+      stateProvider = {
+        AgentSessionsState(
+          projects = listOf(
+            AgentProjectSessions(
+              path = PROJECT_PATH,
+              name = "Project A",
+              isOpen = true,
+              hasLoaded = true,
+              threads = listOf(
+                thread(id = "new-9", updatedAt = 900L, provider = AgentSessionProvider.CLAUDE, title = "New thread"),
+                thread(id = "claude-42", updatedAt = 700L, provider = AgentSessionProvider.CLAUDE, title = "Recovered Claude"),
+              ),
+            )
+          )
+        )
+      },
+    )
+
+    val context = AgentChatEditorTabActionContext(
+      project = ProjectManager.getInstance().defaultProject,
+      path = PROJECT_PATH,
+      tabKey = "pending-claude:new-1",
+      threadIdentity = "claude:new-1",
+      threadCoordinates = AgentChatThreadCoordinates(
+        provider = AgentSessionProvider.CLAUDE,
+        sessionId = "new-1",
+        isPending = true,
+      ),
+    )
+
+    val target = readService.resolvePendingThreadRebindTarget(context, AgentSessionProvider.CLAUDE)
+
+    assertThat(target).isNotNull
     assertThat(target?.threadIdentity).isEqualTo(buildAgentSessionIdentity(AgentSessionProvider.CLAUDE, "claude-42"))
     assertThat(target?.threadId).isEqualTo("claude-42")
     assertThat(target?.threadTitle).isEqualTo("Recovered Claude")

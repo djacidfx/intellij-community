@@ -1,4 +1,5 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// @spec community/plugins/agent-workbench/spec/agent-chat-editor.spec.md
 package com.intellij.agent.workbench.chat
 
 import com.intellij.openapi.application.ApplicationManager
@@ -44,11 +45,15 @@ internal class AgentChatVirtualFileSystem : DeprecatedVirtualFileSystem(), NonPh
     resolution: AgentChatTabResolution,
     existing: AgentChatVirtualFile?,
   ): AgentChatVirtualFile {
-    if (existing != null) {
+    // Resolved snapshots can come from persisted restore state. They keep bootstrap title/activity on the
+    // file itself, but only explicit open/rebind/provider-refresh paths may republish live shared presentation.
+    return if (existing != null) {
       existing.updateFromResolution(resolution)
-      return existing
+      existing
     }
-    return AgentChatVirtualFile(fileSystem = this, resolution = resolution)
+    else {
+      AgentChatVirtualFile(fileSystem = this, resolution = resolution)
+    }
   }
 }
 

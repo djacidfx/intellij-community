@@ -14,72 +14,37 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 @Service(Service.Level.APP)
-class CodexPromptSuggestionAppServerService private constructor(
+class CodexPromptSuggestionAppServerService internal constructor(
   serviceScope: CoroutineScope,
-  private val delegate: PromptSuggestionDelegate,
+  private val suggestWithClient: suspend (CodexPromptSuggestionRequest) -> CodexPromptSuggestionResult?,
+  private val shutdownClient: () -> Unit = {},
 ) {
   @Suppress("unused")
   constructor(serviceScope: CoroutineScope) : this(
     serviceScope = serviceScope,
-    delegate = AppServerPromptSuggestionDelegate(serviceScope),
+    client = CodexAppServerClient(
+      coroutineScope = serviceScope,
+      notificationRouting = CodexAppServerNotificationRouting.PARSED_ONLY,
+    ),
   )
 
-  internal constructor(
-    serviceScope: CoroutineScope,
-    suggestWithClient: suspend (CodexPromptSuggestionRequest) -> CodexPromptSuggestionResult?,
-    shutdownClient: () -> Unit = {},
-  ) : this(
+  @Suppress("unused")
+  private constructor(serviceScope: CoroutineScope, client: CodexAppServerClient) : this(
     serviceScope = serviceScope,
-    delegate = FunctionPromptSuggestionDelegate(
-      suggestWithClient = suggestWithClient,
-      shutdownClient = shutdownClient,
-    ),
+    suggestWithClient = client::suggestPrompt,
+    shutdownClient = client::shutdown,
   )
 
   private val suggestionMutex = Mutex()
 
   init {
-    registerShutdownOnCancellation(serviceScope) { delegate.shutdown() }
+    registerShutdownOnCancellation(serviceScope) { shutdownClient() }
   }
 
   internal suspend fun suggestPrompt(request: CodexPromptSuggestionRequest): CodexPromptSuggestionResult? {
     return suggestionMutex.withLock {
       currentCoroutineContext().ensureActive()
-      delegate.suggestPrompt(request)
+      suggestWithClient(request)
     }
-  }
-}
-
-private interface PromptSuggestionDelegate {
-  suspend fun suggestPrompt(request: CodexPromptSuggestionRequest): CodexPromptSuggestionResult?
-
-  fun shutdown()
-}
-
-private class AppServerPromptSuggestionDelegate(serviceScope: CoroutineScope) : PromptSuggestionDelegate {
-  val client = CodexAppServerClient(
-    coroutineScope = serviceScope,
-    notificationRouting = CodexAppServerNotificationRouting.PARSED_ONLY,
-  )
-
-  override suspend fun suggestPrompt(request: CodexPromptSuggestionRequest): CodexPromptSuggestionResult? {
-    return client.suggestPrompt(request)
-  }
-
-  override fun shutdown() {
-    client.shutdown()
-  }
-}
-
-private class FunctionPromptSuggestionDelegate(
-  private val suggestWithClient: suspend (CodexPromptSuggestionRequest) -> CodexPromptSuggestionResult?,
-  private val shutdownClient: () -> Unit,
-) : PromptSuggestionDelegate {
-  override suspend fun suggestPrompt(request: CodexPromptSuggestionRequest): CodexPromptSuggestionResult? {
-    return suggestWithClient(request)
-  }
-
-  override fun shutdown() {
-    shutdownClient()
   }
 }
