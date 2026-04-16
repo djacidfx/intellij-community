@@ -154,7 +154,11 @@ async function readFileTextViaSearch(
 
   const lines = []
   for (let lineNumber = 1; lineNumber <= maxLineNumber; lineNumber += 1) {
-    lines.push(lineMap.get(lineNumber) ?? '')
+    const line = lineMap.get(lineNumber)
+    if (line === undefined) {
+      throw new Error(TRUNCATION_ERROR)
+    }
+    lines.push(line)
   }
   return lines.join('\n')
 }

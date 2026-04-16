@@ -22743,8 +22743,12 @@ async function readFileTextViaSearch(projectPath, relativePath, absolutePath, ca
   if (hasMore || maxLineNumber === 0 || hasTruncatedLine)
     throw Error(TRUNCATION_ERROR);
   let lines = [];
-  for (let lineNumber = 1;lineNumber <= maxLineNumber; lineNumber += 1)
-    lines.push(lineMap.get(lineNumber) ?? "");
+  for (let lineNumber = 1;lineNumber <= maxLineNumber; lineNumber += 1) {
+    let line = lineMap.get(lineNumber);
+    if (line === void 0)
+      throw Error(TRUNCATION_ERROR);
+    lines.push(line);
+  }
   return lines.join(`
 `);
 }

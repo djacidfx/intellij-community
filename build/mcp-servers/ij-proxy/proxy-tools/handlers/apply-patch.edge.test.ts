@@ -290,6 +290,16 @@ describe('apply_patch handler (edge cases)', () => {
     })
   })
 
+  it('errors when search fallback skips a line number', async () => {
+    await expectTruncatedFallback({
+      entries: [
+        {filePath: 'sample.txt', lineNumber: 1, lineText: '||alpha||'},
+        {filePath: 'sample.txt', lineNumber: 3, lineText: '||beta||'}
+      ],
+      probablyHasMoreMatchingEntries: false
+    })
+  })
+
   it('falls back to search when file content is truncated', async () => {
     const {callUpstreamTool, calls} = createMockToolCaller({
       get_file_text_by_path: () => ({text: `alpha\n${TRUNCATION_MARKER}\n`}),
@@ -319,6 +329,39 @@ describe('apply_patch handler (edge cases)', () => {
     strictEqual(calls.some((call) => call.name === 'search_in_files_by_regex'), true)
     const writeCall = calls.find((call) => call.name === 'create_new_file')
     strictEqual(writeCall.args.text, 'gamma\nbeta')
+  })
+
+  it('preserves explicit blank lines from search fallback', async () => {
+    const {callUpstreamTool, calls} = createMockToolCaller({
+      get_file_text_by_path: () => ({text: `alpha\n${TRUNCATION_MARKER}\n`}),
+      search_in_files_by_regex: () => ({
+        structuredContent: {
+          entries: [
+            {filePath: 'sample.txt', lineNumber: 1, lineText: '||alpha||'},
+            {filePath: 'sample.txt', lineNumber: 2, lineText: '||||'},
+            {filePath: 'sample.txt', lineNumber: 3, lineText: '||beta||'}
+          ],
+          probablyHasMoreMatchingEntries: false
+        }
+      }),
+      create_new_file: () => ({text: 'ok'})
+    })
+    const patch = buildPatch([
+      '*** Begin Patch',
+      '*** Update File: sample.txt',
+      '@@',
+      ' alpha',
+      ' ',
+      '-beta',
+      '+gamma',
+      '*** End Patch'
+    ])
+
+    const result = await handleApplyPatchTool({patch}, projectPath, callUpstreamTool)
+
+    strictEqual(result, 'Applied patch to 1 file.')
+    const writeCall = calls.find((call) => call.name === 'create_new_file')
+    strictEqual(writeCall.args.text, 'alpha\n\ngamma')
   })
 
   it('requests full content to avoid truncation on update', async () => {
