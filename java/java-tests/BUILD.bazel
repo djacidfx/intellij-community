@@ -16,6 +16,7 @@ jvm_library(
     "//plugins/java-i18n",
     "//plugins/coverage",
     "//java/java-backend:backend",
+    "//java/java-frontend:frontend",
   ],
   runtime_deps = [
     "//platform/testFramework",
@@ -44,6 +45,7 @@ jvm_library(
     "//xml/xml-psi-impl:psi-impl",
     "//plugins/coverage",
     "//java/java-backend:backend",
+    "//java/java-frontend:frontend",
     "//libraries/stream",
     "//libraries/fastutil",
     "//platform/platform-impl:ide-impl",
@@ -208,6 +210,8 @@ jvm_library(
     "//plugins/coverage:coverage_test_lib",
     "//java/java-backend:backend",
     "//java/java-backend:backend_test_lib",
+    "//java/java-frontend:frontend",
+    "//java/java-frontend:frontend_test_lib",
     "//platform/workspace/jps",
     "//platform/workspace/jps:jps_test_lib",
     "//libraries/jackson3/jackson:libraries-jackson3",
@@ -342,6 +346,8 @@ jvm_library(
     "//plugins/coverage:coverage_test_lib",
     "//java/java-backend:backend",
     "//java/java-backend:backend_test_lib",
+    "//java/java-frontend:frontend",
+    "//java/java-frontend:frontend_test_lib",
   ],
   runtime_deps = [
     ":tests",

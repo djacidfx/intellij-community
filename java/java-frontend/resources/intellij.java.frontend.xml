@@ -8,4 +8,8 @@
     <module name="intellij.java.frontback.impl"/>
     <module name="intellij.platform.frontend"/>
   </dependencies>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <lang.foldingBuilder language="JAVA" implementationClass="com.intellij.codeInsight.folding.impl.JavaFrontendFoldingBuilder"/>
+  </extensions>
 </idea-plugin>
