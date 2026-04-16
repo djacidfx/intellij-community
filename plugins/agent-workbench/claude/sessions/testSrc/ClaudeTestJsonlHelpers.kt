@@ -44,6 +44,10 @@ internal fun claudeQueueOperationLine(timestamp: String, sessionId: String, cwd:
   return """{"type":"queue-operation","sessionId":"$sessionId","cwd":"$cwd","isSidechain":false,"timestamp":"$timestamp","content":"<task-notification>\n<task-id>$taskId</task-id>\n<status>completed</status>\n</task-notification>"}"""
 }
 
+internal fun claudeCustomTitleLine(timestamp: String, sessionId: String, cwd: String, customTitle: String): String {
+  return """{"type":"custom-title","sessionId":"$sessionId","cwd":"$cwd","isSidechain":false,"timestamp":"$timestamp","customTitle":"$customTitle"}"""
+}
+
 internal fun writeJsonl(file: Path, lines: List<String>) {
   Files.createDirectories(file.parent)
   Files.write(file, lines)

@@ -13,6 +13,7 @@ private val CLAUDE_MENU_COMMANDS: List<ClaudeMenuCommand> = listOf(
   ClaudeMenuCommand("/mcp"),
   ClaudeMenuCommand("/memory"),
   ClaudeMenuCommand("/model", "[model]"),
+  ClaudeMenuCommand("/rename", "[title]"),
   ClaudeMenuCommand("/resume", "[session]"),
   ClaudeMenuCommand("/sandbox"),
   ClaudeMenuCommand("/status"),

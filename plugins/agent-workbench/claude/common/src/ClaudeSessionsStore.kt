@@ -13,7 +13,6 @@ import java.time.Instant
 import kotlin.io.path.invariantSeparatorsPathString
 
 private const val CLAUDE_PROJECTS_DIR = "projects"
-private const val MAX_TITLE_LENGTH = 120
 
 // Claude transcript parsing only reports provider work state.
 // Unread is derived later in ClaudeSessionSource from local read tracking.
@@ -28,6 +27,7 @@ data class ClaudeSessionThread(
   @JvmField val updatedAt: Long,
   @JvmField val gitBranch: String? = null,
   @JvmField val activity: ClaudeSessionActivity = ClaudeSessionActivity.READY,
+  @JvmField val hasCustomTitle: Boolean = false,
 )
 
 class ClaudeSessionsStore(
@@ -41,9 +41,11 @@ class ClaudeSessionsStore(
     if (!Files.isDirectory(projectsRoot)) return emptySet()
 
     val matchedDirectories = LinkedHashSet<Path>()
-    val encodedDirectory = projectsRoot.resolve(encodeProjectPath(normalizedProjectPath))
-    if (Files.isDirectory(encodedDirectory)) {
-      matchedDirectories.add(encodedDirectory)
+    for (candidatePath in projectPathCandidates(normalizedProjectPath)) {
+      val encodedDirectory = projectsRoot.resolve(encodeProjectPath(candidatePath))
+      if (Files.isDirectory(encodedDirectory)) {
+        matchedDirectories.add(encodedDirectory)
+      }
     }
 
     return matchedDirectories
@@ -62,6 +64,8 @@ class ClaudeSessionsStore(
     val updatedAt = listOfNotNull(headState.updatedAt, tailState.updatedAt, activityState.updatedAt).maxOrNull()
 
     val title = resolveThreadTitle(
+      agentName = tailState.agentName,
+      customTitle = tailState.customTitle,
       firstPrompt = headState.firstPrompt,
       sessionId = normalizedSessionId,
     )
@@ -74,6 +78,7 @@ class ClaudeSessionsStore(
       updatedAt = resolvedUpdatedAt,
       gitBranch = headState.gitBranch,
       activity = activity,
+      hasCustomTitle = tailState.agentName != null || tailState.customTitle != null,
     )
   }
 
@@ -123,6 +128,12 @@ class ClaudeSessionsStore(
       newState = ::JsonlTailScanState,
     ) { parser, state ->
       val lineData = parseJsonlLine(parser) ?: return@scanTailLines true
+      if (!lineData.agentName.isNullOrBlank()) {
+        state.agentName = lineData.agentName
+      }
+      if (!lineData.customTitle.isNullOrBlank()) {
+        state.customTitle = lineData.customTitle
+      }
       updateActivityFields(state, lineData)
       true
     }
@@ -152,6 +163,7 @@ class ClaudeSessionsStore(
         scanState.hasConversationSignal = true
       }
       updateActivityFields(scanState, lineData)
+      // customTitle lives near the tail; early-exit once the head metadata is settled.
       !(scanState.sessionId != null && scanState.hasConversationSignal && scanState.firstPrompt != null)
     }
   }
@@ -194,7 +206,7 @@ private fun parseIndexEntry(parser: JsonParser): IndexedClaudeSummary? {
   }
 
   val normalizedSessionId = sessionId?.trim()?.takeIf { it.isNotEmpty() } ?: return null
-  val normalizedSummary = sanitizeTitle(summary)
+  val normalizedSummary = normalizeClaudeStoredThreadTitle(summary)
     ?.takeUnless { it.equals("No prompt", ignoreCase = true) }
     ?: return null
   return IndexedClaudeSummary(sessionId = normalizedSessionId, summary = normalizedSummary)
@@ -211,6 +223,8 @@ private fun parseJsonlLine(parser: JsonParser): ParsedJsonlLine? {
     var isSidechain = false
     var timestampMillis: Long? = null
     var firstPrompt: String? = null
+    var agentName: String? = null
+    var customTitle: String? = null
     var type: String? = null
     var gitBranch: String? = null
     var messageRole: String? = null
@@ -227,6 +241,8 @@ private fun parseJsonlLine(parser: JsonParser): ParsedJsonlLine? {
         "isSidechain" -> isSidechain = readBooleanOrFalse(parser)
         "timestamp" -> timestampMillis = parseIsoTimestamp(readJsonStringOrNull(parser))
         "type" -> type = readJsonStringOrNull(parser)
+        "agentName" -> agentName = readJsonStringOrNull(parser)
+        "customTitle" -> customTitle = readJsonStringOrNull(parser)
         "gitBranch" -> gitBranch = readJsonStringOrNull(parser)
         "message" -> {
           if (parser.currentToken == JsonToken.START_OBJECT) {
@@ -265,7 +281,7 @@ private fun parseJsonlLine(parser: JsonParser): ParsedJsonlLine? {
       else -> ClaudeActivityEvent.OTHER
     }
     if (activityEvent == ClaudeActivityEvent.USER_PROMPT) {
-      firstPrompt = sanitizeTitle(messageContent)
+      firstPrompt = normalizeClaudeStoredThreadTitle(messageContent)
     }
     val hasConversationSignal = type == "user" || type == "assistant"
     return ParsedJsonlLine(
@@ -273,6 +289,8 @@ private fun parseJsonlLine(parser: JsonParser): ParsedJsonlLine? {
       isSidechain = isSidechain,
       timestampMillis = timestampMillis,
       firstPrompt = firstPrompt,
+      agentName = normalizeClaudeStoredThreadTitle(agentName),
+      customTitle = if (type == "custom-title") normalizeClaudeStoredThreadTitle(customTitle) else null,
       hasConversationSignal = hasConversationSignal,
       gitBranch = gitBranch,
       activityEvent = activityEvent,
@@ -378,21 +396,16 @@ private fun readToolUseResultObject(parser: JsonParser): Boolean {
   return hasBackgroundTaskId
 }
 
-private fun resolveThreadTitle(firstPrompt: String?, sessionId: String): String {
-  val promptTitle = sanitizeTitle(firstPrompt).takeUnless { it.equals("No prompt", ignoreCase = true) }
+private fun resolveThreadTitle(agentName: String?, customTitle: String?, firstPrompt: String?, sessionId: String): String {
+  val storedAgentName = normalizeClaudeStoredThreadTitle(agentName)
+    .takeUnless { it.equals("No prompt", ignoreCase = true) }
+  if (!storedAgentName.isNullOrBlank()) return storedAgentName
+  val storedCustomTitle = normalizeClaudeStoredThreadTitle(customTitle)
+    .takeUnless { it.equals("No prompt", ignoreCase = true) }
+  if (!storedCustomTitle.isNullOrBlank()) return storedCustomTitle
+  val promptTitle = normalizeClaudeStoredThreadTitle(firstPrompt).takeUnless { it.equals("No prompt", ignoreCase = true) }
   if (!promptTitle.isNullOrBlank()) return promptTitle
-  return "Session ${sessionId.take(8)}"
-}
-
-private fun sanitizeTitle(value: String?): String? {
-  val normalized = value
-    ?.replace('\n', ' ')
-    ?.replace('\r', ' ')
-    ?.replace(Regex("\\s+"), " ")
-    ?.trim()
-    ?: return null
-  if (normalized.isEmpty()) return null
-  return if (normalized.length <= MAX_TITLE_LENGTH) normalized else normalized.take(MAX_TITLE_LENGTH - 3).trimEnd() + "..."
+  return defaultClaudeThreadTitle(sessionId)
 }
 
 private fun parseIsoTimestamp(value: String?): Long? {
@@ -406,7 +419,23 @@ private fun parseIsoTimestamp(value: String?): Long? {
 }
 
 private fun encodeProjectPath(projectPath: String): String {
-  return projectPath.replace('/', '-').replace('.', '-')
+  return projectPath.map { char -> if (char.isLetterOrDigit()) char else '-' }.joinToString("")
+}
+
+private fun projectPathCandidates(normalizedProjectPath: String): Set<String> {
+  val paths = LinkedHashSet<String>()
+  paths.add(normalizedProjectPath)
+  canonicalPath(normalizedProjectPath)?.let(paths::add)
+  return paths
+}
+
+private fun canonicalPath(path: String): String? {
+  return try {
+    Path.of(path).toRealPath().invariantSeparatorsPathString
+  }
+  catch (_: Throwable) {
+    null
+  }
 }
 
 private fun normalizePath(path: String?): String? {
@@ -437,6 +466,8 @@ private data class ParsedJsonlLine(
   @JvmField val isSidechain: Boolean,
   @JvmField val timestampMillis: Long?,
   @JvmField val firstPrompt: String?,
+  @JvmField val agentName: String?,
+  @JvmField val customTitle: String?,
   @JvmField val hasConversationSignal: Boolean,
   @JvmField val gitBranch: String?,
   @JvmField val activityEvent: ClaudeActivityEvent,
@@ -511,6 +542,8 @@ private fun updateActivityFields(state: ActivityTrackingState, lineData: ParsedJ
 }
 
 private data class JsonlTailScanState(
+  @JvmField var agentName: String? = null,
+  @JvmField var customTitle: String? = null,
   override var hasActivitySignal: Boolean = false,
   override var awaitingAssistantTurn: Boolean = false,
   override var isProcessing: Boolean = false,
