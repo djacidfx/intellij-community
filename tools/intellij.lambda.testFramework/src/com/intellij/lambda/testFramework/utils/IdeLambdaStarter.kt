@@ -122,8 +122,12 @@ private fun LambdaRdTestSession.awaitSessionReady(timeout: Duration = 15.seconds
 
 private fun IDETestContext.setUpRdTestSession(lambdaRdIdeType: LambdaRdIdeType): LambdaRdTestSession {
   val testProtocolLifetimeDef = EternalLifetime.createNested()
-  EventsBus.subscribe("testProtocolLifetimeDef-${lambdaRdIdeType.name}") { _: IdeAfterLaunchEvent ->
-    testProtocolLifetimeDef.terminate()
+  val eventSubscriber = "testProtocolLifetimeDef-${lambdaRdIdeType.name}"
+  EventsBus.subscribe(eventSubscriber) { event: IdeAfterLaunchEvent ->
+    if (event.runContext.testContext === this) {
+      testProtocolLifetimeDef.terminate()
+      EventsBus.unsubscribe<IdeAfterLaunchEvent>(eventSubscriber)
+    }
   }
 
   val scheduler = SynchronousScheduler
