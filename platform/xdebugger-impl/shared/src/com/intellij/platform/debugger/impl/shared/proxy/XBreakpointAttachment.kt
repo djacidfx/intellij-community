@@ -10,8 +10,11 @@ import org.jetbrains.annotations.ApiStatus
  * disposed when the breakpoint is disposed (via coroutine scope cancellation).
  *
  * The [breakpointChanged] method is called whenever the breakpoint's state changes,
- * allowing the attachment to react to changes (e.g., create/dispose UI components
- * based on breakpoint traits).
+ * including breakpoint creation, allowing the attachment to react to changes
+ * (e.g., create/dispose UI components based on breakpoint traits).
+ *
+ * NOTE: attachments react to existing breakpoint changes only after "Done" is pressed
+ * in the breakpoint settings dialog.
  */
 @ApiStatus.Internal
 interface XBreakpointAttachment {

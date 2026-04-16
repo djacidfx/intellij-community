@@ -203,9 +203,6 @@ class FrontendXBreakpointManager(private val project: Project, private val cs: C
       if (newBreakpoint is XLineBreakpointProxy) {
         lineBreakpointManager.breakpointChanged(newBreakpoint)
       }
-      if (newBreakpoint is FrontendXLineBreakpointProxy) {
-        newBreakpoint.attachments.forEach { it.breakpointChanged() }
-      }
     }
     val previousBreakpoint = breakpoints.putIfAbsent(breakpointDto.id, newBreakpoint)
     if (previousBreakpoint != null) {
