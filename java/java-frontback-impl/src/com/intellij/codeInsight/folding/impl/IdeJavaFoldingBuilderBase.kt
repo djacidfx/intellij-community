@@ -15,7 +15,6 @@ import org.jetbrains.annotations.ApiStatus
 @ApiStatus.Internal
 open class IdeJavaFoldingBuilderBase: JavaFoldingBuilderBase() {
   override fun isBelowRightMargin(file: PsiFile, lineLength: Int): Boolean {
-    //todo check if it is sync
     val settings: CodeStyleSettings = com.intellij.application.options.CodeStyle.getSettings(file)
     return lineLength <= settings.getRightMargin(JavaLanguage.INSTANCE)
   }
