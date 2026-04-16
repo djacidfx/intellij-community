@@ -186,7 +186,6 @@ public abstract class CustomFoldingBuilder extends FoldingBuilderEx implements P
     return false;
   }
 
-  @ApiStatus.Internal
   public static boolean isCustomRegionElement(PsiElement element) {
     Set<ASTNode> set = ourCustomRegionElements.get();
     return set != null && element != null && set.contains(element.getNode());

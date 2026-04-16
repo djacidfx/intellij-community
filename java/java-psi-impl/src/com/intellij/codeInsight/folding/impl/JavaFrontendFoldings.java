@@ -140,8 +140,12 @@ public final class JavaFrontendFoldings {
       @Override
       public void visitCodeBlock(@NotNull PsiCodeBlock block) {
         if (Registry.is("java.folding.icons.for.control.flow", true) && block.getStatementCount() > 0) {
-          JavaFoldingUtil.addToFold(list, block, document, false, JavaFoldingUtil.getCodeBlockPlaceholder(block), block.getTextRange(),
-                                    false);
+          PsiElement parent = block.getParent();
+          // Method bodies and class initializer bodies are folded by the backend (with correct isCollapsedByDefault)
+          if (!(parent instanceof PsiMethod) && !(parent instanceof PsiClassInitializer)) {
+            JavaFoldingUtil.addToFold(list, block, document, false, JavaFoldingUtil.getCodeBlockPlaceholder(block), block.getTextRange(),
+                                      false);
+          }
         }
         super.visitCodeBlock(block);
       }
