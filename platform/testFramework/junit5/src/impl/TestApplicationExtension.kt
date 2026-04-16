@@ -59,7 +59,7 @@ private class TestApplicationResource(val initializationResult: Result<Unit>) : 
     // The JVM will terminate after all tests complete anyway, and
     // disposing here would break JUnit 4 tests that run after JUnit 5 tests.
     // See BAZEL-2843 for details.
-    if (BazelTestUtil.isUnderBazelTest) {
+    if (BazelTestUtil.isUnderBazelTest || skipTestApplicationDispose()) {
       return
     }
 
@@ -81,3 +81,6 @@ private class TestApplicationResource(val initializationResult: Result<Unit>) : 
     }
   }
 }
+
+private fun skipTestApplicationDispose(): Boolean =
+  System.getProperty("intellij.testFramework.junit5.skip.test.application.dispose", "false").toBooleanStrict()
