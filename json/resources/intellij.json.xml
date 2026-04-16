@@ -63,6 +63,7 @@
                                 implementationClass="com.intellij.codeInsight.editorActions.enter.EnterBetweenBracesAndBracketsDelegate"/>
     <quoteHandler fileType="JSON" className="com.intellij.json.JsonQuoteHandler"/>
     <quoteHandler fileType="JSON5" className="com.intellij.json.JsonQuoteHandler"/>
+    <quoteHandler fileType="JSON-lines" className="com.intellij.json.JsonQuoteHandler"/>
 
     <!-- Code style and formatting -->
     <codeStyleSettingsProvider implementation="com.intellij.json.formatter.JsonCodeStyleSettingsProvider"/>

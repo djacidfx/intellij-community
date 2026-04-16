@@ -22,6 +22,10 @@ class JsonTypingHandlingTest : JsonTestCase() {
     doTypingTest('"', before, expected, "json")
   }
 
+  private fun doTestJsonlQuote(before: String, expected: String) {
+    doTypingTest('"', before, expected, "jsonl")
+  }
+
   private fun doTestSingleQuote(before: String, expected: String) {
     doTypingTest('\'', before, expected, "json")
   }
@@ -486,5 +490,26 @@ class JsonTypingHandlingTest : JsonTestCase() {
     finally {
       settings.AUTOINSERT_PAIR_QUOTE = oldQuote
     }
+  }
+
+  fun testAutoCloseQuoteInJsonLines() {
+    doTestJsonlQuote(
+      """{"column1": ["c1.r2.i1", <caret>], "column2": "c2.r2"}""",
+      """{"column1": ["c1.r2.i1", "<caret>"], "column2": "c2.r2"}"""
+    )
+  }
+
+  fun testAutoCloseQuoteSimpleJsonLines() {
+    doTestJsonlQuote(
+      """{<caret>}""",
+      """{"<caret>"}"""
+    )
+  }
+
+  fun testAutoCommaAfterQuoteInJsonLinesArray() {
+    doTestJsonlQuote(
+      """ [ <caret> {"a": 5} ]""",
+      """ [ "", {"a": 5} ]"""
+    )
   }
 }
