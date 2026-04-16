@@ -19,6 +19,7 @@ import com.intellij.mcpserver.stdio.IJ_MCP_SERVER_PROJECT_PATH
 import com.intellij.mcpserver.toolsets.general.UniversalToolset
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
+import com.intellij.mcpserver.widget.enableIfNotExplicitlyDisabled
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ApplicationNamesInfo
 import com.intellij.openapi.components.service
@@ -217,6 +218,7 @@ open class McpServerService(val cs: CoroutineScope) {
       }
       else {
         // reuse old or start new
+        enableIfNotExplicitlyDisabled()
         return@update currentServer ?: startGlobalServer()
       }
     }
