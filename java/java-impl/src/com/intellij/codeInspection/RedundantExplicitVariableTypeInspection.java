@@ -26,6 +26,7 @@ import com.intellij.psi.PsiParameter;
 import com.intellij.psi.PsiPattern;
 import com.intellij.psi.PsiPatternVariable;
 import com.intellij.psi.PsiType;
+import com.intellij.psi.PsiTypeCastExpression;
 import com.intellij.psi.PsiTypeElement;
 import com.intellij.psi.PsiVariable;
 import com.intellij.psi.codeStyle.CodeStyleManager;
@@ -46,7 +47,8 @@ import static com.intellij.codeInspection.options.OptPane.pane;
 
 public final class RedundantExplicitVariableTypeInspection extends AbstractBaseJavaLocalInspectionTool {
   public boolean suggestForLiteralsAndNewExpressions = false;
-    @Override
+
+  @Override
   public @NotNull Set<@NotNull JavaFeature> requiredFeatures() {
     return Set.of(JavaFeature.LVTI);
   }
@@ -118,10 +120,11 @@ public final class RedundantExplicitVariableTypeInspection extends AbstractBaseJ
           IntroduceVariableUtil.expandDiamondsAndReplaceExplicitTypeWithVar(typeElementCopy, variable);
           if (variable.getType().equals(getNormalizedType(copyVariable))) {
             initializer = PsiUtil.skipParenthesizedExprDown(initializer);
-            ProblemHighlightType highlightType =
-              !suggestForLiteralsAndNewExpressions || initializer instanceof PsiNewExpression || initializer instanceof PsiLiteralExpression
-              ? ProblemHighlightType.GENERIC_ERROR_OR_WARNING
-              : ProblemHighlightType.INFORMATION;
+            boolean obvious = initializer instanceof PsiNewExpression || initializer instanceof PsiLiteralExpression
+                              || initializer instanceof PsiTypeCastExpression;
+            ProblemHighlightType highlightType = !suggestForLiteralsAndNewExpressions || obvious
+                                                 ? ProblemHighlightType.GENERIC_ERROR_OR_WARNING
+                                                 : ProblemHighlightType.INFORMATION;
             holder.problem(element2Highlight, InspectionGadgetsBundle.message("inspection.redundant.explicit.variable.type.description"))
               .fix(new ReplaceWithVarFix())
               .highlight(highlightType)
