@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.testFramework
 
 import com.intellij.diagnostic.ThreadDumper.dumpThreadsToString
@@ -35,13 +35,13 @@ private object TestProjectActivityKey : ActivityKey {
 
 object TestObservation {
 
-  @Obsolete
+  @Obsolete(since = "use suspend version nearby")
   @JvmStatic
   @JvmOverloads
   fun waitForProjectActivity(project: Project, timeout: Long = DEFAULT_TEST_TIMEOUT_MS, action: Runnable): Unit =
     waitForProjectActivity(project, timeout, action::run)
 
-  @Obsolete
+  @Obsolete(since = "use suspend version nearby")
   @JvmStatic
   @JvmOverloads
   fun <R> waitForProjectActivity(project: Project, timeout: Long = DEFAULT_TEST_TIMEOUT_MS, action: () -> R): R {
@@ -71,7 +71,7 @@ object TestObservation {
     }
   }
 
-  @Obsolete
+  @Obsolete(since = "use suspend version nearby")
   @JvmStatic
   @JvmOverloads
   fun waitForConfiguration(project: Project, timeout: Long = DEFAULT_TEST_TIMEOUT_MS) {
