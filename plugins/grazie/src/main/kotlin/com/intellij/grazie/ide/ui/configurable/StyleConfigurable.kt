@@ -42,7 +42,6 @@ import com.intellij.ui.HyperlinkLabel
 import com.intellij.ui.JBSplitter
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.SearchTextField
-import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.TitledSeparator
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
@@ -53,6 +52,7 @@ import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.dsl.builder.toNullableProperty
 import com.intellij.ui.dsl.builder.whenItemSelectedFromUi
+import com.intellij.ui.dsl.listCellRenderer.textListCellRenderer
 import com.intellij.util.IconUtil
 import com.intellij.util.ui.JBEmptyBorder
 import com.intellij.util.ui.JBFont
@@ -171,7 +171,7 @@ class StyleConfigurable : BoundConfigurable(GrazieBundle.message("grazie.setting
       }
 
       row(GrazieBundle.message("grazie.settings.language.chooser.label")) {
-        langCombo = comboBox(langComboModel, SimpleListCellRenderer.create { label, lang, _ -> label.text = lang.nativeName })
+        langCombo = comboBox(langComboModel, textListCellRenderer("") { it.nativeName })
           .widthGroup("TopCombo")
           .whenItemSelectedFromUi { language ->
             selectTextStyle(textStyle, language)
@@ -588,16 +588,16 @@ private fun createLinkLabel(@NlsContexts.LinkLabel text: String, onClick: Runnab
 
 fun Row.writingStyleComboBox() = comboBox(
   CollectionComboBoxModel(getOtherDomainStyles()),
-  SimpleListCellRenderer.create { label, value, _ ->
-    label.text = GrazieBundle.messageOrNull("grazie.settings.style.profile.display.${value.id}")
-                 ?: NameUtil.splitNameIntoWordList(value.id).joinToString(" ")
+  textListCellRenderer("") {
+    GrazieBundle.messageOrNull("grazie.settings.style.profile.display.${it.id}")
+                 ?: NameUtil.splitNameIntoWordList(it.id).joinToString(" ")
   }
 )
 
 private fun Row.domainComboBox() = comboBox(
   CollectionComboBoxModel(TextStyleDomain.entries),
-  SimpleListCellRenderer.create { label, value, _ ->
-    label.text = GrazieBundle.messageOrNull("grazie.settings.domain.profile.display.$value")
+  textListCellRenderer("") {
+    GrazieBundle.messageOrNull("grazie.settings.domain.profile.display.$it")
   }
 )
 

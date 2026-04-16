@@ -44,7 +44,6 @@ import com.intellij.platform.util.coroutines.childScope
 import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.ScrollPaneFactory
-import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.UIBundle
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.ui.components.JBLabel
@@ -55,6 +54,7 @@ import com.intellij.ui.components.breadcrumbs.Crumb
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.AlignY
 import com.intellij.ui.dsl.builder.panel
+import com.intellij.ui.dsl.listCellRenderer.listCellRenderer
 import com.intellij.ui.tree.AsyncTreeModel
 import com.intellij.ui.treeStructure.Tree
 import com.intellij.util.Consumer
@@ -606,9 +606,9 @@ object UniversalFileChooser {
               runOnEdt {
                 JBPopupFactory.getInstance()
                   .createPopupChooserBuilder(children)
-                  .setRenderer(SimpleListCellRenderer.create { label, file, _ ->
-                    label.text = file.name
-                    label.icon = AllIcons.Nodes.Folder
+                  .setRenderer(listCellRenderer("") {
+                    icon(AllIcons.Nodes.Folder)
+                    text(value.name)
                   })
                   .setItemChosenCallback { chosen -> fileTree.select(chosen) { fileTree.expand(chosen, null) } }
                   .createPopup()
