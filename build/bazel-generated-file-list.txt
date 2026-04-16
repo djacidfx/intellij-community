@@ -524,6 +524,7 @@ mps/build
 mps/build/intellij.mps.resources
 notebooks/notebook-ui
 notebooks/visualization
+notebooks/visualization/testFramework
 platform/analysis-api
 platform/analysis-impl
 platform/backend

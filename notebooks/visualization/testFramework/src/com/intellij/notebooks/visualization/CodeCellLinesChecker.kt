@@ -6,6 +6,7 @@ import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.util.keyFMap.KeyFMap
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatCollection
+import java.util.Comparator
 import kotlin.reflect.KProperty1
 
 class CodeCellLinesChecker(private val description: String,
@@ -190,8 +191,8 @@ class CodeCellLinesChecker(private val description: String,
         .thenBy { it.length }
 
     // workaround for kotlin type system
-    private fun <T> Comparator<T>.toJavaComparatorNonNullable(): java.util.Comparator<Any?> =
-      object : java.util.Comparator<Any?> {
+    private fun <T> Comparator<T>.toJavaComparatorNonNullable(): Comparator<Any?> =
+      object : Comparator<Any?> {
         override fun compare(o1: Any?, o2: Any?): Int {
           return this@toJavaComparatorNonNullable.compare(o1 as T, o2 as T)
         }

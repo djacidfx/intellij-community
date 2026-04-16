@@ -16,7 +16,6 @@
             <arrayArg name="pluginClasspaths">
               <args>$KOTLIN_BUNDLED$/lib/kotlinx-serialization-compiler-plugin.jar</args>
             </arrayArg>
-            <arrayArg name="pluginOptions" />
           </arrayArguments>
         </compilerArguments>
       </configuration>
@@ -29,6 +28,7 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="intellij.notebooks.visualization.testFramework" scope="TEST" />
     <orderEntry type="module" module-name="intellij.libraries.gson" scope="TEST" />
     <orderEntry type="module" module-name="intellij.platform.analysis" scope="TEST" />
     <orderEntry type="module" module-name="intellij.platform.core" scope="TEST" />

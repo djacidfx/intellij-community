@@ -122,6 +122,8 @@ jvm_library(
     "//notebooks/visualization:visualization_test_lib",
   ],
   deps = [
+    "//notebooks/visualization/testFramework",
+    "//notebooks/visualization/testFramework:testFramework_test_lib",
     "//libraries/gson",
     "//libraries/gson:gson_test_lib",
     "//platform/analysis-api:analysis",
