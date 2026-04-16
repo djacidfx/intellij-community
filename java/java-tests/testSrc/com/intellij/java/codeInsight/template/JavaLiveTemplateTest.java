@@ -45,9 +45,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("removal")
-public class
-
-JavaLiveTemplateTest extends LiveTemplateTestCase {
+public class JavaLiveTemplateTest extends LiveTemplateTestCase {
   @Override
   protected @NotNull LightProjectDescriptor getProjectDescriptor() {
     return JAVA_LATEST_WITH_LATEST_JDK;
@@ -325,7 +323,7 @@ JavaLiveTemplateTest extends LiveTemplateTestCase {
     Set<TemplateContextType> contextTypeSet = TemplateManagerImpl
       .getApplicableContextTypes(TemplateActionContext.expanding(myFixture.getFile(), myFixture.getEditor()));
     List<Class<? extends TemplateContextType>> applicableContextTypesClasses = ContainerUtil.map(contextTypeSet, TemplateContextType::getClass);
-    List<Class<? extends JavaCodeContextType>> declarationTypes = Arrays.asList(JavaCodeContextType.Declaration.class, JavaCodeContextType.NormalClassDeclarationAfterShortMainMethod.class);
+    List<Class<? extends JavaCodeContextType>> declarationTypes = Arrays.asList(JavaCodeContextType.Declaration.class);
 
     assertEquals(declarationTypes, applicableContextTypesClasses);
   }
@@ -372,6 +370,8 @@ JavaLiveTemplateTest extends LiveTemplateTestCase {
       assertTrue(isApplicable("class Foo { <caret>xxx String[] foo(String[] bar) {} }", template));
       assertFalse(isApplicable("<caret>", template));
       assertFalse(isApplicable("int a = 1; <caret>", template));
+      assertFalse(isApplicable("class Foo { void test(<caret>xxx) {} }", template));
+      assertFalse(isApplicable("record Foo(<caret>xxx) {}", template));
     });
     IdeaTestUtil.withLevel(getModule(), LanguageLevel.JDK_1_8, () -> {
       assertFalse(isApplicable("class Foo { <caret>xxx }", template));
@@ -385,6 +385,8 @@ JavaLiveTemplateTest extends LiveTemplateTestCase {
       assertTrue(isApplicable("class Foo { <caret>xxx String[] foo(String[] bar) {} }", template));
       assertFalse(isApplicable("<caret>", template));
       assertFalse(isApplicable("int a = 1; <caret>", template));
+      assertFalse(isApplicable("class Foo { void test(<caret>xxx) {} }", template));
+      assertFalse(isApplicable("record Foo(<caret>xxx) {}", template));
     });
     IdeaTestUtil.withLevel(getModule(), JavaFeature.IMPLICIT_CLASSES.getStandardLevel(), () -> {
       assertFalse(isApplicable("class Foo { <caret>xxx }", template));
