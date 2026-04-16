@@ -1,12 +1,17 @@
-package com.intellij.notebooks.visualization
+package com.intellij.notebooks.visualization.testFramework
 
 import com.intellij.lang.Language
 import com.intellij.notebooks.jupyter.core.jupyter.CellType
+import com.intellij.notebooks.visualization.NotebookCellLines
+import com.intellij.notebooks.visualization.NotebookCellLinesEvent
+import com.intellij.notebooks.visualization.NotebookCellLinesLexer
+import com.intellij.notebooks.visualization.makeMarkersFromIntervals
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.util.keyFMap.KeyFMap
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatCollection
 import java.util.Comparator
+import kotlin.collections.plusAssign
 import kotlin.reflect.KProperty1
 
 class CodeCellLinesChecker(private val description: String,
@@ -41,10 +46,10 @@ class CodeCellLinesChecker(private val description: String,
 
   class IntervalsSetter(private val list: MutableList<NotebookCellLines.Interval>, private val startOrdinal: Int) {
     fun interval(
-      cellType: CellType,
-      lines: IntRange,
-      markers: NotebookCellLines.MarkersAtLines,
-      language: Language,
+        cellType: CellType,
+        lines: IntRange,
+        markers: NotebookCellLines.MarkersAtLines,
+        language: Language,
     ) {
       list += NotebookCellLines.Interval(list.size + startOrdinal, cellType, lines, markers, makeLanguageData(language))
     }
@@ -67,9 +72,9 @@ class CodeCellLinesChecker(private val description: String,
   }
 
   class IntervalListenerCalls(
-    private val startOrdinal: Int,
-    private val before: MutableList<NotebookCellLines.Interval>,
-    private val after: MutableList<NotebookCellLines.Interval>
+      private val startOrdinal: Int,
+      private val before: MutableList<NotebookCellLines.Interval>,
+      private val after: MutableList<NotebookCellLines.Interval>
   ) {
     fun before(handler: IntervalsSetter.() -> Unit) {
       IntervalsSetter(before, startOrdinal).handler()

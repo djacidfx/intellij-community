@@ -1,4 +1,4 @@
-package com.intellij.notebooks.visualization
+package com.intellij.notebooks.visualization.testFramework
 
 import com.intellij.openapi.editor.CaretState
 import com.intellij.openapi.editor.Editor
