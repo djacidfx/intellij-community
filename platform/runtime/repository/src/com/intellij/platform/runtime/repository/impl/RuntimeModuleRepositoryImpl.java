@@ -3,6 +3,7 @@ package com.intellij.platform.runtime.repository.impl;
 
 import com.intellij.platform.runtime.repository.MalformedRepositoryException;
 import com.intellij.platform.runtime.repository.RuntimeModuleDescriptor;
+import com.intellij.platform.runtime.repository.RuntimeModuleHeader;
 import com.intellij.platform.runtime.repository.RuntimeModuleId;
 import com.intellij.platform.runtime.repository.RuntimeModuleRepository;
 import com.intellij.platform.runtime.repository.serialization.RawRuntimeModuleDescriptor;
@@ -23,7 +24,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class RuntimeModuleRepositoryImpl implements RuntimeModuleRepository {
+  private static final RuntimeModuleHeaderImpl UNRESOLVED_HEADER = new RuntimeModuleHeaderImpl(
+    RuntimeModuleId.raw("unresolved", RuntimeModuleId.DEFAULT_NAMESPACE), Path.of(""), Collections.emptyList(), Collections.emptyList()
+  );
   private final Map<RuntimeModuleId, ResolveResult> myResolveResults;
+  private final Map<RuntimeModuleId, RuntimeModuleHeaderImpl> myHeadersCache;
   private volatile RawRuntimeModuleRepositoryData myRawData;
   private final Path myDescriptorsFilePath;
 
@@ -34,6 +39,7 @@ public class RuntimeModuleRepositoryImpl implements RuntimeModuleRepository {
   public RuntimeModuleRepositoryImpl(@NotNull Path descriptorsFilePath, @Nullable RawRuntimeModuleRepositoryData preloadedRawData) {
     myDescriptorsFilePath = descriptorsFilePath;
     myResolveResults = new ConcurrentHashMap<>();
+    myHeadersCache = new ConcurrentHashMap<>();
     myRawData = preloadedRawData;
   }
 
@@ -46,9 +52,14 @@ public class RuntimeModuleRepositoryImpl implements RuntimeModuleRepository {
     return result;
   }
 
-  private @NotNull ResolveResult resolveModule(@NotNull RuntimeModuleId moduleId, @NotNull Map<RuntimeModuleId, RuntimeModuleDescriptorImpl> dependencyPath) {
-    ResolveResult cached = myResolveResults.get(moduleId);
-    if (cached != null) return cached;
+  @Override
+  public @Nullable RuntimeModuleHeader findHeader(@NotNull RuntimeModuleId moduleId) {
+    return resolveHeader(moduleId);
+  }
+
+  private @Nullable RuntimeModuleHeaderImpl resolveHeader(@NotNull RuntimeModuleId moduleId) {
+    RuntimeModuleHeaderImpl cached = myHeadersCache.get(moduleId);
+    if (cached != null) return cached != UNRESOLVED_HEADER ? cached : null;
 
     RawRuntimeModuleRepositoryData rawData = getRawData();
     RawRuntimeModuleDescriptor rawDescriptor = rawData.findDescriptor(moduleId);
@@ -57,17 +68,33 @@ public class RuntimeModuleRepositoryImpl implements RuntimeModuleRepository {
          LEGACY_JPS_MODULE_NAMESPACE, but they actually can be registered as content modules */
       rawDescriptor = rawData.findDescriptor(RuntimeModuleId.contentModule(moduleId.getName(), RuntimeModuleId.DEFAULT_NAMESPACE));
     }
-    if (rawDescriptor == null) {
+    if (rawDescriptor != null) {
+      var header = new RuntimeModuleHeaderImpl(rawDescriptor.getModuleId(), rawData.getBasePath(), rawDescriptor.getResourcePaths(), rawDescriptor.getDependencyIds());
+      myHeadersCache.put(moduleId, header);
+      return header;
+    }
+    else {
+      myHeadersCache.put(moduleId, UNRESOLVED_HEADER);
+      return null;
+    }
+  }
+
+  private @NotNull ResolveResult resolveModule(@NotNull RuntimeModuleId moduleId, @NotNull Map<RuntimeModuleId, RuntimeModuleDescriptorImpl> dependencyPath) {
+    ResolveResult cached = myResolveResults.get(moduleId);
+    if (cached != null) return cached;
+
+    var header = resolveHeader(moduleId);
+    if (header == null) {
       List<RuntimeModuleId> failedPath = new ArrayList<>(dependencyPath.size() + 1);
       failedPath.addAll(dependencyPath.keySet());
       failedPath.add(moduleId);
       return new FailedResolveResult(failedPath);
     }
     
-    List<RuntimeModuleId> rawDependencies = rawDescriptor.getDependencyIds();
+    List<RuntimeModuleId> rawDependencies = header.getDependencies();
     List<RuntimeModuleDescriptor> resolvedDependencies = new ArrayList<>(rawDependencies.size());
-    RuntimeModuleDescriptorImpl descriptor = new RuntimeModuleDescriptorImpl(rawDescriptor.getModuleId(), rawData.getBasePath(), rawDescriptor.getResourcePaths(), resolvedDependencies);
-    dependencyPath.put(rawDescriptor.getModuleId(), descriptor);
+    RuntimeModuleDescriptorImpl descriptor = new RuntimeModuleDescriptorImpl(header, resolvedDependencies);
+    dependencyPath.put(header.getModuleId(), descriptor);
     for (RuntimeModuleId dependencyId : rawDependencies) {
       RuntimeModuleDescriptor circularDependency = dependencyPath.get(dependencyId);
       if (circularDependency != null) {
@@ -114,13 +141,11 @@ public class RuntimeModuleRepositoryImpl implements RuntimeModuleRepository {
 
   @Override
   public @NotNull List<Path> getModuleResourcePaths(@NotNull RuntimeModuleId moduleId) {
-    RawRuntimeModuleRepositoryData rawData = getRawData();
-    RawRuntimeModuleDescriptor rawDescriptor = rawData.findDescriptor(moduleId);
-    if (rawDescriptor == null) {
+    var header = resolveHeader(moduleId);
+    if (header == null) {
       throw new MalformedRepositoryException("Cannot find module '" + moduleId.getPresentableName() + "'");
     }
-    //todo improve this to reuse the computed paths if the module is resolved later
-    return new RuntimeModuleDescriptorImpl(moduleId, rawData.getBasePath(), rawDescriptor.getResourcePaths(), Collections.emptyList()).getResourceRootPaths();
+    return header.getOwnClasspath();
   }
 
   @Override

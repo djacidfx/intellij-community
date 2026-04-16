@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertNotNull
 import org.junit.jupiter.api.extension.RegisterExtension
 import org.junitpioneer.jupiter.cartesian.CartesianTest
 import java.nio.file.Path
@@ -29,9 +30,20 @@ class RepositoryTest {
       createModuleDescriptor("ij.foo", emptyList(), emptyList()),
       createModuleDescriptor("ij.bar", emptyList(), listOf("ij.foo")),
     )
-    val bar = repository.getModule(moduleId("ij.bar"))
-    val foo = repository.getModule(moduleId("ij.foo"))
+    val barId = moduleId("ij.bar")
+    val bar = repository.getModule(barId)
+    val fooId = moduleId("ij.foo")
+    val foo = repository.getModule(fooId)
     assertEquals(listOf(foo), bar.dependencies)
+
+    val fooHeader = repository.findHeader(fooId)
+    assertNotNull(fooHeader)
+    assertEquals("ij.foo", fooHeader.moduleId.name)
+    val barHeader = repository.findHeader(barId)
+    assertEquals(emptyList<RuntimeModuleId>(), fooHeader.dependencies)
+    assertNotNull(barHeader)
+    assertEquals("ij.bar", barHeader.moduleId.name)
+    assertEquals(listOf(fooId), barHeader.dependencies)
   }
 
   @Test
@@ -58,6 +70,7 @@ class RepositoryTest {
       repository.getModule(bazId)
     }
     assertEquals("Cannot resolve module 'ij.baz': module 'unresolved' (<- 'ij.bar' <- 'ij.baz') is not found", exception.message)
+    assertEquals("ij.bar", repository.findHeader(barId)?.moduleId?.name)
   }
 
   @Test
