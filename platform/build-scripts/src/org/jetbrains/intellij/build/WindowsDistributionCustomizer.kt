@@ -43,66 +43,62 @@ inline fun windowsCustomizer(projectHome: Path, configure: WindowsCustomizerBuil
 @WindowsCustomizerDsl
 class WindowsCustomizerBuilder @PublishedApi internal constructor(private val projectHome: Path) {
   /**
-   * Path to 256x256 *.ico file, relative to projectHome.
-   * Will be automatically prefixed with projectHome during build.
+   * Path to a 256x256 .ico file, relative to [projectHome].
    */
   var icoPath: String? = null
-  
+
   /**
-   * Path to *.ico file for EAP builds, relative to projectHome.
-   * If null, [icoPath] will be used. Will be automatically prefixed with projectHome during build.
+   * Path to a .ico file for EAP builds, relative to [projectHome]. If `null`, [icoPath] will be used.
    */
   var icoPathForEAP: String? = null
-  
+
   /**
-   * Path to installer images directory, relative to projectHome.
+   * Path to the installer images directory, relative to [projectHome].
    * Should contain: logo.bmp, headerlogo.bmp, install.ico, uninstall.ico.
-   * Will be automatically prefixed with projectHome during build.
    */
   var installerImagesPath: String? = null
-  
+
   /**
    * List of file extensions (without leading dots) which the installer will suggest to associate with the product.
-   * Example: listOf("java", "kt", "gradle")
+   * Example: `listOf("java", "kt", "gradle")`
    */
   var fileAssociations: List<String> = emptyList()
-  
+
   /**
-   * If true, Windows Installer will associate *.ipr files with the IDE in Registry.
+   * If `true`, Windows Installer will associate .ipr files with the IDE in Registry.
    */
   var associateIpr: Boolean = true
-  
+
   /**
-   * If true, *.bat files (productName.bat and inspect.bat) will be included in the distribution.
+   * If `true`, .bat files ("<productName>.bat" and "inspect.bat") will be included in the distribution.
    */
   var includeBatchLaunchers: Boolean = true
-  
+
   /**
    * If true, build a ZIP archive with JetBrains Runtime.
    */
   var buildZipArchiveWithBundledJre: Boolean = true
-  
+
   /**
    * If true, build a ZIP archive without JetBrains Runtime.
    */
   var buildZipArchiveWithoutBundledJre: Boolean = false
-  
+
   /**
-   * Suffix for ZIP archive with bundled JRE.
+   * Suffix for the ZIP archive with bundled JRE.
    */
   var zipArchiveWithBundledJreSuffix: String = ".win"
-  
+
   /**
-   * Suffix for ZIP archive without bundled JRE.
+   * Suffix for the ZIP archive without bundled JRE.
    */
   var zipArchiveWithoutBundledJreSuffix: String = "-no-jbr.win"
-  
+
   /**
-   * Paths to files which will be used to overwrite the standard *.nsi files.
-   * Paths will be automatically prefixed with projectHome during build.
+   * Paths to files which will be used to overwrite the standard .nsi files, relative to [projectHome].
    */
   var customNsiConfigurationFiles: List<String> = emptyList()
-  
+
   // Method override handlers (stored as lambdas)
   private var copyAdditionalFilesHandler: (suspend (Path, JvmArchitecture, BuildContext) -> Unit)? = null
   private var fullNameHandler: ((ApplicationInfoProperties) -> String)? = null
@@ -116,52 +112,45 @@ class WindowsCustomizerBuilder @PublishedApi internal constructor(private val pr
    * @return the current handler, or null if none is set
    */
   fun getCopyAdditionalFilesHandler(): (suspend (Path, JvmArchitecture, BuildContext) -> Unit)? = copyAdditionalFilesHandler
-  
+
   /**
    * Adds custom logic for copying additional files to the Windows distribution.
    * This handler is called after the base copyAdditionalFiles logic.
    *
-   * @param handler Lambda receiving targetDir, arch, and context
    * @see [ProductProperties.copyAdditionalOsSpecificFiles]
    */
   fun copyAdditionalFiles(handler: suspend (targetDir: Path, arch: JvmArchitecture, context: BuildContext) -> Unit) {
-    this.copyAdditionalFilesHandler = handler
-  }
-  
-  /**
-   * Sets a custom full name including edition for the Windows Installer and Registry keys.
-   *
-   * @param handler Lambda receiving ApplicationInfoProperties and returning the full name
-   */
-  fun fullName(handler: (ApplicationInfoProperties) -> String) {
-    this.fullNameHandler = handler
-  }
-  
-  /**
-   * Sets an alternative full name used by Windows Installer to look for previous versions.
-   *
-   * @param handler Lambda receiving ApplicationInfoProperties and returning the alternative name
-   */
-  fun alternativeFullName(handler: (ApplicationInfoProperties) -> String?) {
-    this.alternativeFullNameHandler = handler
+    copyAdditionalFilesHandler = handler
   }
 
   /**
-   * Sets the uninstall feedback page URL shown after uninstallation.
-   *
-   * @param handler Lambda receiving ApplicationInfoProperties and returning the URL
+   * Sets a custom full name including edition for the Windows Installer and Registry keys.
+   */
+  fun fullName(handler: (ApplicationInfoProperties) -> String) {
+    fullNameHandler = handler
+  }
+
+  /**
+   * Sets an alternative full name used by Windows Installer to look for previous versions.
+   */
+  fun alternativeFullName(handler: (ApplicationInfoProperties) -> String?) {
+    alternativeFullNameHandler = handler
+  }
+
+  /**
+   * Sets the uninstallation feedback page URL shown after uninstallation.
    */
   fun uninstallFeedbackUrl(handler: (ApplicationInfoProperties) -> String?) {
-    this.uninstallFeedbackUrlHandler = handler
+    uninstallFeedbackUrlHandler = handler
   }
-  
+
   /**
-   * Sets which binaries (not in bin directory) should be signed.
-   *
-   * @param handler Lambda receiving BuildContext and returning a list of relative paths
+   * Sets additional binaries to sign, relative to [projectHome].
+   * Files in the "bin/" directory are always signed.
    */
+  @Suppress("unused")
   fun binariesToSign(handler: (BuildContext) -> List<String>) {
-    this.binariesToSignHandler = handler
+    binariesToSignHandler = handler
   }
 
   /**
@@ -173,11 +162,9 @@ class WindowsCustomizerBuilder @PublishedApi internal constructor(private val pr
 
   /**
    * Builds the [WindowsDistributionCustomizer] with the configured settings.
-   * Automatically prefixes relative paths with projectHome.
+   * Automatically prefixes relative paths with [projectHome].
    */
-  fun build(): WindowsDistributionCustomizer {
-    return WindowsDistributionCustomizerImpl(builder = this, projectHome = projectHome)
-  }
+  fun build(): WindowsDistributionCustomizer = WindowsDistributionCustomizerImpl(builder = this, projectHome)
 
   private class WindowsDistributionCustomizerImpl(
     private val builder: WindowsCustomizerBuilder,
@@ -263,17 +250,17 @@ inline fun communityWindowsCustomizer(
 
 abstract class WindowsDistributionCustomizer {
   /**
-   * Path to 256x256 *.ico file for Windows distribution.
+   * Path to a 256x256 .ico file for Windows distribution.
    */
   var icoPath: Path? = null
 
   /**
-   * Path to an ico file for EAP builds (if `null` [icoPath] will be used).
+   * Path to a .ico file for EAP builds (if `null` [icoPath] will be used).
    */
   var icoPathForEAP: Path? = null
 
   /**
-   * If `true`, *.bat files (productName.bat and inspect.bat) will be included in the distribution.
+   * If `true`, .bat files ("<productName>.bat" and "inspect.bat") will be included in the distribution.
    */
   var includeBatchLaunchers: Boolean = true
 
@@ -291,7 +278,7 @@ abstract class WindowsDistributionCustomizer {
   var zipArchiveWithoutBundledJreSuffix: String = "-no-jbr.win"
 
   /**
-   * If `true`, Windows Installer will associate *.ipr files with the IDE in Registry.
+   * If `true`, Windows Installer will associate .ipr files with the IDE in Registry.
    */
   open val associateIpr: Boolean
     get() = true
@@ -313,13 +300,13 @@ abstract class WindowsDistributionCustomizer {
     get() = emptyList()
 
   /**
-   * Paths to files which will be used to overwrite the standard *.nsi files.
+   * Paths to files that will be used to overwrite the standard .nsi files.
    */
   open val customNsiConfigurationFiles: List<Path>
     get() = emptyList()
 
   /**
-   * Name of the root directory in Windows .zip archive
+   * Name of the root directory in the Windows ZIP archive
    * (the method is overridden in [AndroidStudioProperties.groovy](https://bit.ly/3heXKlQ)).
    */
   open fun getRootDirectoryName(appInfo: ApplicationInfoProperties, buildNumber: String): String = ""
@@ -336,7 +323,7 @@ abstract class WindowsDistributionCustomizer {
    * Override this method to copy additional files to the Windows distribution of the product.
    */
   open suspend fun copyAdditionalFiles(targetDir: Path, arch: JvmArchitecture, context: BuildContext) {
-    bundleRepairUtility(os = OsFamily.WINDOWS, arch = arch, distributionDir = targetDir, context = context)
+    bundleRepairUtility(OsFamily.WINDOWS, arch, targetDir, context)
   }
 
   /**

@@ -88,7 +88,6 @@ internal suspend fun buildNsisInstaller(
     spanBuilder("run NSIS tool to build .exe installer for Windows").use {
       val timeout = 2.hours
       if (OsFamily.currentOs == OsFamily.WINDOWS) {
-        @Suppress("SpellCheckingInspection")
         runProcess(
           args = listOf(
             nsisBin.toString(),
@@ -158,7 +157,7 @@ private suspend fun prepareNsis(context: BuildContext, tempDir: Path): Pair<Path
     nsisDir
   }
   val ext = if (OsFamily.currentOs == OsFamily.WINDOWS) ".exe" else "-${OsFamily.currentOs.dirName}-${JvmArchitecture.currentJvmArch.dirName}"
-  @Suppress("SpellCheckingInspection") val nsisBin = nsisDir.resolve("Bin/makensis${ext}")
+  val nsisBin = nsisDir.resolve("Bin/makensis${ext}")
   require(nsisBin.isRegularFile()) { "'${nsisDir.fileName}' is missing" }
   NioFiles.setExecutable(nsisBin)
   return nsisDir to nsisBin
@@ -189,7 +188,7 @@ private suspend fun prepareConfigurationFiles(nsiConfDir: Path, uninstallerFileN
       "'${signTool}' '%1'"
     }
     OsFamily.currentOs == OsFamily.WINDOWS -> {
-      "COPY /B /Y \$\\\"%1\$\\\" \$\\\"${uninstallerCopy}\$\\\""
+      $$"COPY /B /Y $\\\"%1$\\\" $\\\"$${uninstallerCopy}$\\\""
     }
     else -> {
       "cp -f '%1' '${uninstallerCopy}'"
@@ -230,12 +229,7 @@ private suspend fun prepareSignTool(nsiConfDir: Path, context: BuildContext, uni
   val toolFile =
     context.proprietaryBuildTools.signTool.commandLineClient(context, OsFamily.currentOs, JvmArchitecture.currentJvmArch)
     ?: error("No command line sign tool is configured")
-  val extensions = BuildOptions.WIN_SIGN_OPTIONS
-                     .takeIf { it.any() }
-                     ?.entries?.asSequence()
-                     ?.map { "${it.key}=${it.value}" }
-                     ?.joinToString(prefix = " -extensions ", separator = ",")
-                   ?: ""
+  val extensions = BuildOptions.WIN_SIGN_OPTIONS.takeIf { it.any() }?.entries?.joinToString(prefix = " -extensions ", separator = ",") { "${it.key}=${it.value}" } ?: ""
   val scriptFile = Files.writeString(nsiConfDir.resolve("sign-tool.cmd"), when (OsFamily.currentOs) {
     // moving the file back and forth is required for NSIS to fail if signing didn't happen
     OsFamily.WINDOWS -> """
