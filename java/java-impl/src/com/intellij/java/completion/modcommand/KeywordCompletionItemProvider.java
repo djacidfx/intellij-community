@@ -7,6 +7,7 @@ import com.intellij.codeInsight.ExpectedTypeInfo;
 import com.intellij.codeInsight.JavaTailTypes;
 import com.intellij.codeInsight.ModNavigatorTailType;
 import com.intellij.codeInsight.completion.AllClassesGetter;
+import com.intellij.codeInsight.completion.CompletionContributor;
 import com.intellij.codeInsight.completion.CompletionUtil;
 import com.intellij.codeInsight.completion.JavaCompletionContributor;
 import com.intellij.codeInsight.completion.JavaCompletionUtil;
@@ -1608,5 +1609,10 @@ final class KeywordCompletionItemProvider extends JavaModCompletionItemProvider 
       return type == null || PsiTreeUtil.isAncestor(type, position, false);
     }
     return false;
+  }
+
+  @Override
+  public Class<? extends CompletionContributor> getAnchorContributor() {
+    return JavaCompletionContributor.class;
   }
 }

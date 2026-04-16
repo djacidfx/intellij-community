@@ -2,6 +2,7 @@
 package com.intellij.modcompletion;
 
 import com.intellij.codeInsight.completion.BaseCompletionParameters;
+import com.intellij.codeInsight.completion.CompletionContributor;
 import com.intellij.codeInsight.completion.CompletionSorter;
 import com.intellij.codeInsight.completion.CompletionType;
 import com.intellij.codeInsight.completion.PrefixMatcher;
@@ -49,6 +50,18 @@ public interface ModCompletionItemProvider extends PossiblyDumbAware {
    */
   default CompletionSorter getSorter(CompletionContext context) {
     return CompletionSorter.defaultSorter(context, context.matcher());
+  }
+
+  /**
+   * @return the completion contributor class to attach this provider to;
+   * the completion items from this provider will be contributed right before the supplied contributor.
+   * This may help to retain the order in complex cases with different sorters when migration to {@link ModCompletionItemProvider} 
+   * is in progress and this provider was extracted from the specified anchor contributor, but the contributor still exists.
+   * Returns null if no anchor contributor is specified; in this case the provider will be executed before any classic contributors.
+   */
+  @ApiStatus.Internal
+  default @Nullable Class<? extends CompletionContributor> getAnchorContributor() {
+    return null;
   }
 
   /**

@@ -32,6 +32,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
@@ -248,12 +252,25 @@ public abstract class CompletionContributor implements PossiblyDumbAware {
       contributors = INSTANCE.forKey(language);
     }
 
+    List<ModCompletionItemProvider> providers = ModCompletionItemProvider.forLanguage(language);
+    if (providers.isEmpty()) {
+      return contributors;
+    }
     List<ModCompletionItemFilter> filters = ModCompletionItemFilter.EP_NAME.allForLanguage(language);
+
+    Map<Class<? extends CompletionContributor>, Integer> order = IntStream.range(0, contributors.size())
+      .boxed().collect(Collectors.toMap(idx -> contributors.get(idx).getClass(), Function.identity(), (a, b) -> a));
+
+    Stream<Map.Entry<Integer, CompletionContributor>> modContributors = providers
+      .stream()
+      .filter(ModCompletionItemProvider::isEnabled)
+      .map(provider -> Map.entry(order.getOrDefault(provider.getAnchorContributor(), -1),
+                                 new CompletionItemContributor(provider, ContainerUtil.filter(filters, f -> f.isApplicableFor(provider)))));
     return Stream.concat(
-      ModCompletionItemProvider.forLanguage(language).stream()
-        .filter(ModCompletionItemProvider::isEnabled)
-        .map(provider -> new CompletionItemContributor(provider, ContainerUtil.filter(filters, f -> f.isApplicableFor(provider)))),
-      contributors.stream()).toList();
+      modContributors, IntStream.range(0, contributors.size()).mapToObj(idx -> Map.entry(idx, contributors.get(idx))))
+      .sorted(Map.Entry.comparingByKey())
+      .map(Map.Entry::getValue)
+      .toList();
   }
 
   @ApiStatus.Internal
