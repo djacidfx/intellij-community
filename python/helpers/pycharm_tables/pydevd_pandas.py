@@ -2,8 +2,8 @@
 import numpy as np
 import pandas as pd
 import typing
-from collections import OrderedDict
 import sys
+import re
 if sys.version_info < (3, 0):
     from collections import Iterable
 else:
@@ -124,7 +124,9 @@ def get_column_descriptions(table):
     described_result = __get_describe(table)
 
     if described_result is not None:
-        return get_data(described_result, None, None)
+        described_html = get_data(described_result, None, None)
+        exact_counts = __convert_to_df(described_result).loc["count"].tolist()
+        return __replace_count_row_values(described_html, exact_counts)
     else:
         return ""
 
@@ -143,6 +145,48 @@ def get_value_occurrences_count(table):
     return ColumnVisualisationUtils.TABLE_OCCURRENCES_COUNT_NEXT_COLUMN_SEPARATOR.join(bin_counts)
 
 
+COUNT_ROW_HEADER = "<th>count</th>"
+TABLE_ROW_OPEN_TAG = "<tr>"
+TABLE_ROW_CLOSE_TAG = "</tr>"
+TABLE_CELL_PATTERN = re.compile(r"(<td>)(.*?)(</td>)")
+
+
+def __replace_count_row_values(described_html, exact_counts):
+    # type: (str, list) -> str
+    count_header_index = described_html.find(COUNT_ROW_HEADER)
+    if count_header_index < 0:
+        return described_html
+
+    row_start_index = described_html.rfind(TABLE_ROW_OPEN_TAG, 0, count_header_index)
+    row_end_index = described_html.find(TABLE_ROW_CLOSE_TAG, count_header_index)
+    if row_start_index < 0 or row_end_index < 0:
+        return described_html
+
+    row_end_index += len(TABLE_ROW_CLOSE_TAG)
+    count_row_html = described_html[row_start_index:row_end_index]
+    exact_counts_iter = iter(exact_counts)
+
+    def replace_count_cell(match):
+        try:
+            exact_count = next(exact_counts_iter)
+        except StopIteration:
+            return match.group(0)
+
+        old_value = match.group(2)
+        formatted_count = __format_exact_count_value(old_value, exact_count)
+        return "{}{}{}".format(match.group(1), formatted_count, match.group(3))
+
+    replaced_count_row_html = TABLE_CELL_PATTERN.sub(replace_count_cell, count_row_html)
+    return "{}{}{}".format(described_html[:row_start_index], replaced_count_row_html, described_html[row_end_index:])
+
+
+def __format_exact_count_value(old_value, exact_count):
+    # type: (str, int) -> str
+    if "." in old_value or "e" in old_value.lower():
+        return "{:.6f}".format(float(exact_count))
+    return str(int(exact_count))
+
+
 def get_inspection_none_count(table):
     def _calculate_none_count(cur_table):
         """Calculate missing values per column"""
@@ -150,7 +194,7 @@ def get_inspection_none_count(table):
         for col, missing_count in cur_table.isna().sum().items():
             if missing_count > 0:
                 results_per_column.append({
-                    "columnName": col,
+                    "columnName": str(col),
                     "value": str(missing_count)
                 })
 
@@ -174,21 +218,22 @@ def get_inspection_duplicate_rows(table):
 def get_inspection_outliers(table):
     def _calculate_outliers(cur_table):
         results_per_column = []
-        for col in cur_table.columns:
-            if pd.api.types.is_numeric_dtype(cur_table[col]):
-                q1 = cur_table[col].quantile(0.25)
-                q3 = cur_table[col].quantile(0.75)
+        for column_index, column_name in enumerate(cur_table.columns):
+            column = cur_table.iloc[:, column_index]
+            if pd.api.types.is_numeric_dtype(column):
+                q1 = column.quantile(0.25)
+                q3 = column.quantile(0.75)
                 iqr = q3 - q1
                 lower_bound = q1 - 1.5 * iqr
                 upper_bound = q3 + 1.5 * iqr
 
                 # Boolean mask for outliers
-                mask = (cur_table[col] < lower_bound) | (cur_table[col] > upper_bound)
-                outliers_count = cur_table[col][mask].count()
+                mask = (column < lower_bound) | (column > upper_bound)
+                outliers_count = column[mask].count()
 
                 if outliers_count > 0:
                     results_per_column.append({
-                        "columnName": col,
+                        "columnName": str(column_name),
                         "value": str(outliers_count),
                         "detailFirst": str(lower_bound),
                         "detailSecond": str(upper_bound)
@@ -204,11 +249,12 @@ def get_inspection_outliers(table):
 def get_inspection_constant_columns(table):
     def _calculate_constant_columns(cur_table):
         results_per_column = []
-        for col in cur_table.columns:
-            if cur_table[col].nunique(dropna=False) == 1:
+        for column_index, column_name in enumerate(cur_table.columns):
+            column = cur_table.iloc[:, column_index]
+            if column.nunique(dropna=False) == 1:
                 results_per_column.append({
-                    "columnName": col,
-                    "value": str(cur_table[col].iloc[0])
+                    "columnName": str(column_name),
+                    "value": str(column.iloc[0])
                 })
 
         is_triggered = len(results_per_column) > 0
@@ -216,6 +262,29 @@ def get_inspection_constant_columns(table):
         return __create_success_result(is_triggered, details)
 
     return __execute_inspection(table, _calculate_constant_columns, "CONSTANT_COLUMNS")
+
+
+def get_inspection_duplicate_column_names(table):
+    def _calculate_duplicate_column_names(cur_table):
+        from collections import defaultdict
+        tmp_results = defaultdict(list)
+
+        for idx, col in enumerate(cur_table.columns):
+            tmp_results[col].append(str(idx))
+
+        results_per_column_name = []
+        for col, columns_indexes in tmp_results.items():
+            if len(columns_indexes) > 1:
+                results_per_column_name.append({
+                    "columnName": str(col),
+                    "value": "Indexes: %s" % (", ".join(columns_indexes))
+                })
+
+        is_triggered = len(results_per_column_name) > 0
+        details = __create_per_column_details(results_per_column_name) if is_triggered else None
+        return __create_success_result(is_triggered, details)
+
+    return __execute_inspection(table, _calculate_duplicate_column_names, "DUPLICATE_COLUMN_NAMES")
 
 
 def __get_data_slice(table, start, end):
@@ -269,7 +338,6 @@ def __define_format_function(format):
 
 def __is_valid_format_string(str_with_format):
     try:
-        import re
         format_re = re.compile(r'^%(\(\w+\))?[#0\- +]*\d*(?:\.\d+)?[hlL]?[diouxXeEfFgGcrs%]$')
         return bool(format_re.match(str_with_format))
     except:
