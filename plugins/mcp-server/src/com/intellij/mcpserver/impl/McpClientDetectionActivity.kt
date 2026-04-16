@@ -4,7 +4,6 @@ import com.intellij.ide.BrowserUtil
 import com.intellij.ide.IdeBundle
 import com.intellij.mcpserver.McpServerBundle
 import com.intellij.mcpserver.clients.McpClient
-import com.intellij.mcpserver.settings.McpServerSettings
 import com.intellij.mcpserver.settings.McpServerSettingsConfigurable
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationAction
@@ -53,7 +52,7 @@ internal class McpClientDetectionActivity : ProjectActivity {
     suggestToChangePortIfNeeded(detectedClients, project)
 
     if (Registry.`is`("mcp.server.detect.mcp.clients")) {
-      if (McpServerSettings.getInstance().state.enableMcpServer) {
+      if (McpServerService.getInstance().isRunning) {
         showUnconfiguredNotificationIfNeeded(detectedClients, project)
         return
       }

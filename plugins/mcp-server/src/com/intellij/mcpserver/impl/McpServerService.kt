@@ -1,6 +1,7 @@
 package com.intellij.mcpserver.impl
 
 import com.intellij.mcpserver.McpSessionInvocationMode
+import com.intellij.mcpserver.McpServerBundle
 import com.intellij.mcpserver.McpTool
 import com.intellij.mcpserver.McpToolFilter
 import com.intellij.mcpserver.McpToolFilterProvider
@@ -9,12 +10,15 @@ import com.intellij.mcpserver.impl.util.network.McpServerConnectionAddressProvid
 import com.intellij.mcpserver.impl.util.network.findFirstFreePort
 import com.intellij.mcpserver.impl.util.network.installHostValidation
 import com.intellij.mcpserver.impl.util.network.installHttpRequestPropagation
+import com.intellij.mcpserver.impl.util.network.isPortAvailable
 import com.intellij.mcpserver.impl.util.network.mcpPatched
 import com.intellij.mcpserver.settings.McpServerSettings
 import com.intellij.mcpserver.settings.McpToolFilterSettings
 import com.intellij.mcpserver.stdio.IJ_MCP_ALLOWED_TOOLS
 import com.intellij.mcpserver.stdio.IJ_MCP_SERVER_PROJECT_PATH
 import com.intellij.mcpserver.toolsets.general.UniversalToolset
+import com.intellij.notification.NotificationGroupManager
+import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ApplicationNamesInfo
 import com.intellij.openapi.components.service
@@ -205,14 +209,15 @@ open class McpServerService(val cs: CoroutineScope) {
 
   internal fun settingsChanged(enabled: Boolean) {
     server.update { currentServer ->
-      if (!enabled) {
+      val effectivelyEnabled = enabled || isMcpServerForceEnabled()
+      if (!effectivelyEnabled) {
         // stop old
         currentServer?.stop()
         return@update null
       }
       else {
         // reuse old or start new
-        return@update currentServer ?: startServer(McpServerSettings.getInstance().state.mcpServerPort, authCheck = false)
+        return@update currentServer ?: startGlobalServer()
       }
     }
   }
@@ -220,25 +225,91 @@ open class McpServerService(val cs: CoroutineScope) {
   class MyProjectListener : ProjectActivity {
     override suspend fun execute(project: Project) {
       // TODO: consider start on app startup
-      serviceAsync<McpServerService>() // initialize service
+      val service = serviceAsync<McpServerService>() // initialize service
+      service.showForceEnabledNotificationIfNeeded(project)
     }
   }
 
   private fun startGlobalServerIfEnabled(): EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>? {
-    if (!McpServerSettings.getInstance().state.enableMcpServer) return null
-    val server = startServer(McpServerSettings.getInstance().state.mcpServerPort, authCheck = false)
-    cs.launch {
-      // save to settings can be done asynchronously
-      McpServerSettings.getInstance().state.mcpServerPort = server.engine.resolvedConnectors().first().port
+    if (!isMcpServerEffectivelyEnabled(McpServerSettings.getInstance().state.enableMcpServer)) return null
+    return startGlobalServer()
+  }
+
+  private fun startGlobalServer(): EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>? {
+    val settings = McpServerSettings.getInstance().state
+    val forcePortState = getForcedMcpServerPortState()
+    val desiredPort = when (forcePortState) {
+      ForcedPortState.Absent -> settings.mcpServerPort
+      is ForcedPortState.Valid -> forcePortState.port
+      is ForcedPortState.Invalid -> {
+        logger.error("Invalid MCP server port '${forcePortState.rawValue}' from system property '$IJ_MCP_FORCE_PORT_PROPERTY'")
+        return null
+      }
+    }
+    val requireExactPort = forcePortState is ForcedPortState.Valid
+    val server = try {
+      startServer(desiredPort = desiredPort, authCheck = false, requireExactPort = requireExactPort)
+    }
+    catch (t: Throwable) {
+      if (!hasMcpServerRuntimeOverrides()) throw t
+
+      val message = if (requireExactPort) {
+        "Failed to start MCP server on forced port $desiredPort from system property '$IJ_MCP_FORCE_PORT_PROPERTY'"
+      }
+      else {
+        "Failed to start MCP server with runtime overrides"
+      }
+      logger.error(message, t)
+      return null
+    }
+    if (!hasMcpServerRuntimeOverrides()) {
+      cs.launch {
+        // save to settings can be done asynchronously
+        settings.mcpServerPort = server.engine.resolvedConnectors().first().port
+      }
     }
     return server
   }
 
-  private fun startServer(desiredPort: Int, authCheck: Boolean): EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> {
-    val freePort = findFirstFreePort(desiredPort)
+  private fun showForceEnabledNotificationIfNeeded(project: Project) {
+    if (!isRunning || !isMcpServerForceEnabled()) return
 
-    return cs.embeddedServer(CIO, host = "127.0.0.1", port = freePort) {
-      logger.trace { "Starting embedded MCP server on port $freePort, authCheck=$authCheck" }
+    val message = getForcedMcpServerPortOrNull()?.let { forcedPort ->
+      McpServerBundle.message(
+        "mcp.server.force.enabled.notification.message.with.port",
+        IJ_MCP_FORCE_ENABLE_PROPERTY,
+        IJ_MCP_FORCE_PORT_PROPERTY,
+        forcedPort.toString(),
+      )
+    } ?: McpServerBundle.message("mcp.server.force.enabled.notification.message", IJ_MCP_FORCE_ENABLE_PROPERTY)
+
+    NotificationGroupManager.getInstance()
+      .getNotificationGroup("MCP Server")
+      .createNotification(
+        McpServerBundle.message("mcp.server.force.enabled.notification.title"),
+        message,
+        NotificationType.INFORMATION,
+      )
+      .notify(project)
+  }
+
+  private fun startServer(
+    desiredPort: Int,
+    authCheck: Boolean,
+    requireExactPort: Boolean = false,
+  ): EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> {
+    val resolvedPort = if (requireExactPort) {
+      if (!isPortAvailable(desiredPort)) {
+        throw IllegalStateException("Port $desiredPort is not available")
+      }
+      desiredPort
+    }
+    else {
+      findFirstFreePort(desiredPort)
+    }
+
+    return cs.embeddedServer(CIO, host = "127.0.0.1", port = resolvedPort) {
+      logger.trace { "Starting embedded MCP server on port $resolvedPort, authCheck=$authCheck" }
       installHostValidation()
       installHttpRequestPropagation()
 
