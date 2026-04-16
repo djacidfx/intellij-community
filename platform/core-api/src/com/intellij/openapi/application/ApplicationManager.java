@@ -23,11 +23,17 @@ public class ApplicationManager {
     return ourApplication;
   }
 
+  /** @noinspection StaticNonFinalField*/
+  @Internal
+  public static boolean logSetApplication = true;
+
   @Internal
   public static void setApplication(@Nullable Application instance) {
-    Application old = ourApplication;
-    if ((old != null && old.isUnitTestMode()) || (instance != null && instance.isUnitTestMode())) {
-      Logger.getInstance(ApplicationManager.class).info("Switching application instance: " + old + " -> " + instance, new Throwable());
+    if (logSetApplication) {
+      Application old = ourApplication;
+      if ((old != null && old.isUnitTestMode()) || (instance != null && instance.isUnitTestMode())) {
+        Logger.getInstance(ApplicationManager.class).info("Switching application instance: " + old + " -> " + instance, new Throwable());
+      }
     }
 
     ourApplication = instance;
