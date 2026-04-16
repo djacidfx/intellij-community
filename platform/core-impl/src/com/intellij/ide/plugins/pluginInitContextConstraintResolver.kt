@@ -293,7 +293,7 @@ private class PluginSetConstraintsResolver(
         incompatiblePlugin to candidate
       }
       exclude(excluded, IncompatibleWithAnotherModule(
-        candidate, survivor as? PluginModuleDescriptor ?: survivor.getMainDescriptor()
+        excluded, survivor as? PluginModuleDescriptor ?: survivor.getMainDescriptor()
       ))
     }
   }
