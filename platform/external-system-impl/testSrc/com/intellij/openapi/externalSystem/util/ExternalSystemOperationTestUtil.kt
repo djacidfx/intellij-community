@@ -22,7 +22,7 @@ suspend fun <R> awaitProjectActivity(project: Project, action: suspend () -> R):
 
 @Obsolete
 fun waitForProjectActivity(project: Project, action: Runnable): Unit =
-  TestObservation.waitForProjectActivity(project, action = action::run)
+  TestObservation.waitForProjectActivity(project, DEFAULT_SYNC_TIMEOUT_MS, action)
 
 @Obsolete
 fun <R> waitForProjectActivity(project: Project, action: () -> R): R =
