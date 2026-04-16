@@ -24,6 +24,7 @@ import com.intellij.openapi.vcs.changes.issueLinks.LinkMouseListenerBase;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.platform.debugger.impl.shared.proxy.XDebugSessionProxy;
 import com.intellij.platform.debugger.impl.ui.XDebuggerEntityConverter;
+import com.intellij.ui.ScreenUtil;
 import com.intellij.ui.SimpleColoredComponent;
 import com.intellij.ui.SimpleColoredComponentWithProgress;
 import com.intellij.ui.SimpleColoredText;
@@ -58,7 +59,9 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.Icon;
 import javax.swing.JComponent;
+import java.awt.Dimension;
 import java.awt.Point;
+import java.awt.Rectangle;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
@@ -447,7 +450,14 @@ public class XValueHint extends AbstractValueHint {
     private ExpandableHint(@NotNull SimpleColoredComponent textComponent,
                            @NotNull HintPresentation presentation) {
       myTextComponent = textComponent;
-      myComponent = installInformationProperties(new BorderLayoutPanel());
+      myComponent = installInformationProperties(new BorderLayoutPanel() {
+        @Override
+        public Dimension getPreferredSize() {
+          Dimension d = super.getPreferredSize();
+          Rectangle screen = ScreenUtil.getScreenRectangle(getEditor().getContentComponent());
+          return new Dimension(Math.min(d.width, (int)(screen.width * 0.9)), d.height);
+        }
+      });
       myComponent.add(textComponent);
       setLinkComponent(presentation.evaluator(), presentation.link());
     }
