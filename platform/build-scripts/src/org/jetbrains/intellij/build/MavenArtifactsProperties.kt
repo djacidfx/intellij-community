@@ -26,6 +26,12 @@ class MavenArtifactsProperties {
   var forIdeModules: Boolean = false
 
   /**
+   * If `true` Maven artifacts are generated for all library modules.
+   * @see org.jetbrains.intellij.build.impl.libraries.isLibraryModule
+   */
+  var publishLibraryModules: Boolean = false
+
+  /**
    * Names of additional modules for which Maven artifacts should be generated.
    */
   var additionalModules: PersistentList<String> = persistentListOf()

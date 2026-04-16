@@ -194,7 +194,7 @@ open class MavenArtifactsBuilder(protected val context: BuildContext) {
       val moduleCoordinates = modules.mapTo(HashSet()) { aModule -> generateMavenCoordinatesForModule(aModule) }
       val dependencies = modules
         .asSequence()
-        .filter { !it.isLibraryModule() }
+        .filter { !it.isLibraryModule() || context.productProperties.mavenArtifacts.publishLibraryModules }
         .flatMap { aModule -> squashingMavenArtifactsData.getValue(aModule).dependencies }
         .distinct()
         .filter { !moduleCoordinates.contains(it.coordinates) }
@@ -229,10 +229,12 @@ open class MavenArtifactsBuilder(protected val context: BuildContext) {
     return results
   }
 
-  private fun generateMavenArtifactData(module: JpsModule,
-                                        results: MutableMap<JpsModule, MavenArtifactData>,
-                                        nonMavenizableModules: MutableSet<JpsModule>,
-                                        computationInProgress: MutableSet<JpsModule>): MavenArtifactData? {
+  private fun generateMavenArtifactData(
+    module: JpsModule,
+    results: MutableMap<JpsModule, MavenArtifactData>,
+    nonMavenizableModules: MutableSet<JpsModule>,
+    computationInProgress: MutableSet<JpsModule>,
+  ): MavenArtifactData? {
     if (results.containsKey(module)) {
       return results[module]
     }
@@ -241,16 +243,20 @@ open class MavenArtifactsBuilder(protected val context: BuildContext) {
     }
 
     if (shouldSkipModule(moduleName = module.name, moduleIsDependency = false)) {
-      Span.current().addEvent("module doesn't belong to IntelliJ project so it cannot be published", Attributes.of(
-        AttributeKey.stringKey("module"), module.name
-      ))
+      Span.current().addEvent(
+        "module doesn't belong to IntelliJ project so it cannot be published", Attributes.of(
+          AttributeKey.stringKey("module"), module.name
+        )
+      )
       return null
     }
     val scrambleTool = context.proprietaryBuildTools.scrambleTool
     if (scrambleTool != null && scrambleTool.namesOfModulesRequiredToBeScrambled.contains(module.name)) {
-      Span.current().addEvent("module must be scrambled so it cannot be published", Attributes.of(
-        AttributeKey.stringKey("module"), module.name
-      ))
+      Span.current().addEvent(
+        "module must be scrambled so it cannot be published", Attributes.of(
+          AttributeKey.stringKey("module"), module.name
+        )
+      )
       return null
     }
 
@@ -271,18 +277,22 @@ open class MavenArtifactsBuilder(protected val context: BuildContext) {
            It's convenient to have such dependencies to allow running tests in classpath of their modules, so we can just ignore them while
            generating pom.xml files.
           */
-          Span.current().addEvent("skip recursive dependency on", Attributes.of(
-            AttributeKey.stringKey("module"), module.name,
-            AttributeKey.stringKey("dependencyModule"), depModule.name,
-          ))
+          Span.current().addEvent(
+            "skip recursive dependency on", Attributes.of(
+              AttributeKey.stringKey("module"), module.name,
+              AttributeKey.stringKey("dependencyModule"), depModule.name,
+            )
+          )
         }
         else {
           val depArtifact = generateMavenArtifactData(depModule, results, nonMavenizableModules, computationInProgress)
           if (depArtifact == null) {
-            Span.current().addEvent("module depends on non-mavenizable module so it cannot be published", Attributes.of(
-              AttributeKey.stringKey("module"), module.name,
-              AttributeKey.stringKey("dependencyModule"), depModule.name,
-            ))
+            Span.current().addEvent(
+              "module depends on non-mavenizable module so it cannot be published", Attributes.of(
+                AttributeKey.stringKey("module"), module.name,
+                AttributeKey.stringKey("dependencyModule"), depModule.name,
+              )
+            )
             mavenizable = false
             continue
           }
@@ -290,7 +300,12 @@ open class MavenArtifactsBuilder(protected val context: BuildContext) {
             check(depArtifact.dependencies.any()) {
               "A library module ${depArtifact.module.name} is expected to have some library dependencies"
             }
-            dependencies += depArtifact.dependencies
+            if (context.productProperties.mavenArtifacts.publishLibraryModules) {
+              dependencies.add(MavenArtifactDependency(depArtifact.coordinates, true, ArrayList(), scope))
+            }
+            else {
+              dependencies += depArtifact.dependencies
+            }
           }
           else {
             dependencies.add(MavenArtifactDependency(depArtifact.coordinates, true, ArrayList(), scope))
@@ -304,10 +319,12 @@ open class MavenArtifactsBuilder(protected val context: BuildContext) {
           dependencies.add(createArtifactDependencyByLibrary(typed.properties.data, scope))
         }
         else if (!isOptionalDependency(library)) {
-          Span.current().addEvent("module depends on non-maven library", Attributes.of(
-            AttributeKey.stringKey("module"), module.name,
-            AttributeKey.stringKey("library"), getLibraryFilename(library),
-          ))
+          Span.current().addEvent(
+            "module depends on non-maven library", Attributes.of(
+              AttributeKey.stringKey("module"), module.name,
+              AttributeKey.stringKey("library"), getLibraryFilename(library),
+            )
+          )
           mavenizable = false
         }
       }
@@ -320,7 +337,9 @@ open class MavenArtifactsBuilder(protected val context: BuildContext) {
     }
 
     val artifactData = MavenArtifactData(module, generateMavenCoordinatesForModule(module), patchedDependencies)
-    results[module] = artifactData
+    if (!module.isLibraryModule() || context.productProperties.mavenArtifacts.publishLibraryModules) {
+      results[module] = artifactData
+    }
     return artifactData
   }
 
@@ -407,14 +426,14 @@ data class MavenCoordinates(
 internal data class MavenArtifactData(
   val module: JpsModule,
   val coordinates: MavenCoordinates,
-  val dependencies: List<MavenArtifactDependency>
+  val dependencies: List<MavenArtifactDependency>,
 )
 
 data class MavenArtifactDependency(
   val coordinates: MavenCoordinates,
   val includeTransitiveDeps: Boolean,
   val excludedDependencies: List<String>,
-  val scope: DependencyScope?
+  val scope: DependencyScope?,
 )
 
 private fun Model.setOrFailIfAlreadySet(name: String, value: String, getter: Model.() -> String?, setter: Model.(String) -> Unit) {
@@ -486,13 +505,19 @@ private fun createDependencyTag(dep: MavenArtifactDependency): Dependency {
   return dependency
 }
 
-private fun createArtifactDependencyByLibrary(descriptor: JpsMavenRepositoryLibraryDescriptor,
-                                              scope: DependencyScope?): MavenArtifactDependency {
-  return MavenArtifactDependency(coordinates = MavenCoordinates(groupId = descriptor.groupId,
-                                                                artifactId = descriptor.artifactId,
-                                                                version = descriptor.version),
-                                 includeTransitiveDeps = descriptor.isIncludeTransitiveDependencies,
-                                 excludedDependencies = descriptor.excludedDependencies, scope = scope)
+private fun createArtifactDependencyByLibrary(
+  descriptor: JpsMavenRepositoryLibraryDescriptor,
+  scope: DependencyScope?,
+): MavenArtifactDependency {
+  return MavenArtifactDependency(
+    coordinates = MavenCoordinates(
+      groupId = descriptor.groupId,
+      artifactId = descriptor.artifactId,
+      version = descriptor.version
+    ),
+    includeTransitiveDeps = descriptor.isIncludeTransitiveDependencies,
+    excludedDependencies = descriptor.excludedDependencies, scope = scope
+  )
 }
 
 private fun splitByCamelHumpsMergingNumbers(s: String): List<String> {
@@ -527,74 +552,74 @@ private suspend fun layoutMavenArtifacts(
 ): Map<MavenArtifactData, List<Path>> {
   return modulesToPublish.entries.mapConcurrent { (artifactData, modules) ->
     withContext(CoroutineName("layout maven artifact ${artifactData.coordinates}")) {
-        val artifacts = mutableListOf<Path>()
-        val modulesWithSources = modules.filter {
-          it.getSourceRoots(JavaSourceRootType.SOURCE).any() || it.getSourceRoots(JavaResourceRootType.RESOURCE).any()
-        }
+      val artifacts = mutableListOf<Path>()
+      val modulesWithSources = modules.filter {
+        it.getSourceRoots(JavaSourceRootType.SOURCE).any() || it.getSourceRoots(JavaResourceRootType.RESOURCE).any()
+      }
 
-        val dirPath = artifactData.coordinates.directoryPath
-        val artifactDir = outputDir.resolve(dirPath)
-        Files.createDirectories(artifactDir)
-        val pom = artifactDir.resolve(artifactData.coordinates.getFileName(packaging = "pom"))
-        generatePomXmlData(
-          context = context,
-          artifactData = artifactData,
-          file = pom,
-        )
-        artifacts.add(pom)
-        val jar = artifactDir.resolve(artifactData.coordinates.getFileName(packaging = "jar"))
+      val dirPath = artifactData.coordinates.directoryPath
+      val artifactDir = outputDir.resolve(dirPath)
+      Files.createDirectories(artifactDir)
+      val pom = artifactDir.resolve(artifactData.coordinates.getFileName(packaging = "pom"))
+      generatePomXmlData(
+        context = context,
+        artifactData = artifactData,
+        file = pom,
+      )
+      artifacts.add(pom)
+      val jar = artifactDir.resolve(artifactData.coordinates.getFileName(packaging = "jar"))
+      buildJar(
+        targetFile = jar,
+        sources = modulesWithSources.flatMap {
+          context.outputProvider.getModuleOutputRoots(it).map { moduleOutput ->
+            check(Files.exists(moduleOutput)) {
+              "$it module output directory doesn't exist: $moduleOutput"
+            }
+            if (moduleOutput.toString().endsWith(".jar")) {
+              ZipSource(file = moduleOutput, distributionFileEntryProducer = null, filter = createModuleSourcesNamesFilter(commonModuleExcludes), moduleName = null)
+            }
+            else {
+              DirSource(dir = moduleOutput, excludes = commonModuleExcludes, moduleName = null)
+            }
+          }
+        },
+      )
+      artifacts.add(jar)
+
+      val publishSourcesForModules = modules.filter {
+        context.productProperties.mavenArtifacts.publishSourcesFilter(it, context)
+      }
+      if (!publishSourcesForModules.isEmpty() && !modulesWithSources.isEmpty()) {
+        val sources = artifactDir.resolve(artifactData.coordinates.getFileName("sources", "jar"))
         buildJar(
-          targetFile = jar,
-          sources = modulesWithSources.flatMap {
-            context.outputProvider.getModuleOutputRoots(it).map { moduleOutput ->
-              check(Files.exists(moduleOutput)) {
-                "$it module output directory doesn't exist: $moduleOutput"
-              }
-              if (moduleOutput.toString().endsWith(".jar")) {
-                ZipSource(file = moduleOutput, distributionFileEntryProducer = null, filter = createModuleSourcesNamesFilter(commonModuleExcludes), moduleName = null)
-              }
-              else {
-                DirSource(dir = moduleOutput, excludes = commonModuleExcludes, moduleName = null)
-              }
+          targetFile = sources,
+          sources = publishSourcesForModules.flatMap { module ->
+            module.getSourceRoots(JavaSourceRootType.SOURCE).asSequence().map {
+              DirSource(dir = it.path, prefix = it.properties.packagePrefix.replace('.', '/'), excludes = commonModuleExcludes, moduleName = null)
+            } +
+            module.getSourceRoots(JavaResourceRootType.RESOURCE).asSequence().map {
+              DirSource(dir = it.path, prefix = it.properties.relativeOutputPath, excludes = commonModuleExcludes, moduleName = null)
             }
           },
+          compress = true,
         )
-        artifacts.add(jar)
-
-        val publishSourcesForModules = modules.filter {
-          context.productProperties.mavenArtifacts.publishSourcesFilter(it, context)
-        }
-        if (!publishSourcesForModules.isEmpty() && !modulesWithSources.isEmpty()) {
-          val sources = artifactDir.resolve(artifactData.coordinates.getFileName("sources", "jar"))
-          buildJar(
-            targetFile = sources,
-            sources = publishSourcesForModules.flatMap { module ->
-              module.getSourceRoots(JavaSourceRootType.SOURCE).asSequence().map {
-                DirSource(dir = it.path, prefix = it.properties.packagePrefix.replace('.', '/'), excludes = commonModuleExcludes, moduleName = null)
-              } +
-              module.getSourceRoots(JavaResourceRootType.RESOURCE).asSequence().map {
-                DirSource(dir = it.path, prefix = it.properties.relativeOutputPath, excludes = commonModuleExcludes, moduleName = null)
-              }
-            },
-            compress = true,
-          )
-          artifacts.add(sources)
-        }
-        if (context.productProperties.mavenArtifacts.isJavadocJarRequired(artifactData.module)) {
-          check(modulesWithSources.any()) {
-            "No modules with sources found in $modules, a documentation cannot be generated"
-          }
-          val docsFolder = Dokka(context).generateDocumentation(modules = modulesWithSources)
-          val javadoc = artifactDir.resolve(artifactData.coordinates.getFileName("javadoc", "jar"))
-          buildJar(
-            targetFile = javadoc,
-            sources = listOf(DirSource(docsFolder, moduleName = null)),
-            compress = true,
-          )
-          artifacts.add(javadoc)
-        }
-        artifactData to artifacts
+        artifacts.add(sources)
       }
+      if (context.productProperties.mavenArtifacts.isJavadocJarRequired(artifactData.module)) {
+        check(modulesWithSources.any()) {
+          "No modules with sources found in $modules, a documentation cannot be generated"
+        }
+        val docsFolder = Dokka(context).generateDocumentation(modules = modulesWithSources)
+        val javadoc = artifactDir.resolve(artifactData.coordinates.getFileName("javadoc", "jar"))
+        buildJar(
+          targetFile = javadoc,
+          sources = listOf(DirSource(docsFolder, moduleName = null)),
+          compress = true,
+        )
+        artifacts.add(javadoc)
+      }
+      artifactData to artifacts
+    }
   }.associate { it }
 }
 
