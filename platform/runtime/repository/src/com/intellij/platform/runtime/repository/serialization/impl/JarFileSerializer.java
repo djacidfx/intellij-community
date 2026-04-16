@@ -111,12 +111,15 @@ public final class JarFileSerializer {
         ModuleXmlSerializer.writeModuleXml(descriptor, output, factory);
         jarOutput.closeEntry();
       }
-      for (RawRuntimePluginHeader pluginHeader : pluginHeaders) {
-        String moduleName = pluginHeader.getPluginDescriptorModuleId().getName();
-        jarOutput.putNextEntry(new JarEntry("plugins/" + moduleName + ".xml"));
-        PrintWriter output = new PrintWriter(jarOutput, false, StandardCharsets.UTF_8);
-        PluginHeaderXmlSerializer.writePluginHeaderXml(pluginHeader, output, factory);
-        jarOutput.closeEntry();
+      //todo: enable generation by default after https://github.com/JetBrains/intellij-platform-gradle-plugin/pull/2128 is merged
+      if (System.getProperty("runtime.module.repository.story.plugin.headers.in.jar", "false").equals("true")) {
+        for (RawRuntimePluginHeader pluginHeader : pluginHeaders) {
+          String moduleName = pluginHeader.getPluginDescriptorModuleId().getName();
+          jarOutput.putNextEntry(new JarEntry("plugins/" + moduleName + ".xml"));
+          PrintWriter output = new PrintWriter(jarOutput, false, StandardCharsets.UTF_8);
+          PluginHeaderXmlSerializer.writePluginHeaderXml(pluginHeader, output, factory);
+          jarOutput.closeEntry();
+        }
       }
     }
   }
