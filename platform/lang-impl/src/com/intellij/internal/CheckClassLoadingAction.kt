@@ -110,7 +110,7 @@ internal class CheckClassLoadingAction : DumbAwareAction(), ActionRemoteBehavior
   private fun buildClassLoadingMap(className: String): Map<PluginModuleDescriptor, Class<*>?> {
     val pluginSet = PluginManagerCore.getPluginSet()
     val loadingResults = mutableMapOf<PluginModuleDescriptor, Class<*>?>()
-    val unambiguousPluginSet = UnambiguousPluginSet.tryBuild(pluginSet.enabledPlugins)!!
+    val unambiguousPluginSet = UnambiguousPluginSet.tryBuild(pluginSet.enabledPlugins) ?: error("existing plugin set is not unambiguous")
     val topologicalComparator = PluginSetBuilder(ProductPluginInitContext(), unambiguousPluginSet).topologicalComparator
     for (plugin in pluginSet.enabledPlugins) {
       loadingResults[plugin] = plugin.tryLoadClass(className)
