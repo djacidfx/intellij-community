@@ -74,6 +74,45 @@ class PatchToolsetTest : GeneralMcpToolsetTestBase() {
   }
 
   @Test
+  fun apply_patch_preserves_trailing_newline() = runBlocking(Dispatchers.Default) {
+    val pathInProject = "src/trailing-newline.txt"
+    testMcpTool(
+      FileToolset::create_new_file.name,
+      buildJsonObject {
+        put("pathInProject", JsonPrimitive(pathInProject))
+        put("text", JsonPrimitive("alpha\nbeta\n"))
+      },
+      "[success]"
+    )
+
+    val patch = buildPatch(
+      "*** Begin Patch",
+      "*** Update File: $pathInProject",
+      "@@",
+      " alpha",
+      "-beta",
+      "+BETA",
+      "*** End Patch",
+    )
+
+    testMcpTool(
+      PatchToolset::apply_patch.name,
+      buildJsonObject {
+        put("input", JsonPrimitive(patch))
+      },
+      "Applied patch to 1 file."
+    )
+
+    testMcpTool(
+      ReadToolset::read_file.name,
+      buildJsonObject {
+        put("file_path", JsonPrimitive(pathInProject))
+      },
+      renderNumberedText("alpha\nBETA\n")
+    )
+  }
+
+  @Test
   fun apply_patch_handles_noop_update() = runBlocking(Dispatchers.Default) {
     val pathInProject = "src/Test.java"
     val patch = buildPatch(
