@@ -114,6 +114,10 @@ public class GridTableCellEditor extends AbstractTableCellEditor {
     return myEditor != null ? myEditor.getText() : null;
   }
 
+  public boolean isEditingWithFactory(@NotNull Class<? extends GridCellEditorFactory> factoryClass) {
+    return factoryClass.isInstance(myEditorFactory);
+  }
+
   public boolean isEditingCell(@NotNull ModelIndex<GridRow> rowIdx, @NotNull ModelIndex<GridColumn> columnIdx) {
     return myRowIdx.equals(rowIdx) && myColumnIdx.equals(columnIdx);
   }
