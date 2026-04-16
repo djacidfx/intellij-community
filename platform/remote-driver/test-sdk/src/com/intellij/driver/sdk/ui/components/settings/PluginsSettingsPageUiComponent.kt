@@ -17,7 +17,9 @@ import com.intellij.driver.sdk.ui.components.common.WelcomeScreenUI
 import com.intellij.driver.sdk.ui.components.common.tabbedPane
 import com.intellij.driver.sdk.ui.components.elements.DialogUiComponent
 import com.intellij.driver.sdk.ui.components.elements.accessibleList
+import com.intellij.driver.sdk.ui.components.elements.button
 import com.intellij.driver.sdk.ui.components.elements.checkBox
+import com.intellij.driver.sdk.ui.components.elements.dialog
 import com.intellij.driver.sdk.ui.components.elements.popup
 import com.intellij.driver.sdk.ui.components.elements.textField
 import com.intellij.driver.sdk.ui.components.elements.waitSelected
@@ -221,9 +223,14 @@ class PluginsSettingsPageUiComponent(data: ComponentData) : UiComponent(data) {
     }
 
     fun uninstallPluginByHotkey(): ListPluginComponent {
-      step("Click on plugin and press hotkey") {
-        click()
+      step("Press hotkey to uninstall plugin") {
         keyboard { key(if (SystemInfo.isMac) KeyEvent.VK_BACK_SPACE else KeyEvent.VK_DELETE) }
+      }
+      step("Confirm plugin uninstallation in the dialog") {
+        driver.ui.dialog(title = "Uninstall Plugin?") {
+          waitFound(1.minutes)
+          button("Yes").click()
+        }
       }
       return this
     }
