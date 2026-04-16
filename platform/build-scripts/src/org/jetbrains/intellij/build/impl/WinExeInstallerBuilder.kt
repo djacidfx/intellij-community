@@ -174,7 +174,7 @@ private suspend fun prepareConfigurationFiles(nsiConfDir: Path, uninstallerFileN
     else customizer.fileAssociations.joinToString(separator = ",") { if (it.startsWith(".")) it else ".${it}" }
   val appInfo = context.applicationInfo
   val uninstallFeedbackPage = if (appInfo.isEAP) null else customizer.getUninstallFeedbackPageUrl(appInfo)
-  val installDirAndShortcutName = customizer.getNameForInstallDirAndDesktopShortcut(appInfo, context.buildNumber)
+  val installDirAndShortcutName = customizer.getNameForInstallDirAndDesktopShortcut(context)
   val fileVersionNum = amendVersionNumber(context.buildNumber.replace(".SNAPSHOT", ".0"))
   val productVersionNum = amendVersionNumber(appInfo.majorVersion + '.' + appInfo.minorVersion)
   val versionString = if (appInfo.isEAP) context.buildNumber else "${appInfo.majorVersion}.${appInfo.minorVersion}"

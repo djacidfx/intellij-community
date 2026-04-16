@@ -109,7 +109,8 @@ class WindowsCustomizerBuilder @PublishedApi internal constructor(private val pr
   private var alternativeFullNameHandler: ((ApplicationInfoProperties) -> String?)? = null
   private var uninstallFeedbackUrlHandler: ((ApplicationInfoProperties) -> String?)? = null
   private var binariesToSignHandler: ((BuildContext) -> List<String>)? = null
-  
+  private var installDirNameHandler: ((BuildContext) -> String)? = null
+
   /**
    * Gets the current copyAdditionalFiles handler for wrapping purposes.
    * @return the current handler, or null if none is set
@@ -162,7 +163,14 @@ class WindowsCustomizerBuilder @PublishedApi internal constructor(private val pr
   fun binariesToSign(handler: (BuildContext) -> List<String>) {
     this.binariesToSignHandler = handler
   }
-  
+
+  /**
+   * Sets the default name for the installation directory.
+   */
+  fun installDirNameHandler(handler: (BuildContext) -> String) {
+    installDirNameHandler = handler
+  }
+
   /**
    * Builds the [WindowsDistributionCustomizer] with the configured settings.
    * Automatically prefixes relative paths with projectHome.
@@ -216,16 +224,20 @@ class WindowsCustomizerBuilder @PublishedApi internal constructor(private val pr
     override fun getBinariesToSign(context: BuildContext): List<String> {
       return builder.binariesToSignHandler?.invoke(context) ?: super.getBinariesToSign(context)
     }
+
+    override fun getNameForInstallDirAndDesktopShortcut(context: BuildContext): String {
+      return builder.installDirNameHandler?.invoke(context) ?: super.getNameForInstallDirAndDesktopShortcut(context)
+    }
   }
 }
 
 /**
- * Creates a [WindowsDistributionCustomizer] with Community edition defaults using a builder DSL.
+ * Creates a [WindowsDistributionCustomizer] with the open source build defaults using a builder DSL.
  *
  * Example usage:
  * ```kotlin
  * communityWindowsCustomizer(projectHome) {
- *   // Override or extend Community defaults
+ *   // override or extend the defaults
  *   fileAssociations += "xml"
  * }
  * ```
@@ -240,6 +252,7 @@ inline fun communityWindowsCustomizer(
   fileAssociations = listOf("java", "gradle", "groovy", "kt", "kts", "pom")
 
   fullName { "IntelliJ IDEA Open Source" }
+  installDirNameHandler { "IntelliJ IDEA OSS" }
 
   uninstallFeedbackUrl { appInfo ->
     "https://www.jetbrains.com/idea/uninstall/?edition=IC-${appInfo.majorVersion}.${appInfo.minorVersion}"
@@ -314,8 +327,9 @@ abstract class WindowsDistributionCustomizer {
   /**
    * Name of the Windows installation directory and Desktop shortcut.
    */
-  open fun getNameForInstallDirAndDesktopShortcut(appInfo: ApplicationInfoProperties, buildNumber: String): String {
-    return "${getFullNameIncludingEdition(appInfo)} ${if (appInfo.isEAP) buildNumber else appInfo.fullVersion}"
+  open fun getNameForInstallDirAndDesktopShortcut(context: BuildContext): String {
+    val appInfo = context.applicationInfo
+    return "${getFullNameIncludingEdition(appInfo)} ${if (appInfo.isEAP) context.buildNumber else appInfo.fullVersion}"
   }
 
   /**
