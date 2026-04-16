@@ -14,7 +14,18 @@ import org.jetbrains.annotations.ApiStatus
 @ApiStatus.Experimental
 interface CustomWrapModel {
   /**
-   * @param indentInColumns non-negative number of columns to indent after the wrap
+   * Adds a custom wrap at the specified offset.
+   *
+   * Custom wraps may not be adjacent to actual line breaks in the document.
+   * Adding wrap at such offsets returns `null`.
+   * If the wrap lands at such offset after document modifications,
+   * it will be removed automatically (see [Listener.customWrapRemoved]).
+   *
+   * Note: custom wraps are meant to break existing lines;
+   * to insert empty lines use [InlayModel.addBlockElement].
+   *
+   * @param priority Only one custom wrap is rendered at a single offset. The lowest priority wins.
+   * @param indentInColumns Non-negative number of columns to indent after the wrap.
    */
   fun addWrap(offset: Int, indentInColumns: Int, priority: Int = 0): CustomWrap?
   fun getWraps(): List<CustomWrap>

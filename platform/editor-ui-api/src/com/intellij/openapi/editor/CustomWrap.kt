@@ -4,6 +4,11 @@ package com.intellij.openapi.editor
 import com.intellij.openapi.util.UserDataHolder
 import org.jetbrains.annotations.ApiStatus
 
+/**
+ * Represents a virtual line break in an editor document.
+ *
+ * @see [CustomWrapModel]
+ */
 @ApiStatus.Experimental
 @ApiStatus.NonExtendable
 interface CustomWrap : UserDataHolder {
