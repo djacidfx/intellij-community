@@ -300,21 +300,6 @@ interface PolySymbol : Symbol, NavigatableSymbol, PolySymbolPrioritizedScope {
   fun isEquivalentTo(symbol: Symbol): Boolean =
     this == symbol
 
-  /**
-   * Poly Symbols can have various naming conventions.
-   * This method is used by the framework to determine a new name for a symbol based on its occurrence
-   *
-   * Note: do not implement - to be removed
-   */
-  @ApiStatus.Internal
-  fun adjustNameForRefactoring(
-    queryExecutor: PolySymbolQueryExecutor,
-    oldName: PolySymbolQualifiedName,
-    newName: String,
-    occurence: String,
-  ): String =
-    queryExecutor.namesProvider.adjustRename(oldName, newName, occurence)
-
   sealed interface Priority : Comparable<Priority> {
 
     val value: Double
