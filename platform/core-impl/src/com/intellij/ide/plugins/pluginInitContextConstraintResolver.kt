@@ -381,7 +381,7 @@ private class PluginSetConstraintsResolver(
       fun contributeContentModulesFromTarget(targetId: PluginId) {
         val target = pluginSet.resolvePluginId(targetId)
                      ?: return
-        assert(target in remainingCandidatesDependencies.keys) {
+        assert(target in remainingCandidatesDependencies) {
           "dependency target is excluded, but the descriptor is still a candidate:\ncandidate=$descriptor\ntarget=$target"
         }
         if (target is PluginMainDescriptor && initContext.shouldIncludeContentModulesForDependsEdgeTarget(target)) {
@@ -581,7 +581,7 @@ private class PluginSetConstraintsResolver(
     private val resolvedDependents: Map<IdeaPluginDescriptorImpl, List<IdeaPluginDescriptorImpl>>,
   ) : ResolvedPluginSet {
     override fun getExclusionReason(descriptor: IdeaPluginDescriptorImpl): DescriptorExclusionReason? {
-      require(descriptor in exclusions.keys) { "unknown descriptor: $descriptor" }
+      require(descriptor in exclusions) { "unknown descriptor: $descriptor" }
       return exclusions[descriptor]
     }
 
