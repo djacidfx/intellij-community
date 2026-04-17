@@ -9352,17 +9352,17 @@ http_file(
 )
 
 http_file(
-  name = "com_ibm_icu-icu4j-77_1_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/ibm/icu/icu4j/77.1/icu4j-77.1.jar",
-  sha256 = "b3640b9f416a4411fd33c59abbeea8fd57d024c23e1819bf9673220a97499fe3",
-  downloaded_file_path = "icu4j-77.1.jar"
+  name = "com_ibm_icu-icu4j-78_3_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/ibm/icu/icu4j/78.3/icu4j-78.3.jar",
+  sha256 = "e962c1758d9659ea1e1fbab99c58683f654d304e1126ace19aaabfe39e0edb25",
+  downloaded_file_path = "icu4j-78.3.jar"
 )
 
 http_file(
-  name = "com_ibm_icu-icu4j-77_1-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/ibm/icu/icu4j/77.1/icu4j-77.1-sources.jar",
-  sha256 = "2dd9da85182efca525aa269db573e0ed54943767d6af3afc50d0ede51e63d01a",
-  downloaded_file_path = "icu4j-77.1-sources.jar"
+  name = "com_ibm_icu-icu4j-78_3-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/ibm/icu/icu4j/78.3/icu4j-78.3-sources.jar",
+  sha256 = "b8458be1c296aec6c52ea8f195f27e833c5d6030fa15a4b361a0e83030c3c3fe",
+  downloaded_file_path = "icu4j-78.3-sources.jar"
 )
 
 http_file(
