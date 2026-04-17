@@ -87,6 +87,8 @@ jvm_library(
     "@lib//:kotlin-stdlib",
     "//java/debugger/openapi:java-debugger",
     "//java/debugger/openapi:java-debugger_test_lib",
+    "//java/testFramework",
+    "//java/testFramework:testFramework_test_lib",
     "//platform/util/concurrency",
     "//platform/util/concurrency:concurrency_test_lib",
     "//platform/core-api:core",
