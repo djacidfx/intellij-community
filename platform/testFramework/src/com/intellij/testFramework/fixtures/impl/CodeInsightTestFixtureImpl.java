@@ -239,7 +239,6 @@ import java.io.UncheckedIOException;
 import java.lang.ref.Reference;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -422,7 +421,7 @@ public class CodeInsightTestFixtureImpl extends BaseFixture implements CodeInsig
           // wait for tracked activities (e.g., vendor scan, external system import) that may fire
           // write actions triggering rootsChanged during highlighting
           if (mustWaitForSmartMode && project.isOpen()) {
-            TestObservation.waitForConfiguration(project, Duration.ofSeconds(15).toMillis());
+            TestObservation.waitForConfiguration(project);
           }
           TestDaemonCodeAnalyzerImpl.runWithReparseDelay(0, () ->
             testDaemonCodeAnalyzer.runPasses(file, document, textEditor, toIgnore, canChangeDocument, mustWaitForSmartMode, null));
