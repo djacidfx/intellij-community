@@ -51,14 +51,18 @@ class MPSProperties : JetBrainsProductProperties() {
             "intellij.platform.starter",
             "intellij.idea.community.customization",
             "intellij.java.ide.resources",
+            "intellij.platform.buildData",
             "intellij.platform.whatsNew",
             "intellij.platform.configurationStore.impl",
+            "intellij.platform.diagnostic.startUpPerformanceReporter",
+            "intellij.platform.jps.build.javac.rt",
             "intellij.platform.resources",
             "intellij.platform.resources.en",
             "intellij.platform.ide.codeinsight.inline",
             "intellij.platform.ide.recentProjects",
             "intellij.platform.ide.util.netty",
             "intellij.platform.util.diff",
+            "intellij.platform.util.text.matching",
             "intellij.platform.syntax.psi",
             "intellij.json.syntax",
         )
@@ -114,6 +118,7 @@ class MPSProperties : JetBrainsProductProperties() {
             layout.withProjectLibrary("Eclipse", LibraryPackMode.MERGED)
             layout.withProjectLibrary("JUnit4", LibraryPackMode.STANDALONE_MERGED)
             layout.withProjectLibrary("http-client", LibraryPackMode.MERGED)
+            layout.withProjectLibrary("hamcrest", LibraryPackMode.STANDALONE_MERGED)
             layout.withoutProjectLibrary("Ant")
             layout.withoutProjectLibrary("Gradle")
             layout.withProjectLibrary("maven-resolver-provider", LibraryPackMode.STANDALONE_MERGED)
