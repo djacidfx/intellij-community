@@ -5,6 +5,7 @@ import com.intellij.ide.SearchTopHitProvider
 import com.intellij.ide.actions.searcheverywhere.statistics.SearchEverywhereUsageTriggerCollector
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.EDT
+import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.platform.scopes.SearchScopesInfo
@@ -30,6 +31,7 @@ import com.intellij.platform.searchEverywhere.providers.target.SeTypeVisibilityS
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.channelFlow
@@ -39,6 +41,7 @@ import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nls
 import java.util.UUID
@@ -172,17 +175,9 @@ class SeLocalItemDataProvider(
   private fun itemsRawChannelFlow(params: SeParams, operationDisposable: Disposable?): Flow<SeItem> {
     return channelFlow {
       try {
-        if (provider is SeItemsProviderWithPossibleOperationDisposable && operationDisposable != null) {
-          provider.collectItemsWithOperationLifetime(params, operationDisposable) { item ->
-            send(item)
-            coroutineContext.isActive
-          }
-        }
-        else {
-          provider.collectItems(params) { item ->
-            send(item)
-            coroutineContext.isActive
-          }
+        collectItemsWithRetry(params, operationDisposable) { item ->
+          send(item)
+          coroutineContext.isActive
         }
       }
       catch (e: Throwable) {
@@ -191,6 +186,50 @@ class SeLocalItemDataProvider(
       }
     }.buffer(0, onBufferOverflow = BufferOverflow.SUSPEND).onCompletion {
       SeLog.log(SeLog.ITEM_EMIT) { "Item data provider flow completed - $logLabel - ${id.value}" }
+    }
+  }
+
+  private suspend fun collectItemsWithRetry(
+    params: SeParams,
+    operationDisposable: Disposable?,
+    collector: SeItemsProvider.Collector,
+  ) {
+    val context = currentCoroutineContext()
+    var attempt = 0
+    while (true) {
+      attempt++
+      try {
+        collectItemsOnce(params, operationDisposable, collector)
+        return
+      }
+      catch (e: ProcessCanceledException) {
+        if (!context.isActive) {
+          throw e
+        }
+      }
+      catch (e: CancellationException) {
+        if (!context.isActive) {
+          throw e
+        }
+      }
+
+      SeLog.log(SeLog.ITEM_EMIT) {
+        "Retrying item collection from ${provider.id}($logLabel) after canceled attempt #$attempt"
+      }
+      yield()
+    }
+  }
+
+  private suspend fun collectItemsOnce(
+    params: SeParams,
+    operationDisposable: Disposable?,
+    collector: SeItemsProvider.Collector,
+  ) {
+    if (provider is SeItemsProviderWithPossibleOperationDisposable && operationDisposable != null) {
+      provider.collectItemsWithOperationLifetime(params, operationDisposable, collector)
+    }
+    else {
+      provider.collectItems(params, collector)
     }
   }
 
