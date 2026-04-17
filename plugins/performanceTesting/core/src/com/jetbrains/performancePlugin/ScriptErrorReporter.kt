@@ -3,6 +3,7 @@ package com.jetbrains.performancePlugin
 
 import com.intellij.diagnostic.AbstractMessage
 import com.intellij.diagnostic.MessagePool
+import com.intellij.diagnostic.MessagePoolAdvisor
 import com.intellij.openapi.application.ApplicationNamesInfo
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.application.ex.ApplicationInfoEx
@@ -28,29 +29,35 @@ private const val STACKTRACE_FILE = "stacktrace.txt"
 private const val PRODUCT_INFO_FILE = "product_info.txt"
 internal val activeTestNameFile: Path = Path.of(PathManager.getLogPath(), ACTIVE_TEST_NAME_FILE)
 
-fun reportErrorsFromMessagePool() {
-  val messagePool = MessagePool.getInstance()
-  val ideErrors = messagePool.getFatalErrors(false, true)
-  for (message in ideErrors) {
+internal val toErrorDirReporter: MessagePoolAdvisor = object : MessagePoolAdvisor {
+  override suspend fun beforeEntryAdded(entryAddedEvent: MessagePoolAdvisor.BeforeEntryAddedEvent): Boolean {
     try {
-      reportScriptError(message)
+      reportScriptError(entryAddedEvent.message)
     }
     catch (e: IOException) {
       LOG.error(e)
     }
     finally {
-      message.isRead = true
+      entryAddedEvent.message.isRead = true
     }
+    return true
+  }
+}
+
+internal suspend fun sweepExistingErrors() {
+  MessagePool.getInstance().getFatalErrors(false, true).forEach { message ->
+    toErrorDirReporter.beforeEntryAdded(MessagePoolAdvisor.BeforeEntryAddedEvent(message))
   }
 }
 
 @Throws(IOException::class)
-private fun reportScriptError(errorMessage: AbstractMessage) {
-
+private suspend fun reportScriptError(errorMessage: AbstractMessage) {
+  withContext(Dispatchers.IO) {
     val throwable = errorMessage.throwable
     var cause: Throwable? = throwable
     var causeMessage: String? = ""
     val maxSyntheticTestNameLength = 250
+
     var syntheticTestName: String? = throwable.javaClass.name + ": " + throwable.message
     while (cause!!.cause != null) {
       cause = cause.cause
@@ -84,24 +91,24 @@ private fun reportScriptError(errorMessage: AbstractMessage) {
           }
         }
       if (isDuplicated) {
-        return
-    }
-  }
-
-  val appInfo = ApplicationInfoEx.getInstanceEx()
-  val namesInfo = ApplicationNamesInfo.getInstance()
-  val build = appInfo.build
-
-  for (i in 1..999) {
-    val errorDir = scriptErrorsDir.resolve("$ERROR_DIR_PREFIX$i")
-    if (Files.exists(errorDir)) {
-      continue
+        return@withContext
+      }
     }
 
-    Files.createDirectories(errorDir)
-    Files.writeString(errorDir.resolve(MESSAGE_FILE), causeMessage)
-    Files.writeString(errorDir.resolve(SYNTHETIC_TEST_NAME_FILE), (syntheticTestName ?: causeMessage).take(maxSyntheticTestNameLength))
-    if (activeTestNameFile.exists()) {
+    val appInfo = ApplicationInfoEx.getInstanceEx()
+    val namesInfo = ApplicationNamesInfo.getInstance()
+    val build = appInfo.build
+
+    for (i in 1..999) {
+      val errorDir = scriptErrorsDir.resolve("$ERROR_DIR_PREFIX$i")
+      if (Files.exists(errorDir)) {
+        continue
+      }
+
+      Files.createDirectories(errorDir)
+      Files.writeString(errorDir.resolve(MESSAGE_FILE), causeMessage)
+      Files.writeString(errorDir.resolve(SYNTHETIC_TEST_NAME_FILE), (syntheticTestName ?: causeMessage).take(maxSyntheticTestNameLength))
+      if (activeTestNameFile.exists()) {
         Files.copy(activeTestNameFile, errorDir.resolve(ACTIVE_TEST_NAME_FILE))
       }
       Files.writeString(errorDir.resolve(STACKTRACE_FILE), errorMessage.throwableText)
@@ -113,26 +120,29 @@ private fun reportScriptError(errorMessage: AbstractMessage) {
       val attachments = errorMessage.allAttachments
       val nameConflicts = attachments.groupBy { it.name }.filter { it.value.size > 1 }.keys
 
-    for (j in attachments.indices) {
-      val attachment = attachments[j]
-      val fileName = if (attachment.name in nameConflicts) {
-        addSuffixBeforeExtension(attachment.name, "-$j")
-      } else {
-        attachment.name
+      for (j in attachments.indices) {
+        val attachment = attachments[j]
+        val fileName = if (attachment.name in nameConflicts) {
+          addSuffixBeforeExtension(attachment.name, "-$j")
+        }
+        else {
+          attachment.name
+        }
+        writeAttachmentToErrorDir(attachment, errorDir.resolve(fileName))
       }
-      writeAttachmentToErrorDir(attachment, errorDir.resolve(fileName))
+      return@withContext
     }
-    return
-  }
 
-  LOG.error("Too many errors have been reported during script execution. See $scriptErrorsDir")
+    LOG.error("Too many errors have been reported during script execution. See $scriptErrorsDir")
+  }
 }
 
 private fun addSuffixBeforeExtension(fileName: String, suffix: String): String {
   val lastDotIndex = fileName.lastIndexOf('.')
   return if (lastDotIndex != -1) {
     fileName.take(lastDotIndex) + suffix + fileName.substring(lastDotIndex)
-  } else {
+  }
+  else {
     fileName + suffix
   }
 }

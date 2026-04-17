@@ -243,7 +243,8 @@ class ProjectLoaded : ApplicationInitializedListener {
       })
     }
     if (ApplicationManagerEx.isInIntegrationTest() && AppMode.isHeadless() && AppMode.isCommandLine()) {
-      MessagePool.getInstance().addListener { reportErrorsFromMessagePool() }
+      MessagePool.getInstance().addAdvisor(toErrorDirReporter)
+      sweepExistingErrors()
       LOG.info("Error watcher has started in headless mode")
     }
   }
@@ -258,13 +259,14 @@ class ProjectLoaded : ApplicationInitializedListener {
     override fun appFrameCreated(commandLineArgs: List<String>) {
       val messagePool = MessagePool.getInstance()
       LOG.info("Error watcher has started")
-      messagePool.addListener { reportErrorsFromMessagePool() }
+      messagePool.addAdvisor(toErrorDirReporter)
+      @Suppress("RAW_RUN_BLOCKING")
+      runBlocking { sweepExistingErrors() }
     }
 
     override fun appClosing() {
       ProjectLoadedService.screenshotJobs.forEach { it.cancel() }
       PerformanceTestSpan.endSpan()
-      reportErrorsFromMessagePool()
     }
   }
 
