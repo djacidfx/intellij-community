@@ -28,6 +28,7 @@ import org.jetbrains.intellij.build.SoftwareBillOfMaterials
 import org.jetbrains.intellij.build.closeKtorClient
 import org.jetbrains.intellij.build.dependencies.TeamCityHelper.isUnderTeamCity
 import org.jetbrains.intellij.build.getDevModeOrTestBuildDateInSeconds
+import org.jetbrains.intellij.build.impl.buildNonBundledPlugins
 import org.jetbrains.intellij.build.impl.buildDistributions
 import org.jetbrains.intellij.build.impl.createBuildContext
 import org.jetbrains.intellij.build.telemetry.JaegerJsonSpanExporterManager
@@ -223,6 +224,39 @@ fun runTestBuild(
       },
     )
   }
+}
+
+fun runNonBundledPluginsBuildTest(
+  homeDir: Path,
+  productProperties: ProductProperties,
+  traceSpanName: String,
+  mainPluginModules: List<String>,
+  dependencyModules: List<String> = emptyList(),
+  buildTools: ProprietaryBuildTools = ProprietaryBuildTools.DUMMY,
+  buildOptionsCustomizer: (BuildOptions) -> Unit = {},
+  onSuccess: suspend (BuildContext) -> Unit = {},
+): Unit = runBlocking(Dispatchers.Default) {
+  doRunTestBuild(
+    context = createBuildContext(
+      projectHome = homeDir,
+      productProperties = productProperties,
+      setupTracer = false,
+      proprietaryBuildTools = buildTools,
+      options = createBuildOptionsForTest(productProperties = productProperties, homeDir = homeDir).also {
+        buildOptionsCustomizer(it)
+      },
+      scope = this@runBlocking,
+    ),
+    traceSpanName = traceSpanName,
+    writeTelemetry = true,
+    checkIntegrityOfEmbeddedFrontend = false,
+    checkThatBundledPluginInFrontendArePresent = false,
+    checkPrivatePluginModulesAreNotPublic = false,
+    build = { context ->
+      buildNonBundledPlugins(mainPluginModules = mainPluginModules, context = context, dependencyModules = dependencyModules)
+      onSuccess(context)
+    },
+  )
 }
 
 // FIXME: test reproducibility
