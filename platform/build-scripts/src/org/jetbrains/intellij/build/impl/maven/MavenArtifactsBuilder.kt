@@ -15,6 +15,7 @@ import org.apache.maven.model.Organization
 import org.apache.maven.model.Scm
 import org.apache.maven.model.io.xpp3.MavenXpp3Writer
 import org.jetbrains.annotations.ApiStatus
+import org.jetbrains.intellij.build.AggregatorPomSpec
 import org.jetbrains.intellij.build.BuildContext
 import org.jetbrains.intellij.build.DirSource
 import org.jetbrains.intellij.build.ZipSource
@@ -166,6 +167,66 @@ open class MavenArtifactsBuilder(protected val context: BuildContext) {
       builtArtifacts = mutableMapOf(),
       validate = validate,
     )
+  }
+
+  /**
+   * Writes an aggregator pom.xml (packaging=pom, no jar) under [outputDir].
+   * The pom declares runtime-scope dependencies on every artifact in [builtArtifacts] whose module
+   * name passes [spec]'s filter. Returns the path to the generated pom file.
+   *
+   * @param outputDir path relative to [org.jetbrains.intellij.build.BuildPaths.artifactDir]
+   */
+  internal fun generateAggregatorPom(
+    spec: AggregatorPomSpec,
+    outputDir: String,
+    builtArtifacts: Map<MavenArtifactData, List<Path>>,
+  ): Path {
+    val coords = MavenCoordinates(
+      groupId = spec.groupId,
+      artifactId = spec.artifactId,
+      version = context.buildNumber,
+    )
+    val deps = builtArtifacts.keys.asSequence()
+      .filter { spec.includeModule(it.module.name) }
+      .map { data ->
+        MavenArtifactDependency(
+          coordinates = data.coordinates,
+          includeTransitiveDeps = true,
+          excludedDependencies = emptyList(),
+          scope = DependencyScope.RUNTIME,
+        )
+      }
+      .toList()
+
+    val dir = context.paths.artifactDir.resolve(outputDir).resolve(coords.directoryPath)
+    Files.createDirectories(dir)
+    val pomFile = dir.resolve(coords.getFileName(packaging = "pom"))
+
+    val model = Model().apply {
+      modelVersion = "4.0.0"
+      groupId = coords.groupId
+      artifactId = coords.artifactId
+      version = coords.version
+      packaging = "pom"
+      name = "${coords.groupId}:${coords.artifactId}"
+      spec.description?.let { description = it }
+      organization = Organization().apply {
+        name = "JetBrains"
+        url = "https://www.jetbrains.com"
+      }
+      addDeveloper(Developer().apply {
+        id = "JetBrains"
+        this.name = "JetBrains Team"
+        this.organization = "JetBrains"
+        organizationUrl = "https://www.jetbrains.com"
+      })
+    }
+    deps.forEach { model.addDependency(createDependencyTag(it)) }
+
+    Files.newBufferedWriter(pomFile).use { out ->
+      MavenXpp3Writer().write(out, model)
+    }
+    return pomFile
   }
 
   /**

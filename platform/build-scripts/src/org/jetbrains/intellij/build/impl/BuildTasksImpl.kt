@@ -589,6 +589,13 @@ private fun CoroutineScope.createMavenArtifactJob(platformLayout: PlatformLayout
         outputDir = "proprietary-maven-artifacts"
       )
     }
+    for (spec in mavenArtifacts.aggregatorPomArtifacts) {
+      mavenArtifactsBuilder.generateAggregatorPom(
+        spec = spec,
+        outputDir = "maven-artifacts",
+        builtArtifacts = builtArtifacts,
+      )
+    }
     mavenArtifactsBuilder.validate(builtArtifacts)
   }
 }
