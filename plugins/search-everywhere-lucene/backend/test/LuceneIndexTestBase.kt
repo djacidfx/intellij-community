@@ -66,7 +66,7 @@ abstract class LuceneIndexTestBase {
           truncated = "... (total ${resultsToExplain.size})"
         ) { (score, doc) ->
           """
-Document: ${doc.asMap()}
+Document: ${doc.get("uri")}
 Explanation:
 ${searcher.explain(query, score.doc).toString().trim().prependIndent(">   ")}
           """
@@ -84,7 +84,7 @@ ${searcher.explain(query, score.doc).toString().trim().prependIndent(">   ")}
           .joinToString(separator = "\n\n") { docId ->
             val doc = searcher.storedFields().document(docId)
             val explanation = searcher.explain(query, docId)
-            "Doc $docId ${doc.asMap()}\n" +
+            "Doc $docId ${doc.get("uri")}\n" +
             "Score: ${explanation.value}\n" +
             explanation.toString().trim().prependIndent(">   ")
           }
@@ -102,14 +102,14 @@ ${searcher.explain(query, score.doc).toString().trim().prependIndent(">   ")}
 
     fun findsAllOf(vararg expectedDocs: Document) {
       val expectedDocsString: String =
-        expectedDocs.joinToString("", limit = 3, truncated = "... (total ${expectedDocs.size})", transform = { it.asMap().toString() })
+        expectedDocs.joinToString("", limit = 3, truncated = "... (total ${expectedDocs.size})", transform = { it.get("uri").toString() })
       log("finds all of $expectedDocsString")
       for (expectedDoc in expectedDocs) {
         if (results.none { isEquivalent(it.second, expectedDoc) }) {
           fail<Nothing>("""
             Expected document not found in results.
             Query: $query
-            Missing Document: ${expectedDoc.asMap()}
+            Missing Document: ${expectedDoc.get("uri")}
 
             === All indexed docs (score explanation for query) ===
             ${explainAllIndexedDocs()}
@@ -123,7 +123,7 @@ ${searcher.explain(query, score.doc).toString().trim().prependIndent(">   ")}
 
     fun findsNoneOf(vararg expectedDocs: Document) {
       val expectedDocsString: String =
-        expectedDocs.joinToString("", limit = 3, truncated = "... (total ${expectedDocs.size})", transform = { it.asMap().toString() })
+        expectedDocs.joinToString("", limit = 3, truncated = "... (total ${expectedDocs.size})", transform = { it.get("uri").toString() })
       log("finds none of $expectedDocsString")
       for (expectedDoc in expectedDocs) {
         val found = results.filter { isEquivalent(it.second, expectedDoc) }
@@ -141,7 +141,7 @@ ${searcher.explain(query, score.doc).toString().trim().prependIndent(">   ")}
     fun findsWithOrdering(expectedOrder: List<Document>, containsAll: Boolean = true) {
       val all = if (containsAll) " all" else ""
       val expectedDocsString: String =
-        expectedOrder.joinToString("", limit = 3, truncated = "... (total ${expectedOrder.size})", transform = { it.asMap().toString() })
+        expectedOrder.joinToString("", limit = 3, truncated = "... (total ${expectedOrder.size})", transform = { it.get("uri").toString() })
       log("finds$all in order: $expectedDocsString")
 
       val foundDocs = expectedOrder.map { expected ->
@@ -158,7 +158,7 @@ ${explainResults(results)}
           if (foundDocs[index] == null) {
             fail<Nothing>("""
               Document not found in results (required by containsAll=true):
-              Missing Document: ${doc.asMap()}
+              Missing Document: ${doc.get("uri")}
             """.trimIndent())
           }
         }
@@ -181,15 +181,15 @@ ${explainResults(results)}
           fail<Nothing>("""
             Wrong relative ordering:
 
-            Expected:  ${doc1.second.asMap()} > ${doc2.second.asMap()} 
-            Actual:    ${doc2.second.asMap()} > ${doc1.second.asMap()} 
+            Expected:  ${doc1.second.get("uri")} > ${doc2.second.get("uri")} 
+            Actual:    ${doc2.second.get("uri")} > ${doc1.second.get("uri")} 
 
-            Doc 1: ${doc1.second.asMap()}
+            Doc 1: ${doc1.second.get("uri")}
             Score: ${scoreDoc1.score} ($diff LOWER than Doc 2)
             Explanation:
             ${explanation1.toString().prependIndent("  ")}
 
-            Doc 2: ${doc2.second.asMap()}
+            Doc 2: ${doc2.second.get("uri")}
             Score: ${scoreDoc2.score} ($diff HIGHER than Doc 1)
             Explanation:
             ${explanation2.toString().prependIndent("  ")}
@@ -198,9 +198,6 @@ ${explainResults(results)}
       }
     }
 
-    private fun Document.asMap(): Map<String, String> {
-      return fields.associate { it.name() to it.stringValue() }
-    }
   }
 
   private fun logIndexedDocuments(doc: Document): String = buildString {
@@ -231,15 +228,11 @@ ${explainResults(results)}
     return result
   }
 
-  fun Document.asMap(): Map<String, String> {
-    return fields.associate { it.name() to it.stringValue() }
-  }
-
   open fun buildSimpleQuery(pattern: String): Query {
     throw UnsupportedOperationException("Override buildSimpleQuery or pass a buildQuery lambda to assertSearch")
   }
 
-  open val isEquivalent: (Document, Document) -> Boolean = { d1, d2 -> d1.asMap() == d2.asMap() }
+  open val isEquivalent: (Document, Document) -> Boolean = { d1, d2 -> d1.get("uri") == d2.get("uri") }
 
   private val dynamicNodes = mutableListOf<DynamicNode>()
 

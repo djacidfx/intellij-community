@@ -64,8 +64,32 @@ class FileSearchOrderingTest : FileSearchTestBase() {
     val kt = file("/contrib/qodana/core/src/org/jetbrains/qodana/staticAnalysis/inspections/runner/Logo.kt")
     return indexWith(listOf(logo,kt)) { index ->
       index.assertSearch("logo.jpg") {
-        findsWithOrdering(listOf(logo, kt),false)
+        findsAllOf(logo)
+        findsNoneOf(kt)
       }
+    }
+  }
+
+  @TestFactory
+  fun `ordering 3`() : List<DynamicNode> {
+    val riderSemanticFileSearchEverywhereContributor = file("plugins/llm/searchEverywhere/embeddings/rider/src/RiderSemanticFileSearchEverywhereContributor.kt")
+    val security_error = file("ruby/backend/rubystubs/rubystubs18/security_error.rb")
+    return indexWith(listOf(riderSemanticFileSearchEverywhereContributor,security_error)) { index ->
+      index.assertSearch("Sea") {
+        findsAllOf(riderSemanticFileSearchEverywhereContributor)
+        findsNoneOf(security_error)
+      }
+
+      index.assertSearch("SeaEver") {
+        findsWithOrdering(listOf(riderSemanticFileSearchEverywhereContributor, security_error))
+
+      }
+
+      index.assertSearch("SeaEverContr") {
+        findsAllOf(riderSemanticFileSearchEverywhereContributor)
+        findsNoneOf(security_error)
+      }
+
     }
   }
 }
