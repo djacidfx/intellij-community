@@ -31,6 +31,7 @@ import org.jetbrains.kotlin.psi.KtVisitor
 import org.jetbrains.kotlin.psi.propertyVisitor
 import org.jetbrains.kotlin.psi.psiUtil.allChildren
 import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
+import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstanceOrNull
 
 internal class RevertExplicitBackingFieldsInspection :
     KotlinApplicableInspectionBase.Simple<KtProperty, List<SmartPsiElementPointer<KtNameReferenceExpression>>>() {
@@ -48,13 +49,12 @@ internal class RevertExplicitBackingFieldsInspection :
     ): @InspectionMessage String = KotlinBundle.message("replace.explicit.backing.field.with.private.property")
 
     override fun isApplicableByPsi(element: KtProperty): Boolean {
-        val backingField = element.allChildren.find { it is KtBackingField } as? KtBackingField ?: return false
+        val backingField = element.allChildren.firstIsInstanceOrNull<KtBackingField>() ?: return false
         return backingField.fieldKeyword != null
     }
 
     override fun getApplicableRanges(element: KtProperty): List<TextRange> =
-        ApplicabilityRange.single(element) { it.fieldDeclaration?.fieldKeyword
-        }
+        ApplicabilityRange.single(element) { it.fieldDeclaration?.fieldKeyword }
 
     override fun KaSession.prepareContext(element: KtProperty): List<SmartPsiElementPointer<KtNameReferenceExpression>> {
         return element.containingKtFile.collectDescendantsOfType<KtNameReferenceExpression>()
@@ -70,7 +70,7 @@ internal class RevertExplicitBackingFieldsInspection :
             KotlinBundle.message("replace.explicit.backing.field.with.private.property")
 
         override fun applyFix(project: Project, element: KtProperty, updater: ModPsiUpdater) {
-            val backingField = element.allChildren.find { it is KtBackingField } as? KtBackingField ?: return
+            val backingField = element.allChildren.firstIsInstanceOrNull<KtBackingField>() ?: return
             renameOccurrences(element, context, updater)
             val backingProperty = createBackingProperty(element, backingField)
             element.parent.addBefore(backingProperty, element)
