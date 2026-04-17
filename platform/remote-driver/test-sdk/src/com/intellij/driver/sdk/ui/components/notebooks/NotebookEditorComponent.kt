@@ -186,11 +186,6 @@ class NotebookEditorUiComponent(private val data: ComponentData) : JEditorUiComp
     driver.setCurrentCellText(text)
   }
 
-  fun addCodeCellWithRetry(text: String, maxAttempts: Int = 20, delay: Duration = 1.seconds) {
-    addEmptyCodeCell(maxAttempts, delay)
-    pasteToCellWithRetry(LastCell, text)
-  }
-
   fun addMarkdownCell(content: String) {
     addEmptyMarkdownCell()
     driver.setCurrentCellText(content)
@@ -284,19 +279,8 @@ class NotebookEditorUiComponent(private val data: ComponentData) : JEditorUiComp
 
   fun pasteToCell(cellSelector: CellSelector, text: String) {
     clickOnCell(cellSelector)
-    driver.ui.pasteText(text)
+    driver.setCurrentCellText(text)
   }
-
-  fun pasteToCellWithRetry(cellSelector: CellSelector, text: String) {
-    waitFor(timeout = 15.seconds) {
-      clickOnCell(cellSelector)
-      driver.ui.pasteText(text)
-      val searchText = text.replace("\n", "").replace(" ", "")
-      val lastCell = waitNotNull { LastCell(notebookCellEditors) }
-      lastCell.getParent().getParent().getAllTexts().asString().replace(" ", "").contains(searchText)
-    }
-  }
-
 
   class CellEditor(data: ComponentData): UiComponent(data)
 
