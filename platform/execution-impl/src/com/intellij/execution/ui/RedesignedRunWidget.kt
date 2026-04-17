@@ -510,36 +510,44 @@ open class RedesignedRunConfigurationSelector : TogglePopupAction(), CustomCompo
   override fun displayTextInToolbar() = true
 
   override fun createCustomComponent(presentation: Presentation, place: String): JComponent {
-    return object : ActionButtonWithText(this, presentation, place, {
-      JBUI.size(16, JBUI.CurrentTheme.RunWidget.toolbarHeight())
-    }) {
+    return RedesignedRunConfigurationSelectorButton(this, presentation, place)
+  }
+}
 
-      override fun getMargins(): Insets = JBInsets(0, 10, 0, 6)
-      override fun iconTextSpace(): Int = ToolbarComboWidgetUiSizes.gapAfterLeftIcons
-      override fun shallPaintDownArrow() = true
-      override fun getDownArrowIcon(): Icon = PreparedIcon(super.getDownArrowIcon())
+private class RedesignedRunConfigurationSelectorButton(
+  action: AnAction,
+  presentation: Presentation,
+  place: String,
+) : ActionButtonWithText(action, presentation, place, {
+  JBUI.size(16, JBUI.CurrentTheme.RunWidget.toolbarHeight())
+}) {
 
-      override fun updateUI() {
-        super.updateUI()
-        updateFont()
-      }
+  init {
+    foreground = JBUI.CurrentTheme.RunWidget.FOREGROUND
+    setHorizontalTextAlignment(SwingConstants.LEFT)
+    updateFont()
+  }
 
-      fun updateFont() {
-        font = JBUI.CurrentTheme.RunWidget.configurationSelectorFont()
-      }
+  override fun getMargins(): Insets = JBInsets(0, 10, 0, 6)
+  override fun iconTextSpace(): Int = ToolbarComboWidgetUiSizes.gapAfterLeftIcons
+  override fun shallPaintDownArrow() = true
+  override fun getDownArrowIcon(): Icon = PreparedIcon(super.getDownArrowIcon())
 
-      override fun getButtonRect(): Rectangle? = super.buttonRect.apply {
-        width -= getDownArrowIcon().iconWidth
-      }
+  override fun updateUI() {
+    super.updateUI()
+    updateFont()
+  }
 
-      override fun getMinimumSize(): Dimension = preferredSize.apply {
-        width = UIUtil.computeTextComponentMinimumSize(width, text, font?.let { getFontMetrics(it) })
-      }
-    }.also {
-      it.foreground = JBUI.CurrentTheme.RunWidget.FOREGROUND
-      it.setHorizontalTextAlignment(SwingConstants.LEFT)
-      it.updateFont()
-    }
+  fun updateFont() {
+    font = JBUI.CurrentTheme.RunWidget.configurationSelectorFont()
+  }
+
+  override fun getButtonRect(): Rectangle? = super.buttonRect.apply {
+    width -= getDownArrowIcon().iconWidth
+  }
+
+  override fun getMinimumSize(): Dimension = preferredSize.apply {
+    width = UIUtil.computeTextComponentMinimumSize(width, text, font?.let { getFontMetrics(it) })
   }
 }
 
