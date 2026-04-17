@@ -22,7 +22,7 @@ log = { version = "0.4.29", features = ["std"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 shell-words = "1.1.1"
-jni = "0.22.3"
+jni = "0.22.4"
 libloading = "0.9.0"
 va_list = "0.2.1"
 
@@ -31,7 +31,7 @@ windows = { version = "0.62.2", features = [
   "Win32_Foundation", "Win32_Globalization", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging",
     "Win32_System_Console", "Win32_System_LibraryLoader", "Win32_System_Threading", "Win32_System_Services"
 ] }
-winreg = "0.55.0"
+winreg = "0.56.0"
 
 [target.'cfg(target_family = "unix")'.dependencies]
 libc = "0.2.182"
@@ -45,8 +45,8 @@ native-dialog = "0.9.6"
 [build-dependencies]
 anyhow = "1.0.102"
 curl = { version = "0.4.49", features = ["static-curl"], optional = true }
-sha1 = { version = "0.10.6", optional = true }
-winresource = "0.1.30"
+sha1 = { version = "0.11.0", optional = true }
+winresource = "0.1.31"
 
 [package.metadata.winresource]
 CompanyName = "JetBrains s.r.o."
@@ -57,4 +57,4 @@ OriginalFilename = "WinLauncher.exe"
 ProductName = "IntelliJ Platform"
 
 [dev-dependencies]
-tempfile = "3.25.0"
+tempfile = "3.27.0"
