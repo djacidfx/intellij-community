@@ -10,7 +10,6 @@
   "productVendor": "JetBrains",
   "launch": [
     {
-      "os": "macOS",
       "launcherPath": "../MacOS/xplat",
       "javaExecutablePath": "../jbr/Contents/Home/bin/java",
       "vmOptionsFilePath": "../bin/xplat.vmoptions",

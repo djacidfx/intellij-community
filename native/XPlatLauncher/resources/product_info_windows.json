@@ -10,7 +10,6 @@
   "productVendor": "JetBrains",
   "launch": [
     {
-      "os": "Windows",
       "launcherPath": "bin/xplat64.exe",
       "javaExecutablePath": "jbr/bin/java.exe",
       "vmOptionsFilePath": "bin/xplat64.exe.vmoptions",
