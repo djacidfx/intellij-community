@@ -91,13 +91,18 @@ public final class JUnit5TeamCityRunner {
   private static final String REVERSE_ORDER = System.getProperty("intellij.build.test.reverse.order");
   private static final String INCLUDE_TAGS = System.getProperty("intellij.build.test.tags");
 
+  static boolean isUnderTeamCity() {
+    var teamCityVersion = System.getenv("TEAMCITY_VERSION");
+    return teamCityVersion != null && !teamCityVersion.isEmpty();
+  }
+
   public static void main(String[] args) throws ClassNotFoundException {
     if (args.length != 1 && args.length != 2) {
       System.err.printf("Expected one or two arguments, got %d: %s%n", args.length, Arrays.toString(args));
       System.exit(1);
     }
 
-    TCExecutionListener listener = null;
+    TestExecutionListenerEx listener = null;
     Throwable caughtException = null;
 
     try {
@@ -158,16 +163,18 @@ public final class JUnit5TeamCityRunner {
       TestPlan testPlan = launcher.discover(discoveryRequest);
 
       boolean reportAsBootstrapTestsSuite = !"false".equals(ENGINE_VINTAGE) && args[0].equals("__classpathroot__");  // mask JUnit 3/4 suite names to preserve test identity on TeamCity
-      listener = new TCExecutionListener(reportAsBootstrapTestsSuite);
+      listener = isUnderTeamCity() ? new TCExecutionListener(reportAsBootstrapTestsSuite) : new ConsoleTestExecutionListener();
 
       if (LIST_CLASSES != null) {
         saveListOfTestClasses(testPlan);  // save only
       }
       else if ("true".equals(REVERSE_ORDER)) {
         executeInReverseOrder(launcher, testPlan, listener, filters);  // used by [IDEA Trunk / Tests / Linux x86_64 Reversed Order / Aggregator](https://buildserver.labs.intellij.net/buildConfiguration/ijplatform_master_Idea_Tests_AggregatorRevX64)
+        listener.finalizeOutput();
       }
       else {
         launcher.execute(testPlan, listener);
+        listener.finalizeOutput();
       }
     }
     catch (Throwable e) {
@@ -203,17 +210,25 @@ public final class JUnit5TeamCityRunner {
     if (!buildConfName.isEmpty()) buildConfName = "[" + buildConfName + "]";
     final String testName = "JUnit5TeamCityRunner.assertNoUnhandledExceptions" + testProcessName + buildConfName;
 
-    System.out.println(new TestStarted(testName, true, null));
+    if (isUnderTeamCity()) {
+      System.out.println(new TestStarted(testName, true, null));
+    }
     if (e != null) {
       var testFailedServiceMessage = new TestFailed(testName, e).toString();
       if (assertNoUnhandledExceptions_isLeak(testFailedServiceMessage) && !"true".equals(IGNORE_FIRST_AND_LAST_TESTS)) {
         // leaks are already checked by _LastInSuiteTest.testProjectLeak, ignore
       }
       else {
-        System.out.println(testFailedServiceMessage);
+        if (isUnderTeamCity()) {
+          System.out.println(testFailedServiceMessage);
+        } else {
+          System.out.println("Unhandled exception in runner: " + e);
+        }
       }
     }
-    System.out.println(new TestFinished(testName, 0));
+    if (isUnderTeamCity()) {
+      System.out.println(new TestFinished(testName, 0));
+    }
   }
 
   private static boolean assertNoUnhandledExceptions_isLeak(String testFailedServiceMessage) {
@@ -320,12 +335,185 @@ public final class JUnit5TeamCityRunner {
     public void logRecordSubmitted(LogRecord r) {
       if (r.getLevel() == Level.WARNING && KNOWN_EXCEPTIONAL_WARNINGS.stream().noneMatch(w -> r.getMessage().startsWith(w)) ||
           r.getLevel() == Level.SEVERE) {
-        System.out.println(ServiceMessage.asString(ServiceMessageTypes.BUILD_PROBLEM, Map.of("description", r.getMessage())));
+        if (isUnderTeamCity()) {
+          System.out.println(ServiceMessage.asString(ServiceMessageTypes.BUILD_PROBLEM, Map.of("description", r.getMessage())));
+        }
+        else {
+          System.out.println("[" + r.getLevel() + "] " + r.getMessage());
+        }
       }
     }
   }
 
-  public static class TCExecutionListener implements TestExecutionListener {
+  public interface TestExecutionListenerEx extends TestExecutionListener {
+    boolean smthExecuted();
+    boolean hasFailures();
+    default void finalizeOutput() { }
+  }
+
+  private static class ConsoleTestExecutionListener implements TestExecutionListenerEx {
+    private static final String ANSI_RESET = "\u001B[0m";
+    private static final String ANSI_RED = "\u001B[31m";
+    private static final String ANSI_GREEN = "\u001B[32m";
+    private static final String ANSI_YELLOW = "\u001B[33m";
+
+    private static final int MAX_STACKTRACE_MESSAGE_LENGTH =
+      Integer.getInteger("intellij.build.test.stacktrace.max.length", 100 * 1024);
+
+    private boolean mySomethingExecuted;
+    private final List<String> myFailedPaths = new ArrayList<>();
+    private int myFailed;
+    private int myPassed;
+    private int mySkipped;
+    private int myTotal;
+    private long myPlanStartNanos;
+
+    private static void printStacktrace(Throwable throwable) {
+      String trace = TCExecutionListener.getTrace(throwable, MAX_STACKTRACE_MESSAGE_LENGTH);
+      for (String line : trace.split("\n", -1)) {
+        if (line.isEmpty()) continue;
+        System.out.println("\t" + line.trim());
+      }
+    }
+
+    private static String colored(String text, String ansiColor) {
+      return ansiColor != null ? ansiColor + text + ANSI_RESET : text;
+    }
+
+    private static String displayName(TestIdentifier id) {
+      String displayName = id.getDisplayName();
+
+      return id.getSource()
+        .map(source -> switch (source) {
+          case ClassSource classSource -> classSource.getClassName();
+          case MethodSource methodSource -> methodSource.getClassName() + "#" + methodSource.getMethodName();
+          default -> displayName;
+        })
+        .orElse(displayName);
+    }
+
+    private static String escapeNewlines(String s) {
+      if (s == null) return "null";
+      return s.replace("\\", "\\\\").replace("\r", "\\r").replace("\n", "\\n");
+    }
+
+
+    @Override
+    public boolean smthExecuted() {
+      return mySomethingExecuted;
+    }
+
+    @Override
+    public boolean hasFailures() {
+      return myFailed > 0;
+    }
+
+    @Override
+    public void testPlanExecutionStarted(TestPlan testPlan) {
+      myPlanStartNanos = System.nanoTime();
+    }
+
+    @Override
+    public void executionStarted(TestIdentifier testIdentifier) {
+      if (!testIdentifier.isTest()) return;
+      mySomethingExecuted = true;
+      System.out.println(displayName(testIdentifier) + " :: " + colored("STARTED", null));
+    }
+
+    @Override
+    public void executionSkipped(TestIdentifier testIdentifier, String reason) {
+      mySomethingExecuted = true;
+      myTotal++;
+      mySkipped++;
+      System.out.println(displayName(testIdentifier) + " :: " + colored("SKIPPED", ANSI_YELLOW));
+      if (reason != null && !reason.isEmpty()) {
+        System.out.println("\tReason: " + escapeNewlines(reason));
+      }
+    }
+
+    private void printFinished(TestIdentifier testIdentifier, String status, Throwable throwable) {
+      System.out.println(displayName(testIdentifier) + " :: " + status);
+      if (throwable != null) {
+        printStacktrace(throwable);
+      }
+    }
+
+    @Override
+    public void executionFinished(TestIdentifier testIdentifier, TestExecutionResult testExecutionResult) {
+      TestExecutionResult.Status status = testExecutionResult.getStatus();
+      Throwable throwable = testExecutionResult.getThrowable().orElse(null);
+      if (testIdentifier.isTest()) {
+        switch (status) {
+          case SUCCESSFUL -> {
+            printFinished(testIdentifier, colored("SUCCESSFUL", ANSI_GREEN), null);
+            myTotal++;
+            myPassed++;
+          }
+          case FAILED -> {
+            String path = displayName(testIdentifier);
+            printFinished(testIdentifier, colored("FAILED", ANSI_RED), throwable);
+            myTotal++;
+            myFailed++;
+            myFailedPaths.add(path);
+          }
+          case ABORTED -> {
+            printFinished(testIdentifier, colored("ABORTED", ANSI_YELLOW), throwable);
+            myTotal++;
+            mySkipped++;
+          }
+        }
+        return;
+      }
+      if (throwable == null) return;
+      if (status == TestExecutionResult.Status.FAILED) {
+        String syntheticPath = displayName(testIdentifier) + " > <classInitializationError>";
+        System.out.println(syntheticPath + " :: " + colored("FAILED", ANSI_RED));
+        printStacktrace(throwable);
+        mySomethingExecuted = true;
+        myTotal++;
+        myFailed++;
+        myFailedPaths.add(syntheticPath);
+      }
+      else if (status == TestExecutionResult.Status.ABORTED) {
+        String syntheticPath = displayName(testIdentifier) + " > <classInitializationSkipped>";
+        String message = throwable.getMessage();
+        System.out.println(syntheticPath + " :: " + colored("SKIPPED", ANSI_YELLOW));
+        if (message != null && !message.isEmpty()) {
+          System.out.println("\tReason: " + escapeNewlines(message));
+        }
+        mySomethingExecuted = true;
+        myTotal++;
+        mySkipped++;
+      }
+    }
+
+    @Override
+    public void finalizeOutput() {
+      if (myPlanStartNanos == 0L && myTotal == 0) return;
+      String line = "====================================================";
+      String durationSuffix = myPlanStartNanos != 0L
+                              ? " (" + ((System.nanoTime() - myPlanStartNanos) / 1_000_000L) + " ms)"
+                              : "";
+      System.out.println();
+      System.out.println(line);
+      System.out.println("Results: " + myTotal + (myTotal == 1 ? " test, " : " tests, ") +
+                    colored(myPassed + " passed", ANSI_GREEN) + ", " +
+                    colored(myFailed + " failed", myFailed > 0 ? ANSI_RED : null) + ", " +
+                    colored(mySkipped + " skipped", mySkipped > 0 ? ANSI_YELLOW : null) +
+                    durationSuffix);
+      if (!myFailedPaths.isEmpty()) {
+        System.out.println();
+        System.out.println(colored("Failed tests:", ANSI_RED));
+        for (String path : myFailedPaths) {
+          System.out.println("  " + path);
+        }
+      }
+      System.out.println(line);
+      System.out.flush();
+    }
+  }
+
+  public static class TCExecutionListener implements TestExecutionListenerEx {
     /**
      * The same constant as com.intellij.rt.execution.TestListenerProtocol.CLASS_CONFIGURATION
      */
@@ -365,10 +553,12 @@ public final class JUnit5TeamCityRunner {
       myPrintStream.println("##teamcity[enteredTheMatrix]");
     }
 
+    @Override
     public boolean smthExecuted() {
       return myCurrentTestStart != 0;
     }
 
+    @Override
     public boolean hasFailures() {
       return myHasFailures;
     }
