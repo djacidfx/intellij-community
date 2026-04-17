@@ -135,6 +135,7 @@ private inline fun VirtualFile.getResolvedVirtualFile(
 
 @RequiresReadLock
 fun VirtualFile.findFileOrDirectory(relativePath: @SystemIndependent String): VirtualFile? {
+  if(!isValid) return null
   return getResolvedVirtualFile(relativePath) { name, _ ->
     findChild(name) ?: return null // return from findFileOrDirectory
   }
