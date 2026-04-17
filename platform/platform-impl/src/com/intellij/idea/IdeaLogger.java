@@ -5,6 +5,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.intellij.diagnostic.DefaultIdeaErrorLogger;
 import com.intellij.diagnostic.LoadingState;
+import com.intellij.diagnostic.logs.LoggerConfigFromSystemProperties;
 import com.intellij.featureStatistics.fusCollectors.LifecycleUsageTriggerCollector;
 import com.intellij.ide.plugins.PluginManagerCore;
 import com.intellij.ide.plugins.PluginUtil;
@@ -138,6 +139,12 @@ public final class IdeaLogger extends JulLogger {
   @ApiStatus.Internal
   public IdeaLogger(@NotNull Logger logger) {
     super(logger);
+    if (LoggerConfigFromSystemProperties.hasLogLevelSystemPropertiesConfigured) {
+      var level = LoggerConfigFromSystemProperties.getLevelFromSystemProperties(logger.getName());
+      if (level != null && (logger.getLevel() == null || level.intValue() < logger.getLevel().intValue())) {
+        logger.setLevel(level);
+      }
+    }
   }
 
   @Override
