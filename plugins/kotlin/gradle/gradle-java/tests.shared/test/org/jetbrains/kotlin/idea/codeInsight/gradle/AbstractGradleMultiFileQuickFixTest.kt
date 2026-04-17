@@ -3,6 +3,7 @@ package org.jetbrains.kotlin.idea.codeInsight.gradle
 
 import com.intellij.codeInsight.daemon.quickFix.ActionHint
 import com.intellij.openapi.application.EDT
+import com.intellij.openapi.application.readAction
 import com.intellij.openapi.application.readActionBlocking
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.writeIntentReadAction
@@ -12,6 +13,7 @@ import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess
 import com.intellij.psi.PsiFile
+import com.intellij.psi.createSmartPointer
 import com.intellij.testFramework.IndexingTestUtil
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.RunAll
@@ -60,7 +62,7 @@ abstract class AbstractGradleMultiFileQuickFixTest : MultiplePluginVersionGradle
     * Check unexpected diagnostics in the file.
     * Called from a read action.
     */
-    protected abstract fun checkUnexpectedErrors(mainFile: File,ktFile: KtFile, fileText: String)
+    protected abstract fun checkUnexpectedErrors(mainFile: File, ktFile: KtFile, fileText: String)
 
     private lateinit var afterDirectory: Path
 
@@ -130,6 +132,7 @@ abstract class AbstractGradleMultiFileQuickFixTest : MultiplePluginVersionGradle
         val mainFilePath = mainFileInfo.filePath
 
         timeoutRunBlocking(3.minutes) {
+            val mainFilePointer = readAction { mainPsiFile.createSmartPointer() }
             val actions = codeInsightTestFixture.availableIntentions
 
             val action = if (customAction == null) {
@@ -196,8 +199,9 @@ abstract class AbstractGradleMultiFileQuickFixTest : MultiplePluginVersionGradle
             )
 
             readActionBlocking {
-                DirectiveBasedActionUtils.checkAvailableActionsAreExpected(mainPsiFile, action?.let { actions - it } ?: actions)
-                (mainPsiFile as? KtFile)?.let {
+                val file = mainFilePointer.element ?: return@readActionBlocking
+                DirectiveBasedActionUtils.checkAvailableActionsAreExpected(file, action?.let { actions - it } ?: actions)
+                (file as? KtFile)?.let {
                     checkUnexpectedErrors(mainFilePath.toFile(), it, mainFileContent)
                 }
             }
