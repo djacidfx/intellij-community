@@ -186,6 +186,7 @@ private class DisableBugsDialog(project: Project?, @NlsContexts.DialogTitle titl
   DialogWrapper(project, null, true, IdeModalityType.MODELESS, false) {
   init {
     this.title = title
+    isResizable = false
     init()
   }
 
