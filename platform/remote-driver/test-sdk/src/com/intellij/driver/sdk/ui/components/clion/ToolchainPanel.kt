@@ -21,11 +21,11 @@ import kotlin.time.Duration.Companion.seconds
 fun Finder.toolchainPanel(action: ToolchainPanel.() -> Unit = {}) = x(ToolchainPanel::class.java) { byClass("DialogRootPane") }.apply(action)
 
 class ToolchainPanel(data: ComponentData) : SettingsDialogUiComponent(data) {
-  fun getToolchainField(name: String): JTextFieldUI =
+  fun ToolchainPanel.getToolchainField(name: String): JTextFieldUI =
     textField("//div[@accessiblename='$name:' and @class='ExtendableTextField']")
 
   // Toolset TextField for Windows toolchain is missing accessible name
-  private val toolsetField: JTextFieldUI =
+  private fun ToolchainPanel.getToolsetField(): JTextFieldUI =
     textField("//div[@class='JBLabel' and @accessiblename='Toolset:']/following-sibling::div[@class='ToolchainActionItemsComboboxWithBrowseExtension'][1]//div[@class='ExtendableTextField']")
 
   fun addNewToolchain(toolchain: Toolchain) {
@@ -81,20 +81,20 @@ class ToolchainPanel(data: ComponentData) : SettingsDialogUiComponent(data) {
   }
 
   fun setToolset(path: String) {
-    toolsetField.click()
+    getToolsetField().click()
     keyboard { key(KeyEvent.VK_DOWN) }
-    toolsetField.text = path
+    getToolsetField().text = path
     keyboard { enter() }
   }
 
-  fun setupCMake(cmakePath: String) {
+  fun ToolchainPanel.setupCMake(cmakePath: String) {
     getToolchainField("CMake").click()
     keyboard { key(KeyEvent.VK_DOWN) }
     getToolchainField("CMake").text = cmakePath
     keyboard { enter() }
   }
 
-  fun setupRemoteHost(host: String, username: String, port: String, password: String) {
+  fun ToolchainPanel.setupRemoteHost(host: String, username: String, port: String, password: String) {
     actionButtonByXpath(xQuery { byClass("FixedSizeButton") }).click()
     driver.ui.dialog(xQuery { byTitle("SSH Configurations") }) {
       waitFound()
