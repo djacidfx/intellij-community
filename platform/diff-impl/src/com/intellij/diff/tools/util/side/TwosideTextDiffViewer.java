@@ -6,7 +6,7 @@ import com.intellij.diff.EditorDiffViewer;
 import com.intellij.diff.actions.ProxyUndoRedoAction;
 import com.intellij.diff.actions.impl.FocusOppositePaneAction;
 import com.intellij.diff.actions.impl.OpenInEditorWithMouseAction;
-import com.intellij.diff.actions.impl.SetEditorSettingsAction;
+import com.intellij.diff.actions.impl.SetEditorSettingsActionGroup;
 import com.intellij.diff.contents.DocumentContent;
 import com.intellij.diff.requests.ContentDiffRequest;
 import com.intellij.diff.requests.DiffRequest;
@@ -44,7 +44,7 @@ public abstract class TwosideTextDiffViewer extends TwosideDiffViewer<TextEditor
   private final @NotNull List<? extends EditorEx> myEditableEditors;
   private @Nullable List<? extends EditorEx> myEditors;
 
-  protected final @NotNull SetEditorSettingsAction myEditorSettingsAction;
+  protected final @NotNull SetEditorSettingsActionGroup myEditorSettingsAction;
 
   private final @NotNull MyVisibleAreaListener myVisibleAreaListener = new MyVisibleAreaListener();
 
@@ -56,7 +56,7 @@ public abstract class TwosideTextDiffViewer extends TwosideDiffViewer<TextEditor
     new MyFocusOppositePaneAction(true).install(myPanel);
     new MyFocusOppositePaneAction(false).install(myPanel);
 
-    myEditorSettingsAction = new SetEditorSettingsAction(getTextSettings(), getEditors());
+    myEditorSettingsAction = new SetEditorSettingsActionGroup(getTextSettings(), getEditors());
     myEditorSettingsAction.applyDefaults();
 
     new MyOpenInEditorWithMouseAction().install(getEditors());

@@ -22,7 +22,6 @@ import com.intellij.openapi.actionSystem.Constraints
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.IdeActions
 import com.intellij.openapi.actionSystem.Separator
-import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.actionSystem.ex.ActionUtil.copyFrom
 import com.intellij.openapi.diff.DiffBundle.message
 import com.intellij.openapi.editor.Editor
@@ -170,9 +169,6 @@ internal class CombinedHighlightPolicySettingAction(settings: TextDiffSettingsHo
 internal class CombinedEditorSettingsActionGroup(private val settings: TextDiffSettingsHolder.TextDiffSettings,
                                                  private val foldingModels: () -> List<FoldingModelSupport>,
                                                  editors: () -> List<Editor>) : SetEditorSettingsActionGroup(settings, editors) {
-  init {
-    templatePresentation.putClientProperty(ActionUtil.HIDE_DROPDOWN_ICON, true)
-  }
 
   override fun getChildren(e: AnActionEvent?): Array<AnAction> {
     val diffModesSettingsGroup = ActionManager.getInstance().getAction(IdeActions.GROUP_DIFF_EDITOR_MODES)

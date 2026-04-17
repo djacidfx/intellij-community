@@ -145,6 +145,7 @@ f:com.intellij.diff.actions.impl.SetEditorSettingsAction
 - actionPerformed(com.intellij.openapi.actionSystem.AnActionEvent):V
 - f:applyDefaults():V
 - getActionUpdateThread():com.intellij.openapi.actionSystem.ActionUpdateThread
+- f:setDiffActions(java.util.List):V
 - f:setSyncScrollSupport(com.intellij.diff.tools.util.SyncScrollSupport$Support):V
 - update(com.intellij.openapi.actionSystem.AnActionEvent):V
 c:com.intellij.diff.actions.impl.SetEditorSettingsActionGroup
@@ -152,10 +153,12 @@ c:com.intellij.diff.actions.impl.SetEditorSettingsActionGroup
 - com.intellij.openapi.project.DumbAware
 - pf:myActions:com.intellij.openapi.actionSystem.AnAction[]
 - applyDefaults():V
+- p:createAppearanceGroup():com.intellij.openapi.actionSystem.DefaultActionGroup
 - getActionUpdateThread():com.intellij.openapi.actionSystem.ActionUpdateThread
 - getChildren(com.intellij.openapi.actionSystem.AnActionEvent):com.intellij.openapi.actionSystem.AnAction[]
 - installGutterPopup():V
 - ps:replaceOrAppend(java.util.List,java.lang.Object,java.lang.Object):V
+- setDiffActions(java.util.List):V
 - setSyncScrollSupport(com.intellij.diff.tools.util.SyncScrollSupport$Support):V
 - update(com.intellij.openapi.actionSystem.AnActionEvent):V
 a:com.intellij.diff.chains.AsyncDiffRequestChain
@@ -1567,7 +1570,7 @@ a:com.intellij.diff.tools.util.side.OnesideDiffViewer
 a:com.intellij.diff.tools.util.side.OnesideTextDiffViewer
 - com.intellij.diff.tools.util.side.OnesideDiffViewer
 - com.intellij.diff.EditorDiffViewer
-- pf:myEditorSettingsAction:com.intellij.diff.actions.impl.SetEditorSettingsAction
+- pf:myEditorSettingsAction:com.intellij.diff.actions.impl.SetEditorSettingsActionGroup
 - <init>(com.intellij.diff.DiffContext,com.intellij.diff.requests.ContentDiffRequest):V
 - s:canShowRequest(com.intellij.diff.DiffContext,com.intellij.diff.requests.DiffRequest):Z
 - p:createEditorPopupActions():java.util.List
@@ -1604,7 +1607,7 @@ c:com.intellij.diff.tools.util.side.ThreesideContentPanel$Holders
 a:com.intellij.diff.tools.util.side.ThreesideTextDiffViewer
 - com.intellij.diff.EditorDiffViewer
 - com.intellij.diff.tools.util.base.DiffViewerBase
-- pf:myEditorSettingsAction:com.intellij.diff.actions.impl.SetEditorSettingsAction
+- pf:myEditorSettingsAction:com.intellij.diff.actions.impl.SetEditorSettingsActionGroup
 - p:mySyncScrollSupport:com.intellij.diff.tools.util.SyncScrollSupport$ThreesideSyncScrollSupport
 - <init>(com.intellij.diff.DiffContext,com.intellij.diff.requests.ContentDiffRequest):V
 - s:canShowRequest(com.intellij.diff.DiffContext,com.intellij.diff.requests.DiffRequest):Z
@@ -1667,7 +1670,7 @@ a:com.intellij.diff.tools.util.side.TwosideDiffViewer
 a:com.intellij.diff.tools.util.side.TwosideTextDiffViewer
 - com.intellij.diff.tools.util.side.TwosideDiffViewer
 - com.intellij.diff.EditorDiffViewer
-- pf:myEditorSettingsAction:com.intellij.diff.actions.impl.SetEditorSettingsAction
+- pf:myEditorSettingsAction:com.intellij.diff.actions.impl.SetEditorSettingsActionGroup
 - <init>(com.intellij.diff.DiffContext,com.intellij.diff.requests.ContentDiffRequest):V
 - s:canShowRequest(com.intellij.diff.DiffContext,com.intellij.diff.requests.DiffRequest):Z
 - p:createEditorHolders(com.intellij.diff.tools.holders.EditorHolderFactory):java.util.List

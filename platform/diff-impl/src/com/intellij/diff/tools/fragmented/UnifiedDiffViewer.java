@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.diff.tools.fragmented;
 
 import com.intellij.codeInsight.breadcrumbs.FileBreadcrumbsCollector;
@@ -7,7 +7,7 @@ import com.intellij.diff.EditorDiffViewer;
 import com.intellij.diff.actions.AllLinesIterator;
 import com.intellij.diff.actions.BufferedLineIterator;
 import com.intellij.diff.actions.impl.OpenInEditorWithMouseAction;
-import com.intellij.diff.actions.impl.SetEditorSettingsAction;
+import com.intellij.diff.actions.impl.SetEditorSettingsActionGroup;
 import com.intellij.diff.comparison.DiffTooBigException;
 import com.intellij.diff.contents.DocumentContent;
 import com.intellij.diff.fragments.LineFragment;
@@ -140,7 +140,7 @@ public class UnifiedDiffViewer extends ListenerDiffViewerBase implements EditorD
   protected final @NotNull UnifiedDiffPanel myPanel;
   private final @NotNull OnesideContentPanel myContentPanel;
 
-  private final @NotNull SetEditorSettingsAction myEditorSettingsAction;
+  private final @NotNull SetEditorSettingsActionGroup myEditorSettingsAction;
   private final @NotNull PrevNextDifferenceIterable myPrevNextDifferenceIterable;
   private final @NotNull MyStatusPanel myStatusPanel;
 
@@ -196,7 +196,7 @@ public class UnifiedDiffViewer extends ListenerDiffViewerBase implements EditorD
     myFoldingModel = new MyFoldingModel(getProject(), myEditor, this);
     myMarkupUpdater = new MarkupUpdater(getContents());
 
-    myEditorSettingsAction = new SetEditorSettingsAction(getTextSettings(), getEditors());
+    myEditorSettingsAction = new SetEditorSettingsActionGroup(getTextSettings(), getEditors());
     myEditorSettingsAction.applyDefaults();
 
     myTextDiffProvider = DiffUtil.createNoIgnoreTextDiffProvider(getProject(), getRequest(), getTextSettings(), this::rediff, this);
