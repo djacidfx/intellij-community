@@ -349,7 +349,6 @@ object CommunityRepositoryModules {
       // android-kotlin.jar
       spec.withModule("intellij.android.kotlin.idea", "android-kotlin.jar")
       spec.withModule("intellij.android.kotlin.idea.common", "android-kotlin.jar")
-      spec.withModule("intellij.android.kotlin.idea.k1", "android-kotlin.jar")
       spec.withModule("intellij.android.kotlin.idea.k2", "android-kotlin.jar")
       spec.withModule("intellij.android.kotlin.output.parser", "android-kotlin.jar")
 
@@ -430,7 +429,6 @@ object CommunityRepositoryModules {
       spec.withModule("intellij.android.nav.safeargs", "android.jar")
       spec.withModule("intellij.android.nav.safeargs.common", "android.jar")
       spec.withModule("intellij.android.nav.safeargs.common.gradle", "android.jar")
-      spec.withModule("intellij.android.nav.safeargs.k1", "android.jar")
       spec.withModule("intellij.android.nav.safeargs.k2", "android.jar")
       spec.withModule("intellij.android.android-material", "android.jar")
       spec.withModule("intellij.android.observable.ui", "android.jar")

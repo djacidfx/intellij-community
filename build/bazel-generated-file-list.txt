@@ -16,7 +16,6 @@ android/android-common
 android/android-kotlin/idea-android
 android/android-kotlin/idea-android/common
 android/android-kotlin/idea-android/idea-android-output-parser
-android/android-kotlin/idea-android/k1
 android/android-kotlin/idea-android/k2
 android/android-lang
 android/android-lang-databinding
@@ -155,10 +154,8 @@ android/nav/editor/gradle
 android/nav/safeargs
 android/nav/safeargs/common
 android/nav/safeargs/common/gradle
-android/nav/safeargs/k1
 android/nav/safeargs/k2
 android/nav/safeargs/tests/common
-android/nav/safeargs/tests/k1
 android/nav/safeargs/tests/k2
 android/observable
 android/observable-ui
