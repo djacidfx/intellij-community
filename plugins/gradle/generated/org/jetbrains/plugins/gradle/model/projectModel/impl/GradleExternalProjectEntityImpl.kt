@@ -1,4 +1,6 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+@file:OptIn(EntityStorageInstrumentationApi::class)
+
 package org.jetbrains.plugins.gradle.model.projectModel.impl
 
 import com.intellij.platform.externalSystem.impl.workspaceModel.ExternalProjectEntity
@@ -15,11 +17,10 @@ import com.intellij.platform.workspace.storage.impl.EntityLink
 import com.intellij.platform.workspace.storage.impl.ModifiableWorkspaceEntityBase
 import com.intellij.platform.workspace.storage.impl.WorkspaceEntityBase
 import com.intellij.platform.workspace.storage.impl.WorkspaceEntityData
-import com.intellij.platform.workspace.storage.impl.extractOneToOneParent
-import com.intellij.platform.workspace.storage.impl.updateOneToOneParentOfChild
 import com.intellij.platform.workspace.storage.instrumentation.EntityStorageInstrumentation
 import com.intellij.platform.workspace.storage.instrumentation.EntityStorageInstrumentationApi
 import com.intellij.platform.workspace.storage.instrumentation.MutableEntityStorageInstrumentation
+import com.intellij.platform.workspace.storage.instrumentation.instrumentation
 import com.intellij.platform.workspace.storage.metadata.model.EntityMetadata
 import org.jetbrains.plugins.gradle.model.projectModel.GradleExternalProjectEntity
 import org.jetbrains.plugins.gradle.model.projectModel.GradleExternalProjectEntityBuilder
@@ -40,7 +41,8 @@ internal class GradleExternalProjectEntityImpl(private val dataSource: GradleExt
   }
 
   override val externalProject: ExternalProjectEntity
-    get() = snapshot.extractOneToOneParent(EXTERNALPROJECT_CONNECTION_ID, this)!!
+    get() = snapshot.instrumentation.getParent(EXTERNALPROJECT_CONNECTION_ID, this) as? ExternalProjectEntity
+            ?: error("Parent externalProject not found for GradleExternalProjectEntity")
   override val gradleVersion: String
     get() {
       readField("gradleVersion")
@@ -90,7 +92,7 @@ internal class GradleExternalProjectEntityImpl(private val dataSource: GradleExt
         error("Field WorkspaceEntity#entitySource should be initialized")
       }
       if (_diff != null) {
-        if (_diff.extractOneToOneParent<WorkspaceEntityBase>(EXTERNALPROJECT_CONNECTION_ID, this) == null) {
+        if (_diff.instrumentation.getParentBuilder(EXTERNALPROJECT_CONNECTION_ID, this) == null) {
           error("Field GradleExternalProjectEntity#externalProject should be initialized")
         }
       }
@@ -129,13 +131,14 @@ internal class GradleExternalProjectEntityImpl(private val dataSource: GradleExt
       get() {
         val _diff = diff
         return if (_diff != null) {
-          @OptIn(EntityStorageInstrumentationApi::class)
           ((_diff as MutableEntityStorageInstrumentation).getParentBuilder(EXTERNALPROJECT_CONNECTION_ID,
                                                                            this) as? ExternalProjectEntityBuilder)
-          ?: (this.entityLinks[EntityLink(false, EXTERNALPROJECT_CONNECTION_ID)]!! as ExternalProjectEntityBuilder)
+          ?: (this.entityLinks[EntityLink(false, EXTERNALPROJECT_CONNECTION_ID)] as? ExternalProjectEntityBuilder)
+          ?: error("externalProject is null for GradleExternalProjectEntity")
         }
         else {
-          this.entityLinks[EntityLink(false, EXTERNALPROJECT_CONNECTION_ID)]!! as ExternalProjectEntityBuilder
+          (this.entityLinks[EntityLink(false, EXTERNALPROJECT_CONNECTION_ID)] as? ExternalProjectEntityBuilder)
+          ?: error("externalProject is null for GradleExternalProjectEntity")
         }
       }
       set(value) {
@@ -149,7 +152,7 @@ internal class GradleExternalProjectEntityImpl(private val dataSource: GradleExt
           _diff.addEntity(value as ModifiableWorkspaceEntityBase<WorkspaceEntity, *>)
         }
         if (_diff != null && (value !is ModifiableWorkspaceEntityBase<*, *> || value.diff != null)) {
-          _diff.updateOneToOneParentOfChild(EXTERNALPROJECT_CONNECTION_ID, this, value)
+          _diff.instrumentation.addChild(EXTERNALPROJECT_CONNECTION_ID, value, this)
         }
         else {
           if (value is ModifiableWorkspaceEntityBase<*, *>) {
@@ -187,7 +190,6 @@ internal class GradleExternalProjectEntityData : WorkspaceEntityData<GradleExter
     return modifiable
   }
 
-  @OptIn(EntityStorageInstrumentationApi::class)
   override fun createEntity(snapshot: EntityStorageInstrumentation): GradleExternalProjectEntity {
     val entityId = createEntityId()
     return snapshot.initializeEntity(entityId) {

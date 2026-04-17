@@ -12,7 +12,8 @@ import com.intellij.platform.workspace.storage.metadata.model.ValueTypeMetadata
 @OptIn(WorkspaceEntityInternalApi::class)
 internal object MetadataStorageImpl : MetadataStorageBase() {
     override fun initializeMetadata() {
-        val primitiveTypeStringNotNullable = ValueTypeMetadata.SimpleType.PrimitiveType(isNullable = false, type = "String")
+        val primitiveTypeStringNotNullable =
+            ValueTypeMetadata.SimpleType.PrimitiveType(isNullable = false, type = "String")
 
         var typeMetadata: StorageTypeMetadata
 

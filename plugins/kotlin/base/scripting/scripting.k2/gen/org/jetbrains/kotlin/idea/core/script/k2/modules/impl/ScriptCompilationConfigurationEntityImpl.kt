@@ -1,4 +1,6 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+@file:OptIn(EntityStorageInstrumentationApi::class)
+
 package org.jetbrains.kotlin.idea.core.script.k2.modules.impl
 
 import com.intellij.platform.workspace.storage.ConnectionId
@@ -191,7 +193,6 @@ internal class ScriptCompilationConfigurationEntityData : WorkspaceEntityData<Sc
         return modifiable
     }
 
-    @OptIn(EntityStorageInstrumentationApi::class)
     override fun createEntity(snapshot: EntityStorageInstrumentation): ScriptCompilationConfigurationEntity {
         val entityId = createEntityId()
         return snapshot.initializeEntity(entityId) {

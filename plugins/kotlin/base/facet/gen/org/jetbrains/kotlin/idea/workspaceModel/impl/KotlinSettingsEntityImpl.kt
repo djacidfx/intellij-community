@@ -1,4 +1,6 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+@file:OptIn(EntityStorageInstrumentationApi::class)
+
 package org.jetbrains.kotlin.idea.workspaceModel.impl
 
 import com.intellij.platform.workspace.jps.entities.ModuleEntity
@@ -22,12 +24,11 @@ import com.intellij.platform.workspace.storage.impl.containers.MutableWorkspaceL
 import com.intellij.platform.workspace.storage.impl.containers.MutableWorkspaceSet
 import com.intellij.platform.workspace.storage.impl.containers.toMutableWorkspaceList
 import com.intellij.platform.workspace.storage.impl.containers.toMutableWorkspaceSet
-import com.intellij.platform.workspace.storage.impl.extractOneToManyParent
 import com.intellij.platform.workspace.storage.impl.indices.WorkspaceMutableIndex
-import com.intellij.platform.workspace.storage.impl.updateOneToManyParentOfChild
 import com.intellij.platform.workspace.storage.instrumentation.EntityStorageInstrumentation
 import com.intellij.platform.workspace.storage.instrumentation.EntityStorageInstrumentationApi
 import com.intellij.platform.workspace.storage.instrumentation.MutableEntityStorageInstrumentation
+import com.intellij.platform.workspace.storage.instrumentation.instrumentation
 import com.intellij.platform.workspace.storage.metadata.model.EntityMetadata
 import com.intellij.util.descriptors.ConfigFileItem
 import org.jetbrains.kotlin.config.KotlinModuleKind
@@ -71,7 +72,8 @@ internal class KotlinSettingsEntityImpl(private val dataSource: KotlinSettingsEn
             return dataSource.configFileItems
         }
     override val module: ModuleEntity
-        get() = snapshot.extractOneToManyParent(MODULE_CONNECTION_ID, this)!!
+        get() = snapshot.instrumentation.getParent(MODULE_CONNECTION_ID, this) as? ModuleEntity
+            ?: error("Parent module not found for KotlinSettingsEntity")
     override val useProjectSettings: Boolean
         get() {
             readField("useProjectSettings")
@@ -216,7 +218,7 @@ internal class KotlinSettingsEntityImpl(private val dataSource: KotlinSettingsEn
                 error("Field KotlinSettingsEntity#configFileItems should be initialized")
             }
             if (_diff != null) {
-                if (_diff.extractOneToManyParent<WorkspaceEntityBase>(MODULE_CONNECTION_ID, this) == null) {
+                if (_diff.instrumentation.getParentBuilder(MODULE_CONNECTION_ID, this) == null) {
                     error("Field KotlinSettingsEntity#module should be initialized")
                 }
             } else {
@@ -391,11 +393,12 @@ internal class KotlinSettingsEntityImpl(private val dataSource: KotlinSettingsEn
             get() {
                 val _diff = diff
                 return if (_diff != null) {
-                    @OptIn(EntityStorageInstrumentationApi::class)
                     ((_diff as MutableEntityStorageInstrumentation).getParentBuilder(MODULE_CONNECTION_ID, this) as? ModuleEntityBuilder)
-                        ?: (this.entityLinks[EntityLink(false, MODULE_CONNECTION_ID)]!! as ModuleEntityBuilder)
+                        ?: (this.entityLinks[EntityLink(false, MODULE_CONNECTION_ID)] as? ModuleEntityBuilder)
+                        ?: error("module is null for KotlinSettingsEntity")
                 } else {
-                    this.entityLinks[EntityLink(false, MODULE_CONNECTION_ID)]!! as ModuleEntityBuilder
+                    (this.entityLinks[EntityLink(false, MODULE_CONNECTION_ID)] as? ModuleEntityBuilder)
+                        ?: error("module is null for KotlinSettingsEntity")
                 }
             }
             set(value) {
@@ -411,7 +414,7 @@ internal class KotlinSettingsEntityImpl(private val dataSource: KotlinSettingsEn
                     _diff.addEntity(value as ModifiableWorkspaceEntityBase<WorkspaceEntity, *>)
                 }
                 if (_diff != null && (value !is ModifiableWorkspaceEntityBase<*, *> || value.diff != null)) {
-                    _diff.updateOneToManyParentOfChild(MODULE_CONNECTION_ID, this, value)
+                    _diff.instrumentation.addChild(MODULE_CONNECTION_ID, value, this)
                 } else {
 // Setting backref of the list
                     if (value is ModifiableWorkspaceEntityBase<*, *>) {
@@ -769,7 +772,6 @@ internal class KotlinSettingsEntityData : WorkspaceEntityData<KotlinSettingsEnti
         return modifiable
     }
 
-    @OptIn(EntityStorageInstrumentationApi::class)
     override fun createEntity(snapshot: EntityStorageInstrumentation): KotlinSettingsEntity {
         val entityId = createEntityId()
         return snapshot.initializeEntity(entityId) {

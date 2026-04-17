@@ -1,4 +1,6 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+@file:OptIn(EntityStorageInstrumentationApi::class)
+
 package com.intellij.openapi.externalSystem.settings.workspaceModel.impl
 
 import com.intellij.openapi.externalSystem.settings.workspaceModel.ExternalProjectBuildClasspathEntity
@@ -132,7 +134,6 @@ internal class ExternalProjectsBuildClasspathEntityData : WorkspaceEntityData<Ex
     return modifiable
   }
 
-  @OptIn(EntityStorageInstrumentationApi::class)
   override fun createEntity(snapshot: EntityStorageInstrumentation): ExternalProjectsBuildClasspathEntity {
     val entityId = createEntityId()
     return snapshot.initializeEntity(entityId) {

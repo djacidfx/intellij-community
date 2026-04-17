@@ -1,4 +1,6 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+@file:OptIn(EntityStorageInstrumentationApi::class)
+
 package org.jetbrains.kotlin.gradle.scripting.k2.workspaceModel.impl
 
 import com.intellij.platform.workspace.storage.ConnectionId
@@ -25,8 +27,8 @@ import org.jetbrains.kotlin.idea.core.script.k2.modules.ScriptingHostConfigurati
 @GeneratedCodeApiVersion(3)
 @GeneratedCodeImplVersion(7)
 @OptIn(WorkspaceEntityInternalApi::class)
-internal class GradleScriptDefinitionEntityImpl(private val dataSource: GradleScriptDefinitionEntityData) : GradleScriptDefinitionEntity,
-    WorkspaceEntityBase(dataSource) {
+internal class GradleScriptDefinitionEntityImpl(private val dataSource: GradleScriptDefinitionEntityData) :
+    GradleScriptDefinitionEntity, WorkspaceEntityBase(dataSource) {
 
     private companion object {
 
@@ -120,7 +122,8 @@ internal class GradleScriptDefinitionEntityImpl(private val dataSource: GradleSc
             if (this.definitionId != dataSource.definitionId) this.definitionId = dataSource.definitionId
             if (this.compilationConfigurationData != dataSource.compilationConfigurationData) this.compilationConfigurationData =
                 dataSource.compilationConfigurationData
-            if (this.hostConfiguration != dataSource.hostConfiguration) this.hostConfiguration = dataSource.hostConfiguration
+            if (this.hostConfiguration != dataSource.hostConfiguration) this.hostConfiguration =
+                dataSource.hostConfiguration
             if (this.evaluationConfiguration != dataSource?.evaluationConfiguration) this.evaluationConfiguration =
                 dataSource.evaluationConfiguration
             updateChildToParentReferences(parents)
@@ -190,7 +193,6 @@ internal class GradleScriptDefinitionEntityData : WorkspaceEntityData<GradleScri
         return modifiable
     }
 
-    @OptIn(EntityStorageInstrumentationApi::class)
     override fun createEntity(snapshot: EntityStorageInstrumentation): GradleScriptDefinitionEntity {
         val entityId = createEntityId()
         return snapshot.initializeEntity(entityId) {
@@ -210,7 +212,12 @@ internal class GradleScriptDefinitionEntityData : WorkspaceEntityData<GradleScri
     }
 
     override fun createDetachedEntity(parents: List<WorkspaceEntityBuilder<*>>): WorkspaceEntityBuilder<*> {
-        return GradleScriptDefinitionEntity(definitionId, compilationConfigurationData, hostConfiguration, entitySource) {
+        return GradleScriptDefinitionEntity(
+            definitionId,
+            compilationConfigurationData,
+            hostConfiguration,
+            entitySource
+        ) {
             this.evaluationConfiguration = this@GradleScriptDefinitionEntityData.evaluationConfiguration
         }
     }

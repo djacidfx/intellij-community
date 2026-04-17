@@ -1,4 +1,6 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+@file:OptIn(EntityStorageInstrumentationApi::class)
+
 package com.intellij.java.workspace.entities.impl
 
 import com.intellij.java.workspace.entities.ArtifactsOrderEntity
@@ -151,7 +153,6 @@ internal class ArtifactsOrderEntityData : WorkspaceEntityData<ArtifactsOrderEnti
     return modifiable
   }
 
-  @OptIn(EntityStorageInstrumentationApi::class)
   override fun createEntity(snapshot: EntityStorageInstrumentation): ArtifactsOrderEntity {
     val entityId = createEntityId()
     return snapshot.initializeEntity(entityId) {

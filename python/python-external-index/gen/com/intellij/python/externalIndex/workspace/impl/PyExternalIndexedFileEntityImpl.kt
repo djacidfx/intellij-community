@@ -1,4 +1,6 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+@file:OptIn(EntityStorageInstrumentationApi::class)
+
 package com.intellij.python.externalIndex.workspace.impl
 
 import com.intellij.platform.workspace.storage.ConnectionId
@@ -134,7 +136,6 @@ internal class PyExternalIndexedFileEntityData : WorkspaceEntityData<PyExternalI
     return modifiable
   }
 
-  @OptIn(EntityStorageInstrumentationApi::class)
   override fun createEntity(snapshot: EntityStorageInstrumentation): PyExternalIndexedFileEntity {
     val entityId = createEntityId()
     return snapshot.initializeEntity(entityId) {

@@ -171,6 +171,9 @@ com.intellij.platform.workspace.storage.instrumentation.EntityStorageInstrumenta
 - a:resolveReference(com.intellij.platform.workspace.storage.EntityPointer):com.intellij.platform.workspace.storage.WorkspaceEntity
 @:com.intellij.platform.workspace.storage.instrumentation.EntityStorageInstrumentationApi
 - java.lang.annotation.Annotation
+f:com.intellij.platform.workspace.storage.instrumentation.EntityStorageInstrumentationKt
+- sf:getInstrumentation(com.intellij.platform.workspace.storage.EntityStorage):com.intellij.platform.workspace.storage.instrumentation.EntityStorageInstrumentation
+- sf:getInstrumentation(com.intellij.platform.workspace.storage.MutableEntityStorage):com.intellij.platform.workspace.storage.instrumentation.MutableEntityStorageInstrumentation
 com.intellij.platform.workspace.storage.instrumentation.ImmutableEntityStorageInstrumentation
 - com.intellij.platform.workspace.storage.ImmutableEntityStorage
 - com.intellij.platform.workspace.storage.instrumentation.EntityStorageInstrumentation

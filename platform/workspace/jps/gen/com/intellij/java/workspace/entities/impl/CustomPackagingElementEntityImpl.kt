@@ -1,4 +1,6 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+@file:OptIn(EntityStorageInstrumentationApi::class)
+
 package com.intellij.java.workspace.entities.impl
 
 import com.intellij.java.workspace.entities.ArtifactEntity
@@ -20,16 +22,10 @@ import com.intellij.platform.workspace.storage.impl.EntityLink
 import com.intellij.platform.workspace.storage.impl.ModifiableWorkspaceEntityBase
 import com.intellij.platform.workspace.storage.impl.WorkspaceEntityBase
 import com.intellij.platform.workspace.storage.impl.WorkspaceEntityData
-import com.intellij.platform.workspace.storage.impl.extractOneToAbstractManyChildren
-import com.intellij.platform.workspace.storage.impl.extractOneToAbstractManyParent
-import com.intellij.platform.workspace.storage.impl.extractOneToAbstractOneParent
-import com.intellij.platform.workspace.storage.impl.extractOneToManyChildren
-import com.intellij.platform.workspace.storage.impl.updateOneToAbstractManyChildrenOfParent
-import com.intellij.platform.workspace.storage.impl.updateOneToAbstractManyParentOfChild
-import com.intellij.platform.workspace.storage.impl.updateOneToAbstractOneParentOfChild
 import com.intellij.platform.workspace.storage.instrumentation.EntityStorageInstrumentation
 import com.intellij.platform.workspace.storage.instrumentation.EntityStorageInstrumentationApi
 import com.intellij.platform.workspace.storage.instrumentation.MutableEntityStorageInstrumentation
+import com.intellij.platform.workspace.storage.instrumentation.instrumentation
 import com.intellij.platform.workspace.storage.metadata.model.EntityMetadata
 
 @GeneratedCodeApiVersion(3)
@@ -56,11 +52,12 @@ internal class CustomPackagingElementEntityImpl(private val dataSource: CustomPa
   }
 
   override val parentEntity: CompositePackagingElementEntity?
-    get() = snapshot.extractOneToAbstractManyParent(PARENTENTITY_CONNECTION_ID, this)
+    get() = snapshot.instrumentation.getParent(PARENTENTITY_CONNECTION_ID, this) as? CompositePackagingElementEntity
   override val artifact: ArtifactEntity?
-    get() = snapshot.extractOneToAbstractOneParent(ARTIFACT_CONNECTION_ID, this)
+    get() = snapshot.instrumentation.getParent(ARTIFACT_CONNECTION_ID, this) as? ArtifactEntity
   override val children: List<PackagingElementEntity>
-    get() = snapshot.extractOneToAbstractManyChildren<PackagingElementEntity>(CHILDREN_CONNECTION_ID, this)!!.toList()
+    get() = (snapshot.instrumentation.getManyChildren(CHILDREN_CONNECTION_ID, this) as? Sequence<PackagingElementEntity>)?.toList()
+            ?: error("Children children not found for CompositePackagingElementEntity")
   override val typeId: String
     get() {
       readField("typeId")
@@ -116,7 +113,7 @@ internal class CustomPackagingElementEntityImpl(private val dataSource: CustomPa
       }
 // Check initialization for list with ref type
       if (_diff != null) {
-        if (_diff.extractOneToManyChildren<WorkspaceEntityBase>(CHILDREN_CONNECTION_ID, this) == null) {
+        if (_diff.instrumentation.getManyChildrenBuilders(CHILDREN_CONNECTION_ID, this) == null) {
           error("Field CompositePackagingElementEntity#children should be initialized")
         }
       }
@@ -159,15 +156,14 @@ internal class CustomPackagingElementEntityImpl(private val dataSource: CustomPa
       get() {
         val _diff = diff
         return if (_diff != null) {
-          @OptIn(EntityStorageInstrumentationApi::class)
           ((_diff as MutableEntityStorageInstrumentation).getParentBuilder(PARENTENTITY_CONNECTION_ID,
                                                                            this) as? CompositePackagingElementEntityBuilder<out CompositePackagingElementEntity>)
           ?: (this.entityLinks[EntityLink(false,
                                           PARENTENTITY_CONNECTION_ID)] as? CompositePackagingElementEntityBuilder<out CompositePackagingElementEntity>)
         }
         else {
-          this.entityLinks[EntityLink(false,
-                                      PARENTENTITY_CONNECTION_ID)] as? CompositePackagingElementEntityBuilder<out CompositePackagingElementEntity>
+          (this.entityLinks[EntityLink(false,
+                                       PARENTENTITY_CONNECTION_ID)] as? CompositePackagingElementEntityBuilder<out CompositePackagingElementEntity>)
         }
       }
       set(value) {
@@ -183,7 +179,7 @@ internal class CustomPackagingElementEntityImpl(private val dataSource: CustomPa
           _diff.addEntity(value as ModifiableWorkspaceEntityBase<WorkspaceEntity, *>)
         }
         if (_diff != null && (value !is ModifiableWorkspaceEntityBase<*, *> || value.diff != null)) {
-          _diff.updateOneToAbstractManyParentOfChild(PARENTENTITY_CONNECTION_ID, this, value)
+          _diff.instrumentation.addChild(PARENTENTITY_CONNECTION_ID, value, this)
         }
         else {
 // Setting backref of the list
@@ -201,12 +197,11 @@ internal class CustomPackagingElementEntityImpl(private val dataSource: CustomPa
       get() {
         val _diff = diff
         return if (_diff != null) {
-          @OptIn(EntityStorageInstrumentationApi::class)
           ((_diff as MutableEntityStorageInstrumentation).getParentBuilder(ARTIFACT_CONNECTION_ID, this) as? ArtifactEntityBuilder)
           ?: (this.entityLinks[EntityLink(false, ARTIFACT_CONNECTION_ID)] as? ArtifactEntityBuilder)
         }
         else {
-          this.entityLinks[EntityLink(false, ARTIFACT_CONNECTION_ID)] as? ArtifactEntityBuilder
+          (this.entityLinks[EntityLink(false, ARTIFACT_CONNECTION_ID)] as? ArtifactEntityBuilder)
         }
       }
       set(value) {
@@ -220,7 +215,7 @@ internal class CustomPackagingElementEntityImpl(private val dataSource: CustomPa
           _diff.addEntity(value as ModifiableWorkspaceEntityBase<WorkspaceEntity, *>)
         }
         if (_diff != null && (value !is ModifiableWorkspaceEntityBase<*, *> || value.diff != null)) {
-          _diff.updateOneToAbstractOneParentOfChild(ARTIFACT_CONNECTION_ID, this, value)
+          _diff.instrumentation.addChild(ARTIFACT_CONNECTION_ID, value, this)
         }
         else {
           if (value is ModifiableWorkspaceEntityBase<*, *>) {
@@ -236,7 +231,6 @@ internal class CustomPackagingElementEntityImpl(private val dataSource: CustomPa
       get() {
         val _diff = diff
         return if (_diff != null) {
-          @OptIn(EntityStorageInstrumentationApi::class)
           ((_diff as MutableEntityStorageInstrumentation).getManyChildrenBuilders(CHILDREN_CONNECTION_ID, this)!!
             .toList() as List<PackagingElementEntityBuilder<out PackagingElementEntity>>) + (this.entityLinks[EntityLink(true,
                                                                                                                          CHILDREN_CONNECTION_ID)] as? List<PackagingElementEntityBuilder<out PackagingElementEntity>>
@@ -262,7 +256,7 @@ internal class CustomPackagingElementEntityImpl(private val dataSource: CustomPa
               _diff.addEntity(item_value as ModifiableWorkspaceEntityBase<WorkspaceEntity, *>)
             }
           }
-          _diff.updateOneToAbstractManyChildrenOfParent(CHILDREN_CONNECTION_ID, this, value.asSequence())
+          _diff.instrumentation.replaceChildren(CHILDREN_CONNECTION_ID, this, value)
         }
         else {
           for (item_value in value) {
@@ -311,7 +305,6 @@ internal class CustomPackagingElementEntityData : WorkspaceEntityData<CustomPack
     return modifiable
   }
 
-  @OptIn(EntityStorageInstrumentationApi::class)
   override fun createEntity(snapshot: EntityStorageInstrumentation): CustomPackagingElementEntity {
     val entityId = createEntityId()
     return snapshot.initializeEntity(entityId) {

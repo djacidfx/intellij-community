@@ -1,5 +1,7 @@
 // 2700-2200 BCE fake copyright for test
 // another line of fake copyright
+@file:OptIn(EntityStorageInstrumentationApi::class)
+
 package com.intellij.workspaceModel.test.api.impl
 
 import com.intellij.another.module.ClassToImport
@@ -179,7 +181,6 @@ internal class SimpleEntityData : WorkspaceEntityData<SimpleEntity>() {
         return modifiable
     }
 
-    @OptIn(EntityStorageInstrumentationApi::class)
     override fun createEntity(snapshot: EntityStorageInstrumentation): SimpleEntity {
         val entityId = createEntityId()
         return snapshot.initializeEntity(entityId) {
