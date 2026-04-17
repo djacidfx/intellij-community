@@ -20,4 +20,10 @@ internal class LombokKotlinMavenTest : AbstractMavenUpdateConfigurationQuickFixT
         doMultiFileTest()
     }
 
+    @Test
+    fun testAddKotlinLombokCompilerPluginWithSubmodule() = runBlocking {
+        codeInsightTestFixture.enableInspections(/* ...inspections = */ LombokKotlinCompilerPluginInspection::class.java)
+        doMultiFileTest()
+    }
+
 }
