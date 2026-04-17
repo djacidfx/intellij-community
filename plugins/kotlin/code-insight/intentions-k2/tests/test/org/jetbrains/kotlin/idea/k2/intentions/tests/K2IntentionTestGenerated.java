@@ -13008,6 +13008,11 @@ public abstract class K2IntentionTestGenerated extends AbstractK2IntentionTest {
                 runTest("../../../idea/tests/testData/intentions/concatenationToBuildCollection/list/singleExpression.kt");
             }
 
+            @TestMetadata("singleMapTo.kt")
+            public void testSingleMapTo() throws Exception {
+                runTest("../../../idea/tests/testData/intentions/concatenationToBuildCollection/list/singleMapTo.kt");
+            }
+
             @TestMetadata("transformingOperations.kt")
             public void testTransformingOperations() throws Exception {
                 runTest("../../../idea/tests/testData/intentions/concatenationToBuildCollection/list/transformingOperations.kt");

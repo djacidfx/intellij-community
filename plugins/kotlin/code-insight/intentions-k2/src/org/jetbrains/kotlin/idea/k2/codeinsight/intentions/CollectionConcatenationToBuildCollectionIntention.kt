@@ -36,6 +36,7 @@ import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.psi.KtOperationReferenceExpression
 import org.jetbrains.kotlin.psi.KtParenthesizedExpression
 import org.jetbrains.kotlin.psi.KtPsiFactory
+import org.jetbrains.kotlin.psi.KtQualifiedExpression
 import org.jetbrains.kotlin.psi.psiUtil.addTypeArgument
 
 /**
@@ -186,12 +187,12 @@ class CollectionConcatenationToBuildCollectionIntention :
 
     context(_: KaSession)
     private fun KtExpression.toTransformingOperation(): Context.Operation.TransformingOperation? {
-        if (this !is KtDotQualifiedExpression) return null
+        if (this !is KtQualifiedExpression) return null
         val callExpression = selectorExpression as? KtCallExpression ?: return null
         val resolvedTo = callExpression.calleeExpression?.mainReference?.resolveToSymbol() as? KaCallableSymbol ?: return null
         val fqName = resolvedTo.callableId?.asSingleFqName()?.asString() ?: return null
         val kind = Context.Operation.TransformingOperation.Kind.byCallFqName(fqName) ?: return null
-        return Context.Operation.TransformingOperation(callExpression.createSmartPointer(), kind)
+        return Context.Operation.TransformingOperation(createSmartPointer(), kind)
     }
 
 
@@ -212,7 +213,7 @@ class CollectionConcatenationToBuildCollectionIntention :
     ) {
         val expression = element.safeDeparenthesize()
         val expressionToConvert = expression.expressionToConvert()
-        val replacementTarget = if (expressionToConvert is KtBinaryExpression) expressionToConvert.topmostParenthesizedExpression() else element
+        val replacementTarget = expressionToConvert.topmostParenthesizedExpression()
         if (!elementContext.isValid()) return
         val replacements = ThisRebinderForAddingNewReceiver.apply(elementContext.rebinderContext)
 
@@ -236,16 +237,16 @@ class CollectionConcatenationToBuildCollectionIntention :
                 }
 
                 is Context.Operation.TransformingOperation -> {
-                    val expression = operation.expression.element
+                    val expression = operation.expression.element?.elementOrReplacement()
                         ?: error("Element is invalid for operation: $operation")
-
-                    val nameReferenceExpression = expression.calleeExpression as? KtNameReferenceExpression ?: return
+                    val callExpression = expression.transformingCallExpression() ?: return
+                    val nameReferenceExpression = callExpression.calleeExpression as? KtNameReferenceExpression ?: return
                     val identifier = nameReferenceExpression.getIdentifier() ?: return
-                    val valueArgumentList = expression.getOrCreateValueArgumentList()
+                    val valueArgumentList = callExpression.getOrCreateValueArgumentList()
                     valueArgumentList.addArgument(ktPsiFactory.createArgument(ktPsiFactory.createThisExpression()))
                     identifier.replace(ktPsiFactory.createIdentifier(operation.kind.toCallShortName))
 
-                    val typeArgumentsList = expression.typeArgumentList
+                    val typeArgumentsList = callExpression.typeArgumentList
                     if (typeArgumentsList != null && typeArgumentsList.arguments.isNotEmpty()) {
                         // If we have explicit type arguments,
                         // we add a new one because the `To` collection operators have an additional type argument
@@ -261,7 +262,7 @@ class CollectionConcatenationToBuildCollectionIntention :
                                 )
                             }
                             Context.Operation.TransformingOperation.Kind.ResultCollectionTypeArgumentPosition.Last -> {
-                                expression.addTypeArgument(newTypeArgument)
+                                callExpression.addTypeArgument(newTypeArgument)
                             }
                         }
                     }
@@ -321,20 +322,30 @@ class CollectionConcatenationToBuildCollectionIntention :
         var currentExpression: KtExpression = this
         var topmostBinaryExpression: KtBinaryExpression? = null
         while (true) {
-            currentExpression = when (val parent = currentExpression.parent) {
-                is KtParenthesizedExpression -> parent
-                is KtBinaryExpression -> {
+            val parent = currentExpression.parent
+            currentExpression = when {
+                parent is KtParenthesizedExpression -> parent
+                parent is KtQualifiedExpression -> parent
+                parent is KtBinaryExpression -> {
                     topmostBinaryExpression = parent
                     parent
                 }
                 else -> break
             }
         }
-        return topmostBinaryExpression ?: this
+        return topmostBinaryExpression ?: currentExpression
     }
 
     private fun KtExpression.topmostParenthesizedExpression(): KtExpression {
         return generateSequence(this) { it.parent as? KtParenthesizedExpression }.last()
+    }
+
+    private fun KtExpression.transformingCallExpression(): KtCallExpression? {
+        return when (this) {
+            is KtCallExpression -> this
+            is KtQualifiedExpression -> selectorExpression as? KtCallExpression
+            else -> null
+        }
     }
 
     private fun KtBlockExpression.addOperation(ktPsiFactory: KtPsiFactory, functionName: String, expression: KtExpression) {
@@ -408,7 +419,7 @@ class CollectionConcatenationToBuildCollectionIntention :
             }
 
             class TransformingOperation(
-                override val expression: SmartPsiElementPointer<KtCallExpression>,
+                override val expression: SmartPsiElementPointer<KtExpression>,
                 val kind: Kind,
             ) : Operation {
                 enum class Kind(
