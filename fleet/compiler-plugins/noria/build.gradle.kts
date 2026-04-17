@@ -18,7 +18,7 @@ val pluginVersion = run {
 }
 
 // the compiler plugin will be used together with this Kotlin compiler
-val KOTLIN_VERSION = "2.3.21-RC"
+val KOTLIN_VERSION = "2.3.21-RC2"
 
 // the compiler plugin will be built with these Kotlin LV/APIV
 val KOTLIN_LANGUAGE_VERSION = "2.3"
