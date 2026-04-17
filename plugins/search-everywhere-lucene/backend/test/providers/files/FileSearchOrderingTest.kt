@@ -16,9 +16,8 @@ class FileSearchOrderingTest : FileSearchTestBase() {
     val zoomIdeAction = file("community/platform/platform-impl/src/com/intellij/ide/actions/ZoomIdeAction.kt")
     val zoomOutAction = file("plugins/graph/srcOpenApi/com/intellij/openapi/graph/builder/actions/ZoomOutAction.java")
 
-    val BM25_cost_adjustor_files = (1 until 100000).map { file("docs/$it.txt") }
 
-    return indexWith(listOf(zeroValueAfterImports, zoomIdeAction,zoomOutAction) + BM25_cost_adjustor_files) { index ->
+    return indexWith(listOf(zeroValueAfterImports, zoomIdeAction,zoomOutAction)) { index ->
 
       val zoom = prefixesOf("Zoom")
       val ide = prefixesOf("Ide")
@@ -65,7 +64,7 @@ class FileSearchOrderingTest : FileSearchTestBase() {
     val kt = file("/contrib/qodana/core/src/org/jetbrains/qodana/staticAnalysis/inspections/runner/Logo.kt")
     return indexWith(listOf(logo,kt)) { index ->
       index.assertSearch("logo.jpg") {
-        findsWithOrdering(listOf(logo, kt))
+        findsWithOrdering(listOf(logo, kt),false)
       }
     }
   }

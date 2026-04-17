@@ -59,7 +59,6 @@ import org.apache.lucene.search.BooleanClause
 import org.apache.lucene.search.BooleanQuery
 import org.apache.lucene.search.BoostQuery
 import org.apache.lucene.search.ConstantScoreQuery
-import org.apache.lucene.search.DisjunctionMaxQuery
 import org.apache.lucene.search.MultiTermQuery
 import org.apache.lucene.search.PrefixQuery
 import org.apache.lucene.search.Query
@@ -351,54 +350,62 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
     const val FILE_URL: String = "uri"
     val ANALYZER: Analyzer = FileSearchAnalyzer()
 
+    private data class TokenEntry(
+      val startOffset: Int,
+      val endOffset: Int,
+      val query: Query,
+      val weight: Float,
+    )
+
     fun buildQuery(params: SeParams, analyzer: Analyzer = ANALYZER): Query {
       val tokenStream = analyzer.tokenStream("", params.inputQuery)
       val termAttr = tokenStream.addAttribute(CharTermAttribute::class.java)
       val wordAttr = tokenStream.addAttribute(WordAttribute::class.java)
       val multiTypeAttr = tokenStream.addAttribute(MultiTypeAttribute::class.java)
-
-      val wordQueries = mutableMapOf<Int, MutableMap<Float, MutableMap<Int, MutableList<Query>>>>()
       val offsetAttr = tokenStream.addAttribute(OffsetAttribute::class.java)
+
+      val wordEntries = mutableMapOf<Int, MutableList<TokenEntry>>()
 
       tokenStream.reset()
       while (tokenStream.incrementToken()) {
         val wordIndex = wordAttr.wordIndex
         val termString = termAttr.toString()
         val typesToProcess = multiTypeAttr.activeTypes()
-
         val startOffset = offsetAttr.startOffset()
-        val byBoost = wordQueries.computeIfAbsent(wordIndex) { mutableMapOf() }
+        val endOffset = offsetAttr.endOffset()
+
+        val entries = wordEntries.getOrPut(wordIndex) { mutableListOf() }
 
         for (tokenType in typesToProcess) {
           val term = Term(tokenType.type, termString)
 
-          val (boost,query) = when (tokenType) {
+          val (boost, queries) = when (tokenType) {
             FileTokenType.FILENAME_PART,
-            FileTokenType.FILENAME                         -> Pair(4f,listOf(scoringPrefixQuery(term)))
-            FileTokenType.PATH_SEGMENT                     -> Pair(1.5f,listOf(scoringPrefixQuery(term)))
+            FileTokenType.FILENAME                         -> Pair(4f, listOf(scoringPrefixQuery(term)))
+            FileTokenType.PATH_SEGMENT                     -> Pair(1.5f, listOf(scoringPrefixQuery(term)))
             FileTokenType.FILENAME_ABBREVIATION            -> Pair(0.6f, listOf(scoringPrefixQuery(term), ConstantScoreQuery(TermQuery(Term(FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS.type, termString)))))
-            FileTokenType.PATH_SEGMENT_PREFIX              -> Pair(0.3f,listOf(scoringPrefixQuery(term)))
+            FileTokenType.PATH_SEGMENT_PREFIX              -> Pair(0.3f, listOf(scoringPrefixQuery(Term(FileTokenType.PATH_SEGMENT.type, termString))))
             FileTokenType.PATH,
-            FileTokenType.FILETYPE                         -> Pair(0.5f,listOf(scoringPrefixQuery(term)))
+            FileTokenType.FILETYPE                         -> Pair(0.5f, listOf(scoringPrefixQuery(term)))
             FileTokenType.FILENAME_ABBREVIATION_WITH_SKIPS -> throw IllegalArgumentException("Search Analyzer should not produce FILENAME_ABBREVIATION_WITH_SKIPS tokens")
           }
 
-          byBoost.getOrPut(boost) { mutableMapOf() }
-                 .getOrPut(startOffset) { mutableListOf() }
-                 .addAll(query)
+          for (q in queries) {
+            entries.add(TokenEntry(startOffset, endOffset, q, boost))
+          }
         }
       }
       tokenStream.end()
       tokenStream.close()
 
-      if (wordQueries.isEmpty()) return BooleanQuery.Builder().build()
+      if (wordEntries.isEmpty()) return BooleanQuery.Builder().build()
 
       val mainBq = BooleanQuery.Builder()
-      val sortedWordIndices = wordQueries.keys.sorted()
-      for (index in sortedWordIndices) {
-        val byBoost = wordQueries[index]!!
-        if (byBoost.isEmpty()) continue
-        mainBq.add(buildWordQuery(byBoost), BooleanClause.Occur.MUST)
+      for (index in wordEntries.keys.sorted()) {
+        val entries = wordEntries[index]!!
+        if (entries.isEmpty()) continue
+        val (queryIntervals, relativeLength) = buildCompressedIntervals(entries)
+        mainBq.add(IntervalSchedulingQuery(queryIntervals, relativeLength), BooleanClause.Occur.MUST)
       }
 
       val query = mainBq.build()
@@ -406,22 +413,56 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
       return query
     }
 
-    private fun buildWordQuery(byBoost: Map<Float, Map<Int, List<Query>>>): Query {
-      val bq = BooleanQuery.Builder().setMinimumNumberShouldMatch(1)
-      for ((boost, byOffset) in byBoost) {
-        val perOffsetQueries = byOffset.values.map { flatDisjMax(it) }
-        val combined = if (perOffsetQueries.size == 1) perOffsetQueries[0]
-                       else BooleanQuery.Builder()
-                              .setMinimumNumberShouldMatch(1)
-                              .apply { perOffsetQueries.forEach { add(it, BooleanClause.Occur.SHOULD) } }
-                              .build()
-        bq.add(BoostQuery(combined, boost), BooleanClause.Occur.SHOULD)
-      }
-      return bq.build()
-    }
+    /**
+     * Converts [TokenEntry] list into [QueryInterval]s using a compressed position space.
+     *
+     * "Full-span" entries (those covering the entire [minStart, maxEnd) range, such as PATH
+     * tokens) are excluded from gap detection so that separator characters (dots, slashes)
+     * between core tokens do not create spurious coverage gaps. The resulting intervals have
+     * positions mapped to a contiguous space with separator gaps removed.
+     */
+    private fun buildCompressedIntervals(entries: List<TokenEntry>): Pair<List<QueryInterval>, Int> {
+      val minStart = entries.minOf { it.startOffset }
+      val maxEnd = entries.maxOf { it.endOffset }
+      val span = maxEnd - minStart
 
-    private fun flatDisjMax(queries: List<Query>): Query =
-      if (queries.size == 1) queries[0] else DisjunctionMaxQuery(queries, 0f)
+      if (span == 0) {
+        // All tokens at the same point; trivially covered by any matching token.
+        return Pair(entries.map { QueryInterval(0, 0, BoostQuery(it.query, it.weight)) }, 0)
+      }
+
+      // Core entries: not full-span. Full-span entries (e.g. PATH) bridge separators but
+      // should not force coverage of separator positions on their own.
+      val coreEntries = entries.filter { it.startOffset != minStart || it.endOffset != maxEnd }
+        .ifEmpty { entries } // fallback: treat all as core if everything is full-span
+
+      // Mark positions covered by core entries
+      val coreCovered = BooleanArray(span)
+      for (entry in coreEntries) {
+        for (pos in entry.startOffset until entry.endOffset) {
+          coreCovered[pos - minStart] = true
+        }
+      }
+
+      // Build mapping: original-relative position → compressed position (gaps removed)
+      val toCompressed = IntArray(span + 1)
+      var comp = 0
+      for (rel in 0 until span) {
+        toCompressed[rel] = comp
+        if (coreCovered[rel]) comp++
+      }
+      toCompressed[span] = comp
+
+      val relativeLength = comp
+      val queryIntervals = entries.map { entry ->
+        QueryInterval(
+          toCompressed[entry.startOffset - minStart],
+          toCompressed[entry.endOffset - minStart],
+          BoostQuery(entry.query, entry.weight),
+        )
+      }
+      return Pair(queryIntervals, relativeLength)
+    }
 
     private fun scoringPrefixQuery(term: Term): PrefixQuery =
       PrefixQuery(term, MultiTermQuery.SCORING_BOOLEAN_REWRITE)
