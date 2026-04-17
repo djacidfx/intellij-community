@@ -54,6 +54,17 @@ class PyMockTest : PyTestCase() {
     assertTrue("Should suggest TOP_LEVEL_VAR", variants.contains("TOP_LEVEL_VAR"))
   }
 
+  @TestFor(issues = ["PY-89191"])
+  fun testCompletionThirdSegmentIncludesAttributes() {
+    myFixture.configureByFile("test_patch_completion/test_complete_third_segment.py")
+    myFixture.completeBasic()
+    val variants = myFixture.lookupElementStrings
+    assertNotNull("Completion should provide variants", variants)
+    assertTrue("Should suggest my_method", variants!!.contains("my_method"))
+    assertTrue("Should suggest static_method", variants.contains("static_method"))
+    assertTrue("Should suggest class_attr", variants.contains("class_attr"))
+  }
+
   // --- Navigation ---
 
   fun testNavigationToPackageResolvesToInit() {

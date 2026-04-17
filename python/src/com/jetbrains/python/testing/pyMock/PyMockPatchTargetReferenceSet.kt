@@ -1,8 +1,6 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.jetbrains.python.testing.pyMock
 
-import com.intellij.openapi.module.ModuleUtilCore
-import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.ElementManipulators
 import com.intellij.psi.PsiDirectory
@@ -87,14 +85,16 @@ private class PyMockSegmentReference(
 
   /**
    * Provides completion for the first segment — lists top-level packages/modules
-   * from source roots visible to the current file.
+   * importable from the current file (source roots, content roots, SDK, and the
+   * containing directory when applicable). Mirrors the resolution used for
+   * `import X` statements.
    */
   private fun getTopLevelModuleVariants(): Array<Any> {
-    val module = ModuleUtilCore.findModuleForPsiElement(element) ?: return emptyArray()
-    val psiManager = element.manager
+    val context = fromFoothold(element)
+    val roots = resolveQualifiedName(QualifiedName.fromComponents(), context)
+      .filterIsInstance<PsiDirectory>()
     return buildList {
-      for (root in ModuleRootManager.getInstance(module).sourceRoots) {
-        val dir = psiManager.findDirectory(root) ?: continue
+      for (dir in roots) {
         addAll(PyModuleType.getSubModuleVariants(dir, element, null))
       }
     }.toTypedArray()
@@ -157,7 +157,7 @@ private fun getMemberVariants(element: PsiElement, location: PsiElement): List<A
       val context = TypeEvalContext.codeCompletion(target.project, target)
       moduleType.getCompletionVariantsAsLookupElements(location, ProcessingContext(), true, true, context)
     }
-    is PyClass -> target.getMethods().toList()
+    is PyClass -> collectMemberVariants(target)
     else -> emptyList()
   }
 }
