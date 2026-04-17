@@ -9016,11 +9016,8 @@ a:com.intellij.ide.projectView.impl.AbstractProjectTreeStructure
 - f:getRootElement():java.lang.Object
 - f:hasSomethingToCommit():Z
 - isAlwaysLeaf(java.lang.Object):Z
-com.intellij.ide.projectView.impl.AbstractProjectViewPane$ProjectViewPaneWithAsyncSelect
-- a:selectCB(java.lang.Object,com.intellij.openapi.vfs.VirtualFile,Z):com.intellij.openapi.util.ActionCallback
 a:com.intellij.ide.projectView.impl.AbstractProjectViewPaneWithAsyncSupport
 - com.intellij.ide.projectView.impl.AbstractProjectViewPane
-- com.intellij.ide.projectView.impl.AbstractProjectViewPane$ProjectViewPaneWithAsyncSelect
 - p:<init>(com.intellij.openapi.project.Project):V
 - createComponent():javax.swing.JComponent
 - pa:createStructure():com.intellij.ide.util.treeView.AbstractTreeStructureBase
