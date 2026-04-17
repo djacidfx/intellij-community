@@ -431,7 +431,7 @@ mod tests {
         let result = run_launcher_ext(&test, LauncherRunSpec::standard().with_args(&["main-class"]));
 
         let expected = "main.class=com.intellij.idea.TestMain";
-        assert!(result.stdout.contains(expected), "'{expected}' is not in the output:\n{result:?}")
+        assert!(result.stdout.contains(expected), "'{expected}' is not in the output:\n{result:?}");
     }
 
     #[test]
@@ -445,5 +445,18 @@ mod tests {
             let sys_acp = &dump.systemProperties["sun.jnu.encoding.sys"];
             assert!(sys_acp.starts_with("windows-"), "Unexpected system ACP value: {sys_acp}");
         }
+    }
+
+    #[test]
+    fn stdout_redirect() {
+        let test = prepare_test_env(LauncherLocation::Standard);
+
+        let result = run_launcher_ext(&test, LauncherRunSpec::standard().with_args(&["stdout-redirect", "--stdio"]));
+
+        let expected_out = "<<redirected stdout>>";
+        let expected_err = "<<original stdout>>";
+        assert!(result.stdout.contains(expected_out), "'{expected_out}' is not in the output:\n{result:?}");
+        assert!(!result.stdout.contains(expected_err), "'{expected_err}' is in the output:\n{result:?}");
+        assert!(result.stderr.contains(expected_err), "'{expected_err}' is not in the error:\n{result:?}");
     }
 }

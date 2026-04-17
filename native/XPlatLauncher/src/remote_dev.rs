@@ -71,6 +71,10 @@ impl LaunchConfiguration for RemoteDevLaunchConfiguration {
         self.default.get_class_path()
     }
 
+    fn should_redirect_stdout(&self) -> bool {
+        self.default.should_redirect_stdout()
+    }
+
     fn prepare_for_launch(&self, is_musl: bool) -> Result<(PathBuf, &str, Option<PathBuf>)> {
         init_env_vars(&self.default).context("Preparing environment variables")?;
         let extra_libs = preload_native_libs(&self.default.ide_home, is_musl).context("Preloading native libraries")?;

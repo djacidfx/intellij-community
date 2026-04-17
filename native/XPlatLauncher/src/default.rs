@@ -70,7 +70,7 @@ impl LaunchConfiguration for DefaultLaunchConfiguration {
             *vm_option = vm_option
                 .replace(USER_HOME_MACRO, &user_home_path)
                 .replace(IDE_HOME_MACRO, &ide_home_path)
-                .replace(IDE_CACHE_DIR_MACRO, &ide_caches_path); 
+                .replace(IDE_CACHE_DIR_MACRO, &ide_caches_path);
         }
 
         vm_options.push(jvm_property!("ide.native.launcher", "true"));
@@ -89,6 +89,14 @@ impl LaunchConfiguration for DefaultLaunchConfiguration {
             .map(|item| lib_path.to_string() + std::path::MAIN_SEPARATOR_STR + item)
             .collect();
         Ok(class_path)
+    }
+
+    fn should_redirect_stdout(&self) -> bool {
+        if let Some(marker_arg) = &self.launch_info.stdioRedirectArg {
+            self.args.contains(marker_arg)
+        } else {
+            false
+        }
     }
 
     fn prepare_for_launch(&self, _: bool) -> Result<(PathBuf, &str, Option<PathBuf>)> {
@@ -401,6 +409,7 @@ pub fn compute_launch_info(product_info: &ProductInfo, command_name: Option<&Str
                     launch_data.additionalJvmArguments.clone()
                 },
                 mainClass: custom_command_data.mainClass.clone().unwrap_or(launch_data.mainClass.clone()),
+                stdioRedirectArg: custom_command_data.stdioRedirectArg.clone(),
                 customCommands: None
             },
             custom_env_var_base_name: custom_command_data.envVarBaseName.clone(),
@@ -448,6 +457,6 @@ fn traverse_parents(mut candidate: PathBuf) -> Result<Option<(PathBuf, PathBuf)>
             return Ok(Some((candidate, product_info_path)))
         }
     }
-    
+
     Ok(None)
 }

@@ -163,7 +163,8 @@ fn main_impl(exe_path: PathBuf, remote_dev: bool, debug_mode: bool, sandbox_subp
     }
 
     debug!("** Preparing launch configuration");
-    let configuration = get_configuration(remote_dev, &exe_path.strip_ns_prefix()?, started_via_remote_dev_launcher).context("Cannot detect a launch configuration")?;
+    let configuration = get_configuration(remote_dev, &exe_path.strip_ns_prefix()?, started_via_remote_dev_launcher)
+        .context("Cannot detect a launch configuration")?;
 
     let is_musl = if cfg!(all(target_os = "linux", target_env = "gnu")) {
         is_running_with_gcompat()
@@ -197,7 +198,8 @@ fn main_impl(exe_path: PathBuf, remote_dev: bool, debug_mode: bool, sandbox_subp
 
     debug!("** Launching JVM");
     let args = configuration.get_args();
-    java::run_jvm_and_event_loop(&jre_home, vm_options, main_class, args.to_vec(), debug_mode, is_musl)
+    let redirect_stdout = configuration.should_redirect_stdout();
+    java::run_jvm_and_event_loop(&jre_home, vm_options, main_class, args.to_vec(), debug_mode, redirect_stdout, is_musl)
         .context("Cannot start the runtime")?;
 
     Ok(())
@@ -386,6 +388,7 @@ pub struct ProductInfoLaunchField {
     pub bootClassPathJarNames: Vec<String>,
     pub additionalJvmArguments: Vec<String>,
     pub mainClass: String,
+    pub stdioRedirectArg: Option<String>,
     pub customCommands: Option<Vec<ProductInfoCustomCommandField>>,
 }
 
@@ -398,6 +401,7 @@ pub struct ProductInfoCustomCommandField {
     pub bootClassPathJarNames: Vec<String>,
     #[serde(default = "Vec::new")]
     pub additionalJvmArguments: Vec<String>,
+    pub stdioRedirectArg: Option<String>,
     pub mainClass: Option<String>,
     pub envVarBaseName: Option<String>,
     pub dataDirectoryName: Option<String>,
@@ -408,6 +412,7 @@ pub trait LaunchConfiguration {
     fn get_vm_options(&self) -> Result<Vec<String>>;
     fn get_custom_properties_file(&self) -> Result<PathBuf>;
     fn get_class_path(&self) -> Result<Vec<String>>;
+    fn should_redirect_stdout(&self) -> bool;
     fn prepare_for_launch(&self, is_musl: bool) -> Result<(PathBuf, &str, Option<PathBuf>)>;
 }
 

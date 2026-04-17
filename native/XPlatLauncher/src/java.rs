@@ -82,6 +82,7 @@ pub fn run_jvm_and_event_loop(
     main_class: &str,
     args: Vec<String>,
     debug_mode: bool,
+    redirect_stdout: bool,
     is_musl: bool
 ) -> Result<()> {
     debug!("Preparing a JVM environment");
@@ -96,6 +97,7 @@ pub fn run_jvm_and_event_loop(
         reset_signal_handler(libc::SIGINT)?;
     }
 
+    let stdio_fd = if redirect_stdout { redirect_stdout_to_stderr()? } else { 0 };
     let jre_home = jre_home.to_owned();
     let main_class = main_class.to_owned();
     let (tx, rx) = std::sync::mpsc::channel();
@@ -107,6 +109,9 @@ pub fn run_jvm_and_event_loop(
         debug!("[JVM] Thread started [{:?}]", thread::current().id());
 
         let mut vm_options = vm_options.clone();
+        if stdio_fd != 0 {
+            vm_options.push(jvm_property!("jb.launcher.stdout.fd", stdio_fd));
+        }
         let mut java_command = main_class.clone();
         args.iter().for_each(|arg| {
             java_command += " ";
@@ -164,6 +169,35 @@ fn reset_signal_handler(signal: c_int) -> Result<()> {
             _ => bail!("sigaction({}): {}", signal, std::io::Error::last_os_error())
         }
     }
+}
+
+#[cfg(target_os = "windows")]
+fn redirect_stdout_to_stderr() -> Result<i64> {
+    use windows::Win32::Foundation::{DuplicateHandle, DUPLICATE_SAME_ACCESS, HANDLE};
+    use windows::Win32::System::Console::{GetStdHandle, SetStdHandle, STD_ERROR_HANDLE, STD_OUTPUT_HANDLE};
+    use windows::Win32::System::Threading::GetCurrentProcess;
+
+    unsafe {
+        let h_process = GetCurrentProcess();
+        let stdout = GetStdHandle(STD_OUTPUT_HANDLE)?;
+        let stderr = GetStdHandle(STD_ERROR_HANDLE)?;
+        let mut saved_handle = HANDLE::default();
+        DuplicateHandle(h_process, stdout, h_process, &mut saved_handle, 0, true, DUPLICATE_SAME_ACCESS)?;
+        SetStdHandle(STD_OUTPUT_HANDLE, stderr)?;
+        Ok(saved_handle.0 as i64)
+    }
+}
+
+#[cfg(target_family = "unix")]
+fn redirect_stdout_to_stderr() -> Result<i64> {
+    let saved_fd = unsafe { libc::dup(libc::STDOUT_FILENO) };
+    if saved_fd < 0 {
+        bail!("dup(stdout): {}", std::io::Error::last_os_error());
+    }
+    if unsafe { libc::dup2(libc::STDERR_FILENO, libc::STDOUT_FILENO) } < 0 {
+        bail!("dup2(stderr, stdout): {}", std::io::Error::last_os_error());
+    }
+    Ok(saved_fd as i64)
 }
 
 fn load_and_start_jvm<'a>(jre_home: &Path, vm_options: Vec<String>, is_musl: bool) -> Result<EnvUnowned<'a>> {
