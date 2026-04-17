@@ -986,57 +986,46 @@ public abstract class AbstractProjectViewPane implements UiCompatibleDataProvide
 
   protected void beforeDnDLeave() { }
 
-  @ApiStatus.Internal
   public boolean supportsAbbreviatePackageNames() {
     return true;
   }
 
-  @ApiStatus.Internal
   public boolean supportsCompactDirectories() {
     return false;
   }
 
-  @ApiStatus.Internal
   public boolean supportsFlattenModules() {
     return false;
   }
 
-  @ApiStatus.Internal
   public boolean supportsFoldersAlwaysOnTop() {
     return true;
   }
 
-  @ApiStatus.Internal
   public boolean supportsHideEmptyMiddlePackages() {
     return true;
   }
 
-  @ApiStatus.Internal
   public boolean supportsShowExcludedFiles() {
     return false;
   }
 
-  @ApiStatus.Internal
   public boolean supportsShowLibraryContents() {
     return false;
   }
 
-  @ApiStatus.Internal
   public boolean supportsShowModules() {
     return false;
   }
 
-  @ApiStatus.Internal
   public boolean supportsShowScratchesAndConsoles() {
     return false;
   }
 
-  @ApiStatus.Internal
   public boolean supportsSortByType() {
     return true;
   }
 
-  @ApiStatus.Internal
   public boolean supportsSortByTime() {
     return true;
   }

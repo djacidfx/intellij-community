@@ -809,6 +809,18 @@ com.intellij.ide.projectView.ProjectViewSettings
 - isShowExcludedFiles():Z
 - isShowVisibilityIcons():Z
 - isUseFileNestingRules():Z
+a:com.intellij.ide.projectView.impl.AbstractProjectViewPane
+- supportsAbbreviatePackageNames():Z
+- supportsCompactDirectories():Z
+- supportsFlattenModules():Z
+- supportsFoldersAlwaysOnTop():Z
+- supportsHideEmptyMiddlePackages():Z
+- supportsShowExcludedFiles():Z
+- supportsShowLibraryContents():Z
+- supportsShowModules():Z
+- supportsShowScratchesAndConsoles():Z
+- supportsSortByTime():Z
+- supportsSortByType():Z
 c:com.intellij.ide.projectView.impl.ProjectViewImpl
 com.intellij.ide.projectView.impl.ProjectViewListener
 - sf:TOPIC:com.intellij.util.messages.Topic
