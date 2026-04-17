@@ -117,7 +117,7 @@ fun Link(@Label text: String, style: UIUtil.ComponentStyle? = null, action: () -
 }
 
 @ApiStatus.ScheduledForRemoval
-@Deprecated("Use Kotlin UI DSL, methods like Row.text, Row.comment or Cell.comment")
+@Deprecated("Use Kotlin UI DSL, methods like Row.text, Row.comment or Cell.comment", level = DeprecationLevel.ERROR)
 @JvmOverloads
 fun noteComponent(@Label note: String, linkHandler: ((url: String) -> Unit)? = null): JComponent {
   val matcher = URLUtil.HREF_PATTERN.matcher(note)
