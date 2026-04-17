@@ -5437,6 +5437,17 @@ com.intellij.platform.ide.navigation.NavigationService
 - bs:navigate$default(com.intellij.platform.ide.navigation.NavigationService,com.intellij.platform.backend.navigation.NavigationRequest,com.intellij.platform.ide.navigation.NavigationOptions,com.intellij.openapi.actionSystem.DataContext,kotlin.coroutines.Continuation,I,java.lang.Object):java.lang.Object
 f:com.intellij.platform.ide.navigation.NavigationService$Companion
 - f:getInstance(com.intellij.openapi.project.Project):com.intellij.platform.ide.navigation.NavigationService
+com.intellij.platform.ide.productMode.IdeProductMode
+- sf:Companion:com.intellij.platform.ide.productMode.IdeProductMode$Companion
+- s:getInstance():com.intellij.platform.ide.productMode.IdeProductMode
+- s:isBackend():Z
+- s:isFrontend():Z
+- s:isMonolith():Z
+f:com.intellij.platform.ide.productMode.IdeProductMode$Companion
+- f:getInstance():com.intellij.platform.ide.productMode.IdeProductMode
+- f:isBackend():Z
+- f:isFrontend():Z
+- f:isMonolith():Z
 a:com.intellij.pom.NavigatableAdapter
 - com.intellij.pom.Navigatable
 - <init>():V

@@ -242,18 +242,8 @@ com.intellij.openapi.wm.ToolWindowFactory
 - createQuickAccessComponent(com.intellij.openapi.Disposable):java.awt.Component
 *:com.intellij.platform.ide.navigation.NavigationHandler
 - a:navigate(com.intellij.platform.backend.navigation.NavigationRequest,com.intellij.platform.ide.navigation.NavigationOptions,com.intellij.openapi.actionSystem.DataContext):Z
-*:com.intellij.platform.ide.productMode.IdeProductMode
-- *sf:Companion:com.intellij.platform.ide.productMode.IdeProductMode$Companion
-- a:getCurrentMode():com.intellij.platform.runtime.product.ProductMode
-- s:getInstance():com.intellij.platform.ide.productMode.IdeProductMode
-- s:isBackend():Z
-- s:isFrontend():Z
-- s:isMonolith():Z
-*f:com.intellij.platform.ide.productMode.IdeProductMode$Companion
-- f:getInstance():com.intellij.platform.ide.productMode.IdeProductMode
-- f:isBackend():Z
-- f:isFrontend():Z
-- f:isMonolith():Z
+com.intellij.platform.ide.productMode.IdeProductMode
+- *a:getCurrentMode():com.intellij.platform.runtime.product.ProductMode
 *:com.intellij.ui.AutoScrollToSourceTaskManager
 - *sf:Companion:com.intellij.ui.AutoScrollToSourceTaskManager$Companion
 - s:getInstance():com.intellij.ui.AutoScrollToSourceTaskManager
