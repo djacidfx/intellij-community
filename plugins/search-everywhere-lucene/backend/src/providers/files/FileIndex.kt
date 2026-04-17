@@ -59,8 +59,6 @@ import org.apache.lucene.search.BooleanClause
 import org.apache.lucene.search.BooleanQuery
 import org.apache.lucene.search.BoostQuery
 import org.apache.lucene.search.ConstantScoreQuery
-import org.apache.lucene.search.MultiTermQuery
-import org.apache.lucene.search.PrefixQuery
 import org.apache.lucene.search.Query
 import org.apache.lucene.search.TermQuery
 import org.jetbrains.annotations.TestOnly
@@ -464,8 +462,8 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
       return Pair(queryIntervals, relativeLength)
     }
 
-    private fun scoringPrefixQuery(term: Term): PrefixQuery =
-      PrefixQuery(term, MultiTermQuery.CONSTANT_SCORE_BLENDED_REWRITE)
+    private fun scoringPrefixQuery(term: Term): Query =
+      LengthScoringPrefixQuery(term)
 
     private fun getPrimaryKeyTerm(url: String): Term {
       val term = Term(FILE_URL, url)

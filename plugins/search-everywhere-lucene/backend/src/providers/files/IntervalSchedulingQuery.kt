@@ -292,7 +292,7 @@ internal fun dpScore(intervals: List<QueryInterval>, scores: List<Float>, queryL
  * the current document are NOT advanced until the next call to [nextDoc] or [advance],
  * allowing callers to inspect `child.docID()` to identify which children matched.
  */
-private class UnionDISI(private val iterators: List<DocIdSetIterator>) : DocIdSetIterator() {
+internal class UnionDISI(private val iterators: List<DocIdSetIterator>) : DocIdSetIterator() {
   private var doc = -1
 
   override fun docID() = doc

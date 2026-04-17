@@ -92,4 +92,41 @@ class FileSearchOrderingTest : FileSearchTestBase() {
 
     }
   }
+
+  @TestFactory
+  fun `shorter filename ranks higher for same prefix`(): List<DynamicNode> {
+    val seKt = file("se.kt")
+    val searchKt = file("search.kt")
+    val semanticJava = file("semantic.java")
+    return indexWith(listOf(seKt, searchKt, semanticJava)) { index ->
+      index.assertSearch("se") {
+        explainResults()
+        findsWithOrdering(listOf(seKt, searchKt,semanticJava))
+      }
+    }
+  }
+
+  @TestFactory
+  fun `exact filename match ranks above prefix match`(): List<DynamicNode> {
+    val searchKt = file("Search.kt")
+    val searchEverywhereKt = file("SearchEverywhere.kt")
+    return indexWith(listOf(searchKt, searchEverywhereKt)) { index ->
+      index.assertSearch("Search") {
+        explainResults()
+        findsWithOrdering(listOf(searchKt, searchEverywhereKt))
+      }
+    }
+  }
+
+  @TestFactory
+  fun `shorter path segment ranks higher for same prefix`(): List<DynamicNode> {
+    val seFile = file("se/MyFile.kt")
+    val semanticFile = file("semantic/MyFile.kt")
+    return indexWith(listOf(seFile, semanticFile)) { index ->
+      index.assertSearch("se") {
+        explainResults()
+        findsWithOrdering(listOf(seFile, semanticFile), containsAll = false)
+      }
+    }
+  }
 }
