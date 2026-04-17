@@ -21,8 +21,8 @@ val EelPlatform.executableName: String
     }
     is EelPlatform.Windows -> {
       when (arch) {
-        EelPlatform.Arch.ARM_64 -> "ijent-aarch64-pc-windows-gnu-release" // todo: refine later when we support windows
-        EelPlatform.Arch.X86_64 -> "ijent-x86_64-pc-windows-gnu-release.exe"
+        EelPlatform.Arch.ARM_64 -> "ijent-aarch64-pc-windows-gnullvm-release"
+        EelPlatform.Arch.X86_64 -> "ijent-x86_64-pc-windows-gnullvm-release.exe"
         else -> throw IllegalArgumentException("Unsupported windows arch: $arch")
       }
     }
