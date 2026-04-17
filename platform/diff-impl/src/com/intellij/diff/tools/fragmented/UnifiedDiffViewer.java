@@ -1161,6 +1161,8 @@ public class UnifiedDiffViewer extends ListenerDiffViewerBase implements EditorD
 
     sink.set(PlatformCoreDataKeys.FILE_EDITOR,
              TextEditorProvider.getInstance().getTextEditor(myEditor));
+
+    sink.set(DiffDataKeys.DIFF_VIEWER, this);
   }
 
   @Override
