@@ -73,7 +73,7 @@ interface PyCallableParameter {
    * Includes asterisks for *param and **param.
    * Also includes argument type if `context` is not null and filter returns `false` for it.
    */
-  fun getPresentableText(includeDefaultValue: Boolean, context: TypeEvalContext, typeFilter: Predicate<PyType?>): String
+  fun getPresentableText(includeDefaultValue: Boolean, context: TypeEvalContext?, typeFilter: Predicate<PyType?>): String
 
   /**
    * @param context context to be used to resolve argument type
