@@ -670,8 +670,7 @@ public abstract class DiffRequestProcessor
 
     if (oldToolbar) {
       DiffUtil.addActionBlock(myToolbarGroup,
-                              new ShowInExternalToolActionGroup(),
-                              ActionManager.getInstance().getAction(IdeActions.ACTION_CONTEXT_HELP));
+                              new ShowInExternalToolActionGroup());
     }
 
     if (SystemInfo.isMac) { // collect touchbar actions

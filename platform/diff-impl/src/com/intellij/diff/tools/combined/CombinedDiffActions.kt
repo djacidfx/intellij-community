@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.diff.tools.combined
 
 import com.intellij.diff.DiffContext
@@ -191,14 +191,13 @@ internal class CombinedEditorSettingsActionGroup(private val settings: TextDiffS
     if (isRightToolbarPlace) {
       actions.add(diffModesSettingsGroup)
     }
-    actions.add(editorSettingsGroup)
     actions.add(CombinedToggleExpandByDefaultAction(settings, foldingModels))
-    actions.addAll(myActions)
     actions.add(Separator.getInstance())
     actions.add(ignorePolicyGroup)
     actions.add(Separator.getInstance())
     actions.add(highlightPolicyGroup)
     actions.add(Separator.getInstance())
+    actions.add(createAppearanceGroup())
     actions.add(ActionManager.getInstance().getAction(IdeActions.ACTION_CONTEXT_HELP))
 
     if (isGutterPlace) {

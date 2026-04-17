@@ -292,8 +292,12 @@ public class UnifiedDiffViewer extends ListenerDiffViewerBase implements EditorD
   @Override
   @RequiresEdt
   public @NotNull List<AnAction> createToolbarActions() {
-    List<AnAction> group = new ArrayList<>(myTextDiffProvider.getToolbarActions());
-    group.add(new MyToggleExpandByDefaultAction());
+    List<AnAction> diffActions = new ArrayList<>();
+    diffActions.add(new MyToggleExpandByDefaultAction());
+    diffActions.addAll(myTextDiffProvider.getDiffSettingsActions());
+    myEditorSettingsAction.setDiffActions(diffActions);
+
+    List<AnAction> group = new ArrayList<>();
     group.add(new MyReadOnlyLockAction());
     group.add(myEditorSettingsAction);
 
@@ -306,8 +310,9 @@ public class UnifiedDiffViewer extends ListenerDiffViewerBase implements EditorD
   @Override
   @RequiresEdt
   public @NotNull List<AnAction> createPopupActions() {
-    List<AnAction> group = new ArrayList<>(myTextDiffProvider.getPopupActions());
+    List<AnAction> group = new ArrayList<>();
     group.add(new MyToggleExpandByDefaultAction());
+    group.addAll(myTextDiffProvider.getDiffSettingsActions());
 
     group.add(Separator.getInstance());
     group.addAll(super.createPopupActions());

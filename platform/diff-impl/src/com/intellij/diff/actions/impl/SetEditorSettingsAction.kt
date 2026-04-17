@@ -10,6 +10,7 @@ import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionPlaces
 import com.intellij.openapi.actionSystem.ActionUpdateThread
+import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.ex.ActionUtil
@@ -49,6 +50,10 @@ class SetEditorSettingsAction @ApiStatus.Internal constructor(
 
   fun applyDefaults() {
     editorSettingsActionGroup.applyDefaults()
+  }
+
+  fun setDiffActions(actions: List<AnAction>) {
+    editorSettingsActionGroup.setDiffActions(actions)
   }
 
   fun setSyncScrollSupport(syncScrollSupport: SyncScrollSupport.Support) {
