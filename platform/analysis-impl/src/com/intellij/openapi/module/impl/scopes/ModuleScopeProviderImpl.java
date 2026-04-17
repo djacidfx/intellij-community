@@ -2,6 +2,8 @@
 package com.intellij.openapi.module.impl.scopes;
 
 import com.intellij.concurrency.ConcurrentCollectionFactory;
+import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.diagnostic.ThrottledLogger;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.impl.ModuleScopeProvider;
 import com.intellij.psi.search.GlobalSearchScope;
@@ -11,6 +13,7 @@ import org.jetbrains.annotations.NotNull;
 
 @ApiStatus.Internal
 public class ModuleScopeProviderImpl implements ModuleScopeProvider {
+  private static final ThrottledLogger throttledLogger = new ThrottledLogger(Logger.getInstance(ModuleScopeProviderImpl.class), 1000);
   private final Module module;
   private final IntObjectMap<GlobalSearchScope> scopeCache = ConcurrentCollectionFactory.createConcurrentIntObjectMap();
   private ModuleWithDependentsTestScope moduleTestsWithDependentsScope;
@@ -23,6 +26,7 @@ public class ModuleScopeProviderImpl implements ModuleScopeProvider {
   private @NotNull GlobalSearchScope getCachedScope(@ScopeConstant int options) {
     GlobalSearchScope scope = scopeCache.get(options);
     if (scope == null) {
+      throttledLogger.debug("Creating scope for module " + module.getName() + " with options " + options, new Throwable());
       scope = new ModuleWithDependenciesScope(module, options);
       scopeCache.put(options, scope);
     }
