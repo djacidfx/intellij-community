@@ -9534,17 +9534,17 @@ http_file(
 )
 
 http_file(
-  name = "org_jetbrains_intellij_deps_jcef-jcef-137_0_17-gf354b0e-chromium-137_0_7151_104-api-1_21-261-b50_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/jcef/jcef/137.0.17-gf354b0e-chromium-137.0.7151.104-api-1.21-261-b50/jcef-137.0.17-gf354b0e-chromium-137.0.7151.104-api-1.21-261-b50.jar",
-  sha256 = "b275a4fbff6f712768a937001ee4550fc7d2cde22bdb54c7bcecd9393aba7c13",
-  downloaded_file_path = "jcef-137.0.17-gf354b0e-chromium-137.0.7151.104-api-1.21-261-b50.jar"
+  name = "org_jetbrains_intellij_deps_jcef-jcef-137_0_17-gf354b0e-chromium-137_0_7151_104-api-1_21-262-b28_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/jcef/jcef/137.0.17-gf354b0e-chromium-137.0.7151.104-api-1.21-262-b28/jcef-137.0.17-gf354b0e-chromium-137.0.7151.104-api-1.21-262-b28.jar",
+  sha256 = "1775368c2338d0cb00809e4c67a73c1577ac493a6d7ddc98ad361615f5a2b9f6",
+  downloaded_file_path = "jcef-137.0.17-gf354b0e-chromium-137.0.7151.104-api-1.21-262-b28.jar"
 )
 
 http_file(
-  name = "org_jetbrains_intellij_deps_jcef-jcef-137_0_17-gf354b0e-chromium-137_0_7151_104-api-1_21-261-b50-sources_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/jcef/jcef/137.0.17-gf354b0e-chromium-137.0.7151.104-api-1.21-261-b50/jcef-137.0.17-gf354b0e-chromium-137.0.7151.104-api-1.21-261-b50-sources.jar",
-  sha256 = "e998029b3a533c593b12c671655f01aabf34c6b7583f9e6dc3e805d072592a58",
-  downloaded_file_path = "jcef-137.0.17-gf354b0e-chromium-137.0.7151.104-api-1.21-261-b50-sources.jar"
+  name = "org_jetbrains_intellij_deps_jcef-jcef-137_0_17-gf354b0e-chromium-137_0_7151_104-api-1_21-262-b28-sources_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/jcef/jcef/137.0.17-gf354b0e-chromium-137.0.7151.104-api-1.21-262-b28/jcef-137.0.17-gf354b0e-chromium-137.0.7151.104-api-1.21-262-b28-sources.jar",
+  sha256 = "a967641067ca79df40b2add9b84e220f2eb4d84623e5284184ef5d39b874cc58",
+  downloaded_file_path = "jcef-137.0.17-gf354b0e-chromium-137.0.7151.104-api-1.21-262-b28-sources.jar"
 )
 
 http_file(
