@@ -1,12 +1,13 @@
-// Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
-package org.jetbrains.kotlin.idea.debugger.evaluate
+package org.jetbrains.kotlin.idea.fir.debugger.evaluate
 
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.util.ThrowableRunnable
+import org.jetbrains.kotlin.idea.base.plugin.KotlinPluginMode
 import org.jetbrains.kotlin.idea.completion.test.AbstractJvmBasicCompletionTestBase
 import org.jetbrains.kotlin.idea.completion.test.COMPLETION_TEST_DATA_BASE
 import org.jetbrains.kotlin.idea.completion.test.testCompletion
@@ -26,6 +27,8 @@ class CodeFragmentCompletionInLibraryTest : AbstractJvmBasicCompletionTestBase()
     companion object {
         private val LIBRARY_SRC = COMPLETION_TEST_DATA_BASE.resolve("codeFragmentInLibrarySource/customLibrary/")
     }
+
+    override val pluginMode: KotlinPluginMode = KotlinPluginMode.K2
 
     private val mockLibraryFacility = MockLibraryFacility(source = LIBRARY_SRC)
     override fun setUp() {

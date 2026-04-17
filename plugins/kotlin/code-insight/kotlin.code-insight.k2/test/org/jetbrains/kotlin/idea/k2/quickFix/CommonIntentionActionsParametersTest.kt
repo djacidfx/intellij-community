@@ -1,6 +1,6 @@
-// Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
-package org.jetbrains.kotlin.idea.quickfix
+package org.jetbrains.kotlin.idea.k2.quickFix
 
 import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.lang.jvm.actions.ChangeParametersRequest
@@ -14,8 +14,11 @@ import com.intellij.lang.jvm.types.JvmType
 import com.intellij.psi.PsiType
 import com.intellij.psi.PsiTypes
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
+import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
 import org.jetbrains.kotlin.idea.base.plugin.KotlinPluginMode
 import org.jetbrains.kotlin.idea.test.ExpectedPluginModeProvider
+import org.jetbrains.kotlin.idea.test.KotlinLightCodeInsightFixtureTestCaseBase
 import org.jetbrains.kotlin.idea.test.KotlinWithJdkAndRuntimeLightProjectDescriptor
 import org.jetbrains.kotlin.idea.test.setUpWithKotlinPlugin
 import org.jetbrains.uast.UMethod
@@ -24,8 +27,8 @@ import org.junit.internal.runners.JUnit38ClassRunner
 import org.junit.runner.RunWith
 
 @RunWith(JUnit38ClassRunner::class)
-class CommonIntentionActionsParametersTest : BasePlatformTestCase(), ExpectedPluginModeProvider {
-    override val pluginMode: KotlinPluginMode = KotlinPluginMode.K1
+class CommonIntentionActionsParametersTest : KotlinLightCodeInsightFixtureTestCaseBase() {
+    override val pluginMode: KotlinPluginMode = KotlinPluginMode.K2
 
 
     override fun getProjectDescriptor() = KotlinWithJdkAndRuntimeLightProjectDescriptor.getInstanceFullJdk()
@@ -38,6 +41,7 @@ class CommonIntentionActionsParametersTest : BasePlatformTestCase(), ExpectedPlu
         myFixture.configureByText("Child.kt", "annotation class Child(val s: String)")
     }
 
+    @OptIn(KaAllowAnalysisOnEdt::class)
     fun testSetParameters() {
         myFixture.configureByText(
             "foo.kt",
@@ -49,15 +53,17 @@ class CommonIntentionActionsParametersTest : BasePlatformTestCase(), ExpectedPlu
         )
 
         myFixture.launchAction(
-            createChangeParametersActions(
-                myFixture.atCaret<UMethod>().javaPsi,
-                setMethodParametersRequest(
-                    linkedMapOf<String, JvmType>(
-                      "i" to PsiTypes.intType(),
-                      "file" to PsiType.getTypeByName("java.io.File", project, myFixture.file.resolveScope)
-                    ).entries
-                )
-            ).findWithText("Change method parameters to '(i: Int, file: File)'")
+            allowAnalysisOnEdt {
+                createChangeParametersActions(
+                    myFixture.atCaret<UMethod>().javaPsi,
+                    setMethodParametersRequest(
+                        linkedMapOf<String, JvmType>(
+                            "i" to PsiTypes.intType(),
+                            "file" to PsiType.getTypeByName("java.io.File", project, myFixture.file.resolveScope)
+                        ).entries
+                    )
+                ).findWithText("Change method parameters to '(i: Int, file: File)'")
+            }
         )
         myFixture.checkResult(
             """
@@ -71,6 +77,7 @@ class CommonIntentionActionsParametersTest : BasePlatformTestCase(), ExpectedPlu
         )
     }
 
+  @OptIn(KaAllowAnalysisOnEdt::class)
   fun testSetConstructorParameters() {
       myFixture.configureByText(
           "foo.kt",
@@ -80,17 +87,19 @@ class CommonIntentionActionsParametersTest : BasePlatformTestCase(), ExpectedPlu
            """.trimIndent()
       )
 
-    val action = createChangeParametersActions(
-        myFixture.atCaret<UMethod>().javaPsi,
-        setMethodParametersRequest(
-            linkedMapOf<String, JvmType>(
-              "i" to PsiTypes.intType(),
-              "file" to PsiType.getTypeByName("java.io.File", project, myFixture.file.resolveScope)
-            ).entries
-        )
-    ).find { it.text.contains("Change signature of Foo") }
-    if (action == null) kotlin.test.fail("Change signature intention not found")
-    myFixture.launchAction(action)
+    val action = allowAnalysisOnEdt {
+        createChangeParametersActions(
+            myFixture.atCaret<UMethod>().javaPsi,
+            setMethodParametersRequest(
+                linkedMapOf<String, JvmType>(
+                    "i" to PsiTypes.intType(),
+                    "file" to PsiType.getTypeByName("java.io.File", project, myFixture.file.resolveScope)
+                ).entries
+            )
+        ).find { it.text.contains("Change signature of Foo") }
+    }
+    if (action == null) fail("Change signature intention not found")
+    myFixture.launchAction(action!!)
     myFixture.checkResult(
         """
         import java.io.File
@@ -216,6 +225,7 @@ class CommonIntentionActionsParametersTest : BasePlatformTestCase(), ExpectedPlu
         )
     }
 
+    @OptIn(KaAllowAnalysisOnEdt::class)
     private fun runParametersTransformation(
         actionName: String,
         transformation: (List<ChangeParametersRequest.ExistingParameterWrapper>) -> List<ExpectedParameter>
@@ -223,12 +233,14 @@ class CommonIntentionActionsParametersTest : BasePlatformTestCase(), ExpectedPlu
         val psiMethod = myFixture.atCaret<UMethod>().javaPsi
         val currentParameters = psiMethod.parameters.map { ChangeParametersRequest.ExistingParameterWrapper(it) }
         myFixture.launchAction(
-            createChangeParametersActions(
-                psiMethod,
-                SimpleChangeParametersRequest(
-                    transformation(currentParameters)
-                )
-            ).findWithText(actionName)
+            allowAnalysisOnEdt {
+                createChangeParametersActions(
+                    psiMethod,
+                    SimpleChangeParametersRequest(
+                        transformation(currentParameters)
+                    )
+                ).findWithText(actionName)
+            }
         )
     }
 
