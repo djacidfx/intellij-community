@@ -42,7 +42,7 @@ _jvm_library_jps = rule(
             allow_files = [".kt", ".java", ".srcjar", ".form"],
             mandatory = True,
         ),
-        "resources": attr.label_list(
+        "resource_jars": attr.label_list(
             doc = """The list of resource groups to create the target.""",
             default = [],
             providers = [ResourceGroupInfo],
@@ -157,7 +157,7 @@ def jvm_library(
             deps = deps,
             exports = exports,
             runtime_deps = runtime_deps,
-            resources = resources,
+            resource_jars = resources,
             neverlink = neverlink,
             plugins = plugins,
             module_name = module_name,

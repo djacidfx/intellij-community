@@ -11,14 +11,14 @@ def _resourcegroup_jps_impl(ctx):
         ctx.attr.resource_jar[0][DefaultInfo],
         ctx.attr.resource_jar[0][JavaInfo],
         ctx.attr.resource_jar[0][OutputGroupInfo],
-        ResourceGroupInfo(files = ctx.files.srcs, strip_prefix = ctx.file.strip_prefix, add_prefix = ctx.attr.add_prefix),
+        ResourceGroupInfo(files = ctx.files.resources, strip_prefix = ctx.file.strip_prefix, add_prefix = ctx.attr.add_prefix),
     ]
 
 _resourcegroup_jps = rule(
     doc = """This rule specifies resources layout in a .jar file.""",
     implementation = _resourcegroup_jps_impl,
     attrs = {
-        "srcs": attr.label_list(
+        "resources": attr.label_list(
             doc = """The list of resource files""",
             allow_files = True,
             mandatory = True,
@@ -27,6 +27,13 @@ _resourcegroup_jps = rule(
             doc = """The path prefix to remove from Java resources""",
             allow_single_file = True,
             providers = ["FileProvider"],
+        ),
+        "resource_strip_prefix": attr.string(
+            doc = """\
+            Equivalent of `strip_prefix`, but includes the package path as a prefix.
+            Its name and value follow the standard Bazel convention and are properly recognized by the Bazel plugin.
+            It's only added to satisfy the plugin. Monorepo rules use `strip_prefix` value instead.
+            """,
         ),
         "add_prefix": attr.string(
             doc = """The path prefix to prepend to Java resources, after applying `strip_prefix` (if any) to each file's relative path""",
@@ -62,8 +69,9 @@ def resourcegroup(name, srcs, strip_prefix, visibility = ["//visibility:private"
         )
         _resourcegroup_jps(
             name = name,
-            srcs = srcs,
+            resources = srcs,
             strip_prefix = strip_prefix,
+            resource_strip_prefix = package_name + strip_prefix,
             resource_jar = name + "_lib",
             visibility = visibility,
         )
