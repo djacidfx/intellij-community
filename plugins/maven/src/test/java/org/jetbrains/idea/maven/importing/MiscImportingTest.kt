@@ -355,7 +355,7 @@ class MiscImportingTest : MavenMultiVersionImportingTestCase() {
 
   @Test
   fun testMultiModuleWithInferredModelVersionFromNamespace() = runBlocking {
-    assumeVersionAtLeast("4.0.0")
+    assumeMaven4()
     // with no explicit modelVersion tag
     createProjectPom(
       """
@@ -363,10 +363,10 @@ class MiscImportingTest : MavenMultiVersionImportingTestCase() {
         <artifactId>parent</artifactId>
         <version>1.0</version>
         <packaging>pom</packaging>
-        <subprojects>
-          <subproject>module-a</subproject>
-          <subproject>module-b</subproject>
-        </subprojects>
+        <modules>
+          <module>module-a</module>
+          <module>module-b</module>
+        </modules>
       """.trimIndent(),
       omitModelVersionTag = true
     )
