@@ -542,7 +542,7 @@ class JpsProjectModelSynchronizer(private val project: Project) : Disposable {
     return createProjectSerializers(configLocation, externalStoragePath, context)
   }
 
-  fun saveChangedProjectEntities(writer: JpsFileContentWriter, workspaceModel: WorkspaceModel): Unit = saveChangedProjectEntitiesTimeMs.addMeasuredTime {
+  suspend fun saveChangedProjectEntities(writer: JpsFileContentWriter, workspaceModel: WorkspaceModel): Unit = saveChangedProjectEntitiesTimeMs.addMeasuredTime {
     LOG.debug("Saving project entities")
     val data = serializers.get()
     if (data == null) {

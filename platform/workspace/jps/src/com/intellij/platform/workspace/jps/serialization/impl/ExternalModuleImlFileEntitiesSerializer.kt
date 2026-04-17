@@ -158,7 +158,7 @@ internal class ExternalModuleListSerializer(private val externalStorageRoot: Vir
   }
 
   // Component DeprecatedModuleOptionManager removed by ModuleStateStorageManager.beforeElementSaved from .iml files
-  override fun deleteObsoleteFile(fileUrl: String, writer: JpsFileContentWriter) {
+  override suspend fun deleteObsoleteFile(fileUrl: String, writer: JpsFileContentWriter) {
     super.deleteObsoleteFile(fileUrl, writer)
     if (FileUtil.extensionEquals(fileUrl, "xml")) {
       writer.saveComponent(fileUrl, "ExternalSystem", null)

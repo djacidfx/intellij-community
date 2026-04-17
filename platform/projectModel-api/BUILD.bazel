@@ -28,7 +28,8 @@ jvm_library(
     "//platform/util/base",
     "//platform/eel",
     "//platform/eel-provider",
-  ]
+  ],
+  exports = ["//jps/model-api:model"]
 )
 
 jvm_library(
@@ -36,6 +37,10 @@ jvm_library(
   module_name = "intellij.platform.projectModel",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
+  exports = [
+    "//jps/model-api:model",
+    "//jps/model-api:model_test_lib",
+  ],
   runtime_deps = [
     ":projectModel",
     "//platform/core-api:core_test_lib",

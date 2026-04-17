@@ -29,6 +29,7 @@ import com.intellij.util.io.createDirectories
 import com.intellij.workspaceModel.ide.impl.jps.serialization.createProjectSerializers
 import com.intellij.workspaceModel.ide.impl.jps.serialization.saveAllEntities
 import com.intellij.workspaceModel.ide.toPath
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.jetCheck.Generator
 import org.jetbrains.jetCheck.ImperativeCommand
 import org.jetbrains.jetCheck.PropertyChecker
@@ -92,7 +93,9 @@ class ImlCreationPropertyTest {
         CreateModule(storage),
         CreateContentRoot(storage),
       ))
-      serializers.saveAllEntities(storage, configLocation)
+      runBlocking {
+        serializers.saveAllEntities(storage, configLocation)
+      }
 
       storage.entities(ModuleEntity::class.java).forEach { moduleEntity ->
         val modulesXml = if (moduleEntity.isExternal) prj.cache.project.modulesXml.readText() else prj.idea.modulesXml.readText()

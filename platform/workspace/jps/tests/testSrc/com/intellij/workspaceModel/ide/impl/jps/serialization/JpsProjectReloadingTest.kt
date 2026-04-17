@@ -15,6 +15,7 @@ import com.intellij.platform.workspace.storage.impl.url.VirtualFileUrlManagerImp
 import com.intellij.platform.workspace.storage.url.VirtualFileUrlManager
 import com.intellij.testFramework.UsefulTestCase.assertOneElement
 import com.intellij.testFramework.junit5.TestApplication
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.jps.util.JpsPathUtil
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -196,8 +197,10 @@ class JpsProjectReloadingTest {
     lateinit var latestResult: ReloadedProjectData
     for (updateAction in updateActions) {
       val change = updateAction(projectData)
-      val result = serializers.reloadFromChangedFiles(change, CachingJpsFileContentReader(projectConfigLocation),
-                                                      unloadedModulesNameHolder, TestErrorReporter)
+      val result = runBlocking {
+        serializers.reloadFromChangedFiles(change, CachingJpsFileContentReader(projectConfigLocation),
+                                           unloadedModulesNameHolder, TestErrorReporter)
+      }
       originalBuilder.replaceBySource({ it in result.affectedSources }, result.builder)
       originalUnloadedEntitiesBuilder.replaceBySource({ it in result.affectedSources }, result.unloadedEntityBuilder)
       serializers.checkConsistency(projectConfigLocation, originalBuilder, originalUnloadedEntitiesBuilder,

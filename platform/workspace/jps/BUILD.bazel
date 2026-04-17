@@ -41,6 +41,7 @@ jvm_library(
     "//platform/util/coroutines",
     "//platform/util/base/multiplatform",
     "//platform/util/base",
+    "//platform/core-api:core",
   ]
 )
 
@@ -65,6 +66,7 @@ jvm_library(
     "//platform/util/coroutines:coroutines_test_lib",
     "//platform/util/base/multiplatform:multiplatform_test_lib",
     "//platform/util/base:base_test_lib",
+    "//platform/core-api:core_test_lib",
   ]
 )
 ### auto-generated section `build intellij.platform.workspace.jps` end

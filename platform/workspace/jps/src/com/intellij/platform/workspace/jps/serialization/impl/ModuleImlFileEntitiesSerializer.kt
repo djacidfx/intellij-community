@@ -1,14 +1,17 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.platform.workspace.jps.serialization.impl
 
+import com.intellij.configurationStore.StorageManagerFileWriteRequestor
 import com.intellij.java.workspace.entities.JavaResourceRootPropertiesEntity
 import com.intellij.java.workspace.entities.JavaSourceRootPropertiesEntity
 import com.intellij.java.workspace.entities.asJavaResourceRoot
 import com.intellij.java.workspace.entities.asJavaSourceRoot
 import com.intellij.java.workspace.entities.javaSettings
+import com.intellij.openapi.application.backgroundWriteAction
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.util.JDOMUtil
 import com.intellij.openapi.util.io.FileUtil
+import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.platform.diagnostic.telemetry.helpers.MillisecondsMeasurer
 import com.intellij.platform.workspace.jps.CustomModuleEntitySource
 import com.intellij.platform.workspace.jps.JpsFileDependentEntitySource
@@ -71,6 +74,8 @@ import com.intellij.platform.workspace.storage.url.VirtualFileUrlManager
 import com.intellij.util.containers.ConcurrentFactoryMap
 import com.intellij.util.xmlb.Constants.NAME
 import io.opentelemetry.api.metrics.Meter
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.jdom.Attribute
 import org.jdom.Element
 import org.jdom.JDOMException
@@ -1310,7 +1315,7 @@ internal open class ModuleListSerializerImpl(override val fileUrl: String,
     return entitySource as? JpsProjectFileEntitySource.FileInDirectory
   }
 
-  override fun deleteObsoleteFile(fileUrl: String, writer: JpsFileContentWriter) {
+  override suspend fun deleteObsoleteFile(fileUrl: String, writer: JpsFileContentWriter) {
     writer.saveComponent(fileUrl, JpsFacetSerializer.FACET_MANAGER_COMPONENT_NAME, null)
     writer.saveComponent(fileUrl, MODULE_ROOT_MANAGER_COMPONENT_NAME, null)
     writer.saveComponent(fileUrl, DEPRECATED_MODULE_MANAGER_COMPONENT_NAME, null)
@@ -1323,12 +1328,24 @@ internal open class ModuleListSerializerImpl(override val fileUrl: String,
   // We manually remove the `.iml` file as it's not removed by component store due to IJPL-926
   // Probably there is no need to set `null` to the components, but let's do it just in case.
   // If IJPL-926 is fixed, this manual removal should go away and only `saveComponent(..., null)` should remain.
-  private fun manuallyRemoveImlFile(fileUrl: String) {
+  private suspend fun manuallyRemoveImlFile(fileUrl: String) {
     val path = Path(JpsPathUtil.urlToPath(fileUrl))
-    // Check that `iml` with a correct case is removed on case-insensitive systems
-    // `path.exists()` check should be done as `toRealPath` will break if the file doesn't exist.
-    if (path.exists() && path.toString() == path.toRealPath().toString()) {
-      path.deleteIfExists()
+    withContext(Dispatchers.IO) {
+      // Check that `iml` with a correct case is removed on case-insensitive systems
+      // `path.exists()` check should be done as `toRealPath` will break if the file doesn't exist.
+      if (!path.exists() || path.toString() != path.toRealPath().toString()) {
+        return@withContext
+      }
+      val virtualFile = VirtualFileManager.getInstance().findFileByUrl(fileUrl)
+      if (virtualFile != null) {
+        // for the case when the file is under project dir and is visible
+        backgroundWriteAction {
+          virtualFile.delete(ModuleImlSerializerRequestor)
+        }
+      }
+      else {
+        path.deleteIfExists()
+      }
     }
   }
 
@@ -1348,3 +1365,5 @@ fun ContentRootEntity.getSourceRootsComparator(): Comparator<SourceRootEntity> {
   val order = (sourceRootOrder?.orderOfSourceRoots ?: emptyList()).withIndex().associateBy({ it.value }, { it.index })
   return compareBy<SourceRootEntity> { order[it.url] ?: order.size }.thenBy { it.url.url }
 }
+
+private object ModuleImlSerializerRequestor : StorageManagerFileWriteRequestor
