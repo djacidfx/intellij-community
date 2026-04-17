@@ -5,10 +5,8 @@ import com.intellij.model.Pointer
 import com.intellij.polySymbols.PolySymbol
 import com.intellij.polySymbols.PolySymbolKind
 import com.intellij.polySymbols.PolySymbolQualifiedName
-import com.intellij.polySymbols.patterns.ComplexPatternOptions
 import com.intellij.polySymbols.patterns.PolySymbolPattern
-import com.intellij.polySymbols.patterns.PolySymbolPatternFactory
-import com.intellij.polySymbols.patterns.PolySymbolPatternReferenceResolver
+import com.intellij.polySymbols.patterns.polySymbolPattern
 import com.intellij.polySymbols.query.PolySymbolWithPattern
 
 /**
@@ -40,19 +38,13 @@ class ReferencingPolySymbol private constructor(
 
   private val references = references.toList()
 
-  override val pattern: PolySymbolPattern =
-    PolySymbolPatternFactory.createComplexPattern(
-      ComplexPatternOptions(
-        priority = priority,
-        symbolsResolver = PolySymbolPatternReferenceResolver(
-          *references.map {
-            PolySymbolPatternReferenceResolver.Reference(kind = it, location = location)
-          }.toTypedArray()
-        )), false,
-      PolySymbolPatternFactory.createPatternSequence(
-        PolySymbolPatternFactory.createSymbolReferencePlaceholder(name),
-      )
-    )
+  override val pattern: PolySymbolPattern = polySymbolPattern {
+    group {
+      priority = this@ReferencingPolySymbol.priority
+      symbols { references.forEach { from(kind = it, location = location) } }
+      symbolReference(name)
+    }
+  }
 
   override fun equals(other: Any?): Boolean =
     other === this ||

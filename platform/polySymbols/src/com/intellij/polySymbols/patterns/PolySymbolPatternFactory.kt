@@ -12,10 +12,8 @@ import com.intellij.polySymbols.patterns.impl.StaticPattern
 import com.intellij.polySymbols.patterns.impl.SymbolReferencePattern
 import com.intellij.polySymbols.query.PolySymbolQueryExecutor
 import com.intellij.polySymbols.query.PolySymbolQueryStack
-import org.jetbrains.annotations.ApiStatus
 
-@ApiStatus.Internal
-object PolySymbolPatternFactory {
+internal object PolySymbolPatternFactory {
 
   fun createComplexPattern(
     optionsProvider: (queryExecutor: PolySymbolQueryExecutor, stack: PolySymbolQueryStack) -> ComplexPatternOptions,
