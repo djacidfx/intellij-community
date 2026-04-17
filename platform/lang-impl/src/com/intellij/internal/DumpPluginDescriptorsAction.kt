@@ -24,6 +24,7 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.IntellijInternalApi
 import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.util.SystemProperties
 import com.intellij.util.io.jackson.createGenerator
 import com.intellij.util.lang.UrlClassLoader
 import kotlinx.coroutines.CoroutineScope
@@ -41,6 +42,12 @@ import kotlin.io.path.bufferedWriter
 import kotlin.io.path.relativeTo
 
 private const val DUMP_DESCRIPTORS_PROPERTY = "idea.dump.plugin.descriptors"
+
+/**
+ * By default, the dump adds a hashcode to the names of all classloaders to help identifying them in case of errors reported by the JVM.
+ * Set this system property to `false` to disable this if you want to compare two dumps and hashcodes bring unexpected differences.
+ */
+private const val INCLUDE_CLASSLOADER_HASHCODE = "intellij.dump.plugin.descriptor.include.classloader.hashcode"
 
 internal class DumpPluginDescriptorsAction : DumbAwareAction(), ActionRemoteBehaviorSpecification.Duplicated {
   override fun actionPerformed(e: AnActionEvent) {
@@ -112,8 +119,14 @@ private class PluginDescriptionDumper(val coroutineScope: CoroutineScope) {
     allReferencedClassLoaders.add(coreClassLoader)
     allReferencedClassLoaders.add(ClassLoader.getSystemClassLoader())
     allReferencedClassLoaders.add(ClassLoader.getPlatformClassLoader())
+
+    val includeClassLoaderHashCode = SystemProperties.getBooleanProperty(INCLUDE_CLASSLOADER_HASHCODE, true)
     val nonPluginClassLoaders = allReferencedClassLoaders.filterNot { it is PluginClassLoader }.withIndex().associateBy({ it.value }, { it.index })
     val classLoaderIds = allReferencedClassLoaders.associateWith { classLoader ->
+      val hashcodeSuffix =
+        if (includeClassLoaderHashCode) " @${Integer.toHexString(System.identityHashCode(classLoader))}"
+        else ""
+
       when (classLoader) {
         is PluginClassLoader -> {
           val moduleSuffix = (classLoader.pluginDescriptor as? IdeaPluginDescriptorImpl)?.contentModuleName?.let { ":$it" } ?: ""
@@ -123,7 +136,7 @@ private class PluginDescriptionDumper(val coroutineScope: CoroutineScope) {
         ClassLoader.getPlatformClassLoader() -> "java.PlatformClassLoader"
         coreClassLoader -> "ij.CoreClassLoader"
         else -> "${classLoader.javaClass.simpleName}[${nonPluginClassLoaders[classLoader]}]"
-      } + " @${Integer.toHexString(System.identityHashCode(classLoader))}" // errors reported by the JVM don't use classloader's `toString`, but instead only put the address tag
+      } + hashcodeSuffix
     }
 
     val printedClassLoaders = HashSet<ClassLoader>()
