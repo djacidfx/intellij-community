@@ -730,6 +730,7 @@ public final class JBCefApp {
   private static @Nullable String getNativeBundlePath() {
     // the native bundle provider is used only if there is no JCEF in JBR
     if (isJcefFromJbr()) {
+      LOG.info("JCEF is loaded from JBR, using default native bundle path");
       return null;
     }
 
@@ -741,7 +742,12 @@ public final class JBCefApp {
       return null;
     }
 
-    return provider.getNativeBundlePath();
+    String providerNativeBundlePath = provider.getNativeBundlePath();
+    if (providerNativeBundlePath != null) {
+      LOG.info("Using bundle path from: " + provider.getClass() + " path:" + providerNativeBundlePath);
+    }
+
+    return providerNativeBundlePath;
   }
 
   private static boolean isLinuxLibcSupported() {
