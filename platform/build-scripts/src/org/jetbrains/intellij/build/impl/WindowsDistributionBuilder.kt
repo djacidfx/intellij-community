@@ -164,13 +164,22 @@ internal class WindowsDistributionBuilder(
             customizer = customizer,
             context = context,
           )
+          createChecksumAndGpgSignFiles(
+            context = context,
+            buildArtifact = { zipWithJbrPath }
+          )
         }
       }
 
       if (customizer.buildZipArchiveWithoutBundledJre && !context.isStepSkipped(BuildOptions.WINDOWS_ZIP_STEP)) {
         val zipNameSuffix = suffix(arch) + customizer.zipArchiveWithoutBundledJreSuffix
         launch(Dispatchers.IO + CoroutineName("build Windows ${zipNameSuffix}.zip distribution")) {
-          createBuildWinZipTask(runtimeDir = null, zipNameSuffix = zipNameSuffix, winDistPath = osAndArchSpecificDistPath, arch = arch, customizer = customizer, context = context)
+          createChecksumAndGpgSignFiles(
+            context = context,
+            buildArtifact = {
+              createBuildWinZipTask(runtimeDir = null, zipNameSuffix = zipNameSuffix, winDistPath = osAndArchSpecificDistPath, arch = arch, customizer = customizer, context = context)
+            }
+          )
         }
       }
 
@@ -189,7 +198,12 @@ internal class WindowsDistributionBuilder(
             runtimeDir = runtimeDir,
             context = context,
             arch = arch,
-          )
+          )?.also {
+            createChecksumAndGpgSignFiles(
+              context = context,
+              buildArtifact = { it }
+            )
+          }
         }
       }
 
