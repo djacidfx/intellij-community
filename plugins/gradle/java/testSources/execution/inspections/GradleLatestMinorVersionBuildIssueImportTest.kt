@@ -12,6 +12,7 @@ import org.junit.Test
 class GradleLatestMinorVersionBuildIssueImportTest : BuildViewMessagesImportingTestCase() {
 
   @Test
+  @TargetVersions("8.0.x")
   fun testImport() {
     enableGradleLatestMinorVersionInspection(myProject)
     createSettingsFile("")
