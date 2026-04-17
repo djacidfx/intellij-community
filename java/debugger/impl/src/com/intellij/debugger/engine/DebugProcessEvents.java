@@ -50,11 +50,11 @@ import com.intellij.util.ConcurrencyUtil;
 import com.intellij.util.TimeoutUtil;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import com.intellij.util.containers.ContainerUtil;
-import com.intellij.xdebugger.DapMode;
 import com.intellij.xdebugger.BreakpointErrorData;
+import com.intellij.xdebugger.DapMode;
+import com.intellij.xdebugger.XBreakpointBehaviorPolicy;
 import com.intellij.xdebugger.XBreakpointBehaviorPolicy.BreakpointErrorAction;
 import com.intellij.xdebugger.XDebugSession;
-import com.intellij.xdebugger.XBreakpointBehaviorPolicy;
 import com.intellij.xdebugger.XDebuggerManager;
 import com.intellij.xdebugger.breakpoints.XBreakpoint;
 import com.intellij.xdebugger.impl.XDebugSessionImpl;
@@ -485,11 +485,9 @@ public class DebugProcessEvents extends DebugProcessImpl {
       XDebugSessionImpl session = (XDebugSessionImpl)getSession().getXDebugSession();
 
       // breakpoints should be initialized after all processAttached listeners work
-      ApplicationManager.getApplication().runReadAction(() -> {
-        if (session != null) {
-          session.initBreakpoints();
-        }
-      });
+      if (session != null) {
+        session.initBreakpoints();
+      }
 
       if (Registry.is("debugger.track.instrumentation", true) && canBeModified) {
         trackClassRedefinitions();

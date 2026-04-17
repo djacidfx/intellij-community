@@ -30,7 +30,6 @@ import com.intellij.notification.NotificationListener
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.application.EDT
-import com.intellij.openapi.application.runReadActionBlocking
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.MessageType
@@ -55,7 +54,7 @@ import com.intellij.util.EventDispatcher
 import com.intellij.util.SmartList
 import com.intellij.util.application
 import com.intellij.util.asDisposable
-import com.intellij.util.concurrency.annotations.RequiresReadLock
+import com.intellij.util.progress.withLockMaybeCancellable
 import com.intellij.xdebugger.DapMode
 import com.intellij.xdebugger.SplitDebuggerMode
 import com.intellij.xdebugger.XAlternativeSourceHandler
@@ -129,6 +128,7 @@ import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nls
 import java.util.Collections
 import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.locks.ReentrantLock
 import java.util.function.Consumer
 import javax.swing.Icon
 import javax.swing.event.HyperlinkEvent
@@ -148,11 +148,18 @@ class XDebugSessionImpl @JvmOverloads constructor(
   val tabCoroutineScope: CoroutineScope = debuggerManager.coroutineScope.childScope("XDebugger session tab $sessionName")
 
   val id: XDebugSessionId = storeGlobally(coroutineScope)
+  private val myLock = ReentrantLock()
 
   private var myDebugProcess: XDebugProcess? = null
+
+  // protected with this
   private val myRegisteredBreakpoints: MutableMap<XBreakpoint<*>, CustomizedBreakpointPresentation?> = HashMap()
   private val myInactiveSlaveBreakpoints: MutableSet<XBreakpoint<*>> = Collections.synchronizedSet(HashSet())
+
+  // protected with myLock
   private var myBreakpointsDisabled = false
+
+  // protected with myLock
   private var myBreakpointListenerDisposable: Disposable? = null
 
   private var myAlternativeSourceHandler: XAlternativeSourceHandler? = null
@@ -438,9 +445,7 @@ class XDebugSessionImpl @JvmOverloads constructor(
     XDebugManagerProxy.getInstance().getDebuggerExecutionPointManager(project)?.alternativeSourceKindFlow = this.alternativeSourceKindState
 
     if (process.checkCanInitBreakpoints()) {
-      runReadActionBlocking {
-        initBreakpoints()
-      }
+      initBreakpoints()
     }
     if (process is XDebugProcessDebuggeeInForeground &&
         process.isBringingToForegroundApplicable()
@@ -472,7 +477,6 @@ class XDebugSessionImpl @JvmOverloads constructor(
     rebuildViews()
   }
 
-  @RequiresReadLock
   override fun initBreakpoints() {
     LOG.assertTrue(!breakpointsInitialized)
     breakpointsInitialized = true
@@ -480,14 +484,16 @@ class XDebugSessionImpl @JvmOverloads constructor(
     disableSlaveBreakpoints()
     processAllBreakpoints(true, false)
 
-    var breakpointListenerDisposable = myBreakpointListenerDisposable
-    if (breakpointListenerDisposable == null) {
-      breakpointListenerDisposable = Disposer.newDisposable()
-      myBreakpointListenerDisposable = breakpointListenerDisposable
-      Disposer.register(myProject, breakpointListenerDisposable)
-      val busConnection = myProject.getMessageBus().connect(breakpointListenerDisposable)
-      busConnection.subscribe(XBreakpointListener.TOPIC, MyBreakpointListener())
-      busConnection.subscribe(XDependentBreakpointListener.TOPIC, MyDependentBreakpointListener())
+    myLock.withLockMaybeCancellable {
+      var breakpointListenerDisposable = myBreakpointListenerDisposable
+      if (breakpointListenerDisposable == null) {
+        breakpointListenerDisposable = Disposer.newDisposable()
+        myBreakpointListenerDisposable = breakpointListenerDisposable
+        Disposer.register(myProject, breakpointListenerDisposable)
+        val busConnection = myProject.getMessageBus().connect(breakpointListenerDisposable)
+        busConnection.subscribe(XBreakpointListener.TOPIC, MyBreakpointListener())
+        busConnection.subscribe(XDependentBreakpointListener.TOPIC, MyDependentBreakpointListener())
+      }
     }
   }
 
@@ -751,7 +757,7 @@ class XDebugSessionImpl @JvmOverloads constructor(
     temporary: Boolean,
   ) {
     if (register) {
-      val active = runReadActionBlocking { isBreakpointActive(b) }
+      val active = isBreakpointActive(b)
       if (active) {
         synchronized(myRegisteredBreakpoints) {
           myRegisteredBreakpoints[b] = CustomizedBreakpointPresentation()
@@ -797,7 +803,6 @@ class XDebugSessionImpl @JvmOverloads constructor(
     }
   }
 
-  @RequiresReadLock
   fun isBreakpointActive(b: XBreakpoint<*>): Boolean {
     return !areBreakpointsMuted() && b.isEnabled() && !isInactiveSlaveBreakpoint(b) && !(b as XBreakpointBase<*, *, *>).isDisposed
   }
@@ -822,11 +827,12 @@ class XDebugSessionImpl @JvmOverloads constructor(
     myDispatcher.removeListener(listener)
   }
 
-  @RequiresReadLock
+  private fun areBreakpointDisabled() = myLock.withLockMaybeCancellable { myBreakpointsDisabled }
+
   override fun setBreakpointMuted(muted: Boolean) {
     if (areBreakpointsMuted() == muted) return
     sessionData.isBreakpointsMuted = muted
-    if (!myBreakpointsDisabled) {
+    if (!areBreakpointDisabled()) {
       processAllBreakpoints(!muted, muted)
     }
     debuggerManager.breakpointManager.lineBreakpointManager.queueAllBreakpointsUpdate()
@@ -889,7 +895,6 @@ class XDebugSessionImpl @JvmOverloads constructor(
     debugProcess.startPausing()
   }
 
-  @RequiresReadLock
   private fun processAllBreakpoints(register: Boolean, temporary: Boolean) {
     for (handler in debugProcess.breakpointHandlers) {
       processBreakpoints<XBreakpoint<*>>(handler, register, temporary)
@@ -897,12 +902,13 @@ class XDebugSessionImpl @JvmOverloads constructor(
   }
 
   private fun setBreakpointsDisabledTemporarily(disabled: Boolean) {
-    runReadActionBlocking {
-      if (myBreakpointsDisabled == disabled) return@runReadActionBlocking
+    val changed = myLock.withLockMaybeCancellable {
+      if (myBreakpointsDisabled == disabled) return@withLockMaybeCancellable false
       myBreakpointsDisabled = disabled
-      if (!areBreakpointsMuted()) {
-        processAllBreakpoints(!disabled, disabled)
-      }
+      true
+    }
+    if (changed && !areBreakpointsMuted()) {
+      processAllBreakpoints(!disabled, disabled)
     }
   }
 
@@ -1262,9 +1268,12 @@ class XDebugSessionImpl @JvmOverloads constructor(
   }
 
   private fun removeBreakpointListeners() {
-    val breakpointListenerDisposable = myBreakpointListenerDisposable
-    if (breakpointListenerDisposable != null) {
+    val breakpointListenerDisposable = myLock.withLockMaybeCancellable {
+      val current = myBreakpointListenerDisposable
       myBreakpointListenerDisposable = null
+      current
+    }
+    if (breakpointListenerDisposable != null) {
       Disposer.dispose(breakpointListenerDisposable)
     }
   }
@@ -1326,7 +1335,7 @@ class XDebugSessionImpl @JvmOverloads constructor(
     }
 
     fun processAdd(breakpoint: XBreakpoint<*>): Boolean {
-      if (!myBreakpointsDisabled) {
+      if (!areBreakpointDisabled()) {
         processAllHandlers(breakpoint, true)
         return true
       }
