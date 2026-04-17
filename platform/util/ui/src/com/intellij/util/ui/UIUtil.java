@@ -196,6 +196,8 @@ import java.util.concurrent.Future;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
+import static com.intellij.openapi.util.text.StringUtil.THREE_DOTS;
+
 @SuppressWarnings("StaticMethodOnlyUsedInOneClass")
 public final class UIUtil {
   public static final @NlsSafe String BORDER_LINE = "<hr size=1 noshade>";
@@ -704,13 +706,33 @@ public final class UIUtil {
 
   /**
    * Computes the minimum size the component must have to keep the given number of characters
+   *
+   * Same as {@code computeTextComponentMinimumSize(preferredSize, text, fontMetrics, nCharactersToKeep, 0, "...")}.
+   * 
+   * @see #computeTextComponentMinimumSize(int, String, FontMetrics, int, int) 
+   */
+  public static int computeTextComponentMinimumSize(
+    int preferredSize,
+    @Nullable String text,
+    @Nullable FontMetrics fontMetrics,
+    int nCharactersToKeep
+  ) {
+    return computeTextComponentMinimumSize(preferredSize, text, fontMetrics, nCharactersToKeep, 0, THREE_DOTS);
+  }
+
+  /**
+   * Computes the minimum size the component must have to keep the given number of characters
    * <p>
    * Intended to be used for simple {@code JLabel}-like text components.
    * Often they provide the preferred size, but not the minimum size.
    * This function can be used to roughly compute the minimum size based on the preferred one.
    * The returned size will be reduced by the difference between the full text width and
-   * the width of the text contracted to just the {@code nCharactersToKeep} first characters plus {@code "..."}
+   * the width of the text contracted to just the {@code nCharactersToKeep} first characters plus {@code ellipsis}
    * that's usually added by such components when the text doesn't fit.
+   * </p>
+   * <p>
+   *   If the component provides a way to keep a suffix of a fixed length, then {@code nSuffixLength}
+   *   can be used to specify the number of characters that should be reserved after {@code ellipsis}.
    * </p>
    * <p>
    * Note that, due to various factors, the result may be off by a few pixels which is enough to gain or lose an extra character.
@@ -721,18 +743,26 @@ public final class UIUtil {
    * @param preferredSize     the size of the component needed to keep everything, usually computed by {@link Component#getPreferredSize()}
    * @param text              the currently set text
    * @param fontMetrics       the current font metrics
-   * @param nCharactersToKeep the number of characters the component must keep
+   * @param nCharactersToKeep the number of characters the component must keep, including {@code nSuffixLength}
+   * @param nSuffixLength the number of characters the component must keep at the end, if possible at all
+   * @param ellipsis the string to use as the ellipsis (usually three dots or the ellipsis character)
    * @return the minimum size the component has to have to keep the given number of characters
    */
   public static int computeTextComponentMinimumSize(
     int preferredSize,
     @Nullable String text,
     @Nullable FontMetrics fontMetrics,
-    int nCharactersToKeep
+    int nCharactersToKeep,
+    int nSuffixLength,
+    @NotNull String ellipsis
   ) {
+    if (nCharactersToKeep < nSuffixLength) {
+      throw new IllegalArgumentException("nCharactersToKeep=" + nCharactersToKeep + ", nSuffixLength=" + nSuffixLength);
+    }
     if (text == null || text.length() <= nCharactersToKeep || fontMetrics == null) return preferredSize;
+    var prefixLength = nCharactersToKeep - nSuffixLength;
     var fullTextWidth = fontMetrics.stringWidth(text);
-    var minTextWidth = fontMetrics.stringWidth(text.substring(0, nCharactersToKeep) + "...");
+    var minTextWidth = fontMetrics.stringWidth(text.substring(0, prefixLength) + ellipsis + text.substring(text.length() - nSuffixLength));
     return preferredSize - (fullTextWidth - minTextWidth);
   }
 

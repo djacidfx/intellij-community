@@ -5225,6 +5225,7 @@ f:com.intellij.util.ui.UIUtil
 - s:computeStringWidth(javax.swing.JComponent,java.lang.String):I
 - s:computeTextComponentMinimumSize(I,java.lang.String,java.awt.FontMetrics):I
 - s:computeTextComponentMinimumSize(I,java.lang.String,java.awt.FontMetrics,I):I
+- s:computeTextComponentMinimumSize(I,java.lang.String,java.awt.FontMetrics,I,I,java.lang.String):I
 - s:configureNumericFormattedTextField(javax.swing.JFormattedTextField):V
 - s:convertToLabel(javax.swing.JEditorPane):V
 - s:createImage(I,I,I):java.awt.image.BufferedImage
