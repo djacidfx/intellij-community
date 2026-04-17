@@ -86,7 +86,6 @@ import com.intellij.ui.ComboboxSpeedSearch;
 import com.intellij.ui.GuiUtils;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.ScrollPaneFactory;
-import com.intellij.ui.SimpleListCellRenderer;
 import com.intellij.ui.SortedComboBoxModel;
 import com.intellij.ui.TitledSeparator;
 import com.intellij.ui.TreeUIHelper;
@@ -94,6 +93,8 @@ import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBList;
 import com.intellij.ui.dsl.listCellRenderer.BuilderKt;
+import com.intellij.ui.dsl.listCellRenderer.LcrJavaHelper;
+import com.intellij.ui.dsl.listCellRenderer.RendererPresentation;
 import com.intellij.ui.tabs.JBTabs;
 import com.intellij.ui.tabs.JBTabsFactory;
 import com.intellij.ui.tabs.TabInfo;
@@ -610,12 +611,10 @@ public class PsiViewerDialog extends DialogWrapper implements UiDataProvider {
 
     myFileTypeComboBox.setSwingPopup(false);
     myFileTypeComboBox.setModel(new CollectionComboBoxModel<>(new ArrayList<>(mySourceWrappers), lastUsed));
-    myFileTypeComboBox.setRenderer(SimpleListCellRenderer.create((label, value, index) -> {
-      if (value != null) {
-        label.setText(value.getText());
-        label.setIcon(value.getIcon());
-      }
-    }));
+    myFileTypeComboBox.setRenderer(LcrJavaHelper.create(
+      "",
+      value -> new RendererPresentation(value.getIcon(), value.getText())
+    ));
     ComboboxSpeedSearch search1 = new ComboboxSpeedSearch(myFileTypeComboBox, null) {
       @Override
       protected String getElementText(Object element) {

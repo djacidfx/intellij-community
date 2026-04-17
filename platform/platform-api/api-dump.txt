@@ -4496,7 +4496,6 @@ c:com.intellij.openapi.ui.panel.ComponentPanelBuilder
 - withLabel(java.lang.String):com.intellij.openapi.ui.panel.ComponentPanelBuilder
 - withTooltip(java.lang.String):com.intellij.openapi.ui.panel.ComponentPanelBuilder
 - withTooltipLink(java.lang.String,java.lang.Runnable):com.intellij.openapi.ui.panel.ComponentPanelBuilder
-- withTopRightComponent(javax.swing.JComponent):com.intellij.openapi.ui.panel.ComponentPanelBuilder
 f:com.intellij.openapi.ui.panel.ComponentPanelBuilder$Companion
 - f:computeCommentInsets(javax.swing.JComponent,Z):java.awt.Insets
 - f:createCommentComponent(java.lang.String,Z):javax.swing.JLabel
@@ -8773,6 +8772,7 @@ e:com.intellij.ui.dsl.gridLayout.VerticalAlign
 - s:valueOf(java.lang.String):com.intellij.ui.dsl.gridLayout.VerticalAlign
 - s:values():com.intellij.ui.dsl.gridLayout.VerticalAlign[]
 f:com.intellij.ui.dsl.listCellRenderer.BuilderKt
+- sf:listCellRenderer(java.lang.String,kotlin.jvm.functions.Function1):javax.swing.ListCellRenderer
 - sf:listCellRenderer(kotlin.jvm.functions.Function1):javax.swing.ListCellRenderer
 - sf:textListCellRenderer(java.lang.String,kotlin.jvm.functions.Function1):javax.swing.ListCellRenderer
 - sf:textListCellRenderer(kotlin.jvm.functions.Function1):javax.swing.ListCellRenderer

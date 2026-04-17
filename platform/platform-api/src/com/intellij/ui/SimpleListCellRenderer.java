@@ -44,6 +44,11 @@ public abstract class SimpleListCellRenderer<T> extends JBLabel implements ListC
     };
   }
 
+  /**
+   * @deprecated Doesn't support rounded selection.
+   * Use {@link com.intellij.ui.dsl.listCellRenderer.BuilderKt#listCellRenderer(String, Function1)} instead.
+   */
+  @Deprecated(forRemoval = true)
   public static @NotNull <T> SimpleListCellRenderer<T> create(@NotNull Customizer<? super T> customizer) {
     return new SimpleListCellRenderer<>() {
       @Override
