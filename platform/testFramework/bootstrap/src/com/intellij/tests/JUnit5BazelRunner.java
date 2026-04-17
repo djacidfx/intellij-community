@@ -13,6 +13,7 @@ import org.junit.platform.engine.discovery.ClassNameFilter;
 import org.junit.platform.engine.discovery.DiscoverySelectors;
 import org.junit.platform.engine.discovery.MethodSelector;
 import org.junit.platform.engine.discovery.UniqueIdSelector;
+import org.junit.platform.launcher.EngineFilter;
 import org.junit.platform.launcher.Launcher;
 import org.junit.platform.launcher.LauncherDiscoveryRequest;
 import org.junit.platform.launcher.PostDiscoveryFilter;
@@ -21,6 +22,7 @@ import org.junit.platform.launcher.TestIdentifier;
 import org.junit.platform.launcher.TestPlan;
 import org.junit.platform.launcher.core.LauncherDiscoveryRequestBuilder;
 import org.junit.platform.launcher.core.LauncherFactory;
+import org.junit.vintage.engine.descriptor.VintageTestDescriptor;
 
 import java.io.File;
 import java.io.IOException;
@@ -85,11 +87,16 @@ public final class JUnit5BazelRunner {
 
   private static LauncherDiscoveryRequest getDiscoveryRequest() throws Throwable {
     List<? extends DiscoverySelector> bazelTestSelectors = getTestsSelectors(ourClassLoader);
+    return createDiscoveryRequest(bazelTestSelectors, System.getProperty("intellij.build.test.engine.vintage"));
+  }
+
+  public static LauncherDiscoveryRequest createDiscoveryRequest(List<? extends DiscoverySelector> bazelTestSelectors, String engineVintage) {
     return LauncherDiscoveryRequestBuilder.request()
       .configurationParameter("junit.jupiter.extensions.autodetection.enabled", "true")
       .selectors(bazelTestSelectors)
       .filters(getTestFilters(bazelTestSelectors))
       .filters(generateFiltersFromJbEnv().toArray(new Filter[0]))
+      .filters(getEngineFilters(engineVintage))
       .build();
   }
 
@@ -367,6 +374,17 @@ public final class JUnit5BazelRunner {
 
     filters.add(classNameFilter);
     return filters.toArray(new Filter[0]);
+  }
+
+  private static Filter<?>[] getEngineFilters(String engineVintage) {
+    if (engineVintage == null) {
+      return new Filter[0];
+    }
+    return switch (engineVintage) {
+      case "false" -> new Filter[]{EngineFilter.excludeEngines(VintageTestDescriptor.ENGINE_ID)};
+      case "only" -> new Filter[]{EngineFilter.includeEngines(VintageTestDescriptor.ENGINE_ID)};
+      default -> throw new RuntimeException("Unsupported engine value: " + engineVintage);
+    };
   }
 
   private static List<? extends DiscoverySelector> getTestsSelectors(ClassLoader classLoader) throws Throwable {
