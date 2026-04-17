@@ -73,9 +73,8 @@ fun Label(@Label text: String, style: UIUtil.ComponentStyle? = null, fontColor: 
  * That's unexpected behavior
  */
 @ApiStatus.ScheduledForRemoval
-@ApiStatus.Internal
 @Deprecated("Use correspondent constructors JLabel/JBLabel/MultiLineLabel, depends on situation")
-fun Label(
+private fun Label(
   @Label text: String,
   style: UIUtil.ComponentStyle? = null,
   fontColor: UIUtil.FontColor? = null,
