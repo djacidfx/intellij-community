@@ -20,6 +20,7 @@ import com.intellij.platform.workspace.jps.OrphanageWorkerEntitySource
 import com.intellij.platform.workspace.jps.bridge.impl.serialization.DefaultImlNormalizer
 import com.intellij.platform.workspace.jps.entities.ContentRootEntity
 import com.intellij.platform.workspace.jps.entities.ContentRootEntityBuilder
+import com.intellij.platform.workspace.jps.entities.CustomImlComponentEntity
 import com.intellij.platform.workspace.jps.entities.CustomSourceRootPropertiesEntity
 import com.intellij.platform.workspace.jps.entities.DependencyScope
 import com.intellij.platform.workspace.jps.entities.ExcludeUrlEntity
@@ -50,6 +51,7 @@ import com.intellij.platform.workspace.jps.entities.SourceRootOrderEntityBuilder
 import com.intellij.platform.workspace.jps.entities.SourceRootTypeId
 import com.intellij.platform.workspace.jps.entities.TestModulePropertiesEntity
 import com.intellij.platform.workspace.jps.entities.contentRoot
+import com.intellij.platform.workspace.jps.entities.customImlComponent
 import com.intellij.platform.workspace.jps.entities.customImlData
 import com.intellij.platform.workspace.jps.entities.customSourceRootProperties
 import com.intellij.platform.workspace.jps.entities.exModuleOptions
@@ -433,6 +435,12 @@ internal open class ModuleImlFileEntitiesSerializer(internal val modulePath: Mod
       }
     }
 
+    val customComponentsMap = loadCustomImlComponents(content)
+
+    if (customComponentsMap.isNotEmpty()) {
+      moduleEntity.customImlComponent = CustomImlComponentEntity(customComponentsMap, entitySource)
+    }
+
     runCatchingXmlIssues(exceptionsCollector) {
       // Don't forget to load external system options even if custom root serializer exist
       loadExternalSystemOptions(moduleEntity, content, externalSystemOptions, externalSystemId, entitySource)
@@ -773,6 +781,17 @@ internal open class ModuleImlFileEntitiesSerializer(internal val modulePath: Mod
     moduleEntity.testProperties = TestModulePropertiesEntity(ModuleId(productionModuleName), entitySource)
   }
 
+  private fun loadCustomImlComponents(content: JpsFileContent): Map<String, String> {
+    val result = HashMap<String, String>()
+    context.customImpComponentNameContributors.forEach {
+      val componentDom = content.loadComponent(it.componentName)
+      if (componentDom != null) {
+        result[it.componentName] = JDOMUtil.write(componentDom)
+      }
+    }
+    return result
+  }
+
   private fun Element.getChildrenAndDetach(cname: String): List<Element> {
     val result = getChildren(cname).toList()
     result.forEach { it.detach() }
@@ -918,6 +937,7 @@ internal open class ModuleImlFileEntitiesSerializer(internal val modulePath: Mod
         content.saveComponent(it.componentName, componentTag)
       }
     }
+    saveCustomImlComponents(module, content)
     saveTestModuleProperty(module, content)
   }
 
@@ -1148,6 +1168,14 @@ internal open class ModuleImlFileEntitiesSerializer(internal val modulePath: Mod
     val testModulePropertyTag = Element(TEST_MODULE_PROPERTIES_COMPONENT_NAME)
     testModulePropertyTag.setAttribute(PRODUCTION_MODULE_NAME_ATTRIBUTE, testProperties.productionModuleId.presentableName)
     content.saveComponent(TEST_MODULE_PROPERTIES_COMPONENT_NAME, testModulePropertyTag)
+  }
+
+  private fun saveCustomImlComponents(module: ModuleEntity, content: WritableJpsFileContent) {
+    val component = module.customImlComponent ?: return
+    for ((componentName, rawContent) in component.components) {
+      val element = JDOMUtil.load(StringReader(rawContent))
+      content.saveComponent(componentName, element)
+    }
   }
 
   override val additionalEntityTypes: List<Class<out WorkspaceEntity>>
