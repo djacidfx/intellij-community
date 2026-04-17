@@ -465,7 +465,7 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
     }
 
     private fun scoringPrefixQuery(term: Term): PrefixQuery =
-      PrefixQuery(term, MultiTermQuery.SCORING_BOOLEAN_REWRITE)
+      PrefixQuery(term, MultiTermQuery.CONSTANT_SCORE_BLENDED_REWRITE)
 
     private fun getPrimaryKeyTerm(url: String): Term {
       val term = Term(FILE_URL, url)
