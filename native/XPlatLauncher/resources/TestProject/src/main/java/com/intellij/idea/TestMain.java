@@ -1,4 +1,4 @@
-// Copyright 2000-2023 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.idea;
 
 import com.google.gson.GsonBuilder;
@@ -86,7 +86,8 @@ public class TestMain {
     System.out.println("Dumped to " + outputFile.getFileName());
   }
 
-  private static void printCwd() {
+  private static void printCwd() throws InterruptedException {
+    Thread.sleep(500);  // macOS `open -W` command needs time to attach `kevent`
     System.out.println("CWD=" + Path.of(".").toAbsolutePath());
   }
 
