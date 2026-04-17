@@ -1067,15 +1067,21 @@ is captured automatically.
 
 ### 17.5 Project resolution
 
-The project for a call is resolved in [`McpCallInfo.projectOrNull`](src/com/intellij/mcpserver/McpCallInfo.kt) using the following priority:
+Tool-call project resolution is performed in [`McpSessionHandler.kt`](src/com/intellij/mcpserver/impl/McpSessionHandler.kt) through
+[`McpProjectLocationInputs.kt`](src/com/intellij/mcpserver/impl/McpProjectLocationInputs.kt). The logic has two modes:
 
-1. MCP session roots (when the client advertised them).
-2. An explicit `projectPath` parameter on the tool call.
-3. `IJ_MCP_SERVER_PROJECT_PATH` HTTP header.
-4. `IJ_MCP_SERVER_PROJECT_PATH` environment variable (used by the stdio gateway).
-5. The single currently-open project (if exactly one).
-6. Otherwise: throws a structured `noSuitableProjectError` listing every open project as `structuredContent`, so the client can re-invoke
-   with a concrete `projectPath`.
+1. Strict mode: if the tool call contains an explicit `projectPath` argument, MCP matches only by that value.
+   If it doesn't resolve to an open project, the call fails immediately with `noSuitableProjectError`.
+2. Chaining mode: if `projectPath` is absent, MCP tries the following sources in order:
+   1. `IJ_MCP_SERVER_PROJECT_PATH` from the current call header / request metadata.
+   2. Session-level `IJ_MCP_SERVER_PROJECT_PATH` captured from the initial session request.
+   3. MCP session roots (when the client advertised them).
+
+In chaining mode every failed step is logged to `trace`, and if none of the sources resolve to an open project, MCP throws a structured
+`noSuitableProjectError` listing every open project as `structuredContent`, so the client can re-invoke the tool with a concrete `projectPath`.
+
+User-facing error text intentionally points the LLM only to `projectPath`; headers / env vars are treated as internal transport details and are
+not mentioned in the error message.
 
 Sessions that opt-in to project-path customization via `McpProjectPathCustomizer` can rename / re-describe the implicit parameter — [
 `schema.util.kt`](src/com/intellij/mcpserver/impl/util/schema.util.kt) applies the customizer after the schema is built.

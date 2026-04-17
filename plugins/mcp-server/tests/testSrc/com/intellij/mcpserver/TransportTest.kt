@@ -6,6 +6,7 @@ import com.intellij.mcpserver.annotations.McpToolHintValue.TRUE
 import com.intellij.mcpserver.annotations.McpToolHints
 import com.intellij.mcpserver.impl.McpServerService
 import com.intellij.mcpserver.impl.util.asTool
+import com.intellij.mcpserver.impl.util.projectPathParameterName
 import com.intellij.mcpserver.impl.util.network.McpServerConnectionAddressProvider
 import com.intellij.mcpserver.stdio.IJ_MCP_SERVER_PROJECT_PATH
 import com.intellij.openapi.project.Project
@@ -48,6 +49,8 @@ class TransportTest {
   companion object {
     val projectFixture = projectFixture(openAfterCreation = true)
     val project by projectFixture
+    val secondProjectFixture = projectFixture(openAfterCreation = true)
+    val secondProject by secondProjectFixture
 
     @JvmStatic
     fun getTransports(): Array<TransportHolder> = arrayOf(
@@ -114,6 +117,23 @@ class TransportTest {
     }
     // the same to unregistration. Otherwise, tools change notification is being sent into a closed transport
     delay(500.milliseconds) // delay for exit from use {}
+  }
+
+  @ParameterizedTest
+  @MethodSource("getTransports")
+  fun tool_call_prefers_project_path_argument_over_session_project(transport: TransportHolder) = transportTest(transport) { client ->
+    delay(500.milliseconds)
+    Disposer.newDisposable().use { disposable ->
+      application.extensionArea.getExtensionPoint(McpToolsProvider.EP).registerExtension(object : McpToolsProvider {
+        override fun getTools(): List<McpTool> = listOf(this@TransportTest::test_tool.asTool())
+      }, disposable)
+      delay(500.milliseconds)
+      client.callTool("test_tool", mapOf(projectPathParameterName to requireNotNull(secondProject.basePath)))
+
+      val actual = withTimeout(2000.milliseconds) { projectFromTool.await() }
+      assertThat(actual).isEqualTo(secondProject)
+    }
+    delay(500.milliseconds)
   }
 
   val projectFromTool = CompletableDeferred<Project?>()
