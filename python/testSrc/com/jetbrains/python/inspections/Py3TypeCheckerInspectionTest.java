@@ -1782,6 +1782,56 @@ public class Py3TypeCheckerInspectionTest extends PyInspectionTestCase {
                    subClass.foo(subClass.foo(<warning descr="Expected type 'SubClass' (matched generic type 'Self@MyClass'), got 'MyClass' instead">myClass</warning>))""");
   }
 
+  // PY-79220
+  public void testAnnotatedSelf() {
+    doTestByText("""
+                   class A[T]:
+                       def foo(x: A[int]) -> None: ...
+                   
+                       @classmethod
+                       def bar(x: type[A[int]]) -> None: ...
+                   
+                   A[int]().foo()
+                   <warning descr="Expected type 'A[int]', got 'A[str]' instead">A[str]()</warning>.foo()
+                   
+                   A[int].bar()
+                   A[int]().bar()
+                   <warning descr="Expected type 'type[A[int]]', got 'type[A[str]]' instead">A[str]</warning>.bar()
+                   <warning descr="Expected type 'type[A[int]]', got 'type[A[str]]' instead">A[str]()</warning>.bar()
+                   """);
+  }
+
+  // PY-79220
+  public void testAnnotatedSelfAgainstUnionReceiver() {
+    doTestByText("""
+                   class A:
+                       def foo(self: A): ...
+                   
+                   class B:
+                       def foo(self: B): ...
+                   
+                   class C[T]:
+                       def foo(self: C[int]): ...
+                   
+                   def f(x: A | B, y: A | B | C[str]):
+                       x.foo()
+                       y.foo() # TODO: Expected warning: 'C[str]' not assignable to 'C[int]'
+                   """);
+  }
+
+  // PY-79220
+  public void testUnannotatedSelfInMetaclass() {
+    doTestByText("""
+                   class Meta(type):
+                       def foo(cls): ...
+                   
+                   class Class(metaclass=Meta): ...
+                   
+                   Class.foo()
+                   Meta("T", (), {}).foo()
+                   """);
+  }
+
   // PY-53104
   public void testProtocolSelfClass() {
     doTestByText("""

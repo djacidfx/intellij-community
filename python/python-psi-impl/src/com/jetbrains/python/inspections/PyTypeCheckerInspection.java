@@ -14,6 +14,7 @@ import com.intellij.psi.PsiElementVisitor;
 import com.intellij.util.containers.ContainerUtil;
 import com.jetbrains.python.PyNames;
 import com.jetbrains.python.PyPsiBundle;
+import com.jetbrains.python.ast.PyAstFunction;
 import com.jetbrains.python.codeInsight.controlflow.ScopeOwner;
 import com.jetbrains.python.codeInsight.dataflow.scope.ScopeUtil;
 import com.jetbrains.python.codeInsight.stdlib.PyStdlibTypeProvider;
@@ -65,6 +66,7 @@ import com.jetbrains.python.psi.types.PyClassType;
 import com.jetbrains.python.psi.types.PyCollectionType;
 import com.jetbrains.python.psi.types.PyConcatenateType;
 import com.jetbrains.python.psi.types.PyDescriptorTypeUtil;
+import com.jetbrains.python.psi.types.PyInstantiableType;
 import com.jetbrains.python.psi.types.PyLiteralType;
 import com.jetbrains.python.psi.types.PyNeverType;
 import com.jetbrains.python.psi.types.PyParamSpecType;
@@ -76,6 +78,7 @@ import com.jetbrains.python.psi.types.PyType;
 import com.jetbrains.python.psi.types.PyTypeChecker;
 import com.jetbrains.python.psi.types.PyTypeInferenceCspFactory;
 import com.jetbrains.python.psi.types.PyTypeParameterType;
+import com.jetbrains.python.psi.types.PyTypeUtilKt;
 import com.jetbrains.python.psi.types.PyTypedDictType;
 import com.jetbrains.python.psi.types.PyUnionType;
 import com.jetbrains.python.psi.types.PyUnpackedTupleType;
@@ -627,18 +630,40 @@ public class PyTypeCheckerInspection extends PyInspection {
       final var receiver = callSite.getReceiver(callableType.getCallable());
       final var substitutions = PyTypeInferenceCspFactory.unifyReceiver(mapping, myTypeEvalContext);
 
-      // When a constructor call resolves to `__init__` method,
-      // match the class being constructed against the type of `self` parameter.
-      if (PyUtil.isInitMethod(callableType.getCallable()) &&
-          receiver != null &&
-          myTypeEvalContext.getType(receiver) instanceof PyClassType receiverType &&
-          receiverType.isDefinition()) {
-        PyCallableParameter selfParameter = ContainerUtil.getFirstItem(mapping.getImplicitParameters());
-        if (selfParameter != null) {
-          final PyType actual = receiverType.toInstance();
-          final PyType expected = selfParameter.getArgumentType(myTypeEvalContext);
-          final boolean matched = matchParameterAndArgument(expected, actual, receiver, substitutions);
-          result.add(new AnalyzeArgumentResult(receiver, expected, substituteGenerics(expected, substitutions), actual, matched));
+      PyCallableParameter selfParameter = ContainerUtil.getFirstItem(mapping.getImplicitParameters());
+      if (receiver != null && selfParameter != null) {
+        PyType actual = myTypeEvalContext.getType(receiver);
+        // TODO (PY-89400): Support validation for `receiver` of a union type
+        // When `receiver` has a union type, we must find the specific member of the union bound to `callableType`.
+        // See `Py3TypeCheckerInspectionTest.testAnnotatedSelfAgainstUnionReceiver`.
+        if (!(actual instanceof PyUnionType)) {
+          if (actual instanceof PyInstantiableType<?> instantiableType) {
+            if (isConstructorCall(callSite) && PyUtil.isInitMethod(callableType.getCallable())) {
+              actual = instantiableType.toInstance();
+            }
+            if (callableType.getModifier() == PyAstFunction.Modifier.CLASSMETHOD) {
+              actual = instantiableType.toClass();
+            }
+          }
+
+          PyType expected = selfParameter.getArgumentType(myTypeEvalContext);
+          // Skip the check when `expected` is a metaclass-scoped `PySelfType`:
+          // - explicit `typing.Self` usage on a metaclass is disallowed by the typing specification;
+          // - for an unannotated `self`/`cls` (for which the inferred type is also `PySelfType`),
+          //   the bound-receiver resolution already guarantees that the receiver is an instance of the metaclass;
+          // - matching a class receiver against a metaclass-scoped `PySelfType` currently fails
+          //   (see `Py3TypeCheckerInspectionTest.testSelfOnMetaclass`).
+          boolean isSelfOnMetaclass = false;
+          if (expected instanceof PySelfType expectedSelfType) {
+            PyClassType typeType = PyBuiltinCache.getInstance(callSite).getTypeType();
+            isSelfOnMetaclass = typeType != null &&
+                                expectedSelfType.getScopeClassType().getAncestorTypes(myTypeEvalContext).contains(typeType.toClass());
+          }
+          if (!isSelfOnMetaclass) {
+            if (!matchParameterAndArgument(expected, actual, receiver, substitutions)) {
+              result.add(new AnalyzeArgumentResult(receiver, expected, substituteGenerics(expected, substitutions), actual, false));
+            }
+          }
         }
       }
 
@@ -748,6 +773,15 @@ public class PyTypeCheckerInspection extends PyInspection {
                                       unfilledPositionalVarargs);
     }
 
+    private boolean isConstructorCall(@NotNull PyCallSiteExpression callSite) {
+      if (callSite instanceof PyCallExpression callExpression) {
+        PyExpression callee = callExpression.getCallee();
+        if (callee != null && myTypeEvalContext.getType(callee) instanceof PyClassType calleeType && calleeType.isDefinition()) {
+          return true;
+        }
+      }
+      return false;
+    }
 
     private void analyzeParamSpec(@NotNull PyParamSpecType paramSpec, @NotNull List<PyExpression> arguments,
                                   @NotNull PyTypeChecker.GenericSubstitutions substitutions,
