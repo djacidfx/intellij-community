@@ -28,6 +28,7 @@ import com.intellij.xdebugger.impl.ui.DebuggerUIUtil;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
+import javax.swing.Icon;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -52,14 +53,22 @@ public class ToggleLineBreakpointAction extends XDebuggerActionBase implements D
     super.update(event);
 
     if (ActionPlaces.TOUCHBAR_GENERAL.equals(event.getPlace())) {
-      event.getPresentation().setIcon(AllIcons.Debugger.Db_set_breakpoint);
+      event.getPresentation().setIcon(getTouchbarIcon());
     }
 
-    final boolean selected = hasLineBreakpoint(event);
+    final boolean selected = hasLineBreakpoint(event, getExpectedVerticalPlacement());
     Toggleable.setSelected(event.getPresentation(), selected);
   }
 
-  private static boolean hasLineBreakpoint(@NotNull AnActionEvent e) {
+  protected @NotNull XLineBreakpointVerticalPlacement getExpectedVerticalPlacement() {
+    return XLineBreakpointVerticalPlacement.ON_LINE;
+  }
+
+  protected @NotNull Icon getTouchbarIcon() {
+    return AllIcons.Debugger.Db_set_breakpoint;
+  }
+
+  private static boolean hasLineBreakpoint(@NotNull AnActionEvent e, @NotNull XLineBreakpointVerticalPlacement placement) {
     final Project proj = e.getProject();
     if (proj == null) {
       return false;
@@ -71,7 +80,7 @@ public class ToggleLineBreakpointAction extends XDebuggerActionBase implements D
       for (XLineBreakpointTypeProxy breakpointType : breakpointTypes) {
         final VirtualFile file = position.getFile();
         final int line = position.getLine();
-        if (breakpointManager.findBreakpointAtLine(breakpointType, file, line, XLineBreakpointVerticalPlacement.ON_LINE) != null) {
+        if (breakpointManager.findBreakpointAtLine(breakpointType, file, line, placement) != null) {
           return true;
         }
       }

@@ -113,6 +113,7 @@ public abstract class KeymapsTestCase extends KeymapsTestCaseBase {
       {"ctrl alt F",               "IntroduceField", "ShowFilterPopup"},
       {"ctrl alt RIGHT",           "AIAssistant.Editor.AcceptOneLineCompletion", "Forward"},
       {"ctrl alt U",               "ChangesView.UnshelveSilently", "Frontend.ChangesView.UnshelveSilently", "ShowUmlDiagramPopup"},
+      {"ctrl alt F8",              "AddLogpoint", "QuickEvaluateExpression"},
       {"shift DELETE",             "$Cut", "Maven.Uml.Exclude"},
       {"shift ENTER",              "CollapseExpandableComponent", "Console.TableResult.EditValueMaximized", "DatabaseView.PropertiesAction",
                                    "EditorStartNewLine", "ExpandExpandableComponent", "NotebookRunCellSelectBelowAction", "OpenInRightSplit",
@@ -379,6 +380,7 @@ public abstract class KeymapsTestCase extends KeymapsTestCaseBase {
     }),
     Map.entry("Default for XWin", new String[][]{
       {"ctrl SLASH",               "CommentByLineComment", "FileChooser.GoToRoot", "Graph.ActualSize"},
+      {"ctrl alt 8",               "AddLogpoint", "QuickEvaluateExpression"},
       {"shift ctrl C",             "CopyPaths", "DatabaseView.CopyDdlAction", "Terminal.CopySelectedText",
                                    "org.intellij.plugins.markdown.ui.actions.styling.ToggleCodeSpanAction"},
       {"shift ctrl V",             "PasteMultiple", "Terminal.Paste", "JupyterNotebookPasteCellAboveCommandModeAction"},
