@@ -362,14 +362,14 @@ open class MavenArtifactsBuilder(protected val context: BuildContext) {
               "A library module ${depArtifact.module.name} is expected to have some library dependencies"
             }
             if (context.productProperties.mavenArtifacts.publishLibraryModules) {
-              dependencies.add(MavenArtifactDependency(depArtifact.coordinates, true, ArrayList(), scope))
+              dependencies.add(MavenArtifactDependency(coordinates = depArtifact.coordinates, includeTransitiveDeps = true, excludedDependencies = emptyList(), scope = scope))
             }
             else {
               dependencies += depArtifact.dependencies
             }
           }
           else {
-            dependencies.add(MavenArtifactDependency(depArtifact.coordinates, true, ArrayList(), scope))
+            dependencies.add(MavenArtifactDependency(coordinates = depArtifact.coordinates, includeTransitiveDeps = true, excludedDependencies = emptyList(), scope = scope))
           }
         }
       }
