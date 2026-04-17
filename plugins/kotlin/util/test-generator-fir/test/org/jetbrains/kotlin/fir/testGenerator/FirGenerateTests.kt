@@ -525,12 +525,6 @@ private fun assembleWorkspace(): TWorkspace = workspace(KotlinPluginMode.K2) {
 
         testClass<AbstractFirKeywordCompletionTest> {
             model("keywords", isRecursive = false, pattern = KT_WITHOUT_FIR_PREFIX)
-            model(
-                "../../idea-fir/testData/completion/keywords",
-                testClassName = "KeywordsFir",
-                isRecursive = false,
-                pattern = KT_WITHOUT_FIR_PREFIX
-            )
         }
         testClass<AbstractFirWithLibBasicCompletionTest> {
             model("basic/withLib", isRecursive = false, pattern = KT_WITHOUT_FIR_PREFIX)
