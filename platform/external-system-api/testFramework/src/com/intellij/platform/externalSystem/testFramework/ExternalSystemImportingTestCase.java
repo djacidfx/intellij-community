@@ -57,7 +57,6 @@ import com.intellij.platform.testFramework.assertion.moduleAssertion.ContentRoot
 import com.intellij.platform.testFramework.assertion.moduleAssertion.ModuleAssertions;
 import com.intellij.platform.testFramework.assertion.moduleAssertion.SourceRootAssertions;
 import com.intellij.psi.PsiElement;
-import com.intellij.testFramework.IndexingTestUtil;
 import com.intellij.testFramework.PlatformTestUtil;
 import com.intellij.testFramework.RunAll;
 import com.intellij.usageView.UsageInfo;
@@ -89,9 +88,9 @@ import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import static com.intellij.platform.externalSystem.testFramework.ExternalSystemTestObservation.waitForProjectActivity;
 import static com.intellij.platform.externalSystem.testFramework.utils.module.ExternalSystemSourceRootAssertions.getExType;
 import static com.intellij.testFramework.EdtTestUtil.runInEdtAndGet;
-import static com.intellij.testFramework.EdtTestUtil.runInEdtAndWait;
 
 /**
  * @author Vladislav.Soroka
@@ -537,8 +536,9 @@ public abstract class ExternalSystemImportingTestCase extends NioExternalSystemT
     final Ref<Couple<String>> error = Ref.create();
     ImportSpec importSpec = createImportSpec();
     ExternalProjectRefreshCallback callback = importSpec.getCallback();
+    ImportSpecBuilder importSpecBuilder = new ImportSpecBuilder(importSpec);
     if (callback == null || callback instanceof ImportSpecBuilder.DefaultProjectRefreshCallback) {
-      importSpec = new ImportSpecBuilder(importSpec).callback(new ExternalProjectRefreshCallback() {
+      importSpecBuilder.callback(new ExternalProjectRefreshCallback() {
         @Override
         public void onSuccess(final @Nullable DataNode<ProjectData> externalProject) {
           if (externalProject == null) {
@@ -560,16 +560,14 @@ public abstract class ExternalSystemImportingTestCase extends NioExternalSystemT
       }).build();
     }
 
-    ExternalSystemUtil.refreshProjects(importSpec);
+    // await for all background activities to complete
+    waitForProjectActivity(getMyProject(), () ->
+      ExternalSystemUtil.refreshProjects(importSpecBuilder)
+    );
 
     if (!error.isNull()) {
       handleImportFailure(error.get().first, error.get().second);
     }
-
-    // allow all the invokeLater to pass through the queue, before waiting for indexes to be ready
-    // (specifically, all the invokeLater that schedule indexing after language level change performed by import)
-    runInEdtAndWait(() -> PlatformTestUtil.dispatchAllEventsInIdeEventQueue());
-    IndexingTestUtil.waitUntilIndexesAreReady(getMyProject());
   }
 
   protected void handleImportFailure(@NotNull String errorMessage, @Nullable String errorDetails) {
