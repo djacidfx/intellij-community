@@ -419,6 +419,7 @@ class MacDistributionBuilder(
           bootClassPathJarNames = context.bootClassPathJarNames,
           additionalJvmArguments = context.getAdditionalJvmArguments(OsFamily.MACOS, arch),
           mainClass = context.ideMainClassName,
+          stdioRedirectArg = context.productProperties.stdioRedirectArg,
           customCommands = run {
             val base = listOfNotNull(
               generateEmbeddedFrontendLaunchData(arch, OsFamily.MACOS, context) {

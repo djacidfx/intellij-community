@@ -83,6 +83,7 @@ f:com.intellij.platform.buildData.productInfo.ProductInfoLaunchData
 - f:getMainClass():java.lang.String
 - f:getOs():java.lang.String
 - f:getStartupWmClass():java.lang.String
+- f:getStdioRedirectArg():java.lang.String
 - f:getVmOptionsFilePath():java.lang.String
 bf:com.intellij.platform.buildData.productInfo.ProductInfoLaunchData$$serializer
 - kotlinx.serialization.internal.GeneratedSerializer

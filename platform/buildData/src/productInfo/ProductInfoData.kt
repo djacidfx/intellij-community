@@ -97,6 +97,7 @@ class ProductInfoLaunchData private constructor(
   val bootClassPathJarNames: List<String> = emptyList(),
   val additionalJvmArguments: List<String> = emptyList(),
   val mainClass: String? = null,
+  val stdioRedirectArg: String? = null,
   val customCommands: List<CustomCommandLaunchData> = emptyList(),
 ) {
   companion object {
@@ -116,12 +117,23 @@ class ProductInfoLaunchData private constructor(
       bootClassPathJarNames: List<String>,
       additionalJvmArguments: List<String>,
       mainClass: String,
+      stdioRedirectArg: String?,
       startupWmClass: String? = null,
       customCommands: List<CustomCommandLaunchData> = emptyList(),
-    ): ProductInfoLaunchData = ProductInfoLaunchData(
-      os, arch, launcherPath, javaExecutablePath, vmOptionsFilePath, startupWmClass, bootClassPathJarNames, additionalJvmArguments,
-      mainClass, customCommands
-    )
+    ): ProductInfoLaunchData =
+      ProductInfoLaunchData(
+        os = os,
+        arch = arch,
+        launcherPath = launcherPath,
+        javaExecutablePath = javaExecutablePath,
+        vmOptionsFilePath = vmOptionsFilePath,
+        startupWmClass = startupWmClass,
+        bootClassPathJarNames = bootClassPathJarNames,
+        additionalJvmArguments = additionalJvmArguments,
+        mainClass = mainClass,
+        stdioRedirectArg = stdioRedirectArg,
+        customCommands = customCommands
+      )
   }
 }
 

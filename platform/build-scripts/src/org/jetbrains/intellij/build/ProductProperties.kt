@@ -76,6 +76,11 @@ abstract class ProductProperties {
   var mainClassName: String = "com.intellij.idea.Main"
 
   /**
+   * The name of a special argument that will trigger the launcher to capture its original stdout and provide it separately as a system property.
+   */
+  var stdioRedirectArg: String? = null
+
+  /**
    * Path to a directory containing images which will be used in the product's distribution. This property can be used instead of providing paths to individual files in
    * [WindowsCustomizerBuilder], [MacCustomizerBuilder] and [LinuxCustomizerBuilder].
    *

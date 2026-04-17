@@ -387,6 +387,7 @@ class LinuxDistributionBuilder(
           bootClassPathJarNames = context.bootClassPathJarNames,
           additionalJvmArguments = context.getAdditionalJvmArguments(OsFamily.LINUX, arch),
           mainClass = context.ideMainClassName,
+          stdioRedirectArg = context.productProperties.stdioRedirectArg,
           startupWmClass = getLinuxFrameClass(context),
           customCommands = run {
             val base = listOfNotNull(

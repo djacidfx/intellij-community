@@ -525,6 +525,7 @@ private suspend fun writeProductJsonFile(targetDir: Path, arch: JvmArchitecture,
         bootClassPathJarNames = context.bootClassPathJarNames,
         additionalJvmArguments = context.getAdditionalJvmArguments(OsFamily.WINDOWS, arch),
         mainClass = context.ideMainClassName,
+        stdioRedirectArg = context.productProperties.stdioRedirectArg,
         customCommands = run {
           val base = listOfNotNull(
             generateEmbeddedFrontendLaunchData(arch, OsFamily.WINDOWS, context) {
