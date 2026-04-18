@@ -284,6 +284,7 @@
       "jsonSchema.svg": "fileTypes/jsonSchema.svg",
       "jsp.svg": "fileTypes/jsp.svg",
       "jspx.svg": "fileTypes/jspx.svg",
+      "hprof.svg": "fileTypes/hprof.svg",
       "manifest.svg": "fileTypes/manifest.svg",
       "microsoftWindows.svg": "fileTypes/microsoftWindows.svg",
       "modified.svg": "general/modified.svg",

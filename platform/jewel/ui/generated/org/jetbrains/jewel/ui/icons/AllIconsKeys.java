@@ -1293,7 +1293,7 @@ public final class AllIconsKeys {
     public static final @NotNull IntelliJIconKey Gitignore = new IntelliJIconKey("expui/fileTypes/gitignore.svg", "expui/fileTypes/gitignore.svg", AllIconsKeys.class);
     /** 16x16 */ 
     @GeneratedFromIntelliJSources
-    public static final @NotNull IntelliJIconKey Hprof = new IntelliJIconKey("fileTypes/hprof.svg", "fileTypes/hprof.svg", AllIconsKeys.class);
+    public static final @NotNull IntelliJIconKey Hprof = new IntelliJIconKey("fileTypes/hprof.svg", "expui/fileTypes/hprof.svg", AllIconsKeys.class);
     /** 16x16 */ 
     @GeneratedFromIntelliJSources
     public static final @NotNull IntelliJIconKey Htaccess = new IntelliJIconKey("fileTypes/htaccess.svg", "fileTypes/htaccess.svg", AllIconsKeys.class);
