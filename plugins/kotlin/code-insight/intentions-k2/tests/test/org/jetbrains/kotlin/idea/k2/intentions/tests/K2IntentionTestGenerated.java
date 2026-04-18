@@ -4441,6 +4441,16 @@ public abstract class K2IntentionTestGenerated extends AbstractK2IntentionTest {
             KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
         }
 
+        @TestMetadata("annotatedLiteral.kt")
+        public void testAnnotatedLiteral() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeExplicitType/annotatedLiteral.kt");
+        }
+
+        @TestMetadata("annotatedUnaryPlusLiteral.kt")
+        public void testAnnotatedUnaryPlusLiteral() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeExplicitType/annotatedUnaryPlusLiteral.kt");
+        }
+
         @TestMetadata("anonymousFunctionInitializer.kt")
         public void testAnonymousFunctionInitializer() throws Exception {
             runTest("../../../idea/tests/testData/intentions/removeExplicitType/anonymousFunctionInitializer.kt");
@@ -4676,6 +4686,16 @@ public abstract class K2IntentionTestGenerated extends AbstractK2IntentionTest {
             runTest("../../../idea/tests/testData/intentions/removeExplicitType/needTypeArgumentInFunctionDefinition.kt");
         }
 
+        @TestMetadata("negativeIntLiteralForLongVar.kt")
+        public void testNegativeIntLiteralForLongVar() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeExplicitType/negativeIntLiteralForLongVar.kt");
+        }
+
+        @TestMetadata("negativeLongLiteralVar.kt")
+        public void testNegativeLongLiteralVar() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeExplicitType/negativeLongLiteralVar.kt");
+        }
+
         @TestMetadata("notOnParameterOfFunctionType.kt")
         public void testNotOnParameterOfFunctionType() throws Exception {
             runTest("../../../idea/tests/testData/intentions/removeExplicitType/notOnParameterOfFunctionType.kt");
@@ -4734,6 +4754,31 @@ public abstract class K2IntentionTestGenerated extends AbstractK2IntentionTest {
         @TestMetadata("onType.kt")
         public void testOnType() throws Exception {
             runTest("../../../idea/tests/testData/intentions/removeExplicitType/onType.kt");
+        }
+
+        @TestMetadata("parenthesizedAnnotatedUnaryPlusIntLiteral.kt")
+        public void testParenthesizedAnnotatedUnaryPlusIntLiteral() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeExplicitType/parenthesizedAnnotatedUnaryPlusIntLiteral.kt");
+        }
+
+        @TestMetadata("parenthesizedAnnotatedUnaryPlusLiteral.kt")
+        public void testParenthesizedAnnotatedUnaryPlusLiteral() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeExplicitType/parenthesizedAnnotatedUnaryPlusLiteral.kt");
+        }
+
+        @TestMetadata("parenthesizedNegativeIntLiteralForLongVar.kt")
+        public void testParenthesizedNegativeIntLiteralForLongVar() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeExplicitType/parenthesizedNegativeIntLiteralForLongVar.kt");
+        }
+
+        @TestMetadata("parenthesizedPositiveIntLiteralForByteVar.kt")
+        public void testParenthesizedPositiveIntLiteralForByteVar() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeExplicitType/parenthesizedPositiveIntLiteralForByteVar.kt");
+        }
+
+        @TestMetadata("positiveIntLiteralForByteVar.kt")
+        public void testPositiveIntLiteralForByteVar() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeExplicitType/positiveIntLiteralForByteVar.kt");
         }
 
         @TestMetadata("propertyTypeForExtFunctionCall.kt")
