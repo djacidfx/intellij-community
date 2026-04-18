@@ -40,16 +40,16 @@ public final class AppendOnlyLogOverMMappedFile implements AppendOnlyLog, Unmapp
 
   //@formatter:off
   /**
-   * On error, provide more verbose diagnostic info about AOLog state (i.e. was there a recovery?) and content
-   * around record in question
+   * On error, provide more verbose diagnostic info about AOLog state (i.e., was there a recovery?) and content
+   * around the record in question
    */
   private static final boolean MORE_DIAGNOSTIC_INFORMATION = getBooleanProperty("AppendOnlyLogOverMMappedFile.MORE_DIAGNOSTIC_INFORMATION", true);
 
-  /** Append to the exceptions/errors a dump (hex) of log's content around questionable region */
+  /** Append to the exceptions/errors a dump (hex) of log's content around the questionable region */
   private static final boolean APPEND_LOG_DUMP_ON_ERROR = getBooleanProperty("AppendOnlyLogOverMMappedFile.APPEND_LOG_DUMP_ON_ERROR", true);
   /** How wide region around questionable record to dump for debug diagnostics (see {@link #dumpContentAroundId(long, int, int)}) */
   private static final int DEBUG_DUMP_REGION_WIDTH = 256;
-  /** If record content is larger -- don't print remaining part in the dump */
+  /** If record content is larger -- don't print the remaining part in the dump, use '...' instead */
   private static final int MAX_RECORD_SIZE_TO_DUMP = getIntProperty("AppendOnlyLogOverMMappedFile.MAX_RECORD_SIZE_TO_DUMP", 256);
   //@formatter:on
 
@@ -1082,14 +1082,11 @@ public final class AppendOnlyLogOverMMappedFile implements AppendOnlyLog, Unmapp
   }
 
 
-  //MAYBE RC: since record offsets are now 32b-aligned, we could drop 2 lowest bits from an offset while
-  //          converting it to the id -> this way we could address wider offsets range with int id
-
   @VisibleForTesting
   public static long recordOffsetToId(long recordOffset) {
     AlignmentUtils.assert32bAligned(recordOffset, "recordOffsetInFile");
-    //recordOffset is int32-aligned, 2 lowest bits are 0, we could drop them, and make recordId smaller
-    //0 is considered invalid id (NULL_ID) everywhere in our code, so '+1' for first id to be 1
+    //recordOffset is int32-aligned => 2 lowest bits are 0 => we could drop them, and make recordId smaller
+    //0 is considered an invalid id (=NULL_ID) everywhere in our code, so '+1' for first id to be 1
     return ((recordOffset - HeaderLayout.HEADER_SIZE) >> 2) + 1;
   }
 
