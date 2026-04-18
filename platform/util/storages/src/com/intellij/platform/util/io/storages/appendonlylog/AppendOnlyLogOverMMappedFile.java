@@ -2,6 +2,7 @@
 package com.intellij.platform.util.io.storages.appendonlylog;
 
 import com.intellij.openapi.util.IntRef;
+import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.io.ContentTooBigException;
 import com.intellij.platform.util.io.storages.AlignmentUtils;
 import com.intellij.platform.util.io.storages.mmapped.MMappedFileStorage;
@@ -584,10 +585,12 @@ public final class AppendOnlyLogOverMMappedFile implements AppendOnlyLog, Unmapp
 
     long recordsAllocatedUpTo = firstUnAllocatedOffset();
     if (recordOffsetInFile >= recordsAllocatedUpTo) {
-      throw new IllegalArgumentException(
-        "Can't read recordId(=" + recordId + ", offset: " + recordOffsetInFile + "]: " +
-        "outside of allocated region [<" + recordsAllocatedUpTo + "] " +
-        moreDiagnosticInfo(recordOffsetInFile));
+      throw new InvalidRecordIdException(
+        recordId,
+        "Can't read recordId(=" + recordId + "): " +
+        "offset(=" + recordOffsetInFile + ") is outside allocated region [<" + recordsAllocatedUpTo + "] " +
+        moreDiagnosticInfo(recordOffsetInFile)
+      );
     }
 
 
@@ -597,37 +600,50 @@ public final class AppendOnlyLogOverMMappedFile implements AppendOnlyLog, Unmapp
 
     int recordHeader = RecordLayout.readHeader(pageBuffer, recordOffsetInPage);
     if (!RecordLayout.isDataHeader(recordHeader)) {
-      throw new IOException("record[" + recordId + "][@" + recordOffsetInFile + "] is " +
-                            "PaddingRecord(header=" + Integer.toHexString(recordHeader) + ") -- i.e. has no data. " +
-                            moreDiagnosticInfo(recordOffsetInFile)
+      throw new InvalidRecordIdException(
+        recordId,
+        "record[" + recordId + "][@" + recordOffsetInFile + "] is " +
+        "PaddingRecord(header=" + Integer.toHexString(recordHeader) + ") -- i.e. has no data. " +
+        moreDiagnosticInfo(recordOffsetInFile)
       );
     }
     if (!RecordLayout.isRecordCommitted(recordHeader)) {
-      throw new IOException("record[" + recordId + "][@" + recordOffsetInFile + "] is not commited: " +
-                            "(header=" + Integer.toHexString(recordHeader) + ") either not yet written or corrupted. " +
-                            moreDiagnosticInfo(recordOffsetInFile) +
-                            (APPEND_LOG_DUMP_ON_ERROR
-                             ? "\n" +
-                               dumpContentAroundId(recordId, DEBUG_DUMP_REGION_WIDTH, MAX_RECORD_SIZE_TO_DUMP)
-                             : "")
-      );
+      String basicDiagnosticInfo = "record[" + recordId + "][@" + recordOffsetInFile + "] is not commited: " +
+                                   "(header=" + Integer.toHexString(recordHeader) + ") either not yet written or corrupted. " +
+                                   moreDiagnosticInfo(recordOffsetInFile);
+      throwInvalidRecordIdExceptionWithDetails(recordId, basicDiagnosticInfo);
     }
+
     int payloadLength = RecordLayout.extractPayloadLength(recordHeader);
     if (!RecordLayout.isFitIntoPage(pageBuffer, recordOffsetInPage, payloadLength)) {
-      throw new IOException("record[" + recordId + "][@" + recordOffsetInFile + "].payloadLength(=" + payloadLength + ") " +
-                            "is incorrect: page[0.." + pageBuffer.limit() + "], " +
-                            "committedUpTo: " + firstUnCommittedOffset() + ", allocatedUpTo: " + firstUnAllocatedOffset() + ". " +
-                            moreDiagnosticInfo(recordOffsetInFile) +
-                            (APPEND_LOG_DUMP_ON_ERROR
-                             ? "\n" +
-                               dumpContentAroundId(recordId, DEBUG_DUMP_REGION_WIDTH, MAX_RECORD_SIZE_TO_DUMP)
-                             : "")
-      );
+      String basicDiagnosticInfo = "record[" + recordId + "][@" + recordOffsetInFile + "].payloadLength(=" + payloadLength + ") " +
+                                   "is incorrect: page[0.." + pageBuffer.limit() + "], " +
+                                   "committedUpTo: " + firstUnCommittedOffset() + ", allocatedUpTo: " + firstUnAllocatedOffset() + ". " +
+                                   moreDiagnosticInfo(recordOffsetInFile);
+      throwInvalidRecordIdExceptionWithDetails(recordId, basicDiagnosticInfo);
     }
+
     ByteBuffer recordDataSlice = pageBuffer.slice(recordOffsetInPage + RecordLayout.DATA_OFFSET, payloadLength)
       //.asReadOnlyBuffer()
       .order(pageBuffer.order());
     return reader.read(recordDataSlice);
+  }
+
+  private void throwInvalidRecordIdExceptionWithDetails(long recordId, String basicDiagnosticInfo) throws IOException {
+    if (!APPEND_LOG_DUMP_ON_ERROR) {
+      //without scanning the log entries we don't know is recordId valid or not, so throw generic exception:
+      throw new IOException(basicDiagnosticInfo);
+    }
+    Pair<String, Boolean> dumpAndValidity = dumpContentAroundId(recordId, DEBUG_DUMP_REGION_WIDTH, MAX_RECORD_SIZE_TO_DUMP);
+    String dumpOfRecordsAroundId = dumpAndValidity.first;
+    boolean isRecordIdValid = dumpAndValidity.second;
+    String enhancedDiagnosticInfo = basicDiagnosticInfo + "\n" + dumpOfRecordsAroundId;
+    if (!isRecordIdValid) {
+      throw new InvalidRecordIdException(recordId, enhancedDiagnosticInfo);
+    }
+    else {//this means storage is likely corrupted -- maybe throw CorruptedException then?
+      throw new IOException(enhancedDiagnosticInfo);
+    }
   }
 
   @Override
@@ -955,7 +971,7 @@ public final class AppendOnlyLogOverMMappedFile implements AppendOnlyLog, Unmapp
       }
       else if (RecordLayout.isPaddingHeader(recordHeader)) {
         if (!RecordLayout.isRecordCommitted(recordHeader)) {
-          throw new IOException("padding.header("+recordHeader+") is not committed -- bug?");
+          throw new IOException("padding.header(" + recordHeader + ") is not committed -- bug?");
         }
         //else: normal padding, just skip it
       }
@@ -1044,18 +1060,24 @@ public final class AppendOnlyLogOverMMappedFile implements AppendOnlyLog, Unmapp
   }
 
   /**
-   * @return log records in a region [aroundRecordId-regionWidth..aroundRecordId+regionWidth],
-   * one record per line.
+   * @return (String: log records in a region {@code [aroundRecordId-regionWidth..aroundRecordId+regionWidth]},
+   * one record per line, boolean: is aroundRecordId a valid record id -- i.e. is there a record with such
+   * an id in the storage).
    * Record content formatted as hex-string.
-   * If fecord is larger than maxRecordSizeToDump -- first maxRecordSizeToDump bytes dumped, with '...' at the end
+   * If a record is larger than maxRecordSizeToDump -- only the first maxRecordSizeToDump bytes dumped, with '...' at the end
    */
-  private String dumpContentAroundId(long aroundRecordId,
-                                     int regionWidth,
-                                     int maxRecordSizeToDump) throws IOException {
-    StringBuilder sb = new StringBuilder("Log content around id: " + aroundRecordId + " +/- " + regionWidth +
+  private Pair<String, Boolean> dumpContentAroundId(long aroundRecordId,
+                                                    int regionWidth,
+                                                    int maxRecordSizeToDump) throws IOException {
+    StringBuilder sb = new StringBuilder("Records around id = " + aroundRecordId + " +/- " + regionWidth +
                                          " (first uncommitted offset: " + firstUnCommittedOffset() +
                                          ", first unallocated: " + firstUnAllocatedOffset() + ")\n");
+    IntRef isIdValid = new IntRef(0);
     forEachRecord((recordId, buffer) -> {
+      if (aroundRecordId == recordId) {
+        isIdValid.set(1);
+      }
+
       long recordOffset = recordIdToOffset(recordId);
       int recordSize = buffer.remaining();
 
@@ -1078,7 +1100,7 @@ public final class AppendOnlyLogOverMMappedFile implements AppendOnlyLog, Unmapp
       }
       return recordId <= aroundRecordId + regionWidth;
     });
-    return sb.toString();
+    return Pair.pair(sb.toString(), isIdValid.get() == 1);
   }
 
 

@@ -27,6 +27,7 @@ import com.intellij.openapi.vfs.newvfs.persistent.namecache.FileNameCache;
 import com.intellij.openapi.vfs.newvfs.persistent.namecache.MRUFileNameCache;
 import com.intellij.openapi.vfs.newvfs.persistent.namecache.SLRUFileNameCache;
 import com.intellij.openapi.vfs.newvfs.persistent.recovery.VFSInitializationResult;
+import com.intellij.platform.util.io.storages.appendonlylog.InvalidRecordIdException;
 import com.intellij.serviceContainer.AlreadyDisposedException;
 import com.intellij.util.BitUtil;
 import com.intellij.util.ExceptionUtil;
@@ -1627,6 +1628,10 @@ public final class FSRecordsImpl implements Closeable {
     try {
       return contentAccessor.readContent(fileId);
     }
+    catch (InvalidRecordIdException e) {
+      //MAYBE RC: should we call handleError() to mark VFS corrupted here?
+      throw new RuntimeException(e.getMessage() + " {" + connection.describeConsistencyStatus() + "}", e);
+    }
     catch (InterruptedIOException ie) {
       //TODO RC: do we still need these branch? Current VFSContentStorage impl never throws InterruptedIOException!
       //RC: goal is to avoid handleError(): handleError() likely marks VFS corrupted,
@@ -1655,6 +1660,10 @@ public final class FSRecordsImpl implements Closeable {
   @NotNull InputStream readContentById(int contentId) {
     try {
       return contentAccessor.readContentByContentId(contentId);
+    }
+    catch (InvalidRecordIdException e) {
+      //MAYBE RC: should we call handleError() to mark VFS corrupted here?
+      throw new RuntimeException(e.getMessage() + " {" + connection.describeConsistencyStatus() + "}", e);
     }
     catch (InterruptedIOException ie) {
       //TODO RC: do we still need these branch? Current VFSContentStorage impl never throws InterruptedIOException!
