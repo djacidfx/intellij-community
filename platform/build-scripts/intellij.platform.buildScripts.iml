@@ -76,7 +76,7 @@
     <orderEntry type="module" module-name="intellij.libraries.commons.io" />
     <orderEntry type="module" module-name="intellij.libraries.bouncy.castle.provider" />
     <orderEntry type="library" name="jetbrains.format.ripper" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="jackson-datatype-joda" level="project" />
+    <orderEntry type="module" module-name="intellij.libraries.jackson.datatype.joda" scope="RUNTIME" />
     <orderEntry type="module" module-name="intellij.libraries.http.client" />
     <orderEntry type="module" module-name="intellij.libraries.kotlinx.coroutines.slf4j" scope="RUNTIME" />
     <orderEntry type="library" name="slf4j-api" level="project" />

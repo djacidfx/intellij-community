@@ -13,9 +13,9 @@ jvm_library(
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
   resources = [":libraries-jackson-dataformat-yaml_resources"],
-  exports = ["@lib//:jackson-dataformat-yaml"],
+  exports = ["@lib//:libraries-jackson-dataformat-yaml-jackson-dataformat-yaml"],
   runtime_deps = [
-    "@lib//:jackson-dataformat-yaml",
+    "@lib//:libraries-jackson-dataformat-yaml-jackson-dataformat-yaml",
     "//libraries/jackson/jackson",
   ]
 )
@@ -26,7 +26,7 @@ jvm_library(
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
   kotlinc_opts = "@community//:k8",
-  exports = ["@lib//:jackson-dataformat-yaml"],
+  exports = ["@lib//:libraries-jackson-dataformat-yaml-jackson-dataformat-yaml"],
   runtime_deps = [
     ":libraries-jackson-dataformat-yaml",
     "//libraries/jackson/jackson:jackson_test_lib",

@@ -1,0 +1,41 @@
+### auto-generated section `build intellij.libraries.jackson.datatype.jsr310` start
+load("@rules_jvm//:jvm.bzl", "jvm_library", "resourcegroup")
+
+resourcegroup(
+  name = "libraries-jackson-datatype-jsr310_resources",
+  srcs = glob(["resources/**/*"]),
+  strip_prefix = "resources"
+)
+
+jvm_library(
+  name = "libraries-jackson-datatype-jsr310",
+  module_name = "intellij.libraries.jackson.datatype.jsr310",
+  visibility = ["//visibility:public"],
+  srcs = glob([], allow_empty = True),
+  resources = [":libraries-jackson-datatype-jsr310_resources"],
+  exports = ["@lib//:libraries-jackson-datatype-jsr310-jackson-datatype-jsr310"],
+  runtime_deps = [
+    "@lib//:libraries-jackson-datatype-jsr310-jackson-datatype-jsr310",
+    "//libraries/jackson/jackson",
+  ]
+)
+
+jvm_library(
+  name = "libraries-jackson-datatype-jsr310_test_lib",
+  module_name = "intellij.libraries.jackson.datatype.jsr310",
+  visibility = ["//visibility:public"],
+  srcs = glob([], allow_empty = True),
+  kotlinc_opts = "@community//:k8",
+  exports = ["@lib//:libraries-jackson-datatype-jsr310-jackson-datatype-jsr310"],
+  runtime_deps = [
+    ":libraries-jackson-datatype-jsr310",
+    "//libraries/jackson/jackson:jackson_test_lib",
+  ]
+)
+### auto-generated section `build intellij.libraries.jackson.datatype.jsr310` end
+
+### auto-generated section `iml intellij.libraries.jackson.datatype.jsr310` start
+exports_files([
+  "intellij.libraries.jackson.datatype.jsr310.iml",
+], visibility = ["//visibility:public"])
+### auto-generated section `iml intellij.libraries.jackson.datatype.jsr310` end

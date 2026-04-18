@@ -5362,104 +5362,6 @@ http_file(
 )
 
 http_file(
-  name = "com_fasterxml_jackson_core-jackson-core-2_19_0_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/core/jackson-core/2.19.0/jackson-core-2.19.0.jar",
-  sha256 = "da8e859bac94874528116a25f20c68560e4287acbf27628711b8a4f96b028430",
-  downloaded_file_path = "jackson-core-2.19.0.jar"
-)
-
-http_file(
-  name = "com_fasterxml_jackson_core-jackson-core-2_19_0-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/core/jackson-core/2.19.0/jackson-core-2.19.0-sources.jar",
-  sha256 = "d2a359b30e4b955ea188793a8a51c51a2eb11a65b31c274cfa4a3494b367e2b0",
-  downloaded_file_path = "jackson-core-2.19.0-sources.jar"
-)
-
-http_file(
-  name = "com_fasterxml_jackson_core-jackson-databind-2_19_0_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/core/jackson-databind/2.19.0/jackson-databind-2.19.0.jar",
-  sha256 = "ceda311f476c3b18e1d2b240c94e2dcb9c8d44e70f8afa9facab88bac4ddc03a",
-  downloaded_file_path = "jackson-databind-2.19.0.jar"
-)
-
-http_file(
-  name = "com_fasterxml_jackson_core-jackson-databind-2_19_0-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/core/jackson-databind/2.19.0/jackson-databind-2.19.0-sources.jar",
-  sha256 = "103f2f1efefc0be14cd03f309248e76836fedcae6beefb928d742718f0d8ba4a",
-  downloaded_file_path = "jackson-databind-2.19.0-sources.jar"
-)
-
-http_file(
-  name = "com_fasterxml_jackson_dataformat-jackson-dataformat-toml-2_19_0_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/dataformat/jackson-dataformat-toml/2.19.0/jackson-dataformat-toml-2.19.0.jar",
-  sha256 = "e6312d390c6bef67681f8e258f29ced2f3d0fa1d83a72e0bec1513b8c1c4f430",
-  downloaded_file_path = "jackson-dataformat-toml-2.19.0.jar"
-)
-
-http_file(
-  name = "com_fasterxml_jackson_dataformat-jackson-dataformat-toml-2_19_0-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/dataformat/jackson-dataformat-toml/2.19.0/jackson-dataformat-toml-2.19.0-sources.jar",
-  sha256 = "6ed663fd97c068c855ea60552905f9b30856de1b10e445bd41d1197cd3271979",
-  downloaded_file_path = "jackson-dataformat-toml-2.19.0-sources.jar"
-)
-
-http_file(
-  name = "com_fasterxml_jackson_dataformat-jackson-dataformat-yaml-2_19_0_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/dataformat/jackson-dataformat-yaml/2.19.0/jackson-dataformat-yaml-2.19.0.jar",
-  sha256 = "46e54dcbd39d4d12cda18ec9276e7b888e08fc765ea0c77e71662306f0d4abc4",
-  downloaded_file_path = "jackson-dataformat-yaml-2.19.0.jar"
-)
-
-http_file(
-  name = "com_fasterxml_jackson_dataformat-jackson-dataformat-yaml-2_19_0-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/dataformat/jackson-dataformat-yaml/2.19.0/jackson-dataformat-yaml-2.19.0-sources.jar",
-  sha256 = "a7cb351f4f94188278da87e151fecaf1def1b918271e2a9964f9ba5c0f7807c2",
-  downloaded_file_path = "jackson-dataformat-yaml-2.19.0-sources.jar"
-)
-
-http_file(
-  name = "com_fasterxml_jackson_datatype-jackson-datatype-joda-2_19_0_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/datatype/jackson-datatype-joda/2.19.0/jackson-datatype-joda-2.19.0.jar",
-  sha256 = "585fbc8bb26dffa4a3174d74352dd3e29cba990a9c1b06c1a547906aff2869ec",
-  downloaded_file_path = "jackson-datatype-joda-2.19.0.jar"
-)
-
-http_file(
-  name = "joda-time-joda-time-2_12_7_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/joda-time/joda-time/2.12.7/joda-time-2.12.7.jar",
-  sha256 = "385282b005818cfaccdbe8bd2429811e7e641782f2b88932a6b8ff51d668f616",
-  downloaded_file_path = "joda-time-2.12.7.jar"
-)
-
-http_file(
-  name = "com_fasterxml_jackson_datatype-jackson-datatype-joda-2_19_0-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/datatype/jackson-datatype-joda/2.19.0/jackson-datatype-joda-2.19.0-sources.jar",
-  sha256 = "6008b654130b008278e6d47869de4feb9254e300ec68eeb01c5e69f91bdb1ee5",
-  downloaded_file_path = "jackson-datatype-joda-2.19.0-sources.jar"
-)
-
-http_file(
-  name = "joda-time-joda-time-2_12_7-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/joda-time/joda-time/2.12.7/joda-time-2.12.7-sources.jar",
-  sha256 = "779825bebe331b4cdb11b955498b6d6f377641d342fdd83cb83f9909926b2821",
-  downloaded_file_path = "joda-time-2.12.7-sources.jar"
-)
-
-http_file(
-  name = "com_fasterxml_jackson_module-jackson-module-kotlin-2_19_0_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/module/jackson-module-kotlin/2.19.0/jackson-module-kotlin-2.19.0.jar",
-  sha256 = "df967eebc2c87eaa3f55338607104ffc8fa62fb2e813d67f95ed4f7f9c6f8cee",
-  downloaded_file_path = "jackson-module-kotlin-2.19.0.jar"
-)
-
-http_file(
-  name = "com_fasterxml_jackson_module-jackson-module-kotlin-2_19_0-sources_http",
-  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/module/jackson-module-kotlin/2.19.0/jackson-module-kotlin-2.19.0-sources.jar",
-  sha256 = "0ece369fc38a89e8ee95928522e47cda3ba09e5892ed1995887fb6bec9594971",
-  downloaded_file_path = "jackson-module-kotlin-2.19.0-sources.jar"
-)
-
-http_file(
   name = "org_apache_maven_resolver-maven-resolver-connector-basic-1_9_22_http",
   url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/apache/maven/resolver/maven-resolver-connector-basic/1.9.22/maven-resolver-connector-basic-1.9.22.jar",
   sha256 = "4ab68bdec97eec318b2a3bd27e7c954e316f890df92d544b68afd0bf666c9588",
@@ -9422,6 +9324,132 @@ http_file(
 )
 
 http_file(
+  name = "com_fasterxml_jackson_core-jackson-databind-2_19_0_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/core/jackson-databind/2.19.0/jackson-databind-2.19.0.jar",
+  sha256 = "ceda311f476c3b18e1d2b240c94e2dcb9c8d44e70f8afa9facab88bac4ddc03a",
+  downloaded_file_path = "jackson-databind-2.19.0.jar"
+)
+
+http_file(
+  name = "com_fasterxml_jackson_core-jackson-databind-2_19_0-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/core/jackson-databind/2.19.0/jackson-databind-2.19.0-sources.jar",
+  sha256 = "103f2f1efefc0be14cd03f309248e76836fedcae6beefb928d742718f0d8ba4a",
+  downloaded_file_path = "jackson-databind-2.19.0-sources.jar"
+)
+
+http_file(
+  name = "com_fasterxml_jackson_dataformat-jackson-dataformat-toml-2_19_0_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/dataformat/jackson-dataformat-toml/2.19.0/jackson-dataformat-toml-2.19.0.jar",
+  sha256 = "e6312d390c6bef67681f8e258f29ced2f3d0fa1d83a72e0bec1513b8c1c4f430",
+  downloaded_file_path = "jackson-dataformat-toml-2.19.0.jar"
+)
+
+http_file(
+  name = "com_fasterxml_jackson_dataformat-jackson-dataformat-toml-2_19_0-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/dataformat/jackson-dataformat-toml/2.19.0/jackson-dataformat-toml-2.19.0-sources.jar",
+  sha256 = "6ed663fd97c068c855ea60552905f9b30856de1b10e445bd41d1197cd3271979",
+  downloaded_file_path = "jackson-dataformat-toml-2.19.0-sources.jar"
+)
+
+http_file(
+  name = "com_fasterxml_jackson_dataformat-jackson-dataformat-xml-2_19_0_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/dataformat/jackson-dataformat-xml/2.19.0/jackson-dataformat-xml-2.19.0.jar",
+  sha256 = "a9c2d02fa10a87a9e5fdd7684ec8ddc9e6c47e01d668cdf120452908fc58b9e9",
+  downloaded_file_path = "jackson-dataformat-xml-2.19.0.jar"
+)
+
+http_file(
+  name = "com_fasterxml_jackson_dataformat-jackson-dataformat-xml-2_19_0-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/dataformat/jackson-dataformat-xml/2.19.0/jackson-dataformat-xml-2.19.0-sources.jar",
+  sha256 = "e5ecc6d323aa63081fdb3014b78fc5f9103d240ea1d7cca9e1055d18a93af26c",
+  downloaded_file_path = "jackson-dataformat-xml-2.19.0-sources.jar"
+)
+
+http_file(
+  name = "com_fasterxml_jackson_dataformat-jackson-dataformat-yaml-2_19_0_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/dataformat/jackson-dataformat-yaml/2.19.0/jackson-dataformat-yaml-2.19.0.jar",
+  sha256 = "46e54dcbd39d4d12cda18ec9276e7b888e08fc765ea0c77e71662306f0d4abc4",
+  downloaded_file_path = "jackson-dataformat-yaml-2.19.0.jar"
+)
+
+http_file(
+  name = "com_fasterxml_jackson_dataformat-jackson-dataformat-yaml-2_19_0-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/dataformat/jackson-dataformat-yaml/2.19.0/jackson-dataformat-yaml-2.19.0-sources.jar",
+  sha256 = "a7cb351f4f94188278da87e151fecaf1def1b918271e2a9964f9ba5c0f7807c2",
+  downloaded_file_path = "jackson-dataformat-yaml-2.19.0-sources.jar"
+)
+
+http_file(
+  name = "com_fasterxml_jackson_datatype-jackson-datatype-jdk8-2_19_0_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.19.0/jackson-datatype-jdk8-2.19.0.jar",
+  sha256 = "04f1a3f9da8155995dd00098d6847cdb9b7af67f4a3028c94031eff017c8e3e5",
+  downloaded_file_path = "jackson-datatype-jdk8-2.19.0.jar"
+)
+
+http_file(
+  name = "com_fasterxml_jackson_datatype-jackson-datatype-jdk8-2_19_0-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.19.0/jackson-datatype-jdk8-2.19.0-sources.jar",
+  sha256 = "8d884b16f9368d09fff0b4e8825580761986d99c06c5a1ee8123436ef6abfc6d",
+  downloaded_file_path = "jackson-datatype-jdk8-2.19.0-sources.jar"
+)
+
+http_file(
+  name = "com_fasterxml_jackson_datatype-jackson-datatype-joda-2_19_0_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/datatype/jackson-datatype-joda/2.19.0/jackson-datatype-joda-2.19.0.jar",
+  sha256 = "585fbc8bb26dffa4a3174d74352dd3e29cba990a9c1b06c1a547906aff2869ec",
+  downloaded_file_path = "jackson-datatype-joda-2.19.0.jar"
+)
+
+http_file(
+  name = "joda-time-joda-time-2_12_7_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/joda-time/joda-time/2.12.7/joda-time-2.12.7.jar",
+  sha256 = "385282b005818cfaccdbe8bd2429811e7e641782f2b88932a6b8ff51d668f616",
+  downloaded_file_path = "joda-time-2.12.7.jar"
+)
+
+http_file(
+  name = "com_fasterxml_jackson_datatype-jackson-datatype-joda-2_19_0-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/datatype/jackson-datatype-joda/2.19.0/jackson-datatype-joda-2.19.0-sources.jar",
+  sha256 = "6008b654130b008278e6d47869de4feb9254e300ec68eeb01c5e69f91bdb1ee5",
+  downloaded_file_path = "jackson-datatype-joda-2.19.0-sources.jar"
+)
+
+http_file(
+  name = "joda-time-joda-time-2_12_7-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/joda-time/joda-time/2.12.7/joda-time-2.12.7-sources.jar",
+  sha256 = "779825bebe331b4cdb11b955498b6d6f377641d342fdd83cb83f9909926b2821",
+  downloaded_file_path = "joda-time-2.12.7-sources.jar"
+)
+
+http_file(
+  name = "com_fasterxml_jackson_datatype-jackson-datatype-jsr310-2_19_0_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.19.0/jackson-datatype-jsr310-2.19.0.jar",
+  sha256 = "0ee97bf32936349d6a4cf6d8428533bf4a4b5b3e7e55fd9a4f19508ce062a775",
+  downloaded_file_path = "jackson-datatype-jsr310-2.19.0.jar"
+)
+
+http_file(
+  name = "com_fasterxml_jackson_datatype-jackson-datatype-jsr310-2_19_0-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.19.0/jackson-datatype-jsr310-2.19.0-sources.jar",
+  sha256 = "78f8df5502abb928406d7c0385513db47891be4c520da15358136f4714bfac28",
+  downloaded_file_path = "jackson-datatype-jsr310-2.19.0-sources.jar"
+)
+
+http_file(
+  name = "com_fasterxml_jackson_core-jackson-core-2_19_0_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/core/jackson-core/2.19.0/jackson-core-2.19.0.jar",
+  sha256 = "da8e859bac94874528116a25f20c68560e4287acbf27628711b8a4f96b028430",
+  downloaded_file_path = "jackson-core-2.19.0.jar"
+)
+
+http_file(
+  name = "com_fasterxml_jackson_core-jackson-core-2_19_0-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/core/jackson-core/2.19.0/jackson-core-2.19.0-sources.jar",
+  sha256 = "d2a359b30e4b955ea188793a8a51c51a2eb11a65b31c274cfa4a3494b367e2b0",
+  downloaded_file_path = "jackson-core-2.19.0-sources.jar"
+)
+
+http_file(
   name = "com_fasterxml_jackson_jr-jackson-jr-objects-2_19_0_http",
   url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/jr/jackson-jr-objects/2.19.0/jackson-jr-objects-2.19.0.jar",
   sha256 = "1fbd56f47b0a35031585fa0444b81f1f284ebe4a8752a86f42d0c092c4d693e7",
@@ -9433,6 +9461,48 @@ http_file(
   url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/jr/jackson-jr-objects/2.19.0/jackson-jr-objects-2.19.0-sources.jar",
   sha256 = "0b55e3927112fc01df18c98a4b55873c5e8905d73f5c9dad3a559d6f1cb96cb6",
   downloaded_file_path = "jackson-jr-objects-2.19.0-sources.jar"
+)
+
+http_file(
+  name = "com_fasterxml_jackson_module-jackson-module-kotlin-2_19_0_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/module/jackson-module-kotlin/2.19.0/jackson-module-kotlin-2.19.0.jar",
+  sha256 = "df967eebc2c87eaa3f55338607104ffc8fa62fb2e813d67f95ed4f7f9c6f8cee",
+  downloaded_file_path = "jackson-module-kotlin-2.19.0.jar"
+)
+
+http_file(
+  name = "com_fasterxml_jackson_module-jackson-module-kotlin-2_19_0-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/fasterxml/jackson/module/jackson-module-kotlin/2.19.0/jackson-module-kotlin-2.19.0-sources.jar",
+  sha256 = "0ece369fc38a89e8ee95928522e47cda3ba09e5892ed1995887fb6bec9594971",
+  downloaded_file_path = "jackson-module-kotlin-2.19.0-sources.jar"
+)
+
+http_file(
+  name = "com_worldturner_medeia-medeia-validator-jackson-1_1_1_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/worldturner/medeia/medeia-validator-jackson/1.1.1/medeia-validator-jackson-1.1.1.jar",
+  sha256 = "b3cc41b37e0b5953898467f282b6a42075a2b41dd500fc49b1212829184534b2",
+  downloaded_file_path = "medeia-validator-jackson-1.1.1.jar"
+)
+
+http_file(
+  name = "com_worldturner_medeia-medeia-validator-core-1_1_1_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/worldturner/medeia/medeia-validator-core/1.1.1/medeia-validator-core-1.1.1.jar",
+  sha256 = "206a37ae4cb84c1aa4bedcf145e94e30cbab6f15b809a9602231f28793ebf793",
+  downloaded_file_path = "medeia-validator-core-1.1.1.jar"
+)
+
+http_file(
+  name = "com_worldturner_medeia-medeia-validator-jackson-1_1_1-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/worldturner/medeia/medeia-validator-jackson/1.1.1/medeia-validator-jackson-1.1.1-sources.jar",
+  sha256 = "b4fca6ed8594506cd3f1e2c2c23f233c4f65d9c986779587fde52c3d69da7a4f",
+  downloaded_file_path = "medeia-validator-jackson-1.1.1-sources.jar"
+)
+
+http_file(
+  name = "com_worldturner_medeia-medeia-validator-core-1_1_1-sources_http",
+  url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/com/worldturner/medeia/medeia-validator-core/1.1.1/medeia-validator-core-1.1.1-sources.jar",
+  sha256 = "f0b314d7f113c73051f223a4024e57addf758112342ff4cbacf85d242ed26c42",
+  downloaded_file_path = "medeia-validator-core-1.1.1-sources.jar"
 )
 
 http_file(

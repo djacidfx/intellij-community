@@ -6640,118 +6640,6 @@ jvm_import(
 )
 
 copy_file(
-  name = "com.fasterxml.jackson.core/jackson-core-2.19.0.jar_copy",
-  src = "@com_fasterxml_jackson_core-jackson-core-2_19_0_http//file",
-  out = "com.fasterxml.jackson.core/jackson-core-2.19.0.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-jvm_import(
-  name = "jackson",
-  jar = "@com_fasterxml_jackson_core-jackson-core-2_19_0_http//file",
-  source_jar = "@com_fasterxml_jackson_core-jackson-core-2_19_0-sources_http//file",
-  visibility = ["//visibility:public"]
-)
-
-copy_file(
-  name = "com.fasterxml.jackson.core/jackson-databind-2.19.0.jar_copy",
-  src = "@com_fasterxml_jackson_core-jackson-databind-2_19_0_http//file",
-  out = "com.fasterxml.jackson.core/jackson-databind-2.19.0.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-jvm_import(
-  name = "jackson-databind",
-  jar = "@com_fasterxml_jackson_core-jackson-databind-2_19_0_http//file",
-  source_jar = "@com_fasterxml_jackson_core-jackson-databind-2_19_0-sources_http//file",
-  visibility = ["//visibility:public"]
-)
-
-copy_file(
-  name = "com.fasterxml.jackson.dataformat/jackson-dataformat-toml-2.19.0.jar_copy",
-  src = "@com_fasterxml_jackson_dataformat-jackson-dataformat-toml-2_19_0_http//file",
-  out = "com.fasterxml.jackson.dataformat/jackson-dataformat-toml-2.19.0.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-jvm_import(
-  name = "jackson-dataformat-toml",
-  jar = "@com_fasterxml_jackson_dataformat-jackson-dataformat-toml-2_19_0_http//file",
-  source_jar = "@com_fasterxml_jackson_dataformat-jackson-dataformat-toml-2_19_0-sources_http//file",
-  visibility = ["//visibility:public"]
-)
-
-copy_file(
-  name = "com.fasterxml.jackson.dataformat/jackson-dataformat-yaml-2.19.0.jar_copy",
-  src = "@com_fasterxml_jackson_dataformat-jackson-dataformat-yaml-2_19_0_http//file",
-  out = "com.fasterxml.jackson.dataformat/jackson-dataformat-yaml-2.19.0.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-jvm_import(
-  name = "jackson-dataformat-yaml",
-  jar = "@com_fasterxml_jackson_dataformat-jackson-dataformat-yaml-2_19_0_http//file",
-  source_jar = "@com_fasterxml_jackson_dataformat-jackson-dataformat-yaml-2_19_0-sources_http//file",
-  visibility = ["//visibility:public"]
-)
-
-copy_file(
-  name = "com.fasterxml.jackson.datatype/jackson-datatype-joda-2.19.0.jar_copy",
-  src = "@com_fasterxml_jackson_datatype-jackson-datatype-joda-2_19_0_http//file",
-  out = "com.fasterxml.jackson.datatype/jackson-datatype-joda-2.19.0.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-copy_file(
-  name = "joda-time/joda-time-2.12.7.jar_copy",
-  src = "@joda-time-joda-time-2_12_7_http//file",
-  out = "joda-time/joda-time-2.12.7.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-java_library(
-  name = "jackson-datatype-joda",
-  exports = [
-    ":com_fasterxml_jackson_datatype-jackson-datatype-joda-2_19_0_http_import",
-    ":joda-time-joda-time-2_12_7_http_import",
-  ],
-  visibility = ["//visibility:public"]
-)
-
-jvm_import(
-  name = "com_fasterxml_jackson_datatype-jackson-datatype-joda-2_19_0_http_import",
-  jar = "@com_fasterxml_jackson_datatype-jackson-datatype-joda-2_19_0_http//file",
-  source_jar = "@com_fasterxml_jackson_datatype-jackson-datatype-joda-2_19_0-sources_http//file"
-)
-
-jvm_import(
-  name = "joda-time-joda-time-2_12_7_http_import",
-  jar = "@joda-time-joda-time-2_12_7_http//file",
-  source_jar = "@joda-time-joda-time-2_12_7-sources_http//file"
-)
-
-copy_file(
-  name = "com.fasterxml.jackson.module/jackson-module-kotlin-2.19.0.jar_copy",
-  src = "@com_fasterxml_jackson_module-jackson-module-kotlin-2_19_0_http//file",
-  out = "com.fasterxml.jackson.module/jackson-module-kotlin-2.19.0.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-jvm_import(
-  name = "jackson-module-kotlin",
-  jar = "@com_fasterxml_jackson_module-jackson-module-kotlin-2_19_0_http//file",
-  source_jar = "@com_fasterxml_jackson_module-jackson-module-kotlin-2_19_0-sources_http//file",
-  visibility = ["//visibility:public"]
-)
-
-copy_file(
   name = "org.apache.maven.resolver/maven-resolver-connector-basic-1.9.22.jar_copy",
   src = "@org_apache_maven_resolver-maven-resolver-connector-basic-1_9_22_http//file",
   out = "org.apache.maven.resolver/maven-resolver-connector-basic-1.9.22.jar",
@@ -12033,6 +11921,148 @@ jvm_import(
 )
 
 copy_file(
+  name = "com.fasterxml.jackson.core/jackson-databind-2.19.0.jar_copy",
+  src = "@com_fasterxml_jackson_core-jackson-databind-2_19_0_http//file",
+  out = "com.fasterxml.jackson.core/jackson-databind-2.19.0.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "libraries-jackson-databind-jackson-databind",
+  jar = "@com_fasterxml_jackson_core-jackson-databind-2_19_0_http//file",
+  source_jar = "@com_fasterxml_jackson_core-jackson-databind-2_19_0-sources_http//file",
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "com.fasterxml.jackson.dataformat/jackson-dataformat-toml-2.19.0.jar_copy",
+  src = "@com_fasterxml_jackson_dataformat-jackson-dataformat-toml-2_19_0_http//file",
+  out = "com.fasterxml.jackson.dataformat/jackson-dataformat-toml-2.19.0.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "libraries-jackson-dataformat-toml-jackson-dataformat-toml",
+  jar = "@com_fasterxml_jackson_dataformat-jackson-dataformat-toml-2_19_0_http//file",
+  source_jar = "@com_fasterxml_jackson_dataformat-jackson-dataformat-toml-2_19_0-sources_http//file",
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "com.fasterxml.jackson.dataformat/jackson-dataformat-xml-2.19.0.jar_copy",
+  src = "@com_fasterxml_jackson_dataformat-jackson-dataformat-xml-2_19_0_http//file",
+  out = "com.fasterxml.jackson.dataformat/jackson-dataformat-xml-2.19.0.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "libraries-jackson-dataformat-xml-jackson-dataformat-xml",
+  jar = "@com_fasterxml_jackson_dataformat-jackson-dataformat-xml-2_19_0_http//file",
+  source_jar = "@com_fasterxml_jackson_dataformat-jackson-dataformat-xml-2_19_0-sources_http//file",
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "com.fasterxml.jackson.dataformat/jackson-dataformat-yaml-2.19.0.jar_copy",
+  src = "@com_fasterxml_jackson_dataformat-jackson-dataformat-yaml-2_19_0_http//file",
+  out = "com.fasterxml.jackson.dataformat/jackson-dataformat-yaml-2.19.0.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "libraries-jackson-dataformat-yaml-jackson-dataformat-yaml",
+  jar = "@com_fasterxml_jackson_dataformat-jackson-dataformat-yaml-2_19_0_http//file",
+  source_jar = "@com_fasterxml_jackson_dataformat-jackson-dataformat-yaml-2_19_0-sources_http//file",
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "com.fasterxml.jackson.datatype/jackson-datatype-jdk8-2.19.0.jar_copy",
+  src = "@com_fasterxml_jackson_datatype-jackson-datatype-jdk8-2_19_0_http//file",
+  out = "com.fasterxml.jackson.datatype/jackson-datatype-jdk8-2.19.0.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "libraries-jackson-datatype-jdk8-jackson-datatype-jdk8",
+  jar = "@com_fasterxml_jackson_datatype-jackson-datatype-jdk8-2_19_0_http//file",
+  source_jar = "@com_fasterxml_jackson_datatype-jackson-datatype-jdk8-2_19_0-sources_http//file",
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "com.fasterxml.jackson.datatype/jackson-datatype-joda-2.19.0.jar_copy",
+  src = "@com_fasterxml_jackson_datatype-jackson-datatype-joda-2_19_0_http//file",
+  out = "com.fasterxml.jackson.datatype/jackson-datatype-joda-2.19.0.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "joda-time/joda-time-2.12.7.jar_copy",
+  src = "@joda-time-joda-time-2_12_7_http//file",
+  out = "joda-time/joda-time-2.12.7.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+java_library(
+  name = "libraries-jackson-datatype-joda-jackson-datatype-joda",
+  exports = [
+    ":com_fasterxml_jackson_datatype-jackson-datatype-joda-2_19_0_http_import",
+    ":joda-time-joda-time-2_12_7_http_import",
+  ],
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "com_fasterxml_jackson_datatype-jackson-datatype-joda-2_19_0_http_import",
+  jar = "@com_fasterxml_jackson_datatype-jackson-datatype-joda-2_19_0_http//file",
+  source_jar = "@com_fasterxml_jackson_datatype-jackson-datatype-joda-2_19_0-sources_http//file"
+)
+
+jvm_import(
+  name = "joda-time-joda-time-2_12_7_http_import",
+  jar = "@joda-time-joda-time-2_12_7_http//file",
+  source_jar = "@joda-time-joda-time-2_12_7-sources_http//file"
+)
+
+copy_file(
+  name = "com.fasterxml.jackson.datatype/jackson-datatype-jsr310-2.19.0.jar_copy",
+  src = "@com_fasterxml_jackson_datatype-jackson-datatype-jsr310-2_19_0_http//file",
+  out = "com.fasterxml.jackson.datatype/jackson-datatype-jsr310-2.19.0.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "libraries-jackson-datatype-jsr310-jackson-datatype-jsr310",
+  jar = "@com_fasterxml_jackson_datatype-jackson-datatype-jsr310-2_19_0_http//file",
+  source_jar = "@com_fasterxml_jackson_datatype-jackson-datatype-jsr310-2_19_0-sources_http//file",
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "com.fasterxml.jackson.core/jackson-core-2.19.0.jar_copy",
+  src = "@com_fasterxml_jackson_core-jackson-core-2_19_0_http//file",
+  out = "com.fasterxml.jackson.core/jackson-core-2.19.0.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "libraries-jackson-jackson",
+  jar = "@com_fasterxml_jackson_core-jackson-core-2_19_0_http//file",
+  source_jar = "@com_fasterxml_jackson_core-jackson-core-2_19_0-sources_http//file",
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
   name = "com.fasterxml.jackson.jr/jackson-jr-objects-2.19.0.jar_copy",
   src = "@com_fasterxml_jackson_jr-jackson-jr-objects-2_19_0_http//file",
   out = "com.fasterxml.jackson.jr/jackson-jr-objects-2.19.0.jar",
@@ -12045,6 +12075,58 @@ jvm_import(
   jar = "@com_fasterxml_jackson_jr-jackson-jr-objects-2_19_0_http//file",
   source_jar = "@com_fasterxml_jackson_jr-jackson-jr-objects-2_19_0-sources_http//file",
   visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "com.fasterxml.jackson.module/jackson-module-kotlin-2.19.0.jar_copy",
+  src = "@com_fasterxml_jackson_module-jackson-module-kotlin-2_19_0_http//file",
+  out = "com.fasterxml.jackson.module/jackson-module-kotlin-2.19.0.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "libraries-jackson-module-kotlin-jackson-module-kotlin",
+  jar = "@com_fasterxml_jackson_module-jackson-module-kotlin-2_19_0_http//file",
+  source_jar = "@com_fasterxml_jackson_module-jackson-module-kotlin-2_19_0-sources_http//file",
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "com.worldturner.medeia/medeia-validator-jackson-1.1.1.jar_copy",
+  src = "@com_worldturner_medeia-medeia-validator-jackson-1_1_1_http//file",
+  out = "com.worldturner.medeia/medeia-validator-jackson-1.1.1.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "com.worldturner.medeia/medeia-validator-core-1.1.1.jar_copy",
+  src = "@com_worldturner_medeia-medeia-validator-core-1_1_1_http//file",
+  out = "com.worldturner.medeia/medeia-validator-core-1.1.1.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+java_library(
+  name = "libraries-jackson-validator-jackson-validator",
+  exports = [
+    ":com_worldturner_medeia-medeia-validator-jackson-1_1_1_http_import",
+    ":com_worldturner_medeia-medeia-validator-core-1_1_1_http_import",
+  ],
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "com_worldturner_medeia-medeia-validator-jackson-1_1_1_http_import",
+  jar = "@com_worldturner_medeia-medeia-validator-jackson-1_1_1_http//file",
+  source_jar = "@com_worldturner_medeia-medeia-validator-jackson-1_1_1-sources_http//file"
+)
+
+jvm_import(
+  name = "com_worldturner_medeia-medeia-validator-core-1_1_1_http_import",
+  jar = "@com_worldturner_medeia-medeia-validator-core-1_1_1_http//file",
+  source_jar = "@com_worldturner_medeia-medeia-validator-core-1_1_1-sources_http//file"
 )
 
 copy_file(

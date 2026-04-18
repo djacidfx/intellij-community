@@ -88,17 +88,10 @@ object CoreModuleSets {
     embeddedModule("intellij.libraries.imgscalr")
     embeddedModule("intellij.libraries.ini4j")
     embeddedModule("intellij.libraries.ion")
-    embeddedModule("intellij.libraries.jackson.annotations")
-    embeddedModule("intellij.libraries.jackson")
-    embeddedModule("intellij.libraries.jackson.jr.objects")
-    embeddedModule("intellij.libraries.jackson.databind")
-    embeddedModule("intellij.libraries.jackson.dataformat.yaml")
-    embeddedModule("intellij.libraries.jackson.module.kotlin")
-    embeddedModule("intellij.libraries.jackson3")
-    embeddedModule("intellij.libraries.jackson3.jr.objects")
-    embeddedModule("intellij.libraries.jackson3.databind")
-    embeddedModule("intellij.libraries.jackson3.dataformat.yaml")
-    embeddedModule("intellij.libraries.jackson3.module.kotlin")
+
+    moduleSet(librariesJackson2())
+    moduleSet(librariesJackson3())
+
     embeddedModule("intellij.libraries.java.websocket")
     embeddedModule("intellij.libraries.javax.annotation")
     // used by intellij.platform.util.jdom, so, embedded
@@ -133,6 +126,45 @@ object CoreModuleSets {
     // Temporary embedded while opentelemetry-exporter-otlp-common library remains embedded due to a dependency (IJPL-233394)
     embeddedModule("intellij.libraries.opentelemetry.sdk.autoconfigure.spi")
     embeddedModule("intellij.libraries.opentelemetry.exporter.sender.jdk")
+  }
+
+  /**
+   * Jackson 2 library wrapper modules.
+   *
+   * Kept as a dedicated module set so that `librariesPlatform()` stays focused on truly universal utilities.
+   *
+   * Included transitively by `librariesPlatform()`.
+   */
+  fun librariesJackson2(): ModuleSet = moduleSet("libraries.jackson2") {
+    embeddedModule("intellij.libraries.jackson.annotations")
+    embeddedModule("intellij.libraries.jackson")
+    embeddedModule("intellij.libraries.jackson.jr.objects")
+    embeddedModule("intellij.libraries.jackson.databind")
+
+    module("intellij.libraries.jackson.dataformat.xml")
+    embeddedModule("intellij.libraries.jackson.dataformat.yaml")
+    module("intellij.libraries.jackson.dataformat.toml")
+
+    module("intellij.libraries.jackson.datatype.jdk8")
+    module("intellij.libraries.jackson.datatype.joda")
+    module("intellij.libraries.jackson.datatype.jsr310")
+
+    embeddedModule("intellij.libraries.jackson.module.kotlin")
+  }
+
+  /**
+   * Jackson 3 library wrapper modules.
+   *
+   * Kept as a dedicated module set so that `librariesPlatform()` stays focused on truly universal utilities.
+   *
+   * Included transitively by `librariesPlatform()`.
+   */
+  fun librariesJackson3(): ModuleSet = moduleSet("libraries.jackson3") {
+    embeddedModule("intellij.libraries.jackson3")
+    embeddedModule("intellij.libraries.jackson3.jr.objects")
+    embeddedModule("intellij.libraries.jackson3.databind")
+    embeddedModule("intellij.libraries.jackson3.dataformat.yaml")
+    embeddedModule("intellij.libraries.jackson3.module.kotlin")
   }
 
   /**

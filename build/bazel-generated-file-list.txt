@@ -413,10 +413,16 @@ libraries/io
 libraries/ion
 libraries/jackson/annotations
 libraries/jackson/databind
+libraries/jackson/dataformat-toml
+libraries/jackson/dataformat-xml
 libraries/jackson/dataformat-yaml
+libraries/jackson/datatype-jdk8
+libraries/jackson/datatype-joda
+libraries/jackson/datatype-jsr310
 libraries/jackson/jackson
 libraries/jackson/jr-objects
 libraries/jackson/module-kotlin
+libraries/jackson/validator
 libraries/jackson3/databind
 libraries/jackson3/dataformat-yaml
 libraries/jackson3/jackson

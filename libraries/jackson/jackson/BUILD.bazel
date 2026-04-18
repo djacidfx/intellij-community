@@ -14,11 +14,11 @@ jvm_library(
   srcs = glob([], allow_empty = True),
   resources = [":jackson_resources"],
   exports = [
-    "@lib//:jackson",
+    "@lib//:libraries-jackson-jackson",
     "//libraries/jackson/annotations",
   ],
   runtime_deps = [
-    "@lib//:jackson",
+    "@lib//:libraries-jackson-jackson",
     "//libraries/jackson/annotations",
   ]
 )
@@ -30,7 +30,7 @@ jvm_library(
   srcs = glob([], allow_empty = True),
   kotlinc_opts = "@community//:k8",
   exports = [
-    "@lib//:jackson",
+    "@lib//:libraries-jackson-jackson",
     "//libraries/jackson/annotations",
     "//libraries/jackson/annotations:annotations_test_lib",
   ],

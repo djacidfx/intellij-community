@@ -14,11 +14,11 @@ jvm_library(
   srcs = glob([], allow_empty = True),
   resources = [":databind_resources"],
   exports = [
-    "@lib//:jackson-databind",
+    "@lib//:libraries-jackson-databind-jackson-databind",
     "//libraries/jackson/annotations",
   ],
   runtime_deps = [
-    "@lib//:jackson-databind",
+    "@lib//:libraries-jackson-databind-jackson-databind",
     "//libraries/jackson/annotations",
     "//libraries/jackson/jackson",
   ]
@@ -31,7 +31,7 @@ jvm_library(
   srcs = glob([], allow_empty = True),
   kotlinc_opts = "@community//:k8",
   exports = [
-    "@lib//:jackson-databind",
+    "@lib//:libraries-jackson-databind-jackson-databind",
     "//libraries/jackson/annotations",
     "//libraries/jackson/annotations:annotations_test_lib",
   ],

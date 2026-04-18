@@ -11,11 +11,6 @@
 - name: lib/frontend-split/kotlin-frontend.jar
   modules:
   - name: kotlin.frontend.split
-- name: lib/jackson-dataformat-toml.jar
-  library: jackson-dataformat-toml
-  files:
-  - name: $MAVEN_REPOSITORY$/com/fasterxml/jackson/dataformat/jackson-dataformat-toml/2/jackson-dataformat-toml-2.jar
-  reason: withProjectLibrary
 - name: lib/javax-inject.jar
   library: javax-inject
   files:

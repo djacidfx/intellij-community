@@ -13,9 +13,9 @@ jvm_library(
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
   resources = [":libraries-jackson-module-kotlin_resources"],
-  exports = ["@lib//:jackson-module-kotlin"],
+  exports = ["@lib//:libraries-jackson-module-kotlin-jackson-module-kotlin"],
   runtime_deps = [
-    "@lib//:jackson-module-kotlin",
+    "@lib//:libraries-jackson-module-kotlin-jackson-module-kotlin",
     "//libraries/jackson/jackson",
   ]
 )
@@ -26,7 +26,7 @@ jvm_library(
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
   kotlinc_opts = "@community//:k8",
-  exports = ["@lib//:jackson-module-kotlin"],
+  exports = ["@lib//:libraries-jackson-module-kotlin-jackson-module-kotlin"],
   runtime_deps = [
     ":libraries-jackson-module-kotlin",
     "//libraries/jackson/jackson:jackson_test_lib",

@@ -33,7 +33,7 @@
     <orderEntry type="module" module-name="intellij.kotlin.base.util" />
     <orderEntry type="module" module-name="intellij.kotlin.gradle.tooling.impl" />
     <orderEntry type="module" module-name="intellij.libraries.jackson.databind" />
-    <orderEntry type="library" name="jackson-dataformat-toml" level="project" />
+    <orderEntry type="module" module-name="intellij.libraries.jackson.dataformat.toml" />
     <orderEntry type="module" module-name="intellij.libraries.jackson" />
   </component>
 </module>
