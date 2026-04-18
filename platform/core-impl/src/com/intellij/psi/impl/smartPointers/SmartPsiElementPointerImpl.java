@@ -44,6 +44,7 @@ import org.jetbrains.annotations.VisibleForTesting;
 import java.lang.ref.Reference;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
+import java.util.Objects;
 
 @ApiStatus.Internal
 public class SmartPsiElementPointerImpl<E extends PsiElement> implements SmartPointerEx<E> {
@@ -168,13 +169,43 @@ public class SmartPsiElementPointerImpl<E extends PsiElement> implements SmartPo
         elementInfo = doCreateElementInfo(manager, element, containingFile, !forInjected);
         restoredElement = elementInfo.restoreElement(manager);
       }
-      if (!element.equals(restoredElement)) {
+      if (!element.equals(restoredElement) && !isEquivalentInjectedElement(element, restoredElement)) {
         // likely cause: PSI having isPhysical==true, but which can't be restored by containing file and range. To fix, make isPhysical return false
         LOG.error("Cannot restore " + element + " of " + element.getClass() + " from " + elementInfo +
                   "; restored=" + restoredElement + (restoredElement == null ? "" : " of " + restoredElement.getClass()) + " in " + element.getProject());
       }
     }
     return elementInfo;
+  }
+
+  /**
+   * Whether {@code restored} represents the same logical injected PSI element as {@code original}, even when the
+   * two come from different {@link FreeThreadedFileViewProvider} instances.
+   *
+   * <p>When the host document is committed, {@link InjectedLanguageManager#getInjectedPsiFiles} re-enumerates the
+   * registered {@code MultiHostInjector}s. Each injector reparses the injected content and produces a fresh PSI
+   * tree; merging that tree into the cached injected file replaces the internal elements. So an injected element
+   * captured before the commit and the element recovered afterward by
+   * {@code InjectedSelfElementInfo#restoreElement} can be two distinct JVM instances that still point to the same
+   * injection-site element. This can happen for any injection, not just a specific case.
+   *
+   * <p>In production this duplication is invisible: the round-trip assertion in {@link #createElementInfo} only
+   * runs under {@code isUnitTestMode()}.
+   *
+   * <p>Accept equivalence when both elements share class, text range and text; narrow enough that the round-trip
+   * check still catches real pointer bugs.
+   */
+  private static boolean isEquivalentInjectedElement(@NotNull PsiElement original, @Nullable PsiElement restored) {
+    if (restored == null || original.getClass() != restored.getClass()) return false;
+    PsiFile originalFile = original.getContainingFile();
+    PsiFile restoredFile = restored.getContainingFile();
+    if (originalFile == null || restoredFile == null) return false;
+    if (!(originalFile.getViewProvider() instanceof FreeThreadedFileViewProvider) ||
+        !(restoredFile.getViewProvider() instanceof FreeThreadedFileViewProvider)) {
+      return false;
+    }
+    return Objects.equals(original.getTextRange(), restored.getTextRange()) &&
+           Objects.equals(original.getText(), restored.getText());
   }
 
   private static @NotNull <E extends PsiElement> SmartPointerElementInfo doCreateElementInfo(@NotNull SmartPointerManagerEx manager,
