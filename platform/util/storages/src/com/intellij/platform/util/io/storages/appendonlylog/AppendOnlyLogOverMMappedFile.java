@@ -51,7 +51,7 @@ public final class AppendOnlyLogOverMMappedFile implements AppendOnlyLog, Unmapp
   /** How wide region around questionable record to dump for debug diagnostics (see {@link #dumpContentAroundId(long, int, int)}) */
   private static final int DEBUG_DUMP_REGION_WIDTH = 256;
   /** If record content is larger -- don't print the remaining part in the dump, use '...' instead */
-  private static final int MAX_RECORD_SIZE_TO_DUMP = getIntProperty("AppendOnlyLogOverMMappedFile.MAX_RECORD_SIZE_TO_DUMP", 256);
+  private static final int MAX_RECORD_SIZE_TO_DUMP = getIntProperty("AppendOnlyLogOverMMappedFile.MAX_RECORD_SIZE_TO_DUMP", 64);
   //@formatter:on
 
   private static final VarHandle INT32_OVER_BYTE_BUFFER = byteBufferViewVarHandle(int[].class, nativeOrder()).withInvokeExactBehavior();
@@ -1074,30 +1074,31 @@ public final class AppendOnlyLogOverMMappedFile implements AppendOnlyLog, Unmapp
                                          ", first unallocated: " + firstUnAllocatedOffset() + ")\n");
     IntRef isIdValid = new IntRef(0);
     forEachRecord((recordId, buffer) -> {
-      if (aroundRecordId == recordId) {
-        isIdValid.set(1);
-      }
-
       long recordOffset = recordIdToOffset(recordId);
       int recordSize = buffer.remaining();
 
       long nextRecordId = recordOffsetToId(nextRecordOffset(recordOffset, recordSize));
 
       //MAYBE RC: only use insideQuestionableRecord? Seems like records around are of little use
-      boolean insideQuestionableRecord = (recordId <= aroundRecordId && aroundRecordId <= nextRecordId);
-      boolean insideNeighbourRegion = (aroundRecordId - regionWidth <= recordId
-                                       && recordId <= aroundRecordId + regionWidth);
+      boolean exactQuestionableRecord = (recordId == aroundRecordId);
+      boolean insideQuestionableRecord = (recordId < aroundRecordId && aroundRecordId < nextRecordId);
+      boolean insideNeighbourRegion = (aroundRecordId - regionWidth) <= recordId && recordId <= (aroundRecordId + regionWidth);
 
-      if (insideQuestionableRecord || insideNeighbourRegion) {
+      if (exactQuestionableRecord || insideQuestionableRecord || insideNeighbourRegion) {
         String bufferAsHex = recordSize > maxRecordSizeToDump ?
                              IOUtil.toHexString(buffer.limit(buffer.position() + maxRecordSizeToDump).slice()) + " ... " :
                              IOUtil.toHexString(buffer.slice());
-        sb.append(insideQuestionableRecord ? "*" : "")
+        sb.append(exactQuestionableRecord ? ">" : (insideQuestionableRecord ? "~" : " "))
           .append("[id: ").append(recordId).append(']')
           .append("[offset: ").append(recordOffset).append(']')
           .append("[len: ").append(recordSize).append(']')
           .append("[hex: ").append(bufferAsHex).append("]\n");
       }
+
+      if (exactQuestionableRecord) {
+        isIdValid.set(1);
+      }
+
       return recordId <= aroundRecordId + regionWidth;
     });
     return Pair.pair(sb.toString(), isIdValid.get() == 1);
