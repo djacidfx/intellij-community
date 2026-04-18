@@ -114,7 +114,7 @@ internal class RemoveExplicitTypeIntention :
         // type. So we don't check the `explicitType` for nested errors.
         if (explicitType is KaErrorType) return false
 
-        if (!isInitializerTypeContextIndependent(initializer, typeReference)) return true
+        if (!initializer.isTypeContextIndependent(typeReference)) return true
 
         val initializerType = initializer.expressionType ?: return true
         val typeCanBeRemoved = if (isVar) {
@@ -130,30 +130,29 @@ internal class RemoveExplicitTypeIntention :
      * for expressions that are not covered.
      */
     context(_: KaSession)
-    private fun isInitializerTypeContextIndependent(
-        initializer: KtExpression,
+    private fun KtExpression.isTypeContextIndependent(
         typeReference: KtTypeReference,
     ): Boolean {
-        val unwrappedInitializer = initializer.unwrapParenthesesLabelsAndAnnotations() as? KtExpression ?: return false
+        val unwrappedInitializer = unwrapParenthesesLabelsAndAnnotations() as? KtExpression ?: return false
 
         return when (unwrappedInitializer) {
         is KtStringTemplateExpression -> true
         // `val n: Int = 1` - type of `1` is context-independent
         // `val n: Long = 1` - type of `1` is context-dependent
-        is KtConstantExpression -> unwrappedInitializer.isLiteralTypeContextIndependent(typeReference)
+        is KtConstantExpression -> unwrappedInitializer.isTypeContextIndependent(typeReference)
         is KtPrefixExpression -> {
             val baseExpression = unwrappedInitializer.baseExpression?.unwrapParenthesesLabelsAndAnnotations()
             when (baseExpression) {
-                is KtConstantExpression -> baseExpression.isLiteralTypeContextIndependent(typeReference)
+                is KtConstantExpression -> baseExpression.isTypeContextIndependent(typeReference)
                 else -> unwrappedInitializer.evaluate() != null
             }
         }
         is KtCallExpression -> unwrappedInitializer.typeArgumentList != null || !returnTypeOfCallDependsOnTypeParameters(unwrappedInitializer)
         is KtArrayAccessExpression -> !returnTypeOfCallDependsOnTypeParameters(unwrappedInitializer)
-        is KtCallableReferenceExpression -> isCallableReferenceExpressionTypeContextIndependent(unwrappedInitializer)
-        is KtQualifiedExpression -> ((unwrappedInitializer as? KtDotQualifiedExpression)?.selectorExpression ?: unwrappedInitializer.callExpression)?.let { isInitializerTypeContextIndependent(it, typeReference) } == true
-        is KtLambdaExpression -> isLambdaExpressionTypeContextIndependent(unwrappedInitializer, typeReference)
-        is KtNamedFunction -> isAnonymousFunctionTypeContextIndependent(unwrappedInitializer, typeReference)
+        is KtCallableReferenceExpression -> unwrappedInitializer.isTypeContextIndependent()
+        is KtQualifiedExpression -> ((unwrappedInitializer as? KtDotQualifiedExpression)?.selectorExpression ?: unwrappedInitializer.callExpression)?.isTypeContextIndependent(typeReference) == true
+        is KtLambdaExpression -> unwrappedInitializer.isTypeContextIndependent(typeReference)
+        is KtNamedFunction -> unwrappedInitializer.isTypeContextIndependent(typeReference)
         is KtSimpleNameExpression, is KtBinaryExpression -> true
         is KtIfExpression -> {
             val type = typeReference.type
@@ -175,7 +174,7 @@ internal class RemoveExplicitTypeIntention :
     }
 
     context(_: KaSession)
-    private fun KtConstantExpression.isLiteralTypeContextIndependent(typeReference: KtTypeReference): Boolean {
+    private fun KtConstantExpression.isTypeContextIndependent(typeReference: KtTypeReference): Boolean {
         val classId = inferClassIdByPsi() ?: return false
 
         @OptIn(KaExperimentalApi::class)
@@ -185,24 +184,24 @@ internal class RemoveExplicitTypeIntention :
     }
 
     context(_: KaSession)
-    private fun isLambdaExpressionTypeContextIndependent(lambdaExpression: KtLambdaExpression, typeReference: KtTypeReference): Boolean {
-        val lastStatement = lambdaExpression.bodyExpression?.statements?.lastOrNull() ?: return false
+    private fun KtLambdaExpression.isTypeContextIndependent(typeReference: KtTypeReference): Boolean {
+        val lastStatement = bodyExpression?.statements?.lastOrNull() ?: return false
 
         val returnTypeReference = (typeReference.typeElement as? KtFunctionType)?.returnTypeReference ?: return false
-        return isInitializerTypeContextIndependent(lastStatement, returnTypeReference)
+        return lastStatement.isTypeContextIndependent(returnTypeReference)
     }
 
     context(_: KaSession)
-    private fun isAnonymousFunctionTypeContextIndependent(anonymousFunction: KtNamedFunction, typeReference: KtTypeReference): Boolean {
-        if (anonymousFunction.hasDeclaredReturnType() || anonymousFunction.hasBlockBody()) return true
+    private fun KtNamedFunction.isTypeContextIndependent(typeReference: KtTypeReference): Boolean {
+        if (hasDeclaredReturnType() || hasBlockBody()) return true
 
         val returnTypeReference = (typeReference.typeElement as? KtFunctionType)?.returnTypeReference ?: return false
-        return anonymousFunction.initializer?.let { isInitializerTypeContextIndependent(it, returnTypeReference) } == true
+        return initializer?.isTypeContextIndependent(returnTypeReference) == true
     }
 
     context(_: KaSession)
-    private fun isCallableReferenceExpressionTypeContextIndependent(callableReferenceExpression: KtCallableReferenceExpression): Boolean {
-        val resolved = callableReferenceExpression.callableReference.references.firstNotNullOfOrNull { it.resolve() } ?: return false
+    private fun KtCallableReferenceExpression.isTypeContextIndependent(): Boolean {
+        val resolved = callableReference.references.firstNotNullOfOrNull { it.resolve() } ?: return false
         if (resolved !is KtNamedFunction) return true
 
         val symbol = resolved.symbol
