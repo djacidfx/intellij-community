@@ -1,5 +1,15 @@
 ### auto-generated section `build fleet.ktor.client.core` start
+load("//build:compiler-options.bzl", "create_kotlinc_options")
 load("@rules_jvm//:jvm.bzl", "jvm_library", "resourcegroup")
+
+create_kotlinc_options(
+  name = "custom_core",
+  jvm_target = "21",
+  x_consistent_data_class_copy_visibility = True,
+  x_context_parameters = True,
+  x_jvm_default = "all-compatibility",
+  x_lambdas = "class"
+)
 
 resourcegroup(
   name = "core_resources",
@@ -53,6 +63,7 @@ jvm_library(
   module_name = "fleet.ktor.client.core",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
+  kotlinc_opts = ":custom_core",
   exports = [
     "@lib//:fleet-io-ktor-client-core",
     "@lib//:fleet-io-ktor-events",

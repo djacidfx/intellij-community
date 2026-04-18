@@ -4,6 +4,7 @@ load("@rules_jvm//:jvm.bzl", "jvm_library", "resourcegroup")
 
 create_kotlinc_options(
   name = "custom_modules",
+  jvm_target = "21",
   x_allow_kotlin_package = True,
   x_consistent_data_class_copy_visibility = True,
   x_context_parameters = True,

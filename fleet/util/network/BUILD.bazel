@@ -4,6 +4,7 @@ load("@rules_jvm//:jvm.bzl", "jvm_library", "jvm_provided_library", "resourcegro
 
 create_kotlinc_options(
   name = "custom_network",
+  jvm_target = "21",
   opt_in = [
     "kotlin.ExperimentalStdlibApi",
     "kotlinx.coroutines.InternalCoroutinesApi",

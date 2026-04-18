@@ -1,5 +1,15 @@
 ### auto-generated section `build fleet.ktor.server.cio` start
+load("//build:compiler-options.bzl", "create_kotlinc_options")
 load("@rules_jvm//:jvm.bzl", "jvm_library", "resourcegroup")
+
+create_kotlinc_options(
+  name = "custom_cio",
+  jvm_target = "21",
+  x_consistent_data_class_copy_visibility = True,
+  x_context_parameters = True,
+  x_jvm_default = "all-compatibility",
+  x_lambdas = "class"
+)
 
 resourcegroup(
   name = "cio_resources",
@@ -55,6 +65,7 @@ jvm_library(
   module_name = "fleet.ktor.server.cio",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
+  kotlinc_opts = ":custom_cio",
   exports = [
     "@lib//:fleet-io-ktor-server-cio",
     "@lib//:fleet-io-ktor-server-host-common",
