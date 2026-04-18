@@ -5,6 +5,7 @@ import com.intellij.modcommand.ActionContext
 import com.intellij.modcommand.ModCommand
 import com.intellij.openapi.module.Module
 import com.intellij.psi.xml.XmlFile
+import org.jetbrains.idea.maven.dom.model.MavenDomPlugin
 import org.jetbrains.idea.maven.dom.model.MavenDomPluginExecution
 import org.jetbrains.idea.maven.model.MavenId
 import org.jetbrains.idea.maven.project.MavenProjectsManager
@@ -23,22 +24,17 @@ import org.jetbrains.kotlin.idea.util.application.executeWriteCommand
 
 abstract class AbstractMavenKotlinCompilerPluginProjectConfigurator: KotlinCompilerPluginProjectConfigurator {
     override fun isApplicable(module: Module): Boolean =
-        module.findPomFileWithPlugin(kotlinPluginId) != null
+        module.findPomFileWithPluginAndCompileGoal(kotlinPluginId) != null
 
     override fun configureModule(module: Module, configurationResultBuilder: ConfigurationResultBuilder) {
         val project = module.project
-        val xmlFile = module.findPomFileWithPlugin(kotlinPluginId) ?: return
+        val xmlFile = module.findPomFileWithPluginAndCompileGoal(kotlinPluginId) ?: return
         configurationResultBuilder.changedFile(xmlFile)
 
         val pom = PomFile.forFileOrNull(xmlFile) ?: return
         val kotlinPlugin = pom.findPlugin(kotlinPluginId) ?: return
 
-        val execution =
-            kotlinPlugin.executions.executions.firstOrNull { execution: MavenDomPluginExecution ->
-                execution.goals.goals.any {
-                    it.rawText == PomFile.KotlinGoals.Compile
-                }
-            } ?: return
+        val execution = kotlinPlugin.findExecutionWithKotlinCompileGoal() ?: return
 
         val configurationElement = execution.configuration.ensureTagExists()
         val compilerPlugins = configurationElement.findSubTags("compilerPlugins").firstOrNull()
@@ -57,19 +53,14 @@ abstract class AbstractMavenKotlinCompilerPluginProjectConfigurator: KotlinCompi
 
     override fun configureModuleModCommand(module: Module): ModCommand {
         val kotlinPluginId = kotlinPluginId
-        val xmlFile = module.findPomFileWithPlugin(kotlinPluginId) ?: return ModCommand.nop()
+        val xmlFile = module.findPomFileWithPluginAndCompileGoal(kotlinPluginId) ?: return ModCommand.nop()
         val actionContext = ActionContext.from(null, xmlFile)
         return ModCommand.psiUpdate(actionContext) { updater ->
             val writablePomFile = updater.getWritable(xmlFile)
             val pom = PomFile.forFileOrNull(writablePomFile) ?: return@psiUpdate
             val kotlinPlugin = pom.findPlugin(kotlinPluginId) ?: return@psiUpdate
 
-            val execution =
-                kotlinPlugin.executions.executions.firstOrNull { execution: MavenDomPluginExecution ->
-                    execution.goals.goals.any {
-                        it.rawText == PomFile.KotlinGoals.Compile
-                    }
-                } ?: return@psiUpdate
+            val execution = kotlinPlugin.findExecutionWithKotlinCompileGoal() ?: return@psiUpdate
 
             val configurationElement = execution.configuration.ensureTagExists()
             val compilerPlugins = configurationElement.findSubTags("compilerPlugins").firstOrNull()
@@ -87,10 +78,19 @@ abstract class AbstractMavenKotlinCompilerPluginProjectConfigurator: KotlinCompi
 
     protected abstract val pluginDependencyMavenId: MavenId?
 
-    private fun XmlFile.hasPlugin(pluginId: MavenId): Boolean =
-        PomFile.forFileOrNull(this)?.findPlugin(pluginId) != null
+    private fun MavenDomPlugin.findExecutionWithKotlinCompileGoal(): MavenDomPluginExecution? =
+        executions.executions.firstOrNull { execution: MavenDomPluginExecution ->
+            execution.goals.goals.any {
+                it.rawText == PomFile.KotlinGoals.Compile
+            }
+        }
 
-    private fun Module.findPomFileWithPlugin(pluginId: MavenId): XmlFile? {
+    private fun XmlFile.hasPlugin(pluginId: MavenId): Boolean =
+        PomFile.forFileOrNull(this)
+            ?.findPlugin(pluginId)
+            ?.findExecutionWithKotlinCompileGoal() != null
+
+    private fun Module.findPomFileWithPluginAndCompileGoal(pluginId: MavenId): XmlFile? {
         val pomFile = findModulePomFile(this) as? XmlFile ?: return null
         if (pomFile.hasPlugin(pluginId)) return pomFile
 
@@ -103,13 +103,8 @@ abstract class AbstractMavenKotlinCompilerPluginProjectConfigurator: KotlinCompi
         // child module could inherit plugin from parent
         while (parentId != null) {
             val parentModule = mavenProjectsManager.findProject(parentId) ?: return null
-            val mavenPlugin = parentModule.plugins.firstOrNull {
-                it.mavenId.equals(pluginId.groupId, pluginId.artifactId)
-            }
-            if (mavenPlugin != null) {
-                val psiFile = findPomXmlByFile(parentModule.file) ?: return null
-                if (psiFile.hasPlugin(pluginId)) return psiFile
-            }
+            val psiFile = findPomXmlByFile(parentModule.file) ?: return null
+            if (psiFile.hasPlugin(pluginId)) return psiFile
             parentId = parentModule.parentId
         }
         return null
