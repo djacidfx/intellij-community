@@ -808,15 +808,7 @@ object PyCallExpressionHelper {
    */
   @JvmStatic
   fun mapArguments(expression: PyCallSiteExpression, callableType: PyCallableType, context: TypeEvalContext): PyArgumentsMapping {
-    return mapArguments(expression, expression.getArguments(callableType.callable), callableType, context)
-  }
-
-  private fun mapArguments(
-    expression: PyCallSiteExpression,
-    arguments: List<PyExpression>,
-    callableType: PyCallableType,
-    context: TypeEvalContext,
-  ): PyArgumentsMapping {
+    val arguments = expression.getArguments(callableType.callable)
     val parameters = callableType.getParameters(context)
                      ?: return PyArgumentsMapping.empty(expression)
 
