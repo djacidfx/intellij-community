@@ -48,7 +48,7 @@ import org.jetbrains.kotlin.psi.psiUtil.getQualifiedExpressionForSelector
 import org.jetbrains.kotlin.psi.psiUtil.hasSuspendModifier
 import org.jetbrains.kotlin.resolve.calls.util.getCalleeExpressionIfAny
 
-internal class SuspiciousImplicitCoroutineScopeReceiverAccessInspection() :
+internal class SuspiciousImplicitCoroutineScopeReceiverAccessInspection :
     KotlinApplicableInspectionBase<KtExpression, SuspiciousImplicitCoroutineScopeReceiverAccessInspection.Context>() {
 
     class Context(val receiverLabelName: Name)
