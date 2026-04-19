@@ -1983,6 +1983,11 @@ public abstract class SharedK2LocalInspectionTestGenerated extends AbstractShare
                 runTest("../testData/inspectionsLocal/coroutines/ambiguousCoroutineScope/functionExtensionReceiver_suspendInlineWrapper_crossinlineLambda.kt");
             }
 
+            @TestMetadata("functionExtensionReceiver_suspendReceiverBuilder_unrelatedInterfaceMember_detectCoroutineScopeSubtypesEnabled.kt")
+            public void testFunctionExtensionReceiver_suspendReceiverBuilder_unrelatedInterfaceMember_detectCoroutineScopeSubtypesEnabled() throws Exception {
+                runTest("../testData/inspectionsLocal/coroutines/ambiguousCoroutineScope/functionExtensionReceiver_suspendReceiverBuilder_unrelatedInterfaceMember_detectCoroutineScopeSubtypesEnabled.kt");
+            }
+
             @TestMetadata("functionExtensionReceiver_suspendWrapper.kt")
             public void testFunctionExtensionReceiver_suspendWrapper() throws Exception {
                 runTest("../testData/inspectionsLocal/coroutines/ambiguousCoroutineScope/functionExtensionReceiver_suspendWrapper.kt");
@@ -1991,6 +1996,11 @@ public abstract class SharedK2LocalInspectionTestGenerated extends AbstractShare
             @TestMetadata("functionExtensionReceiver_suspendWrapper_coroutineContext.kt")
             public void testFunctionExtensionReceiver_suspendWrapper_coroutineContext() throws Exception {
                 runTest("../testData/inspectionsLocal/coroutines/ambiguousCoroutineScope/functionExtensionReceiver_suspendWrapper_coroutineContext.kt");
+            }
+
+            @TestMetadata("functionExtensionReceiver_suspendWrapper_coroutineContextFromSubtype_detectCoroutineScopeSubtypesEnabled.kt")
+            public void testFunctionExtensionReceiver_suspendWrapper_coroutineContextFromSubtype_detectCoroutineScopeSubtypesEnabled() throws Exception {
+                runTest("../testData/inspectionsLocal/coroutines/ambiguousCoroutineScope/functionExtensionReceiver_suspendWrapper_coroutineContextFromSubtype_detectCoroutineScopeSubtypesEnabled.kt");
             }
 
             @TestMetadata("functionExtensionReceiver_suspendWrapper_explicitThis.kt")
@@ -2011,6 +2021,16 @@ public abstract class SharedK2LocalInspectionTestGenerated extends AbstractShare
             @TestMetadata("functionExtensionReceiver_suspendWrapper_genericExtension.kt")
             public void testFunctionExtensionReceiver_suspendWrapper_genericExtension() throws Exception {
                 runTest("../testData/inspectionsLocal/coroutines/ambiguousCoroutineScope/functionExtensionReceiver_suspendWrapper_genericExtension.kt");
+            }
+
+            @TestMetadata("functionExtensionReceiver_suspendWrapper_intersectionOverride_detectCoroutineScopeSubtypesEnabled.kt")
+            public void testFunctionExtensionReceiver_suspendWrapper_intersectionOverride_detectCoroutineScopeSubtypesEnabled() throws Exception {
+                runTest("../testData/inspectionsLocal/coroutines/ambiguousCoroutineScope/functionExtensionReceiver_suspendWrapper_intersectionOverride_detectCoroutineScopeSubtypesEnabled.kt");
+            }
+
+            @TestMetadata("functionExtensionReceiver_suspendWrapper_subtypeMember_detectCoroutineScopeSubtypesEnabled.kt")
+            public void testFunctionExtensionReceiver_suspendWrapper_subtypeMember_detectCoroutineScopeSubtypesEnabled() throws Exception {
+                runTest("../testData/inspectionsLocal/coroutines/ambiguousCoroutineScope/functionExtensionReceiver_suspendWrapper_subtypeMember_detectCoroutineScopeSubtypesEnabled.kt");
             }
 
             @TestMetadata("functionExtensionReceiver_suspendWrapper_suspendFunInterface.kt")
@@ -2036,6 +2056,11 @@ public abstract class SharedK2LocalInspectionTestGenerated extends AbstractShare
             @TestMetadata("lambdaExtensionReceiver.kt")
             public void testLambdaExtensionReceiver() throws Exception {
                 runTest("../testData/inspectionsLocal/coroutines/ambiguousCoroutineScope/lambdaExtensionReceiver.kt");
+            }
+
+            @TestMetadata("lambdaExtensionReceiver_channelFlowLaunch_send_detectCoroutineScopeSubtypesEnabled.kt")
+            public void testLambdaExtensionReceiver_channelFlowLaunch_send_detectCoroutineScopeSubtypesEnabled() throws Exception {
+                runTest("../testData/inspectionsLocal/coroutines/ambiguousCoroutineScope/lambdaExtensionReceiver_channelFlowLaunch_send_detectCoroutineScopeSubtypesEnabled.kt");
             }
 
             @TestMetadata("lambdaExtensionReceiver_suspendWrapper.kt")

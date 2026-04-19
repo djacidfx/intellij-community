@@ -24,6 +24,7 @@ import org.jetbrains.kotlin.analysis.api.symbols.KaFunctionSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaReceiverParameterSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaSamConstructorSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.findClass
+import org.jetbrains.kotlin.analysis.api.symbols.receiverType
 import org.jetbrains.kotlin.analysis.api.types.KaType
 import org.jetbrains.kotlin.analysis.api.types.symbol
 import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
@@ -96,10 +97,15 @@ internal class SuspiciousImplicitCoroutineScopeReceiverAccessInspection() :
             return null
         }
 
-        // Check that the function has CoroutineScope as extension parameter (if present)        
-        val originalReceiverParameter = resolvedCall.symbol.receiverParameter
-        if (originalReceiverParameter?.returnType?.isCoroutineScopeType() == false) {
-            return null
+        // Check that the function has CoroutineScope as extension parameter (if present)
+        val originalReceiverType = resolvedCall.symbol.receiverType
+        if (originalReceiverType != null) {
+            if (!originalReceiverType.isCoroutineScopeType()) return null
+        } else {
+            // The function has no extension receiver — check that the containing class is a CoroutineScope (for member functions)
+            val containingSymbol = resolvedCall.symbol.fakeOverrideOriginal.containingSymbol as? KaClassLikeSymbol
+            val defaultType = containingSymbol?.defaultType
+            if (defaultType == null || !defaultType.isCoroutineScopeType()) return null
         }
 
         val receiverOwnerSymbol = when (val receiverSymbol = callReceiver.symbol) {
