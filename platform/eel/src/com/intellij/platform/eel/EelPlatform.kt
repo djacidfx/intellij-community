@@ -102,6 +102,7 @@ sealed interface EelPlatform {
   @ApiStatus.Experimental
   class Windows(override val arch: Arch) : EelPlatform {
     override val osFamily: EelOsFamily = EelOsFamily.Windows
+    override fun toString(): String = "${javaClass.simpleName} $arch"
   }
 
   @ApiStatus.Experimental
