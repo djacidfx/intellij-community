@@ -2,6 +2,9 @@
 <module type="JAVA_MODULE" version="4">
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
+    <content url="file://$MODULE_DIR$/testInternalSrc">
+      <sourceFolder url="file://$MODULE_DIR$/testInternalSrc" isTestSource="true" packagePrefix="com.intellij.serialization" />
+    </content>
     <content url="file://$MODULE_DIR$/testSrc">
       <sourceFolder url="file://$MODULE_DIR$/testSrc" isTestSource="true" packagePrefix="com.intellij.serialization" />
     </content>
@@ -19,4 +22,5 @@
     <orderEntry type="module" module-name="intellij.libraries.ion" />
     <orderEntry type="module" module-name="intellij.libraries.fastutil" />
   </component>
+  <component name="TestModuleProperties" production-module="intellij.platform.objectSerializer" />
 </module>
