@@ -233,7 +233,7 @@ internal class SuspiciousImplicitCoroutineScopeReceiverAccessInspection :
             /* descriptionTemplate = */ KotlinBundle.message("inspection.suspicious.implicit.coroutine.scope.receiver.description"),
             /* highlightType = */ ProblemHighlightType.GENERIC_ERROR_OR_WARNING,
             /* onTheFly = */ onTheFly,
-            /* fixes = */ AddExplicitLabeledReceiverFix(context),
+            /* ...fixes = */ AddExplicitLabeledReceiverFix(context),
         )
     }
 }
