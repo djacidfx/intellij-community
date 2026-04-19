@@ -14,16 +14,23 @@ internal class LombokKotlinMavenTest : AbstractMavenUpdateConfigurationQuickFixT
     override val testRoot: String
         get() = "lombok/tests/testData/maven/fixes/"
 
+    override fun setUpFixtures() {
+        super.setUpFixtures()
+        codeInsightTestFixture.enableInspections(/* ...inspections = */ LombokKotlinCompilerPluginInspection::class.java)
+    }
+
     @Test
     fun testAddKotlinLombokCompilerPlugin() = runBlocking {
-        codeInsightTestFixture.enableInspections(/* ...inspections = */ LombokKotlinCompilerPluginInspection::class.java)
         doMultiFileTest()
     }
 
     @Test
     fun testAddKotlinLombokCompilerPluginWithSubmodule() = runBlocking {
-        codeInsightTestFixture.enableInspections(/* ...inspections = */ LombokKotlinCompilerPluginInspection::class.java)
         doMultiFileTest()
     }
 
+    @Test
+    fun testAddKotlinLombokCompilerPluginWithSubmoduleWithPluginManagement() = runBlocking {
+        doMultiFileTest()
+    }
 }

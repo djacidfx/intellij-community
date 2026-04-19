@@ -6,6 +6,7 @@ import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.writeIntentReadAction
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.impl.LoadTextUtil
+import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.io.FileUtil
@@ -114,12 +115,19 @@ abstract class AbstractMavenUpdateConfigurationQuickFixTest : KotlinMavenImporti
             ?: error("'${ACTION_DIRECTIVE}' directive is not found")
 
         projectPom = virtualFilesByName["pom.xml"] ?: error("'no \"pom.xml\"")
-        addPom(projectPom)
-        importProjectAsync()
+        val pomFiles = virtualFilesByName.values.filter { it.name == "pom.xml" }
+        pomFiles.forEach(::addPom)
+        importProjectsAsync(pomFiles)
 
         withContext(Dispatchers.EDT) {
             writeIntentReadAction {
-                assertTrue(ModuleRootManager.getInstance(testFixture.module).fileIndex.isInSourceContent(mainVirtualFile))
+                assertTrue(
+                    "${mainVirtualFile} should be in source content",
+                    // main file has to be in sources of any module
+                    ModuleManager.getInstance(project).modules.any {
+                        ModuleRootManager.getInstance(it).fileIndex.isInSourceContent(mainVirtualFile)
+                    }
+                )
                 with(codeInsightTestFixture) {
                     configureFromExistingVirtualFile(mainVirtualFile)
                     canChangeDocumentDuringHighlighting(true)
@@ -139,7 +147,7 @@ abstract class AbstractMavenUpdateConfigurationQuickFixTest : KotlinMavenImporti
     private fun configureBeforeDirectory(parts: MutableList<TestFile>): Pair<Map<String, VirtualFile>, TestFile> {
         val beforeParts = filterParts(parts, "before/")
         val virtualFilesByName = beforeParts.associate { it.name to createProjectSubFile(it.name, it.content) }
-        LocalFileSystem.getInstance().refreshFiles(virtualFilesByName.values)
+        refreshFiles(virtualFilesByName.values.toList())
         val mainFile = beforeParts.singleOrNull { it.content.contains("<caret>") } ?: error("it has to be only one main file with <caret>")
         return virtualFilesByName to mainFile
     }
