@@ -571,10 +571,24 @@ object CommunityLibraryLicenses {
       .apache("https://github.com/FasterXML/jackson-dataformats-text/blob/2.16/pom.xml")
       .suppliedByPersons("Tatu Saloranta", "Christopher Currie", "Paul Brown"),
 
+    LibraryLicense("Jackson Dataformat XML", libraryName = "jackson-dataformat-xml", url = "https://github.com/FasterXML/jackson-dataformat-xml")
+      .apache("https://github.com/FasterXML/jackson-dataformat-xml/blob/2.19/LICENSE"),
+
     LibraryLicense("Jackson Dataformat YAML", libraryName = "jackson-dataformat-yaml", url = "https://github.com/FasterXML/jackson-dataformats-text")
       .additionalLibraryNames("jackson3-dataformat-yaml")
       .apache("https://github.com/FasterXML/jackson-dataformats-text/blob/2.16/pom.xml")
       .suppliedByPersons("Tatu Saloranta", "Christopher Currie", "Paul Brown"),
+
+    LibraryLicense("Jackson Datatype JDK8", libraryName = "jackson-datatype-jdk8", url = "https://github.com/FasterXML/jackson-modules-java8")
+      .apache("https://github.com/FasterXML/jackson-modules-java8/blob/2.18/LICENSE")
+      .suppliedByPersons("Nick Williams", "Tatu Saloranta", "Michael O'Keeffe"),
+
+    LibraryLicense("Jackson Datatype Joda", libraryName = "jackson-datatype-joda", url = "https://github.com/FasterXML/jackson-datatype-joda")
+      .apache("https://github.com/FasterXML/jackson-datatype-joda/blob/2.18/LICENSE"),
+
+    LibraryLicense("Jackson Datatype JSR310", libraryName = "jackson-datatype-jsr310", url = "https://github.com/FasterXML/jackson-modules-java8")
+      .apache("https://github.com/FasterXML/jackson-modules-java8/blob/2.18/LICENSE")
+      .suppliedByPersons("Nick Williams", "Tatu Saloranta", "Michael O'Keeffe"),
 
     LibraryLicense("Jackson Module Kotlin", libraryName = "jackson-module-kotlin", url = "https://github.com/FasterXML/jackson-module-kotlin")
       .additionalLibraryNames("jackson3-module-kotlin")
