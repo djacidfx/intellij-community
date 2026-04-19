@@ -142,13 +142,19 @@ class AgentChatFileEditorProviderTest {
   }
 
   @Test
-  fun registersAgentChatFileIconProvider() {
+  fun registersAgentChatDescriptorExtensions() {
     val descriptor = checkNotNull(javaClass.classLoader.getResource("intellij.agent.workbench.chat.xml")) {
       "Module descriptor intellij.agent.workbench.chat.xml is missing"
     }.readText()
 
     assertThat(descriptor)
       .contains("<fileIconProvider implementation=\"com.intellij.agent.workbench.chat.AgentChatFileIconProvider\"/>")
+      .contains(
+        "<applicationService serviceInterface=\"com.intellij.agent.workbench.sessions.core.providers.AgentOpenTopLevelThreadDispatchService\"",
+      )
+      .contains(
+        "serviceImplementation=\"com.intellij.agent.workbench.chat.AgentChatOpenTopLevelThreadDispatchService\"/>",
+      )
   }
 
   @Test
