@@ -435,6 +435,9 @@ public class VirtualDirectoryImpl extends VirtualFileSystemEntry {
     @NotNull String canonicallyCasedName,
     @NotNull NewVirtualFileSystem fileSystem
   ) {
+    if (!directory.isDirectory()) {
+      throw new IllegalArgumentException("directory[" + directory + "] must be a directory");
+    }
     var attributes = fileSystem.getAttributes(fakeChild);
     if (attributes == null) {
       return null;

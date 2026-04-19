@@ -299,7 +299,8 @@ public class LocalFileSystemImpl
       }
       var lastResolvedFile = result.lastResolvedFile();
       var nextChild = result.getUnresolvedChildName();
-      if (lastResolvedFile != null && nextChild != null) {
+      if (lastResolvedFile != null && lastResolvedFile.isDirectory()
+          && nextChild != null) {
         var fake = new FakeVirtualFile(lastResolvedFile, nextChild);
         var canonicallyCasedName = this.getCanonicallyCasedName(fake);
         var event = createCreateEvent(lastResolvedFile, fake, canonicallyCasedName, this);
