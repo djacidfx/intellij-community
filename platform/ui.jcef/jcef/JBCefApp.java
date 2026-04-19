@@ -255,7 +255,6 @@ public final class JBCefApp {
     final String logPath = PathManager.getLogPath() + Platform.current().fileSeparator + "jcef_" + ProcessHandle.current().pid() + "_i" + CEFAPP_INSTANCE_COUNT.get() + ".log";
     CefLog.init(logPath, myCefSettings.log_severity);
 
-    CefApp.addAppHandler(new MyCefAppHandler(myCefArgs, true));
     final CefApp newInstance = CefApp.getInstance(myCefArgs, myCefSettings, myServerExe);
     if (newInstance == null) {
       LOG.error("JCEF wasn't restarted (new instance is null).");
