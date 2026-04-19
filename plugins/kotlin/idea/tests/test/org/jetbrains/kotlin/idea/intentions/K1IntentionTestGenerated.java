@@ -17865,6 +17865,21 @@ public abstract class K1IntentionTestGenerated extends AbstractK1IntentionTest {
             runTest("testData/intentions/specifyTypeExplicitly/definitelyNonNullTypeOverrideProperty2.kt");
         }
 
+        @TestMetadata("DelegatedValFlexibleType.kt")
+        public void testDelegatedValFlexibleType() throws Exception {
+            runTest("testData/intentions/specifyTypeExplicitly/DelegatedValFlexibleType.kt");
+        }
+
+        @TestMetadata("DelegatedVarFlexibleType.kt")
+        public void testDelegatedVarFlexibleType() throws Exception {
+            runTest("testData/intentions/specifyTypeExplicitly/DelegatedVarFlexibleType.kt");
+        }
+
+        @TestMetadata("DelegatedVarNonFlexibleType.kt")
+        public void testDelegatedVarNonFlexibleType() throws Exception {
+            runTest("testData/intentions/specifyTypeExplicitly/DelegatedVarNonFlexibleType.kt");
+        }
+
         @TestMetadata("destructuringInLambda.kt")
         public void testDestructuringInLambda() throws Exception {
             runTest("testData/intentions/specifyTypeExplicitly/destructuringInLambda.kt");

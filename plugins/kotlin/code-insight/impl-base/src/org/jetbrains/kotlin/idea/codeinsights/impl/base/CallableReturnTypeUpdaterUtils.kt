@@ -281,7 +281,10 @@ object CallableReturnTypeUpdaterUtils {
             ?.distinctBy { createTypeByKtType(it) }
             ?.toList()
             ?: emptyList()
-        val cannotBeNull = overriddenTypes.any { !it.isNullable }
+        val delegatedVarRequiresNonNull = (declaration as? KtProperty)?.let { property ->
+            property.isVar && property.hasDelegate() && declarationTypes.any { it.hasFlexibleNullability }
+        } == true
+        val cannotBeNull = overriddenTypes.any { !it.isNullable } || delegatedVarRequiresNonNull
         val allTypes = (declarationTypes + overriddenTypes)
             // Here we do BFS manually rather than invoke `getAllSuperTypes` because we have multiple starting points. Simply calling
             // `getAllSuperTypes` does not work because it would BFS traverse each starting point and put the result together, in which
