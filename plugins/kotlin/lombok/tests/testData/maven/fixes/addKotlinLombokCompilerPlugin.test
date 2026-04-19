@@ -63,7 +63,7 @@
 
 </project>
 // FILE: before/src/main/kotlin/src.kt
-// ACTION: "Add Kotlin Lombok compiler plugin"
+// ACTION: Add Kotlin Lombok compiler plugin
 
 fun main() {
     <caret>println("Hello, Kotlin Lombok!")
@@ -146,7 +146,7 @@ fun main() {
 
 </project>
 // FILE: after/src/main/kotlin/src.kt
-// ACTION: "Add Kotlin Lombok compiler plugin"
+// ACTION: Add Kotlin Lombok compiler plugin
 
 fun main() {
     println("Hello, Kotlin Lombok!")
