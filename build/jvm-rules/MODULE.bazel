@@ -317,6 +317,20 @@ http_file(
 )
 
 http_file(
+    name = "kotlin-stdlib-wasm-js_klib_http",
+    downloaded_file_path = "kotlin-stdlib-wasm-js-%s.klib" % kotlin_compiler_version,
+    sha256 = "934caa440b0276e5247074888da51871975e81b53bf5a1cadd4b6bc644014cee",
+    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-stdlib-wasm-js/%s/kotlin-stdlib-wasm-js-%s.klib" % (kotlin_compiler_version, kotlin_compiler_version),
+)
+
+http_file(
+    name = "kotlin-stdlib-wasm-js_sources_http",
+    downloaded_file_path = "kotlin-stdlib-wasm-js-%s-sources.jar" % kotlin_compiler_version,
+    sha256 = "ed516b7b2b813f4bddc3fe073573662c191d6de3c6026b3c0f644d8430a9a971",
+    url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-stdlib-wasm-js/%s/kotlin-stdlib-wasm-js-%s-sources.jar" % (kotlin_compiler_version, kotlin_compiler_version),
+)
+
+http_file(
     name = "kotlin-stdlib-jdk7_http",
     downloaded_file_path = "kotlin-stdlib-jdk7-%s.jar" % kotlin_compiler_version,
     sha256 = "165bfeb3f43097bdf327a03daaff05c57f5ef81ce9cbc84427425a54c88e2925",

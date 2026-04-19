@@ -6,7 +6,7 @@ load("@rules_kotlin//kotlin:core.bzl", "define_kt_toolchain")
 load("@rules_kotlin//kotlin:jvm.bzl", "kt_jvm_import")
 load("@rules_pkg//pkg:mappings.bzl", "pkg_filegroup", "pkg_files", "strip_prefix")
 load("@rules_pkg//pkg:pkg.bzl", "pkg_zip")
-
+load("@rules_jvm//:wasmjs.bzl", "wasmjs_import")
 
 jvm_import(
   name = "protobuf_java",
@@ -455,4 +455,11 @@ pkg_zip(
        "//zip:files_to_zip",
     ],
     visibility = ["//visibility:public"],
+)
+
+wasmjs_import(
+  name = "kotlin-stdlib_klib",
+  klib = "@kotlin-stdlib-wasm-js_klib_http//file",
+  source_jar = "@kotlin-stdlib-wasm-js_sources_http//file",
+  visibility = ["//visibility:public"]
 )
