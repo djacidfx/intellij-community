@@ -38,6 +38,7 @@ internal fun convertHighlightingProblemToDto(
     column = problem.column,
     severity = severityDto,
     group = problem.group,
+    contextGroup = problem.contextGroup?.toString(),
     description = problem.description,
     filePath = problem.file.path,
     iconId = problem.icon.rpcIdOrNull(),

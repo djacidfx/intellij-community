@@ -44,6 +44,7 @@ data class HighlightingProblemDto(
   val column: Int,
   val severity: HighlightSeverityDto,
   val group: String?,
+  val contextGroup: String? = null,
   val description: String?,
   val filePath: String,
   val iconId: IconId?,

@@ -7,6 +7,7 @@ import com.intellij.analysis.problemsView.toolWindow.splitApi.HighlightingBasePr
 import com.intellij.analysis.problemsView.toolWindow.splitApi.ProblemDto
 import com.intellij.analysis.problemsView.toolWindow.splitApi.actions.QuickFixDto
 import com.intellij.codeHighlighting.HighlightDisplayLevel
+import com.intellij.codeInsight.multiverse.CodeInsightContext
 import com.intellij.ide.ui.icons.icon
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
@@ -30,6 +31,7 @@ class FrontendHighlightingProblem : FileProblem, HighlightingBaseProblem {
     this.icon = dto.iconId?.icon() ?: HighlightDisplayLevel.ERROR.icon
     this.quickFixes = dto.quickFixes
     this.quickFixOffset = dto.quickFixOffset
+    this.contextGroup = dto.contextGroup?.let { FrontendCodeInsightContext(it) }
     this.provider = object : ProblemsProvider {
       override val project = myProject
     }
@@ -45,6 +47,7 @@ class FrontendHighlightingProblem : FileProblem, HighlightingBaseProblem {
   override val severity: Int
   override val icon: Icon
   override val provider: ProblemsProvider
+  override val contextGroup: CodeInsightContext?
 
   private val quickFixes: List<QuickFixDto>
   private val quickFixOffset: Int
@@ -64,4 +67,8 @@ internal fun convertDtoToHighlightingProblem(dto: ProblemDto, file: VirtualFile,
       null
     }
   }
+}
+
+private data class FrontendCodeInsightContext(val name: String) : CodeInsightContext {
+  override fun toString(): String = name
 }

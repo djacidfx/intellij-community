@@ -2,6 +2,9 @@
 package com.intellij.platform.problemsView.frontend
 
 import com.intellij.analysis.problemsView.Problem
+import com.intellij.analysis.problemsView.toolWindow.FileNode
+import com.intellij.analysis.problemsView.toolWindow.Node
+import com.intellij.analysis.problemsView.toolWindow.ProblemsViewHighlightingChildrenBuilder
 import com.intellij.analysis.problemsView.toolWindow.ProblemsViewPanel
 import com.intellij.analysis.problemsView.toolWindow.Root
 import com.intellij.ide.vfs.rpcId
@@ -97,6 +100,12 @@ internal class FrontendProblemsViewHighlightingFileRoot(
   override fun getOtherProblemCount(): Int = 0
 
   override fun getOtherProblems(): Collection<Problem> = emptyList()
+
+  override fun getChildren(node: FileNode): Collection<Node> {
+    val fileProblems = getFileProblems(node.file).filterIsInstance<FrontendHighlightingProblem>()
+    val groupByToolId = panel.state.groupByToolId
+    return ProblemsViewHighlightingChildrenBuilder.prepareChildrenForFileRoot(fileProblems, node, groupByToolId)
+  }
 
   override fun dispose() {
     cs.cancel("Frontend root disposed")
