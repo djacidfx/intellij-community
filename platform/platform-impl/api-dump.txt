@@ -1834,6 +1834,18 @@ com.intellij.util.ui.ListItemEditor
 com.intellij.util.ui.ReloadablePanel$DataProvider
 - a:getCachedValues():java.util.Set
 - a:updateValuesAsynchronously():V
+c:com.intellij.util.ui.SwingTextTrimmer
+- sf:ELLIPSIS_AT_LEFT:com.intellij.util.ui.SwingTextTrimmer
+- sf:ELLIPSIS_AT_RIGHT:com.intellij.util.ui.SwingTextTrimmer
+- sf:ELLIPSIS_IN_CENTER:com.intellij.util.ui.SwingTextTrimmer
+- sf:KEY:com.intellij.openapi.util.Key
+- sf:THREE_DOTS_AT_LEFT:com.intellij.util.ui.SwingTextTrimmer
+- sf:THREE_DOTS_AT_RIGHT:com.intellij.util.ui.SwingTextTrimmer
+- sf:THREE_DOTS_IN_CENTER:com.intellij.util.ui.SwingTextTrimmer
+- s:createCenterTrimmer(F):com.intellij.util.ui.SwingTextTrimmer
+- isTrimmed():Z
+- setTrimmed(Z):V
+- trim(java.lang.String,java.awt.FontMetrics,I):java.lang.String
 com.intellij.util.ui.SwingTextTrimmerStrategy
 - a:trim(java.lang.String,java.awt.FontMetrics,I):java.lang.String
 com.intellij.util.ui.ValidatingTableEditor$RowHeightProvider

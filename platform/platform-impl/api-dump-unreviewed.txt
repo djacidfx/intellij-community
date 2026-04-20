@@ -14143,18 +14143,6 @@ f:com.intellij.util.ui.SwingHelper$HtmlViewerBuilder
 com.intellij.util.ui.SwingHelper$WidthCalculator
 - a:charWidth(C):I
 - a:stringWidth(java.lang.String):I
-c:com.intellij.util.ui.SwingTextTrimmer
-- sf:ELLIPSIS_AT_LEFT:com.intellij.util.ui.SwingTextTrimmer
-- sf:ELLIPSIS_AT_RIGHT:com.intellij.util.ui.SwingTextTrimmer
-- sf:ELLIPSIS_IN_CENTER:com.intellij.util.ui.SwingTextTrimmer
-- sf:KEY:com.intellij.openapi.util.Key
-- sf:THREE_DOTS_AT_LEFT:com.intellij.util.ui.SwingTextTrimmer
-- sf:THREE_DOTS_AT_RIGHT:com.intellij.util.ui.SwingTextTrimmer
-- sf:THREE_DOTS_IN_CENTER:com.intellij.util.ui.SwingTextTrimmer
-- s:createCenterTrimmer(F):com.intellij.util.ui.SwingTextTrimmer
-- isTrimmed():Z
-- setTrimmed(Z):V
-- trim(java.lang.String,java.awt.FontMetrics,I):java.lang.String
 c:com.intellij.util.ui.TextTransferable
 - java.awt.datatransfer.Transferable
 - <init>(java.lang.CharSequence):V
