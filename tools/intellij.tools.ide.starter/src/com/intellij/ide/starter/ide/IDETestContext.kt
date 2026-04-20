@@ -360,8 +360,12 @@ open class IDETestContext(
     SEARCH_EVERYWHERE_REGISTRY_KEYS.forEach { addSystemProperty(it, true) }
   }
 
-  fun enableFuzzyFilesSearchEverywhere(): IDETestContext = applyVMOptionsPatch {
-    addSystemProperty("search.everywhere.fuzzy.files.enabled", true)
+  fun setFuzzyFilesSearchEverywhereEnabled(isEnabled: Boolean): IDETestContext = applyVMOptionsPatch {
+    addSystemProperty("search.everywhere.fuzzy.files.enabled", isEnabled)
+  }
+
+  fun setLuceneSearchEverywhereEnabled(isEnabled: Boolean): IDETestContext = applyVMOptionsPatch {
+    addSystemProperty("search.everywhere.lucene.index.enabled", isEnabled)
   }
 
   fun enableCloudRegistry(registryHost: String): IDETestContext = applyVMOptionsPatch {
