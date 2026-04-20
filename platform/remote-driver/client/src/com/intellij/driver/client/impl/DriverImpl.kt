@@ -334,14 +334,14 @@ open class DriverImpl(host: JmxHost, override val isRemDevMode: Boolean, overrid
     return try {
       invoker.invoke(call)
     }
-    catch (ise: IllegalComponentStateException) {
-      throw ise
-    }
-    catch (ed: DriverIllegalStateException) {
-      throw ed
-    }
     catch (e: Exception) {
-      throw DriverCallException("Error on remote driver call", e)
+      when (e) {
+        is IllegalComponentStateException, is DriverIllegalStateException -> {
+          e.addSuppressed(DriverCallException("Error on remote driver call", null))
+          throw e
+        }
+        else -> throw DriverCallException("Error on remote driver call", e)
+      }
     }
   }
 
@@ -498,7 +498,7 @@ internal data class Session(
 
 private val NO_SESSION: Session = Session(0, OnDispatcher.DEFAULT, LockSemantics.NO_LOCK)
 
-class DriverCallException(message: String, e: Throwable) : RuntimeException(message, e)
+class DriverCallException(message: String, e: Throwable?) : RuntimeException(message, e)
 
 private data class AppServiceId(val clazz: Class<*>, val rdTarget: RdTarget)
 private data class ProjectServiceId(val projectId: Int, val serviceClass: Class<*>, val rdTarget: RdTarget)
