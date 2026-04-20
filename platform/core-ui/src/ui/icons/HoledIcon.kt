@@ -32,13 +32,9 @@ abstract class HoledIcon(val icon: Icon) : JBScalableIcon(), ReplaceableIcon {
 
   private val combinedBounds: Rectangle
     get() {
-      val iconBounds = Rectangle(0, 0, icon.iconWidth, icon.iconHeight)
+      val iconBounds = baseIconBounds
       val holeBounds = createHole(iconBounds.width, iconBounds.height)?.bounds ?: return iconBounds
-      val minX = min(iconBounds.x, holeBounds.x)
-      val minY = min(iconBounds.y, holeBounds.y)
-      val maxX = max(iconBounds.x + iconBounds.width, holeBounds.x + holeBounds.width)
-      val maxY = max(iconBounds.y + iconBounds.height, holeBounds.y + holeBounds.height)
-      return Rectangle(minX, minY, maxX - minX, maxY - minY)
+      return iconBounds.union(holeBounds)
     }
 
   /**
