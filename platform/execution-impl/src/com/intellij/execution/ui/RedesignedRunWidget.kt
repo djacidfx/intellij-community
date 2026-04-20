@@ -489,7 +489,9 @@ open class RedesignedRunConfigurationSelector : TogglePopupAction(), CustomCompo
   override fun createPopup(actionGroup: ActionGroup, e: AnActionEvent, disposeCallback: () -> Unit): ListPopup {
     val component = e.getData(IdeFrame.KEY)?.component ?: e.inputEvent?.component!!
     val dataContext = DataManager.getInstance().getDataContext(component)
-    return RunConfigurationsActionGroupPopup(actionGroup, dataContext, disposeCallback)
+    return RunConfigurationsActionGroupPopup(actionGroup, dataContext, disposeCallback).also { result ->
+      result.setStretchToOwnerWidth(true)
+    }
   }
 
   override fun update(e: AnActionEvent) {
@@ -558,7 +560,7 @@ private class RedesignedRunConfigurationSelectorButton(
     if (fullText.isEmpty()) return fullText // to avoid silly edge-case errors
     if (fullText == dumblyTrimmedText) return dumblyTrimmedText // nothing to trim, enough space
     if (lastDumblyTrimmedText == dumblyTrimmedText) return lastSmartlyTrimmedText // no need to recompute
-    val smartlyTrimmedText = smartlyTrimText(fullText, fm.stringWidth(dumblyTrimmedText), fm)
+    val smartlyTrimmedText = trimRunConfigurationName(fullText, fm.stringWidth(dumblyTrimmedText), fm)
     lastDumblyTrimmedText = dumblyTrimmedText
     lastSmartlyTrimmedText = smartlyTrimmedText
     return smartlyTrimmedText
@@ -578,7 +580,7 @@ private class RedesignedRunConfigurationSelectorButton(
   }
 }
 
-private fun smartlyTrimText(fullText: @NlsActions.ActionText String, maxWidth: Int, fm: FontMetrics): @NlsActions.ActionText String {
+internal fun trimRunConfigurationName(fullText: @NlsActions.ActionText String, maxWidth: Int, fm: FontMetrics): @NlsActions.ActionText String {
   // more readable this way, as we're operating with lengths, not indices here
   @Suppress("ReplaceRangeToWithRangeUntil", "ReplaceManualRangeWithIndicesCalls")
   val availableLengths = (0..fullText.length - 1).toList()
