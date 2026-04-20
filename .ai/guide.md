@@ -17,6 +17,8 @@ To regenerate, run `node community/.ai/render-guides.mjs`.
 
 {{PARTIAL:module-specific}}
 
+{{PARTIAL:code-ownership}}
+
 ## Mandatory Rules
 
 ### After Code Changes
