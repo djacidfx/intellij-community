@@ -650,7 +650,7 @@
     <projectService serviceInterface="com.intellij.externalDependencies.ExternalDependenciesManager"
                     serviceImplementation="com.intellij.externalDependencies.impl.ExternalDependenciesManagerImpl"/>
 
-    <projectService serviceImplementation="com.intellij.codeInsight.actions.ReaderModeSettingsImpl" client="all"/>
+    <projectService serviceImplementation="com.intellij.codeInsight.actions.ReaderModeSettingsImpl"/>
     <projectSettings service="com.intellij.codeInsight.actions.ReaderModeSettingsImpl"/>
 
     <applicationService serviceInterface="com.intellij.ide.PlatformIdeService"

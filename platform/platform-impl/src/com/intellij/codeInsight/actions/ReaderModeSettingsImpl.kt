@@ -22,7 +22,7 @@ class ReaderModeDefaultsOverrideImpl : ReaderModeDefaultsOverride {
 }
 
 @ApiStatus.Internal
-@State(name = "ReaderModeSettings", storages = [Storage(StoragePathMacros.PRODUCT_WORKSPACE_FILE)], perClient = true)
+@State(name = "ReaderModeSettings", storages = [Storage(StoragePathMacros.PRODUCT_WORKSPACE_FILE)])
 class ReaderModeSettingsImpl(override val coroutineScope: CoroutineScope) : PersistentStateComponentWithModificationTracker<ReaderModeSettingsImpl.State>,
                                                                             ReaderModeSettings {
   private var state = State()
