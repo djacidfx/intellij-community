@@ -1,5 +1,5 @@
-// Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.analysis.problemsView.toolWindow
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+package com.intellij.platform.problemsView.backend
 
 import com.intellij.analysis.problemsView.FileProblem
 import com.intellij.analysis.problemsView.HighlightingDuplicateProblem
@@ -7,6 +7,12 @@ import com.intellij.analysis.problemsView.Problem
 import com.intellij.analysis.problemsView.ProblemsCollector
 import com.intellij.analysis.problemsView.ProblemsListener
 import com.intellij.analysis.problemsView.ProblemsProvider
+import com.intellij.analysis.problemsView.toolWindow.HighlightingProblem
+import com.intellij.analysis.problemsView.toolWindow.ProblemsViewIconUpdater
+import com.intellij.analysis.problemsView.toolWindow.SetUpdateState
+import com.intellij.analysis.problemsView.toolWindow.splitApi.ProblemEvent
+import com.intellij.analysis.problemsView.toolWindow.splitApi.ProblemEventDto
+import com.intellij.analysis.problemsView.toolWindow.splitApi.ProblemLifetime
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.registry.Registry
@@ -15,16 +21,39 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.vfs.newvfs.events.VFileDeleteEvent
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.openapi.vfs.newvfs.events.VFileMoveEvent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import java.util.concurrent.atomic.AtomicInteger
 
-internal class ProjectErrorsCollector(val project: Project) : ProblemsCollector {
+
+internal class ProjectErrorsCollector(val project: Project, coroutineScope: CoroutineScope) : ProblemsCollector {
   private val providerClassFilter = Registry.stringValue("ide.problems.view.provider.class.filter").split(" ,/|").toSet()
   private val fileProblems = mutableMapOf<VirtualFile, MutableSet<FileProblem>>()
   private val otherProblems = mutableSetOf<Problem>()
   private val problemCount = AtomicInteger()
 
+  private val _problemEvents = MutableSharedFlow<ProblemEvent>(replay = 0, extraBufferCapacity = 100)
+  private val lifetime: ProblemLifetime = ProblemLifetime(coroutineScope)
+
   init {
     VirtualFileManager.getInstance().addAsyncFileListener({ onVfsChanges(it);null }, project)
+  }
+
+  fun getProjectErrorsFlow(): Flow<List<ProblemEventDto>> {
+    return _problemEvents
+      .onStart {
+        val allProblems = synchronized(fileProblems) { fileProblems.values.flatten() } +
+                         synchronized(otherProblems) { otherProblems.toList() }
+
+        allProblems.forEach { problem ->
+          emit(ProblemEvent.Appeared(problem))
+        }
+      }
+      .batchEvents()
+      .map { batch -> buildChangelistFromEventsBatch(batch, project, lifetime) }
   }
 
   override fun getProblemCount(): Int = problemCount.get()
@@ -110,20 +139,35 @@ internal class ProjectErrorsCollector(val project: Project) : ProblemsCollector 
     when (state) {
       SetUpdateState.ADDED -> {
         project.messageBus.syncPublisher(ProblemsListener.TOPIC).problemAppeared(problem)
+        emitProblemAppeared(problem)
         val emptyBefore = problemCount.getAndIncrement() == 0
         if (emptyBefore) ProblemsViewIconUpdater.update(project)
       }
       SetUpdateState.REMOVED -> {
         project.messageBus.syncPublisher(ProblemsListener.TOPIC).problemDisappeared(problem)
+        emitProblemDisappeared(problem)
         val emptyAfter = problemCount.decrementAndGet() == 0
         if (emptyAfter) ProblemsViewIconUpdater.update(project)
       }
       SetUpdateState.UPDATED -> {
         project.messageBus.syncPublisher(ProblemsListener.TOPIC).problemUpdated(problem)
+        emitProblemUpdated(problem)
       }
       SetUpdateState.IGNORED -> {
       }
     }
+  }
+
+  private fun emitProblemAppeared(problem: Problem) {
+    _problemEvents.tryEmit(ProblemEvent.Appeared(problem))
+  }
+
+  private fun emitProblemDisappeared(problem: Problem) {
+    _problemEvents.tryEmit(ProblemEvent.Disappeared(problem))
+  }
+
+  private fun emitProblemUpdated(problem: Problem) {
+    _problemEvents.tryEmit(ProblemEvent.Updated(problem))
   }
 
   private fun onVfsChanges(events: List<VFileEvent>) {
@@ -133,5 +177,11 @@ internal class ProjectErrorsCollector(val project: Project) : ProblemsCollector 
       .distinct()
       .flatMap { getFileProblems(it) }
       .forEach { problemDisappeared(it) }
+  }
+
+  companion object {
+    fun getInstance(project: Project): ProjectErrorsCollector {
+      return ProblemsCollector.getInstance(project) as ProjectErrorsCollector
+    }
   }
 }

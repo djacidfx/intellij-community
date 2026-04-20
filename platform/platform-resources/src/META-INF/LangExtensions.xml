@@ -1093,8 +1093,6 @@
     <problemsViewHighlightingProblemFactory id="default" implementation="com.intellij.analysis.problemsView.toolWindow.DefaultHighlightingProblemFactory"/>
     <problemsViewPanelProvider implementation="com.intellij.analysis.problemsView.toolWindow.ProblemsViewProjectErrorsPanelProvider"/>
 
-    <projectService serviceInterface="com.intellij.analysis.problemsView.ProblemsCollector"
-                    serviceImplementation="com.intellij.analysis.problemsView.toolWindow.ProjectErrorsCollector"/>
     <projectService serviceImplementation="com.intellij.analysis.problemsView.toolWindow.ProblemsViewIconUpdater" open="true"/>
     <statistics.counterUsagesCollector implementationClass="com.intellij.analysis.problemsView.toolWindow.ProblemsViewStatsCollector"/>
     <statistics.counterUsagesCollector implementationClass="com.intellij.ide.util.FileStructurePopupTimeTracker"/>
