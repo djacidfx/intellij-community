@@ -370,6 +370,8 @@ object CommunityRepositoryModules {
         Files.move(jcefOutputDir, targetDir.resolve("jcef"), StandardCopyOption.REPLACE_EXISTING)
         Files.deleteIfExists(subDir)
       }
+
+      spec.enableSymlinksAndExecutableResources()
     }
   }
 
