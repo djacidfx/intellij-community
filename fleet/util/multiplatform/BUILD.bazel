@@ -1,28 +1,3 @@
-load("@rules_jvm//:wasmjs.bzl", "wasmjs_library")
-
-filegroup(
-  name = "multiplatform_commonMain",
-  srcs = glob(["srcCommonMain/**/*.kt"], allow_empty = True)
-)
-
-filegroup(
-  name = "multiplatform_wasmJsMain",
-  srcs = glob(["srcWasmJsMain/**/*.kt"], allow_empty = True)
-)
-
-wasmjs_library(
-  name = "multiplatform_wasmjs",
-  module_name = "fleet.util.multiplatform",
-  fragment_refines = {"commonMain" : [], "wasmJsMain" : ["commonMain"]},
-  visibility = ["//visibility:public"],
-  fragment_sources = {"commonMain" : ":multiplatform_commonMain", "wasmJsMain" : ":multiplatform_wasmJsMain"},
-  deps = [
-    "@rules_jvm//:kotlin-stdlib_klib",
-    # "@lib//:kotlinx_browser_wasmjs",
-  ],
-  kotlinc_opts = ":custom_multiplatform"
-)
-
 ### auto-generated section `build fleet.util.multiplatform` start
 load("//build:compiler-options.bzl", "create_kotlinc_options")
 load("@rules_jvm//:jvm.bzl", "jvm_library", "resourcegroup")
