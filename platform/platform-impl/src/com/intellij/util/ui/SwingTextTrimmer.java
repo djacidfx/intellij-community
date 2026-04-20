@@ -11,16 +11,16 @@ import javax.swing.SwingConstants;
 import java.awt.FontMetrics;
 
 public class SwingTextTrimmer {
-  public static final SwingTextTrimmer ELLIPSIS_AT_LEFT = new SwingTextTrimmer(new StandardTrimmerStrategy(StringUtil.ELLIPSIS, SwingConstants.LEFT));
-  public static final SwingTextTrimmer ELLIPSIS_AT_RIGHT = new SwingTextTrimmer(new StandardTrimmerStrategy(StringUtil.ELLIPSIS, SwingConstants.RIGHT));
-  public static final SwingTextTrimmer ELLIPSIS_IN_CENTER = new SwingTextTrimmer(new StandardTrimmerStrategy(StringUtil.ELLIPSIS, SwingConstants.CENTER));
-  public static final SwingTextTrimmer THREE_DOTS_AT_LEFT = new SwingTextTrimmer(new StandardTrimmerStrategy(StringUtil.THREE_DOTS, SwingConstants.LEFT));
-  public static final SwingTextTrimmer THREE_DOTS_AT_RIGHT = new SwingTextTrimmer(new StandardTrimmerStrategy(StringUtil.THREE_DOTS, SwingConstants.RIGHT));
-  public static final SwingTextTrimmer THREE_DOTS_IN_CENTER = new SwingTextTrimmer(new StandardTrimmerStrategy(StringUtil.THREE_DOTS, SwingConstants.CENTER));
+  public static final @NotNull SwingTextTrimmer ELLIPSIS_AT_LEFT = new SwingTextTrimmer(new StandardTrimmerStrategy(StringUtil.ELLIPSIS, SwingConstants.LEFT));
+  public static final @NotNull SwingTextTrimmer ELLIPSIS_AT_RIGHT = new SwingTextTrimmer(new StandardTrimmerStrategy(StringUtil.ELLIPSIS, SwingConstants.RIGHT));
+  public static final @NotNull SwingTextTrimmer ELLIPSIS_IN_CENTER = new SwingTextTrimmer(new StandardTrimmerStrategy(StringUtil.ELLIPSIS, SwingConstants.CENTER));
+  public static final @NotNull SwingTextTrimmer THREE_DOTS_AT_LEFT = new SwingTextTrimmer(new StandardTrimmerStrategy(StringUtil.THREE_DOTS, SwingConstants.LEFT));
+  public static final @NotNull SwingTextTrimmer THREE_DOTS_AT_RIGHT = new SwingTextTrimmer(new StandardTrimmerStrategy(StringUtil.THREE_DOTS, SwingConstants.RIGHT));
+  public static final @NotNull SwingTextTrimmer THREE_DOTS_IN_CENTER = new SwingTextTrimmer(new StandardTrimmerStrategy(StringUtil.THREE_DOTS, SwingConstants.CENTER));
 
-  public static final Key<SwingTextTrimmer> KEY = Key.create(SwingTextTrimmer.class.getSimpleName());
+  public static final @NotNull Key<SwingTextTrimmer> KEY = Key.create(SwingTextTrimmer.class.getSimpleName());
 
-  public static SwingTextTrimmer createCenterTrimmer(float ratio) {
+  public static @NotNull SwingTextTrimmer createCenterTrimmer(float ratio) {
     return new SwingTextTrimmer(new StandardTrimmerStrategy(StringUtil.ELLIPSIS, SwingConstants.CENTER, ratio));
   }
 
