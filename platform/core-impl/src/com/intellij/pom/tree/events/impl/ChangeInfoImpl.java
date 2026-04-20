@@ -4,6 +4,7 @@ package com.intellij.pom.tree.events.impl;
 
 import com.intellij.lang.ASTNode;
 import com.intellij.pom.tree.events.ChangeInfo;
+import com.intellij.pom.tree.events.ChangeInfoKind;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.impl.PsiManagerEx;
 import com.intellij.psi.impl.PsiTreeChangeEventImpl;
@@ -54,10 +55,10 @@ public class ChangeInfoImpl implements ChangeInfo {
   }
 
   @Override
-  public int getChangeType() {
-    if (myOldChild == myNewChild) return CONTENTS_CHANGED;
-    if (myOldChild != null) return myNewChild == null ? REMOVED : REPLACE;
-    return ADD;
+  public @NotNull ChangeInfoKind getChangeType() {
+    if (myOldChild == myNewChild) return ChangeInfoKind.ContentsChanged;
+    if (myOldChild != null) return myNewChild == null ? ChangeInfoKind.Removed : ChangeInfoKind.Replaced;
+    return ChangeInfoKind.Added;
   }
 
   @Override

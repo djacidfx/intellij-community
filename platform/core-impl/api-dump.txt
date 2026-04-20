@@ -151,6 +151,14 @@ com.intellij.openapi.wm.ex.ProgressIndicatorEx
 - a:isFinished(com.intellij.openapi.progress.TaskInfo):Z
 - a:processFinish():V
 - a:wasStarted():Z
+e:com.intellij.pom.tree.events.ChangeInfoKind
+- java.lang.Enum
+- sf:Added:com.intellij.pom.tree.events.ChangeInfoKind
+- sf:ContentsChanged:com.intellij.pom.tree.events.ChangeInfoKind
+- sf:Removed:com.intellij.pom.tree.events.ChangeInfoKind
+- sf:Replaced:com.intellij.pom.tree.events.ChangeInfoKind
+- s:valueOf(java.lang.String):com.intellij.pom.tree.events.ChangeInfoKind
+- s:values():com.intellij.pom.tree.events.ChangeInfoKind[]
 com.intellij.psi.CustomHighlighterTokenType
 - sf:CHARACTER:com.intellij.psi.tree.IElementType
 - sf:CUSTOM_CONTENT:com.intellij.psi.tree.IElementType

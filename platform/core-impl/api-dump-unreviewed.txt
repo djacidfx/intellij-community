@@ -1529,11 +1529,7 @@ f:com.intellij.pom.tree.TreeAspect
 - s:getInstance(com.intellij.openapi.project.Project):com.intellij.pom.tree.TreeAspect
 - update(com.intellij.pom.event.PomModelEvent):V
 com.intellij.pom.tree.events.ChangeInfo
-- sf:ADD:S
-- sf:CONTENTS_CHANGED:S
-- sf:REMOVED:S
-- sf:REPLACE:S
-- a:getChangeType():I
+- a:getChangeType():com.intellij.pom.tree.events.ChangeInfoKind
 com.intellij.pom.tree.events.TreeChange
 - a:getAffectedChildren():com.intellij.lang.ASTNode[]
 - a:getChangeByChild(com.intellij.lang.ASTNode):com.intellij.pom.tree.events.ChangeInfo
@@ -1544,7 +1540,7 @@ com.intellij.pom.tree.events.TreeChangeEvent
 - a:getRootElement():com.intellij.lang.ASTNode
 c:com.intellij.pom.tree.events.impl.ChangeInfoImpl
 - com.intellij.pom.tree.events.ChangeInfo
-- getChangeType():I
+- getChangeType():com.intellij.pom.tree.events.ChangeInfoKind
 - getNewChild():com.intellij.lang.ASTNode
 - getNewLength():I
 - getOffsetInParent():I
