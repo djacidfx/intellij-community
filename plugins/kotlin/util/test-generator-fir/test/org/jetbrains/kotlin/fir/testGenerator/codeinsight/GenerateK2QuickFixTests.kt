@@ -130,7 +130,6 @@ internal fun MutableTWorkspace.generateK2FixTests() {
             model("$idea/quickfix/moveMemberToCompanionObject", pattern = pattern, isIgnored = true)
             model("$idea/quickfix/moveReceiverAnnotation", pattern = pattern)
             model("$idea/quickfix/moveToConstructorParameters", pattern = pattern)
-            model("$idea/quickfix/moveToSealedParent", pattern = pattern, isIgnored = true)
             model("$idea/quickfix/moveTypeAliasToTopLevel", pattern = pattern)
             model("$idea/quickfix/namedLambdaContextParameter", pattern = pattern)
             model("$idea/quickfix/navigateToConflictingDeclaration", pattern = pattern)
@@ -229,6 +228,11 @@ internal fun MutableTWorkspace.generateK2FixTests() {
             val testMethodName = "doTestWithExtraFile"
             model(
                 "$idea/quickfix/autoImports",
+                pattern = pattern,
+                testMethodName = testMethodName,
+            )
+            model(
+                "$idea/quickfix/moveToSealedParent",
                 pattern = pattern,
                 testMethodName = testMethodName,
             )

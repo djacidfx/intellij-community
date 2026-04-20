@@ -546,6 +546,8 @@ class KotlinK2QuickFixRegistrar : KotlinQuickFixRegistrar() {
 
     private val superType = KtQuickFixesListBuilder.registerPsiQuickFix {
         registerFactory(SuperClassNotInitializedFactories.changeToConstructorCall)
+        registerFactory(MoveToSealedMatchingPackageFixFactory.sealedInheritorInDifferentModule)
+        registerFactory(MoveToSealedMatchingPackageFixFactory.sealedInheritorInDifferentPackage)
     }
 
     private val vararg = KtQuickFixesListBuilder.registerPsiQuickFix {

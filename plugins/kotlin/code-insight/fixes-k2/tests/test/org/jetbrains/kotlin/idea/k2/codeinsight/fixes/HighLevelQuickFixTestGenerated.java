@@ -10878,8 +10878,6 @@ public abstract class HighLevelQuickFixTestGenerated extends AbstractHighLevelQu
         }
     }
 
-
-
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../../idea/tests/testData/quickfix/moveTypeAliasToTopLevel")
     public static class MoveTypeAliasToTopLevel extends AbstractHighLevelQuickFixTest {

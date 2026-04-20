@@ -1432,6 +1432,30 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
     }
 
     @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../../idea/tests/testData/quickfix/moveToSealedParent")
+    public static class MoveToSealedParent extends AbstractHighLevelQuickFixMultiFileTest {
+        @java.lang.Override
+        @org.jetbrains.annotations.NotNull
+        public final KotlinPluginMode getPluginMode() {
+            return KotlinPluginMode.K2;
+        }
+
+        private void runTest(String testDataFilePath) throws Exception {
+            KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
+        }
+
+        @TestMetadata("nestedDeclarationToSealed.test")
+        public void testNestedDeclarationToSealed() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/moveToSealedParent/nestedDeclarationToSealed.test");
+        }
+
+        @TestMetadata("topLevelDeclarationToSealed.test")
+        public void testTopLevelDeclarationToSealed() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/moveToSealedParent/topLevelDeclarationToSealed.test");
+        }
+    }
+
+    @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../../idea/tests/testData/quickfix/makeUpperBoundNonNullable")
     public static class MakeUpperBoundNonNullable extends AbstractHighLevelQuickFixMultiFileTest {
         @java.lang.Override
