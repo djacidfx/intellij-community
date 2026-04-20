@@ -7,8 +7,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/rs/experimental/platforms/triples.bzl b/rs/experimental/platforms/triples.bzl
---- a/rs/experimental/platforms/triples.bzl	(revision c986a973731717c0160e3a84279f0bb206a56105)
-+++ b/rs/experimental/platforms/triples.bzl	(revision 99f4de045558eca5508f50de862dba3515e7603f)
+--- a/rs/experimental/platforms/triples.bzl	(revision 5651f1ad10471cd2274034e4f82e046583513c0e)
++++ b/rs/experimental/platforms/triples.bzl	(revision 2e1e6e8418e859aae3d1a5fba5a72c420575dfcd)
 @@ -10,6 +10,12 @@
      "msvc": "@rules_rs//rs/experimental/platforms/constraints:windows_msvc",
  }
@@ -36,13 +36,13 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/MODULE.bazel b/MODULE.bazel
---- a/MODULE.bazel	(revision 99f4de045558eca5508f50de862dba3515e7603f)
-+++ b/MODULE.bazel	(revision bc8791a81388699fe12fc9d7dc954e6d17c774f9)
-@@ -52,7 +52,7 @@
- bazel_dep(name = "package_metadata", version = "0.0.5")
- bazel_dep(name = "platforms", version = "0.0.5")
+--- a/MODULE.bazel	(revision 2e1e6e8418e859aae3d1a5fba5a72c420575dfcd)
++++ b/MODULE.bazel	(revision 35f7c253814ebf9538ca56d7c50f2ad760bd9ea8)
+@@ -54,7 +54,7 @@
+ bazel_dep(name = "protobuf", version = "34.0.bcr.1", repo_name = "com_google_protobuf")
  bazel_dep(name = "rules_cc", version = "0.2.8")
--bazel_dep(name = "llvm", version = "0.6.0")
+ bazel_dep(name = "rules_proto", version = "7.1.0")
+-bazel_dep(name = "llvm", version = "0.7.0")
 +bazel_dep(name = "llvm", version = "0.7.1")
  bazel_dep(name = "aspect_tools_telemetry", version = "0.3.2")
 
