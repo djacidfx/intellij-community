@@ -15,6 +15,7 @@ import org.apache.lucene.search.TwoPhaseIterator
 import org.apache.lucene.search.Weight
 import java.util.Collections
 import java.util.IdentityHashMap
+import java.util.PriorityQueue
 
 /**
  * Represents a token from the search analyzer as a query-string interval.
@@ -152,7 +153,7 @@ internal class IntervalSchedulingWeight(
 }
 
 internal class IntervalSchedulingScorer(
-  private val childScorerPairs: List<Pair<QueryInterval, Scorer>>,
+  childScorerPairs: List<Pair<QueryInterval, Scorer>>,
   private val queryLength: Int,
 ) : Scorer() {
 
@@ -167,6 +168,7 @@ internal class IntervalSchedulingScorer(
     val tpi = scorer.twoPhaseIterator()
     ChildEntry(interval, scorer, tpi, tpi?.approximation() ?: scorer.iterator())
   }
+    .sortedBy { it.interval.startOffset }
 
   private val unionApprox = UnionDISI(children.map { it.approx })
 
@@ -180,7 +182,7 @@ internal class IntervalSchedulingScorer(
       val matchingChildren = children
         .filter { child -> child.approx.docID() == doc && (child.tpi?.matches() ?: true) }
       val matching = matchingChildren.map { it.interval }
-      return if (coversAll(matching, queryLength)) {
+      return if (coversAllPresorted(matching, queryLength)) {
         cachedDoc = doc
         cachedIntervals = matching
         cachedScores = matchingChildren.map { it.scorer.score() }
@@ -206,8 +208,21 @@ internal class IntervalSchedulingScorer(
     return dpScore(intervals, scores, queryLength)
   }
 
-  override fun getMaxScore(upTo: Int): Float =
-    childScorerPairs.sumOf { (_, scorer) -> scorer.getMaxScore(upTo).toDouble() }.toFloat()
+  private val maxScore: Float =
+    childScorerPairs.sumOf { (_, scorer) -> scorer.getMaxScore(Int.MAX_VALUE).toDouble() }.toFloat()
+
+  override fun getMaxScore(upTo: Int): Float = maxScore
+
+  private fun coversAllPresorted(sortedIntervals: List<QueryInterval>, queryLength: Int): Boolean {
+    if (queryLength == 0) return true
+    if (sortedIntervals.isEmpty()) return false
+    var maxReached = 0
+    for (interval in sortedIntervals) {
+      if (interval.startOffset > maxReached) return false
+      if (interval.endOffset > maxReached) maxReached = interval.endOffset
+    }
+    return maxReached >= queryLength
+  }
 }
 
 /**
@@ -292,40 +307,51 @@ internal fun dpScore(intervals: List<QueryInterval>, scores: List<Float>, queryL
  * the current document are NOT advanced until the next call to [nextDoc] or [advance],
  * allowing callers to inspect `child.docID()` to identify which children matched.
  */
-internal class UnionDISI(private val iterators: List<DocIdSetIterator>) : DocIdSetIterator() {
+internal class UnionDISI(iterators: List<DocIdSetIterator>) : DocIdSetIterator() {
   private var doc = -1
+
+  // Min-heap ordered by current docID.
+  private val pq = PriorityQueue<DocIdSetIterator>(maxOf(1, iterators.size)) { a, b ->
+    a.docID().compareTo(b.docID())
+  }
+
+  // Iterators positioned at the current document; advanced lazily on the next nextDoc()/advance() call.
+  private val atDoc = ArrayList<DocIdSetIterator>(4)
+
+  private val totalCost = iterators.sumOf { it.cost() }
+
+  init {
+    for (iter in iterators) {
+      if (iter.nextDoc() != NO_MORE_DOCS) pq.add(iter)
+    }
+  }
 
   override fun docID() = doc
 
   override fun nextDoc(): Int {
-    if (doc == NO_MORE_DOCS || iterators.isEmpty()) return setDoc(NO_MORE_DOCS)
-    for (iter in iterators) {
-      if (iter.docID() == doc) iter.nextDoc()
-    }
-    return setMinDoc()
+    for (iter in atDoc) { if (iter.nextDoc() != NO_MORE_DOCS) pq.add(iter) }
+    atDoc.clear()
+    if (pq.isEmpty()) { doc = NO_MORE_DOCS; return NO_MORE_DOCS }
+    return collectCurrentDoc(pq.peek().docID())
   }
 
   override fun advance(target: Int): Int {
-    if (iterators.isEmpty()) return setDoc(NO_MORE_DOCS)
-    for (iter in iterators) {
-      if (iter.docID() < target) iter.advance(target)
+    for (iter in atDoc) { if (iter.advance(target) != NO_MORE_DOCS) pq.add(iter) }
+    atDoc.clear()
+    while (pq.isNotEmpty() && pq.peek().docID() < target) {
+      val iter = pq.poll()
+      if (iter.advance(target) != NO_MORE_DOCS) pq.add(iter)
     }
-    return setMinDoc()
+    if (pq.isEmpty()) { doc = NO_MORE_DOCS; return NO_MORE_DOCS }
+    return collectCurrentDoc(pq.peek().docID())
   }
 
-  private fun setMinDoc(): Int {
-    var min = NO_MORE_DOCS
-    for (iter in iterators) {
-      val d = iter.docID()
-      if (d < min) min = d
-    }
-    return setDoc(min)
-  }
+  override fun cost() = totalCost
 
-  private fun setDoc(d: Int): Int {
+  /** Pops all heap entries at [d] into [atDoc] and sets [doc]. */
+  private fun collectCurrentDoc(d: Int): Int {
+    while (pq.isNotEmpty() && pq.peek().docID() == d) atDoc.add(pq.poll())
     doc = d
     return d
   }
-
-  override fun cost() = iterators.sumOf { it.cost() }
 }
