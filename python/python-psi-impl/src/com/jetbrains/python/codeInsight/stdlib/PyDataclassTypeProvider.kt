@@ -33,6 +33,7 @@ import com.jetbrains.python.psi.PyReferenceExpression
 import com.jetbrains.python.psi.PyTargetExpression
 import com.jetbrains.python.psi.PyTypedElement
 import com.jetbrains.python.psi.PyUtil
+import com.jetbrains.python.psi.impl.ParamHelper
 import com.jetbrains.python.psi.impl.PyBuiltinCache
 import com.jetbrains.python.psi.impl.PyCallExpressionNavigator
 import com.jetbrains.python.psi.resolve.PyResolveContext
@@ -317,15 +318,15 @@ class PyDataclassTypeProvider : PyTypeProviderBase() {
 
       if (initOnly && !seenInit) return null
 
-      return if (populateByName == true) {
-        listOf(
-          buildParameters(elementGenerator, collected, keywordOnly),
-          buildParameters(elementGenerator, collectedFieldNames, keywordOnlyFieldNames)
-        )
+      val signatures = buildList {
+        add(buildParameters(elementGenerator, collected, keywordOnly))
+
+        if (populateByName == true) {
+          add(buildParameters(elementGenerator, collectedFieldNames, keywordOnlyFieldNames))
+        }
       }
-      else {
-        listOf(buildParameters(elementGenerator, collected, keywordOnly))
-      }
+
+      return signatures.distinctBy { ParamHelper.getPresentableText(it, true, context) }
     }
 
     private fun isKwOnlyMarkerField(parameter: PyCallableParameter, context: TypeEvalContext): Boolean {
