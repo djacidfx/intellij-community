@@ -290,6 +290,9 @@ object CoreModuleSets {
     embeddedModule("intellij.platform.welcomeScreen")
     embeddedModule("intellij.platform.welcomeScreen.impl")
 
+    embeddedModule("intellij.platform.codeStyle")
+    embeddedModule("intellij.platform.editor.ui")
+
     embeddedModule("intellij.platform.projectModel")
     embeddedModule("intellij.platform.projectModel.impl")
 
@@ -367,6 +370,9 @@ object CoreModuleSets {
     embeddedModule("intellij.platform.testRunner")
     embeddedModule("intellij.platform.execution")
     embeddedModule("intellij.platform.execution.impl")
+
+    // intellij.platform.lang depends on it
+    embeddedModule("intellij.platform.lvcs")
 
     embeddedModule("intellij.platform.lang.core")
     embeddedModule("intellij.platform.lang")

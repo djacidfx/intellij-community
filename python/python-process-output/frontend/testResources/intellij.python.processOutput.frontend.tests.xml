@@ -3,7 +3,6 @@
   <dependencies>
     <module name="intellij.libraries.compose.foundation.desktop"/>
     <module name="intellij.libraries.compose.runtime.desktop"/>
-    <module name="intellij.libraries.kotlin.reflect"/>
     <module name="intellij.libraries.kotlinTestAssertionsCoreJvm"/>
     <module name="intellij.libraries.kotlinx.coroutines.debug"/>
     <module name="intellij.libraries.kotlinx.coroutines.test"/>
@@ -17,9 +16,11 @@
     <module name="intellij.python.community"/>
     <module name="intellij.python.community.execService"/>
     <module name="intellij.python.processOutput.common"/>
+    <module name="intellij.libraries.kotlin.reflect"/>
     <module name="intellij.libraries.kotlinTest"/>
     <module name="intellij.platform.core"/>
     <module name="intellij.platform.core.ui"/>
+    <module name="intellij.platform.editor.ui"/>
     <module name="intellij.platform.execution.impl"/>
     <module name="intellij.platform.frontend"/>
     <module name="intellij.platform.ide"/>

@@ -41,15 +41,12 @@ import java.util.SortedSet
  */
 @Suppress("RemoveRedundantQualifierName")
 internal val PLATFORM_CORE_MODULES = java.util.List.of(
-  "intellij.platform.editor.ui",
-  "intellij.platform.codeStyle",
   "intellij.platform.ml",
   "intellij.platform.remote.core",
   "intellij.platform.remoteServers.agent.rt",
   "intellij.platform.usageView",
 
   "intellij.platform.editor.ex",
-  "intellij.platform.lvcs",
   "intellij.platform.macro",
   "intellij.platform.remoteServers.impl",
   "intellij.platform.structureView.impl",
