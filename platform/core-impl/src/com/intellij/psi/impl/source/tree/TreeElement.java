@@ -379,7 +379,7 @@ public abstract class TreeElement extends ElementBase implements ASTNode, Repars
 
   // remove nodes from this[including] to end[excluding] from the parent
   final void rawRemoveUpToWithoutNotifications(@Nullable TreeElement end, boolean invalidate) {
-    if(this == end) return;
+    if (this == end) return;
 
     CompositeElement parent = getTreeParent();
     TreeElement startPrev = getTreePrev();
@@ -388,11 +388,13 @@ public abstract class TreeElement extends ElementBase implements ASTNode, Repars
     assert end == null || end.getTreeParent() == parent : "Trying to remove non-child";
 
     if (end != null) {
-      TreeElement element;
-      for (element = this; element != end && element != null; element = element.getTreeNext());
-      assert element == end : end + " is not successor of " + this +" in the .getTreeNext() chain";
+      TreeElement element = this;
+      while (element != end && element != null) {
+        element = element.getTreeNext();
+      }
+      assert element == end : end + " is not successor of " + this + " in the .getTreeNext() chain";
     }
-    if (parent != null){
+    if (parent != null) {
       if (getTreePrev() == null) {
         parent.setFirstChildNode(end);
       }
@@ -400,20 +402,20 @@ public abstract class TreeElement extends ElementBase implements ASTNode, Repars
         parent.setLastChildNode(startPrev);
       }
     }
-    if (startPrev != null){
+    if (startPrev != null) {
       startPrev.setTreeNext(end);
     }
-    if (end != null){
+    if (end != null) {
       end.setTreePrev(startPrev);
     }
 
     setTreePrev(null);
-    if (endPrev != null){
+    if (endPrev != null) {
       endPrev.setTreeNext(null);
     }
 
-    if (parent != null){
-      for(TreeElement element = this; element != null; element = element.getTreeNext()){
+    if (parent != null) {
+      for (TreeElement element = this; element != null; element = element.getTreeNext()) {
         element.setTreeParent(null);
         if (invalidate) {
           element.onInvalidated();
