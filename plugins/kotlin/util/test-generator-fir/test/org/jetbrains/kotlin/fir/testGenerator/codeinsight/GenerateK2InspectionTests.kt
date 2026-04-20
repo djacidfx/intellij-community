@@ -97,6 +97,7 @@ internal fun MutableTWorkspace.generateK2InspectionTests() {
             model("${idea}/inspectionsLocal/kdocResolutionResultHasChanged")
             model("${idea}/inspectionsLocal/redundantExplicitType")
             model("${idea}/intentions/convertArgumentToSet")
+            model("${idea}/intentions/replaceSizeCheckWithIsNotEmpty")
             model("${idea}/inspectionsLocal/coroutines/redundantRunCatching")
             model("${idea}/inspectionsLocal/coroutines/simplifiableFlowCallChain")
             model("${idea}/inspectionsLocal/coroutines/simplifiableFlowCall")
