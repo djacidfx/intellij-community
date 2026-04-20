@@ -749,6 +749,9 @@ platform/pluginSystem/testFramework
 platform/polySymbols
 platform/polySymbols/backend
 platform/pratt
+platform/problemsView/backend
+platform/problemsView/frontend
+platform/problemsView/shared
 platform/progress/backend
 platform/progress/shared
 platform/project-frame

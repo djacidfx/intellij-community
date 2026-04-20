@@ -1483,6 +1483,10 @@
       <module fileurl="file://$PROJECT_DIR$/platform/polySymbols/intellij.platform.polySymbols.testFramework.iml" filepath="$PROJECT_DIR$/platform/polySymbols/intellij.platform.polySymbols.testFramework.iml" />
       <module fileurl="file://$PROJECT_DIR$/platform/polySymbols/intellij.platform.polySymbols.tests.iml" filepath="$PROJECT_DIR$/platform/polySymbols/intellij.platform.polySymbols.tests.iml" />
       <module fileurl="file://$PROJECT_DIR$/platform/pratt/intellij.platform.pratt.iml" filepath="$PROJECT_DIR$/platform/pratt/intellij.platform.pratt.iml" />
+      <module fileurl="file://$PROJECT_DIR$/platform/problemsView/backend/intellij.platform.problemsView.backend.iml" filepath="$PROJECT_DIR$/platform/problemsView/backend/intellij.platform.problemsView.backend.iml" />
+      <module fileurl="file://$PROJECT_DIR$/platform/problemsView/backend/intellij.platform.problemsView.backend.tests.iml" filepath="$PROJECT_DIR$/platform/problemsView/backend/intellij.platform.problemsView.backend.tests.iml" />
+      <module fileurl="file://$PROJECT_DIR$/platform/problemsView/frontend/intellij.platform.problemsView.frontend.iml" filepath="$PROJECT_DIR$/platform/problemsView/frontend/intellij.platform.problemsView.frontend.iml" />
+      <module fileurl="file://$PROJECT_DIR$/platform/problemsView/shared/intellij.platform.problemsView.shared.iml" filepath="$PROJECT_DIR$/platform/problemsView/shared/intellij.platform.problemsView.shared.iml" />
       <module fileurl="file://$PROJECT_DIR$/platform/progress/backend/intellij.platform.progress.backend.iml" filepath="$PROJECT_DIR$/platform/progress/backend/intellij.platform.progress.backend.iml" />
       <module fileurl="file://$PROJECT_DIR$/platform/project/shared/intellij.platform.project.iml" filepath="$PROJECT_DIR$/platform/project/shared/intellij.platform.project.iml" />
       <module fileurl="file://$PROJECT_DIR$/platform/project/backend/intellij.platform.project.backend.iml" filepath="$PROJECT_DIR$/platform/project/backend/intellij.platform.project.backend.iml" />
