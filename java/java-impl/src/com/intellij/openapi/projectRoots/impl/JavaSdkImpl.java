@@ -675,12 +675,6 @@ public final class JavaSdkImpl extends JavaSdk {
     if (Files.exists(fxArc)) {
       addArchiveSourceUrls(fxArc, false, result);
     }
-    else {
-      Path srcDir = jdkHome.resolve("src");
-      if (Files.isDirectory(srcDir)) {
-        result.add(VfsUtil.getUrlForLibraryRoot(srcDir));
-      }
-    }
 
     return result;
   }
@@ -704,7 +698,7 @@ public final class JavaSdkImpl extends JavaSdk {
       String urlBase = jarBase + (hasSrcPrefix ? "src/" : "");
       if (checkModular && topDirs.contains("java.base")) {
         for (String dir : topDirs) {
-          result.add(urlBase + dir);
+          result.add(urlBase + dir + "/");
         }
       }
       else {
