@@ -39,8 +39,6 @@ class ModuleWithDependenciesScope internal constructor(
   @Volatile
   private var myVFSModificationCount: Long = 0
 
-  private val myRoots: RootContainer = RootCalculator(module, myOptions).calculateRoots()
-
   override val mainModules: List<Module>
     get() = listOf(module)
 
@@ -65,7 +63,7 @@ class ModuleWithDependenciesScope internal constructor(
     if (r1 == null) return -1
     if (r2 == null) return 1
 
-    val roots = myRoots
+    val roots = rootContainer
     val i1 = roots.getPriority(r1)
     val i2 = roots.getPriority(r2)
     if (i1 == 0 && i2 == 0) return 0
@@ -75,7 +73,7 @@ class ModuleWithDependenciesScope internal constructor(
 
   @get:TestOnly
   val roots: Collection<VirtualFile>
-    get() = myRoots.getSortedRoots()
+    get() = rootContainer.getSortedRoots()
 
   override fun extractFileEnumeration(): VirtualFileEnumeration? {
     var enumeration = myVirtualFileEnumeration
@@ -90,11 +88,11 @@ class ModuleWithDependenciesScope internal constructor(
 
   private fun doExtractFileEnumeration(): VirtualFileEnumeration {
     // todo might be not cheap
-    if (myRoots.size > 1 && (hasOption(MODULES) && allModules.size > 1 || hasOption(LIBRARIES))) {
+    if (rootContainer.size > 1 && (hasOption(MODULES) && allModules.size > 1 || hasOption(LIBRARIES))) {
       return VirtualFileEnumeration.EMPTY
     }
 
-    return getFileEnumerationUnderRoots(myRoots.getRoots())
+    return getFileEnumerationUnderRoots(rootContainer.getRoots())
   }
 
   override fun equals(other: Any?): Boolean {
