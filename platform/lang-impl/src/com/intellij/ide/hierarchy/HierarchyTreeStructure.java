@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.hierarchy;
 
 import com.intellij.ide.scratch.ScratchUtil;
@@ -167,8 +167,9 @@ public abstract class HierarchyTreeStructure extends AbstractTreeStructure {
       return module != null && module.getModuleScope().contains(virtualFile);
     }
     if (HierarchyBrowserBaseEx.SCOPE_PROJECT.equals(scopeType)) {
-      // Kotlin classes in sources that used from Java implemented as compiled elements, but they are not present in the code.
-      // Also, such elements are synthetic, so the check `srcElement.isPhysical` is necessary here.
+      // Kotlin declarations referenced from Java are exposed as light (non-physical) PSI elements.
+      // The `isPhysical()` check keeps such wrappers in the project scope while still filtering out
+      // real compiled classes (e.g. loaded from library JARs).
       if (srcElement.getContainingFile() instanceof PsiCompiledElement && srcElement.isPhysical()) return false;
       VirtualFile virtualFile = srcElement.getContainingFile().getVirtualFile();
       return virtualFile == null || !TestSourcesFilter.isTestSources(virtualFile, myProject);
