@@ -7,7 +7,6 @@ import com.intellij.openapi.editor.CustomWrap
 import com.intellij.openapi.editor.FoldRegion
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.impl.EditorImpl
-import com.intellij.openapi.editor.impl.customwrap.CustomWrapImpl
 import com.intellij.openapi.editor.impl.softwrap.CustomWrapToSoftWrapAdapter.Type
 import com.intellij.openapi.editor.impl.softwrap.mapping.IncrementalCacheUpdateEvent
 import com.intellij.openapi.util.Segment
@@ -79,7 +78,7 @@ internal class CustomWrapOnlyRecalculationManager(
       return
     }
     isDocumentUpdateInProgress = true
-    if (DocumentEventUtil.isMoveInsertion(event) && checkHasWraps()) {
+    if (DocumentEventUtil.isMoveInsertion(event) && storageHasWraps()) {
       // Custom wraps in the moved-from range will become out-of-order inside storage after the document change is applied.
       // They must be moved now.
       val srcStartOffset = DocumentEventUtil.getMoveOffsetBeforeInsertion(event)
@@ -131,7 +130,7 @@ internal class CustomWrapOnlyRecalculationManager(
 
   override fun onFoldRegionStateChange(region: FoldRegion) {
     isFoldingUpdateInProgress = true
-    if (!checkHasWraps()) {
+    if (!modelHasWraps()) {
       return
     }
     deferredFoldRegions.add(region)
@@ -139,7 +138,7 @@ internal class CustomWrapOnlyRecalculationManager(
 
   override fun onFoldProcessingEnd() {
     isFoldingUpdateInProgress = false
-    if (!checkHasWraps()) {
+    if (!modelHasWraps()) {
       return
     }
     // todo improve
@@ -173,17 +172,6 @@ internal class CustomWrapOnlyRecalculationManager(
   private fun modelHasWraps(): Boolean = editor.customWrapModel.hasWraps()
 
   private fun storageHasWraps(): Boolean = !storage.isEmpty
-
-  private fun checkHasWraps(): Boolean {
-    checkStoragesAreSynced()
-    return storageHasWraps()
-  }
-
-  private fun checkStoragesAreSynced() {
-    if (modelHasWraps() != storageHasWraps()) {
-      LOG.error("CustomWrapModel and storage are not synced", Throwable(), AttachmentFactory.createContext(editor.dumpState()))
-    }
-  }
 
   private fun recalculateCustomWraps(event: IncrementalCacheUpdateEvent) {
     val startOffset = event.startOffset
