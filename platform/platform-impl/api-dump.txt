@@ -1844,7 +1844,6 @@ c:com.intellij.util.ui.SwingTextTrimmer
 - sf:THREE_DOTS_IN_CENTER:com.intellij.util.ui.SwingTextTrimmer
 - s:createCenterTrimmer(F):com.intellij.util.ui.SwingTextTrimmer
 - isTrimmed():Z
-- setTrimmed(Z):V
 - trim(java.lang.String,java.awt.FontMetrics,I):java.lang.String
 com.intellij.util.ui.SwingTextTrimmerStrategy
 - a:trim(java.lang.String,java.awt.FontMetrics,I):java.lang.String

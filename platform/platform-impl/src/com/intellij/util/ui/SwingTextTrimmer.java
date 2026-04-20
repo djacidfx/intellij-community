@@ -3,6 +3,7 @@ package com.intellij.util.ui;
 
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.text.StringUtil;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -41,6 +42,7 @@ public class SwingTextTrimmer {
     return trimmed;
   }
 
+  @ApiStatus.Internal
   public void setTrimmed(boolean trimmed) {
     this.trimmed = trimmed;
   }
