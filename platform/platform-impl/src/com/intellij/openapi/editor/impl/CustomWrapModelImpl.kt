@@ -41,10 +41,6 @@ internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapM
     eventDispatcher.multicaster.customWrapRemoved(wrap)
   }
 
-  internal fun notifyMerged() {
-    editor.softWrapModel.customWrapsMerged()
-  }
-
   override fun addWrap(offset: Int, indentInColumns: Int, priority: Int): CustomWrap? {
     val document = document
     if (offset < 0 || offset > document.textLength) return null
@@ -148,19 +144,6 @@ internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapM
   }
 
   private inner class CustomWrapTree(document: Document) : HardReferencingRangeMarkerTree<CustomWrapImpl>(document) {
-    inner class Node(
-      rangeMarkerTree: RangeMarkerTree<CustomWrapImpl>,
-      key: CustomWrapImpl,
-      start: Int,
-      end: Int,
-      stickingToRight: Boolean,
-    ) : RMNode<CustomWrapImpl>(rangeMarkerTree, key, start, end, false, false, stickingToRight) {
-      override fun addIntervalsFrom(otherNode: IntervalNode<CustomWrapImpl>) {
-        super.addIntervalsFrom(otherNode)
-        notifyMerged()
-      }
-    }
-
     public override fun size(): Int {
       return super.size()
     }
@@ -175,18 +158,6 @@ internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapM
       layer: Int,
     ): RMNode<CustomWrapImpl> {
       return super.addInterval(interval, start, end, greedyToLeft, greedyToRight, stickingToRight, layer)
-    }
-
-    override fun createNewNode(
-      key: CustomWrapImpl,
-      start: Int,
-      end: Int,
-      greedyToLeft: Boolean,
-      greedyToRight: Boolean,
-      stickingToRight: Boolean,
-      layer: Int,
-    ): RMNode<CustomWrapImpl> {
-      return Node(this, key, start, end, stickingToRight)
     }
 
     override fun fireAfterRemoved(marker: CustomWrapImpl) {

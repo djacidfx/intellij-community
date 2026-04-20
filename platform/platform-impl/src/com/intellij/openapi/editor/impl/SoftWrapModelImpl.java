@@ -96,7 +96,4 @@ abstract public class SoftWrapModelImpl extends InlayModel.SimpleAdapter
 
   @TestOnly
   abstract void validateState();
-
-  @ApiStatus.Internal
-  public abstract void customWrapsMerged();
 }

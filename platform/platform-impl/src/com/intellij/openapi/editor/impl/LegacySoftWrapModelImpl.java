@@ -723,11 +723,6 @@ public final class LegacySoftWrapModelImpl extends SoftWrapModelImpl {
     logIllegalCustomWrapsCallback();
   }
 
-  @Override
-  public void customWrapsMerged() {
-    logIllegalCustomWrapsCallback();
-  }
-
   private void logIllegalCustomWrapsCallback() {
     LOG.error("unexpected handler for custom-wraps callback: legacy soft wraps implementation does not support custom wraps",
               new Attachment("editorState.txt", editor.dumpState()));

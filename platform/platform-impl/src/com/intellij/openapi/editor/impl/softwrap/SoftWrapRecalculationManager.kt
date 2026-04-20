@@ -29,8 +29,6 @@ internal abstract class SoftWrapRecalculationManager : InlayModel.SimpleAdapter(
 
   override fun toString(): String = dumpState()
 
-  open fun customWrapsMerged() {}
-
   abstract fun onBulkDocumentUpdateStarted()
 
   abstract fun onBulkDocumentUpdateFinished()

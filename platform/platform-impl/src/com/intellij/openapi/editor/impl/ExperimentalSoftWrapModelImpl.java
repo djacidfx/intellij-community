@@ -642,10 +642,4 @@ public final class ExperimentalSoftWrapModelImpl extends SoftWrapModelImpl {
   public void customWrapRemoved(@NotNull CustomWrap wrap) {
     myRecalculationManager.customWrapRemoved(wrap);
   }
-
-  @Override
-  @ApiStatus.Internal
-  public void customWrapsMerged() {
-    myRecalculationManager.customWrapsMerged();
-  }
 }
