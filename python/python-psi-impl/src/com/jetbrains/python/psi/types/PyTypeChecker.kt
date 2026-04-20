@@ -349,8 +349,8 @@ object PyTypeChecker {
     var constraints = expected.constraints
     // Promote int in Type[TypeVar('T', int)] to Type[int] before checking that bounds match
     if (expected.isDefinition) {
-      bound = toClass(bound)
-      constraints = constraints.map { toClass(it) }
+      bound = convertToClass(bound)
+      constraints = constraints.map { convertToClass(it) }
     }
 
     // Remove value-specific components from the actual type to make it safe to propagate
@@ -407,8 +407,12 @@ object PyTypeChecker {
 
   private fun match(expected: PySelfType, actual: PyType?, context: MatchContext): Boolean {
     if (actual == null) return true
-    val substitution = context.mySubstitutions.qualifierType
-    if (substitution != null && substitution !is PySelfType) {
+    val qualifierType = context.mySubstitutions.qualifierType
+    if (qualifierType != null && qualifierType !is PySelfType) {
+      val substitution = if (expected.isDefinition)
+        convertToClass(qualifierType)
+      else
+        convertToInstance(qualifierType)
       return match(substitution, actual, context).orElse(false)!!
     }
     if (actual !is PySelfType) return false
@@ -416,9 +420,15 @@ object PyTypeChecker {
            match(expected.scopeClassType, actual.scopeClassType, context).orElse(false)!!
   }
 
-  private fun toClass(type: PyType?): PyType? {
+  private fun convertToClass(type: PyType?): PyType? {
     return type.toStream()
-      .map<PyType?> { t: PyType? -> if (t is PyInstantiableType<*>) t.toClass() else t }
+      .map { if (it is PyInstantiableType<*>) it.toClass() else it }
+      .collect(PyTypeUtil.toUnion(type))
+  }
+
+  private fun convertToInstance(type: PyType?): PyType? {
+    return type.toStream()
+      .map { if (it is PyInstantiableType<*>) it.toInstance() else it }
       .collect(PyTypeUtil.toUnion(type))
   }
 
@@ -1624,7 +1634,7 @@ object PyTypeChecker {
         return substitution
       }
 
-      override fun visitPySelfType(selfType: PySelfType): PyType? {
+      override fun visitPySelfType(selfType: PySelfType): PyType {
         val qualifierType = substitutions.qualifierType ?: return selfType
         val selfScopeClassType = selfType.scopeClassType
         // TODO change unification for calls on union types
@@ -1911,13 +1921,7 @@ object PyTypeChecker {
     // Collect generic params of object type
     val substitutions = GenericSubstitutions()
     if (receiverType != null) {
-      // TODO properly handle union types here
-      if (receiverType is PyClassType) {
-        substitutions.qualifierType = receiverType.toInstance()
-      }
-      else {
-        substitutions.qualifierType = receiverType
-      }
+      substitutions.qualifierType = receiverType
       receiverType.toStream()
         .select(PyClassType::class.java)
         .map { collectTypeSubstitutions(it, context) }
