@@ -48,6 +48,7 @@ internal fun MutableTWorkspace.generateK2InspectionTests() {
             model("${idea}/intentions/destructuringInLambda")
             model("${idea}/intentions/destructuringVariables")
             model("${idea}/intentions/iterationOverMap")
+            model("${idea}/intentions/removeSingleExpressionStringTemplate")
             model("${idea}/inspectionsLocal/enumValuesSoftDeprecate")
             model("${idea}/inspectionsLocal/branched/ifThenToElvis", pattern = Patterns.KT_WITHOUT_DOTS)
             model("${idea}/inspectionsLocal/branched/ifThenToSafeAccess", pattern = Patterns.KT_WITHOUT_DOTS)

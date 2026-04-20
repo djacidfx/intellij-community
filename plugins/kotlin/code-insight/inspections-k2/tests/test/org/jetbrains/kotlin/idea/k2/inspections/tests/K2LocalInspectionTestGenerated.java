@@ -1487,6 +1487,60 @@ public abstract class K2LocalInspectionTestGenerated extends AbstractK2LocalInsp
     }
 
     @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../../idea/tests/testData/intentions/removeSingleExpressionStringTemplate")
+    public static class RemoveSingleExpressionStringTemplate extends AbstractK2LocalInspectionTest {
+        @java.lang.Override
+        @org.jetbrains.annotations.NotNull
+        public final KotlinPluginMode getPluginMode() {
+            return KotlinPluginMode.K2;
+        }
+
+        private void runTest(String testDataFilePath) throws Exception {
+            KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
+        }
+
+        @TestMetadata("emptyString.kt")
+        public void testEmptyString() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeSingleExpressionStringTemplate/emptyString.kt");
+        }
+
+        @TestMetadata("justString.kt")
+        public void testJustString() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeSingleExpressionStringTemplate/justString.kt");
+        }
+
+        @TestMetadata("multipleStringTemplate.kt")
+        public void testMultipleStringTemplate() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeSingleExpressionStringTemplate/multipleStringTemplate.kt");
+        }
+
+        @TestMetadata("singleExpressionStringTemplate.kt")
+        public void testSingleExpressionStringTemplate() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeSingleExpressionStringTemplate/singleExpressionStringTemplate.kt");
+        }
+
+        @TestMetadata("singleExpressionStringTemplateNullableString.kt")
+        public void testSingleExpressionStringTemplateNullableString() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeSingleExpressionStringTemplate/singleExpressionStringTemplateNullableString.kt");
+        }
+
+        @TestMetadata("singleExpressionStringTemplateWithMethodCall.kt")
+        public void testSingleExpressionStringTemplateWithMethodCall() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeSingleExpressionStringTemplate/singleExpressionStringTemplateWithMethodCall.kt");
+        }
+
+        @TestMetadata("singleExpressionStringTemplateWithNonStringType.kt")
+        public void testSingleExpressionStringTemplateWithNonStringType() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeSingleExpressionStringTemplate/singleExpressionStringTemplateWithNonStringType.kt");
+        }
+
+        @TestMetadata("stringTemplateWithText.kt")
+        public void testStringTemplateWithText() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/removeSingleExpressionStringTemplate/stringTemplateWithText.kt");
+        }
+    }
+
+    @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../../idea/tests/testData/inspectionsLocal/enumValuesSoftDeprecate")
     public static class EnumValuesSoftDeprecate extends AbstractK2LocalInspectionTest {
         @java.lang.Override
@@ -14980,60 +15034,6 @@ public abstract class K2LocalInspectionTestGenerated extends AbstractK2LocalInsp
                 public void testType() throws Exception {
                     runTest("testData/inspectionsLocal/removeRedundantQualifierName/type.kt");
                 }
-            }
-        }
-
-        @RunWith(JUnit3RunnerWithInners.class)
-        @TestMetadata("testData/inspectionsLocal/removeSingleExpressionStringTemplate")
-        public static class RemoveSingleExpressionStringTemplate extends AbstractK2LocalInspectionTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
-            private void runTest(String testDataFilePath) throws Exception {
-                KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
-            }
-
-            @TestMetadata("emptyString.kt")
-            public void testEmptyString() throws Exception {
-                runTest("testData/inspectionsLocal/removeSingleExpressionStringTemplate/emptyString.kt");
-            }
-
-            @TestMetadata("justString.kt")
-            public void testJustString() throws Exception {
-                runTest("testData/inspectionsLocal/removeSingleExpressionStringTemplate/justString.kt");
-            }
-
-            @TestMetadata("multipleStringTemplate.kt")
-            public void testMultipleStringTemplate() throws Exception {
-                runTest("testData/inspectionsLocal/removeSingleExpressionStringTemplate/multipleStringTemplate.kt");
-            }
-
-            @TestMetadata("singleExpressionStringTemplate.kt")
-            public void testSingleExpressionStringTemplate() throws Exception {
-                runTest("testData/inspectionsLocal/removeSingleExpressionStringTemplate/singleExpressionStringTemplate.kt");
-            }
-
-            @TestMetadata("singleExpressionStringTemplateNullableString.kt")
-            public void testSingleExpressionStringTemplateNullableString() throws Exception {
-                runTest("testData/inspectionsLocal/removeSingleExpressionStringTemplate/singleExpressionStringTemplateNullableString.kt");
-            }
-
-            @TestMetadata("singleExpressionStringTemplateWithMethodCall.kt")
-            public void testSingleExpressionStringTemplateWithMethodCall() throws Exception {
-                runTest("testData/inspectionsLocal/removeSingleExpressionStringTemplate/singleExpressionStringTemplateWithMethodCall.kt");
-            }
-
-            @TestMetadata("singleExpressionStringTemplateWithNonStringType.kt")
-            public void testSingleExpressionStringTemplateWithNonStringType() throws Exception {
-                runTest("testData/inspectionsLocal/removeSingleExpressionStringTemplate/singleExpressionStringTemplateWithNonStringType.kt");
-            }
-
-            @TestMetadata("stringTemplateWithText.kt")
-            public void testStringTemplateWithText() throws Exception {
-                runTest("testData/inspectionsLocal/removeSingleExpressionStringTemplate/stringTemplateWithText.kt");
             }
         }
 

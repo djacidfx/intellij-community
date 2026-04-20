@@ -16570,6 +16570,11 @@ public abstract class K1IntentionTestGenerated extends AbstractK1IntentionTest {
             runTest("testData/intentions/removeSingleExpressionStringTemplate/singleExpressionStringTemplate.kt");
         }
 
+        @TestMetadata("singleExpressionStringTemplateNullableString.kt")
+        public void testSingleExpressionStringTemplateNullableString() throws Exception {
+            runTest("testData/intentions/removeSingleExpressionStringTemplate/singleExpressionStringTemplateNullableString.kt");
+        }
+
         @TestMetadata("singleExpressionStringTemplateWithMethodCall.kt")
         public void testSingleExpressionStringTemplateWithMethodCall() throws Exception {
             runTest("testData/intentions/removeSingleExpressionStringTemplate/singleExpressionStringTemplateWithMethodCall.kt");
