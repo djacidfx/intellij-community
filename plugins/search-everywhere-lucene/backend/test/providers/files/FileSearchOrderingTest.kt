@@ -9,6 +9,9 @@ class FileSearchOrderingTest : FileSearchTestBase() {
 
   fun prefixesOf(str: String) = (1..str.length).map { str.substring(0, it) }
 
+
+  // TODO note that the "ZIA" test is currently "accidentally" succeeding because the scoring for filenameAbbreviationWithSkips is constant,
+  //  while the scoring for filenameAbbreviation is LengthScoringPrefixQuery.
   @TestFactory
   fun `orderings around ZoomIdeAction and ZoomOutAction`() : List<DynamicNode> {
 

@@ -9,7 +9,7 @@ import org.apache.lucene.analysis.tokenattributes.OffsetAttribute
  * Deduplicates tokens by merging those that share the same (term, startOffset, endOffset) triple:
  * their [MultiTypeAttribute] type sets are unioned into a single token.
  *
- * Tokens are then emitted in non-decreasing [startOffset] order (stable sort, preserving
+ * Tokens are then emitted in non-decreasing startOffset order (stable sort, preserving
  * insertion order within a group of equal startOffsets). This satisfies Lucene's requirement
  * that stored-field offsets never go backwards, even if upstream filters produce tokens
  * out of offset order (e.g., a FILETYPE token at offset 1 interleaved with FILENAME_PART
