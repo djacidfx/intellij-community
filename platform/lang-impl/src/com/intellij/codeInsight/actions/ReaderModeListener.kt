@@ -41,7 +41,7 @@ class ReaderModeSettingsListener : ReaderModeListener {
       }
 
       for (editor in ClientEditorManager.getCurrentInstance().editorsSequence()) {
-        if (editor !is EditorImpl || editor.getProject() != project) {
+        if (editor !is EditorImpl || editor.project != project) {
           continue
         }
 
@@ -73,7 +73,7 @@ internal class ReaderModeEditorSettingsListener : ProjectActivity {
   override suspend fun execute(project: Project) {
     val propertyChangeListener = PropertyChangeListener { event ->
       when (event.propertyName) {
-        EditorSettingsExternalizable.PROP_DOC_COMMENT_RENDERING -> {
+        EditorSettingsExternalizable.PropNames.PROP_ENABLE_RENDERED_DOC -> {
           ReaderModeSettings.getInstance(project).showRenderedDocs = EditorSettingsExternalizable.getInstance().isDocCommentRenderingEnabled
           applyToAllEditors(project)
         }

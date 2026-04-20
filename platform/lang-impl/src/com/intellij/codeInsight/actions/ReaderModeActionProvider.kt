@@ -6,6 +6,7 @@ import com.intellij.codeInsight.actions.ReaderModeSettings.Companion.matchMode
 import com.intellij.configurationStore.saveSettings
 import com.intellij.icons.AllIcons
 import com.intellij.ide.HelpTooltip
+import com.intellij.ide.setToolTipText
 import com.intellij.ide.ui.UISettings
 import com.intellij.lang.LangBundle
 import com.intellij.openapi.actionSystem.ActionUpdateThread
@@ -29,6 +30,7 @@ import com.intellij.openapi.options.ex.ConfigurableWrapper
 import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.SystemInfo
+import com.intellij.openapi.util.text.HtmlChunk
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.ui.JBColor
 import com.intellij.ui.scale.JBUIScale
@@ -82,8 +84,8 @@ internal class ReaderModeActionProvider : InspectionWidgetActionProvider {
           if (project != null && UISettings.isIdeHelpTooltipEnabled()) {
             HelpTooltip.dispose(this)
             HelpTooltip()
-              .setTitle(myPresentation.description)
-              .setDescription(LangBundle.message("action.ReaderModeProvider.description"))
+              .setPlainTextTitle(myPresentation.description)
+              .setDescription(HtmlChunk.text(LangBundle.message("action.ReaderModeProvider.description")))
               .setLink(LangBundle.message("action.ReaderModeProvider.link.configure")) {
                 ShowSettingsUtil.getInstance().showSettingsDialog(
                   project,
@@ -99,7 +101,7 @@ internal class ReaderModeActionProvider : InspectionWidgetActionProvider {
               .installOn(this)
           }
           else {
-            toolTipText = myPresentation.description
+            setToolTipText(HtmlChunk.text(myPresentation.description))
           }
         }
 
@@ -158,12 +160,14 @@ internal class ReaderModeActionProvider : InspectionWidgetActionProvider {
         presentation.text = null
         presentation.icon = AllIcons.General.ReaderMode
         presentation.hoveredIcon = null
+        @Suppress("DialogTitleCapitalization")
         presentation.description = LangBundle.message("action.ReaderModeProvider.text.enter")
       }
       else {
         presentation.text = LangBundle.message("action.ReaderModeProvider.text")
         presentation.icon = EmptyIcon.ICON_16
         presentation.hoveredIcon = AllIcons.Actions.CloseDarkGrey
+        @Suppress("DialogTitleCapitalization")
         presentation.description = LangBundle.message("action.ReaderModeProvider.text.exit")
       }
     }
