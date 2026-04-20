@@ -3,6 +3,7 @@ package com.intellij.openapi.editor.impl
 
 import com.intellij.openapi.editor.CustomWrap
 import com.intellij.openapi.editor.CustomWrapModel
+import com.intellij.openapi.editor.ex.DocumentEx
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.registry.Registry
 
@@ -68,5 +69,47 @@ class CustomWrapModelTest : AbstractEditorTest() {
     Disposer.dispose(disposable)
     addCustomWrap(2)
     assertEquals(listOf("add:3", "remove:3"), events)
+  }
+
+  fun testExplicitRemoveNotifiesRemovedExactlyOnce() {
+    initText("abcdef")
+
+    var removeCount = 0
+    var removedOffset = -1
+    customWrapModel.addListener(object : CustomWrapModel.Listener {
+      override fun customWrapRemoved(wrap: CustomWrap) {
+        removeCount++
+        removedOffset = wrap.offset
+      }
+    }, getTestRootDisposable())
+
+    val wrap = addCustomWrap(3)
+    customWrapModel.removeWrap(wrap)
+
+    assertEquals(1, removeCount)
+    assertEquals(3, removedOffset)
+  }
+
+  fun testCustomWrapInvalidatedByDocumentChangeNotifiesRemovedExactlyOnce() {
+    initText("abc\ndef")
+
+    var removeCount = 0
+    var removedOffset = -1
+    customWrapModel.addListener(object : CustomWrapModel.Listener {
+      override fun customWrapRemoved(wrap: CustomWrap) {
+        removeCount++
+        removedOffset = wrap.offset
+      }
+    }, getTestRootDisposable())
+
+    addCustomWrap(5)
+
+    runWriteCommand {
+      editor.document.deleteString(4, 5)
+    }
+
+    assertTrue(customWrapModel.getWraps().isEmpty())
+    assertEquals(1, removeCount)
+    assertEquals(4, removedOffset)
   }
 }

@@ -80,9 +80,7 @@ internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapM
   }
 
   override fun removeWrap(wrap: CustomWrap) {
-    if (tree.removeInterval(wrap as CustomWrapImpl)) {
-      notifyRemoved(wrap)
-    }
+    tree.removeInterval(wrap as CustomWrapImpl)
   }
 
   override fun hasWraps(): Boolean = tree.size() > 0
@@ -161,7 +159,7 @@ internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapM
       return Node(this, key, start, end, stickingToRight)
     }
 
-    override fun fireBeforeRemoved(marker: CustomWrapImpl) {
+    override fun fireAfterRemoved(marker: CustomWrapImpl) {
       marker.model.notifyRemoved(marker)
     }
   }
