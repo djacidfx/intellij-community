@@ -44,6 +44,8 @@ interface UniversalFileChooserContributor {
   )
 
   fun getRootIcon(): Icon? = null
+
+  suspend fun getPresentableName(path: Path): String? = null
 }
 
 fun getFilteredSystemRoots(predicate: (Path) -> Boolean): List<Path> {
