@@ -9418,7 +9418,29 @@ public abstract class K2IntentionTestGenerated extends AbstractK2IntentionTest {
         }
     }
 
+    @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../../idea/tests/testData/intentions/moveDeclarationToSeparateFile")
+    public static class MoveDeclarationToSeparateFile extends AbstractK2IntentionTest {
+        @java.lang.Override
+        @org.jetbrains.annotations.NotNull
+        public final KotlinPluginMode getPluginMode() {
+            return KotlinPluginMode.K2;
+        }
 
+        private void runTest(String testDataFilePath) throws Exception {
+            KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
+        }
+
+        @TestMetadata("extendSealed.kt")
+        public void testExtendSealed() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/moveDeclarationToSeparateFile/extendSealed.kt");
+        }
+
+        @TestMetadata("sealed.kt")
+        public void testSealed() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/moveDeclarationToSeparateFile/sealed.kt");
+        }
+    }
 
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../../idea/tests/testData/intentions/convertCamelCaseTestFunctionToSpaced")

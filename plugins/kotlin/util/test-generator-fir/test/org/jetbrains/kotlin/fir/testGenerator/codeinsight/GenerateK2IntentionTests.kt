@@ -102,7 +102,7 @@ internal fun MutableTWorkspace.generateK2IntentionTests() {
             model("${idea}intentions/replaceWithOrdinaryAssignment", pattern = pattern, isIgnored = true)
             model("${idea}intentions/introduceImportAlias", pattern = pattern)
             model("${idea}intentions/addForLoopIndices", pattern = pattern)
-            model("${idea}intentions/moveDeclarationToSeparateFile", pattern = pattern, isIgnored = true)
+            model("${idea}intentions/moveDeclarationToSeparateFile", pattern = pattern)
             model("${idea}intentions/convertCamelCaseTestFunctionToSpaced", pattern = pattern)
             model("${idea}intentions/convertPropertyInitializerToGetter", pattern = pattern)
             model("${idea}intentions/toInfixCall", pattern = pattern)
