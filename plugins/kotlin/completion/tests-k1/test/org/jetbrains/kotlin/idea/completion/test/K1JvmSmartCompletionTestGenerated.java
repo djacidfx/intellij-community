@@ -1418,6 +1418,11 @@ public abstract class K1JvmSmartCompletionTestGenerated extends AbstractK1JvmSma
             runTest("../testData/smart/GroupBySubstitutor.kt");
         }
 
+        @TestMetadata("HideInternalObject.kt")
+        public void testHideInternalObject() throws Exception {
+            runTest("../testData/smart/HideInternalObject.kt");
+        }
+
         @TestMetadata("HighOrderFunction.kt")
         public void testHighOrderFunction() throws Exception {
             runTest("../testData/smart/HighOrderFunction.kt");
