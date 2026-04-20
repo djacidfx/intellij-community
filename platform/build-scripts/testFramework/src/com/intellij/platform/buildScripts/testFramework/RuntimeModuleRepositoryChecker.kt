@@ -9,6 +9,7 @@ import com.intellij.platform.runtime.product.serialization.ProductModulesSeriali
 import com.intellij.platform.runtime.repository.MalformedRepositoryException
 import com.intellij.platform.runtime.repository.RuntimeModuleDescriptor
 import com.intellij.platform.runtime.repository.RuntimeModuleId
+import com.intellij.platform.runtime.repository.RuntimeModuleLoadingRule
 import com.intellij.platform.runtime.repository.RuntimeModuleRepository
 import com.intellij.platform.runtime.repository.serialization.RuntimeModuleRepositorySerialization
 import com.intellij.util.containers.FList
@@ -89,7 +90,10 @@ internal class RuntimeModuleRepositoryChecker private constructor(
     fun checkIntegrityOfEmbeddedFrontend(productModulesModule: String, context: BuildContext, softly: SoftAssertions) {
       createCheckers(context).forEach {
         it().use { checker ->
-          checker.checkIntegrityOfEmbeddedFrontend(productModulesModule, softly)
+          //todo remove this check after we stopped using PluginModuleGroups completely (IJPL-240871)
+          checker.checkIntegrityOfEmbeddedFrontend(productModulesModule, usePluginModuleGroups = true, softly)
+
+          checker.checkIntegrityOfEmbeddedFrontend(productModulesModule, usePluginModuleGroups = false, softly)
         }
       }
     }
@@ -161,7 +165,7 @@ internal class RuntimeModuleRepositoryChecker private constructor(
     }
   }
 
-  private fun checkIntegrityOfEmbeddedFrontend(productModulesModule: String, softly: SoftAssertions) {
+  private fun checkIntegrityOfEmbeddedFrontend(productModulesModule: String, usePluginModuleGroups: Boolean, softly: SoftAssertions) {
     val productModules = loadProductModules(productModulesModule, context.outputProvider, repository)
 
     val allProductModules = LinkedHashMap<RuntimeModuleId, FList<String>>()
@@ -170,22 +174,60 @@ internal class RuntimeModuleRepositoryChecker private constructor(
     productModules.mainModuleGroup.includedModules.forEach { mainModule ->
       collectDependencies(repository, mainModule.moduleDescriptor, mainModuleGroupPath, allProductModules)
     }
-    productModules.bundledPluginModuleGroups.forEach { group ->
-      if (group.includedModules.isEmpty()) {
-        softly.collectAssertionErrorIfNotRegisteredYet(AssertionError("""
+    if (usePluginModuleGroups) {
+      productModules.bundledPluginModuleGroups.forEach { group ->
+        if (group.includedModules.isEmpty()) {
+          softly.collectAssertionErrorIfNotRegisteredYet(
+            AssertionError(
+              """
            |No modules from '$group' are included in a product running in the frontend mode, so corresponding plugin won't be loaded.
            |Probably it indicates that some incorrect dependency was added to the main plugin module.  
-        """.trimMargin()))
-        return@forEach
+        """.trimMargin()
+            )
+          )
+          return@forEach
+        }
+        val pluginPath = FList.singleton("bundled plugin ${group.mainModule.moduleId.presentableName}")
+        group.includedModules.forEach {
+          collectDependencies(repository, it.moduleDescriptor, pluginPath.prepend(it.moduleDescriptor.moduleId.presentableName), allProductModules)
+        }
       }
-      val pluginPath = FList.singleton("bundled plugin ${group.mainModule.moduleId.presentableName}")
-      group.includedModules.forEach {
-        collectDependencies(repository, it.moduleDescriptor, pluginPath.prepend(it.moduleDescriptor.moduleId.presentableName), allProductModules)
+    }
+    else {
+      val pluginHeaders = repository.bundledPluginHeaders.associateBy { it.pluginDescriptorModuleId }
+      productModules.bundledPluginDescriptorModules.forEach { pluginDescriptorModule ->
+        val header = pluginHeaders[pluginDescriptorModule]
+                     ?: pluginHeaders[RuntimeModuleId.contentModule(pluginDescriptorModule.name, RuntimeModuleId.DEFAULT_NAMESPACE)]
+        if (header == null) {
+          softly.collectAssertionErrorIfNotRegisteredYet(AssertionError(
+            "Plugin header for module '${pluginDescriptorModule.presentableName}' is not found in the runtime module repository"
+          ))
+          return@forEach
+        }
+        header.includedModules.forEach { includedModule ->
+          if (includedModule.loadingRule == RuntimeModuleLoadingRule.EMBEDDED) {
+            if (repository.findHeader(includedModule.moduleId) == null) {
+              softly.collectAssertionErrorIfNotRegisteredYet(AssertionError(
+                "Module '${includedModule.moduleId.presentableName}' included as as embedded in the plugin '${header.pluginId}' is not found in the runtime module repository"
+              ))
+              return@forEach
+            }
+            val pluginPath = FList.singleton("bundled plugin header ${header.pluginDescriptorModuleId.presentableName}")
+            allProductModules[includedModule.moduleId] = pluginPath
+          }
+        }
       }
     }
 
     val productResourceRoots = allProductModules.keys.flatMap { moduleId ->
-      repository.getModule(moduleId).resourceRootPaths.map { it to moduleId }
+      val moduleHeader = repository.findHeader(moduleId)
+      if (moduleHeader == null) {
+        softly.collectAssertionErrorIfNotRegisteredYet(AssertionError(
+          "Module '${moduleId.presentableName}' is not found in the runtime module repository"
+        ))
+        return@flatMap emptyList<Pair<String, RuntimeModuleId>>()
+      }
+      moduleHeader.ownClasspath.map { it to moduleId }
     }.groupBy({ it.first }, { it.second })
     
     for (moduleId in moduleRepositoryData.allModuleIds) {

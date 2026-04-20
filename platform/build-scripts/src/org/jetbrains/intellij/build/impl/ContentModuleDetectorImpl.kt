@@ -94,9 +94,6 @@ internal class ContentModuleDetectorImpl(platformLayout: PlatformLayout, bundled
     val pluginDescriptorModuleId = createModuleId(plugin.layout.mainModule, project)
     val includedModules = plugin.distribution.mapNotNull { entry ->
       val relativeOutputPath = entry.relativeOutputFile ?: ""
-      if (relativeOutputPath.removePrefix("modules/").contains('/')) {
-        return@mapNotNull null
-      }
       when (entry) {
         is ModuleOutputEntry -> {
           val moduleName = entry.owner.moduleName
@@ -111,9 +108,21 @@ internal class ContentModuleDetectorImpl(platformLayout: PlatformLayout, bundled
           RawIncludedRuntimeModule(RuntimeModuleId.moduleTests (entry.moduleName), RuntimeModuleLoadingRule.EMBEDDED, null)
         is ModuleLibraryFileEntry -> null // module-level libraries are included in the runtime descriptor for corresponding module
         is CustomAssetEntry -> null
-      }
+      }?.takeIf { shouldIncludeInPluginHeader(it.moduleId, relativeOutputPath) }
     }
     return RawRuntimePluginHeader.create(pluginId, pluginDescriptorModuleId, includedModules)
+  }
+
+  /**
+   * Returns `true` if the module [moduleId] should be included in the plugin header: if its JAR is located directly in `lib/` directory, or the JAR is in `lib/modules/` directory,
+   * and it's a real content module.
+   */
+  private fun shouldIncludeInPluginHeader(moduleId: RuntimeModuleId, relativeOutputPath: String): Boolean {
+    if (!relativeOutputPath.contains('/')) return true
+    if (!relativeOutputPath.startsWith("modules/") || relativeOutputPath.removePrefix("modules/").contains('/')) return false
+    val namespace = moduleId.namespace
+    return namespace != RuntimeModuleId.LEGACY_JPS_MODULE_NAMESPACE && namespace != RuntimeModuleId.LEGACY_JPS_MODULE_TESTS_NAMESPACE
+           && namespace != RuntimeModuleId.LEGACY_JPS_LIBRARY_NAMESPACE
   }
 
   private fun createModuleId(moduleName: String, project: JpsProject): RuntimeModuleId {

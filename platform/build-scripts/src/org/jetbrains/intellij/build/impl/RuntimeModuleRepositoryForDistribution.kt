@@ -320,7 +320,8 @@ private class DistributionResourcePathsSchema(
  *   * otherwise, a JAR included in JetBrains Client is preferred.
  *   * otherwise, a JAR located in a directory named 'client' or 'frontend' is preferred.
  * 
- * This heuristic is verified by RuntimeModuleRepositoryChecker.checkIntegrityOfEmbeddedProduct.  
+ * This heuristic is verified by RuntimeModuleRepositoryChecker.checkIntegrityOfEmbeddedProduct.
+ * It would be better to get rid of this heuristic and store multiple descriptors for such libraries and modules instead, see IJPL-243081.
  */
 private suspend fun computeMainPathsForResourcesCopiedToMultiplePlaces(
   entries: List<RuntimeModuleRepositoryEntry>,
@@ -358,14 +359,16 @@ private suspend fun computeMainPathsForResourcesCopiedToMultiplePlaces(
   }
   
   suspend fun chooseMainLocation(element: JpsNamedElement, paths: List<Path>): String {
-    val mainLocation = paths.singleOrNull { it.parent?.pathString == "lib" && !isScrambledWithFrontend(element) } ?:
+    val mainLocation = paths.singleOrNull { it.parent?.pathString == "lib" && !isScrambledWithFrontend(element) && !it.name.endsWith("-backend.jar") } ?:
                        paths.singleOrNull { pathToEntries[it]?.size == 1 } ?:
                        paths.singleOrNull { pathToEntries[it]?.any { entry -> isIncludedInEmbeddedFrontend(entry.origin) } == true } ?:
                        paths.singleOrNull { it.parent?.name in setOf("client", "frontend", "frontend-split") }
     if (mainLocation != null) {
       return mainLocation.invariantSeparatorsPathString
     }
-    val sorted = paths.map { it.invariantSeparatorsPathString }.sorted()
+    val sorted = paths.sortedWith(
+      compareBy<Path> { pathToEntries[it]?.size ?: 0 }.thenComparing { it.invariantSeparatorsPathString }
+    ).map { it.invariantSeparatorsPathString }
     Span.current().addEvent("cannot choose the main location for '${element.name}' among $sorted, the first one will be used")
     return sorted.first()
   }
