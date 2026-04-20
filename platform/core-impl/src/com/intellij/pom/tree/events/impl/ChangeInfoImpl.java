@@ -1,4 +1,4 @@
-// Copyright 2000-2023 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
 package com.intellij.pom.tree.events.impl;
 
@@ -10,6 +10,14 @@ import com.intellij.psi.impl.PsiTreeChangeEventImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * Describes a single child-level AST change: holds the old and new child nodes, the offset in the parent's
+ * original text, and the old/new text lengths. Also, responsible for firing the corresponding
+ * {@link PsiTreeChangeEventImpl} ({@code childAdded}, {@code childRemoved}, {@code childReplaced},
+ * or {@code childrenChanged}).
+ *
+ * @see TreeChangeImpl.ChildrenDiff
+ */
 public class ChangeInfoImpl implements ChangeInfo {
   private final @Nullable ASTNode myOldChild;
   private final @Nullable ASTNode myNewChild;
@@ -25,7 +33,7 @@ public class ChangeInfoImpl implements ChangeInfo {
     myNewLength = newChild != null ? newChild.getTextLength() : 0;
   }
 
-  public ASTNode getOldChildNode() {
+  public @Nullable ASTNode getOldChildNode() {
     return myOldChild;
   }
 
@@ -46,14 +54,14 @@ public class ChangeInfoImpl implements ChangeInfo {
   }
 
   @Override
-  public int getChangeType(){
+  public int getChangeType() {
     if (myOldChild == myNewChild) return CONTENTS_CHANGED;
     if (myOldChild != null) return myNewChild == null ? REMOVED : REPLACE;
     return ADD;
   }
 
   @Override
-  public String toString() {
+  public @NotNull String toString() {
     return myOldChild + "(" + myOldLength + ")" + "->" + myNewChild + "(" + myNewLength + ") at " + myOffset;
   }
 
@@ -61,11 +69,13 @@ public class ChangeInfoImpl implements ChangeInfo {
     return myNewLength - myOldLength;
   }
 
-  ASTNode getAffectedChild() {
-    return myNewChild != null ? myNewChild : myOldChild;
+  @NotNull ASTNode getAffectedChild() {
+    ASTNode result = myNewChild != null ? myNewChild : myOldChild;
+    assert result != null : "At least one of oldChild/newChild must be non-null";
+    return result;
   }
 
-  void fireEvent(int parentStart, PsiFile file, ASTNode parent) {
+  void fireEvent(int parentStart, @NotNull PsiFile file, @NotNull ASTNode parent) {
     PsiTreeChangeEventImpl e = createEvent(file, myOffset + parentStart);
 
     if (myOldChild == myNewChild && myNewChild != null) {
@@ -90,24 +100,27 @@ public class ChangeInfoImpl implements ChangeInfo {
   }
 
   boolean hasNoPsi() {
-    return myOldChild != null && myOldChild.getPsi() == null || 
+    return myOldChild != null && myOldChild.getPsi() == null ||
            myNewChild != null && myNewChild.getPsi() == null;
   }
 
-  private static void childAdded(PsiTreeChangeEventImpl e, ASTNode child, ASTNode parent) {
+  private static void childAdded(@NotNull PsiTreeChangeEventImpl e, @NotNull ASTNode child, @NotNull ASTNode parent) {
     e.setParent(parent.getPsi());
     e.setChild(child.getPsi());
     getPsiManagerEx(e).childAdded(e);
   }
 
-  private void childRemoved(PsiTreeChangeEventImpl e, ASTNode child, ASTNode parent) {
+  private void childRemoved(@NotNull PsiTreeChangeEventImpl e, @NotNull ASTNode child, @NotNull ASTNode parent) {
     e.setParent(parent.getPsi());
     e.setChild(child.getPsi());
     e.setOldLength(myOldLength);
     getPsiManagerEx(e).childRemoved(e);
   }
 
-  private void childReplaced(PsiTreeChangeEventImpl e, ASTNode oldChild, ASTNode newChild, ASTNode parent) {
+  private void childReplaced(@NotNull PsiTreeChangeEventImpl e,
+                             @NotNull ASTNode oldChild,
+                             @NotNull ASTNode newChild,
+                             @NotNull ASTNode parent) {
     e.setParent(parent.getPsi());
     e.setOldChild(oldChild.getPsi());
     e.setChild(newChild.getPsi());
@@ -116,13 +129,13 @@ public class ChangeInfoImpl implements ChangeInfo {
     getPsiManagerEx(e).childReplaced(e);
   }
 
-  static void childrenChanged(PsiTreeChangeEventImpl e, ASTNode parent, int oldLength) {
+  static void childrenChanged(@NotNull PsiTreeChangeEventImpl e, @NotNull ASTNode parent, int oldLength) {
     e.setParent(parent.getPsi());
     e.setOldLength(oldLength);
     getPsiManagerEx(e).childrenChanged(e);
   }
 
-  private static PsiManagerEx getPsiManagerEx(PsiTreeChangeEventImpl e) {
+  private static @NotNull PsiManagerEx getPsiManagerEx(@NotNull PsiTreeChangeEventImpl e) {
     return (PsiManagerEx)e.getSource();
   }
 }
