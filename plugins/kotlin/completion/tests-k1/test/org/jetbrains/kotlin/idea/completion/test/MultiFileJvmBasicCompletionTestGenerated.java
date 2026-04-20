@@ -390,6 +390,56 @@ public class MultiFileJvmBasicCompletionTestGenerated extends AbstractMultiFileJ
         runTest("../testData/basic/multifile/MoreSpecificExtensionIsPrivate/");
     }
 
+    @TestMetadata("MultipleArgumentsJavaCollectionPlatformTypes")
+    public void testMultipleArgumentsJavaCollectionPlatformTypes() throws Exception {
+        runTest("../testData/basic/multifile/MultipleArgumentsJavaCollectionPlatformTypes/");
+    }
+
+    @TestMetadata("MultipleArgumentsJavaMethodWithTheFirstArgument")
+    public void testMultipleArgumentsJavaMethodWithTheFirstArgument() throws Exception {
+        runTest("../testData/basic/multifile/MultipleArgumentsJavaMethodWithTheFirstArgument/");
+    }
+
+    @TestMetadata("MultipleArgumentsJavaNotNullParameter")
+    public void testMultipleArgumentsJavaNotNullParameter() throws Exception {
+        runTest("../testData/basic/multifile/MultipleArgumentsJavaNotNullParameter/");
+    }
+
+    @TestMetadata("MultipleArgumentsJavaOverloadedConstructor")
+    public void testMultipleArgumentsJavaOverloadedConstructor() throws Exception {
+        runTest("../testData/basic/multifile/MultipleArgumentsJavaOverloadedConstructor/");
+    }
+
+    @TestMetadata("MultipleArgumentsJavaOverloadedConstructorWithTheFirstArgument")
+    public void testMultipleArgumentsJavaOverloadedConstructorWithTheFirstArgument() throws Exception {
+        runTest("../testData/basic/multifile/MultipleArgumentsJavaOverloadedConstructorWithTheFirstArgument/");
+    }
+
+    @TestMetadata("MultipleArgumentsJavaRecord")
+    public void testMultipleArgumentsJavaRecord() throws Exception {
+        runTest("../testData/basic/multifile/MultipleArgumentsJavaRecord/");
+    }
+
+    @TestMetadata("MultipleArgumentsJavaStaticMethod")
+    public void testMultipleArgumentsJavaStaticMethod() throws Exception {
+        runTest("../testData/basic/multifile/MultipleArgumentsJavaStaticMethod/");
+    }
+
+    @TestMetadata("MultipleArgumentsJavaSupertypes")
+    public void testMultipleArgumentsJavaSupertypes() throws Exception {
+        runTest("../testData/basic/multifile/MultipleArgumentsJavaSupertypes/");
+    }
+
+    @TestMetadata("MultipleArgumentsJavaSupertypesWithNullableKotlinSubtypes")
+    public void testMultipleArgumentsJavaSupertypesWithNullableKotlinSubtypes() throws Exception {
+        runTest("../testData/basic/multifile/MultipleArgumentsJavaSupertypesWithNullableKotlinSubtypes/");
+    }
+
+    @TestMetadata("MultipleArgumentsJavaWithNullableKotlin")
+    public void testMultipleArgumentsJavaWithNullableKotlin() throws Exception {
+        runTest("../testData/basic/multifile/MultipleArgumentsJavaWithNullableKotlin/");
+    }
+
     @TestMetadata("NoAutoInsertionOfNotImported")
     public void testNoAutoInsertionOfNotImported() throws Exception {
         runTest("../testData/basic/multifile/NoAutoInsertionOfNotImported/");

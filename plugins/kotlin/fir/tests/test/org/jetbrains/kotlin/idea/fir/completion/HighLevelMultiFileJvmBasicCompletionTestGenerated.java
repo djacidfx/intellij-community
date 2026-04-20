@@ -390,6 +390,56 @@ public class HighLevelMultiFileJvmBasicCompletionTestGenerated extends AbstractH
         runTest("../../completion/testData/basic/multifile/MoreSpecificExtensionIsPrivate/");
     }
 
+    @TestMetadata("MultipleArgumentsJavaCollectionPlatformTypes")
+    public void testMultipleArgumentsJavaCollectionPlatformTypes() throws Exception {
+        runTest("../../completion/testData/basic/multifile/MultipleArgumentsJavaCollectionPlatformTypes/");
+    }
+
+    @TestMetadata("MultipleArgumentsJavaMethodWithTheFirstArgument")
+    public void testMultipleArgumentsJavaMethodWithTheFirstArgument() throws Exception {
+        runTest("../../completion/testData/basic/multifile/MultipleArgumentsJavaMethodWithTheFirstArgument/");
+    }
+
+    @TestMetadata("MultipleArgumentsJavaNotNullParameter")
+    public void testMultipleArgumentsJavaNotNullParameter() throws Exception {
+        runTest("../../completion/testData/basic/multifile/MultipleArgumentsJavaNotNullParameter/");
+    }
+
+    @TestMetadata("MultipleArgumentsJavaOverloadedConstructor")
+    public void testMultipleArgumentsJavaOverloadedConstructor() throws Exception {
+        runTest("../../completion/testData/basic/multifile/MultipleArgumentsJavaOverloadedConstructor/");
+    }
+
+    @TestMetadata("MultipleArgumentsJavaOverloadedConstructorWithTheFirstArgument")
+    public void testMultipleArgumentsJavaOverloadedConstructorWithTheFirstArgument() throws Exception {
+        runTest("../../completion/testData/basic/multifile/MultipleArgumentsJavaOverloadedConstructorWithTheFirstArgument/");
+    }
+
+    @TestMetadata("MultipleArgumentsJavaRecord")
+    public void testMultipleArgumentsJavaRecord() throws Exception {
+        runTest("../../completion/testData/basic/multifile/MultipleArgumentsJavaRecord/");
+    }
+
+    @TestMetadata("MultipleArgumentsJavaStaticMethod")
+    public void testMultipleArgumentsJavaStaticMethod() throws Exception {
+        runTest("../../completion/testData/basic/multifile/MultipleArgumentsJavaStaticMethod/");
+    }
+
+    @TestMetadata("MultipleArgumentsJavaSupertypes")
+    public void testMultipleArgumentsJavaSupertypes() throws Exception {
+        runTest("../../completion/testData/basic/multifile/MultipleArgumentsJavaSupertypes/");
+    }
+
+    @TestMetadata("MultipleArgumentsJavaSupertypesWithNullableKotlinSubtypes")
+    public void testMultipleArgumentsJavaSupertypesWithNullableKotlinSubtypes() throws Exception {
+        runTest("../../completion/testData/basic/multifile/MultipleArgumentsJavaSupertypesWithNullableKotlinSubtypes/");
+    }
+
+    @TestMetadata("MultipleArgumentsJavaWithNullableKotlin")
+    public void testMultipleArgumentsJavaWithNullableKotlin() throws Exception {
+        runTest("../../completion/testData/basic/multifile/MultipleArgumentsJavaWithNullableKotlin/");
+    }
+
     @TestMetadata("NoAutoInsertionOfNotImported")
     public void testNoAutoInsertionOfNotImported() throws Exception {
         runTest("../../completion/testData/basic/multifile/NoAutoInsertionOfNotImported/");
