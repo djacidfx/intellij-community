@@ -24,6 +24,10 @@ public class SwingTextTrimmer {
     return new SwingTextTrimmer(new StandardTrimmerStrategy(StringUtil.ELLIPSIS, SwingConstants.CENTER, ratio));
   }
 
+  public static @NotNull SwingTextTrimmer createCustomTrimmer(@NotNull SwingTextTrimmerStrategy strategy) {
+    return new SwingTextTrimmer(strategy);
+  }
+
   private final @NotNull SwingTextTrimmerStrategy strategy;
   private boolean trimmed;
 

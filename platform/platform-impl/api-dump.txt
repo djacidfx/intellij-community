@@ -1843,6 +1843,7 @@ c:com.intellij.util.ui.SwingTextTrimmer
 - sf:THREE_DOTS_AT_RIGHT:com.intellij.util.ui.SwingTextTrimmer
 - sf:THREE_DOTS_IN_CENTER:com.intellij.util.ui.SwingTextTrimmer
 - s:createCenterTrimmer(F):com.intellij.util.ui.SwingTextTrimmer
+- s:createCustomTrimmer(com.intellij.util.ui.SwingTextTrimmerStrategy):com.intellij.util.ui.SwingTextTrimmer
 - isTrimmed():Z
 - trim(java.lang.String,java.awt.FontMetrics,I):java.lang.String
 com.intellij.util.ui.SwingTextTrimmerStrategy
