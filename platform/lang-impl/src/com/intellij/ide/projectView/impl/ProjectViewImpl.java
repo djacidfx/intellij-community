@@ -1215,6 +1215,8 @@ public class ProjectViewImpl extends ProjectView implements PersistentStateCompo
   private void viewSelectionChanged() {
     Content content = getContentManager().getSelectedContent();
     if (content == null) {
+      currentViewId = null;
+      currentViewSubId = null;
       return;
     }
 
