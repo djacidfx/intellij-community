@@ -171,8 +171,8 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
         luceneIndex.processChanges { writer ->
           writer.deleteAll()
           for (batch in files.chunked(INDEX_BATCH_SIZE)) {
-            val docs = readAction { batch.filter { it.isValid }.map { getDocument(it).second } }
-
+            val fileDataList = readAction { batch.asIterable().filter { it.isValid }.map { getFileData(it) }.toList() }
+            val docs = fileDataList.asIterable().map { buildDocument(it).second }
             writer.addDocuments(docs)
           }
         }
@@ -225,7 +225,8 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
         if (filesToReindex.isEmpty() && urlsToDelete.isEmpty()) return
         LOG.debug { "Reindexing ${filesToReindex.size} files, deleting ${urlsToDelete.size} files" }
 
-        val termsAndDocs = readAction { filesToReindex.map { getDocument(it) } }
+        val fileDataList = readAction { filesToReindex.map { getFileData(it) } }
+        val termsAndDocs = fileDataList.map { buildDocument(it) }
 
         luceneIndex.processChanges { writer ->
           termsAndDocs.forEach { (term, doc) ->
@@ -286,14 +287,20 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
 
   override fun dispose() {}
 
+  internal fun getFileData(virtualFile: VirtualFile): FileData = FileData(
+    url = virtualFile.url,
+    name = virtualFile.name,
+    relativePath = getRelativePathForFile(virtualFile),
+  )
+
   @Throws(IOException::class)
-  fun getDocument(virtualFile: VirtualFile): Pair<Term, Document> {
+  internal fun buildDocument(fileData: FileData): Pair<Term, Document> {
     val document = Document()
-    document.add(StringField(FILE_URL, virtualFile.url, Field.Store.YES))
+    document.add(StringField(FILE_URL, fileData.url, Field.Store.YES))
     //TODO does virtualFile include the extension?
-    analyzeString(FileNameAnalyzer(), virtualFile.name).forEach { document.add(it) }
-    analyzeString(FilePathAnalyzer(), getRelativePathForFile(virtualFile)).forEach { document.add(it) }
-    val term = getPrimaryKeyTerm(virtualFile.url)
+    analyzeString(FileNameAnalyzer(), fileData.name).forEach { document.add(it) }
+    analyzeString(FilePathAnalyzer(), fileData.relativePath).forEach { document.add(it) }
+    val term = getPrimaryKeyTerm(fileData.url)
     return Pair(term, document)
   }
 
@@ -477,6 +484,8 @@ sealed class LuceneFileIndexOperation {
   data class ReindexFiles(val changedFiles: Set<VirtualFile> = emptySet(), val changedUrls: Set<String> = emptySet()) :
     LuceneFileIndexOperation()
 }
+
+internal data class FileData(val url: String, val name: String, val relativePath: String)
 
 /** Pre-tokenized stream that replays a fixed list of string terms. */
 class ListTokenStream(private val tokens: List<String>) : TokenStream() {

@@ -44,10 +44,9 @@ abstract class FileSearchTestBase : LuceneIndexTestBase() {
 
   fun file(path: String): Document {
     return runBlocking {
-      readAction {
-        val fileIndex = FileIndex.getInstance(project)
-        fileIndex.getDocument(buildMockVirtualFile(path)).second
-      }
+      val fileIndex = FileIndex.getInstance(project)
+      val fileData = readAction { fileIndex.getFileData(buildMockVirtualFile(path)) }
+      fileIndex.buildDocument(fileData).second
     }
   }
 }
