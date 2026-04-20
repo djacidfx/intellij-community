@@ -55,8 +55,7 @@ internal class SdkTableProjectViewProviderImpl(private val project: Project) : S
 private class ProjectJdkTableProjectView(val eelMachine: EelMachine, val delegate: ProjectJdkTable) : ProjectJdkTable() {
   override fun findJdk(name: String): Sdk? {
     if (delegate is EnvironmentScopedSdkTableOps) {
-      // Target-based SDKs are stored under LocalEelMachine, so let's try to find remote SDK in a local model
-      return findJdkWithTargetFallback(delegate) { findJdk(name, it) }
+      return findJdkWithTargetFallback(delegate) { eelMachine -> findJdk(name, eelMachine) }
     }
     return delegate.allJdks.find {
       it.name == name && validateDescriptor(it)
@@ -65,8 +64,7 @@ private class ProjectJdkTableProjectView(val eelMachine: EelMachine, val delegat
 
   override fun findJdk(name: String, type: String): Sdk? {
     if (delegate is EnvironmentScopedSdkTableOps) {
-      // Target-based SDKs are stored under LocalEelMachine, so let's try to find remote SDK in a local model
-      return findJdkWithTargetFallback(delegate) { findJdk(name, type, it) }
+      return findJdkWithTargetFallback(delegate) { eelMachine -> findJdk(name, type, eelMachine) }
     }
     // sometimes delegate.findJdk can do mutating operations, like in the case of ProjectJdkTableImpl
     return delegate.allJdks.find { it.name == name && it.sdkType.name == type && validateDescriptor(it) } ?: delegate.findJdk(name, type)
@@ -112,6 +110,10 @@ private class ProjectJdkTableProjectView(val eelMachine: EelMachine, val delegat
     return delegate.createSdk(name, sdkType)
   }
 
+  /**
+   * Target-based SDKs are stored under LocalEelMachine, so if we didn't find an SDK for a matching eel,
+   * let's try to find remote SDK in a local model as a fallback.
+   */
   private fun findJdkWithTargetFallback(
     delegate: EnvironmentScopedSdkTableOps,
     lookup: EnvironmentScopedSdkTableOps.(EelMachine) -> Sdk?,
