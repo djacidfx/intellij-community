@@ -1,10 +1,11 @@
 <idea-plugin package="com.intellij.grazie.ide.language.markdown">
+  <!-- region Generated dependencies - run `Generate Product Layouts` to regenerate -->
   <dependencies>
     <plugin id="org.intellij.plugins.markdown"/>
-    <!-- region Generated dependencies - run `Generate Product Layouts` to regenerate -->
+    <module name="intellij.grazie.core"/>
     <module name="intellij.markdown"/>
-    <!-- endregion -->
   </dependencies>
+  <!-- endregion -->
 
   <extensions defaultExtensionNs="com.intellij.grazie">
     <textExtractor language="Markdown"
