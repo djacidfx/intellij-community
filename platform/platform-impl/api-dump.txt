@@ -1834,6 +1834,8 @@ com.intellij.util.ui.ListItemEditor
 com.intellij.util.ui.ReloadablePanel$DataProvider
 - a:getCachedValues():java.util.Set
 - a:updateValuesAsynchronously():V
+com.intellij.util.ui.SwingTextTrimmerStrategy
+- a:trim(java.lang.String,java.awt.FontMetrics,I):java.lang.String
 com.intellij.util.ui.ValidatingTableEditor$RowHeightProvider
 - a:getRowHeight():I
 com.intellij.util.ui.table.JBTableRow
