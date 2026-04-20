@@ -176,19 +176,6 @@ fun CheckBox(@Checkbox text: String, selected: Boolean = false, toolTip: @Toolti
   return component
 }
 
-@ApiStatus.ScheduledForRemoval
-@ApiStatus.Internal
-@Deprecated("Use Kotlin UI DSL, method Panel.group")
-@JvmOverloads
-fun Panel(@BorderTitle title: String? = null, layout: LayoutManager2? = BorderLayout()): JPanel {
-  val panel = JPanel(layout)
-  title?.let {
-    @Suppress("HardCodedStringLiteral")
-    setTitledBorder(title = it, panel = panel, hasSeparator = false)
-  }
-  return panel
-}
-
 fun DialogPanel(title: @BorderTitle String? = null, layout: LayoutManager2? = BorderLayout()): DialogPanel {
   val panel = DialogPanel(layout)
   title?.let { setTitledBorder(it, panel, hasSeparator = true) }
