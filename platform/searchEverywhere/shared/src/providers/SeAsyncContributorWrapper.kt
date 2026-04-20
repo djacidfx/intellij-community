@@ -104,17 +104,17 @@ private class RetryProgressIndicator(
 
   override fun isCanceled(): Boolean = canceled || delegate.isCanceled
 
-  override fun setText(text: String) {
+  override fun setText(text: String?) {
     delegate.text = text
   }
 
-  override fun getText(): String = delegate.text
+  override fun getText(): String? = delegate.text
 
-  override fun setText2(text: String) {
+  override fun setText2(text: String?) {
     delegate.text2 = text
   }
 
-  override fun getText2(): String = delegate.text2
+  override fun getText2(): String? = delegate.text2
 
   override fun getFraction(): Double = delegate.fraction
 
