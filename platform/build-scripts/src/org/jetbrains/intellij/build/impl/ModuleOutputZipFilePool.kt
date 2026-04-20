@@ -43,7 +43,9 @@ class ModuleOutputZipFilePool(
   suspend fun getData(file: Path, entryPath: String): ByteArray? {
     try {
       if (cache == null) {
-        return zipFileLoader(file)?.use { it.getData(entryPath) }
+        return withTimeout(cacheReadTimeout) {
+          zipFileLoader(file)?.use { it.getData(entryPath) }
+        }
       }
       else {
         return withTimeout(cacheReadTimeout) {
