@@ -31,6 +31,25 @@ com.intellij.analysis.problemsView.ProblemsProvider
 - com.intellij.openapi.Disposable
 - dispose():V
 - a:getProject():com.intellij.openapi.project.Project
+c:com.intellij.analysis.problemsView.toolWindow.HighlightingPanel
+- com.intellij.analysis.problemsView.toolWindow.ProblemsViewPanel
+- com.intellij.ide.PowerSaveMode$Listener
+- com.intellij.openapi.fileEditor.FileEditorManagerListener
+- sf:Companion:com.intellij.analysis.problemsView.toolWindow.HighlightingPanel$Companion
+- sf:ID:java.lang.String
+- <init>(com.intellij.openapi.project.Project,com.intellij.analysis.problemsView.toolWindow.ProblemsViewState):V
+- fileClosed(com.intellij.openapi.fileEditor.FileEditorManager,com.intellij.openapi.vfs.VirtualFile):V
+- fileOpened(com.intellij.openapi.fileEditor.FileEditorManager,com.intellij.openapi.vfs.VirtualFile):V
+- getCurrentFile():com.intellij.openapi.vfs.VirtualFile
+- getSortBySeverity():com.intellij.openapi.actionSystem.ToggleOptionAction$Option
+- getSortFoldersFirst():com.intellij.openapi.actionSystem.ToggleOptionAction$Option
+- p:getTreeExpander():com.intellij.ide.TreeExpander
+- powerSaveStateChanged():V
+- f:selectHighlighter(com.intellij.openapi.editor.ex.RangeHighlighterEx):V
+- selectionChanged(com.intellij.openapi.fileEditor.FileEditorManagerEvent):V
+- selectionChangedTo(Z):V
+- uiDataSnapshot(com.intellij.openapi.actionSystem.DataSink):V
+- f:updateSelectedFile():org.jetbrains.concurrency.CancellablePromise
 c:com.intellij.analysis.problemsView.toolWindow.ProblemsViewPanel
 - sf:DATA_KEY:com.intellij.openapi.actionSystem.DataKey
 - sf:PREVIEW_DATA_KEY:com.intellij.openapi.actionSystem.DataKey
@@ -40,6 +59,9 @@ com.intellij.analysis.problemsView.toolWindow.ProblemsViewPanelProvider
 - sf:Companion:com.intellij.analysis.problemsView.toolWindow.ProblemsViewPanelProvider$Companion
 - a:create():com.intellij.analysis.problemsView.toolWindow.ProblemsViewTab
 - s:getEP():com.intellij.openapi.extensions.ExtensionPointName
+c:com.intellij.analysis.problemsView.toolWindow.ProblemsViewState
+- f:getSortByName():Z
+- f:getSortBySeverity():Z
 com.intellij.analysis.problemsView.toolWindow.ProblemsViewTab
 - a:getName(I):java.lang.String
 - a:getTabId():java.lang.String

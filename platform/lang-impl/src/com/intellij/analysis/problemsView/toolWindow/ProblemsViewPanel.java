@@ -53,6 +53,7 @@ import com.intellij.util.ui.NamedColorUtil;
 import com.intellij.util.ui.UIUtil;
 import com.intellij.util.ui.tree.TreeUtil;
 import org.intellij.lang.annotations.Language;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -85,7 +86,7 @@ import static com.intellij.util.OpenSourceUtil.navigate;
 public class ProblemsViewPanel extends OnePixelSplitter implements Disposable, UiCompatibleDataProvider, ProblemsViewTab {
   public static final @NotNull DataKey<ProblemsViewPanel> DATA_KEY = DataKey.create("ProblemsViewPanel");
   public static final @NotNull DataKey<Editor> PREVIEW_DATA_KEY = DataKey.create("ProblemsViewPanel.preview");
-  
+
   private final ClientProjectSession mySession;
   volatile boolean myDisposed;
   private final String myId;
@@ -307,7 +308,8 @@ public class ProblemsViewPanel extends OnePixelSplitter implements Disposable, U
     });
   }
 
-  protected void updateToolWindowContent() {
+  @ApiStatus.Internal
+  public void updateToolWindowContent() {
     myUpdateAlarm.cancelAndRequest();
   }
 
@@ -368,7 +370,8 @@ public class ProblemsViewPanel extends OnePixelSplitter implements Disposable, U
     return myTree;
   }
 
-  final @Nullable Editor getPreview() {
+  @ApiStatus.Internal
+  public final @Nullable Editor getPreview() {
     return myPreview.editor();
   }
 
@@ -529,8 +532,9 @@ public class ProblemsViewPanel extends OnePixelSplitter implements Disposable, U
     return getAutoscrollToSource(null);
   }
 
+  @ApiStatus.Internal
   @Nullable
-  Option getAutoscrollToSource(@Nullable AnActionEvent event) {
+  public Option getAutoscrollToSource(@Nullable AnActionEvent event) {
     return isNotNullAndSelected(getShowPreview(event)) ? null : myAutoscrollToSource;
   }
 
@@ -539,8 +543,9 @@ public class ProblemsViewPanel extends OnePixelSplitter implements Disposable, U
     return getOpenInPreviewTab(null);
   }
 
+  @ApiStatus.Internal
   @Nullable
-  Option getOpenInPreviewTab(@Nullable AnActionEvent event) {
+  public Option getOpenInPreviewTab(@Nullable AnActionEvent event) {
     return isNotNullAndSelected(getShowPreview(event)) ? null : myOpenInPreviewTab;
   }
 
@@ -575,21 +580,25 @@ public class ProblemsViewPanel extends OnePixelSplitter implements Disposable, U
     return event == null ? myShowPreview : new MyShowPreviewOption(event);
   }
 
+  @ApiStatus.Internal
   @Nullable
-  Option getGroupByToolId() {
+  public Option getGroupByToolId() {
     return this instanceof HighlightingPanel ? myGroupByToolId : null;
   }
 
+  @ApiStatus.Internal
   @Nullable
-  Option getSortFoldersFirst() {
+  public Option getSortFoldersFirst() {
     return null; // TODO:malenkov - support file hierarchy & mySortFoldersFirst;
   }
 
-  protected @Nullable Option getSortBySeverity() {
+  @ApiStatus.Internal
+  public @Nullable Option getSortBySeverity() {
     return null;
   }
 
-  protected @Nullable Option getSortByName() {
+  @ApiStatus.Internal
+  public @Nullable Option getSortByName() {
     return mySortByName;
   }
 

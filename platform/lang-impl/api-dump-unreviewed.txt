@@ -100,22 +100,6 @@ f:com.intellij.analysis.problemsView.toolWindow.FileNode
 - getName():java.lang.String
 - getVirtualFile():com.intellij.openapi.vfs.VirtualFile
 - hashCode():I
-f:com.intellij.analysis.problemsView.toolWindow.HighlightingPanel
-- com.intellij.analysis.problemsView.toolWindow.ProblemsViewPanel
-- com.intellij.ide.PowerSaveMode$Listener
-- com.intellij.openapi.fileEditor.FileEditorManagerListener
-- sf:Companion:com.intellij.analysis.problemsView.toolWindow.HighlightingPanel$Companion
-- sf:ID:java.lang.String
-- <init>(com.intellij.openapi.project.Project,com.intellij.analysis.problemsView.toolWindow.ProblemsViewState):V
-- fileClosed(com.intellij.openapi.fileEditor.FileEditorManager,com.intellij.openapi.vfs.VirtualFile):V
-- fileOpened(com.intellij.openapi.fileEditor.FileEditorManager,com.intellij.openapi.vfs.VirtualFile):V
-- f:getCurrentFile():com.intellij.openapi.vfs.VirtualFile
-- powerSaveStateChanged():V
-- f:selectHighlighter(com.intellij.openapi.editor.ex.RangeHighlighterEx):V
-- selectionChanged(com.intellij.openapi.fileEditor.FileEditorManagerEvent):V
-- selectionChangedTo(Z):V
-- uiDataSnapshot(com.intellij.openapi.actionSystem.DataSink):V
-- f:updateSelectedFile():org.jetbrains.concurrency.CancellablePromise
 f:com.intellij.analysis.problemsView.toolWindow.HighlightingPanel$Companion
 a:com.intellij.analysis.problemsView.toolWindow.Node
 - com.intellij.ide.util.treeView.PresentableNodeDescriptor
@@ -198,8 +182,6 @@ c:com.intellij.analysis.problemsView.toolWindow.ProblemsViewPanel
 - f:getProject():com.intellij.openapi.project.Project
 - f:getSession():com.intellij.openapi.client.ClientProjectSession
 - getShowPreview():com.intellij.openapi.actionSystem.ToggleOptionAction$Option
-- p:getSortByName():com.intellij.openapi.actionSystem.ToggleOptionAction$Option
-- p:getSortBySeverity():com.intellij.openapi.actionSystem.ToggleOptionAction$Option
 - f:getState():com.intellij.analysis.problemsView.toolWindow.ProblemsViewState
 - getTabId():java.lang.String
 - p:getToolbarActionGroupId():java.lang.String
@@ -212,7 +194,6 @@ c:com.intellij.analysis.problemsView.toolWindow.ProblemsViewPanel
 - selectionChangedTo(Z):V
 - uiDataSnapshot(com.intellij.openapi.actionSystem.DataSink):V
 - p:updatePreview():V
-- p:updateToolWindowContent():V
 - visibilityChangedTo(Z):V
 f:com.intellij.analysis.problemsView.toolWindow.ProblemsViewPanelProvider$Companion
 - f:getEP():com.intellij.openapi.extensions.ExtensionPointName
@@ -230,8 +211,6 @@ c:com.intellij.analysis.problemsView.toolWindow.ProblemsViewState
 - f:getSelectedTabId():java.lang.String
 - f:getShowPreview():Z
 - f:getShowToolbar():Z
-- f:getSortByName():Z
-- f:getSortBySeverity():Z
 - f:getSortFoldersFirst():Z
 - f:removeAllSeverities(java.util.Collection):Z
 - f:removeSeverity(I):Z
