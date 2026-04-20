@@ -1007,7 +1007,8 @@
     "webReferences": {
       "server.svg": "webreferences/server.svg",
       "openApi.svg": "webreferences/openapi.svg",
-      "messageQueue.svg": "webreferences/messageQueue.svg"
+      "messageQueue.svg": "webreferences/messageQueue.svg",
+      "webSocket.svg": "webreferences/webSocket.svg"
     },
     "welcome": {
       "createNewProjectTab.svg": "welcome/createNewProjectTab.svg",

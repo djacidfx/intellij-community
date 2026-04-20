@@ -4108,7 +4108,7 @@ public final class AllIconsKeys {
     public static final @NotNull IntelliJIconKey Server = new IntelliJIconKey("webreferences/server.svg", "expui/webReferences/server.svg", AllIconsKeys.class);
     /** 16x16 */ 
     @GeneratedFromIntelliJSources
-    public static final @NotNull IntelliJIconKey WebSocket = new IntelliJIconKey("webreferences/webSocket.svg", "webreferences/webSocket.svg", AllIconsKeys.class);
+    public static final @NotNull IntelliJIconKey WebSocket = new IntelliJIconKey("webreferences/webSocket.svg", "expui/webReferences/webSocket.svg", AllIconsKeys.class);
   }
 
   @GeneratedFromIntelliJSources
