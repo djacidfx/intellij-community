@@ -3,6 +3,7 @@ package com.intellij.ui
 
 import com.intellij.openapi.diagnostic.debug
 import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.util.registry.Registry
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.ui.wayland.getValidBoundsForPopup
 import com.intellij.ui.wayland.isUnconstrainedPopupPositioning
@@ -399,7 +400,10 @@ private class WaylandWindowMouseListenerSupport(source: WindowMouseListenerSourc
     }
   }
 
-  private fun isRelativeMovementMode(): Boolean = isTruePopup && JBR.isRelativePointerMovementSupported()
+  private fun isRelativeMovementMode(): Boolean =
+    isTruePopup &&
+    JBR.isRelativePointerMovementSupported() &&
+    Registry.`is`("wayland.relative.mouse.protocol", defaultValue = true)
 
   override fun moveAfterMouseRelease(): Boolean = !isRelativeMovementMode()
 
