@@ -8,7 +8,7 @@ import com.intellij.openapi.startup.ProjectActivity
 internal class InitLuceneIndex : ProjectActivity {
   override suspend fun execute(project: Project) {
     // Wait until the config is loaded, and we can expect `ProjectFileIndex.getInstance()` to return the files to index.
-    val luceneIndex = FileIndex.getInstance(project)
+    val luceneIndex = FileIndex.getInstanceIfEnabled(project) ?: return
     FileIndex.LOG.info("Scheduling Indexing of all files")
     luceneIndex.scheduleIndexingOp(LuceneFileIndexOperation.IndexAll)
   }

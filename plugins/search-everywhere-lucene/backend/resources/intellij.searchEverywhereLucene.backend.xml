@@ -9,6 +9,9 @@
   <!-- endregion -->
 
   <extensions defaultExtensionNs="com.intellij">
+    <registryKey key="search.everywhere.lucene.index.enabled"
+                 defaultValue="true"
+                 description="Enable search everywhere lucene file indexing"/>
     <searchEverywhere.itemsProviderFactory
       implementation="com.intellij.searchEverywhereLucene.backend.providers.files.SearchEverywhereLuceneFilesProviderFactory"/>
     <vfs.asyncListener implementation="com.intellij.searchEverywhereLucene.backend.providers.files.ChangeListener"/>

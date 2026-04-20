@@ -12,7 +12,7 @@ class IndexFilesForLuceneAction : DumbAwareAction() {
   override fun actionPerformed(e: AnActionEvent) {
     val project = e.project ?: return
 
-    val luceneIndex = FileIndex.getInstance(project)
+    val luceneIndex = FileIndex.getInstanceIfEnabled(project) ?: return
     luceneIndex.scheduleIndexingOp(LuceneFileIndexOperation.IndexAll)
   }
 }

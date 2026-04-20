@@ -79,8 +79,8 @@ class SearchEverywhereLuceneFilesProvider(private val project: Project) : SeItem
   override suspend fun collectItems(params: SeParams, collector: SeItemsProvider.Collector) {
     if (params.inputQuery.isEmpty()) return
 
-    FileIndex.getInstance(project)
-      .search(params)
+    val fileIndex = FileIndex.getInstanceIfEnabled(project) ?: return
+    fileIndex.search(params)
       .collect {
         collector.put(SearchEverywhereLuceneFileItem(project, it.file, it.score, params.inputQuery, fileModel, presentationRenderer))
       }

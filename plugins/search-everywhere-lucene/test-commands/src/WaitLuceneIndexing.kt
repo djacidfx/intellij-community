@@ -12,7 +12,7 @@ class WaitLuceneIndexing(text: @NonNls String, line: Int) : PerformanceCommandCo
   }
 
   override suspend fun doExecute(context: PlaybackContext) {
-    FileIndex.getInstance(context.project).awaitInitialIndexing()
+    FileIndex.getInstanceIfEnabled(context.project)?.awaitInitialIndexing()
   }
 
   override fun getName(): String = NAME

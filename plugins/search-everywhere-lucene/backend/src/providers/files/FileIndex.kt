@@ -10,6 +10,7 @@ import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.platform.searchEverywhere.SeParams
@@ -24,6 +25,7 @@ import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.consumeAsFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.produceIn
@@ -48,42 +50,50 @@ import kotlin.time.Duration.Companion.seconds
 
 @Service(Service.Level.PROJECT)
 class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposable {
-  private val luceneIndex = LuceneIndex(project,SearchEverywhereLuceneProviderIdUtils.LUCENE_FILES,LOG)
+  private val indexingEnabled = isIndexingEnabled()
+  private val luceneIndex by lazy(LazyThreadSafetyMode.NONE) {
+    LuceneIndex(project, SearchEverywhereLuceneProviderIdUtils.LUCENE_FILES, LOG)
+  }
   private val scheduledIndexingOps = Channel<LuceneFileIndexOperation>(capacity = Channel.UNLIMITED)
   val initialIndexingCompleted: CompletableDeferred<Unit> = CompletableDeferred()
 
   init {
-    Disposer.register(SearchEverywhereLucenePluginDisposable.getInstance(project),this)
-    Disposer.register(this, luceneIndex)
+    Disposer.register(SearchEverywhereLucenePluginDisposable.getInstance(project), this)
+    if (!indexingEnabled) {
+      LOG.info("Lucene file indexing is disabled by registry key $LUCENE_INDEX_ENABLED_REGISTRY_KEY.")
+    }
+    else {
+      Disposer.register(this, luceneIndex)
 
-    coroutineScope.launch {
-      // Wait until the config is loaded, and we can expect `ProjectFileIndex.getInstance()` to return the files to index.
+      coroutineScope.launch {
+        // Wait until the config is loaded, and we can expect `ProjectFileIndex.getInstance()` to return the files to index.
 
-      LOG.debug { "File Index in ${project.name} project stated processing changes..." }
+        LOG.debug { "File Index in ${project.name} project stated processing changes..." }
 
-      scheduledIndexingOps.consumeAsFlow().debounceBatch(1.seconds).collect { ops ->
-        if (ops.size == 1) {
-          processFileIndexOp(ops.first())
-          return@collect
-        }
+        scheduledIndexingOps.consumeAsFlow().debounceBatch(1.seconds).collect { ops ->
+          if (ops.size == 1) {
+            processFileIndexOp(ops.first())
+            return@collect
+          }
 
-        if (ops.any { it is LuceneFileIndexOperation.IndexAll }) {
-          // If ANY one of the ops is a reindexing request, we can also drop all other updates, as reindexing will pick up the updated state anyway.
-          processFileIndexOp(LuceneFileIndexOperation.IndexAll)
-        }
-        else {
-          // Since all others are ReindexFiles, we can merge them to reduce the number of times indexing runs:
-          val mergedFiles = ops.asSequence()
-            .filterIsInstance<LuceneFileIndexOperation.ReindexFiles>()
-            .flatMap { it.changedFiles }
-            .toSet()
+          if (ops.any { it is LuceneFileIndexOperation.IndexAll }) {
+            // If ANY one of the ops is a reindexing request, we can also drop all other updates, as reindexing will pick up the updated state anyway.
+            processFileIndexOp(LuceneFileIndexOperation.IndexAll)
+          }
+          else {
+            // Since all others are ReindexFiles, we can merge them to reduce the number of times indexing runs:
+            val mergedFiles = ops.asSequence()
+              .filterIsInstance<LuceneFileIndexOperation.ReindexFiles>()
+              .flatMap { it.changedFiles }
+              .toSet()
 
-          val mergedUrls = ops.asSequence()
-            .filterIsInstance<LuceneFileIndexOperation.ReindexFiles>()
-            .flatMap { it.changedUrls }
-            .toSet()
+            val mergedUrls = ops.asSequence()
+              .filterIsInstance<LuceneFileIndexOperation.ReindexFiles>()
+              .flatMap { it.changedUrls }
+              .toSet()
 
-          processFileIndexOp(LuceneFileIndexOperation.ReindexFiles(mergedFiles, mergedUrls))
+            processFileIndexOp(LuceneFileIndexOperation.ReindexFiles(mergedFiles, mergedUrls))
+          }
         }
       }
     }
@@ -185,6 +195,8 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
   suspend fun awaitInitialIndexing(): Unit = initialIndexingCompleted.await()
 
   fun scheduleIndexingOp(op: LuceneFileIndexOperation) {
+    if (!indexingEnabled) return
+
     // Since the channel is unbounded, the sending must succeed.
     val r = scheduledIndexingOps.trySend(op)
     if (r.isFailure) {
@@ -206,6 +218,8 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
   }
 
   fun search(params: SeParams): Flow<LuceneFileSearchResult> {
+    if (!indexingEnabled) return emptyFlow()
+
     val query = buildQuery(params)
     val deletedFilesToRemoveFromIndex = mutableSetOf<String>()
     return luceneIndex.search(query).mapNotNull { (scoreDoc, doc) ->
@@ -233,7 +247,11 @@ class FileIndex(val project: Project, coroutineScope: CoroutineScope) : Disposab
 
   companion object {
     fun getInstance(project: Project): FileIndex = project.service()
+    fun getInstanceIfEnabled(project: Project): FileIndex? = if (isIndexingEnabled()) project.service() else null
+    fun isIndexingEnabled(): Boolean = Registry.`is`(LUCENE_INDEX_ENABLED_REGISTRY_KEY, true)
+
     val LOG: Logger = logger<FileIndex>()
+    const val LUCENE_INDEX_ENABLED_REGISTRY_KEY: String = "search.everywhere.lucene.index.enabled"
     const val FILE_NAME: String = "fileName"
     const val FILE_LOWERCASE_NAME: String = "fileLowercaseName"
 
