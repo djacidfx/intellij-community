@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import org.jetbrains.annotations.ApiStatus
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -30,6 +31,7 @@ private object ConnectionLoop {
   val logger = logger<ConnectionLoop>()
 }
 
+@ApiStatus.Internal
 sealed class ConnectionStatus<T> {
   class Connecting<T> : ConnectionStatus<T>()
 
@@ -45,6 +47,7 @@ private val minReconnectDelay = 1.milliseconds
 private val maxReconnectDelay = 30.seconds
 internal val Exponential = DelayStrategy.exponential(minReconnectDelay, maxReconnectDelay)
 
+@ApiStatus.Internal
 fun <T> connectionLoop(
   transportFactory: TransportFactory,
   transportStats: MutableStateFlow<TransportStats>? = null,
@@ -91,6 +94,7 @@ fun <T> connectionLoop(
 
 typealias ServiceFn<T> = suspend CoroutineScope.(T) -> Nothing
 
+@ApiStatus.Internal
 suspend fun <T> serviceConnectionLoop(
   transportFactory: suspend (ServiceFn<T>) -> Nothing,
   debugName: String? = null,
