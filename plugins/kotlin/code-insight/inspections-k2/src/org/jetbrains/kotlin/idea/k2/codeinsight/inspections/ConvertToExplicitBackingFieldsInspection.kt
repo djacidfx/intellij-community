@@ -175,12 +175,16 @@ internal class ConvertToExplicitBackingFieldsInspection :
     ) {
         val propertyNameText = element.nameIdentifier?.text ?: return
         val backingPropertyName = backingPropertyContext.name ?: return
-        val className = backingPropertyContext.containingClass()?.name
+        val containingClass = backingPropertyContext.containingClass()
 
-        val fullQualifiedPropertyName = buildString {
-            append("this")
-            append(className?.let { "@$it." } ?: ".")
-            append(propertyNameText)
+        val fullQualifiedPropertyName = if (containingClass != null) {
+            buildString {
+                append("this")
+                append(containingClass.name?.let { "@$it." } ?: ".")
+                append(propertyNameText)
+            }
+        } else {
+            propertyNameText
         }
 
         element.containingKtFile.collectDescendantsOfType<KtNameReferenceExpression>()
