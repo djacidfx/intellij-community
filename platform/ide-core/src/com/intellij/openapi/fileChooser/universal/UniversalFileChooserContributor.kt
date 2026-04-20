@@ -6,6 +6,7 @@ import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nls
 import java.nio.file.FileSystems
 import java.nio.file.Path
+import javax.swing.Icon
 
 @ApiStatus.Internal
 interface UniversalFileChooserContributor {
@@ -32,6 +33,17 @@ interface UniversalFileChooserContributor {
   suspend fun mount(path: Path) {}
 
   suspend fun unmount(path: Path) {}
+
+  fun getVirtualRoots(): List<VirtualRoot> = emptyList()
+
+  suspend fun mountVirtualRoot(virtualRoot: VirtualRoot): Path? = null
+
+  data class VirtualRoot(
+    val id: String,                         // stable, used to correlate with a real Path after mount
+    @get:Nls val presentableName: String
+  )
+
+  fun getRootIcon(): Icon? = null
 }
 
 fun getFilteredSystemRoots(predicate: (Path) -> Boolean): List<Path> {
