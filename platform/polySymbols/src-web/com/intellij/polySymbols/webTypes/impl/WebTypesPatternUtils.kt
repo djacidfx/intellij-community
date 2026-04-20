@@ -128,7 +128,15 @@ private class WebTypesComplexPatternConfigProvider(
     val unique = pattern.unique != false
 
     val symbolsResolver = createSymbolsResolver(delegate)
-    return ComplexPatternOptions(delegate, apiStatus, isRequired, priority, repeats, unique, symbolsResolver)
+    return ComplexPatternOptions(
+      additionalScope = delegate?.queryScope ?: emptyList(),
+      apiStatus = apiStatus,
+      isRequired = isRequired,
+      priority = priority,
+      repeats = repeats,
+      unique = unique,
+      symbolsResolver = symbolsResolver,
+    )
   }
 
   private fun createSymbolsResolver(delegate: PolySymbol?) =

@@ -3,16 +3,17 @@ package com.intellij.polySymbols.patterns
 
 import com.intellij.polySymbols.PolySymbol
 import com.intellij.polySymbols.PolySymbolApiStatus
+import com.intellij.polySymbols.query.PolySymbolScope
 import org.jetbrains.annotations.ApiStatus
 
 @ApiStatus.Internal
 data class ComplexPatternOptions(
-  val additionalScope: PolySymbol? = null,
+  val additionalScope: List<PolySymbolScope> = emptyList(),
   val apiStatus: PolySymbolApiStatus? = null,
   val isRequired: Boolean = true,
   val priority: PolySymbol.Priority? = null,
   val repeats: Boolean = false,
   val unique: Boolean = false,
   val symbolsResolver: PolySymbolPatternSymbolsResolver? = null,
-  val additionalLastSegmentSymbol: PolySymbol? = null
+  val additionalLastSegmentSymbol: PolySymbol? = null,
 )

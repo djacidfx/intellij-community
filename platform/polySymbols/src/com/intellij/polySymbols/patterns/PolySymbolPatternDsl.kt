@@ -7,6 +7,7 @@ import com.intellij.polySymbols.PolySymbolKind
 import com.intellij.polySymbols.PolySymbolModifier
 import com.intellij.polySymbols.PolySymbolQualifiedName
 import com.intellij.polySymbols.query.PolySymbolNameConversionRules
+import com.intellij.polySymbols.query.PolySymbolScope
 import com.intellij.polySymbols.webTypes.filters.PolySymbolFilter
 import org.jetbrains.annotations.ApiStatus
 
@@ -134,8 +135,19 @@ class AlternativesBuilder internal constructor() {
 open class GroupPatternBuilder internal constructor() : PolySymbolPatternBuilder() {
   var priority: PolySymbol.Priority? = null
   var apiStatus: PolySymbolApiStatus? = null
-  var scope: PolySymbol? = null
   var additionalLastSegmentSymbol: PolySymbol? = null
+
+  private val additionalScopes: MutableList<PolySymbolScope> = mutableListOf()
+
+  /** Append additional scopes made available while matching this group's children. */
+  fun additionalScope(vararg scopes: PolySymbolScope) {
+    additionalScopes += scopes
+  }
+
+  /** Append additional scopes made available while matching this group's children. */
+  fun additionalScope(scopes: Collection<PolySymbolScope>) {
+    additionalScopes += scopes
+  }
 
   internal var required: Boolean = true
   internal open val repeats: Boolean get() = false
@@ -180,7 +192,7 @@ open class GroupPatternBuilder internal constructor() : PolySymbolPatternBuilder
     check(content.isNotEmpty()) { "Group body must produce at least one pattern" }
 
     val options = ComplexPatternOptions(
-      additionalScope = scope,
+      additionalScope = additionalScopes.toList(),
       apiStatus = apiStatus,
       isRequired = required,
       priority = priority,
