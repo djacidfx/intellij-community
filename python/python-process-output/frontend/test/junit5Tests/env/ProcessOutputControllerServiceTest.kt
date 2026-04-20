@@ -17,6 +17,7 @@ import com.intellij.python.processOutput.frontend.OutputFilter
 import com.intellij.python.processOutput.frontend.ProcessOutputControllerService
 import com.intellij.python.processOutput.frontend.ProcessOutputControllerServiceLimits
 import com.intellij.python.processOutput.frontend.ProcessStatus
+import com.intellij.python.processOutput.frontend.ui.commandString
 import com.intellij.python.processOutput.frontend.ui.toggle
 import com.intellij.testFramework.common.timeoutRunBlocking
 import com.intellij.testFramework.common.waitUntil
@@ -61,8 +62,9 @@ class ProcessOutputControllerServiceTest {
 
         fun verifyCurrentProcesses(over: Int) {
             var count = 0
+            val processes = service.loggedProcesses.value
 
-            for (process in service.loggedProcesses.value) {
+            for (process in processes) {
                 if (process.lines.isEmpty()
                     || process.lines[0].kind != OutputKindDto.OUT
                     || !process.lines[0].text.startsWith("test ")) {
@@ -120,7 +122,13 @@ class ProcessOutputControllerServiceTest {
             // should expect to have found and asserted MAX_PROCESSES amount processes
             // 10 for margin of error
             assert(count > processesToCheck) {
-                "Call to `verifyCurrentProcesses` is expected to check at least $processesToCheck processes, but checked only $count."
+                buildString {
+                    appendLine("Call to `verifyCurrentProcesses` is expected to check at least $processesToCheck processes, but checked only $count.")
+
+                    for ((index, process) in processes.withIndex()) {
+                        appendLine("Process $index: ${process.data.commandString}")
+                    }
+                }
             }
         }
 
