@@ -3,6 +3,7 @@ package com.intellij.codeInsight.actions
 
 import com.intellij.application.options.colors.ReaderModeStatsCollector
 import com.intellij.codeInsight.actions.ReaderModeSettings.Companion.matchMode
+import com.intellij.configurationStore.saveSettings
 import com.intellij.icons.AllIcons
 import com.intellij.ide.HelpTooltip
 import com.intellij.ide.ui.UISettings
@@ -31,10 +32,12 @@ import com.intellij.openapi.util.SystemInfo
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.ui.JBColor
 import com.intellij.ui.scale.JBUIScale
+import com.intellij.util.PlatformUtils
 import com.intellij.util.ui.EmptyIcon
 import com.intellij.util.ui.JBInsets
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
+import kotlinx.coroutines.launch
 import java.awt.Insets
 import javax.swing.JComponent
 import javax.swing.plaf.FontUIResource
@@ -136,6 +139,13 @@ internal class ReaderModeActionProvider : InspectionWidgetActionProvider {
 
       ReaderModeSettings.getInstance(project).enabled = newEnabled
       project.messageBus.syncPublisher(ReaderModeSettingsListener.TOPIC).modeChanged(project)
+
+      if (PlatformUtils.isJetBrainsClient()) {
+        // Ensure that ReaderModeSettings are synced to the backend
+        e.coroutineScope.launch {
+          saveSettings(project, forceSavingAllSettings = true)
+        }
+      }
 
       ReaderModeStatsCollector.readerModeSwitched(newEnabled)
     }
