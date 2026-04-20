@@ -10,44 +10,35 @@ import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.ex.PrioritizedDocumentListener
 import com.intellij.openapi.editor.impl.customwrap.CustomWrapImpl
-import com.intellij.openapi.util.Disposer
 import com.intellij.util.DocumentUtil
-import com.intellij.util.containers.ContainerUtil
+import com.intellij.util.EventDispatcher
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.NonNls
 import org.jetbrains.annotations.TestOnly
-import kotlin.collections.mutableListOf
 
 internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapModel, PrioritizedDocumentListener, Dumpable {
   private val document = editor.elfDocument
   private val tree: CustomWrapTree = CustomWrapTree(document)
-  private val listeners = ContainerUtil.createLockFreeCopyOnWriteList<CustomWrapModel.Listener>()
+  private val eventDispatcher = EventDispatcher.create(CustomWrapModel.Listener::class.java)
 
   fun addListener(listener: CustomWrapModel.Listener) {
-    listeners.add(listener)
+    eventDispatcher.addListener(listener)
   }
 
   override fun addListener(listener: CustomWrapModel.Listener, disposable: Disposable) {
-    listeners.add(listener)
-    Disposer.register(disposable) {
-      listeners.remove(listener)
-    }
+    eventDispatcher.addListener(listener, disposable)
   }
 
   fun removeListener(listener: CustomWrapModel.Listener) {
-    listeners.remove(listener)
+    eventDispatcher.removeListener(listener)
   }
 
   private fun notifyAdded(wrap: CustomWrapImpl) {
-    for (listener in listeners) {
-      listener.customWrapAdded(wrap)
-    }
+    eventDispatcher.multicaster.customWrapAdded(wrap)
   }
 
   private fun notifyRemoved(wrap: CustomWrapImpl) {
-    for (listener in listeners) {
-      listener.customWrapRemoved(wrap)
-    }
+    eventDispatcher.multicaster.customWrapRemoved(wrap)
   }
 
   internal fun notifyMerged() {

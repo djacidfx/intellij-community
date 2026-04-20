@@ -156,6 +156,7 @@ f:com.intellij.openapi.actionSystem.Presentation
 *f:com.intellij.openapi.editor.CustomWrapModel$Companion
 - f:isCustomWrapsSupportEnabled():Z
 *:com.intellij.openapi.editor.CustomWrapModel$Listener
+- java.util.EventListener
 - customWrapAdded(com.intellij.openapi.editor.CustomWrap):V
 - customWrapRemoved(com.intellij.openapi.editor.CustomWrap):V
 com.intellij.openapi.editor.Editor

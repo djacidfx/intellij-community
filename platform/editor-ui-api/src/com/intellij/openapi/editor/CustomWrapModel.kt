@@ -4,6 +4,7 @@ package com.intellij.openapi.editor
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.registry.Registry
 import org.jetbrains.annotations.ApiStatus
+import java.util.EventListener
 
 /**
  * Model for managing custom (user-defined) soft wraps in an editor.
@@ -36,7 +37,7 @@ interface CustomWrapModel {
 
   fun addListener(listener: Listener, disposable: Disposable)
 
-  interface Listener {
+  interface Listener : EventListener {
     fun customWrapAdded(wrap: CustomWrap) {}
     fun customWrapRemoved(wrap: CustomWrap) {}
   }
