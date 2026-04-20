@@ -35,4 +35,22 @@ internal class PySelfTypeTest : PyInspectionTestCase() {
                    assert_type(a.bar(A), A)
                    """.trimIndent())
   }
+
+  // PY-76860
+  fun `test type Self in class methods`() {
+    doTestByText("""
+        from typing import Self, assert_type
+        class Shape:
+             @classmethod
+             def from_config(cls, config: dict[str, float]) -> Self:
+                 assert_type(cls, type[Self])
+                 assert_type(<warning descr="Expected type 'Self@Shape', got 'type[Self@Shape]' instead">cls</warning>, Self)
+                 return cls()
+             
+             def normal_method(self) -> Self:
+                 assert_type(<warning descr="Expected type 'type[Self@Shape]', got 'Self@Shape' instead">self</warning>, type[Self])
+                 assert_type(self, Self) 
+                 return self
+    """.trimIndent())
+  }
 }
