@@ -636,6 +636,11 @@ class MacDistributionBuilder(
     val zipRoot = getMacZipRoot(customizer, context)
     checkExecutablePermissions(distribution = sitFile, root = zipRoot, includeRuntime = isRuntimeBundled, arch = arch, libc = targetLibcImpl, context = context)
 
+    createChecksumAndGpgSignFiles(
+      context = context,
+      buildArtifact = { sitFile }
+    )
+
     if (isRuntimeBundled) {
       generateIntegrityManifest(sitFile, zipRoot, arch, context)
     }
