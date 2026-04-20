@@ -21,6 +21,7 @@ import org.jetbrains.kotlin.idea.codeinsight.api.applicable.inspections.KotlinAp
 import org.jetbrains.kotlin.idea.codeinsight.api.applicable.inspections.KotlinModCommandQuickFix
 import org.jetbrains.kotlin.idea.codeinsight.api.applicators.ApplicabilityRange
 import org.jetbrains.kotlin.idea.references.mainReference
+import org.jetbrains.kotlin.idea.util.CommentSaver
 import org.jetbrains.kotlin.psi.KtBackingField
 import org.jetbrains.kotlin.psi.KtBlockExpression
 import org.jetbrains.kotlin.psi.KtCallExpression
@@ -97,7 +98,9 @@ internal class RevertExplicitBackingFieldsInspection :
             renameOccurrences(element, context.references, updater)
             val backingProperty = createBackingProperty(element, backingField, context.backingFieldInitializerText)
             element.parent.addBefore(backingProperty, element)
-            backingField.replace(createGetter(element))
+            val commentSaver = CommentSaver(backingField)
+            val getter = backingField.replace(createGetter(element))
+            commentSaver.restore(getter)
             element.reformat(canChangeWhiteSpacesOnly = true)
         }
     }

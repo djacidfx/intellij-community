@@ -2,8 +2,8 @@
 internal class Foo {
 
     val x: List<Int>
-        /* very important
-        comment
-         */
+        /*
+        very important comment!
+        */
         field<caret> = mutableListOf<Int>()
 }

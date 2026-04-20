@@ -3,6 +3,6 @@ internal class Foo {
 
     private val _x = mutableListOf<Int>()
     val x: List<Int>
-        // comment
+    // comment
         get() = _x
 }
