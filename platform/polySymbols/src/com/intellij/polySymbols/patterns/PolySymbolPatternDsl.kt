@@ -1,15 +1,22 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.polySymbols.patterns
 
+import com.intellij.model.Pointer
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.polySymbols.PolySymbol
 import com.intellij.polySymbols.PolySymbolApiStatus
 import com.intellij.polySymbols.PolySymbolKind
 import com.intellij.polySymbols.PolySymbolModifier
+import com.intellij.polySymbols.PolySymbolProperty
 import com.intellij.polySymbols.PolySymbolQualifiedName
 import com.intellij.polySymbols.query.PolySymbolNameConversionRules
 import com.intellij.polySymbols.query.PolySymbolScope
 import com.intellij.polySymbols.webTypes.filters.PolySymbolFilter
+import com.intellij.psi.PsiElement
+import com.intellij.psi.createSmartPointer
 import org.jetbrains.annotations.ApiStatus
+import javax.swing.Icon
 
 @DslMarker
 @Target(AnnotationTarget.CLASS)
@@ -135,9 +142,24 @@ class AlternativesBuilder internal constructor() {
 open class GroupPatternBuilder internal constructor() : PolySymbolPatternBuilder() {
   var priority: PolySymbol.Priority? = null
   var apiStatus: PolySymbolApiStatus? = null
-  var additionalLastSegmentSymbol: PolySymbol? = null
 
+  private var matchPropertyOverrides: MatchPropertyOverridesBuilder? = null
   private val additionalScopes: MutableList<PolySymbolScope> = mutableListOf()
+
+  /**
+   * Specify property overrides for the resulting [com.intellij.polySymbols.query.PolySymbolMatch].
+   *
+   * When a pattern evaluates to a match, the resulting symbol's properties are
+   * aggregated from the matched symbols, iterated right-to-left (so later
+   * segments take precedence over earlier ones). This block installs a
+   * synthetic zero-range segment at the end of the match, allowing you to
+   * override core properties (`priority`, `apiStatus`, `modifiers`, `icon`)
+   * and any custom [PolySymbolProperty].
+   */
+  fun overrideMatchProperties(body: MatchPropertyOverridesBuilder.() -> Unit) {
+    val builder = matchPropertyOverrides ?: MatchPropertyOverridesBuilder().also { matchPropertyOverrides = it }
+    builder.body()
+  }
 
   /** Append additional scopes made available while matching this group's children. */
   fun additionalScope(vararg scopes: PolySymbolScope) {
@@ -199,7 +221,7 @@ open class GroupPatternBuilder internal constructor() : PolySymbolPatternBuilder
       repeats = repeats,
       unique = repeats && unique,
       symbolsResolver = resolver,
-      additionalLastSegmentSymbol = additionalLastSegmentSymbol,
+      additionalLastSegmentSymbol = matchPropertyOverrides?.build(),
     )
     return PolySymbolPatternFactory.createComplexPattern(options, false, *content.toTypedArray())
   }
@@ -257,5 +279,211 @@ class ReferenceBuilder internal constructor() {
 
   fun nameConversion(rules: Collection<PolySymbolNameConversionRules>) {
     nameConversionRules += rules
+  }
+}
+
+@PolySymbolPatternDsl
+class MatchPropertyOverridesBuilder internal constructor() {
+
+  private val depPointers: MutableList<Pointer<out Any>> = mutableListOf()
+  private var priorityGetter: (DependencyScope.() -> PolySymbol.Priority?)? = null
+  private var apiStatusGetter: (DependencyScope.() -> PolySymbolApiStatus)? = null
+  private var modifiersGetter: (DependencyScope.() -> Set<PolySymbolModifier>)? = null
+  private var iconGetter: (DependencyScope.() -> Icon?)? = null
+  private val propertyGetters: MutableMap<PolySymbolProperty<*>, DependencyScope.() -> Any?> = mutableMapOf()
+
+  /**
+   * Declare a [PsiElement] dependency.
+   */
+  fun dependency(element: PsiElement): DependencyHandle<PsiElement> =
+    registerDep(element.createSmartPointer())
+
+  /** Declare a raw [Pointer] dependency.
+   *  Should be used for [PolySymbol] pointers as well. */
+  fun <T : Any> dependency(pointer: Pointer<out T>): DependencyHandle<T> =
+    registerDep(pointer)
+
+  @Suppress("UNCHECKED_CAST")
+  private fun <T : Any> registerDep(pointer: Pointer<out T>): DependencyHandle<T> {
+    val idx = depPointers.size
+    depPointers += pointer as Pointer<out Any>
+    return DependencyHandle(idx)
+  }
+
+  /** Override [PolySymbol.priority] on the resulting match. */
+  fun priority(provider: DependencyScope.() -> PolySymbol.Priority?) {
+    checkNoPsiCapture(provider, "priority")
+    priorityGetter = provider
+  }
+
+  /** Override [PolySymbol.apiStatus] on the resulting match. */
+  fun apiStatus(provider: DependencyScope.() -> PolySymbolApiStatus) {
+    checkNoPsiCapture(provider, "apiStatus")
+    apiStatusGetter = provider
+  }
+
+  /** Override [PolySymbol.modifiers] on the resulting match. */
+  fun modifiers(provider: DependencyScope.() -> Set<PolySymbolModifier>) {
+    checkNoPsiCapture(provider, "modifiers")
+    modifiersGetter = provider
+  }
+
+  /** Override [PolySymbol.icon] on the resulting match. */
+  fun icon(provider: DependencyScope.() -> Icon?) {
+    checkNoPsiCapture(provider, "icon")
+    iconGetter = provider
+  }
+
+  /** Override a custom [PolySymbolProperty] on the resulting match. */
+  fun <T : Any> property(property: PolySymbolProperty<T>, provider: DependencyScope.() -> T?) {
+    checkNoPsiCapture(provider, "property[${property.name}]")
+    propertyGetters[property] = provider
+  }
+
+  /**
+   * Resolve all declared dependencies and build the override symbol. Returns
+   * `null` if no overrides were set, or if any declared dependency failed to
+   * dereference (in which case the whole override contribution is dropped).
+   */
+  internal fun build(): PolySymbol? {
+    if (priorityGetter == null
+        && apiStatusGetter == null
+        && modifiersGetter == null
+        && iconGetter == null
+        && propertyGetters.isEmpty()) {
+      return null
+    }
+    val resolved = resolveSnapshot() ?: return null
+
+    return MatchPropertyOverrideSymbol(
+      depPointers = depPointers.toList(),
+      scope = DependencyScope(resolved),
+      priorityGetter = priorityGetter,
+      apiStatusGetter = apiStatusGetter,
+      modifiersGetter = modifiersGetter,
+      iconGetter = iconGetter,
+      propertyGetters = propertyGetters.toMap(),
+    )
+  }
+
+  internal fun resolveSnapshot(): List<Any>? {
+    if (depPointers.isEmpty()) return emptyList()
+    val snapshot = ArrayList<Any>(depPointers.size)
+    for (pointer in depPointers) {
+      snapshot += pointer.dereference() ?: run {
+        LOG.error("Failed to dereference dependency pointer ($pointer) within the same ReadAction as the pointer was created.")
+        return null
+      }
+    }
+    return snapshot
+  }
+}
+
+/**
+ * Opaque handle to a dependency declared in [MatchPropertyOverridesBuilder.dependency].
+ * Read the current value with `handle.value` inside an [DependencyScope]
+ * receiver — `.value` is guaranteed non-null because the enclosing override
+ * symbol is only materialized when every declared dependency is live.
+ */
+@Suppress("unused") // T is a phantom type used by DependencyScope.value to preserve typing
+class DependencyHandle<T : Any> internal constructor(internal val index: Int)
+
+/**
+ * Receiver for `overrideMatchProperties` getter lambdas. Provides
+ * non-null access to previously declared [DependencyHandle]s.
+ */
+@PolySymbolPatternDsl
+class DependencyScope internal constructor(private val resolved: List<Any>) {
+  @Suppress("UNCHECKED_CAST")
+  val <T : Any> DependencyHandle<T>.value: T
+    get() = resolved[index] as T
+}
+
+private val MATCH_PROPERTY_OVERRIDE_KIND: PolySymbolKind =
+  PolySymbolKind["", "\$matchPropertyOverride$"]
+
+private val PSI_OR_POLY_SYMBOL_TYPES = arrayOf(
+  PsiElement::class.java,
+  PolySymbol::class.java,
+)
+
+private val LOG = logger<MatchPropertyOverridesBuilder>()
+
+/**
+ * In dev/test builds, reflect on [lambda] and fail fast if any captured field
+ * holds a [PsiElement] or [PolySymbol] directly — those are only valid within
+ * one read action, so they must go through `dependency(...)` to be wrapped as
+ * pointers.
+ */
+private fun checkNoPsiCapture(lambda: Any, context: String) {
+  val app = ApplicationManager.getApplication() ?: return
+  if (!app.isUnitTestMode && !app.isInternal && !app.isEAP) return
+  for (field in lambda::class.java.declaredFields) {
+    val fieldType = field.type
+    for (forbidden in PSI_OR_POLY_SYMBOL_TYPES) {
+      if (forbidden.isAssignableFrom(fieldType)) {
+        LOG.error(
+          "overrideMatchProperties.$context lambda captures a ${forbidden.simpleName} " +
+          "(${fieldType.name} as field ${field.name}). Declare it with dependency(...) " +
+          "so it survives read-action boundaries."
+        )
+      }
+    }
+  }
+}
+
+private class MatchPropertyOverrideSymbol(
+  private val depPointers: List<Pointer<out Any>>,
+  private val scope: DependencyScope,
+  private val priorityGetter: (DependencyScope.() -> PolySymbol.Priority?)?,
+  private val apiStatusGetter: (DependencyScope.() -> PolySymbolApiStatus)?,
+  private val modifiersGetter: (DependencyScope.() -> Set<PolySymbolModifier>)?,
+  private val iconGetter: (DependencyScope.() -> Icon?)?,
+  private val propertyGetters: Map<PolySymbolProperty<*>, DependencyScope.() -> Any?>,
+) : PolySymbol {
+  override val kind: PolySymbolKind get() = MATCH_PROPERTY_OVERRIDE_KIND
+  override val name: String get() = ""
+
+  override val priority: PolySymbol.Priority?
+    get() = priorityGetter?.invoke(scope) ?: super.priority
+
+  override val apiStatus: PolySymbolApiStatus
+    get() = apiStatusGetter?.invoke(scope) ?: super.apiStatus
+
+  override val modifiers: Set<PolySymbolModifier>
+    get() = modifiersGetter?.invoke(scope) ?: super.modifiers
+
+  override val icon: Icon?
+    get() = iconGetter?.invoke(scope) ?: super.icon
+
+  override fun <T : Any> get(property: PolySymbolProperty<T>): T? {
+    val getter = propertyGetters[property] ?: return super.get(property)
+    @Suppress("UNCHECKED_CAST")
+    return property.tryCast((getter as DependencyScope.() -> T?).invoke(scope))
+  }
+
+  override fun createPointer(): Pointer<out PolySymbol> {
+    if (depPointers.isEmpty()) return Pointer.hardPointer(this)
+    val depPointers = depPointers
+    val priorityGetter = priorityGetter
+    val apiStatusGetter = apiStatusGetter
+    val modifiersGetter = modifiersGetter
+    val iconGetter = iconGetter
+    val propertyGetters = propertyGetters
+    return Pointer {
+      val snapshot = ArrayList<Any>(depPointers.size)
+      for (pointer in depPointers) {
+        snapshot += pointer.dereference() ?: return@Pointer null
+      }
+      MatchPropertyOverrideSymbol(
+        depPointers = depPointers,
+        scope = DependencyScope(snapshot),
+        priorityGetter = priorityGetter,
+        apiStatusGetter = apiStatusGetter,
+        modifiersGetter = modifiersGetter,
+        iconGetter = iconGetter,
+        propertyGetters = propertyGetters,
+      )
+    }
   }
 }
