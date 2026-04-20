@@ -885,22 +885,8 @@ object PyTypeChecker {
   private fun prepareSelfBindingTarget(actualType: PyType?, callable: PyCallable?, context: TypeEvalContext): PyType? {
     val function = callable as? PyFunction ?: return actualType
     var actualType = when {
-      function.modifier == PyAstFunction.Modifier.CLASSMETHOD -> {
-        actualType.toStream()
-          .select(PyClassLikeType::class.java)
-          .map { obj: PyClassLikeType? -> obj!!.toClass() }
-          .select(PyType::class.java)
-          .foldLeft { type1: PyType?, type2: PyType? -> PyUnionType.union(type1, type2) }
-          .orElse(actualType)
-      }
-      PyUtil.isInitMethod(function) -> {
-        actualType.toStream()
-          .select(PyInstantiableType::class.java)
-          .map { obj -> obj!!.toInstance() }
-          .select(PyType::class.java)
-          .foldLeft { type1, type2 -> PyUnionType.union(type1, type2) }
-          .orElse(actualType)
-      }
+      function.modifier == PyAstFunction.Modifier.CLASSMETHOD -> convertToClass(actualType)
+      PyUtil.isInitMethod(function) -> convertToInstance(actualType)
       else -> actualType
     }
 
