@@ -142,7 +142,7 @@ object CommandLineProcessor {
     val project: Project?
     if (LightEditUtil.isForceOpenInLightEditMode()) {
       project = LightEditService.getInstance().openFile(file)
-      LightEditFeatureUsagesUtil.logFileOpen(project, OpenPlace.CommandLine)
+      LightEditFeatureUsagesUtil.logFileOpen(project, file, OpenPlace.CommandLine)
     }
     else {
       project = findBestProject(file, projects)
