@@ -271,7 +271,7 @@ class GlobalWorkspaceModel internal constructor(
     // but the Project is not open therefore, it doesn't get closed, only disposed.
     Disposer.register(project) {
       if (initializingAndOpenProjects.remove(project)) {
-        LOG.info("Project ${project.name} is removed from the list of initializing and open projects. Project was disposed.")
+        LOG.info("Project ${project.name} is removed from the list of initializing and open projects. Project is being disposed.")
       }
     }
   }
