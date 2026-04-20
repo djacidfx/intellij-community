@@ -56,7 +56,6 @@ import com.intellij.openapi.vfs.AsyncFileListener;
 import com.intellij.openapi.vfs.ReadonlyStatusHandler;
 import com.intellij.openapi.vfs.SafeWriteRequestor;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.vfs.VirtualFileSystem;
 import com.intellij.openapi.vfs.VirtualFileWithId;
 import com.intellij.openapi.vfs.newvfs.NewVirtualFileSystem;
 import com.intellij.openapi.vfs.newvfs.events.VFileContentChangeEvent;
@@ -522,8 +521,19 @@ public class FileDocumentManagerImpl extends FileDocumentManagerBase implements 
   }
 
   private static boolean needsRefresh(@NotNull VirtualFile file) {
-    VirtualFileSystem fs = file.getFileSystem();
-    return fs instanceof NewVirtualFileSystem newFs && file.getTimeStamp() != newFs.getTimeStamp(file);
+    if (!(file.getFileSystem() instanceof NewVirtualFileSystem newFs)) {
+      return false;
+    }
+
+    long fileTimeStamp = file.getTimeStamp();
+    long fsTimeStamp = newFs.getTimeStamp(file);
+    boolean timestampsNotMatch = (fileTimeStamp != fsTimeStamp);
+    if (timestampsNotMatch) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("[" + file + "].timestamp(=" + fileTimeStamp + " <> FS.timeStamp(=" + fsTimeStamp + ") -> needs refresh");
+      }
+    }
+    return timestampsNotMatch;
   }
 
   public static @NotNull String getLineSeparator(@NotNull Document document, @NotNull VirtualFile virtualFile) {

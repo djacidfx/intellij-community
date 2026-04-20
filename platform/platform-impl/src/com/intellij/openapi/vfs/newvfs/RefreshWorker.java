@@ -203,7 +203,7 @@ final class RefreshWorker {
     }
   }
 
-  private void processQueue(List<VFileEvent> events) throws RefreshCancelledException {
+  private void processQueue(/*OutParam*/ List<VFileEvent> events) throws RefreshCancelledException {
     nextDir:
     while (!semaphore.isUp()) {
       var file = refreshQueue.poll();
@@ -213,6 +213,16 @@ final class RefreshWorker {
       }
 
       var fs = file.getFileSystem();
+
+      if (fs instanceof AsyncableFileSystem afs) {
+        //can't refresh file that has async ops still in flight => flush them:
+        try {
+          afs.fsync(file);
+        }
+        catch (IOException e) {
+          continue;
+        }
+      }
 
       try {
         if (roots.contains(file)) {
@@ -749,11 +759,15 @@ final class RefreshWorker {
       long oldTimestamp = persistentFS.getTimeStamp(child), newTimestamp = childAttributes.lastModified;
       long oldLength = persistentFS.getLastRecordedLength(child), newLength = childAttributes.length;
       if (oldTimestamp != newTimestamp || oldLength != newLength) {
-        if (LOG.isTraceEnabled()) LOG.trace(
-          "update file=" + child +
-          (oldTimestamp != newTimestamp ? " TS=" + oldTimestamp + "->" + newTimestamp : "") +
-          (oldLength != newLength ? " len=" + oldLength + "->" + newLength : ""));
-        events.add(new VFileContentChangeEvent(REQUESTOR, child, child.getModificationStamp(), VFileContentChangeEvent.UNDEFINED_TIMESTAMP_OR_LENGTH, oldTimestamp, newTimestamp, oldLength, newLength));
+        if (LOG.isTraceEnabled()) {
+          LOG.trace("update file=" + child +
+                    (oldTimestamp != newTimestamp ? " TS=" + oldTimestamp + "->" + newTimestamp : "") +
+                    (oldLength != newLength ? " len=" + oldLength + "->" + newLength : ""));
+        }
+
+        events.add(new VFileContentChangeEvent(REQUESTOR, child, child.getModificationStamp(),
+                                               VFileContentChangeEvent.UNDEFINED_TIMESTAMP_OR_LENGTH, oldTimestamp, newTimestamp,
+                                               oldLength, newLength));
       }
       child.markClean();
     }
