@@ -466,7 +466,7 @@ object UniversalFileChooser {
       }
 
       private fun handleMountStatusChange(root: Path) {
-        runOnEdt {
+        scope.launch {
           when (mountStatusCache[root]) {
             MountStatus.Unmounted -> runOnEdt {
               collapseUnmountedRoot(root)
@@ -527,11 +527,7 @@ object UniversalFileChooser {
 
           override fun update(e: AnActionEvent) {
             val parent = fileTree.getNewFileParent()
-            val nioPath = parent?.let { runCatching { it.toNioPath() }.getOrNull() }
-            val state = runCatching {
-              nioPath != null && Files.isDirectory(nioPath) && Files.isWritable(nioPath)
-            }
-            e.presentation.isEnabled = state.getOrNull() == true
+            e.presentation.isEnabled = parent != null && parent.isDirectory && parent.isWritable
           }
 
           override fun actionPerformed(e: AnActionEvent) {
@@ -564,12 +560,12 @@ object UniversalFileChooser {
           override fun update(e: AnActionEvent) {
             val selected = fileTree.selectedFile
             val nioPath = selected?.let { runCatching { it.toNioPath() }.getOrNull() }
-            if (nioPath == null || roots.contains(nioPath) || !Files.isWritable(nioPath)) {
+            if (nioPath == null || roots.contains(nioPath) || !selected.isWritable) {
               e.presentation.isEnabled = false; return
             }
-            if (Files.isDirectory(nioPath)) {
-              val empty = runCatching { Files.list(nioPath).use { !it.findFirst().isPresent } }.getOrDefault(false)
-              if (!empty) {
+            if (selected.isDirectory) {
+              val children = selected.children
+              if (children == null || children.isNotEmpty()) {
                 e.presentation.isEnabled = false; return
               }
             }
