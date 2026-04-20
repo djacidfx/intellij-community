@@ -30,6 +30,11 @@ internal class LombokKotlinMavenTest : AbstractMavenUpdateConfigurationQuickFixT
     }
 
     @Test
+    fun testAddKotlinLombokCompilerPluginWithoutExecution() = runBlocking {
+        doMultiFileTest()
+    }
+
+    @Test
     fun testAddKotlinLombokCompilerPluginWithSubmoduleWithPluginManagement() = runBlocking {
         doMultiFileTest()
     }

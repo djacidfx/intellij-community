@@ -24,11 +24,11 @@ import org.jetbrains.kotlin.idea.util.application.executeWriteCommand
 
 abstract class AbstractMavenKotlinCompilerPluginProjectConfigurator: KotlinCompilerPluginProjectConfigurator {
     override fun isApplicable(module: Module): Boolean =
-        module.findPomFileWithPluginAndCompileGoal(kotlinPluginId) != null
+        module.findSuitablePomFileWithPlugin(kotlinPluginId) != null
 
     override fun configureModule(module: Module, configurationResultBuilder: ConfigurationResultBuilder) {
         val project = module.project
-        val xmlFile = module.findPomFileWithPluginAndCompileGoal(kotlinPluginId) ?: return
+        val xmlFile = module.findSuitablePomFileWithPlugin(kotlinPluginId) ?: return
         configurationResultBuilder.changedFile(xmlFile)
 
         val pom = PomFile.forFileOrNull(xmlFile) ?: return
@@ -53,16 +53,17 @@ abstract class AbstractMavenKotlinCompilerPluginProjectConfigurator: KotlinCompi
 
     override fun configureModuleModCommand(module: Module): ModCommand {
         val kotlinPluginId = kotlinPluginId
-        val xmlFile = module.findPomFileWithPluginAndCompileGoal(kotlinPluginId) ?: return ModCommand.nop()
+        val xmlFile = module.findSuitablePomFileWithPlugin(kotlinPluginId) ?: return ModCommand.nop()
         val actionContext = ActionContext.from(null, xmlFile)
         return ModCommand.psiUpdate(actionContext) { updater ->
             val writablePomFile = updater.getWritable(xmlFile)
             val pom = PomFile.forFileOrNull(writablePomFile) ?: return@psiUpdate
             val kotlinPlugin = pom.findPlugin(kotlinPluginId) ?: return@psiUpdate
 
-            val execution = kotlinPlugin.findExecutionWithKotlinCompileGoal() ?: return@psiUpdate
+            val execution = kotlinPlugin.findExecutionWithKotlinCompileGoal()
 
-            val configurationElement = execution.configuration.ensureTagExists()
+            val configurationElement =
+                (execution?.configuration ?: kotlinPlugin.configuration).ensureTagExists()
             val compilerPlugins = configurationElement.findSubTags("compilerPlugins").firstOrNull()
 
             if (compilerPlugins?.findSubTags("plugin")?.firstOrNull { it.value.trimmedText == kotlinCompilerPluginId } != null)
@@ -85,14 +86,16 @@ abstract class AbstractMavenKotlinCompilerPluginProjectConfigurator: KotlinCompi
             }
         }
 
-    private fun XmlFile.hasPlugin(pluginId: MavenId): Boolean =
-        PomFile.forFileOrNull(this)
-            ?.findPlugin(pluginId)
-            ?.findExecutionWithKotlinCompileGoal() != null
+    private fun XmlFile.hasSuitablePlugin(pluginId: MavenId, extraCheck: (MavenDomPlugin) -> Boolean = { true }): Boolean {
+        val plugin = PomFile.forFileOrNull(this)
+            ?.findPlugin(pluginId) ?: return false
+        return extraCheck(plugin)
+    }
 
-    private fun Module.findPomFileWithPluginAndCompileGoal(pluginId: MavenId): XmlFile? {
+    private fun Module.findSuitablePomFileWithPlugin(pluginId: MavenId): XmlFile? {
+        // try to find suitable maven kotlin plugin in current module pom file
         val pomFile = findModulePomFile(this) as? XmlFile ?: return null
-        if (pomFile.hasPlugin(pluginId)) return pomFile
+        if (pomFile.hasSuitablePlugin(pluginId, extraCheck = { it.findExecutionWithKotlinCompileGoal() != null })) return pomFile
 
         val project = this.project
         val mavenProjectsManager = MavenProjectsManager.getInstance(project)
@@ -104,10 +107,12 @@ abstract class AbstractMavenKotlinCompilerPluginProjectConfigurator: KotlinCompi
         while (parentId != null) {
             val parentModule = mavenProjectsManager.findProject(parentId) ?: return null
             val psiFile = findPomXmlByFile(parentModule.file) ?: return null
-            if (psiFile.hasPlugin(pluginId)) return psiFile
+            if (psiFile.hasSuitablePlugin(pluginId, extraCheck = { it.findExecutionWithKotlinCompileGoal() != null })) return psiFile
             parentId = parentModule.parentId
         }
-        return null
+
+        // otherwise, force using pom.xml for the current module if it has declared maven kotlin plugin
+        return pomFile.takeIf { it.hasSuitablePlugin(pluginId) }
     }
 }
 
