@@ -15,9 +15,11 @@
  */
 package com.intellij.openapi.editor.impl;
 
+import com.intellij.openapi.Disposable;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Caret;
 import com.intellij.openapi.editor.CustomFoldRegion;
+import com.intellij.openapi.editor.CustomWrap;
 import com.intellij.openapi.editor.FoldRegion;
 import com.intellij.openapi.editor.Inlay;
 import com.intellij.openapi.editor.SoftWrap;
@@ -26,12 +28,14 @@ import com.intellij.openapi.editor.impl.view.FontLayoutService;
 import com.intellij.openapi.fileTypes.FileType;
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.fileTypes.PlainTextFileType;
+import com.intellij.openapi.util.registry.Registry;
 import com.intellij.testFramework.EditorTestUtil;
 import com.intellij.testFramework.LightPlatformCodeInsightTestCase;
 import com.intellij.testFramework.MockFontLayoutService;
 import com.intellij.testFramework.fixtures.EditorMouseFixture;
 import com.intellij.util.PathUtil;
 import com.intellij.util.ThrowableRunnable;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -247,6 +251,29 @@ public abstract class AbstractEditorTest extends LightPlatformCodeInsightTestCas
 
   public Inlay addAfterLineEndInlay(int offset, int widthInPixels) {
     return EditorTestUtil.addAfterLineEndInlay(getEditor(), offset, widthInPixels);
+  }
+
+  @ApiStatus.Experimental
+  public @NotNull CustomWrap addCustomWrap(int offset) {
+    return addCustomWrap(offset, 0, 0);
+  }
+
+  @ApiStatus.Experimental
+  public @NotNull CustomWrap addCustomWrap(int offset, int indentInColumns, int priority) {
+    var wrap = getEditor().getCustomWrapModel().addWrap(offset, indentInColumns, priority);
+    assertNotNull(wrap);
+    return wrap;
+  }
+
+  @ApiStatus.Experimental
+  protected void setUpCustomWrapSupport() {
+    setUpCustomWrapSupport(getTestRootDisposable());
+  }
+
+  @ApiStatus.Experimental
+  protected void setUpCustomWrapSupport(@NotNull Disposable disposable) {
+    Registry.get("editor.use.new.soft.wraps.impl").setValue(true, disposable);
+    Registry.get("editor.custom.soft.wraps.support.enabled").setValue(true, disposable);
   }
 
   protected void runWriteCommand(ThrowableRunnable r) {

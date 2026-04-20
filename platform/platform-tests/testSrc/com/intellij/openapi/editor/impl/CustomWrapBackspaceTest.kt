@@ -2,14 +2,12 @@
 package com.intellij.openapi.editor.impl
 
 import com.intellij.openapi.editor.VisualPosition
-import com.intellij.openapi.util.registry.Registry
 
 class CustomWrapBackspaceTest : AbstractEditorTest() {
 
   override fun setUp() {
     super.setUp()
-    Registry.get("editor.use.new.soft.wraps.impl").setValue(true, getTestRootDisposable())
-    Registry.get("editor.custom.soft.wraps.support.enabled").setValue(true, getTestRootDisposable())
+    setUpCustomWrapSupport()
   }
 
   fun testBackspaceRemovesWrapWhenCaretIsAfterCustomWrap() {
