@@ -7,6 +7,7 @@ import com.intellij.codeInspection.util.IntentionFamilyName
 import com.intellij.modcommand.ModPsiUpdater
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
+import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.createSmartPointer
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
@@ -74,13 +75,11 @@ internal class RevertExplicitBackingFieldsInspection :
             .firstIsInstanceOrNull<KtBackingField>()
             ?.let { computeInitializerText(it) }
 
-        val references = element.containingClassOrObject
+        val containingClass = element.containingClassOrObject
+        val references = containingClass
             ?.collectDescendantsOfType<KtNameReferenceExpression>()
             ?.filter { isReferenceTo(it, element) }
-            ?.filter { ref ->
-                val parent = ref.parent as? KtDotQualifiedExpression
-                parent == null || parent.selectorExpression != ref || parent.receiverExpression is KtThisExpression
-            }
+            ?.filter { isRenameCandidate(it, containingClass) }
             ?.map { it.createSmartPointer() }
             ?: emptyList()
         return Context(references, initializerText)
@@ -172,6 +171,14 @@ internal class RevertExplicitBackingFieldsInspection :
         val callee = callExpr.calleeExpression?.text ?: return initializer.text
         val valueArgs = callExpr.valueArgumentList?.text ?: "()"
         return "$callee<${renderedTypeArgs.joinToString(", ")}>$valueArgs"
+    }
+
+    private fun isRenameCandidate(ref: KtNameReferenceExpression, containingClass: PsiElement?): Boolean {
+        val immediateClass = generateSequence(ref.parent) { it.parent }
+            .filterIsInstance<KtClassBody>().firstOrNull()?.parent
+        if (immediateClass != containingClass) return false
+        val parent = ref.parent as? KtDotQualifiedExpression
+        return parent == null || parent.selectorExpression != ref || parent.receiverExpression is KtThisExpression
     }
 
     private fun backingName(property: KtProperty): String {

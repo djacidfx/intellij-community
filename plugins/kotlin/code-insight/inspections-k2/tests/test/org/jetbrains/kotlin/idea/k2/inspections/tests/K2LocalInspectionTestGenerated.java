@@ -15865,6 +15865,11 @@ public abstract class K2LocalInspectionTestGenerated extends AbstractK2LocalInsp
                 runTest("testData/inspectionsLocal/revertExplicitBackingFields/nestedBlockShadowing.kt");
             }
 
+            @TestMetadata("nestedClass.kt")
+            public void testNestedClass() throws Exception {
+                runTest("testData/inspectionsLocal/revertExplicitBackingFields/nestedClass.kt");
+            }
+
             @TestMetadata("nestedGenericTypeArg.kt")
             public void testNestedGenericTypeArg() throws Exception {
                 runTest("testData/inspectionsLocal/revertExplicitBackingFields/nestedGenericTypeArg.kt");
