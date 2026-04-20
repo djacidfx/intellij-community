@@ -37,18 +37,19 @@ internal open class MarkdownWrappingFormattingBlock(
     val result = ArrayList<Block>(filtered.size)
 
     filtered.forEachIndexed { index, child ->
+      val isAfterOpeningParenthesis = filtered.getOrNull(index - 1)?.elementType == MarkdownTokenTypes.LPAREN
       when (child.elementType) {
         MarkdownTokenTypes.LPAREN -> {
           result.add(MarkdownFormattingBlock(child, settings, spacing, alignment, childWrap))
         }
 
         MarkdownTokenTypes.TEXT -> {
-          val wrapFirstElement = filtered.getOrNull(index - 1)?.elementType != MarkdownTokenTypes.LPAREN
-          processTextElement(result, child, childWrap, wrapFirstElement)
+          processTextElement(result, child, childWrap, !isAfterOpeningParenthesis)
         }
 
         else -> {
-          result.add(MarkdownBlocks.create(child, settings, spacing) { alignment })
+          val wrap = if (isAfterOpeningParenthesis) Wrap.createWrap(WrapType.NONE, false) else null
+          result.add(MarkdownBlocks.create(child, settings, spacing, wrap) { alignment })
         }
       }
     }

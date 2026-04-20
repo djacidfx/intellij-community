@@ -16,18 +16,20 @@ internal class EmphasisFormattingBlock(
   settings: CodeStyleSettings,
   spacing: SpacingBuilder,
   node: ASTNode,
-  alignment: Alignment?
-) : MarkdownWrappingFormattingBlock(settings, spacing, node, alignment, wrap = Wrap.createWrap(WrapType.NORMAL, true)) {
+  alignment: Alignment?,
+  private val wrap: Wrap? = null
+) : MarkdownWrappingFormattingBlock(settings, spacing, node, alignment, wrap = wrap) {
   override fun buildChildren(): List<Block> {
+    val contentWrap = Wrap.createWrap(WrapType.NORMAL, true)
     val noneWrap = Wrap.createWrap(WrapType.NONE, false)
     val filtered = MarkdownBlocks.filterFromWhitespaces(node.children())
     return buildList {
       for (node in filtered) {
         when {
-          node.hasType(MarkdownTokenTypes.TEXT) -> processTextElement(this, node, wrap, !node.isFirstContentElement())
+          node.hasType(MarkdownTokenTypes.TEXT) -> processTextElement(this, node, contentWrap, !node.isFirstContentElement())
           node.hasType(MarkdownTokenTypes.EMPH) -> when {
             node.isLast() -> add(MarkdownWrappingFormattingBlock(settings, spacing, node, alignment, noneWrap))
-            else -> add(MarkdownWrappingFormattingBlock(settings, spacing, node, alignment, wrap))
+            else -> add(MarkdownWrappingFormattingBlock(settings, spacing, node, alignment, wrap ?: contentWrap))
           }
           else -> add(MarkdownBlocks.create(node, settings, spacing) { alignment })
         }

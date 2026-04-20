@@ -43,6 +43,12 @@ class MarkdownFormatterTest: LightPlatformCodeInsightTestCase() {
 
   fun `test reflow short parenthesized text`() = doTest()
 
+  fun `test reflow short codespan parenthesized text`() = doTest()
+
+  fun `test reflow emphasized parenthesized text`() = doTest()
+
+  fun `test reflow linked parenthesized text`() = doTest()
+
   fun `test reflow opening parenthesis`() = doTest()
 
   fun `test reflow closing parenthesis`() = doTest()
