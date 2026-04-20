@@ -684,6 +684,11 @@ public abstract class HighLevelWeigherTestGenerated extends AbstractHighLevelWei
             runTest("../../completion/testData/weighers/basic/LocalClass.kt");
         }
 
+        @TestMetadata("LocalClassMember.kt")
+        public void testLocalClassMember() throws Exception {
+            runTest("../../completion/testData/weighers/basic/LocalClassMember.kt");
+        }
+
         @TestMetadata("LocalFileBeforeImported.kt")
         public void testLocalFileBeforeImported() throws Exception {
             runTest("../../completion/testData/weighers/basic/LocalFileBeforeImported.kt");

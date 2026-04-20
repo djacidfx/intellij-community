@@ -684,6 +684,11 @@ public abstract class BasicCompletionWeigherTestGenerated extends AbstractBasicC
             runTest("../testData/weighers/basic/LocalClass.kt");
         }
 
+        @TestMetadata("LocalClassMember.kt")
+        public void testLocalClassMember() throws Exception {
+            runTest("../testData/weighers/basic/LocalClassMember.kt");
+        }
+
         @TestMetadata("LocalFileBeforeImported.kt")
         public void testLocalFileBeforeImported() throws Exception {
             runTest("../testData/weighers/basic/LocalFileBeforeImported.kt");
