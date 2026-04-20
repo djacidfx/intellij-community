@@ -6,9 +6,19 @@ rust-version = "1.88.0"
 publish = false
 build = "build.rs"
 
+[[bin]]
+name = "xplat-launcher"
+path = "src/main.rs"
+
+[[bin]]
+name = "xplat-launcher-win-con"
+path = "src/main_win_console.rs"
+required-features = ["win_con"]
+
 [features]
 default = []
 cef = ["dep:curl", "dep:sha1"]
+win_con = []
 
 [profile.release]
 strip = "debuginfo"
