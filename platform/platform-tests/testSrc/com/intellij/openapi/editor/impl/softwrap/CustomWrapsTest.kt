@@ -1,13 +1,15 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.openapi.editor.impl.softwrap
 
-import com.intellij.formatting.Indent
 import com.intellij.openapi.editor.SoftWrap
+import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.editor.ex.DocumentEx
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.impl.AbstractEditorTest
 import com.intellij.openapi.editor.impl.EditorImpl
-import org.junit.jupiter.api.assertAll
+import com.intellij.openapi.editor.impl.SoftWrapModelImpl
+import java.awt.Graphics
+import java.awt.Point
 
 abstract class CustomWrapsTestBase : AbstractEditorTest() {
   protected open val useSoftWraps: Boolean = false
@@ -145,12 +147,85 @@ abstract class CustomWrapsTestBase : AbstractEditorTest() {
   protected fun addCustomWrap(offset: Int, indent: Int = 0) {
     addCustomWrap(offset, indent, 0)
   }
+
+  protected fun installSoftWrapPainterWithWidth(width: Int) {
+    (editor.softWrapModel as SoftWrapModelImpl).setSoftWrapPainter(object : SoftWrapPainter {
+      override fun paint(g: Graphics, drawingType: SoftWrapDrawingType, x: Int, y: Int, lineHeight: Int): Int = width
+
+      override fun getDrawingHorizontalOffset(g: Graphics, drawingType: SoftWrapDrawingType, x: Int, y: Int, lineHeight: Int): Int = width
+
+      override fun getMinDrawingWidth(drawingType: SoftWrapDrawingType): Int = width
+
+      override fun canUse(): Boolean = true
+
+      override fun reinit() {}
+    })
+  }
+
+  fun testCustomWrapIgnoresSoftWrapMarkerWidthInCoordinateMapping() {
+    initTextAndSoftWraps("ab")
+    val spaceWidth = editor.visualPositionToXY(VisualPosition(0, 1)).x - editor.visualPositionToXY(VisualPosition(0, 0)).x
+    installSoftWrapPainterWithWidth(spaceWidth * 3)
+    addCustomWrap(1, indent = 2)
+
+    val firstLineY = editor.visualPositionToXY(VisualPosition(0, 0)).y
+    val wrappedLineY = editor.visualPositionToXY(VisualPosition(1, 0)).y
+    assertEquals(VisualPosition(1, 1), editor.xyToVisualPosition(Point(spaceWidth / 2, wrappedLineY)))
+
+    val endOfWrappedLineX = editor.visualPositionToXY(VisualPosition(0, 1)).x
+    val nextVirtualColumnX = editor.visualPositionToXY(VisualPosition(0, 2)).x
+    assertEquals(spaceWidth, nextVirtualColumnX - endOfWrappedLineX)
+    assertEquals(VisualPosition(0, 2), editor.xyToVisualPosition(Point(endOfWrappedLineX + spaceWidth / 2, firstLineY)))
+  }
+
+  fun testCustomWrapIgnoresSoftWrapMarkerWidthBeforeAfterLineEndInlayCoordinateMapping() {
+    initTextAndSoftWraps("ab")
+    val spaceWidth = editor.visualPositionToXY(VisualPosition(0, 1)).x - editor.visualPositionToXY(VisualPosition(0, 0)).x
+    val inlayWidth = spaceWidth * 2
+    installSoftWrapPainterWithWidth(spaceWidth * 3)
+    addCustomWrap(1)
+    addAfterLineEndInlay(2, inlayWidth)
+
+    val wrappedLineY = editor.visualPositionToXY(VisualPosition(1, 0)).y
+    val wrappedTextEndX = editor.visualPositionToXY(VisualPosition(1, 1)).x
+    val firstInlayX = editor.visualPositionToXY(VisualPosition(1, 2)).x
+    assertEquals(spaceWidth, firstInlayX - wrappedTextEndX)
+    assertEquals(VisualPosition(1, 2), editor.xyToVisualPosition(Point(firstInlayX + inlayWidth / 4, wrappedLineY)))
+    assertEquals(VisualPosition(1, 3), editor.xyToVisualPosition(Point(firstInlayX + inlayWidth * 3 / 4, wrappedLineY)))
+  }
+
+  fun testCustomWrapIgnoresSoftWrapMarkerWidthInPreferredSize() {
+    initTextAndSoftWraps("ab")
+    val widthWithoutWrap = editor.contentComponent.preferredSize.width
+    installSoftWrapPainterWithWidth(editor.visualPositionToXY(VisualPosition(0, 1)).x * 3)
+    addCustomWrap(1)
+
+    val widthWithWrap = editor.contentComponent.preferredSize.width
+    assertTrue(widthWithWrap < widthWithoutWrap)
+  }
 }
+
 
 class CustomWrapsOnlyTest : CustomWrapsTestBase()
 
 class CustomWrapsWithSoftWrapsEnabledTest : CustomWrapsTestBase() {
   override val useSoftWraps: Boolean = true
+
+  fun testRegularSoftWrapStillUsesMarkerWidthWhenCustomWrapsArePresent() {
+    initTextAndSoftWraps("abcdefghijklmnop", 3)
+    val spaceWidth = editor.visualPositionToXY(VisualPosition(0, 1)).x - editor.visualPositionToXY(VisualPosition(0, 0)).x
+    val markerWidth = spaceWidth * 3
+    installSoftWrapPainterWithWidth(markerWidth)
+    addCustomWrap(1)
+
+    val regularSoftWrap = registeredSoftWraps().firstOrNull { !it.isCustomSoftWrap }
+    assertNotNull(regularSoftWrap)
+
+    val beforeWrapPosition = editor.offsetToVisualPosition(regularSoftWrap!!.start, false, true)
+    val beforeWrapX = editor.visualPositionToXY(beforeWrapPosition).x
+    val afterMarkerX = editor.visualPositionToXY(VisualPosition(beforeWrapPosition.line, beforeWrapPosition.column + 1)).x
+    assertEquals(markerWidth, afterMarkerX - beforeWrapX)
+  }
 
   fun testCorrectIndentsForSoftWrapsInALongLineMixedWithCustomWraps() {
     initTextAndSoftWraps("    012340123401234012340123401234567890123456789", 10)

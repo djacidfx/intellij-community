@@ -27,6 +27,7 @@ import com.intellij.openapi.editor.impl.EditorImpl;
 import com.intellij.openapi.editor.impl.FoldingModelInternal;
 import com.intellij.openapi.editor.impl.SoftWrapModelImpl;
 import com.intellij.openapi.editor.impl.softwrap.SoftWrapDrawingType;
+import com.intellij.openapi.editor.impl.softwrap.SoftWrapEx;
 import com.intellij.openapi.editor.impl.softwrap.mapping.IncrementalCacheUpdateEvent;
 import com.intellij.openapi.editor.impl.softwrap.mapping.SoftWrapParsingListener;
 import com.intellij.openapi.util.Ref;
@@ -505,7 +506,8 @@ final class EditorSizeManager implements PrioritizedDocumentListener, Disposable
       x = fragment.getEndX() - leftInset;
       maxOffset = Math.max(maxOffset, fragment.getMaxOffset());
     }
-    if (mySoftWrapModel.getSoftWrap(maxOffset) != null) {
+    SoftWrapEx lineEndWrap = mySoftWrapModel.getSoftWrapEx(maxOffset);
+    if (lineEndWrap != null && lineEndWrap.isPaintable()) {
       x += mySoftWrapModel.getMinDrawingWidthInPixels(SoftWrapDrawingType.BEFORE_SOFT_WRAP_LINE_FEED);
     }
     else {
@@ -564,11 +566,11 @@ final class EditorSizeManager implements PrioritizedDocumentListener, Disposable
     int startVisualLine = myView.offsetToVisualLine(startOffset, false);
     int endVisualLine = myView.offsetToVisualLine(endOffset, true);
     if (startVisualLine > endVisualLine) {
-      // If startOffset = endOffset and there's a soft-wrap at this offset, startVisualLine > endVisualLine.
+      // If startOffset == endOffset and there's a soft-wrap at this offset, startVisualLine > endVisualLine.
       // In this case, we need to invalidate both of the visual lines.
-      int tmp = startVisualLine;
+      int swap = startVisualLine;
       startVisualLine = endVisualLine;
-      endVisualLine = tmp;
+      endVisualLine = swap;
     }
 
     int lineDiff = myView.getVisibleLineCount() - myLineWidths.size();
