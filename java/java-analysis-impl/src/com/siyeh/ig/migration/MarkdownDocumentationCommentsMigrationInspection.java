@@ -17,6 +17,7 @@ import com.intellij.psi.PsiWhiteSpace;
 import com.intellij.psi.impl.source.javadoc.PsiDocMethodOrFieldRef;
 import com.intellij.psi.impl.source.javadoc.PsiDocParamRef;
 import com.intellij.psi.javadoc.PsiDocComment;
+import com.intellij.psi.javadoc.PsiDocReferenceHolder;
 import com.intellij.psi.javadoc.PsiDocTag;
 import com.intellij.psi.javadoc.PsiDocTagValue;
 import com.intellij.psi.javadoc.PsiDocToken;
@@ -154,6 +155,9 @@ public final class MarkdownDocumentationCommentsMigrationInspection extends Base
           result.append("<%s>".formatted(HtmlToMarkdownVisitor.INTERNAL_TAG_JDOC_TAG));
           appendElementText(child, result);
           result.append("</%s>".formatted(HtmlToMarkdownVisitor.INTERNAL_TAG_JDOC_TAG));
+        }
+        else if (child instanceof PsiDocMethodOrFieldRef || child instanceof PsiDocReferenceHolder) {
+          result.append(escapeInline(child.getText()));
         }
         else if (child instanceof PsiDocTagValue) {
           appendElementText(child, result);
@@ -307,13 +311,14 @@ public final class MarkdownDocumentationCommentsMigrationInspection extends Base
       }
 
       if (labelBuilder != null) {
-        result.append(!isPlain ? "[<code>" : '[').append(labelBuilder).append(!isPlain ? "</code>]" : ']');
+        result.append(!isPlain ? "[<code>" : '[').append(escapeInline(labelBuilder.toString())).append(!isPlain ? "</code>]" : ']');
       }
       if (!referenceBuilder.isEmpty()) {
         result.append('[')
-          .append(referenceBuilder.toString()
+          .append(escapeInline(referenceBuilder.toString()
                     .replace("[", "\\[")
                     .replace("]", "\\]"))
+          )
           .append(']');
       }
     }
