@@ -11,6 +11,7 @@
     <module name="intellij.platform.core"/>
     <module name="intellij.platform.core.impl"/>
     <module name="intellij.platform.core.ui"/>
+    <module name="intellij.platform.editor.ex"/>
     <module name="intellij.platform.editor.ui"/>
     <module name="intellij.platform.execution"/>
     <module name="intellij.platform.execution.impl"/>
@@ -23,6 +24,7 @@
     <module name="intellij.platform.projectModel.impl"/>
     <module name="intellij.platform.statistics"/>
     <module name="intellij.platform.testFramework"/>
+    <module name="intellij.platform.usageView"/>
     <module name="intellij.platform.util.ex"/>
     <module name="intellij.xml.psi"/>
   </dependencies>

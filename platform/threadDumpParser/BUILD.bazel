@@ -1,11 +1,18 @@
 ### auto-generated section `build intellij.platform.threadDumpParser` start
-load("@rules_jvm//:jvm.bzl", "jvm_library")
+load("@rules_jvm//:jvm.bzl", "jvm_library", "resourcegroup")
+
+resourcegroup(
+  name = "threadDumpParser_resources",
+  srcs = glob(["resources/**/*"]),
+  strip_prefix = "resources"
+)
 
 jvm_library(
   name = "threadDumpParser",
   module_name = "intellij.platform.threadDumpParser",
   visibility = ["//visibility:public"],
   srcs = glob(["src/**/*.kt", "src/**/*.java", "src/**/*.form"], allow_empty = True),
+  resources = [":threadDumpParser_resources"],
   deps = [
     "@lib//:kotlin-stdlib",
     "//platform/util",
@@ -38,7 +45,8 @@ jvm_library(
     "//libraries/jackson3/databind:databind_test_lib",
     "//libraries/kotlinx/serialization/core:core_test_lib",
     "//libraries/kotlinx/serialization/json:json_test_lib",
-    "@lib//:junit4",
+    "//libraries/junit4",
+    "//libraries/junit4:junit4_test_lib",
   ]
 )
 ### auto-generated section `build intellij.platform.threadDumpParser` end

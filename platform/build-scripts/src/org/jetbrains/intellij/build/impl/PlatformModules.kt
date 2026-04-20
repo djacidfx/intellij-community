@@ -8,10 +8,6 @@ import io.opentelemetry.api.trace.Span
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.coroutines.CoroutineName
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.jetbrains.intellij.build.BuildContext
 import org.jetbrains.intellij.build.FrontendModuleFilter
 import org.jetbrains.intellij.build.ModuleOutputProvider
@@ -20,11 +16,11 @@ import org.jetbrains.intellij.build.UTIL_8_JAR
 import org.jetbrains.intellij.build.UTIL_JAR
 import org.jetbrains.intellij.build.UTIL_RT_JAR
 import org.jetbrains.intellij.build.classPath.getEmbeddedContentModulesOfPluginsWithUseIdeaClassloader
+import org.jetbrains.intellij.build.forEachConcurrent
 import org.jetbrains.intellij.build.impl.PlatformJarNames.TEST_FRAMEWORK_JAR
 import org.jetbrains.intellij.build.isModuleNameLikeFilename
 import org.jetbrains.intellij.build.productLayout.LIB_MODULE_PREFIX
 import org.jetbrains.intellij.build.productLayout.ProductModulesLayout
-import org.jetbrains.jps.model.java.JpsJavaClasspathKind
 import org.jetbrains.jps.model.java.JpsJavaExtensionService
 import org.jetbrains.jps.model.module.JpsLibraryDependency
 import org.jetbrains.jps.model.module.JpsModuleDependency
@@ -32,45 +28,31 @@ import org.jetbrains.jps.model.module.JpsModuleReference
 import java.util.SortedSet
 
 /**
- * List of modules which are included in lib/app.jar in all IntelliJ-based IDEs and loaded by the core classloader.
+ * List of modules that are included in lib/app.jar in all IntelliJ-based IDEs and loaded by the core classloader.
  * 
  * **Please don't add new modules here!**
  *
- * If you need to add a module to all IDEs, register it as a content module in intellij.moduleSets.essential.xml, see [this article](https://youtrack.jetbrains.com/articles/IJPL-A-956) for
- * details. You can use 'loading="embedded"' to make it still loaded by the core classloader if needed.
+ * If you need to add a module to all IDEs, register it as a content module in intellij.moduleSets.essential.xml,
+ * see [this article](https://youtrack.jetbrains.com/articles/IJPL-A-956) for details. You can use 'loading="embedded"' to make it still loaded by the core classloader if needed.
  */
 @Suppress("RemoveRedundantQualifierName")
 internal val PLATFORM_CORE_MODULES = java.util.List.of(
   "intellij.platform.ml",
-  "intellij.platform.remote.core",
   "intellij.platform.remoteServers.agent.rt",
-  "intellij.platform.usageView",
 
-  "intellij.platform.editor.ex",
-  "intellij.platform.macro",
   "intellij.platform.remoteServers.impl",
-  "intellij.platform.structureView.impl",
-  "intellij.platform.rd.community",
   "intellij.remoteDev.util",
   "intellij.platform.feedback",
-  "intellij.platform.usageView.impl",
   "intellij.platform.buildScripts.downloader",
 
   "intellij.platform.runtime.product",
-  "intellij.platform.bootstrap",
 
   "intellij.platform.markdown.utils",
   "intellij.platform.util.commonsLangV2Shim",
 
   // do we need it?
   "intellij.platform.sqlite",
-  // todo not used by platform - move to plugin
-  "intellij.platform.ide.designer",
-  "intellij.platform.ide.remote",
-  "intellij.platform.ide.ui.inspector",
-  "intellij.platform.threadDumpParser",
 
-  "intellij.platform.ide.favoritesTreeView",
   "intellij.platform.bookmarks",
 )
 
@@ -138,6 +120,12 @@ internal suspend fun createPlatformLayout(projectLibrariesUsedByPlugins: SortedS
     "intellij.platform.eel",  // EelFiles, which is a replacement for java.nio.file.Files, may be used everywhere
   ), productLayout = productLayout, layout = layout)
 
+  // todo as content module
+  layout.withProjectLibraries(sequenceOf(
+    "slf4j-api",
+    "slf4j-jdk14",
+  ), UTIL_8_JAR)
+
   // https://jetbrains.team/p/ij/reviews/67104/timeline
   // https://youtrack.jetbrains.com/issue/IDEA-179784
   // https://youtrack.jetbrains.com/issue/IDEA-205600
@@ -160,6 +148,7 @@ internal suspend fun createPlatformLayout(projectLibrariesUsedByPlugins: SortedS
   )
   // ultimate only
   if (context.project.libraryCollection.findLibrary("org.apache.ivy") != null) {
+    @Suppress("DEPRECATION")
     layout.withProjectLibrary("org.apache.ivy", "groovy.jar", reason = "ivy workaround")
   }
   // TODO(Shumaf.Lovpache): IJPL-1014 convert lsp4j to product modules after merge into master
@@ -208,7 +197,7 @@ internal suspend fun createPlatformLayout(projectLibrariesUsedByPlugins: SortedS
     "intellij.platform.externalSystem.rt",
     "intellij.platform.objectSerializer.annotations"
   ), productLayout = productLayout, layout = layout)
-  val explicit = mutableListOf<ModuleItem>()
+  val explicit = ArrayList<ModuleItem>()
   for (moduleName in productLayout.productImplementationModules) {
     if (productLayout.excludedModuleNames.contains(moduleName)) {
       continue
@@ -225,7 +214,12 @@ internal suspend fun createPlatformLayout(projectLibrariesUsedByPlugins: SortedS
   explicit.addAll(toModuleItemSequence(list = PLATFORM_CORE_MODULES, productLayout = productLayout, reason = "PLATFORM_CORE_MODULES", frontendModuleFilter = frontendModuleFilter))
   explicit.addAll(toModuleItemSequence(list = productLayout.productApiModules, productLayout = productLayout, reason = "productApiModules", frontendModuleFilter = frontendModuleFilter))
 
-  val explicitModuleNames = explicit.map { it.moduleName }.toList()
+  val explicitModuleNames = explicit.map { it.moduleName }
+  val outputProvider = context.outputProvider
+  val runtimeDependencyIndex = RuntimeDependencyIndex((context as BuildContextImpl).jarPackagerDependencyHelper)
+
+  // we should filter out modules which are included in plugins with `use-idea-classloader`
+  val pluginsContents = computeContentModulesPluginsWhichUseIdeaClassloader(context)
 
   val productPluginContentModules = processAndGetProductPluginContentModules(
     layout = layout,
@@ -234,12 +228,13 @@ internal suspend fun createPlatformLayout(projectLibrariesUsedByPlugins: SortedS
       layout = layout,
       explicitModuleNames = explicitModuleNames,
       productLayout = productLayout,
-      context = context
+      pluginsContents = pluginsContents,
+      runtimeDependencyResolver = runtimeDependencyIndex,
     ),
     context = context,
-  ).toMutableSet()
+  ).toCollection(LinkedHashSet())
 
-  // Compute and add dependencies for embedded modules with includeDependencies=true
+  // compute and add dependencies for embedded modules with includeDependencies=true
   val embeddedModulesWithDeps = productPluginContentModules.filter {
     it.reason == ModuleIncludeReasons.PRODUCT_EMBEDDED_MODULES && it.includeDependencies
   }
@@ -253,7 +248,8 @@ internal suspend fun createPlatformLayout(projectLibrariesUsedByPlugins: SortedS
       alreadyIncluded = alreadyIncluded,
       embeddedModules = embeddedModulesWithDeps,
       productLayout = productLayout,
-      context = context,
+      outputProvider = outputProvider,
+      runtimeDependencyResolver = runtimeDependencyIndex,
     )
     productPluginContentModules.addAll(embeddedDependencies)
   }
@@ -263,9 +259,21 @@ internal suspend fun createPlatformLayout(projectLibrariesUsedByPlugins: SortedS
     layout = layout,
     productPluginContentModules = productPluginContentModules.mapTo(HashSet()) { it.moduleName },
     productLayout = productLayout,
-    context = context,
-    validateImplicitPlatformModule = context.options.validateImplicitPlatformModule,
+    pluginsContents = pluginsContents,
+    runtimeDependencyResolver = runtimeDependencyIndex,
   )
+
+  if (context.options.validateImplicitPlatformModule) {
+    val implicitContentModuleAllowlist = context.productProperties.getProductContentDescriptor()?.allowedMissingDependencies?.mapTo(HashSet()) { it.value } ?: emptySet()
+    implicit.forEachConcurrent { (name, chain) ->
+      validateImplicitPlatformModule(
+        name = name,
+        chain = chain,
+        outputProvider = outputProvider,
+        allowedMissingDependencies = implicitContentModuleAllowlist,
+      )
+    }
+  }
 
   val filteredExplicit = LinkedHashSet(explicit)
   for (item in productPluginContentModules) {
@@ -305,7 +313,7 @@ internal suspend fun createPlatformLayout(projectLibrariesUsedByPlugins: SortedS
   }
 
   // as a separate step, not a part of computing implicitModules, as we should collect libraries from such implicitly included modules
-  layout.collectProjectLibrariesFromIncludedModules(context.outputProvider) { libName, module ->
+  layout.collectProjectLibrariesFromIncludedModules(outputProvider) { libName, module ->
     // this module is used only when running IDE from sources, no need to include its dependencies, see IJPL-125
     if (module.name == "intellij.platform.buildScripts.downloader" && libName == "zstd-jni") {
       return@collectProjectLibrariesFromIncludedModules
@@ -337,11 +345,12 @@ internal suspend fun createPlatformLayout(projectLibrariesUsedByPlugins: SortedS
   return layout
 }
 
-private suspend fun computePartialListToResolveIncludesAndCollectProductModules(
+private fun computePartialListToResolveIncludesAndCollectProductModules(
   layout: PlatformLayout,
   explicitModuleNames: Collection<String>,
   productLayout: ProductModulesLayout,
-  context: BuildContext,
+  pluginsContents: Set<String>,
+  runtimeDependencyResolver: RuntimeDependencyResolver,
 ): Collection<String> {
   val result = LinkedHashSet<String>()
   layout.includedModules.mapTo(result) { it.moduleName }
@@ -350,10 +359,9 @@ private suspend fun computePartialListToResolveIncludesAndCollectProductModules(
     layout = layout,
     productPluginContentModules = emptySet(),
     productLayout = productLayout,
-    context = context,
-    validateImplicitPlatformModule = false,
-  )
-    .mapTo(result) { it.first }
+    pluginsContents = pluginsContents,
+    runtimeDependencyResolver = runtimeDependencyResolver,
+  ).mapTo(result) { it.first }
   result.addAll(explicitModuleNames)
   return result
 }
@@ -494,58 +502,57 @@ private class EmbeddedModuleGraph(
  *
  * @param embeddedModules embedded modules with includeDependencies=true (already filtered)
  * @param productLayout product modules layout
- * @param context build context
  * @return set of module items representing dependencies to add
  */
 private fun computeEmbeddedModuleDependencies(
   embeddedModules: Collection<ModuleItem>,
   productLayout: ProductModulesLayout,
   alreadyIncluded: HashSet<String>,
-  context: BuildContext,
+  outputProvider: ModuleOutputProvider,
+  runtimeDependencyResolver: RuntimeDependencyResolver,
 ): Set<ModuleItem> {
-  val result = LinkedHashSet<ModuleItem>()
-  val rootChain = persistentListOf<String>()
-
-  for (embeddedModule in sortEmbeddedModulesTopologically(embeddedModules, context.outputProvider).asReversed()) {
-    val moduleName = embeddedModule.moduleName
-    val relativeOutputFile = embeddedModule.relativeOutputFile
-    val moduleSet = embeddedModule.moduleSet
-
-    // Prepare list for dependency computation - same pattern as computeImplicitRequiredModules
-    val rootList = listOf(moduleName to rootChain)
-    val deps = mutableListOf<Pair<String, PersistentList<String>>>()
-    computeTransitive(list = rootList, unique = alreadyIncluded, result = deps, outputProvider = context.outputProvider)
-
-    // Add dependencies to result, filtering out excluded modules
-    for ((depName, chain) in deps) {
-      if (productLayout.excludedModuleNames.contains(depName)) {
-        continue
-      }
-
-      result.add(
-        ModuleItem(
-          moduleName = depName,
-          relativeOutputFile = relativeOutputFile, // Same JAR as parent embedded module
-          reason = ModuleIncludeReasons.PRODUCT_EMBEDDED_MODULES + " <- " + chain.asReversed().joinToString(separator = " <- "),
-          moduleSet = moduleSet,
-        )
-      )
-    }
-  }
-
-  return result
+  return computeEmbeddedModuleDependenciesInOrder(
+    embeddedModulesInProcessingOrder = sortEmbeddedModulesTopologically(embeddedModules, outputProvider).asReversed(),
+    excludedModuleNames = productLayout.excludedModuleNames,
+    alreadyIncluded = alreadyIncluded,
+    dependencyResolver = runtimeDependencyResolver,
+  )
 }
 
-private suspend fun computeImplicitRequiredModules(
+private fun computeImplicitRequiredModules(
   explicit: Collection<String>,
   layout: PlatformLayout,
   productPluginContentModules: Set<String>,
   productLayout: ProductModulesLayout,
-  context: BuildContext,
-  validateImplicitPlatformModule: Boolean,
+  pluginsContents: Set<String>,
+  runtimeDependencyResolver: RuntimeDependencyResolver,
+): List<Pair<String, PersistentList<String>>> {
+  return collectTransitiveRuntimeDependencies(
+    roots = buildImplicitTraversalRoots(
+      explicit = explicit,
+      layout = layout,
+      productLayout = productLayout,
+      productPluginContentModules = productPluginContentModules,
+    ),
+    blockedOrSeen = buildImplicitTraversalBlockedSet(
+      explicit = explicit,
+      layout = layout,
+      productLayout = productLayout,
+      productPluginContentModules = productPluginContentModules,
+    ),
+    omitFromResult = pluginsContents,
+    dependencyResolver = runtimeDependencyResolver,
+  )
+}
+
+private fun buildImplicitTraversalRoots(
+  explicit: Collection<String>,
+  layout: PlatformLayout,
+  productLayout: ProductModulesLayout,
+  productPluginContentModules: Set<String>,
 ): List<Pair<String, PersistentList<String>>> {
   val rootChain = persistentListOf<String>()
-  val rootList = layout.filteredIncludedModuleNames(excludedRelativeJarPath = TEST_FRAMEWORK_JAR, includeFromSubdirectories = false)
+  return layout.filteredIncludedModuleNames(excludedRelativeJarPath = TEST_FRAMEWORK_JAR, includeFromSubdirectories = false)
     .plus(explicit)
     .filter {
       !productLayout.excludedModuleNames.contains(it) &&
@@ -564,70 +571,56 @@ private suspend fun computeImplicitRequiredModules(
     .sorted()
     .map { it to rootChain }
     .toList()
+}
 
-  val unique = HashSet<String>()
-  layout.includedModules.mapTo(unique) { it.moduleName }
-  unique.addAll(explicit)
-  unique.addAll(productPluginContentModules)
-  unique.addAll(productLayout.excludedModuleNames)
-  unique.add("fleet.backend")
+private fun buildImplicitTraversalBlockedSet(
+  explicit: Collection<String>,
+  layout: PlatformLayout,
+  productLayout: ProductModulesLayout,
+  productPluginContentModules: Set<String>,
+): HashSet<String> {
+  val blockedOrSeen = HashSet<String>()
+  layout.includedModules.mapTo(blockedOrSeen) { it.moduleName }
+  blockedOrSeen.addAll(explicit)
+  blockedOrSeen.addAll(productPluginContentModules)
+  blockedOrSeen.addAll(productLayout.excludedModuleNames)
+  blockedOrSeen.add("fleet.backend")
   // Module intellij.featuresTrainer contains, so it is a plugin, but plugin must be not included in a platform
   // (chain: [intellij.pycharm.community, intellij.python.featuresTrainer])
-  unique.add("intellij.pycharm.community")
-  unique.add("intellij.python.featuresTrainer")
-  unique.add("intellij.pycharm.ds")
-  unique.add("intellij.notebooks.visualization")
+  blockedOrSeen.add("intellij.pycharm.community")
+  blockedOrSeen.add("intellij.python.featuresTrainer")
+  blockedOrSeen.add("intellij.pycharm.ds")
+  blockedOrSeen.add("intellij.notebooks.visualization")
+  return blockedOrSeen
+}
 
-  // we should filter out modules which are included in plugins with `use-idea-classloader`
-  val pluginsContents = computeContentModulesPluginsWhichUseIdeaClassloader(context)
-
-  val requiredDependencies = mutableListOf<Pair<String, PersistentList<String>>>()
-  computeTransitive(list = rootList, unique = unique, result = requiredDependencies, outputProvider = context.outputProvider)
-  val requiredModules = requiredDependencies.filter { it.first !in pluginsContents }
-
-  if (validateImplicitPlatformModule) {
-    withContext(Dispatchers.IO) {
-      for ((name, chain) in requiredModules) {
-        launch(CoroutineName("validating the implicit platform module $name")) {
-          val file = context.findFileInModuleSources(name, "META-INF/plugin.xml")
-          check(file == null) {
-            "Module $name contains $file, so it is a plugin, but plugin must be not included in a platform (chain: $chain)"
-          }
-        }
-      }
-    }
+private suspend fun validateImplicitPlatformModule(
+  name: String,
+  chain: PersistentList<String>,
+  outputProvider: ModuleOutputProvider,
+  allowedMissingDependencies: Set<String>,
+) {
+  val jpsModule = outputProvider.findRequiredModule(name)
+  val pluginXml = outputProvider.readFileContentFromModuleOutput(jpsModule, "META-INF/plugin.xml")
+  check(pluginXml == null) {
+    "Module $name contains ${pluginXml.contentToString()}, so it is a plugin, but plugin must be not included in a platform (chain: $chain)"
   }
 
-  return requiredModules
+  if (outputProvider.readFileContentFromModuleOutput(jpsModule, contentModuleNameToDescriptorFileName(name)) == null) {
+    return
+  }
+  else if (allowedMissingDependencies.contains(name) || chain.firstOrNull() == "intellij.tools.testsBootstrap") {
+    Span.current().addEvent("Suppressing implicit content module validation for $name via allowMissingDependencies (chain: $chain)")
+  }
+  else {
+    error("Module $name is a content module. Implicit platform auto-inclusion is prohibited; plugin model must be the only truth for packaging (chain: $chain)")
+  }
 }
 
 private suspend fun computeContentModulesPluginsWhichUseIdeaClassloader(context: BuildContext): Set<String> {
   val bundledPlugins = getPluginLayoutsByJpsModuleNames(modules = context.getBundledPluginModules(), productLayout = context.productProperties.productLayout)
   return bundledPlugins.flatMapTo(LinkedHashSet()) {
     getEmbeddedContentModulesOfPluginsWithUseIdeaClassloader(pluginMainModule = it.mainModule, cacheContainer = null, context = context)
-  }
-}
-
-private fun computeTransitive(
-  list: List<Pair<String, PersistentList<String>>>,
-  unique: HashSet<String>,
-  result: MutableList<Pair<String, PersistentList<String>>>,
-  outputProvider: ModuleOutputProvider,
-) {
-  val oldSize = result.size
-  for ((dependentName, dependentChain) in list) {
-    val dependentModule = outputProvider.findRequiredModule(dependentName)
-    val chain = dependentChain.add(dependentName)
-    JpsJavaExtensionService.dependencies(dependentModule).includedIn(JpsJavaClasspathKind.PRODUCTION_RUNTIME).processModules { module ->
-      val name = module.name
-      if (unique.add(name)) {
-        result.add(name to chain)
-      }
-    }
-  }
-
-  if (oldSize != result.size) {
-    computeTransitive(list = result.subList(oldSize, result.size).sortedBy { it.first }, unique = unique, result = result, outputProvider = outputProvider)
   }
 }
 

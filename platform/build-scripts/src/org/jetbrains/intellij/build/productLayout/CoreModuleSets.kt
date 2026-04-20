@@ -291,6 +291,7 @@ object CoreModuleSets {
     embeddedModule("intellij.platform.welcomeScreen.impl")
 
     embeddedModule("intellij.platform.codeStyle")
+    embeddedModule("intellij.platform.editor.ex")
     embeddedModule("intellij.platform.editor.ui")
 
     embeddedModule("intellij.platform.projectModel")
@@ -306,6 +307,8 @@ object CoreModuleSets {
 
     embeddedModule("intellij.platform.ide.core")
     embeddedModule("intellij.platform.ide.core.plugins")
+
+    embeddedModule("intellij.platform.usageView")
   }
 
   /**
@@ -367,6 +370,9 @@ object CoreModuleSets {
     // Include core IDE (corePlatform + intellij.platform.ide)
     moduleSet(coreIde())
 
+    embeddedModule("intellij.platform.macro")
+    embeddedModule("intellij.platform.usageView.impl")
+
     embeddedModule("intellij.platform.testRunner")
     embeddedModule("intellij.platform.execution")
     embeddedModule("intellij.platform.execution.impl")
@@ -381,6 +387,18 @@ object CoreModuleSets {
     embeddedModule("intellij.platform.statistics")
     embeddedModule("intellij.platform.statistics.config")
     embeddedModule("intellij.platform.ide.impl")
+
+    embeddedModule("intellij.platform.rd.community")
+
+    embeddedModule("intellij.platform.ide.ui.inspector")
+    embeddedModule("intellij.platform.remote.core")
+    embeddedModule("intellij.platform.ide.remote")
+    embeddedModule("intellij.platform.threadDumpParser")
+    embeddedModule("intellij.platform.ide.favoritesTreeView")
+    // todo not used by platform - move to plugin
+    embeddedModule("intellij.platform.ide.designer")
+
+    embeddedModule("intellij.platform.bootstrap")
 
     // depends on intellij.platform.ide.impl
     module("intellij.platform.backend.workspace.impl")

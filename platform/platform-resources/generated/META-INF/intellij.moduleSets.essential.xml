@@ -144,6 +144,7 @@
     <module name="intellij.platform.welcomeScreen" loading="embedded"/>
     <module name="intellij.platform.welcomeScreen.impl" loading="embedded"/>
     <module name="intellij.platform.codeStyle" loading="embedded"/>
+    <module name="intellij.platform.editor.ex" loading="embedded"/>
     <module name="intellij.platform.editor.ui" loading="embedded"/>
     <module name="intellij.platform.projectModel" loading="embedded"/>
     <module name="intellij.platform.projectModel.impl" loading="embedded"/>
@@ -151,6 +152,7 @@
     <module name="intellij.platform.analysis.impl" loading="embedded"/>
     <module name="intellij.platform.ide.core" loading="embedded"/>
     <module name="intellij.platform.ide.core.plugins" loading="embedded"/>
+    <module name="intellij.platform.usageView" loading="embedded"/>
     <!-- endregion -->
     <!-- endregion -->
 
@@ -184,6 +186,8 @@
     <!-- endregion -->
 
     <!-- region direct modules -->
+    <module name="intellij.platform.macro" loading="embedded"/>
+    <module name="intellij.platform.usageView.impl" loading="embedded"/>
     <module name="intellij.platform.testRunner" loading="embedded"/>
     <module name="intellij.platform.execution" loading="embedded"/>
     <module name="intellij.platform.execution.impl" loading="embedded"/>
@@ -194,6 +198,14 @@
     <module name="intellij.platform.statistics" loading="embedded"/>
     <module name="intellij.platform.statistics.config" loading="embedded"/>
     <module name="intellij.platform.ide.impl" loading="embedded"/>
+    <module name="intellij.platform.rd.community" loading="embedded"/>
+    <module name="intellij.platform.ide.ui.inspector" loading="embedded"/>
+    <module name="intellij.platform.remote.core" loading="embedded"/>
+    <module name="intellij.platform.ide.remote" loading="embedded"/>
+    <module name="intellij.platform.threadDumpParser" loading="embedded"/>
+    <module name="intellij.platform.ide.favoritesTreeView" loading="embedded"/>
+    <module name="intellij.platform.ide.designer" loading="embedded"/>
+    <module name="intellij.platform.bootstrap" loading="embedded"/>
     <module name="intellij.platform.backend.workspace.impl"/>
     <module name="intellij.platform.ide.concurrency" loading="embedded"/>
     <module name="intellij.platform.builtInServer" loading="embedded"/>

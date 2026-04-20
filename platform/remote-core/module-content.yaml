@@ -1,0 +1,4 @@
+- name: dist.all/lib/intellij.platform.remote.core.jar
+  modules:
+  - name: intellij.platform.credentialStore
+  - name: intellij.platform.remote.core

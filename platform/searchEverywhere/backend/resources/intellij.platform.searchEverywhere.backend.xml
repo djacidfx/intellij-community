@@ -16,6 +16,8 @@
     <module name="intellij.platform.projectModel"/>
     <module name="intellij.platform.rpc.backend"/>
     <module name="intellij.platform.searchEverywhere"/>
+    <module name="intellij.platform.usageView"/>
+    <module name="intellij.platform.usageView.impl"/>
     <module name="intellij.platform.util.ui"/>
   </dependencies>
   <!-- endregion -->
