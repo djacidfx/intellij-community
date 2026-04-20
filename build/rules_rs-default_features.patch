@@ -1,0 +1,20 @@
+Index: rs/extensions.bzl
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/rs/extensions.bzl b/rs/extensions.bzl
+--- a/rs/extensions.bzl	(revision 35f7c253814ebf9538ca56d7c50f2ad760bd9ea8)
++++ b/rs/extensions.bzl	(revision bebb283f362264e67c9750b8382d6d9f4bed6997)
+@@ -603,6 +603,11 @@
+         if watch_manifests:
+             mctx.watch(package["manifest_path"])
+
++        package_feature_resolutions = feature_resolutions_by_fq_crate[_fq_crate(package["name"], package["version"])]
++        if "default" in package.get("features", {}):
++            for triple in platform_triples:
++                package_feature_resolutions.features_enabled[triple].add("default")
++
+         fq_deps = workspace_fq_deps[package["name"]]
+
+         for dep in package["dependencies"]:
