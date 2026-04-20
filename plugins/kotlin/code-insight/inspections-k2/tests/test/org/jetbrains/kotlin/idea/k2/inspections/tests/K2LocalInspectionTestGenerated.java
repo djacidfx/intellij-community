@@ -15820,6 +15820,16 @@ public abstract class K2LocalInspectionTestGenerated extends AbstractK2LocalInsp
                 runTest("testData/inspectionsLocal/revertExplicitBackingFields/commentsInsideBrackets.kt");
             }
 
+            @TestMetadata("companion.kt")
+            public void testCompanion() throws Exception {
+                runTest("testData/inspectionsLocal/revertExplicitBackingFields/companion.kt");
+            }
+
+            @TestMetadata("constructorWithValueArgs.kt")
+            public void testConstructorWithValueArgs() throws Exception {
+                runTest("testData/inspectionsLocal/revertExplicitBackingFields/constructorWithValueArgs.kt");
+            }
+
             @TestMetadata("duplicatePropertyTextInFile.kt")
             public void testDuplicatePropertyTextInFile() throws Exception {
                 runTest("testData/inspectionsLocal/revertExplicitBackingFields/duplicatePropertyTextInFile.kt");
@@ -15855,9 +15865,29 @@ public abstract class K2LocalInspectionTestGenerated extends AbstractK2LocalInsp
                 runTest("testData/inspectionsLocal/revertExplicitBackingFields/nestedBlockShadowing.kt");
             }
 
+            @TestMetadata("nestedGenericTypeArg.kt")
+            public void testNestedGenericTypeArg() throws Exception {
+                runTest("testData/inspectionsLocal/revertExplicitBackingFields/nestedGenericTypeArg.kt");
+            }
+
+            @TestMetadata("nonCallInitializer.kt")
+            public void testNonCallInitializer() throws Exception {
+                runTest("testData/inspectionsLocal/revertExplicitBackingFields/nonCallInitializer.kt");
+            }
+
             @TestMetadata("replaceWithShadowing.kt")
             public void testReplaceWithShadowing() throws Exception {
                 runTest("testData/inspectionsLocal/revertExplicitBackingFields/replaceWithShadowing.kt");
+            }
+
+            @TestMetadata("scopeIsNotClass.kt")
+            public void testScopeIsNotClass() throws Exception {
+                runTest("testData/inspectionsLocal/revertExplicitBackingFields/scopeIsNotClass.kt");
+            }
+
+            @TestMetadata("scopeIsNotClass2.kt")
+            public void testScopeIsNotClass2() throws Exception {
+                runTest("testData/inspectionsLocal/revertExplicitBackingFields/scopeIsNotClass2.kt");
             }
 
             @TestMetadata("simple.kt")
@@ -15870,9 +15900,24 @@ public abstract class K2LocalInspectionTestGenerated extends AbstractK2LocalInsp
                 runTest("testData/inspectionsLocal/revertExplicitBackingFields/simpleWithInheritance.kt");
             }
 
+            @TestMetadata("starProjection.kt")
+            public void testStarProjection() throws Exception {
+                runTest("testData/inspectionsLocal/revertExplicitBackingFields/starProjection.kt");
+            }
+
+            @TestMetadata("twoTypeArguments.kt")
+            public void testTwoTypeArguments() throws Exception {
+                runTest("testData/inspectionsLocal/revertExplicitBackingFields/twoTypeArguments.kt");
+            }
+
             @TestMetadata("typeArgument.kt")
             public void testTypeArgument() throws Exception {
                 runTest("testData/inspectionsLocal/revertExplicitBackingFields/typeArgument.kt");
+            }
+
+            @TestMetadata("variableShadowing.kt")
+            public void testVariableShadowing() throws Exception {
+                runTest("testData/inspectionsLocal/revertExplicitBackingFields/variableShadowing.kt");
             }
 
             @TestMetadata("withBlankLines.kt")
@@ -15888,6 +15933,16 @@ public abstract class K2LocalInspectionTestGenerated extends AbstractK2LocalInsp
             @TestMetadata("withComments2.kt")
             public void testWithComments2() throws Exception {
                 runTest("testData/inspectionsLocal/revertExplicitBackingFields/withComments2.kt");
+            }
+
+            @TestMetadata("withComments3.kt")
+            public void testWithComments3() throws Exception {
+                runTest("testData/inspectionsLocal/revertExplicitBackingFields/withComments3.kt");
+            }
+
+            @TestMetadata("withComments4.kt")
+            public void testWithComments4() throws Exception {
+                runTest("testData/inspectionsLocal/revertExplicitBackingFields/withComments4.kt");
             }
 
             @TestMetadata("withCustomFunctions.kt")
