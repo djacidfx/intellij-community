@@ -31,7 +31,7 @@ import java.io.InputStream
 import java.io.OutputStream
 
 @Internal
-val ASYNC_CONTENT_WRITE_ENABLED: Boolean = getBooleanProperty("vfs.async-content-write.enabled", true)
+val ASYNC_CONTENT_WRITE_ENABLED: Boolean = getBooleanProperty("vfs.async-content-write.enabled", false)
 
 /** If more than this number of tasks are postponed -- flush all the postponed tasks synchronously */
 @Internal
