@@ -674,7 +674,65 @@
 - s:getEntries():kotlin.enums.EnumEntries
 - s:valueOf(java.lang.String):com.intellij.polySymbols.js.JsSymbolSymbolKind
 - s:values():com.intellij.polySymbols.js.JsSymbolSymbolKind[]
+*f:com.intellij.polySymbols.patterns.AlternativesBuilder
+- f:branch(kotlin.jvm.functions.Function1):V
+*f:com.intellij.polySymbols.patterns.DependencyHandle
+*f:com.intellij.polySymbols.patterns.DependencyScope
+- f:getValue(com.intellij.polySymbols.patterns.DependencyHandle):java.lang.Object
+*c:com.intellij.polySymbols.patterns.GroupPatternBuilder
+- com.intellij.polySymbols.patterns.PolySymbolPatternBuilder
+- f:additionalScope(java.util.Collection):V
+- f:additionalScope(com.intellij.polySymbols.query.PolySymbolScope[]):V
+- f:getApiStatus():com.intellij.polySymbols.PolySymbolApiStatus
+- f:getPriority():com.intellij.polySymbols.PolySymbol$Priority
+- oneOf(kotlin.jvm.functions.Function1):V
+- f:overrideMatchProperties(kotlin.jvm.functions.Function1):V
+- f:setApiStatus(com.intellij.polySymbols.PolySymbolApiStatus):V
+- f:setPriority(com.intellij.polySymbols.PolySymbol$Priority):V
+- f:symbols(kotlin.jvm.functions.Function1):V
+*f:com.intellij.polySymbols.patterns.MatchPropertyOverridesBuilder
+- f:apiStatus(kotlin.jvm.functions.Function1):V
+- f:dependency(com.intellij.model.Pointer):com.intellij.polySymbols.patterns.DependencyHandle
+- f:dependency(com.intellij.psi.PsiElement):com.intellij.polySymbols.patterns.DependencyHandle
+- f:icon(kotlin.jvm.functions.Function1):V
+- f:modifiers(kotlin.jvm.functions.Function1):V
+- f:priority(kotlin.jvm.functions.Function1):V
+- f:property(com.intellij.polySymbols.PolySymbolProperty,kotlin.jvm.functions.Function1):V
 *Fa:com.intellij.polySymbols.patterns.PolySymbolPattern
+*c:com.intellij.polySymbols.patterns.PolySymbolPatternBuilder
+- f:completionPopup():V
+- f:completionPopupWithPrefixKept():V
+- f:group(kotlin.jvm.functions.Function1):V
+- f:literal(java.lang.String):V
+- oneOf(kotlin.jvm.functions.Function1):V
+- f:optional(kotlin.jvm.functions.Function1):V
+- f:optionalRepeating(kotlin.jvm.functions.Function1):V
+- f:regex(java.lang.String,Z):V
+- bs:regex$default(com.intellij.polySymbols.patterns.PolySymbolPatternBuilder,java.lang.String,Z,I,java.lang.Object):V
+- f:repeating(kotlin.jvm.functions.Function1):V
+- f:sequence(kotlin.jvm.functions.Function1):V
+- f:symbolReference(java.lang.String):V
+- f:symbolReference(java.util.List):V
+- f:symbolReference(com.intellij.polySymbols.PolySymbolQualifiedName[]):V
+- bs:symbolReference$default(com.intellij.polySymbols.patterns.PolySymbolPatternBuilder,java.lang.String,I,java.lang.Object):V
+*@:com.intellij.polySymbols.patterns.PolySymbolPatternDsl
+- java.lang.annotation.Annotation
+*f:com.intellij.polySymbols.patterns.PolySymbolPatternDslKt
+- *sf:polySymbolPattern(kotlin.jvm.functions.Function1):com.intellij.polySymbols.patterns.PolySymbolPattern
+*f:com.intellij.polySymbols.patterns.ReferenceBuilder
+- f:getExcludeModifiers():java.util.List
+- f:getFilter():com.intellij.polySymbols.webTypes.filters.PolySymbolFilter
+- f:nameConversion(com.intellij.polySymbols.query.PolySymbolNameConversionRules):V
+- f:nameConversion(java.util.Collection):V
+- f:setExcludeModifiers(java.util.List):V
+- f:setFilter(com.intellij.polySymbols.webTypes.filters.PolySymbolFilter):V
+*f:com.intellij.polySymbols.patterns.RepeatingGroupPatternBuilder
+- com.intellij.polySymbols.patterns.GroupPatternBuilder
+- getUnique():Z
+- setUnique(Z):V
+*f:com.intellij.polySymbols.patterns.SymbolsBuilder
+- f:from(com.intellij.polySymbols.PolySymbolKind,java.util.List,kotlin.jvm.functions.Function1):V
+- bs:from$default(com.intellij.polySymbols.patterns.SymbolsBuilder,com.intellij.polySymbols.PolySymbolKind,java.util.List,kotlin.jvm.functions.Function1,I,java.lang.Object):V
 *:com.intellij.polySymbols.query.PolySymbolAnyQueryScopeProvider
 - a:getScopes(com.intellij.openapi.project.Project,com.intellij.psi.PsiElement):java.util.List
 *:com.intellij.polySymbols.query.PolySymbolAnyQueryScopeProviderRegistrar

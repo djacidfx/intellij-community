@@ -61,13 +61,18 @@ open class PolySymbolPatternBuilder internal constructor() {
     patterns += PolySymbolPatternFactory.createSymbolReferencePlaceholder(label)
   }
 
-  /** Non-sticky completion auto-popup trigger. */
+  /**
+   * Completion auto-popup trigger. The already input name prefix is discarded at this position.
+   */
   fun completionPopup() {
     patterns += PolySymbolPatternFactory.createCompletionAutoPopup(false)
   }
 
-  /** Sticky completion auto-popup trigger. */
-  fun stickyCompletionPopup() {
+  /**
+   * Completion auto-popup trigger, which keeps the already input name prefix
+   * on each completion item.
+   */
+  fun completionPopupWithPrefixKept() {
     patterns += PolySymbolPatternFactory.createCompletionAutoPopup(true)
   }
 
@@ -142,9 +147,23 @@ class AlternativesBuilder internal constructor() {
 open class GroupPatternBuilder internal constructor() : PolySymbolPatternBuilder() {
   var priority: PolySymbol.Priority? = null
   var apiStatus: PolySymbolApiStatus? = null
+  /**
+   * Direct access to a custom [PolySymbolPatternSymbolsResolver]. Mutually
+   * exclusive with the [symbols] block; set this when you have a hand-rolled
+   * resolver that does not map to [PolySymbolPatternReferenceResolver].
+   */
+  @ApiStatus.Internal
+  var symbolsResolver: PolySymbolPatternSymbolsResolver? = null
 
   private var matchPropertyOverrides: MatchPropertyOverridesBuilder? = null
   private val additionalScopes: MutableList<PolySymbolScope> = mutableListOf()
+
+  internal var required: Boolean = true
+  internal open val repeats: Boolean get() = false
+  internal open val unique: Boolean get() = false
+
+  private var symbolsBuilder: SymbolsBuilder? = null
+  private val alternatives: MutableList<PolySymbolPattern> = mutableListOf()
 
   /**
    * Specify property overrides for the resulting [com.intellij.polySymbols.query.PolySymbolMatch].
@@ -170,20 +189,6 @@ open class GroupPatternBuilder internal constructor() : PolySymbolPatternBuilder
   fun additionalScope(scopes: Collection<PolySymbolScope>) {
     additionalScopes += scopes
   }
-
-  internal var required: Boolean = true
-  internal open val repeats: Boolean get() = false
-  internal open val unique: Boolean get() = false
-
-  /**
-   * Direct access to a custom [PolySymbolPatternSymbolsResolver]. Mutually
-   * exclusive with the [symbols] block; set this when you have a hand-rolled
-   * resolver that does not map to [PolySymbolPatternReferenceResolver].
-   */
-  var symbolsResolver: PolySymbolPatternSymbolsResolver? = null
-
-  private var symbolsBuilder: SymbolsBuilder? = null
-  private val alternatives: MutableList<PolySymbolPattern> = mutableListOf()
 
   /**
    * Hoists the alternatives into the enclosing group.
