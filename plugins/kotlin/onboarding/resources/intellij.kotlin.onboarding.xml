@@ -47,11 +47,6 @@
             description="The version of IDE to show survey in"
             defaultValue="2024.3"
             restartRequired="false"/>
-    <registryKey
-            key="test.enable.k2.notification"
-            description="Enables the testing mode for K2 mode notification"
-            defaultValue="false"
-            restartRequired="false"/>
   </extensions>
 
 </idea-plugin>

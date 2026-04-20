@@ -38,7 +38,6 @@ jvm_library(
     "//plugins/kotlin/base/facet",
     "//plugins/kotlin/base/util",
     "//plugins/kotlin/base/resources:kotlin-base-resources",
-    "//plugins/kotlin/preferences",
   ]
 )
 
@@ -81,7 +80,6 @@ jvm_library(
     "//plugins/kotlin/base/facet:facet_test_lib",
     "//plugins/kotlin/base/util:util_test_lib",
     "//plugins/kotlin/base/resources:kotlin-base-resources_test_lib",
-    "//plugins/kotlin/preferences:preferences_test_lib",
   ]
 )
 ### auto-generated section `build intellij.kotlin.onboarding` end
