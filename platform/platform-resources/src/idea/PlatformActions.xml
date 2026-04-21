@@ -1434,6 +1434,8 @@
         <action id="EditorRenderingBenchmarkAction" internal="true"
                 class="com.intellij.internal.performance.EditorRenderingBenchmarkAction"/>
         <action id="EditorAddCustomWrap" internal="true" class="com.intellij.openapi.editor.actions.AddCustomWrapAction"/>
+        <action id="EditorRemoveCustomWrapsAtCaret" internal="true"
+                class="com.intellij.openapi.editor.actions.RemoveCustomWrapsAtCaretAction"/>
       </group>
       <group id="Internal.UI" popup="true">
         <group id="Internal.UI.Demos" popup="true">
