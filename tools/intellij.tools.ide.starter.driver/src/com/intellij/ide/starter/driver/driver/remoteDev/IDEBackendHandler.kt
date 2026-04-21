@@ -5,6 +5,7 @@ import com.intellij.driver.client.Remote
 import com.intellij.driver.sdk.waitNotNull
 import com.intellij.ide.starter.config.ConfigurationStorage
 import com.intellij.ide.starter.config.includeRuntimeModuleRepositoryInIde
+import com.intellij.ide.starter.config.useDockerContainer
 import com.intellij.ide.starter.config.useInstaller
 import com.intellij.ide.starter.driver.engine.BackgroundRun
 import com.intellij.ide.starter.driver.engine.DriverOptions
@@ -34,8 +35,12 @@ internal class IDEBackendHandler(
 
   private fun buildBackendCommandLine(): (IDERunContext) -> IDECommandLine {
     return { _: IDERunContext ->
-      if (ideRemDevTestContext.testCase.projectInfo == NoProject) IDECommandLine.Args(listOf("serverMode"))
-      else IDECommandLine.OpenTestCaseProject(ideRemDevTestContext, listOf("serverMode"))
+      val additionalArg = if (ConfigurationStorage.useDockerContainer()) {
+        listOf ("-l", "0.0.0.0") // tells backend to listen to the incoming rd connections on 0.0.0.0 so it is available outside of docker
+      } else emptyList()
+
+      if (ideRemDevTestContext.testCase.projectInfo == NoProject) IDECommandLine.Args(listOf("serverMode") + additionalArg)
+      else IDECommandLine.OpenTestCaseProject(ideRemDevTestContext, listOf("serverMode") + additionalArg)
     }
   }
 
