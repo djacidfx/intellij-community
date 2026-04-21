@@ -214,6 +214,12 @@ class KotlinCompilerReferenceIndexService(private val project: Project, private 
         val allModules = if (!initialized) allModules() else null
         compilationCounter.increment()
         withDirtyScopeUnderWriteLock {
+            if (activeBuildCount <= 0) {
+                // IJPL-243245 `BuildManagerListener.buildFinished` fires without preceding `buildStarted`
+                LOG.warn("buildFinished without preceding buildStarted (activeBuildCount=$activeBuildCount), skipping")
+                return@withDirtyScopeUnderWriteLock
+            }
+
             --activeBuildCount
 
             if (activeBuildCount == 0) openStorage(projectPath)
