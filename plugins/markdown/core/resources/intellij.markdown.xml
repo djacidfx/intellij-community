@@ -2,7 +2,4 @@
   <extensions defaultExtensionNs="org.intellij.markdown">
     <browserPreviewExtensionProvider implementation="org.intellij.plugins.markdown.extensions.jcef.ProcessImagesExtension$Provider"/>
   </extensions>
-  <actions>
-    <group id="MarkdownRightToolbar.Actions"/>
-  </actions>
 </idea-plugin>
