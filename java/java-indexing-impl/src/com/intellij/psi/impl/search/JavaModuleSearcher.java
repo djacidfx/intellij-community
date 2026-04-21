@@ -1,9 +1,10 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.psi.impl.search;
 
 import com.intellij.java.codeserver.core.JavaManifestUtil;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ModuleRootManager;
 import com.intellij.openapi.roots.ProjectRootModificationTracker;
@@ -56,6 +57,7 @@ public final class JavaModuleSearcher implements QueryExecutor<PsiJavaModule, Ja
     Set<String> namesWithResults = new HashSet<>();
     // process real and indexed light modules only.
     for (String name : allNames) {
+      ProgressManager.checkCanceled();
       if (!processModulesFromIndices(name, project, indexScope, consumer, namesWithResults)) {
         return false;
       }
@@ -92,6 +94,7 @@ public final class JavaModuleSearcher implements QueryExecutor<PsiJavaModule, Ja
     Module[] modules = ModuleManager.getInstance(project).getModules();
 
     for (Module module : modules) {
+      ProgressManager.checkCanceled();
       VirtualFile[] sourceRoots = ModuleRootManager.getInstance(module).getSourceRoots(false);
       if (sourceRoots.length == 0) continue;
 
@@ -138,6 +141,7 @@ public final class JavaModuleSearcher implements QueryExecutor<PsiJavaModule, Ja
     PsiManager psiManager = PsiManager.getInstance(project);
     // Real modules from module-info.java
     for (PsiJavaModule module : JavaModuleNameIndex.getInstance().getModules(moduleName, project, scope)) {
+      ProgressManager.checkCanceled();
       namesWithResults.add(moduleName);
       if (!consumer.process(module)) return false;
     }
@@ -145,6 +149,7 @@ public final class JavaModuleSearcher implements QueryExecutor<PsiJavaModule, Ja
     // Light modules created from source manifests
     Set<VirtualFile> shadowedRoots = new HashSet<>();
     for (VirtualFile manifest : JavaSourceModuleNameIndex.getFilesByKey(moduleName, scope)) {
+      ProgressManager.checkCanceled();
       VirtualFile root = getSourceRootFromManifest(manifest);
       if (root == null) continue;
 
@@ -156,6 +161,7 @@ public final class JavaModuleSearcher implements QueryExecutor<PsiJavaModule, Ja
 
     // Light modules created from auto-module-name (jar roots)
     for (VirtualFile root : JavaAutoModuleNameIndex.getFilesByKey(moduleName, scope)) {
+      ProgressManager.checkCanceled();
       if (shadowedRoots.contains(root)) continue;
 
       VirtualFile manifest = root.findFileByRelativePath(JarFile.MANIFEST_NAME);
