@@ -100,6 +100,29 @@ public class GotoRelatedPropertyDeclarationsProviderTest extends BasePlatformTes
     assertTrue(items.isEmpty());
   }
 
+  public void testResolvesEscapedKeyAcrossLocales() {
+    myFixture.addFileToProject("p_en.properties", "foo\\ bar=en");
+    PsiFile file = myFixture.configureByText("p.properties", "foo\\ b<caret>ar=value");
+
+    var items = new GotoRelatedPropertyDeclarationsProvider().getItems(dataContext(file));
+    assertEquals(1, items.size());
+    var enItem = items.getFirst();
+    assertEquals("p_en.properties", enItem.getElement().getContainingFile().getName());
+    // Key matches — should navigate to the property, not fall back to the file
+    assertFalse(enItem.getElement() instanceof PsiFile);
+  }
+
+  public void testResolvesUnicodeEscapedKeyAcrossLocales() {
+    myFixture.addFileToProject("p_en.properties", "A=en");
+    PsiFile file = myFixture.configureByText("p.properties", "\\u004<caret>1=value");
+
+    var items = new GotoRelatedPropertyDeclarationsProvider().getItems(dataContext(file));
+    assertEquals(1, items.size());
+    var enItem = items.getFirst();
+    assertEquals("p_en.properties", enItem.getElement().getContainingFile().getName());
+    assertFalse(enItem.getElement() instanceof PsiFile);
+  }
+
   private DataContext dataContext(PsiFile file) {
     PsiElement property = PsiTreeUtil.getParentOfType(file.findElementAt(myFixture.getCaretOffset()), Property.class);
     return dataContext(file, property);

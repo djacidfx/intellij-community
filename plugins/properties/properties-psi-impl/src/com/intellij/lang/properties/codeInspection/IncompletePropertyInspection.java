@@ -88,7 +88,7 @@ public final class IncompletePropertyInspection extends LocalInspectionTool {
       @Override
       public void visitElement(@NotNull PsiElement element) {
         if (!(element instanceof Property property)) return;
-        String key = property.getKey();
+        String key = property.getUnescapedKey();
         if (key == null) return;
 
         List<String> missingSuffixes = new ArrayList<>();
@@ -146,7 +146,7 @@ public final class IncompletePropertyInspection extends LocalInspectionTool {
       PsiElement element = descriptor.getStartElement();
       if (!(element.getParent() instanceof Property property)) return ModCommand.nop();
 
-      String key = property.getKey();
+      String key = property.getUnescapedKey();
       if (key == null) return ModCommand.nop();
       String value = StringUtil.notNullize(property.getValue());
 
@@ -177,7 +177,7 @@ public final class IncompletePropertyInspection extends LocalInspectionTool {
       PropertiesFile propsFile = PropertiesImplUtil.getPropertiesFile(file);
       if (propsFile == null) return;
 
-      IProperty added = propsFile.addProperty(key, value, PropertyKeyValueFormat.FILE);
+      IProperty added = propsFile.addProperty(key, value, PropertyKeyValueFormat.PRESENTABLE);
       PsiElement addedPsi = added.getPsiElement();
       if (addedPsi instanceof PropertyImpl addedProperty) {
         ASTNode valueNode = addedProperty.getValueNode();

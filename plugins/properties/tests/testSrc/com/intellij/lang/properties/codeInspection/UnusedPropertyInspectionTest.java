@@ -111,4 +111,29 @@ public class UnusedPropertyInspectionTest extends CodeInsightFixtureTestCase<Mod
                  VfsUtilCore.loadText(myFixture.findFileInTempDir("q_en.properties")));
   }
 
+  public void testRemovePropertyFromAllLocalesWithEscapedKey() {
+    PsiFile defaultFile = myFixture.addFileToProject("p.properties", "foo\\ bar=value\nother=kept");
+    PsiFile enFile = myFixture.addFileToProject("p_en.properties", "foo\\ bar=en\nother=kept_en");
+    PsiFile frFile = myFixture.addFileToProject("p_fr.properties", "foo\\ bar=fr\nother=kept_fr");
+    myFixture.configureFromExistingVirtualFile(defaultFile.getVirtualFile());
+
+    Property property = (Property)PropertiesImplUtil.getPropertiesFile(defaultFile).findPropertyByKey("foo bar");
+    assertNotNull(property);
+
+    RemovePropertyFromBundleFix fix = new RemovePropertyFromBundleFix(property);
+    ActionContext context = ActionContext.from(myFixture.getEditor(), defaultFile);
+    ModCommand command = fix.asModCommandAction().perform(context);
+
+    CommandProcessor.getInstance().executeCommand(getProject(), () ->
+      ModCommandExecutor.getInstance().executeInteractively(context, command, myFixture.getEditor()), null, null);
+
+    assertNull(PropertiesImplUtil.getPropertiesFile(defaultFile).findPropertyByKey("foo bar"));
+    assertNull(PropertiesImplUtil.getPropertiesFile(enFile).findPropertyByKey("foo bar"));
+    assertNull(PropertiesImplUtil.getPropertiesFile(frFile).findPropertyByKey("foo bar"));
+
+    assertNotNull(PropertiesImplUtil.getPropertiesFile(defaultFile).findPropertyByKey("other"));
+    assertNotNull(PropertiesImplUtil.getPropertiesFile(enFile).findPropertyByKey("other"));
+    assertNotNull(PropertiesImplUtil.getPropertiesFile(frFile).findPropertyByKey("other"));
+  }
+
 }

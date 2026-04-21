@@ -1,8 +1,8 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.lang.properties.navigation;
 
-import com.intellij.lang.properties.PropertiesBundle;
 import com.intellij.lang.properties.IProperty;
+import com.intellij.lang.properties.PropertiesBundle;
 import com.intellij.lang.properties.PropertiesImplUtil;
 import com.intellij.lang.properties.ResourceBundle;
 import com.intellij.lang.properties.psi.PropertiesFile;
@@ -10,8 +10,8 @@ import com.intellij.lang.properties.psi.Property;
 import com.intellij.navigation.GotoRelatedItem;
 import com.intellij.navigation.GotoRelatedProvider;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
-import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.actionSystem.DataContext;
+import com.intellij.openapi.editor.Editor;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.util.PsiTreeUtil;
@@ -49,7 +49,7 @@ public class GotoRelatedPropertyDeclarationsProvider extends GotoRelatedProvider
       }
     }
     final IProperty property = element != null ? PsiTreeUtil.getParentOfType(element, Property.class, false) : null;
-    final String propertyKey = property != null ? property.getKey() : null;
+    final String propertyKey = property != null ? property.getUnescapedKey() : null;
 
     return ContainerUtil.map(otherFiles, f -> {
       IProperty found = propertyKey != null ? f.findPropertyByKey(propertyKey) : null;

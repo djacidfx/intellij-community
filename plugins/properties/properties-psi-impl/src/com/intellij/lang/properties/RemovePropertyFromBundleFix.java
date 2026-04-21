@@ -23,7 +23,7 @@ public final class RemovePropertyFromBundleFix extends PsiUpdateModCommandAction
 
   @Override
   protected void invoke(@NotNull ActionContext context, @NotNull Property property, @NotNull ModPsiUpdater updater) {
-    String key = property.getKey();
+    String key = property.getUnescapedKey();
     property.delete();
 
     if (key == null) return;
