@@ -82,6 +82,21 @@ public class SMTestProxy extends AbstractTestProxy implements Navigatable {
 
   private static final Logger LOG = Logger.getInstance(SMTestProxy.class.getName());
 
+  private enum DurationState {
+    /**
+     * initial / after invalidation: {@link #getDuration} recomputes
+     */
+    NOT_SET,
+    /**
+     * duration is set by children or explicitly and is up to date: {@link #getDuration} returns cached value
+     */
+    COMPUTED,
+    /**
+     * duration is set explicitly by {@link #setDuration} and is up to date: {@link #getDuration} returns cached value
+     */
+    EXPLICIT
+  }
+
   private final String myName;
   private boolean myIsSuite;
   private final String myLocationUrl;
@@ -108,7 +123,7 @@ public class SMTestProxy extends AbstractTestProxy implements Navigatable {
    * @see SMTestProxy#setTerminated(long)
    */
   @ApiStatus.Experimental volatile @Nullable Long myEndTime = null;
-  private boolean myDurationIsCached = false; // is used for separating unknown and unset duration
+  private volatile @NotNull DurationState myDurationState = DurationState.NOT_SET;
   private boolean myHasCriticalErrors = false;
   private boolean myHasPassedTests = false;
   private boolean myHasPassedTestsCached = false;
@@ -365,7 +380,7 @@ public class SMTestProxy extends AbstractTestProxy implements Navigatable {
     }
     Map<GlobalSearchScope, Ref<Location>> value = myLocationMapCachedValue.getValue();
     // Ref<Location> allows to cache null locations
-    Ref<Location> ref = value.computeIfAbsent(searchScope, scope -> Ref.create(computeLocation(project, searchScope, locationUrl)));
+    Ref<Location> ref = value.computeIfAbsent(searchScope, _ -> Ref.create(computeLocation(project, searchScope, locationUrl)));
     return ref.get();
   }
 
@@ -469,7 +484,7 @@ public class SMTestProxy extends AbstractTestProxy implements Navigatable {
    */
   @Override
   public @Nullable Long getDuration() {
-    if (myDurationIsCached) {
+    if (myDurationState != DurationState.NOT_SET) {
       return myDuration;
     }
     if (durationShouldBeSetExplicitly()) {
@@ -486,7 +501,7 @@ public class SMTestProxy extends AbstractTestProxy implements Navigatable {
     //if one of children is ignored - it's duration will be 0 and if child wasn't run,
     //then it's duration will be unknown
     myDuration = calcSuiteDuration();
-    myDurationIsCached = true;
+    myDurationState = DurationState.COMPUTED;
 
     return myDuration;
   }
@@ -576,7 +591,7 @@ public class SMTestProxy extends AbstractTestProxy implements Navigatable {
   public void setDuration(final long duration) {
     if (durationShouldBeSetExplicitly()) {
       invalidateCachedDurationForContainerSuites(duration - (myDuration != null ? myDuration : 0));
-      myDurationIsCached = true;
+      myDurationState = DurationState.EXPLICIT;
       myDuration = (duration >= 0) ? duration : null;
       return;
     }
@@ -588,6 +603,11 @@ public class SMTestProxy extends AbstractTestProxy implements Navigatable {
     // It should be the sum of children. This requirement is only
     // for safety of current model and may be changed
     LOG.warn("Unsupported operation");
+  }
+
+  void resetDuration() {
+    myDuration = null;
+    myDurationState = DurationState.NOT_SET;
   }
 
   /**
@@ -1076,20 +1096,24 @@ public class SMTestProxy extends AbstractTestProxy implements Navigatable {
    * Recursively invalidates cached duration for container(parent) suites or updates their value
    */
   private void invalidateCachedDurationForContainerSuites(long duration) {
-    // Manual duration does not need any automatic calculation
-    if (!durationShouldBeSetExplicitly()) {
-      if (duration >= 0) {
-        if (myDuration == null) {
-          myDuration = duration;
+    if (myDurationState != DurationState.EXPLICIT) {
+      if (!durationShouldBeSetExplicitly()) {
+        // AUTOMATIC suite: update running sum incrementally, or invalidate on full reset
+        if (duration >= 0) {
+          if (myDuration == null) {
+            myDuration = duration;
+          }
+          else {
+            myDuration += duration;
+          }
         }
         else {
-          myDuration += duration;
+          resetDuration();
         }
       }
       else {
-        // Invalidates duration of this suite
-        myDuration = null;
-        myDurationIsCached = false;
+        // MANUAL suite with computed duration: invalidate so getDuration() recomputes from children
+        resetDuration();
       }
     }
 
@@ -1220,6 +1244,7 @@ public class SMTestProxy extends AbstractTestProxy implements Navigatable {
       }
       myStartTime = null;
       myEndTime = null;
+      resetDuration();
       clear();
     }
 

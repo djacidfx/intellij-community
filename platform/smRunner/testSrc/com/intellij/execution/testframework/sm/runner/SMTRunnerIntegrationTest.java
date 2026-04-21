@@ -197,6 +197,57 @@ public class SMTRunnerIntegrationTest extends LightPlatformTestCase {
     assertEquals(150L, suiteDuration.longValue());
   }
 
+  public void testManualSuiteWithoutExplicitDuration_computesFromChildren() {
+    notifyStdoutLineAvailable("##teamcity[enteredTheMatrix durationStrategy='MANUAL']");
+    notifyStdoutLineAvailable("##teamcity[testingStarted]");
+    notifyStdoutLineAvailable("##teamcity[testSuiteStarted nodeId='1' parentNodeId='0' name='suite']");
+    notifyStdoutLineAvailable("##teamcity[testStarted nodeId='2' parentNodeId='1' name='test1']");
+    notifyStdoutLineAvailable("##teamcity[testFinished nodeId='2' duration='100']");
+    notifyStdoutLineAvailable("##teamcity[testStarted nodeId='3' parentNodeId='1' name='test2']");
+    notifyStdoutLineAvailable("##teamcity[testFinished nodeId='3' duration='200']");
+    notifyStdoutLineAvailable("##teamcity[testSuiteFinished nodeId='1']"); // no explicit duration
+    notifyStdoutLineAvailable("##teamcity[testingFinished]");
+
+    SMTestProxy suite = myRootNode.getChildren().getFirst();
+    assertEquals(300L, suite.getDuration().longValue());
+  }
+
+  public void testManualSuite_cacheInvalidatedAfterChildrenFinish() {
+    notifyStdoutLineAvailable("##teamcity[enteredTheMatrix durationStrategy='MANUAL']");
+    notifyStdoutLineAvailable("##teamcity[testingStarted]");
+    notifyStdoutLineAvailable("##teamcity[testSuiteStarted nodeId='1' parentNodeId='0' name='suite']");
+    notifyStdoutLineAvailable("##teamcity[testStarted nodeId='2' parentNodeId='1' name='test1']");
+
+    SMTestProxy suite = myRootNode.getChildren().getFirst();
+    assertNull(suite.getDuration()); // cached as null before children finish
+
+    notifyStdoutLineAvailable("##teamcity[testFinished nodeId='2' duration='100']");
+    assertEquals(100L, suite.getDuration().longValue()); // cache invalidated, now correct
+
+    notifyStdoutLineAvailable("##teamcity[testStarted nodeId='3' parentNodeId='1' name='test2']");
+    notifyStdoutLineAvailable("##teamcity[testFinished nodeId='3' duration='200']");
+
+    notifyStdoutLineAvailable("##teamcity[testSuiteFinished nodeId='1']"); // no explicit duration
+    notifyStdoutLineAvailable("##teamcity[testingFinished]");
+
+    assertEquals(300L, suite.getDuration().longValue()); // cache invalidated, now correct
+  }
+
+  public void testManualRootWithoutExplicitDuration_computesFromChildren() {
+    notifyStdoutLineAvailable("##teamcity[enteredTheMatrix durationStrategy='MANUAL']");
+    notifyStdoutLineAvailable("##teamcity[testingStarted]");
+    notifyStdoutLineAvailable("##teamcity[testSuiteStarted nodeId='1' parentNodeId='0' name='suite']");
+    notifyStdoutLineAvailable("##teamcity[testStarted nodeId='2' parentNodeId='1' name='test']");
+
+    assertNull(myRootNode.getDuration()); // called before children finish
+
+    notifyStdoutLineAvailable("##teamcity[testFinished nodeId='2' duration='100']");
+    notifyStdoutLineAvailable("##teamcity[testSuiteFinished nodeId='1' duration='200']");
+    notifyStdoutLineAvailable("##teamcity[testingFinished]");
+
+    assertEquals(200L, myRootNode.getDuration().longValue()); // root sums children = 200
+  }
+
   private void assertState(int finishedTests, int failedTests, int topLevelChildrenCount, String status) {
     assertState(finishedTests,
                 failedTests,
