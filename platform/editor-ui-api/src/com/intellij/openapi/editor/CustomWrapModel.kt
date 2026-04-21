@@ -10,6 +10,9 @@ import java.util.EventListener
  * Model for managing custom (user-defined) soft wraps in an editor.
  * Custom wraps persist across automatic soft wrap recalculations.
  *
+ * Not thread-safe.
+ * All interface functions must be invoked from the EDT.
+ *
  * @see Editor.getCustomWrapModel
  */
 @ApiStatus.Experimental
