@@ -2636,6 +2636,18 @@
         <constraint name="Class" within="" contains="" />
         <constraint name="logger" nameOfExprType="Logger|libraries\.klogging\.BaseLogger" exprTypeWithinHierarchy="true" target="true" within="" contains="" />
       </searchConfiguration>
+      <replaceConfiguration name="LspServerImpl: call `send*` via requestExecutor explicitly" suppressId="LspServerImplSendViaRequestExecutor" problemDescriptor="On `LspServerImpl`, call `requestExecutor.#ref` explicitly instead of using public `LspServer` API." text="$server$.$method$($args$)" recursive="true" caseInsensitive="false" type="Kotlin" pattern_context="default" search_injected="false" reformatAccordingToStyle="false" shortenFQN="false" replacement="requestExecutor.$method$($args$)">
+        <constraint name="__context__" within="" contains="" />
+        <constraint name="server" nameOfExprType="com\.intellij\.platform\.lsp\.impl\.LspServerImpl" within="" contains="" />
+        <constraint name="method" regexp="sendNotification|sendRequest|sendRequestSync" target="true" within="" contains="" />
+        <constraint name="args" minCount="0" maxCount="2147483647" within="" contains="" />
+      </replaceConfiguration>
+      <replaceConfiguration name="LspServerImpl: call `send*` via requestExecutor explicitly" suppressId="LspServerImplSendViaRequestExecutor" problemDescriptor="On `LspServerImpl`, call `requestExecutor.#ref` explicitly instead of using public `LspServer` API." text="$server$.$method$ { $statement$ }" recursive="true" caseInsensitive="false" type="Kotlin" pattern_context="default" search_injected="false" reformatAccordingToStyle="false" shortenFQN="false" replacement="requestExecutor.$method$ { $statement$ }">
+        <constraint name="__context__" within="" contains="" />
+        <constraint name="server" nameOfExprType="com\.intellij\.platform\.lsp\.impl\.LspServerImpl" within="" contains="" />
+        <constraint name="method" regexp="sendNotification|sendRequest|sendRequestSync" target="true" within="" contains="" />
+        <constraint name="statement" minCount="0" maxCount="2147483647" within="" contains="" />
+      </replaceConfiguration>
       <replaceConfiguration name="Manual TextRange.substring() implementation" uuid="7eb9e6b2-16c6-3c0e-aa15-b8c0a54a6aee" description="Reports code pattern like str.substring(range.getStartOffset(), range.getEndOffset()). This code could be replaced with range.substring(str)" problemDescriptor="TextRange.substring() could be used" text="$str$.substring($range$.getStartOffset(), $range$.getEndOffset())" recursive="false" caseInsensitive="true" type="JAVA" pattern_context="default" reformatAccordingToStyle="false" shortenFQN="true" replacement="$range$.substring($str$)">
         <constraint name="__context__" within="" contains="" />
         <constraint name="str" nameOfExprType="java\.lang\.String" within="" contains="" />
