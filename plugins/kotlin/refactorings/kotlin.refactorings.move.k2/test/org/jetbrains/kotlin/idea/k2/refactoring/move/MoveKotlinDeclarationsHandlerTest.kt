@@ -7,6 +7,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
 import com.intellij.testFramework.PsiTestUtil
 import org.jetbrains.kotlin.idea.base.plugin.KotlinPluginMode
 import org.jetbrains.kotlin.idea.core.util.toPsiDirectory
@@ -222,5 +223,27 @@ class MoveKotlinDeclarationsHandlerTest : KotlinMultiFileTestCase() {
     fun testTopLevelValInScript() = doTest { rootDir, handler ->
         val property = getElementAtCaret(rootDir, "test.kts").getNonStrictParentOfType<KtProperty>()!!
         assert(handler.canMove(arrayOf<PsiElement>(property), null, null))
+    }
+
+    fun testJavaFile() = doTest { rootDir, handler ->
+        val javaFile = getElementAtCaret(rootDir, "JavaClass.java").getNonStrictParentOfType<PsiFile>()!!
+        assert(!handler.canMove(arrayOf<PsiElement>(javaFile), null, null))
+    }
+
+    fun testJavaClass() = doTest { rootDir, handler ->
+        val javaClass = getElementAtCaret(rootDir, "JavaClass.java")
+        assert(!handler.canMove(arrayOf(javaClass), null, null))
+    }
+
+    fun testKotlinAndJavaFiles() = doTest { rootDir, handler ->
+        val javaFile = getElementAtCaret(rootDir, "pkg/JavaClass.java").getNonStrictParentOfType<PsiFile>()!!
+        val kotlinFile = getElementAtCaret(rootDir, "pkg/test.kt").getNonStrictParentOfType<PsiFile>()!!
+        assert(handler.canMove(arrayOf<PsiElement>(javaFile, kotlinFile), null, null))
+    }
+
+    fun testKotlinAndPython() = doTest { rootDir, handler ->
+        val pythonFun = getElementAtCaret(rootDir, "test.py")
+        val kotlinClass = getElementAtCaret(rootDir, "test.kt")
+        assert(!handler.canMove(arrayOf<PsiElement>(pythonFun, kotlinClass), null, null))
     }
 }
