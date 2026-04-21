@@ -65,7 +65,7 @@ abstract class PluginsTab {
   private val mySelectionListener = Consumer { panel: PluginsGroupComponent? ->
     val key: Int = if (searchPanel!!.panel === panel) SEARCH_PANEL else DEFAULT_PANEL
     if (cardPanel!!.getKey() == key) {
-      detailsPage!!.showPlugins(panel!!.getSelection())
+      detailsPage!!.showPlugins(panel!!.selection)
     }
   }
 

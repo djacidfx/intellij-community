@@ -1,395 +1,385 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.ide.plugins.newui;
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+package com.intellij.ide.plugins.newui
 
-import com.intellij.accessibility.AccessibilityUtils;
-import com.intellij.ide.plugins.ListPluginModel;
-import com.intellij.ide.plugins.PluginManagerConfigurable;
-import com.intellij.openapi.util.registry.Registry;
-import com.intellij.ui.JBColor;
-import com.intellij.ui.components.JBPanelWithEmptyText;
-import com.intellij.ui.components.panels.NonOpaquePanel;
-import com.intellij.ui.components.panels.OpaquePanel;
-import com.intellij.ui.scale.JBUIScale;
-import com.intellij.util.containers.ContainerUtil;
-import com.intellij.util.ui.JBUI;
-import com.intellij.util.ui.UIUtil;
-import com.intellij.util.ui.table.ComponentsListFocusTraversalPolicy;
-import org.jetbrains.annotations.ApiStatus;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import javax.accessibility.AccessibleContext;
-import javax.accessibility.AccessibleRole;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollBar;
-import javax.swing.SwingUtilities;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Container;
-import java.awt.Dimension;
-import java.awt.Insets;
-import java.awt.event.AdjustmentEvent;
-import java.awt.event.AdjustmentListener;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Consumer;
+import com.intellij.accessibility.AccessibilityUtils
+import com.intellij.ide.plugins.ListPluginModel
+import com.intellij.ide.plugins.PluginManagerConfigurable
+import com.intellij.openapi.util.registry.Registry
+import com.intellij.ui.JBColor
+import com.intellij.ui.components.JBPanelWithEmptyText
+import com.intellij.ui.components.panels.NonOpaquePanel
+import com.intellij.ui.components.panels.OpaquePanel
+import com.intellij.ui.scale.JBUIScale
+import com.intellij.util.containers.ContainerUtil
+import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.UIUtil
+import com.intellij.util.ui.table.ComponentsListFocusTraversalPolicy
+import org.jetbrains.annotations.ApiStatus
+import java.awt.BorderLayout
+import java.awt.Color
+import java.awt.Component
+import java.awt.Container
+import java.awt.Dimension
+import java.awt.Insets
+import java.awt.event.AdjustmentEvent
+import java.awt.event.AdjustmentListener
+import java.util.Collections
+import java.util.function.Consumer
+import javax.accessibility.AccessibleContext
+import javax.accessibility.AccessibleRole
+import javax.swing.JLabel
+import javax.swing.JPanel
+import javax.swing.JScrollBar
+import javax.swing.SwingUtilities
 
 @ApiStatus.Internal
-public abstract class PluginsGroupComponent extends JBPanelWithEmptyText {
+abstract class PluginsGroupComponent(eventHandler: EventHandler) : JBPanelWithEmptyText(PluginListLayout()) {
 
-  private final @NotNull EventHandler myEventHandler;
-  private final List<UIPluginGroup> myGroups = new ArrayList<>();
+  private val myEventHandler: EventHandler = eventHandler
+  private val myGroups: MutableList<UIPluginGroup> = ArrayList()
 
-  public PluginsGroupComponent(@NotNull EventHandler eventHandler) {
-    super(new PluginListLayout());
-    myEventHandler = eventHandler;
+  init {
+    myEventHandler.connect(this)
 
-    myEventHandler.connect(this);
+    setOpaque(true)
+    setBackground(PluginManagerConfigurable.MAIN_BG_COLOR)
 
-    setOpaque(true);
-    setBackground(PluginManagerConfigurable.MAIN_BG_COLOR);
-
-    setFocusTraversalPolicyProvider(true);
+    setFocusTraversalPolicyProvider(true)
     // Focus traversal policy that makes focus order similar to lists and trees, where Tab doesn't move focus between list items,
     // but instead moves focus to the next component. It also keeps group header buttons and buttons inside list items focusable.
-    setFocusTraversalPolicy(new ComponentsListFocusTraversalPolicy(true) {
-      @Override
-      protected @NotNull List<Component> getOrderedComponents() {
-        List<Component> orderedComponents = new ArrayList<>();
-        List<ListPluginComponent> selectedComponents = getSelection();
-        Set<PluginsGroup> addedGroups = new HashSet<>();
+    setFocusTraversalPolicy(object : ComponentsListFocusTraversalPolicy(true) {
+      override fun getOrderedComponents(): List<Component> {
+        val orderedComponents: MutableList<Component> = ArrayList()
+        val selectedComponents: List<ListPluginComponent> = selection
+        val addedGroups: MutableSet<PluginsGroup> = HashSet()
 
-        for (ListPluginComponent component : selectedComponents) {
-          PluginsGroup group = component.getGroup();
+        for (component in selectedComponents) {
+          val group = component.getGroup()
           if (!addedGroups.contains(group)) {
-            addedGroups.add(group);
+            addedGroups.add(group)
             if (UIUtil.isFocusable(group.mainAction)) {
-              orderedComponents.add(group.mainAction);
+              orderedComponents.add(group.mainAction!!)
             }
             else if (!ContainerUtil.isEmpty(group.secondaryActions)) {
-              orderedComponents.addAll(ContainerUtil.filter(group.secondaryActions, UIUtil::isFocusable));
+              for (action in group.secondaryActions!!) {
+                if (UIUtil.isFocusable(action)) {
+                  orderedComponents.add(action)
+                }
+              }
             }
           }
 
-          orderedComponents.add(component);
-          orderedComponents.addAll(component.getFocusableComponents());
+          orderedComponents.add(component)
+          orderedComponents.addAll(component.getFocusableComponents())
         }
 
-        return orderedComponents;
+        return orderedComponents
       }
-    });
+    })
   }
 
-  protected abstract @NotNull ListPluginComponent createListComponent(@NotNull PluginUiModel model,
-                                                                      @NotNull PluginsGroup group,
-                                                                      @NotNull ListPluginModel listPluginModel);
+  protected abstract fun createListComponent(model: PluginUiModel, group: PluginsGroup, listPluginModel: ListPluginModel): ListPluginComponent
 
-  public final @NotNull List<UIPluginGroup> getGroups() {
-    return Collections.unmodifiableList(myGroups);
+  val groups: List<UIPluginGroup>
+    get() = Collections.unmodifiableList(myGroups)
+
+  fun setSelectionListener(listener: Consumer<in PluginsGroupComponent?>?) {
+    myEventHandler.setSelectionListener(listener)
   }
 
-  public void setSelectionListener(@Nullable Consumer<? super PluginsGroupComponent> listener) {
-    myEventHandler.setSelectionListener(listener);
+  val selection: List<ListPluginComponent>
+    get() = myEventHandler.getSelection()
+
+  fun setSelection(component: ListPluginComponent) {
+    myEventHandler.setSelection(component)
   }
 
-  public final @NotNull List<ListPluginComponent> getSelection() {
-    return myEventHandler.getSelection();
+  fun setSelection(components: List<ListPluginComponent>) {
+    myEventHandler.setSelection(components)
   }
 
-  public void setSelection(@NotNull ListPluginComponent component) {
-    myEventHandler.setSelection(component);
+  fun addGroup(group: PluginsGroup) {
+    addGroup(group, -1)
   }
 
-  public void setSelection(@NotNull List<ListPluginComponent> components) {
-    myEventHandler.setSelection(components);
+  fun addGroup(group: PluginsGroup, groupIndex: Int) {
+    addGroup(group, group.getModels(), groupIndex)
   }
 
-  public void addGroup(@NotNull PluginsGroup group) {
-    addGroup(group, -1);
-  }
-
-  public void addGroup(@NotNull PluginsGroup group, int groupIndex) {
-    addGroup(group, group.getModels(), groupIndex);
-  }
-
-  public void addLazyGroup(@NotNull PluginsGroup group, @NotNull JScrollBar scrollBar, int gapSize, @NotNull Runnable uiCallback) {
-    if (group.getModels().size() <= gapSize) {
-      addGroup(group);
+  fun addLazyGroup(group: PluginsGroup, scrollBar: JScrollBar, gapSize: Int, uiCallback: Runnable) {
+    if (group.getModels().size <= gapSize) {
+      addGroup(group)
     }
     else {
-      addGroup(group, group.getModels().subList(0, gapSize), -1);
-      AdjustmentListener listener = new AdjustmentListener() {
-        @Override
-        public void adjustmentValueChanged(AdjustmentEvent e) {
-          if ((scrollBar.getValue() + scrollBar.getVisibleAmount()) >= scrollBar.getMaximum()) {
-            int fromIndex = group.ui.plugins.size();
-            int toIndex = Math.min(fromIndex + gapSize, group.getDescriptors().size());
-            ListPluginComponent lastComponent = group.ui.plugins.get(fromIndex - 1);
-            int uiIndex = getComponentIndex(lastComponent);
-            int eventIndex = myEventHandler.getCellIndex(lastComponent);
+      addGroup(group, group.getModels().subList(0, gapSize), -1)
+      val listener = object : AdjustmentListener {
+        override fun adjustmentValueChanged(e: AdjustmentEvent) {
+          if ((scrollBar.value + scrollBar.visibleAmount) >= scrollBar.maximum) {
+            val fromIndex = group.ui.plugins.size
+            val toIndex = Math.min(fromIndex + gapSize, group.getDescriptors().size)
+            val lastComponent = group.ui.plugins[fromIndex - 1]
+            val uiIndex = getComponentIndex(lastComponent)
+            val eventIndex = myEventHandler.getCellIndex(lastComponent)
             try {
-              PluginLogo.startBatchMode();
-              addToGroup(group, group.getModels().subList(fromIndex, toIndex), uiIndex, eventIndex);
+              PluginLogo.startBatchMode()
+              addToGroup(group, group.getModels().subList(fromIndex, toIndex), uiIndex, eventIndex)
             }
             finally {
-              PluginLogo.endBatchMode();
+              PluginLogo.endBatchMode()
             }
 
-            if (group.getDescriptors().size() == group.ui.plugins.size()) {
-              scrollBar.removeAdjustmentListener(this);
-              group.clearCallback = null;
+            if (group.getDescriptors().size == group.ui.plugins.size) {
+              scrollBar.removeAdjustmentListener(this)
+              group.clearCallback = null
             }
 
-            uiCallback.run();
+            uiCallback.run()
           }
         }
-      };
-      group.clearCallback = () -> scrollBar.removeAdjustmentListener(listener);
-      scrollBar.addAdjustmentListener(listener);
+      }
+      group.clearCallback = Runnable { scrollBar.removeAdjustmentListener(listener) }
+      scrollBar.addAdjustmentListener(listener)
     }
   }
 
-  public static final Color SECTION_HEADER_FOREGROUND =
-    JBColor.namedColor("Plugins.SectionHeader.foreground", new JBColor(0x787878, 0x999999));
-  private static final Color SECTION_HEADER_BACKGROUND =
-    JBColor.namedColor("Plugins.SectionHeader.background", new JBColor(0xF7F7F7, 0x3C3F41));
-
-  private void addGroup(@NotNull PluginsGroup group, @NotNull List<PluginUiModel> models, int groupIndex) {
-    UIPluginGroup uiGroup = new UIPluginGroup();
-    group.ui = uiGroup;
-    if (Registry.is("ide.plugins.category.promotion.enabled") && group.promotionPanel != null) {
-      uiGroup.promotionPanel = group.promotionPanel;
+  @Suppress("UseHtmlChunkToolTip")
+  private fun addGroup(group: PluginsGroup, models: List<PluginUiModel>, groupIndex: Int) {
+    val uiGroup = UIPluginGroup()
+    group.ui = uiGroup
+    if (Registry.`is`("ide.plugins.category.promotion.enabled") && group.promotionPanel != null) {
+      uiGroup.promotionPanel = group.promotionPanel
     }
-    myGroups.add(groupIndex == -1 ? myGroups.size() : groupIndex, uiGroup);
+    myGroups.add(if (groupIndex == -1) myGroups.size else groupIndex, uiGroup)
 
-    OpaquePanel panel = new OpaquePanel(new BorderLayout(), SECTION_HEADER_BACKGROUND) {
-      @Override
-      public AccessibleContext getAccessibleContext() {
+    val panel: OpaquePanel = object : OpaquePanel(BorderLayout(), SECTION_HEADER_BACKGROUND) {
+      override fun getAccessibleContext(): AccessibleContext {
         if (accessibleContext == null) {
-          accessibleContext = new AccessibleOpaquePanelComponent();
+          accessibleContext = AccessibleOpaquePanelComponent()
         }
-        return accessibleContext;
+        return accessibleContext
       }
 
-      protected class AccessibleOpaquePanelComponent extends AccessibleJComponent {
-        @Override
-        public String getAccessibleName() {
-          return group.title;
+      protected inner class AccessibleOpaquePanelComponent : AccessibleJComponent() {
+        override fun getAccessibleName(): String {
+          return group.title
         }
 
-        @Override
-        public AccessibleRole getAccessibleRole() {
-          return AccessibilityUtils.GROUPED_ELEMENTS;
+        override fun getAccessibleRole(): AccessibleRole {
+          return AccessibilityUtils.GROUPED_ELEMENTS
         }
       }
-    };
-    panel.setBorder(JBUI.Borders.empty(4, 10));
+    }
+    panel.setBorder(JBUI.Borders.empty(4, 10))
 
-    JLabel title = new JLabel(group.title) {
-      @Override
-      public Dimension getPreferredSize() {
-        Dimension size = super.getPreferredSize();
-        Container parent = getParent();
-        Insets insets = parent.getInsets();
-        size.width = Math.min(parent.getWidth() - insets.left - insets.right -
-                              (parent.getComponentCount() == 2 ? parent.getComponent(1).getWidth() + JBUIScale.scale(20) : 0), size.width);
-        return size;
+    val title: JLabel = object : JLabel(group.title) {
+      override fun getPreferredSize(): Dimension {
+        val size = super.getPreferredSize()
+        val parent: Container = getParent()
+        val insets: Insets = parent.insets
+        size.width = Math.min(
+          parent.width - insets.left - insets.right -
+          (if (parent.componentCount == 2) parent.getComponent(1).width + JBUIScale.scale(20) else 0),
+          size.width,
+        )
+        return size
       }
 
-      @Override
-      public String getToolTipText() {
-        return super.getPreferredSize().width > getWidth() ? super.getToolTipText() : null;
+      override fun getToolTipText(): String? {
+        return if (super.getPreferredSize().width > width) super.getToolTipText() else null
       }
-    };
-    title.setToolTipText(group.title);
-    title.setForeground(SECTION_HEADER_FOREGROUND);
-    panel.add(title, BorderLayout.WEST);
-    group.titleLabel = title;
+    }
+    title.toolTipText = group.title
+    title.foreground = SECTION_HEADER_FOREGROUND
+    panel.add(title, BorderLayout.WEST)
+    group.titleLabel = title
 
     if (group.mainAction != null) {
-      panel.add(group.mainAction, BorderLayout.EAST);
+      panel.add(group.mainAction!!, BorderLayout.EAST)
     }
     else if (!ContainerUtil.isEmpty(group.secondaryActions)) {
-      JPanel actions = new NonOpaquePanel(new HorizontalLayout(JBUIScale.scale(5)));
-      panel.add(actions, BorderLayout.EAST);
+      val actions: JPanel = NonOpaquePanel(HorizontalLayout(JBUIScale.scale(5)))
+      panel.add(actions, BorderLayout.EAST)
 
-      for (JComponent action : group.secondaryActions) {
-        actions.add(action);
+      for (action in group.secondaryActions!!) {
+        actions.add(action)
       }
     }
 
-    int index;
-    int eventIndex;
+    var index: Int
+    val eventIndex: Int
 
     if (groupIndex == 0) {
-      add(panel, 0);
-      index = 1;
-      eventIndex = 0;
+      add(panel, 0)
+      index = 1
+      eventIndex = 0
     }
     else if (groupIndex == -1) {
-      add(panel);
-      index = eventIndex = -1;
+      add(panel)
+      index = -1
+      eventIndex = -1
     }
     else {
-      assert groupIndex < myGroups.size();
-      index = getComponentIndex(myGroups.get(groupIndex + 1).panel);
-      assert index != -1;
-      add(panel, index++);
+      assert(groupIndex < myGroups.size)
+      index = getComponentIndex(myGroups[groupIndex + 1].panel!!)
+      assert(index != -1)
+      add(panel, index++)
 
-      eventIndex = getEventIndexForGroup(groupIndex + 1);
+      eventIndex = getEventIndexForGroup(groupIndex + 1)
     }
 
-    uiGroup.panel = panel;
+    uiGroup.panel = panel
 
-    if (Registry.is("ide.plugins.category.promotion.enabled")) {
-      if (group.ui.promotionPanel != null) {
+    if (Registry.`is`("ide.plugins.category.promotion.enabled")) {
+      if (uiGroup.promotionPanel != null) {
         if (index == -1) {
-          add(group.ui.promotionPanel);
-        } else {
-          add(group.ui.promotionPanel, index);
-          index++;
+          add(uiGroup.promotionPanel!!)
+        }
+        else {
+          add(uiGroup.promotionPanel!!, index)
+          index++
         }
       }
     }
 
-    addToGroup(group, models, index, eventIndex);
+    addToGroup(group, models, index, eventIndex)
   }
 
-  private int getEventIndexForGroup(int groupIndex) {
-    for (int i = groupIndex; i >= 0; i--) {
-      List<ListPluginComponent> plugins = myGroups.get(i).plugins;
+  private fun getEventIndexForGroup(groupIndex: Int): Int {
+    for (i in groupIndex downTo 0) {
+      val plugins = myGroups[i].plugins
       if (!plugins.isEmpty()) {
-        return myEventHandler.getCellIndex(plugins.get(0));
+        return myEventHandler.getCellIndex(plugins[0])
       }
     }
-    return -1;
+    return -1
   }
 
-  private void addToGroup(@NotNull PluginsGroup group,
-                          @NotNull List<PluginUiModel> models,
-                          int index,
-                          int eventIndex) {
-    for (PluginUiModel pluginUiModel : models) {
-      ListPluginComponent pluginComponent = createListComponent(pluginUiModel, group, group.getPreloadedModel());
-      group.ui.plugins.add(pluginComponent);
-      add(pluginComponent, index);
-      myEventHandler.addCell(pluginComponent, eventIndex);
-      pluginComponent.setListeners(myEventHandler);
+  private fun addToGroup(group: PluginsGroup, models: List<PluginUiModel>, index: Int, eventIndex: Int) {
+    var index = index
+    var eventIndex = eventIndex
+    for (pluginUiModel in models) {
+      val pluginComponent = createListComponent(pluginUiModel, group, group.getPreloadedModel())
+      group.ui.plugins.add(pluginComponent)
+      add(pluginComponent, index)
+      myEventHandler.addCell(pluginComponent, eventIndex)
+      pluginComponent.setListeners(myEventHandler)
       if (index != -1) {
-        index++;
+        index++
       }
       if (eventIndex != -1) {
-        eventIndex++;
+        eventIndex++
       }
     }
   }
 
-  public void addToGroup(@NotNull PluginsGroup group, @NotNull PluginUiModel model) {
-    int index = group.addWithIndex(model);
-    ListPluginComponent anchor = null;
-    int uiIndex = -1;
+  fun addToGroup(group: PluginsGroup, model: PluginUiModel) {
+    val index = group.addWithIndex(model)
+    var anchor: ListPluginComponent? = null
+    var uiIndex = -1
 
-    List<ListPluginComponent> plugins = group.ui.plugins;
-    if (index == plugins.size()) {
-      int groupIndex = myGroups.indexOf(group.ui);
-      if (groupIndex < myGroups.size() - 1) {
-        UIPluginGroup nextGroup = myGroups.get(groupIndex + 1);
-        anchor = nextGroup.plugins.get(0);
-        uiIndex = getComponentIndex(nextGroup.panel);
+    val plugins = group.ui.plugins
+    if (index == plugins.size) {
+      val groupIndex = myGroups.indexOf(group.ui)
+      if (groupIndex < myGroups.size - 1) {
+        val nextGroup = myGroups[groupIndex + 1]
+        anchor = nextGroup.plugins[0]
+        uiIndex = getComponentIndex(nextGroup.panel!!)
       }
     }
     else {
-      anchor = plugins.get(index);
-      uiIndex = getComponentIndex(anchor);
+      anchor = plugins[index]
+      uiIndex = getComponentIndex(anchor)
     }
 
-    ListPluginComponent pluginComponent = createListComponent(model, group, group.getPreloadedModel());
-    plugins.add(index, pluginComponent);
-    add(pluginComponent, uiIndex);
-    myEventHandler.addCell(pluginComponent, anchor);
-    pluginComponent.setListeners(myEventHandler);
+    val pluginComponent = createListComponent(model, group, group.getPreloadedModel())
+    plugins.add(index, pluginComponent)
+    add(pluginComponent, uiIndex)
+    myEventHandler.addCell(pluginComponent, anchor)
+    pluginComponent.setListeners(myEventHandler)
   }
 
-  public void removeGroup(@NotNull PluginsGroup group) {
-    myGroups.remove(group.ui);
-    remove(group.ui.panel);
+  fun removeGroup(group: PluginsGroup) {
+    myGroups.remove(group.ui)
+    remove(group.ui.panel!!)
 
-    for (ListPluginComponent plugin : group.ui.plugins) {
-      plugin.close();
-      remove(plugin);
-      myEventHandler.removeCell(plugin);
+    for (plugin in group.ui.plugins) {
+      plugin.close()
+      remove(plugin)
+      myEventHandler.removeCell(plugin)
     }
 
-    myEventHandler.updateSelection();
-    group.clear();
+    myEventHandler.updateSelection()
+    group.clear()
   }
 
-  public void removeFromGroup(@NotNull PluginsGroup group, @NotNull PluginUiModel descriptor) {
-    int index = ContainerUtil.indexOf(group.ui.plugins, component -> component.getPluginModel() == descriptor);
-    assert index != -1;
-    ListPluginComponent component = group.ui.plugins.remove(index);
-    component.close();
-    remove(component);
-    myEventHandler.removeCell(component);
+  fun removeFromGroup(group: PluginsGroup, descriptor: PluginUiModel) {
+    val index = ContainerUtil.indexOf(group.ui.plugins) { component -> component.getPluginModel() === descriptor }
+    assert(index != -1)
+    val component = group.ui.plugins.removeAt(index)
+    component.close()
+    remove(component)
+    myEventHandler.removeCell(component)
     if (component.getSelection() == EventHandler.SelectionType.SELECTION) {
-      myEventHandler.updateSelection();
+      myEventHandler.updateSelection()
     }
-    group.removeDescriptor(descriptor);
+    group.removeDescriptor(descriptor)
   }
 
-  private int getComponentIndex(@NotNull Component component) {
-    int components = getComponentCount();
-    for (int i = 0; i < components; i++) {
-      if (getComponent(i) == component) {
-        return i;
+  private fun getComponentIndex(component: Component): Int {
+    val components = componentCount
+    for (i in 0 until components) {
+      if (getComponent(i) === component) {
+        return i
       }
     }
-    return -1;
+    return -1
   }
 
-  public void clear() {
-    for (UIPluginGroup group : myGroups) {
-      for (ListPluginComponent plugin : group.plugins) {
-        plugin.close();
+  open fun clear() {
+    for (group in myGroups) {
+      for (plugin in group.plugins) {
+        plugin.close()
       }
     }
 
-    myGroups.clear();
-    myEventHandler.clear();
-    removeAll();
+    myGroups.clear()
+    myEventHandler.clear()
+    removeAll()
   }
 
-  public void initialSelection() {
-    initialSelection(true);
+  fun initialSelection() {
+    initialSelection(true)
   }
 
-  public void initialSelection(boolean scrollAndFocus) {
-    SwingUtilities.invokeLater(() -> {
-      myEventHandler.initialSelection(scrollAndFocus);
+  fun initialSelection(scrollAndFocus: Boolean) {
+    SwingUtilities.invokeLater {
+      myEventHandler.initialSelection(scrollAndFocus)
       if (!myGroups.isEmpty()) {
-        scrollRectToVisible(myGroups.get(0).panel.getBounds());
+        scrollRectToVisible(myGroups[0].panel!!.bounds)
       }
-    });
+    }
   }
 
-  @Override
-  public AccessibleContext getAccessibleContext() {
+  override fun getAccessibleContext(): AccessibleContext {
     if (accessibleContext == null) {
-      accessibleContext = new AccessiblePluginsGroupComponent();
+      accessibleContext = AccessiblePluginsGroupComponent()
     }
-    return accessibleContext;
+    return accessibleContext
   }
 
-  protected class AccessiblePluginsGroupComponent extends AccessibleJComponent {
-    @Override
-    public AccessibleRole getAccessibleRole() {
-      return AccessibilityUtils.GROUPED_ELEMENTS;
+  @Suppress("RedundantInnerClassModifier")
+  protected inner class AccessiblePluginsGroupComponent : AccessibleJComponent() {
+    override fun getAccessibleRole(): AccessibleRole {
+      return AccessibilityUtils.GROUPED_ELEMENTS
     }
+  }
+
+  companion object {
+    @JvmField
+    val SECTION_HEADER_FOREGROUND: Color =
+      JBColor.namedColor("Plugins.SectionHeader.foreground", JBColor(0x787878, 0x999999))
+
+    private val SECTION_HEADER_BACKGROUND: Color =
+      JBColor.namedColor("Plugins.SectionHeader.background", JBColor(0xF7F7F7, 0x3C3F41))
   }
 }
