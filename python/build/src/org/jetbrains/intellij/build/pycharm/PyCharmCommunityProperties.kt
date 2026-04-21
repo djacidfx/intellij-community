@@ -115,7 +115,7 @@ open class PyCharmCommunityProperties(protected val communityHome: Path) : PyCha
 
   override fun createMacCustomizer(projectHome: Path): MacDistributionCustomizer = PyCharmMacDistributionCustomizer(communityHome)
 
-  override fun createLinuxCustomizer(projectHome: String): LinuxDistributionCustomizer {
+  override fun createLinuxCustomizer(projectHome: Path): LinuxDistributionCustomizer {
     return object : LinuxDistributionCustomizer() {
       init {
         iconPngPath = communityHome.resolve("python/build/resources/PyCharmCore128.png")

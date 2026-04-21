@@ -65,7 +65,6 @@ import java.time.format.DateTimeFormatter
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.io.path.inputStream
-import kotlin.io.path.invariantSeparatorsPathString
 import kotlin.io.path.pathString
 import kotlin.time.Duration
 
@@ -139,7 +138,6 @@ fun createBuildContext(
   scope: CoroutineScope? = null,
 ): BuildContextImpl {
   val normalizedCompilationContext = normalizeCompilationContextForBuild(compilationContext, scope)
-  val projectHomeAsString = projectHome.invariantSeparatorsPathString
   val jarCacheManager = normalizedCompilationContext.options.jarCacheDir?.let {
     LocalDiskJarCacheManager(
       cacheDir = it,
@@ -151,7 +149,7 @@ fun createBuildContext(
     compilationContext = normalizedCompilationContext,
     productProperties = productProperties,
     windowsDistributionCustomizer = productProperties.createWindowsCustomizer(projectHome),
-    linuxDistributionCustomizer = productProperties.createLinuxCustomizer(projectHomeAsString),
+    linuxDistributionCustomizer = productProperties.createLinuxCustomizer(projectHome),
     macDistributionCustomizer = productProperties.createMacCustomizer(projectHome),
     proprietaryBuildTools = proprietaryBuildTools,
     applicationInfo = ApplicationInfoPropertiesImpl(project = normalizedCompilationContext.project, productProperties = productProperties, buildOptions = normalizedCompilationContext.options),
@@ -393,7 +391,6 @@ class BuildContextImpl internal constructor(
     projectHomeForCustomizers: Path,
     prepareForBuild: Boolean,
   ): BuildContext {
-    val projectHomeForCustomizersAsString = projectHomeForCustomizers.invariantSeparatorsPathString
     val sourceOptions = this.options
     val options = if (options.useCompiledClassesFromProjectOutput) {
       // compiled classes are already reused
@@ -428,7 +425,7 @@ class BuildContextImpl internal constructor(
       compilationContext = compilationContextCopy,
       productProperties = productProperties,
       windowsDistributionCustomizer = productProperties.createWindowsCustomizer(projectHomeForCustomizers),
-      linuxDistributionCustomizer = productProperties.createLinuxCustomizer(projectHomeForCustomizersAsString),
+      linuxDistributionCustomizer = productProperties.createLinuxCustomizer(projectHomeForCustomizers),
       macDistributionCustomizer = productProperties.createMacCustomizer(projectHomeForCustomizers),
       proprietaryBuildTools = proprietaryBuildTools,
       applicationInfo = newAppInfo,

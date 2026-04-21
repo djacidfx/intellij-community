@@ -197,13 +197,9 @@ class MPSProperties : JetBrainsProductProperties() {
         return MPSWindowsDistributionCustomizer(MPSBuilder.MPS_HOME)
     }
 
-    override fun createLinuxCustomizer(projectHome: String): LinuxDistributionCustomizer? {
-        return null
-    }
+    override fun createLinuxCustomizer(projectHome: Path): LinuxDistributionCustomizer? = null
 
-    override fun createMacCustomizer(projectHome: Path): MacDistributionCustomizer? {
-        return null
-    }
+    override fun createMacCustomizer(projectHome: Path): MacDistributionCustomizer? = null
 
     private class MPSWindowsDistributionCustomizer(projectHome: Path) : WindowsDistributionCustomizer() {
         override val fileAssociations: List<String>
