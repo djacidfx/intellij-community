@@ -263,7 +263,7 @@ f:com.intellij.platform.eel.EelPlatformKt
 - *a:terminate(kotlin.coroutines.Continuation):java.lang.Object
 *:com.intellij.platform.eel.EelProcess
 - *a:convertToJavaProcess():java.lang.Process
-- *a:getExitCode():kotlinx.coroutines.Deferred
+- *a:getExitCode():com.intellij.platform.eel.SafeDeferred
 - *a:getPid():com.intellij.platform.eel.EelApi$Pid
 - *a:getStderr():com.intellij.platform.eel.channels.EelReceiveChannel
 - *a:getStdin():com.intellij.platform.eel.channels.EelSendChannel
@@ -472,6 +472,46 @@ f:com.intellij.platform.eel.EelTunnelsApiKt
 - s:valueOf(java.lang.String):com.intellij.platform.eel.ReadResult
 - s:values():com.intellij.platform.eel.ReadResult[]
 *f:com.intellij.platform.eel.ReadResult$Companion
+*f:com.intellij.platform.eel.SafeDeferred
+- <init>(kotlinx.coroutines.Deferred):V
+- f:asCompletableFuture():java.util.concurrent.CompletableFuture
+- f:await(kotlin.coroutines.Continuation):java.lang.Object
+- f:getState():com.intellij.platform.eel.SafeDeferred$State
+- f:invokeWhenCompleted(kotlin.jvm.functions.Function1):V
+*f:com.intellij.platform.eel.SafeDeferred$CancelledDeferred
+- com.intellij.platform.eel.SafeDeferred$DeferredException
+- <init>(java.util.concurrent.CancellationException):V
+- getCause():java.util.concurrent.CancellationException
+*a:com.intellij.platform.eel.SafeDeferred$DeferredException
+- java.lang.RuntimeException
+- getCause():java.lang.Throwable
+*f:com.intellij.platform.eel.SafeDeferred$FailedDeferred
+- com.intellij.platform.eel.SafeDeferred$DeferredException
+- <init>(java.lang.Throwable):V
+*:com.intellij.platform.eel.SafeDeferred$State
+*f:com.intellij.platform.eel.SafeDeferred$State$Active
+- com.intellij.platform.eel.SafeDeferred$State
+- sf:INSTANCE:com.intellij.platform.eel.SafeDeferred$State$Active
+*f:com.intellij.platform.eel.SafeDeferred$State$Canceled
+- com.intellij.platform.eel.SafeDeferred$State$FinishedUnsuccessfully
+- <init>(java.util.concurrent.CancellationException):V
+- getError():java.util.concurrent.CancellationException
+- throwWrapped():java.lang.Void
+*f:com.intellij.platform.eel.SafeDeferred$State$Completed
+- com.intellij.platform.eel.SafeDeferred$State$Finished
+- <init>(java.lang.Object):V
+- f:getValue():java.lang.Object
+*f:com.intellij.platform.eel.SafeDeferred$State$Failed
+- com.intellij.platform.eel.SafeDeferred$State$FinishedUnsuccessfully
+- <init>(java.lang.Throwable):V
+- getError():java.lang.Throwable
+- throwWrapped():java.lang.Void
+*:com.intellij.platform.eel.SafeDeferred$State$Finished
+- com.intellij.platform.eel.SafeDeferred$State
+*:com.intellij.platform.eel.SafeDeferred$State$FinishedUnsuccessfully
+- com.intellij.platform.eel.SafeDeferred$State$Finished
+- a:getError():java.lang.Throwable
+- a:throwWrapped():java.lang.Void
 *a:com.intellij.platform.eel.channels.EelChannelException
 - java.io.IOException
 - com.intellij.platform.eel.EelError

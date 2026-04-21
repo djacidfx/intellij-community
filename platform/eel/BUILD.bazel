@@ -132,7 +132,10 @@ jvm_library(
   module_name = "intellij.platform.eel.tests",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
-  runtime_deps = ["@lib//:kotlin-stdlib"]
+  runtime_deps = [
+    "@lib//:kotlin-stdlib",
+    "@lib//:kotlinx-coroutines-core",
+  ]
 )
 
 jvm_library(
@@ -146,6 +149,7 @@ jvm_library(
     "//platform/eel:eel_test_lib",
     "@lib//:junit5",
     "@lib//:junit5Params",
+    "@lib//:kotlinx-coroutines-core",
     "@lib//:kotlin-test",
     "@lib//:kotlin-test-assertions-core-jvm",
     "//libraries/kotlinx/coroutines/test",
