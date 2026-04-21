@@ -6,6 +6,7 @@ import java.net.InetAddress
 class DriverOptions(
   host: InetAddress = InetAddress.getLoopbackAddress(),
   internal val port: Int = getAvailablePort(proposedPort = 7777),
+  rmiPort: Int = getAvailablePort(proposedPort = 10500),
   internal val webServerPort: Int = getAvailablePort(proposedPort = 11111),
   additionalProperties: Map<String, String> = emptyMap()
 ) {
@@ -23,6 +24,7 @@ class DriverOptions(
       "com.sun.management.jmxremote.host" to host.hostAddress,
       "com.sun.management.jmxremote" to "true",
       "com.sun.management.jmxremote.port" to port.toString(),
+      "com.sun.management.jmxremote.rmi.port" to rmiPort.toString(),
       "com.sun.management.jmxremote.authenticate" to "false",
       "com.sun.management.jmxremote.ssl" to "false",
       "com.sun.management.jmxremote.serial.filter.pattern" to "'java.**;javax.**;com.intellij.driver.model.**'",
