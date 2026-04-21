@@ -4,7 +4,7 @@ import com.intellij.ide.starter.utils.PortUtil.getAvailablePort
 import java.net.InetAddress
 
 class DriverOptions(
-  host: InetAddress = InetAddress.getLoopbackAddress(),
+  internal val host: InetAddress = InetAddress.getLoopbackAddress(),
   internal val port: Int = getAvailablePort(proposedPort = 7777),
   rmiPort: Int = getAvailablePort(proposedPort = 10500),
   internal val webServerPort: Int = getAvailablePort(proposedPort = 11111),

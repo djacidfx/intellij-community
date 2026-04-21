@@ -13,7 +13,9 @@ class RemoteDevDriverOptions {
     DriverOptions(port = getAvailablePort(proposedPort = 8889),
                   rmiPort = getAvailablePort(proposedPort = 11500),
                   webServerPort = getAvailablePort(proposedPort = 7778),
-                  additionalProperties = mapOf("rdct.tests.backendJmxPort" to backendOptions.port.toString()) + remoteDevVmOptions)
+                  additionalProperties = mapOf("rdct.tests.backendJmxPort" to backendOptions.port.toString(),
+                                               "rdct.tests.backendJmxHost" to backendOptions.host.hostAddress)
+                                         + remoteDevVmOptions)
   }
 
   val debugPort: Int by lazy { getAvailablePort(proposedPort = 5010) }
