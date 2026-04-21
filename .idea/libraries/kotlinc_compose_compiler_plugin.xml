@@ -1,18 +1,18 @@
 <component name="libraryTable">
   <library name="kotlinc.compose-compiler-plugin" type="repository">
-    <properties include-transitive-deps="false" maven-id="org.jetbrains.kotlin:compose-compiler-plugin-for-ide:2.4.20-dev-494">
+    <properties include-transitive-deps="false" maven-id="org.jetbrains.kotlin:compose-compiler-plugin-for-ide:2.4.20-dev-1435">
       <verification>
-        <artifact url="file://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/compose-compiler-plugin-for-ide/2.4.20-dev-494/compose-compiler-plugin-for-ide-2.4.20-dev-494.jar">
-          <sha256sum>0cd14e5b5585f8ed7df5a68692b709f73a7ac132297a1bb19d7963ccd63e38bb</sha256sum>
+        <artifact url="file://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/compose-compiler-plugin-for-ide/2.4.20-dev-1435/compose-compiler-plugin-for-ide-2.4.20-dev-1435.jar">
+          <sha256sum>8fb287a691cbf8f17fc201b3f39ccb8261ba8f6f4e27a37973c30e2fc949cd6b</sha256sum>
         </artifact>
       </verification>
     </properties>
     <CLASSES>
-      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/compose-compiler-plugin-for-ide/2.4.20-dev-494/compose-compiler-plugin-for-ide-2.4.20-dev-494.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/compose-compiler-plugin-for-ide/2.4.20-dev-1435/compose-compiler-plugin-for-ide-2.4.20-dev-1435.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES>
-      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/compose-compiler-plugin-for-ide/2.4.20-dev-494/compose-compiler-plugin-for-ide-2.4.20-dev-494-sources.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/compose-compiler-plugin-for-ide/2.4.20-dev-1435/compose-compiler-plugin-for-ide-2.4.20-dev-1435-sources.jar!/" />
     </SOURCES>
   </library>
 </component>
