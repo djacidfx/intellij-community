@@ -39,11 +39,6 @@ internal class WasmJsBuildWorker: WorkRequestExecutor {
   companion object {
     @JvmStatic
     fun main(startupArgs: Array<String>) {
-      if (!startupArgs.contains("--persistent_worker")) {
-        System.err.println("Only persistent worker mode is supported")
-        exitProcess(3)
-      }
-
       processRequests(
         startupArgs = startupArgs,
         executorFactory = { tracer, scope ->
