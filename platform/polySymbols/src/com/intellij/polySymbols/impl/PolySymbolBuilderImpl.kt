@@ -22,7 +22,7 @@ internal class PolySymbolBuilderImpl(
 
   override val builderContext: String get() = "polySymbol"
 
-  internal var extensionValue: Boolean? = null
+  internal var extensionValue: Boolean = false
   internal var extensionGetter: (() -> Boolean)? = null
 
   internal var psiContextGetter: (() -> PsiElement?)? = null
@@ -201,27 +201,62 @@ internal enum class Mode(val label: String) {
   DECLARED_IN_PSI("declaredInPsi"),
 }
 
-private fun PolySymbolBuilderImpl.toBuiltConfig(): BuiltConfig = BuiltConfig(
-  kind = kind,
-  name = name,
-  priorityValue = priorityValue,
-  priorityGetter = priorityGetter,
-  apiStatusValue = apiStatusValue,
-  apiStatusGetter = apiStatusGetter,
-  modifiersValue = modifiersValue,
-  modifiersGetter = modifiersGetter,
-  iconValue = iconValue,
-  iconGetter = iconGetter,
-  extensionValue = extensionValue,
-  extensionGetter = extensionGetter,
-  presentationValue = presentationValue,
-  presentationGetter = presentationGetter,
-  isSearchTarget = isSearchTarget,
-  isRenameTarget = isRenameTarget,
-  documentationBuilder = documentationBuilder,
-  navigationTargetsGetter = navigationTargetsGetter,
-  matchContextGetter = matchContextGetter,
-  isEquivalentToGetter = isEquivalentToGetter,
-  propertyValues = propertyValues.toMap(),
-  propertyGetters = propertyGetters.toMap(),
-)
+private fun PolySymbolBuilderImpl.toBuiltConfig(): BuiltConfig {
+  val flags = packFlags(isSearchTarget, isRenameTarget, extensionValue)
+
+  val coldGettersAllNull = priorityGetter == null
+                           && apiStatusGetter == null
+                           && modifiersGetter == null
+                           && iconGetter == null
+                           && extensionGetter == null
+                           && presentationGetter == null
+                           && documentationBuilder == null
+                           && navigationTargetsGetter == null
+                           && matchContextGetter == null
+                           && isEquivalentToGetter == null
+  val coldValuesAllNull = apiStatusValue == null
+                          && modifiersValue == null
+                          && iconValue == null
+                          && presentationValue == null
+
+  if (coldGettersAllNull && coldValuesAllNull) {
+    if (flags == 0
+        && priorityValue == null
+        && propertyValues.isEmpty()
+        && propertyGetters.isEmpty()
+    ) {
+      return BuiltConfigMinimal(kind = kind, name = name)
+    }
+    return BuiltConfigSimple(
+      kind = kind,
+      name = name,
+      priorityValue = priorityValue,
+      propertyValues = propertyValues.toMap(),
+      propertyGetters = propertyGetters.toMap(),
+      flags = flags,
+    )
+  }
+
+  return BuiltConfigFull(
+    kind = kind,
+    name = name,
+    priorityValue = priorityValue,
+    priorityGetter = priorityGetter,
+    apiStatusValue = apiStatusValue,
+    apiStatusGetter = apiStatusGetter,
+    modifiersValue = modifiersValue,
+    modifiersGetter = modifiersGetter,
+    iconValue = iconValue,
+    iconGetter = iconGetter,
+    extensionGetter = extensionGetter,
+    presentationValue = presentationValue,
+    presentationGetter = presentationGetter,
+    documentationBuilder = documentationBuilder,
+    navigationTargetsGetter = navigationTargetsGetter,
+    matchContextGetter = matchContextGetter,
+    isEquivalentToGetter = isEquivalentToGetter,
+    propertyValues = propertyValues.toMap(),
+    propertyGetters = propertyGetters.toMap(),
+    flags = flags,
+  )
+}

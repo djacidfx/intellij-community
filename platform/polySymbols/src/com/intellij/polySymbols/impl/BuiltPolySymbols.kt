@@ -37,30 +37,146 @@ internal val EMPTY_DEPENDENCY_SOURCE: DependencySource = DependencySource.FromSp
  * Mode-specific fields (pattern builder, source getter, declaration site)
  * are passed directly to the matching specialized `BuiltPolySymbol*` class.
  */
-internal data class BuiltConfig(
-  val kind: PolySymbolKind,
-  val name: String,
-  val priorityValue: PolySymbol.Priority?,
-  val priorityGetter: (() -> PolySymbol.Priority?)?,
-  val apiStatusValue: PolySymbolApiStatus?,
-  val apiStatusGetter: (() -> PolySymbolApiStatus)?,
-  val modifiersValue: Set<PolySymbolModifier>?,
-  val modifiersGetter: (() -> Set<PolySymbolModifier>)?,
-  val iconValue: Icon?,
-  val iconGetter: (() -> Icon?)?,
-  val extensionValue: Boolean?,
-  val extensionGetter: (() -> Boolean)?,
-  val presentationValue: TargetPresentation?,
-  val presentationGetter: (() -> TargetPresentation)?,
-  val isSearchTarget: Boolean,
-  val isRenameTarget: Boolean,
-  val documentationBuilder: (PolySymbolDocumentationBuilder.(BuiltPolySymbol, PsiElement?) -> Unit)?,
-  val navigationTargetsGetter: ((Project) -> Collection<NavigationTarget>)?,
-  val matchContextGetter: ((PolyContext) -> Boolean)?,
-  val isEquivalentToGetter: ((Symbol) -> Boolean)?,
-  val propertyValues: Map<PolySymbolProperty<*>, Any?>,
-  val propertyGetters: Map<PolySymbolProperty<*>, () -> Any?>,
-)
+internal sealed interface BuiltConfig {
+  val kind: PolySymbolKind
+  val name: String
+
+  val priorityValue: PolySymbol.Priority? get() = null
+  val priorityGetter: (() -> PolySymbol.Priority?)? get() = null
+  val apiStatusValue: PolySymbolApiStatus? get() = null
+  val apiStatusGetter: (() -> PolySymbolApiStatus)? get() = null
+  val modifiersValue: Set<PolySymbolModifier>? get() = null
+  val modifiersGetter: (() -> Set<PolySymbolModifier>)? get() = null
+  val iconValue: Icon? get() = null
+  val iconGetter: (() -> Icon?)? get() = null
+  val extensionValue: Boolean get() = false
+  val extensionGetter: (() -> Boolean)? get() = null
+  val presentationValue: TargetPresentation? get() = null
+  val presentationGetter: (() -> TargetPresentation)? get() = null
+  val isSearchTarget: Boolean get() = false
+  val isRenameTarget: Boolean get() = false
+  val documentationBuilder: (PolySymbolDocumentationBuilder.(BuiltPolySymbol, PsiElement?) -> Unit)? get() = null
+  val navigationTargetsGetter: ((Project) -> Collection<NavigationTarget>)? get() = null
+  val matchContextGetter: ((PolyContext) -> Boolean)? get() = null
+  val isEquivalentToGetter: ((Symbol) -> Boolean)? get() = null
+  val propertyValues: Map<PolySymbolProperty<*>, Any?> get() = emptyMap()
+  val propertyGetters: Map<PolySymbolProperty<*>, () -> Any?> get() = emptyMap()
+}
+
+internal const val FLAG_SEARCH_TARGET: Int = 1 shl 0
+internal const val FLAG_RENAME_TARGET: Int = 1 shl 1
+internal const val FLAG_EXTENSION: Int = 1 shl 2
+
+internal fun packFlags(isSearchTarget: Boolean, isRenameTarget: Boolean, extension: Boolean): Int {
+  var f = 0
+  if (isSearchTarget) f = f or FLAG_SEARCH_TARGET
+  if (isRenameTarget) f = f or FLAG_RENAME_TARGET
+  if (extension) f = f or FLAG_EXTENSION
+  return f
+}
+
+/** Smallest variant: only `kind` and `name`, everything else uses interface defaults. */
+internal data class BuiltConfigMinimal(
+  override val kind: PolySymbolKind,
+  override val name: String,
+) : BuiltConfig
+
+/**
+ * Variant for the common "simple symbol" shape:
+ * may set priority (value only), property values/getters,
+ * and any of the three boolean flags (packed into [flags]).
+ * All cold/rare fields use interface defaults.
+ */
+internal data class BuiltConfigSimple(
+  override val kind: PolySymbolKind,
+  override val name: String,
+  override val priorityValue: PolySymbol.Priority?,
+  override val propertyValues: Map<PolySymbolProperty<*>, Any?>,
+  override val propertyGetters: Map<PolySymbolProperty<*>, () -> Any?>,
+  private val flags: Int,
+) : BuiltConfig {
+  override val isSearchTarget: Boolean get() = (flags and FLAG_SEARCH_TARGET) != 0
+  override val isRenameTarget: Boolean get() = (flags and FLAG_RENAME_TARGET) != 0
+  override val extensionValue: Boolean get() = (flags and FLAG_EXTENSION) != 0
+}
+
+/** Full-fidelity variant: all 23 logical fields, booleans packed into [flags]. */
+internal data class BuiltConfigFull(
+  override val kind: PolySymbolKind,
+  override val name: String,
+  override val priorityValue: PolySymbol.Priority?,
+  override val priorityGetter: (() -> PolySymbol.Priority?)?,
+  override val apiStatusValue: PolySymbolApiStatus?,
+  override val apiStatusGetter: (() -> PolySymbolApiStatus)?,
+  override val modifiersValue: Set<PolySymbolModifier>?,
+  override val modifiersGetter: (() -> Set<PolySymbolModifier>)?,
+  override val iconValue: Icon?,
+  override val iconGetter: (() -> Icon?)?,
+  override val extensionGetter: (() -> Boolean)?,
+  override val presentationValue: TargetPresentation?,
+  override val presentationGetter: (() -> TargetPresentation)?,
+  override val documentationBuilder: (PolySymbolDocumentationBuilder.(BuiltPolySymbol, PsiElement?) -> Unit)?,
+  override val navigationTargetsGetter: ((Project) -> Collection<NavigationTarget>)?,
+  override val matchContextGetter: ((PolyContext) -> Boolean)?,
+  override val isEquivalentToGetter: ((Symbol) -> Boolean)?,
+  override val propertyValues: Map<PolySymbolProperty<*>, Any?>,
+  override val propertyGetters: Map<PolySymbolProperty<*>, () -> Any?>,
+  private val flags: Int,
+) : BuiltConfig {
+  override val isSearchTarget: Boolean get() = (flags and FLAG_SEARCH_TARGET) != 0
+  override val isRenameTarget: Boolean get() = (flags and FLAG_RENAME_TARGET) != 0
+  override val extensionValue: Boolean get() = (flags and FLAG_EXTENSION) != 0
+}
+
+private fun BuiltConfig.contentEquals(other: BuiltConfig): Boolean =
+  kind == other.kind
+  && name == other.name
+  && priorityValue == other.priorityValue
+  && priorityGetter == other.priorityGetter
+  && apiStatusValue == other.apiStatusValue
+  && apiStatusGetter == other.apiStatusGetter
+  && modifiersValue == other.modifiersValue
+  && modifiersGetter == other.modifiersGetter
+  && iconValue == other.iconValue
+  && iconGetter == other.iconGetter
+  && extensionValue == other.extensionValue
+  && extensionGetter == other.extensionGetter
+  && presentationValue == other.presentationValue
+  && presentationGetter == other.presentationGetter
+  && isSearchTarget == other.isSearchTarget
+  && isRenameTarget == other.isRenameTarget
+  && documentationBuilder == other.documentationBuilder
+  && navigationTargetsGetter == other.navigationTargetsGetter
+  && matchContextGetter == other.matchContextGetter
+  && isEquivalentToGetter == other.isEquivalentToGetter
+  && propertyValues == other.propertyValues
+  && propertyGetters == other.propertyGetters
+
+private fun BuiltConfig.contentHashCode(): Int {
+  var result = kind.hashCode()
+  result = 31 * result + name.hashCode()
+  result = 31 * result + priorityValue.hashCode()
+  result = 31 * result + priorityGetter.hashCode()
+  result = 31 * result + apiStatusValue.hashCode()
+  result = 31 * result + apiStatusGetter.hashCode()
+  result = 31 * result + modifiersValue.hashCode()
+  result = 31 * result + modifiersGetter.hashCode()
+  result = 31 * result + iconValue.hashCode()
+  result = 31 * result + iconGetter.hashCode()
+  result = 31 * result + extensionValue.hashCode()
+  result = 31 * result + extensionGetter.hashCode()
+  result = 31 * result + presentationValue.hashCode()
+  result = 31 * result + presentationGetter.hashCode()
+  result = 31 * result + isSearchTarget.hashCode()
+  result = 31 * result + isRenameTarget.hashCode()
+  result = 31 * result + documentationBuilder.hashCode()
+  result = 31 * result + navigationTargetsGetter.hashCode()
+  result = 31 * result + matchContextGetter.hashCode()
+  result = 31 * result + isEquivalentToGetter.hashCode()
+  result = 31 * result + propertyValues.hashCode()
+  result = 31 * result + propertyGetters.hashCode()
+  return result
+}
 
 internal abstract class BuiltPolySymbolBase(
   protected val config: BuiltConfig,
@@ -96,7 +212,6 @@ internal abstract class BuiltPolySymbolBase(
   override val extension: Boolean
     get() = config.extensionGetter?.let { dependencyScope.withinScope { it() } }
             ?: config.extensionValue
-            ?: super.extension
 
   override val presentation: TargetPresentation
     get() = config.presentationGetter?.let { dependencyScope.withinScope { it() } }
@@ -161,11 +276,11 @@ internal abstract class BuiltPolySymbolBase(
     other === this
     || other is BuiltPolySymbolBase
     && other.javaClass == javaClass
-    && other.config == config
+    && other.config.contentEquals(config)
     && other.dependencyScope.resolved == dependencyScope.resolved
 
   override fun hashCode(): Int {
-    var result = config.hashCode()
+    var result = config.contentHashCode()
     result = 31 * result + dependencyScope.resolved.hashCode()
     return result
   }

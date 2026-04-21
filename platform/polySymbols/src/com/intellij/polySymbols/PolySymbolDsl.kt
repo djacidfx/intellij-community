@@ -33,10 +33,6 @@ annotation class PolySymbolDsl
  * when [PolySymbolBuilder.pattern], [PolySymbolBuilder.linkWithPsiElement], or
  * [PolySymbolBuilder.declaredInPsi] is called inside the [body]. Calling any
  * two of those mode methods throws [IllegalStateException].
- *
- * It is advised to use this builder only when creating a few symbol instances at once.
- * Builder and created symbols may be heavy on memory usage, so in case of large numbers of symbols
- * it is recommended to create a dedicated class implementing [PolySymbol] interface.
  */
 fun polySymbol(
   kind: PolySymbolKind,
