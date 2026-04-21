@@ -23,10 +23,6 @@ import com.intellij.openapi.util.text.StringUtil
 import com.intellij.ui.GotItComponentBuilder.Companion.EXTENDED_MAX_WIDTH
 import com.intellij.ui.GotItComponentBuilder.Companion.MAX_LINES_COUNT
 import com.intellij.ui.GotItComponentBuilder.Companion.MAX_WIDTH
-import com.intellij.ui.InlineCodeExtension.Companion.getStyles
-import com.intellij.ui.InlineCodeExtension.Companion.patchCodeTags
-import com.intellij.ui.ShortcutExtension.Companion.getStyles
-import com.intellij.ui.ShortcutExtension.Companion.patchShortcutTags
 import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.labels.LinkLabel
@@ -111,7 +107,7 @@ private data class GotItPromoHtmlPage(val htmlText: String, val htmlPageSize: Di
 }
 
 private data class GotItPromoComponent(val component: JComponent): GotItPromoContent {
-  override val width: Int? get() = component.preferredSize.width
+  override val width: Int get() = component.preferredSize.width
 }
 
 @ApiStatus.Internal
@@ -542,7 +538,7 @@ class GotItComponentBuilder(textSupplier: GotItTextBuilder.() -> @Nls String) {
     icon?.let {
       val adjusted = adjustIcon(it, useContrastColors)
       iconOrStepLabel = JLabel(adjusted)
-      panel.add(iconOrStepLabel!!, gc.nextLine().next().anchor(GridBagConstraints.BASELINE))
+      panel.add(iconOrStepLabel, gc.nextLine().next().anchor(GridBagConstraints.BASELINE))
     }
 
     stepText?.let { step ->
@@ -551,7 +547,7 @@ class GotItComponentBuilder(textSupplier: GotItTextBuilder.() -> @Nls String) {
         foreground = JBUI.CurrentTheme.GotItTooltip.stepForeground(useContrastColors)
         font = EditorColorsManager.getInstance().globalScheme.getFont(EditorFontType.PLAIN).deriveFont(JBFont.label().size.toFloat())
       }
-      panel.add(iconOrStepLabel!!, gc.nextLine().next().anchor(GridBagConstraints.BASELINE))
+      panel.add(iconOrStepLabel, gc.nextLine().next().anchor(GridBagConstraints.BASELINE))
     }
 
     if (header.isNotEmpty()) {
@@ -846,9 +842,8 @@ private class LimitedWidthEditorPane(
 class ShortcutExtension : ExtendableHTMLViewFactory.Extension {
   override fun invoke(elem: Element, defaultView: View): View? {
     val tagAttributes = elem.attributes.getAttribute(HTML.Tag.SPAN) as? AttributeSet
-    return if (tagAttributes?.getAttribute(HTML.Attribute.CLASS) == "shortcut") {
-      return ShortcutView(elem)
-    }
+    return if (tagAttributes?.getAttribute(HTML.Attribute.CLASS) == "shortcut")
+      ShortcutView(elem)
     else null
   }
 
@@ -976,8 +971,7 @@ class ShortcutExtension : ExtendableHTMLViewFactory.Extension {
         }
         return rectangles
       }
-      catch (ex: BadLocationException) {
-        // ignore
+      catch (_: BadLocationException) {
         null
       }
     }
@@ -1005,9 +999,8 @@ class ShortcutExtension : ExtendableHTMLViewFactory.Extension {
 private class InlineCodeExtension : ExtendableHTMLViewFactory.Extension {
   override fun invoke(elem: Element, defaultView: View): View? {
     val tagAttributes = elem.attributes.getAttribute(HTML.Tag.SPAN) as? AttributeSet
-    return if (tagAttributes?.getAttribute(HTML.Attribute.CLASS) == "code") {
-      return InlineCodeView(elem)
-    }
+    return if (tagAttributes?.getAttribute(HTML.Attribute.CLASS) == "code")
+      InlineCodeView(elem)
     else null
   }
 
@@ -1133,28 +1126,30 @@ private fun View.getFloatAttribute(key: Any, defaultValue: Float): Float {
 private val InlineView.borderColorAttr: Color? get() =
   attributes.getAttribute(CSS.Attribute.BORDER_TOP_COLOR)?.toString()?.let { ColorUtil.fromHex(it) }
 
+private const val ICON_DEFAULT_STROKE_ID = "icon-default-stroke"
+
 private fun Icon.colorizeIfPossible(fillColor: Color, borderColor: Color = fillColor): Icon =
   (this as? CachedImageIcon)?.createWithPatcher(colorPatcher = object : SVGLoader.SvgElementColorPatcherProvider, SvgAttributePatcher {
-    private var lastColor = Int.MIN_VALUE
-    private var lastDigest: LongArray? = null
+
+    private val digest = longArrayOf(0L, 440413911775177385)
 
     override fun digest(): LongArray {
-      val color = fillColor.rgb / 2 + borderColor.rgb / 2
-      if (color == lastColor) {
-        lastDigest?.let {
-          return it
-        }
-      }
-
-      val digest = longArrayOf(color.toLong(), 440413911775177385)
-      lastColor = color
-      lastDigest = digest
+      digest[0] = toLong(fillColor.rgb, borderColor.rgb)
       return digest
     }
 
     override fun patchColors(attributes: MutableMap<String, String>) {
-      setAttribute(attributes, "fill", fillColor)
-      setAttribute(attributes, "stroke", borderColor)
+      when (attributes["id"]) {
+        ICON_DEFAULT_STROKE_ID -> {
+          setAttribute(attributes, "fill", borderColor)
+          setAttribute(attributes, "stroke", borderColor)
+        }
+
+        else -> {
+          setAttribute(attributes, "fill", fillColor)
+          setAttribute(attributes, "stroke", borderColor)
+        }
+      }
     }
 
     override fun attributeForPath(path: String) = this
@@ -1168,5 +1163,9 @@ private fun Icon.colorizeIfPossible(fillColor: Color, borderColor: Color = fillC
       if (alpha != 255) {
         attributes["$key-opacity"] = "${alpha / 255f}"
       }
+    }
+
+    private fun toLong(high: Int, low: Int): Long {
+      return (high.toLong() shl 32) or (low.toLong() and 0xFFFFFFFFL)
     }
   }) ?: this
