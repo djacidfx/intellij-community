@@ -1,687 +1,663 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.ide.plugins;
+package com.intellij.ide.plugins
 
-import com.intellij.icons.AllIcons;
-import com.intellij.ide.IdeBundle;
-import com.intellij.ide.plugins.marketplace.statistics.PluginManagerUsageCollector;
-import com.intellij.ide.plugins.newui.ListPluginComponent;
-import com.intellij.ide.plugins.newui.MultiSelectionEventHandler;
-import com.intellij.ide.plugins.newui.MyPluginModel;
-import com.intellij.ide.plugins.newui.PluginDetailsPageComponent;
-import com.intellij.ide.plugins.newui.PluginModelFacade;
-import com.intellij.ide.plugins.newui.PluginUiModel;
-import com.intellij.ide.plugins.newui.PluginUpdatesService;
-import com.intellij.ide.plugins.newui.PluginsGroup;
-import com.intellij.ide.plugins.newui.PluginsGroupComponent;
-import com.intellij.ide.plugins.newui.PluginsGroupComponentWithProgress;
-import com.intellij.ide.plugins.newui.PluginsTab;
-import com.intellij.ide.plugins.newui.SearchQueryParser;
-import com.intellij.ide.plugins.newui.SearchResultPanel;
-import com.intellij.ide.plugins.newui.SearchUpDownPopupController;
-import com.intellij.ide.plugins.newui.SearchWords;
-import com.intellij.ide.plugins.newui.UIPluginGroup;
-import com.intellij.openapi.actionSystem.ActionUpdateThread;
-import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.DefaultActionGroup;
-import com.intellij.openapi.actionSystem.KeepPopupOnPerform;
-import com.intellij.openapi.actionSystem.ToggleAction;
-import com.intellij.openapi.extensions.ExtensionPointName;
-import com.intellij.openapi.extensions.PluginId;
-import com.intellij.openapi.project.DumbAware;
-import com.intellij.openapi.util.NlsSafe;
-import com.intellij.openapi.util.registry.Registry;
-import com.intellij.openapi.util.text.StringUtil;
-import com.intellij.ui.components.JBTextField;
-import com.intellij.ui.components.fields.ExtendableTextComponent;
-import com.intellij.ui.components.labels.LinkLabel;
-import com.intellij.ui.components.labels.LinkListener;
-import com.intellij.util.containers.ContainerUtil;
-import kotlinx.coroutines.CoroutineScope;
-import org.jetbrains.annotations.ApiStatus;
-import org.jetbrains.annotations.Nls;
-import org.jetbrains.annotations.NonNls;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import static com.intellij.ide.plugins.PluginManagerConfigurablePanel.applyUpdates;
-import static com.intellij.ide.plugins.PluginManagerConfigurablePanel.clearUpdates;
-import static com.intellij.ide.plugins.PluginManagerConfigurablePanel.createScrollPane;
-import static com.intellij.ide.plugins.PluginManagerConfigurablePanel.registerCopyProvider;
-import static com.intellij.ide.plugins.PluginManagerConfigurablePanel.setState;
-import static com.intellij.ide.plugins.PluginManagerConfigurablePanel.showRightBottomPopup;
-
+import com.intellij.icons.AllIcons
+import com.intellij.ide.IdeBundle
+import com.intellij.ide.plugins.PluginManagerConfigurablePanel.applyUpdates
+import com.intellij.ide.plugins.PluginManagerConfigurablePanel.clearUpdates
+import com.intellij.ide.plugins.PluginManagerConfigurablePanel.createScrollPane
+import com.intellij.ide.plugins.PluginManagerConfigurablePanel.registerCopyProvider
+import com.intellij.ide.plugins.PluginManagerConfigurablePanel.setState
+import com.intellij.ide.plugins.PluginManagerConfigurablePanel.showRightBottomPopup
+import com.intellij.ide.plugins.marketplace.statistics.PluginManagerUsageCollector
+import com.intellij.ide.plugins.newui.ListPluginComponent
+import com.intellij.ide.plugins.newui.MultiSelectionEventHandler
+import com.intellij.ide.plugins.newui.MyPluginModel
+import com.intellij.ide.plugins.newui.PluginDetailsPageComponent
+import com.intellij.ide.plugins.newui.PluginModelFacade
+import com.intellij.ide.plugins.newui.PluginUiModel
+import com.intellij.ide.plugins.newui.PluginUpdatesService
+import com.intellij.ide.plugins.newui.PluginsGroup
+import com.intellij.ide.plugins.newui.PluginsGroupComponent
+import com.intellij.ide.plugins.newui.PluginsGroupComponentWithProgress
+import com.intellij.ide.plugins.newui.PluginsTab
+import com.intellij.ide.plugins.newui.SearchQueryParser
+import com.intellij.ide.plugins.newui.SearchResultPanel
+import com.intellij.ide.plugins.newui.SearchUpDownPopupController
+import com.intellij.ide.plugins.newui.SearchWords
+import com.intellij.ide.plugins.newui.UIPluginGroup
+import com.intellij.openapi.actionSystem.ActionUpdateThread
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.KeepPopupOnPerform
+import com.intellij.openapi.actionSystem.ToggleAction
+import com.intellij.openapi.extensions.ExtensionPointName
+import com.intellij.openapi.extensions.PluginId
+import com.intellij.openapi.project.DumbAware
+import com.intellij.openapi.util.NlsSafe
+import com.intellij.openapi.util.registry.Registry
+import com.intellij.openapi.util.text.StringUtil
+import com.intellij.ui.components.fields.ExtendableTextComponent
+import com.intellij.ui.components.labels.LinkLabel
+import com.intellij.ui.components.labels.LinkListener
+import com.intellij.util.containers.ContainerUtil
+import kotlinx.coroutines.CoroutineScope
+import org.jetbrains.annotations.ApiStatus
+import org.jetbrains.annotations.Nls
+import java.util.SortedSet
+import java.util.function.Consumer
+import java.util.function.Supplier
+import javax.swing.JComponent
+import javax.swing.JLabel
 
 @ApiStatus.Internal
-class InstalledPluginsTab extends PluginsTab {
-  private static final ExtensionPointName<PluginCategoryPromotionProvider> PROMOTION_EP_NAME =
-    ExtensionPointName.create("com.intellij.pluginCategoryPromotionProvider");
+class InstalledPluginsTab(
+  private val myPluginModelFacade: PluginModelFacade,
+  private val myPluginUpdatesService: PluginUpdatesService,
+  private val myCoroutineScope: CoroutineScope,
+  private val mySearchInMarketplaceTabHandler: Consumer<String>?,
+) : PluginsTab() {
+  private var myInstalledPanel: PluginsGroupComponentWithProgress? = null
+  private var myInstalledSearchPanel: InstalledPluginsTabSearchResultPanel? = null
+  private val myInstalledSearchGroup = DefaultActionGroup()
 
-  private final @NotNull PluginModelFacade myPluginModelFacade;
-  private final @NotNull PluginUpdatesService myPluginUpdatesService;
-  private final @NotNull CoroutineScope myCoroutineScope;
-  private final @Nullable Consumer<String> mySearchInMarketplaceTabHandler;
+  private val myBundledUpdateGroup =
+    PluginsGroup(IdeBundle.message("plugins.configurable.bundled.updates"), PluginsGroupType.BUNDLED_UPDATE)
 
-  private @Nullable PluginsGroupComponentWithProgress myInstalledPanel = null;
-  private @Nullable InstalledPluginsTabSearchResultPanel myInstalledSearchPanel = null;
-  private final DefaultActionGroup myInstalledSearchGroup;
+  private val myUpdateAll: LinkLabel<Any?> =
+    PluginManagerConfigurablePanel.LinkLabelButton(IdeBundle.message("plugin.manager.update.all"), null)
+  private val myUpdateAllBundled: LinkLabel<Any?> =
+    PluginManagerConfigurablePanel.LinkLabelButton(IdeBundle.message("plugin.manager.update.all"), null)
+  private val myUpdateCounter: JLabel = CountComponent()
+  private val myUpdateCounterBundled: JLabel = CountComponent()
 
-  private final PluginsGroup myBundledUpdateGroup =
-    new PluginsGroup(IdeBundle.message("plugins.configurable.bundled.updates"), PluginsGroupType.BUNDLED_UPDATE);
-
-  private final LinkLabel<Object> myUpdateAll =
-    new PluginManagerConfigurablePanel.LinkLabelButton<>(IdeBundle.message("plugin.manager.update.all"), null);
-  private final LinkLabel<Object> myUpdateAllBundled =
-    new PluginManagerConfigurablePanel.LinkLabelButton<>(IdeBundle.message("plugin.manager.update.all"), null);
-  private final JLabel myUpdateCounter = new CountComponent();
-  private final JLabel myUpdateCounterBundled = new CountComponent();
-
-  InstalledPluginsTab(@NotNull PluginModelFacade facade,
-                      @NotNull PluginUpdatesService service,
-                      @NotNull CoroutineScope scope,
-                      @Nullable Consumer<String> searchInMarketplaceHandler) {
-    super();
-    myPluginModelFacade = facade;
-    myPluginUpdatesService = service;
-    myCoroutineScope = scope;
-    mySearchInMarketplaceTabHandler = searchInMarketplaceHandler;
-    myInstalledSearchGroup = new DefaultActionGroup();
-    for (InstalledSearchOption option : InstalledSearchOption.values()) {
-      myInstalledSearchGroup.add(new InstalledSearchOptionAction(option));
+  init {
+    for (option in InstalledSearchOption.entries) {
+      myInstalledSearchGroup.add(InstalledSearchOptionAction(option))
     }
 
-    myUpdateAll.setVisible(false);
-    myUpdateAllBundled.setVisible(false);
-    myUpdateCounter.setVisible(false);
-    myUpdateCounterBundled.setVisible(false);
+    myUpdateAll.isVisible = false
+    myUpdateAllBundled.isVisible = false
+    myUpdateCounter.isVisible = false
+    myUpdateCounterBundled.isVisible = false
   }
 
-  public @Nullable PluginsGroupComponentWithProgress getInstalledPanel() {
-    return myInstalledPanel;
+  fun getInstalledPanel(): PluginsGroupComponentWithProgress? {
+    return myInstalledPanel
   }
 
-  public @Nullable SearchResultPanel getInstalledSearchPanel() {
-    return myInstalledSearchPanel;
+  fun getInstalledSearchPanel(): SearchResultPanel? {
+    return myInstalledSearchPanel
   }
 
-  public @Nullable List<UIPluginGroup> getInstalledGroups() {
-    return getInstalledPanel() != null ? getInstalledPanel().getGroups() : null;
+  fun getInstalledGroups(): List<UIPluginGroup>? {
+    return if (getInstalledPanel() != null) getInstalledPanel()!!.groups else null
   }
 
-  @Override
-  protected @NotNull PluginDetailsPageComponent createDetailsPanel(@NotNull LinkListener<Object> searchListener) {
-    PluginDetailsPageComponent detailPanel = new PluginDetailsPageComponent(myPluginModelFacade, searchListener, false);
-    myPluginModelFacade.getModel().addDetailPanel(detailPanel);
-    return detailPanel;
+  override fun createDetailsPanel(searchListener: LinkListener<Any>): PluginDetailsPageComponent {
+    val detailPanel = PluginDetailsPageComponent(myPluginModelFacade, searchListener, false)
+    myPluginModelFacade.getModel().addDetailPanel(detailPanel)
+    return detailPanel
   }
 
-  @Override
-  protected @NotNull JComponent createPluginsPanel(@NotNull Consumer<? super PluginsGroupComponent> selectionListener) {
-    MultiSelectionEventHandler eventHandler = new MultiSelectionEventHandler();
-    myInstalledPanel = new PluginsGroupComponentWithProgress(eventHandler) {
-      @Override
-      protected @NotNull ListPluginComponent createListComponent(@NotNull PluginUiModel model,
-                                                                 @NotNull PluginsGroup group,
-                                                                 @NotNull ListPluginModel listPluginModel) {
-        return new ListPluginComponent(myPluginModelFacade, model, group, listPluginModel, searchListener, myCoroutineScope, false);
+  override fun createPluginsPanel(selectionListener: Consumer<in PluginsGroupComponent?>): JComponent {
+    val eventHandler = MultiSelectionEventHandler()
+    val installedPanel = object : PluginsGroupComponentWithProgress(eventHandler) {
+      override fun createListComponent(
+        model: PluginUiModel,
+        group: PluginsGroup,
+        listPluginModel: ListPluginModel,
+      ): ListPluginComponent {
+        return ListPluginComponent(myPluginModelFacade, model, group, listPluginModel, searchListener, myCoroutineScope, false)
       }
-    };
+    }
+    myInstalledPanel = installedPanel
 
-    myInstalledPanel.setSelectionListener(selectionListener);
-    myInstalledPanel.getAccessibleContext().setAccessibleName(IdeBundle.message("plugin.manager.installed.panel.accessible.name"));
-    registerCopyProvider(myInstalledPanel);
+    installedPanel.setSelectionListener(selectionListener)
+    installedPanel.accessibleContext.accessibleName = IdeBundle.message("plugin.manager.installed.panel.accessible.name")
+    registerCopyProvider(installedPanel)
 
     //noinspection ConstantConditions
-    ((SearchUpDownPopupController)myInstalledSearchPanel.controller).setEventHandler(eventHandler);
-    myInstalledPanel.showLoadingIcon();
+    (myInstalledSearchPanel!!.controller as SearchUpDownPopupController).setEventHandler(eventHandler)
+    installedPanel.showLoadingIcon()
 
-    PluginsGroup userInstalled = new PluginsGroup(IdeBundle.message("plugins.configurable.userInstalled"), PluginsGroupType.INSTALLED);
-    PluginsGroup installing = new PluginsGroup(IdeBundle.message("plugins.configurable.installing"), PluginsGroupType.INSTALLING);
+    val userInstalled = PluginsGroup(IdeBundle.message("plugins.configurable.userInstalled"), PluginsGroupType.INSTALLED)
+    val installing = PluginsGroup(IdeBundle.message("plugins.configurable.installing"), PluginsGroupType.INSTALLING)
 
-    LinkListener<Object> updateAllListener = new LinkListener<>() {
-      @Override
-      public void linkSelected(LinkLabel<Object> aSource, Object aLinkData) {
-        myUpdateAll.setEnabled(false);
-        myUpdateAllBundled.setEnabled(false);
+    val updateAllListener = LinkListener<Any?> { _, _ ->
+      myUpdateAll.isEnabled = false
+      myUpdateAllBundled.isEnabled = false
 
-        for (UIPluginGroup group : getInstalledGroups()) {
-          if (group.isBundledUpdatesGroup) {
-            continue;
-          }
-          for (ListPluginComponent plugin : group.plugins) {
-            plugin.updatePlugin();
-          }
+      for (group in getInstalledGroups()!!) {
+        if (group.isBundledUpdatesGroup) {
+          continue
+        }
+        for (plugin in group.plugins) {
+          plugin.updatePlugin()
         }
       }
-    };
+    }
 
-    myUpdateAll.setListener(updateAllListener, null);
-    userInstalled.addSecondaryAction(myUpdateAll);
-    userInstalled.addSecondaryAction(myUpdateCounter);
+    myUpdateAll.setListener(updateAllListener, null)
+    userInstalled.addSecondaryAction(myUpdateAll)
+    userInstalled.addSecondaryAction(myUpdateCounter)
 
-    myUpdateAllBundled.setListener(updateAllListener, null);
-    myBundledUpdateGroup.addSecondaryAction(myUpdateAllBundled);
-    myBundledUpdateGroup.addSecondaryAction(myUpdateCounterBundled);
+    myUpdateAllBundled.setListener(updateAllListener, null)
+    myBundledUpdateGroup.addSecondaryAction(myUpdateAllBundled)
+    myBundledUpdateGroup.addSecondaryAction(myUpdateCounterBundled)
 
-    PluginManagerPanelFactory.INSTANCE.createInstalledPanel(myCoroutineScope, myPluginModelFacade.getModel(), model -> {
+    PluginManagerPanelFactory.createInstalledPanel(myCoroutineScope, myPluginModelFacade.getModel()) { model ->
       try {
-        myPluginModelFacade.getModel().setDownloadedGroup(myInstalledPanel, userInstalled, installing);
-        installing.getPreloadedModel().setErrors(model.getErrors());
-        installing.getPreloadedModel().setPluginInstallationStates(model.getInstallationStates());
-        installing.addModels(MyPluginModel.getInstallingPlugins());
-        if (!installing.getModels().isEmpty()) {
-          installing.sortByName();
-          installing.titleWithCount();
-          myInstalledPanel.addGroup(installing);
+        myPluginModelFacade.getModel().setDownloadedGroup(installedPanel, userInstalled, installing)
+        installing.preloadedModel.setErrors(model.errors)
+        installing.preloadedModel.setPluginInstallationStates(model.installationStates)
+        installing.addModels(MyPluginModel.installingPlugins)
+        if (!installing.models.isEmpty()) {
+          installing.sortByName()
+          installing.titleWithCount()
+          installedPanel.addGroup(installing)
         }
 
-        userInstalled.getPreloadedModel().setErrors(model.getErrors());
-        userInstalled.getPreloadedModel().setPluginInstallationStates(model.getInstallationStates());
-        userInstalled.addModels(model.getInstalledPlugins());
+        userInstalled.preloadedModel.setErrors(model.errors)
+        userInstalled.preloadedModel.setPluginInstallationStates(model.installationStates)
+        userInstalled.addModels(model.installedPlugins)
 
-        myBundledUpdateGroup.getPreloadedModel().setErrors(model.getErrors());
-        myBundledUpdateGroup.getPreloadedModel().setPluginInstallationStates(model.getInstallationStates());
+        myBundledUpdateGroup.preloadedModel.setErrors(model.errors)
+        myBundledUpdateGroup.preloadedModel.setPluginInstallationStates(model.installationStates)
 
         // bundled includes bundled plugin updates
-        List<PluginUiModel> visibleNonBundledPlugins, visibleBundledPlugins;
-        {
-          Map<Boolean, List<PluginUiModel>> visiblePlugins = model.getVisiblePlugins()
-            .stream()
-            .collect(Collectors.partitioningBy(plugin -> plugin.isBundled() || plugin.isBundledUpdate()));
-          visibleNonBundledPlugins = visiblePlugins.get(Boolean.FALSE);
-          visibleBundledPlugins = visiblePlugins.get(Boolean.TRUE);
-        }
-        List<PluginId> installedPluginIds = ContainerUtil.map(model.getInstalledPlugins(), it -> it.getPluginId());
-        List<PluginUiModel> nonBundledPlugins =
-          ContainerUtil.filter(visibleNonBundledPlugins, it -> !installedPluginIds.contains(it.getPluginId()));
-        userInstalled.addModels(nonBundledPlugins);
-
-        String defaultCategory = IdeBundle.message("plugins.configurable.other.bundled");
-
-        Map<String, Supplier<JComponent>> promotionPanelSuppliers = new HashMap<>();
-        if (Registry.is("ide.plugins.category.promotion.enabled")) {
-          for (PluginCategoryPromotionProvider provider : PROMOTION_EP_NAME.getExtensionList()) {
-            promotionPanelSuppliers.put(provider.getCategoryName(), provider::createPromotionPanel);
-          }
-        }
-
-        List<ComparablePluginsGroup> sortedBundledGroups = visibleBundledPlugins
-          .stream()
-          .collect(Collectors.groupingBy(descriptor -> StringUtil.defaultIfEmpty(descriptor.getDisplayCategory(), defaultCategory)))
-          .entrySet()
-          .stream()
-          .map(entry -> {
-            ComparablePluginsGroup group =
-              new ComparablePluginsGroup(entry.getKey(), entry.getValue(), model.getVisiblePluginsRequiresUltimate());
-            if (Registry.is("ide.plugins.category.promotion.enabled")) {
-              Supplier<JComponent> promotionPanelSupplier = promotionPanelSuppliers.get(entry.getKey());
-              if (promotionPanelSupplier != null) {
-                JComponent promotionPanel = promotionPanelSupplier.get();
-                if (promotionPanel != null) {
-                  group.setPromotionPanel(promotionPanel);
-                }
-              }
-            }
-            return group;
-          })
-          .sorted((o1, o2) -> {
-            if (Registry.is("ide.plugins.category.promotion.enabled")) {
-              boolean isPriorityO1 = false;
-              boolean isPriorityO2 = false;
-              for (PluginCategoryPromotionProvider provider : PROMOTION_EP_NAME.getExtensionList()) {
-                if (provider.isPriorityCategory()) {
-                  String priorityCategory = provider.getCategoryName();
-                  if (priorityCategory.equals(o1.title)) isPriorityO1 = true;
-                  if (priorityCategory.equals(o2.title)) isPriorityO2 = true;
-                }
-              }
-              if (isPriorityO1 != isPriorityO2) {
-                return isPriorityO1 ? -1 : 1;
-              }
-            }
-            if (defaultCategory.equals(o1.title)) return 1;
-            if (defaultCategory.equals(o2.title)) return -1;
-            return o1.compareTo(o2);
-          })
-          .toList();
-
-        if (Registry.is("ide.plugins.category.promotion.enabled")) {
-          // Add priority groups with promotion panel before userInstalled
-          for (ComparablePluginsGroup group : sortedBundledGroups) {
-            if (group.promotionPanel != null) {
-              group.getPreloadedModel().setErrors(model.getErrors());
-              group.getPreloadedModel().setPluginInstallationStates(model.getInstallationStates());
-              myInstalledPanel.addGroup(group);
-              myPluginModelFacade.getModel().addEnabledGroup(group);
-            }
-          }
-        }
-
-        if (!userInstalled.getModels().isEmpty()) {
-          userInstalled.sortByName();
-
-          long enabledNonBundledCount = nonBundledPlugins.stream()
-            .filter(descriptor -> !myPluginModelFacade.getModel().isDisabled(descriptor.getPluginId()))
-            .count();
-          userInstalled.titleWithCount(Math.toIntExact(enabledNonBundledCount));
-          if (userInstalled.ui == null) {
-            myInstalledPanel.addGroup(userInstalled);
-          }
-          myPluginModelFacade.getModel().addEnabledGroup(userInstalled);
-        }
-
-        // Add remaining groups (without promotion panel when flag is enabled, or all groups when disabled)
-        for (ComparablePluginsGroup group : sortedBundledGroups) {
-          if (!Registry.is("ide.plugins.category.promotion.enabled") || group.promotionPanel == null) {
-            group.getPreloadedModel().setErrors(model.getErrors());
-            group.getPreloadedModel().setPluginInstallationStates(model.getInstallationStates());
-            myInstalledPanel.addGroup(group);
-            myPluginModelFacade.getModel().addEnabledGroup(group);
-          }
-        }
-
-        myPluginUpdatesService.calculateUpdates(updates -> {
-          List<PluginUiModel> updateModels = updates == null ? List.of() : updates.stream()
-            .filter(plugin -> myPluginModelFacade.isEnabled(plugin))
-            .toList();
-          if (ContainerUtil.isEmpty(updateModels)) {
-            clearUpdates(myInstalledPanel);
-            clearUpdates(myInstalledSearchPanel.getPanel());
+        val visibleNonBundledPlugins = ArrayList<PluginUiModel>()
+        val visibleBundledPlugins = ArrayList<PluginUiModel>()
+        for (plugin in model.visiblePlugins) {
+          if (plugin.isBundled || plugin.isBundledUpdate) {
+            visibleBundledPlugins.add(plugin)
           }
           else {
-            applyUpdates(myInstalledPanel, updateModels);
-            applyUpdates(myInstalledSearchPanel.getPanel(), updateModels);
+            visibleNonBundledPlugins.add(plugin)
           }
-          applyBundledUpdates(updateModels);
-          selectionListener.accept(myInstalledPanel);
-          selectionListener.accept(myInstalledSearchPanel.getPanel());
-        });
+        }
+
+        val installedPluginIds = model.installedPlugins.map { it.pluginId }
+
+        val nonBundledPlugins = ArrayList<PluginUiModel>()
+        for (plugin in visibleNonBundledPlugins) {
+          if (!installedPluginIds.contains(plugin.pluginId)) {
+            nonBundledPlugins.add(plugin)
+          }
+        }
+
+        userInstalled.addModels(nonBundledPlugins)
+
+        val defaultCategory = IdeBundle.message("plugins.configurable.other.bundled")
+
+        val promotionPanelSuppliers = HashMap<String, Supplier<JComponent?>>()
+        if (Registry.`is`("ide.plugins.category.promotion.enabled")) {
+          for (provider in PROMOTION_EP_NAME.extensionList) {
+            promotionPanelSuppliers[provider.getCategoryName()] = Supplier { provider.createPromotionPanel() }
+          }
+        }
+
+        val groupedVisibleBundledPlugins = HashMap<String, MutableList<PluginUiModel>>()
+        for (descriptor in visibleBundledPlugins) {
+          val category = StringUtil.defaultIfEmpty(descriptor.displayCategory, defaultCategory)
+          val group = groupedVisibleBundledPlugins.getOrPut(category) { ArrayList() }
+          group.add(descriptor)
+        }
+
+        val sortedBundledGroups = ArrayList<ComparablePluginsGroup>()
+        for ((category, descriptors) in groupedVisibleBundledPlugins) {
+          val group = ComparablePluginsGroup(category, descriptors, model.visiblePluginsRequiresUltimate)
+          if (Registry.`is`("ide.plugins.category.promotion.enabled")) {
+            val promotionPanelSupplier = promotionPanelSuppliers[category]
+            if (promotionPanelSupplier != null) {
+              val promotionPanel = promotionPanelSupplier.get()
+              if (promotionPanel != null) {
+                group.setPromotionPanel(promotionPanel)
+              }
+            }
+          }
+          sortedBundledGroups.add(group)
+        }
+        sortedBundledGroups.sortWith { o1, o2 ->
+          if (Registry.`is`("ide.plugins.category.promotion.enabled")) {
+            var isPriorityO1 = false
+            var isPriorityO2 = false
+            for (provider in PROMOTION_EP_NAME.extensionList) {
+              if (provider.isPriorityCategory()) {
+                val priorityCategory = provider.getCategoryName()
+                if (priorityCategory == o1.title) {
+                  isPriorityO1 = true
+                }
+                if (priorityCategory == o2.title) {
+                  isPriorityO2 = true
+                }
+              }
+            }
+            if (isPriorityO1 != isPriorityO2) {
+              return@sortWith if (isPriorityO1) -1 else 1
+            }
+          }
+          if (defaultCategory == o1.title) {
+            return@sortWith 1
+          }
+          if (defaultCategory == o2.title) {
+            return@sortWith -1
+          }
+          o1.compareTo(o2)
+        }
+
+        if (Registry.`is`("ide.plugins.category.promotion.enabled")) {
+          // Add priority groups with promotion panel before userInstalled
+          for (group in sortedBundledGroups) {
+            if (group.promotionPanel != null) {
+              group.preloadedModel.setErrors(model.errors)
+              group.preloadedModel.setPluginInstallationStates(model.installationStates)
+              installedPanel.addGroup(group)
+              myPluginModelFacade.getModel().addEnabledGroup(group)
+            }
+          }
+        }
+
+        if (!userInstalled.models.isEmpty()) {
+          userInstalled.sortByName()
+
+          var enabledNonBundledCount = 0L
+          for (descriptor in nonBundledPlugins) {
+            if (!myPluginModelFacade.getModel().isDisabled(descriptor.pluginId)) {
+              enabledNonBundledCount++
+            }
+          }
+          userInstalled.titleWithCount(Math.toIntExact(enabledNonBundledCount))
+          if (userInstalled.ui == null) {
+            installedPanel.addGroup(userInstalled)
+          }
+          myPluginModelFacade.getModel().addEnabledGroup(userInstalled)
+        }
+
+        for (group in sortedBundledGroups) {
+          if (!Registry.`is`("ide.plugins.category.promotion.enabled") || group.promotionPanel == null) {
+            group.preloadedModel.setErrors(model.errors)
+            group.preloadedModel.setPluginInstallationStates(model.installationStates)
+            installedPanel.addGroup(group)
+            myPluginModelFacade.getModel().addEnabledGroup(group)
+          }
+        }
+
+        myPluginUpdatesService.calculateUpdates { updates ->
+          val updateModels = updates?.filter { plugin -> myPluginModelFacade.isEnabled(plugin) }
+                             ?: emptyList()
+          if (ContainerUtil.isEmpty(updateModels)) {
+            clearUpdates(installedPanel)
+            clearUpdates(myInstalledSearchPanel!!.panel)
+          }
+          else {
+            applyUpdates(installedPanel, updateModels)
+            applyUpdates(myInstalledSearchPanel!!.panel, updateModels)
+          }
+          applyBundledUpdates(updateModels)
+          selectionListener.accept(installedPanel)
+          selectionListener.accept(myInstalledSearchPanel!!.panel)
+        }
       }
       finally {
-        myInstalledPanel.hideLoadingIcon();
+        installedPanel.hideLoadingIcon()
       }
-      return null;
-    });
+    }
 
-    return createScrollPane(myInstalledPanel, true);
+    return createScrollPane(installedPanel, true)
   }
 
-  @Override
-  protected void createSearchTextField(int flyDelay) {
-    super.createSearchTextField(flyDelay);
+  override fun createSearchTextField(flyDelay: Int) {
+    super.createSearchTextField(flyDelay)
 
-    JBTextField textField = searchTextField.getTextEditor();
-    ExtendableTextComponent.Extension searchFieldExtension = ExtendableTextComponent.Extension.create(
-      AllIcons.General.Filter, AllIcons.General.Filter,
-      IdeBundle.message("plugins.configurable.search.options"),
-      true,
-      () -> showRightBottomPopup(textField, IdeBundle.message("plugins.configurable.show"), myInstalledSearchGroup)
-    );
-    textField.putClientProperty("search.extension", searchFieldExtension);
-    textField.putClientProperty("JTextField.variant", null);
-    textField.putClientProperty("JTextField.variant", "search");
+    val textField = searchTextField.textEditor
 
-    searchTextField.setHistoryPropertyName("InstalledPluginsSearchHistory");
+    @Suppress("DialogTitleCapitalization")
+    val searchOptionsText = IdeBundle.message("plugins.configurable.search.options")
+    val searchFieldExtension = ExtendableTextComponent.Extension.create(
+      /* defaultIcon = */ AllIcons.General.Filter,
+      /* hoveredIcon = */ AllIcons.General.Filter,
+      /* tooltip = */ searchOptionsText,
+      /* focusable = */ true,
+    ) {
+      showRightBottomPopup(textField, IdeBundle.message("plugins.configurable.show"), myInstalledSearchGroup)
+    }
+    textField.putClientProperty("search.extension", searchFieldExtension)
+    textField.putClientProperty("JTextField.variant", null)
+    textField.putClientProperty("JTextField.variant", "search")
+
+    searchTextField.setHistoryPropertyName("InstalledPluginsSearchHistory")
   }
 
-  @Override
-  protected @NotNull SearchResultPanel createSearchPanel(@NotNull Consumer<? super PluginsGroupComponent> selectionListener) {
-    SearchUpDownPopupController installedController = new SearchUpDownPopupController(searchTextField) {
-      @Override
-      protected @NotNull @NonNls List<String> getAttributes() {
-        return Arrays
-          .asList(
-            "/userInstalled", // don't suggest /downloaded in popup
-            "/outdated",
-            "/enabled",
-            "/disabled",
-            "/invalid",
-            "/bundled",
-            "/updatedBundled",
-            SearchWords.VENDOR.getValue(),
-            SearchWords.TAG.getValue()
-          );
+  override fun createSearchPanel(selectionListener: Consumer<in PluginsGroupComponent?>): SearchResultPanel {
+    val installedController = object : SearchUpDownPopupController(searchTextField) {
+      override fun getAttributes(): List<String> {
+        return listOf(
+          "/userInstalled",
+          "/outdated",
+          "/enabled",
+          "/disabled",
+          "/invalid",
+          "/bundled",
+          "/updatedBundled",
+          SearchWords.VENDOR.value,
+          SearchWords.TAG.value,
+        )
       }
 
-      @Override
-      protected @Nullable SortedSet<String> getValues(@NotNull String attribute) {
-        return SearchWords.VENDOR.getValue().equals(attribute) ?
-               myPluginModelFacade.getModel().getVendors() :
-               SearchWords.TAG.getValue().equals(attribute) ?
-               myPluginModelFacade.getModel().getTags() :
-               null;
+      override fun getValues(attribute: String): SortedSet<String>? {
+        @Suppress("UNCHECKED_CAST")
+        return if (SearchWords.VENDOR.value == attribute) {
+          myPluginModelFacade.getModel().vendors as SortedSet<String>?
+        }
+        else if (SearchWords.TAG.value == attribute) {
+          myPluginModelFacade.getModel().tags as SortedSet<String>?
+        }
+        else {
+          null
+        }
       }
 
-      @Override
-      protected void showPopupForQuery() {
-        showSearchPanel(searchTextField.getText());
+      override fun showPopupForQuery() {
+        showSearchPanel(searchTextField.text)
       }
-    };
+    }
 
-    MultiSelectionEventHandler eventHandler = new MultiSelectionEventHandler();
-    installedController.setSearchResultEventHandler(eventHandler);
+    val eventHandler = MultiSelectionEventHandler()
+    installedController.setSearchResultEventHandler(eventHandler)
 
-    PluginsGroupComponentWithProgress panel = new PluginsGroupComponentWithProgress(eventHandler) {
-      @Override
-      protected @NotNull ListPluginComponent createListComponent(@NotNull PluginUiModel model,
-                                                                 @NotNull PluginsGroup group,
-                                                                 @NotNull ListPluginModel listPluginModel) {
-        return new ListPluginComponent(myPluginModelFacade, model, group, listPluginModel, searchListener, myCoroutineScope, false);
+    val panel = object : PluginsGroupComponentWithProgress(eventHandler) {
+      override fun createListComponent(
+        model: PluginUiModel,
+        group: PluginsGroup,
+        listPluginModel: ListPluginModel,
+      ): ListPluginComponent {
+        return ListPluginComponent(myPluginModelFacade, model, group, listPluginModel, searchListener, myCoroutineScope, false)
       }
-    };
+    }
 
-    panel.setSelectionListener(selectionListener);
-    registerCopyProvider(panel);
+    panel.setSelectionListener(selectionListener)
+    registerCopyProvider(panel)
 
-    myInstalledSearchPanel = new InstalledPluginsTabSearchResultPanel(
+    val installedSearchPanel = InstalledPluginsTabSearchResultPanel(
       myCoroutineScope,
       installedController,
       panel,
       myInstalledSearchGroup,
-      () -> myInstalledPanel,
+      Supplier { myInstalledPanel },
       selectionListener,
-      mySearchInMarketplaceTabHandler,
-      myPluginModelFacade
-    );
-    return myInstalledSearchPanel;
+      if (mySearchInMarketplaceTabHandler == null) null else Consumer<String?> { query -> mySearchInMarketplaceTabHandler.accept(query!!) },
+      myPluginModelFacade,
+    )
+    myInstalledSearchPanel = installedSearchPanel
+    return installedSearchPanel
   }
 
-  @Override
-  protected void updateMainSelection(@NotNull Consumer<? super PluginsGroupComponent> selectionListener) {
-    selectionListener.accept(myInstalledPanel);
+  override fun updateMainSelection(selectionListener: Consumer<in PluginsGroupComponent?>) {
+    selectionListener.accept(myInstalledPanel)
   }
 
-  @Override
-  public void hideSearchPanel() {
-    super.hideSearchPanel();
-    myPluginModelFacade.getModel().setInvalidFixCallback(null);
+  override fun hideSearchPanel() {
+    super.hideSearchPanel()
+    myPluginModelFacade.getModel().setInvalidFixCallback(null)
   }
 
-  @Override
-  protected void onSearchReset() {
-    PluginManagerUsageCollector.INSTANCE.searchReset();
+  override fun onSearchReset() {
+    PluginManagerUsageCollector.searchReset()
   }
 
-  private void handleSearchOptionSelection(InstalledSearchOptionAction updateAction) {
-    List<String> queries = new ArrayList<>();
-    new SearchQueryParser.Installed(searchTextField.getText()) {
-      @Override
-      protected void addToSearchQuery(@NotNull String query) {
-        queries.add(query);
+  private fun handleSearchOptionSelection(updateAction: InstalledSearchOptionAction) {
+    val queries = ArrayList<String>()
+    object : SearchQueryParser.Installed(searchTextField.text) {
+      override fun addToSearchQuery(query: String) {
+        queries.add(query)
       }
 
-      @Override
-      protected void handleAttribute(@NotNull String name, @NotNull String value) {
+      override fun handleAttribute(name: String, value: String) {
         if (!updateAction.myIsSelected) {
-          queries.add(name + (value.isEmpty() ? "" : SearchQueryParser.wrapAttribute(value)));
+          queries.add(name + if (value.isEmpty()) "" else wrapAttribute(value))
         }
       }
-    };
+    }
 
     if (updateAction.myIsSelected) {
-      queries.add(updateAction.getQuery());
+      queries.add(updateAction.query)
     }
     else {
-      queries.remove(updateAction.getQuery());
+      queries.remove(updateAction.query)
     }
 
-    String query = StringUtil.join(queries, " ");
-    searchTextField.setTextIgnoreEvents(query);
+    val query = StringUtil.join(queries, " ")
+    searchTextField.setTextIgnoreEvents(query)
     if (query.isEmpty()) {
-      hideSearchPanel();
+      hideSearchPanel()
     }
     else {
-      showSearchPanel(query);
+      showSearchPanel(query)
     }
   }
 
-  private void applyBundledUpdates(@Nullable Collection<? extends PluginUiModel> updates) {
-    if (ContainerUtil.isEmpty(updates)) {
+  private fun applyBundledUpdates(updates: Collection<PluginUiModel>?) {
+    if (updates.isNullOrEmpty()) {
       if (myBundledUpdateGroup.ui != null) {
-        getInstalledPanel().removeGroup(myBundledUpdateGroup);
-        getInstalledPanel().doLayout();
+        getInstalledPanel()!!.removeGroup(myBundledUpdateGroup)
+        getInstalledPanel()!!.doLayout()
       }
     }
     else if (myBundledUpdateGroup.ui == null) {
-      if (myBundledUpdateGroup.secondaryActions == null || myBundledUpdateGroup.secondaryActions.isEmpty()) {
+      val secondaryActions = myBundledUpdateGroup.secondaryActions
+      if (secondaryActions.isNullOrEmpty()) {
         // removeGroup clears actions too
-        myBundledUpdateGroup.addSecondaryAction(myUpdateAllBundled);
-        myBundledUpdateGroup.addSecondaryAction(myUpdateCounterBundled);
+        myBundledUpdateGroup.addSecondaryAction(myUpdateAllBundled)
+        myBundledUpdateGroup.addSecondaryAction(myUpdateCounterBundled)
       }
-      for (PluginUiModel descriptor : updates) {
-        for (UIPluginGroup group : getInstalledPanel().getGroups()) {
-          ListPluginComponent component = group.findComponent(descriptor.getPluginId());
-          if (component != null && component.getPluginModel().isBundled()) {
-            myBundledUpdateGroup.addModel(component.getPluginModel());
-            break;
+      for (descriptor in updates) {
+        for (group in getInstalledPanel()!!.groups) {
+          val component = group.findComponent(descriptor.pluginId)
+          if (component != null && component.pluginModel.isBundled) {
+            myBundledUpdateGroup.addModel(component.pluginModel)
+            break
           }
         }
       }
-      if (!myBundledUpdateGroup.getModels().isEmpty()) {
-        int insertPosition = 0;
-        if (Registry.is("ide.plugins.category.promotion.enabled")) {
-          List<UIPluginGroup> groups = getInstalledPanel().getGroups();
-          for (int i = 0; i < groups.size(); i++) {
-            if (groups.get(i).promotionPanel != null) {
-              insertPosition = i + 1;
-              break;
+      if (!myBundledUpdateGroup.models.isEmpty()) {
+        var insertPosition = 0
+        if (Registry.`is`("ide.plugins.category.promotion.enabled")) {
+          val groups = getInstalledPanel()!!.groups
+          for (i in groups.indices) {
+            if (groups[i].promotionPanel != null) {
+              insertPosition = i + 1
+              break
             }
           }
         }
-        getInstalledPanel().addGroup(myBundledUpdateGroup, insertPosition);
-        myBundledUpdateGroup.ui.isBundledUpdatesGroup = true;
+        getInstalledPanel()!!.addGroup(myBundledUpdateGroup, insertPosition)
+        myBundledUpdateGroup.ui!!.isBundledUpdatesGroup = true
 
-        for (PluginUiModel descriptor : updates) {
-          ListPluginComponent component = myBundledUpdateGroup.ui.findComponent(descriptor.getPluginId());
-          if (component != null) {
-            component.setUpdateDescriptor(descriptor);
-          }
+        for (descriptor in updates) {
+          val component = myBundledUpdateGroup.ui!!.findComponent(descriptor.pluginId)
+          component?.setUpdateDescriptor(descriptor)
         }
 
-        getInstalledPanel().doLayout();
+        getInstalledPanel()!!.doLayout()
       }
     }
     else {
-      List<ListPluginComponent> toDelete = new ArrayList<>();
+      val toDelete = ArrayList<ListPluginComponent>()
 
-      for (ListPluginComponent plugin : myBundledUpdateGroup.ui.plugins) {
-        boolean exist = false;
-        for (PluginUiModel update : updates) {
-          if (plugin.getPluginModel().getPluginId().equals(update.getPluginId())) {
-            exist = true;
-            break;
+      for (plugin in myBundledUpdateGroup.ui!!.plugins) {
+        var exist = false
+        for (update in updates) {
+          if (plugin.pluginModel.pluginId == update.pluginId) {
+            exist = true
+            break
           }
         }
         if (!exist) {
-          toDelete.add(plugin);
+          toDelete.add(plugin)
         }
       }
 
-      for (ListPluginComponent component : toDelete) {
-        getInstalledPanel().removeFromGroup(myBundledUpdateGroup, component.getPluginModel());
+      for (component in toDelete) {
+        getInstalledPanel()!!.removeFromGroup(myBundledUpdateGroup, component.pluginModel)
       }
 
-      for (PluginUiModel update : updates) {
-        ListPluginComponent exist = myBundledUpdateGroup.ui.findComponent(update.getPluginId());
+      for (update in updates) {
+        val exist = myBundledUpdateGroup.ui!!.findComponent(update.pluginId)
         if (exist != null) {
-          continue;
+          continue
         }
-        for (UIPluginGroup group : getInstalledPanel().getGroups()) {
+        for (group in getInstalledPanel()!!.groups) {
           if (group == myBundledUpdateGroup.ui) {
-            continue;
+            continue
           }
-          ListPluginComponent component = group.findComponent(update.getPluginId());
-          if (component != null && component.getPluginModel().isBundled()) {
-            getInstalledPanel().addToGroup(myBundledUpdateGroup, component.getPluginModel());
-            break;
+          val component = group.findComponent(update.pluginId)
+          if (component != null && component.pluginModel.isBundled) {
+            getInstalledPanel()!!.addToGroup(myBundledUpdateGroup, component.pluginModel)
+            break
           }
         }
       }
 
-      if (myBundledUpdateGroup.getModels().isEmpty()) {
-        getInstalledPanel().removeGroup(myBundledUpdateGroup);
+      if (myBundledUpdateGroup.models.isEmpty()) {
+        getInstalledPanel()!!.removeGroup(myBundledUpdateGroup)
       }
       else {
-        for (PluginUiModel descriptor : updates) {
-          ListPluginComponent component = myBundledUpdateGroup.ui.findComponent(descriptor.getPluginId());
-          if (component != null) {
-            component.setUpdateDescriptor(descriptor);
-          }
+        for (descriptor in updates) {
+          val component = myBundledUpdateGroup.ui!!.findComponent(descriptor.pluginId)
+          component?.setUpdateDescriptor(descriptor)
         }
       }
 
-      getInstalledPanel().doLayout();
+      getInstalledPanel()!!.doLayout()
     }
 
-    myUpdateAll.setVisible(myUpdateAll.isVisible() && myBundledUpdateGroup.ui == null);
-    myUpdateCounter.setVisible(myUpdateCounter.isVisible() && myBundledUpdateGroup.ui == null);
+    myUpdateAll.isVisible = myUpdateAll.isVisible && myBundledUpdateGroup.ui == null
+    myUpdateCounter.isVisible = myUpdateCounter.isVisible && myBundledUpdateGroup.ui == null
   }
 
-  void onPluginUpdatesRecalculation(Integer updatesCount, @Nls String tooltip) {
-    int count = updatesCount == null ? 0 : updatesCount;
-    String text = Integer.toString(count);
-    boolean visible = count > 0;
+  fun onPluginUpdatesRecalculation(updatesCount: Int?, tooltip: @Nls String?) {
+    val count = updatesCount ?: 0
+    val text = count.toString()
+    val visible = count > 0
 
-    myUpdateAll.setEnabled(true);
-    myUpdateAllBundled.setEnabled(true);
-    myUpdateAll.setVisible(visible && myBundledUpdateGroup.ui == null);
-    myUpdateAllBundled.setVisible(visible);
+    myUpdateAll.isEnabled = true
+    myUpdateAllBundled.isEnabled = true
+    myUpdateAll.isVisible = visible && myBundledUpdateGroup.ui == null
+    myUpdateAllBundled.isVisible = visible
 
-    myUpdateCounter.setText(text);
-    myUpdateCounter.setToolTipText(tooltip);
-    myUpdateCounterBundled.setText(text);
-    myUpdateCounterBundled.setToolTipText(tooltip);
-    myUpdateCounter.setVisible(visible && myBundledUpdateGroup.ui == null);
-    myUpdateCounterBundled.setVisible(visible);
+    myUpdateCounter.text = text
+    myUpdateCounter.toolTipText = tooltip
+    myUpdateCounterBundled.text = text
+    myUpdateCounterBundled.toolTipText = tooltip
+    myUpdateCounter.isVisible = visible && myBundledUpdateGroup.ui == null
+    myUpdateCounterBundled.isVisible = visible
   }
 
   @ApiStatus.Internal
-  final class InstalledSearchOptionAction extends ToggleAction implements DumbAware {
-    private final InstalledSearchOption myOption;
-    private boolean myIsSelected;
+  internal inner class InstalledSearchOptionAction(private val myOption: InstalledSearchOption)
+    : ToggleAction(myOption.myPresentableNameSupplier), DumbAware {
+    var myIsSelected: Boolean = false
 
-    private InstalledSearchOptionAction(@NotNull InstalledSearchOption option) {
-      super(option.myPresentableNameSupplier);
-      getTemplatePresentation().setKeepPopupOnPerform(KeepPopupOnPerform.IfRequested);
-      myOption = option;
+    init {
+      templatePresentation.setKeepPopupOnPerform(KeepPopupOnPerform.IfRequested)
     }
 
-    @Override
-    public boolean isSelected(@NotNull AnActionEvent e) {
-      return myIsSelected;
+    override fun isSelected(e: AnActionEvent): Boolean {
+      return myIsSelected
     }
 
-    @Override
-    public void setSelected(@NotNull AnActionEvent e, boolean state) {
-      myIsSelected = state;
-      handleSearchOptionSelection(this);
+    override fun setSelected(e: AnActionEvent, state: Boolean) {
+      myIsSelected = state
+      handleSearchOptionSelection(this)
     }
 
-    @Override
-    public @NotNull ActionUpdateThread getActionUpdateThread() {
-      return ActionUpdateThread.BGT;
+    override fun getActionUpdateThread(): ActionUpdateThread {
+      return ActionUpdateThread.BGT
     }
 
-    public void setState(@Nullable SearchQueryParser.Installed parser) {
+    fun setState(parser: SearchQueryParser.Installed?) {
       if (parser == null) {
-        myIsSelected = false;
-        return;
+        myIsSelected = false
+        return
       }
 
-      myIsSelected = switch (myOption) {
-        case Enabled -> parser.enabled;
-        case Disabled -> parser.disabled;
-        case UserInstalled -> parser.userInstalled;
-        case Bundled -> parser.bundled;
-        case UpdatedBundled -> parser.updatedBundled;
-        case Invalid -> parser.invalid;
-        case NeedUpdate -> parser.needUpdate;
-      };
+      myIsSelected = when (myOption) {
+        InstalledSearchOption.Enabled -> parser.enabled
+        InstalledSearchOption.Disabled -> parser.disabled
+        InstalledSearchOption.UserInstalled -> parser.userInstalled
+        InstalledSearchOption.Bundled -> parser.bundled
+        InstalledSearchOption.UpdatedBundled -> parser.updatedBundled
+        InstalledSearchOption.Invalid -> parser.invalid
+        InstalledSearchOption.NeedUpdate -> parser.needUpdate
+      }
     }
 
-    public @NotNull String getQuery() {
-      return myOption == InstalledSearchOption.NeedUpdate ? "/outdated" : "/" + StringUtil.decapitalize(myOption.name());
-    }
+    val query: String
+      get() {
+        return if (myOption == InstalledSearchOption.NeedUpdate) "/outdated" else "/" + StringUtil.decapitalize(myOption.name)
+      }
   }
 
-  private final class ComparablePluginsGroup extends PluginsGroup
-    implements Comparable<ComparablePluginsGroup> {
+  private inner class ComparablePluginsGroup(
+    category: @NlsSafe String,
+    descriptors: List<PluginUiModel>,
+    private val myPluginsRequiresUltimateButItsDisabled: Map<PluginId, Boolean>,
+  ) : PluginsGroup(category, PluginsGroupType.INSTALLED), Comparable<ComparablePluginsGroup> {
+    private var myIsEnable = false
 
-    @NotNull private final Map<PluginId, Boolean> myPluginsRequiresUltimateButItsDisabled;
-    private boolean myIsEnable = false;
+    init {
+      addModels(descriptors)
+      sortByName()
 
-    private ComparablePluginsGroup(@NotNull @NlsSafe String category,
-                                   @NotNull List<PluginUiModel> descriptors,
-                                   @NotNull Map<PluginId, Boolean> pluginsRequiresUltimate) {
-      super(category, PluginsGroupType.INSTALLED);
-      myPluginsRequiresUltimateButItsDisabled = pluginsRequiresUltimate;
-
-      this.addModels(descriptors);
-      sortByName();
-
-      mainAction = new PluginManagerConfigurablePanel.LinkLabelButton<>("",
-                                                                        null,
-                                                                        (__, ___) -> setEnabledState());
-      boolean hasPluginsAvailableForEnableDisable =
-        ContainerUtil.exists(descriptors, it -> !pluginsRequiresUltimate.get(it.getPluginId()));
-      mainAction.setVisible(hasPluginsAvailableForEnableDisable);
-      titleWithEnabled(myPluginModelFacade);
+      mainAction = PluginManagerConfigurablePanel.LinkLabelButton("", null) { _, _ -> setEnabledState() }
+      val hasPluginsAvailableForEnableDisable =
+        descriptors.any { !myPluginsRequiresUltimateButItsDisabled[it.pluginId]!! }
+      mainAction!!.isVisible = hasPluginsAvailableForEnableDisable
+      titleWithEnabled(myPluginModelFacade)
     }
 
-    @Override
-    public void titleWithEnabled(@NotNull PluginModelFacade pluginModelFacade) {
-      int enabled = 0;
-      for (PluginUiModel descriptor : models) {
+    override fun titleWithEnabled(pluginModelFacade: PluginModelFacade) {
+      var enabled = 0
+      for (descriptor in models) {
         if (pluginModelFacade.isLoaded(descriptor) &&
             pluginModelFacade.isEnabled(descriptor) &&
-            !myPluginsRequiresUltimateButItsDisabled.getOrDefault(descriptor.getPluginId(), false) &&
-            !descriptor.isIncompatible()) {
-          enabled++;
+            !myPluginsRequiresUltimateButItsDisabled.getOrDefault(descriptor.pluginId, false) &&
+            !descriptor.isIncompatible
+        ) {
+          enabled++
         }
       }
-      titleWithCount(enabled);
+      titleWithCount(enabled)
     }
 
-    @Override
-    public int compareTo(@NotNull ComparablePluginsGroup other) {
-      return StringUtil.compare(title, other.title, true);
+    override fun compareTo(other: ComparablePluginsGroup): Int {
+      return StringUtil.compare(title, other.title, true)
     }
 
-    @Override
-    public void titleWithCount(int enabled) {
-      myIsEnable = enabled == 0;
-      String key = myIsEnable ? "plugins.configurable.enable.all" : "plugins.configurable.disable.all";
-      mainAction.setText(IdeBundle.message(key));
+    override fun titleWithCount(enabled: Int) {
+      myIsEnable = enabled == 0
+      val key = if (myIsEnable) "plugins.configurable.enable.all" else "plugins.configurable.disable.all"
+      mainAction!!.text = IdeBundle.message(key)
     }
 
-    private void setEnabledState() {
-      setState(myPluginModelFacade, getModels(), myIsEnable);
+    private fun setEnabledState() {
+      setState(myPluginModelFacade, models, myIsEnable)
     }
   }
 
-  private enum InstalledSearchOption {
+  internal enum class InstalledSearchOption(val myPresentableNameSupplier: Supplier<String>) {
     UserInstalled(IdeBundle.messagePointer("plugins.configurable.InstalledSearchOption.UserInstalled")),
     NeedUpdate(IdeBundle.messagePointer("plugins.configurable.InstalledSearchOption.NeedUpdate")),
     Enabled(IdeBundle.messagePointer("plugins.configurable.InstalledSearchOption.Enabled")),
     Disabled(IdeBundle.messagePointer("plugins.configurable.InstalledSearchOption.Disabled")),
     Invalid(IdeBundle.messagePointer("plugins.configurable.InstalledSearchOption.Invalid")),
     Bundled(IdeBundle.messagePointer("plugins.configurable.InstalledSearchOption.Bundled")),
-    UpdatedBundled(IdeBundle.messagePointer("plugins.configurable.InstalledSearchOption.UpdatedBundled"));
+    UpdatedBundled(IdeBundle.messagePointer("plugins.configurable.InstalledSearchOption.UpdatedBundled")),
+  }
 
-    private final Supplier<@Nls String> myPresentableNameSupplier;
-
-    InstalledSearchOption(Supplier<@Nls String> name) { myPresentableNameSupplier = name; }
+  private companion object {
+    val PROMOTION_EP_NAME: ExtensionPointName<PluginCategoryPromotionProvider> =
+      ExtensionPointName.create("com.intellij.pluginCategoryPromotionProvider")
   }
 }
