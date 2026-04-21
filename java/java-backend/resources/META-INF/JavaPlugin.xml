@@ -946,6 +946,7 @@
     <codeInspection.InspectionExtension implementation="com.intellij.codeInspection.ex.JavaInspectionExtensionsFactory"/>
     <postFormatProcessor implementation="com.intellij.psi.impl.source.codeStyle.ImportPostFormatProcessor"/>
     <postFormatProcessor implementation="com.intellij.psi.impl.source.codeStyle.BracePostFormatProcessor"/>
+    <postFormatProcessor implementation="com.intellij.psi.impl.source.codeStyle.TextBlockPostFormatProcessor"/>
     <preFormatProcessor implementation="com.intellij.psi.impl.source.codeStyle.FormatCommentsProcessor"/>
     <elementSignatureProvider implementation="com.intellij.codeInsight.folding.impl.JavaElementSignatureProvider"/>
     <smartPointer.anchorProvider implementation="com.intellij.psi.impl.smartPointers.JavaAnchorProvider"/>
