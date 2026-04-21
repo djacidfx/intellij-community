@@ -150,6 +150,7 @@ open class LcrRowImpl<T>(private val renderer: LcrRow<T>.() -> Unit) : LcrRow<T>
     separator = null
     gap = LcrRow.Gap.DEFAULT
     selectable = true
+    toolTipText = null
     listCellRendererParams = ListCellRendererParams(list, value, index, isSelected, cellHasFocus)
     rowHeight = JBUI.CurrentTheme.List.rowHeight()
 

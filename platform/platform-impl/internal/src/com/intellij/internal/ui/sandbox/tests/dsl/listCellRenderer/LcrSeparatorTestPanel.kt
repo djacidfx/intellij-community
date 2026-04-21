@@ -1,9 +1,10 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 @file:Suppress("DialogTitleCapitalization")
 
-package com.intellij.internal.ui.sandbox.dsl.listCellRenderer
+package com.intellij.internal.ui.sandbox.tests.dsl.listCellRenderer
 
 import com.intellij.internal.ui.sandbox.UISandboxPanel
+import com.intellij.internal.ui.sandbox.jbList
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.ui.popup.ListItemDescriptor
 import com.intellij.openapi.ui.popup.ListSeparator
@@ -25,7 +26,7 @@ private val items: List<String> = mutableListOf("The first group", "Item 1", "It
 
 private val separators = mapOf("The first group" to "The first", "Another Item 1" to "", "Group Item 1" to "Group")
 
-internal class LcrSeparatorPanel : UISandboxPanel {
+internal class LcrSeparatorTestPanel : UISandboxPanel {
 
   override val title: String = "Separator"
 

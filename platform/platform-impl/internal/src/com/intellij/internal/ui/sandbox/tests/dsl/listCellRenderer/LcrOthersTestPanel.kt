@@ -1,9 +1,9 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
 @file:ApiStatus.Internal
 @file:Suppress("DialogTitleCapitalization")
 
-package com.intellij.internal.ui.sandbox.dsl.listCellRenderer
+package com.intellij.internal.ui.sandbox.tests.dsl.listCellRenderer
 
 import com.intellij.icons.AllIcons
 import com.intellij.internal.ui.sandbox.UISandboxPanel
@@ -31,7 +31,7 @@ import java.awt.Font
 import javax.swing.JComboBox
 import javax.swing.JComponent
 
-internal class LcrOthersPanel : UISandboxPanel {
+internal class LcrOthersTestPanel : UISandboxPanel {
 
   private enum class RowHeightType {
     DEFAULT_FIXED,

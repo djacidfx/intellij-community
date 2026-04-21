@@ -1,5 +1,5 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.internal.ui.sandbox.components
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+package com.intellij.internal.ui.sandbox.tests.components
 
 import com.intellij.icons.AllIcons
 import com.intellij.internal.ui.sandbox.UISandboxPanel
@@ -22,6 +22,9 @@ import javax.swing.JLabel
 @Suppress("DialogTitleCapitalization")
 internal class JBTabsPanel : UISandboxPanel {
   override val title: String = "JBTabsImpl"
+
+  override val isInternalApi: Boolean
+    get() = true
 
   private val place: String = "UI Sandbox"
 

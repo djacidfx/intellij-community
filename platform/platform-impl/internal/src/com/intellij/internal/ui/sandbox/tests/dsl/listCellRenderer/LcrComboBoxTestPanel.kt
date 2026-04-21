@@ -1,10 +1,11 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 @file:ApiStatus.Internal
 
-package com.intellij.internal.ui.sandbox.dsl.listCellRenderer
+package com.intellij.internal.ui.sandbox.tests.dsl.listCellRenderer
 
 import com.intellij.icons.AllIcons
 import com.intellij.internal.ui.sandbox.UISandboxPanel
+import com.intellij.internal.ui.sandbox.intList
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.dsl.builder.Cell
@@ -22,7 +23,7 @@ import javax.swing.JComboBox
 import javax.swing.JComponent
 import javax.swing.ListCellRenderer
 
-internal class LcrComboBoxPanel : UISandboxPanel {
+internal class LcrComboBoxTestPanel : UISandboxPanel {
 
   override val title: String = "ComboBox"
 
@@ -63,7 +64,7 @@ internal class LcrComboBoxPanel : UISandboxPanel {
           }).addTo(comboBoxes)
         }
         row("Items with icon:") {
-          comboBox((1..100).toList(), listCellRenderer("") {
+          comboBox(intList(), listCellRenderer("") {
             icon(if (value % 2 == 0) AllIcons.General.Information else AllIcons.General.Gear)
             text("Item $value")
           }).addTo(comboBoxes)
@@ -86,13 +87,13 @@ internal class LcrComboBoxPanel : UISandboxPanel {
           jComboBox(listOf("First", "Second", "Try with y", "Try with ()"), textListCellRenderer { it })
         }
         row("Items with icon:") {
-          jComboBox((1..100).toList(), listCellRenderer("") {
+          jComboBox(intList(), listCellRenderer("") {
             icon(if (value % 2 == 0) AllIcons.General.Information else AllIcons.General.Gear)
             text("Item $value")
           })
         }
         row("Long items:") {
-          jComboBox((1..100).map { "$it " + "Item".repeat(10) }, textListCellRenderer { it }).component
+          jComboBox(intList(), textListCellRenderer { "$it " + "Item".repeat(10) }).component
         }
       }.enabledIf(enabled.selected)
     }

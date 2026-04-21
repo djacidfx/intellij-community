@@ -33,6 +33,9 @@ internal class BadgePanel : UISandboxPanel {
 
   override val title: String = "Badge"
 
+  override val isInternalApi: Boolean
+    get() = true
+
   override fun createContent(disposable: Disposable): JComponent {
     return panel {
       group("Predefined Badges") {
