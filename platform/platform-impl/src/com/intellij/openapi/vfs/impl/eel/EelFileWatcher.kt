@@ -163,7 +163,17 @@ class EelFileWatcher : PluggableFileWatcher() {
         try {
           val flow = eel.fs.watchChanges()
           eel.fs.addWatchRoots(WatchOptionsBuilder().changeTypes(watchedOptions).paths(data.getWatchedPaths()).build())
-          scope.launch { flow.collect { notifyChange(it, data) } }
+          scope.launch {
+            try {
+              flow.collect { notifyChange(it, data) }
+            }
+            catch (e: CancellationException) {
+              throw e
+            }
+            catch (e: Exception) {
+              LOG.debug("File watcher flow terminated for ${data.descriptor}: ${e.message}")
+            }
+          }
         }
         catch (e: CancellationException) {
           throw e 

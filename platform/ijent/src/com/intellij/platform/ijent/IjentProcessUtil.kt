@@ -15,6 +15,7 @@ fun getIjentGrpcArgv(
   noShutdownOnDisconnect: Boolean = false,
   deployInfo: TcpDeployInfo? = null,
   useTLS: Boolean = false,
+  jsonOutput: Boolean = false,
 ): List<String> {
   val useMultiTransport = Registry.`is`("ijent.multiple.connections.mode")
   return listOfNotNull(
@@ -25,5 +26,6 @@ fun getIjentGrpcArgv(
     if (!useMultiTransport && useTLS) "--use-tls" else null,
     if (selfDeleteOnExit) "--self-delete-on-exit" else null,
     if (!useMultiTransport && noShutdownOnDisconnect) "--no-shutdown-on-disconnect" else null,
+    if (!useMultiTransport && jsonOutput) "--json-output" else null,
   )
 }
