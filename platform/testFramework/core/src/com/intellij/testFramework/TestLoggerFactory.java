@@ -65,6 +65,9 @@ public final class TestLoggerFactory implements Logger.Factory {
   private static final char FAILED_TEST_DEBUG_OUTPUT_MARKER = '\u2003';
   private static final int MAX_BUFFER_LENGTH = Math.max(1024, Integer.getInteger("idea.single.test.log.max.length", 10_000_000));
 
+  /** If true, print '[threadName]' (30 chars max) on each log line. Default is false to keep a legacy log format. */
+  private static final boolean LOG_THREAD_NAME = Boolean.getBoolean("idea.test.log.thread.name");
+
   // store log contents here, as a list of (timestamp, message) records, to optimize for append speed
   private final Deque<Record> myBuffer = new ArrayDeque<>(8192); // guarded by myBuffer
   private int length; // total length of myBuffer in characters, approx
@@ -208,10 +211,16 @@ public final class TestLoggerFactory implements Logger.Factory {
     }
   }
 
-  private record Record(long timeStamp, @NotNull LogLevel level, @NotNull String category, @Nullable CharSequence message, @Nullable Throwable t) {
+  private record Record(long timeStamp,
+                        @NotNull LogLevel level,
+                        @NotNull String category,
+                        @Nullable CharSequence message,
+                        @Nullable Throwable t,
+                        @NotNull String threadName) {
     private int estimateSize() {
       return 12 + 1 + 6 + 1 + 30 + 3 + // header
-             (message==null?0:message.length()) +
+             (message == null ? 0 : message.length()) +
+             (LOG_THREAD_NAME ? threadName.length() : 0) +
              (t == null ? 0 : 4096) +
              System.lineSeparator().length();
     }
@@ -219,15 +228,24 @@ public final class TestLoggerFactory implements Logger.Factory {
     @Override
     public @NotNull String toString() {
       var source = category().substring(Math.max(category().length() - 30, 0));
-      String format = String.format("%1$tH:%1$tM:%1$tS,%1$tL %2$-6s %3$30s - ", timeStamp(), level().getLevelName(), source);
+      String prefix;
+      if(LOG_THREAD_NAME) {
+        var threadNameTruncated = threadName.substring(Math.max(threadName.length() - 20, 0));
+        prefix = String.format("%1$tH:%1$tM:%1$tS,%1$tL %2$-6s %3$30s [%4$20s] - ",
+                               timeStamp, level.getLevelName(), source, threadNameTruncated);
+      }
+      else{
+        prefix = String.format("%1$tH:%1$tM:%1$tS,%1$tL %2$-6s %3$30s - ",
+                               timeStamp, level.getLevelName(), source);
+      }
       String message = message() == null ? "" : message() + System.lineSeparator();
-      String throwable = t() == null ? "" : ExceptionUtil.getThrowableText(t()) + System.lineSeparator();
-      return format + message + throwable;
+      String throwable = t == null ? "" : ExceptionUtil.getThrowableText(t) + System.lineSeparator();
+      return prefix + message + throwable;
     }
   }
   private void buffer(@NotNull LogLevel level, @NotNull String category, @Nullable String message, @Nullable Throwable t) {
     synchronized (myBuffer) {
-      Record logRecord = new Record(System.currentTimeMillis(), level, category, message, t);
+      Record logRecord = new Record(System.currentTimeMillis(), level, category, message, t, Thread.currentThread().getName());
       myBuffer.add(logRecord);
       length += logRecord.estimateSize();
       while (length >= MAX_BUFFER_LENGTH && !myBuffer.isEmpty()) {
