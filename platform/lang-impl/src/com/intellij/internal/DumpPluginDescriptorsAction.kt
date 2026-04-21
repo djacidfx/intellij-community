@@ -207,8 +207,9 @@ private class PluginDescriptionDumper(val coroutineScope: CoroutineScope) {
       writeArrayPropertyStart("classpath")
       val homeDir = PathManager.getHomeDir()
       if (classLoader is UrlClassLoader) {
-        for (path in classLoader.baseUrls) {
-          val relativePath = if (path.startsWith(homeDir)) path.relativeTo(homeDir) else path
+        for (path in classLoader.files) {
+          val absolutePath = path.toAbsolutePath()
+          val relativePath = if (absolutePath.startsWith(homeDir)) absolutePath.relativeTo(homeDir) else absolutePath
           writeString(relativePath.toString())
         }
       }
