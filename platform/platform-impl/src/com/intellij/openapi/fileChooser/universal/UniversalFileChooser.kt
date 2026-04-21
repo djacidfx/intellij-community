@@ -99,6 +99,7 @@ import javax.swing.event.TreeWillExpandListener
 import javax.swing.tree.ExpandVetoException
 import javax.swing.tree.TreePath
 import javax.swing.tree.TreeSelectionModel
+import kotlin.io.path.invariantSeparatorsPathString
 import kotlin.time.Duration.Companion.seconds
 
 @ApiStatus.Internal
@@ -313,7 +314,7 @@ object UniversalFileChooser {
     ) {
       val topComponent: JComponent
       val fileTree: FileSystemTreeImpl
-      private val roots: MutableList<Path> = mutableListOf()
+      private val roots: MutableList<String> = mutableListOf()
       private val virtualRootMap: MutableMap<Path, VirtualRoot> = ConcurrentHashMap()
       var fileToSelect: VirtualFile? = null
       private val breadcrumbs = Breadcrumbs()
@@ -333,7 +334,7 @@ object UniversalFileChooser {
       private val contentPanel = JPanel(cardLayout)
       private val tree = Tree()
       private var toolbar: ActionToolbar? = null
-      private val mountStatusCache: MutableMap<Path, MountStatus> = ConcurrentHashMap()
+      private val mountStatusCache: MutableMap<String, MountStatus> = ConcurrentHashMap()
       private val virtualRootListModel = DefaultListModel<VirtualRoot>()
       private val virtualRootList = JBList(virtualRootListModel)
       private val virtualRootScrollPane: JComponent
@@ -348,7 +349,7 @@ object UniversalFileChooser {
 
         val descriptorCopy = FileChooserDescriptor(descriptor)
         descriptorCopy.putUserData(FileTreeModel.SYSTEM_ROOTS_FILTER,
-                                   Predicate { path: Path? -> roots.contains(path) })
+                                   Predicate { path: Path? -> path != null && roots.contains(path.invariantSeparatorsPathString) })
 
         tree.isRootVisible = false
         tree.showsRootHandles = true
@@ -459,12 +460,12 @@ object UniversalFileChooser {
             val fetchedVirtualRoots = contributor.getVirtualRoots()
             runOnEdt {
               roots.clear()
-              roots.addAll(elements)
+              roots.addAll(elements.map { it.invariantSeparatorsPathString })
               virtualRootMap.clear()
               virtualRootListModel.clear()
               for (vr in fetchedVirtualRoots) {
                 val path = runCatching { Path.of(vr.id) }.getOrNull() ?: continue
-                if (path !in roots) {
+                if (path.invariantSeparatorsPathString !in roots) {
                   virtualRootMap[path] = vr
                   virtualRootListModel.addElement(vr)
                 }
@@ -485,19 +486,19 @@ object UniversalFileChooser {
 
       private fun startCacheUpdates() {
         cacheUpdateJob?.cancel()
-        val changed = mutableSetOf<Path>()
+        val changed = mutableSetOf<String>()
         cacheUpdateJob = scope.launch {
           while (true) {
             changed.clear()
             withContext(Dispatchers.IO) {
               for (root in roots) {
-                val newStatus = contributor.getMountStatus(root)
+                val newStatus = contributor.getMountStatus(Path.of(root))
                 if (mountStatusCache.put(root, newStatus) != newStatus) {
                   changed.add(root)
                 }
               }
             }
-            changed.forEach { handleMountStatusChange(it) }
+            changed.forEach { handleMountStatusChange(Path.of(it)) }
             delay(3.seconds)
           }
         }
@@ -505,7 +506,7 @@ object UniversalFileChooser {
 
       private fun handleMountStatusChange(root: Path) {
         scope.launch {
-          when (mountStatusCache[root]) {
+          when (mountStatusCache[root.invariantSeparatorsPathString]) {
             MountStatus.Unmounted -> runOnEdt {
               collapseUnmountedRoot(root)
               toolbar?.updateActionsAsync()
@@ -598,7 +599,7 @@ object UniversalFileChooser {
           override fun update(e: AnActionEvent) {
             val selected = fileTree.selectedFile
             val nioPath = selected?.let { runCatching { it.toNioPath() }.getOrNull() }
-            if (nioPath == null || roots.contains(nioPath) || !selected.isWritable) {
+            if (nioPath == null || roots.contains(nioPath.invariantSeparatorsPathString) || !selected.isWritable) {
               e.presentation.isEnabled = false; return
             }
             if (selected.isDirectory) {
@@ -771,7 +772,7 @@ object UniversalFileChooser {
         }
       }
 
-      private fun findRootPath(nioPath: Path): Path? {
+      private fun findRootPath(nioPath: Path): String? {
         return roots.firstOrNull { root -> nioPath.startsWith(root) }
       }
 
@@ -793,7 +794,7 @@ object UniversalFileChooser {
           val treePath = tree.getPathForRow(i) ?: continue
           val file = FileSystemTreeImpl.getVirtualFile(treePath) ?: continue
           val nioPath = runCatching { file.toNioPath() }.getOrNull() ?: continue
-          if (nioPath.toString() == rootPath.toString()) {
+          if (nioPath.invariantSeparatorsPathString == rootPath) {
             tree.collapsePath(treePath)
             return
           }
