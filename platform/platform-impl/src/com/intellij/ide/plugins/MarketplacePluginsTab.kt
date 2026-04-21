@@ -1,221 +1,204 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.ide.plugins;
+package com.intellij.ide.plugins
 
-import com.intellij.execution.process.ProcessIOExecutorService;
-import com.intellij.featureStatistics.FeatureUsageTracker;
-import com.intellij.ide.IdeBundle;
-import com.intellij.ide.impl.ProjectUtil;
-import com.intellij.ide.plugins.marketplace.PluginSearchResult;
-import com.intellij.ide.plugins.marketplace.statistics.PluginManagerUsageCollector;
-import com.intellij.ide.plugins.newui.ListPluginComponent;
-import com.intellij.ide.plugins.newui.MultiSelectionEventHandler;
-import com.intellij.ide.plugins.newui.NoOpPluginsViewCustomizer;
-import com.intellij.ide.plugins.newui.PluginDetailsPageComponent;
-import com.intellij.ide.plugins.newui.PluginInstallationState;
-import com.intellij.ide.plugins.newui.PluginLogo;
-import com.intellij.ide.plugins.newui.PluginManagerCustomizer;
-import com.intellij.ide.plugins.newui.PluginModelFacade;
-import com.intellij.ide.plugins.newui.PluginUiModel;
-import com.intellij.ide.plugins.newui.PluginUiModelAdapter;
-import com.intellij.ide.plugins.newui.PluginUpdatesService;
-import com.intellij.ide.plugins.newui.PluginsGroup;
-import com.intellij.ide.plugins.newui.PluginsGroupComponent;
-import com.intellij.ide.plugins.newui.PluginsGroupComponentWithProgress;
-import com.intellij.ide.plugins.newui.PluginsTab;
-import com.intellij.ide.plugins.newui.PluginsViewCustomizer;
-import com.intellij.ide.plugins.newui.PluginsViewCustomizerKt;
-import com.intellij.ide.plugins.newui.SearchPopup;
-import com.intellij.ide.plugins.newui.SearchQueryParser;
-import com.intellij.ide.plugins.newui.SearchResultPanel;
-import com.intellij.ide.plugins.newui.SearchUpDownPopupController;
-import com.intellij.ide.plugins.newui.SearchWords;
-import com.intellij.ide.plugins.newui.UiPluginManager;
-import com.intellij.openapi.actionSystem.ActionManager;
-import com.intellij.openapi.actionSystem.ActionUpdateThread;
-import com.intellij.openapi.actionSystem.AnAction;
-import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.DefaultActionGroup;
-import com.intellij.openapi.actionSystem.KeepPopupOnPerform;
-import com.intellij.openapi.actionSystem.ToggleAction;
-import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.ModalityState;
-import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.extensions.PluginId;
-import com.intellij.openapi.project.DumbAware;
-import com.intellij.openapi.project.Project;
-import com.intellij.openapi.updateSettings.impl.pluginsAdvertisement.FUSEventSource;
-import com.intellij.openapi.util.text.HtmlChunk;
-import com.intellij.openapi.util.text.StringUtil;
-import com.intellij.ui.SimpleTextAttributes;
-import com.intellij.ui.components.labels.LinkListener;
-import com.intellij.util.containers.ContainerUtil;
-import com.intellij.util.ui.JBUI;
-import com.intellij.util.ui.StatusText;
-import kotlinx.coroutines.CoroutineScope;
-import org.jetbrains.annotations.ApiStatus;
-import org.jetbrains.annotations.Nls;
-import org.jetbrains.annotations.NonNls;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import javax.swing.JComponent;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
-
-import static com.intellij.ide.plugins.PluginManagerConfigurablePanel.applyUpdates;
-import static com.intellij.ide.plugins.PluginManagerConfigurablePanel.clearUpdates;
-import static com.intellij.ide.plugins.PluginManagerConfigurablePanel.createScrollPane;
-import static com.intellij.ide.plugins.PluginManagerConfigurablePanel.registerCopyProvider;
+import com.intellij.execution.process.ProcessIOExecutorService
+import com.intellij.featureStatistics.FeatureUsageTracker
+import com.intellij.ide.IdeBundle
+import com.intellij.ide.impl.ProjectUtil
+import com.intellij.ide.plugins.PluginManagerConfigurablePanel.applyUpdates
+import com.intellij.ide.plugins.PluginManagerConfigurablePanel.clearUpdates
+import com.intellij.ide.plugins.PluginManagerConfigurablePanel.createScrollPane
+import com.intellij.ide.plugins.PluginManagerConfigurablePanel.registerCopyProvider
+import com.intellij.ide.plugins.marketplace.PluginSearchResult
+import com.intellij.ide.plugins.marketplace.statistics.PluginManagerUsageCollector
+import com.intellij.ide.plugins.newui.ListPluginComponent
+import com.intellij.ide.plugins.newui.MultiSelectionEventHandler
+import com.intellij.ide.plugins.newui.NoOpPluginsViewCustomizer
+import com.intellij.ide.plugins.newui.PluginDetailsPageComponent
+import com.intellij.ide.plugins.newui.PluginInstallationState
+import com.intellij.ide.plugins.newui.PluginLogo
+import com.intellij.ide.plugins.newui.PluginManagerCustomizer
+import com.intellij.ide.plugins.newui.PluginModelFacade
+import com.intellij.ide.plugins.newui.PluginUiModel
+import com.intellij.ide.plugins.newui.PluginUiModelAdapter
+import com.intellij.ide.plugins.newui.PluginUpdatesService
+import com.intellij.ide.plugins.newui.PluginsGroup
+import com.intellij.ide.plugins.newui.PluginsGroupComponent
+import com.intellij.ide.plugins.newui.PluginsGroupComponentWithProgress
+import com.intellij.ide.plugins.newui.PluginsTab
+import com.intellij.ide.plugins.newui.PluginsViewCustomizer
+import com.intellij.ide.plugins.newui.SearchPopup
+import com.intellij.ide.plugins.newui.SearchQueryParser
+import com.intellij.ide.plugins.newui.SearchResultPanel
+import com.intellij.ide.plugins.newui.SearchUpDownPopupController
+import com.intellij.ide.plugins.newui.SearchWords
+import com.intellij.ide.plugins.newui.UiPluginManager
+import com.intellij.ide.plugins.newui.getPluginsViewCustomizer
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ActionUpdateThread
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.KeepPopupOnPerform
+import com.intellij.openapi.actionSystem.ToggleAction
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.extensions.PluginId
+import com.intellij.openapi.project.DumbAware
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.updateSettings.impl.pluginsAdvertisement.FUSEventSource
+import com.intellij.openapi.util.text.HtmlChunk
+import com.intellij.openapi.util.text.StringUtil
+import com.intellij.ui.SimpleTextAttributes
+import com.intellij.ui.components.labels.LinkListener
+import com.intellij.util.containers.ContainerUtil
+import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.StatusText
+import kotlinx.coroutines.CoroutineScope
+import org.jetbrains.annotations.ApiStatus
+import org.jetbrains.annotations.Nls
+import org.jetbrains.annotations.NonNls
+import java.io.IOException
+import java.util.function.Consumer
+import java.util.function.Predicate
+import java.util.function.Supplier
+import javax.swing.JComponent
 
 @ApiStatus.Internal
-class MarketplacePluginsTab extends PluginsTab {
-  private static final Logger LOG = Logger.getInstance(MarketplacePluginsTab.class);
+internal class MarketplacePluginsTab(
+  facade: PluginModelFacade,
+  scope: CoroutineScope,
+  customizer: PluginManagerCustomizer?,
+  service: PluginUpdatesService,
+) : PluginsTab() {
+  private val myPluginModelFacade: PluginModelFacade = facade
+  private val myCoroutineScope: CoroutineScope = scope
+  private val myPluginManagerCustomizer: PluginManagerCustomizer? = customizer
+  private val myPluginUpdatesService: PluginUpdatesService = service
 
-  private static final int ITEMS_PER_GROUP = 9;
+  private var myMarketplacePanel: PluginsGroupComponentWithProgress? = null
+  private var myMarketplaceSearchPanel: SearchResultPanel? = null
+  private var myMarketplaceRunnable: Runnable? = null
 
-  private final @NotNull PluginModelFacade myPluginModelFacade;
-  private final @NotNull CoroutineScope myCoroutineScope;
-  private final @Nullable PluginManagerCustomizer myPluginManagerCustomizer;
-  private final @NotNull PluginUpdatesService myPluginUpdatesService;
+  private val myMarketplaceSortByGroup: DefaultActionGroup = DefaultActionGroup()
 
-  private PluginsGroupComponentWithProgress myMarketplacePanel;
-  private SearchResultPanel myMarketplaceSearchPanel;
-  private Runnable myMarketplaceRunnable;
+  private var myTagsSorted: List<String>? = null
+  private var myVendorsSorted: List<String>? = null
 
-  private final DefaultActionGroup myMarketplaceSortByGroup;
-
-  private List<String> myTagsSorted;
-  private List<String> myVendorsSorted;
-
-  MarketplacePluginsTab(
-    @NotNull PluginModelFacade facade,
-    @NotNull CoroutineScope scope,
-    @Nullable PluginManagerCustomizer customizer,
-    @NotNull PluginUpdatesService service
-  ) {
-    super();
-    myPluginModelFacade = facade;
-    myCoroutineScope = scope;
-    myPluginManagerCustomizer = customizer;
-    myPluginUpdatesService = service;
-
-    myMarketplaceSortByGroup = new DefaultActionGroup();
-    for (MarketplaceTabSearchSortByOptions option : MarketplaceTabSearchSortByOptions.getEntries()) {
-      myMarketplaceSortByGroup.addAction(new MarketplaceSortByAction(option));
+  init {
+    for (option in MarketplaceTabSearchSortByOptions.entries) {
+      myMarketplaceSortByGroup.addAction(MarketplaceSortByAction(option))
     }
 
-    myTagsSorted = null;
-    myVendorsSorted = null;
+    myTagsSorted = null
+    myVendorsSorted = null
   }
 
-  protected void resetCache() {
-    myTagsSorted = null;
-    myVendorsSorted = null;
+  fun resetCache() {
+    myTagsSorted = null
+    myVendorsSorted = null
   }
 
-  @Override
-  protected void createSearchTextField(int flyDelay) {
-    super.createSearchTextField(250);
-    searchTextField.setHistoryPropertyName("MarketplacePluginsSearchHistory");
+  override fun createSearchTextField(flyDelay: Int) {
+    super.createSearchTextField(250)
+    searchTextField!!.setHistoryPropertyName("MarketplacePluginsSearchHistory")
   }
 
-  @Override
-  protected @NotNull PluginDetailsPageComponent createDetailsPanel(@NotNull LinkListener<Object> searchListener) {
-    PluginDetailsPageComponent detailPanel = new PluginDetailsPageComponent(myPluginModelFacade, searchListener, true);
-    myPluginModelFacade.getModel().addDetailPanel(detailPanel);
-    return detailPanel;
+  override fun createDetailsPanel(searchListener: LinkListener<Any>): PluginDetailsPageComponent {
+    val detailPanel = PluginDetailsPageComponent(myPluginModelFacade, searchListener, true)
+    myPluginModelFacade.getModel().addDetailPanel(detailPanel)
+    return detailPanel
   }
 
-  @Override
-  protected @NotNull JComponent createPluginsPanel(@NotNull Consumer<? super PluginsGroupComponent> selectionListener) {
-    MultiSelectionEventHandler eventHandler = new MultiSelectionEventHandler();
-    myMarketplacePanel = new PluginsGroupComponentWithProgress(eventHandler) {
-      @Override
-      protected @NotNull ListPluginComponent createListComponent(@NotNull PluginUiModel model,
-                                                                 @NotNull PluginsGroup group,
-                                                                 @NotNull ListPluginModel listPluginModel) {
-        return new ListPluginComponent(myPluginModelFacade,
-                                       model,
-                                       group,
-                                       listPluginModel,
-                                       searchListener,
-                                       myCoroutineScope,
-                                       true);
+  override fun createPluginsPanel(selectionListener: Consumer<in PluginsGroupComponent?>): JComponent {
+    val eventHandler = MultiSelectionEventHandler()
+    val marketplacePanel = object : PluginsGroupComponentWithProgress(eventHandler) {
+      override fun createListComponent(
+        model: PluginUiModel,
+        group: PluginsGroup,
+        listPluginModel: ListPluginModel,
+      ): ListPluginComponent {
+        return ListPluginComponent(
+          myPluginModelFacade,
+          model,
+          group,
+          listPluginModel,
+          searchListener,
+          myCoroutineScope,
+          true,
+        )
       }
-    };
+    }
+    myMarketplacePanel = marketplacePanel
 
-    myMarketplacePanel.setSelectionListener(selectionListener);
-    myMarketplacePanel.getAccessibleContext().setAccessibleName(IdeBundle.message("plugin.manager.marketplace.panel.accessible.name"));
-    registerCopyProvider(myMarketplacePanel);
+    marketplacePanel.setSelectionListener(selectionListener)
+    marketplacePanel.getAccessibleContext().setAccessibleName(IdeBundle.message("plugin.manager.marketplace.panel.accessible.name"))
+    registerCopyProvider(marketplacePanel)
 
     //noinspection ConstantConditions
-    ((SearchUpDownPopupController)myMarketplaceSearchPanel.controller).setEventHandler(eventHandler);
+    (myMarketplaceSearchPanel!!.controller as SearchUpDownPopupController).setEventHandler(eventHandler)
 
-    Project project = ProjectUtil.getActiveProject();
+    val project = ProjectUtil.getActiveProject()
 
-    myMarketplaceRunnable = () -> {
-      myMarketplacePanel.clear();
-      myMarketplacePanel.showLoadingIcon();
-      doCreateMarketplaceTab(selectionListener, project);
-    };
+    myMarketplaceRunnable = Runnable {
+      marketplacePanel.clear()
+      marketplacePanel.showLoadingIcon()
+      doCreateMarketplaceTab(selectionListener, project)
+    }
 
-    myMarketplacePanel.getEmptyText().setText(IdeBundle.message("plugins.configurable.marketplace.plugins.not.loaded"))
+    marketplacePanel.getEmptyText().setText(IdeBundle.message("plugins.configurable.marketplace.plugins.not.loaded"))
       .appendSecondaryText(IdeBundle.message("message.check.the.internet.connection.and") + " ", StatusText.DEFAULT_ATTRIBUTES, null)
-      .appendSecondaryText(IdeBundle.message("message.link.refresh"), SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES,
-                           e -> myMarketplaceRunnable.run());
+      .appendSecondaryText(
+        IdeBundle.message("message.link.refresh"),
+        SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES,
+      ) { myMarketplaceRunnable!!.run() }
 
-    doCreateMarketplaceTab(selectionListener, project);
-    return createScrollPane(myMarketplacePanel, false);
+    doCreateMarketplaceTab(selectionListener, project)
+    return createScrollPane(marketplacePanel, false)
   }
 
-  private void doCreateMarketplaceTab(@NotNull Consumer<? super PluginsGroupComponent> selectionListener, Project project) {
-    PluginManagerPanelFactory.INSTANCE.createMarketplacePanel(myCoroutineScope, myPluginModelFacade.getModel(), project, model -> {
-      List<PluginsGroup> groups = new ArrayList<>();
+  private fun doCreateMarketplaceTab(selectionListener: Consumer<in PluginsGroupComponent?>, project: Project?) {
+    PluginManagerPanelFactory.createMarketplacePanel(myCoroutineScope, myPluginModelFacade.getModel(), project) { model ->
+      val groups = ArrayList<PluginsGroup>()
       try {
         try {
           if (project != null) {
-            addSuggestedGroup(groups, model.getErrors(), model.getSuggestedPlugins(), model.getInstalledPlugins(),
-                              model.getInstallationStates());
+            addSuggestedGroup(
+              groups,
+              model.errors,
+              model.suggestedPlugins,
+              model.installedPlugins,
+              model.installationStates,
+            )
           }
-          PluginsViewCustomizer.PluginsGroupDescriptor internalPluginsGroupDescriptor = model.getInternalPluginsGroupDescriptor();
+          val internalPluginsGroupDescriptor: PluginsViewCustomizer.PluginsGroupDescriptor? = model.internalPluginsGroupDescriptor
           if (internalPluginsGroupDescriptor != null) {
-            List<PluginUiModel> customPlugins =
-              ContainerUtil.map(internalPluginsGroupDescriptor.getPlugins(), it -> new PluginUiModelAdapter(it));
+            val customPlugins: List<PluginUiModel> = internalPluginsGroupDescriptor.plugins.map { PluginUiModelAdapter(it) }
             addGroup(
               groups,
-              internalPluginsGroupDescriptor.getName(),
+              internalPluginsGroupDescriptor.name,
               PluginsGroupType.INTERNAL,
-              SearchWords.INTERNAL.getValue(),
+              SearchWords.INTERNAL.value,
               customPlugins,
-              group -> customPlugins.size() >= ITEMS_PER_GROUP,
-              model.getErrors(),
-              model.getInstalledPlugins(),
-              model.getInstallationStates()
-            );
+              Predicate { customPlugins.size >= ITEMS_PER_GROUP },
+              model.errors,
+              model.installedPlugins,
+              model.installationStates,
+            )
           }
 
-          Map<String, PluginSearchResult> marketplaceData = model.getMarketplaceData();
+          val marketplaceData = model.marketplaceData
           addGroupViaLightDescriptor(
             groups,
             IdeBundle.message("plugins.configurable.staff.picks"),
             PluginsGroupType.STAFF_PICKS,
             "is_featured_search=true",
-            SearchWords.STAFF_PICKS.getValue(),
+            SearchWords.STAFF_PICKS.value,
             marketplaceData,
-            model.getErrors(),
-            model.getInstalledPlugins(),
-            model.getInstallationStates()
-          );
+            model.errors,
+            model.installedPlugins,
+            model.installationStates,
+          )
           addGroupViaLightDescriptor(
             groups,
             IdeBundle.message("plugins.configurable.new.and.updated"),
@@ -223,9 +206,10 @@ class MarketplacePluginsTab extends PluginsTab {
             "orderBy=update+date",
             "/sortBy:updated",
             marketplaceData,
-            model.getErrors(),
-            model.getInstalledPlugins(),
-            model.getInstallationStates());
+            model.errors,
+            model.installedPlugins,
+            model.installationStates,
+          )
           addGroupViaLightDescriptor(
             groups,
             IdeBundle.message("plugins.configurable.top.downloads"),
@@ -233,9 +217,10 @@ class MarketplacePluginsTab extends PluginsTab {
             "orderBy=downloads",
             "/sortBy:downloads",
             marketplaceData,
-            model.getErrors(),
-            model.getInstalledPlugins(),
-            model.getInstallationStates());
+            model.errors,
+            model.installedPlugins,
+            model.installationStates,
+          )
           addGroupViaLightDescriptor(
             groups,
             IdeBundle.message("plugins.configurable.top.rated"),
@@ -243,446 +228,471 @@ class MarketplacePluginsTab extends PluginsTab {
             "orderBy=rating",
             "/sortBy:rating",
             marketplaceData,
-            model.getErrors(),
-            model.getInstalledPlugins(),
-            model.getInstallationStates());
+            model.errors,
+            model.installedPlugins,
+            model.installationStates,
+          )
         }
-        catch (IOException e) {
-          LOG.info("Main plugin repository is not available ('" + e.getMessage() + "'). Please check your network settings.");
+        catch (e: IOException) {
+          LOG.info("Main plugin repository is not available ('" + e.message + "'). Please check your network settings.")
         }
 
-        for (String host : RepositoryHelper.getCustomPluginRepositoryHosts()) {
-          List<PluginUiModel> allDescriptors = model.getCustomRepositories().get(host);
+        for (host in RepositoryHelper.getCustomPluginRepositoryHosts()) {
+          val allDescriptors = model.customRepositories[host]
           if (allDescriptors != null) {
-            String groupName = IdeBundle.message("plugins.configurable.repository.0", host);
-            LOG.info("Marketplace tab: '" + groupName + "' group load started");
-            addGroup(groups,
-                     groupName,
-                     PluginsGroupType.CUSTOM_REPOSITORY,
-                     "/repository:\"" + host + "\"",
-                     allDescriptors,
-                     group -> {
-                       PluginsGroup.sortByName(group.getModels());
-                       return allDescriptors.size() > ITEMS_PER_GROUP;
-                     },
-                     model.getErrors(),
-                     model.getInstalledPlugins(),
-                     model.getInstallationStates());
+            val groupName = IdeBundle.message("plugins.configurable.repository.0", host)
+            LOG.info("Marketplace tab: '" + groupName + "' group load started")
+            addGroup(
+              groups,
+              groupName,
+              PluginsGroupType.CUSTOM_REPOSITORY,
+              "/repository:\"" + host + "\"",
+              allDescriptors,
+              Predicate { group ->
+                PluginsGroup.sortByName(group.getModels())
+                allDescriptors.size > ITEMS_PER_GROUP
+              },
+              model.errors,
+              model.installedPlugins,
+              model.installationStates,
+            )
           }
         }
         if (myPluginManagerCustomizer != null) {
-          myPluginManagerCustomizer.ensurePluginStatesLoaded();
+          myPluginManagerCustomizer.ensurePluginStatesLoaded()
         }
       }
       finally {
-        ApplicationManager.getApplication().invokeLater(() -> {
-          myMarketplacePanel.hideLoadingIcon();
+        ApplicationManager.getApplication().invokeLater({
+          val marketplacePanel = myMarketplacePanel!!
+          val marketplaceSearchPanel = myMarketplaceSearchPanel!!
+          marketplacePanel.hideLoadingIcon()
           try {
-            PluginLogo.startBatchMode();
+            PluginLogo.startBatchMode()
 
-            for (PluginsGroup group : groups) {
-              myMarketplacePanel.addGroup(group);
+            for (group in groups) {
+              marketplacePanel.addGroup(group)
             }
           }
           finally {
-            PluginLogo.endBatchMode();
+            PluginLogo.endBatchMode()
           }
-          myMarketplacePanel.doLayout();
-          myMarketplacePanel.initialSelection();
+          marketplacePanel.doLayout()
+          marketplacePanel.initialSelection()
 
-          myPluginUpdatesService.calculateUpdates(updates -> {
-            List<PluginUiModel> updateModels = updates == null ? List.of() : updates.stream()
-              .filter(plugin -> myPluginModelFacade.isEnabled(plugin))
-              .toList();
-            if (ContainerUtil.isEmpty(updateModels)) {
-              clearUpdates(myMarketplacePanel);
-              clearUpdates(myMarketplaceSearchPanel.getPanel());
+          myPluginUpdatesService.calculateUpdates { updates ->
+            val updateModels: List<PluginUiModel> = if (updates == null) {
+              emptyList()
             }
             else {
-              applyUpdates(myMarketplacePanel, updateModels);
-              applyUpdates(myMarketplaceSearchPanel.getPanel(), updateModels);
+              updates.filter { plugin -> myPluginModelFacade.isEnabled(plugin) }
             }
-            selectionListener.accept(myMarketplacePanel);
-            selectionListener.accept(myMarketplaceSearchPanel.getPanel());
-          });
-        }, ModalityState.any());
+            if (ContainerUtil.isEmpty(updateModels)) {
+              clearUpdates(marketplacePanel)
+              clearUpdates(marketplaceSearchPanel.panel)
+            }
+            else {
+              applyUpdates(marketplacePanel, updateModels)
+              applyUpdates(marketplaceSearchPanel.panel, updateModels)
+            }
+            selectionListener.accept(marketplacePanel)
+            selectionListener.accept(marketplaceSearchPanel.panel)
+          }
+        }, ModalityState.any())
       }
-
-      return null;
-    });
+    }
   }
 
-  @Override
-  protected void updateMainSelection(@NotNull Consumer<? super PluginsGroupComponent> selectionListener) {
-    selectionListener.accept(myMarketplacePanel);
+  override fun updateMainSelection(selectionListener: Consumer<in PluginsGroupComponent?>) {
+    selectionListener.accept(myMarketplacePanel)
   }
 
-  @Override
-  protected @NotNull SearchResultPanel createSearchPanel(@NotNull Consumer<? super PluginsGroupComponent> selectionListener) {
-    SearchUpDownPopupController marketplaceController = new SearchUpDownPopupController(searchTextField) {
-      @Override
-      protected @NotNull List<String> getAttributes() {
-        List<String> attributes = new ArrayList<>();
-        attributes.add(SearchWords.TAG.getValue());
-        attributes.add(SearchWords.SORT_BY.getValue());
-        attributes.add(SearchWords.VENDOR.getValue());
+  override fun createSearchPanel(selectionListener: Consumer<in PluginsGroupComponent?>): SearchResultPanel {
+    val marketplaceController = object : SearchUpDownPopupController(searchTextField!!) {
+      override fun getAttributes(): List<String> {
+        val attributes = ArrayList<String>()
+        attributes.add(SearchWords.TAG.value)
+        attributes.add(SearchWords.SORT_BY.value)
+        attributes.add(SearchWords.VENDOR.value)
         if (!RepositoryHelper.getCustomPluginRepositoryHosts().isEmpty()) {
-          attributes.add(SearchWords.REPOSITORY.getValue());
+          attributes.add(SearchWords.REPOSITORY.value)
         }
-        attributes.add(SearchWords.STAFF_PICKS.getValue());
-        attributes.add(SearchWords.SUGGESTED.getValue());
-        if (PluginsViewCustomizerKt.getPluginsViewCustomizer() != NoOpPluginsViewCustomizer.INSTANCE) {
-          attributes.add(SearchWords.INTERNAL.getValue());
+        attributes.add(SearchWords.STAFF_PICKS.value)
+        attributes.add(SearchWords.SUGGESTED.value)
+        if (getPluginsViewCustomizer() != NoOpPluginsViewCustomizer) {
+          attributes.add(SearchWords.INTERNAL.value)
         }
-        return attributes;
+        return attributes
       }
 
-      @Override
-      protected @Nullable List<String> getValues(@NotNull String attribute) {
-        SearchWords word = SearchWords.find(attribute);
-        return switch (word) {
-          case TAG -> {
-            yield getOrCalculateTags();
-          }
-          case SORT_BY -> ContainerUtil.map(
-            Arrays.asList(MarketplaceTabSearchSortByOptions.DOWNLOADS, MarketplaceTabSearchSortByOptions.NAME, MarketplaceTabSearchSortByOptions.RATING, MarketplaceTabSearchSortByOptions.UPDATE_DATE),
-            sort -> sort.getQuery()
-          );
-          case VENDOR -> {
-            yield getOrCalculateVendors();
-          }
-          case REPOSITORY -> RepositoryHelper.getCustomPluginRepositoryHosts();
-          case INTERNAL, SUGGESTED, STAFF_PICKS -> null;
-          case null -> null;
-        };
-      }
-
-      @Override
-      protected void showPopupForQuery() {
-        showSearchPanel(searchTextField.getText());
-      }
-
-      @Override
-      protected void handleEnter() {
-        if (!searchTextField.getText().isEmpty()) {
-          handleTrigger("marketplace.suggest.popup.enter");
+      override fun getValues(attribute: String): List<String>? {
+        val word = SearchWords.find(attribute)
+        return when (word) {
+          SearchWords.TAG -> getOrCalculateTags()
+          SearchWords.SORT_BY -> listOf(
+            MarketplaceTabSearchSortByOptions.DOWNLOADS,
+            MarketplaceTabSearchSortByOptions.NAME,
+            MarketplaceTabSearchSortByOptions.RATING,
+            MarketplaceTabSearchSortByOptions.UPDATE_DATE,
+          ).map { sort -> sort.query }
+          SearchWords.VENDOR -> getOrCalculateVendors()
+          SearchWords.REPOSITORY -> RepositoryHelper.getCustomPluginRepositoryHosts()
+          SearchWords.INTERNAL, SearchWords.SUGGESTED, SearchWords.STAFF_PICKS, null -> null
         }
       }
 
-      @Override
-      protected void handlePopupListFirstSelection() {
-        handleTrigger("marketplace.suggest.popup.select");
+      override fun showPopupForQuery() {
+        showSearchPanel(searchTextField!!.text)
       }
 
-      private void handleTrigger(@NonNls String key) {
+      override fun handleEnter() {
+        if (!searchTextField!!.text.isEmpty()) {
+          handleTrigger("marketplace.suggest.popup.enter")
+        }
+      }
+
+      override fun handlePopupListFirstSelection() {
+        handleTrigger("marketplace.suggest.popup.select")
+      }
+
+      private fun handleTrigger(@NonNls key: String) {
         if (myPopup != null && myPopup.type == SearchPopup.Type.SearchQuery) {
-          FeatureUsageTracker.getInstance().triggerFeatureUsed(key);
+          FeatureUsageTracker.getInstance().triggerFeatureUsed(key)
         }
       }
-    };
+    }
 
-    MultiSelectionEventHandler eventHandler = new MultiSelectionEventHandler();
-    marketplaceController.setSearchResultEventHandler(eventHandler);
+    val eventHandler = MultiSelectionEventHandler()
+    marketplaceController.setSearchResultEventHandler(eventHandler)
 
-    PluginsGroupComponentWithProgress panel = new PluginsGroupComponentWithProgress(eventHandler) {
-      @Override
-      protected @NotNull ListPluginComponent createListComponent(@NotNull PluginUiModel model,
-                                                                 @NotNull PluginsGroup group,
-                                                                 @NotNull ListPluginModel listPluginModel) {
-        return new ListPluginComponent(myPluginModelFacade,
-                                       model,
-                                       group,
-                                       listPluginModel,
-                                       searchListener,
-                                       myCoroutineScope,
-                                       true);
+    val panel = object : PluginsGroupComponentWithProgress(eventHandler) {
+      override fun createListComponent(
+        model: PluginUiModel,
+        group: PluginsGroup,
+        listPluginModel: ListPluginModel,
+      ): ListPluginComponent {
+        return ListPluginComponent(
+          myPluginModelFacade,
+          model,
+          group,
+          listPluginModel,
+          searchListener,
+          myCoroutineScope,
+          true,
+        )
       }
-    };
+    }
 
-    panel.setSelectionListener(selectionListener);
-    registerCopyProvider(panel);
+    panel.setSelectionListener(selectionListener)
+    registerCopyProvider(panel)
 
-    Project project = ProjectUtil.getActiveProject();
+    val project = ProjectUtil.getActiveProject()
 
-    myMarketplaceSearchPanel = new MarketplacePluginsTabSearchResultPanel(myCoroutineScope, marketplaceController, panel, project, selectionListener,
-                                                                          myMarketplaceSortByGroup, () -> myMarketplacePanel);
-    return myMarketplaceSearchPanel;
+    val marketplaceSearchPanel = MarketplacePluginsTabSearchResultPanel(
+      myCoroutineScope,
+      marketplaceController,
+      panel,
+      project,
+      selectionListener,
+      myMarketplaceSortByGroup,
+      Supplier { myMarketplacePanel },
+    )
+    myMarketplaceSearchPanel = marketplaceSearchPanel
+    return marketplaceSearchPanel
   }
 
-  private List<String> getOrCalculateVendors() {
+  private fun getOrCalculateVendors(): List<String> {
     if (myVendorsSorted == null ||
-        myVendorsSorted.isEmpty() // FIXME seems like it shouldn't be here...
+        myVendorsSorted!!.isEmpty() // FIXME seems like it shouldn't be here...
     ) {
-      LinkedHashSet<String> vendors = new LinkedHashSet<>();
+      val vendors = LinkedHashSet<String>()
       try {
-        ProcessIOExecutorService.INSTANCE.submit(() -> {
-          vendors.addAll(UiPluginManager.getInstance().getAllVendors());
-        }).get();
+        ProcessIOExecutorService.INSTANCE.submit {
+          vendors.addAll(UiPluginManager.getInstance().getAllVendors())
+        }.get()
       }
-      catch (InterruptedException | ExecutionException e) {
-        LOG.error("Error while getting vendors from marketplace", e);
+      catch (e: InterruptedException) {
+        LOG.error("Error while getting vendors from marketplace", e)
       }
-      myVendorsSorted = new ArrayList<>(vendors);
+      catch (e: java.util.concurrent.ExecutionException) {
+        LOG.error("Error while getting vendors from marketplace", e)
+      }
+      myVendorsSorted = ArrayList(vendors)
     }
-    return myVendorsSorted;
+    return myVendorsSorted!!
   }
 
-  private List<String> getOrCalculateTags() {
+  private fun getOrCalculateTags(): List<String> {
     if (myTagsSorted == null ||
-        myTagsSorted.isEmpty() // FIXME seems like it shouldn't be here...
+        myTagsSorted!!.isEmpty() // FIXME seems like it shouldn't be here...
     ) {
-      Set<String> allTags = new HashSet<>();
-      Set<String> customRepoTags = UiPluginManager.getInstance().getCustomRepoTags();
+      val allTags = HashSet<String>()
+      val customRepoTags = UiPluginManager.getInstance().getCustomRepoTags()
       if (!customRepoTags.isEmpty()) {
-        allTags.addAll(customRepoTags);
+        allTags.addAll(customRepoTags)
       }
       try {
-        ProcessIOExecutorService.INSTANCE.submit(() -> {
-          allTags.addAll(UiPluginManager.getInstance().getAllPluginsTags());
-        }).get();
+        ProcessIOExecutorService.INSTANCE.submit {
+          allTags.addAll(UiPluginManager.getInstance().getAllPluginsTags())
+        }.get()
       }
-      catch (InterruptedException | ExecutionException e) {
-        LOG.error("Error while getting tags from marketplace", e);
+      catch (e: InterruptedException) {
+        LOG.error("Error while getting tags from marketplace", e)
       }
-      myTagsSorted = ContainerUtil.sorted(allTags, String::compareToIgnoreCase);
+      catch (e: java.util.concurrent.ExecutionException) {
+        LOG.error("Error while getting tags from marketplace", e)
+      }
+      myTagsSorted = ContainerUtil.sorted(allTags, String.CASE_INSENSITIVE_ORDER)
     }
-    return myTagsSorted;
+    return myTagsSorted!!
   }
 
-  private void handleSortByOptionSelection(MarketplaceSortByAction updateAction) {
-    MarketplaceSortByAction removeAction = null;
-    MarketplaceSortByAction addAction = null;
+  private fun handleSortByOptionSelection(updateAction: MarketplaceSortByAction) {
+    var removeAction: MarketplaceSortByAction? = null
+    var addAction: MarketplaceSortByAction? = null
 
     if (updateAction.myState) {
-      for (AnAction action : myMarketplaceSortByGroup.getChildren(ActionManager.getInstance())) {
-        MarketplaceSortByAction sortByAction = (MarketplaceSortByAction)action;
-        if (sortByAction != updateAction && sortByAction.myState) {
-          sortByAction.myState = false;
-          removeAction = sortByAction;
-          break;
+      for (action in myMarketplaceSortByGroup.getChildren(ActionManager.getInstance())) {
+        val sortByAction = action as MarketplaceSortByAction
+        if (sortByAction !== updateAction && sortByAction.myState) {
+          sortByAction.myState = false
+          removeAction = sortByAction
+          break
         }
       }
-      addAction = updateAction;
+      addAction = updateAction
     }
     else {
       if (updateAction.myOption == MarketplaceTabSearchSortByOptions.RELEVANCE) {
-        updateAction.myState = true;
-        return;
+        updateAction.myState = true
+        return
       }
 
-      for (AnAction action : myMarketplaceSortByGroup.getChildren(ActionManager.getInstance())) {
-        MarketplaceSortByAction sortByAction = (MarketplaceSortByAction)action;
+      for (action in myMarketplaceSortByGroup.getChildren(ActionManager.getInstance())) {
+        val sortByAction = action as MarketplaceSortByAction
         if (sortByAction.myOption == MarketplaceTabSearchSortByOptions.RELEVANCE) {
-          sortByAction.myState = true;
-          break;
+          sortByAction.myState = true
+          break
         }
       }
 
-      removeAction = updateAction;
+      removeAction = updateAction
     }
 
-    List<String> queries = new ArrayList<>();
-    new SearchQueryParser.Marketplace(searchTextField.getText()) { // FIXME: it's unused - why hasn't it been removed?
-      @Override
-      protected void addToSearchQuery(@NotNull String query) {
-        queries.add(query);
+    val queries = ArrayList<String>()
+    object : SearchQueryParser.Marketplace(searchTextField!!.text) { // FIXME: it's unused - why hasn't it been removed?
+      override fun addToSearchQuery(query: String) {
+        queries.add(query)
       }
 
-      @Override
-      protected void handleAttribute(@NotNull String name, @NotNull String value) {
-        queries.add(name + SearchQueryParser.wrapAttribute(value));
+      override fun handleAttribute(name: String, value: String) {
+        queries.add(name + wrapAttribute(value))
       }
-    };
+    }
     if (removeAction != null) {
-      String query = removeAction.getQuery();
+      val query = removeAction.getQuery()
       if (query != null) {
-        queries.remove(query);
+        queries.remove(query)
       }
     }
     if (addAction != null) {
-      String query = addAction.getQuery();
+      val query = addAction.getQuery()
       if (query != null) {
-        queries.add(query);
+        queries.add(query)
       }
     }
 
-    String query = StringUtil.join(queries, " ");
-    searchTextField.setTextIgnoreEvents(query);
+    val query = StringUtil.join(queries, " ")
+    searchTextField!!.setTextIgnoreEvents(query)
     if (query.isEmpty()) {
-      hideSearchPanel();
+      hideSearchPanel()
     }
     else {
-      showSearchPanel(query);
+      showSearchPanel(query)
     }
   }
 
-  @Override
-  protected void onSearchReset() {
-    PluginManagerUsageCollector.INSTANCE.searchReset();
+  override fun onSearchReset() {
+    PluginManagerUsageCollector.searchReset()
   }
 
-  private void addSuggestedGroup(@NotNull List<? super PluginsGroup> groups,
-                                 @NotNull Map<@NotNull PluginId,
-                                   @NotNull List<@NotNull HtmlChunk>> errors,
-                                 @NotNull List<@NotNull PluginUiModel> plugins,
-                                 @NotNull Map<@NotNull PluginId, @NotNull PluginUiModel> installedPlugins,
-                                 @NotNull Map<@NotNull PluginId, @NotNull PluginInstallationState> installationStates) {
-    String groupName = IdeBundle.message("plugins.configurable.suggested");
-    LOG.info("Marketplace tab: '" + groupName + "' group load started");
+  private fun addSuggestedGroup(
+    groups: MutableList<PluginsGroup>,
+    errors: Map<PluginId, List<HtmlChunk>>,
+    plugins: List<PluginUiModel>,
+    installedPlugins: Map<PluginId, PluginUiModel>,
+    installationStates: Map<PluginId, PluginInstallationState>,
+  ) {
+    val groupName = IdeBundle.message("plugins.configurable.suggested")
+    LOG.info("Marketplace tab: '" + groupName + "' group load started")
 
-    for (PluginUiModel plugin : plugins) {
-      if (plugin.isFromMarketplace()) {
-        plugin.setInstallSource(FUSEventSource.PLUGINS_SUGGESTED_GROUP);
+    for (plugin in plugins) {
+      if (plugin.isFromMarketplace) {
+        plugin.installSource = FUSEventSource.PLUGINS_SUGGESTED_GROUP
       }
 
-      FUSEventSource.PLUGINS_SUGGESTED_GROUP.logPluginSuggested(plugin.getPluginId());
+      FUSEventSource.PLUGINS_SUGGESTED_GROUP.logPluginSuggested(pluginId = plugin.pluginId)
     }
-    addGroup(groups,
-             groupName,
-             PluginsGroupType.SUGGESTED,
-             "",
-             plugins,
-             group -> false,
-             errors,
-             installedPlugins,
-             installationStates);
+    addGroup(
+      groups,
+      groupName,
+      PluginsGroupType.SUGGESTED,
+      "",
+      plugins,
+      Predicate { false },
+      errors,
+      installedPlugins,
+      installationStates,
+    )
   }
 
-  private void addGroup(@NotNull List<? super PluginsGroup> groups,
-                        @NotNull @Nls String name,
-                        @NotNull PluginsGroupType type,
-                        @NotNull String showAllQuery,
-                        @NotNull List<PluginUiModel> customPlugins,
-                        @NotNull Predicate<? super PluginsGroup> showAllPredicate,
-                        @NotNull Map<PluginId, List<HtmlChunk>> errors,
-                        @NotNull Map<PluginId, PluginUiModel> installedPlugins,
-                        @NotNull Map<PluginId, PluginInstallationState> installationStates) {
-    PluginsGroup group = new PluginsGroup(name, type);
-    group.getPreloadedModel().setErrors(errors);
-    group.getPreloadedModel().setInstalledPlugins(installedPlugins);
-    group.getPreloadedModel().setPluginInstallationStates(installationStates);
-    int i = 0;
-    for (Iterator<PluginUiModel> iterator = customPlugins.iterator(); iterator.hasNext() && i < ITEMS_PER_GROUP; i++) {
-      group.addModel(iterator.next());
+  private fun addGroup(
+    groups: MutableList<PluginsGroup>,
+    name: @Nls String,
+    type: PluginsGroupType,
+    showAllQuery: String,
+    customPlugins: List<PluginUiModel>,
+    showAllPredicate: Predicate<PluginsGroup>,
+    errors: Map<PluginId, List<HtmlChunk>>,
+    installedPlugins: Map<PluginId, PluginUiModel>,
+    installationStates: Map<PluginId, PluginInstallationState>,
+  ) {
+    val group = PluginsGroup(name, type)
+    group.getPreloadedModel().setErrors(errors)
+    group.getPreloadedModel().setInstalledPlugins(installedPlugins)
+    group.getPreloadedModel().setPluginInstallationStates(installationStates)
+    var i = 0
+    val iterator = customPlugins.iterator()
+    while (iterator.hasNext() && i < ITEMS_PER_GROUP) {
+      group.addModel(iterator.next())
+      i++
     }
 
     if (showAllPredicate.test(group)) {
-      group.mainAction = new PluginManagerConfigurablePanel.LinkLabelButton<>(IdeBundle.message("plugins.configurable.show.all"),
-                                                                              null,
-                                                                              searchListener,
-                                                                              showAllQuery);
-      group.mainAction.setBorder(JBUI.Borders.emptyRight(5));
+      group.mainAction = PluginManagerConfigurablePanel.LinkLabelButton<Any?>(
+        IdeBundle.message("plugins.configurable.show.all"),
+        null,
+        searchListener,
+        showAllQuery,
+      )
+      group.mainAction!!.setBorder(JBUI.Borders.emptyRight(5))
     }
 
     if (!group.getModels().isEmpty()) {
-      groups.add(group);
+      groups.add(group)
     }
-    LOG.info("Marketplace tab: '" + name + "' group load finished");
+    LOG.info("Marketplace tab: '" + name + "' group load finished")
   }
 
-  private void addGroupViaLightDescriptor(@NotNull List<? super PluginsGroup> groups,
-                                          @NotNull @Nls String name,
-                                          @NotNull PluginsGroupType type,
-                                          @NotNull @NonNls String query,
-                                          @NotNull @NonNls String showAllQuery,
-                                          @NotNull Map<String, PluginSearchResult> marketplaceData,
-                                          @NotNull Map<PluginId, List<HtmlChunk>> errors,
-                                          @NotNull Map<PluginId, PluginUiModel> installedPluginIds,
-                                          @NotNull Map<PluginId, PluginInstallationState> installationStates)
-    throws IOException {
-    LOG.info("Marketplace tab: '" + name + "' group load started");
-    PluginSearchResult searchResult = marketplaceData.get(query);
-    if (searchResult.getError() != null) {
-      throw new IOException(searchResult.getError());
+  @Throws(IOException::class)
+  private fun addGroupViaLightDescriptor(
+    groups: MutableList<PluginsGroup>,
+    name: @Nls String,
+    type: PluginsGroupType,
+    query: @NonNls String,
+    showAllQuery: @NonNls String,
+    marketplaceData: Map<String, PluginSearchResult>,
+    errors: Map<PluginId, List<HtmlChunk>>,
+    installedPluginIds: Map<PluginId, PluginUiModel>,
+    installationStates: Map<PluginId, PluginInstallationState>,
+  ) {
+    LOG.info("Marketplace tab: '" + name + "' group load started")
+    val searchResult = marketplaceData[query]!!
+    val error = searchResult.error
+    if (error != null) {
+      throw IOException(error)
     }
 
-    List<PluginUiModel> plugins = searchResult.getPlugins();
-    for (PluginUiModel plugin : plugins) {
-      plugin.setInstallSource(FUSEventSource.PLUGINS_STAFF_PICKS_GROUP);
-      FUSEventSource.PLUGINS_STAFF_PICKS_GROUP.logPluginSuggested(plugin.getPluginId());
+    val plugins = searchResult.getPlugins()
+    for (plugin in plugins) {
+      plugin.installSource = FUSEventSource.PLUGINS_STAFF_PICKS_GROUP
+      FUSEventSource.PLUGINS_STAFF_PICKS_GROUP.logPluginSuggested(pluginId = plugin.pluginId)
     }
 
-    addGroup(groups,
-             name,
-             type,
-             showAllQuery,
-             plugins,
-             __ -> plugins.size() >= ITEMS_PER_GROUP,
-             errors,
-             installedPluginIds,
-             installationStates);
+    addGroup(
+      groups,
+      name,
+      type,
+      showAllQuery,
+      plugins,
+      Predicate { plugins.size >= ITEMS_PER_GROUP },
+      errors,
+      installedPluginIds,
+      installationStates,
+    )
   }
 
-  @Override
-  public void dispose() {
+  override fun dispose() {
     if (myMarketplacePanel != null) {
-      myMarketplacePanel.dispose();
+      myMarketplacePanel!!.dispose()
     }
     if (myMarketplaceSearchPanel != null) {
-      myMarketplaceSearchPanel.dispose();
+      myMarketplaceSearchPanel!!.dispose()
     }
-    super.dispose();
+    super.dispose()
   }
 
-  void onPanelReset(boolean isMarketplaceTabSelected) {
+  fun onPanelReset(isMarketplaceTabSelected: Boolean) {
     if (myMarketplacePanel != null) {
       if (isMarketplaceTabSelected) {
-        myMarketplaceRunnable.run();
+        myMarketplaceRunnable!!.run()
       }
       else {
-        myMarketplacePanel.setOnBecomingVisibleCallback(myMarketplaceRunnable);
+        myMarketplacePanel!!.setOnBecomingVisibleCallback(myMarketplaceRunnable!!)
       }
     }
   }
 
   @ApiStatus.Internal
-  final class MarketplaceSortByAction extends ToggleAction implements DumbAware {
-    final MarketplaceTabSearchSortByOptions myOption;
-    boolean myState;
-    private boolean myVisible;
+  inner class MarketplaceSortByAction(option: MarketplaceTabSearchSortByOptions) : ToggleAction(option.presentableNameSupplier), DumbAware {
+    val myOption: MarketplaceTabSearchSortByOptions = option
+    var myState: Boolean = false
+    private var myVisible: Boolean = false
 
-    private MarketplaceSortByAction(@NotNull MarketplaceTabSearchSortByOptions option) {
-      super(option.getPresentableNameSupplier());
-      getTemplatePresentation().setKeepPopupOnPerform(KeepPopupOnPerform.IfRequested);
-      myOption = option;
+    init {
+      templatePresentation.setKeepPopupOnPerform(KeepPopupOnPerform.IfRequested)
     }
 
-    @Override
-    public void update(@NotNull AnActionEvent e) {
-      super.update(e);
-      e.getPresentation().setVisible(myVisible);
+    override fun update(e: AnActionEvent) {
+      super.update(e)
+      e.presentation.setVisible(myVisible)
     }
 
-    @Override
-    public @NotNull ActionUpdateThread getActionUpdateThread() {
-      return ActionUpdateThread.BGT;
+    override fun getActionUpdateThread(): ActionUpdateThread {
+      return ActionUpdateThread.BGT
     }
 
-    @Override
-    public boolean isSelected(@NotNull AnActionEvent e) {
-      return myState;
+    override fun isSelected(e: AnActionEvent): Boolean {
+      return myState
     }
 
-    @Override
-    public void setSelected(@NotNull AnActionEvent e, boolean state) {
-      myState = state;
-      handleSortByOptionSelection(this);
+    override fun setSelected(e: AnActionEvent, state: Boolean) {
+      myState = state
+      handleSortByOptionSelection(this)
     }
 
-    public void setState(@NotNull SearchQueryParser.Marketplace parser) {
+    fun setState(parser: SearchQueryParser.Marketplace) {
       if (myOption == MarketplaceTabSearchSortByOptions.RELEVANCE) {
-        myState = parser.sortBy == null;
-        myVisible = parser.sortBy == null || !parser.tags.isEmpty() || !parser.vendors.isEmpty() || parser.searchQuery != null;
+        myState = parser.sortBy == null
+        myVisible = parser.sortBy == null || !parser.tags.isEmpty() || !parser.vendors.isEmpty() || parser.searchQuery != null
       }
       else {
-        myState = parser.sortBy != null && myOption == parser.sortBy;
-        myVisible = true;
+        myState = parser.sortBy != null && myOption == parser.sortBy
+        myVisible = true
       }
     }
 
-    public @Nullable String getQuery() {
-      if (myOption == MarketplaceTabSearchSortByOptions.RELEVANCE) return null;
-      return SearchWords.SORT_BY.getValue() + myOption.getQuery();
+    fun getQuery(): String? {
+      if (myOption == MarketplaceTabSearchSortByOptions.RELEVANCE) {
+        return null
+      }
+      return SearchWords.SORT_BY.value + myOption.query
     }
+  }
+
+  companion object {
+    private val LOG = Logger.getInstance(MarketplacePluginsTab::class.java)
+
+    private const val ITEMS_PER_GROUP = 9
   }
 }
