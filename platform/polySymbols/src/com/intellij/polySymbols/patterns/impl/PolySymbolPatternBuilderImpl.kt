@@ -7,39 +7,40 @@ import com.intellij.polySymbols.patterns.ComplexPatternOptions
 import com.intellij.polySymbols.patterns.GroupPatternBuilder
 import com.intellij.polySymbols.patterns.PolySymbolPattern
 import com.intellij.polySymbols.patterns.PolySymbolPatternBuilder
-import com.intellij.polySymbols.patterns.PolySymbolPatternFactory
 import com.intellij.polySymbols.patterns.RepeatingGroupPatternBuilder
+import com.intellij.polySymbols.query.PolySymbolQueryExecutor
+import com.intellij.polySymbols.query.PolySymbolQueryStack
 
 internal open class PolySymbolPatternBuilderImpl : PolySymbolPatternBuilder {
 
   internal val patterns: MutableList<PolySymbolPattern> = mutableListOf()
 
   override fun literal(text: String) {
-    patterns += PolySymbolPatternFactory.createStringMatch(text)
+    patterns += StaticPattern(text)
   }
 
   override fun regex(pattern: String, caseSensitive: Boolean) {
-    patterns += PolySymbolPatternFactory.createRegExMatch(pattern, caseSensitive)
+    patterns += RegExpPattern(pattern, caseSensitive)
   }
 
   override fun symbolReference(label: String?) {
-    patterns += PolySymbolPatternFactory.createSymbolReferencePlaceholder(label)
+    patterns += SymbolReferencePattern(label)
   }
 
   override fun completionPopup() {
-    patterns += PolySymbolPatternFactory.createCompletionAutoPopup(false)
+    patterns += CompletionAutoPopupPattern(false)
   }
 
   override fun completionPopupWithPrefixKept() {
-    patterns += PolySymbolPatternFactory.createCompletionAutoPopup(true)
+    patterns += CompletionAutoPopupPattern(true)
   }
 
   override fun symbolReference(vararg path: PolySymbolQualifiedName) {
-    patterns += PolySymbolPatternFactory.createSingleSymbolReferencePattern(path.toList())
+    patterns += SingleSymbolReferencePattern(path.toList())
   }
 
   override fun symbolReference(path: List<PolySymbolQualifiedName>) {
-    patterns += PolySymbolPatternFactory.createSingleSymbolReferencePattern(path)
+    patterns += SingleSymbolReferencePattern(path.toList())
   }
 
   override fun sequence(body: PolySymbolPatternBuilder.() -> Unit) {
@@ -48,9 +49,13 @@ internal open class PolySymbolPatternBuilderImpl : PolySymbolPatternBuilder {
 
   override fun oneOf(body: AlternativesBuilder.() -> Unit) {
     val branches = AlternativesBuilderImpl().apply(body).buildBranches()
-    patterns += PolySymbolPatternFactory.createComplexPattern(
-      ComplexPatternOptions(), false, *branches.toTypedArray()
-    )
+    val complexOptions = ComplexPatternOptions()
+    val complexPatterns = branches.toList()
+    patterns += ComplexPattern(object : ComplexPatternConfigProvider {
+      override fun getPatterns(): List<PolySymbolPattern> = complexPatterns
+      override fun getOptions(queryExecutor: PolySymbolQueryExecutor, stack: PolySymbolQueryStack): ComplexPatternOptions = complexOptions
+      override val isStaticAndRequired: Boolean get() = false
+    })
   }
 
   override fun group(body: GroupPatternBuilder.() -> Unit) {
@@ -72,6 +77,6 @@ internal open class PolySymbolPatternBuilderImpl : PolySymbolPatternBuilder {
   internal fun buildSingle(): PolySymbolPattern {
     check(patterns.isNotEmpty()) { "Pattern body must produce at least one pattern" }
     return if (patterns.size == 1) patterns[0]
-    else PolySymbolPatternFactory.createPatternSequence(*patterns.toTypedArray())
+    else SequencePattern(*patterns.toTypedArray())
   }
 }

@@ -8,9 +8,10 @@ import com.intellij.polySymbols.patterns.ComplexPatternOptions
 import com.intellij.polySymbols.patterns.GroupPatternBuilder
 import com.intellij.polySymbols.patterns.MatchPropertyOverridesBuilder
 import com.intellij.polySymbols.patterns.PolySymbolPattern
-import com.intellij.polySymbols.patterns.PolySymbolPatternFactory
 import com.intellij.polySymbols.patterns.PolySymbolPatternSymbolsResolver
 import com.intellij.polySymbols.patterns.SymbolsBuilder
+import com.intellij.polySymbols.query.PolySymbolQueryExecutor
+import com.intellij.polySymbols.query.PolySymbolQueryStack
 import com.intellij.polySymbols.query.PolySymbolScope
 
 internal open class GroupPatternBuilderImpl(
@@ -71,7 +72,7 @@ internal open class GroupPatternBuilderImpl(
     content += alternatives
     if (patterns.isNotEmpty()) {
       content += if (patterns.size == 1) patterns[0]
-      else PolySymbolPatternFactory.createPatternSequence(*patterns.toTypedArray())
+      else SequencePattern(*patterns.toTypedArray())
     }
     check(content.isNotEmpty()) { "Group body must produce at least one pattern" }
 
@@ -85,6 +86,11 @@ internal open class GroupPatternBuilderImpl(
       symbolsResolver = resolver,
       additionalLastSegmentSymbol = matchPropertyOverrides?.build(),
     )
-    return PolySymbolPatternFactory.createComplexPattern(options, false, *content.toTypedArray())
+    val complexPatterns = content.toList()
+    return ComplexPattern(object : ComplexPatternConfigProvider {
+      override fun getPatterns(): List<PolySymbolPattern> = complexPatterns
+      override fun getOptions(queryExecutor: PolySymbolQueryExecutor, stack: PolySymbolQueryStack): ComplexPatternOptions = options
+      override val isStaticAndRequired: Boolean get() = false
+    })
   }
 }
