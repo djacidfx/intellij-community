@@ -59,7 +59,11 @@ class InstalledPluginsTab(
 ) : PluginsTab() {
   private var installedPanel: PluginsGroupComponentWithProgress? = null
   private var installedSearchPanel: InstalledPluginsTabSearchResultPanel? = null
-  private val installedSearchGroup = DefaultActionGroup()
+  private val installedSearchGroup = DefaultActionGroup().apply {
+    for (option in InstalledSearchOption.entries) {
+      add(InstalledSearchOptionAction(option))
+    }
+  }
 
   private val bundledUpdateGroup =
     PluginsGroup(IdeBundle.message("plugins.configurable.bundled.updates"), PluginsGroupType.BUNDLED_UPDATE)
@@ -72,10 +76,6 @@ class InstalledPluginsTab(
   private val bundledUpdateCounter: JLabel = CountComponent()
 
   init {
-    for (option in InstalledSearchOption.entries) {
-      installedSearchGroup.add(InstalledSearchOptionAction(option))
-    }
-
     updateAllLink.isVisible = false
     bundledUpdateAllLink.isVisible = false
     updateCounter.isVisible = false
