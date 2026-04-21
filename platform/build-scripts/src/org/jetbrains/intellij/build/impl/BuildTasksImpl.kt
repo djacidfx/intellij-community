@@ -840,9 +840,8 @@ private suspend fun buildCrossPlatformZip(distResults: List<DistributionForOsTas
           javaExecutablePath = null,
           vmOptionsFilePath = "bin/win/${executableName64}.exe.vmoptions",
           bootClassPathJarNames = context.bootClassPathJarNames,
-          additionalJvmArguments = context.getAdditionalJvmArguments(os = OsFamily.WINDOWS, arch = arch, isPortableDist = true),
+          additionalJvmArguments = context.getAdditionalJvmArguments(OsFamily.WINDOWS, arch, isPortableDist = true),
           mainClass = context.ideMainClassName,
-          stdioRedirectArg = context.productProperties.stdioRedirectArg,
         ),
         ProductInfoLaunchData.create(
           os = OsFamily.LINUX.osName,
@@ -851,9 +850,8 @@ private suspend fun buildCrossPlatformZip(distResults: List<DistributionForOsTas
           javaExecutablePath = null,
           vmOptionsFilePath = "bin/linux/${executableName64}.vmoptions",
           bootClassPathJarNames = context.bootClassPathJarNames,
-          additionalJvmArguments = context.getAdditionalJvmArguments(os = OsFamily.LINUX, arch = arch, isPortableDist = true),
+          additionalJvmArguments = context.getAdditionalJvmArguments(OsFamily.LINUX, arch, isPortableDist = true),
           mainClass = context.ideMainClassName,
-          stdioRedirectArg = context.productProperties.stdioRedirectArg,
           startupWmClass = getLinuxFrameClass(context),
         ),
         ProductInfoLaunchData.create(
@@ -863,9 +861,8 @@ private suspend fun buildCrossPlatformZip(distResults: List<DistributionForOsTas
           javaExecutablePath = null,
           vmOptionsFilePath = "bin/mac/${executableName}.vmoptions",
           bootClassPathJarNames = context.bootClassPathJarNames,
-          additionalJvmArguments = context.getAdditionalJvmArguments(os = OsFamily.MACOS, arch = arch, isPortableDist = true),
+          additionalJvmArguments = context.getAdditionalJvmArguments(OsFamily.MACOS, arch, isPortableDist = true),
           mainClass = context.ideMainClassName,
-          stdioRedirectArg = context.productProperties.stdioRedirectArg,
         )
       )
     }.toList(),
@@ -1088,7 +1085,6 @@ private suspend fun crossPlatformZip(
 
       val zipFileUniqueGuard = HashMap<String, DistFileContent>()
 
-      @Suppress("SpellCheckingInspection")
       val nonConflictingBinDirs = when (context.applicationInfo.productCode) {
         "CL" -> listOf("clang/", "cmake/", "gdb/", "lldb/", "mingw/", "ninja/", "profiler/")
         else -> emptyList()
@@ -1180,7 +1176,7 @@ private suspend fun crossPlatformZip(
       val distFiles = context.getDistFiles(os = null, arch = null, libcImpl = null)
       for (distFile in distFiles) {
         // Linux and Windows: we don't add specific dist dirs for ARM, so, copy dist files explicitly.
-        // macOS: we don't copy dist files to avoid extra copy operation
+        // macOS: we don't copy dist files to avoid an extra copy operation
         val content = distFile.content
 
         // Skip OS-specific plugin-classpath.txt; not published in cross-platform SDK
