@@ -18,18 +18,18 @@ internal class PolySymbolDocumentationBuilderImpl(
   private val symbol: PolySymbol,
   private val location: PsiElement?,
 ) : PolySymbolDocumentationBuilder {
-  override var name: String = symbol.name
-  override var definition: String = Strings.escapeXmlEntities(symbol.name)
-  override var definitionDetails: String? = null
-  override var description: @Nls String? = null
-  override var docUrl: String? = null
-  override var apiStatus: PolySymbolApiStatus? = symbol.apiStatus
-  override var defaultValue: String? = null
-  override var library: String? = null
-  override var icon: Icon? = symbol.icon?.takeIf { symbol[DocHideIconProperty] != true }
-  override val descriptionSections: MutableMap<@Nls String, @Nls String> = mutableMapOf()
-  override var footnote: @Nls String? = null
-  override var header: @Nls String? = null
+  private var name: String = symbol.name
+  private var definition: String = Strings.escapeXmlEntities(symbol.name)
+  private var definitionDetails: String? = null
+  private var description: @Nls String? = null
+  private var docUrl: String? = null
+  private var apiStatus: PolySymbolApiStatus? = symbol.apiStatus
+  private var defaultValue: String? = null
+  private var library: String? = null
+  private var icon: Icon? = symbol.icon?.takeIf { symbol[DocHideIconProperty] != true }
+  private val descriptionSections: MutableMap<@Nls String, @Nls String> = mutableMapOf()
+  private var footnote: @Nls String? = null
+  private var header: @Nls String? = null
   private val iconProviders = mutableListOf<(String) -> Icon?>()
 
   override fun name(value: @NlsSafe String): PolySymbolDocumentationBuilder {
@@ -127,7 +127,7 @@ internal class PolySymbolDocumentationBuilderImpl(
   }
 
   @Suppress("TestOnlyProblems")
-  override fun build(): PolySymbolDocumentation =
+  fun build(): PolySymbolDocumentation =
     PolySymbolDocumentationImpl(
       name, definition, definitionDetails, description, docUrl, apiStatus, defaultValue, library,
       icon, descriptionSections, footnote, header, iconProviders
