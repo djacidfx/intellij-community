@@ -32,8 +32,11 @@ import org.jetbrains.annotations.NonNls
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.nio.file.Path
+import javax.swing.JCheckBox
+import javax.swing.JComboBox
 import javax.swing.JComponent
 import javax.swing.JPanel
+import javax.swing.JScrollPane
 import javax.swing.table.TableCellEditor
 import javax.swing.table.TableCellRenderer
 import javax.swing.tree.DefaultMutableTreeNode
@@ -47,14 +50,15 @@ import kotlin.io.path.writeText
 class McpToolFilterConfigurable : SearchableConfigurable {
   private var mainPanel: JPanel? = null
   private var treeTable: TreeTable? = null
-  private var treeTableScrollPane: javax.swing.JScrollPane? = null
-  private val toolNodes = mutableMapOf<String, McpToolNode>()
+  private var treeTableScrollPane: JScrollPane? = null
+  private val currentToolNodes: MutableMap<String, McpToolNode> = mutableMapOf()
   private var initialToolStates: Map<String, McpToolState> = emptyMap()
+  private val currentToolStates: MutableMap<String, McpToolState> = mutableMapOf()
   private var toolsFilterTextArea: JBTextArea? = null
   private var initialToolsFilter: @NlsSafe String = ""
-  private var showExperimentalCheckbox: javax.swing.JCheckBox? = null
+  private var showExperimentalCheckbox: JCheckBox? = null
   private var initialShowExperimental: Boolean = false
-  private var invocationModeComboBox: javax.swing.JComboBox<McpSessionInvocationMode>? = null
+  private var invocationModeComboBox: JComboBox<McpSessionInvocationMode>? = null
   private var initialInvocationMode: McpSessionInvocationMode = McpSessionInvocationMode.DIRECT
 
   override fun getDisplayName(): String = McpServerBundle.message("configurable.mcp.tool.filter")
@@ -65,7 +69,9 @@ class McpToolFilterConfigurable : SearchableConfigurable {
     val panel = JPanel(BorderLayout())
 
     val settings = McpToolDisallowListSettings.getInstance()
-    initialToolStates = settings.toolStates
+    initialToolStates = normalizeToolStates(settings.toolStates)
+    currentToolStates.clear()
+    currentToolStates.putAll(initialToolStates)
 
     val filterSettings = McpToolFilterSettings.getInstance()
     initialShowExperimental = filterSettings.showExperimental
@@ -102,11 +108,11 @@ class McpToolFilterConfigurable : SearchableConfigurable {
           invocationModeComboBox = comboBox.component
         }.rowComment(McpServerBundle.message("configurable.mcp.tool.filter.invocation.mode.comment"))
       }
-      
+
       row {
         val checkbox = checkBox(McpServerBundle.message("configurable.mcp.tool.filter.show.experimental"))
           .selected(initialShowExperimental)
-          .onChanged { 
+          .onChanged {
             refreshTreeTable()
           }
         showExperimentalCheckbox = checkbox.component
@@ -179,7 +185,7 @@ class McpToolFilterConfigurable : SearchableConfigurable {
 
   private fun createTreeTable(tools: List<McpTool>, showExperimental: Boolean = false, toolStates: Map<String, McpToolState> = initialToolStates): TreeTable {
     val root = DefaultMutableTreeNode("Root")
-    toolNodes.clear()
+    currentToolNodes.clear()
 
     val toolsByCategory = tools
       .groupBy { it.descriptor.category }
@@ -199,7 +205,7 @@ class McpToolFilterConfigurable : SearchableConfigurable {
           toolDescription = tool.descriptor.description.trimIndent(),
           state = state
         )
-        toolNodes[toolName] = mcpToolNode
+        currentToolNodes[toolName] = mcpToolNode
         categoryNode.add(DefaultMutableTreeNode(mcpToolNode))
       }
     }
@@ -240,52 +246,56 @@ class McpToolFilterConfigurable : SearchableConfigurable {
   }
 
   override fun isModified(): Boolean {
-    val currentStates = getCurrentToolStates()
-    val statesModified = currentStates != initialToolStates
-    
+    syncVisibleToolStates()
+    val statesModified = currentToolStates != initialToolStates
+    if (statesModified) {
+      return true
+    }
+
     val showExperimentalModified = (showExperimentalCheckbox?.isSelected ?: false) != initialShowExperimental
-    
-    val invocationModeModified = if (Registry.`is`("mcp.server.show.advanced.filter.options.ui", false)) {
-      (invocationModeComboBox?.selectedItem as? McpSessionInvocationMode) != initialInvocationMode
-    } else {
-      false
+    if (showExperimentalModified) {
+      return true
     }
-    
-    val filterModified = if (Registry.`is`("mcp.server.show.advanced.filter.options.ui", false)) {
-      toolsFilterTextArea?.text != initialToolsFilter
-    } else {
-      false
+
+    val invocationModeModified = Registry.`is`("mcp.server.show.advanced.filter.options.ui", false) &&
+                                 (invocationModeComboBox?.selectedItem as? McpSessionInvocationMode) != initialInvocationMode
+    if (invocationModeModified) {
+      return true
     }
-    
-    return statesModified || filterModified || showExperimentalModified || invocationModeModified
+
+    val filterModified = Registry.`is`("mcp.server.show.advanced.filter.options.ui", false) &&
+                         toolsFilterTextArea?.text != initialToolsFilter
+    return filterModified
   }
 
   override fun apply() {
-    val toolStates = getCurrentToolStates()
+    syncVisibleToolStates()
+    val toolStates = currentToolStates.toMap()
     McpToolDisallowListSettings.getInstance().toolStates = toolStates
     initialToolStates = toolStates
-    
+
     val newShowExperimental = showExperimentalCheckbox?.isSelected ?: false
     val showExperimentalChanged = newShowExperimental != initialShowExperimental
     McpToolFilterSettings.getInstance().showExperimental = newShowExperimental
     initialShowExperimental = newShowExperimental
-    
+
     if (Registry.`is`("mcp.server.show.advanced.filter.options.ui", false)) {
       val newInvocationMode = invocationModeComboBox?.selectedItem as? McpSessionInvocationMode ?: McpSessionInvocationMode.DIRECT
       McpToolFilterSettings.getInstance().invocationMode = newInvocationMode
       initialInvocationMode = newInvocationMode
     }
-    
+
     val filterChanged = if (Registry.`is`("mcp.server.show.advanced.filter.options.ui", false)) {
       val newFilter = toolsFilterTextArea?.text ?: ""
       val changed = newFilter != initialToolsFilter
       McpToolFilterSettings.getInstance().toolsFilter = newFilter
       initialToolsFilter = newFilter
       changed
-    } else {
+    }
+    else {
       false
     }
-    
+
     // Refresh tree if filter or show experimental was changed, as it affects displayed tools
     if (filterChanged || showExperimentalChanged) {
       refreshTreeTable()
@@ -294,23 +304,25 @@ class McpToolFilterConfigurable : SearchableConfigurable {
 
   override fun reset() {
     val settings = McpToolDisallowListSettings.getInstance()
-    initialToolStates = settings.toolStates
+    initialToolStates = normalizeToolStates(settings.toolStates)
+    currentToolStates.clear()
+    currentToolStates.putAll(initialToolStates)
 
-    for ((toolName, node) in toolNodes) {
-      val state = initialToolStates.getOrDefault(toolName, McpToolState.ON_DEMAND)
+    for ((toolName, node) in currentToolNodes) {
+      val state = currentToolStates.getOrDefault(toolName, McpToolState.ON_DEMAND)
       node.state = state
     }
 
     treeTable?.repaint()
-    
+
     val filterSettings = McpToolFilterSettings.getInstance()
     initialShowExperimental = filterSettings.showExperimental
     showExperimentalCheckbox?.isSelected = initialShowExperimental
-    
+
     if (Registry.`is`("mcp.server.show.advanced.filter.options.ui", false)) {
       initialInvocationMode = filterSettings.invocationMode
       invocationModeComboBox?.selectedItem = initialInvocationMode
-      
+
       initialToolsFilter = filterSettings.toolsFilter
       toolsFilterTextArea?.text = initialToolsFilter
     }
@@ -320,7 +332,8 @@ class McpToolFilterConfigurable : SearchableConfigurable {
     mainPanel = null
     treeTable = null
     treeTableScrollPane = null
-    toolNodes.clear()
+    currentToolNodes.clear()
+    currentToolStates.clear()
     toolsFilterTextArea = null
     showExperimentalCheckbox = null
     invocationModeComboBox = null
@@ -330,7 +343,7 @@ class McpToolFilterConfigurable : SearchableConfigurable {
     val panel = mainPanel ?: return
 
     val currentShowExperimental = showExperimentalCheckbox?.isSelected ?: false
-    val currentToolStates = getCurrentToolStates()
+    syncVisibleToolStates()
 
     // Remove old tree table scroll pane
     treeTableScrollPane?.let { panel.remove(it) }
@@ -342,12 +355,19 @@ class McpToolFilterConfigurable : SearchableConfigurable {
     panel.repaint()
   }
 
-  private fun getCurrentToolStates(): Map<String, McpToolState> {
-    val states = mutableMapOf<String, McpToolState>()
-    for ((toolName, node) in toolNodes) {
-      states[toolName] = node.state
+  private fun syncVisibleToolStates() {
+    for ((toolName, node) in currentToolNodes) {
+      if (node.state == McpToolState.ON_DEMAND) {
+        currentToolStates.remove(toolName)
+      }
+      else {
+        currentToolStates[toolName] = node.state
+      }
     }
-    return states
+  }
+
+  private fun normalizeToolStates(toolStates: Map<String, McpToolState>): Map<String, McpToolState> {
+    return toolStates.filterValues { it != McpToolState.ON_DEMAND }
   }
 
   private class ToolDescriptionColumnInfo : ColumnInfo<DefaultMutableTreeNode, String>(
