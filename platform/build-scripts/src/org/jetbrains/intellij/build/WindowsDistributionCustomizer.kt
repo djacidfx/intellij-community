@@ -33,7 +33,7 @@ annotation class WindowsCustomizerDsl
  * }
  * ```
  */
-inline fun windowsCustomizer(projectHome: Path, configure: WindowsCustomizerBuilder.() -> Unit): WindowsDistributionCustomizer {
+inline fun windowsCustomizer(projectHome: Path, configure: WindowsCustomizerBuilder.() -> Unit = {}): WindowsDistributionCustomizer {
   return WindowsCustomizerBuilder(projectHome).apply(configure).build()
 }
 
@@ -258,6 +258,16 @@ abstract class WindowsDistributionCustomizer {
    * Path to a .ico file for EAP builds (if `null` [icoPath] will be used).
    */
   var icoPathForEAP: Path? = null
+
+  /**
+   * If `true`, a GUI .exe launcher will be included in the distribution.
+   */
+  var includeGuiLauncher: Boolean = true
+
+  /**
+   * If `true`, a console .exe launcher will be included in the distribution.
+   */
+  var includeConsoleLauncher: Boolean = true
 
   /**
    * If `true`, .bat files ("<productName>.bat" and "inspect.bat") will be included in the distribution.
