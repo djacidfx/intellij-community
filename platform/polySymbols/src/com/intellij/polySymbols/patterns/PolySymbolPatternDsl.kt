@@ -12,6 +12,7 @@ import com.intellij.polySymbols.dsl.DependencyScope
 import com.intellij.polySymbols.dsl.DependencySource
 import com.intellij.polySymbols.dsl.PolySymbolDsl
 import com.intellij.polySymbols.dsl.PolySymbolDslBuilderBase
+import com.intellij.polySymbols.patterns.impl.PolySymbolPatternBuilderImpl
 import com.intellij.polySymbols.query.PolySymbolNameConversionRules
 import com.intellij.polySymbols.query.PolySymbolScope
 import com.intellij.polySymbols.webTypes.filters.PolySymbolFilter
@@ -26,132 +27,70 @@ import javax.swing.Icon
  * be explicit.
  */
 fun polySymbolPattern(body: PolySymbolPatternBuilder.() -> Unit): PolySymbolPattern =
-  PolySymbolPatternBuilder().apply(body).buildSingle()
+  PolySymbolPatternBuilderImpl().apply(body).buildSingle()
 
 @PolySymbolDsl
-open class PolySymbolPatternBuilder internal constructor() {
-
-  internal val patterns: MutableList<PolySymbolPattern> = mutableListOf()
+interface PolySymbolPatternBuilder {
 
   /** Literal string match. */
-  fun literal(text: String) {
-    patterns += PolySymbolPatternFactory.createStringMatch(text)
-  }
+  fun literal(text: String)
 
   /** Regex match. */
-  fun regex(pattern: String, caseSensitive: Boolean = false) {
-    patterns += PolySymbolPatternFactory.createRegExMatch(pattern, caseSensitive)
-  }
+  fun regex(pattern: String, caseSensitive: Boolean = false)
 
   /**
    * Symbol reference placeholder. Resolves against the enclosing
    * `symbols { }` or custom `symbolsResolver`.
    */
-  fun symbolReference(label: String? = null) {
-    patterns += PolySymbolPatternFactory.createSymbolReferencePlaceholder(label)
-  }
+  fun symbolReference(label: String? = null)
 
   /**
    * Completion auto-popup trigger. The already input name prefix is discarded at this position.
    */
-  fun completionPopup() {
-    patterns += PolySymbolPatternFactory.createCompletionAutoPopup(false)
-  }
+  fun completionPopup()
 
   /**
    * Completion auto-popup trigger, which keeps the already input name prefix
    * on each completion item.
    */
-  fun completionPopupWithPrefixKept() {
-    patterns += PolySymbolPatternFactory.createCompletionAutoPopup(true)
-  }
+  fun completionPopupWithPrefixKept()
 
   /** Reference to a specific symbol resolved along [path]. */
-  fun symbolReference(vararg path: PolySymbolQualifiedName) {
-    patterns += PolySymbolPatternFactory.createSingleSymbolReferencePattern(path.toList())
-  }
+  fun symbolReference(vararg path: PolySymbolQualifiedName)
 
   /** Reference to a specific symbol resolved along [path]. */
-  fun symbolReference(path: List<PolySymbolQualifiedName>) {
-    patterns += PolySymbolPatternFactory.createSingleSymbolReferencePattern(path)
-  }
+  fun symbolReference(path: List<PolySymbolQualifiedName>)
 
   /** Ordered sequence; all children must match in order. */
-  fun sequence(body: PolySymbolPatternBuilder.() -> Unit) {
-    patterns += PolySymbolPatternBuilder().apply(body).buildSingle()
-  }
+  fun sequence(body: PolySymbolPatternBuilder.() -> Unit)
 
   /** Alternatives; match exactly one of the `branch { }` blocks. */
-  open fun oneOf(body: AlternativesBuilder.() -> Unit) {
-    val branches = AlternativesBuilder().apply(body).buildBranches()
-    patterns += PolySymbolPatternFactory.createComplexPattern(
-      ComplexPatternOptions(), false, *branches.toTypedArray()
-    )
-  }
+  fun oneOf(body: AlternativesBuilder.() -> Unit)
 
   /** Pattern group with options and/or a symbol resolver. */
-  fun group(body: GroupPatternBuilder.() -> Unit) {
-    patterns += GroupPatternBuilder(required = true).apply(body).buildGroup()
-  }
+  fun group(body: GroupPatternBuilder.() -> Unit)
 
   /** Optional group. */
-  fun optional(body: GroupPatternBuilder.() -> Unit) {
-    patterns += GroupPatternBuilder(required = false).apply(body).buildGroup()
-  }
+  fun optional(body: GroupPatternBuilder.() -> Unit)
 
   /** Repeating group. */
-  fun repeating(body: RepeatingGroupPatternBuilder.() -> Unit) {
-    patterns += RepeatingGroupPatternBuilder(required = true).apply(body).buildGroup()
-  }
+  fun repeating(body: RepeatingGroupPatternBuilder.() -> Unit)
 
   /** Optional repeating group. */
-  fun optionalRepeating(body: RepeatingGroupPatternBuilder.() -> Unit) {
-    patterns += RepeatingGroupPatternBuilder(required = false).apply(body).buildGroup()
-  }
-
-  internal fun buildSingle(): PolySymbolPattern {
-    check(patterns.isNotEmpty()) { "Pattern body must produce at least one pattern" }
-    return if (patterns.size == 1) patterns[0]
-    else PolySymbolPatternFactory.createPatternSequence(*patterns.toTypedArray())
-  }
+  fun optionalRepeating(body: RepeatingGroupPatternBuilder.() -> Unit)
 }
 
 @PolySymbolDsl
-class AlternativesBuilder internal constructor() {
-
-  private val branches: MutableList<PolySymbolPattern> = mutableListOf()
-
-  fun branch(body: PolySymbolPatternBuilder.() -> Unit) {
-    branches += PolySymbolPatternBuilder().apply(body).buildSingle()
-  }
-
-  internal fun buildBranches(): List<PolySymbolPattern> {
-    check(branches.isNotEmpty()) { "oneOf must contain at least one branch" }
-    return branches.toList()
-  }
+interface AlternativesBuilder {
+  fun branch(body: PolySymbolPatternBuilder.() -> Unit)
 }
 
 @PolySymbolDsl
-open class GroupPatternBuilder internal constructor(
-  private val required: Boolean,
-) : PolySymbolPatternBuilder() {
-  private var priorityValue: PolySymbol.Priority? = null
-  private var apiStatusValue: PolySymbolApiStatus? = null
-  private var symbolsResolverValue: PolySymbolPatternSymbolsResolver? = null
-  private var matchPropertyOverrides: MatchPropertyOverridesBuilder? = null
-  private val additionalScopes: MutableList<PolySymbolScope> = mutableListOf()
-  protected open val repeats: Boolean get() = false
-  protected open val unique: Boolean get() = false
-  private var symbolsBuilder: SymbolsBuilder? = null
-  private val alternatives: MutableList<PolySymbolPattern> = mutableListOf()
+interface GroupPatternBuilder : PolySymbolPatternBuilder {
 
-  fun priority(value: PolySymbol.Priority?) {
-    priorityValue = value
-  }
+  fun priority(value: PolySymbol.Priority?)
 
-  fun apiStatus(value: PolySymbolApiStatus?) {
-    apiStatusValue = value
-  }
+  fun apiStatus(value: PolySymbolApiStatus?)
 
   /**
    * Direct access to a custom [PolySymbolPatternSymbolsResolver]. Mutually
@@ -159,9 +98,7 @@ open class GroupPatternBuilder internal constructor(
    * resolver that does not map to [PolySymbolPatternReferenceResolver].
    */
   @ApiStatus.Internal
-  fun symbolsResolver(value: PolySymbolPatternSymbolsResolver?) {
-    symbolsResolverValue = value
-  }
+  fun symbolsResolver(value: PolySymbolPatternSymbolsResolver?)
 
   /**
    * Specify property overrides for the resulting [com.intellij.polySymbols.query.PolySymbolMatch].
@@ -173,130 +110,46 @@ open class GroupPatternBuilder internal constructor(
    * override core properties (`priority`, `apiStatus`, `modifiers`, `icon`)
    * and any custom [PolySymbolProperty].
    */
-  fun overrideMatchProperties(body: MatchPropertyOverridesBuilder.() -> Unit) {
-    val builder = matchPropertyOverrides ?: MatchPropertyOverridesBuilder().also { matchPropertyOverrides = it }
-    builder.body()
-  }
+  fun overrideMatchProperties(body: MatchPropertyOverridesBuilder.() -> Unit)
 
   /** Append additional scopes made available while matching this group's children. */
-  fun additionalScope(vararg scopes: PolySymbolScope) {
-    additionalScopes += scopes
-  }
+  fun additionalScope(vararg scopes: PolySymbolScope)
 
   /** Append additional scopes made available while matching this group's children. */
-  fun additionalScope(scopes: Collection<PolySymbolScope>) {
-    additionalScopes += scopes
-  }
-
-  /**
-   * Hoists the alternatives into the enclosing group.
-   */
-  override fun oneOf(body: AlternativesBuilder.() -> Unit) {
-    alternatives += AlternativesBuilder().apply(body).buildBranches()
-  }
+  fun additionalScope(scopes: Collection<PolySymbolScope>)
 
   /** Symbol resolver built from one or more `from(kind, ...)` entries. */
-  fun symbols(body: SymbolsBuilder.() -> Unit) {
-    val builder = symbolsBuilder ?: SymbolsBuilder().also { symbolsBuilder = it }
-    builder.body()
-  }
-
-  internal fun buildGroup(): PolySymbolPattern {
-    check(symbolsBuilder == null || symbolsResolverValue == null) {
-      "Group has both a symbols { } block and a symbolsResolver — pick one"
-    }
-
-    val resolver = symbolsResolverValue ?: symbolsBuilder?.buildResolver()
-
-    val content: MutableList<PolySymbolPattern> = mutableListOf()
-    content += alternatives
-    if (patterns.isNotEmpty()) {
-      content += if (patterns.size == 1) patterns[0]
-      else PolySymbolPatternFactory.createPatternSequence(*patterns.toTypedArray())
-    }
-    check(content.isNotEmpty()) { "Group body must produce at least one pattern" }
-
-    val options = ComplexPatternOptions(
-      additionalScope = additionalScopes.toList(),
-      apiStatus = apiStatusValue,
-      isRequired = required,
-      priority = priorityValue,
-      repeats = repeats,
-      unique = repeats && unique,
-      symbolsResolver = resolver,
-      additionalLastSegmentSymbol = matchPropertyOverrides?.build(),
-    )
-    return PolySymbolPatternFactory.createComplexPattern(options, false, *content.toTypedArray())
-  }
+  fun symbols(body: SymbolsBuilder.() -> Unit)
 }
 
 @PolySymbolDsl
-class RepeatingGroupPatternBuilder internal constructor(required: Boolean) : GroupPatternBuilder(required) {
-
-  private var uniqueValue: Boolean = false
-
-  fun unique(value: Boolean) {
-    uniqueValue = value
-  }
-
-  override val unique: Boolean get() = uniqueValue
-  override val repeats: Boolean get() = true
+interface RepeatingGroupPatternBuilder : GroupPatternBuilder {
+  fun unique(value: Boolean)
 }
 
 @PolySymbolDsl
-class SymbolsBuilder internal constructor() {
-
-  private val references: MutableList<PolySymbolPatternReferenceResolver.Reference> = mutableListOf()
+interface SymbolsBuilder {
 
   /** Add a reference to symbols of the given [kind], optionally scoped under [location]. */
   fun from(
     kind: PolySymbolKind,
     location: List<PolySymbolQualifiedName> = emptyList(),
     body: ReferenceBuilder.() -> Unit = {},
-  ) {
-    val builder = ReferenceBuilder().apply(body)
-    references += PolySymbolPatternReferenceResolver.Reference(
-      location = location,
-      kind = kind,
-      filter = builder.filterValue,
-      excludeModifiers = builder.excludeModifiersValue,
-      nameConversionRules = builder.nameConversionRules,
-    )
-  }
-
-  internal fun buildResolver(): PolySymbolPatternReferenceResolver? {
-    if (references.isEmpty()) return null
-    return PolySymbolPatternReferenceResolver(*references.toTypedArray())
-  }
+  )
 }
 
 @PolySymbolDsl
-class ReferenceBuilder internal constructor() {
+interface ReferenceBuilder {
 
-  internal var filterValue: PolySymbolFilter? = null
-  internal var excludeModifiersValue: MutableList<PolySymbolModifier> = mutableListOf()
+  fun filter(value: PolySymbolFilter?)
 
-  internal val nameConversionRules: MutableList<PolySymbolNameConversionRules> = mutableListOf()
+  fun excludeModifiers(vararg value: PolySymbolModifier)
 
-  fun filter(value: PolySymbolFilter?) {
-    filterValue = value
-  }
+  fun excludeModifiers(value: List<PolySymbolModifier>)
 
-  fun excludeModifiers(vararg value: PolySymbolModifier) {
-    excludeModifiersValue.addAll(value)
-  }
+  fun nameConversion(rules: PolySymbolNameConversionRules)
 
-  fun excludeModifiers(value: List<PolySymbolModifier>) {
-    excludeModifiersValue.addAll(value)
-  }
-
-  fun nameConversion(rules: PolySymbolNameConversionRules) {
-    nameConversionRules += rules
-  }
-
-  fun nameConversion(rules: Collection<PolySymbolNameConversionRules>) {
-    nameConversionRules += rules
-  }
+  fun nameConversion(rules: Collection<PolySymbolNameConversionRules>)
 }
 
 @PolySymbolDsl
@@ -321,7 +174,7 @@ class MatchPropertyOverridesBuilder internal constructor() : PolySymbolDslBuilde
         && propertyGetters.isEmpty()) {
       return null
     }
-    val resolved = resolveSnapshot() ?: return null
+    val resolved = resolveSnapshot()
     return MatchPropertyOverrideSymbol(
       source = DependencySource.FromSpecs(depSpecs.toList()),
       scope = DependencyScope(resolved),
@@ -340,7 +193,7 @@ class MatchPropertyOverridesBuilder internal constructor() : PolySymbolDslBuilde
 }
 
 private val MATCH_PROPERTY_OVERRIDE_KIND: PolySymbolKind =
-  PolySymbolKind["", "\$matchPropertyOverride$"]
+  PolySymbolKind["", $$"$matchPropertyOverride$"]
 
 private class MatchPropertyOverrideSymbol(
   private val source: DependencySource,
