@@ -38,13 +38,13 @@ class PyWalkFileSystemTest {
 
   @Test
   fun testSunnyDay(): Unit = timeoutRunBlocking {
-    val files = walkFileSystemNoTomlContent(root).orThrow().rawTomlFiles
+    val files = walkFileSystemNoTomlContent(setOf(root)).orThrow().rawTomlFiles
     assertThat("Wrong files", files, Matchers.containsInAnyOrder(*expectedTomlFiles))
   }
 
   @Test
   fun testRainyDay(): Unit = timeoutRunBlocking {
-    when (val r = walkFileSystemNoTomlContent(root.resolve("foo"))) {
+    when (val r = walkFileSystemNoTomlContent(setOf(root.resolve("foo")))) {
       is Result.Failure -> Unit
       is Result.Success -> throw AssertionFailedError("Fake dir has files: ${r.result}")
     }

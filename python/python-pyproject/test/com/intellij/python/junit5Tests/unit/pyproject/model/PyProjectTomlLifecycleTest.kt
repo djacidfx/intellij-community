@@ -4,8 +4,13 @@ package com.intellij.python.junit5Tests.unit.pyproject.model
 import com.intellij.facet.FacetType
 import com.intellij.facet.mock.MockFacetType
 import com.intellij.openapi.application.writeAction
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.service
+import com.intellij.openapi.diagnostic.fileLogger
 import com.intellij.openapi.project.modules
+import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.vfs.writeText
+import com.intellij.platform.ModuleAttachProcessor
 import com.intellij.platform.backend.workspace.workspaceModel
 import com.intellij.platform.workspace.jps.entities.ExcludeUrlEntity
 import com.intellij.platform.workspace.jps.entities.FacetEntity
@@ -13,14 +18,17 @@ import com.intellij.platform.workspace.jps.entities.FacetEntityTypeId
 import com.intellij.platform.workspace.jps.entities.ModuleEntity
 import com.intellij.platform.workspace.jps.entities.ModuleId
 import com.intellij.platform.workspace.jps.entities.SdkId
-import com.intellij.platform.workspace.jps.entities.modifyContentRootEntity
-import com.intellij.platform.workspace.jps.entities.modifyModuleEntity
 import com.intellij.platform.workspace.jps.entities.SourceRootEntity
 import com.intellij.platform.workspace.jps.entities.SourceRootTypeId
+import com.intellij.platform.workspace.jps.entities.modifyContentRootEntity
+import com.intellij.platform.workspace.jps.entities.modifyModuleEntity
 import com.intellij.platform.workspace.jps.entities.sdkId
 import com.intellij.platform.workspace.storage.entities
 import com.intellij.platform.workspace.storage.impl.url.toVirtualFileUrl
 import com.intellij.python.pyproject.PY_PROJECT_TOML
+import com.intellij.python.pyproject.model.api.ModelRebuiltListener
+import com.intellij.python.pyproject.model.internal.MODEL_REBUILD
+import com.intellij.python.pyproject.model.internal.autoImportBridge.createWsmTracker
 import com.intellij.testFramework.common.timeoutRunBlocking
 import com.intellij.testFramework.junit5.TestApplication
 import com.intellij.testFramework.junit5.fixture.disposableFixture
@@ -28,9 +36,19 @@ import com.intellij.testFramework.junit5.fixture.projectFixture
 import com.intellij.testFramework.junit5.fixture.tempPathFixture
 import com.intellij.testFramework.utils.vfs.createDirectory
 import com.intellij.testFramework.utils.vfs.createFile
+import com.intellij.util.io.createDirectories
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
+import java.nio.file.Path
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.io.path.pathString
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -41,6 +59,7 @@ import kotlin.time.Duration.Companion.seconds
 internal class PyProjectTomlLifecycleTest {
 
   companion object {
+    private val log = fileLogger()
     private val disposableFixture = disposableFixture()
 
     @JvmStatic
@@ -54,6 +73,73 @@ internal class PyProjectTomlLifecycleTest {
   private val tempDirFixture = tempPathFixture()
   private val projectFixture = projectFixture(pathFixture = tempDirFixture)
   private val f by pyProjectTomlSyncFixture(projectFixture, tempDirFixture)
+
+
+  @Test
+  fun `attach workspace`(@TempDir workspace2Parent: Path): Unit = timeoutRunBlocking {
+
+    val projectRebuiltTimesCounter = AtomicInteger()
+    val projectRebuiltTwoTimes = CompletableDeferred<Unit>()
+    projectFixture.get().messageBus.connect(projectFixture.get())
+      .subscribe(MODEL_REBUILD,
+                 ModelRebuiltListener {
+                   if (projectRebuiltTimesCounter.incrementAndGet() == 2) { // <-- Wait for 2 rebuilds: initial and after new proj attached
+                     projectRebuiltTwoTimes.complete(Unit)
+                   }
+                 })
+
+    val workspace1Members = writeAction {
+      f.root.convertDirToUvWorkspace("workspace1")
+    }
+    f.reloadProject() // <-- Reload 1
+    val (workspace2, workspace2Members) = writeAction {
+      val workspace2 =
+        VirtualFileManager.getInstance().refreshAndFindFileByNioPath(workspace2Parent.resolve("workspace2").createDirectories())!!
+      val workspace2Members = workspace2.convertDirToUvWorkspace()
+      Pair(workspace2, workspace2Members)
+    }
+    val scope = projectFixture.get().service<MyService>().scope
+
+    // To be unlocked when WSM updated with new module
+    val wsmTrackedDef = CompletableDeferred<Unit>()
+    val tracker = scope.createWsmTracker(projectFixture.get()) {
+      scope.launch {
+        // Project rebuild doesn't work in tests, so we listen for WSM and update it explicitly
+        f.reloadProject() // <-- Reload 2
+        wsmTrackedDef.complete(Unit)
+      }
+    }
+    try {
+      val moduleAttachedDef = CompletableDeferred<Unit>()
+      val workspace2Nio = workspace2.toNioPath()
+      ModuleAttachProcessor().attachToProjectAsync(f.project, workspace2Nio, { _, _ -> moduleAttachedDef.complete(Unit) })
+      log.info("Waiting for the module attach callback")
+      moduleAttachedDef.await()
+      log.info("Waiting for the WSM update")
+      wsmTrackedDef.await()
+      log.info("Waiting for project rebuild")
+      withTimeout(7.seconds) {
+        projectRebuiltTwoTimes.await()
+      }
+      val root = f.root.toNioPath()
+
+      val expectedStruct = buildList {
+        add(ExpectedModule("workspace1", contentRoot = "."))
+        for (member in workspace1Members) {
+          add(ExpectedModule(member, contentRoot = member))
+        }
+        add(ExpectedModule("workspace2", contentRoot = root.relativize(workspace2Nio).pathString))
+        for (member in workspace2Members) {
+          add(ExpectedModule(member, contentRoot = root.relativize(workspace2Nio.resolve(member)).pathString))
+        }
+      }.toTypedArray()
+
+      f.assertProjectStructure(*expectedStruct)
+    }
+    finally {
+      tracker.cancelAndJoin()
+    }
+  }
 
   /**
    * pyproject.toml inside an excluded folder should not create a module.
@@ -346,3 +432,6 @@ internal class PyProjectTomlLifecycleTest {
     f.assertProjectStructure(ExpectedModule("root", contentRoot = ".", excludedFolders = listOf("sub")))
   }
 }
+
+@Service(Service.Level.PROJECT)
+private class MyService(val scope: CoroutineScope)

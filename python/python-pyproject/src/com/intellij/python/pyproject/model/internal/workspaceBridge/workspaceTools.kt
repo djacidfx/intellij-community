@@ -656,7 +656,7 @@ private suspend fun findSrc(root: Directory): Set<Directory> =
 
 private val PYTHON_MODULE_ID: ModuleTypeId = ModuleTypeId(PyNames.PYTHON_MODULE_ID)
 
-private val EntitySource.isPythonEntity: Boolean get() = (this as? JpsImportedEntitySource)?.externalSystemId == PY_PROJECT_SYSTEM_ID.id
+internal val EntitySource.isPythonEntity: Boolean get() = (this as? JpsImportedEntitySource)?.externalSystemId == PY_PROJECT_SYSTEM_ID.id
 
 /**
  * Anchor for matching entries to existing modules by location.

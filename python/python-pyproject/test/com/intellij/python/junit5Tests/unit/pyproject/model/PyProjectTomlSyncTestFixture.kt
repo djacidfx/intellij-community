@@ -25,9 +25,10 @@ import com.intellij.python.pyproject.model.internal.PY_PROJECT_SYSTEM_ID
 import com.intellij.python.pyproject.model.internal.autoImportBridge.PyExternalSystemProjectAware
 import com.intellij.python.pyproject.model.internal.workspaceBridge.pyProjectTomlEntity
 import com.intellij.testFramework.junit5.fixture.TestFixture
+import com.intellij.testFramework.junit5.fixture.testFixture
 import com.intellij.testFramework.utils.vfs.createDirectory
 import com.intellij.testFramework.utils.vfs.createFile
-import com.intellij.testFramework.junit5.fixture.testFixture
+import com.intellij.util.concurrency.annotations.RequiresWriteLock
 import com.intellij.workspaceModel.ide.legacyBridge.LegacyBridgeJpsEntitySourceFactory
 import com.intellij.workspaceModel.ide.toPath
 import org.assertj.core.api.Assertions.assertThat
@@ -35,8 +36,10 @@ import java.nio.file.Path
 
 /** Expected module type marker for pyproject-based modules in [PyProjectTomlSyncTestFixture.assertProjectStructure]. */
 internal const val PYPROJECT = "PYPROJECT"
+
 /** Standard Python module type ID. */
 internal const val PYTHON = "PYTHON_MODULE"
+
 /** Standard Java module type ID. */
 internal const val JAVA = "JAVA_MODULE"
 
@@ -56,12 +59,44 @@ internal data class ExpectedModule(
 
 /** Name of the bystander Java module created by the fixture to verify it is never modified by sync. */
 internal const val BYSTANDER_JAVA = "_bystander_java"
+
 /** Name of the bystander Python module created by the fixture to verify it is never modified by sync. */
 internal const val BYSTANDER_PYTHON = "_bystander_python"
 
+
+@RequiresWriteLock
 /** Creates a `pyproject.toml` with the given `[project].name` inside this directory. */
 internal fun VirtualFile.writePyprojectToml(name: String) {
   createFile(PY_PROJECT_TOML).writeText("[project]\nname = \"$name\"")
+}
+
+
+/**
+ * Given [this] is a dir, creates uv workspace out of it. Returns names of children.
+ */
+@RequiresWriteLock
+internal fun VirtualFile.convertDirToUvWorkspace(workspaceName: String = name): List<String> {
+  val member1Name = "${workspaceName}_one"
+  val member2Name = "${workspaceName}_two"
+  createFile(PY_PROJECT_TOML).writeText("""
+      [project]
+      name = "$workspaceName"
+      version = "0.1.0"
+      description = "Add your description here"
+      readme = "README.md"
+      requires-python = ">=3.14"
+      dependencies = []
+
+      [tool.uv.workspace]
+      members = [
+          "$member1Name",
+          "$member2Name",
+      ]
+
+    """.trimIndent())
+  createChildDirectory("", member1Name).writePyprojectToml(member1Name)
+  createChildDirectory("", member2Name).writePyprojectToml(member2Name)
+  return listOf(member1Name, member2Name)
 }
 
 /**
