@@ -1402,9 +1402,6 @@
 - *sf:startOffsetIn(com.intellij.psi.PsiElement,com.intellij.psi.PsiElement):I
 *f:com.intellij.webSymbols.references.WebSymbolReferenceProvider$Companion
 - *f:startOffsetIn(com.intellij.psi.PsiElement,com.intellij.psi.PsiElement):I
-*f:com.intellij.webSymbols.utils.HtmlMarkdownUtils
-- s:toHtml(java.lang.String):java.lang.String
-- s:toHtml(java.lang.String,Z):java.lang.String
 *f:com.intellij.webSymbols.utils.NameCaseUtils
 - sf:INSTANCE:com.intellij.webSymbols.utils.NameCaseUtils
 - sf:toCamelCase(java.lang.String):java.lang.String
