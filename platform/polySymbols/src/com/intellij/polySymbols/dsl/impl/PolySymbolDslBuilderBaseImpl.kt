@@ -6,10 +6,8 @@ import com.intellij.polySymbols.PolySymbol
 import com.intellij.polySymbols.PolySymbolApiStatus
 import com.intellij.polySymbols.PolySymbolModifier
 import com.intellij.polySymbols.PolySymbolProperty
-import com.intellij.polySymbols.dsl.DepSpec
 import com.intellij.polySymbols.dsl.DependencyHandle
 import com.intellij.polySymbols.dsl.PolySymbolDslBuilderBase
-import com.intellij.polySymbols.dsl.checkNoPsiCapture
 import com.intellij.psi.PsiElement
 import javax.swing.Icon
 
@@ -88,13 +86,13 @@ internal abstract class PolySymbolDslBuilderBaseImpl : PolySymbolDslBuilderBase 
   override fun <T : PsiElement> dependency(element: T): DependencyHandle<T> {
     val idx = depSpecs.size
     depSpecs += DepSpec.FromPsiElement(element)
-    return DependencyHandle(idx)
+    return DependencyHandleImpl(idx)
   }
 
   override fun <T : Any> dependency(`object`: T, pointerProvider: (T) -> Pointer<out T>): DependencyHandle<T> {
     val idx = depSpecs.size
     depSpecs += DepSpec.FromGenericObject(`object`, pointerProvider)
-    return DependencyHandle(idx)
+    return DependencyHandleImpl(idx)
   }
 
   internal fun resolveSnapshot(): List<Any> {

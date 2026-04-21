@@ -17,6 +17,7 @@ import com.intellij.polySymbols.query.PolySymbolWithPattern
 import com.intellij.polySymbols.search.PsiSourcedPolySymbol
 import com.intellij.polySymbols.utils.PolySymbolDeclaredInPsi
 import com.intellij.psi.PsiElement
+import org.jetbrains.annotations.ApiStatus
 
 /**
  * Builds a [PolySymbol] with a declarative, read-action-safe DSL.
@@ -38,6 +39,7 @@ fun polySymbol(
 ): BuiltPolySymbol =
   PolySymbolBuilderImpl(kind, name).apply(body).build()
 
+@ApiStatus.NonExtendable
 interface BuiltPolySymbol: PolySymbol {
 
   operator fun <T : Any> get(handle: DependencyHandle<T>): T
@@ -51,6 +53,7 @@ data class PolySymbolDeclarationSite(
 )
 
 @PolySymbolDsl
+@ApiStatus.NonExtendable
 interface PolySymbolBuilder : PolySymbolDslBuilderBase {
 
   /**

@@ -2,14 +2,12 @@
 package com.intellij.polySymbols.dsl
 
 import com.intellij.model.Pointer
-import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.diagnostic.logger
 import com.intellij.polySymbols.PolySymbol
 import com.intellij.polySymbols.PolySymbolApiStatus
 import com.intellij.polySymbols.PolySymbolModifier
 import com.intellij.polySymbols.PolySymbolProperty
 import com.intellij.psi.PsiElement
-import com.intellij.psi.createSmartPointer
+import org.jetbrains.annotations.ApiStatus
 import javax.swing.Icon
 import kotlin.reflect.KProperty
 import kotlin.reflect.safeCast
@@ -54,72 +52,14 @@ annotation class PolySymbolDsl
  * ```
  */
 @PolySymbolDsl
-class DependencyHandle<T : Any> internal constructor(internal val index: Int) {
+@ApiStatus.NonExtendable
+interface DependencyHandle<T : Any> {
 
-  operator fun getValue(thisRef: Any?, property: KProperty<*>): T {
-    val scope = currentDependencyScope.get()
-                ?: error("DependencyHandle `${property.name}` accessed outside a PolySymbol DSL getter lambda")
-    @Suppress("UNCHECKED_CAST")
-    return scope.resolved[index] as T
-  }
+  operator fun getValue(thisRef: Any?, property: KProperty<*>): T
 
   val value: T
-    get() = getValue(null, VALUE_READ_PROP)
 
-  operator fun invoke(): T =
-    getValue(null, VALUE_READ_PROP)
-}
-
-private val currentDependencyScope: ThreadLocal<DependencyScope> = ThreadLocal()
-
-internal val PSI_CONTEXT_READ_PROP: KProperty<*> = ::PSI_CONTEXT_READ_PROP
-internal val VALUE_READ_PROP: KProperty<*> = ::VALUE_READ_PROP
-
-/**
- * Read the current value of a [DependencyHandle] — assuming the caller has
- * ensured an ambient [DependencyScope] is active. Equivalent to reading a
- * `by dependency(...)` delegated property.
- */
-internal fun <T : Any> DependencyHandle<T>.readInScope(): T =
-  getValue(null, PSI_CONTEXT_READ_PROP)
-
-/**
- * Receiver of every DSL getter lambda. Carries the pre-resolved values for
- * all declared dependencies of the currently-materialized symbol.
- */
-@PolySymbolDsl
-internal class DependencyScope internal constructor(internal val resolved: List<Any>) {
-
-  /**
-   * Runs [block] with this scope set as the ambient dependency scope,
-   * restoring the previous value on exit. Reading any `by dependency(...)`
-   * delegate inside [block] returns the pre-resolved value.
-   */
-  internal inline fun <R> withinScope(block: DependencyScope.() -> R): R {
-    val prev = currentDependencyScope.get()
-    currentDependencyScope.set(this)
-    try {
-      return this.block()
-    }
-    finally {
-      currentDependencyScope.set(prev)
-    }
-  }
-
-  /**
-   * Runs [block] with this scope set as ambient, passing [arg] to the block.
-   * Used for multi-arg getter lambdas (e.g. `documentationTarget(location) { … }`).
-   */
-  internal inline fun <A, R> withinScope(arg: A, block: DependencyScope.(A) -> R): R {
-    val prev = currentDependencyScope.get()
-    currentDependencyScope.set(this)
-    try {
-      return this.block(arg)
-    }
-    finally {
-      currentDependencyScope.set(prev)
-    }
-  }
+  operator fun invoke(): T
 }
 
 /**
@@ -129,6 +69,7 @@ internal class DependencyScope internal constructor(internal val resolved: List<
  * [PolySymbol.createPointer] is invoked.
  */
 @PolySymbolDsl
+@ApiStatus.NonExtendable
 interface PolySymbolDslBuilderBase {
 
   /**
@@ -240,92 +181,3 @@ inline fun <reified T : PolySymbol> PolySymbolDslBuilderBase.dependency(symbol: 
       symbolClass.safeCast(symbolPointer.dereference())
     }
   }
-
-internal sealed interface DepSpec<T : Any> {
-  fun currentValue(): T
-  fun toPointer(): Pointer<out T>
-
-  class FromPsiElement<T : PsiElement>(val element: T) : DepSpec<T> {
-    override fun currentValue(): T = element
-    override fun toPointer(): Pointer<out T> {
-      return element.createSmartPointer()
-    }
-  }
-
-  class FromGenericObject<T : Any>(val `object`: T, val pointerProvider: (T) -> Pointer<out T>) : DepSpec<T> {
-    override fun currentValue(): T = `object`
-    override fun toPointer(): Pointer<out T> = pointerProvider(`object`)
-  }
-}
-
-/**
- * Carrier of a materialized symbol's dependency roots. Flips from
- * [FromSpecs] (initial instance, still in its creation read action) to
- * [FromPointers] the first time a pointer is needed, and subsequent
- * cross-read-action instances carry [FromPointers] onward.
- */
-internal sealed interface DependencySource {
-  val isEmpty: Boolean
-
-  /** Snapshot the current values of all deps. Null on failure. */
-  fun snapshot(): List<Any>?
-
-  /** Pointer list for long-term survival — materialized lazily by [FromSpecs]. */
-  fun pointers(): List<Pointer<out Any>>
-
-  class FromSpecs(val specs: List<DepSpec<*>>) : DependencySource {
-    override val isEmpty: Boolean get() = specs.isEmpty()
-    override fun snapshot(): List<Any> {
-      val values = ArrayList<Any>(specs.size)
-      for (spec in specs) values += spec.currentValue()
-      return values
-    }
-
-    private val lazyPointers: List<Pointer<out Any>> by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      specs.map { it.toPointer() }
-    }
-
-    override fun pointers(): List<Pointer<out Any>> = lazyPointers
-  }
-
-  class FromPointers(private val pointers: List<Pointer<out Any>>) : DependencySource {
-    override val isEmpty: Boolean get() = pointers.isEmpty()
-    override fun snapshot(): List<Any>? {
-      val values = ArrayList<Any>(pointers.size)
-      for (pointer in pointers) values += pointer.dereference() ?: return null
-      return values
-    }
-
-    override fun pointers(): List<Pointer<out Any>> = pointers
-  }
-}
-
-private val PSI_OR_POLY_SYMBOL_TYPES = arrayOf(
-  PsiElement::class.java,
-  PolySymbol::class.java,
-)
-
-internal val LOG = logger<DependencyHandle<*>>()
-
-/**
- * In dev/test builds, reflect on [lambda] and fail fast if any captured
- * field holds a [PsiElement] or [PolySymbol] directly — those are only
- * valid within one read action, so they must be wrapped in `dependency(…)`
- * to survive.
- */
-internal fun checkNoPsiCapture(lambda: Any, context: String) {
-  val app = ApplicationManager.getApplication() ?: return
-  if (!app.isUnitTestMode && !app.isInternal && !app.isEAP) return
-  for (field in lambda::class.java.declaredFields) {
-    val fieldType = field.type
-    for (forbidden in PSI_OR_POLY_SYMBOL_TYPES) {
-      if (forbidden.isAssignableFrom(fieldType)) {
-        LOG.error(
-          "$context lambda captures a ${forbidden.simpleName} " +
-          "(${fieldType.name} as field ${field.name}). Declare it with dependency(...) " +
-          "so it survives read-action boundaries."
-        )
-      }
-    }
-  }
-}

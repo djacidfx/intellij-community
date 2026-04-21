@@ -584,10 +584,10 @@
 *:com.intellij.polySymbols.dsl.BuiltPolySymbol
 - com.intellij.polySymbols.PolySymbol
 - a:get(com.intellij.polySymbols.dsl.DependencyHandle):java.lang.Object
-*f:com.intellij.polySymbols.dsl.DependencyHandle
-- f:getValue():java.lang.Object
-- f:getValue(java.lang.Object,kotlin.reflect.KProperty):java.lang.Object
-- f:invoke():java.lang.Object
+*:com.intellij.polySymbols.dsl.DependencyHandle
+- a:getValue():java.lang.Object
+- a:getValue(java.lang.Object,kotlin.reflect.KProperty):java.lang.Object
+- a:invoke():java.lang.Object
 *:com.intellij.polySymbols.dsl.PolySymbolBuilder
 - com.intellij.polySymbols.dsl.PolySymbolDslBuilderBase
 - a:declaredInPsi(com.intellij.psi.PsiElement,com.intellij.openapi.util.TextRange):V

@@ -10,12 +10,8 @@ import com.intellij.polySymbols.PolySymbolKind
 import com.intellij.polySymbols.context.PolyContext
 import com.intellij.polySymbols.documentation.PolySymbolDocumentationBuilder
 import com.intellij.polySymbols.dsl.BuiltPolySymbol
-import com.intellij.polySymbols.dsl.DependencyScope
-import com.intellij.polySymbols.dsl.DependencySource
 import com.intellij.polySymbols.dsl.PolySymbolBuilder
 import com.intellij.polySymbols.dsl.PolySymbolDeclarationSite
-import com.intellij.polySymbols.dsl.checkNoPsiCapture
-import com.intellij.polySymbols.dsl.readInScope
 import com.intellij.polySymbols.patterns.PolySymbolPatternBuilder
 import com.intellij.psi.PsiElement
 

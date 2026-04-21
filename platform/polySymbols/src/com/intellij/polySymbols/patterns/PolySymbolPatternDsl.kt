@@ -26,6 +26,7 @@ fun polySymbolPattern(body: PolySymbolPatternBuilder.() -> Unit): PolySymbolPatt
   PolySymbolPatternBuilderImpl().apply(body).buildSingle()
 
 @PolySymbolDsl
+@ApiStatus.NonExtendable
 interface PolySymbolPatternBuilder {
 
   /** Literal string match. */
@@ -77,11 +78,13 @@ interface PolySymbolPatternBuilder {
 }
 
 @PolySymbolDsl
+@ApiStatus.NonExtendable
 interface AlternativesBuilder {
   fun branch(body: PolySymbolPatternBuilder.() -> Unit)
 }
 
 @PolySymbolDsl
+@ApiStatus.NonExtendable
 interface GroupPatternBuilder : PolySymbolPatternBuilder {
 
   fun priority(value: PolySymbol.Priority?)
@@ -119,11 +122,13 @@ interface GroupPatternBuilder : PolySymbolPatternBuilder {
 }
 
 @PolySymbolDsl
+@ApiStatus.NonExtendable
 interface RepeatingGroupPatternBuilder : GroupPatternBuilder {
   fun unique(value: Boolean)
 }
 
 @PolySymbolDsl
+@ApiStatus.NonExtendable
 interface SymbolsBuilder {
 
   /** Add a reference to symbols of the given [kind], optionally scoped under [location]. */
@@ -135,6 +140,7 @@ interface SymbolsBuilder {
 }
 
 @PolySymbolDsl
+@ApiStatus.NonExtendable
 interface ReferenceBuilder {
 
   fun filter(value: PolySymbolFilter?)
@@ -149,4 +155,5 @@ interface ReferenceBuilder {
 }
 
 @PolySymbolDsl
+@ApiStatus.NonExtendable
 interface MatchPropertyOverridesBuilder : PolySymbolDslBuilderBase

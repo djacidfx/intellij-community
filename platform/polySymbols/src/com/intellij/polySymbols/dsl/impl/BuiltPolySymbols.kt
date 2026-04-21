@@ -18,8 +18,6 @@ import com.intellij.polySymbols.documentation.PolySymbolDocumentationBuilder
 import com.intellij.polySymbols.documentation.PolySymbolDocumentationTarget
 import com.intellij.polySymbols.dsl.BuiltPolySymbol
 import com.intellij.polySymbols.dsl.DependencyHandle
-import com.intellij.polySymbols.dsl.DependencyScope
-import com.intellij.polySymbols.dsl.DependencySource
 import com.intellij.polySymbols.dsl.PolySymbolDeclarationSite
 import com.intellij.polySymbols.patterns.PolySymbolPattern
 import com.intellij.polySymbols.patterns.PolySymbolPatternBuilder
@@ -113,7 +111,7 @@ internal abstract class BuiltPolySymbolBase(
 
   @Suppress("UNCHECKED_CAST")
   override fun <T : Any> get(handle: DependencyHandle<T>): T =
-    dependencyScope.resolved[handle.index] as T
+    dependencyScope.resolved[(handle as DependencyHandleImpl<*>).index] as T
 
   override fun getDocumentationTarget(location: PsiElement?): DocumentationTarget? {
     val docBuilder = config.documentationBuilder
