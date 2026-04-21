@@ -2097,7 +2097,7 @@
     <applicationService serviceInterface="com.intellij.openapi.editor.impl.elf.ElfTheManager"
                         serviceImplementation="com.intellij.openapi.editor.impl.elf.ElfTheManagerImpl" />
 
-    <registryKey key="editor.custom.soft.wraps.support.enabled" defaultValue="false"
+    <registryKey key="editor.custom.soft.wraps.support.enabled" defaultValue="true"
                  description="Enables support for custom soft wraps in the editor. Only takes effect if editor.use.new.soft.wraps.impl=true." restartRequired="true"/>
     <registryKey key="editor.use.new.soft.wraps.impl" defaultValue="true"
                  description="Use the new custom-wrap aware soft wraps implementation (in favor of the legacy implementation)."
