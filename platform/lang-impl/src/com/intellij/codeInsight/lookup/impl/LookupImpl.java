@@ -1275,8 +1275,19 @@ public class LookupImpl extends LightweightHint implements LookupEx, Disposable,
     if (currentItem instanceof CompletionItemLookupElement wrapper && !PowerSaveMode.isEnabled()) {
       PsiFile file = getPsiFile();
       if (file != null) {
+        int prefixLength = getPrefixLength(currentItem);
+        // getPrefixLength() can become negative in a transient state when the user deletes a character
+        // that belonged to the base completion prefix (for example, typed "a.", invoked completion,
+        // then pressed Backspace to delete the dot). LookupOffsets.truncatePrefix()
+        // increments myRemovedPrefix and signals that completion must restart; before the
+        // restart runs, scheduleRestart -> hideAutopopupIfMeaningless -> refreshUi ->
+        // fireCurrentItemChanged -> this method is invoked while the currently selected
+        // item still has an itemPattern shorter than myRemovedPrefix (for example, for postfix
+        // templates whose matcher prefix is "" right after the dot). At that moment the
+        // "prefix length" is logically meaningless
+        if (prefixLength < 0) return;
         ActionContext actionContext = ActionContext.from(editor, file);
-        int start = actionContext.offset() - getPrefixLength(currentItem);
+        int start = actionContext.offset() - prefixLength;
         ActionContext finalActionContext = actionContext
           .withOffset(start)
           .withSelection(TextRange.create(start, actionContext.offset()));
