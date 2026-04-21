@@ -39,12 +39,16 @@ import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.FOOJAY_RESOLVER_CONVENT
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.FOOJAY_RESOLVER_NAME
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.GradleBuildScriptManipulator
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.GradleBuildScriptSupport
+import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.GradleBuildScriptSupport.Companion.IMPLEMENTATION
+import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.GradleBuildScriptSupport.Companion.TEST_IMPLEMENTATION
+import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.GradleBuildScriptSupport.Companion.TEST_LIB_ID
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.GradleVersionProvider
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.assertApplicableInMultiplatform
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.canBeConfigured
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.fetchGradleVersion
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.getBuildScriptSettingsPsiFile
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.getTopLevelBuildScriptSettingsPsiFile
+import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.scope
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.useNewSyntax
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.usesNewMultiplatform
 import org.jetbrains.kotlin.idea.gradleJava.configuration.utils.CompilerOption
@@ -227,6 +231,7 @@ class KotlinBuildScriptManipulator(
                 script?.blockExpression?.addDeclarationIfMissing("val $GSK_KOTLIN_VERSION_PROPERTY_NAME: String by extra", true)
                 getApplyBlock()?.createPluginIfMissing(kotlinPluginName)
             }
+            getDependenciesBlock()?.addKotlinTestDependencyIfMissing()
             getRepositoriesBlock()?.apply {
                 addRepositoryIfMissing(version)
                 addMavenCentralIfMissing()
@@ -442,6 +447,16 @@ class KotlinBuildScriptManipulator(
     ): PsiElement? {
         return scriptFile.changeKotlinTaskParameter(parameterName, parameterValue, forTests, kotlinVersion)
     }
+
+    private fun KtBlockExpression.addKotlinTestDependencyIfMissing(): KtCallExpression? =
+        addExpressionIfMissing(
+            text = getCompileDependencySnippet(
+                groupId = KOTLIN_GROUP_ID,
+                artifactId = TEST_LIB_ID,
+                version = GSK_KOTLIN_VERSION_PROPERTY_NAME,
+                compileScope = gradleVersion.scope(TEST_IMPLEMENTATION)
+            )
+        ) as? KtCallExpression
 
     private fun KtFile.containsApplyKotlinPlugin(pluginName: String): Boolean =
         findScriptInitializer("apply")?.getBlock()?.findPlugin(pluginName) != null
@@ -935,7 +950,7 @@ class KotlinBuildScriptManipulator(
         groupId: String,
         artifactId: String,
         version: String?,
-        compileScope: String = "implementation"
+        compileScope: String = IMPLEMENTATION
     ): String {
         if (groupId != KOTLIN_GROUP_ID) {
             return "$compileScope(\"$groupId:$artifactId:$version\")"

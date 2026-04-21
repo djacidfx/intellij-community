@@ -36,6 +36,9 @@ import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.FOOJAY_RESOLVER_CONVENT
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.FOOJAY_RESOLVER_NAME
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.GradleBuildScriptManipulator
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.GradleBuildScriptSupport
+import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.GradleBuildScriptSupport.Companion.TEST_IMPLEMENTATION
+import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.GradleBuildScriptSupport.Companion.TEST_LIB_ID
+import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.GradleVersionInfo
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.GradleVersionProvider
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.SettingsScriptBuilder
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.assertApplicableInMultiplatform
@@ -43,6 +46,7 @@ import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.canBeConfigured
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.fetchGradleVersion
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.getBuildScriptSettingsPsiFile
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.getTopLevelBuildScriptSettingsPsiFile
+import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.scope
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.useNewSyntax
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.usesNewMultiplatform
 import org.jetbrains.kotlin.idea.gradleJava.configuration.utils.CompilerOption
@@ -190,6 +194,10 @@ class GroovyBuildScriptManipulator(
         scriptFile.getOrCreateRepositoriesBlock().apply {
             addRepository(version)
             addMavenCentralIfMissing()
+        }
+
+        scriptFile.getOrCreateDependenciesBlock().apply {
+            addLastExpressionInBlockIfNeeded(getKotlinTestLibraryDependencySnippet(useNewSyntax))
         }
 
         scriptFile.configureToolchainOrKotlinCompilerOptions(jvmTarget, version, gradleVersion, changedFiles)
@@ -759,6 +767,21 @@ class GroovyBuildScriptManipulator(
         }
     }
 
+    private fun getGroovyDependencySnippet(
+        artifactName: String,
+        scope: String,
+        withVersion: Boolean,
+        gradleVersion: GradleVersionInfo
+    ): String {
+        val configuration = gradleVersion.scope(scope)
+        return if (withVersion) {
+            // Double quotes are needed for $kotlin_version to be correctly interpolated and picked-up
+            $$"$$configuration \"org.jetbrains.kotlin:$$artifactName:$kotlin_version\""
+        } else {
+            "$configuration 'org.jetbrains.kotlin:$artifactName'"
+        }
+    }
+
     private fun getApplyPluginDirective(pluginName: String) = "apply plugin: '$pluginName'"
 
     private fun containsDirective(fileText: String, directive: String): Boolean {
@@ -800,6 +823,14 @@ class GroovyBuildScriptManipulator(
     private fun GrStatementOwner.getOrCreateRepositoriesBlock() = getBlockOrCreate("repositories")
 
     private fun GrStatementOwner.getOrCreateDependenciesBlock(): GrClosableBlock = getBlockOrCreate("dependencies")
+
+    private fun getKotlinTestLibraryDependencySnippet(useNewSyntax: Boolean): String =
+        getGroovyDependencySnippet(
+            artifactName = TEST_LIB_ID,
+            scope = TEST_IMPLEMENTATION,
+            withVersion = !useNewSyntax,
+            gradleVersion
+        )
 
     private fun GrStatementOwner.getOrCreateKotlinBlock(): GrClosableBlock = getBlockOrCreate("kotlin")
 
