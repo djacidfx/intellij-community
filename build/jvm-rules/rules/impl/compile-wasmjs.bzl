@@ -162,7 +162,7 @@ def wasmjs_produce_module_actions(ctx, rule_kind):
     link_args.add("-Xir-produce-js")
     link_args.add("-Xinclude=%s" % klib_out.path)  # TODO: what is the `-Xinclude`, is that what will be linked? Do we need `runtime_deps_klibs` here?
     link_args.add("-Xir-dce")
-    link_args.add_joined("-libraries", [klib.path for klib in all_link_libraries.to_list()], join_with = ":", omit_if_empty = True)
+    link_args.add_joined("-libraries", [klib.path for klib in all_link_libraries.to_list()], join_with = ctx.configuration.host_path_separator, omit_if_empty = True)
 
     ctx.actions.run(
         mnemonic = "KotlinLinkWasmJs",

@@ -10,6 +10,7 @@ import org.jetbrains.bazel.jvm.WorkRequestReader
 import org.jetbrains.bazel.jvm.doReadWorkRequestFromStream
 import org.jetbrains.bazel.jvm.processRequests
 import kotlin.io.path.Path
+import kotlin.io.path.pathString
 import kotlin.io.path.readLines
 import org.jetbrains.kotlin.cli.js.K2JSCompiler
 import java.io.File
@@ -74,7 +75,9 @@ private fun List<String>.normalizeCompilerArgs(baseDir: Path): List<String> {
   return mapIndexed { index, arg ->
     when {
       arg.startsWith("-Xinclude=") -> "-Xinclude=${baseDir.resolveRelative(arg.removePrefix("-Xinclude="))}"
-      getOrNull(index - 1) == "-libraries" -> arg.split(File.pathSeparatorChar).filter { it.isNotBlank() }.joinToString(File.pathSeparator) {
+      getOrNull(index - 1) == "-libraries" -> arg.split(File.pathSeparatorChar).filter { path ->
+        path.isNotBlank()
+      }.joinToString(File.pathSeparator) {
         baseDir.resolveRelative(it)
       }
       else -> arg
@@ -87,5 +90,7 @@ private fun Path.resolveRelative(path: String): String {
   return when {
     candidate.isAbsolute -> candidate
     else -> resolve(candidate)
-  }.normalize().toString()
+  }
+    .toRealPath() // Windows hosts cannot locate the klib modules without conversion to real path `exception: java.lang.IllegalStateException: No module with C:\programdata\_bazel\dnzrtnud\execroot\_main\bazel-out\jvm-fastbuild\bin\external\community+\fleet\util\multiplatform\fleet.util.multiplatform_multiplatform_wasmjs.klib found`
+    .pathString // using usual `\` separator on Windows hosts, kotlinc is happy with it
 }
