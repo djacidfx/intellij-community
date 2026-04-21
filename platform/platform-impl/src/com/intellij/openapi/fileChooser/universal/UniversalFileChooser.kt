@@ -424,13 +424,13 @@ object UniversalFileChooser {
         }
         virtualRootList.addListSelectionListener {
           tree.clearSelection()
-          toolbar?.updateActionsAsync()
+          toolbar.updateActionsAsync()
         }
         tree.addTreeSelectionListener {
           if (tree.selectionCount > 0 && !virtualRootList.isSelectionEmpty) {
             virtualRootList.clearSelection()
           }
-          toolbar?.updateActionsAsync()
+          toolbar.updateActionsAsync()
         }
 
         virtualRootScrollPane = ScrollPaneFactory.createScrollPane(virtualRootList).apply { isVisible = false }
@@ -688,10 +688,10 @@ object UniversalFileChooser {
 
           override fun update(e: AnActionEvent) {
             val selectedVirtualRoot = virtualRootList.selectedValue
+            e.presentation.icon = AllIcons.Actions.Execute
+            e.presentation.text = IdeBundle.message("universal.file.chooser.action.mount.status.unmounted")
             if (selectedVirtualRoot != null) {
               e.presentation.isVisible = true
-              e.presentation.text = IdeBundle.message("universal.file.chooser.action.mount.status.unmounted")
-              e.presentation.icon = AllIcons.Actions.Execute
               e.presentation.isEnabled = !isMountActionInProgress
               return
             }
@@ -712,16 +712,12 @@ object UniversalFileChooser {
               }
               MountStatus.Mounted -> {
                 e.presentation.isVisible = true
-                e.presentation.text = IdeBundle.message("universal.file.chooser.action.mount.status.mounted")
-                e.presentation.icon = AllIcons.Actions.Suspend
               }
               MountStatus.Unmounted -> {
                 e.presentation.isVisible = true
-                e.presentation.text = IdeBundle.message("universal.file.chooser.action.mount.status.unmounted")
-                e.presentation.icon = AllIcons.Actions.Execute
               }
             }
-            e.presentation.isEnabled = !isMountActionInProgress
+            e.presentation.isEnabled = !isMountActionInProgress && status != MountStatus.Mounted
           }
 
           override fun actionPerformed(e: AnActionEvent) {
@@ -753,17 +749,8 @@ object UniversalFileChooser {
                 try {
                   withContext(Dispatchers.IO) {
                     val status = contributor.getMountStatus(root)
-                    when (status) {
-                      MountStatus.Mounted -> {
-                        runOnEdt {
-                          collapseUnmountedRoot(root)
-                        }
-                        contributor.unmount(root)
-                      }
-                      MountStatus.Unmounted -> {
-                        contributor.mount(root)
-                      }
-                      else -> {}
+                    if (status == MountStatus.Unmounted) {
+                      contributor.mount(root)
                     }
                   }
                 }

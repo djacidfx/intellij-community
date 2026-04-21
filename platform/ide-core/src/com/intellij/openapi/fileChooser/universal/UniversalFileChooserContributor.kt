@@ -32,8 +32,6 @@ interface UniversalFileChooserContributor {
 
   suspend fun mount(path: Path) {}
 
-  suspend fun unmount(path: Path) {}
-
   fun getVirtualRoots(): List<VirtualRoot> = emptyList()
 
   suspend fun mountVirtualRoot(virtualRoot: VirtualRoot): Path? = null
