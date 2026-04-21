@@ -277,7 +277,7 @@ internal suspend fun loadApp(
 @Suppress("ReplaceJavaStaticMethodWithKotlinAnalog", "CanConvertToMultiDollarString")
 private val asyncAppListenerAllowListForNonCorePlugin = java.util.Set.of(
   "com.jetbrains.rdserver.unattendedHost.logs.BackendMessagePoolExporter\$MyAppListener",
-  "com.intellij.settingsSync.SettingsSynchronizerApplicationInitializedListener",
+  "com.intellij.settingsSync.core.SettingsSynchronizerApplicationInitializedListener",
   "com.intellij.dataspell.ide.impl.jupyter.JupyterDSProjectLifecycleListener",
   "com.jetbrains.gateway.GatewayBuildDateExpirationListener",
   "com.intellij.ide.misc.PluginAgreementUpdateScheduler",
@@ -288,8 +288,7 @@ private val asyncAppListenerAllowListForNonCorePlugin = java.util.Set.of(
   "com.intellij.ide.AgreementUpdater",
   "com.intellij.internal.statistic.updater.StatisticsJobsScheduler",
   "com.intellij.internal.statistic.updater.StatisticsStateCollectorsScheduler",
-  "org.jetbrains.kotlin.idea.base.plugin.K2UnsupportedPluginsNotificationActivity",
-  "com.intellij.platform.daemon.client.DaemonApplicationActivity"
+  "com.intellij.platform.daemon.client.DaemonApplicationActivity",
 )
 
 private fun executeAsyncAppInitListeners(scope: CoroutineScope) {

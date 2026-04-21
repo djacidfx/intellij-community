@@ -1,7 +1,6 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.kotlin.idea.base.plugin
 
-import com.intellij.ide.ApplicationActivity
 import com.intellij.ide.BrowserUtil
 import com.intellij.ide.plugins.IdeaPluginDescriptorImpl
 import com.intellij.ide.plugins.PluginManagerConfigurable
@@ -13,12 +12,22 @@ import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.asContextElement
 import com.intellij.openapi.components.serviceAsync
+import com.intellij.openapi.extensions.ExtensionNotApplicableException
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.openapi.util.NlsSafe
+import com.intellij.util.application
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-internal class K2UnsupportedPluginsNotificationActivity : ApplicationActivity {
-    override suspend fun execute() {
+internal class K2UnsupportedPluginsNotificationActivity : ProjectActivity {
+    init {
+        if (application.isHeadlessEnvironment) {
+            throw ExtensionNotApplicableException.create()
+        }
+    }
+
+    override suspend fun execute(project: Project) {
         val incompatiblePlugins = getPluginsDependingOnKotlinPluginInK2ModeAndIncompatibleWithIt()
         val propertiesComponent = serviceAsync<PropertiesComponent>()
 
