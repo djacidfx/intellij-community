@@ -1005,11 +1005,17 @@ open class ProjectManagerImpl : ProjectManagerEx(), Disposable {
       }
 
       val project = instantiateProject(identityFle = identityFle, projectName = projectName, beforeInit = beforeInit)
-      project.putUserData(PROJECT_NEWLY_OPENED, markAsNew)
-      project.putUserData(PROJECT_NEWLY_CREATED, markAsNewlyCreated)
-      val template = templateAsync?.await()
-      initProject(file = identityFle, project = project, preloadServices = preloadServices, template = template)
-      project
+      try {
+        project.putUserData(PROJECT_NEWLY_OPENED, markAsNew)
+        project.putUserData(PROJECT_NEWLY_CREATED, markAsNewlyCreated)
+        val template = templateAsync?.await()
+        initProject(file = identityFle, project = project, preloadServices = preloadServices, template = template)
+        project
+      }
+      catch (e: Throwable) {
+        disposeFailedProject(project, e)
+        throw e
+      }
     }
   }
 
@@ -1037,22 +1043,27 @@ open class ProjectManagerImpl : ProjectManagerEx(), Disposable {
     }
 
     val project = instantiateProject(projectIdentityFile, projectName, beforeInit)
+    try {
+      // template as null here because it is not a new project
+      initProject(
+        file = projectIdentityFile,
+        project = project,
+        preloadServices = preloadServices,
+        template = null,
+        projectInitHelper = projectInitHelper,
+      )
 
-    // template as null here because it is not a new project
-    initProject(
-      file = projectIdentityFile,
-      project = project,
-      preloadServices = preloadServices,
-      template = null,
-      projectInitHelper = projectInitHelper,
-    )
-
-    if (conversionResult != null && !conversionResult.conversionNotNeeded()) {
-      project.serviceAsync<StartupManager>().runAfterOpened {
-        conversionResult.postStartupActivity(project)
+      if (conversionResult != null && !conversionResult.conversionNotNeeded()) {
+        project.serviceAsync<StartupManager>().runAfterOpened {
+          conversionResult.postStartupActivity(project)
+        }
       }
+      return project
     }
-    return project
+    catch (e: Throwable) {
+      disposeFailedProject(project, e)
+      throw e
+    }
   }
 
   private suspend fun runConversion(projectPath: Path): ConversionResult? {
@@ -1412,57 +1423,60 @@ private suspend fun initProject(
 ) {
   LOG.assertTrue(!project.isDefault)
 
-  try {
-    val registerComponentActivity = createActivity(project) {
-      "project ${StartUpMeasurer.Activities.REGISTER_COMPONENTS_SUFFIX}"
-    }
+  val registerComponentActivity = createActivity(project) {
+    "project ${StartUpMeasurer.Activities.REGISTER_COMPONENTS_SUFFIX}"
+  }
 
-    project.putUserDataIfAbsent(PROJECT_PATH, file)
+  project.putUserDataIfAbsent(PROJECT_PATH, file)
 
-    serviceAsync<ProjectEntitiesStorage>().createEntity(project)
+  serviceAsync<ProjectEntitiesStorage>().createEntity(project)
 
-    project.registerComponents()
-    registerComponentActivity?.end()
+  project.registerComponents()
+  registerComponentActivity?.end()
 
-    if (ApplicationManager.getApplication().isUnitTestMode ||
-        ApplicationManagerEx.isInIntegrationTest()) {
-      @Suppress("TestOnlyProblems")
-      for (listener in ProjectServiceContainerCustomizer.getEp().extensionList) {
-        listener.serviceRegistered(project)
-      }
-    }
-
-    currentCoroutineContext().ensureActive()
-    project.componentStore.setPath(file, template)
-
-    coroutineScope {
-      val preInitJob = projectInitHelper?.launchPreInit(project)
-
-      runApprovedExtensions(project, "com.intellij.projectPreInit", essentialOnly = false)
-
-      projectInitHelper?.notifyInit(project)
-
-      if (preloadServices) {
-        schedulePreloadServices(project)
-      }
-
-      preInitJob?.join()
-      project.createComponentsNonBlocking()
+  if (ApplicationManager.getApplication().isUnitTestMode ||
+      ApplicationManagerEx.isInIntegrationTest()) {
+    @Suppress("TestOnlyProblems")
+    for (listener in ProjectServiceContainerCustomizer.getEp().extensionList) {
+      listener.serviceRegistered(project)
     }
   }
-  catch (initThrowable: Throwable) {
-    try {
-      withContext(NonCancellable) {
-        project.getCoroutineScope().coroutineContext.job.cancelAndJoin()
-        edtWriteAction {
-          Disposer.dispose(project)
-        }
+
+  currentCoroutineContext().ensureActive()
+  project.componentStore.setPath(file, template)
+
+  coroutineScope {
+    val preInitJob = projectInitHelper?.launchPreInit(project)
+
+    runApprovedExtensions(project, "com.intellij.projectPreInit", essentialOnly = false)
+
+    projectInitHelper?.notifyInit(project)
+
+    if (preloadServices) {
+      schedulePreloadServices(project)
+    }
+
+    preInitJob?.join()
+    project.createComponentsNonBlocking()
+  }
+}
+
+/**
+ * Cancels the project's coroutine scope and disposes the project under a write action.
+ * Runs under [NonCancellable] so cleanup completes even when the outer scope is already cancelled.
+ * Any exception during cleanup is attached to [cause] as a suppressed exception.
+ */
+private suspend fun disposeFailedProject(project: ProjectImpl, cause: Throwable) {
+  try {
+    withContext(NonCancellable) {
+      project.getCoroutineScope().coroutineContext.job.cancelAndJoin()
+      edtWriteAction {
+        Disposer.dispose(project)
       }
     }
-    catch (disposeThrowable: Throwable) {
-      initThrowable.addSuppressed(disposeThrowable)
-    }
-    throw initThrowable
+  }
+  catch (disposeThrowable: Throwable) {
+    cause.addSuppressed(disposeThrowable)
   }
 }
 
