@@ -9,4 +9,4 @@ import org.jetbrains.annotations.ApiStatus
  */
 @ApiStatus.Internal
 fun isFootnoteLabelText(text: String): Boolean =
-  text.length > 3 && text.startsWith("[^") && text.endsWith("]")
+  text.length > 3 && text.startsWith("[^") && text.endsWith("]") && !text.contains(Regex("[ \t]"))

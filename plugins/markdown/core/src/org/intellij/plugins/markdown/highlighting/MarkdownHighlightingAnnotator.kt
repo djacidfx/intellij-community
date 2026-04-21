@@ -20,7 +20,7 @@ import org.intellij.plugins.markdown.lang.psi.util.hasType
 import org.intellij.plugins.markdown.util.isFootnoteLabelText
 
 @Suppress("RegExpRedundantEscape")
-private val FOOTNOTE_REF_IN_TEXT = Regex("""\[\^[^\]\n]+]""")
+private val FOOTNOTE_REF_IN_TEXT = Regex("""\[\^[^\]\n\t ]+]""")
 
 internal class MarkdownHighlightingAnnotator : Annotator, DumbAware {
   private val syntaxHighlighter = MarkdownSyntaxHighlighter()

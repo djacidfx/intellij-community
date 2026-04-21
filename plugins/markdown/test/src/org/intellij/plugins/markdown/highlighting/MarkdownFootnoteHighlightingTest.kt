@@ -95,4 +95,13 @@ class MarkdownFootnoteHighlightingTest : BasePlatformTestCase() {
     assertTrue(ranges.any { it.contains("Line one.") })
     assertTrue(ranges.any { it.contains("Line two.") })
   }
+
+  fun testFootnoteLabelWithSpaceNotHighlighted() {
+    myFixture.configureByText("test.md", """
+      [^my note]: body text
+    """.trimIndent())
+    val ranges = myFixture.doHighlighting()
+      .filter { it.forcedTextAttributesKey == MarkdownHighlighterColors.FOOTNOTE_DEFINITION }
+    assertTrue("Label with space must not be highlighted as footnote definition", ranges.isEmpty())
+  }
 }

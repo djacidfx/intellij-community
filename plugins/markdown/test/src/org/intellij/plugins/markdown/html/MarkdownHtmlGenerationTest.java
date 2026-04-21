@@ -132,6 +132,10 @@ public class MarkdownHtmlGenerationTest extends BasePlatformTestCase {
     doTestByHtmlFile();
   }
 
+  public void testFootnoteLabelWithSpaceUnaffected() {
+    doTestByHtmlFile();
+  }
+
   void doTestByHtmlFile() {
     doTest(myFixture.configureByFile(getTestName(true) + ".html").getText());
   }
