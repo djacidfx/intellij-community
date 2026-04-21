@@ -51,9 +51,12 @@ public final class BackspaceAction extends TextComponentEditorAction implements 
     int offset = editor.getCaretModel().getOffset();
     List<CustomWrap> customWraps = editor.getCustomWrapModel().getWrapsAtOffset(offset);
     if (!customWraps.isEmpty() && caretPosition.line == editor.offsetToVisualLine(offset, false)) {
-      for (CustomWrap customWrap : customWraps) {
-        editor.getCustomWrapModel().removeWrap(customWrap);
-      }
+      editor.getCustomWrapModel().runBatchMutation(mutator -> {
+        for (CustomWrap customWrap : customWraps) {
+          mutator.removeWrap(customWrap);
+        }
+        return null;
+      });
       return;
     }
 

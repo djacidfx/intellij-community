@@ -21,14 +21,21 @@ object EmptyCustomWrapModel : CustomWrapModel {
     return false
   }
 
-  override fun addWrap(offset: Int, indentInColumns: Int, priority: Int): CustomWrap? {
-    return null
+  override fun <T> runBatchMutation(mutation: CustomWrapModel.Mutator.() -> T): T {
+    return mutation(EmptyMutator)
   }
 
   override fun getWraps(): List<CustomWrap> {
     return emptyList()
   }
 
-  override fun removeWrap(wrap: CustomWrap) {
+  private object EmptyMutator : CustomWrapModel.Mutator {
+    override fun addWrap(offset: Int, indentInColumns: Int, priority: Int): CustomWrap? {
+      return null
+    }
+
+    override fun removeWrap(wrap: CustomWrap): Boolean {
+      return false
+    }
   }
 }

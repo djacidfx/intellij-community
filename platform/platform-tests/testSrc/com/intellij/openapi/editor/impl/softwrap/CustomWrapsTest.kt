@@ -1,6 +1,7 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.openapi.editor.impl.softwrap
 
+import com.intellij.openapi.editor.CustomWrap
 import com.intellij.openapi.editor.SoftWrap
 import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.editor.event.DocumentEvent
@@ -33,16 +34,18 @@ abstract class CustomWrapsTestBase : AbstractEditorTest() {
   fun testCustomWrapIsRegisteredInStorage() {
     initTextAndSoftWraps("0123456789")
     val wrapOffset = 5
-    assertNotNull(editor.customWrapModel.addWrap(wrapOffset, 0, 0))
+    addCustomWrap(wrapOffset)
     assertNotNull(editor.softWrapModel.getSoftWrap(wrapOffset))
     (editor as EditorImpl).validateState()
   }
 
   fun testDeleteInvalidatesWrapsInsideRange() {
     initTextAndSoftWraps("0123456789")
-    editor.customWrapModel.addWrap(1, 0, 0)
-    editor.customWrapModel.addWrap(4, 0, 0)
-    editor.customWrapModel.addWrap(8, 0, 0)
+    editor.customWrapModel.runBatchMutation {
+      addWrap(1)
+      addWrap(4)
+      addWrap(8)
+    }
 
     runWriteCommand {
       editor.document.deleteString(2, 6)
@@ -54,8 +57,10 @@ abstract class CustomWrapsTestBase : AbstractEditorTest() {
 
   fun testBoundaryMergeKeepsSmallerPriorityWrap() {
     initTextAndSoftWraps("0123456789")
-    editor.customWrapModel.addWrap(2, 5, 10)
-    editor.customWrapModel.addWrap(4, 1, 1)
+    editor.customWrapModel.runBatchMutation {
+      addWrap(2, 5, 10)
+      addWrap(4, 1, 1)
+    }
 
     runWriteCommand {
       editor.document.deleteString(2, 4)
@@ -69,9 +74,11 @@ abstract class CustomWrapsTestBase : AbstractEditorTest() {
 
   fun testDeleteAndMerge() {
     initTextAndSoftWraps("0123456789")
-    editor.customWrapModel.addWrap(2, 0, 2)
-    editor.customWrapModel.addWrap(4, 0, 0)
-    editor.customWrapModel.addWrap(6, 4, 0)
+    editor.customWrapModel.runBatchMutation {
+      addWrap(2, priority = 2)
+      addWrap(4)
+      addWrap(6, 4)
+    }
 
     runWriteCommand {
       editor.document.deleteString(2, 6)
@@ -93,8 +100,10 @@ abstract class CustomWrapsTestBase : AbstractEditorTest() {
   fun testCollapsedFoldFiltersWrapsInside() {
     initTextAndSoftWraps("0123456789")
     addCollapsedFoldRegion(2, 7, "...")
-    editor.customWrapModel.addWrap(2, 0, 0)
-    editor.customWrapModel.addWrap(5, 0, 0)
+    editor.customWrapModel.runBatchMutation {
+      addWrap(2)
+      addWrap(5)
+    }
 
     val wraps = registeredSoftWraps()
     assertSize(1, wraps)
@@ -104,9 +113,11 @@ abstract class CustomWrapsTestBase : AbstractEditorTest() {
 
   fun testMoveWithWrapsInCorridorKeepsStorageSorted() {
     initTextAndSoftWraps("0123456789ABCDEFGHIJ")
-    editor.customWrapModel.addWrap(6, 0, 5)
-    editor.customWrapModel.addWrap(8, 0, 0)
-    editor.customWrapModel.addWrap(13, 0, 1)
+    editor.customWrapModel.runBatchMutation {
+      addWrap(6, priority = 5)
+      addWrap(8)
+      addWrap(13, priority = 1)
+    }
 
     runWriteCommand {
       (editor.document as DocumentEx).moveText(5, 9, 12)
@@ -118,9 +129,11 @@ abstract class CustomWrapsTestBase : AbstractEditorTest() {
 
   fun testMixedEditsPreserveEditorState() {
     initTextAndSoftWraps("0123456789ABCDEFGHIJ")
-    editor.customWrapModel.addWrap(2, 0, 3)
-    editor.customWrapModel.addWrap(6, 0, 1)
-    editor.customWrapModel.addWrap(15, 0, 2)
+    editor.customWrapModel.runBatchMutation {
+      addWrap(2, priority = 3)
+      addWrap(6, priority = 1)
+      addWrap(15, priority = 2)
+    }
 
     runWriteCommand {
       editor.document.insertString(4, "zz")
@@ -138,7 +151,7 @@ abstract class CustomWrapsTestBase : AbstractEditorTest() {
     val foldRegion = addCustomFoldRegion(1, 1)
     assertNotNull(foldRegion)
     // wrap in the middle of the folded second line
-    assertNotNull(editor.customWrapModel.addWrap(15, 2, 0))
+    addCustomWrap(15, 2)
     assertEmpty(registeredSoftWraps())
 
     runWriteCommand {
@@ -184,8 +197,10 @@ abstract class CustomWrapsTestBase : AbstractEditorTest() {
     }
   }
 
-  protected fun addCustomWrap(offset: Int, indent: Int = 0) {
-    addCustomWrap(offset, indent, 0)
+  protected fun addCustomWrap(offset: Int, indent: Int = 0): CustomWrap {
+    val wrap = editor.customWrapModel.runBatchMutation { addWrap(offset, indent) }
+    assertNotNull(wrap)
+    return wrap!!
   }
 
   protected fun installSoftWrapPainterWithWidth(width: Int) {
@@ -266,7 +281,7 @@ abstract class CustomWrapsTestBase : AbstractEditorTest() {
 
   fun testCustomWrapChangesAreDeferredUntilBulkModeFinishes() {
     initTextAndSoftWraps("abcdef", charCountToSoftWrapAt = 100)
-    val initialWrap = editor.customWrapModel.addWrap(2, 0, 0)!!
+    val initialWrap = addCustomWrap(2)
 
     fun registeredCustomSoftWrapOffsets(): List<Int> {
       return registeredSoftWraps().filter { it.isCustomSoftWrap }.map { it.start }
@@ -281,13 +296,15 @@ abstract class CustomWrapsTestBase : AbstractEditorTest() {
 
     runWriteCommand {
       DocumentUtil.executeInBulk(editor.document as DocumentEx) {
-        assertNotNull(editor.customWrapModel.addWrap(4, 0, 0))
-        assertEquals(listOf(2, 4), modelCustomWrapOffsets())
-        assertEquals(listOf(2), registeredCustomSoftWrapOffsets())
+        editor.customWrapModel.runBatchMutation {
+          assertNotNull(addWrap(4))
+          assertEquals(listOf(2, 4), modelCustomWrapOffsets())
+          assertEquals(listOf(2), registeredCustomSoftWrapOffsets())
 
-        editor.customWrapModel.removeWrap(initialWrap)
-        assertEquals(listOf(4), modelCustomWrapOffsets())
-        assertEquals(listOf(2), registeredCustomSoftWrapOffsets())
+          removeWrap(initialWrap)
+          assertEquals(listOf(4), modelCustomWrapOffsets())
+          assertEquals(listOf(2), registeredCustomSoftWrapOffsets())
+        }
       }
     }
 
@@ -301,10 +318,12 @@ abstract class CustomWrapsTestBase : AbstractEditorTest() {
 class CustomWrapsOnlyTest : CustomWrapsTestBase() {
   fun testMoveTextToRightReordersCustomWrapStorage() {
     initTextAndSoftWraps("0123456789ABCDEFGHIJ")
-    addCustomWrap(6, indent = 1)
-    addCustomWrap(8, indent = 2)
-    addCustomWrap(10, indent = 3)
-    addCustomWrap(15, indent = 4)
+    editor.customWrapModel.runBatchMutation {
+      addWrap(6, 1)
+      addWrap(8, 2)
+      addWrap(10, 3)
+      addWrap(15, 4)
+    }
 
     runWriteCommand {
       (editor.document as DocumentEx).moveText(5, 9, 12)
@@ -318,11 +337,13 @@ class CustomWrapsOnlyTest : CustomWrapsTestBase() {
 
   fun testMoveTextToLeftReordersCustomWrapStorage() {
     initTextAndSoftWraps("0123456789ABCDEFGHIJ")
-    addCustomWrap(2, indent = 1)
-    addCustomWrap(5, indent = 2)
-    addCustomWrap(12, indent = 3)
-    addCustomWrap(13, indent = 4)
-    addCustomWrap(16, indent = 5)
+    editor.customWrapModel.runBatchMutation {
+      addWrap(2, 1)
+      addWrap(5, 2)
+      addWrap(12, 3)
+      addWrap(13, 4)
+      addWrap(16, 5)
+    }
 
     runWriteCommand {
       (editor.document as DocumentEx).moveText(10, 14, 3)
@@ -364,11 +385,13 @@ class CustomWrapsWithSoftWrapsEnabledTest : CustomWrapsTestBase() {
 
   fun testCorrectIndentsForSoftWrapsInALongLineMixedWithCustomWraps() {
     initTextAndSoftWraps("    012340123401234012340123401234567890123456789", 10)
-    addCustomWrap(9, indent = 0)
-    addCustomWrap(14, indent = 0)
-    addCustomWrap(19, indent = 0)
-    addCustomWrap(24, indent = 0)
-    addCustomWrap(29, indent = 2)
+    editor.customWrapModel.runBatchMutation {
+      addWrap(9)
+      addWrap(14)
+      addWrap(19)
+      addWrap(24)
+      addWrap(29, 2)
+    }
 
     fun doCheck() {
       val wraps = registeredSoftWraps()

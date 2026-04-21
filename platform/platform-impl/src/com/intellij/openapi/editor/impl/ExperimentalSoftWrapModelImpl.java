@@ -445,7 +445,7 @@ public final class ExperimentalSoftWrapModelImpl extends SoftWrapModelImpl {
       return;
     }
     if (softWrap instanceof CustomWrapToSoftWrapAdapter customWrap) {
-      editor.getCustomWrapModel().removeWrap(customWrap.getCustomWrap());
+      editor.getCustomWrapModel().runBatchMutation(mutator -> mutator.removeWrap(customWrap.getCustomWrap()));
     }
 
     document.replaceString(softWrap.getStart(), softWrap.getEnd(), softWrap.getText());
@@ -641,5 +641,17 @@ public final class ExperimentalSoftWrapModelImpl extends SoftWrapModelImpl {
   @Override
   public void customWrapRemoved(@NotNull CustomWrap wrap) {
     myRecalculationManager.customWrapRemoved(wrap);
+  }
+
+  @ApiStatus.Experimental
+  @Override
+  public void customWrapBatchMutationStarted() {
+    myRecalculationManager.customWrapBatchMutationStarted();
+  }
+
+  @ApiStatus.Experimental
+  @Override
+  public void customWrapBatchMutationFinished() {
+    myRecalculationManager.customWrapBatchMutationFinished();
   }
 }

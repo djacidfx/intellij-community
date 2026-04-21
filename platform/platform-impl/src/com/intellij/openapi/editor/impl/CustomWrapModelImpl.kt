@@ -16,10 +16,12 @@ import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.NonNls
 import org.jetbrains.annotations.TestOnly
 
-internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapModel, PrioritizedDocumentListener, Dumpable {
+internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapModel, CustomWrapModel.Mutator, PrioritizedDocumentListener,
+                                                                     Dumpable {
   private val document = editor.elfDocument
   private val tree: CustomWrapTree = CustomWrapTree(document)
   private val eventDispatcher = EventDispatcher.create(CustomWrapModel.Listener::class.java)
+  private var isInsideBatchMutation = false
 
   fun addListener(listener: CustomWrapModel.Listener) {
     eventDispatcher.addListener(listener)
@@ -41,7 +43,16 @@ internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapM
     eventDispatcher.multicaster.customWrapRemoved(wrap)
   }
 
+  private fun notifyBatchStart() {
+    eventDispatcher.multicaster.customWrapBatchMutationStarted()
+  }
+
+  private fun notifyBatchFinish() {
+    eventDispatcher.multicaster.customWrapBatchMutationFinished()
+  }
+
   override fun addWrap(offset: Int, indentInColumns: Int, priority: Int): CustomWrap? {
+    require(isInsideBatchMutation) { "#addWrap must be called inside #runBatchMutation" }
     val document = document
     if (offset < 0 || offset > document.textLength) return null
     if (!isValidCustomWrapOffset(offset, document)) {
@@ -77,17 +88,35 @@ internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapM
     return getWrapsInRange(offset, offset)
   }
 
-  override fun removeWrap(wrap: CustomWrap) {
-    tree.removeInterval(wrap as CustomWrapImpl)
+  override fun removeWrap(wrap: CustomWrap): Boolean {
+    require(isInsideBatchMutation) { "#removeWrap must be called inside #runBatchMutation" }
+    return tree.removeInterval(wrap as CustomWrapImpl)
   }
 
   override fun hasWraps(): Boolean = tree.size() > 0
+
+  override fun <T> runBatchMutation(mutation: CustomWrapModel.Mutator.() -> T): T {
+    if (isInsideBatchMutation) {
+      return mutation(this)
+    }
+
+    val result = try {
+      isInsideBatchMutation = true
+      notifyBatchStart()
+      mutation(this)
+    }
+    finally {
+      isInsideBatchMutation = false
+      notifyBatchFinish()
+    }
+    return result
+  }
 
   private var wrapsAtCaret: List<CustomWrapImpl> = emptyList()
 
   override fun beforeDocumentChange(event: DocumentEvent) {
     if (document.isInBulkUpdate) return
-    // todo check it did not change during bulk op
+    LOG.assertTrue(!isInsideBatchMutation, "Document must not be modified inside batch mutation")
     val offset = event.offset
     if (event.getOldLength() == 0 && offset == editor.caretModel.offset) {
       // text is being inserted at caret offset

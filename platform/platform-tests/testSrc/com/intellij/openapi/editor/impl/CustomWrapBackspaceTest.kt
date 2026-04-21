@@ -12,7 +12,7 @@ class CustomWrapBackspaceTest : AbstractEditorTest() {
 
   fun testBackspaceRemovesWrapWhenCaretIsAfterCustomWrap() {
     initText("abcd")
-    editor.customWrapModel.addWrap(2, 0, 0)!!
+    assertNotNull(editor.customWrapModel.runBatchMutation { addWrap(2) })
     editor.caretModel.moveToVisualPosition(VisualPosition(1, 0))
 
     backspace()
@@ -23,7 +23,7 @@ class CustomWrapBackspaceTest : AbstractEditorTest() {
 
   fun testBackspaceBeforeCustomWrapDeletesCharacter() {
     initText("abcd")
-    editor.customWrapModel.addWrap(2, 0, 0)!!
+    assertNotNull(editor.customWrapModel.runBatchMutation { addWrap(2) })
     editor.caretModel.moveToVisualPosition(VisualPosition(0, 2))
 
     backspace()
@@ -34,7 +34,7 @@ class CustomWrapBackspaceTest : AbstractEditorTest() {
 
   fun testBackspaceWithSelectionKeepsCustomWrap() {
     initText("abcd")
-    editor.customWrapModel.addWrap(2, 0, 0)!!
+    assertNotNull(editor.customWrapModel.runBatchMutation { addWrap(2) })
     editor.caretModel.moveToVisualPosition(VisualPosition(1, 0))
     val selectedCaret = editor.caretModel.addCaret(VisualPosition(1, 2))
     assertNotNull(selectedCaret)

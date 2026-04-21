@@ -5,7 +5,7 @@ import com.intellij.openapi.editor.CustomWrap
 import com.intellij.openapi.editor.CustomWrapModel
 import com.intellij.openapi.editor.ex.DocumentEx
 import com.intellij.openapi.util.Disposer
-import com.intellij.openapi.util.registry.Registry
+import kotlin.test.assertFailsWith
 
 class CustomWrapModelTest : AbstractEditorTest() {
 
@@ -19,27 +19,29 @@ class CustomWrapModelTest : AbstractEditorTest() {
 
   fun testAddAndRemoveWraps() {
     initText("Hello World")
-    
-    val wrap = addCustomWrap(5)
+
+    val wrap = customWrapModel.runBatchMutation { addWrap(5) }!!
 
     assertSize(1, customWrapModel.getWraps())
     assertSize(1, customWrapModel.getWrapsAtOffset(5))
     assertTrue(customWrapModel.hasWraps())
     assertEquals(5, wrap.offset)
-    editor.customWrapModel.removeWrap(wrap)
+    editor.customWrapModel.runBatchMutation { removeWrap(wrap) }
     assertSize(0, customWrapModel.getWraps())
     assertFalse(customWrapModel.hasWraps())
   }
 
   fun testGetWrapsSortedByOffsetAndPriority() {
     initText("Hello World Test String For Sorting")
-    
-    addCustomWrap(15, 2, 2)
-    addCustomWrap(15, 4, 1)
-    addCustomWrap(5)
-    addCustomWrap(25)
-    addCustomWrap(10)
-    addCustomWrap(20)
+
+    customWrapModel.runBatchMutation {
+      addWrap(15, 2, 2)
+      addWrap(15, 4, 1)
+      addWrap(5)
+      addWrap(25)
+      addWrap(10)
+      addWrap(20)
+    }
     
     val wraps = customWrapModel.getWraps()
     
@@ -64,10 +66,10 @@ class CustomWrapModelTest : AbstractEditorTest() {
       }
     }, disposable)
 
-    val wrap = addCustomWrap(3)
-    customWrapModel.removeWrap(wrap)
+    val wrap = customWrapModel.runBatchMutation { addWrap(3) }!!
+    customWrapModel.runBatchMutation { removeWrap(wrap) }
     Disposer.dispose(disposable)
-    addCustomWrap(2)
+    assertNotNull(customWrapModel.runBatchMutation { addWrap(2) })
     assertEquals(listOf("add:3", "remove:3"), events)
   }
 
@@ -83,11 +85,33 @@ class CustomWrapModelTest : AbstractEditorTest() {
       }
     }, getTestRootDisposable())
 
-    val wrap = addCustomWrap(3)
-    customWrapModel.removeWrap(wrap)
+    val wrap = customWrapModel.runBatchMutation { addWrap(3) }!!
+    customWrapModel.runBatchMutation { removeWrap(wrap) }
 
     assertEquals(1, removeCount)
     assertEquals(3, removedOffset)
+  }
+
+  fun testRemoveWrapReturnsFalseForAlreadyInvalidatedWrap() {
+    initText("abc\ndef")
+
+    val (survivingWrap, invalidatedWrap) = customWrapModel.runBatchMutation {
+      addWrap(2)!! to addWrap(5)!!
+    }
+
+    runWriteCommand {
+      editor.document.deleteString(4, 5)
+    }
+
+    assertEquals(listOf(2), customWrapModel.getWraps().map { it.offset })
+
+    val (survivingWrapRemoved, invalidatedWrapRemoved) = customWrapModel.runBatchMutation {
+      removeWrap(survivingWrap) to removeWrap(invalidatedWrap)
+    }
+
+    assertTrue(survivingWrapRemoved)
+    assertFalse(invalidatedWrapRemoved)
+    assertTrue(customWrapModel.getWraps().isEmpty())
   }
 
   fun testCustomWrapInvalidatedByDocumentChangeNotifiesRemovedExactlyOnce() {
@@ -102,7 +126,7 @@ class CustomWrapModelTest : AbstractEditorTest() {
       }
     }, getTestRootDisposable())
 
-    addCustomWrap(5)
+    assertNotNull(customWrapModel.runBatchMutation { addWrap(5) })
 
     runWriteCommand {
       editor.document.deleteString(4, 5)
@@ -119,8 +143,10 @@ class CustomWrapModelTest : AbstractEditorTest() {
     val events = mutableListOf<String>()
     addRecordingListener(events)
 
-    assertNull(customWrapModel.addWrap(2, 0, 0))
-    assertNull(customWrapModel.addWrap(3, 0, 0))
+    customWrapModel.runBatchMutation {
+      assertNull(addWrap(2))
+      assertNull(addWrap(3))
+    }
 
     assertFalse(customWrapModel.hasWraps())
     assertTrue(customWrapModel.getWraps().isEmpty())
@@ -130,7 +156,7 @@ class CustomWrapModelTest : AbstractEditorTest() {
   fun testAddWrapRejectsOffsetInsideSurrogatePair() {
     initText("a${SURROGATE_PAIR}b")
 
-    assertNull(customWrapModel.addWrap(2, 0, 0))
+    assertNull(customWrapModel.runBatchMutation { addWrap(2) })
     assertFalse(customWrapModel.hasWraps())
   }
 
@@ -140,7 +166,7 @@ class CustomWrapModelTest : AbstractEditorTest() {
     val events = mutableListOf<String>()
     addRecordingListener(events)
 
-    addCustomWrap(2)
+    assertNotNull(customWrapModel.runBatchMutation { addWrap(2) })
 
     runWriteCommand {
       editor.document.deleteString(2, 3)
@@ -156,7 +182,7 @@ class CustomWrapModelTest : AbstractEditorTest() {
     val events = mutableListOf<String>()
     addRecordingListener(events)
 
-    addCustomWrap(5)
+    assertNotNull(customWrapModel.runBatchMutation { addWrap(5) })
 
     runWriteCommand {
       editor.document.deleteString(4, 5)
@@ -172,7 +198,7 @@ class CustomWrapModelTest : AbstractEditorTest() {
     val events = mutableListOf<String>()
     addRecordingListener(events)
 
-    addCustomWrap(6)
+    assertNotNull(customWrapModel.runBatchMutation { addWrap(6) })
 
     runWriteCommand {
       (editor.document as DocumentEx).moveText(6, 8, 4)
@@ -181,6 +207,19 @@ class CustomWrapModelTest : AbstractEditorTest() {
     assertEquals("abc\nfgdehi", editor.document.text)
     assertTrue(customWrapModel.getWraps().isEmpty())
     assertEquals(listOf("add:6", "remove:4"), events)
+  }
+
+  fun testMutatorOperationsOutsideBatchMutationFailAndDoNotModifyModel() {
+    initText("0123456789")
+    val mutator = editor.customWrapModel.runBatchMutation {
+      addWrap(4)
+      this // mutator leaks out of scope
+    }
+
+    assertFailsWith<IllegalArgumentException> { mutator.addWrap(5) }
+    assertEquals(listOf(4), editor.customWrapModel.getWraps().map { it.offset })
+
+    (editor as EditorImpl).validateState()
   }
 
   private fun addRecordingListener(events: MutableList<String>) {

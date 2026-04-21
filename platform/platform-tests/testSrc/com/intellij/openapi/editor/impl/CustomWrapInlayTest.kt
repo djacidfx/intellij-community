@@ -15,7 +15,7 @@ class CustomWrapInlayTest : AbstractEditorTest() {
 
   fun testInlaysAtCustomWrapOffsetOccupyDifferentVisualLines() {
     initText("ab")
-    editor.customWrapModel.addWrap(1, 0, 0)!!
+    assertNotNull(editor.customWrapModel.runBatchMutation { addWrap(1) })
 
     val afterWrapInlay = addInlay(1, false)
     val beforeWrapInlay = addInlay(1, true)
@@ -26,7 +26,7 @@ class CustomWrapInlayTest : AbstractEditorTest() {
 
   fun testTypingAtAfterWrapLineMovesOnlyAfterWrapInlay() {
     initText("ab")
-    editor.customWrapModel.addWrap(1, 0, 0)!!
+    assertNotNull(editor.customWrapModel.runBatchMutation { addWrap(1) })
 
     val afterWrapInlay = addInlay(1, false)
     val beforeWrapInlay = addInlay(1, true)
@@ -44,7 +44,7 @@ class CustomWrapInlayTest : AbstractEditorTest() {
 
   fun testInlayHitTestingAtCustomWrapOffsetTreatsInlaysAsNonText() {
     initText("ab")
-    editor.customWrapModel.addWrap(1, 0, 0)!!
+    assertNotNull(editor.customWrapModel.runBatchMutation { addWrap(1) })
 
     val afterWrapInlay = addInlay(1, false)
     val beforeWrapInlay = addInlay(1, true)
@@ -55,7 +55,7 @@ class CustomWrapInlayTest : AbstractEditorTest() {
 
   fun testVisualLineWidthIncludesInlayBeforeCustomWrap() {
     initText("ab")
-    addCustomWrap(1)
+    assertNotNull(editor.customWrapModel.runBatchMutation { addWrap(1) })
 
     val view = EditorViewAccessor.getView(editor)
     val afterWrapInlay = EditorTestUtil.addInlay(editor, 1, false, 11)

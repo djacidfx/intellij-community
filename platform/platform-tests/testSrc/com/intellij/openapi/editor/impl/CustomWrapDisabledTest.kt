@@ -15,7 +15,7 @@ class CustomWrapDisabledTest : AbstractEditorTest() {
 
     assertFalse(CustomWrapModel.isCustomWrapsSupportEnabled())
     assertSame(EmptyCustomWrapModel, editor.customWrapModel)
-    assertNull(editor.customWrapModel.addWrap(2, 0, 0))
+    assertNull(editor.customWrapModel.runBatchMutation { addWrap(2) })
     assertFalse(editor.customWrapModel.hasWraps())
     assertTrue(editor.customWrapModel.getWraps().isEmpty())
   }
@@ -28,7 +28,7 @@ class CustomWrapDisabledTest : AbstractEditorTest() {
 
     assertFalse(CustomWrapModel.isCustomWrapsSupportEnabled())
     assertSame(EmptyCustomWrapModel, editor.customWrapModel)
-    assertNull(editor.customWrapModel.addWrap(2, 0, 0))
+    assertNull(editor.customWrapModel.runBatchMutation { addWrap(2) })
     assertFalse(editor.customWrapModel.hasWraps())
     assertTrue(editor.customWrapModel.getWraps().isEmpty())
   }

@@ -12,10 +12,11 @@ internal class AddCustomWrapAction : AnAction(), DumbAware {
     val editor = e.getData(CommonDataKeys.EDITOR) ?: return
     val carets = editor.caretModel.allCarets
     if (carets.isEmpty()) return
-    carets.forEach {
-      editor.customWrapModel.addWrap(it.offset, 0)
+    editor.customWrapModel.runBatchMutation {
+      carets.forEach { caret ->
+        addWrap(caret.offset)
+      }
     }
-
   }
 
   override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT

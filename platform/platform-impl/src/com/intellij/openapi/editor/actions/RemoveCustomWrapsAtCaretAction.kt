@@ -10,9 +10,13 @@ import com.intellij.openapi.project.DumbAware
 internal class RemoveCustomWrapsAtCaretAction : AnAction(), DumbAware {
   override fun actionPerformed(e: AnActionEvent) {
     val editor = e.getData(CommonDataKeys.EDITOR) ?: return
-    editor.caretModel.allCarets
+    val wrapsToRemove = editor.caretModel.allCarets
       .flatMap { editor.customWrapModel.getWrapsAtOffset(it.offset) }
-      .forEach { editor.customWrapModel.removeWrap(it) }
+    editor.customWrapModel.runBatchMutation {
+      wrapsToRemove.forEach { wrap ->
+        removeWrap(wrap)
+      }
+    }
   }
 
   override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT

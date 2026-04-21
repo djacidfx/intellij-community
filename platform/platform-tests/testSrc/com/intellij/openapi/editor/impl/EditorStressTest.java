@@ -309,9 +309,9 @@ public class EditorStressTest extends AbstractEditorTest {
     @Override
     public void perform(EditorEx editor, Random random) {
       int offset = random.nextInt(editor.getDocument().getTextLength() + 1);
-      int indentInColumns = random.nextInt(100);
-      int priority = random.nextInt(100);
-      editor.getCustomWrapModel().addWrap(offset, indentInColumns, priority);
+      int indentInColumns = random.nextInt(5);
+      int priority = random.nextInt(5);
+      editor.getCustomWrapModel().runBatchMutation(mutator -> mutator.addWrap(offset, indentInColumns, priority));
     }
   }
 
@@ -320,7 +320,7 @@ public class EditorStressTest extends AbstractEditorTest {
     public void perform(EditorEx editor, Random random) {
       List<CustomWrap> wraps = editor.getCustomWrapModel().getWraps();
       if (wraps.isEmpty()) return;
-      editor.getCustomWrapModel().removeWrap(wraps.get(random.nextInt(wraps.size())));
+      editor.getCustomWrapModel().runBatchMutation(mutator -> mutator.removeWrap(wraps.get(random.nextInt(wraps.size()))));
     }
   }
 

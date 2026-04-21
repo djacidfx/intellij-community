@@ -69,6 +69,10 @@ public final class SoftWrappingEnabledRecalculationManager extends SoftWrapRecal
    */
   private boolean myFoldingUpdateInProgress;
 
+  private boolean myCustomWrapUpdateInProgress;
+  // todo: use IntList
+  private final List<Segment> deferredCustomWraps = new ArrayList<>();
+
   /**
    * There is a possible case that target document is changed while its editor is inactive (e.g., user opens two editors for classes
    * {@code 'Part'} and {@code 'Whole'}; activates editor for the class {@code 'Whole'} and performs 'rename class'
@@ -105,7 +109,11 @@ public final class SoftWrappingEnabledRecalculationManager extends SoftWrapRecal
    */
   @Override
   public void prepareToMapping() {
-    if (myDocumentUpdateInProgress || myFoldingUpdateInProgress || myBulkDocumentUpdateInProgress.getAsBoolean() || myEditor.isPurePaintingMode()) {
+    if (myDocumentUpdateInProgress ||
+        myFoldingUpdateInProgress ||
+        myCustomWrapUpdateInProgress ||
+        myBulkDocumentUpdateInProgress.getAsBoolean() ||
+        myEditor.isPurePaintingMode()) {
       return;
     }
 
@@ -114,6 +122,7 @@ public final class SoftWrappingEnabledRecalculationManager extends SoftWrapRecal
       mySoftWrapChangeNotifier.notifySoftWrapsChanged();
       myApplianceManager.reset();
       deferredFoldRegions.clear();
+      deferredCustomWraps.clear();
       myDirty = false;
     }
 
@@ -245,6 +254,7 @@ public final class SoftWrappingEnabledRecalculationManager extends SoftWrapRecal
   public void reset() {
     myApplianceManager.reset();
     deferredFoldRegions.clear();
+    deferredCustomWraps.clear();
   }
 
   @Override
@@ -264,6 +274,7 @@ public final class SoftWrappingEnabledRecalculationManager extends SoftWrapRecal
   @Override
   public void release() {
     deferredFoldRegions.clear();
+    deferredCustomWraps.clear();
   }
 
   @Override
@@ -277,6 +288,7 @@ public final class SoftWrappingEnabledRecalculationManager extends SoftWrapRecal
     myStorage.removeAll();
     mySoftWrapChangeNotifier.notifySoftWrapsChanged();
     deferredFoldRegions.clear();
+    deferredCustomWraps.clear();
     myApplianceManager.recalculateIfNecessary();
   }
 
@@ -293,9 +305,10 @@ public final class SoftWrappingEnabledRecalculationManager extends SoftWrapRecal
   public @NotNull String dumpState() {
     return String.format(
       """
-        document update in progress: %b, folding update in progress: %b, dirty: %b, deferred regions: %s
+        document update in progress: %b, folding update in progress: %b, custom wrap update in progress: %b, dirty: %b,
+        deferred fold regions: %s, deferred custom wraps: %s,
         appliance manager state: %s""",
-      myDocumentUpdateInProgress, myFoldingUpdateInProgress, myDirty, deferredFoldRegions,
+      myDocumentUpdateInProgress, myFoldingUpdateInProgress, myCustomWrapUpdateInProgress, myDirty, deferredFoldRegions, deferredCustomWraps,
       myApplianceManager.dumpState());
   }
 
@@ -309,7 +322,7 @@ public final class SoftWrappingEnabledRecalculationManager extends SoftWrapRecal
     if (myBulkDocumentUpdateInProgress.getAsBoolean()) {
       return;
     }
-    myApplianceManager.recalculate(Collections.singletonList(new TextRange(wrap.getOffset(), wrap.getOffset())));
+    deferredCustomWraps.add(new TextRange(wrap.getOffset(), wrap.getOffset()));
   }
 
   @Override
@@ -321,6 +334,27 @@ public final class SoftWrappingEnabledRecalculationManager extends SoftWrapRecal
       // wrap was removed due to a document change, recalculation will be handled in #documentChanged
       return;
     }
-    myApplianceManager.recalculate(Collections.singletonList(new TextRange(wrap.getOffset(), wrap.getOffset())));
+    deferredCustomWraps.add(new TextRange(wrap.getOffset(), wrap.getOffset()));
+  }
+
+  @Override
+  public void customWrapBatchMutationStarted() {
+    myCustomWrapUpdateInProgress = true;
+  }
+
+  @Override
+  public void customWrapBatchMutationFinished() {
+    myCustomWrapUpdateInProgress = false;
+    if (myBulkDocumentUpdateInProgress.getAsBoolean() || myEditor.isPurePaintingMode()) {
+      return;
+    }
+    try {
+      if (!myDirty) { // no need to recalculate specific areas if the whole document will be reprocessed
+        myApplianceManager.recalculate(deferredCustomWraps);
+      }
+    }
+    finally {
+      deferredCustomWraps.clear();
+    }
   }
 }

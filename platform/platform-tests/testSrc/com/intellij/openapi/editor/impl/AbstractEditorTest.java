@@ -19,7 +19,6 @@ import com.intellij.openapi.Disposable;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Caret;
 import com.intellij.openapi.editor.CustomFoldRegion;
-import com.intellij.openapi.editor.CustomWrap;
 import com.intellij.openapi.editor.FoldRegion;
 import com.intellij.openapi.editor.Inlay;
 import com.intellij.openapi.editor.SoftWrap;
@@ -251,18 +250,6 @@ public abstract class AbstractEditorTest extends LightPlatformCodeInsightTestCas
 
   public Inlay addAfterLineEndInlay(int offset, int widthInPixels) {
     return EditorTestUtil.addAfterLineEndInlay(getEditor(), offset, widthInPixels);
-  }
-
-  @ApiStatus.Experimental
-  public @NotNull CustomWrap addCustomWrap(int offset) {
-    return addCustomWrap(offset, 0, 0);
-  }
-
-  @ApiStatus.Experimental
-  public @NotNull CustomWrap addCustomWrap(int offset, int indentInColumns, int priority) {
-    var wrap = getEditor().getCustomWrapModel().addWrap(offset, indentInColumns, priority);
-    assertNotNull(wrap);
-    return wrap;
   }
 
   @ApiStatus.Experimental

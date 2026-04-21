@@ -145,20 +145,24 @@ f:com.intellij.openapi.actionSystem.Presentation
 *:com.intellij.openapi.editor.CustomWrapModel
 - *sf:Companion:com.intellij.openapi.editor.CustomWrapModel$Companion
 - a:addListener(com.intellij.openapi.editor.CustomWrapModel$Listener,com.intellij.openapi.Disposable):V
-- a:addWrap(I,I,I):com.intellij.openapi.editor.CustomWrap
-- bs:addWrap$default(com.intellij.openapi.editor.CustomWrapModel,I,I,I,I,java.lang.Object):com.intellij.openapi.editor.CustomWrap
 - a:getWraps():java.util.List
 - a:getWrapsAtOffset(I):java.util.List
 - a:getWrapsInRange(I,I):java.util.List
 - a:hasWraps():Z
 - s:isCustomWrapsSupportEnabled():Z
-- a:removeWrap(com.intellij.openapi.editor.CustomWrap):V
+- a:runBatchMutation(kotlin.jvm.functions.Function1):java.lang.Object
 *f:com.intellij.openapi.editor.CustomWrapModel$Companion
 - f:isCustomWrapsSupportEnabled():Z
 *:com.intellij.openapi.editor.CustomWrapModel$Listener
 - java.util.EventListener
 - customWrapAdded(com.intellij.openapi.editor.CustomWrap):V
+- customWrapBatchMutationFinished():V
+- customWrapBatchMutationStarted():V
 - customWrapRemoved(com.intellij.openapi.editor.CustomWrap):V
+*:com.intellij.openapi.editor.CustomWrapModel$Mutator
+- a:addWrap(I,I,I):com.intellij.openapi.editor.CustomWrap
+- bs:addWrap$default(com.intellij.openapi.editor.CustomWrapModel$Mutator,I,I,I,I,java.lang.Object):com.intellij.openapi.editor.CustomWrap
+- a:removeWrap(com.intellij.openapi.editor.CustomWrap):Z
 com.intellij.openapi.editor.Editor
 - com.intellij.openapi.util.UserDataHolder
 - *:getCustomWrapModel():com.intellij.openapi.editor.CustomWrapModel
@@ -190,12 +194,11 @@ com.intellij.openapi.editor.EditorSettings
 - com.intellij.openapi.editor.CustomWrapModel
 - sf:INSTANCE:com.intellij.openapi.editor.EmptyCustomWrapModel
 - addListener(com.intellij.openapi.editor.CustomWrapModel$Listener,com.intellij.openapi.Disposable):V
-- addWrap(I,I,I):com.intellij.openapi.editor.CustomWrap
 - getWraps():java.util.List
 - getWrapsAtOffset(I):java.util.List
 - getWrapsInRange(I,I):java.util.List
 - hasWraps():Z
-- removeWrap(com.intellij.openapi.editor.CustomWrap):V
+- runBatchMutation(kotlin.jvm.functions.Function1):java.lang.Object
 com.intellij.openapi.editor.FoldingModel
 - *:addCustomLinesFolding(I,I,com.intellij.openapi.editor.CustomFoldRegionRenderer):com.intellij.openapi.editor.CustomFoldRegion
 *:com.intellij.openapi.editor.ScrollPositionCalculator
