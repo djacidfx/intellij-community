@@ -4,7 +4,7 @@ package com.intellij.polySymbols.documentation
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.polySymbols.PolySymbol
 import com.intellij.polySymbols.PolySymbolApiStatus
-import com.intellij.polySymbols.dsl.PolySymbolDsl
+import com.intellij.polySymbols.PolySymbolDsl
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nls
 import javax.swing.Icon

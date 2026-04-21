@@ -7,8 +7,8 @@ import com.intellij.polySymbols.PolySymbolKind
 import com.intellij.polySymbols.PolySymbolModifier
 import com.intellij.polySymbols.PolySymbolProperty
 import com.intellij.polySymbols.PolySymbolQualifiedName
-import com.intellij.polySymbols.dsl.PolySymbolDsl
-import com.intellij.polySymbols.dsl.PolySymbolDslBuilderBase
+import com.intellij.polySymbols.PolySymbolDsl
+import com.intellij.polySymbols.PolySymbolDslBuilderBase
 import com.intellij.polySymbols.patterns.impl.PolySymbolPatternBuilderImpl
 import com.intellij.polySymbols.query.PolySymbolNameConversionRules
 import com.intellij.polySymbols.query.PolySymbolScope

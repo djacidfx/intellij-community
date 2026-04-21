@@ -1,10 +1,10 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.polySymbols.dsl.impl
+package com.intellij.polySymbols.impl
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.polySymbols.PolySymbol
-import com.intellij.polySymbols.dsl.DependencyHandle
+import com.intellij.polySymbols.DependencyHandle
 import com.intellij.psi.PsiElement
 
 private val PSI_OR_POLY_SYMBOL_TYPES = arrayOf(

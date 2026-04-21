@@ -4,7 +4,7 @@ package com.intellij.polySymbols.utils
 import com.intellij.polySymbols.PolySymbol
 import com.intellij.polySymbols.PolySymbolKind
 import com.intellij.polySymbols.PolySymbolQualifiedName
-import com.intellij.polySymbols.dsl.polySymbol
+import com.intellij.polySymbols.polySymbol
 
 /**
  * Factory for utility [PolySymbol]s that map from one symbol to another.

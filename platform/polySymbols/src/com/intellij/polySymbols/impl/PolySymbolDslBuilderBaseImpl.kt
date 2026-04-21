@@ -1,13 +1,13 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.polySymbols.dsl.impl
+package com.intellij.polySymbols.impl
 
 import com.intellij.model.Pointer
 import com.intellij.polySymbols.PolySymbol
 import com.intellij.polySymbols.PolySymbolApiStatus
 import com.intellij.polySymbols.PolySymbolModifier
 import com.intellij.polySymbols.PolySymbolProperty
-import com.intellij.polySymbols.dsl.DependencyHandle
-import com.intellij.polySymbols.dsl.PolySymbolDslBuilderBase
+import com.intellij.polySymbols.DependencyHandle
+import com.intellij.polySymbols.PolySymbolDslBuilderBase
 import com.intellij.psi.PsiElement
 import javax.swing.Icon
 

@@ -7,9 +7,9 @@ import com.intellij.polySymbols.PolySymbolApiStatus
 import com.intellij.polySymbols.PolySymbolKind
 import com.intellij.polySymbols.PolySymbolModifier
 import com.intellij.polySymbols.PolySymbolProperty
-import com.intellij.polySymbols.dsl.impl.PolySymbolDslBuilderBaseImpl
-import com.intellij.polySymbols.dsl.impl.DependencyScope
-import com.intellij.polySymbols.dsl.impl.DependencySource
+import com.intellij.polySymbols.impl.PolySymbolDslBuilderBaseImpl
+import com.intellij.polySymbols.impl.DependencyScope
+import com.intellij.polySymbols.impl.DependencySource
 import com.intellij.polySymbols.patterns.MatchPropertyOverridesBuilder
 import javax.swing.Icon
 

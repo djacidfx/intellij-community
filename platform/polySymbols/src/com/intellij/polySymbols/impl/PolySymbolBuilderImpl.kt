@@ -1,5 +1,5 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.polySymbols.dsl.impl
+package com.intellij.polySymbols.impl
 
 import com.intellij.model.Symbol
 import com.intellij.openapi.project.Project
@@ -9,9 +9,9 @@ import com.intellij.platform.backend.presentation.TargetPresentation
 import com.intellij.polySymbols.PolySymbolKind
 import com.intellij.polySymbols.context.PolyContext
 import com.intellij.polySymbols.documentation.PolySymbolDocumentationBuilder
-import com.intellij.polySymbols.dsl.BuiltPolySymbol
-import com.intellij.polySymbols.dsl.PolySymbolBuilder
-import com.intellij.polySymbols.dsl.PolySymbolDeclarationSite
+import com.intellij.polySymbols.BuiltPolySymbol
+import com.intellij.polySymbols.PolySymbolBuilder
+import com.intellij.polySymbols.PolySymbolDeclarationSite
 import com.intellij.polySymbols.patterns.PolySymbolPatternBuilder
 import com.intellij.psi.PsiElement
 
