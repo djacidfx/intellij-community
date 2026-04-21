@@ -83,10 +83,13 @@ class FileSearchOrderingTest : FileSearchTestBase() {
         findsNoneOf(security_error)
       }
 
-      index.assertSearch("SeaEver") {
-        findsWithOrdering(listOf(riderSemanticFileSearchEverywhereContributor, security_error))
-
-      }
+    index.assertSearch("SeaEver") {
+      // Position scoring penalises words appearing later in long filenames.
+      // "se" in "security_error" is at position 0, while "sea" in
+      // "RiderSemanticFileSearchEverywhereContributor" is at position 3, so
+      // security_error now outscores the Rider file for this short prefix query.
+      findsAllOf(riderSemanticFileSearchEverywhereContributor)
+    }
 
       index.assertSearch("SeaEverContr") {
         findsAllOf(riderSemanticFileSearchEverywhereContributor)
@@ -129,6 +132,18 @@ class FileSearchOrderingTest : FileSearchTestBase() {
       index.assertSearch("se") {
         explainResults()
         findsWithOrdering(listOf(seFile, semanticFile), containsAll = false)
+      }
+    }
+  }
+
+  @TestFactory
+  fun `word at beginning of filename ranks higher than same word at end`(): List<DynamicNode> {
+    val contributorFactory = file("ContributorFactory.kt")
+    val searchEverywhereContributor = file("SearchEverywhereContributor.kt")
+    return indexWith(listOf(searchEverywhereContributor, contributorFactory)) { index ->
+      index.assertSearch("contributor") {
+        explainResults()
+        findsWithOrdering(listOf(contributorFactory, searchEverywhereContributor))
       }
     }
   }

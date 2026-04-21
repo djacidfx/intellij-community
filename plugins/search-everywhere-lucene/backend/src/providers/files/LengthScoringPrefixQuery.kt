@@ -37,7 +37,7 @@ import java.util.PriorityQueue
  * [Scorer.score] and [Scorer.getMaxScore] are O(1) — scores are precomputed during iteration.
  */
 class LengthScoringPrefixQuery(val term: Term) : Query() {
-
+  private val positionBoost:Int = 3
   private val prefixText: String = term.text()
   private val prefixBytes: BytesRef = term.bytes()
 
@@ -73,7 +73,7 @@ class LengthScoringPrefixQuery(val term: Term) : Query() {
             // Full term enumeration deferred to here.
             val entries = collectMatchingTerms(context)
             if (entries.isNullOrEmpty()) return emptyScorer()
-            return LengthScoringScorer(entries)
+            return LengthScoringScorer(entries, positionBoost)
           }
 
           // Conservative upper bound: all docs in the field.
@@ -91,15 +91,17 @@ class LengthScoringPrefixQuery(val term: Term) : Query() {
 
         var bestBoost = 0f
         var bestTermText = ""
+        var bestPostings: PostingsEnum? = null
         while (true) {
           val termBytes = te.term()
           if (!termBytes.startsWith(prefixBytes)) break
           val termText = termBytes.utf8ToString()
           val termBoost = boost * prefixLength * prefixLength.toFloat() / termBytes.length
-          val postings = te.postings(null, PostingsEnum.NONE.toInt())
+          val postings = te.postings(null, PostingsEnum.POSITIONS.toInt())
           if (postings.advance(doc) == doc && termBoost > bestBoost) {
             bestBoost = termBoost
             bestTermText = termText
+            bestPostings = postings
           }
           if (te.next() == null) break
         }
@@ -108,10 +110,12 @@ class LengthScoringPrefixQuery(val term: Term) : Query() {
           Explanation.noMatch("$prefixText* does not match doc $doc")
         }
         else {
+          val position = bestPostings!!.nextPosition()
+          val posMultiplier = positionBoost.toFloat() / (positionBoost + position)
           Explanation.match(
-            bestBoost,
+            bestBoost * posMultiplier,
             "LengthScoringPrefixQuery(field=${term.field()}, prefix=$prefixText, term=$bestTermText): " +
-            "boost=$boost × prefixLength²=${prefixLength * prefixLength} / termLength=${bestTermText.length}"
+            "boost=$boost × prefixLength²=${prefixLength * prefixLength} / termLength=${bestTermText.length} × posMultiplier=$posMultiplier (position=$position)"
           )
         }
       }
@@ -128,12 +132,13 @@ class LengthScoringPrefixQuery(val term: Term) : Query() {
           // Use byte length: consistent with prefixLength and avoids utf8ToString allocation.
           val termBoost = if (scoreMode == ScoreMode.COMPLETE_NO_SCORES) 1f
           else boost * prefixLength * prefixLength.toFloat() / termBytes.length
-          val postings = te.postings(null, PostingsEnum.NONE.toInt())
+          val postings = te.postings(null, PostingsEnum.POSITIONS.toInt())
           result.add(TermEntry(termBoost, postings))
           if (te.next() == null) break
         }
         return result
       }
+
     }
   }
 }
@@ -148,7 +153,7 @@ private class TermEntry(val termBoost: Float, val postings: PostingsEnum)
  * The per-document score (max termBoost over all matching postings) is precomputed during
  * [DocIdSetIterator.nextDoc]/[DocIdSetIterator.advance], so [score] is O(1).
  */
-private class LengthScoringScorer(entries: List<TermEntry>) : Scorer() {
+private class LengthScoringScorer(entries: List<TermEntry>, private val positionBoost: Int) : Scorer() {
   private val maxBoost: Float = entries.maxOf { it.termBoost }
   private val totalCost: Long = entries.sumOf { it.postings.cost() }
   private var currentDoc: Int = -1
@@ -207,15 +212,22 @@ private class LengthScoringScorer(entries: List<TermEntry>) : Scorer() {
   /** Pop all heap entries at [doc], record max score, update [currentDoc]/[currentScore]. */
   private fun collectCurrentDoc(doc: Int): Int {
     var maxScore = 0f
+    var bestEntry: TermEntry? = null
     while (pq.isNotEmpty() && pq.peek().postings.docID() == doc) {
       val e = pq.poll()
       atCurrentDoc.add(e)
-      if (e.termBoost > maxScore) maxScore = e.termBoost
+      if (e.termBoost > maxScore) {
+        maxScore = e.termBoost
+        bestEntry = e
+      }
     }
-    currentScore = maxScore
+    val position = bestEntry?.postings?.nextPosition() ?: 0
+    currentScore = maxScore * posMultiplier(position)
     currentDoc = doc
     return doc
   }
+
+  private fun posMultiplier(pos: Int): Float = positionBoost.toFloat() / (positionBoost + pos)
 }
 
 private fun emptyScorer(): Scorer = object : Scorer() {
