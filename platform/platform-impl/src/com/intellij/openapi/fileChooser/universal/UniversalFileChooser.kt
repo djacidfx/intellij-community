@@ -335,6 +335,7 @@ object UniversalFileChooser {
       private val tree = Tree()
       private var toolbar: ActionToolbar? = null
       private val mountStatusCache: MutableMap<String, MountStatus> = ConcurrentHashMap()
+      private val presentableNameCache: MutableMap<String, String> = ConcurrentHashMap()
       private val virtualRootListModel = DefaultListModel<VirtualRoot>()
       private val virtualRootList = JBList(virtualRootListModel)
       private val virtualRootScrollPane: JComponent
@@ -347,7 +348,13 @@ object UniversalFileChooser {
 
       init {
 
-        val descriptorCopy = FileChooserDescriptor(descriptor)
+        val descriptorCopy = object : FileChooserDescriptor(descriptor) {
+          override fun getComment(file: VirtualFile): @NlsSafe String? {
+            val nioPath = runCatching { file.toNioPath() }.getOrNull() ?: return null
+            val name = presentableNameCache[nioPath.invariantSeparatorsPathString] ?: return null
+            return "  $name"
+          }
+        }
         descriptorCopy.putUserData(FileTreeModel.SYSTEM_ROOTS_FILTER,
                                    Predicate { path: Path? -> path != null && roots.contains(path.invariantSeparatorsPathString) })
 
@@ -458,9 +465,18 @@ object UniversalFileChooser {
           withContext(Dispatchers.IO) {
             val elements = contributor.getRoots()
             val fetchedVirtualRoots = contributor.getVirtualRoots()
+            val presentableNames = mutableMapOf<String, String>()
+            for (element in elements) {
+              val name = contributor.getPresentableName(element)
+              if (name != null) {
+                presentableNames[element.invariantSeparatorsPathString] = name
+              }
+            }
             runOnEdt {
               roots.clear()
               roots.addAll(elements.map { it.invariantSeparatorsPathString })
+              presentableNameCache.clear()
+              presentableNameCache.putAll(presentableNames)
               virtualRootMap.clear()
               virtualRootListModel.clear()
               for (vr in fetchedVirtualRoots) {
