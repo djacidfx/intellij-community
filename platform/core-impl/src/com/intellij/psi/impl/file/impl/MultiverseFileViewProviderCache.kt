@@ -6,7 +6,7 @@ import com.intellij.codeInsight.multiverse.CodeInsightContextManagerImpl
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.logger
-import com.intellij.openapi.progress.util.ProgressIndicatorUtilBase
+import com.intellij.openapi.progress.util.awaitWithCheckCanceled
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFile
@@ -342,7 +342,7 @@ private class CancellableSynchronizer {
     deadlockPrevention.set(fileMap)
     try {
       val lock = lockMap.computeIfAbsent(fileMap) { ReentrantLock() }
-      ProgressIndicatorUtilBase.awaitWithCheckCanceled(lock)
+      lock.awaitWithCheckCanceled()
       try {
         return block()
       }

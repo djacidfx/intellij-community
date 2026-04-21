@@ -4,10 +4,12 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.openapi.progress.util
 
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.Cancellation
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.util.ThrowableComputable
 import com.intellij.util.ConcurrencyUtil
 import com.intellij.util.ExceptionUtil
 import org.jetbrains.annotations.ApiStatus
@@ -16,8 +18,11 @@ import java.util.concurrent.Future
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
+import java.util.concurrent.locks.Lock
 
 private const val MAX_REJECTED_EXECUTIONS_BEFORE_CANCELLATION = 16
+
+private val LOG: Logger = Logger.getInstance("#com.intellij.openapi.progress.util.ProgressIndicatorUtilsCore")
 
 fun <T> Future<T>.awaitWithCheckCanceled(): T {
   val indicator = ProgressManager.getInstance().getProgressIndicator()
@@ -64,6 +69,30 @@ fun <T> Future<T>.awaitWithCheckCanceled(indicator: ProgressIndicator?): T {
         throw ProcessCanceledException(cause)
       }
       ExceptionUtil.rethrow(e)
+    }
+  }
+}
+
+fun Lock.awaitWithCheckCanceled() {
+  awaitWithCheckCanceled(ThrowableComputable { tryLock(ConcurrencyUtil.DEFAULT_TIMEOUT_MS, TimeUnit.MILLISECONDS) })
+}
+
+fun awaitWithCheckCanceled(waiter: ThrowableComputable<Boolean?, out Exception?>) {
+  val indicator = ProgressManager.getInstance().getProgressIndicator()
+  var success = false
+  while (!success) {
+    checkCancelledEvenWithPCEDisabled(indicator)
+    try {
+      success = waiter.compute()!!
+    }
+    catch (pce: ProcessCanceledException) {
+      throw pce
+    }
+    catch (e: Exception) {
+      if (e !is InterruptedException) {
+        LOG.warn(e)
+      }
+      throw ProcessCanceledException(e)
     }
   }
 }

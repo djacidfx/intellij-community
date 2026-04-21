@@ -379,11 +379,11 @@ public final class ProgressIndicatorUtils {
   }
 
   public static void awaitWithCheckCanceled(@NotNull Lock lock) {
-    ProgressIndicatorUtilBase.awaitWithCheckCanceled(lock);
+    ProgressIndicatorUtilsCore.awaitWithCheckCanceled(lock);
   }
 
   public static void awaitWithCheckCanceled(@NotNull ThrowableComputable<Boolean, ? extends Exception> waiter) {
-    ProgressIndicatorUtilBase.awaitWithCheckCanceled(waiter);
+    ProgressIndicatorUtilsCore.awaitWithCheckCanceled(waiter);
   }
 
   /** Use when a deadlock is possible otherwise. */

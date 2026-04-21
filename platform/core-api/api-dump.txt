@@ -835,8 +835,10 @@ com.intellij.openapi.progress.TaskInfo
 - a:getTitle():java.lang.String
 - a:isCancellable():Z
 f:com.intellij.openapi.progress.util.ProgressIndicatorUtilsCore
+- sf:awaitWithCheckCanceled(com.intellij.openapi.util.ThrowableComputable):V
 - sf:awaitWithCheckCanceled(java.util.concurrent.Future):java.lang.Object
 - sf:awaitWithCheckCanceled(java.util.concurrent.Future,com.intellij.openapi.progress.ProgressIndicator):java.lang.Object
+- sf:awaitWithCheckCanceled(java.util.concurrent.locks.Lock):V
 com.intellij.openapi.project.DumbAware
 com.intellij.openapi.project.DumbAwareRunnable
 - com.intellij.openapi.project.DumbAware
