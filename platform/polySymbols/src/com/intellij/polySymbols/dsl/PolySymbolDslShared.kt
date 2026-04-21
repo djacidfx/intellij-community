@@ -12,34 +12,68 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.createSmartPointer
 import javax.swing.Icon
 import kotlin.reflect.KProperty
+import kotlin.reflect.safeCast
 
 @DslMarker
 @Target(AnnotationTarget.CLASS)
 annotation class PolySymbolDsl
 
 /**
- * Opaque handle returned by `dependency(...)` calls inside a PolySymbol DSL
- * builder block. Used as a delegated-property value — inside any
- * getter lambda run through [DependencyScope.invoke] it reads the
- * pre-resolved, non-null value from the enclosing symbol's snapshot.
+ * Opaque handle returned by [PolySymbolDslBuilderBase.dependency] calls inside a PolySymbol DSL
+ * builder block. Accessing a handle outside a builder method throws [IllegalStateException].
  *
- * Accessing a handle outside a DependencyScope lambda throws
- * `IllegalStateException`.
+ * You may use it with `by` syntax, get value property directly, or invoke it to get the value.
+ *
+ * Examples:
+ * ```kotlin
+ * val element: JSVariable // JSVariable is a PsiElement
+ *
+ * // using `by` syntax
+ * buildPolySymbol(JS_SYMBOLS, "variable") {
+ *   val element by dependency(element)
+ *   property(JSTypeProperty) {
+ *     element.jsType
+ *   }
+ * }
+ *
+ * // using invoke on handle
+ * buildPolySymbol(JS_SYMBOLS, "variable") {
+ *   val element = dependency(element)
+ *   property(JSTypeProperty) {
+ *     element().jsType
+ *   }
+ * }
+ *
+ * // using value property on handle
+ * buildPolySymbol(JS_SYMBOLS, "variable") {
+ *   val element = dependency(element)
+ *   property(JSTypeProperty) {
+ *     element.value.jsType
+ *   }
+ * }
+ * ```
  */
 @PolySymbolDsl
 class DependencyHandle<T : Any> internal constructor(internal val index: Int) {
 
   operator fun getValue(thisRef: Any?, property: KProperty<*>): T {
     val scope = currentDependencyScope.get()
-      ?: error("DependencyHandle `${property.name}` accessed outside a PolySymbol DSL getter lambda")
+                ?: error("DependencyHandle `${property.name}` accessed outside a PolySymbol DSL getter lambda")
     @Suppress("UNCHECKED_CAST")
     return scope.resolved[index] as T
   }
+
+  val value: T
+    get() = getValue(null, VALUE_READ_PROP)
+
+  operator fun invoke(): T =
+    getValue(null, VALUE_READ_PROP)
 }
 
-private val currentDependencyScope: ThreadLocal<DependencyScope?> = ThreadLocal()
+private val currentDependencyScope: ThreadLocal<DependencyScope> = ThreadLocal()
 
 internal val PSI_CONTEXT_READ_PROP: KProperty<*> = ::PSI_CONTEXT_READ_PROP
+internal val VALUE_READ_PROP: KProperty<*> = ::VALUE_READ_PROP
 
 /**
  * Read the current value of a [DependencyHandle] — assuming the caller has
@@ -92,21 +126,14 @@ class DependencyScope internal constructor(internal val resolved: List<Any>) {
  * Base class shared by every PolySymbol-building DSL. Collects raw
  * dependency references (PsiElement / PolySymbol) without eagerly creating
  * pointers — pointers are only allocated when the materialized symbol's
- * `createPointer()` is invoked.
+ * [PolySymbol.createPointer] is invoked.
  */
 @PolySymbolDsl
 abstract class PolySymbolDslBuilderBase internal constructor() {
 
   internal abstract val builderContext: String
 
-  internal val depSpecs: MutableList<DepSpec> = mutableListOf()
-
-  // === Common overridable properties ===
-  //
-  // Each is stored as an optional zero-arg lambda; the direct-value setter
-  // captures the value in a constant lambda so the read side has a uniform
-  // shape. A `null` getter means "no override" — in which case the produced
-  // symbol falls back to the interface default.
+  internal val depSpecs: MutableList<DepSpec<*>> = mutableListOf()
 
   internal var priorityValue: PolySymbol.Priority? = null
   internal var priorityGetter: (() -> PolySymbol.Priority?)? = null
@@ -123,51 +150,81 @@ abstract class PolySymbolDslBuilderBase internal constructor() {
   internal val propertyValues: MutableMap<PolySymbolProperty<*>, Any?> = mutableMapOf()
   internal val propertyGetters: MutableMap<PolySymbolProperty<*>, () -> Any?> = mutableMapOf()
 
+  /**
+   * @see [PolySymbol.priority]
+   */
   fun priority(value: PolySymbol.Priority?) {
     priorityValue = value
     priorityGetter = null
   }
 
+  /**
+   * @see [PolySymbol.priority]
+   */
   fun priority(provider: () -> PolySymbol.Priority?) {
     checkNoPsiCapture(provider, "buildPolySymbol.priority")
     priorityGetter = provider
   }
 
+  /**
+   * @see [PolySymbol.apiStatus]
+   */
   fun apiStatus(value: PolySymbolApiStatus) {
     apiStatusValue = value
     apiStatusGetter = null
   }
 
+  /**
+   * @see [PolySymbol.apiStatus]
+   */
   fun apiStatus(provider: () -> PolySymbolApiStatus) {
     checkNoPsiCapture(provider, "buildPolySymbol.apiStatus")
     apiStatusGetter = provider
   }
 
+  /**
+   * @see [PolySymbol.modifiers]
+   */
   fun modifiers(value: Set<PolySymbolModifier>) {
     modifiersValue = value
     modifiersGetter = null
   }
 
+  /**
+   * @see [PolySymbol.modifiers]
+   */
   fun modifiers(provider: () -> Set<PolySymbolModifier>) {
     checkNoPsiCapture(provider, "buildPolySymbol.modifiers")
     modifiersGetter = provider
   }
 
+  /**
+   * @see [PolySymbol.icon]
+   */
   fun icon(value: Icon?) {
     iconValue = value
     iconGetter = null
   }
 
+  /**
+   * @see [PolySymbol.icon]
+   */
   fun icon(provider: () -> Icon?) {
     checkNoPsiCapture(provider, "buildPolySymbol.icon")
     iconGetter = provider
   }
 
+  /**
+   * @see [PolySymbol.get]
+   */
   fun <T : Any> property(property: PolySymbolProperty<T>, value: T?) {
     propertyValues[property] = value
     propertyGetters -= property
   }
 
+  /**
+   * @see [PolySymbol.get]
+   */
   fun <T : Any> property(property: PolySymbolProperty<T>, provider: () -> T?) {
     checkNoPsiCapture(provider, "buildPolySymbol.property[${property.name}]")
     propertyValues -= property
@@ -176,64 +233,96 @@ abstract class PolySymbolDslBuilderBase internal constructor() {
 
 
   /**
-   * Declare a [PsiElement] dependency. The element is retained as a raw
-   * reference; when the enclosing symbol is later converted to a pointer, a
-   * [com.intellij.psi.SmartPsiElementPointer] is created at that moment.
+   * Declare a [PsiElement] dependency.
+   *
+   * Using this method allows for automatic management of pointers.
+   *
+   * Example usage:
+   * ```kotlin
+   *
+   * val variable: JSVariable // JSVariable is a PsiElement
+   *
+   * buildPolySymbol(JS_SYMBOLS, "variable") {
+   *   val variable by dependency(variable)
+   *   property(JSTypeProperty) {
+   *     variable.jsType
+   *   }
+   * }
+   * ```
+   * @see [DependencyHandle]
    */
-  fun dependency(element: PsiElement): DependencyHandle<PsiElement> {
+  fun <T : PsiElement> dependency(element: T): DependencyHandle<T> {
     val idx = depSpecs.size
     depSpecs += DepSpec.FromPsiElement(element)
     return DependencyHandle(idx)
   }
 
   /**
-   * Declare a [PolySymbol] dependency. Captured analogously — the symbol's
-   * own [PolySymbol.createPointer] is only invoked when the enclosing
-   * symbol's pointer is created.
+   * Declare a [PolySymbol] dependency. The [Pointer] created from the provided [symbol]
+   * must dereference to the [T] class. If that's not
+   * true, use the overload with the custom pointer provider.
+   *
+   * Using this method allows for automatic management of pointers.
+   *
+   * Example usage:
+   * ```kotlin
+   * val source: PolySymbol
+   *
+   * buildPolySymbol(JS_SYMBOLS, "variable") {
+   *   val source by dependency(source)
+   *   property(JSTypeProperty) {
+   *     source[JSTypeProperty]
+   *   }
+   * }
+   * ```
+   * @see [DependencyHandle]
    */
-  fun <T : PolySymbol> dependency(symbol: T): DependencyHandle<T> {
+  inline fun <reified T : PolySymbol> dependency(symbol: T): DependencyHandle<T> =
+    dependency(symbol) {
+      val symbolPointer = it.createPointer()
+      val symbolClass = T::class
+      Pointer {
+        symbolClass.safeCast(symbolPointer.dereference())
+      }
+    }
+
+  /**
+   * Declare a generic dependency by providing the current value and a pointer provider.
+   *
+   * Using this method allows for automatic management of pointers.
+   *
+   * @see [DependencyHandle]
+   */
+  fun <T : Any> dependency(`object`: T, pointerProvider: (T) -> Pointer<out T>): DependencyHandle<T> {
     val idx = depSpecs.size
-    depSpecs += DepSpec.FromPolySymbol(symbol)
+    depSpecs += DepSpec.FromGenericObject(`object`, pointerProvider)
     return DependencyHandle(idx)
   }
 
-  /**
-   * Snapshot the current values of all declared dependencies. Returns
-   * `null` if any dep cannot be resolved (e.g. a previously captured
-   * PolySymbol has become invalid).
-   */
-  internal fun resolveSnapshot(): List<Any>? {
+  internal fun resolveSnapshot(): List<Any> {
     if (depSpecs.isEmpty()) return emptyList()
     val values = ArrayList<Any>(depSpecs.size)
     for (spec in depSpecs) {
-      values += spec.currentValue() ?: run {
-        LOG.error("Failed to dereference dependency ($spec) within its initial ReadAction.")
-        return null
-      }
+      values += spec.currentValue()
     }
     return values
   }
 }
 
-/** Raw dep capture — stores the original reference, not a pointer. */
-internal sealed interface DepSpec {
-  /** Returns the current value of the dep, or `null` if it is no longer valid. */
-  fun currentValue(): Any?
+internal sealed interface DepSpec<T : Any> {
+  fun currentValue(): T
+  fun toPointer(): Pointer<out T>
 
-  /** Creates a pointer for later cross-read-action survival. Called lazily. */
-  fun toPointer(): Pointer<out Any>
-
-  class FromPsiElement(val element: PsiElement) : DepSpec {
-    override fun currentValue(): Any? = element.takeIf { it.isValid }
-    override fun toPointer(): Pointer<out Any> {
-      val smart = element.createSmartPointer()
-      return Pointer { smart.element }
+  class FromPsiElement<T : PsiElement>(val element: T) : DepSpec<T> {
+    override fun currentValue(): T = element
+    override fun toPointer(): Pointer<out T> {
+      return element.createSmartPointer()
     }
   }
 
-  class FromPolySymbol(val symbol: PolySymbol) : DepSpec {
-    override fun currentValue(): Any = symbol
-    override fun toPointer(): Pointer<out Any> = symbol.createPointer()
+  class FromGenericObject<T : Any>(val `object`: T, val pointerProvider: (T) -> Pointer<out T>) : DepSpec<T> {
+    override fun currentValue(): T = `object`
+    override fun toPointer(): Pointer<out T> = pointerProvider(`object`)
   }
 }
 
@@ -252,17 +341,18 @@ internal sealed interface DependencySource {
   /** Pointer list for long-term survival — materialized lazily by [FromSpecs]. */
   fun pointers(): List<Pointer<out Any>>
 
-  class FromSpecs(val specs: List<DepSpec>) : DependencySource {
+  class FromSpecs(val specs: List<DepSpec<*>>) : DependencySource {
     override val isEmpty: Boolean get() = specs.isEmpty()
-    override fun snapshot(): List<Any>? {
+    override fun snapshot(): List<Any> {
       val values = ArrayList<Any>(specs.size)
-      for (spec in specs) values += spec.currentValue() ?: return null
+      for (spec in specs) values += spec.currentValue()
       return values
     }
 
     private val lazyPointers: List<Pointer<out Any>> by lazy(LazyThreadSafetyMode.PUBLICATION) {
       specs.map { it.toPointer() }
     }
+
     override fun pointers(): List<Pointer<out Any>> = lazyPointers
   }
 
@@ -273,6 +363,7 @@ internal sealed interface DependencySource {
       for (pointer in pointers) values += pointer.dereference() ?: return null
       return values
     }
+
     override fun pointers(): List<Pointer<out Any>> = pointers
   }
 }

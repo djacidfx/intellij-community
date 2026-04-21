@@ -21,10 +21,6 @@ import javax.swing.Icon
 /**
  * Builds a [PolySymbolPattern].
  *
- * This is the preferred programmatic API for composing patterns. The DSL
- * delegates to [PolySymbolPatternFactory] — the runtime graph is identical to
- * patterns built directly against the factory.
- *
  * The body must produce at least one pattern. Multiple top-level items are
  * wrapped in an implicit sequence; use [PolySymbolPatternBuilder.sequence] to
  * be explicit.

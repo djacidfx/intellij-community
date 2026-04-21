@@ -4,6 +4,7 @@ package com.intellij.polySymbols.documentation
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.polySymbols.PolySymbol
 import com.intellij.polySymbols.PolySymbolApiStatus
+import com.intellij.polySymbols.dsl.PolySymbolDsl
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nls
 import javax.swing.Icon
@@ -12,6 +13,7 @@ import javax.swing.Icon
 annotation class PolySymbolDocumentationDsl
 
 @PolySymbolDocumentationDsl
+@PolySymbolDsl
 @ApiStatus.NonExtendable
 interface PolySymbolDocumentationBuilder {
   fun name(value: @NlsSafe String): PolySymbolDocumentationBuilder
