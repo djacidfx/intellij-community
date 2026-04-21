@@ -12,7 +12,6 @@ import com.intellij.openapi.actionSystem.CommonShortcuts
 import com.intellij.openapi.actionSystem.CustomShortcutSet
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.ui.Divider
-import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.OnePixelSplitter
@@ -49,19 +48,16 @@ abstract class PluginsTab {
   @JvmField
   val searchListener: LinkListener<Any> = LinkListener { _: LinkLabel<Any>?, data: Any ->
     val query: String?
-    if (data is String) {
-      query = data
-    }
-    else if (data is TagComponent) {
-      query = getTagQuery(data.getText())
-    }
-    else {
-      return@LinkListener
+    when (data) {
+      is String -> query = data
+      is TagComponent -> query = getTagQuery(data.getText())
+      else -> return@LinkListener
     }
 
     searchTextField!!.setTextIgnoreEvents(query)
-    IdeFocusManager.getGlobalInstance()
-      .doWhenFocusSettlesDown(Runnable { IdeFocusManager.getGlobalInstance().requestFocus(searchTextField!!, true) })
+    IdeFocusManager.getGlobalInstance().doWhenFocusSettlesDown(Runnable {
+      IdeFocusManager.getGlobalInstance().requestFocus(searchTextField!!, true)
+    })
     searchPanel!!.setEmptyQuery()
     showSearchPanel(query)
   }
@@ -82,8 +78,9 @@ abstract class PluginsTab {
         EventHandler.addGlobalAction(
           searchTextField!!, CustomShortcutSet(KeyStroke.getKeyStroke("meta alt F")),
           Runnable {
-            IdeFocusManager.getGlobalInstance().doWhenFocusSettlesDown(
-              Runnable { IdeFocusManager.getGlobalInstance().requestFocus(searchTextField!!, true) })
+            IdeFocusManager.getGlobalInstance().doWhenFocusSettlesDown(Runnable {
+              IdeFocusManager.getGlobalInstance().requestFocus(searchTextField!!, true)
+            })
           })
       }
 
@@ -193,7 +190,7 @@ abstract class PluginsTab {
 
       fun searchOnTheFly() {
         val text = searchTextField!!.getText()
-        if (StringUtil.isEmptyOrSpaces(text)) {
+        if (text.isNullOrBlank()) {
           hideSearchPanel()
         }
         else {
@@ -266,7 +263,7 @@ abstract class PluginsTab {
   protected abstract fun onSearchReset()
 
   private fun showSearchPopup() {
-    if (StringUtil.isEmptyOrSpaces(searchTextField!!.getText())) {
+    if (searchTextField!!.getText().isNullOrBlank()) {
       searchPanel!!.controller.showAttributesPopup(null, 0)
     }
     else {
