@@ -40,7 +40,7 @@ import javax.swing.Icon
  * Builder and created symbols may be heavy on memory usage, so in case of large numbers of symbols
  * it is recommended to create a dedicated class implementing [PolySymbol] interface.
  */
-fun buildPolySymbol(
+fun polySymbol(
   kind: PolySymbolKind,
   name: String,
   body: PolySymbolBuilder.() -> Unit,
@@ -65,7 +65,7 @@ class PolySymbolBuilder internal constructor(
   internal val name: String,
 ) : PolySymbolDslBuilderBase() {
 
-  override val builderContext: String get() = "buildPolySymbol"
+  override val builderContext: String get() = "polySymbol"
 
   internal var extensionValue: Boolean? = null
   internal var extensionGetter: (() -> Boolean)? = null
@@ -102,7 +102,7 @@ class PolySymbolBuilder internal constructor(
    * @see [PolySymbol.extension]
    */
   fun extension(provider: () -> Boolean) {
-    checkNoPsiCapture(provider, "buildPolySymbol.extension")
+    checkNoPsiCapture(provider, "polySymbol.extension")
     extensionGetter = provider
   }
 
@@ -137,7 +137,7 @@ class PolySymbolBuilder internal constructor(
    * @see [PolySymbol.psiContext]
    */
   fun psiContext(provider: () -> PsiElement?) {
-    checkNoPsiCapture(provider, "buildPolySymbol.psiContext")
+    checkNoPsiCapture(provider, "polySymbol.psiContext")
     psiContextGetter = provider
   }
 
@@ -153,7 +153,7 @@ class PolySymbolBuilder internal constructor(
    * @see [PolySymbol.presentation]
    */
   fun presentation(provider: () -> TargetPresentation) {
-    checkNoPsiCapture(provider, "buildPolySymbol.presentation")
+    checkNoPsiCapture(provider, "polySymbol.presentation")
     presentationGetter = provider
   }
 
@@ -184,7 +184,7 @@ class PolySymbolBuilder internal constructor(
    *
    * val variable: JSVariable // JSVariable is a PsiElement
    *
-   * buildPolySymbol(JS_SYMBOLS, "variable") {
+   * polySymbol(JS_SYMBOLS, "variable") {
    *   val variable by dependency(variable)
    *   documentation { symbol, location ->
    *     val type = symbol[variable].jsType
@@ -196,7 +196,7 @@ class PolySymbolBuilder internal constructor(
   fun documentation(
     builder: PolySymbolDocumentationBuilder.(symbol: BuiltPolySymbol, location: PsiElement?) -> Unit,
   ) {
-    checkNoPsiCapture(builder, "buildPolySymbol.documentation")
+    checkNoPsiCapture(builder, "polySymbol.documentation")
     documentationBuilder = builder
   }
 
@@ -204,7 +204,7 @@ class PolySymbolBuilder internal constructor(
    * @see [PolySymbol.getNavigationTargets]
    */
   fun navigationTargets(provider: (project: Project) -> Collection<NavigationTarget>) {
-    checkNoPsiCapture(provider, "buildPolySymbol.navigationTargets")
+    checkNoPsiCapture(provider, "polySymbol.navigationTargets")
     navigationTargetsGetter = provider
   }
 
@@ -212,7 +212,7 @@ class PolySymbolBuilder internal constructor(
    * @see [PolySymbol.matchContext]
    */
   fun matchContext(provider: (context: PolyContext) -> Boolean) {
-    checkNoPsiCapture(provider, "buildPolySymbol.matchContext")
+    checkNoPsiCapture(provider, "polySymbol.matchContext")
     matchContextGetter = provider
   }
 
@@ -222,7 +222,7 @@ class PolySymbolBuilder internal constructor(
    * @see [PolySymbol.isEquivalentTo]
    */
   fun isEquivalentTo(provider: (symbol: Symbol) -> Boolean) {
-    checkNoPsiCapture(provider, "buildPolySymbol.isEquivalentTo")
+    checkNoPsiCapture(provider, "polySymbol.isEquivalentTo")
     isEquivalentToGetter = provider
   }
 
@@ -236,7 +236,7 @@ class PolySymbolBuilder internal constructor(
    */
   fun pattern(body: PolySymbolPatternBuilder.() -> Unit) {
     enterMode(Mode.PATTERN)
-    checkNoPsiCapture(body, "buildPolySymbol.pattern")
+    checkNoPsiCapture(body, "polySymbol.pattern")
     patternBuilder = body
   }
 
@@ -258,7 +258,7 @@ class PolySymbolBuilder internal constructor(
    */
   fun linkWithPsiElement(provider: () -> PsiElement?) {
     enterMode(Mode.LINK_WITH_PSI)
-    checkNoPsiCapture(provider, "buildPolySymbol.linkWithPsiElement")
+    checkNoPsiCapture(provider, "polySymbol.linkWithPsiElement")
     sourceGetter = provider
   }
 
@@ -282,7 +282,7 @@ class PolySymbolBuilder internal constructor(
    */
   fun declaredInPsi(provider: () -> PolySymbolDeclarationSite?) {
     enterMode(Mode.DECLARED_IN_PSI)
-    checkNoPsiCapture(provider, "buildPolySymbol.declaredInPsi")
+    checkNoPsiCapture(provider, "polySymbol.declaredInPsi")
     declarationSiteGetter = provider
   }
 

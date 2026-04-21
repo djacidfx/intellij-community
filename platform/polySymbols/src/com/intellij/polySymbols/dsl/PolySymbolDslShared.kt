@@ -29,7 +29,7 @@ annotation class PolySymbolDsl
  * val element: JSVariable // JSVariable is a PsiElement
  *
  * // using `by` syntax
- * buildPolySymbol(JS_SYMBOLS, "variable") {
+ * polySymbol(JS_SYMBOLS, "variable") {
  *   val element by dependency(element)
  *   property(JSTypeProperty) {
  *     element.jsType
@@ -37,7 +37,7 @@ annotation class PolySymbolDsl
  * }
  *
  * // using invoke on handle
- * buildPolySymbol(JS_SYMBOLS, "variable") {
+ * polySymbol(JS_SYMBOLS, "variable") {
  *   val element = dependency(element)
  *   property(JSTypeProperty) {
  *     element().jsType
@@ -45,7 +45,7 @@ annotation class PolySymbolDsl
  * }
  *
  * // using value property on handle
- * buildPolySymbol(JS_SYMBOLS, "variable") {
+ * polySymbol(JS_SYMBOLS, "variable") {
  *   val element = dependency(element)
  *   property(JSTypeProperty) {
  *     element.value.jsType
@@ -162,7 +162,7 @@ abstract class PolySymbolDslBuilderBase internal constructor() {
    * @see [PolySymbol.priority]
    */
   fun priority(provider: () -> PolySymbol.Priority?) {
-    checkNoPsiCapture(provider, "buildPolySymbol.priority")
+    checkNoPsiCapture(provider, "polySymbol.priority")
     priorityGetter = provider
   }
 
@@ -178,7 +178,7 @@ abstract class PolySymbolDslBuilderBase internal constructor() {
    * @see [PolySymbol.apiStatus]
    */
   fun apiStatus(provider: () -> PolySymbolApiStatus) {
-    checkNoPsiCapture(provider, "buildPolySymbol.apiStatus")
+    checkNoPsiCapture(provider, "polySymbol.apiStatus")
     apiStatusGetter = provider
   }
 
@@ -194,7 +194,7 @@ abstract class PolySymbolDslBuilderBase internal constructor() {
    * @see [PolySymbol.modifiers]
    */
   fun modifiers(provider: () -> Set<PolySymbolModifier>) {
-    checkNoPsiCapture(provider, "buildPolySymbol.modifiers")
+    checkNoPsiCapture(provider, "polySymbol.modifiers")
     modifiersGetter = provider
   }
 
@@ -210,7 +210,7 @@ abstract class PolySymbolDslBuilderBase internal constructor() {
    * @see [PolySymbol.icon]
    */
   fun icon(provider: () -> Icon?) {
-    checkNoPsiCapture(provider, "buildPolySymbol.icon")
+    checkNoPsiCapture(provider, "polySymbol.icon")
     iconGetter = provider
   }
 
@@ -226,7 +226,7 @@ abstract class PolySymbolDslBuilderBase internal constructor() {
    * @see [PolySymbol.get]
    */
   fun <T : Any> property(property: PolySymbolProperty<T>, provider: () -> T?) {
-    checkNoPsiCapture(provider, "buildPolySymbol.property[${property.name}]")
+    checkNoPsiCapture(provider, "polySymbol.property[${property.name}]")
     propertyValues -= property
     propertyGetters[property] = provider
   }
@@ -242,7 +242,7 @@ abstract class PolySymbolDslBuilderBase internal constructor() {
    *
    * val variable: JSVariable // JSVariable is a PsiElement
    *
-   * buildPolySymbol(JS_SYMBOLS, "variable") {
+   * polySymbol(JS_SYMBOLS, "variable") {
    *   val variable by dependency(variable)
    *   property(JSTypeProperty) {
    *     variable.jsType
@@ -268,7 +268,7 @@ abstract class PolySymbolDslBuilderBase internal constructor() {
    * ```kotlin
    * val source: PolySymbol
    *
-   * buildPolySymbol(JS_SYMBOLS, "variable") {
+   * polySymbol(JS_SYMBOLS, "variable") {
    *   val source by dependency(source)
    *   property(JSTypeProperty) {
    *     source[JSTypeProperty]

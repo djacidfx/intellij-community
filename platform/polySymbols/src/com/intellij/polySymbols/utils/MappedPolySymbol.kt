@@ -4,7 +4,7 @@ package com.intellij.polySymbols.utils
 import com.intellij.polySymbols.PolySymbol
 import com.intellij.polySymbols.PolySymbolKind
 import com.intellij.polySymbols.PolySymbolQualifiedName
-import com.intellij.polySymbols.dsl.buildPolySymbol
+import com.intellij.polySymbols.dsl.polySymbol
 
 /**
  * Factory for utility [PolySymbol]s that map from one symbol to another.
@@ -22,7 +22,7 @@ object MappedPolySymbol {
     name: String,
     vararg mappingPath: PolySymbolQualifiedName,
     priority: PolySymbol.Priority? = null,
-  ): PolySymbol = buildPolySymbol(kind = kind, name = name) {
+  ): PolySymbol = polySymbol(kind = kind, name = name) {
     priority(priority)
     pattern { symbolReference(mappingPath.toList()) }
   }

@@ -634,7 +634,7 @@
 - f:property(com.intellij.polySymbols.PolySymbolProperty,java.lang.Object):V
 - f:property(com.intellij.polySymbols.PolySymbolProperty,kotlin.jvm.functions.Function0):V
 *f:com.intellij.polySymbols.dsl.PolySymbolDslKt
-- sf:buildPolySymbol(com.intellij.polySymbols.PolySymbolKind,java.lang.String,kotlin.jvm.functions.Function1):com.intellij.polySymbols.dsl.BuiltPolySymbol
+- sf:polySymbol(com.intellij.polySymbols.PolySymbolKind,java.lang.String,kotlin.jvm.functions.Function1):com.intellij.polySymbols.dsl.BuiltPolySymbol
 *a:com.intellij.polySymbols.framework.PolySymbolFramework
 - *sf:Companion:com.intellij.polySymbols.framework.PolySymbolFramework$Companion
 - sf:KIND_FRAMEWORK:java.lang.String
