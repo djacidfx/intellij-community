@@ -61,6 +61,7 @@ import java.nio.file.attribute.AclFileAttributeView
 import java.nio.file.attribute.BasicFileAttributeView
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.attribute.DosFileAttributeView
+import java.nio.file.attribute.DosFileAttributes
 import java.nio.file.attribute.FileAttribute
 import java.nio.file.attribute.FileAttributeView
 import java.nio.file.attribute.FileOwnerAttributeView
@@ -176,7 +177,13 @@ class IjentNioFileSystemProvider : FileSystemProvider() {
     return nioFs.getPath(
       when (nioFs.ijentFs) {
         is IjentFileSystemPosixApi -> relativeUri.path.nullize() ?: "/"
-        is IjentFileSystemWindowsApi -> relativeUri.path.trimStart('/')  // TODO Check that uri.path contains the drive letter.
+        is IjentFileSystemWindowsApi -> {
+          val windowsPath = relativeUri.path.trimStart('/')
+          require(windowsPath.length >= 2 && windowsPath[0].isLetter() && windowsPath[1] == ':') {
+            "Windows URI path must contain a drive letter: $uri"
+          }
+          windowsPath
+        }
       }
     )
   }
@@ -345,7 +352,6 @@ class IjentNioFileSystemProvider : FileSystemProvider() {
     return fsBlocking {
       source.nioFs.ijentFs.move(sourcePath, targetPath)
         .replaceExisting(
-          // This code may change when implementing Windows support.
           when {
             StandardCopyOption.ATOMIC_MOVE in options -> DO_NOT_REPLACE_DIRECTORIES
             StandardCopyOption.REPLACE_EXISTING in options -> REPLACE_EVERYTHING
@@ -477,7 +483,6 @@ class IjentNioFileSystemProvider : FileSystemProvider() {
         IjentNioPosixFileAttributes(fileInfo)
       }
       is IjentFileSystemWindowsApi -> {
-        // TODO DosFileAttributes
         val fileInfo = fsBlocking {
           ijentFs.stat(path.eelPath).symlinkPolicy(linkPolicy).getOrThrowFileSystemException()
         }
@@ -511,6 +516,24 @@ class IjentNioFileSystemProvider : FileSystemProvider() {
         mapOf(
           "permissions" to posixAttributes.permissions(),
           "group" to posixAttributes.group(),
+        )
+      }
+      "dos" -> {
+        val dosAttributes = readAttributes(path, DosFileAttributes::class.java, *options)
+        mapOf(
+          "lastModifiedTime" to dosAttributes.lastModifiedTime(),
+          "lastAccessTime" to dosAttributes.lastAccessTime(),
+          "creationTime" to dosAttributes.creationTime(),
+          "size" to dosAttributes.size(),
+          "isRegularFile" to dosAttributes.isRegularFile,
+          "isDirectory" to dosAttributes.isDirectory,
+          "isSymbolicLink" to dosAttributes.isSymbolicLink,
+          "isOther" to dosAttributes.isOther,
+          "fileKey" to dosAttributes.fileKey(),
+          "readonly" to dosAttributes.isReadOnly,
+          "hidden" to dosAttributes.isHidden,
+          "archive" to dosAttributes.isArchive,
+          "system" to dosAttributes.isSystem,
         )
       }
       else -> {
