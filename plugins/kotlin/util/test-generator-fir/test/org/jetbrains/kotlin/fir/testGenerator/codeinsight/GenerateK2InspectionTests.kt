@@ -172,6 +172,7 @@ internal fun MutableTWorkspace.generateK2InspectionTests() {
             model("${idea}/inspectionsLocal/convertLongToDuration")
             model("${idea}/inspectionsLocal/replaceWithEnumMap")
             model("${idea}/inspectionsLocal/javaCollectionsWithNullableTypes")
+            model("${idea}/inspectionsLocal/deprecatedCallableAddReplaceWith", pattern = Patterns.KT_WITHOUT_DOTS)
             model("${idea}/inspectionsLocal/redundantNullableReturnType")
             model("${idea}/inspectionsLocal/copyWithoutNamedArguments")
             model("${idea}/inspectionsLocal/unusedUnaryOperator")

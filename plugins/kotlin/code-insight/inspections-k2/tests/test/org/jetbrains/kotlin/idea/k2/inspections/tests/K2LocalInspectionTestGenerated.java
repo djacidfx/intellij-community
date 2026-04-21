@@ -8464,8 +8464,6 @@ public abstract class K2LocalInspectionTestGenerated extends AbstractK2LocalInsp
         }
     }
 
-
-
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../../idea/tests/testData/inspectionsLocal/coroutines/redundantRunCatching")
     public static class RedundantRunCatching extends AbstractK2LocalInspectionTest {
@@ -20517,6 +20515,135 @@ public abstract class K2LocalInspectionTestGenerated extends AbstractK2LocalInsp
         @TestMetadata("withManyQuestionMarks.kt")
         public void testWithManyQuestionMarks() throws Exception {
             runTest("../../../idea/tests/testData/inspectionsLocal/javaCollectionsWithNullableTypes/withManyQuestionMarks.kt");
+        }
+    }
+
+    @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../../idea/tests/testData/inspectionsLocal/deprecatedCallableAddReplaceWith")
+    public static class DeprecatedCallableAddReplaceWith extends AbstractK2LocalInspectionTest {
+        @java.lang.Override
+        @org.jetbrains.annotations.NotNull
+        public final KotlinPluginMode getPluginMode() {
+            return KotlinPluginMode.K2;
+        }
+
+        private void runTest(String testDataFilePath) throws Exception {
+            KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
+        }
+
+        @TestMetadata("AlreadyWithReplaceWith.kt")
+        public void testAlreadyWithReplaceWith() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/deprecatedCallableAddReplaceWith/AlreadyWithReplaceWith.kt");
+        }
+
+        @TestMetadata("CommentInBody.kt")
+        public void testCommentInBody() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/deprecatedCallableAddReplaceWith/CommentInBody.kt");
+        }
+
+        @TestMetadata("DeclarationInside.kt")
+        public void testDeclarationInside() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/deprecatedCallableAddReplaceWith/DeclarationInside.kt");
+        }
+
+        @TestMetadata("DeprecationLevelHidden.kt")
+        public void testDeprecationLevelHidden() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/deprecatedCallableAddReplaceWith/DeprecationLevelHidden.kt");
+        }
+
+        @TestMetadata("ExceptionInPropertyDestructuringEntry.kt")
+        public void testExceptionInPropertyDestructuringEntry() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/deprecatedCallableAddReplaceWith/ExceptionInPropertyDestructuringEntry.kt");
+        }
+
+        @TestMetadata("ExpressionBody.kt")
+        public void testExpressionBody() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/deprecatedCallableAddReplaceWith/ExpressionBody.kt");
+        }
+
+        @TestMetadata("If.kt")
+        public void testIf() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/deprecatedCallableAddReplaceWith/If.kt");
+        }
+
+        @TestMetadata("Imports.kt")
+        public void testImports() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/deprecatedCallableAddReplaceWith/Imports.kt");
+        }
+
+        @TestMetadata("NoCompanionObjectImport.kt")
+        public void testNoCompanionObjectImport() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/deprecatedCallableAddReplaceWith/NoCompanionObjectImport.kt");
+        }
+
+        @TestMetadata("NoDefaultImport.kt")
+        public void testNoDefaultImport() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/deprecatedCallableAddReplaceWith/NoDefaultImport.kt");
+        }
+
+        @TestMetadata("NoReturn.kt")
+        public void testNoReturn() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/deprecatedCallableAddReplaceWith/NoReturn.kt");
+        }
+
+        @TestMetadata("NotAvailableOnDocComment.kt")
+        public void testNotAvailableOnDocComment() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/deprecatedCallableAddReplaceWith/NotAvailableOnDocComment.kt");
+        }
+
+        @TestMetadata("PrivateSymbolUsed.kt")
+        public void testPrivateSymbolUsed() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/deprecatedCallableAddReplaceWith/PrivateSymbolUsed.kt");
+        }
+
+        @TestMetadata("QualifiedCall.kt")
+        public void testQualifiedCall() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/deprecatedCallableAddReplaceWith/QualifiedCall.kt");
+        }
+
+        @TestMetadata("ReplaceWithHasNamedArgument.kt")
+        public void testReplaceWithHasNamedArgument() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/deprecatedCallableAddReplaceWith/ReplaceWithHasNamedArgument.kt");
+        }
+
+        @TestMetadata("Return.kt")
+        public void testReturn() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/deprecatedCallableAddReplaceWith/Return.kt");
+        }
+
+        @TestMetadata("ReturnInside.kt")
+        public void testReturnInside() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/deprecatedCallableAddReplaceWith/ReturnInside.kt");
+        }
+
+        @TestMetadata("Simple.kt")
+        public void testSimple() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/deprecatedCallableAddReplaceWith/Simple.kt");
+        }
+
+        @TestMetadata("StringLiteral.kt")
+        public void testStringLiteral() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/deprecatedCallableAddReplaceWith/StringLiteral.kt");
+        }
+
+        @TestMetadata("StringTemplate.kt")
+        public void testStringTemplate() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/deprecatedCallableAddReplaceWith/StringTemplate.kt");
+        }
+
+        @TestMetadata("TwoStatements.kt")
+        public void testTwoStatements() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/deprecatedCallableAddReplaceWith/TwoStatements.kt");
+        }
+
+        @TestMetadata("ValProperty.kt")
+        public void testValProperty() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/deprecatedCallableAddReplaceWith/ValProperty.kt");
+        }
+
+        @TestMetadata("ValPropertyWithReturn.kt")
+        public void testValPropertyWithReturn() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/deprecatedCallableAddReplaceWith/ValPropertyWithReturn.kt");
         }
     }
 
