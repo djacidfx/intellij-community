@@ -109,9 +109,6 @@ interface PolySymbolDocumentation {
     else
       this
 
-  @ApiStatus.Internal
-  fun build(): DocumentationResult
-
   companion object {
 
     @JvmStatic

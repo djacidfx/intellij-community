@@ -73,7 +73,7 @@ internal data class PolySymbolDocumentationImpl(
   override fun withHeader(header: @Nls String?): PolySymbolDocumentation =
     copy(header = header)
 
-  override fun build(): DocumentationResult {
+  fun build(): DocumentationResult {
     val url2ImageMap = mutableMapOf<String, Image>()
 
     @Suppress("HardCodedStringLiteral")
