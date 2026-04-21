@@ -325,61 +325,7 @@ internal class RunConfigurationsActionGroupPopup(actionGroup: ActionGroup,
   }
 
   override fun getListElementRenderer(): PopupListElementRenderer<PopupFactoryImpl.ActionItem> {
-    return object : PopupListElementRenderer<PopupFactoryImpl.ActionItem>(this) {
-      override fun isShowSecondaryText(): Boolean = mySpeedSearch.isHoldingFilter
-
-      override fun isShowSecondaryIcon(): Boolean = mySpeedSearch.isHoldingFilter
-
-      override fun customizeComponent(
-        list: JList<out PopupFactoryImpl.ActionItem?>?,
-        value: PopupFactoryImpl.ActionItem?,
-        isSelected: Boolean,
-      ) {
-        super.customizeComponent(list, value, isSelected)
-        ClientProperty.put(myTextLabel, SwingTextTrimmer.KEY, SwingTextTrimmer.createCustomTrimmer(object : SwingTextTrimmerStrategy {
-          override fun trim(text: @NlsActions.ActionText String, metrics: FontMetrics, availableWidth: Int): String {
-            return trimRunConfigurationName(text, availableWidth, metrics)
-          }
-        }))
-        JLabelUtil.setTrimOverflow(myTextLabel, true)
-      }
-
-      override fun layoutComponent(middleItemComponent: JComponent): JComponent {
-        return super.layoutComponent(middleItemComponent.also { relayoutMainPanel(it) })
-      }
-
-      /**
-       * A hack to fix the default layout of the renderer.
-       * 
-       * It uses `BorderLayout` by default, which doesn't support shrinking of the west and east components.
-       */
-      private fun relayoutMainPanel(panel: JComponent) {
-        val components = panel.components.toList()
-        panel.removeAll()
-        val layout = GroupLayout(panel)
-        val hg = layout.createSequentialGroup()
-        val vg = layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-        layout.setHorizontalGroup(hg)
-        layout.setVerticalGroup(vg)
-        val height = JBUI.CurrentTheme.List.rowHeight()
-
-        for ((i, c) in components.withIndex()) {
-          // The first two (main and secondary) components expand, the last one (shortcut) doesn't.
-          if (i <= 1) {
-            hg.addComponent(c, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, 99999)
-          }
-          else {
-            hg.addComponent(c)
-          }
-        }
-        for (c in components) {
-          // Vertically, they all should be the same size as the rest of the renderer, otherwise alignment issues will occur.
-          vg.addComponent(c, height, height, height)
-        }
-
-        panel.layout = layout
-      }
-    }
+    return MyListElementRenderer()
   }
 
   override fun shouldBeShowing(value: Any?): Boolean {
@@ -413,6 +359,62 @@ internal class RunConfigurationsActionGroupPopup(actionGroup: ActionGroup,
       c.separator.preferredSize.height
     }
     else 0
+  }
+
+  private inner class MyListElementRenderer : PopupListElementRenderer<PopupFactoryImpl.ActionItem>(this) {
+    override fun isShowSecondaryText(): Boolean = mySpeedSearch.isHoldingFilter
+
+    override fun isShowSecondaryIcon(): Boolean = mySpeedSearch.isHoldingFilter
+
+    override fun customizeComponent(
+      list: JList<out PopupFactoryImpl.ActionItem?>?,
+      value: PopupFactoryImpl.ActionItem?,
+      isSelected: Boolean,
+    ) {
+      super.customizeComponent(list, value, isSelected)
+      ClientProperty.put(myTextLabel, SwingTextTrimmer.KEY, SwingTextTrimmer.createCustomTrimmer(object : SwingTextTrimmerStrategy {
+        override fun trim(text: @NlsActions.ActionText String, metrics: FontMetrics, availableWidth: Int): String {
+          return trimRunConfigurationName(text, availableWidth, metrics)
+        }
+      }))
+      JLabelUtil.setTrimOverflow(myTextLabel, true)
+    }
+
+    override fun layoutComponent(middleItemComponent: JComponent): JComponent {
+      return super.layoutComponent(middleItemComponent.also { relayoutMainPanel(it) })
+    }
+
+    /**
+     * A hack to fix the default layout of the renderer.
+     * 
+     * It uses `BorderLayout` by default, which doesn't support shrinking of the west and east components.
+     */
+    private fun relayoutMainPanel(panel: JComponent) {
+      val components = panel.components.toList()
+      panel.removeAll()
+      val layout = GroupLayout(panel)
+      val hg = layout.createSequentialGroup()
+      val vg = layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+      layout.setHorizontalGroup(hg)
+      layout.setVerticalGroup(vg)
+      val height = JBUI.CurrentTheme.List.rowHeight()
+
+      for ((i, c) in components.withIndex()) {
+        // The first two (main and secondary) components expand, the last one (shortcut) doesn't.
+        if (i <= 1) {
+          hg.addComponent(c, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, 99999)
+        }
+        else {
+          hg.addComponent(c)
+        }
+      }
+      for (c in components) {
+        // Vertically, they all should be the same size as the rest of the renderer, otherwise alignment issues will occur.
+        vg.addComponent(c, height, height, height)
+      }
+
+      panel.layout = layout
+    }
   }
 
   private inner class MyDnDTarget : DnDTarget {
