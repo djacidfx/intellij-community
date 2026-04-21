@@ -7508,6 +7508,7 @@ f:com.intellij.ui.components.BrowserLink
 - <init>(javax.swing.Icon,java.lang.String,java.lang.String):V
 - <init>(javax.swing.Icon,java.lang.String,java.lang.String,java.lang.String):V
 - f:getUrl():java.lang.String
+- f:setUrl(java.lang.String):V
 f:com.intellij.ui.components.BulkListModelKt
 c:com.intellij.ui.components.DropDownLink
 - com.intellij.ui.components.ActionLink

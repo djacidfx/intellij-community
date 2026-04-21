@@ -102,9 +102,11 @@ class McpServerSettingsConfigurable : SearchableConfigurable {
           val streamText = if (isServerRunning) service.serverStreamUrl else ""
 
           sseLink.component.text = sseText
+          sseLink.component.url = sseText
           sseLink.component.toolTipText = sseText
 
           streamLink.component.text = streamText
+          streamLink.component.url = streamText
           streamLink.component.toolTipText = streamText
 
           checkboxWithValidation.text = if (isServerRunning) McpServerBundle.message("enable.mcp.server.when.enabled") else McpServerBundle.message("enable.mcp.server")
