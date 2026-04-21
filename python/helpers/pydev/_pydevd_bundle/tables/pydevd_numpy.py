@@ -400,6 +400,16 @@ def __define_format_function(format):
         return None
 
     if type(format) == str and format.startswith("%"):
-        return lambda x: format % x
-    else:
-        return None
+        if __is_valid_format_string(format):
+            return lambda x: format % x
+
+    return None
+
+
+def __is_valid_format_string(str_with_format):
+    try:
+        import re
+        format_re = re.compile(r'^%(\(\w+\))?[#0\- +]*\d*(?:\.\d+)?[hlL]?[diouxXeEfFgGcrs%]$')
+        return bool(format_re.match(str_with_format))
+    except:
+        return False
