@@ -25,7 +25,7 @@ object ReferencingPolySymbol {
       priority(priority)
       pattern {
         group {
-          this.priority = priority
+          priority(priority)
           symbols { kinds.forEach { from(kind = it, location = location) } }
           symbolReference(name)
         }

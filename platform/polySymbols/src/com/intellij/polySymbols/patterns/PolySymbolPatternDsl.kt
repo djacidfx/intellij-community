@@ -95,22 +95,22 @@ open class PolySymbolPatternBuilder internal constructor() {
 
   /** Pattern group with options and/or a symbol resolver. */
   fun group(body: GroupPatternBuilder.() -> Unit) {
-    patterns += GroupPatternBuilder().apply(body).buildGroup()
+    patterns += GroupPatternBuilder(required = true).apply(body).buildGroup()
   }
 
   /** Optional group. */
   fun optional(body: GroupPatternBuilder.() -> Unit) {
-    patterns += GroupPatternBuilder().apply { required = false }.apply(body).buildGroup()
+    patterns += GroupPatternBuilder(required = false).apply(body).buildGroup()
   }
 
   /** Repeating group. */
   fun repeating(body: RepeatingGroupPatternBuilder.() -> Unit) {
-    patterns += RepeatingGroupPatternBuilder().apply(body).buildGroup()
+    patterns += RepeatingGroupPatternBuilder(required = true).apply(body).buildGroup()
   }
 
   /** Optional repeating group. */
   fun optionalRepeating(body: RepeatingGroupPatternBuilder.() -> Unit) {
-    patterns += RepeatingGroupPatternBuilder().apply { required = false }.apply(body).buildGroup()
+    patterns += RepeatingGroupPatternBuilder(required = false).apply(body).buildGroup()
   }
 
   internal fun buildSingle(): PolySymbolPattern {
@@ -136,9 +136,26 @@ class AlternativesBuilder internal constructor() {
 }
 
 @PolySymbolDsl
-open class GroupPatternBuilder internal constructor() : PolySymbolPatternBuilder() {
-  var priority: PolySymbol.Priority? = null
-  var apiStatus: PolySymbolApiStatus? = null
+open class GroupPatternBuilder internal constructor(
+  private val required: Boolean,
+) : PolySymbolPatternBuilder() {
+  private var priorityValue: PolySymbol.Priority? = null
+  private var apiStatusValue: PolySymbolApiStatus? = null
+  private var symbolsResolverValue: PolySymbolPatternSymbolsResolver? = null
+  private var matchPropertyOverrides: MatchPropertyOverridesBuilder? = null
+  private val additionalScopes: MutableList<PolySymbolScope> = mutableListOf()
+  protected open val repeats: Boolean get() = false
+  protected open val unique: Boolean get() = false
+  private var symbolsBuilder: SymbolsBuilder? = null
+  private val alternatives: MutableList<PolySymbolPattern> = mutableListOf()
+
+  fun priority(value: PolySymbol.Priority?) {
+    priorityValue = value
+  }
+
+  fun apiStatus(value: PolySymbolApiStatus?) {
+    apiStatusValue = value
+  }
 
   /**
    * Direct access to a custom [PolySymbolPatternSymbolsResolver]. Mutually
@@ -146,17 +163,9 @@ open class GroupPatternBuilder internal constructor() : PolySymbolPatternBuilder
    * resolver that does not map to [PolySymbolPatternReferenceResolver].
    */
   @ApiStatus.Internal
-  var symbolsResolver: PolySymbolPatternSymbolsResolver? = null
-
-  private var matchPropertyOverrides: MatchPropertyOverridesBuilder? = null
-  private val additionalScopes: MutableList<PolySymbolScope> = mutableListOf()
-
-  internal var required: Boolean = true
-  internal open val repeats: Boolean get() = false
-  internal open val unique: Boolean get() = false
-
-  private var symbolsBuilder: SymbolsBuilder? = null
-  private val alternatives: MutableList<PolySymbolPattern> = mutableListOf()
+  fun symbolsResolver(value: PolySymbolPatternSymbolsResolver?) {
+    symbolsResolverValue = value
+  }
 
   /**
    * Specify property overrides for the resulting [com.intellij.polySymbols.query.PolySymbolMatch].
@@ -197,11 +206,11 @@ open class GroupPatternBuilder internal constructor() : PolySymbolPatternBuilder
   }
 
   internal fun buildGroup(): PolySymbolPattern {
-    check(symbolsBuilder == null || symbolsResolver == null) {
+    check(symbolsBuilder == null || symbolsResolverValue == null) {
       "Group has both a symbols { } block and a symbolsResolver — pick one"
     }
 
-    val resolver = symbolsResolver ?: symbolsBuilder?.buildResolver()
+    val resolver = symbolsResolverValue ?: symbolsBuilder?.buildResolver()
 
     val content: MutableList<PolySymbolPattern> = mutableListOf()
     content += alternatives
@@ -213,9 +222,9 @@ open class GroupPatternBuilder internal constructor() : PolySymbolPatternBuilder
 
     val options = ComplexPatternOptions(
       additionalScope = additionalScopes.toList(),
-      apiStatus = apiStatus,
+      apiStatus = apiStatusValue,
       isRequired = required,
-      priority = priority,
+      priority = priorityValue,
       repeats = repeats,
       unique = repeats && unique,
       symbolsResolver = resolver,
@@ -226,10 +235,15 @@ open class GroupPatternBuilder internal constructor() : PolySymbolPatternBuilder
 }
 
 @PolySymbolDsl
-class RepeatingGroupPatternBuilder internal constructor() : GroupPatternBuilder() {
+class RepeatingGroupPatternBuilder internal constructor(required: Boolean) : GroupPatternBuilder(required) {
 
-  public override var unique: Boolean = false
+  private var uniqueValue: Boolean = false
 
+  fun unique(value: Boolean) {
+    uniqueValue = value
+  }
+
+  override val unique: Boolean get() = uniqueValue
   override val repeats: Boolean get() = true
 }
 
@@ -248,8 +262,8 @@ class SymbolsBuilder internal constructor() {
     references += PolySymbolPatternReferenceResolver.Reference(
       location = location,
       kind = kind,
-      filter = builder.filter,
-      excludeModifiers = builder.excludeModifiers,
+      filter = builder.filterValue,
+      excludeModifiers = builder.excludeModifiersValue,
       nameConversionRules = builder.nameConversionRules,
     )
   }
@@ -263,10 +277,22 @@ class SymbolsBuilder internal constructor() {
 @PolySymbolDsl
 class ReferenceBuilder internal constructor() {
 
-  var filter: PolySymbolFilter? = null
-  var excludeModifiers: List<PolySymbolModifier> = listOf(PolySymbolModifier.ABSTRACT)
+  internal var filterValue: PolySymbolFilter? = null
+  internal var excludeModifiersValue: MutableList<PolySymbolModifier> = mutableListOf()
 
   internal val nameConversionRules: MutableList<PolySymbolNameConversionRules> = mutableListOf()
+
+  fun filter(value: PolySymbolFilter?) {
+    filterValue = value
+  }
+
+  fun excludeModifiers(vararg value: PolySymbolModifier) {
+    excludeModifiersValue.addAll(value)
+  }
+
+  fun excludeModifiers(value: List<PolySymbolModifier>) {
+    excludeModifiersValue.addAll(value)
+  }
 
   fun nameConversion(rules: PolySymbolNameConversionRules) {
     nameConversionRules += rules
