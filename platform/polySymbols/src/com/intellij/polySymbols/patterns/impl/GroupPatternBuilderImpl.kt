@@ -4,7 +4,6 @@ package com.intellij.polySymbols.patterns.impl
 import com.intellij.polySymbols.PolySymbol
 import com.intellij.polySymbols.PolySymbolApiStatus
 import com.intellij.polySymbols.patterns.AlternativesBuilder
-import com.intellij.polySymbols.patterns.ComplexPatternOptions
 import com.intellij.polySymbols.patterns.GroupPatternBuilder
 import com.intellij.polySymbols.patterns.MatchPropertyOverridesBuilder
 import com.intellij.polySymbols.patterns.PolySymbolPattern

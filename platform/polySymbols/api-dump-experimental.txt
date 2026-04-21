@@ -725,6 +725,7 @@
 - a:overrideMatchProperties(kotlin.jvm.functions.Function1):V
 - a:priority(com.intellij.polySymbols.PolySymbol$Priority):V
 - a:symbols(kotlin.jvm.functions.Function1):V
+- a:symbolsResolver(com.intellij.polySymbols.patterns.PolySymbolPatternSymbolsResolver):V
 *:com.intellij.polySymbols.patterns.MatchPropertyOverridesBuilder
 - com.intellij.polySymbols.PolySymbolDslBuilderBase
 *Fa:com.intellij.polySymbols.patterns.PolySymbolPattern
@@ -746,6 +747,11 @@
 - bs:symbolReference$default(com.intellij.polySymbols.patterns.PolySymbolPatternBuilder,java.lang.String,I,java.lang.Object):V
 *f:com.intellij.polySymbols.patterns.PolySymbolPatternDslKt
 - sf:polySymbolPattern(kotlin.jvm.functions.Function1):com.intellij.polySymbols.patterns.PolySymbolPattern
+*:com.intellij.polySymbols.patterns.PolySymbolPatternSymbolsResolver
+- a:codeCompletion(java.lang.String,I,com.intellij.polySymbols.query.PolySymbolQueryStack,com.intellij.polySymbols.query.PolySymbolQueryExecutor):java.util.List
+- getSymbolKinds(com.intellij.polySymbols.PolySymbol):java.util.Set
+- a:listSymbols(com.intellij.polySymbols.query.PolySymbolQueryStack,com.intellij.polySymbols.query.PolySymbolQueryExecutor,Z):java.util.List
+- a:matchName(java.lang.String,com.intellij.polySymbols.query.PolySymbolQueryStack,com.intellij.polySymbols.query.PolySymbolQueryExecutor):java.util.List
 *:com.intellij.polySymbols.patterns.ReferenceBuilder
 - a:excludeModifiers(java.util.List):V
 - a:excludeModifiers(com.intellij.polySymbols.PolySymbolModifier[]):V

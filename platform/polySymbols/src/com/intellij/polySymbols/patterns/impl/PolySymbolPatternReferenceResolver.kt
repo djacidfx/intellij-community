@@ -1,5 +1,5 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.polySymbols.patterns
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+package com.intellij.polySymbols.patterns.impl
 
 import com.intellij.polySymbols.PolySymbol
 import com.intellij.polySymbols.PolySymbolKind
@@ -7,15 +7,14 @@ import com.intellij.polySymbols.PolySymbolModifier
 import com.intellij.polySymbols.PolySymbolQualifiedName
 import com.intellij.polySymbols.completion.PolySymbolCodeCompletionItem
 import com.intellij.polySymbols.impl.canUnwrapSymbols
+import com.intellij.polySymbols.patterns.PolySymbolPatternSymbolsResolver
 import com.intellij.polySymbols.query.PolySymbolMatch
 import com.intellij.polySymbols.query.PolySymbolNameConversionRules
 import com.intellij.polySymbols.query.PolySymbolQueryExecutor
 import com.intellij.polySymbols.query.PolySymbolQueryStack
 import com.intellij.polySymbols.webTypes.filters.PolySymbolFilter
-import org.jetbrains.annotations.ApiStatus
 
-@ApiStatus.Internal
-class PolySymbolPatternReferenceResolver(private vararg val items: Reference) : PolySymbolPatternSymbolsResolver {
+internal class PolySymbolPatternReferenceResolver(private vararg val items: Reference) : PolySymbolPatternSymbolsResolver {
   override fun getSymbolKinds(context: PolySymbol?): Set<PolySymbolKind> =
     items.asSequence().map { it.kind }.toSet()
 
@@ -53,7 +52,7 @@ class PolySymbolPatternReferenceResolver(private vararg val items: Reference) : 
     val location: List<PolySymbolQualifiedName> = emptyList(),
     val kind: PolySymbolKind,
     val filter: PolySymbolFilter? = null,
-    val excludeModifiers: List<PolySymbolModifier> = listOf(PolySymbolModifier.Companion.ABSTRACT),
+    val excludeModifiers: List<PolySymbolModifier> = listOf(PolySymbolModifier.ABSTRACT),
     val nameConversionRules: List<PolySymbolNameConversionRules> = emptyList(),
   ) {
     fun resolve(

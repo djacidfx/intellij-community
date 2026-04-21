@@ -7,12 +7,12 @@ import com.intellij.polySymbols.PolySymbolKind
 import com.intellij.polySymbols.PolySymbolModifier
 import com.intellij.polySymbols.completion.PolySymbolCodeCompletionItem
 import com.intellij.polySymbols.impl.canUnwrapSymbols
-import com.intellij.polySymbols.patterns.ComplexPatternOptions
 import com.intellij.polySymbols.patterns.PolySymbolPattern
 import com.intellij.polySymbols.patterns.impl.CompletionAutoPopupPattern
 import com.intellij.polySymbols.patterns.impl.CompletionParameters
 import com.intellij.polySymbols.patterns.impl.ComplexPattern
 import com.intellij.polySymbols.patterns.impl.ComplexPatternConfigProvider
+import com.intellij.polySymbols.patterns.impl.ComplexPatternOptions
 import com.intellij.polySymbols.patterns.impl.ListParameters
 import com.intellij.polySymbols.patterns.impl.MatchParameters
 import com.intellij.polySymbols.patterns.impl.RegExpPattern

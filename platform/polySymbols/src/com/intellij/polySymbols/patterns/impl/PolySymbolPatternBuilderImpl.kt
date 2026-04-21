@@ -3,7 +3,6 @@ package com.intellij.polySymbols.patterns.impl
 
 import com.intellij.polySymbols.PolySymbolQualifiedName
 import com.intellij.polySymbols.patterns.AlternativesBuilder
-import com.intellij.polySymbols.patterns.ComplexPatternOptions
 import com.intellij.polySymbols.patterns.GroupPatternBuilder
 import com.intellij.polySymbols.patterns.PolySymbolPattern
 import com.intellij.polySymbols.patterns.PolySymbolPatternBuilder

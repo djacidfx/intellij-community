@@ -3,12 +3,12 @@ package com.intellij.polySymbols.patterns
 
 import com.intellij.polySymbols.PolySymbol
 import com.intellij.polySymbols.PolySymbolApiStatus
+import com.intellij.polySymbols.PolySymbolDsl
+import com.intellij.polySymbols.PolySymbolDslBuilderBase
 import com.intellij.polySymbols.PolySymbolKind
 import com.intellij.polySymbols.PolySymbolModifier
 import com.intellij.polySymbols.PolySymbolProperty
 import com.intellij.polySymbols.PolySymbolQualifiedName
-import com.intellij.polySymbols.PolySymbolDsl
-import com.intellij.polySymbols.PolySymbolDslBuilderBase
 import com.intellij.polySymbols.patterns.impl.PolySymbolPatternBuilderImpl
 import com.intellij.polySymbols.query.PolySymbolNameConversionRules
 import com.intellij.polySymbols.query.PolySymbolScope
@@ -92,14 +92,6 @@ interface GroupPatternBuilder : PolySymbolPatternBuilder {
   fun apiStatus(value: PolySymbolApiStatus?)
 
   /**
-   * Direct access to a custom [PolySymbolPatternSymbolsResolver]. Mutually
-   * exclusive with the [symbols] block; set this when you have a hand-rolled
-   * resolver that does not map to [PolySymbolPatternReferenceResolver].
-   */
-  @ApiStatus.Internal
-  fun symbolsResolver(value: PolySymbolPatternSymbolsResolver?)
-
-  /**
    * Specify property overrides for the resulting [com.intellij.polySymbols.query.PolySymbolMatch].
    *
    * When a pattern evaluates to a match, the resulting symbol's properties are
@@ -119,6 +111,13 @@ interface GroupPatternBuilder : PolySymbolPatternBuilder {
 
   /** Symbol resolver built from one or more `from(kind, ...)` entries. */
   fun symbols(body: SymbolsBuilder.() -> Unit)
+
+  /**
+   * Direct access to a custom [PolySymbolPatternSymbolsResolver]. Mutually
+   * exclusive with the [symbols] block; set this when you need a specialized
+   * resolver.
+   */
+  fun symbolsResolver(value: PolySymbolPatternSymbolsResolver?)
 }
 
 @PolySymbolDsl
