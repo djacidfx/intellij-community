@@ -62,9 +62,6 @@ public class JavaSMTRunnerTestTreeView extends SMTRunnerTestTreeView implements 
       @Override
       public @Nullable String getDurationText(@NotNull SMTestProxy testProxy,
                                               @NotNull TestConsoleProperties consoleProperties) {
-        if (testProxy.getDurationStrategy() != TestDurationStrategy.AUTOMATIC) {
-          return testProxy.getDurationString(consoleProperties);
-        }
         if (testProxy.isInProgress() && !testProxy.isSubjectToHide(consoleProperties)) {
           Long startedAt;
           if (testProxy.isSuite() && !JavaAwareTestConsoleProperties.USE_WALL_TIME.value(consoleProperties)) {
@@ -81,6 +78,9 @@ public class JavaSMTRunnerTestTreeView extends SMTRunnerTestTreeView implements 
           if (durationSeconds == 0) return null;
           durationMillis = TimeUnit.SECONDS.toMillis(durationSeconds);
           return NlsMessages.formatDurationApproximateNarrow(durationMillis);
+        }
+        if (testProxy.getDurationStrategy() != TestDurationStrategy.AUTOMATIC) {
+          return testProxy.getDurationString(consoleProperties);
         }
         if (testProxy.isSuite() &&
             testProxy.isFinal() &&
