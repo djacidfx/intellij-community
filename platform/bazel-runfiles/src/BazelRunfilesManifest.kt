@@ -8,7 +8,9 @@ import kotlin.io.path.useLines
 import kotlin.math.max
 
 @ApiStatus.Internal
-class BazelRunfilesManifest(val manifestFile: String? = System.getenv(RUNFILES_MANIFEST_FILE_ENV_NAME)) {
+class BazelRunfilesManifest @JvmOverloads constructor(
+  val manifestFile: String? = System.getenv(RUNFILES_MANIFEST_FILE_ENV_NAME),
+) {
   private companion object {
     // https://fuchsia.googlesource.com/fuchsia/+/HEAD/build/bazel/BAZEL_RUNFILES.md?format%2F%2F#how-runfiles-libraries-really-work
     const val RUNFILES_MANIFEST_FILE_ENV_NAME: String = "RUNFILES_MANIFEST_FILE"
@@ -37,6 +39,9 @@ class BazelRunfilesManifest(val manifestFile: String? = System.getenv(RUNFILES_M
         .toMap()
     }
   }
+
+  /** Parsed manifest entries as rlocation-path -> real-path. */
+  val entries: Map<String, String> get() = bazelRunFilesManifest
 
   private val calculatedManifestEntries: MutableMap<String, String> = mutableMapOf()
 

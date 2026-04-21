@@ -4,6 +4,7 @@ package com.intellij.tests;
 import com.intellij.tests.bazel.BazelJUnitOutputListener;
 import com.intellij.tests.bazel.IjSmTestExecutionListener;
 import com.intellij.tests.bazel.bucketing.BucketsPostDiscoveryFilter;
+import com.intellij.platform.bazel.runfiles.BazelRunfilesManifest;
 import org.junit.platform.engine.DiscoverySelector;
 import org.junit.platform.engine.Filter;
 import org.junit.platform.engine.FilterResult;
@@ -35,7 +36,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
@@ -620,21 +621,94 @@ public final class JUnit5BazelRunner {
   public static Set<Path> getClassPathRoots(ClassLoader classLoader) throws Throwable {
     // to get relevant jars for the current test target, we do the following:
     // - get the list of all the paths in classpath by getBaseUrls() using reflection
-    // - get from this list only those paths, that located next to env.SELF_LOCATION
+    // - get from this list only those paths that are located next to env.SELF_LOCATION
     // where SELF_LOCATION is the path to the test executable/script and set by Bazel automatically
     Method getBaseUrls = classLoader.getClass().getMethod("getBaseUrls");
     //noinspection unchecked
     List<Path> paths = (List<Path>)getBaseUrls.invoke(classLoader);
 
-    String bazelTestSelfLocation = System.getenv(bazelEnvSelfLocation);
-    // the relevant jars are expected to be next to the classloader when no SELF_LOCATION is set (singlejar, windows runs)
-    if (bazelTestSelfLocation == null || bazelTestSelfLocation.isBlank()) {
-      return new HashSet<>(paths);
+    // Linux/macOS: SELF_LOCATION points to the test binary inside its materialized
+    // runfiles tree, so all target-specific jars share its parent directory.
+    String selfLocation = System.getenv(bazelEnvSelfLocation);
+    if (selfLocation != null && !selfLocation.isBlank()) {
+      Path selfDir = Path.of(selfLocation).toAbsolutePath().getParent();
+      return paths.stream()
+        .filter(p -> selfDir.equals(p.toAbsolutePath().getParent()))
+        .collect(Collectors.toSet());
     }
-    Path bazelTestSelfLocationDir = Path.of(bazelTestSelfLocation).getParent().toAbsolutePath();
+
+    // Windows (RUNFILES_MANIFEST_ONLY=1): no materialized runfiles tree,
+    // so we have to match by the VIRTUAL parent instead of a REAL one.
+
+    String testBinary = System.getenv("TEST_BINARY");
+    String testWorkspace = System.getenv("TEST_WORKSPACE");
+    String testBinaryVirtualParent = getTestBinaryVirtualParent(testWorkspace, testBinary);
+
+    // Reverse-map each entry through the runfiles MANIFEST to its VIRTUAL runfiles path
+    // (e.g., _main/toolbox/app-starter/app-starter-tests.jar)
+    Map<Path, List<String>> realToVirtuals = buildRealToVirtualMap(testBinary, testWorkspace);
+
+    // return the ones that have the same VIRTUAL parent as the test binary
     return paths.stream()
-      .filter(p -> bazelTestSelfLocationDir.equals(p.toAbsolutePath().getParent()))
+      .filter(p -> {
+        List<String> virtuals = realToVirtuals.get(p.toAbsolutePath());
+        if (virtuals == null) {
+          return false;
+        }
+
+        for (String virtual : virtuals) {
+          int idx = virtual.lastIndexOf('/');
+          String parent = idx > 0 ? virtual.substring(0, idx) : "";
+
+          if (testBinaryVirtualParent.equals(parent)) {
+            return true;
+          }
+        }
+        return false;
+      })
       .collect(Collectors.toSet());
+  }
+
+  private static String getTestBinaryVirtualParent(String testWorkspace, String testBinary) {
+    // Normalize so that e.g., TEST_WORKSPACE=_main + TEST_BINARY=../community+/foo/bar.exe
+    // collapses to community+/foo/bar.exe (targets in external workspaces).
+    Path testBinaryVirtualPath = Path.of(
+      testWorkspace,
+      testBinary.replace('\\', '/')
+    ).normalize();
+
+    Path testBinaryVirtualParentPath = testBinaryVirtualPath.getParent();
+    if (testBinaryVirtualParentPath == null) {
+      throw new IllegalStateException("Expected TEST_BINARY to have a parent: " + testBinary);
+    }
+
+    return testBinaryVirtualParentPath.toString().replace('\\', '/');
+  }
+
+  // Each REAL path may appear under multiple VIRTUAL paths in the manifest
+  // (e.g. _main/external/community+/foo and community+/foo for a target in the
+  // community+ external workspace). Collect all VIRTUAL paths per REAL path so we
+  // can match against whichever form the test binary's VIRTUAL path normalizes to.
+  private static Map<Path, List<String>> buildRealToVirtualMap(String testBinary, String testWorkspace) {
+    BazelRunfilesManifest manifest = new BazelRunfilesManifest();
+    if (!manifest.getExists() ||
+        testBinary == null || testBinary.isBlank() ||
+        testWorkspace == null || testWorkspace.isBlank()) {
+      throw new IllegalStateException(
+        "Cannot determine test binary directory: " + bazelEnvSelfLocation + " is unset" +
+        " and RUNFILES_MANIFEST_FILE/TEST_BINARY/TEST_WORKSPACE are not all set." +
+        " Refusing to scan the full manifest-expanded classpath for test discovery.");
+    }
+
+    Map<Path, List<String>> realToVirtuals = new HashMap<>();
+
+    manifest.getEntries().forEach(
+      (virtual, real) -> realToVirtuals.computeIfAbsent(
+        Path.of(real).toAbsolutePath(),
+        k -> new ArrayList<>()).add(virtual)
+    );
+
+    return realToVirtuals;
   }
 
   public static List<? extends DiscoverySelector> getSelectors(Set<Path> classPathRoots) {
