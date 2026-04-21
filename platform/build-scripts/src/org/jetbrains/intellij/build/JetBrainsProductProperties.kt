@@ -100,8 +100,6 @@ private fun isIntentionallyIgnored(problem: PluginProblem, pluginId: String?): B
       // so it's ok to have preloading there
       pluginId == "com.intellij.monorepo.devkit"
     is NoDependencies ->
-      // FIXME PY-74322
-      pluginId == "com.intellij.python.frontend" ||
       // FIXME AE-121
       pluginId == "com.jetbrains.personalization"
     is InvalidPluginIDProblem ->
