@@ -19,7 +19,7 @@ internal open class GroupPatternBuilderImpl(
   private var priorityValue: PolySymbol.Priority? = null
   private var apiStatusValue: PolySymbolApiStatus? = null
   private var symbolsResolverValue: PolySymbolPatternSymbolsResolver? = null
-  private var matchPropertyOverrides: MatchPropertyOverridesBuilder? = null
+  private var matchPropertyOverrides: MatchPropertyOverridesBuilderImpl? = null
   private val additionalScopes: MutableList<PolySymbolScope> = mutableListOf()
   protected open val repeats: Boolean get() = false
   protected open val unique: Boolean get() = false
@@ -39,7 +39,7 @@ internal open class GroupPatternBuilderImpl(
   }
 
   override fun overrideMatchProperties(body: MatchPropertyOverridesBuilder.() -> Unit) {
-    val builder = matchPropertyOverrides ?: MatchPropertyOverridesBuilder().also { matchPropertyOverrides = it }
+    val builder = matchPropertyOverrides ?: MatchPropertyOverridesBuilderImpl().also { matchPropertyOverrides = it }
     builder.body()
   }
 

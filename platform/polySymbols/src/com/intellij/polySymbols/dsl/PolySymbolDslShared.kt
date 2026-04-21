@@ -88,7 +88,7 @@ internal fun <T : Any> DependencyHandle<T>.readInScope(): T =
  * all declared dependencies of the currently-materialized symbol.
  */
 @PolySymbolDsl
-class DependencyScope internal constructor(internal val resolved: List<Any>) {
+internal class DependencyScope internal constructor(internal val resolved: List<Any>) {
 
   /**
    * Runs [block] with this scope set as the ambient dependency scope,
@@ -129,108 +129,57 @@ class DependencyScope internal constructor(internal val resolved: List<Any>) {
  * [PolySymbol.createPointer] is invoked.
  */
 @PolySymbolDsl
-abstract class PolySymbolDslBuilderBase internal constructor() {
-
-  internal abstract val builderContext: String
-
-  internal val depSpecs: MutableList<DepSpec<*>> = mutableListOf()
-
-  internal var priorityValue: PolySymbol.Priority? = null
-  internal var priorityGetter: (() -> PolySymbol.Priority?)? = null
-
-  internal var apiStatusValue: PolySymbolApiStatus? = null
-  internal var apiStatusGetter: (() -> PolySymbolApiStatus)? = null
-
-  internal var modifiersValue: Set<PolySymbolModifier>? = null
-  internal var modifiersGetter: (() -> Set<PolySymbolModifier>)? = null
-
-  internal var iconValue: Icon? = null
-  internal var iconGetter: (() -> Icon?)? = null
-
-  internal val propertyValues: MutableMap<PolySymbolProperty<*>, Any?> = mutableMapOf()
-  internal val propertyGetters: MutableMap<PolySymbolProperty<*>, () -> Any?> = mutableMapOf()
+interface PolySymbolDslBuilderBase {
 
   /**
    * @see [PolySymbol.priority]
    */
-  fun priority(value: PolySymbol.Priority?) {
-    priorityValue = value
-    priorityGetter = null
-  }
+  fun priority(value: PolySymbol.Priority?)
 
   /**
    * @see [PolySymbol.priority]
    */
-  fun priority(provider: () -> PolySymbol.Priority?) {
-    checkNoPsiCapture(provider, "polySymbol.priority")
-    priorityGetter = provider
-  }
+  fun priority(provider: () -> PolySymbol.Priority?)
 
   /**
    * @see [PolySymbol.apiStatus]
    */
-  fun apiStatus(value: PolySymbolApiStatus) {
-    apiStatusValue = value
-    apiStatusGetter = null
-  }
+  fun apiStatus(value: PolySymbolApiStatus)
 
   /**
    * @see [PolySymbol.apiStatus]
    */
-  fun apiStatus(provider: () -> PolySymbolApiStatus) {
-    checkNoPsiCapture(provider, "polySymbol.apiStatus")
-    apiStatusGetter = provider
-  }
+  fun apiStatus(provider: () -> PolySymbolApiStatus)
 
   /**
    * @see [PolySymbol.modifiers]
    */
-  fun modifiers(value: Set<PolySymbolModifier>) {
-    modifiersValue = value
-    modifiersGetter = null
-  }
+  fun modifiers(value: Set<PolySymbolModifier>)
 
   /**
    * @see [PolySymbol.modifiers]
    */
-  fun modifiers(provider: () -> Set<PolySymbolModifier>) {
-    checkNoPsiCapture(provider, "polySymbol.modifiers")
-    modifiersGetter = provider
-  }
+  fun modifiers(provider: () -> Set<PolySymbolModifier>)
 
   /**
    * @see [PolySymbol.icon]
    */
-  fun icon(value: Icon?) {
-    iconValue = value
-    iconGetter = null
-  }
+  fun icon(value: Icon?)
 
   /**
    * @see [PolySymbol.icon]
    */
-  fun icon(provider: () -> Icon?) {
-    checkNoPsiCapture(provider, "polySymbol.icon")
-    iconGetter = provider
-  }
+  fun icon(provider: () -> Icon?)
 
   /**
    * @see [PolySymbol.get]
    */
-  fun <T : Any> property(property: PolySymbolProperty<T>, value: T?) {
-    propertyValues[property] = value
-    propertyGetters -= property
-  }
+  fun <T : Any> property(property: PolySymbolProperty<T>, value: T?)
 
   /**
    * @see [PolySymbol.get]
    */
-  fun <T : Any> property(property: PolySymbolProperty<T>, provider: () -> T?) {
-    checkNoPsiCapture(provider, "polySymbol.property[${property.name}]")
-    propertyValues -= property
-    propertyGetters[property] = provider
-  }
-
+  fun <T : Any> property(property: PolySymbolProperty<T>, provider: () -> T?)
 
   /**
    * Declare a [PsiElement] dependency.
@@ -251,40 +200,7 @@ abstract class PolySymbolDslBuilderBase internal constructor() {
    * ```
    * @see [DependencyHandle]
    */
-  fun <T : PsiElement> dependency(element: T): DependencyHandle<T> {
-    val idx = depSpecs.size
-    depSpecs += DepSpec.FromPsiElement(element)
-    return DependencyHandle(idx)
-  }
-
-  /**
-   * Declare a [PolySymbol] dependency. The [Pointer] created from the provided [symbol]
-   * must dereference to the [T] class. If that's not
-   * true, use the overload with the custom pointer provider.
-   *
-   * Using this method allows for automatic management of pointers.
-   *
-   * Example usage:
-   * ```kotlin
-   * val source: PolySymbol
-   *
-   * polySymbol(JS_SYMBOLS, "variable") {
-   *   val source by dependency(source)
-   *   property(JSTypeProperty) {
-   *     source[JSTypeProperty]
-   *   }
-   * }
-   * ```
-   * @see [DependencyHandle]
-   */
-  inline fun <reified T : PolySymbol> dependency(symbol: T): DependencyHandle<T> =
-    dependency(symbol) {
-      val symbolPointer = it.createPointer()
-      val symbolClass = T::class
-      Pointer {
-        symbolClass.safeCast(symbolPointer.dereference())
-      }
-    }
+  fun <T : PsiElement> dependency(element: T): DependencyHandle<T>
 
   /**
    * Declare a generic dependency by providing the current value and a pointer provider.
@@ -293,21 +209,37 @@ abstract class PolySymbolDslBuilderBase internal constructor() {
    *
    * @see [DependencyHandle]
    */
-  fun <T : Any> dependency(`object`: T, pointerProvider: (T) -> Pointer<out T>): DependencyHandle<T> {
-    val idx = depSpecs.size
-    depSpecs += DepSpec.FromGenericObject(`object`, pointerProvider)
-    return DependencyHandle(idx)
-  }
-
-  internal fun resolveSnapshot(): List<Any> {
-    if (depSpecs.isEmpty()) return emptyList()
-    val values = ArrayList<Any>(depSpecs.size)
-    for (spec in depSpecs) {
-      values += spec.currentValue()
-    }
-    return values
-  }
+  fun <T : Any> dependency(`object`: T, pointerProvider: (T) -> Pointer<out T>): DependencyHandle<T>
 }
+
+/**
+ * Declare a [PolySymbol] dependency. The [Pointer] created from the provided [symbol]
+ * must dereference to the [T] class. If that's not
+ * true, use the overload with the custom pointer provider.
+ *
+ * Using this method allows for automatic management of pointers.
+ *
+ * Example usage:
+ * ```kotlin
+ * val source: PolySymbol
+ *
+ * polySymbol(JS_SYMBOLS, "variable") {
+ *   val source by dependency(source)
+ *   property(JSTypeProperty) {
+ *     source[JSTypeProperty]
+ *   }
+ * }
+ * ```
+ * @see [DependencyHandle]
+ */
+inline fun <reified T : PolySymbol> PolySymbolDslBuilderBase.dependency(symbol: T): DependencyHandle<T> =
+  dependency(symbol) {
+    val symbolPointer = it.createPointer()
+    val symbolClass = T::class
+    Pointer {
+      symbolClass.safeCast(symbolPointer.dereference())
+    }
+  }
 
 internal sealed interface DepSpec<T : Any> {
   fun currentValue(): T
