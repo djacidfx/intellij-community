@@ -179,6 +179,7 @@ internal fun MutableTWorkspace.generateK2InspectionTests() {
             model("${idea}/inspectionsLocal/javaMapForEach")
             model("${idea}/inspectionsLocal/mapToForEach")
             model("${idea}/inspectionsLocal/functionWithLambdaExpressionBody")
+            model("${idea}/inspectionsLocal/convertSealedSubClassToObject", pattern = Patterns.KT_WITHOUT_DOTS)
             model("${idea}/inspectionsLocal/replaceUntilWithRangeUntil")
             model("${idea}/inspectionsLocal/scriptExecutable", pattern = Patterns.KTS)
             model("${idea}/inspectionsLocal/replaceAddAllWithMapTo")
@@ -233,6 +234,7 @@ internal fun MutableTWorkspace.generateK2InspectionTests() {
             val pattern = Patterns.forRegex("^([\\w\\-_]+)\\.test$")
             model("${idea}/multiFileLocalInspections/unusedSymbol", pattern = pattern)
             model("${idea}/multiFileLocalInspections/reconcilePackageWithDirectory", pattern = pattern)
+            model("${idea}/multiFileLocalInspections/convertSealedSubClassToObject", pattern = pattern)
             model("${idea}/multiFileLocalInspections/redundantQualifierName", pattern = pattern)
             model("code-insight/inspections-k2/tests/testData/multiFileInspectionsLocal", pattern = pattern)
         }
