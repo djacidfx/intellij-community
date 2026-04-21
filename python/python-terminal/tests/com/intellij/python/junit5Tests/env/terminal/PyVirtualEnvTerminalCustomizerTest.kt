@@ -98,7 +98,7 @@ class PyVirtualEnvTerminalCustomizerTest {
 
   @ThrowsChecked(ExecuteProcessException::class)
   @CartesianTest
-  fun shellActivationTest(
+  fun testShellActivation(
     @CartesianTest.Values(booleans = [true, false]) useConda: Boolean,
     @CartesianTest.Enum shellType: ShellType,
     @CondaEnv condaEnv: PyCondaEnv,
