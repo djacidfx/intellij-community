@@ -39,13 +39,16 @@ interface UniversalFileChooserContributor {
   suspend fun mountVirtualRoot(virtualRoot: VirtualRoot): Path? = null
 
   data class VirtualRoot(
-    val id: String,                         // stable, used to correlate with a real Path after mount
-    @get:Nls val presentableName: String
+    val id: String,
+    val presentation: Presentation
   )
 
-  fun getRootIcon(): Icon? = null
+  data class Presentation(
+    @get:Nls val presentableName: String,
+    val icon: Icon? = null
+  )
 
-  suspend fun getPresentableName(path: Path): String? = null
+  suspend fun getPresentation(path: Path): Presentation? = null
 }
 
 fun getFilteredSystemRoots(predicate: (Path) -> Boolean): List<Path> {

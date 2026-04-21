@@ -335,7 +335,7 @@ object UniversalFileChooser {
       private val tree = Tree()
       private var toolbar: ActionToolbar? = null
       private val mountStatusCache: MutableMap<String, MountStatus> = ConcurrentHashMap()
-      private val presentableNameCache: MutableMap<String, String> = ConcurrentHashMap()
+      private val presentationCache: MutableMap<String, UniversalFileChooserContributor.Presentation> = ConcurrentHashMap()
       private val virtualRootListModel = DefaultListModel<VirtualRoot>()
       private val virtualRootList = JBList(virtualRootListModel)
       private val virtualRootScrollPane: JComponent
@@ -351,8 +351,14 @@ object UniversalFileChooser {
         val descriptorCopy = object : FileChooserDescriptor(descriptor) {
           override fun getComment(file: VirtualFile): @NlsSafe String? {
             val nioPath = runCatching { file.toNioPath() }.getOrNull() ?: return null
-            val name = presentableNameCache[nioPath.invariantSeparatorsPathString] ?: return null
+            val name = presentationCache[nioPath.invariantSeparatorsPathString]?.presentableName ?: return null
             return "  $name"
+          }
+
+          override fun getIcon(file: VirtualFile?): Icon? {
+            val nioPath = runCatching { file?.toNioPath() }.getOrNull() ?: return null
+            val icon = presentationCache[nioPath.invariantSeparatorsPathString]?.icon ?: return super.getIcon(file)
+            return icon
           }
         }
         descriptorCopy.putUserData(FileTreeModel.SYSTEM_ROOTS_FILTER,
@@ -412,8 +418,9 @@ object UniversalFileChooser {
 
         virtualRootList.selectionMode = ListSelectionModel.SINGLE_SELECTION
         virtualRootList.cellRenderer = listCellRenderer("") {
-          icon(contributor.getRootIcon() ?: AllIcons.Nodes.Folder)
-          text(value.presentableName)
+          text(" ")
+          icon(value.presentation.icon ?: AllIcons.Nodes.Folder)
+          text(value.presentation.presentableName)
         }
         virtualRootList.addListSelectionListener {
           tree.clearSelection()
@@ -465,18 +472,18 @@ object UniversalFileChooser {
           withContext(Dispatchers.IO) {
             val elements = contributor.getRoots()
             val fetchedVirtualRoots = contributor.getVirtualRoots()
-            val presentableNames = mutableMapOf<String, String>()
+            val presentations = mutableMapOf<String, UniversalFileChooserContributor.Presentation>()
             for (element in elements) {
-              val name = contributor.getPresentableName(element)
-              if (name != null) {
-                presentableNames[element.invariantSeparatorsPathString] = name
+              val presentation = contributor.getPresentation(element)
+              if (presentation != null) {
+                presentations[element.invariantSeparatorsPathString] = presentation
               }
             }
             runOnEdt {
               roots.clear()
               roots.addAll(elements.map { it.invariantSeparatorsPathString })
-              presentableNameCache.clear()
-              presentableNameCache.putAll(presentableNames)
+              presentationCache.clear()
+              presentationCache.putAll(presentations)
               virtualRootMap.clear()
               virtualRootListModel.clear()
               for (vr in fetchedVirtualRoots) {
