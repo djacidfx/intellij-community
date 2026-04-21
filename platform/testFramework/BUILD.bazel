@@ -112,7 +112,6 @@ jvm_library(
   runtime_deps = [
     "//images",
     "//RegExpSupport:regexp",
-    "//xml/dom-impl",
   ]
 )
 
@@ -220,7 +219,6 @@ jvm_library(
     "//RegExpSupport:regexp_test_lib",
     "//platform/testFramework/bootstrap:tools-testsBootstrap",
     "//platform/testFramework/bootstrap:tools-testsBootstrap_test_lib",
-    "//xml/dom-impl:dom-impl_test_lib",
     "@lib//:platform-test_framework-okhttp3-mockwebserver",
     "//platform/runtime/product:product_test_lib",
     "//platform/pluginSystem/parser/impl:impl_test_lib",

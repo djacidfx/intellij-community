@@ -1,17 +1,18 @@
 <idea-plugin>
+  <!-- region Generated dependencies - run `Generate Product Layouts` to regenerate -->
   <dependencies>
-    <module name="intellij.devkit.core"/>
-    <module name="intellij.platform.compose"/>
-    <module name="intellij.platform.jewel.samples.showcase"/>
-    <module name="intellij.platform.compose.markdown"/>
+    <plugin id="org.jetbrains.kotlin"/>
     <module name="intellij.platform.jewel.markdown.extensions.images"/>
     <module name="intellij.java.backend"/>
-    <module name="intellij.gradle" />
-    <plugin id="org.jetbrains.kotlin"/>
-    <!-- region Generated dependencies - run `Generate Product Layouts` to regenerate -->
+    <module name="intellij.devkit.core"/>
+    <module name="intellij.gradle"/>
     <module name="intellij.libraries.skiko"/>
-    <!-- endregion -->
+    <module name="intellij.platform.compose"/>
+    <module name="intellij.platform.compose.markdown"/>
+    <module name="intellij.platform.jewel.samples.showcase"/>
+    <module name="intellij.xml.psi"/>
   </dependencies>
+  <!-- endregion -->
 
   <resource-bundle>messages.DevkitComposeBundle</resource-bundle>
 

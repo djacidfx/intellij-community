@@ -82,7 +82,6 @@
     <orderEntry type="module" module-name="intellij.platform.workspace.storage" />
     <orderEntry type="module" module-name="intellij.regexp" scope="RUNTIME" />
     <orderEntry type="module" module-name="intellij.tools.testsBootstrap" scope="TEST" />
-    <orderEntry type="module" module-name="intellij.xml.dom.impl" scope="RUNTIME" />
     <orderEntry type="module-library" scope="TEST">
       <library name="okhttp3-mockwebserver" type="repository">
         <properties maven-id="com.squareup.okhttp3:mockwebserver:5.0.0-alpha.11">

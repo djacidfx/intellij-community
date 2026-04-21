@@ -10,7 +10,6 @@
 
   <dependencies>
     <plugin id="com.intellij.modules.lang"/>
-    <module name="intellij.xml.psi.impl"/>
   </dependencies>
 
   <content namespace="jetbrains">
