@@ -3,8 +3,8 @@ package com.intellij.java.codeInsight.completion.commands
 
 import com.intellij.codeInsight.CodeInsightBundle
 import com.intellij.codeInsight.completion.LightFixtureCompletionTestCase
-import com.intellij.codeInsight.completion.command.LookupElementCustomPreviewHolderDocumentationProvider
 import com.intellij.codeInsight.completion.command.CommandCompletionLookupElement
+import com.intellij.codeInsight.completion.command.LookupElementCustomPreviewHolderDocumentationProvider
 import com.intellij.codeInsight.completion.command.configuration.CommandCompletionSettingsService
 import com.intellij.codeInsight.hint.HintManager
 import com.intellij.codeInsight.hint.HintManagerImpl
@@ -14,9 +14,11 @@ import com.intellij.codeInsight.lookup.LookupElementPresentation
 import com.intellij.codeInsight.template.impl.LiveTemplateCompletionContributor
 import com.intellij.codeInsight.template.impl.TemplateManagerImpl
 import com.intellij.codeInspection.deadCode.UnusedDeclarationInspection
+import com.intellij.codeInspection.nullable.NullableStuffInspection
 import com.intellij.codeInspection.numeric.RemoveLiteralUnderscoresInspection
 import com.intellij.codeInspection.streamMigration.StreamApiMigrationInspection
 import com.intellij.ide.highlighter.JavaFileType
+import com.intellij.java.codeInspection.DataFlowInspectionTestCase
 import com.intellij.modcommand.ActionContext
 import com.intellij.openapi.actionSystem.IdeActions
 import com.intellij.openapi.application.ApplicationManager
@@ -1788,6 +1790,29 @@ class JavaCommandsCompletionTest : LightFixtureCompletionTestCase() {
       }
       a<caret>""".trimIndent())
     myFixture.completeBasic()
+  }
+
+  fun testNotNullInspection() {
+    Registry.get("ide.completion.command.force.enabled").setValue(true, getTestRootDisposable())
+    myFixture.enableInspections(NullableStuffInspection())
+    DataFlowInspectionTestCase.addJSpecifyNullMarked(myFixture)
+    DataFlowInspectionTestCase.addJSpecifyNonNull(myFixture)
+    myFixture.configureByText("package-info.java", """
+          @NullMarked
+          package org.example;
+          
+          import org.jspecify.annotations.NullMarked;
+      """.trimIndent())
+    myFixture.configureByText(JavaFileType.INSTANCE, """
+      package org.example;
+      import org.jspecify.annotations.NonNull;
+      class Main2 {
+          public static @NonNull..<caret> Integer useValue() {
+              return 1;
+          }
+      }""".trimIndent())
+    val elements = myFixture.completeBasic()
+    assertTrue(elements.any { element -> element.lookupString.contains("Remove annotation", ignoreCase = true) })
   }
 
   fun testCompletionInsideLiteral() {

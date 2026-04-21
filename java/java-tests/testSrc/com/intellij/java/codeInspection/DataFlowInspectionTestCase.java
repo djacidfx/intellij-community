@@ -48,7 +48,7 @@ public abstract class DataFlowInspectionTestCase extends LightJavaCodeInsightFix
                      "}");
   }
 
-  protected static void addJSpecifyNullMarked(JavaCodeInsightTestFixture fixture) {
+  public static void addJSpecifyNullMarked(JavaCodeInsightTestFixture fixture) {
     @Language("JAVA") String nullMarked =
       """
         package org.jspecify.annotations;
@@ -65,7 +65,7 @@ public abstract class DataFlowInspectionTestCase extends LightJavaCodeInsightFix
     fixture.addClass(nullUnmarked);
   }
 
-  protected static void addJSpecifyNonNull(JavaCodeInsightTestFixture fixture) {
+  public static void addJSpecifyNonNull(JavaCodeInsightTestFixture fixture) {
     @Language("JAVA") String nonNull =
       """
         package org.jspecify.annotations;
