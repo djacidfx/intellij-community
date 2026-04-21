@@ -1,293 +1,293 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.ide.plugins.newui;
+package com.intellij.ide.plugins.newui
 
-import com.intellij.ide.IdeBundle;
-import com.intellij.ide.plugins.MultiPanel;
-import com.intellij.ide.plugins.PluginManagerConfigurable;
-import com.intellij.openapi.actionSystem.ActionUpdateThread;
-import com.intellij.openapi.actionSystem.AnAction;
-import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.CommonShortcuts;
-import com.intellij.openapi.actionSystem.CustomShortcutSet;
-import com.intellij.openapi.application.ModalityState;
-import com.intellij.openapi.ui.Divider;
-import com.intellij.openapi.util.text.StringUtil;
-import com.intellij.openapi.wm.IdeFocusManager;
-import com.intellij.ui.DocumentAdapter;
-import com.intellij.ui.OnePixelSplitter;
-import com.intellij.ui.SimpleTextAttributes;
-import com.intellij.ui.border.CustomLineBorder;
-import com.intellij.ui.components.JBTextField;
-import com.intellij.ui.components.TextComponentEmptyText;
-import com.intellij.ui.components.labels.LinkListener;
-import com.intellij.ui.scale.JBUIScale;
-import com.intellij.util.SingleEdtTaskScheduler;
-import com.intellij.util.ui.JBUI;
-import com.intellij.util.ui.StatusText;
-import org.jetbrains.annotations.ApiStatus;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import javax.swing.JComponent;
-import javax.swing.JPanel;
-import javax.swing.KeyStroke;
-import javax.swing.event.DocumentEvent;
-import java.awt.BorderLayout;
-import java.awt.event.KeyEvent;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
+import com.intellij.ide.IdeBundle
+import com.intellij.ide.plugins.MultiPanel
+import com.intellij.ide.plugins.PluginManagerConfigurable
+import com.intellij.ide.plugins.newui.SearchQueryParser.Companion.getTagQuery
+import com.intellij.openapi.actionSystem.ActionUpdateThread
+import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.CommonShortcuts
+import com.intellij.openapi.actionSystem.CustomShortcutSet
+import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.ui.Divider
+import com.intellij.openapi.util.text.StringUtil
+import com.intellij.openapi.wm.IdeFocusManager
+import com.intellij.ui.DocumentAdapter
+import com.intellij.ui.OnePixelSplitter
+import com.intellij.ui.SimpleTextAttributes
+import com.intellij.ui.border.CustomLineBorder
+import com.intellij.ui.components.JBTextField
+import com.intellij.ui.components.TextComponentEmptyText
+import com.intellij.ui.components.labels.LinkLabel
+import com.intellij.ui.components.labels.LinkListener
+import com.intellij.ui.scale.JBUIScale.scale
+import com.intellij.util.SingleEdtTaskScheduler.Companion.createSingleEdtTaskScheduler
+import com.intellij.util.ui.JBUI
+import org.jetbrains.annotations.ApiStatus
+import java.awt.BorderLayout
+import java.awt.event.KeyEvent
+import java.util.function.Consumer
+import java.util.function.Predicate
+import javax.swing.JComponent
+import javax.swing.JPanel
+import javax.swing.KeyStroke
+import javax.swing.event.DocumentEvent
 
 @ApiStatus.Internal
-public abstract class PluginsTab {
-  private static final int DEFAULT_PANEL = 0;
-  private static final int SEARCH_PANEL = 1;
+abstract class PluginsTab {
+  private val searchUpdateAlarm = createSingleEdtTaskScheduler()
 
-  private final SingleEdtTaskScheduler searchUpdateAlarm = SingleEdtTaskScheduler.createSingleEdtTaskScheduler();
+  private var detailsPage: PluginDetailsPageComponent? = null
+  private var cardPanel: MultiPanel? = null
 
-  private PluginDetailsPageComponent detailsPage;
-  private MultiPanel cardPanel;
-  protected PluginSearchTextField searchTextField;
-  private SearchResultPanel searchPanel;
+  @JvmField
+  protected var searchTextField: PluginSearchTextField? = null
+  private var searchPanel: SearchResultPanel? = null
 
-  public final LinkListener<Object> searchListener = (__, data) -> {
-    String query;
-    if (data instanceof String) {
-      query = (String)data;
+  @JvmField
+  val searchListener: LinkListener<Any> = LinkListener { _: LinkLabel<Any>?, data: Any ->
+    val query: String?
+    if (data is String) {
+      query = data
     }
-    else if (data instanceof TagComponent) {
-      query = SearchQueryParser.getTagQuery(((TagComponent)data).getText());
+    else if (data is TagComponent) {
+      query = getTagQuery(data.getText())
     }
     else {
-      return;
+      return@LinkListener
     }
 
-    searchTextField.setTextIgnoreEvents(query);
+    searchTextField!!.setTextIgnoreEvents(query)
     IdeFocusManager.getGlobalInstance()
-      .doWhenFocusSettlesDown(() -> IdeFocusManager.getGlobalInstance().requestFocus(searchTextField, true));
-    searchPanel.setEmptyQuery();
-    showSearchPanel(query);
-  };
+      .doWhenFocusSettlesDown(Runnable { IdeFocusManager.getGlobalInstance().requestFocus(searchTextField!!, true) })
+    searchPanel!!.setEmptyQuery()
+    showSearchPanel(query)
+  }
 
-  private final Consumer<PluginsGroupComponent> mySelectionListener = panel -> {
-    int key = searchPanel.getPanel() == panel ? SEARCH_PANEL : DEFAULT_PANEL;
-    if (cardPanel.getKey() == key) {
-      detailsPage.showPlugins(panel.getSelection());
+  private val mySelectionListener = Consumer { panel: PluginsGroupComponent? ->
+    val key: Int = if (searchPanel!!.panel === panel) SEARCH_PANEL else DEFAULT_PANEL
+    if (cardPanel!!.getKey() == key) {
+      detailsPage!!.showPlugins(panel!!.getSelection())
     }
-  };
+  }
 
-  public @NotNull JComponent createPanel() {
-    createSearchTextField(100);
+  fun createPanel(): JComponent {
+    createSearchTextField(100)
 
-    cardPanel = new MultiPanel() {
-      @Override
-      public void addNotify() {
-        super.addNotify();
-        EventHandler.addGlobalAction(searchTextField, new CustomShortcutSet(KeyStroke.getKeyStroke("meta alt F")),
-                                     () -> IdeFocusManager.getGlobalInstance().doWhenFocusSettlesDown(
-                                       () -> IdeFocusManager.getGlobalInstance().requestFocus(searchTextField, true)));
+    cardPanel = object : MultiPanel() {
+      override fun addNotify() {
+        super.addNotify()
+        EventHandler.addGlobalAction(
+          searchTextField!!, CustomShortcutSet(KeyStroke.getKeyStroke("meta alt F")),
+          Runnable {
+            IdeFocusManager.getGlobalInstance().doWhenFocusSettlesDown(
+              Runnable { IdeFocusManager.getGlobalInstance().requestFocus(searchTextField!!, true) })
+          })
       }
 
-      @Override
-      protected JComponent create(Integer key) {
+      override fun create(key: Int): JComponent? {
         if (key == DEFAULT_PANEL) {
-          return createPluginsPanel(mySelectionListener);
+          return createPluginsPanel(mySelectionListener)
         }
         if (key == SEARCH_PANEL) {
-          return searchPanel.createVScrollPane();
+          return searchPanel!!.createVScrollPane()
         }
-        return super.create(key);
+        return super.create(key)
       }
-    };
+    }
 
-    JPanel listPanel = new JPanel(new BorderLayout());
-    listPanel.setBorder(new CustomLineBorder(PluginManagerConfigurable.SEARCH_FIELD_BORDER_COLOR, JBUI.insetsTop(1)));
-    listPanel.add(searchTextField, BorderLayout.NORTH);
-    listPanel.add(cardPanel);
+    val listPanel = JPanel(BorderLayout())
+    listPanel.setBorder(CustomLineBorder(PluginManagerConfigurable.SEARCH_FIELD_BORDER_COLOR, JBUI.insetsTop(1)))
+    listPanel.add(searchTextField, BorderLayout.NORTH)
+    listPanel.add(cardPanel)
 
-    OnePixelSplitter splitter = new OnePixelSplitter(false, 0.45f) {
-      @Override
-      protected Divider createDivider() {
-        Divider divider = super.createDivider();
-        divider.setBackground(PluginManagerConfigurable.SEARCH_FIELD_BORDER_COLOR);
-        return divider;
+    val splitter: OnePixelSplitter = object : OnePixelSplitter(false, 0.45f) {
+      override fun createDivider(): Divider {
+        val divider = super.createDivider()
+        divider.setBackground(PluginManagerConfigurable.SEARCH_FIELD_BORDER_COLOR)
+        return divider
       }
-    };
-    splitter.setFirstComponent(listPanel);
-    splitter.setSecondComponent(detailsPage = createDetailsPanel(searchListener));
+    }
+    splitter.setFirstComponent(listPanel)
+    splitter.setSecondComponent(createDetailsPanel(searchListener).also { detailsPage = it })
 
-    searchPanel = createSearchPanel(mySelectionListener);
+    searchPanel = createSearchPanel(mySelectionListener)
 
-    cardPanel.select(DEFAULT_PANEL, true);
+    cardPanel!!.select(DEFAULT_PANEL, true)
 
-    return splitter;
+    return splitter
   }
 
-  protected void createSearchTextField(int flyDelay) {
-    searchTextField = new PluginSearchTextField() {
-      @Override
-      protected boolean preprocessEventForTextField(KeyEvent event) {
-        int keyCode = event.getKeyCode();
-        int id = event.getID();
+  protected open fun createSearchTextField(flyDelay: Int) {
+    searchTextField = object : PluginSearchTextField() {
+      override fun preprocessEventForTextField(event: KeyEvent): Boolean {
+        val keyCode = event.getKeyCode()
+        val id = event.getID()
 
         if (keyCode == KeyEvent.VK_ENTER || event.getKeyChar() == '\n') {
-          if (id == KeyEvent.KEY_PRESSED && !searchPanel.controller.handleEnter(event)) {
-            String text = getText();
+          if (id == KeyEvent.KEY_PRESSED && !searchPanel!!.controller.handleEnter(event)) {
+            val text = getText()
             if (!text.isEmpty()) {
-              searchPanel.controller.hidePopup();
-              showSearchPanel(text);
+              searchPanel!!.controller.hidePopup()
+              showSearchPanel(text)
             }
           }
-          return true;
+          return true
         }
-        if ((keyCode == KeyEvent.VK_DOWN || keyCode == KeyEvent.VK_UP) &&
-            id == KeyEvent.KEY_PRESSED &&
-            searchPanel.controller.handleUpDown(event)) {
-          return true;
+        if ((keyCode == KeyEvent.VK_DOWN || keyCode == KeyEvent.VK_UP) && id == KeyEvent.KEY_PRESSED &&
+            searchPanel!!.controller.handleUpDown(event)
+        ) {
+          return true
         }
-        return super.preprocessEventForTextField(event);
+        return super.preprocessEventForTextField(event)
       }
 
-      @Override
-      protected boolean toClearTextOnEscape() {
-        new AnAction() {
-          {
-            setEnabledInModalContext(true);
+      override fun toClearTextOnEscape(): Boolean {
+        object : AnAction() {
+          init {
+            setEnabledInModalContext(true)
           }
 
-          @Override
-          public void update(@NotNull AnActionEvent e) {
-            e.getPresentation().setEnabled(!getText().isEmpty());
+          override fun update(e: AnActionEvent) {
+            e.getPresentation().setEnabled(!getText().isEmpty())
           }
 
-          @Override
-          public @NotNull ActionUpdateThread getActionUpdateThread() {
-            return ActionUpdateThread.EDT;
+          override fun getActionUpdateThread(): ActionUpdateThread {
+            return ActionUpdateThread.EDT
           }
 
-          @Override
-          public void actionPerformed(@NotNull AnActionEvent e) {
-            if (searchPanel.controller.isPopupShow()) {
-              searchPanel.controller.hidePopup();
+          override fun actionPerformed(e: AnActionEvent) {
+            if (searchPanel!!.controller.isPopupShow()) {
+              searchPanel!!.controller.hidePopup()
             }
             else {
-              setText("");
+              setText("")
             }
           }
-        }.registerCustomShortcutSet(CommonShortcuts.ESCAPE, this);
-        return false;
+        }.registerCustomShortcutSet(CommonShortcuts.ESCAPE, this)
+        return false
       }
 
-      @Override
-      protected void onFieldCleared() {
-        hideSearchPanel();
+      override fun onFieldCleared() {
+        hideSearchPanel()
       }
 
-      @Override
-      protected void showCompletionPopup() {
-        if (!searchPanel.controller.isPopupShow()) {
-          showSearchPopup();
+      override fun showCompletionPopup() {
+        if (!searchPanel!!.controller.isPopupShow()) {
+          showSearchPopup()
         }
       }
-    };
+    }
 
-    searchTextField.getTextEditor().getDocument().addDocumentListener(new DocumentAdapter() {
-      @Override
-      protected void textChanged(@NotNull DocumentEvent e) {
-        if (!searchTextField.isSkipDocumentEvents()) {
-          searchUpdateAlarm.cancelAndRequest(flyDelay, ModalityState.stateForComponent(searchTextField), this::searchOnTheFly);
+    searchTextField!!.getTextEditor().getDocument().addDocumentListener(object : DocumentAdapter() {
+      override fun textChanged(e: DocumentEvent) {
+        if (!searchTextField!!.isSkipDocumentEvents()) {
+          searchUpdateAlarm.cancelAndRequest(
+            flyDelay.toLong(),
+            ModalityState.stateForComponent(searchTextField!!),
+            Runnable { this.searchOnTheFly() })
         }
       }
 
-      private void searchOnTheFly() {
-        String text = searchTextField.getText();
+      fun searchOnTheFly() {
+        val text = searchTextField!!.getText()
         if (StringUtil.isEmptyOrSpaces(text)) {
-          hideSearchPanel();
+          hideSearchPanel()
         }
         else {
-          searchPanel.controller.handleShowPopup();
+          searchPanel!!.controller.handleShowPopup()
         }
       }
-    });
+    })
 
-    JBTextField editor = searchTextField.getTextEditor();
-    editor.putClientProperty("JTextField.Search.Gap", JBUIScale.scale(6));
-    editor.putClientProperty("JTextField.Search.GapEmptyText", JBUIScale.scale(-1));
-    editor.putClientProperty(TextComponentEmptyText.STATUS_VISIBLE_FUNCTION, (Predicate<JBTextField>)field -> field.getText().isEmpty());
-    editor.setOpaque(true);
-    editor.setBackground(PluginManagerConfigurable.SEARCH_BG_COLOR);
-    editor.getAccessibleContext().setAccessibleName(IdeBundle.message("plugin.manager.search.accessible.name"));
+    val editor = searchTextField!!.getTextEditor()
+    editor.putClientProperty("JTextField.Search.Gap", scale(6))
+    editor.putClientProperty("JTextField.Search.GapEmptyText", scale(-1))
+    editor.putClientProperty(
+      TextComponentEmptyText.STATUS_VISIBLE_FUNCTION,
+      Predicate { field: JBTextField? -> field!!.getText().isEmpty() })
+    editor.setOpaque(true)
+    editor.setBackground(PluginManagerConfigurable.SEARCH_BG_COLOR)
+    editor.getAccessibleContext().setAccessibleName(IdeBundle.message("plugin.manager.search.accessible.name"))
 
-    String text = IdeBundle.message("plugin.manager.options.command");
+    val text = IdeBundle.message("plugin.manager.options.command")
 
-    StatusText emptyText = searchTextField.getTextEditor().getEmptyText();
-    emptyText.appendText(text, new SimpleTextAttributes(SimpleTextAttributes.STYLE_PLAIN, ListPluginComponent.GRAY_COLOR));
+    val emptyText = searchTextField!!.getTextEditor().getEmptyText()
+    emptyText.appendText(text, SimpleTextAttributes(SimpleTextAttributes.STYLE_PLAIN, ListPluginComponent.GRAY_COLOR))
   }
 
-  protected abstract @NotNull PluginDetailsPageComponent createDetailsPanel(@NotNull LinkListener<Object> searchListener);
+  protected abstract fun createDetailsPanel(searchListener: LinkListener<Any>): PluginDetailsPageComponent
 
-  protected abstract @NotNull JComponent createPluginsPanel(@NotNull Consumer<? super PluginsGroupComponent> selectionListener);
+  protected abstract fun createPluginsPanel(selectionListener: Consumer<in PluginsGroupComponent?>): JComponent
 
-  protected abstract void updateMainSelection(@NotNull Consumer<? super PluginsGroupComponent> selectionListener);
+  protected abstract fun updateMainSelection(selectionListener: Consumer<in PluginsGroupComponent?>)
 
-  protected abstract @NotNull SearchResultPanel createSearchPanel(@NotNull Consumer<? super PluginsGroupComponent> selectionListener);
+  protected abstract fun createSearchPanel(selectionListener: Consumer<in PluginsGroupComponent?>): SearchResultPanel
 
-  public @Nullable String getSearchQuery() {
-    if (searchPanel == null || searchPanel.isQueryEmpty()) {
-      return null;
+  var searchQuery: String?
+    get() {
+      if (searchPanel == null || searchPanel!!.isQueryEmpty) {
+        return null
+      }
+      val query = searchPanel!!.query
+      return if (query.isEmpty()) null else query
     }
-    String query = searchPanel.getQuery();
-    return query.isEmpty() ? null : query;
+    set(query) {
+      searchTextField!!.setTextIgnoreEvents(query)
+      if (query == null) {
+        hideSearchPanel()
+      }
+      else {
+        showSearchPanel(query)
+      }
+    }
+
+  fun showSearchPanel(query: String) {
+    if (searchPanel!!.isQueryEmpty) {
+      cardPanel!!.select(SEARCH_PANEL, true)
+      detailsPage!!.showPlugin(null)
+    }
+    searchPanel!!.setQuery(query)
+    searchTextField!!.addCurrentTextToHistory()
   }
 
-  public void setSearchQuery(@Nullable String query) {
-    searchTextField.setTextIgnoreEvents(query);
-    if (query == null) {
-      hideSearchPanel();
+  open fun hideSearchPanel() {
+    if (!searchPanel!!.isQueryEmpty) {
+      onSearchReset()
+      cardPanel!!.select(DEFAULT_PANEL, true)
+      searchPanel!!.setQuery("")
+      updateMainSelection(mySelectionListener)
+    }
+    searchPanel!!.controller.hidePopup()
+  }
+
+  protected abstract fun onSearchReset()
+
+  private fun showSearchPopup() {
+    if (StringUtil.isEmptyOrSpaces(searchTextField!!.getText())) {
+      searchPanel!!.controller.showAttributesPopup(null, 0)
     }
     else {
-      showSearchPanel(query);
+      searchPanel!!.controller.handleShowPopup()
     }
   }
 
-  public void showSearchPanel(@NotNull String query) {
-    if (searchPanel.isQueryEmpty()) {
-      cardPanel.select(SEARCH_PANEL, true);
-      detailsPage.showPlugin(null);
-    }
-    searchPanel.setQuery(query);
-    searchTextField.addCurrentTextToHistory();
+  fun clearSearchPanel(query: String) {
+    hideSearchPanel()
+    searchTextField!!.setTextIgnoreEvents(query)
   }
 
-  public void hideSearchPanel() {
-    if (!searchPanel.isQueryEmpty()) {
-      onSearchReset();
-      cardPanel.select(DEFAULT_PANEL, true);
-      searchPanel.setQuery("");
-      updateMainSelection(mySelectionListener);
-    }
-    searchPanel.controller.hidePopup();
-  }
-
-  protected abstract void onSearchReset();
-
-  private void showSearchPopup() {
-    if (StringUtil.isEmptyOrSpaces(searchTextField.getText())) {
-      searchPanel.controller.showAttributesPopup(null, 0);
-    }
-    else {
-      searchPanel.controller.handleShowPopup();
-    }
-  }
-
-  public void clearSearchPanel(@NotNull String query) {
-    hideSearchPanel();
-    searchTextField.setTextIgnoreEvents(query);
-  }
-
-  public void dispose() {
-    searchUpdateAlarm.dispose();
+  open fun dispose() {
+    searchUpdateAlarm.dispose()
     if (searchTextField != null) {
-      searchTextField.disposeUIResources();
+      searchTextField!!.disposeUIResources()
     }
+  }
+
+  companion object {
+    private const val DEFAULT_PANEL = 0
+    private const val SEARCH_PANEL = 1
   }
 }

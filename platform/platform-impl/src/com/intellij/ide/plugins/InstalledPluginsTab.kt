@@ -310,7 +310,7 @@ class InstalledPluginsTab(
   override fun createSearchTextField(flyDelay: Int) {
     super.createSearchTextField(flyDelay)
 
-    val textField = searchTextField.textEditor
+    val textField = searchTextField!!.textEditor
 
     @Suppress("DialogTitleCapitalization")
     val searchOptionsText = IdeBundle.message("plugins.configurable.search.options")
@@ -326,11 +326,11 @@ class InstalledPluginsTab(
     textField.putClientProperty("JTextField.variant", null)
     textField.putClientProperty("JTextField.variant", "search")
 
-    searchTextField.setHistoryPropertyName("InstalledPluginsSearchHistory")
+    searchTextField!!.setHistoryPropertyName("InstalledPluginsSearchHistory")
   }
 
   override fun createSearchPanel(selectionListener: Consumer<in PluginsGroupComponent?>): SearchResultPanel {
-    val installedController = object : SearchUpDownPopupController(searchTextField) {
+    val installedController = object : SearchUpDownPopupController(searchTextField!!) {
       override fun getAttributes(): List<String> {
         return listOf(
           "/userInstalled",
@@ -359,7 +359,7 @@ class InstalledPluginsTab(
       }
 
       override fun showPopupForQuery() {
-        showSearchPanel(searchTextField.text)
+        showSearchPanel(searchTextField!!.text)
       }
     }
 
@@ -408,7 +408,7 @@ class InstalledPluginsTab(
 
   private fun handleSearchOptionSelection(updateAction: InstalledSearchOptionAction) {
     val queries = ArrayList<String>()
-    object : SearchQueryParser.Installed(searchTextField.text) {
+    object : SearchQueryParser.Installed(searchTextField!!.text) {
       override fun addToSearchQuery(query: String) {
         queries.add(query)
       }
@@ -428,7 +428,7 @@ class InstalledPluginsTab(
     }
 
     val query = StringUtil.join(queries, " ")
-    searchTextField.setTextIgnoreEvents(query)
+    searchTextField!!.setTextIgnoreEvents(query)
     if (query.isEmpty()) {
       hideSearchPanel()
     }
