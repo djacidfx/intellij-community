@@ -69,11 +69,6 @@ abstract class AbstractAddImportActionTestBase : KotlinLightCodeInsightFixtureTe
 
         val importFixes = myFixture.availableIntentions
             .filter { it.familyName == "Import" }
-        if (InTextDirectivesUtils.isDirectiveDefined(fileText, NO_IMPORT_FIX_DIRECTIVE)) {
-            assertTrue("Import fix should not be available", importFixes.isEmpty())
-            myFixture.checkResultByFile("${fileName()}.after")
-            return
-        }
 
         importFixes
             .ifEmpty { error("No import fix available") }
@@ -116,7 +111,6 @@ abstract class AbstractAddImportActionTestBase : KotlinLightCodeInsightFixtureTe
         private const val EXPECT_VARIANT_NOT_PRESENT_DIRECTIVE: String = "EXPECT_VARIANT_NOT_PRESENT"
         private const val INCREASE_USE_COUNT_DIRECTIVE: String = "INCREASE_USE_COUNT"
         private const val ENABLE_CALL_EXTENSIONS_DIRECTIVE: String = "ENABLE_CALL_EXTENSIONS"
-        private const val NO_IMPORT_FIX_DIRECTIVE: String = "NO_IMPORT_FIX"
     }
 }
 
