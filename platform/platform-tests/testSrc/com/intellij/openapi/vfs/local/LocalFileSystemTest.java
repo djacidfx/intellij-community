@@ -25,6 +25,7 @@ import com.intellij.openapi.vfs.VirtualFileWithId;
 import com.intellij.openapi.vfs.ex.temp.TempFileSystemMarker;
 import com.intellij.openapi.vfs.impl.local.LocalFileSystemImpl;
 import com.intellij.openapi.vfs.limits.FileSizeLimit;
+import com.intellij.openapi.vfs.newvfs.AsyncableFileSystem;
 import com.intellij.openapi.vfs.newvfs.BulkFileListener;
 import com.intellij.openapi.vfs.newvfs.ManagingFS;
 import com.intellij.openapi.vfs.newvfs.NewVirtualFile;
@@ -131,6 +132,11 @@ public class LocalFileSystemTest extends BareTestFixtureTestCase {
   @After
   public void tearDown() {
     myFS = null;
+  }
+
+  @Test
+  public void localFileSystemIsAsyncable()  {
+    assertThat(myFS).isInstanceOf(AsyncableFileSystem.class);
   }
 
   @Test

@@ -3,10 +3,13 @@ package com.intellij.openapi.vfs.newvfs.persistent;
 
 import com.intellij.concurrency.ConcurrentCollectionFactory;
 import com.intellij.concurrency.JobSchedulerImpl;
+import com.intellij.core.CoreBundle;
 import com.intellij.diagnostic.Activity;
 import com.intellij.diagnostic.StartUpMeasurer;
 import com.intellij.ide.plugins.DynamicPluginListener;
 import com.intellij.ide.plugins.IdeaPluginDescriptor;
+import com.intellij.notification.NotificationGroup;
+import com.intellij.notification.NotificationGroupManager;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.diagnostic.ControlFlowException;
@@ -51,6 +54,7 @@ import com.intellij.openapi.vfs.impl.SymlinksCapableFileSystem;
 import com.intellij.openapi.vfs.impl.local.LocalFileSystemBase;
 import com.intellij.openapi.vfs.impl.local.LocalFileSystemImpl;
 import com.intellij.openapi.vfs.newvfs.ArchiveFileSystem;
+import com.intellij.openapi.vfs.newvfs.AsyncableFileSystem;
 import com.intellij.openapi.vfs.newvfs.AsyncEventSupport;
 import com.intellij.openapi.vfs.newvfs.AttributeInputStream;
 import com.intellij.openapi.vfs.newvfs.AttributeOutputStream;
@@ -143,6 +147,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
 import static com.intellij.configurationStore.StorageUtilKt.RELOADING_STORAGE_WRITE_REQUESTOR;
+import static com.intellij.notification.NotificationType.WARNING;
 import static com.intellij.openapi.vfs.newvfs.AsyncEventSupport.afterVfsChange;
 import static com.intellij.openapi.vfs.newvfs.events.VFileEvent.REFRESH_REQUESTOR;
 import static com.intellij.openapi.vfs.newvfs.impl.VfsThreadingUtil.runActionOnBackgroundRegardlessOfCurrentThread;
@@ -287,7 +292,7 @@ public final class PersistentFSImpl extends PersistentFS implements Disposable {
       List<? extends Throwable> errorsDuringDisconnect = runAllAndCollectExceptions(
         () -> {
           //Give LFSystem a chance to clear caches/stop file watchers:
-          //TODO RC: would be much better use PersistentFsConnectionListener or alike instead of direct calling
+          //TODO RC: would be much better to use PersistentFsConnectionListener or alike instead of direct calling
           //         (PFSImpl shouldn't even explicitly know that LocalFileSystem needs cleaning)
           ((LocalFileSystemImpl)LocalFileSystem.getInstance()).onDisconnecting();
         },
@@ -407,6 +412,70 @@ public final class PersistentFSImpl extends PersistentFS implements Disposable {
       errorsDuringDispose.forEach(compoundError::addSuppressed);
       LOG.error("VFS dispose produced errors", compoundError);
     }
+  }
+
+  /**
+   * Flush pending/in-progress operations (e.g. async IO), if any.
+   * <p/>
+   * This method is internal because in most use-cases you shouldn't need this method: if you access files via VFS
+   * only, then VFS hides all the asynchronicity involved.
+   * But if you switch between VFS and java.io.File/Path APIs to access files, then the fact that VFS may postpone
+   * some IO operations becomes observable -- and you may need this method. Also, it may be necessary than switching
+   * outside IDE and then running external processes that access the files modified via VFS.
+   */
+  @ApiStatus.Internal
+  public static void flushPendingUpdates() throws IOException {
+    for (AsyncableFileSystem asyncableFileSystem : asyncableFileSystems()) {
+      asyncableFileSystem.fsync();
+    }
+  }
+
+  /**
+   * Flush pending/in-progress operations (e.g. async IO), if any, for a given file -- i.e., the scope is smaller than
+   * for {@linkplain #flushPendingUpdates()}.
+   * <p/>
+   * This method is internal because in most use-cases you shouldn't need this method: if you access files via VFS
+   * only, then VFS hides all the asynchronicity involved.
+   * But if you switch between VFS and java.io.File/Path APIs to access files, then the fact that VFS may postpone
+   * some IO operations becomes observable -- and you may need this method. Also, it may be necessary than switching
+   * outside IDE and then running external processes that access the files modified via VFS.
+   */
+  @ApiStatus.Internal
+  public static void flushPendingUpdates(@NotNull VirtualFile file) throws IOException {
+    if (file.getFileSystem() instanceof @NotNull AsyncableFileSystem afs) {
+      afs.fsync(file);
+    }
+  }
+
+  /**
+   * Does {@linkplain #flushPendingUpdates()}, catches exceptions if any, and <b>show notification to user</b>.
+   * @see #flushPendingUpdates()
+   */
+  @ApiStatus.Internal
+  public static void flushPendingUpdatesOrNotify() {
+    try {
+      flushPendingUpdates();
+    }
+    catch (Exception e) {
+      LOG.error(".fsync() fails", e );
+      NotificationGroup notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("VFS");
+      notificationGroup.createNotification(
+          CoreBundle.message("vfs.file.save.async.title"),
+          e.getMessage(),
+          WARNING
+        )
+        .setImportant(true)
+        .notify(null);
+    }
+  }
+
+  private static @NotNull Iterable<? extends AsyncableFileSystem> asyncableFileSystems() {
+    //TODO RC: list all FileSystems available, and filter AsyncableFileSystems
+    LocalFileSystem localFileSystem = LocalFileSystem.getInstance();
+    if (localFileSystem instanceof AsyncableFileSystem) {
+      return List.of((AsyncableFileSystem)localFileSystem);
+    }
+    return List.of();
   }
 
   @Override
@@ -1240,15 +1309,19 @@ public final class PersistentFSImpl extends PersistentFS implements Disposable {
       private void writeToDisk(@NotNull NewVirtualFileSystem fs,
                                @NotNull VFileContentChangeEvent event,
                                @NotNull List<VFileEvent> events) throws IOException {
-        try (OutputStream ioFileStream = fs.getOutputStream(file, requestor, modStamp, timeStamp)) {
+        long resolvedTimeStamp = (timeStamp > 0) ? timeStamp : System.currentTimeMillis();
+        try (OutputStream ioFileStream = fs.getOutputStream(file, requestor, modStamp, resolvedTimeStamp)) {
           ioFileStream.write(buf, 0, count);
         }
         finally {
           closed = true;
+
           FileAttributes attributes = fs.getAttributes(file);
-          // due to FS rounding, the timestamp of the file can significantly differ from the current time
+          // due to timestamps rounding in FS, the timestamp of the file can differ from the resolvedTimeStamp just set
           long newTimestamp = attributes != null ? attributes.lastModified : DEFAULT_TIMESTAMP;
+          //TODO RC: why we ever read attribute.length here -- (how) could it be (file.length != count)?
           long newLength = attributes != null ? attributes.length : DEFAULT_LENGTH;
+
           executeTouch(file, false, event.getModificationStamp(), newLength, newTimestamp);
           fireAfterEvents(getPublisherEdt(), getPublisherBackgroundable(), AsyncEventSupport.ChangeAppliers.EMPTY, events);
         }
