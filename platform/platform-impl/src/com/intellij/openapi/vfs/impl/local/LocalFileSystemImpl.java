@@ -94,7 +94,6 @@ public class LocalFileSystemImpl
   private final WatchRootsManager myWatchRootsManager;
   private volatile boolean myDisposed;
 
-  private final ThreadLocal<Pair<VirtualFile, Map<String, FileAttributes>>> myFileAttributesCache = new ThreadLocal<>();
   private final DiskQueryRelay<VirtualFile, String[]> myChildrenGetter = new DiskQueryRelay<>(dir -> listChildren(dir));
   private final DiskQueryRelay<VirtualFile, Object> myContentGetter = new DiskQueryRelay<>(file -> readContent(file));
   private final DiskQueryRelay<VirtualFile, FileAttributes> myAttributeGetter = new DiskQueryRelay<>(file -> readAttributes(file));
@@ -395,17 +394,8 @@ public class LocalFileSystemImpl
       return UNC_ROOT_ATTRIBUTES;
     }
 
-    var cache = myFileAttributesCache.get();
-    if (cache != null) {
-      if (!cache.first.equals(file.getParent())) {
-        LOG.error("unordered access to " + file + " outside " + cache.first);
-      }
-      else {
-        return cache.second.get(file.getName());
-      }
-    }
-
-    return myAttributeGetter.accessDiskWithCheckCanceled(file);
+    FileAttributes attributes = myAttributeGetter.accessDiskWithCheckCanceled(file);
+    return attributes;
   }
 
   private static String[] listChildren(VirtualFile dir) {
