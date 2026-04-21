@@ -69,8 +69,6 @@ jvm_library(
     "//libraries/kotlin/test-assertions-core-jvm:libraries-kotlinTestAssertionsCoreJvm_test_lib",
     "@lib//:kotlin-test-junit",
     "@lib//:junit5",
-    "//java/testFramework",
-    "//java/testFramework:testFramework_test_lib",
     "//platform/external-system-api:externalSystem_test_lib",
     "//platform/external-system-impl:externalSystem-impl_test_lib",
     "//platform/testFramework",
