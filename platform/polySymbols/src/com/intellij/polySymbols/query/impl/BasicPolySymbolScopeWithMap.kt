@@ -24,19 +24,28 @@ import com.intellij.util.containers.ContainerUtil
 import java.util.concurrent.ConcurrentMap
 
 internal class BasicPolySymbolScopeWithMap(
-  private val providesPredicate: (PolySymbolKind) -> Boolean,
+  private val providesKinds: Set<PolySymbolKind>,
+  private val providesPredicate: ((PolySymbolKind) -> Boolean)?,
   private val symbols: List<PolySymbol>,
+  private val codeCompletionFilter: ((PolySymbolKind, List<PolySymbolCodeCompletionItem>) -> List<PolySymbolCodeCompletionItem>)?,
+  private val nameMatchFilter: ((PolySymbolQualifiedName, List<PolySymbol>) -> List<PolySymbol>)?,
 ) : PolySymbolScope {
 
   private val mapCache: ConcurrentMap<PolySymbolNamesProvider, BasicSearchMap> =
     ContainerUtil.createConcurrentSoftKeySoftValueMap()
 
+  private fun provides(kind: PolySymbolKind): Boolean =
+    kind in providesKinds || providesPredicate?.invoke(kind) == true
+
   override fun createPointer(): Pointer<BasicPolySymbolScopeWithMap> {
     val symbolPtrs = symbols.map { it.createPointer() }
+    val providesKinds = providesKinds
     val providesPredicate = providesPredicate
+    val codeCompletionFilter = codeCompletionFilter
+    val nameMatchFilter = nameMatchFilter
     return Pointer {
       symbolPtrs.map { it.dereference() }.filterNotNull().takeIf { it.size == symbols.size }
-        ?.let { BasicPolySymbolScopeWithMap(providesPredicate, it) }
+        ?.let { BasicPolySymbolScopeWithMap(providesKinds, providesPredicate, it, codeCompletionFilter, nameMatchFilter) }
     }
   }
 
@@ -44,20 +53,21 @@ internal class BasicPolySymbolScopeWithMap(
     qualifiedName: PolySymbolQualifiedName,
     params: PolySymbolNameMatchQueryParams,
     stack: PolySymbolQueryStack,
-  ): List<PolySymbol> =
-    if (providesPredicate(qualifiedName.kind))
-      getMap(params.queryExecutor.namesProvider)
-        .getMatchingSymbols(qualifiedName, params, stack.copy())
-        .toList()
-    else
-      emptyList()
+  ): List<PolySymbol> {
+    if (!provides(qualifiedName.kind)) return emptyList()
+    val base = getMap(params.queryExecutor.namesProvider)
+      .getMatchingSymbols(qualifiedName, params, stack.copy())
+      .toList()
+    val filter = nameMatchFilter ?: return base
+    return filter(qualifiedName, base)
+  }
 
   override fun getSymbols(
     kind: PolySymbolKind,
     params: PolySymbolListSymbolsQueryParams,
     stack: PolySymbolQueryStack,
   ): List<PolySymbol> =
-    if (providesPredicate(kind))
+    if (provides(kind))
       getMap(params.queryExecutor.namesProvider)
         .getSymbols(kind, params)
         .toList()
@@ -67,12 +77,14 @@ internal class BasicPolySymbolScopeWithMap(
     qualifiedName: PolySymbolQualifiedName,
     params: PolySymbolCodeCompletionQueryParams,
     stack: PolySymbolQueryStack,
-  ): List<PolySymbolCodeCompletionItem> =
-    if (providesPredicate(qualifiedName.kind))
-      getMap(params.queryExecutor.namesProvider)
-        .getCodeCompletions(qualifiedName, params, stack.copy())
-        .toList()
-    else emptyList()
+  ): List<PolySymbolCodeCompletionItem> {
+    if (!provides(qualifiedName.kind)) return emptyList()
+    val base = getMap(params.queryExecutor.namesProvider)
+      .getCodeCompletions(qualifiedName, params, stack.copy())
+      .toList()
+    val filter = codeCompletionFilter ?: return base
+    return filter(qualifiedName.kind, base)
+  }
 
   private fun getMap(namesProvider: PolySymbolNamesProvider): BasicSearchMap =
     mapCache.getOrPut(namesProvider) {
@@ -91,16 +103,25 @@ internal class BasicPolySymbolScopeWithMap(
 }
 
 internal class BasicPolySymbolScope(
-  private val providesPredicate: (PolySymbolKind) -> Boolean,
+  private val providesKinds: Set<PolySymbolKind>,
+  private val providesPredicate: ((PolySymbolKind) -> Boolean)?,
   private val symbols: List<PolySymbol>,
+  private val codeCompletionFilter: ((PolySymbolKind, List<PolySymbolCodeCompletionItem>) -> List<PolySymbolCodeCompletionItem>)?,
+  private val nameMatchFilter: ((PolySymbolQualifiedName, List<PolySymbol>) -> List<PolySymbol>)?,
 ) : PolySymbolScope {
+
+  private fun provides(kind: PolySymbolKind): Boolean =
+    kind in providesKinds || providesPredicate?.invoke(kind) == true
 
   override fun createPointer(): Pointer<BasicPolySymbolScope> {
     val symbolPtrs = symbols.map { it.createPointer() }
+    val providesKinds = providesKinds
     val providesPredicate = providesPredicate
+    val codeCompletionFilter = codeCompletionFilter
+    val nameMatchFilter = nameMatchFilter
     return Pointer {
       symbolPtrs.map { it.dereference() }.filterNotNull().takeIf { it.size == symbols.size }
-        ?.let { BasicPolySymbolScope(providesPredicate, it) }
+        ?.let { BasicPolySymbolScope(providesKinds, providesPredicate, it, codeCompletionFilter, nameMatchFilter) }
     }
   }
 
@@ -109,25 +130,62 @@ internal class BasicPolySymbolScope(
     params: PolySymbolListSymbolsQueryParams,
     stack: PolySymbolQueryStack,
   ): List<PolySymbol> =
-    if (providesPredicate(kind))
+    if (provides(kind))
       symbols.filter { it.kind == kind }
     else
       emptyList()
+
+  override fun getMatchingSymbols(
+    qualifiedName: PolySymbolQualifiedName,
+    params: PolySymbolNameMatchQueryParams,
+    stack: PolySymbolQueryStack,
+  ): List<PolySymbol> {
+    val base = super.getMatchingSymbols(qualifiedName, params, stack)
+    val filter = nameMatchFilter ?: return base
+    return filter(qualifiedName, base)
+  }
+
+  override fun getCodeCompletions(
+    qualifiedName: PolySymbolQualifiedName,
+    params: PolySymbolCodeCompletionQueryParams,
+    stack: PolySymbolQueryStack,
+  ): List<PolySymbolCodeCompletionItem> {
+    val base = super.getCodeCompletions(qualifiedName, params, stack)
+    val filter = codeCompletionFilter ?: return base
+    return filter(qualifiedName.kind, base)
+  }
 
 }
 
 internal class PolySymbolScopeBuilderImpl : PolySymbolScopeBuilder {
 
-  private var providesPredicate: (PolySymbolKind) -> Boolean = { false }
+  private val providesKinds: MutableSet<PolySymbolKind> = mutableSetOf()
+  private var providesPredicate: ((PolySymbolKind) -> Boolean)? = null
   private val symbols: MutableList<PolySymbol> = mutableListOf()
+  private var codeCompletionFilter: ((PolySymbolKind, List<PolySymbolCodeCompletionItem>) -> List<PolySymbolCodeCompletionItem>)? = null
+  private var nameMatchFilter: ((PolySymbolQualifiedName, List<PolySymbol>) -> List<PolySymbol>)? = null
 
   override fun provides(vararg kinds: PolySymbolKind) {
-    val set = kinds.toHashSet()
-    providesPredicate = { it in set }
+    providesKinds.addAll(kinds)
   }
 
   override fun provides(predicate: (PolySymbolKind) -> Boolean) {
+    checkNoPsiCapture(predicate, "polySymbolScope.provides")
     providesPredicate = predicate
+  }
+
+  override fun filterCodeCompletions(
+    filter: (kind: PolySymbolKind, items: List<PolySymbolCodeCompletionItem>) -> List<PolySymbolCodeCompletionItem>,
+  ) {
+    checkNoPsiCapture(filter, "polySymbolScope.filterCodeCompletions")
+    codeCompletionFilter = filter
+  }
+
+  override fun filterNameMatches(
+    filter: (name: PolySymbolQualifiedName, matches: List<PolySymbol>) -> List<PolySymbol>,
+  ) {
+    checkNoPsiCapture(filter, "polySymbolScope.filterNameMatches")
+    nameMatchFilter = filter
   }
 
   override fun add(symbol: PolySymbol) {
@@ -155,13 +213,18 @@ internal class PolySymbolScopeBuilderImpl : PolySymbolScopeBuilder {
   }
 
   fun build(): PolySymbolScope {
-    symbols.find { !providesPredicate(it.kind) }?.let {
+    val frozenKinds = providesKinds.toHashSet()
+    val predicate = providesPredicate
+    symbols.find { it.kind !in frozenKinds && predicate?.invoke(it.kind) != true }?.let {
       throw IllegalArgumentException("Symbol $it kind ${it.kind} is not provided by this scope. Use `provides` to specify supported symbol kinds.")
     }
-    if (symbols.size < 5)
-      return BasicPolySymbolScope(providesPredicate, symbols.toList())
+    val frozenSymbols = symbols.toList()
+    val codeCompletionFilter = codeCompletionFilter
+    val nameMatchFilter = nameMatchFilter
+    return if (frozenSymbols.size < 5)
+      BasicPolySymbolScope(frozenKinds, predicate, frozenSymbols, codeCompletionFilter, nameMatchFilter)
     else
-      return BasicPolySymbolScopeWithMap(providesPredicate, symbols.toList())
+      BasicPolySymbolScopeWithMap(frozenKinds, predicate, frozenSymbols, codeCompletionFilter, nameMatchFilter)
   }
 }
 

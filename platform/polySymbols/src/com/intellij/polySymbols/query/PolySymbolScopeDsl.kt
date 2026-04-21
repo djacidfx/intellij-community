@@ -7,6 +7,8 @@ import com.intellij.openapi.util.UserDataHolder
 import com.intellij.polySymbols.PolySymbol
 import com.intellij.polySymbols.PolySymbolBuilder
 import com.intellij.polySymbols.PolySymbolKind
+import com.intellij.polySymbols.PolySymbolQualifiedName
+import com.intellij.polySymbols.completion.PolySymbolCodeCompletionItem
 import com.intellij.polySymbols.query.impl.ProjectPolySymbolScopeCachedBuilderImpl
 import com.intellij.polySymbols.query.impl.PsiPolySymbolScopeCachedBuilderImpl
 import com.intellij.polySymbols.query.impl.UserDataHolderPolySymbolScopeCachedBuilderImpl
@@ -98,8 +100,8 @@ interface PolySymbolScopeCachedBuilderBase<K> {
   val key: K
 
   /**
-   * Restrict the scope to a fixed set of [PolySymbolKind]s. Overwrites any
-   * previous call to [provides].
+   * Restrict the scope to a fixed set of [PolySymbolKind]s. Mutually exclusive with the
+   * overload with predicate
    */
   fun provides(vararg kinds: PolySymbolKind)
 
@@ -109,10 +111,11 @@ interface PolySymbolScopeCachedBuilderBase<K> {
    */
   fun provides(predicate: (PolySymbolKind) -> Boolean)
 
-  /**
-   * Mirrors [com.intellij.polySymbols.utils.PolySymbolScopeWithCache.requiresResolve]. Defaults to `true`.
-   */
   fun requiresResolve(value: Boolean)
+
+  fun filterCodeCompletions(filter: (kind: PolySymbolKind, items: List<PolySymbolCodeCompletionItem>) -> List<PolySymbolCodeCompletionItem>)
+
+  fun filterNameMatches(filter: (qualifiedName: PolySymbolQualifiedName, matches: List<PolySymbol>) -> List<PolySymbol>)
 }
 
 @PolySymbolScopeDsl
@@ -121,14 +124,14 @@ interface PsiPolySymbolScopeCachedBuilder<T : PsiElement, K> : PolySymbolScopeCa
 
   val element: T
 
-  fun initialize(body: PsiPolySymbolScopeInitializer<T, K>.() -> Unit)
+  fun initialize(body: PsiPolySymbolScopeCachedInitializer<T, K>.() -> Unit)
 }
 
 @PolySymbolScopeDsl
 @ApiStatus.NonExtendable
 interface ProjectPolySymbolScopeCachedBuilder<K> : PolySymbolScopeCachedBuilderBase<K> {
 
-  fun initialize(body: ProjectPolySymbolScopeInitializer<K>.() -> Unit)
+  fun initialize(body: ProjectPolySymbolScopeCachedInitializer<K>.() -> Unit)
 }
 
 @PolySymbolScopeDsl
@@ -143,12 +146,12 @@ interface PolySymbolScopeCachedBuilder<T : UserDataHolder, K> : PolySymbolScopeC
    */
   fun pointer(provider: (T) -> Pointer<out T>)
 
-  fun initialize(body: PolySymbolScopeInitializer<T, K>.() -> Unit)
+  fun initialize(body: PolySymbolScopeCachedInitializer<T, K>.() -> Unit)
 }
 
 @PolySymbolScopeDsl
 @ApiStatus.NonExtendable
-interface PolySymbolScopeInitializerBase<K> {
+interface PolySymbolScopeCachedInitializerBase<K> {
 
   val project: Project
 
@@ -187,18 +190,18 @@ interface PolySymbolScopeInitializerBase<K> {
 
 @PolySymbolScopeDsl
 @ApiStatus.NonExtendable
-interface ProjectPolySymbolScopeInitializer<K> : PolySymbolScopeInitializerBase<K>
+interface ProjectPolySymbolScopeCachedInitializer<K> : PolySymbolScopeCachedInitializerBase<K>
 
 @PolySymbolScopeDsl
 @ApiStatus.NonExtendable
-interface PsiPolySymbolScopeInitializer<T : PsiElement, K> : PolySymbolScopeInitializerBase<K> {
+interface PsiPolySymbolScopeCachedInitializer<T : PsiElement, K> : PolySymbolScopeCachedInitializerBase<K> {
 
   val element: T
 }
 
 @PolySymbolScopeDsl
 @ApiStatus.NonExtendable
-interface PolySymbolScopeInitializer<T : UserDataHolder, K> : PolySymbolScopeInitializerBase<K> {
+interface PolySymbolScopeCachedInitializer<T : UserDataHolder, K> : PolySymbolScopeCachedInitializerBase<K> {
 
   val dataHolder: T
 }
@@ -213,8 +216,8 @@ interface PolySymbolScopeInitializer<T : UserDataHolder, K> : PolySymbolScopeIni
 interface PolySymbolScopeBuilder {
 
   /**
-   * Restrict the scope to a fixed set of [PolySymbolKind]s. Overwrites any
-   * previous call to [provides].
+   * Restrict the scope to a fixed set of [PolySymbolKind]s. Mutually exclusive with the
+   * overload with predicate
    */
   fun provides(vararg kinds: PolySymbolKind)
 
@@ -235,6 +238,10 @@ interface PolySymbolScopeBuilder {
 
   /** Operator form of [addAll]. */
   operator fun Iterable<PolySymbol>.unaryPlus()
+
+  fun filterCodeCompletions(filter: (kind: PolySymbolKind, items: List<PolySymbolCodeCompletionItem>) -> List<PolySymbolCodeCompletionItem>)
+
+  fun filterNameMatches(filter: (name: PolySymbolQualifiedName, matches: List<PolySymbol>) -> List<PolySymbol>)
 
   /**
    * Convenience: build a [PolySymbol] with the existing

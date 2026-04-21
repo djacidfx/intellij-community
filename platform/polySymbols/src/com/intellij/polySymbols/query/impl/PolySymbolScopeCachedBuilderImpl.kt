@@ -7,17 +7,22 @@ import com.intellij.openapi.util.UserDataHolder
 import com.intellij.polySymbols.PolySymbol
 import com.intellij.polySymbols.PolySymbolBuilder
 import com.intellij.polySymbols.PolySymbolKind
+import com.intellij.polySymbols.PolySymbolQualifiedName
+import com.intellij.polySymbols.completion.PolySymbolCodeCompletionItem
 import com.intellij.polySymbols.impl.checkNoPsiCapture
 import com.intellij.polySymbols.polySymbol
+import com.intellij.polySymbols.query.PolySymbolCodeCompletionQueryParams
+import com.intellij.polySymbols.query.PolySymbolNameMatchQueryParams
+import com.intellij.polySymbols.query.PolySymbolQueryStack
 import com.intellij.polySymbols.query.PolySymbolScopeCachedBuilder
 import com.intellij.polySymbols.query.PolySymbolScopeCachedBuilderBase
-import com.intellij.polySymbols.query.PolySymbolScopeInitializer
-import com.intellij.polySymbols.query.PolySymbolScopeInitializerBase
+import com.intellij.polySymbols.query.PolySymbolScopeCachedInitializer
+import com.intellij.polySymbols.query.PolySymbolScopeCachedInitializerBase
 import com.intellij.polySymbols.utils.PolySymbolScopeWithCache
 import com.intellij.polySymbols.query.ProjectPolySymbolScopeCachedBuilder
-import com.intellij.polySymbols.query.ProjectPolySymbolScopeInitializer
+import com.intellij.polySymbols.query.ProjectPolySymbolScopeCachedInitializer
 import com.intellij.polySymbols.query.PsiPolySymbolScopeCachedBuilder
-import com.intellij.polySymbols.query.PsiPolySymbolScopeInitializer
+import com.intellij.polySymbols.query.PsiPolySymbolScopeCachedInitializer
 import com.intellij.psi.PsiElement
 import com.intellij.psi.createSmartPointer
 
@@ -26,23 +31,45 @@ internal abstract class AbstractBuilder<K>(
   override val key: K,
 ) : PolySymbolScopeCachedBuilderBase<K> {
 
-  var providesPredicate: (PolySymbolKind) -> Boolean = { false }
+  val providesKinds: MutableSet<PolySymbolKind> = mutableSetOf()
+
+  var providesPredicate: ((PolySymbolKind) -> Boolean)? = null
     private set
 
   var requiresResolveValue: Boolean = true
     private set
 
+  var codeCompletionFilter: ((kind: PolySymbolKind, items: List<PolySymbolCodeCompletionItem>) -> List<PolySymbolCodeCompletionItem>)? = null
+    private set
+
+  var nameMatchFilter: ((qualifiedName: PolySymbolQualifiedName, matches: List<PolySymbol>) -> List<PolySymbol>)? = null
+    private set
+
   final override fun provides(vararg kinds: PolySymbolKind) {
-    val set = kinds.toHashSet()
-    providesPredicate = { it in set }
+    providesKinds.addAll(kinds)
   }
 
   final override fun provides(predicate: (PolySymbolKind) -> Boolean) {
+    checkNoPsiCapture(predicate, "polySymbolScopeCached.provides")
     providesPredicate = predicate
   }
 
   final override fun requiresResolve(value: Boolean) {
     requiresResolveValue = value
+  }
+
+  final override fun filterCodeCompletions(
+    filter: (kind: PolySymbolKind, items: List<PolySymbolCodeCompletionItem>) -> List<PolySymbolCodeCompletionItem>,
+  ) {
+    checkNoPsiCapture(filter, "polySymbolScopeCached.filterCodeCompletions")
+    codeCompletionFilter = filter
+  }
+
+  final override fun filterNameMatches(
+    filter: (qualifiedName: PolySymbolQualifiedName, matches: List<PolySymbol>) -> List<PolySymbol>,
+  ) {
+    checkNoPsiCapture(filter, "polySymbolScopeCached.filterNameMatches")
+    nameMatchFilter = filter
   }
 }
 
@@ -56,9 +83,9 @@ internal class ProjectPolySymbolScopeCachedBuilderImpl<K>(
     checkNoPsiCapture(configure, "polySymbolScopeCached.configure")
   }
 
-  private var initBody: (ProjectPolySymbolScopeInitializer<K>.() -> Unit)? = null
+  private var initBody: (ProjectPolySymbolScopeCachedInitializer<K>.() -> Unit)? = null
 
-  override fun initialize(body: ProjectPolySymbolScopeInitializer<K>.() -> Unit) {
+  override fun initialize(body: ProjectPolySymbolScopeCachedInitializer<K>.() -> Unit) {
     check(initBody == null) { "polySymbolScopeCached: initialize { } must be called exactly once." }
     checkNoPsiCapture(body, "polySymbolScopeCached.initialize")
     initBody = body
@@ -75,15 +102,18 @@ internal class ProjectPolySymbolScopeCachedBuilderImpl<K>(
       dataHolder = projectRef,
       scopeClass = configureRef::class.java,
       userKey = keyRef,
+      providesKinds = providesKinds.toHashSet(),
       providesPredicate = providesPredicate,
       requiresResolveValue = requiresResolveValue,
+      codeCompletionFilter = codeCompletionFilter,
+      nameMatchFilter = nameMatchFilter,
       pointerProvider = { Pointer.hardPointer(projectRef) },
       initializerFactory = { snapshotProject, _, snapshotKey, consumer, deps ->
-        ProjectInitializerImpl(snapshotProject, snapshotKey, consumer, deps)
+        ProjectCachedInitializerImpl(snapshotProject, snapshotKey, consumer, deps)
       },
       initBody = {
         @Suppress("UNCHECKED_CAST")
-        body.invoke(this as ProjectPolySymbolScopeInitializer<K>)
+        body.invoke(this as ProjectPolySymbolScopeCachedInitializer<K>)
       },
       reconstruct = { newProject ->
         ProjectPolySymbolScopeCachedBuilderImpl(newProject, keyRef, configureRef).build()
@@ -102,9 +132,9 @@ internal class PsiPolySymbolScopeCachedBuilderImpl<T : PsiElement, K>(
     checkNoPsiCapture(configure, "polySymbolScopeCached.configure")
   }
 
-  private var initBody: (PsiPolySymbolScopeInitializer<T, K>.() -> Unit)? = null
+  private var initBody: (PsiPolySymbolScopeCachedInitializer<T, K>.() -> Unit)? = null
 
-  override fun initialize(body: PsiPolySymbolScopeInitializer<T, K>.() -> Unit) {
+  override fun initialize(body: PsiPolySymbolScopeCachedInitializer<T, K>.() -> Unit) {
     check(initBody == null) { "polySymbolScopeCached: initialize { } must be called exactly once." }
     checkNoPsiCapture(body, "polySymbolScopeCached.initialize")
     initBody = body
@@ -120,15 +150,18 @@ internal class PsiPolySymbolScopeCachedBuilderImpl<T : PsiElement, K>(
       dataHolder = element,
       scopeClass = configureRef::class.java,
       userKey = keyRef,
+      providesKinds = providesKinds.toHashSet(),
       providesPredicate = providesPredicate,
       requiresResolveValue = requiresResolveValue,
+      codeCompletionFilter = codeCompletionFilter,
+      nameMatchFilter = nameMatchFilter,
       pointerProvider = { it.createSmartPointer() },
       initializerFactory = { snapshotProject, snapshotHolder, snapshotKey, consumer, deps ->
-        PsiInitializerImpl(snapshotProject, snapshotHolder, snapshotKey, consumer, deps)
+        PsiCachedInitializerImpl(snapshotProject, snapshotHolder, snapshotKey, consumer, deps)
       },
       initBody = {
         @Suppress("UNCHECKED_CAST")
-        body.invoke(this as PsiPolySymbolScopeInitializer<T, K>)
+        body.invoke(this as PsiPolySymbolScopeCachedInitializer<T, K>)
       },
       reconstruct = { newElement ->
         PsiPolySymbolScopeCachedBuilderImpl(newElement, keyRef, configureRef).build()
@@ -148,7 +181,7 @@ internal class UserDataHolderPolySymbolScopeCachedBuilderImpl<T : UserDataHolder
     checkNoPsiCapture(configure, "polySymbolScopeCached.configure")
   }
 
-  private var initBody: (PolySymbolScopeInitializer<T, K>.() -> Unit)? = null
+  private var initBody: (PolySymbolScopeCachedInitializer<T, K>.() -> Unit)? = null
   private var pointerProvider: ((T) -> Pointer<out T>)? = null
 
   override fun pointer(provider: (T) -> Pointer<out T>) {
@@ -157,7 +190,7 @@ internal class UserDataHolderPolySymbolScopeCachedBuilderImpl<T : UserDataHolder
     pointerProvider = provider
   }
 
-  override fun initialize(body: PolySymbolScopeInitializer<T, K>.() -> Unit) {
+  override fun initialize(body: PolySymbolScopeCachedInitializer<T, K>.() -> Unit) {
     check(initBody == null) { "polySymbolScopeCached: initialize { } must be called exactly once." }
     checkNoPsiCapture(body, "polySymbolScopeCached.initialize")
     initBody = body
@@ -176,15 +209,18 @@ internal class UserDataHolderPolySymbolScopeCachedBuilderImpl<T : UserDataHolder
       dataHolder = dataHolder,
       scopeClass = configureRef::class.java,
       userKey = keyRef,
+      providesKinds = providesKinds.toHashSet(),
       providesPredicate = providesPredicate,
       requiresResolveValue = requiresResolveValue,
+      codeCompletionFilter = codeCompletionFilter,
+      nameMatchFilter = nameMatchFilter,
       pointerProvider = pointer,
       initializerFactory = { snapshotProject, snapshotHolder, snapshotKey, consumer, deps ->
-        UserDataHolderInitializerImpl(snapshotProject, snapshotHolder, snapshotKey, consumer, deps)
+        UserDataHolderCachedInitializerImpl(snapshotProject, snapshotHolder, snapshotKey, consumer, deps)
       },
       initBody = {
         @Suppress("UNCHECKED_CAST")
-        body.invoke(this as PolySymbolScopeInitializer<T, K>)
+        body.invoke(this as PolySymbolScopeCachedInitializer<T, K>)
       },
       reconstruct = { newHolder ->
         UserDataHolderPolySymbolScopeCachedBuilderImpl(projectRef, newHolder, keyRef, configureRef).build()
@@ -195,12 +231,12 @@ internal class UserDataHolderPolySymbolScopeCachedBuilderImpl<T : UserDataHolder
 
 // ─── Initializer impls ────────────────────────────────────────────────────────
 
-private abstract class AbstractInitializer<K>(
+private abstract class AbstractCachedInitializer<K>(
   override val project: Project,
   override val key: K,
   private val consumer: (PolySymbol) -> Unit,
   private val cacheDeps: MutableSet<Any>,
-) : PolySymbolScopeInitializerBase<K> {
+) : PolySymbolScopeCachedInitializerBase<K> {
 
   final override fun cacheDependencies(vararg dependencies: Any) {
     for (dep in dependencies) cacheDeps.add(dep)
@@ -231,31 +267,31 @@ private abstract class AbstractInitializer<K>(
   }
 }
 
-private class ProjectInitializerImpl<K>(
+private class ProjectCachedInitializerImpl<K>(
   project: Project,
   key: K,
   consumer: (PolySymbol) -> Unit,
   cacheDeps: MutableSet<Any>,
-) : AbstractInitializer<K>(project, key, consumer, cacheDeps),
-    ProjectPolySymbolScopeInitializer<K>
+) : AbstractCachedInitializer<K>(project, key, consumer, cacheDeps),
+    ProjectPolySymbolScopeCachedInitializer<K>
 
-private class PsiInitializerImpl<T : PsiElement, K>(
+private class PsiCachedInitializerImpl<T : PsiElement, K>(
   project: Project,
   override val element: T,
   key: K,
   consumer: (PolySymbol) -> Unit,
   cacheDeps: MutableSet<Any>,
-) : AbstractInitializer<K>(project, key, consumer, cacheDeps),
-    PsiPolySymbolScopeInitializer<T, K>
+) : AbstractCachedInitializer<K>(project, key, consumer, cacheDeps),
+    PsiPolySymbolScopeCachedInitializer<T, K>
 
-private class UserDataHolderInitializerImpl<T : UserDataHolder, K>(
+private class UserDataHolderCachedInitializerImpl<T : UserDataHolder, K>(
   project: Project,
   override val dataHolder: T,
   key: K,
   consumer: (PolySymbol) -> Unit,
   cacheDeps: MutableSet<Any>,
-) : AbstractInitializer<K>(project, key, consumer, cacheDeps),
-    PolySymbolScopeInitializer<T, K>
+) : AbstractCachedInitializer<K>(project, key, consumer, cacheDeps),
+    PolySymbolScopeCachedInitializer<T, K>
 
 // ─── Built scope ──────────────────────────────────────────────────────────────
 
@@ -264,8 +300,11 @@ internal class BuiltPolySymbolScopeWithCache<T : UserDataHolder, K>(
   dataHolder: T,
   scopeClass: Class<*>,
   private val userKey: K,
-  private val providesPredicate: (PolySymbolKind) -> Boolean,
+  private val providesKinds: Set<PolySymbolKind>,
+  private val providesPredicate: ((PolySymbolKind) -> Boolean)?,
   private val requiresResolveValue: Boolean,
+  private val codeCompletionFilter: ((PolySymbolKind, List<PolySymbolCodeCompletionItem>) -> List<PolySymbolCodeCompletionItem>)?,
+  private val nameMatchFilter: ((PolySymbolQualifiedName, List<PolySymbol>) -> List<PolySymbol>)?,
   private val pointerProvider: (T) -> Pointer<out T>,
   private val initializerFactory: (
     Project,
@@ -273,13 +312,13 @@ internal class BuiltPolySymbolScopeWithCache<T : UserDataHolder, K>(
     K,
     (PolySymbol) -> Unit,
     MutableSet<Any>,
-  ) -> PolySymbolScopeInitializerBase<K>,
-  private val initBody: PolySymbolScopeInitializerBase<K>.() -> Unit,
+  ) -> PolySymbolScopeCachedInitializerBase<K>,
+  private val initBody: PolySymbolScopeCachedInitializerBase<K>.() -> Unit,
   private val reconstruct: (T) -> BuiltPolySymbolScopeWithCache<T, K>,
 ) : PolySymbolScopeWithCache<T, Pair<Class<*>, K>>(project, dataHolder, scopeClass to userKey) {
 
   override fun provides(kind: PolySymbolKind): Boolean =
-    providesPredicate(kind)
+    kind in providesKinds || providesPredicate?.invoke(kind) == true
 
   override val requiresResolve: Boolean
     get() = requiresResolveValue
@@ -287,6 +326,26 @@ internal class BuiltPolySymbolScopeWithCache<T : UserDataHolder, K>(
   override fun initialize(consumer: (PolySymbol) -> Unit, cacheDependencies: MutableSet<Any>) {
     val initializer = initializerFactory(project, dataHolder, userKey, consumer, cacheDependencies)
     initBody.invoke(initializer)
+  }
+
+  override fun getMatchingSymbols(
+    qualifiedName: PolySymbolQualifiedName,
+    params: PolySymbolNameMatchQueryParams,
+    stack: PolySymbolQueryStack,
+  ): List<PolySymbol> {
+    val base = super.getMatchingSymbols(qualifiedName, params, stack)
+    val filter = nameMatchFilter ?: return base
+    return filter(qualifiedName, base)
+  }
+
+  override fun getCodeCompletions(
+    qualifiedName: PolySymbolQualifiedName,
+    params: PolySymbolCodeCompletionQueryParams,
+    stack: PolySymbolQueryStack,
+  ): List<PolySymbolCodeCompletionItem> {
+    val base = super.getCodeCompletions(qualifiedName, params, stack)
+    val filter = codeCompletionFilter ?: return base
+    return filter(qualifiedName.kind, base)
   }
 
   override fun createPointer(): Pointer<out BuiltPolySymbolScopeWithCache<T, K>> {
