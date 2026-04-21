@@ -16,7 +16,6 @@ import com.intellij.ui.SimpleTextAttributes
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaImplementationDetail
-import org.jetbrains.kotlin.analysis.api.KaNonPublicApi
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.annotations.KaAnnotation
 import org.jetbrains.kotlin.analysis.api.base.KaContextReceiver
@@ -444,7 +443,7 @@ private fun createRenderer(
 // When the return type is an error type (e.g. from an unresolved or malformed type in compiled bytecode),
 // fall back to the PSI type reference text from the original declaration to avoid generating "ERROR" as the type.
 context(_: KaSession)
-@OptIn(KaExperimentalApi::class, KaNonPublicApi::class)
+@OptIn(KaExperimentalApi::class)
 private fun renderCallableWithPsiFallbackForErrorType(
     targetSymbol: KaCallableSymbol,
     renderer: KaDeclarationRenderer

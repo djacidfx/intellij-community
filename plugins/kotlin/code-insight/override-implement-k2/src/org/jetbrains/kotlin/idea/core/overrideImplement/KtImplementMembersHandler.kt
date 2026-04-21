@@ -201,8 +201,8 @@ fun getUnimplementedMembers(classWithUnimplementedMembers: KtClassOrObject): Lis
     classWithUnimplementedMembers.classSymbol?.let { getUnimplementedMemberSymbols(it) }.orEmpty()
         .mapToKtClassMemberInfo()
 
-context(_: KaSession)
 @OptIn(KaExperimentalApi::class)
+context(_: KaSession)
 internal fun getUnimplementedMemberSymbols(classWithUnimplementedMembers: KaClassSymbol): List<KaCallableSymbol> {
     return buildList {
         classWithUnimplementedMembers.memberScope.callables.forEach { symbol ->
