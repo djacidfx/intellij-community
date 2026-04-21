@@ -10,6 +10,7 @@ import com.intellij.polySymbols.PolySymbolKind
 import com.intellij.polySymbols.query.impl.ProjectPolySymbolScopeCachedBuilderImpl
 import com.intellij.polySymbols.query.impl.PsiPolySymbolScopeCachedBuilderImpl
 import com.intellij.polySymbols.query.impl.UserDataHolderPolySymbolScopeCachedBuilderImpl
+import com.intellij.polySymbols.query.impl.buildPolySymbolScope
 import com.intellij.psi.PsiElement
 import org.jetbrains.annotations.ApiStatus
 
@@ -77,6 +78,16 @@ fun <T : UserDataHolder> polySymbolScopeCached(
   configure: PolySymbolScopeCachedBuilder<T, Unit>.() -> Unit,
 ): PolySymbolScope =
   UserDataHolderPolySymbolScopeCachedBuilderImpl(project, dataHolder, Unit, configure).build()
+
+/**
+ * Build a simple, non-cached [PolySymbolScope] for a small, fixed symbol set.
+ * In case of large [PolySymbol] scopes, which should be invalidated using
+ * specific ModificationTrackers, prefer [polySymbolScopeCached].
+ */
+fun polySymbolScope(
+  configure: PolySymbolScopeBuilder.() -> Unit,
+): PolySymbolScope =
+  buildPolySymbolScope(configure)
 
 @PolySymbolScopeDsl
 @ApiStatus.NonExtendable
@@ -190,4 +201,49 @@ interface PsiPolySymbolScopeInitializer<T : PsiElement, K> : PolySymbolScopeInit
 interface PolySymbolScopeInitializer<T : UserDataHolder, K> : PolySymbolScopeInitializerBase<K> {
 
   val dataHolder: T
+}
+
+/**
+ * Builder receiver for the non-cached [polySymbolScope] factory. Symbols are
+ * added directly from the builder body — there is no `initialize { }` block
+ * because the scope is immutable after construction.
+ */
+@PolySymbolScopeDsl
+@ApiStatus.NonExtendable
+interface PolySymbolScopeBuilder {
+
+  /**
+   * Restrict the scope to a fixed set of [PolySymbolKind]s. Overwrites any
+   * previous call to [provides].
+   */
+  fun provides(vararg kinds: PolySymbolKind)
+
+  /**
+   * Restrict the scope via a predicate. Overwrites any previous call to
+   * [provides].
+   */
+  fun provides(predicate: (PolySymbolKind) -> Boolean)
+
+  /** Add a single symbol to the scope. */
+  fun add(symbol: PolySymbol)
+
+  /** Add a collection of symbols to the scope. */
+  fun addAll(symbols: Iterable<PolySymbol>)
+
+  /** Operator form of [add]. */
+  operator fun PolySymbol.unaryPlus()
+
+  /** Operator form of [addAll]. */
+  operator fun Iterable<PolySymbol>.unaryPlus()
+
+  /**
+   * Convenience: build a [PolySymbol] with the existing
+   * [com.intellij.polySymbols.polySymbol] DSL and add it to this scope in
+   * one call. Equivalent to `add(polySymbol(kind, name) { ... })`.
+   */
+  fun addSymbol(
+    kind: PolySymbolKind,
+    name: String,
+    body: PolySymbolBuilder.() -> Unit = {},
+  )
 }
