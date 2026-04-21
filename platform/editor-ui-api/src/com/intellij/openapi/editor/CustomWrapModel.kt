@@ -13,6 +13,7 @@ import java.util.EventListener
  * @see Editor.getCustomWrapModel
  */
 @ApiStatus.Experimental
+@ApiStatus.NonExtendable
 interface CustomWrapModel {
   /**
    * Adds a custom wrap at the specified offset.
