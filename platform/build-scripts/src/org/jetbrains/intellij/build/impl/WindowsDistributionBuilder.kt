@@ -59,6 +59,7 @@ import java.time.LocalDate
 import java.util.Arrays
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.createDirectories
+import kotlin.io.path.createTempFile
 import kotlin.io.path.exists
 import kotlin.io.path.extension
 import kotlin.io.path.fileSize
@@ -66,6 +67,7 @@ import kotlin.io.path.inputStream
 import kotlin.io.path.name
 import kotlin.io.path.readBytes
 import kotlin.io.path.readText
+import kotlin.io.path.writeLines
 
 private val CompareDistributionsSemaphore = Semaphore(Integer.getInteger("intellij.build.win.compare.concurrency", 1))
 
@@ -344,9 +346,7 @@ internal class WindowsDistributionBuilder(
 
   private suspend fun buildWinLauncher(winDistPath: Path, arch: JvmArchitecture, copyLicense: Boolean, customizer: WindowsDistributionCustomizer, context: BuildContext) {
     spanBuilder("build Windows executable").use {
-      val communityHome = context.paths.communityHomeDir
       val appInfo = context.applicationInfo
-      val launcherPropertiesPath = context.paths.tempDir.resolve("launcher-${arch.dirName}.properties")
       val icoPath = if (context.isLanguageServer) "no-icon" else locateIcoFileForWindowsLauncher(customizer, context).absolutePathString()
 
       val productVersion = context.buildNumber
@@ -355,14 +355,12 @@ internal class WindowsDistributionBuilder(
         .let { version ->
           version + ".0".repeat(3 - version.count { it == '.' })
         }
-      val launcherProperties = listOf(
+      val launcherProperties = mapOf(
         "CompanyName" to appInfo.companyName,
         "LegalCopyright" to "Copyright 2000-${LocalDate.now().year} ${appInfo.companyName}",
-        "FileDescription" to appInfo.productNameWithEdition,
         "ProductName" to appInfo.productNameWithEdition,
         "ProductVersion" to "$productVersion-${appInfo.productCode}", // "242.1234.56.0-IU"
       )
-      Files.writeString(launcherPropertiesPath, launcherProperties.joinToString(separator = System.lineSeparator()) { (k, v) -> "${k}=${v}" })
 
       val (winExe, licensePath, conExe) = NativeBinaryDownloader.getLauncher(context, OsFamily.WINDOWS, arch)
 
@@ -370,40 +368,36 @@ internal class WindowsDistributionBuilder(
         copyFile(licensePath, winDistPath.resolve("license/launcher-third-party-libraries.html"))
       }
 
-      val resourcePath = "${communityHome}/native/XPlatLauncher/resources/windows/resource.h"
-      val jvmArgs = listOf("-Djava.awt.headless=true")
-      val generatorModule = context.outputProvider.findRequiredModule("intellij.tools.launcherGenerator")
-      val classPath = context.getModuleRuntimeClasspath(generatorModule, forTests = false).map { it.toString() }
       if (customizer.includeGuiLauncher) {
-        runJava(
-          mainClass = "com.pme.launcher.LauncherGeneratorMain",
-          args = listOf(
-            winExe.absolutePathString(),
-            resourcePath,
-            launcherPropertiesPath.absolutePathString(),
-            icoPath,
-            winDistPath.resolve("bin/${context.add64IfNeeded(context.productProperties.baseFileName)}.exe").absolutePathString(),
-          ),
-          jvmArgs, classPath, context.stableJavaExecutable
-        )
+        val properties = launcherProperties + ("FileDescription" to appInfo.productNameWithEdition + " (GUI launcher)")
+        val targetExe = winDistPath.resolve("bin/${context.add64IfNeeded(context.productProperties.baseFileName)}.exe")
+        patchLauncher(winExe, targetExe, properties, icoPath, context)
       }
       if (customizer.includeConsoleLauncher) {
         require(conExe != null) {
           "Console launcher is required but the binary is missing"
         }
-        runJava(
-          mainClass = "com.pme.launcher.LauncherGeneratorMain",
-          args = listOf(
-            conExe.absolutePathString(),
-            resourcePath,
-            launcherPropertiesPath.absolutePathString(),
-            icoPath,
-            winDistPath.resolve("bin/${context.productProperties.baseFileName}.exe").absolutePathString(),
-          ),
-          jvmArgs, classPath, context.stableJavaExecutable
-        )
+        val properties = launcherProperties + ("FileDescription" to appInfo.productNameWithEdition + " (console launcher)")
+        val targetExe = winDistPath.resolve("bin/${context.productProperties.baseFileName}.exe")
+        patchLauncher(conExe, targetExe, properties, icoPath, context)
       }
     }
+  }
+
+  private suspend fun patchLauncher(exeIn: Path, exeOut: Path, properties: Map<String, String>, icoPath: String, context: BuildContext) {
+    val launcherPropertiesPath = createTempFile(context.paths.tempDir, "launcher-", ".properties")
+      .writeLines(properties.map { (k, v) -> "${k}=${v}" })
+    val resourcePath = "${context.paths.communityHomeDir}/native/XPlatLauncher/resources/windows/resource.h"
+    val jvmArgs = listOf("-Djava.awt.headless=true")
+    val generatorModule = context.outputProvider.findRequiredModule("intellij.tools.launcherGenerator")
+    val classPath = context.getModuleRuntimeClasspath(generatorModule, forTests = false).map { it.toString() }
+    runJava(
+      mainClass = "com.pme.launcher.LauncherGeneratorMain",
+      args = listOf(
+        exeIn.absolutePathString(), resourcePath, launcherPropertiesPath.absolutePathString(), icoPath, exeOut.absolutePathString()
+      ),
+      jvmArgs, classPath, context.stableJavaExecutable
+    )
   }
 
   private suspend fun checkThatExeInstallerAndZipWithJbrAreTheSame(
