@@ -127,29 +127,10 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     pluginModelFacade.getModel().coroutineScope = childScope
     coroutineScope = childScope
 
-    tabHeaderComponent = object : TabbedPaneHeaderComponent(createGearActions(), { index ->
-      cardPanel.select(index, true)
-      storeSelectionTab(index)
-
-      val query = if (index == MARKETPLACE_TAB) installedTab.searchQuery else marketplaceTab.searchQuery
-      if (index == MARKETPLACE_TAB) {
-        marketplaceTab.searchQuery = query
-      }
-      else {
-        installedTab.searchQuery = query
-      }
-    }) {
-      override fun uiDataSnapshot(sink: DataSink) {
-        sink.set(PLUGIN_INSTALL_CALLBACK_DATA_KEY, Consumer { callbackData -> onPluginInstalledFromDisk(callbackData) })
-      }
-    }
-
-    createGearGotIt()
+    val selectionTab = getStoredSelectionTab()
+    tabHeaderComponent = createTabHeaderComponent(selectionTab)
 
     laterSearchQuery = searchQuery
-
-    tabHeaderComponent.addTab(message("plugin.manager.tab.marketplace"), null)
-    tabHeaderComponent.addTab(message("plugin.manager.tab.installed"), installedTabHeaderUpdatesCountIcon)
 
     CustomPluginRepositoryService.getInstance().clearCache()
 
@@ -181,9 +162,6 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
 
     cardPanel.minimumSize = JBDimension(580, 380)
     cardPanel.preferredSize = JBDimension(800, 600)
-    tabHeaderComponent.setListener()
-    val selectionTab = getStoredSelectionTab()
-    tabHeaderComponent.setSelection(selectionTab)
     cardPanel.select(selectionTab, true)
     if (laterSearchQuery != null) {
       val search = enableSearch(laterSearchQuery, forceShowInstalledTabForTag)
@@ -196,6 +174,31 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     if (pluginManagerCustomizer != null) {
       pluginManagerCustomizer.initCustomizer(cardPanel)
     }
+  }
+
+  private fun createTabHeaderComponent(selectionTab: Int): TabbedPaneHeaderComponent {
+    val tabHeaderComponent = object : TabbedPaneHeaderComponent(createGearActions(), { index ->
+      cardPanel.select(index, true)
+      storeSelectionTab(index)
+
+      val query = if (index == MARKETPLACE_TAB) installedTab.searchQuery else marketplaceTab.searchQuery
+      if (index == MARKETPLACE_TAB) {
+        marketplaceTab.searchQuery = query
+      }
+      else {
+        installedTab.searchQuery = query
+      }
+    }) {
+      override fun uiDataSnapshot(sink: DataSink) {
+        sink.set(PLUGIN_INSTALL_CALLBACK_DATA_KEY, Consumer { callbackData -> onPluginInstalledFromDisk(callbackData) })
+      }
+    }
+    tabHeaderComponent.createGearGotIt()
+    tabHeaderComponent.addTab(message("plugin.manager.tab.marketplace"), null)
+    tabHeaderComponent.addTab(message("plugin.manager.tab.installed"), installedTabHeaderUpdatesCountIcon)
+    tabHeaderComponent.setListener()
+    tabHeaderComponent.setSelection(selectionTab)
+    return tabHeaderComponent
   }
 
   fun getCenterComponent(controller: Configurable.TopComponentController): JComponent {
@@ -256,7 +259,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     return actions
   }
 
-  private fun createGearGotIt() {
+  private fun TabbedPaneHeaderComponent.createGearGotIt() {
     if (!PluginManagementPolicy.getInstance().isPluginAutoUpdateAllowed() ||
         UpdateSettings.getInstance().getState().isPluginsAutoUpdateEnabled ||
         AppMode.isRemoteDevHost()) {
@@ -264,9 +267,9 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     }
 
     val title = IdeBundle.message("plugin.manager.plugins.auto.update.title")
-    val tooltip = GotItTooltip(title, IdeBundle.message("plugin.manager.plugins.auto.update.description"), this)
+    val tooltip = GotItTooltip(title, IdeBundle.message("plugin.manager.plugins.auto.update.description"), this@PluginManagerConfigurablePanel)
     tooltip.withHeader(title)
-    tooltip.show(tabHeaderComponent.getComponent(1) as JComponent) { component, _ ->
+    tooltip.show(getComponent(1) as JComponent) { component, _ ->
       Point(component.getWidth() / 2, (component as JComponent).visibleRect.height)
     }
   }
