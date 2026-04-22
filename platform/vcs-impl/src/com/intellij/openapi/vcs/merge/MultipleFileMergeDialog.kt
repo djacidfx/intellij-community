@@ -491,7 +491,7 @@ open class MultipleFileMergeDialog(
   private fun showMergeDialogForFile(file: VirtualFile): MergeResult {
     var mergeResult: MergeResult? = null
     val request = runWithModalProgressBlocking(getModalTaskOwner(),
-                                               VcsBundle.message("multiple.file.merge.dialog.progress.title.resolving.conflicts")) {
+                                               VcsBundle.message("multiple.file.merge.dialog.progress.title.loading.revisions")) {
       createMergeRequest(file, DiffRequestFactory.getInstance()) { result: MergeResult ->
         mergeResult = result
         saveDocument(file)
