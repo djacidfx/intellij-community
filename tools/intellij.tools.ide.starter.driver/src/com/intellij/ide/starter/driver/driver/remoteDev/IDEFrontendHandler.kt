@@ -1,5 +1,7 @@
 package com.intellij.ide.starter.driver.driver.remoteDev
 
+import com.intellij.ide.starter.config.ConfigurationStorage
+import com.intellij.ide.starter.config.useDockerContainer
 import com.intellij.ide.starter.coroutine.CommonScope.scopeForProcesses
 import com.intellij.ide.starter.driver.engine.DriverOptions
 import com.intellij.ide.starter.driver.engine.remoteDev.XorgWindowManagerHandler
@@ -36,6 +38,7 @@ internal class IDEFrontendHandler(
 ) {
 
   private fun VMOptions.addDisplayIfNecessary(): Unit = timeoutRunBlocking {
+    if (ConfigurationStorage.useDockerContainer()) return@timeoutRunBlocking
     if (SystemInfo.isLinux && System.getenv("DISPLAY") == null) {
       val displayNum = XorgWindowManagerHandler.provideDisplay()
       withEnv("DISPLAY", ":$displayNum")
@@ -77,7 +80,8 @@ internal class IDEFrontendHandler(
           runTimeout = runTimeout,
           launchName = launchName,
           configure = {
-            if (System.getenv("DISPLAY") == null && frontendContext.ide.vmOptions.environmentVariables["DISPLAY"] != null && SystemInfo.isLinux
+            if (!ConfigurationStorage.useDockerContainer()
+                && System.getenv("DISPLAY") == null && frontendContext.ide.vmOptions.environmentVariables["DISPLAY"] != null && SystemInfo.isLinux
                 && !frontendContext.ide.vmOptions.hasHeadlessMode()) {
               // It means the ide will be started on a new display, so we need to add win manager
               val fluxboxJob = this@async.launch(Dispatchers.IO) {
