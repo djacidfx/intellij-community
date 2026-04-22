@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.openapi.application;
 
 import com.intellij.idea.AppMode;
@@ -187,8 +187,7 @@ public final class ApplicationNamesInfo {
   }
 
   /**
-   * Returns edition name of the product, if applicable
-   * (e.g. {@code "Ultimate Edition"} or {@code "Community Edition"} for IntelliJ IDEA, {@code null} for WebStorm).
+   * Returns edition name of the product, if applicable (e.g., {@code "Educational Edition"}).
    */
   public @NlsSafe @Nullable String getEditionName() {
     return myEditionName;
