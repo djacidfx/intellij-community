@@ -2,6 +2,7 @@
 package com.intellij.platform.util.io.storages.blobstorage;
 
 import com.intellij.openapi.util.IntRef;
+import com.intellij.openapi.util.io.FileTooBigException;
 import com.intellij.platform.util.io.storages.StorageTestingUtils;
 import com.intellij.util.io.ClosedStorageException;
 import com.intellij.util.io.blobstorage.SpaceAllocationStrategy;
@@ -273,7 +274,7 @@ public abstract class StreamlinedBlobStorageTestBase<S extends StreamlinedBlobSt
     //maxPayloadSupported is generally about records being on a single page.
     // But don't want to expose recordSize/payloadSize internal relationship, neither recordHeader size, hence
     // I just vary payload size _around_ storage.maxPayloadSupported() to check that records are either stored
-    // OK, or throw IAE without breaking the storage
+    // OK, or throw FileTooBigException without breaking the storage
     final int margin = 16;
     final int maxPayloadSupported = storage.maxPayloadSupported();
     final List<StorageRecord> recordsActuallyWritten = new ArrayList<>();
@@ -292,7 +293,7 @@ public abstract class StreamlinedBlobStorageTestBase<S extends StreamlinedBlobSt
       }
       fail("_Some_ payload size around PAGE_SIZE must be rejected by storage");
     }
-    catch (IllegalArgumentException | IllegalStateException e) {
+    catch (FileTooBigException e) {
       //this is expectable
     }
 

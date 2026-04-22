@@ -2,6 +2,7 @@
 package com.intellij.platform.util.io.storages.blobstorage;
 
 import com.intellij.openapi.util.IntRef;
+import com.intellij.openapi.util.io.FileTooBigException;
 import com.intellij.platform.diagnostic.telemetry.PlatformScopesKt;
 import com.intellij.platform.diagnostic.telemetry.TelemetryManager;
 import com.intellij.platform.util.io.storages.blobstorage.RecordLayout.ActualRecords;
@@ -526,9 +527,9 @@ public final class StreamlinedBlobStorageOverMMappedFile implements StreamlinedB
     return recordSizeRoundedUp;
   }
 
-  private static void checkRecordIdValid(int recordId)  {
+  private static void checkRecordIdValid(int recordId) throws FileTooBigException {
     if (!isValidRecordId(recordId)) {
-      throw new IllegalArgumentException("recordId(" + recordId + ") is invalid: must be > 0");
+      throw new FileTooBigException("recordId(" + recordId + ") is invalid: must be > 0");
     }
   }
 
@@ -536,15 +537,15 @@ public final class StreamlinedBlobStorageOverMMappedFile implements StreamlinedB
     return recordId > NULL_ID;
   }
 
-  private static void checkCapacityHardLimit(int capacity)  {
+  private static void checkCapacityHardLimit(int capacity) throws FileTooBigException {
     if (!isCorrectCapacity(capacity)) {
-      throw new IllegalArgumentException("capacity(=" + capacity + ") must be in [0, " + MAX_CAPACITY + "]");
+      throw new FileTooBigException("capacity(=" + capacity + ") must be in [0, " + MAX_CAPACITY + "]");
     }
   }
 
-  private static void checkLengthHardLimit(int length) {
+  private static void checkLengthHardLimit(int length) throws FileTooBigException {
     if (!isCorrectLength(length)) {
-      throw new IllegalArgumentException("length(=" + length + ") must be in [0, " + MAX_CAPACITY + "]");
+      throw new FileTooBigException("length(=" + length + ") must be in [0, " + MAX_CAPACITY + "]");
     }
   }
 
