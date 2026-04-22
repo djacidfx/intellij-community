@@ -166,7 +166,7 @@ open class MyPluginModel(project: Project?) : InstalledPluginsTableModel(project
     }
   }
 
-  fun pluginInstalledFromDisk(callbackData: PluginInstallCallbackData, errors: MutableList<HtmlChunk>) {
+  fun pluginInstalledFromDisk(callbackData: PluginInstallCallbackData, errors: List<HtmlChunk>) {
     val descriptor = callbackData.pluginDescriptor
     coroutineScope.launch {
       appendOrUpdateDescriptor(PluginUiModelAdapter(descriptor), callbackData.restartNeeded, errors)

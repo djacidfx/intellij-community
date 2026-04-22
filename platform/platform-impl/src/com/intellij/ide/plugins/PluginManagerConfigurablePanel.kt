@@ -534,12 +534,11 @@ class PluginManagerConfigurablePanel : Disposable {
       myPluginModelFacade.getModel().sessionId,
       callbackData.pluginDescriptor.pluginId,
     ) { errors ->
-      //noinspection unchecked
-      updateAfterPluginInstalledFromDisk(callbackData, errors as MutableList<HtmlChunk>)
+      updateAfterPluginInstalledFromDisk(callbackData, errors)
     }
   }
 
-  private fun updateAfterPluginInstalledFromDisk(callbackData: PluginInstallCallbackData, errors: MutableList<HtmlChunk>) {
+  private fun updateAfterPluginInstalledFromDisk(callbackData: PluginInstallCallbackData, errors: List<HtmlChunk>) {
     myPluginModelFacade.getModel().pluginInstalledFromDisk(callbackData, errors)
 
     val select = myInstalledTab!!.getInstalledPanel() == null
