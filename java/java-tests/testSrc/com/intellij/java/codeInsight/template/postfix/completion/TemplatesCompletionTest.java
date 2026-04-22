@@ -2,6 +2,7 @@
 package com.intellij.java.codeInsight.template.postfix.completion;
 
 import com.intellij.JavaTestUtil;
+import com.intellij.codeInsight.completion.CompletionItemLookupElement;
 import com.intellij.codeInsight.completion.CompletionType;
 import com.intellij.codeInsight.completion.JavaCompletionAutoPopupTestCase;
 import com.intellij.codeInsight.lookup.LookupElement;
@@ -181,6 +182,17 @@ public class TemplatesCompletionTest extends JavaCompletionAutoPopupTestCase {
 
     type("r");
     myFixture.assertPreferredCompletionItems(selectedIndex, ".par", "parents");
+  }
+
+  public void testInvalidRangeAfterDeletingPostfixDot() {
+    Registry.get("postfix.template.mod.completion.enabled").setValue(true, myFixture.getTestRootDisposable());
+    configureByFile();
+    type(".");
+    LookupImpl lookup = getLookup();
+    assertNotNull(lookup);
+    LookupElement currentItem = lookup.getCurrentItem();
+    assertInstanceOf(currentItem, CompletionItemLookupElement.class);
+    type("\b");
   }
 
   public void testTabCompletionWithTemplatesInAutopopup() {
