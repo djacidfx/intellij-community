@@ -108,6 +108,14 @@ internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapM
     finally {
       isInsideBatchMutation = false
       notifyBatchFinish()
+
+      if (!document.isInBulkUpdate) {
+        editor.updateCaretCursor()
+        editor.recalculateSizeAndRepaint()
+        (editor.gutterComponentEx as EditorGutterComponentImpl).updateSize()
+        editor.gutterComponentEx.repaint()
+        editor.invokeDelayedErrorStripeRepaint()
+      }
     }
     return result
   }
