@@ -15,8 +15,6 @@ import org.jetbrains.intellij.build.ModuleOutputProvider
 import org.jetbrains.intellij.build.TestingOptions
 import org.jetbrains.intellij.build.impl.compilation.ArchivedCompilationOutputStorage
 import org.jetbrains.intellij.build.impl.compilation.createArchivedStorage
-import org.jetbrains.intellij.build.impl.moduleBased.buildOriginalModuleRepository
-import org.jetbrains.intellij.build.moduleBased.OriginalModuleRepository
 import org.jetbrains.jps.model.module.JpsModule
 import java.nio.file.Path
 import kotlin.io.path.isRegularFile
@@ -31,15 +29,9 @@ class ArchivedCompilationContext internal constructor(
   val archivesLocation: Path
     get() = storage.archivedOutputDirectory
 
-  private val originalModuleRepository = suspendingLazy("Build original module repository") {
-    buildOriginalModuleRepository(this@ArchivedCompilationContext)
-  }
-
   override val outputProvider: ModuleOutputProvider = ArchivedModuleOutputProvider(delegateOutputProvider = delegate.outputProvider, storage = storage, scope = outputProviderScope)
 
-  override suspend fun getOriginalModuleRepository(): OriginalModuleRepository = originalModuleRepository.await()
-
-  override suspend fun getModuleRuntimeClasspath(module: JpsModule, forTests: Boolean): List<Path> {
+    override suspend fun getModuleRuntimeClasspath(module: JpsModule, forTests: Boolean): List<Path> {
     return coroutineScope {
       delegate.getModuleRuntimeClasspath(module, forTests).map { async { storage.getArchived(it) } }.awaitAll().filterNotNull()
     }

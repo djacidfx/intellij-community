@@ -204,8 +204,6 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
           )
         }
       }
-      val runtimeModuleRepository = context.getOriginalModuleRepository()
-      systemProperties.put("intellij.platform.runtime.repository.path", runtimeModuleRepository.repositoryPath.pathString)
     }
     catch (e: Exception) {
       if (options.isCancelBuildOnTestPreparationFailure) {

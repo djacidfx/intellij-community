@@ -35,10 +35,8 @@ import org.jetbrains.intellij.build.impl.compilation.keepCompilationState
 import org.jetbrains.intellij.build.impl.compilation.reuseOrCompile
 import org.jetbrains.intellij.build.impl.logging.BuildMessagesHandler
 import org.jetbrains.intellij.build.impl.logging.BuildMessagesImpl
-import org.jetbrains.intellij.build.impl.moduleBased.buildOriginalModuleRepository
 import org.jetbrains.intellij.build.io.logFreeDiskSpace
 import org.jetbrains.intellij.build.kotlin.KotlinBinaries
-import org.jetbrains.intellij.build.moduleBased.OriginalModuleRepository
 import org.jetbrains.intellij.build.telemetry.ConsoleSpanExporter
 import org.jetbrains.intellij.build.telemetry.JaegerJsonSpanExporterManager
 import org.jetbrains.intellij.build.telemetry.TraceManager.spanBuilder
@@ -235,12 +233,6 @@ class CompilationContextImpl internal constructor(
     }
     return jdkHome
   }
-
-  private val originalModuleRepository = suspendingLazy("Build original module repository") {
-    buildOriginalModuleRepository(this@CompilationContextImpl)
-  }
-
-  override suspend fun getOriginalModuleRepository(): OriginalModuleRepository = originalModuleRepository.await()
 
   override fun createCopy(messages: BuildMessages, options: BuildOptions, paths: BuildPaths, scope: CoroutineScope?): CompilationContext {
     val copy = CompilationContextImpl(model = projectModel, messages = messages, paths = paths, options = options, outputProviderState = outputProviderState)

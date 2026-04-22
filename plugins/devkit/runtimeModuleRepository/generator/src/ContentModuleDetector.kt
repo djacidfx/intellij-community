@@ -23,12 +23,3 @@ data class ContentModuleRegistrationData(
   val namespace: String,
   val visibility: RuntimeModuleVisibility,
 )
-
-/**
- * This implementation is temporarily used in the places where information about content modules is not available, when running the
- * IDE or tests from sources without a dev build.
- */
-object NoContentModuleDetector : ContentModuleDetector {
-  override fun findContentModuleData(jpsModule: JpsModule): ContentModuleRegistrationData? = null
-  override fun findContentModuleDataForTests(jpsModule: JpsModule): ContentModuleRegistrationData? = null
-}

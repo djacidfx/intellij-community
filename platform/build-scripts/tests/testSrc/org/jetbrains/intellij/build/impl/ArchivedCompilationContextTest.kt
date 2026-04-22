@@ -12,7 +12,6 @@ import org.jetbrains.intellij.build.CompilationContext
 import org.jetbrains.intellij.build.JpsCompilationData
 import org.jetbrains.intellij.build.ModuleOutputProvider
 import org.jetbrains.intellij.build.dependencies.DependenciesProperties
-import org.jetbrains.intellij.build.moduleBased.OriginalModuleRepository
 import org.jetbrains.jps.model.JpsModel
 import org.jetbrains.jps.model.JpsProject
 import org.jetbrains.jps.model.module.JpsModule
@@ -180,9 +179,7 @@ internal class ArchivedCompilationContextTest {
   ) : CompilationContext {
     override suspend fun getStableJdkHome(): Path = stableJavaExecutable.parent.parent
 
-    override suspend fun getOriginalModuleRepository(): OriginalModuleRepository = mock(OriginalModuleRepository::class.java)
-
-    override suspend fun getModuleRuntimeClasspath(module: JpsModule, forTests: Boolean): Collection<Path> = emptyList()
+      override suspend fun getModuleRuntimeClasspath(module: JpsModule, forTests: Boolean): Collection<Path> = emptyList()
 
     override fun findFileInModuleSources(moduleName: String, relativePath: String, forTests: Boolean): Path? = null
 
