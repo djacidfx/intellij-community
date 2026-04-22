@@ -209,6 +209,11 @@ public final class AboutDialog extends DialogWrapper {
       lines.add("");
       myInfo.addAll(la.getLicenseRestrictionsMessages());
     }
+    else if (PlatformUtils.isCommunityEdition()) {
+      lines.add(IdeBundle.message("about.box.oss.build"));
+      lines.add("");
+      myInfo.add("Open-source build");
+    }
 
     var properties = System.getProperties();
     var javaVersion = properties.getProperty("java.runtime.version", properties.getProperty("java.version", "unknown"));
