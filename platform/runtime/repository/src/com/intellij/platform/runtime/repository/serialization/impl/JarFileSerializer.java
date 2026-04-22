@@ -97,7 +97,7 @@ public final class JarFileSerializer {
     attributes.put(Attributes.Name.IMPLEMENTATION_VERSION, SPECIFICATION_VERSION + "." + generatorVersion);
     if (bootstrapModuleName != null) {
       attributes.put(BOOTSTRAP_MODULE_ATTRIBUTE_NAME, bootstrapModuleName);
-      Collection<String> bootstrapClasspath = CachedClasspathComputation.computeClasspath(descriptors, RuntimeModuleId.legacyJpsModule(bootstrapModuleName));
+      Collection<String> bootstrapClasspath = CachedClasspathComputation.computeBootstrapClasspath(descriptors, bootstrapModuleName);
       attributes.put(BOOTSTRAP_CLASSPATH_ATTRIBUTE_NAME, String.join(" ", bootstrapClasspath));
     }
     try (JarOutputStream jarOutput = new JarOutputStream(new BufferedOutputStream(Files.newOutputStream(jarFile)), manifest)) {

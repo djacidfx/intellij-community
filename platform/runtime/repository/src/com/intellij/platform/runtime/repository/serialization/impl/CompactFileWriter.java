@@ -38,7 +38,7 @@ public final class CompactFileWriter {
       out.writeBoolean(hasBootstrap);
       if (hasBootstrap) {
         out.writeUTF(bootstrapModuleName);
-        Collection<String> bootstrapClasspath = CachedClasspathComputation.computeClasspath(originalModuleDescriptors, RuntimeModuleId.legacyJpsModule(bootstrapModuleName));
+        Collection<String> bootstrapClasspath = CachedClasspathComputation.computeBootstrapClasspath(originalModuleDescriptors, bootstrapModuleName);
         out.writeInt(bootstrapClasspath.size());
         for (String path : bootstrapClasspath) {
           out.writeUTF(path);
