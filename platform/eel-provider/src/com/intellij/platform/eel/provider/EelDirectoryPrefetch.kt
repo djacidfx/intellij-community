@@ -2,6 +2,7 @@
 package com.intellij.platform.eel.provider
 
 import com.intellij.concurrency.IntelliJContextElement
+import com.intellij.concurrency.IntelliJThreadContextElement
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.platform.eel.EelDescriptor
 import com.intellij.platform.eel.fs.EelFileInfo
@@ -32,7 +33,7 @@ private val LOG = logger<PrefetchDataElement>()
 class PrefetchDataElement(private val data: Map<EelPath, Map<String, EelFileInfo>>) :
   AbstractCoroutineContextElement(Key),
   ThreadContextElement<PrefetchDataElement?>,
-  IntelliJContextElement {
+  IntelliJThreadContextElement<Unit> {
 
   // --- ThreadContextElement ---
 
@@ -49,9 +50,9 @@ class PrefetchDataElement(private val data: Map<EelPath, Map<String, EelFileInfo
   // --- IntelliJContextElement ---
 
   override fun produceChildElement(parentContext: CoroutineContext, isStructured: Boolean): IntelliJContextElement = this
-  override fun beforeChildStarted(context: CoroutineContext) { threadLocal.set(this) }
-  override fun afterChildCompleted(context: CoroutineContext) { threadLocal.remove() }
-  override fun childCanceled(context: CoroutineContext) { threadLocal.remove() }
+  override fun beforeStarted(context: CoroutineContext) { threadLocal.set(this) }
+  override fun afterCompleted(context: CoroutineContext, oldState: Unit) { threadLocal.remove() }
+  override fun canceled(context: CoroutineContext) { threadLocal.remove() }
 
   // --- Cache access ---
 
