@@ -171,9 +171,9 @@ public final class ApplicationNamesInfo {
   }
 
   /**
-   * <p>Returns full product name with edition. Vendor prefix is not included.</p>
+   * <p>Returns the full product name with the edition. Vendor prefix is not included.</p>
    *
-   * <p>Use only when omitting an edition may potentially cause a confusion.<br/>
+   * <p>Use only when omitting an edition may potentially cause confusion.<br/>
    * Example #1: include the edition in generated shortcuts, since a user may have several editions installed.<br/>
    * Example #2: exclude the edition from "Restart ...?" confirmation, as it only hampers readability.</p>
    *
@@ -212,7 +212,7 @@ public final class ApplicationNamesInfo {
   }
 
   /**
-   * Returns motto of the product. Used as a comment for a desktop entry on XDG-compliant systems (read "Linux").
+   * Returns the motto of the product. Used as a comment for a desktop entry on XDG-compliant systems (read "Linux").
    */
   public @NotNull String getMotto() {
     return myMotto;
