@@ -47,13 +47,14 @@ class HunspellDictionary : Dictionary {
     this.name = name ?: path
     this.language = language
     this.alphabet = if (this.language == null) null else Language.entries.firstOrNull { it.iso == this.language }?.alphabet
+    val dicText = dic.readText()
     this.dict = HunspellWordList.create(
       aff.readText(),
-      dic.readText(),
+      dicText,
       if (trigrams.exists()) trigrams.readLines() else null
     ) { ProgressManager.checkCanceled() }
     this.ruleDictionary = if (replacingRules?.exists() == true) parseReplacingRules(replacingRules.readText()) else null
-    buildAlphabet(dic.readText())
+    buildAlphabet(dicText)
   }
 
   constructor(dic: String, aff: String, trigrams: List<String>?, name: String, language: LanguageISO, replacingRules: String?) {
