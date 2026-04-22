@@ -30,19 +30,62 @@ import static com.intellij.psi.stubs.StubInconsistencyReporter.StubTreeAndIndexD
 import static com.intellij.reference.SoftReference.deref;
 import static com.intellij.reference.SoftReference.dereference;
 
+/**
+ * Immutable snapshot of the backing trees (stubs and/or AST) for a single {@link PsiFileImpl}.
+ * <p>
+ * A {@code FileTrees} instance is never mutated; every state transition (loading AST, attaching stubs,
+ * clearing stubs, switching reference modes) produces a new instance that is atomically swapped into
+ * {@code PsiFileImpl.myTrees}.
+ * <p>
+ * The class manages three logical states:
+ * <ol>
+ *   <li><b>Stub-only</b> — {@link #myStub} is set, {@link #myTreeElementPointer} is {@code null}.
+ *       This is the cheapest state: the file's declaration structure is available via stubs loaded
+ *       from the index without parsing.</li>
+ *   <li><b>AST-only</b> — {@link #myTreeElementPointer} is set, {@link #myStub} is {@code null}.
+ *       The full syntax tree is in memory; stubs have been cleared (or were never loaded).</li>
+ *   <li><b>Both (green stub)</b> — both references are set. This transient state exists while the
+ *       AST is being loaded on top of already-existing stubs (or vice versa). {@link #syncPsiWithStub}
+ *       ensures that PSI objects are shared between the two trees so that object identity is preserved.</li>
+ * </ol>
+ * <p>
+ * PSI identity preservation across GC/reload is handled by the <em>spine ref</em> mechanism:
+ * {@link #myRefToPsi} holds {@link WeakReference}s to every stubbed PSI element ever handed out.
+ * When stubs or AST are reloaded, {@link #syncPsiWithStub} re-binds the new tree nodes to these
+ * cached PSI objects instead of creating duplicates.
+ *
+ * @see PsiFileImpl#loadTreeElement()
+ * @see PsiFileImpl#setStubTree
+ * @see SpineRef
+ */
 final class FileTrees {
   private static final Logger LOG = Logger.getInstance(FileTrees.class);
+
+  /**
+   * Index 0 in the stubbed spine is the file-level PSI element itself, which is always
+   * reachable through {@link #myFile} and does not need tracking in {@link #myRefToPsi}.
+   */
   private static final int firstNonFilePsiIndex = 1;
+
   private final @NotNull PsiFileImpl myFile;
+
+  /** Soft reference to the stub tree; {@code null} when no stubs are attached. */
   private final @Nullable Reference<StubTree> myStub;
 
   /**
-   * SoftReference/WeakReference to ASTNode or a strong reference to a tree if the file is a DummyHolder
+   * Reference to the AST root. The supplier is a {@link SoftReference} or {@link WeakReference}
+   * for physical files (allowing the GC to reclaim the AST under memory pressure),
+   * or a strong lambda for non-physical files (e.g. {@code DummyHolder}).
    */
   private final @Nullable Supplier<? extends FileElement> myTreeElementPointer;
 
   /**
-   * Keeps references to all alive stubbed PSI (using {@link SpineRef}) to ensure PSI identity is preserved after AST/stubs are gc-ed and reloaded
+   * Weak references to every stubbed PSI element that has been handed out, indexed by spine position.
+   * When non-{@code null}, each PSI element uses a {@link SpineRef} as its substrate, allowing it to
+   * lazily resolve to whichever tree (stubs or AST) is currently loaded.
+   * <p>
+   * Set to {@code null} when only one tree source exists and no previously cached PSI needs tracking,
+   * or after {@link #switchToStrongRefs()} pins all PSI directly to AST nodes.
    */
   private final @Nullable Reference<StubBasedPsiElementBase<?>> @Nullable [] myRefToPsi;
 
@@ -56,16 +99,26 @@ final class FileTrees {
     myRefToPsi = refToPsi;
   }
 
+  /** Returns the stub tree if it is still reachable (not yet GC-ed), or {@code null}. */
   @Nullable
   StubTree derefStub() {
     return dereference(myStub);
   }
 
+  /** Returns the AST root if it is still reachable (not yet GC-ed), or {@code null}. */
   @Nullable
   FileElement derefTreeElement() {
     return deref(myTreeElementPointer);
   }
 
+  /**
+   * Transitions all tracked spine PSI from {@link SpineRef} to strong AST-node references.
+   * Called by {@link PsiFileImpl#beforeAstChange()} before the AST is mutated, so that
+   * the mutation can update the tree in place without losing PSI identity.
+   * After this call, {@link #myRefToPsi} is no longer needed and is dropped.
+   *
+   * @return a new {@code FileTrees} with {@code myRefToPsi == null}, or {@code this} if already in strong-ref mode
+   */
   @NotNull FileTrees switchToStrongRefs() {
     if (myRefToPsi == null) return this;
 
@@ -100,10 +153,16 @@ final class FileTrees {
     return false;
   }
 
+  /** Returns {@code true} if PSI elements are currently tracked via {@link SpineRef} weak references. */
   boolean useSpineRefs() {
     return myRefToPsi != null;
   }
 
+  /**
+   * Registers all stubbed PSI elements from the given {@code spine} into {@link #myRefToPsi} and
+   * sets each element's substrate to a {@link SpineRef} so it can lazily resolve against either
+   * stubs or AST.
+   */
   @NotNull FileTrees switchToSpineRefs(@NotNull List<PsiElement> spine) {
     Reference<StubBasedPsiElementBase<?>>[] refToPsi = myRefToPsi;
     if (refToPsi == null) {
@@ -132,6 +191,14 @@ final class FileTrees {
     }
   }
 
+  /**
+   * Detaches the stub tree and invalidates all spine-tracked PSI.
+   * Called when the file's AST is about to be mutated (e.g. after a reparse), so stale stubs
+   * must not be reachable.
+   *
+   * @param reason diagnostic string stored on the invalidated stub for debugging
+   * @return a new {@code FileTrees} with no stubs and no spine refs
+   */
   @NotNull FileTrees clearStub(@NotNull String reason) {
     StubTree stubHolder = derefStub();
     if (stubHolder != null) {
@@ -148,10 +215,25 @@ final class FileTrees {
     return new FileTrees(myFile, null, myTreeElementPointer, null);
   }
 
+  /**
+   * Produces a new {@code FileTrees} with the given AST attached. If stubs are also present,
+   * sync PSI with stubs so that both trees share the same PSI objects (preferring stub-originated PSI).
+   *
+   * @param ast supplier for the newly parsed {@link FileElement}
+   * @see PsiFileImpl#loadTreeElement()
+   */
   @NotNull FileTrees withAst(@NotNull Supplier<? extends FileElement> ast) throws StubTreeLoader.StubTreeAndIndexUnmatchCoarseException {
     return new FileTrees(myFile, myStub, ast, myRefToPsi).syncPsiWithStub(derefStub(), ast.get(), true);
   }
 
+  /**
+   * Produces a new {@code FileTrees} with the given stub tree attached. If AST is also present,
+   * sync PSI with stubs so that both trees share the same PSI objects (preferring AST-originated PSI).
+   *
+   * @param stub the freshly loaded or built stub tree
+   * @param ast  the current AST root, or {@code null} if none is loaded
+   * @see PsiFileImpl#setStubTree
+   */
   @NotNull FileTrees withStub(@NotNull StubTree stub,
                               @Nullable FileElement ast) throws StubTreeLoader.StubTreeAndIndexUnmatchCoarseException {
     assert derefTreeElement() == ast;
@@ -159,13 +241,14 @@ final class FileTrees {
       .syncPsiWithStub(stub, ast, false);
   }
 
+  /** Creates an initial {@code FileTrees} with no stub tree and an optional AST root. */
   @NotNull
   static FileTrees noStub(@Nullable FileElement ast, @NotNull PsiFileImpl file) {
     return new FileTrees(file, null, ast == null ? null : () -> ast, null);
   }
 
   /**
-   * Ensures {@link #myRefToPsi}, stubs and AST all have the same PSI at corresponding indices.
+   * Ensures {@link #myRefToPsi}, stubs, and AST all have the same PSI at corresponding indices.
    * In case several sources already have PSI (e.g. created during AST parsing), overwrites them with the "correct" one,
    * which is taken from {@link #myRefToPsi} if exists, otherwise from either stubs or AST depending on {@code takePsiFromStubs}.
    */
@@ -224,6 +307,10 @@ final class FileTrees {
     return IntStream.range(0, spine.getStubCount()).mapToObj(index -> spine.getStubPsi(index)).collect(Collectors.toList());
   }
 
+  /**
+   * For every previously cached PSI element in {@link #myRefToPsi}, injects it into the
+   * corresponding stub and/or AST node so that those trees return the same PSI object.
+   */
   private void bindSubstratesToCachedPsi(@Nullable List<StubElement<?>> stubList,
                                          @Nullable List<? extends CompositeElement> nodeList) {
     assert myRefToPsi != null;
@@ -241,6 +328,13 @@ final class FileTrees {
     }
   }
 
+  /**
+   * Cross-binds stubs and AST nodes: for each spine position, sets the PSI from the
+   * "source" tree onto the "target" tree so both trees return the same PSI instance.
+   *
+   * @param takePsiFromStubs if {@code true}, PSI originates from stubs and is set onto AST nodes;
+   *                         if {@code false}, PSI originates from AST nodes and is set onto stubs
+   */
   private static void bindStubsWithAst(@NotNull List<? extends PsiElement> srcSpine,
                                        @NotNull List<? extends StubElement<?>> stubList,
                                        @NotNull List<? extends CompositeElement> nodeList,
