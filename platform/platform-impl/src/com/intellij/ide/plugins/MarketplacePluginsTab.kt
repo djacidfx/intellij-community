@@ -113,7 +113,7 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
     return detailPanel
   }
 
-  override fun createPluginsPanel(selectionListener: Consumer<in PluginsGroupComponent?>): JComponent {
+  override fun createPluginsPanel(): JComponent {
     val eventHandler = MultiSelectionEventHandler()
     val marketplacePanel = object : PluginsGroupComponentWithProgress(eventHandler) {
       override fun createListComponent(

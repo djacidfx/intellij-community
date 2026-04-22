@@ -64,7 +64,7 @@ abstract class PluginsTab @RequiresEdt constructor(
     showSearchPanel(query)
   }
 
-  private val mySelectionListener = Consumer { panel: PluginsGroupComponent? ->
+  protected val selectionListener: Consumer<PluginsGroupComponent?> = Consumer { panel: PluginsGroupComponent? ->
     val key: Int = if (searchPanel!!.panel === panel) SEARCH_PANEL else DEFAULT_PANEL
     if (cardPanel!!.key == key) {
       detailsPage!!.showPlugins(panel!!.selection)
@@ -86,7 +86,7 @@ abstract class PluginsTab @RequiresEdt constructor(
 
       override fun create(key: Int): JComponent? {
         if (key == DEFAULT_PANEL) {
-          return createPluginsPanel(mySelectionListener)
+          return createPluginsPanel()
         }
         if (key == SEARCH_PANEL) {
           return searchPanel!!.createVScrollPane()
@@ -110,7 +110,7 @@ abstract class PluginsTab @RequiresEdt constructor(
     splitter.setFirstComponent(listPanel)
     splitter.setSecondComponent(createDetailsPanel(searchListener).also { detailsPage = it })
 
-    searchPanel = createSearchPanel(mySelectionListener)
+    searchPanel = createSearchPanel(selectionListener)
 
     cardPanel!!.select(DEFAULT_PANEL, true)
 
@@ -119,7 +119,7 @@ abstract class PluginsTab @RequiresEdt constructor(
 
   protected abstract fun createDetailsPanel(searchListener: LinkListener<Any>): PluginDetailsPageComponent
 
-  protected abstract fun createPluginsPanel(selectionListener: Consumer<in PluginsGroupComponent?>): JComponent
+  protected abstract fun createPluginsPanel(): JComponent
 
   protected abstract fun updateMainSelection(selectionListener: Consumer<in PluginsGroupComponent?>)
 
@@ -157,7 +157,7 @@ abstract class PluginsTab @RequiresEdt constructor(
       onSearchReset()
       cardPanel!!.select(DEFAULT_PANEL, true)
       searchPanel!!.setQuery("")
-      updateMainSelection(mySelectionListener)
+      updateMainSelection(selectionListener)
     }
     searchPanel!!.controller.hidePopup()
   }
