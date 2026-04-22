@@ -6,6 +6,7 @@ import com.intellij.openapi.vfs.newvfs.persistent.AttributesStorageOverBlobStora
 import com.intellij.platform.util.io.storages.blobstorage.StreamlinedBlobStorageOverMMappedFile;
 import com.intellij.platform.util.io.storages.mmapped.MMappedFileStorageFactory;
 import com.intellij.util.io.blobstorage.SpaceAllocationStrategy.DataLengthPlusFixedPercentStrategy;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -17,7 +18,7 @@ import static com.intellij.platform.util.io.storages.mmapped.MMappedFileStorageF
  */
 public class AttributesStorageOnTheTopOfStreamlinedBlobStorageOverMMappedTest extends AttributesStorageOnTheTopOfBlobStorageTestBase {
   @Override
-  protected AttributesStorageOverBlobStorage openAttributesStorage(Path storagePath) throws IOException {
+  protected AttributesStorageOverBlobStorage openAttributesStorage(@NotNull Path storagePath) throws IOException {
     return new AttributesStorageOverBlobStorage(
       MMappedFileStorageFactory.withDefaults()
         .pageSize(PAGE_SIZE)
@@ -26,10 +27,14 @@ public class AttributesStorageOnTheTopOfStreamlinedBlobStorageOverMMappedTest ex
         .ifFileIsNotPageAligned(EXPAND_FILE)
         .wrapStorageSafely(
           storagePath,
-          storage -> new StreamlinedBlobStorageOverMMappedFile(
-            storage,
-            new DataLengthPlusFixedPercentStrategy(64, 256, StreamlinedBlobStorageOverMMappedFile.MAX_CAPACITY, 30)
-          )
+          storage -> {
+            StreamlinedBlobStorageOverMMappedFile blobStorage = new StreamlinedBlobStorageOverMMappedFile(
+              storage,
+              new DataLengthPlusFixedPercentStrategy(64, 256, StreamlinedBlobStorageOverMMappedFile.MAX_CAPACITY, 30)
+            );
+            this.storage = blobStorage;
+            return blobStorage;
+          }
         )
     );
   }

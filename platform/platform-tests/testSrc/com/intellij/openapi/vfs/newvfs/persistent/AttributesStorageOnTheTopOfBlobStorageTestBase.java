@@ -1,10 +1,10 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.openapi.vfs.newvfs.persistent;
 
+import com.intellij.openapi.util.io.FileTooBigException;
 import com.intellij.platform.util.io.storages.blobstorage.RecordAlreadyDeletedException;
 import com.intellij.util.IntPair;
 import com.intellij.util.indexing.impl.IndexDebugProperties;
-import com.intellij.util.io.StorageLockContext;
 import com.intellij.util.io.blobstorage.StreamlinedBlobStorage;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
@@ -38,11 +38,12 @@ import static org.junit.Assert.fail;
 
 public abstract class AttributesStorageOnTheTopOfBlobStorageTestBase {
 
-  protected static final int PAGE_SIZE = 1 << 15;
-  protected static final StorageLockContext LOCK_CONTEXT = new StorageLockContext(true, true);
+  protected static final int PAGE_SIZE = 1 << 22;
 
-  /** Not so many records because each of them could be up to 64k, which leads to OoM quite quickly */
+  /** Not so many records because each of them could be up to 800k, which leads to OoM quite quickly */
   protected static final int ENOUGH_RECORDS = 1 << 15;
+  /** Records # to try for large-records tests */
+  protected static final int ENOUGH_BIG_RECORDS = 1 << 10;
 
   protected static final int ARBITRARY_FILE_ID = 157;
   protected static final int ARBITRARY_ATTRIBUTE_ID = AttributesStorageOverBlobStorage.MAX_SUPPORTED_ATTRIBUTE_ID - 1;
@@ -129,7 +130,7 @@ public abstract class AttributesStorageOnTheTopOfBlobStorageTestBase {
   @Test
   public void singleBigRecordInserted_ReportedExistInStorage_AndCouldBeReadBack() throws IOException {
     final AttributeRecord record = newAttributeRecord(ARBITRARY_FILE_ID, ARBITRARY_ATTRIBUTE_ID)
-      .withRandomAttributeBytes(INLINE_ATTRIBUTE_SMALLER_THAN + 1);
+      .withRandomAttributeBytes(/*INLINE_ATTRIBUTE_SMALLER_THAN + 1*/maxAttributeValueSizeToTest());
 
     final AttributeRecord insertedRecord = attributes.insertOrUpdateRecord(record, attributesStorage);
 
@@ -146,9 +147,34 @@ public abstract class AttributesStorageOnTheTopOfBlobStorageTestBase {
   }
 
   @Test
+  public void singleOverlyBigRecordInserted_FailsToBeInsert() throws IOException {
+    //Check attributeSize > max supported record size of the storage:
+    //maxAttributeValueSizeToTest() is too safe: it is guaranteed to be < max supported value of the storage, but
+    // it is not guaranteed to be exactly == max supported value of the storage => use _underlying_ storage
+    // .maxPayloadSupported() -- it is guaranteed to be overflow, since attributes storage adds its own record
+    // header:
+    int maxPayloadSupported = storage.maxPayloadSupported();
+    for (int overlyBigAttributeSize : new int[]{
+      maxPayloadSupported + 1,
+      maxPayloadSupported * 3 / 2,
+      maxPayloadSupported * 2}) {
+      final AttributeRecord record = newAttributeRecord(ARBITRARY_FILE_ID, ARBITRARY_ATTRIBUTE_ID)
+        .withRandomAttributeBytes(overlyBigAttributeSize);
+
+      try {
+        attributes.insertOrUpdateRecord(record, attributesStorage);
+        fail("Attribute(" + overlyBigAttributeSize + "b) > max supported size => must rejected");
+      }
+      catch (FileTooBigException ignore) {
+        //OK, expected
+      }
+    }
+  }
+
+  @Test
   public void singleBigRecordInserted_ReportedExistInStorage_AndCouldBeReadBackRaw() throws IOException {
     final AttributeRecord record = newAttributeRecord(ARBITRARY_FILE_ID, ARBITRARY_ATTRIBUTE_ID)
-      .withRandomAttributeBytes(INLINE_ATTRIBUTE_SMALLER_THAN + 1);
+      .withRandomAttributeBytes(/*INLINE_ATTRIBUTE_SMALLER_THAN + 1*/maxAttributeValueSizeToTest());
 
     final AttributeRecord insertedRecord = attributes.insertOrUpdateRecord(record, attributesStorage);
 
@@ -167,7 +193,7 @@ public abstract class AttributesStorageOnTheTopOfBlobStorageTestBase {
   @Test
   public void singleBigRecordInserted_ReportedExistInStorage_AndCouldBeReadBack_WithForEach() throws IOException {
     final AttributeRecord record = newAttributeRecord(ARBITRARY_FILE_ID, ARBITRARY_ATTRIBUTE_ID)
-      .withRandomAttributeBytes(INLINE_ATTRIBUTE_SMALLER_THAN + 1);
+      .withRandomAttributeBytes(/*INLINE_ATTRIBUTE_SMALLER_THAN + 1*/ maxAttributeValueSizeToTest());
 
     final AttributeRecord insertedRecord = attributes.insertOrUpdateRecord(record, attributesStorage);
 
@@ -349,12 +375,12 @@ public abstract class AttributesStorageOnTheTopOfBlobStorageTestBase {
 
   @Test
   public void manyAttributesInserted_CouldAllBeReadBackAsIs_WithForEach() throws IOException {
-    final int maxAttributeValueSize = Short.MAX_VALUE / 2;
+    final int maxAttributeValueSize = maxAttributeValueSizeToTest();
     final int differentAttributesCount = 1024;
     final Random rnd = ThreadLocalRandom.current();
 
     final AttributeRecord[] records = generateManyRandomRecords(
-      ENOUGH_RECORDS,
+      ENOUGH_BIG_RECORDS,
       differentAttributesCount,
       maxAttributeValueSize, rnd
     );
@@ -373,8 +399,7 @@ public abstract class AttributesStorageOnTheTopOfBlobStorageTestBase {
     // Hence, here I decided to use .uniqueId() to match written records with the records read back, and delay more correct implementation
     // until the need for it satisfies its cost.
 
-    final Long2ObjectMap<AttributeRecord>
-      recordsReadWithForEach = readAllRecordsWithForEach(attributesStorage);
+    final Long2ObjectMap<AttributeRecord> recordsReadWithForEach = readAllRecordsWithForEach(attributesStorage);
     assertEquals(
       "Same number of records must be read",
       recordsReadWithForEach.size(),
@@ -510,7 +535,11 @@ public abstract class AttributesStorageOnTheTopOfBlobStorageTestBase {
 
   // ======================== infrastructure: ============================================================== //
 
-  protected abstract AttributesStorageOverBlobStorage openAttributesStorage(final Path storagePath) throws IOException;
+  protected abstract AttributesStorageOverBlobStorage openAttributesStorage(@NotNull Path storagePath) throws IOException;
+
+  private static int maxAttributeValueSizeToTest() {
+    return Math.min(VFSAttributesStorage.MAX_ATTRIBUTE_VALUE_SIZE, PAGE_SIZE - 32);
+  }
 
   protected void reopenAttributesStorage() throws IOException {
     closeStorage();
@@ -587,16 +616,16 @@ public abstract class AttributesStorageOnTheTopOfBlobStorageTestBase {
     }
 
     AttributeRecord(final int attributesRecordId,
-                              final int fileId,
-                              final int attributeId) {
+                    final int fileId,
+                    final int attributeId) {
       this(attributesRecordId, fileId, attributeId, new byte[0], 0);
     }
 
     AttributeRecord(final int attributesRecordId,
-                              final int fileId,
-                              final int attributeId,
-                              final byte[] attributeBytes,
-                              final int attributeBytesLength) {
+                    final int fileId,
+                    final int attributeId,
+                    final byte[] attributeBytes,
+                    final int attributeBytesLength) {
       this.attributesRecordId = attributesRecordId;
       this.fileId = fileId;
       this.attributeId = attributeId;
