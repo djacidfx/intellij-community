@@ -3,7 +3,9 @@
   <version>261.22158.999-mps</version>
   <idea-version since-build="261.22158" until-build="263.*" />
   <name>Java</name>
-  <description><![CDATA[FUBAR#3]]></description>
+  <description><![CDATA[
+    Adds support for the Java language, including Java projects, language syntax highlighting, inspections, and all other coding assistance features.
+  ]]></description>
   <vendor>JetBrains</vendor>
   <category>Languages</category>
   <resource-bundle>messages.ActionsBundle</resource-bundle>
