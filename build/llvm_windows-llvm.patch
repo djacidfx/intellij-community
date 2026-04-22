@@ -1,4 +1,4 @@
-Subject: [PATCH] HACK: Use `21.1.8-5` prebuilt for Windows
+Subject: [PATCH] Fix Windows X64 `lld-link.exe` + mitigate Windows ARM64 freeze by downgrading to `21.1.8-5`
 ---
 Index: BUILD.bazel
 IDEA additional info:
@@ -6,8 +6,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/BUILD.bazel b/BUILD.bazel
---- a/BUILD.bazel	(revision 6b4b9c8c0e24509bd899ed71c03361e2e7d2ebae)
-+++ b/BUILD.bazel	(revision a9eafb11bfa580fa1712a622dc28907c2b90d9bd)
+--- a/BUILD.bazel	(revision c70323d0755231159c0fe885031daabfd2622a30)
++++ b/BUILD.bazel	(revision 3ac0b7eb204a1f0f4df1e25f3e07c163836a4279)
 @@ -1,5 +1,5 @@
  load("@bazel_lib//:bzl_library.bzl", "bzl_library")
 -load("//toolchain:selects.bzl", "LLVM_VERSION")
@@ -15,41 +15,46 @@ diff --git a/BUILD.bazel b/BUILD.bazel
 
  # gazelle:map_kind bzl_library bzl_library @bazel_lib//:bzl_library.bzl
 
-@@ -21,8 +21,8 @@
+@@ -21,7 +21,7 @@
          "//platforms/config:macos_aarch64_prebuilt": "@llvm-toolchain-minimal-%s-darwin-arm64//:builtin_resource_dir" % LLVM_VERSION,
          "//platforms/config:linux_x86_64_prebuilt": "@llvm-toolchain-minimal-%s-linux-amd64//:builtin_resource_dir" % LLVM_VERSION,
          "//platforms/config:linux_aarch64_prebuilt": "@llvm-toolchain-minimal-%s-linux-arm64//:builtin_resource_dir" % LLVM_VERSION,
 -        "//platforms/config:windows_aarch64_prebuilt": "@llvm-toolchain-minimal-%s-windows-arm64//:builtin_resource_dir" % LLVM_VERSION,
--        "//platforms/config:windows_x86_64_prebuilt": "@llvm-toolchain-minimal-%s-windows-amd64//:builtin_resource_dir" % LLVM_VERSION,
 +        "//platforms/config:windows_aarch64_prebuilt": "@llvm-toolchain-minimal-%s-windows-arm64//:builtin_resource_dir" % WINDOWS_HACK_LLVM_VERSION,
-+        "//platforms/config:windows_x86_64_prebuilt": "@llvm-toolchain-minimal-%s-windows-amd64//:builtin_resource_dir" % WINDOWS_HACK_LLVM_VERSION,
+         "//platforms/config:windows_x86_64_prebuilt": "@llvm-toolchain-minimal-%s-windows-amd64//:builtin_resource_dir" % LLVM_VERSION,
      }),
      visibility = ["//visibility:public"],
- )
 Index: MODULE.bazel
 IDEA additional info:
 Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/MODULE.bazel b/MODULE.bazel
---- a/MODULE.bazel	(revision 6b4b9c8c0e24509bd899ed71c03361e2e7d2ebae)
-+++ b/MODULE.bazel	(revision a9eafb11bfa580fa1712a622dc28907c2b90d9bd)
-@@ -30,26 +30,30 @@
+--- a/MODULE.bazel	(revision c70323d0755231159c0fe885031daabfd2622a30)
++++ b/MODULE.bazel	(revision 3ac0b7eb204a1f0f4df1e25f3e07c163836a4279)
+@@ -28,28 +28,32 @@
 
- PREBUILT_LLVM_SUFFIX = "-2"
+ PREBUILT_LLVM_VERSION = "22.1.3"
 
+-PREBUILT_LLVM_SUFFIX = "-2"
++PREBUILT_LLVM_SUFFIX = "-3"
++
 +WINDOWS_HACK_PREBUILT_LLVM_VERSION = "21.1.8"
 +
 +WINDOWS_HACK_PREBUILT_LLVM_SUFFIX = "-5"
-+
+
  LLVM_TOOLCHAIN_MINIMAL_SHA256 = {
-     "darwin-amd64": "7b92d4dab8263dae507a5e89ba39240b979c0a85450ab174d5c966662068f7ad",
-     "darwin-arm64": "528588085727b9d8be3d509279d91760e4fbca2a9eaeb487425e5d6ae7bf1806",
-     "linux-amd64-musl": "6f92a01acecd3fd72f85b7a32632f47d0e142c2f935af792aa3f50769b1ac7ab",
-     "linux-arm64-musl": "21733a5117ec2c649de454d2e214f8838e4bfd301570d0dc45b72f5b21824827",
+-    "darwin-amd64": "7b92d4dab8263dae507a5e89ba39240b979c0a85450ab174d5c966662068f7ad",
+-    "darwin-arm64": "528588085727b9d8be3d509279d91760e4fbca2a9eaeb487425e5d6ae7bf1806",
+-    "linux-amd64-musl": "6f92a01acecd3fd72f85b7a32632f47d0e142c2f935af792aa3f50769b1ac7ab",
+-    "linux-arm64-musl": "21733a5117ec2c649de454d2e214f8838e4bfd301570d0dc45b72f5b21824827",
 -    "windows-amd64": "39f1563f954d616708fc1cf69af29ee2d58c7e4862f1c08f09570cdaae977aec",
 -    "windows-arm64": "3fab94ceec8fa58f9f36d5dc943808acdfdb2ea6e9849f36a4528291d0dea24f",
-+    "windows-amd64": "9ba42717946ab0c90ceb0db45fcd033dd1e3a46bf7d8b13e7c7d50feb68b8ef7",
++    "darwin-amd64": "209dd5f130f9fa6cacf6909692ce2033b8127fab889810d2c0922e93a29b88da",
++    "darwin-arm64": "5905ac3204ac91ca5af8ef89f1d6816413a7d451f132f8f75271f2d94d80f985",
++    "linux-amd64-musl": "90489e7ef3b760d37738c040e1d97a8d6f65ee202b23700af40c89e6a7d43634",
++    "linux-arm64-musl": "afaf46623fe62ac7a2abc4e137f9d03110ff19004ff4db5965bb362fc84d3c8a",
++    "windows-amd64": "07710bf67c970db253026cb75fcdd03e692929591714987b981f72328d2d539f",
 +    "windows-arm64": "24049b3fe7f8ac6c6a59ed0795492b7e427cfbc8511691274b6a412869c4dc73",
  }
 
@@ -57,7 +62,7 @@ diff --git a/MODULE.bazel b/MODULE.bazel
      http_archive(
          name = "llvm-toolchain-minimal-{llvm_version}-{target}".format(
 -            llvm_version = PREBUILT_LLVM_VERSION,
-+            llvm_version = PREBUILT_LLVM_VERSION if not target.startswith("windows-") else WINDOWS_HACK_PREBUILT_LLVM_VERSION,
++            llvm_version = PREBUILT_LLVM_VERSION if target != "windows-arm64" else WINDOWS_HACK_PREBUILT_LLVM_VERSION,
              target = target.replace("-musl", ""),
          ),
          build_file = "//toolchain/llvm:llvm_release.BUILD.bazel" if "windows" not in target else "//toolchain/llvm:llvm_release_windows.BUILD.bazel",
@@ -65,8 +70,8 @@ diff --git a/MODULE.bazel b/MODULE.bazel
          urls = ["https://github.com/hermeticbuild/hermetic-llvm/releases/download/llvm-{llvm_version}{prebuilt_llvm_suffix}/llvm-toolchain-minimal-{llvm_version}-{target}.tar.zst".format(
 -            llvm_version = PREBUILT_LLVM_VERSION,
 -            prebuilt_llvm_suffix = PREBUILT_LLVM_SUFFIX,
-+            llvm_version = PREBUILT_LLVM_VERSION if not target.startswith("windows-") else WINDOWS_HACK_PREBUILT_LLVM_VERSION,
-+            prebuilt_llvm_suffix = PREBUILT_LLVM_SUFFIX if not target.startswith("windows-") else WINDOWS_HACK_PREBUILT_LLVM_SUFFIX,
++            llvm_version = PREBUILT_LLVM_VERSION if target != "windows-arm64" else WINDOWS_HACK_PREBUILT_LLVM_VERSION,
++            prebuilt_llvm_suffix = PREBUILT_LLVM_SUFFIX if target != "windows-arm64" else WINDOWS_HACK_PREBUILT_LLVM_SUFFIX,
              target = target,
          )],
      )
@@ -76,31 +81,29 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/toolchain/selects.bzl b/toolchain/selects.bzl
---- a/toolchain/selects.bzl	(revision 6b4b9c8c0e24509bd899ed71c03361e2e7d2ebae)
-+++ b/toolchain/selects.bzl	(revision a9eafb11bfa580fa1712a622dc28907c2b90d9bd)
+--- a/toolchain/selects.bzl	(revision c70323d0755231159c0fe885031daabfd2622a30)
++++ b/toolchain/selects.bzl	(revision 3ac0b7eb204a1f0f4df1e25f3e07c163836a4279)
 @@ -1,4 +1,5 @@
  LLVM_VERSION = "22.1.3"
 +WINDOWS_HACK_LLVM_VERSION = "21.1.8"
 
  def platform_llvm_binary(binary):
      return select({
-@@ -6,8 +7,8 @@
+@@ -6,7 +7,7 @@
          "@llvm//platforms/config:macos_aarch64_prebuilt": "@llvm-toolchain-minimal-%s-darwin-arm64//:bin/%s" % (LLVM_VERSION, binary),
          "@llvm//platforms/config:linux_x86_64_prebuilt": "@llvm-toolchain-minimal-%s-linux-amd64//:bin/%s" % (LLVM_VERSION, binary),
          "@llvm//platforms/config:linux_aarch64_prebuilt": "@llvm-toolchain-minimal-%s-linux-arm64//:bin/%s" % (LLVM_VERSION, binary),
 -        "@llvm//platforms/config:windows_aarch64_prebuilt": "@llvm-toolchain-minimal-%s-windows-arm64//:bin/%s.exe" % (LLVM_VERSION, binary),
--        "@llvm//platforms/config:windows_x86_64_prebuilt": "@llvm-toolchain-minimal-%s-windows-amd64//:bin/%s.exe" % (LLVM_VERSION, binary),
 +        "@llvm//platforms/config:windows_aarch64_prebuilt": "@llvm-toolchain-minimal-%s-windows-arm64//:bin/%s.exe" % (WINDOWS_HACK_LLVM_VERSION, binary),
-+        "@llvm//platforms/config:windows_x86_64_prebuilt": "@llvm-toolchain-minimal-%s-windows-amd64//:bin/%s.exe" % (WINDOWS_HACK_LLVM_VERSION, binary),
+         "@llvm//platforms/config:windows_x86_64_prebuilt": "@llvm-toolchain-minimal-%s-windows-amd64//:bin/%s.exe" % (LLVM_VERSION, binary),
          "@llvm//toolchain:bootstrapped_toolchain": "@llvm//toolchain/bootstrap:" + binary,
      })
-
 @@ -25,7 +26,8 @@
  def _tool_repo(exec_os, exec_cpu):
      os_part = "darwin" if exec_os == "macos" else exec_os
      cpu_part = "amd64" if exec_cpu == "x86_64" else "arm64"
 -    return "@llvm-toolchain-minimal-%s-%s-%s//" % (LLVM_VERSION, os_part, cpu_part)
-+    version = WINDOWS_HACK_LLVM_VERSION if exec_os == "windows" else LLVM_VERSION
++    version = WINDOWS_HACK_LLVM_VERSION if exec_os == "windows" and exec_cpu == "aarch64" else LLVM_VERSION
 +    return "@llvm-toolchain-minimal-%s-%s-%s//" % (version, os_part, cpu_part)
 
  def platform_module_map(exec_os, exec_cpu):
