@@ -36,8 +36,7 @@ internal class AgentPromptTreeSelectionContextContributor : AgentPromptContextCo
 
     val texts = LinkedHashSet<String>()
     for (path in selectionPaths) {
-      val node = path.lastPathComponent ?: continue
-      val text = node.toString().trim()
+      val text = path.lastPathComponent?.toString()?.trim() ?: continue
       if (text.isBlank()) continue
       texts.add(text)
     }

@@ -10,6 +10,11 @@ import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProvider
 import com.intellij.agent.workbench.sessions.core.statistics.AgentWorkbenchTelemetry
 import com.intellij.openapi.project.Project
 import org.jetbrains.annotations.NonNls
+import java.awt.AWTEvent
+import java.awt.Component
+import java.awt.event.KeyEvent
+import java.awt.event.MouseEvent
+import java.awt.event.WindowEvent
 
 internal fun resolveDefaultFooterHintMessageKey(
   targetMode: PromptTargetMode,
@@ -113,6 +118,31 @@ internal fun shouldRefocusPromptOnFrameActivated(
   isPopupVisible: Boolean,
 ): Boolean {
   return isPopupVisible && activatedProject === popupProject
+}
+
+// Dismiss on outside clicks inside the originating IDE frame, unless the click is the one that
+// just activated the frame from an inactive state. Cross-frame clicks and keyboard/app focus
+// transfers never dismiss. Escape and programmatic submits always close.
+internal fun shouldAllowPromptPopupCancellation(
+  popupProject: Project?,
+  isRecentSourceFrameActivation: Boolean,
+  currentEvent: AWTEvent?,
+  isExplicitClose: Boolean,
+  resolveProject: (Component?) -> Project?,
+): Boolean {
+  if (isExplicitClose || popupProject == null) return true
+  return when (currentEvent) {
+    is MouseEvent ->
+      !isRecentSourceFrameActivation &&
+      resolveProject(currentEvent.component) === popupProject
+    is KeyEvent -> isEscapeKeyPress(currentEvent)
+    is WindowEvent -> false
+    else -> true
+  }
+}
+
+private fun isEscapeKeyPress(event: KeyEvent): Boolean {
+  return event.id == KeyEvent.KEY_PRESSED && event.keyCode == KeyEvent.VK_ESCAPE && event.modifiersEx == 0
 }
 
 internal fun reportPromptSubmitBlocked(

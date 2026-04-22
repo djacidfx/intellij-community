@@ -13,6 +13,7 @@ import com.intellij.agent.workbench.prompt.core.AgentPromptLaunchers
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProviderDescriptor
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProviders
 import com.intellij.ide.FrameStateListener
+import com.intellij.ide.IdeEventQueue
 import com.intellij.openapi.application.UI
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
@@ -28,8 +29,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import java.awt.Component
 import java.awt.FlowLayout
+import java.awt.Window
 import javax.swing.JPanel
+import javax.swing.SwingUtilities
+
+private const val ACTIVATION_CLICK_GRACE_MS = 500L
 
 internal class AgentPromptPalettePopup(
   private val invocationData: AgentPromptInvocationData,
@@ -55,6 +61,8 @@ internal class AgentPromptPalettePopup(
 
   private var popup: JBPopup? = null
   private var popupActive: Boolean = false
+  private var isExplicitCloseInProgress: Boolean = false
+  @Volatile private var lastSourceFrameActivationMs: Long = 0L
   private lateinit var providerSelector: AgentPromptProviderSelector
   private lateinit var sessionController: AgentPromptPaletteSessionController
 
@@ -67,6 +75,16 @@ internal class AgentPromptPalettePopup(
       .setProject(project)
       .setModalContext(false)
       .setCancelOnClickOutside(true)
+      .setCancelCallback {
+        shouldAllowPromptPopupCancellation(
+          popupProject = project,
+          isRecentSourceFrameActivation =
+            System.currentTimeMillis() - lastSourceFrameActivationMs < ACTIVATION_CLICK_GRACE_MS,
+          currentEvent = IdeEventQueue.getInstance().trueCurrentEvent,
+          isExplicitClose = isExplicitCloseInProgress,
+          resolveProject = ::resolveProjectForComponent,
+        )
+      }
       .setCancelOnWindowDeactivation(false)
       .setRequestFocus(true)
       .setCancelKeyEnabled(true)
@@ -111,6 +129,9 @@ internal class AgentPromptPalettePopup(
   private fun installFrameActivationRefocusListener(createdPopup: JBPopup) {
     project.messageBus.connect(createdPopup).subscribe(FrameStateListener.TOPIC, object : FrameStateListener {
       override fun onFrameActivated(ideFrame: IdeFrame) {
+        if (ideFrame.project === project) {
+          lastSourceFrameActivationMs = System.currentTimeMillis()
+        }
         if (shouldRefocusPromptOnFrameActivated(
             popupProject = project,
             activatedProject = ideFrame.project,
@@ -166,7 +187,7 @@ internal class AgentPromptPalettePopup(
       contextResolverService = contextResolverService,
       uiStateService = uiStateService,
       launcherProvider = launcherProvider,
-      closePopup = { popup?.cancel() },
+      closePopup = ::cancelPopupExplicitly,
       isPopupActive = { popupActive },
       movePopupToFitScreen = { popup?.moveToFitScreen() },
     )
@@ -204,6 +225,28 @@ internal class AgentPromptPalettePopup(
       isVisible = false
     }
   }
+
+  private fun cancelPopupExplicitly() {
+    isExplicitCloseInProgress = true
+    try {
+      popup?.cancel()
+    }
+    finally {
+      isExplicitCloseInProgress = false
+    }
+  }
+}
+
+internal fun resolveProjectForComponent(component: Component?): Project? {
+  if (component == null) return null
+  var window: Window? = SwingUtilities.getWindowAncestor(component) ?: component as? Window
+  while (window != null) {
+    if (window is IdeFrame) {
+      return window.project
+    }
+    window = window.owner
+  }
+  return null
 }
 
 internal fun resolveClaudeSlashCompletionProjectPaths(

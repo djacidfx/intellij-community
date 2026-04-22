@@ -75,6 +75,11 @@ Suggested prompt generation, rendering, and Codex polishing are specified separa
 - When the same project frame becomes active again while the main global prompt popup remains visible, whether after switching to another app or after switching to another IDE project frame, the popup must request focus again.
   [@test] ../../prompt/testSrc/ui/AgentPromptPalettePopupActivationDecisionsTest.kt
 
+- When the main global prompt popup remains visible, clicking in another IDE frame, including Agent Workbench dedicated frame, must not dismiss it.
+- Switching between IDE frames or apps via keyboard window-switch shortcuts must also not dismiss the main global prompt popup.
+- Clicking outside the popup inside the originating IDE frame dismisses the popup, unless the click is the same one that activates the IDE frame from an inactive state (user was in another app or another IDE frame) — that activation click must not dismiss the popup. Clicks inside child windows owned by the originating IDE frame (for example, floating tool windows, detached editor windows, or owned dialogs) count as clicks inside the originating IDE frame for dismissal purposes.
+  [@test] ../../prompt/testSrc/ui/AgentPromptPalettePopupDismissalDecisionsTest.kt
+
 - Chooser popups opened from the main global prompt remain transient and may still close on application deactivation.
 
 - When both `AgentWorkbenchPrompt.OpenGlobalPalette` and `AIAssistant.Editor.AskAiAssistantInEditor` are applicable for `Cmd+\\` / `Ctrl+\\` in an editor context, `AgentWorkbenchPrompt.OpenGlobalPalette` must be executed first.

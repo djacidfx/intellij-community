@@ -2,7 +2,6 @@
 package com.intellij.agent.workbench.prompt.ui
 
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.ProjectManager
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.lang.reflect.InvocationHandler
@@ -11,7 +10,7 @@ import java.lang.reflect.Proxy
 class AgentPromptPalettePopupActivationDecisionsTest {
   @Test
   fun sameProjectFrameActivationRefocusesVisiblePopup() {
-    val project = ProjectManager.getInstance().defaultProject
+    val project = projectProxy("source-project")
 
     assertThat(
       shouldRefocusPromptOnFrameActivated(
@@ -24,7 +23,7 @@ class AgentPromptPalettePopupActivationDecisionsTest {
 
   @Test
   fun hiddenPopupDoesNotRefocusOnFrameActivation() {
-    val project = ProjectManager.getInstance().defaultProject
+    val project = projectProxy("source-project")
 
     assertThat(
       shouldRefocusPromptOnFrameActivated(
@@ -37,8 +36,8 @@ class AgentPromptPalettePopupActivationDecisionsTest {
 
   @Test
   fun activationFromDifferentProjectDoesNotRefocusPopup() {
-    val project = ProjectManager.getInstance().defaultProject
-    val otherProject = otherProjectProxy()
+    val project = projectProxy("source-project")
+    val otherProject = projectProxy("other-project")
 
     assertThat(
       shouldRefocusPromptOnFrameActivated(
@@ -51,7 +50,7 @@ class AgentPromptPalettePopupActivationDecisionsTest {
 
   @Test
   fun activationWithoutProjectFrameDoesNotRefocusPopup() {
-    val project = ProjectManager.getInstance().defaultProject
+    val project = projectProxy("source-project")
 
     assertThat(
       shouldRefocusPromptOnFrameActivated(
@@ -62,19 +61,18 @@ class AgentPromptPalettePopupActivationDecisionsTest {
     ).isFalse()
   }
 
-  private fun otherProjectProxy(): Project {
+  private fun projectProxy(name: String): Project {
     val handler = InvocationHandler { proxy, method, args ->
       when (method.name) {
-        "getName" -> "other-project"
+        "getName" -> name
         "isOpen" -> true
         "isDisposed" -> false
-        "toString" -> "MockProject(other-project)"
+        "toString" -> "MockProject($name)"
         "hashCode" -> System.identityHashCode(proxy)
         "equals" -> proxy === args?.firstOrNull()
         else -> null
       }
     }
-
     return Proxy.newProxyInstance(
       Project::class.java.classLoader,
       arrayOf(Project::class.java),
