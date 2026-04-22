@@ -435,6 +435,30 @@ public abstract class K2MultiFileLocalInspectionTestGenerated extends AbstractK2
     }
 
     @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../../idea/tests/testData/multiFileLocalInspections/usePropertyAccessSyntax")
+    public static class UsePropertyAccessSyntax extends AbstractK2MultiFileLocalInspectionTest {
+        @java.lang.Override
+        @org.jetbrains.annotations.NotNull
+        public final KotlinPluginMode getPluginMode() {
+            return KotlinPluginMode.K2;
+        }
+
+        private void runTest(String testDataFilePath) throws Exception {
+            KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
+        }
+
+        @TestMetadata("excludedCustomAccessor/excludedCustomAccessor.test")
+        public void testExcludedCustomAccessor_ExcludedCustomAccessor() throws Exception {
+            runTest("../../../idea/tests/testData/multiFileLocalInspections/usePropertyAccessSyntax/excludedCustomAccessor/excludedCustomAccessor.test");
+        }
+
+        @TestMetadata("notExcludedCustomAccessor/notExcludedCustomAccessor.test")
+        public void testNotExcludedCustomAccessor_NotExcludedCustomAccessor() throws Exception {
+            runTest("../../../idea/tests/testData/multiFileLocalInspections/usePropertyAccessSyntax/notExcludedCustomAccessor/notExcludedCustomAccessor.test");
+        }
+    }
+
+    @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("testData/multiFileInspectionsLocal")
     public abstract static class MultiFileInspectionsLocal extends AbstractK2MultiFileLocalInspectionTest {
         @RunWith(JUnit3RunnerWithInners.class)

@@ -111,7 +111,7 @@ internal fun MutableTWorkspace.generateK2InspectionTests() {
             // unusedSymbol is covered with K2UnusedSymbolHighlightingTestGenerated
             //model("${idea}/inspectionsLocal/unusedSymbol", pattern = pattern)
             model("${idea}/inspectionsLocal/branched/introduceWhenSubject")
-            model("${idea}/inspectionsLocal/usePropertyAccessSyntax")
+            model("${idea}/inspectionsLocal/usePropertyAccessSyntax", pattern = Patterns.KT_WITHOUT_DOTS)
             model("${idea}/inspectionsLocal/unlabeledReturnInsideLambda")
             model("${idea}/inspectionsLocal/redundantUnitReturnType")
             model("${idea}/inspectionsLocal/suspiciousCollectionReassignment")
@@ -237,6 +237,7 @@ internal fun MutableTWorkspace.generateK2InspectionTests() {
             model("${idea}/multiFileLocalInspections/reconcilePackageWithDirectory", pattern = pattern)
             model("${idea}/multiFileLocalInspections/convertSealedSubClassToObject", pattern = pattern)
             model("${idea}/multiFileLocalInspections/redundantQualifierName", pattern = pattern)
+            model("${idea}/multiFileLocalInspections/usePropertyAccessSyntax", pattern = pattern, flatten = true)
             model("code-insight/inspections-k2/tests/testData/multiFileInspectionsLocal", pattern = pattern)
         }
 

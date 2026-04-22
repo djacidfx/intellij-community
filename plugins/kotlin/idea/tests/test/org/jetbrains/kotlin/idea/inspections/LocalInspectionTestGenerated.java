@@ -19480,6 +19480,315 @@ public abstract class LocalInspectionTestGenerated extends AbstractK1LocalInspec
         }
 
         @RunWith(JUnit3RunnerWithInners.class)
+        @TestMetadata("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData")
+        public static class OldIntentionsData extends AbstractK1LocalInspectionTest {
+            @java.lang.Override
+            @org.jetbrains.annotations.NotNull
+            public final KotlinPluginMode getPluginMode() {
+                return KotlinPluginMode.K1;
+            }
+
+            private void runTest(String testDataFilePath) throws Exception {
+                KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
+            }
+
+            @TestMetadata("accessThroughKotlinClassInstance.kt")
+            public void testAccessThroughKotlinClassInstance() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/accessThroughKotlinClassInstance.kt");
+            }
+
+            @TestMetadata("accessThroughKotlinClassInstanceWithOverride.kt")
+            public void testAccessThroughKotlinClassInstanceWithOverride() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/accessThroughKotlinClassInstanceWithOverride.kt");
+            }
+
+            @TestMetadata("conflict1.kt")
+            public void testConflict1() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/conflict1.kt");
+            }
+
+            @TestMetadata("conflict2.kt")
+            public void testConflict2() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/conflict2.kt");
+            }
+
+            @TestMetadata("dontReplaceForEnum.kt")
+            public void testDontReplaceForEnum() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/dontReplaceForEnum.kt");
+            }
+
+            @TestMetadata("genericClassMethod.kt")
+            public void testGenericClassMethod() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/genericClassMethod.kt");
+            }
+
+            @TestMetadata("get.kt")
+            public void testGet() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/get.kt");
+            }
+
+            @TestMetadata("getAnd.kt")
+            public void testGetAnd() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/getAnd.kt");
+            }
+
+            @TestMetadata("getAnd2.kt")
+            public void testGetAnd2() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/getAnd2.kt");
+            }
+
+            @TestMetadata("getIf.kt")
+            public void testGetIf() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/getIf.kt");
+            }
+
+            @TestMetadata("getIf2.kt")
+            public void testGetIf2() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/getIf2.kt");
+            }
+
+            @TestMetadata("getImplicitReceiver.kt")
+            public void testGetImplicitReceiver() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/getImplicitReceiver.kt");
+            }
+
+            @TestMetadata("getOr.kt")
+            public void testGetOr() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/getOr.kt");
+            }
+
+            @TestMetadata("getOr2.kt")
+            public void testGetOr2() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/getOr2.kt");
+            }
+
+            @TestMetadata("getReservedWord1.kt")
+            public void testGetReservedWord1() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/getReservedWord1.kt");
+            }
+
+            @TestMetadata("getReservedWord2.kt")
+            public void testGetReservedWord2() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/getReservedWord2.kt");
+            }
+
+            @TestMetadata("getSafeCall.kt")
+            public void testGetSafeCall() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/getSafeCall.kt");
+            }
+
+            @TestMetadata("getWithPublicFieldNameMatchingPropertyName.kt")
+            public void testGetWithPublicFieldNameMatchingPropertyName() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/getWithPublicFieldNameMatchingPropertyName.kt");
+            }
+
+            @TestMetadata("isGet.kt")
+            public void testIsGet() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/isGet.kt");
+            }
+
+            @TestMetadata("isGetWithNonBooleanReturnType.kt")
+            public void testIsGetWithNonBooleanReturnType() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/isGetWithNonBooleanReturnType.kt");
+            }
+
+            @TestMetadata("isGetWithNullableBooleanReturnType.kt")
+            public void testIsGetWithNullableBooleanReturnType() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/isGetWithNullableBooleanReturnType.kt");
+            }
+
+            @TestMetadata("isSet.kt")
+            public void testIsSet() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/isSet.kt");
+            }
+
+            @TestMetadata("nonVoidSetter1.kt")
+            public void testNonVoidSetter1() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/nonVoidSetter1.kt");
+            }
+
+            @TestMetadata("nonVoidSetter2.kt")
+            public void testNonVoidSetter2() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/nonVoidSetter2.kt");
+            }
+
+            @TestMetadata("nonVoidSetter3.kt")
+            public void testNonVoidSetter3() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/nonVoidSetter3.kt");
+            }
+
+            @TestMetadata("nonVoidSetter4.kt")
+            public void testNonVoidSetter4() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/nonVoidSetter4.kt");
+            }
+
+            @TestMetadata("nonVoidSetter5.kt")
+            public void testNonVoidSetter5() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/nonVoidSetter5.kt");
+            }
+
+            @TestMetadata("propertyTypeIsMoreSpecific1.kt")
+            public void testPropertyTypeIsMoreSpecific1() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/propertyTypeIsMoreSpecific1.kt");
+            }
+
+            @TestMetadata("propertyTypeIsMoreSpecific2.kt")
+            public void testPropertyTypeIsMoreSpecific2() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/propertyTypeIsMoreSpecific2.kt");
+            }
+
+            @TestMetadata("propertyTypeIsMoreSpecificNullable.kt")
+            public void testPropertyTypeIsMoreSpecificNullable() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/propertyTypeIsMoreSpecificNullable.kt");
+            }
+
+            @TestMetadata("referenceGetter0.kt")
+            public void testReferenceGetter0() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/referenceGetter0.kt");
+            }
+
+            @TestMetadata("referenceGetter1.kt")
+            public void testReferenceGetter1() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/referenceGetter1.kt");
+            }
+
+            @TestMetadata("referenceGetterFunctionalInterface.kt")
+            public void testReferenceGetterFunctionalInterface() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/referenceGetterFunctionalInterface.kt");
+            }
+
+            @TestMetadata("referenceGetterNotBuiltInFunctionType.kt")
+            public void testReferenceGetterNotBuiltInFunctionType() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/referenceGetterNotBuiltInFunctionType.kt");
+            }
+
+            @TestMetadata("referenceGetterOldLv.kt")
+            public void testReferenceGetterOldLv() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/referenceGetterOldLv.kt");
+            }
+
+            @TestMetadata("referenceIsGetter.kt")
+            public void testReferenceIsGetter() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/referenceIsGetter.kt");
+            }
+
+            @TestMetadata("referenceSetter.kt")
+            public void testReferenceSetter() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/referenceSetter.kt");
+            }
+
+            @TestMetadata("set.kt")
+            public void testSet() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/set.kt");
+            }
+
+            @TestMetadata("setAnonymouseFunctionArgument.kt")
+            public void testSetAnonymouseFunctionArgument() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/setAnonymouseFunctionArgument.kt");
+            }
+
+            @TestMetadata("setAsExpressionBody.kt")
+            public void testSetAsExpressionBody() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/setAsExpressionBody.kt");
+            }
+
+            @TestMetadata("setAsExpressionBodyProperty.kt")
+            public void testSetAsExpressionBodyProperty() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/setAsExpressionBodyProperty.kt");
+            }
+
+            @TestMetadata("setAsExpressionBodyUnqualified.kt")
+            public void testSetAsExpressionBodyUnqualified() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/setAsExpressionBodyUnqualified.kt");
+            }
+
+            @TestMetadata("setAsPropertyInitializer.kt")
+            public void testSetAsPropertyInitializer() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/setAsPropertyInitializer.kt");
+            }
+
+            @TestMetadata("setAsReturnedExpression.kt")
+            public void testSetAsReturnedExpression() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/setAsReturnedExpression.kt");
+            }
+
+            @TestMetadata("setFunctionReferenceArgument.kt")
+            public void testSetFunctionReferenceArgument() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/setFunctionReferenceArgument.kt");
+            }
+
+            @TestMetadata("setImplicitReceiver.kt")
+            public void testSetImplicitReceiver() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/setImplicitReceiver.kt");
+            }
+
+            @TestMetadata("setLambdaArgument.kt")
+            public void testSetLambdaArgument() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/setLambdaArgument.kt");
+            }
+
+            @TestMetadata("setLambdaArgument2.kt")
+            public void testSetLambdaArgument2() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/setLambdaArgument2.kt");
+            }
+
+            @TestMetadata("setReservedWord1.kt")
+            public void testSetReservedWord1() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/setReservedWord1.kt");
+            }
+
+            @TestMetadata("setReservedWord2.kt")
+            public void testSetReservedWord2() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/setReservedWord2.kt");
+            }
+
+            @TestMetadata("setSafeCall.kt")
+            public void testSetSafeCall() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/setSafeCall.kt");
+            }
+
+            @TestMetadata("setWithProtectedSuperField.kt")
+            public void testSetWithProtectedSuperField() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/setWithProtectedSuperField.kt");
+            }
+
+            @TestMetadata("smartCast.kt")
+            public void testSmartCast() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/smartCast.kt");
+            }
+
+            @TestMetadata("superCall.kt")
+            public void testSuperCall() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/superCall.kt");
+            }
+
+            @TestMetadata("suppressedByAtomicIntegerList.kt")
+            public void testSuppressedByAtomicIntegerList() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/suppressedByAtomicIntegerList.kt");
+            }
+
+            @TestMetadata("suppressedByAtomicLongList.kt")
+            public void testSuppressedByAtomicLongList() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/suppressedByAtomicLongList.kt");
+            }
+
+            @TestMetadata("suppressedByByteBufferList.kt")
+            public void testSuppressedByByteBufferList() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/suppressedByByteBufferList.kt");
+            }
+
+            @TestMetadata("suppressedByNotPropertyList.kt")
+            public void testSuppressedByNotPropertyList() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/suppressedByNotPropertyList.kt");
+            }
+
+            @TestMetadata("typeParameterReceiver.kt")
+            public void testTypeParameterReceiver() throws Exception {
+                runTest("testData/inspectionsLocal/usePropertyAccessSyntax/oldIntentionsData/typeParameterReceiver.kt");
+            }
+        }
+
+        @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("testData/inspectionsLocal/usePropertyAccessSyntax/referenceExpression")
         public static class ReferenceExpression extends AbstractK1LocalInspectionTest {
             @java.lang.Override

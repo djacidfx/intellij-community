@@ -1,11 +1,12 @@
-// FIX: Use property access syntax
+// WITH_STDLIB
 
 abstract class KotlinClass : JavaInterface {
     override fun getSomething(): String = ""
 }
 
 fun foo(k: KotlinClass, p: Any) {
-    if (p is String) {
-        k.something = p
+    if (p is String?) {
+        k.<caret>setSomething(p)
     }
 }
+

@@ -27,7 +27,8 @@ import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.components.declarationScope
 import org.jetbrains.kotlin.analysis.api.components.directlyOverriddenSymbols
-import org.jetbrains.kotlin.analysis.api.components.expectedType
+import org.jetbrains.kotlin.analysis.api.components.expressionType
+import org.jetbrains.kotlin.analysis.api.components.isSubtypeOf
 import org.jetbrains.kotlin.analysis.api.components.lowerBoundIfFlexible
 import org.jetbrains.kotlin.analysis.api.components.scope
 import org.jetbrains.kotlin.analysis.api.components.semanticallyEquals
@@ -268,7 +269,7 @@ class UsePropertyAccessSyntaxInspection : LocalInspectionTool(), CleanupLocalIns
 
             if (!canConvert(successfulFunctionCallSymbol, callExpression, receiverType, syntheticPropertyName)) return
 
-            if (!syntheticPropertyTypeEqualsToExpected( // When KT-66587 is fixed, call this only for getters. See KTIJ-29110
+            if (!syntheticPropertyTypeEqualsToExpected( // See KTIJ-29110
                     syntheticProperty,
                     returnType,
                     propertyAccessorKind
@@ -285,7 +286,6 @@ class UsePropertyAccessSyntaxInspection : LocalInspectionTool(), CleanupLocalIns
 
             holder.problem(callExpression, getInspectionProblemText(propertyAccessorKind))
                 .highlight(problemHighlightType)
-                .range(TextRange(calleeExpression.startOffset, calleeExpression.endOffset).shiftRight(-calleeExpression.startOffset))
                 .fix(ReplaceWithPropertyAccessorFix(syntheticProperty.name, convertExpressionToBlockBodyData)).register()
         }
     }
@@ -502,14 +502,13 @@ class UsePropertyAccessSyntaxInspection : LocalInspectionTool(), CleanupLocalIns
         callReturnType: KaType,
         propertyAccessorKind: PropertyAccessorKind
     ): Boolean {
-        val propertyExpectedType = if (propertyAccessorKind is PropertyAccessorKind.Setter) {
-            propertyAccessorKind.valueArgumentExpression.expectedType ?: return false
-        } else {
-            callReturnType
-        }
-
         val syntheticPropertyReturnType = syntheticProperty.returnType.lowerBoundIfFlexible()
-        return syntheticPropertyReturnType.semanticallyEquals(propertyExpectedType)
+        if (propertyAccessorKind is PropertyAccessorKind.Setter) {
+            val parameterType = propertyAccessorKind.valueArgumentExpression.expressionType ?: return false
+            return parameterType.isSubtypeOf(syntheticPropertyReturnType)
+        } else {
+            return syntheticPropertyReturnType.semanticallyEquals(callReturnType)
+        }
     }
 
     context(_: KaSession)
