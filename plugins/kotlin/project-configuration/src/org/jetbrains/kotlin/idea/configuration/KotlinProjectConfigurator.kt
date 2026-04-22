@@ -5,9 +5,11 @@ package org.jetbrains.kotlin.idea.configuration
 import com.intellij.openapi.command.undo.BasicUndoableAction
 import com.intellij.openapi.command.undo.UndoManager
 import com.intellij.openapi.extensions.ExtensionPointName
+import com.intellij.openapi.externalSystem.autoimport.ExternalSystemProjectTrackerSettings
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsSafe
+import com.intellij.platform.backend.observation.Observation
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import org.jetbrains.kotlin.config.ApiVersion
 import org.jetbrains.kotlin.config.LanguageFeature
@@ -97,7 +99,12 @@ interface KotlinProjectConfigurator {
     fun configure(project: Project, excludeModules: Collection<Module>)
 
     suspend fun queueSyncAndWaitForProjectToBeConfigured(project: Project) {
-        // Do nothing here. Stub for not breaking external API implementations
+        val projectSettings = ExternalSystemProjectTrackerSettings.getInstance(project)
+        if (projectSettings.autoReloadType != ExternalSystemProjectTrackerSettings.AutoReloadType.NONE) {
+            val configurationService = KotlinProjectConfigurationService.getInstance(project)
+            configurationService.queueSync()
+            Observation.awaitConfiguration(project)
+        }
     }
 
     val presentableText: String

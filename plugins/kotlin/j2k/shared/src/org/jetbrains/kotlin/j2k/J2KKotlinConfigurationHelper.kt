@@ -105,8 +105,7 @@ object J2KKotlinConfigurationHelper {
                 if (!autoConfigured) {
                     val excludeModules = project.modules.asList().filter { it != module }
                     configurator.configureAndGetConfiguredModules(project, excludeModules)
-                    val configurationService = KotlinProjectConfigurationService.getInstance(project)
-                    configurationService.queueSyncIfPossible()
+                    configurator.queueSyncAndWaitForProjectToBeConfigured(project)
                 }
 
                 withCurrentThreadCoroutineScope {
