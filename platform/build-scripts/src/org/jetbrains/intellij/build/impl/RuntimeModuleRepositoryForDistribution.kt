@@ -75,7 +75,9 @@ internal suspend fun generateRuntimeModuleRepositoryForDistribution(
     )
   }
   else {
-    for (distribution in SUPPORTED_DISTRIBUTIONS) {
+    SUPPORTED_DISTRIBUTIONS
+      .filter { context.shouldBuildDistributionForOS(it.os, it.arch) }
+      .forEach { distribution ->
       val targetDirectory = getOsAndArchSpecificDistDirectory(osFamily = distribution.os, arch = distribution.arch, libc = distribution.libcImpl, context = context)
       val actualEntries = repositoryEntries.filter { it.distribution == null || it.distribution == distribution }
       val actualPlugins = contentReport.bundledPlugins.filter { (it.os == null || it.os == distribution.os) && (it.arch == null || it.arch == distribution.arch) }
