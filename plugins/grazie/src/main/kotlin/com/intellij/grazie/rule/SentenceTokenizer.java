@@ -2,7 +2,6 @@ package com.intellij.grazie.rule;
 
 import ai.grazie.nlp.tokenizer.Tokenizer;
 import ai.grazie.nlp.tokenizer.sentence.StandardSentenceTokenizer;
-import ai.grazie.text.Text;
 import ai.grazie.text.exclusions.Exclusion;
 import ai.grazie.text.exclusions.ExclusionUtilsKt;
 import ai.grazie.text.exclusions.SentenceWithExclusions;
@@ -118,6 +117,9 @@ public class SentenceTokenizer {
     }
     public SentenceWithExclusions swe() {
       return new SentenceWithExclusions(text, exclusions);
+    }
+    public TextRange range() {
+      return new TextRange(start, end());
     }
 
     public @Nullable SentenceWithExclusions stubbedSwe() {

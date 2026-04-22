@@ -9,8 +9,10 @@ import ai.grazie.rules.tree.Tree
 import ai.grazie.rules.tree.TreeSupport
 import ai.grazie.rules.uk.UkrainianTreeSupport
 import ai.grazie.text.exclusions.SentenceWithExclusions
+import com.github.benmanes.caffeine.cache.Caffeine
 import com.intellij.grazie.GrazieBundle
 import com.intellij.grazie.GrazieConfig
+import com.intellij.grazie.jlanguage.CACHE_SIZE
 import com.intellij.grazie.jlanguage.LazyCachingConcurrentDisambiguator
 import com.intellij.grazie.rule.CloudOrLocalBatchParser
 import com.intellij.grazie.rule.SentenceBatcher
@@ -37,6 +39,10 @@ import org.languagetool.language.English
 
 object DependencyParser {
   private val LOG = Logger.getInstance(DependencyParser::class.java)
+  private val cachedTrees = Caffeine.newBuilder()
+    .softValues()
+    .maximumSize(CACHE_SIZE)
+    .build<SentenceWithLanguage, Tree>()
 
   @JvmStatic
   fun getParser(context: ProofreadingContext, minimal: Boolean): AsyncBatchParser<Tree>? {
@@ -72,9 +78,11 @@ object DependencyParser {
           val ltLanguage = SentenceBatcher.findInstalledLTLanguage(language)
           (ltLanguage?.disambiguator as? LazyCachingConcurrentDisambiguator)?.ensureInitializedAsync()
           @Suppress("UNCHECKED_CAST")
-          return sentences.associateWith {
-            ensureActive()
-            Tree.createFlatTree(support, it.sentence)
+          return sentences.associateWith { swe ->
+            cachedTrees.get(SentenceWithLanguage(swe.sentence, language)) { swl ->
+              ensureActive()
+              Tree.createFlatTree(support, swl.sentence)
+            }
           } as LinkedHashMap<SentenceWithExclusions, Tree?>
         }
 
@@ -168,3 +176,5 @@ object DependencyParser {
     }
   }
 }
+
+private data class SentenceWithLanguage(val sentence: String, val language: Language)
