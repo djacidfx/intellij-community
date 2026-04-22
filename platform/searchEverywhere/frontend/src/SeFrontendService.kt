@@ -271,7 +271,7 @@ class SeFrontendService(val project: Project?, private val coroutineScope: Corou
         popupScope.launch(NonCancellable) {
           removeSessionRef.set(false)
           try {
-            it.openInFindWindow(session, initEvent)
+            it.openInFindWindow(session)
           }
           finally {
             change {

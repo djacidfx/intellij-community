@@ -166,7 +166,6 @@ class SeTabDelegate(
   suspend fun openInFindToolWindow(
     session: SeSession,
     params: SeParams,
-    initEvent: AnActionEvent,
     isAllTab: Boolean,
     disabledProviders: List<SeProviderId>? = null,
   ): Boolean {

@@ -267,8 +267,8 @@ class SePopupVm(
     }
   }
 
-  suspend fun openInFindWindow(session: SeSession, initEvent: AnActionEvent): Boolean {
-    return currentTab.openInFindWindow(session, initEvent)
+  suspend fun openInFindWindow(session: SeSession): Boolean {
+    return currentTab.openInFindWindow(session)
   }
 
   fun selectNextTab() {

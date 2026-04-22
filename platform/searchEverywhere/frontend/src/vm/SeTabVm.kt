@@ -12,7 +12,6 @@ import com.intellij.ide.rpc.throttledWithAccumulation
 import com.intellij.internal.statistic.eventLog.events.EventFields
 import com.intellij.internal.statistic.eventLog.events.EventPair
 import com.intellij.lang.Language
-import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.options.advanced.AdvancedSettings
@@ -101,7 +100,7 @@ sealed interface SeTabVm {
   suspend fun isCommandsSupported(): Boolean
   suspend fun getPreviewInfo(itemData: SeItemData): SePreviewInfo?
   suspend fun itemSelected(itemWithIndex: Pair<Int, SeItemData>, isIndexOriginal: Boolean, modifiers: Int, searchText: String): SeSelectionResult
-  suspend fun openInFindWindow(session: SeSession, initEvent: AnActionEvent): Boolean
+  suspend fun openInFindWindow(session: SeSession): Boolean
   suspend fun canBeShownInFindResults(): Boolean
   suspend fun getSearchEverywhereToggleAction(): SearchEverywhereToggleAction?
   suspend fun getUpdatedPresentation(item: SeItemData): SeItemPresentation?
@@ -321,10 +320,10 @@ class SeTabVmImpl(
     return tab.canBeShownInFindResults()
   }
 
-  override suspend fun openInFindWindow(session: SeSession, initEvent: AnActionEvent): Boolean {
+  override suspend fun openInFindWindow(session: SeSession): Boolean {
     val params = SeParams(searchPattern.value,
                           filterEditor.getValue()?.resultFlow?.value ?: SeFilterState.Empty)
-    return tab.openInFindToolWindow(session, params, initEvent)
+    return tab.openInFindToolWindow(session, params)
   }
 
   override suspend fun getSearchEverywhereToggleAction(): SearchEverywhereToggleAction? {
@@ -441,7 +440,7 @@ class SeDummyTabVm private constructor(
   override suspend fun isCommandsSupported(): Boolean = false
   override suspend fun getPreviewInfo(itemData: SeItemData): SePreviewInfo? = null
   override suspend fun itemSelected(itemWithIndex: Pair<Int, SeItemData>, isIndexOriginal: Boolean, modifiers: Int, searchText: String): SeSelectionResult = SeSelectionResultKeep()
-  override suspend fun openInFindWindow(session: SeSession, initEvent: AnActionEvent): Boolean = false
+  override suspend fun openInFindWindow(session: SeSession): Boolean = false
   override suspend fun canBeShownInFindResults(): Boolean = false
   override suspend fun getSearchEverywhereToggleAction(): SearchEverywhereToggleAction? = null
   override suspend fun getUpdatedPresentation(item: SeItemData): SeItemPresentation? = null
