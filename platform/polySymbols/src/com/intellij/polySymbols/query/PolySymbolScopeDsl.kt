@@ -207,30 +207,51 @@ interface PolySymbolScopeCachedInitializer<T : UserDataHolder, K> : PolySymbolSc
 }
 
 /**
- * Builder receiver for the non-cached [polySymbolScope] factory. Symbols are
- * added directly from the builder body — there is no `initialize { }` block
- * because the scope is immutable after construction.
+ * Builder receiver for the non-cached [polySymbolScope] factory. Declare the
+ * scope's provided kinds, filters, and — via [initialize] — its symbols. The
+ * [initialize] body runs lazily on first query or [PolySymbolScope.createPointer].
  */
 @PolySymbolScopeDsl
 @ApiStatus.NonExtendable
 interface PolySymbolScopeBuilder {
 
   /**
-   * Restrict the scope to a fixed set of [PolySymbolKind]s. Mutually exclusive with the
-   * overload with predicate
+   * Restrict the scope to a fixed set of [PolySymbolKind]s. Multiple calls are
+   * additive.
    */
   fun provides(vararg kinds: PolySymbolKind)
 
   /**
-   * Restrict the scope via a predicate. Overwrites any previous call to
-   * [provides].
+   * Restrict the scope via a predicate. Combined with the [provides] vararg
+   * via logical OR; overwrites any previous predicate-form call.
    */
   fun provides(predicate: (PolySymbolKind) -> Boolean)
 
-  /** Add a single symbol to the scope. */
+  fun filterCodeCompletions(filter: (kind: PolySymbolKind, items: List<PolySymbolCodeCompletionItem>) -> List<PolySymbolCodeCompletionItem>)
+
+  fun filterNameMatches(filter: (name: PolySymbolQualifiedName, matches: List<PolySymbol>) -> List<PolySymbol>)
+
+  /**
+   * Declare the scope's symbols lazily. The [body] runs the first time the
+   * scope is queried (`getSymbols`, `getMatchingSymbols`, `getCodeCompletions`)
+   * or [PolySymbolScope.createPointer] is invoked.
+   */
+  fun initialize(body: PolySymbolScopeInitializer.() -> Unit)
+}
+
+/**
+ * Receiver of the [PolySymbolScopeBuilder.initialize] body. Collects the scope's
+ * symbols. No `project`/`key`/`dataHolder` context — the non-cached scope carries
+ * none.
+ */
+@PolySymbolScopeDsl
+@ApiStatus.NonExtendable
+interface PolySymbolScopeInitializer {
+
+  /** Emit a single symbol to the scope. */
   fun add(symbol: PolySymbol)
 
-  /** Add a collection of symbols to the scope. */
+  /** Emit a collection of symbols to the scope. */
   fun addAll(symbols: Iterable<PolySymbol>)
 
   /** Operator form of [add]. */
@@ -238,10 +259,6 @@ interface PolySymbolScopeBuilder {
 
   /** Operator form of [addAll]. */
   operator fun Iterable<PolySymbol>.unaryPlus()
-
-  fun filterCodeCompletions(filter: (kind: PolySymbolKind, items: List<PolySymbolCodeCompletionItem>) -> List<PolySymbolCodeCompletionItem>)
-
-  fun filterNameMatches(filter: (name: PolySymbolQualifiedName, matches: List<PolySymbol>) -> List<PolySymbol>)
 
   /**
    * Convenience: build a [PolySymbol] with the existing
