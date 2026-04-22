@@ -59,16 +59,7 @@ internal class AgentChatVirtualFileSystem : DeprecatedVirtualFileSystem(), NonPh
 
 internal const val AGENT_CHAT_PROTOCOL: String = "agent-chat"
 
-internal fun agentChatVirtualFileSystem(): AgentChatVirtualFileSystem {
-  checkNotNull(ApplicationManager.getApplication()) {
-    "AgentChatVirtualFileSystem requires an initialized application"
-  }
-  val fileSystem = VirtualFileManager.getInstance().getFileSystem(AGENT_CHAT_PROTOCOL)
-  return (fileSystem as? AgentChatVirtualFileSystem)
-    ?: error("AgentChatVirtualFileSystem is not registered for protocol $AGENT_CHAT_PROTOCOL")
-}
-
-internal suspend fun agentChatVirtualFileSystemAsync(): AgentChatVirtualFileSystem {
+internal suspend fun agentChatVirtualFileSystem(): AgentChatVirtualFileSystem {
   checkNotNull(ApplicationManager.getApplication()) {
     "AgentChatVirtualFileSystem requires an initialized application"
   }

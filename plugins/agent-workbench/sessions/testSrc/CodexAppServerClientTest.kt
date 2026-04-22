@@ -548,6 +548,9 @@ class CodexAppServerClientTest {
       val event = notification.await()
       assertThat(event.method).isEqualTo("thread/status/changed")
       assertThat(event.threadId).isEqualTo("thread-notify-1")
+      assertThat(event.statusKind).isEqualTo(CodexThreadStatusKind.IDLE)
+      assertThat(event.activeFlags).containsExactly()
+      assertThat(event.startedThread).isNull()
     }
     finally {
       client.shutdown()
@@ -691,6 +694,9 @@ class CodexAppServerClientTest {
       val event = notification.await()
       assertThat(event.threadId).isEqualTo("thread-notify-snake")
       assertThat(event.method).isEqualTo("thread/status/changed")
+      assertThat(event.statusKind).isEqualTo(CodexThreadStatusKind.IDLE)
+      assertThat(event.activeFlags).containsExactly()
+      assertThat(event.startedThread).isNull()
     }
     finally {
       client.shutdown()
@@ -698,7 +704,7 @@ class CodexAppServerClientTest {
   }
 
   @Test
-  fun appServerNotificationsParseThreadIdFromNestedThreadObject(): Unit = runBlocking(Dispatchers.Default) {
+  fun appServerNotificationsParseThreadIdFromNestedThreadObjectWithTopLevelStatus(): Unit = runBlocking(Dispatchers.Default) {
     val project = tempDir.resolve("project-notifications-thread-object")
     Files.createDirectories(project)
     val configPath = tempDir.resolve("codex-notifications-thread-object.json")
@@ -709,7 +715,8 @@ class CodexAppServerClientTest {
           id = "thread-notify-object",
           title = "Thread notify object",
           cwd = project.toString(),
-          statusType = "idle",
+          statusType = "active",
+          activeFlags = listOf("waitingOnUserInput"),
           updatedAt = 1_700_000_052_000L,
           archived = false,
         )
@@ -737,6 +744,8 @@ class CodexAppServerClientTest {
       val event = notification.await()
       assertThat(event.threadId).isEqualTo("thread-notify-object")
       assertThat(event.method).isEqualTo("thread/status/changed")
+      assertThat(event.statusKind).isEqualTo(CodexThreadStatusKind.ACTIVE)
+      assertThat(event.activeFlags).containsExactly(CodexThreadActiveFlag.WAITING_ON_USER_INPUT)
       assertThat(event.startedThread).isNull()
     }
     finally {
@@ -833,6 +842,8 @@ class CodexAppServerClientTest {
       val event = notification.await()
       assertThat(event.method).isEqualTo("thread/started")
       assertThat(event.threadId).isEqualTo("thread-started-object")
+      assertThat(event.statusKind).isEqualTo(CodexThreadStatusKind.ACTIVE)
+      assertThat(event.activeFlags).containsExactly(CodexThreadActiveFlag.WAITING_ON_APPROVAL)
       assertThat(event.startedThread).isNotNull
       assertThat(event.startedThread?.title).isEqualTo("Thread started object")
       assertThat(event.startedThread?.cwd).isEqualTo(normalizedCwd)

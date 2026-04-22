@@ -268,7 +268,7 @@ Shared contracts remain in `spec/agent-core-contracts.spec.md`.
 - Aggregation normalizes provider differences (paging/count capability) into one state model.
 - Session UI consumes normalized `AgentThreadActivity`; provider raw statuses remain backend inputs and must not create extra tree activity states.
 - Project-row branch visibility uses a local default-branch heuristic (`main`, `master`) and does not require remote default-branch lookup.
-- Codex refresh hints are app-server-first (`thread/read` snapshots), with raw Codex status normalized before UI projection and rollout parser hints used only for pending-rebind fallback and unread uplift.
+- Codex refresh hints are app-server-first, with `thread/status/changed` and `thread/started` raw status notifications able to seed immediate per-thread hints, `thread/read` snapshots providing enrichment, and rollout parser hints used only for pending-rebind fallback and unread uplift.
 - Sessions service must not impose global CLI home overrides; provider clients own process environment rules.
 - UI-layer migration to Swing does not change backend/service contracts.
 

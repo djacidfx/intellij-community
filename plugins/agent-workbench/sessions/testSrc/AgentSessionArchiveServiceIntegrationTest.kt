@@ -2,6 +2,7 @@
 package com.intellij.agent.workbench.sessions
 
 import com.intellij.agent.workbench.common.icons.AgentWorkbenchCommonIcons
+import com.intellij.agent.workbench.common.normalizeAgentWorkbenchPath
 import com.intellij.agent.workbench.common.session.AgentSessionLaunchMode
 import com.intellij.agent.workbench.common.session.AgentSessionProvider
 import com.intellij.agent.workbench.common.session.AgentSubAgent
@@ -27,12 +28,14 @@ import com.intellij.testFramework.LoggedErrorProcessor
 import com.intellij.testFramework.junit5.TestApplication
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicInteger
 import javax.swing.Icon
+import kotlin.time.Duration.Companion.milliseconds
 
 @TestApplication
 class AgentSessionArchiveServiceIntegrationTest {
@@ -133,6 +136,7 @@ class AgentSessionArchiveServiceIntegrationTest {
     val sessionSource = ScriptedSessionSource(
       provider = AgentSessionProvider.CODEX,
       listFromOpenProject = { path, _ -> if (path == PROJECT_PATH) sourceThreads.toList() else emptyList() },
+      listFromClosedProject = { path -> if (path == PROJECT_PATH) sourceThreads.toList() else emptyList() },
     )
     val bridge = testCodexBridge(
       sessionSource = sessionSource,
@@ -307,13 +311,22 @@ class AgentSessionArchiveServiceIntegrationTest {
   @Test
   fun archiveThreadHidesThreadBeforeBackgroundArchiveCompletes() = runBlocking(Dispatchers.Default) {
     val backgroundRunner = PausedArchiveBackgroundTaskRunner()
+    val listCalls = AtomicInteger(0)
     val sourceThreads = mutableListOf(
       thread(id = "codex-1", updatedAt = 200, provider = AgentSessionProvider.CODEX),
       thread(id = "codex-2", updatedAt = 100, provider = AgentSessionProvider.CODEX),
     )
     val sessionSource = ScriptedSessionSource(
       provider = AgentSessionProvider.CODEX,
-      listFromOpenProject = { path, _ -> if (path == PROJECT_PATH) sourceThreads.toList() else emptyList() },
+      listFromOpenProject = { path, _ ->
+        if (path == PROJECT_PATH) {
+          listCalls.incrementAndGet()
+          sourceThreads.toList()
+        }
+        else {
+          emptyList()
+        }
+      },
     )
     val bridge = testCodexBridge(
       sessionSource = sessionSource,
@@ -341,12 +354,11 @@ class AgentSessionArchiveServiceIntegrationTest {
           }
           assertThat(backgroundRunner.hasPendingTask()).isTrue()
 
+          val callsBeforeArchive = listCalls.get()
           backgroundRunner.resume()
           waitForCondition(timeoutMs = 6_000) {
-            backgroundRunner.completed
-          }
-          waitForCondition(timeoutMs = 6_000) {
-            service.state.value.projects.firstOrNull()?.threads.orEmpty().none { it.id == "codex-1" }
+            val threads = service.state.value.projects.firstOrNull()?.threads.orEmpty()
+            listCalls.get() > callsBeforeArchive && threads.none { it.id == "codex-1" }
           }
         }
       }
@@ -357,13 +369,19 @@ class AgentSessionArchiveServiceIntegrationTest {
   fun archiveThreadRestoresThreadWhenBackgroundArchiveFails() = runBlocking(Dispatchers.Default) {
     val backgroundRunner = PausedArchiveBackgroundTaskRunner()
     val cleanupCalls = mutableListOf<Pair<String, String>>()
+    val normalizedProjectPath = normalizeAgentWorkbenchPath(PROJECT_PATH)
     val sourceThreads = mutableListOf(
       thread(id = "codex-1", updatedAt = 200, provider = AgentSessionProvider.CODEX),
       thread(id = "codex-2", updatedAt = 100, provider = AgentSessionProvider.CODEX),
     )
     val sessionSource = ScriptedSessionSource(
       provider = AgentSessionProvider.CODEX,
-      listFromOpenProject = { path, _ -> if (path == PROJECT_PATH) sourceThreads.toList() else emptyList() },
+      listFromOpenProject = { path, _ ->
+        if (normalizeAgentWorkbenchPath(path) == normalizedProjectPath) sourceThreads.toList() else emptyList()
+      },
+      listFromClosedProject = { path ->
+        if (normalizeAgentWorkbenchPath(path) == normalizedProjectPath) sourceThreads.toList() else emptyList()
+      },
     )
     val bridge = testCodexBridge(
       sessionSource = sessionSource,
@@ -390,12 +408,23 @@ class AgentSessionArchiveServiceIntegrationTest {
           assertThat(backgroundRunner.hasPendingTask()).isTrue()
 
           backgroundRunner.resume()
-          waitForCondition(timeoutMs = 6_000) {
-            backgroundRunner.completed
+          var restored = false
+          var lastObservedThreads = emptyList<String>()
+          for (attempt in 0 until 300) {
+            lastObservedThreads = service.state.value.projects.firstOrNull()?.threads.orEmpty().map { it.id }
+            if (lastObservedThreads == listOf("codex-1", "codex-2")) {
+              restored = true
+              break
+            }
+            delay(20.milliseconds)
           }
-          waitForCondition(timeoutMs = 6_000) {
-            service.state.value.projects.firstOrNull()?.threads.orEmpty().map { it.id } == listOf("codex-1", "codex-2")
-          }
+          assertThat(restored)
+            .withFailMessage(
+              "Expected restored threads after background archive failure, observed threads=%s, backgroundCompleted=%s",
+              lastObservedThreads,
+              backgroundRunner.completed,
+            )
+            .isTrue()
           assertThat(cleanupCalls).isEmpty()
         }
       }

@@ -26,6 +26,8 @@ internal data class ParsedCodexAppServerNotification(
   @JvmField val kind: CodexAppServerNotificationKind,
   @JvmField val threadId: String? = null,
   @JvmField val startedThread: CodexAppServerStartedThread? = null,
+  @JvmField val statusKind: CodexThreadStatusKind? = null,
+  @JvmField val activeFlags: List<CodexThreadActiveFlag>? = null,
   @JvmField val turnId: String? = null,
   @JvmField val turnStatus: String? = null,
   @JvmField val turnErrorMessage: String? = null,
@@ -37,6 +39,8 @@ internal data class ParsedCodexAppServerNotification(
       kind = kind,
       threadId = threadId,
       startedThread = if (kind == CodexAppServerNotificationKind.THREAD_STARTED) startedThread else null,
+      statusKind = statusKind ?: startedThread?.statusKind,
+      activeFlags = activeFlags ?: startedThread?.activeFlags,
     )
   }
 }
@@ -200,6 +204,8 @@ internal class CodexAppServerProtocol {
         kind = notificationKind,
         threadId = params.threadId,
         startedThread = if (notificationKind == CodexAppServerNotificationKind.THREAD_STARTED) params.startedThread else null,
+        statusKind = params.statusKind,
+        activeFlags = params.activeFlags,
         turnId = params.turnId,
         turnStatus = params.turnStatus,
         turnErrorMessage = params.turnErrorMessage,
@@ -213,6 +219,8 @@ internal class CodexAppServerProtocol {
 private data class ParsedNotificationParams(
   @JvmField val threadId: String? = null,
   @JvmField val startedThread: CodexAppServerStartedThread? = null,
+  @JvmField val statusKind: CodexThreadStatusKind? = null,
+  @JvmField val activeFlags: List<CodexThreadActiveFlag>? = null,
   @JvmField val turnId: String? = null,
   @JvmField val turnStatus: String? = null,
   @JvmField val turnErrorMessage: String? = null,
@@ -222,6 +230,8 @@ private data class ParsedNotificationParams(
 private data class ParsedNotificationThreadObject(
   @JvmField val threadId: String?,
   @JvmField val startedThread: CodexAppServerStartedThread?,
+  @JvmField val statusKind: CodexThreadStatusKind?,
+  @JvmField val activeFlags: List<CodexThreadActiveFlag>?,
 )
 
 private data class ParsedNotificationTurnObject(
@@ -254,6 +264,8 @@ private fun readNonBlankStringOrNull(parser: JsonParser): String? {
 private fun parseNotificationParams(parser: JsonParser): ParsedNotificationParams {
   var threadId: String? = null
   var startedThread: CodexAppServerStartedThread? = null
+  var statusKind: CodexThreadStatusKind? = null
+  var activeFlags: List<CodexThreadActiveFlag>? = null
   var turnId: String? = null
   var turnStatus: String? = null
   var turnErrorMessage: String? = null
@@ -262,11 +274,18 @@ private fun parseNotificationParams(parser: JsonParser): ParsedNotificationParam
     when (fieldName) {
       "threadId", "thread_id" -> threadId = readNonBlankStringOrNull(parser)
       "turnId", "turn_id" -> turnId = readNonBlankStringOrNull(parser)
+      "status" -> {
+        val parsedStatus = parseThreadStatus(parser)
+        statusKind = parsedStatus.statusKind
+        activeFlags = parsedStatus.activeFlags
+      }
       "thread", "data" -> {
         val parsedThreadObject = parseObjectOrNull(parser, ::parseNotificationThreadObject)
         if (parsedThreadObject != null) {
           threadId = parsedThreadObject.threadId ?: threadId
           startedThread = parsedThreadObject.startedThread ?: startedThread
+          statusKind = parsedThreadObject.statusKind ?: statusKind
+          activeFlags = parsedThreadObject.activeFlags ?: activeFlags
         }
       }
       "turn" -> {
@@ -290,6 +309,8 @@ private fun parseNotificationParams(parser: JsonParser): ParsedNotificationParam
   return ParsedNotificationParams(
     threadId = threadId,
     startedThread = startedThread,
+    statusKind = statusKind,
+    activeFlags = activeFlags,
     turnId = turnId,
     turnStatus = turnStatus,
     turnErrorMessage = turnErrorMessage,
@@ -302,6 +323,8 @@ private fun parseNotificationThreadObject(parser: JsonParser): ParsedNotificatio
   return ParsedNotificationThreadObject(
     threadId = resolveThreadId(payload),
     startedThread = createStartedThread(payload),
+    statusKind = payload.statusKind.takeIf { payload.hasStatus },
+    activeFlags = payload.activeFlags.takeIf { payload.hasStatus },
   )
 }
 
@@ -740,6 +763,7 @@ private data class ThreadPayload(
   @JvmField val parentThreadId: String?,
   @JvmField val agentNickname: String?,
   @JvmField val agentRole: String?,
+  @JvmField val hasStatus: Boolean,
   @JvmField val statusKind: CodexThreadStatusKind,
   @JvmField val activeFlags: List<CodexThreadActiveFlag>,
 )
@@ -772,6 +796,7 @@ private fun parseThreadPayload(parser: JsonParser): ThreadPayload {
   var parentThreadId: String? = null
   var agentNickname: String? = null
   var agentRole: String? = null
+  var hasStatus = false
   var statusKind: CodexThreadStatusKind = CodexThreadStatusKind.UNKNOWN
   var activeFlags: List<CodexThreadActiveFlag> = emptyList()
 
@@ -802,6 +827,7 @@ private fun parseThreadPayload(parser: JsonParser): ThreadPayload {
       "agentRole", "agent_role" -> agentRole = readStringOrNull(parser)
       "status" -> {
         val parsedStatus = parseThreadStatus(parser)
+        hasStatus = true
         statusKind = parsedStatus.statusKind
         activeFlags = parsedStatus.activeFlags
       }
@@ -827,6 +853,7 @@ private fun parseThreadPayload(parser: JsonParser): ThreadPayload {
     parentThreadId = parentThreadId,
     agentNickname = agentNickname,
     agentRole = agentRole,
+    hasStatus = hasStatus,
     statusKind = statusKind,
     activeFlags = activeFlags,
   )

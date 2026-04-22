@@ -112,4 +112,6 @@ data class CodexAppServerNotification(
   @JvmField val kind: CodexAppServerNotificationKind,
   @JvmField val threadId: String? = null,
   @JvmField val startedThread: CodexAppServerStartedThread? = null,
+  @JvmField val statusKind: CodexThreadStatusKind? = null,
+  @JvmField val activeFlags: List<CodexThreadActiveFlag>? = null,
 )

@@ -210,9 +210,7 @@ suspend fun openChat(
     "subAgentId=$subAgentId, existing=${existing != null}, title=$threadTitle)"
   }
   val tabsService = serviceAsync<AgentChatTabsService>()
-  val fileSystem = agentChatVirtualFileSystemAsync()
-
-  val file = existing ?: fileSystem.getOrCreateFile(snapshot)
+  val file = existing ?: agentChatVirtualFileSystem().getOrCreateFile(snapshot)
   if (existing != null) {
     existing.updateFromResolution(AgentChatTabResolution.Resolved(snapshot))
     existing.updateCommandAndThreadId(shellCommand = shellCommand, shellEnvVariables = shellEnvVariables, threadId = threadId)

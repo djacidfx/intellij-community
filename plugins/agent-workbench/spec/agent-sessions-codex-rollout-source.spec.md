@@ -189,7 +189,7 @@ Define Codex thread-list behavior where discovery and primary status projection 
   [@test] ../codex/sessions/testSrc/CodexSessionsPagingLogicTest.kt
 
 ## User Experience
-- Codex activity indicators should reflect normalized workbench activity derived from app-server `thread/read` snapshots plus fresher TUI rollout working-state overrides; raw Codex status kinds are not shown directly.
+- Codex activity indicators should reflect normalized workbench activity derived from app-server raw status notifications plus `thread/read` snapshot enrichment, with fresher TUI rollout working-state overrides when allowed by the merge rules; raw Codex status kinds are not shown directly.
 - Archive action remains available for Codex threads discovered from rollout source.
 - Archive undo should be available when Codex unarchive is supported by the active provider bridge.
 

@@ -107,7 +107,7 @@ internal object CodexTestAppServer {
   @JvmStatic
   fun main(args: Array<String>) {
     val configPath = args.firstOrNull()?.let(Path::of)
-      ?: error("Expected config path argument")
+                     ?: error("Expected config path argument")
     val threads = loadThreads(configPath)
     val errorMethod = readEnv(ERROR_METHOD_ENV)
     val errorMessage = readEnv(ERROR_MESSAGE_ENV)
@@ -115,11 +115,11 @@ internal object CodexTestAppServer {
     val requestPayloadLogPath = readEnv(REQUEST_PAYLOAD_LOG_ENV)?.let(Path::of)
     val promptSuggestKind = readEnv(PROMPT_SUGGEST_KIND_ENV)
     val promptSuggestLifecycleValues = readEnv(PROMPT_SUGGEST_LIFECYCLE_ENV)
-      ?.split(',')
-      ?.map(String::trim)
-      ?.filter(String::isNotEmpty)
-      ?.toMutableList()
-      ?: mutableListOf()
+                                         ?.split(',')
+                                         ?.map(String::trim)
+                                         ?.filter(String::isNotEmpty)
+                                         ?.toMutableList()
+                                       ?: mutableListOf()
     val promptSuggestLifecycleStateFile = readEnv(PROMPT_SUGGEST_LIFECYCLE_STATE_FILE_ENV)?.let(Path::of)
     val promptSuggestErrorMessage = readEnv(PROMPT_SUGGEST_ERROR_MESSAGE_ENV)
     val notifyMethod = readEnv(NOTIFY_METHOD_ENV)
@@ -751,9 +751,9 @@ internal object CodexTestAppServer {
     }
 
     return Files.readString(path, StandardCharsets.UTF_8)
-      .trim()
-      .toIntOrNull()
-      ?: 0
+             .trim()
+             .toIntOrNull()
+           ?: 0
   }
 
   private fun writePromptSuggestionLifecycleIndex(path: Path, index: Int) {
@@ -814,7 +814,8 @@ internal object CodexTestAppServer {
         "cwd" -> cwd = readStringOrNull(parser)
         "sourceKind" -> sourceKind = readStringOrNull(parser)?.takeIf { it.isNotBlank() } ?: sourceKind
         "sourceAsString" -> sourceAsString = readBooleanOrNull(parser) ?: false
-        "sourceSubAgentFieldName" -> sourceSubAgentFieldName = readStringOrNull(parser)?.takeIf { it.isNotBlank() } ?: sourceSubAgentFieldName
+        "sourceSubAgentFieldName" -> sourceSubAgentFieldName =
+          readStringOrNull(parser)?.takeIf { it.isNotBlank() } ?: sourceSubAgentFieldName
         "parentThreadId" -> parentThreadId = readStringOrNull(parser)
         "agentNickname" -> agentNickname = readStringOrNull(parser)
         "agentRole" -> agentRole = readStringOrNull(parser)
@@ -955,6 +956,10 @@ internal object CodexTestAppServer {
         }
       }
     }
+    if (method == "thread/status/changed" && thread != null) {
+      generator.writeFieldName("status")
+      writeThreadStatus(generator, thread)
+    }
     generator.writeEndObject()
     generator.writeEndObject()
     generator.close()
@@ -967,215 +972,217 @@ internal object CodexTestAppServer {
     generator.writeEndObject()
   }
 
-private fun writeThreadList(
-  generator: JsonGenerator,
-  threads: List<ThreadEntry>,
-  archived: Boolean,
-  cursor: String?,
-  limit: Int?,
-  cwd: String?,
-  sourceKinds: Set<String>?,
-) {
-  val effectiveSourceKinds = sourceKinds
-    ?.filterTo(LinkedHashSet()) { it.isNotBlank() }
-    ?.takeIf { it.isNotEmpty() }
-    ?: DEFAULT_THREAD_LIST_SOURCE_KINDS
-  val sorted = threads
-    .filter { thread ->
-      if (thread.archived != archived) return@filter false
-      if (cwd != null && thread.cwd != cwd) return@filter false
-      thread.sourceKind in effectiveSourceKinds
-    }
-    .sortedByDescending { it.updatedAt ?: 0L }
-  val pageStart = cursor?.toIntOrNull()?.coerceAtLeast(0) ?: 0
-  val pageLimit = (limit ?: sorted.size).coerceAtLeast(1)
-  val pageItems = sorted.drop(pageStart).take(pageLimit)
-  val nextOffset = pageStart + pageItems.size
-  val nextCursor = if (nextOffset < sorted.size) nextOffset.toString() else null
-  generator.writeStartObject()
-  generator.writeFieldName("data")
-  generator.writeStartArray()
-  pageItems.forEach { thread ->
-    writeThreadObject(generator, thread)
-  }
-  generator.writeEndArray()
-  if (nextCursor != null) {
-    generator.writeStringField("nextCursor", nextCursor)
-  }
-  generator.writeEndObject()
-}
-
-private fun writeThreadObject(generator: JsonGenerator, thread: ThreadEntry) {
-  generator.writeStartObject()
-  generator.writeStringField("id", thread.id)
-  thread.title?.let { generator.writeStringField("title", it) }
-  thread.preview?.let { generator.writeStringField("preview", it) }
-  thread.name?.let { generator.writeStringField("name", it) }
-  thread.summary?.let { generator.writeStringField("summary", it) }
-  thread.cwd?.let { generator.writeStringField("cwd", it) }
-  generator.writeFieldName("source")
-  writeThreadSource(generator, thread)
-  thread.agentNickname?.let { generator.writeStringField("agentNickname", it) }
-  thread.agentRole?.let { generator.writeStringField("agentRole", it) }
-  generator.writeFieldName("status")
-  writeThreadStatus(generator, thread)
-  thread.gitBranch?.let { gitBranch ->
-    generator.writeFieldName("gitInfo")
+  private fun writeThreadList(
+    generator: JsonGenerator,
+    threads: List<ThreadEntry>,
+    archived: Boolean,
+    cursor: String?,
+    limit: Int?,
+    cwd: String?,
+    sourceKinds: Set<String>?,
+  ) {
+    val effectiveSourceKinds = sourceKinds
+                                 ?.filterTo(LinkedHashSet()) { it.isNotBlank() }
+                                 ?.takeIf { it.isNotEmpty() }
+                               ?: DEFAULT_THREAD_LIST_SOURCE_KINDS
+    val sorted = threads
+      .filter { thread ->
+        if (thread.archived != archived) return@filter false
+        if (cwd != null && thread.cwd != cwd) return@filter false
+        thread.sourceKind in effectiveSourceKinds
+      }
+      .sortedByDescending { it.updatedAt ?: 0L }
+    val pageStart = cursor?.toIntOrNull()?.coerceAtLeast(0) ?: 0
+    val pageLimit = (limit ?: sorted.size).coerceAtLeast(1)
+    val pageItems = sorted.drop(pageStart).take(pageLimit)
+    val nextOffset = pageStart + pageItems.size
+    val nextCursor = if (nextOffset < sorted.size) nextOffset.toString() else null
     generator.writeStartObject()
-    generator.writeNullField("sha")
-    generator.writeStringField("branch", gitBranch)
-    generator.writeNullField("originUrl")
+    generator.writeFieldName("data")
+    generator.writeStartArray()
+    pageItems.forEach { thread ->
+      writeThreadObject(generator, thread)
+    }
+    generator.writeEndArray()
+    if (nextCursor != null) {
+      generator.writeStringField("nextCursor", nextCursor)
+    }
     generator.writeEndObject()
   }
-  thread.updatedAt?.let { updatedAt ->
-    val field = thread.updatedAtField?.takeIf { it.isNotBlank() } ?: "updated_at"
-    generator.writeNumberField(field, updatedAt)
-  }
-  thread.createdAt?.let { createdAt ->
-    val field = thread.createdAtField?.takeIf { it.isNotBlank() } ?: "created_at"
-    generator.writeNumberField(field, createdAt)
-  }
-  generator.writeEndObject()
-}
 
-private fun writeThreadSource(generator: JsonGenerator, thread: ThreadEntry) {
-  if (thread.sourceAsString) {
-    generator.writeString(thread.sourceKind)
-    return
-  }
-
-  when (thread.sourceKind) {
-    "subAgentThreadSpawn" -> {
+  private fun writeThreadObject(generator: JsonGenerator, thread: ThreadEntry) {
+    generator.writeStartObject()
+    generator.writeStringField("id", thread.id)
+    thread.title?.let { generator.writeStringField("title", it) }
+    thread.preview?.let { generator.writeStringField("preview", it) }
+    thread.name?.let { generator.writeStringField("name", it) }
+    thread.summary?.let { generator.writeStringField("summary", it) }
+    thread.cwd?.let { generator.writeStringField("cwd", it) }
+    generator.writeFieldName("source")
+    writeThreadSource(generator, thread)
+    thread.agentNickname?.let { generator.writeStringField("agentNickname", it) }
+    thread.agentRole?.let { generator.writeStringField("agentRole", it) }
+    generator.writeFieldName("status")
+    writeThreadStatus(generator, thread)
+    thread.gitBranch?.let { gitBranch ->
+      generator.writeFieldName("gitInfo")
       generator.writeStartObject()
-      generator.writeFieldName(thread.sourceSubAgentFieldName)
-      generator.writeStartObject()
-      generator.writeFieldName("thread_spawn")
-      generator.writeStartObject()
-      generator.writeStringField("parent_thread_id", thread.parentThreadId ?: "missing-parent")
-      generator.writeNumberField("depth", 1)
-      if (thread.agentNickname == null) generator.writeNullField("agent_nickname") else generator.writeStringField("agent_nickname", thread.agentNickname)
-      if (thread.agentRole == null) generator.writeNullField("agent_role") else generator.writeStringField("agent_role", thread.agentRole)
-      generator.writeEndObject()
-      generator.writeEndObject()
+      generator.writeNullField("sha")
+      generator.writeStringField("branch", gitBranch)
+      generator.writeNullField("originUrl")
       generator.writeEndObject()
     }
+    thread.updatedAt?.let { updatedAt ->
+      val field = thread.updatedAtField?.takeIf { it.isNotBlank() } ?: "updated_at"
+      generator.writeNumberField(field, updatedAt)
+    }
+    thread.createdAt?.let { createdAt ->
+      val field = thread.createdAtField?.takeIf { it.isNotBlank() } ?: "created_at"
+      generator.writeNumberField(field, createdAt)
+    }
+    generator.writeEndObject()
+  }
 
-    "subAgentReview" -> {
-      generator.writeStartObject()
-      generator.writeStringField(thread.sourceSubAgentFieldName, "review")
-      generator.writeEndObject()
+  private fun writeThreadSource(generator: JsonGenerator, thread: ThreadEntry) {
+    if (thread.sourceAsString) {
+      generator.writeString(thread.sourceKind)
+      return
     }
 
-    "subAgentCompact" -> {
-      generator.writeStartObject()
-      generator.writeStringField(thread.sourceSubAgentFieldName, "compact")
-      generator.writeEndObject()
-    }
-
-    "subAgentOther" -> {
-      generator.writeStartObject()
-      generator.writeFieldName(thread.sourceSubAgentFieldName)
-      generator.writeStartObject()
-      generator.writeStringField("other", "custom")
-      generator.writeEndObject()
-      generator.writeEndObject()
-    }
-
-    "subAgent" -> {
-      generator.writeStartObject()
-      generator.writeStringField(thread.sourceSubAgentFieldName, "memory_consolidation")
-      generator.writeEndObject()
-    }
-
-    else -> generator.writeString(thread.sourceKind)
-  }
-}
-
-private fun writeThreadStatus(generator: JsonGenerator, thread: ThreadEntry) {
-  generator.writeStartObject()
-  generator.writeStringField("type", thread.statusType)
-  if (thread.statusType.equals("active", ignoreCase = true)) {
-    generator.writeFieldName(thread.statusActiveFlagsFieldName)
-    generator.writeStartArray()
-    thread.activeFlags.forEach(generator::writeString)
-    generator.writeEndArray()
-  }
-  generator.writeEndObject()
-}
-
-private fun writeThreadReadObject(generator: JsonGenerator, thread: ThreadEntry, includeTurns: Boolean) {
-  generator.writeStartObject()
-  generator.writeStringField("id", thread.id)
-  thread.updatedAt?.let { updatedAt ->
-    val field = thread.updatedAtField?.takeIf { it.isNotBlank() } ?: "updated_at"
-    generator.writeNumberField(field, updatedAt)
-  }
-  thread.createdAt?.let { createdAt ->
-    val field = thread.createdAtField?.takeIf { it.isNotBlank() } ?: "created_at"
-    generator.writeNumberField(field, createdAt)
-  }
-  generator.writeFieldName("status")
-  writeThreadStatus(generator, thread)
-  if (includeTurns) {
-    generator.writeFieldName("turns")
-    generator.writeStartArray()
-    thread.readTurns.forEach { turn ->
-      generator.writeStartObject()
-      generator.writeFieldName("status")
-      if (turn.statusAsObject) {
+    when (thread.sourceKind) {
+      "subAgentThreadSpawn" -> {
         generator.writeStartObject()
-        generator.writeStringField("type", turn.statusType)
+        generator.writeFieldName(thread.sourceSubAgentFieldName)
+        generator.writeStartObject()
+        generator.writeFieldName("thread_spawn")
+        generator.writeStartObject()
+        generator.writeStringField("parent_thread_id", thread.parentThreadId ?: "missing-parent")
+        generator.writeNumberField("depth", 1)
+        if (thread.agentNickname == null) generator.writeNullField("agent_nickname")
+        else generator.writeStringField("agent_nickname",
+                                        thread.agentNickname)
+        if (thread.agentRole == null) generator.writeNullField("agent_role") else generator.writeStringField("agent_role", thread.agentRole)
+        generator.writeEndObject()
+        generator.writeEndObject()
         generator.writeEndObject()
       }
-      else {
-        generator.writeString(turn.statusType)
-      }
-      generator.writeFieldName("items")
-      generator.writeStartArray()
-      turn.itemTypes.forEach { itemType ->
+
+      "subAgentReview" -> {
         generator.writeStartObject()
-        generator.writeStringField("type", itemType)
+        generator.writeStringField(thread.sourceSubAgentFieldName, "review")
+        generator.writeEndObject()
+      }
+
+      "subAgentCompact" -> {
+        generator.writeStartObject()
+        generator.writeStringField(thread.sourceSubAgentFieldName, "compact")
+        generator.writeEndObject()
+      }
+
+      "subAgentOther" -> {
+        generator.writeStartObject()
+        generator.writeFieldName(thread.sourceSubAgentFieldName)
+        generator.writeStartObject()
+        generator.writeStringField("other", "custom")
+        generator.writeEndObject()
+        generator.writeEndObject()
+      }
+
+      "subAgent" -> {
+        generator.writeStartObject()
+        generator.writeStringField(thread.sourceSubAgentFieldName, "memory_consolidation")
+        generator.writeEndObject()
+      }
+
+      else -> generator.writeString(thread.sourceKind)
+    }
+  }
+
+  private fun writeThreadStatus(generator: JsonGenerator, thread: ThreadEntry) {
+    generator.writeStartObject()
+    generator.writeStringField("type", thread.statusType)
+    if (thread.statusType.equals("active", ignoreCase = true)) {
+      generator.writeFieldName(thread.statusActiveFlagsFieldName)
+      generator.writeStartArray()
+      thread.activeFlags.forEach(generator::writeString)
+      generator.writeEndArray()
+    }
+    generator.writeEndObject()
+  }
+
+  private fun writeThreadReadObject(generator: JsonGenerator, thread: ThreadEntry, includeTurns: Boolean) {
+    generator.writeStartObject()
+    generator.writeStringField("id", thread.id)
+    thread.updatedAt?.let { updatedAt ->
+      val field = thread.updatedAtField?.takeIf { it.isNotBlank() } ?: "updated_at"
+      generator.writeNumberField(field, updatedAt)
+    }
+    thread.createdAt?.let { createdAt ->
+      val field = thread.createdAtField?.takeIf { it.isNotBlank() } ?: "created_at"
+      generator.writeNumberField(field, createdAt)
+    }
+    generator.writeFieldName("status")
+    writeThreadStatus(generator, thread)
+    if (includeTurns) {
+      generator.writeFieldName("turns")
+      generator.writeStartArray()
+      thread.readTurns.forEach { turn ->
+        generator.writeStartObject()
+        generator.writeFieldName("status")
+        if (turn.statusAsObject) {
+          generator.writeStartObject()
+          generator.writeStringField("type", turn.statusType)
+          generator.writeEndObject()
+        }
+        else {
+          generator.writeString(turn.statusType)
+        }
+        generator.writeFieldName("items")
+        generator.writeStartArray()
+        turn.itemTypes.forEach { itemType ->
+          generator.writeStartObject()
+          generator.writeStringField("type", itemType)
+          generator.writeEndObject()
+        }
+        generator.writeEndArray()
         generator.writeEndObject()
       }
       generator.writeEndArray()
-      generator.writeEndObject()
     }
-    generator.writeEndArray()
+    generator.writeEndObject()
   }
-  generator.writeEndObject()
-}
 
-private fun startThread(threads: MutableList<ThreadEntry>, cwdOverride: String?): ThreadEntry {
-  val now = System.currentTimeMillis()
-  val id = "thread-start-$now"
-  val cwd = cwdOverride ?: threads.firstOrNull { !it.cwd.isNullOrBlank() }?.cwd ?: System.getProperty("user.dir")
-  val thread = ThreadEntry(
-    id = id,
-    title = "Thread ${id.takeLast(8)}",
-    preview = "",
-    name = null,
-    summary = null,
-    cwd = cwd,
-    sourceKind = "appServer",
-    sourceAsString = false,
-    sourceSubAgentFieldName = "subAgent",
-    parentThreadId = null,
-    agentNickname = null,
-    agentRole = null,
-    statusType = "idle",
-    statusActiveFlagsFieldName = "activeFlags",
-    activeFlags = emptyList(),
-    readTurns = emptyList(),
-    gitBranch = null,
-    updatedAt = now,
-    updatedAtField = "updated_at",
-    createdAt = now,
-    createdAtField = "created_at",
-    archived = false,
-  )
-  threads.add(thread)
-  return thread
-}
+  private fun startThread(threads: MutableList<ThreadEntry>, cwdOverride: String?): ThreadEntry {
+    val now = System.currentTimeMillis()
+    val id = "thread-start-$now"
+    val cwd = cwdOverride ?: threads.firstOrNull { !it.cwd.isNullOrBlank() }?.cwd ?: System.getProperty("user.dir")
+    val thread = ThreadEntry(
+      id = id,
+      title = "Thread ${id.takeLast(8)}",
+      preview = "",
+      name = null,
+      summary = null,
+      cwd = cwd,
+      sourceKind = "appServer",
+      sourceAsString = false,
+      sourceSubAgentFieldName = "subAgent",
+      parentThreadId = null,
+      agentNickname = null,
+      agentRole = null,
+      statusType = "idle",
+      statusActiveFlagsFieldName = "activeFlags",
+      activeFlags = emptyList(),
+      readTurns = emptyList(),
+      gitBranch = null,
+      updatedAt = now,
+      updatedAtField = "updated_at",
+      createdAt = now,
+      createdAtField = "created_at",
+      archived = false,
+    )
+    threads.add(thread)
+    return thread
+  }
 
 }
 

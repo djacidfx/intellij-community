@@ -1115,7 +1115,7 @@ private suspend fun openDeferredNewChatInProject(
     threadId = threadId,
     threadTitle = title,
     subAgentId = null,
-    threadActivity = com.intellij.agent.workbench.common.AgentThreadActivity.PROCESSING,
+    threadActivity = com.intellij.agent.workbench.common.AgentThreadActivity.READY,
     pendingCreatedAtMs = pendingMetadata?.createdAtMs,
     pendingLaunchMode = pendingMetadata?.launchMode,
     initialMessageDispatchPlan = AgentInitialMessageDispatchPlan.EMPTY,

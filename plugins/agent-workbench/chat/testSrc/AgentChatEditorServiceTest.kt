@@ -348,6 +348,27 @@ class AgentChatEditorServiceTest {
   }
 
   @Test
+  fun deferredWaitingTabKeepsReadyActivityUntilStartDecision(): Unit = timeoutRunBlocking {
+    openChatInModal(
+      threadIdentity = "CODEX:new-deferred-ready",
+      shellCommand = codexCommand,
+      threadId = "",
+      threadTitle = "Deferred waiting thread",
+      subAgentId = null,
+      persistSnapshot = false,
+      deferredStartState = AgentChatDeferredStartState(
+        phase = AgentChatDeferredStartPhase.WAITING,
+        title = "Preparing merge resolution",
+        message = "Still preparing conflicts",
+      ),
+    )
+
+    val file = openedChatFiles().single()
+    assertThat(file.threadActivity).isEqualTo(AgentThreadActivity.READY)
+    assertThat(file.toSnapshot().runtime.threadActivity).isEqualTo(AgentThreadActivity.READY)
+  }
+
+  @Test
   fun deferredSuccessNoStartTabIsExcludedFromPendingCollections(): Unit = timeoutRunBlocking {
     openChatInModal(
       threadIdentity = "CODEX:new-deferred-success",
@@ -1291,8 +1312,9 @@ class AgentChatEditorServiceTest {
     val file = openedChatFiles().single()
     val tabPath = AgentChatTabKey.parse(file.tabKey)!!.toPath()
 
+    val fileSystem = agentChatVirtualFileSystem()
     val resolvedFile = runInUi {
-      agentChatVirtualFileSystem().findFileByPath(tabPath)
+      fileSystem.findFileByPath(tabPath)
     }
 
     assertThat(resolvedFile).isSameAs(file)
@@ -1520,8 +1542,9 @@ class AgentChatEditorServiceTest {
       assertThat(restored.snapshot.runtime.initialMessageToken).isEqualTo("token-multi-step-restore")
       assertThat(restored.snapshot.runtime.initialMessageSent).isFalse()
 
+      val fileSystem = agentChatVirtualFileSystem()
       val file = checkNotNull(runInUi {
-        agentChatVirtualFileSystem().findFileByPath(snapshot.tabKey.toPath())
+        fileSystem.findFileByPath(snapshot.tabKey.toPath())
       }) as AgentChatVirtualFile
       assertThat(file.initialMessageDispatchSteps).containsExactlyElementsOf(steps)
       assertThat(file.initialMessageDispatchStepIndex).isEqualTo(1)
