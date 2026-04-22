@@ -134,8 +134,7 @@ internal class CustomWrapOnlyRecalculationManager(
     if (!modelHasWraps()) {
       return
     }
-    // todo improve
-    deferredFoldRegions.forEach { recalculateCustomWraps(createEventForVisualChange(it.startOffset, it.endOffset)) }
+    recalculateCustomWraps(deferredFoldRegions)
     deferredFoldRegions.clear()
     softWrapNotifier.notifyAllDirtyRegionsReparsed()
   }
@@ -179,7 +178,7 @@ internal class CustomWrapOnlyRecalculationManager(
     }
     try {
       if (!isDirty) {
-        deferredCustomWraps.forEach { recalculateCustomWraps(createEventForVisualChange(it.startOffset, it.endOffset)) }
+        recalculateCustomWraps(deferredCustomWraps)
         if (deferredCustomWraps.isNotEmpty()) {
           softWrapNotifier.notifyAllDirtyRegionsReparsed()
         }
@@ -195,6 +194,12 @@ internal class CustomWrapOnlyRecalculationManager(
   }
 
   private fun modelHasWraps(): Boolean = editor.customWrapModel.hasWraps()
+
+  private fun recalculateCustomWraps(ranges: List<Segment>) {
+    SoftWrapHelper.recalculateSegments(ranges, softWrapNotifier) { startOffset, endOffset ->
+      recalculateCustomWraps(createEventForVisualChange(startOffset, endOffset))
+    }
+  }
 
   private fun recalculateCustomWraps(event: IncrementalCacheUpdateEvent) {
     val startOffset = event.startOffset

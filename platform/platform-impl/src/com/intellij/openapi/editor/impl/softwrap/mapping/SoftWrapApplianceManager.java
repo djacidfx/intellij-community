@@ -18,7 +18,6 @@ import com.intellij.openapi.editor.ex.ScrollingModelEx;
 import com.intellij.openapi.editor.ex.util.EditorUtil;
 import com.intellij.openapi.editor.impl.EditorImpl;
 import com.intellij.openapi.editor.impl.SoftWrapEngine;
-import com.intellij.openapi.editor.impl.SoftWrapModelImpl;
 import com.intellij.openapi.editor.impl.TextChangeImpl;
 import com.intellij.openapi.editor.impl.softwrap.SoftWrapHelper;
 import com.intellij.openapi.editor.impl.softwrap.SoftWrapImpl;
@@ -30,7 +29,6 @@ import com.intellij.openapi.util.Segment;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.EditorNotifications;
 import com.intellij.util.DocumentUtil;
-import com.intellij.util.containers.ContainerUtil;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -156,31 +154,8 @@ public final class SoftWrapApplianceManager implements Dumpable {
       return;
     }
 
-    // Sorts ranges by start offset ascending, then by end offset descending
-    ranges = ContainerUtil.sorted(ranges, (o1, o2) -> {
-      int startDiff = o1.getStartOffset() - o2.getStartOffset();
-      return startDiff == 0 ? o2.getEndOffset() - o1.getEndOffset() : startDiff;
-    });
-    final int[] lastRecalculatedOffset = {0};
-    SoftWrapParsingListener listener = new SoftWrapParsingListener() {
-      @Override
-      public void onRegionReparseEnd(@NotNull IncrementalCacheUpdateEvent event) {
-        lastRecalculatedOffset[0] = event.getActualEndOffset();
-      }
-    };
-    mySoftWrapNotifier.addSoftWrapParsingListener(listener);
-    try {
-      for (Segment range : ranges) {
-        int lastOffset = lastRecalculatedOffset[0];
-        if (range.getEndOffset() > lastOffset) {
-          recalculateSoftWraps(createEventForVisualChange(Math.max(range.getStartOffset(), lastOffset),
-                                                          range.getEndOffset()));
-        }
-      }
-    }
-    finally {
-      mySoftWrapNotifier.removeSoftWrapParsingListener(listener);
-    }
+    SoftWrapHelper.recalculateSegments(ranges, mySoftWrapNotifier,
+                                       (startOffset, endOffset) -> recalculateSoftWraps(createEventForVisualChange(startOffset, endOffset)));
 
     onRecalculationEnd();
   }
