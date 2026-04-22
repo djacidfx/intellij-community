@@ -98,7 +98,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
   private val coroutineScope: CoroutineScope
 
   private val pluginModelFacade: PluginModelFacade
-  private var pluginUpdatesService: PluginUpdatesService? = null
+  private val pluginUpdatesService: PluginUpdatesService
   private val pluginManagerCustomizer: PluginManagerCustomizer? = PluginManagerCustomizer.getInstance()
 
   private val tabHeaderComponent: TabbedPaneHeaderComponent
@@ -160,7 +160,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
         }
       }
 
-    pluginModelFacade.getModel().pluginUpdatesService = pluginUpdatesService!!
+    pluginModelFacade.getModel().pluginUpdatesService = pluginUpdatesService
     UiPluginManager.getInstance().updateDescriptorsForInstalledPlugins()
 
     marketplaceTab = createMarketplaceTab()
@@ -274,7 +274,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
   private fun resetPanels() {
     CustomPluginRepositoryService.getInstance().clearCache()
     marketplaceTab.resetCache()
-    pluginUpdatesService!!.recalculateUpdates()
+    pluginUpdatesService.recalculateUpdates()
     marketplaceTab.onPanelReset(tabHeaderComponent.getSelectionTab() == MARKETPLACE_TAB)
   }
 
@@ -292,13 +292,13 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
   }
 
   private fun createMarketplaceTab(): MarketplacePluginsTab {
-    return MarketplacePluginsTab(pluginModelFacade, coroutineScope, pluginManagerCustomizer, pluginUpdatesService!!)
+    return MarketplacePluginsTab(pluginModelFacade, coroutineScope, pluginManagerCustomizer, pluginUpdatesService)
   }
 
   private fun createInstalledTab(): InstalledPluginsTab {
     val installedPluginsTab = InstalledPluginsTab(
       pluginModelFacade,
-      pluginUpdatesService!!,
+      pluginUpdatesService,
       coroutineScope,
       { _ -> tabHeaderComponent.setSelectionWithEvents(MARKETPLACE_TAB) },
     )
@@ -348,7 +348,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
       installedTab.getInstalledSearchPanel()!!.dispose()
     }
 
-    pluginUpdatesService!!.dispose()
+    pluginUpdatesService.dispose()
     PluginPriceService.cancel()
 
     pluginsState.runShutdownCallback()
