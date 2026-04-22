@@ -2,15 +2,12 @@
 package com.intellij.terminal.tests.classic
 
 import com.intellij.execution.CommandLineUtil
-import com.intellij.openapi.application.EDT
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.terminal.tests.block.util.TerminalSessionTestUtil
 import com.intellij.testFramework.DisposableRule
 import com.intellij.testFramework.ProjectRule
 import com.intellij.testFramework.RuleChain
 import com.intellij.util.io.delete
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import org.jetbrains.plugins.terminal.JBTerminalSystemSettingsProvider
 import org.jetbrains.plugins.terminal.ShellTerminalWidget
 import org.jetbrains.plugins.terminal.testFramework.classic.ClassicTerminalTestShellSession
@@ -54,7 +51,7 @@ class ClassicTerminalBasicTest(private val shellPath: Path) {
   }
 
   @Test
-  fun `basic echo and clear`() = runBlocking(Dispatchers.EDT) {
+  fun `basic echo and clear`() {
     val session = startSession()
     val command = if (isPowerShell()) {
       $$"$env:_MY_FOO = 'test'; echo \"1`n2`n$env:_MY_FOO\""
@@ -69,7 +66,7 @@ class ClassicTerminalBasicTest(private val shellPath: Path) {
   }
 
   @Test
-  fun `commands should be executed in order`() = runBlocking(Dispatchers.EDT) {
+  fun `commands should be executed in order`() {
     val outputFile = Files.createTempFile("output", ".txt")
     val widget = createWidget()
     val commandCount = 10
