@@ -6,7 +6,6 @@ import com.intellij.ide.IdeBundle
 import com.intellij.ide.hierarchy.HierarchyNodeDescriptor
 import com.intellij.ide.hierarchy.ReferenceAwareNodeDescriptor
 import com.intellij.ide.hierarchy.call.CallHierarchyNodeDescriptor
-import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.roots.ui.util.CompositeAppearance
 import com.intellij.openapi.util.Comparing
 import com.intellij.openapi.util.Iconable
@@ -41,7 +40,6 @@ import org.jetbrains.kotlin.psi.KtObjectDeclaration
 import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.psi.KtPsiUtil
 import org.jetbrains.kotlin.types.Variance
-import java.awt.Font
 
 class KotlinCallHierarchyNodeDescriptor(
     parentDescriptor: HierarchyNodeDescriptor?,
@@ -112,17 +110,13 @@ class KotlinCallHierarchyNodeDescriptor(
             elementIcon
         }
 
-        val mainTextAttributes: TextAttributes? = if (myColor != null) {
-            TextAttributes(myColor, null, null, null, Font.PLAIN)
-        } else {
-            null
-        }
+        val mainTextAttributes = textAttributesFor(targetElement)
 
         myHighlightedText = CompositeAppearance()
         myHighlightedText.ending.addText(elementText, mainTextAttributes)
         if (usageCount > 1) {
             myHighlightedText.ending.addText(
-                IdeBundle.message("node.call.hierarchy.N.usages", usageCount),
+                " " + IdeBundle.message("node.call.hierarchy.N.usages", usageCount),
                 getUsageCountPrefixAttributes(),
             )
         }
@@ -130,7 +124,7 @@ class KotlinCallHierarchyNodeDescriptor(
         @NlsSafe
         val packageName = KtPsiUtil.getPackageName(targetElement as KtElement) ?: ""
 
-        myHighlightedText.ending.addText("  ($packageName)", getPackageNameAttributes())
+        myHighlightedText.ending.addText(" ($packageName)", getPackageNameAttributes())
         myName = myHighlightedText.text
 
         if (!(Comparing.equal(myHighlightedText, oldText) && Comparing.equal(icon, oldIcon))) {

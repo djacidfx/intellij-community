@@ -5,7 +5,6 @@ package org.jetbrains.kotlin.idea.k2.codeinsight.hierarchy.overrides
 import com.intellij.icons.AllIcons
 import com.intellij.ide.IdeBundle
 import com.intellij.ide.hierarchy.HierarchyNodeDescriptor
-import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.roots.ui.util.CompositeAppearance
 import com.intellij.openapi.util.Comparing
 import com.intellij.openapi.util.Iconable
@@ -44,7 +43,6 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtFunction
 import org.jetbrains.kotlin.psi.KtNamedDeclaration
 import org.jetbrains.kotlin.psi.psiUtil.parents
-import java.awt.Font
 import javax.swing.Icon
 
 class KotlinOverrideHierarchyNodeDescriptor(
@@ -154,10 +152,7 @@ class KotlinOverrideHierarchyNodeDescriptor(
         val oldText = myHighlightedText
 
         myHighlightedText = CompositeAppearance()
-        var classNameAttributes: TextAttributes? = null
-        if (myColor != null) {
-            classNameAttributes = TextAttributes(myColor, null, null, null, Font.PLAIN)
-        }
+        val classNameAttributes = textAttributesFor(classPsi)
 
         with(myHighlightedText.ending) {
             @NlsSafe val classDescriptorAsString = (classPsi as PsiNamedElement).name
@@ -174,13 +169,13 @@ class KotlinOverrideHierarchyNodeDescriptor(
 
                     is KtFile -> {
                         @NlsSafe val parentDescriptorAsString = parent.packageDirective?.qualifiedName ?: ""
-                        addText("  ($parentDescriptorAsString)", getPackageNameAttributes())
+                        addText(" ($parentDescriptorAsString)", getPackageNameAttributes())
                         return@forEach
                     }
 
                     is PsiClassOwner -> {
                         @NlsSafe val parentDescriptorAsString = parent.packageName
-                        addText("  ($parentDescriptorAsString)", getPackageNameAttributes())
+                        addText(" ($parentDescriptorAsString)", getPackageNameAttributes())
                         return@forEach
                     }
                 }

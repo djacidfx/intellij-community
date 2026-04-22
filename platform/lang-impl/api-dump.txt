@@ -807,6 +807,9 @@ f:com.intellij.ide.hierarchy.HierarchyBrowserScopes
 - sf:SCOPE_PROJECT:java.lang.String
 - sf:SCOPE_TEST:java.lang.String
 - <init>():V
+a:com.intellij.ide.hierarchy.HierarchyNodeDescriptor
+- p:baseColorAttributes():com.intellij.openapi.editor.markup.TextAttributes
+- pf:textAttributesFor(com.intellij.psi.PsiElement):com.intellij.openapi.editor.markup.TextAttributes
 com.intellij.ide.hierarchy.ReferenceAwareNodeDescriptor
 - a:getEnclosingElement():com.intellij.psi.PsiElement
 - a:getPresentation():java.lang.String

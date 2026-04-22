@@ -252,6 +252,81 @@ public class ClassPresentationUtilTest extends LightJavaCodeInsightTestCase {
       .isEqualTo("() -> {...} in myMethod() in com.example.Outer");
   }
 
+  // --- getSimpleNameForClass tests ---
+
+  public void testGetSimpleNameForClassTopLevel() {
+    var psiClass = getElementAtCaret(PsiClass.class, """
+      class <caret>MyClass {}
+      """);
+    assertThat(ClassPresentationUtil.getSimpleNameForClass(psiClass)).isEqualTo("MyClass");
+  }
+
+  public void testGetSimpleNameForClassNested() {
+    var psiClass = getElementAtCaret(PsiClass.class, """
+      class Outer {
+        class <caret>Inner {}
+      }
+      """);
+    assertThat(ClassPresentationUtil.getSimpleNameForClass(psiClass)).isEqualTo("Inner");
+  }
+
+  public void testGetSimpleNameForClassAnonymous() {
+    var psiClass = getElementAtCaret(PsiClass.class, """
+      class Outer {
+        void myMethod() {
+          Runnable r = new <caret>Runnable() {
+            public void run() {}
+          };
+        }
+      }
+      """);
+    assertThat(ClassPresentationUtil.getSimpleNameForClass(psiClass)).isEqualTo("Anonymous class");
+  }
+
+  public void testGetSimpleNameForClassEnumConstantInitializer() {
+    var psiClass = getElementAtCaret(PsiClass.class, """
+      enum MyEnum {
+        CONST {
+          @Override
+          public String <caret>toString() { return ""; }
+        }
+      }
+      """);
+    assertThat(ClassPresentationUtil.getSimpleNameForClass(psiClass)).isEqualTo("Enum constant 'CONST'");
+  }
+
+  public void testGetSimpleNameForClassImplicit() {
+    configureFromFileText("File.java", """
+      void main() {}
+      """);
+    PsiClass psiClass = ((PsiJavaFile)getFile()).getClasses()[0];
+    assertThat(ClassPresentationUtil.getSimpleNameForClass(psiClass)).isEqualTo("Compact source file");
+  }
+
+  public void testGetSimpleFunctionalExpressionPresentationLambda() {
+    var lambda = getElementAtCaret(PsiLambdaExpression.class, """
+      class Outer {
+        void myMethod() {
+          Runnable r = <caret>() -> {};
+        }
+      }
+      """);
+    assertThat(ClassPresentationUtil.getSimpleFunctionalExpressionPresentation(lambda))
+      .isEqualTo("() -> {...}");
+  }
+
+  public void testGetSimpleFunctionalExpressionPresentationMethodReference() {
+    var methodRef = getElementAtCaret(PsiMethodReferenceExpression.class, """
+      class Outer {
+        void myMethod() {
+          Runnable r = this::<caret>toString;
+        }
+      }
+      """);
+    assertThat(ClassPresentationUtil.getSimpleFunctionalExpressionPresentation(methodRef))
+      .isEqualTo("this::toString");
+  }
+
   private <T extends PsiElement> T getElementAtCaret(Class<T> aClass, @Language("JAVA") String text) {
     configureFromFileText("File.java", text);
     return findElementAtCaret(aClass);
