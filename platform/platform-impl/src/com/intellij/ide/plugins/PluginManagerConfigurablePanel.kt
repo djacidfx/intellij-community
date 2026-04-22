@@ -102,7 +102,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
   private var pluginUpdatesService: PluginUpdatesService? = null
   private val pluginManagerCustomizer: PluginManagerCustomizer? = PluginManagerCustomizer.getInstance()
 
-  private var tabHeaderComponent: TabbedPaneHeaderComponent? = null
+  private val tabHeaderComponent: TabbedPaneHeaderComponent
   private val installedTabHeaderUpdatesCountIcon: CountIcon = CountIcon()
 
   private var marketplaceTab: MarketplacePluginsTab? = null
@@ -149,8 +149,8 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
 
     laterSearchQuery = searchQuery
 
-    tabHeaderComponent!!.addTab(message("plugin.manager.tab.marketplace"), null)
-    tabHeaderComponent!!.addTab(message("plugin.manager.tab.installed"), installedTabHeaderUpdatesCountIcon)
+    tabHeaderComponent.addTab(message("plugin.manager.tab.marketplace"), null)
+    tabHeaderComponent.addTab(message("plugin.manager.tab.installed"), installedTabHeaderUpdatesCountIcon)
 
     CustomPluginRepositoryService.getInstance().clearCache()
 
@@ -182,9 +182,9 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
 
     cardPanel!!.minimumSize = JBDimension(580, 380)
     cardPanel!!.preferredSize = JBDimension(800, 600)
-    tabHeaderComponent!!.setListener()
+    tabHeaderComponent.setListener()
     val selectionTab = getStoredSelectionTab()
-    tabHeaderComponent!!.setSelection(selectionTab)
+    tabHeaderComponent.setSelection(selectionTab)
     cardPanel!!.select(selectionTab, true)
     if (laterSearchQuery != null) {
       val search = enableSearch(laterSearchQuery, forceShowInstalledTabForTag)
@@ -201,7 +201,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
 
   fun getCenterComponent(controller: Configurable.TopComponentController): JComponent {
     pluginModelFacade.getModel().setTopController(controller)
-    return tabHeaderComponent!!
+    return tabHeaderComponent
   }
 
   fun getTopComponent(): JComponent {
@@ -213,11 +213,11 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
   }
 
   fun isMarketplaceTabShowing(): Boolean {
-    return tabHeaderComponent!!.getSelectionTab() == MARKETPLACE_TAB
+    return tabHeaderComponent.getSelectionTab() == MARKETPLACE_TAB
   }
 
   fun isInstalledTabShowing(): Boolean {
-    return tabHeaderComponent!!.getSelectionTab() == INSTALLED_TAB
+    return tabHeaderComponent.getSelectionTab() == INSTALLED_TAB
   }
 
   private fun createGearActions(): DefaultActionGroup {
@@ -267,7 +267,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     val title = IdeBundle.message("plugin.manager.plugins.auto.update.title")
     val tooltip = GotItTooltip(title, IdeBundle.message("plugin.manager.plugins.auto.update.description"), this)
     tooltip.withHeader(title)
-    tooltip.show(tabHeaderComponent!!.getComponent(1) as JComponent) { component, _ ->
+    tooltip.show(tabHeaderComponent.getComponent(1) as JComponent) { component, _ ->
       Point(component.getWidth() / 2, (component as JComponent).visibleRect.height)
     }
   }
@@ -282,7 +282,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     pluginUpdatesService!!.recalculateUpdates()
 
     if (marketplaceTab != null) {
-      marketplaceTab!!.onPanelReset(tabHeaderComponent!!.getSelectionTab() == MARKETPLACE_TAB)
+      marketplaceTab!!.onPanelReset(tabHeaderComponent.getSelectionTab() == MARKETPLACE_TAB)
     }
   }
 
@@ -291,12 +291,12 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     val text = Integer.toString(count)
 
     val tooltip = PluginUpdatesService.getUpdatesTooltip()
-    tabHeaderComponent!!.setTabTooltip(INSTALLED_TAB, tooltip)
+    tabHeaderComponent.setTabTooltip(INSTALLED_TAB, tooltip)
 
     installedTab!!.onPluginUpdatesRecalculation(updatesCount, tooltip)
 
     installedTabHeaderUpdatesCountIcon.setText(text)
-    tabHeaderComponent!!.update()
+    tabHeaderComponent.update()
   }
 
   private fun createMarketplaceTab() {
@@ -308,7 +308,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
       pluginModelFacade,
       pluginUpdatesService!!,
       coroutineScope,
-      { _ -> tabHeaderComponent!!.setSelectionWithEvents(MARKETPLACE_TAB) },
+      { _ -> tabHeaderComponent.setSelectionWithEvents(MARKETPLACE_TAB) },
     )
 
     pluginModelFacade.getModel().setCancelInstallCallback { descriptor ->
@@ -433,7 +433,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
             ApplicationManager.getApplication().invokeLater {
               if (ApplicationManager.getApplication().isExitInProgress) return@invokeLater // already shutting down
               if (pluginManagerCustomizer != null) {
-                pluginManagerCustomizer.requestRestart(pluginModelFacade, tabHeaderComponent!!)
+                pluginManagerCustomizer.requestRestart(pluginModelFacade, tabHeaderComponent)
                 return@invokeLater
               }
               pluginModelFacade.closeSession()
@@ -486,7 +486,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
 
   fun enableSearch(option: String?, ignoreTagMarketplaceTab: Boolean): Runnable? {
     if (StringUtil.isEmpty(option) &&
-        (tabHeaderComponent!!.getSelectionTab() == MARKETPLACE_TAB || installedTab!!.getInstalledSearchPanel()!!.isQueryEmpty)) {
+        (tabHeaderComponent.getSelectionTab() == MARKETPLACE_TAB || installedTab!!.getInstalledSearchPanel()!!.isQueryEmpty)) {
       return null
     }
 
@@ -510,9 +510,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
   fun openMarketplaceTab(option: String) {
     laterSearchQuery = option
     showMarketplaceTab = true
-    if (tabHeaderComponent != null) {
-      updateSelectionTab(MARKETPLACE_TAB)
-    }
+    updateSelectionTab(MARKETPLACE_TAB)
     if (marketplaceTab != null) {
       marketplaceTab!!.clearSearchPanel(option)
       marketplaceTab!!.showSearchPanel(option)
@@ -523,9 +521,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     laterSearchQuery = option
     showMarketplaceTab = false
     forceShowInstalledTabForTag = true
-    if (tabHeaderComponent != null) {
-      updateSelectionTab(INSTALLED_TAB)
-    }
+    updateSelectionTab(INSTALLED_TAB)
   }
 
   @RequiresEdt
@@ -554,8 +550,8 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
   }
 
   private fun updateSelectionTab(tab: Int) {
-    if (tabHeaderComponent!!.getSelectionTab() != tab) {
-      tabHeaderComponent!!.setSelectionWithEvents(tab)
+    if (tabHeaderComponent.getSelectionTab() != tab) {
+      tabHeaderComponent.setSelectionWithEvents(tab)
     }
   }
 
