@@ -41,6 +41,7 @@ def _partitioned_srcs(srcs):
     kt_srcs = []
     java_srcs = []
     form_srcs = []
+    src_jars = []
 
     for f in srcs:
         if f.path.endswith(".kt"):
@@ -49,13 +50,15 @@ def _partitioned_srcs(srcs):
             java_srcs.append(f)
         elif f.path.endswith(".form"):
             form_srcs.append(f)
+        elif f.path.endswith(".srcjar"):
+            src_jars.append(f)
 
     return struct(
         kt = kt_srcs,
         java = java_srcs,
         forms = form_srcs,
         all_srcs = kt_srcs + java_srcs + form_srcs,
-        src_jars = [],
+        src_jars = src_jars,
     )
 
 def _compute_transitive_jars(dep_infos, prune_transitive_deps):
@@ -232,7 +235,7 @@ def _run_jvm_builder(
         env = {
             "MALLOC_ARENA_MAX": "2",
         },
-        inputs = depset(srcs.all_srcs + all_resources, transitive = transitiveInputs),
+        inputs = depset(srcs.all_srcs + srcs.src_jars + all_resources, transitive = transitiveInputs),
         outputs = outputs,
         tools = [ctx.file._jvm_builder_launcher, ctx.file._jvm_builder],
         executable = java_runtime.java_executable_exec_path,

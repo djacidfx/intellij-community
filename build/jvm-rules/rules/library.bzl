@@ -39,7 +39,7 @@ _jvm_library_jps = rule(
             doc = """The list of source files that are processed to create the target, this can contain both Java and Kotlin
                      files. Java analysis occurs first so Kotlin classes may depend on Java classes in the same compilation unit.""",
             default = [],
-            allow_files = [".kt", ".java", ".form"],
+            allow_files = [".kt", ".java", ".srcjar", ".form"],
             mandatory = True,
         ),
         "resources": attr.label_list(

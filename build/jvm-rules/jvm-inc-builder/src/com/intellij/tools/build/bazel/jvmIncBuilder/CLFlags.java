@@ -14,6 +14,7 @@ public enum CLFlags {
   JAVA_COUNT,
   TARGET_LABEL,
   SRCS,
+  SRC_JARS,
   // classpath
   CP,
   RESOURCES,

@@ -1,6 +1,7 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.tools.build.bazel.jvmIncBuilder.impl;
 
+import com.dynatrace.hash4j.hashing.Hashing;
 import com.intellij.tools.build.bazel.jvmIncBuilder.BuildContext;
 import com.intellij.tools.build.bazel.jvmIncBuilder.BuildProcessLogger;
 import com.intellij.tools.build.bazel.jvmIncBuilder.BuilderOptions;
@@ -20,6 +21,9 @@ import org.jetbrains.jps.util.Pair;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -34,6 +38,8 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 import static org.jetbrains.jps.util.Iterators.asIterable;
 import static org.jetbrains.jps.util.Iterators.find;
@@ -123,6 +129,17 @@ public class BuildContextImpl implements BuildContext {
       Path inputPath = baseDir.resolve(src).normalize();
       assert isSourceDependency(inputPath);
       sourcesMap.put(myPathMapper.toNodeSource(inputPath), getDigest.apply(src));
+    }
+    // Per-target srcjar extraction dir, sibling to the output jar. Not under myDataDir so it survives
+    // cleanBuildState() on full rebuild; still per-target because each target's output jar name is unique,
+    // which is required because the multiplex worker may compile several targets concurrently.
+    Path srcJarsExtractDir = DataPaths.getSrcJarsExtractDir(myOutJar);
+    for (String srcJar : CLFlags.SRC_JARS.getValue(flags)) {
+      // consume the jar-level digest per the convention used by getDigest above;
+      // per-entry digests computed below become the source-of-truth for incremental invalidation
+      Objects.requireNonNull(digestsMap.remove(srcJar));
+      Path srcJarPath = baseDir.resolve(srcJar).normalize();
+      extractSrcJarSources(srcJarPath, srcJarsExtractDir, sourcesMap, myPathMapper);
     }
     mySources = new SourceSnapshotImpl(sourcesMap);
 
@@ -353,6 +370,62 @@ public class BuildContextImpl implements BuildContext {
     return path != null && RunnerRegistry.isCompilableSource(path);
   }
 
+  private static boolean isCompilableSrcJarEntry(String name) {
+    return name.endsWith(".kt") || name.endsWith(".java") || name.endsWith(".form");
+  }
+
+  /**
+   * Extracts Kotlin/Java/form sources from a srcjar into {@code extractDir}, following rules_kotlin's
+   * SourceJarExtractor pattern: a flat shared destination (see {@link DataPaths#SOURCE_JARS_DIR_NAME_SUFFIX})
+   * where entries from all srcjars coexist and later jars overwrite earlier ones on path collisions. Per-entry
+   * content digests are computed locally (Bazel only provides a jar-level digest for a srcjar) so the JPS
+   * incremental compiler can track per-source invalidation; these digests are persisted via ConfigurationState
+   * across builds.
+   */
+  private static void extractSrcJarSources(Path jarPath, Path extractDir, Map<NodeSource, String> sourcesMap, NodeSourcePathMapper pathMapper) {
+    try {
+      try (ZipFile zip = new ZipFile(jarPath.toFile())) {
+        for (ZipElement element : ZipElement.fromZipFile(zip)) {
+          ZipEntry entry = element.getEntry();
+          if (entry.isDirectory()) {
+            continue;
+          }
+          String name = entry.getName();
+          if (!isCompilableSrcJarEntry(name)) {
+            continue;
+          }
+          Path outFile = extractDir.resolve(name).normalize();
+          if (!outFile.startsWith(extractDir)) {
+            throw new IOException("Zip slip in " + jarPath + ": " + name);
+          }
+          byte[] bytes = element.getContent();
+          storeBytes(outFile, bytes);
+          sourcesMap.put(pathMapper.toNodeSource(outFile), Long.toHexString(Hashing.xxh3_64().hashBytesToLong(bytes)));
+        }
+      }
+    }
+    catch (IOException e) {
+      throw new RuntimeException("Failed to extract srcjar " + jarPath, e);
+    }
+  }
+
+  private static void storeBytes(Path outFile, byte[] bytes) throws IOException {
+    OutputStream out;
+    try {
+      out = Files.newOutputStream(outFile);
+    }
+    catch (NoSuchFileException e) {
+      Files.createDirectories(outFile.getParent());
+      out = Files.newOutputStream(outFile);
+    }
+    try {
+      out.write(bytes);
+    }
+    finally {
+      out.close();
+    }
+  }
+  
   @Override
   public String getTargetName() {
     return myTargetName;

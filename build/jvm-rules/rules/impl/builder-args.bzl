@@ -27,6 +27,7 @@ def init_builder_args(ctx, srcs, resources, associates, transitiveInputs, plugin
     kotlinc_options_to_args(kotlinc_options, args, kotlinc_extra_options)
 
     args.add_all("--srcs", srcs.all_srcs)
+    args.add_all("--src-jars", srcs.src_jars)
     args.add_all("--cp", compile_deps.compile_jars)
 
     if resources:
