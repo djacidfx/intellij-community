@@ -82,6 +82,8 @@ class InstalledPluginsTab @RequiresEdt constructor(
     bundledUpdateAllLink.isVisible = false
     updateCounter.isVisible = false
     bundledUpdateCounter.isVisible = false
+
+    customizeSearchTextField()
   }
 
   fun getInstalledPanel(): PluginsGroupComponentWithProgress? {
@@ -309,9 +311,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
     return createScrollPane(installedPanel, true)
   }
 
-  override fun createSearchTextField() {
-    super.createSearchTextField()
-
+  private fun customizeSearchTextField() {
     val textField = searchTextField.textEditor
 
     @Suppress("DialogTitleCapitalization")

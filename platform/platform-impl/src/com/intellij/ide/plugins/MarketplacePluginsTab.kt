@@ -94,6 +94,8 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
 
     myTagsSorted = null
     myVendorsSorted = null
+
+    customizeSearchTextField()
   }
 
   fun resetCache() {
@@ -101,8 +103,7 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
     myVendorsSorted = null
   }
 
-  override fun createSearchTextField() {
-    super.createSearchTextField()
+  private fun customizeSearchTextField() {
     searchTextField.setHistoryPropertyName("MarketplacePluginsSearchHistory")
   }
 

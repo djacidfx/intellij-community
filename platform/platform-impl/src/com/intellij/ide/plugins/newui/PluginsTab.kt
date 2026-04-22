@@ -171,8 +171,6 @@ abstract class PluginsTab @RequiresEdt constructor(
   }
 
   fun createPanel(): JComponent {
-    createSearchTextField()
-
     cardPanel = object : MultiPanel() {
       override fun addNotify() {
         super.addNotify()
@@ -216,9 +214,6 @@ abstract class PluginsTab @RequiresEdt constructor(
     cardPanel!!.select(DEFAULT_PANEL, true)
 
     return splitter
-  }
-
-  protected open fun createSearchTextField() {
   }
 
   protected abstract fun createDetailsPanel(searchListener: LinkListener<Any>): PluginDetailsPageComponent
