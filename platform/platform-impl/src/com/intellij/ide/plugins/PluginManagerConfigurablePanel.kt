@@ -126,28 +126,28 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     pluginModelFacade.getModel().coroutineScope = childScope
     coroutineScope = childScope
 
-    val selectionTab = getStoredSelectionTab()
-    tabHeaderComponent = createTabHeaderComponent(selectionTab)
-
-    laterSearchQuery = searchQuery
-
-    CustomPluginRepositoryService.getInstance().clearCache()
-
     pluginUpdatesService =
       UiPluginManager.getInstance().subscribeToUpdatesCount(pluginModelFacade.getModel().sessionId) { updatesCount ->
         application.invokeLater {
           onPluginUpdatesRecalculation(updatesCount)
         }
       }
-
     pluginModelFacade.getModel().pluginUpdatesService = pluginUpdatesService
-    UiPluginManager.getInstance().updateDescriptorsForInstalledPlugins()
 
     marketplaceTab = createMarketplaceTab()
     installedTab = createInstalledTab()
-    PluginManagerUsageCollector.sessionStarted()
 
+    val selectionTab = getStoredSelectionTab()
     cardPanel = createCardPanel(selectionTab)
+    tabHeaderComponent = createTabHeaderComponent(selectionTab)
+
+    laterSearchQuery = searchQuery
+
+    CustomPluginRepositoryService.getInstance().clearCache()
+
+    UiPluginManager.getInstance().updateDescriptorsForInstalledPlugins()
+
+    PluginManagerUsageCollector.sessionStarted()
 
     if (laterSearchQuery != null) {
       val search = enableSearch(laterSearchQuery, forceShowInstalledTabForTag)
