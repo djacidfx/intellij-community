@@ -656,6 +656,11 @@ a:com.intellij.codeInsight.template.postfix.templates.editable.EditablePostfixTe
 c:com.intellij.find.actions.FindUsagesAction
 - com.intellij.openapi.actionSystem.AnAction
 - *sf:SEARCH_TARGETS:com.intellij.openapi.actionSystem.DataKey
+c:com.intellij.find.findUsages.CommonFindUsagesDialog
+- com.intellij.find.findUsages.AbstractFindUsagesDialog
+- *s:precomputeFindUsagesDialogData(com.intellij.find.findUsages.FindUsagesHandlerBase):V
+f:com.intellij.find.findUsages.FindUsagesManager
+- *:getFindUsagesHandlerForDialog(com.intellij.psi.PsiElement,com.intellij.find.findUsages.FindUsagesHandlerFactory$OperationMode):com.intellij.find.findUsages.FindUsagesHandler
 *:com.intellij.find.impl.livePreview.EditorSearchAreaProvider
 - sf:EP_NAME:com.intellij.openapi.extensions.ExtensionPointName
 - s:getEnabled(com.intellij.openapi.editor.Editor,com.intellij.find.FindModel):java.util.List

@@ -14,6 +14,7 @@ import com.intellij.psi.search.searches.ReferencesSearch;
 import com.intellij.usageView.UsageInfo;
 import com.intellij.util.Processor;
 import com.intellij.util.containers.ContainerUtil;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
@@ -25,6 +26,8 @@ public class FindUsagesHandlerBase {
 
   protected final @NotNull PsiElement myPsiElement;
   private final Project myProject;
+  @ApiStatus.Internal
+  public @Nullable Boolean precomputedIsInFileOnly = null;
 
   public FindUsagesHandlerBase(@NotNull PsiElement psiElement) {
     this(psiElement, psiElement.getProject());
