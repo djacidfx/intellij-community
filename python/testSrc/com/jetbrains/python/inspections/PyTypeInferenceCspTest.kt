@@ -462,26 +462,25 @@ class PyTypeInferenceCspTest : PyInspectionTestCase() {
       """)
   }
 
-  @TestFor(issues = ["PY-87890"])
   fun `test Nested csp with type parameter default`() {
     doTestByText("""
-      from typing import Callable, assert_type, Optional
-
-      def f[T = str]() -> Callable[[Optional[T]], T]: ...
+      from typing import assert_type
       
-      assert_type(f()(2), int)
-      assert_type(f()(), str)
+      def f[T = str](*args: T) -> T: ...
+      
+      assert_type(f(2), int)
+      assert_type(f(), str)
       """)
   }
 
   fun `test Nested csp with type parameter default Any`() {
     doTestByText("""
-      from typing import Callable, assert_type, Any, Optional
+      from typing import assert_type, Any
       
-      def f[T = Any]() -> Callable[[Optional[T]], T]: ...
+      def f[T = Any](*args: T) -> T: ...
       
-      assert_type(f()(2), int)
-      assert_type(f()(), Any)
+      assert_type(f(2), int)
+      assert_type(f(), Any)
       """)
   }
 

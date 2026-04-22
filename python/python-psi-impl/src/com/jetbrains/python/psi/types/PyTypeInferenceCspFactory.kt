@@ -1,5 +1,6 @@
 package com.jetbrains.python.psi.types
 
+import com.intellij.openapi.util.registry.Registry
 import com.jetbrains.python.psi.PyArgumentList
 import com.jetbrains.python.psi.PyCallExpression
 import com.jetbrains.python.psi.PyCallSiteExpression
@@ -26,6 +27,9 @@ object PyTypeInferenceCspFactory {
     val callSite = argsMapping.callSiteExpression
     val callableType = argsMapping.callableType
     val receiver = callSite.getReceiver(callableType?.callable)
+    if (!Registry.`is`("python.use.csp.type.inference")) {
+      return PyTypeChecker.unifyReceiver(receiver, context)
+    }
     try {
       return doUnifyFunctionCall(callSite, receiver, callableType, argsMapping.mappedParameters, context) ?: GenericSubstitutions()
     }
@@ -42,6 +46,9 @@ object PyTypeInferenceCspFactory {
     mappedParameters: Map<PyExpression, PyCallableParameter>,
     context: TypeEvalContext,
   ): GenericSubstitutions? {
+    if (!Registry.`is`("python.use.csp.type.inference")) {
+      return PyTypeChecker.unifyGenericCall(receiver, mappedParameters, context)
+    }
     try {
       return doUnifyFunctionCall(callSite, receiver, callableType, mappedParameters, context)
     }

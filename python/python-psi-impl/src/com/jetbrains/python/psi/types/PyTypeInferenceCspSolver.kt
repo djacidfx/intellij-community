@@ -475,20 +475,12 @@ private object ConstraintReducer {
       return
     }
 
-    if (left is PyUnionType) {
-      reduceComposedType(right, left, variance.inverse(), cp)
+    if (left is PyCompositeType) {
+      reduceCompositeType(right, left, variance.inverse(), cp)
       return
     }
-    if (right is PyUnionType) {
-      reduceComposedType(left, right, variance, cp)
-      return
-    }
-    if (left is PyIntersectionType) {
-      reduceComposedType(right, left, variance.inverse(), cp)
-      return
-    }
-    if (right is PyIntersectionType) {
-      reduceComposedType(left, right, variance, cp)
+    if (right is PyCompositeType) {
+      reduceCompositeType(left, right, variance, cp)
       return
     }
 
@@ -547,11 +539,6 @@ private object ConstraintReducer {
 
   /** Reduction for two given callable types will be applied on all their parameters and their return type in a pair-wise manner. */
   private fun reduceCallableType(left: PyCallableType, right: PyCallableType, variance: Variance, cp: ConstraintProblem) {
-    val lReturnType = left.getReturnType(cp.context)
-    val rReturnType = right.getReturnType(cp.context)
-    val lIsNone = lReturnType.isNoneType
-    val rIsNone = rReturnType.isNoneType
-
     // derive constraints for types of parameters
     val lParams = left.getParameters(cp.context)
     val rParams = right.getParameters(cp.context)
@@ -569,29 +556,10 @@ private object ConstraintReducer {
       }
     }
 
-    // derive constraints for return types
-    if (lIsNone && rIsNone) {
-      // semantics: both return None
-      // success
-    }
-    else if ((variance == Variance.COVARIANT && rIsNone) ||
-             (variance == Variance.CONTRAVARIANT && lIsNone)) {
-      // semantics: ⟨ {function():α} <: {function():None} ⟩
-      // success
-    }
-    else if (lIsNone || rIsNone) {
-      // semantics: ⟨ {function():None} <: {function():α} ⟩
-      // --> doomed, unless the non-None return value is optional
-      val isRetValOpt = if (lIsNone) rReturnType.isOptional() else lReturnType.isOptional()
-      if (!isRetValOpt) {
-        cp.fail()
-        return
-      }
-    }
-    else {
-      val retTypeVariance = variance.multiply(Variance.COVARIANT)
-      reduce(lReturnType, rReturnType, retTypeVariance, cp)
-    }
+    val lReturnType = left.getReturnType(cp.context)
+    val rReturnType = right.getReturnType(cp.context)
+    val retTypeVariance = variance.multiply(Variance.COVARIANT)
+    reduce(lReturnType, rReturnType, retTypeVariance, cp)
   }
 
   /**
@@ -674,7 +642,7 @@ private object ConstraintReducer {
   }
 
 
-  private fun reduceComposedType(
+  private fun reduceCompositeType(
     left: PyType?,
     right: PyCompositeType, // COMPOSED TYPE
     variance: Variance,
@@ -682,8 +650,8 @@ private object ConstraintReducer {
   ) {
     when (variance) {
       Variance.INVARIANT -> {
-        reduceComposedType(left, right, Variance.COVARIANT, cp)
-        reduceComposedType(left, right, Variance.CONTRAVARIANT, cp)
+        reduceCompositeType(left, right, Variance.COVARIANT, cp)
+        reduceCompositeType(left, right, Variance.CONTRAVARIANT, cp)
       }
       Variance.COVARIANT -> {
         if (right is PyUnionType) {
@@ -740,7 +708,7 @@ private object ConstraintReducer {
     // first to avoid incorrect results (for example, A|B <: [A, B, C] as a disjunction must be
     // handled as A <: [A, B, C] AND B <: [A, B, C], both as a disjunction), not as A|B <: X with
     // X being the choice of "most promising" option out of A, B, C).
-    if ((variance == Variance.COVARIANT && left is PyUnionType) /* || (variance == Variance.CONTRAVARIANT && left is PyIntersectionType) */) {
+    if ((variance == Variance.COVARIANT && left is PyUnionType) || (variance == Variance.CONTRAVARIANT && left is PyIntersectionType)) {
       val leftMembers = left.members.filterNotNull()
       for (currLeft in leftMembers) {
         reduceDisjunction(currLeft, members, variance, cp)
@@ -1384,7 +1352,7 @@ private object TypeBoundResolver {
     }
     else if (lowerBounds.isEmpty() && upperBounds.isNotEmpty()) {
       if (upperBounds.size == 1 && upperBounds[0] == infVar.typeVariable.bound) {
-        // special case: the type variable is constrained only by its bound (i.e., `[T : int]`).
+        // special case: the type variable is constrained only by its bound (i.e., `[T: int]`).
         // Therefore, we treat this type variable as unconstrained and use its bound when necessary based on `#keepUnconstrained`.
         return PyUnconstrainedTypeVariable(infVar.typeVariable)
       }
@@ -1708,16 +1676,6 @@ private fun PyType?.isTopType(context: TypeEvalContext): Boolean {
 
 private fun PyType?.isBottomType(): Boolean {
   return this.isAnyOrUnknown || this is PyNeverType // Any or Never
-}
-
-private fun PyType?.isOptional(): Boolean {
-  if (this.isNoneType) return true
-
-  if (this is PyUnionType) {
-    return this.members.any { it.isNoneType }
-  }
-
-  return false
 }
 
 private fun Variance.inverse(): Variance {
