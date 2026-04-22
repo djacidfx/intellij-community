@@ -100,14 +100,19 @@ interface PolySymbolScopeCachedBuilderBase<K> {
   val key: K
 
   /**
-   * Restrict the scope to a fixed set of [PolySymbolKind]s. Mutually exclusive with the
-   * overload with predicate
+   * Restrict the scope to a fixed set of [PolySymbolKind]s. Multiple calls are
+   * additive. Combined with the predicate overload via logical OR.
    */
   fun provides(vararg kinds: PolySymbolKind)
 
   /**
-   * Restrict the scope via a predicate. Overwrites any previous call to
-   * [provides].
+   * Additive collection-form overload of [provides].
+   */
+  fun provides(kinds: Collection<PolySymbolKind>)
+
+  /**
+   * Restrict the scope via a predicate. Combined with the [provides] set via
+   * logical OR; overwrites any previous predicate-form call.
    */
   fun provides(predicate: (PolySymbolKind) -> Boolean)
 
@@ -120,8 +125,13 @@ interface PolySymbolScopeCachedBuilderBase<K> {
   fun exclusiveFor(vararg kinds: PolySymbolKind)
 
   /**
+   * Additive collection-form overload of [exclusiveFor].
+   */
+  fun exclusiveFor(kinds: Collection<PolySymbolKind>)
+
+  /**
    * Mark this scope as exclusive via a predicate. Combined with the
-   * [exclusiveFor] vararg via logical OR; overwrites any previous
+   * [exclusiveFor] set via logical OR; overwrites any previous
    * predicate-form call.
    */
   fun exclusiveFor(predicate: (PolySymbolKind) -> Boolean)
@@ -235,8 +245,13 @@ interface PolySymbolScopeBuilder {
   fun provides(vararg kinds: PolySymbolKind)
 
   /**
-   * Restrict the scope via a predicate. Combined with the [provides] vararg
-   * via logical OR; overwrites any previous predicate-form call.
+   * Additive collection-form overload of [provides].
+   */
+  fun provides(kinds: Collection<PolySymbolKind>)
+
+  /**
+   * Restrict the scope via a predicate. Combined with the [provides] set via
+   * logical OR; overwrites any previous predicate-form call.
    */
   fun provides(predicate: (PolySymbolKind) -> Boolean)
 
@@ -247,8 +262,13 @@ interface PolySymbolScopeBuilder {
   fun exclusiveFor(vararg kinds: PolySymbolKind)
 
   /**
+   * Additive collection-form overload of [exclusiveFor].
+   */
+  fun exclusiveFor(kinds: Collection<PolySymbolKind>)
+
+  /**
    * Mark this scope as exclusive via a predicate. Combined with the
-   * [exclusiveFor] vararg via logical OR; overwrites any previous
+   * [exclusiveFor] set via logical OR; overwrites any previous
    * predicate-form call.
    */
   fun exclusiveFor(predicate: (PolySymbolKind) -> Boolean)

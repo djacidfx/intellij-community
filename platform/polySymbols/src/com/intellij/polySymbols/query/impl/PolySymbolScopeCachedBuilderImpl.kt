@@ -54,12 +54,20 @@ internal abstract class AbstractBuilder<K>(
     providesKinds.addAll(kinds)
   }
 
+  final override fun provides(kinds: Collection<PolySymbolKind>) {
+    providesKinds.addAll(kinds)
+  }
+
   final override fun provides(predicate: (PolySymbolKind) -> Boolean) {
     checkNoPsiCapture(predicate, "polySymbolScopeCached.provides")
     providesPredicate = predicate
   }
 
   final override fun exclusiveFor(vararg kinds: PolySymbolKind) {
+    exclusiveForKinds.addAll(kinds)
+  }
+
+  final override fun exclusiveFor(kinds: Collection<PolySymbolKind>) {
     exclusiveForKinds.addAll(kinds)
   }
 

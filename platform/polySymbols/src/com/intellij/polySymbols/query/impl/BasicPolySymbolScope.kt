@@ -189,12 +189,20 @@ internal class PolySymbolScopeBuilderImpl : PolySymbolScopeBuilder {
     providesKinds.addAll(kinds)
   }
 
+  override fun provides(kinds: Collection<PolySymbolKind>) {
+    providesKinds.addAll(kinds)
+  }
+
   override fun provides(predicate: (PolySymbolKind) -> Boolean) {
     checkNoPsiCapture(predicate, "polySymbolScope.provides")
     providesPredicate = predicate
   }
 
   override fun exclusiveFor(vararg kinds: PolySymbolKind) {
+    exclusiveForKinds.addAll(kinds)
+  }
+
+  override fun exclusiveFor(kinds: Collection<PolySymbolKind>) {
     exclusiveForKinds.addAll(kinds)
   }
 
