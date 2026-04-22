@@ -246,7 +246,7 @@ public abstract class StreamlinedBlobStorageTestBase<S extends StreamlinedBlobSt
 
   @Test
   public void manyRecordsWritten_WithBigPayload_CouldAllBeReadBackUnchanged_ById() throws Exception {
-    //Specifically check payloads close to maxPayloadSize (-some margin for record header)
+    //Specifically check payloads close to maxPayloadSize
 
     int enoughRecordsButNotTooManyToNotTriggerOoM = 100;
     ThreadLocalRandom rnd = ThreadLocalRandom.current();
