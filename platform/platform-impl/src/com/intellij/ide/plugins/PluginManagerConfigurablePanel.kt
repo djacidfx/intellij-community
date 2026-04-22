@@ -37,8 +37,6 @@ import com.intellij.openapi.actionSystem.DataSink
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.actionSystem.impl.PresentationFactory
-import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.ApplicationManager.getApplication
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.ModalityState.any
 import com.intellij.openapi.diagnostic.Logger
@@ -72,6 +70,7 @@ import com.intellij.ui.components.labels.LinkLabel
 import com.intellij.ui.components.labels.LinkListener
 import com.intellij.ui.popup.ActionPopupOptions
 import com.intellij.ui.popup.PopupFactoryImpl
+import com.intellij.util.application
 import com.intellij.util.asDisposable
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.messages.MessageBusConnection
@@ -123,7 +122,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
 
   init {
     pluginModelFacade = PluginModelFacade(MyPluginModel(null))
-    val parentScope = ApplicationManager.getApplication().getService(PluginManagerCoroutineScopeHolder::class.java).coroutineScope
+    val parentScope = application.getService(PluginManagerCoroutineScopeHolder::class.java).coroutineScope
     val childScope = parentScope.childScope(javaClass.name, Dispatchers.IO, true)
     pluginModelFacade.getModel().coroutineScope = childScope
     coroutineScope = childScope
@@ -156,7 +155,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
 
     pluginUpdatesService =
       UiPluginManager.getInstance().subscribeToUpdatesCount(pluginModelFacade.getModel().sessionId) { updatesCount ->
-        getApplication().invokeLater {
+        application.invokeLater {
           onPluginUpdatesRecalculation(updatesCount)
         }
       }
@@ -189,7 +188,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     if (laterSearchQuery != null) {
       val search = enableSearch(laterSearchQuery, forceShowInstalledTabForTag)
       if (search != null) {
-        getApplication().invokeLater(search, any())
+        application.invokeLater(search, any())
       }
       laterSearchQuery = null
       forceShowInstalledTabForTag = false
@@ -226,7 +225,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
       val state = UpdateSettings.getInstance().getState()
       pluginsAutoUpdateEnabled = state.isPluginsAutoUpdateEnabled
 
-      val connect: MessageBusConnection = ApplicationManager.getApplication().getMessageBus()
+      val connect: MessageBusConnection = application.getMessageBus()
         .connect(coroutineScope.asDisposable())
       connect.subscribe(PluginAutoUpdateListener.TOPIC, object : PluginAutoUpdateListener {
         override fun settingsChanged() {
@@ -250,7 +249,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     actions.add(ChangePluginStateAction(false))
     actions.add(ChangePluginStateAction(true))
 
-    if (ApplicationManager.getApplication().isInternal) {
+    if (application.isInternal) {
       actions.addSeparator()
       actions.add(ResetConfigurableAction())
     }
@@ -385,7 +384,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
   }
 
   fun scheduleApply() {
-    ApplicationManager.getApplication().invokeLater({
+    application.invokeLater({
       try {
         apply()
         WelcomeScreenEventCollector.logPluginsModified()
@@ -430,8 +429,8 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
               shutdownCallbackExecuted = true
             }
 
-            ApplicationManager.getApplication().invokeLater {
-              if (ApplicationManager.getApplication().isExitInProgress) return@invokeLater // already shutting down
+            application.invokeLater {
+              if (application.isExitInProgress) return@invokeLater // already shutting down
               if (pluginManagerCustomizer != null) {
                 pluginManagerCustomizer.requestRestart(pluginModelFacade, tabHeaderComponent)
                 return@invokeLater
