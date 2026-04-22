@@ -72,30 +72,26 @@ public abstract class TextExtractor {
   private static final Pattern KEY_PATTERN = Pattern.compile("-----BEGIN PUBLIC KEY-----.*?(-----END PUBLIC KEY-----)", Pattern.DOTALL);
 
   /**
+   * <h2>Text extracting</h2>
    * Extract text from the given PSI element, if possible.
    * The returned text is most often fully embedded in {@code element},
    * but it may also include other PSI elements (e.g., adjacent comments).
    * In the latter case, this extension should return an equal {@link TextContent} for every one of those adjacent elements.
-   * <p>
-   * Typical usage:
    *
+   * <h2>Typical usage</h2>
    * <pre><code class="java">TextContentBuilder.FromPsi.build(element, textDomain)</code></pre>
    *
-   * Implementation guidance:
+   * <h2>Common Pitfalls to Avoid</h2>
+   * <ul>
+   * <li><b>Adjacent elements text extraction:</b> Extracting text from adjacent elements must return identical results to avoid cache corruption.</li>
+   * <li><b>IDE:</b> Ignore IDE non-textual fragments like references or JSON Schemas. For example, {@code JavaTextExtractor#shouldBeIgnored}</li>
+   * <li><b>Forgotten exclusions:</b></li> There are three different types of exclusions: {@code excluding}, {@code withUnknown}, {@code withMarkup}.
+   * Lack of exclusions can cause unintended code or markup fragments being analyzed as part of text, leading to false positives.
+   * Read more at {@link TextContent.ExclusionKind} and {@link TextContent#excludeRanges(List)}</li>
+   * <li><b>Escapes:</b> {@code \n}, {@code \t}, escaped quotes etc. should be normalized to match language behavior.
+   * {@code \n}, {@code \t} should be replaced with whitespaces and the rest marked as unknown fragments.</li>
+   * </ul>
    * <p>
-   * To maximize performance, guard against unnecessary (and sometimes quite expensive) operations by checking that
-   * the requested textDomain is contained in allowedDomains before extracting.
-   *
-   * <pre><code class="java">
-   * if (shouldExtractTextContent(root) && allowedDomains.contains(textDomain)) {
-   *   // some other potentially performance-intensive operations
-   *   return TextContentBuilder.FromPsi.build(root, textDomain)
-   * }
-   * </code></pre>
-   *
-   * See concrete implementations (e.g., in ChatInputTextExtractor, JsonTextExtractor, GoTextExtractor, etc.) for
-   * examples.
-
    * @param allowedDomains the set of the text domains that are expected by the caller.
    * @see TextContentBuilder
    * @see #buildTextContents

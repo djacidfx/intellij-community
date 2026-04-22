@@ -2,12 +2,18 @@
 package com.intellij.spellchecker.quickfixes
 
 import com.intellij.codeInspection.LocalQuickFix
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.spellchecker.DictionaryLayer
+import com.intellij.spellchecker.inspections.SpellCheckingInspection
 import com.intellij.spellchecker.statistics.SpellcheckerRateTracker
 import org.jetbrains.annotations.ApiStatus.Internal
+import java.util.concurrent.atomic.AtomicBoolean
+
+private val LOGGER = Logger.getInstance(SpellCheckingInspection::class.java)
+private val IS_LOGGED = AtomicBoolean(false)
 
 /**
  * Extension point for product-wide spellchecking inspection quickfixes customization.
@@ -32,6 +38,9 @@ abstract class SpellCheckerQuickFixFactory {
       tracker: SpellcheckerRateTracker? = null,
       suggestions: Set<String>? = null,
     ): List<LocalQuickFix> {
+      if (IS_LOGGED.compareAndSet(false, true)) {
+        LOGGER.warn("Consider migrating to text level spellchecking. See `SpellcheckingStrategy#useTextLevelSpellchecking()` documentation.")
+      }
       return EP_NAME.extensionList.firstNotNullOfOrNull { it.createChangeToVariantsFixes(element, rangeInElement, word) }
              ?: ChangeTo(word, element, rangeInElement, tracker, suggestions).getAllAsFixes()
     }
