@@ -229,7 +229,7 @@ public final class AboutDialog extends DialogWrapper {
     String jreJcefSuffix = jcefVersion != null && jcefNativeBundleVersion == null ? " (JCEF " + jcefVersion + ")" : "";
 
     lines.add(jreInfo + jreJcefSuffix);
-    myInfo.add(MessageFormat.format("Runtime version: {0} {1}", javaVersion, arch) + jcefVersion);
+    myInfo.add(MessageFormat.format("Runtime version: {0} {1}{2}", javaVersion, arch, jreJcefSuffix));
 
     String vmVersion = properties.getProperty("java.vm.name", "unknown");
     String vmVendor = properties.getProperty("java.vendor", "unknown");
