@@ -43,7 +43,7 @@
       implementation="com.intellij.platform.execution.dashboard.splitApi.frontend.FrontendRunDashboardManagerProxy"/>
     <projectService serviceInterface="com.intellij.execution.dashboard.RunDashboardUiManager"
                     serviceImplementation="com.intellij.platform.execution.dashboard.splitApi.frontend.RunDashboardUiManagerImpl"/>
-    <serviceViewContributor implementation="com.intellij.platform.execution.dashboard.RunDashboardServiceViewContributor"/>
+    <serviceViewContributor implementation="com.intellij.platform.execution.dashboard.RunDashboardServiceViewContributor" order="first"/>
 
     <runDashboardGroupingRule id="type" order="first"
                               implementation="com.intellij.platform.execution.dashboard.splitApi.frontend.tree.ConfigurationTypeDashboardGroupingRule"/>
@@ -123,7 +123,7 @@
       <add-to-group group-id="ServiceView.ViewOptions"/>
     </group>
     <action id="RunDashboard.AddConfiguration" class="com.intellij.platform.execution.dashboard.actions.AddRunConfigurationAction">
-      <add-to-group group-id="ServiceView.AddService"/>
+      <add-to-group group-id="ServiceView.AddService" anchor="first"/>
     </action>
     <reference ref="RunDashboard.RestoreHiddenConfigurations">
       <add-to-group group-id="ServiceView.AddService" anchor="after" relative-to-action="RunDashboard.AddConfiguration"/>
