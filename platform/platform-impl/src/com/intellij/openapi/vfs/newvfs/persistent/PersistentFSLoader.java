@@ -10,7 +10,6 @@ import com.intellij.openapi.vfs.newvfs.persistent.mapped.content.VFSContentStora
 import com.intellij.openapi.vfs.newvfs.persistent.recovery.VFSRecoverer;
 import com.intellij.openapi.vfs.newvfs.persistent.recovery.VFSRecoveryInfo;
 import com.intellij.platform.util.io.storages.StorageFactory;
-import com.intellij.platform.util.io.storages.blobstorage.StreamlinedBlobStorageHelper;
 import com.intellij.platform.util.io.storages.blobstorage.StreamlinedBlobStorageOverMMappedFile;
 import com.intellij.platform.util.io.storages.enumerator.DurableStringEnumerator;
 import com.intellij.platform.util.io.storages.mmapped.MMappedFileStorageFactory;
@@ -507,7 +506,7 @@ public final class PersistentFSLoader {
     //avg record size is ~60b, hence I've chosen minCapacity=64 bytes, and defaultCapacity= 2*minCapacity
     SpaceAllocationStrategy allocationStrategy = new DataLengthPlusFixedPercentStrategy(
       /*min: */64, /*default: */ 128,
-      /*max: */StreamlinedBlobStorageHelper.MAX_CAPACITY,
+      /*max: */StreamlinedBlobStorageOverMMappedFile.MAX_CAPACITY,
       /*percentOnTop: */30
     );
 

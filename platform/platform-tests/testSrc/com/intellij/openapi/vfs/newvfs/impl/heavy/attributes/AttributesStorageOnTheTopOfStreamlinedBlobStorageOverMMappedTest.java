@@ -3,7 +3,6 @@ package com.intellij.openapi.vfs.newvfs.impl.heavy.attributes;
 
 import com.intellij.openapi.vfs.newvfs.persistent.AttributesStorageOnTheTopOfBlobStorageTestBase;
 import com.intellij.openapi.vfs.newvfs.persistent.AttributesStorageOverBlobStorage;
-import com.intellij.platform.util.io.storages.blobstorage.StreamlinedBlobStorageHelper;
 import com.intellij.platform.util.io.storages.blobstorage.StreamlinedBlobStorageOverMMappedFile;
 import com.intellij.platform.util.io.storages.mmapped.MMappedFileStorageFactory;
 import com.intellij.util.io.blobstorage.SpaceAllocationStrategy.DataLengthPlusFixedPercentStrategy;
@@ -29,7 +28,7 @@ public class AttributesStorageOnTheTopOfStreamlinedBlobStorageOverMMappedTest ex
           storagePath,
           storage -> new StreamlinedBlobStorageOverMMappedFile(
             storage,
-            new DataLengthPlusFixedPercentStrategy(64, 256, StreamlinedBlobStorageHelper.MAX_CAPACITY, 30)
+            new DataLengthPlusFixedPercentStrategy(64, 256, StreamlinedBlobStorageOverMMappedFile.MAX_CAPACITY, 30)
           )
         )
     );
