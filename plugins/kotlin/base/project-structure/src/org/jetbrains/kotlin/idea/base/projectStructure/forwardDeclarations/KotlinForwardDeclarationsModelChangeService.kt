@@ -23,7 +23,7 @@ import org.jetbrains.kotlin.idea.base.platforms.platform
 import org.jetbrains.kotlin.idea.base.util.caching.getChanges
 import org.jetbrains.kotlin.platform.idePlatformKind
 import org.jetbrains.kotlin.platform.impl.NativeIdePlatformKind
-import java.io.File
+import java.nio.file.Path
 
 /**
  * Service for background generation of K/N forward declaration files on workspace model updates.
@@ -70,7 +70,9 @@ internal class KotlinForwardDeclarationsModelChangeService(private val project: 
     }
 
     private fun cleanUp(fwdDeclarationChanges: List<EntityChange<KotlinForwardDeclarationsWorkspaceEntity>>) {
-        val roots = fwdDeclarationChanges.flatMap { it.oldEntity?.forwardDeclarationRoots.orEmpty() }.map { File(it.presentableUrl) }
+        val roots = fwdDeclarationChanges
+            .flatMap { it.oldEntity?.forwardDeclarationRoots.orEmpty() }
+            .map { Path.of(it.presentableUrl) }
         KotlinForwardDeclarationsFileGenerator.cleanUp(roots)
     }
 

@@ -8,9 +8,12 @@ import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.NativeForwardDeclarationKind
 import org.jetbrains.kotlin.name.NativeStandardInteropNames.ExperimentalForeignApi
 import org.jetbrains.kotlin.name.NativeStandardInteropNames.cInteropPackage
-import java.io.File
+import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.absolutePathString
+import kotlin.io.path.deleteRecursively
+import kotlin.io.path.exists
 
 private val LOG = logger<KotlinForwardDeclarationsFileGenerator>()
 
@@ -54,16 +57,16 @@ internal object KotlinForwardDeclarationsFileGenerator {
         return libraryLocation
     }
 
-    private fun generateFile(parentDir: Path, pkg: FqName, kind: NativeForwardDeclarationKind, classes: List<FqName>): File {
+    private fun generateFile(parentDir: Path, pkg: FqName, kind: NativeForwardDeclarationKind, classes: List<FqName>): Path {
         val text = createText(pkg, kind, classes)
-        return with(parentDir.resolve("${pkg.asString()}.kt").toFile()) {
-            parentFile.mkdirs()
+        return with(parentDir.resolve("${pkg.asString()}.kt")) {
+            Files.createDirectories(parent)
             if (exists()) {
-                delete()
+                Files.delete(this)
             }
 
-            createNewFile()
-            writeText(text)
+            Files.createFile(this)
+            Files.writeString(this, text)
             this
         }
     }
@@ -76,8 +79,6 @@ internal object KotlinForwardDeclarationsFileGenerator {
             NativeForwardDeclarationKind.Struct -> "private constructor(rawPtr: $cInteropPackage.NativePtr) "
             NativeForwardDeclarationKind.ObjCClass,
             NativeForwardDeclarationKind.ObjCProtocol -> ""
-
-            else -> ""
         }
         val supertype = when (kind) {
             NativeForwardDeclarationKind.Struct -> "${kind.superClassFqName.asString()}(rawPtr)"
@@ -97,12 +98,13 @@ internal object KotlinForwardDeclarationsFileGenerator {
         return packageWithImports + generatedDeclarations
     }
 
-    fun cleanUp(roots: List<File>) {
+    @OptIn(ExperimentalPathApi::class)
+    fun cleanUp(roots: List<Path>) {
         val storageRoot = KotlinForwardDeclarationsFileSystem.storageRootPath
 
         for (root in roots) {
-            if (!root.absolutePath.startsWith(storageRoot.absolutePathString())) {
-                LOG.error("Attempt to delete ${root.absolutePath} which is not under ${storageRoot.absolutePathString()}")
+            if (!root.absolutePathString().startsWith(storageRoot.absolutePathString())) {
+                LOG.error("Attempt to delete ${root.absolutePathString()} which is not under ${storageRoot.absolutePathString()}")
                 continue
             }
 
