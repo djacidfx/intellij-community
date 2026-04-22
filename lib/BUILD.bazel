@@ -6848,17 +6848,17 @@ java_library(
 )
 
 copy_file(
-  name = "org.jetbrains.intellij.deps/debugger-agent-1.168.jar_copy",
-  src = "@org_jetbrains_intellij_deps-debugger-agent-1_168_http//file",
-  out = "org.jetbrains.intellij.deps/debugger-agent-1.168.jar",
+  name = "org.jetbrains.intellij.deps/debugger-agent-1.169.jar_copy",
+  src = "@org_jetbrains_intellij_deps-debugger-agent-1_169_http//file",
+  out = "org.jetbrains.intellij.deps/debugger-agent-1.169.jar",
   allow_symlink = True,
   visibility = ["//visibility:public"]
 )
 
 jvm_import(
   name = "java-debugger-agent-holder-debugger-agent",
-  jar = "@org_jetbrains_intellij_deps-debugger-agent-1_168_http//file",
-  source_jar = "@org_jetbrains_intellij_deps-debugger-agent-1_168-sources_http//file",
+  jar = "@org_jetbrains_intellij_deps-debugger-agent-1_169_http//file",
+  source_jar = "@org_jetbrains_intellij_deps-debugger-agent-1_169-sources_http//file",
   visibility = ["//visibility:public"]
 )
 
