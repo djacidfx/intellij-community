@@ -1,12 +1,18 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.openapi.vfs
 
+import com.intellij.concurrency.installThreadContext
 import com.intellij.execution.process.ProcessIOExecutorService
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.isInCancellableContext
 import com.intellij.openapi.progress.util.awaitWithCheckCanceled
 import com.intellij.openapi.util.ThrowableComputable
 import com.intellij.util.ExceptionUtil
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.GlobalScope
 import org.jetbrains.annotations.ApiStatus
 import java.util.concurrent.Callable
 import java.util.concurrent.ConcurrentHashMap
@@ -40,7 +46,7 @@ class DiskQueryRelay<Param : Any, Result>(
     function: Function<in Param, out Result>,
   ) : this(function, ProcessIOExecutorService.INSTANCE)
 
-  private val myFunction: Function<in Param, out Result> = Function { arg: Param ->
+  private val function: Function<in Param, out Result> = Function { arg: Param ->
     val startedAtNs = System.nanoTime()
     try {
       return@Function function.apply(arg)
@@ -62,18 +68,21 @@ class DiskQueryRelay<Param : Any, Result>(
     val startedAtNs = System.nanoTime()
     try {
       if (!isInCancellableContext()) {
-        return myFunction.apply(arg)
+        return function.apply(arg)
       }
       val future = myTasks.computeIfAbsent(arg) { eachArg: Param ->
         executor.submit(Callable {
-          try {
-            return@Callable myFunction.apply(eachArg)
-          }
-          finally {
-            myTasks.remove(eachArg)
+          installThreadContext(coroutineScope.coroutineContext, true) {
+            try {
+              function.apply(eachArg)
+            }
+            finally {
+              myTasks.remove(eachArg)
+            }
           }
         })
       }
+
       if (future.isDone) {
         // maybe it was very fast and completed before being put into a map
         myTasks.remove(arg, future)
@@ -144,6 +153,18 @@ class DiskQueryRelay<Param : Any, Result>(
       }
     }
 
+    @OptIn(DelicateCoroutinesApi::class)
+    private val coroutineScope: CoroutineScope
+      get() = try {
+        service<DiskQueryRelayCoroutineScope>().scope
+      }
+      catch (_: Exception) {
+        // In some rare cases, there is no coroutine scope available within the Application.
+        // Fallback to GlobalScope
+        GlobalScope
+      }
+
+
 
     // ==================================== monitoring: ====================================================== //
     /** total time (since app start) of actual task executions, ns  */
@@ -172,4 +193,8 @@ class DiskQueryRelay<Param : Any, Result>(
     @ApiStatus.Internal
     fun tasksRequested(): Int = tasksRequestedCount.get()
   }
+
+  @Service(Service.Level.APP)
+  private class DiskQueryRelayCoroutineScope(val scope: CoroutineScope)
+
 }
