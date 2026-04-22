@@ -16,11 +16,9 @@ import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.fileChooser.FileChooserDialog
 import com.intellij.openapi.fileChooser.FileChooserFactory
-import com.intellij.openapi.fileChooser.FileSystemTree
 import com.intellij.openapi.fileChooser.FileTextField
 import com.intellij.openapi.fileChooser.PathChooserDialog
-import com.intellij.openapi.fileChooser.ex.FileSystemTreeImpl
-import com.intellij.openapi.fileChooser.tree.FileTreeModel
+import com.intellij.openapi.fileChooser.universal.NioFileChooserUtil.isHidden
 import com.intellij.openapi.fileChooser.universal.UniversalFileChooserContributor.MountStatus
 import com.intellij.openapi.fileChooser.universal.UniversalFileChooserContributor.VirtualRoot
 import com.intellij.openapi.observable.util.whenDisposed
@@ -37,9 +35,6 @@ import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.openapi.vfs.newvfs.ManagingFS
-import com.intellij.openapi.vfs.newvfs.NewVirtualFile
-import com.intellij.openapi.vfs.newvfs.RefreshQueue
 import com.intellij.platform.eel.provider.asEelPath
 import com.intellij.platform.eel.provider.asNioPath
 import com.intellij.platform.eel.provider.toEelApi
@@ -61,6 +56,8 @@ import com.intellij.ui.dsl.listCellRenderer.listCellRenderer
 import com.intellij.ui.tree.AsyncTreeModel
 import com.intellij.ui.treeStructure.Tree
 import com.intellij.util.Consumer
+import com.intellij.util.SystemProperties
+import com.intellij.util.containers.isEmpty
 import com.intellij.util.containers.toArray
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
@@ -100,6 +97,9 @@ import javax.swing.tree.ExpandVetoException
 import javax.swing.tree.TreePath
 import javax.swing.tree.TreeSelectionModel
 import kotlin.io.path.invariantSeparatorsPathString
+import kotlin.io.path.name
+import kotlin.io.path.pathString
+import kotlin.streams.asSequence
 import kotlin.time.Duration.Companion.seconds
 
 @ApiStatus.Internal
@@ -133,19 +133,23 @@ object UniversalFileChooser {
 
     override fun choose(project: Project?, vararg toSelect: VirtualFile?): Array<out VirtualFile?> {
       if (!toSelect.isEmpty()) {
-        toSelect.first()?.let { mainPanel.preselectFile(it) }
+        toSelect.first()?.let { runCatching { it.toNioPath() }.getOrNull() }?.let { nioPath ->
+          mainPanel.preselectFile(nioPath)
+        }
       }
       if (this.showAndGet()) {
-        return mainPanel.getSelectedFiles().toArray(VirtualFile.EMPTY_ARRAY)
+        return toVirtualFiles(mainPanel.getSelectedFiles()).toArray(VirtualFile.EMPTY_ARRAY)
       }
       return emptyArray()
     }
 
     override fun choose(toSelect: VirtualFile?, callback: Consumer<in MutableList<VirtualFile>>) {
-      mainPanel.preselectFile(toSelect)
+      toSelect?.runCatching { toSelect.toNioPath() }?.getOrNull()?.let { nioPath ->
+        mainPanel.preselectFile(nioPath)
+      }
       if (showAndGet()) {
         val mutableList = mutableListOf<VirtualFile>()
-        mutableList.addAll(mainPanel.getSelectedFiles())
+        mutableList.addAll(toVirtualFiles(mainPanel.getSelectedFiles()).filterNotNull())
         callback.consume(mutableList)
       }
     }
@@ -153,6 +157,12 @@ object UniversalFileChooser {
     override fun createCenterPanel(): JComponent {
       mainPanel = Panel(this.disposable, descriptor, project, ::doOKAction)
       return mainPanel
+    }
+  }
+
+  private fun toVirtualFiles(paths: List<Path>): List<VirtualFile?> {
+    return paths.map { path ->
+      VfsUtil.findFile(path, true)
     }
   }
 
@@ -211,23 +221,21 @@ object UniversalFileChooser {
       }
     }
 
-    fun preselectFile(toSelect: VirtualFile?) {
+    fun preselectFile(toSelect: Path?) {
       if (toSelect == null) return
-      val nioPath = runCatching { toSelect.toNioPath() }.getOrNull() ?: return
-      val index = fileViews.indexOfFirst { it.contributor.ownsPath(nioPath) }
+      val index = fileViews.indexOfFirst { it.contributor.ownsPath(toSelect) }
       if (index < 0) return
       tabbedPane.selectedIndex = index
       fileViews[index].fileToSelect = toSelect
     }
 
-    fun getSelectedFiles(): List<VirtualFile> {
+    fun getSelectedFiles(): List<Path> {
       val fileView = (tabbedPane.selectedComponent as JComponent).getUserData(FILE_VIEW_KEY)
       return fileView?.getSelectedFiles() ?: emptyList()
     }
 
-    private fun navigateToFile(file: VirtualFile) {
-      val nioPath = runCatching { file.toNioPath() }.getOrNull() ?: return
-      val index = fileViews.indexOfFirst { it.contributor.ownsPath(nioPath) }
+    private fun navigateToFile(file: Path) {
+      val index = fileViews.indexOfFirst { it.contributor.ownsPath(file) }
       if (index < 0) return
       tabbedPane.selectedIndex = index
       val targetView = fileViews[index]
@@ -251,7 +259,7 @@ object UniversalFileChooser {
         add(LocationData(
           icon = AllIcons.Nodes.HomeFolder,
           text = IdeBundle.message("universal.file.chooser.action.home.text"),
-          action = { getActiveFileView()?.navigateToHome() }
+          action = { navigateToHome() }
         ))
         if (!project.isDefault) {
           add(LocationData(
@@ -291,13 +299,29 @@ object UniversalFileChooser {
       }
     }
 
+    private fun navigateToHome() {
+      val activeView = getActiveFileView() ?: return
+      activeView.topComponent.cursor = Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)
+      scope.launch {
+        withContext(Dispatchers.IO) {
+          val basePath = project.basePath?.let { Path.of(it) }
+                         ?: Path.of(SystemProperties.getUserHome())
+                         ?: return@withContext
+          val homePath = basePath.asEelPath().descriptor.toEelApi().userInfo.home.asNioPath()
+          runOnEdt {
+            activeView.topComponent.cursor = Cursor.getDefaultCursor()
+            navigateToFile(homePath)
+          }
+        }
+      }
+    }
+
     private fun navigateToProject() {
       val basePath = project.basePath ?: return
       scope.launch {
         withContext(Dispatchers.IO) {
-          val vFile = VfsUtil.findFile(Path.of(basePath), true)
           runOnEdt {
-            if (vFile != null) navigateToFile(vFile)
+            navigateToFile(Path.of(basePath))
           }
         }
       }
@@ -306,17 +330,17 @@ object UniversalFileChooser {
 
     class FileView(
       val contributor: UniversalFileChooserContributor,
-      private val descriptor: FileChooserDescriptor,
+      descriptor: FileChooserDescriptor,
       disposable: Disposable,
       project: Project,
       okAction: Runnable,
       val scope: CoroutineScope,
     ) {
       val topComponent: JComponent
-      val fileTree: FileSystemTreeImpl
+      val fileTree: NioFileSystemTree
       private val roots: MutableList<String> = mutableListOf()
       private val virtualRootMap: MutableMap<Path, VirtualRoot> = ConcurrentHashMap()
-      var fileToSelect: VirtualFile? = null
+      var fileToSelect: Path? = null
       private val breadcrumbs = Breadcrumbs()
       private var currentCrumbs: List<FileCrumb> = emptyList()
       private val barCardLayout = CardLayout()
@@ -347,21 +371,8 @@ object UniversalFileChooser {
       private var isMountActionInProgress = false
 
       init {
-
-        val descriptorCopy = object : FileChooserDescriptor(descriptor) {
-          override fun getComment(file: VirtualFile): @NlsSafe String? {
-            val nioPath = runCatching { file.toNioPath() }.getOrNull() ?: return null
-            val name = presentationCache[nioPath.invariantSeparatorsPathString]?.presentableName ?: return null
-            return "  $name"
-          }
-
-          override fun getIcon(file: VirtualFile?): Icon? {
-            val nioPath = runCatching { file?.toNioPath() }.getOrNull() ?: return null
-            val icon = presentationCache[nioPath.invariantSeparatorsPathString]?.icon ?: return super.getIcon(file)
-            return icon
-          }
-        }
-        descriptorCopy.putUserData(FileTreeModel.SYSTEM_ROOTS_FILTER,
+        val descriptorCopy = FileChooserDescriptor(descriptor)
+        descriptorCopy.putUserData(NioFileTreeModel.SYSTEM_ROOTS_FILTER,
                                    Predicate { path: Path? -> path != null && roots.contains(path.invariantSeparatorsPathString) })
 
         tree.isRootVisible = false
@@ -376,10 +387,14 @@ object UniversalFileChooser {
 
           override fun treeWillCollapse(event: TreeExpansionEvent) {}
         })
-        fileTree = FileSystemTreeImpl(project, descriptorCopy, tree, null, null, null)
+        fileTree = NioFileSystemTree(project, descriptorCopy, tree)
         fileTree.addOkAction(okAction)
-        fileTree.addListener(FileSystemTree.Listener { selection -> updateBreadcrumbs(selection) }, disposable)
-        val scrollPane = ScrollPaneFactory.createScrollPane(fileTree.tree)
+        fileTree.addListener(object : NioFileSystemTree.Listener {
+          override fun selectionChanged(selection: List<Path?>) {
+            updateBreadcrumbs(selection)
+          }
+        }, disposable)
+        val scrollPane = ScrollPaneFactory.createScrollPane(fileTree.getTree())
 
         val toolbar = createToolbar()
         this.toolbar = toolbar
@@ -389,7 +404,7 @@ object UniversalFileChooser {
         barPanel.add(pathTextField.field, PATH_CARD)
         breadcrumbs.onSelect { crumb, event ->
           val fileCrumb = crumb as? FileCrumb ?: return@onSelect
-          if (fileCrumb == currentCrumbs.lastOrNull() && fileCrumb.file.isDirectory) {
+          if (fileCrumb == currentCrumbs.lastOrNull() && Files.isDirectory(fileCrumb.file)) {
             showDirectoryPopup(fileCrumb.file, event as? MouseEvent ?: return@onSelect)
           }
           else {
@@ -498,7 +513,7 @@ object UniversalFileChooser {
               for (root in roots) {
                 mountStatusCache[root] = MountStatus.Unmounted
               }
-              ((tree.model as AsyncTreeModel).model as FileTreeModel).resetRoots()
+              ((tree.model as AsyncTreeModel).model as NioFileTreeModel).resetRoots()
               cardLayout.show(contentPanel, TREE_CARD)
               fileToSelect?.let { fileTree.select(it, null) }
               startCacheUpdates()
@@ -534,33 +549,8 @@ object UniversalFileChooser {
               collapseUnmountedRoot(root)
               toolbar?.updateActionsAsync()
             }
-            MountStatus.Mounted -> VfsUtil.findFile(root, true)?.let { vDir ->
-              (vDir as? NewVirtualFile)?.markDirtyRecursively()
-              runOnEdt {
-                RefreshQueue.getInstance().refresh(true, true, {
-                  fileTree.updateTree()
-                }, ModalityState.stateForComponent(fileTree.tree), vDir)
-                toolbar?.updateActionsAsync()
-              }
-            }
+            MountStatus.Mounted -> {}
             else -> {}
-          }
-        }
-      }
-
-      fun navigateToHome() {
-        topComponent.cursor = Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)
-        scope.launch {
-          withContext(Dispatchers.IO) {
-            val basePath = fileTree.selectedFile?.let { runCatching { it.toNioPath() }.getOrNull() }
-                           ?: contributor.getRoots().firstOrNull()
-                           ?: return@withContext
-            val homePath = basePath.asEelPath().descriptor.toEelApi().userInfo.home.asNioPath()
-            val vFile = VfsUtil.findFile(homePath, true)
-            runOnEdt {
-              fileTree.select(vFile) { fileTree.expand(vFile, null) }
-              topComponent.cursor = Cursor.getDefaultCursor()
-            }
           }
         }
       }
@@ -589,7 +579,7 @@ object UniversalFileChooser {
 
           override fun update(e: AnActionEvent) {
             val parent = fileTree.getNewFileParent()
-            e.presentation.isEnabled = parent != null && parent.isDirectory && parent.isWritable
+            e.presentation.isEnabled = parent != null && Files.isDirectory(parent) && Files.isWritable(parent)
           }
 
           override fun actionPerformed(e: AnActionEvent) {
@@ -620,24 +610,19 @@ object UniversalFileChooser {
           override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
           override fun update(e: AnActionEvent) {
-            val selected = fileTree.selectedFile
-            val nioPath = selected?.let { runCatching { it.toNioPath() }.getOrNull() }
-            if (nioPath == null || roots.contains(nioPath.invariantSeparatorsPathString) || !selected.isWritable) {
+            val selected = fileTree.getSelectedFile()
+            if (selected == null || roots.contains(selected.invariantSeparatorsPathString) || !Files.isWritable(selected)) {
               e.presentation.isEnabled = false; return
             }
-            if (selected.isDirectory) {
-              val children = selected.children
-              if (children == null || children.isNotEmpty()) {
-                e.presentation.isEnabled = false; return
-              }
+            if (Files.isDirectory(selected) && !runCatching { Files.list(selected).isEmpty() }.getOrElse { true }) {
+              e.presentation.isEnabled = false; return
             }
             e.presentation.isEnabled = true
           }
 
           override fun actionPerformed(e: AnActionEvent) {
-            val selected = fileTree.selectedFile ?: return
+            val selected = fileTree.getSelectedFile() ?: return
             val parent = selected.parent ?: return
-            val nioPath = runCatching { selected.toNioPath() }.getOrNull() ?: return
             if (Messages.showYesNoDialog(
                 IdeBundle.message("universal.file.chooser.action.delete.confirm", selected.name),
                 IdeBundle.message("universal.file.chooser.action.delete.text"),
@@ -646,16 +631,12 @@ object UniversalFileChooser {
 
             scope.launch {
               withContext(Dispatchers.IO) {
-                val result = runCatching { Files.delete(nioPath) }
-                if (result.isSuccess) {
-                  (parent as? NewVirtualFile)?.markDirtyRecursively()
-                  RefreshQueue.getInstance().refresh(
-                    true, false, null,
-                    ModalityState.stateForComponent(fileTree.tree), parent
-                  )
-                }
-                else {
-                  runOnEdt {
+                val result = runCatching { Files.delete(selected) }
+                runOnEdt {
+                  if (result.isSuccess) {
+                    fileTree.updateTree()
+                  }
+                  else {
                     val message = result.exceptionOrNull()?.message ?: ""
                     Messages.showErrorDialog(message, IdeBundle.message("universal.file.chooser.action.delete.text"))
                   }
@@ -673,13 +654,7 @@ object UniversalFileChooser {
           override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
 
           override fun actionPerformed(e: AnActionEvent) {
-            val selected = fileTree.selectedFile
-            val directory = if (selected != null && selected.isDirectory) selected else selected?.parent
-            val filesToRefresh = if (directory != null) arrayOf(directory) else ManagingFS.getInstance().localRoots
-            for (file in filesToRefresh) {
-              (file as? NewVirtualFile)?.markDirtyRecursively()
-            }
-            RefreshQueue.getInstance().refresh(true, true, null, ModalityState.stateForComponent(fileTree.tree), *filesToRefresh)
+            fileTree.updateTree()
           }
         }
 
@@ -695,17 +670,12 @@ object UniversalFileChooser {
               e.presentation.isEnabled = !isMountActionInProgress
               return
             }
-            val selected = fileTree.selectedFile
+            val selected = fileTree.getSelectedFile()
             if (selected == null) {
               e.presentation.isVisible = false
               return
             }
-            val nioPath = runCatching { selected.toNioPath() }.getOrNull()
-            if (nioPath == null) {
-              e.presentation.isVisible = false
-              return
-            }
-            val status = runBlockingCancellable { contributor.getMountStatus(nioPath) }
+            val status = runBlockingCancellable { contributor.getMountStatus(selected) }
             when (status) {
               MountStatus.Permanent -> {
                 e.presentation.isVisible = false
@@ -740,8 +710,8 @@ object UniversalFileChooser {
               }
               return
             }
-            fileTree.selectedFile?.let { selected ->
-              val root = selected.toNioPath().root
+            fileTree.getSelectedFile()?.let { selected ->
+              val root = selected.root
               isMountActionInProgress = true
               cacheUpdateJob?.cancel()
               topComponent.cursor = Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)
@@ -758,6 +728,10 @@ object UniversalFileChooser {
                   topComponent.cursor = Cursor.getDefaultCursor()
                   isMountActionInProgress = false
                   startCacheUpdates()
+                  loadRoots()
+                  runOnEdt {
+                    fileTree.updateTree()
+                  }
                 }
               }
             }
@@ -775,10 +749,9 @@ object UniversalFileChooser {
         return ActionManager.getInstance().createActionToolbar("UniversalFileChooserToolbar", actionGroup, true)
       }
 
-      fun getSelectedFiles(): List<VirtualFile> {
-        return fileTree.selectedFiles.filter { file ->
-          val nioPath = runCatching { file.toNioPath() }.getOrNull()
-          nioPath == null || !isUnmountedRoot(nioPath)
+      fun getSelectedFiles(): List<Path> {
+        return fileTree.getSelectedFiles().filterNotNull().filter { file ->
+          !isUnmountedRoot(file)
         }
       }
 
@@ -792,8 +765,7 @@ object UniversalFileChooser {
       }
 
       private fun isUnderUnmountedRoot(treePath: TreePath): Boolean {
-        val file = FileSystemTreeImpl.getVirtualFile(treePath) ?: return false
-        val nioPath = runCatching { file.toNioPath() }.getOrNull() ?: return false
+        val nioPath = NioFileSystemTree.getNioPath(treePath) ?: return false
         return isUnmountedRoot(nioPath)
       }
 
@@ -802,8 +774,7 @@ object UniversalFileChooser {
         val rowCount = tree.rowCount
         for (i in 0 until rowCount) {
           val treePath = tree.getPathForRow(i) ?: continue
-          val file = FileSystemTreeImpl.getVirtualFile(treePath) ?: continue
-          val nioPath = runCatching { file.toNioPath() }.getOrNull() ?: continue
+          val nioPath = NioFileSystemTree.getNioPath(treePath) ?: continue
           if (nioPath.invariantSeparatorsPathString == rootPath) {
             tree.collapsePath(treePath)
             return
@@ -812,9 +783,8 @@ object UniversalFileChooser {
       }
 
       private fun switchToEditMode() {
-        val selectedFile = fileTree.selectedFile
-        val path = selectedFile?.let { runCatching { it.toNioPath().toString() }.getOrNull() } ?: selectedFile?.path ?: ""
-        pathTextField.field.text = path
+        val selectedFile = fileTree.getSelectedFile()
+        pathTextField.field.text = selectedFile?.toString() ?: ""
         barCardLayout.show(barPanel, PATH_CARD)
         pathTextField.field.requestFocusInWindow()
         pathTextField.field.selectAll()
@@ -822,7 +792,7 @@ object UniversalFileChooser {
 
       private fun switchToBreadcrumbs() {
         barCardLayout.show(barPanel, BREADCRUMBS_CARD)
-        fileTree.tree.requestFocusInWindow()
+        fileTree.getTree().requestFocusInWindow()
       }
 
       private fun navigateToTextFieldPath() {
@@ -832,17 +802,14 @@ object UniversalFileChooser {
         scope.launch {
           withContext(Dispatchers.IO) {
             val path = runCatching { Path.of(text) }.getOrNull() ?: return@withContext
-            val vFile = VfsUtil.findFile(path, true)
             runOnEdt {
-              if (vFile != null) {
-                fileTree.select(vFile) { fileTree.expand(vFile, null) }
-              }
+              fileTree.select(path) { fileTree.expand(path, null) }
             }
           }
         }
       }
 
-      private fun updateBreadcrumbs(selection: List<VirtualFile>) {
+      private fun updateBreadcrumbs(selection: List<Path?>) {
         switchToBreadcrumbs()
         val file = selection.firstOrNull()
         if (file == null) {
@@ -851,7 +818,7 @@ object UniversalFileChooser {
           return
         }
         val crumbs = mutableListOf<FileCrumb>()
-        var current: VirtualFile? = file
+        var current: Path? = file
         while (current != null) {
           crumbs.add(0, FileCrumb(current))
           current = current.parent
@@ -860,13 +827,13 @@ object UniversalFileChooser {
         breadcrumbs.setCrumbs(crumbs)
       }
 
-      private fun showDirectoryPopup(directory: VirtualFile, event: MouseEvent) {
+      private fun showDirectoryPopup(directory: Path, event: MouseEvent) {
         val showHidden = fileTree.areHiddensShown()
         scope.launch {
           withContext(Dispatchers.IO) {
-            val children = directory.children
-              .filter { it.isDirectory && (showHidden || !descriptor.isHidden(it)) }
-              .sortedBy { it.name.lowercase() }
+            val children = runCatching { Files.list(directory).asSequence()
+              .filter { runCatching { Files.isDirectory(it) && (showHidden || !isHidden(it)) }.getOrElse { false } }
+              .sortedBy { it.name.lowercase() }.toList() }.getOrElse { emptyList() }
             if (!children.isEmpty()) {
               runOnEdt {
                 JBPopupFactory.getInstance()
@@ -884,11 +851,12 @@ object UniversalFileChooser {
         }
       }
 
-      private class FileCrumb(val file: VirtualFile) : Crumb {
+      private class FileCrumb(val file: Path) : Crumb {
         @NlsSafe
-        override fun getText(): String = file.name.ifEmpty { file.path }
+        override fun getText(): String = file.name.ifEmpty { file.pathString }
+
         @NlsSafe
-        override fun getTooltip(): String = file.path
+        override fun getTooltip(): String = file.pathString
       }
     }
   }
@@ -897,6 +865,7 @@ object UniversalFileChooser {
   private fun runOnEdt(runnable: Runnable) {
     ApplicationManager.getApplication().invokeLater(runnable, ModalityState.any())
   }
+
 }
 
 
