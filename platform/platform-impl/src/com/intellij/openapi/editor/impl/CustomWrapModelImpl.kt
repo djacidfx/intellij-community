@@ -17,7 +17,7 @@ import org.jetbrains.annotations.NonNls
 import org.jetbrains.annotations.TestOnly
 
 internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapModel, CustomWrapModel.Mutator, PrioritizedDocumentListener,
-                                                                     Dumpable {
+                                                                     Dumpable, Disposable {
   private val document = editor.elfDocument
   private val tree: CustomWrapTree = CustomWrapTree(document)
   private val eventDispatcher = EventDispatcher.create(CustomWrapModel.Listener::class.java)
@@ -172,6 +172,10 @@ internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapM
     LOG.assertTrue(notCollapsedUniqueWraps.size == customSoftWraps.size)
   }
 
+  override fun dispose() {
+    tree.dispose(document)
+  }
+
   private inner class CustomWrapTree(document: Document) : HardReferencingRangeMarkerTree<CustomWrapImpl>(document) {
     public override fun size(): Int {
       return super.size()
@@ -191,6 +195,10 @@ internal class CustomWrapModelImpl(private val editor: EditorImpl) : CustomWrapM
 
     override fun fireAfterRemoved(marker: CustomWrapImpl) {
       notifyRemoved(marker)
+    }
+
+    public override fun dispose(document: Document) {
+      super.dispose(document)
     }
   }
 }
