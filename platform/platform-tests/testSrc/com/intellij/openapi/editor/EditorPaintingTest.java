@@ -20,6 +20,7 @@ import com.intellij.openapi.progress.EmptyProgressIndicator;
 import com.intellij.openapi.util.registry.Registry;
 import com.intellij.testFramework.TestDataPath;
 import com.intellij.ui.IslandsState;
+import com.intellij.ui.JBColor;
 import com.intellij.util.ui.ColorIcon;
 import org.jetbrains.annotations.NotNull;
 
@@ -407,6 +408,15 @@ public class EditorPaintingTest extends EditorPaintingTestCase {
     } finally {
       restoreSelectionState(state);
     }
+  }
+
+  public void testInlineInlaysAroundCustomWrap() throws Exception {
+    setUpCustomWrapSupport();
+    initText("0123456789");
+    getEditor().getCustomWrapModel().runBatchMutation(mutator -> mutator.addWrap(4, 2, 0));
+    getEditor().getInlayModel().addInlineElement(4, true, new MyInlayRenderer(JBColor.CYAN));
+    getEditor().getInlayModel().addInlineElement(4, false, new MyInlayRenderer(JBColor.GREEN));
+    checkResult();
   }
 
   private void addCustomLinesFolding(int startLine, int endLine) {
