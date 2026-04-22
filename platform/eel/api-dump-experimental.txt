@@ -535,6 +535,17 @@ f:com.intellij.platform.eel.EelTunnelsApiKt
 - f:getChannel():com.intellij.platform.eel.channels.EelSendChannel
 f:com.intellij.platform.eel.channels.EelSendChannelKt
 - *sf:sendWholeBuffer(com.intellij.platform.eel.channels.EelSendChannel,java.nio.ByteBuffer,kotlin.coroutines.Continuation):java.lang.Object
+*f:com.intellij.platform.eel.channels.PeekableEelReceiveChannel
+- com.intellij.platform.eel.channels.EelReceiveChannel
+- <init>(com.intellij.platform.eel.channels.EelReceiveChannel):V
+- available():I
+- closeForReceive(kotlin.coroutines.Continuation):java.lang.Object
+- getPrefersDirectBuffers():Z
+- f:prepend(java.nio.ByteBuffer[]):V
+- receive(java.nio.ByteBuffer,kotlin.coroutines.Continuation):java.lang.Object
+f:com.intellij.platform.eel.channels.PeekableEelReceiveChannelKt
+- *sf:peekable(com.intellij.platform.eel.channels.EelReceiveChannel):com.intellij.platform.eel.channels.PeekableEelReceiveChannel
+- *sf:readLine(com.intellij.platform.eel.channels.PeekableEelReceiveChannel,java.nio.charset.Charset,kotlin.coroutines.Continuation):java.lang.Object
 *f:com.intellij.platform.eel.eelProxyKtHelpers
 - sf:INSTANCE:com.intellij.platform.eel.eelProxyKtHelpers
 *f:com.intellij.platform.eel.eelProxyKtHelpers$EelProxy
