@@ -1,6 +1,7 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.diagnostic.opentelemetry
 
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.serviceAsync
 import com.intellij.openapi.project.Project
@@ -8,6 +9,7 @@ import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.openapi.vfs.DiskQueryRelay
 import com.intellij.platform.diagnostic.telemetry.PlatformMetrics
 import com.intellij.platform.diagnostic.telemetry.TelemetryManager.Companion.getInstance
+import io.opentelemetry.api.metrics.BatchCallback
 import java.util.concurrent.TimeUnit
 
 /**
@@ -19,7 +21,9 @@ internal class DiskQueryRelayToOTelReporter : ProjectActivity {
   }
 
   @Service(Service.Level.APP)
-  private class ReportingService {
+  private class ReportingService : Disposable {
+
+    var callback: BatchCallback? = null
 
     init {
       val otelMeter = getInstance().getMeter(PlatformMetrics)
@@ -33,7 +37,7 @@ internal class DiskQueryRelayToOTelReporter : ProjectActivity {
       val tasksRequested =
         otelMeter.counterBuilder("DiskQueryRelay.tasksRequested").buildObserver()
 
-      otelMeter.batchCallback(
+      callback = otelMeter.batchCallback(
         Runnable {
           taskExecutionTimeUs.record(DiskQueryRelay.taskExecutionTotalTime(TimeUnit.MICROSECONDS))
           taskWaitingTimeUs.record(DiskQueryRelay.taskWaitingTotalTime(TimeUnit.MICROSECONDS))
@@ -43,6 +47,10 @@ internal class DiskQueryRelayToOTelReporter : ProjectActivity {
         taskExecutionTimeUs, taskWaitingTimeUs,
         tasksExecuted, tasksRequested
       )
+    }
+
+    override fun dispose() {
+      callback?.close()
     }
 
   }
