@@ -390,7 +390,7 @@ fn init_cef_sandbox(jre_home: &Path, sandbox_subprocess: bool) -> Result<Option<
         let exit_code = unsafe {
             let helper_path = jre_home.join("bin\\jcef_helper.dll");
             let lib = libloading::Library::new(&helper_path)
-                .with_context(|| format!("Cannot load '{:#?}'", helper_path))?;
+                .with_context(|| format!("Cannot load '{helper_path:#?}'"))?;
 
             let proc: libloading::Symbol<'_, unsafe extern "system" fn(*mut std::os::raw::c_void, *mut std::os::raw::c_void) -> i32> = lib.get(b"execute_subprocess\0")
                 .context("Cannot find 'execute_subprocess' in 'jcef_helper.dll'")?;
@@ -398,7 +398,7 @@ fn init_cef_sandbox(jre_home: &Path, sandbox_subprocess: bool) -> Result<Option<
             let mut h_instance = LibraryLoader::GetModuleHandleW(PCWSTR::null())?;
             proc(&mut h_instance as *mut _ as *mut std::os::raw::c_void, cef_sandbox.ptr)
         };
-        debug!("  finished: {}", exit_code);
+        debug!("  finished: {exit_code}");
         std::process::exit(exit_code);
     }
 
