@@ -50,22 +50,25 @@ internal object KotlinForwardDeclarationsFileGenerator {
 
             generateFile(libraryLocation, pkg, kind, classes)
         }
+        refreshVfs(root)
+        return libraryLocation
+    }
+
+    private fun refreshVfs(root: Path) {
         // Both the refresh on findFile and the explicit refresh on markDirty are necessary for a correct clean first start
         VfsUtil.findFile(root, /* refreshIfNeeded = */ true)?.let {
             VfsUtil.markDirtyAndRefresh(/* async = */ true, /* recursive = */ true, /* reloadChildren = */ true, /* ...files = */ it)
         }
-        return libraryLocation
     }
 
     private fun generateFile(parentDir: Path, pkg: FqName, kind: NativeForwardDeclarationKind, classes: List<FqName>): Path {
         val text = createText(pkg, kind, classes)
         return with(parentDir.resolve("${pkg.asString()}.kt")) {
             Files.createDirectories(parent)
-            if (exists()) {
-                Files.delete(this)
+            if (!exists()) {
+                Files.createFile(this)
             }
 
-            Files.createFile(this)
             Files.writeString(this, text)
             this
         }
