@@ -1545,41 +1545,49 @@ public final class FSRecordsImpl implements Closeable {
   @VisibleForTesting
   public @NotNull AttributeOutputStream writeAttribute(int fileId, @NotNull FileAttribute attribute) {
     StampedLock lock = fileRecordLock.lockFor(fileId);
-    long lockStamp = lock.writeLock();
-    try {
-      AttributeOutputStream stream = attributeAccessor.writeAttribute(fileId, attribute);
-      //AttributeOutputStream is byte[]-backed stream that commits the changes in .close() method
-      // Create a delegating stream: overwrite .close() and protect it with a write lock:
-      return new AttributeOutputStream(stream) {
-        @Override
-        public void writeEnumeratedString(String str) throws IOException {
-          stream.writeEnumeratedString(str);
-        }
 
-        @Override
-        public void close() throws IOException {
-          long lockStamp = lock.writeLock();
-          try {
-            super.close();
-          }
-          catch (FileTooBigException e) {
-            LOG.warn("Error storing " + attribute + " of file(" + fileId + ")", e);
-            //don't mark VFS as corrupted, error is due to data supplied from outside
-            throw e;
-          }
-          catch (Throwable t) {
-            LOG.warn("Error storing " + attribute + " of file(" + fileId + ")", t);
-            throw handleError(t);
-          }
-          finally {
-            lock.unlockWrite(lockStamp);
-          }
-        }
-      };
+    long lockStamp = lock.writeLock();
+    AttributeOutputStream stream;
+    try {
+      stream = attributeAccessor.writeAttribute(fileId, attribute);
     }
     finally {
       lock.unlockWrite(lockStamp);
     }
+
+    //AttributeOutputStream is byte[]-backed stream that commits the changes in .close() method
+    // Return a delegating stream: with overridden .close() protected with the write lock, and
+    // additional error-processing:
+    return new AttributeOutputStream(stream) {
+      @Override
+      public void writeEnumeratedString(String str) throws IOException {
+        stream.writeEnumeratedString(str);
+      }
+
+      @Override
+      public void close() throws IOException {
+        long lockStamp = lock.writeLock();
+        try {
+          super.close();
+        }
+        catch (FileTooBigException e) {
+          LOG.warn("Error storing " + attribute + " of file(#" + fileId + ", name: " + getName(fileId) + "): " +
+                   "attribute.size=" + getWrittenBytesCount() + " is too big", e);
+          //don't mark VFS as corrupted: this error is due to data supplied from outside (add few bits of diagnostic
+          // data)
+          throw new FileTooBigException("Error storing " + attribute + " of file(#" + fileId + ", name: " + getName(fileId) + "): " +
+                                        "attribute.size=" + getWrittenBytesCount() + " is too big", e);
+        }
+        catch (Throwable t) {
+          LOG.warn("Error storing " + attribute + " of file(#" + fileId + ", name: " + getName(fileId) + "): " +
+                   "attribute.size=" + getWrittenBytesCount(), t);
+          throw handleError(t);
+        }
+        finally {
+          lock.unlockWrite(lockStamp);
+        }
+      }
+    };
   }
 
   //'raw' (lambda + ByteBuffer instead of Input/OutputStream) attributes access: experimental
