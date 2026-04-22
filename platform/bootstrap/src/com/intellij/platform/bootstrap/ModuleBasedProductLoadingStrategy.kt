@@ -91,7 +91,7 @@ internal class ModuleBasedProductLoadingStrategy(internal val moduleRepository: 
     }
     val mainGroupClassPath = embeddedModulesWithDependencies.flatMapTo(LinkedHashSet()) { it.resourceRootPaths }
     val classPath = (bootstrapClassLoader as PathClassLoader).classPath
-    logger<ModuleBasedProductLoadingStrategy>().info("New classpath roots:\n${(mainGroupClassPath - classPath.baseUrls.toSet()).joinToString("\n")}")
+    logger<ModuleBasedProductLoadingStrategy>().info("New classpath roots:\n${(mainGroupClassPath - classPath.files.toSet()).joinToString("\n")}")
     classPath.addFiles(mainGroupClassPath)
   }
 
