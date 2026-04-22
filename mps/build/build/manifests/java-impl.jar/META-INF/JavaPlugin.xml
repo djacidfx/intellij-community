@@ -76,8 +76,6 @@
     <orderRootType implementation="com.intellij.openapi.roots.JavadocOrderRootType"/>
     <orderRootType implementation="com.intellij.openapi.roots.AnnotationOrderRootType"/>
 
-    <dynamicActionConfigurationCustomizer  implementation="jetbrains.mps.ide.projectPane.ProjectPaneActionsCustomizer"/>
-
     <projectService serviceImplementation="com.intellij.compiler.CompilerConfigurationSettings" configurationSchemaKey="compiler"/>
 
     <advancedSetting id="compiler.automake.allow.when.app.running" groupKey="advanced.settings.group.compiler" default="false"
