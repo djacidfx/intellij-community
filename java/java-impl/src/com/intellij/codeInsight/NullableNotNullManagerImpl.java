@@ -385,6 +385,9 @@ public class NullableNotNullManagerImpl extends NullableNotNullManager implement
   @Override
   protected @NotNull ContextNullabilityInfo findNullityDefaultOnPackage(PsiAnnotation.TargetType @NotNull [] placeTargetTypes,
                                                                         PsiFile file) {
+
+    //use original file to check package-info.java
+    PsiFile originalFile = file.getOriginalFile();
     var processor = new JavaPsiAnnotationUtil.PackageAnnotationProcessor() {
       @NotNull ContextNullabilityInfo info = ContextNullabilityInfo.EMPTY;
 
@@ -393,7 +396,7 @@ public class NullableNotNullManagerImpl extends NullableNotNullManager implement
         info = info.orElse(checkNullityDefault(annotations, placeTargetTypes, superPackage));
       }
     };
-    JavaPsiAnnotationUtil.processPackageAnnotations(file, processor, true);
+    JavaPsiAnnotationUtil.processPackageAnnotations(originalFile, processor, true);
     return processor.info;
   }
 

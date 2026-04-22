@@ -424,9 +424,7 @@ public abstract class NullableNotNullManager {
       }
 
       if (element instanceof PsiClassOwner) {
-        //use original file to check package-info.java
-        PsiFile containingFile = element.getContainingFile().getOriginalFile();
-        NullabilityAnnotationInfo fromPackage = findNullityDefaultOnPackage(placeTargetTypes, containingFile).forContext(place);
+        NullabilityAnnotationInfo fromPackage = findNullityDefaultOnPackage(placeTargetTypes, element.getContainingFile()).forContext(place);
         if (fromPackage != null) {
           return fromPackage;
         }
