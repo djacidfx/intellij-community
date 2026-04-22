@@ -91,7 +91,7 @@ import javax.swing.JComponent
 import javax.swing.ScrollPaneConstants
 
 @ApiStatus.Internal
-class PluginManagerConfigurablePanel : Disposable {
+class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: String?) : Disposable {
   private val myCoroutineScope: CoroutineScope
 
   private val myPluginModelFacade: PluginModelFacade
@@ -123,19 +123,12 @@ class PluginManagerConfigurablePanel : Disposable {
     val childScope = parentScope.childScope(javaClass.name, Dispatchers.IO, true)
     myPluginModelFacade.getModel().coroutineScope = childScope
     myCoroutineScope = childScope
-  }
 
-  fun getCenterComponent(controller: Configurable.TopComponentController): JComponent {
-    myPluginModelFacade.getModel().setTopController(controller)
-    return myTabHeaderComponent!!
-  }
-
-  fun getTopComponent(): JComponent {
-    return getCenterComponent(Configurable.TopComponentController.EMPTY)
+    init(searchQuery)
   }
 
   @RequiresEdt
-  fun init(searchQuery: String?) {
+  private fun init(searchQuery: String?) {
     myTabHeaderComponent = object : TabbedPaneHeaderComponent(createGearActions(), { index ->
       myCardPanel!!.select(index, true)
       storeSelectionTab(index)
@@ -205,6 +198,15 @@ class PluginManagerConfigurablePanel : Disposable {
     if (myPluginManagerCustomizer != null) {
       myPluginManagerCustomizer.initCustomizer(myCardPanel!!)
     }
+  }
+
+  fun getCenterComponent(controller: Configurable.TopComponentController): JComponent {
+    myPluginModelFacade.getModel().setTopController(controller)
+    return myTabHeaderComponent!!
+  }
+
+  fun getTopComponent(): JComponent {
+    return getCenterComponent(Configurable.TopComponentController.EMPTY)
   }
 
   fun getComponent(): JComponent {

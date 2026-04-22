@@ -119,8 +119,7 @@ public final class PluginManagerConfigurable
   @RequiresEdt
   private @NotNull PluginManagerConfigurablePanel createPanelIfNeeded(@Nullable String searchQuery) {
     if (myPanel == null) {
-      myPanel = new PluginManagerConfigurablePanel();
-      myPanel.init(searchQuery);
+      myPanel = new PluginManagerConfigurablePanel(searchQuery);
     }
     return myPanel;
   }
