@@ -38,10 +38,8 @@ use serde::Deserialize;
 
 #[cfg(target_os = "windows")]
 use {
-    std::io::Write,
     windows::Win32::Foundation,
     windows::Win32::Foundation::HANDLE,
-    windows::Win32::System::Console::{ATTACH_PARENT_PROCESS, AttachConsole, SetStdHandle, STD_ERROR_HANDLE, STD_OUTPUT_HANDLE},
     windows::Win32::System::LibraryLoader,
     windows::Win32::UI::Shell,
     windows::core::{HSTRING, GUID, PWSTR},
@@ -81,60 +79,12 @@ pub fn main_lib() {
     let server_mode_argument_used = env::args().nth(1).map(|x| x == "serverMode").unwrap_or(false);
     let remote_dev = remote_dev_launcher_used || server_mode_argument_used;
     let sandbox_subprocess = cfg!(target_os = "windows") && env::args().any(|arg| arg.contains("--type="));
-
     let debug_mode = env::var(DEBUG_MODE_ENV_VAR).is_ok();
-
-    #[cfg(target_os = "windows")]
-    {
-        if debug_mode && !sandbox_subprocess {
-            attach_console();
-        }
-    }
 
     if let Err(e) = main_impl(exe_path, remote_dev, debug_mode, sandbox_subprocess, remote_dev_launcher_used) {
         let gui_mode = !debug_mode && !sandbox_subprocess;
         ui::show_error(gui_mode, e);
         std::process::exit(1);
-    }
-}
-
-#[cfg(target_os = "windows")]
-fn attach_console() {
-    unsafe {
-        let mut err = None;
-        if AttachConsole(ATTACH_PARENT_PROCESS).is_err() {
-            err = Some(Foundation::GetLastError());
-        }
-
-        // case: races when restarting in remote-dev on Windows
-        // (ssh session -> tb proxy -> tb agent -> IDE -> restarter.exe (dying too fast) -> IDE)
-        // cannot repro on a smaller setup (e.g. cmd /C via ssh)
-        // * case: console is alive, but in a state of being closed
-        // * AttachConsole does not always error
-        // * GetStdHandle for STD_OUT_HANDLE returns without errors and the handle is not zero/invalid
-        // * println!/eprintln! panics when it can't write
-        // * setting various process creation flags in restarter does not seem to help
-        // this is the only reliable way I've found to check if it's possible to call println! without panic
-        if writeln!(std::io::stderr(), ".").is_err() {
-            // usually it's Os { code: 232, kind: BrokenPipe, message: "The pipe is being closed." }
-            // but even if it's some other error, let's not write there
-            // passing null here is not explicitly documented,
-            // but it works and is consistent with the GetStdHandle returning null
-            if SetStdHandle(STD_ERROR_HANDLE, HANDLE(std::ptr::null_mut())).is_err() {
-                std::process::exit(1011)
-            }
-        }
-
-        #[allow(clippy::collapsible_if)]
-        if writeln!(std::io::stdout(), ".").is_err() {
-            if SetStdHandle(STD_OUTPUT_HANDLE, HANDLE(std::ptr::null_mut())).is_err() {
-                std::process::exit(1012)
-            }
-        }
-
-        if let Some(err) = err {
-            eprintln!("AttachConsole(ATTACH_PARENT_PROCESS): {err:?}")
-        }
     }
 }
 
