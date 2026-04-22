@@ -26,12 +26,12 @@ class SearchEverywhereLuceneFilesTabFactory : SeTabFactory, SeEssentialTabFactor
     registerShortcut: (AnAction) -> Unit,
   ): SeTab? {
     if (project == null) return null
-    val delegate = SeTabDelegate(project,
-                                 session,
-                                 "LuceneFiles",
-                                 listOf(SeProviderId(SearchEverywhereLuceneProviderIdUtils.LUCENE_FILES)),
-                                 initEvent,
-                                 scope)
+    val delegate = SeTabDelegate.create(project,
+                                        session,
+                                        "LuceneFiles",
+                                        listOf(SeProviderId(SearchEverywhereLuceneProviderIdUtils.LUCENE_FILES)),
+                                        initEvent,
+                                        scope)
 
     return SearchEverywhereLuceneFilesTab(delegate)
   }

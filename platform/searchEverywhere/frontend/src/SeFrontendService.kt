@@ -28,6 +28,7 @@ import com.intellij.platform.searchEverywhere.SeSession
 import com.intellij.platform.searchEverywhere.SeSessionEntity
 import com.intellij.platform.searchEverywhere.asRef
 import com.intellij.platform.searchEverywhere.frontend.ml.SeMlService
+import com.intellij.platform.searchEverywhere.frontend.resultsProcessing.DataContextWithRpcId
 import com.intellij.platform.searchEverywhere.frontend.tabs.SeAdaptedTab
 import com.intellij.platform.searchEverywhere.frontend.tabs.SeAdaptedTabFilterEditor
 import com.intellij.platform.searchEverywhere.frontend.tabs.actions.SeActionsTab
@@ -146,6 +147,13 @@ class SeFrontendService(val project: Project?, private val coroutineScope: Corou
           mlService?.onSessionStarted(project, tabId)
 
           try {
+            val dataContextWithRpcId = readAction {
+              val dataContext = initEvent.dataContext
+              val dataContextId = dataContext.rpcId()
+              DataContextWithRpcId(dataContext, dataContextId)
+            }
+
+            val initEvent = initEvent.withDataContext(dataContextWithRpcId)
             val providersHolder = SeProvidersHolder.initialize(initEvent, project, session, "Frontend", false)
             localProvidersHolder = providersHolder
             initializeVmAndSetToPopup(popupFuture,
