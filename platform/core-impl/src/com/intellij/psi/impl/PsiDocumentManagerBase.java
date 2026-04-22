@@ -306,7 +306,7 @@ public abstract class PsiDocumentManagerBase extends PsiDocumentManagerEx implem
   public void commitAllDocuments() {
     ThreadingAssertions.assertEventDispatchThread();
     WriteIntentReadAction.run(() -> {
-      ((TransactionGuardImpl)TransactionGuard.getInstance()).assertWriteActionAllowed();
+      ((TransactionGuardImpl)TransactionGuard.getInstance()).assertWriteSafeEnvironment();
 
       if (myUncommittedDocuments.isEmpty()) return;
 
@@ -468,7 +468,7 @@ public abstract class PsiDocumentManagerBase extends PsiDocumentManagerEx implem
     Document document = getTopLevelDocument(doc);
 
     if (isEventSystemEnabled(document)) {
-      ((TransactionGuardImpl)TransactionGuard.getInstance()).assertWriteActionAllowed();
+      ((TransactionGuardImpl)TransactionGuard.getInstance()).assertWriteSafeEnvironment();
     }
 
     if (!isCommitted(document)) {
@@ -499,7 +499,7 @@ public abstract class PsiDocumentManagerBase extends PsiDocumentManagerEx implem
                               @NotNull Object reason) {
     assert !myProject.isDisposed() : "Already disposed";
     if (isEventSystemEnabled(document)) {
-      ((TransactionGuardImpl)TransactionGuard.getInstance()).assertWriteActionAllowed();
+      ((TransactionGuardImpl)TransactionGuard.getInstance()).assertWriteSafeEnvironment();
     }
     boolean[] ok = {true};
     if (synchronously) {
@@ -526,7 +526,7 @@ public abstract class PsiDocumentManagerBase extends PsiDocumentManagerEx implem
                                               @NotNull @Unmodifiable List<? extends BooleanRunnable> reparseInjectedProcessors,
                                               boolean synchronously) {
     if (isEventSystemEnabled(document)) {
-      ((TransactionGuardImpl)TransactionGuard.getInstance()).assertWriteActionAllowed();
+      ((TransactionGuardImpl)TransactionGuard.getInstance()).assertWriteSafeEnvironment();
     }
     if (myProject.isDisposed()) return false;
     assert !(document instanceof DocumentWindow);

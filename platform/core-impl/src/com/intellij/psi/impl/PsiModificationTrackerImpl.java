@@ -86,7 +86,7 @@ public final class PsiModificationTrackerImpl implements PsiModificationTracker,
   }
 
   private void fireEvent() {
-    ((TransactionGuardImpl)TransactionGuard.getInstance()).assertWriteActionAllowed();
+    ((TransactionGuardImpl)TransactionGuard.getInstance()).assertWriteSafeEnvironment();
     myPublisher.modificationCountChanged();
   }
 

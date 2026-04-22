@@ -259,7 +259,7 @@ public class FileDocumentManagerImpl extends FileDocumentManagerBase implements 
    * @return {@code true} if saving was performed without errors, and {@code false} otherwise
    */
   private boolean saveDocuments(@Nullable Predicate<? super Document> filter, boolean isExplicit) {
-    ((TransactionGuardImpl)TransactionGuard.getInstance()).assertWriteActionAllowed();
+    ((TransactionGuardImpl)TransactionGuard.getInstance()).assertWriteSafeEnvironment();
 
     ApplicationManager.getApplication().getMessageBus().syncPublisher(FileDocumentManagerListenerBackgroundable.TOPIC)
       .beforeAllDocumentsSaving();
@@ -343,7 +343,7 @@ public class FileDocumentManagerImpl extends FileDocumentManagerBase implements 
   }
 
   public void saveDocument(@NotNull Document document, boolean explicit) {
-    ((TransactionGuardImpl)TransactionGuard.getInstance()).assertWriteActionAllowed();
+    ((TransactionGuardImpl)TransactionGuard.getInstance()).assertWriteSafeEnvironment();
 
     ApplicationManager.getApplication().getMessageBus().syncPublisher(FileDocumentManagerListenerBackgroundable.TOPIC)
       .beforeAnyDocumentSaving(document, explicit);
