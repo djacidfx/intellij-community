@@ -188,6 +188,7 @@ internal fun MutableTWorkspace.generateK2InspectionTests() {
             // and the inspection can have the "No highlighting (fix available)" severity.
             // Therefore, we generate a test for the inspection based on the tests for K1-RemoveExplicitTypeArgumentsIntention.
             model("${idea}/intentions/removeExplicitTypeArguments", testClassName = "RemoveExplicitTypeArgumentsFormerIntentionTest", pattern = pattern)
+            model("${idea}/intentions/convertReferenceToLambda", pattern = pattern)
         }
 
         testClass<AbstractAllOpenLocalInspectionTest> {

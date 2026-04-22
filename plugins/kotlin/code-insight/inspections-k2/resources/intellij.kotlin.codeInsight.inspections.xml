@@ -390,6 +390,14 @@
                      language="kotlin"
                      key="inspection.convert.secondary.constructor.to.primary.display.name" bundle="messages.KotlinBundle"/>
 
+    <localInspection implementationClass="org.jetbrains.kotlin.idea.k2.codeinsight.inspections.ConvertReferenceToLambdaInspection"
+                     groupPath="Kotlin"
+                     groupBundle="messages.KotlinBundle" groupKey="group.names.style.issues"
+                     enabledByDefault="true"
+                     level="INFORMATION"
+                     language="kotlin"
+                     key="inspection.convert.reference.to.lambda.display.name" bundle="messages.KotlinBundle"/>
+
 
     <localInspection implementationClass="org.jetbrains.kotlin.idea.k2.codeinsight.inspections.CascadeIfInspection"
                      groupPath="Kotlin"
