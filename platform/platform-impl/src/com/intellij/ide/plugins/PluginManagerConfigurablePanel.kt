@@ -6,7 +6,6 @@ package com.intellij.ide.plugins
 import com.intellij.ide.CopyProvider
 import com.intellij.ide.DataManager
 import com.intellij.ide.IdeBundle
-import com.intellij.ide.IdeBundle.message
 import com.intellij.ide.plugins.PluginManagerConfigurable.PLUGIN_INSTALL_CALLBACK_DATA_KEY
 import com.intellij.ide.plugins.certificates.PluginCertificateManager
 import com.intellij.ide.plugins.marketplace.statistics.PluginManagerUsageCollector
@@ -199,8 +198,8 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
       }
     }
     tabHeaderComponent.createGearGotIt()
-    tabHeaderComponent.addTab(message("plugin.manager.tab.marketplace"), null)
-    tabHeaderComponent.addTab(message("plugin.manager.tab.installed"), installedTabHeaderUpdatesCountIcon)
+    tabHeaderComponent.addTab(IdeBundle.message("plugin.manager.tab.marketplace"), null)
+    tabHeaderComponent.addTab(IdeBundle.message("plugin.manager.tab.installed"), installedTabHeaderUpdatesCountIcon)
     tabHeaderComponent.setListener()
     tabHeaderComponent.setSelection(selectionTab)
     return tabHeaderComponent
