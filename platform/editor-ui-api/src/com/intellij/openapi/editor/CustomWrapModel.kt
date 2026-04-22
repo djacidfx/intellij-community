@@ -41,7 +41,7 @@ interface CustomWrapModel {
      * If the wrap lands at such offset after document modifications,
      * it will be removed automatically (see [Listener.customWrapRemoved]).
      *
-     * Note: custom wraps are meant to break existing lines;
+     * Note: Use custom wraps to break existing lines;
      * to insert empty lines use [InlayModel.addBlockElement].
      *
      * @param priority Only one custom wrap is rendered at a single offset. The lowest priority wins.
