@@ -9,8 +9,10 @@ import com.intellij.spellchecker.dictionary.CustomDictionaryProvider
 import com.intellij.spellchecker.dictionary.Dictionary
 import com.intellij.spellchecker.ui.SpellCheckingNotifier
 import com.intellij.spellchecker.util.SpellCheckerBundle
-import java.io.File
+import com.intellij.util.text.StringSearcher
 import java.io.FileNotFoundException
+import java.nio.file.Files
+import java.nio.file.Path
 import java.text.ParseException
 
 private val LOG = Logger.getInstance(HunspellDictionaryProvider::class.java)
@@ -25,10 +27,10 @@ internal class HunspellDictionaryProvider : CustomDictionaryProvider {
   override fun get(dicPath: String): Dictionary? {
     try {
       if (isIncompleteHunspell(dicPath)) {
-        val (dic, aff) = HunspellDictionary.getHunspellBundle(dicPath)
+        val hunspellBundle = HunspellDictionary.getHunspellBundle(dicPath)
         SpellCheckingNotifier.showWarningNotificationBalloon(
           SpellCheckerBundle.message("dictionary.hunspell.incomplete.title"),
-          SpellCheckerBundle.message("dictionary.hunspell.incomplete", dic.toPath().fileName, aff.toPath().fileName)
+          SpellCheckerBundle.message("dictionary.hunspell.incomplete", hunspellBundle.dic.toPath().fileName, hunspellBundle.aff.toPath().fileName)
         )
         return null
       }
@@ -67,27 +69,19 @@ internal class HunspellDictionaryProvider : CustomDictionaryProvider {
 
   private fun isHungarian(path: String): Boolean {
     if (FileUtilRt.getExtension(path) != "dic") return false
-    val (dic, aff) = HunspellDictionary.getHunspellBundle(path)
-
-    val isHungarianAff = isHungarian(aff) {
-      val args = it.split("\\s+".toRegex())
-      if (args.size == 2 && args[0] == "LANG") {
-        return@isHungarian args[1] in setOf("hu", "HU", "hu_HU")
-      }
-      false
-    }
-    return isHungarianAff || isHungarian(dic) { it.contains('ő') }
+    val hunspellBundle = HunspellDictionary.getHunspellBundle(path)
+    return isHungarianAff(hunspellBundle.aff.toPath()) || isHungarianDic(hunspellBundle.dic.toPath())
   }
 
   private fun isIncompleteHunspell(path: String): Boolean {
     if (FileUtilRt.getExtension(path) != "dic") return false
-    val (dic, aff) = HunspellDictionary.getHunspellBundle(path)
+    val hunspellBundle = HunspellDictionary.getHunspellBundle(path)
+    val dic = hunspellBundle.dic.toPath()
+    val aff = hunspellBundle.aff.toPath()
 
-    if (dic.exists() && !aff.exists()) {
+    if (Files.exists(dic) && !Files.exists(aff)) {
       try {
-        for (line in dic.readLines()) {
-          if (line.contains('/')) return true
-        }
+        return dic.anyLineMatches { line -> line.contains('/') }
       }
       catch (_: Exception) {
       }
@@ -95,12 +89,34 @@ internal class HunspellDictionaryProvider : CustomDictionaryProvider {
     return false
   }
 
-  private fun isHungarian(file: File, validator: (String) -> Boolean): Boolean {
-    if (!file.exists()) return false
+  private fun isHungarianAff(path: Path): Boolean {
+    if (!Files.exists(path)) return false
     try {
-      return file.readLines().any(validator)
-    } catch (_: Exception) {
+      return path.anyLineMatches {
+        val args = it.split("\\s+".toRegex())
+        args.size == 2 && args[0] == "LANG" && args[1] in setOf("hu", "HU", "hu_HU")
+      }
+    }
+    catch (_: Exception) {
     }
     return false
+  }
+
+  private fun isHungarianDic(path: Path): Boolean {
+    if (!Files.exists(path)) return false
+    var counter = 0
+    try {
+      return path.anyLineMatches {
+        counter += StringSearcher("ő", false, true).findAllOccurrences(it).size
+        counter > 1000
+      }
+    }
+    catch (_: Exception) {
+    }
+    return false
+  }
+
+  private inline fun Path.anyLineMatches(predicate: (String) -> Boolean): Boolean {
+    return Files.newBufferedReader(this).useLines { lines -> lines.any(predicate) }
   }
 }
