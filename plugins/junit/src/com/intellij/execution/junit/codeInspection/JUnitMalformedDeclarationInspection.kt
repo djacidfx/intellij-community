@@ -1191,7 +1191,7 @@ private class JUnitMalformedSignatureVisitor(
         val psiClass = PsiUtil.resolveClassInClassTypeOnly(paramType)
         if (psiClass != null && psiClass.isEnum) return
       }
-      if (param.annotations.firstOrNull { it.qualifiedName == ORG_JUNIT_JUPITER_PARAMS_CONVERTER_CONVERT_WITH } != null) return
+      if (MetaAnnotationUtil.isMetaAnnotated(param, setOf(ORG_JUNIT_JUPITER_PARAMS_CONVERTER_CONVERT_WITH))) return
       val message = JUnitBundle.message(
         "jvm.inspections.junit.malformed.param.method.source.assignable.descriptor",
         componentType.presentableText, paramType.presentableText

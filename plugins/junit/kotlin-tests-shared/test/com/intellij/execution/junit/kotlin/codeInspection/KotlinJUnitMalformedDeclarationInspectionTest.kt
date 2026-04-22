@@ -2616,6 +2616,31 @@ abstract class KotlinJUnitMalformedDeclarationInspectionTest : KotlinJUnitMalfor
     """.trimIndent())
   }
 
+  fun `test argument convertor highlighting`() {
+    myFixture.testHighlighting(JvmLanguage.KOTLIN, """
+      class StringToBytesConverter : org.junit.jupiter.params.converter.ArgumentConverter {
+          override fun convert(source: Any?, context: org.junit.jupiter.api.extension.ParameterContext): Any = (source as String).toByteArray()
+      }
+      
+      @kotlin.annotation.Target(kotlin.annotation.AnnotationTarget.ANNOTATION_CLASS, kotlin.annotation.AnnotationTarget.VALUE_PARAMETER, kotlin.annotation.AnnotationTarget.FIELD)
+      @kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.RUNTIME)
+      @org.junit.jupiter.params.converter.ConvertWith(StringToBytesConverter::class)
+      annotation class MyConverter
+      
+      class MyTest {
+          @org.junit.jupiter.params.ParameterizedTest
+          @org.junit.jupiter.params.provider.ValueSource(strings = [""])
+          fun direct(@org.junit.jupiter.params.converter.ConvertWith(StringToBytesConverter::class) bytes: ByteArray) {
+          }
+      
+          @org.junit.jupiter.params.ParameterizedTest
+          @org.junit.jupiter.params.provider.ValueSource(strings = [""])
+          fun inherited(@MyConverter bytes: ByteArray) {
+          }
+      }
+      """.trimIndent())
+  }
+
   fun `test suite without selectors quickfix`() {
     myFixture.testQuickFix(
       JvmLanguage.KOTLIN, """

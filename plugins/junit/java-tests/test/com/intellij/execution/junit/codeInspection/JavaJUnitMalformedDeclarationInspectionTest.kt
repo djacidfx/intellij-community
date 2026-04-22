@@ -2651,6 +2651,35 @@ class JavaJUnitMalformedDeclarationInspectionTest {
     """.trimIndent())
     }
 
+    fun `test argument convertor highlighting`() {
+      myFixture.testHighlighting(JvmLanguage.JAVA, """
+      class StringToBytesConverter implements org.junit.jupiter.params.converter.ArgumentConverter {
+          @Override
+          public Object convert(Object source, org.junit.jupiter.api.extension.ParameterContext context) {
+              return ((String) source).getBytes();
+          }
+      }
+      
+      @java.lang.annotation.Target({java.lang.annotation.ElementType.ANNOTATION_TYPE, java.lang.annotation.ElementType.PARAMETER, java.lang.annotation.ElementType.FIELD})
+      @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
+      @org.junit.jupiter.params.converter.ConvertWith(StringToBytesConverter.class)
+      @interface MyConverter {
+      }
+
+      class MyTest {
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.ValueSource(strings = "")
+        void direct(@org.junit.jupiter.params.converter.ConvertWith(StringToBytesConverter.class) byte[] bytes) {
+        }
+        
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.ValueSource(strings = "")
+        void inherited(@MyConverter byte[] bytes) {
+        }
+      }
+      """.trimIndent())
+    }
+
     fun `test suite without selectors quickfix`() {
       myFixture.testQuickFix(JvmLanguage.JAVA, """
       import org.junit.platform.suite.api.Suite;
