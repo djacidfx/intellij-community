@@ -36,6 +36,11 @@ internal abstract class AbstractBuilder<K>(
   var providesPredicate: ((PolySymbolKind) -> Boolean)? = null
     private set
 
+  val exclusiveForKinds: MutableSet<PolySymbolKind> = mutableSetOf()
+
+  var exclusiveForPredicate: ((PolySymbolKind) -> Boolean)? = null
+    private set
+
   var requiresResolveValue: Boolean = true
     private set
 
@@ -52,6 +57,15 @@ internal abstract class AbstractBuilder<K>(
   final override fun provides(predicate: (PolySymbolKind) -> Boolean) {
     checkNoPsiCapture(predicate, "polySymbolScopeCached.provides")
     providesPredicate = predicate
+  }
+
+  final override fun exclusiveFor(vararg kinds: PolySymbolKind) {
+    exclusiveForKinds.addAll(kinds)
+  }
+
+  final override fun exclusiveFor(predicate: (PolySymbolKind) -> Boolean) {
+    checkNoPsiCapture(predicate, "polySymbolScopeCached.exclusiveFor")
+    exclusiveForPredicate = predicate
   }
 
   final override fun requiresResolve(value: Boolean) {
@@ -104,6 +118,8 @@ internal class ProjectPolySymbolScopeCachedBuilderImpl<K>(
       userKey = keyRef,
       providesKinds = providesKinds.toHashSet(),
       providesPredicate = providesPredicate,
+      exclusiveForKinds = exclusiveForKinds.toHashSet(),
+      exclusiveForPredicate = exclusiveForPredicate,
       requiresResolveValue = requiresResolveValue,
       codeCompletionFilter = codeCompletionFilter,
       nameMatchFilter = nameMatchFilter,
@@ -152,6 +168,8 @@ internal class PsiPolySymbolScopeCachedBuilderImpl<T : PsiElement, K>(
       userKey = keyRef,
       providesKinds = providesKinds.toHashSet(),
       providesPredicate = providesPredicate,
+      exclusiveForKinds = exclusiveForKinds.toHashSet(),
+      exclusiveForPredicate = exclusiveForPredicate,
       requiresResolveValue = requiresResolveValue,
       codeCompletionFilter = codeCompletionFilter,
       nameMatchFilter = nameMatchFilter,
@@ -211,6 +229,8 @@ internal class UserDataHolderPolySymbolScopeCachedBuilderImpl<T : UserDataHolder
       userKey = keyRef,
       providesKinds = providesKinds.toHashSet(),
       providesPredicate = providesPredicate,
+      exclusiveForKinds = exclusiveForKinds.toHashSet(),
+      exclusiveForPredicate = exclusiveForPredicate,
       requiresResolveValue = requiresResolveValue,
       codeCompletionFilter = codeCompletionFilter,
       nameMatchFilter = nameMatchFilter,
@@ -302,6 +322,8 @@ internal class BuiltPolySymbolScopeWithCache<T : UserDataHolder, K>(
   private val userKey: K,
   private val providesKinds: Set<PolySymbolKind>,
   private val providesPredicate: ((PolySymbolKind) -> Boolean)?,
+  private val exclusiveForKinds: Set<PolySymbolKind>,
+  private val exclusiveForPredicate: ((PolySymbolKind) -> Boolean)?,
   private val requiresResolveValue: Boolean,
   private val codeCompletionFilter: ((PolySymbolKind, List<PolySymbolCodeCompletionItem>) -> List<PolySymbolCodeCompletionItem>)?,
   private val nameMatchFilter: ((PolySymbolQualifiedName, List<PolySymbol>) -> List<PolySymbol>)?,
@@ -319,6 +341,9 @@ internal class BuiltPolySymbolScopeWithCache<T : UserDataHolder, K>(
 
   override fun provides(kind: PolySymbolKind): Boolean =
     kind in providesKinds || providesPredicate?.invoke(kind) == true
+
+  override fun isExclusiveFor(kind: PolySymbolKind): Boolean =
+    kind in exclusiveForKinds || exclusiveForPredicate?.invoke(kind) == true
 
   override val requiresResolve: Boolean
     get() = requiresResolveValue

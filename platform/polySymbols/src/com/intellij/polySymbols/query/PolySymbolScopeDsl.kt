@@ -113,6 +113,19 @@ interface PolySymbolScopeCachedBuilderBase<K> {
 
   fun requiresResolve(value: Boolean)
 
+  /**
+   * Mark this scope as exclusive for a fixed set of [PolySymbolKind]s. Multiple
+   * calls are additive. Mirrors [PolySymbolScope.isExclusiveFor].
+   */
+  fun exclusiveFor(vararg kinds: PolySymbolKind)
+
+  /**
+   * Mark this scope as exclusive via a predicate. Combined with the
+   * [exclusiveFor] vararg via logical OR; overwrites any previous
+   * predicate-form call.
+   */
+  fun exclusiveFor(predicate: (PolySymbolKind) -> Boolean)
+
   fun filterCodeCompletions(filter: (kind: PolySymbolKind, items: List<PolySymbolCodeCompletionItem>) -> List<PolySymbolCodeCompletionItem>)
 
   fun filterNameMatches(filter: (qualifiedName: PolySymbolQualifiedName, matches: List<PolySymbol>) -> List<PolySymbol>)
@@ -226,6 +239,19 @@ interface PolySymbolScopeBuilder {
    * via logical OR; overwrites any previous predicate-form call.
    */
   fun provides(predicate: (PolySymbolKind) -> Boolean)
+
+  /**
+   * Mark this scope as exclusive for a fixed set of [PolySymbolKind]s. Multiple
+   * calls are additive. Mirrors [PolySymbolScope.isExclusiveFor].
+   */
+  fun exclusiveFor(vararg kinds: PolySymbolKind)
+
+  /**
+   * Mark this scope as exclusive via a predicate. Combined with the
+   * [exclusiveFor] vararg via logical OR; overwrites any previous
+   * predicate-form call.
+   */
+  fun exclusiveFor(predicate: (PolySymbolKind) -> Boolean)
 
   fun filterCodeCompletions(filter: (kind: PolySymbolKind, items: List<PolySymbolCodeCompletionItem>) -> List<PolySymbolCodeCompletionItem>)
 
