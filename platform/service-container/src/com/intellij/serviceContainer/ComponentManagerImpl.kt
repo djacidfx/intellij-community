@@ -1655,6 +1655,9 @@ private fun getInstanceBlocking(holder: InstanceHolder, debugString: String, cre
 private val forbidGetServiceEvenInNonCancellable: Boolean =
   System.getProperty("idea.forbid.get.service.in.nc.static.init", "false").toBoolean()
 
+@Internal
+var checkInsideClassInitializer: Boolean = true
+
 internal fun getOrCreateInstanceBlocking(holder: InstanceHolder, debugString: String, keyClass: Class<*>?): Any {
   // container scope might be canceled
   // => holder is initialized with CE
@@ -1669,7 +1672,12 @@ internal fun getOrCreateInstanceBlocking(holder: InstanceHolder, debugString: St
   @Suppress("UsagesOfObsoleteApi")
   val inNonCancelableSection = Cancellation.isInNonCancelableSection()
 
-  val guiltyClassName = if (inNonCancelableSection && !forbidGetServiceEvenInNonCancellable) null else isInsideClassInitializer(debugString)
+  val guiltyClassName = when {
+      checkInsideClassInitializer && (!inNonCancelableSection || forbidGetServiceEvenInNonCancellable) -> {
+        isInsideClassInitializer(debugString)
+      }
+      else -> null
+  }
   if (guiltyClassName != null) {
     checkOutsideClassInitializer(debugString, guiltyClassName)
   }
