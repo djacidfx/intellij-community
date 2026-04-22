@@ -146,6 +146,7 @@ public final class PluginManagerConfigurablePanel implements Disposable {
     return getCenterComponent(TopComponentController.EMPTY);
   }
 
+  @RequiresEdt
   public void init(@Nullable String searchQuery) {
     myTabHeaderComponent = new TabbedPaneHeaderComponent(createGearActions(), index -> {
       myCardPanel.select(index, true);

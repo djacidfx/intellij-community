@@ -51,6 +51,7 @@ import com.intellij.openapi.util.text.HtmlChunk
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.labels.LinkListener
+import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.StatusText
@@ -65,7 +66,7 @@ import java.util.function.Supplier
 import javax.swing.JComponent
 
 @ApiStatus.Internal
-internal class MarketplacePluginsTab(
+internal class MarketplacePluginsTab @RequiresEdt constructor(
   facade: PluginModelFacade,
   scope: CoroutineScope,
   customizer: PluginManagerCustomizer?,

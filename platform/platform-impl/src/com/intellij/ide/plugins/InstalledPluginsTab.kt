@@ -40,6 +40,7 @@ import com.intellij.openapi.util.text.StringUtil
 import com.intellij.ui.components.fields.ExtendableTextComponent
 import com.intellij.ui.components.labels.LinkLabel
 import com.intellij.ui.components.labels.LinkListener
+import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.containers.ContainerUtil
 import kotlinx.coroutines.CoroutineScope
 import org.jetbrains.annotations.ApiStatus
@@ -51,7 +52,7 @@ import javax.swing.JComponent
 import javax.swing.JLabel
 
 @ApiStatus.Internal
-class InstalledPluginsTab(
+class InstalledPluginsTab @RequiresEdt constructor(
   private val pluginModelFacade: PluginModelFacade,
   private val pluginUpdatesService: PluginUpdatesService,
   private val coroutineScope: CoroutineScope,

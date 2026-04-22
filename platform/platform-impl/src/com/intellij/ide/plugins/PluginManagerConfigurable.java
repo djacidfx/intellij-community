@@ -20,6 +20,7 @@ import com.intellij.openapi.util.NlsContexts;
 import com.intellij.openapi.util.SystemInfo;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.RelativeFont;
+import com.intellij.util.concurrency.annotations.RequiresEdt;
 import com.intellij.util.containers.ContainerUtil;
 import com.intellij.util.ui.UIUtil;
 import org.jetbrains.annotations.ApiStatus;
@@ -84,12 +85,14 @@ public final class PluginManagerConfigurable
     return ID;
   }
 
+  @RequiresEdt
   @Override
   public @NotNull JComponent getCenterComponent(@NotNull TopComponentController controller) {
     PluginManagerConfigurablePanel panel = createPanelIfNeeded();
     return panel.getCenterComponent(controller);
   }
 
+  @RequiresEdt
   public @NotNull JComponent getTopComponent() {
     return getCenterComponent(TopComponentController.EMPTY);
   }
@@ -108,10 +111,12 @@ public final class PluginManagerConfigurable
     return panel.getComponent();
   }
 
+  @RequiresEdt
   private @NotNull PluginManagerConfigurablePanel createPanelIfNeeded() {
     return createPanelIfNeeded(null);
   }
 
+  @RequiresEdt
   private @NotNull PluginManagerConfigurablePanel createPanelIfNeeded(@Nullable String searchQuery) {
     if (myPanel == null) {
       myPanel = new PluginManagerConfigurablePanel();
@@ -276,10 +281,12 @@ public final class PluginManagerConfigurable
   }
 
   @Override
+  @RequiresEdt
   public @Nullable Runnable enableSearch(String option) {
     return createPanelIfNeeded(option).enableSearch(option);
   }
 
+  @RequiresEdt
   public @Nullable Runnable enableSearch(String option, boolean ignoreTagMarketplaceTab) {
     return createPanelIfNeeded(option).enableSearch(option, ignoreTagMarketplaceTab);
   }
@@ -292,6 +299,7 @@ public final class PluginManagerConfigurable
     return myPanel != null && myPanel.isInstalledTabShowing();
   }
 
+  @RequiresEdt
   public void openMarketplaceTab(@NotNull String option) {
     createPanelIfNeeded(option).openMarketplaceTab(option);
   }
@@ -300,14 +308,17 @@ public final class PluginManagerConfigurable
     createPanelIfNeeded(option).openInstalledTab(option);
   }
 
+  @RequiresEdt
   private void setInstallSource(@Nullable FUSEventSource source) {
     createPanelIfNeeded().setInstallSource(source);
   }
 
+  @RequiresEdt
   private void selectAndEnable(@NotNull Set<? extends IdeaPluginDescriptor> descriptors) {
     createPanelIfNeeded().selectAndEnable(descriptors);
   }
 
+  @RequiresEdt
   private void select(@NotNull Collection<PluginId> pluginIds) {
     createPanelIfNeeded().select(pluginIds);
   }

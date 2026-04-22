@@ -23,6 +23,7 @@ import com.intellij.ui.components.labels.LinkLabel
 import com.intellij.ui.components.labels.LinkListener
 import com.intellij.ui.scale.JBUIScale.scale
 import com.intellij.util.SingleEdtTaskScheduler.Companion.createSingleEdtTaskScheduler
+import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.JBUI
 import org.jetbrains.annotations.ApiStatus
 import java.awt.BorderLayout
@@ -35,7 +36,7 @@ import javax.swing.KeyStroke
 import javax.swing.event.DocumentEvent
 
 @ApiStatus.Internal
-abstract class PluginsTab {
+abstract class PluginsTab @RequiresEdt constructor() {
   private val searchUpdateAlarm = createSingleEdtTaskScheduler()
 
   private var detailsPage: PluginDetailsPageComponent? = null
