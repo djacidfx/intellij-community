@@ -186,6 +186,7 @@ import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtObjectDeclaration
 import org.jetbrains.kotlin.psi.KtObjectLiteralExpression
 import org.jetbrains.kotlin.psi.KtParameter
+import org.jetbrains.kotlin.psi.KtParameterList
 import org.jetbrains.kotlin.psi.KtParenthesizedExpression
 import org.jetbrains.kotlin.psi.KtPostfixExpression
 import org.jetbrains.kotlin.psi.KtPrefixExpression
@@ -1580,6 +1581,25 @@ class KtControlFlowBuilder(val factory: DfaValueFactory, val context: KtExpressi
         }
 
         addCall(expr, argCount, updatedQualifierOnStack)
+        if (callsInlinableLambdaParameter(expr)) {
+            // Inlinable lambda parameter call may introduce a non-local return, so handle it here.
+            val skipOffset = DeferredOffset()
+            pushUnknown()
+            addInstruction(ConditionalGotoInstruction(skipOffset, DfTypes.TRUE))
+            addInstruction(PopInstruction())
+            addInstruction(ReturnInstruction(factory, trapTracker.trapStack(), expr))
+            setOffset(skipOffset)
+        }
+    }
+
+    private fun callsInlinableLambdaParameter(expr: KtCallExpression): Boolean {
+        val callee = expr.calleeExpression as? KtSimpleNameExpression ?: return false
+        val target = callee.mainReference.resolve() as? KtParameter ?: return false
+        val containingFunction = (target.parent as? KtParameterList)?.parent as? KtNamedFunction ?: return false
+        if (!containingFunction.hasModifier(KtTokens.INLINE_KEYWORD)) return false
+        if (target.hasModifier(KtTokens.NOINLINE_KEYWORD)) return false
+        if (target.hasModifier(KtTokens.CROSSINLINE_KEYWORD)) return false
+        return PsiTreeUtil.isAncestor(containingFunction, context, false)
     }
 
     context(_: KaSession)
