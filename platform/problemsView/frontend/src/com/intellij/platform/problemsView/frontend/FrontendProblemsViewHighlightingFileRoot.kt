@@ -76,7 +76,7 @@ internal class FrontendProblemsViewHighlightingFileRoot(
     return problems.values.count(::severityFilter)
   }
 
-  override fun getFileProblems(file: VirtualFile): Collection<Problem> {
+  override fun getFileProblems(file: VirtualFile): List<FrontendHighlightingProblem> {
     return when (this.file == file) {
       true -> problems.values.filter(::severityFilter)
       else -> emptyList()
@@ -102,7 +102,7 @@ internal class FrontendProblemsViewHighlightingFileRoot(
   override fun getOtherProblems(): Collection<Problem> = emptyList()
 
   override fun getChildren(node: FileNode): Collection<Node> {
-    val fileProblems = getFileProblems(node.file).filterIsInstance<FrontendHighlightingProblem>()
+    val fileProblems = getFileProblems(node.file)
     val groupByToolId = panel.state.groupByToolId
     return ProblemsViewHighlightingChildrenBuilder.prepareChildrenForFileRoot(fileProblems, node, groupByToolId)
   }
