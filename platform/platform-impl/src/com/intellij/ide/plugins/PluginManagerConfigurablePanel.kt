@@ -148,21 +148,8 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     installedTab = createInstalledTab()
     PluginManagerUsageCollector.sessionStarted()
 
-    cardPanel = object : MultiPanel() {
-      override fun create(key: Int?): JComponent {
-        if (key == MARKETPLACE_TAB) {
-          return marketplaceTab.createPanel()
-        }
-        if (key == INSTALLED_TAB) {
-          return installedTab.createPanel()
-        }
-        return super.create(key)
-      }
-    }
+    cardPanel = createCardPanel(selectionTab)
 
-    cardPanel.minimumSize = JBDimension(580, 380)
-    cardPanel.preferredSize = JBDimension(800, 600)
-    cardPanel.select(selectionTab, true)
     if (laterSearchQuery != null) {
       val search = enableSearch(laterSearchQuery, forceShowInstalledTabForTag)
       if (search != null) {
@@ -174,6 +161,24 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     if (pluginManagerCustomizer != null) {
       pluginManagerCustomizer.initCustomizer(cardPanel)
     }
+  }
+
+  private fun createCardPanel(selectionTab: Int): MultiPanel {
+    val cardPanel = object : MultiPanel() {
+      override fun create(key: Int?): JComponent {
+        if (key == MARKETPLACE_TAB) {
+          return marketplaceTab.createPanel()
+        }
+        if (key == INSTALLED_TAB) {
+          return installedTab.createPanel()
+        }
+        return super.create(key)
+      }
+    }
+    cardPanel.minimumSize = JBDimension(580, 380)
+    cardPanel.preferredSize = JBDimension(800, 600)
+    cardPanel.select(selectionTab, true)
+    return cardPanel
   }
 
   private fun createTabHeaderComponent(selectionTab: Int): TabbedPaneHeaderComponent {
