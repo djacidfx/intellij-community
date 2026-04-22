@@ -2,7 +2,6 @@ package com.intellij.terminal.frontend.view.impl
 
 import com.intellij.ide.GeneralSettings
 import com.intellij.ide.SaveAndSyncHandler
-import com.intellij.openapi.application.WriteIntentReadAction
 import com.intellij.openapi.diagnostic.debug
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.fileEditor.FileDocumentManager
@@ -13,6 +12,8 @@ import com.intellij.util.asDisposable
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import org.jetbrains.plugins.terminal.view.shellIntegration.TerminalCommandExecutionListener
 import org.jetbrains.plugins.terminal.view.shellIntegration.TerminalCommandFinishedEvent
@@ -25,6 +26,14 @@ internal class TerminalVfsSynchronizer private constructor(
 ) {
   init {
     val disposable = coroutineScope.asDisposable()
+    val saveAllDocumentsRequests = MutableSharedFlow<Unit>(replay = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+
+    coroutineScope.launch(CoroutineName("Terminal focus gained: save all documents")) {
+      saveAllDocumentsRequests.collect {
+        FileDocumentManager.getInstance().saveAllDocuments()
+        LOG.debug { "Focus gained, save all documents to VFS." }
+      }
+    }
 
     // Use a heuristic-based command finish tracker for refreshing VFS by default.
     // But if we receive the event about available shell integration, it will be canceled.
@@ -56,10 +65,7 @@ internal class TerminalVfsSynchronizer private constructor(
     terminalView.component.addFocusListener(disposable, object : FocusListener {
       override fun focusGained(e: FocusEvent) {
         if (GeneralSettings.getInstance().isSaveOnFrameDeactivation) {
-          WriteIntentReadAction.run {
-            FileDocumentManager.getInstance().saveAllDocuments()
-            LOG.debug { "Focus gained, save all documents to VFS." }
-          }
+          check(saveAllDocumentsRequests.tryEmit(Unit))
         }
       }
 
