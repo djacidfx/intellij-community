@@ -57,7 +57,8 @@ class InstalledPluginsTab @RequiresEdt constructor(
   private val pluginUpdatesService: PluginUpdatesService,
   private val coroutineScope: CoroutineScope,
   private val searchInMarketplaceTabHandler: Consumer<String>?,
-) : PluginsTab() {
+  searchTextFieldQueryDebouncePeriodMs: Long = 100,
+) : PluginsTab(searchTextFieldQueryDebouncePeriodMs) {
   private var installedPanel: PluginsGroupComponentWithProgress? = null
   private var installedSearchPanel: InstalledPluginsTabSearchResultPanel? = null
   private val installedSearchGroup = DefaultActionGroup().apply {
@@ -308,8 +309,8 @@ class InstalledPluginsTab @RequiresEdt constructor(
     return createScrollPane(installedPanel, true)
   }
 
-  override fun createSearchTextField(flyDelay: Int) {
-    super.createSearchTextField(flyDelay)
+  override fun createSearchTextField() {
+    super.createSearchTextField()
 
     val textField = searchTextField!!.textEditor
 

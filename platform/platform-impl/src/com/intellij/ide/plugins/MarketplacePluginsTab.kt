@@ -71,7 +71,8 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
   scope: CoroutineScope,
   customizer: PluginManagerCustomizer?,
   service: PluginUpdatesService,
-) : PluginsTab() {
+  searchTextFieldQueryDebouncePeriodMs: Long = 250,
+) : PluginsTab(searchTextFieldQueryDebouncePeriodMs) {
   private val myPluginModelFacade: PluginModelFacade = facade
   private val myCoroutineScope: CoroutineScope = scope
   private val myPluginManagerCustomizer: PluginManagerCustomizer? = customizer
@@ -100,8 +101,8 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
     myVendorsSorted = null
   }
 
-  override fun createSearchTextField(flyDelay: Int) {
-    super.createSearchTextField(250)
+  override fun createSearchTextField() {
+    super.createSearchTextField()
     searchTextField!!.setHistoryPropertyName("MarketplacePluginsSearchHistory")
   }
 

@@ -36,7 +36,9 @@ import javax.swing.KeyStroke
 import javax.swing.event.DocumentEvent
 
 @ApiStatus.Internal
-abstract class PluginsTab @RequiresEdt constructor() {
+abstract class PluginsTab @RequiresEdt constructor(
+  val searchTextFieldQueryDebouncePeriodMs: Long
+) {
   private val searchUpdateAlarm = createSingleEdtTaskScheduler()
 
   private var detailsPage: PluginDetailsPageComponent? = null
@@ -71,7 +73,7 @@ abstract class PluginsTab @RequiresEdt constructor() {
   }
 
   fun createPanel(): JComponent {
-    createSearchTextField(100)
+    createSearchTextField()
 
     cardPanel = object : MultiPanel() {
       override fun addNotify() {
@@ -118,7 +120,7 @@ abstract class PluginsTab @RequiresEdt constructor() {
     return splitter
   }
 
-  protected open fun createSearchTextField(flyDelay: Int) {
+  protected open fun createSearchTextField() {
     searchTextField = object : PluginSearchTextField() {
       override fun preprocessEventForTextField(event: KeyEvent): Boolean {
         val keyCode = event.getKeyCode()
@@ -183,7 +185,7 @@ abstract class PluginsTab @RequiresEdt constructor() {
       override fun textChanged(e: DocumentEvent) {
         if (!searchTextField!!.isSkipDocumentEvents()) {
           searchUpdateAlarm.cancelAndRequest(
-            flyDelay.toLong(),
+            searchTextFieldQueryDebouncePeriodMs,
             ModalityState.stateForComponent(searchTextField!!),
             Runnable { this.searchOnTheFly() })
         }
