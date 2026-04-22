@@ -6,6 +6,8 @@ package com.intellij.ide.plugins
 import com.intellij.ide.CopyProvider
 import com.intellij.ide.DataManager
 import com.intellij.ide.IdeBundle
+import com.intellij.ide.IdeBundle.message
+import com.intellij.ide.plugins.PluginManagerConfigurable.PLUGIN_INSTALL_CALLBACK_DATA_KEY
 import com.intellij.ide.plugins.certificates.PluginCertificateManager
 import com.intellij.ide.plugins.marketplace.statistics.PluginManagerUsageCollector
 import com.intellij.ide.plugins.newui.ListPluginComponent
@@ -36,7 +38,9 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.actionSystem.impl.PresentationFactory
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ApplicationManager.getApplication
 import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.application.ModalityState.any
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.ide.CopyPasteManager
@@ -124,11 +128,6 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     myPluginModelFacade.getModel().coroutineScope = childScope
     myCoroutineScope = childScope
 
-    init(searchQuery)
-  }
-
-  @RequiresEdt
-  private fun init(searchQuery: String?) {
     myTabHeaderComponent = object : TabbedPaneHeaderComponent(createGearActions(), { index ->
       myCardPanel!!.select(index, true)
       storeSelectionTab(index)
@@ -142,28 +141,31 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
       }
     }) {
       override fun uiDataSnapshot(sink: DataSink) {
-        sink.set(PluginManagerConfigurable.PLUGIN_INSTALL_CALLBACK_DATA_KEY, Consumer { callbackData -> onPluginInstalledFromDisk(callbackData) })
+        sink.set(PLUGIN_INSTALL_CALLBACK_DATA_KEY, Consumer { callbackData -> onPluginInstalledFromDisk(callbackData) })
       }
     }
+
     createGearGotIt()
+
     myLaterSearchQuery = searchQuery
 
-    myTabHeaderComponent!!.addTab(IdeBundle.message("plugin.manager.tab.marketplace"), null)
-    myTabHeaderComponent!!.addTab(IdeBundle.message("plugin.manager.tab.installed"), myInstalledTabHeaderUpdatesCountIcon)
+    myTabHeaderComponent!!.addTab(message("plugin.manager.tab.marketplace"), null)
+    myTabHeaderComponent!!.addTab(message("plugin.manager.tab.installed"), myInstalledTabHeaderUpdatesCountIcon)
 
     CustomPluginRepositoryService.getInstance().clearCache()
-    myPluginUpdatesService = UiPluginManager.getInstance().subscribeToUpdatesCount(myPluginModelFacade.getModel().sessionId) { updatesCount ->
-      ApplicationManager.getApplication().invokeLater {
-        onPluginUpdatesRecalculation(updatesCount)
-      }
-    }
-    myPluginModelFacade.getModel().pluginUpdatesService = myPluginUpdatesService!!
 
+    myPluginUpdatesService =
+      UiPluginManager.getInstance().subscribeToUpdatesCount(myPluginModelFacade.getModel().sessionId) { updatesCount ->
+        getApplication().invokeLater {
+          onPluginUpdatesRecalculation(updatesCount)
+        }
+      }
+
+    myPluginModelFacade.getModel().pluginUpdatesService = myPluginUpdatesService!!
     UiPluginManager.getInstance().updateDescriptorsForInstalledPlugins()
 
     createMarketplaceTab()
     createInstalledTab()
-
     PluginManagerUsageCollector.sessionStarted()
 
     myCardPanel = object : MultiPanel() {
@@ -177,24 +179,21 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
         return super.create(key)
       }
     }
+
     myCardPanel!!.minimumSize = JBDimension(580, 380)
     myCardPanel!!.preferredSize = JBDimension(800, 600)
-
     myTabHeaderComponent!!.setListener()
-
     val selectionTab = getStoredSelectionTab()
     myTabHeaderComponent!!.setSelection(selectionTab)
     myCardPanel!!.select(selectionTab, true)
-
     if (myLaterSearchQuery != null) {
       val search = enableSearch(myLaterSearchQuery, myForceShowInstalledTabForTag)
       if (search != null) {
-        ApplicationManager.getApplication().invokeLater(search, ModalityState.any())
+        getApplication().invokeLater(search, any())
       }
       myLaterSearchQuery = null
       myForceShowInstalledTabForTag = false
     }
-
     if (myPluginManagerCustomizer != null) {
       myPluginManagerCustomizer.initCustomizer(myCardPanel!!)
     }
