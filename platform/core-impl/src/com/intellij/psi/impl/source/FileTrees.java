@@ -1,4 +1,4 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.psi.impl.source;
 
 import com.intellij.extapi.psi.StubBasedPsiElementBase;
@@ -33,17 +33,23 @@ import static com.intellij.reference.SoftReference.dereference;
 final class FileTrees {
   private static final Logger LOG = Logger.getInstance(FileTrees.class);
   private static final int firstNonFilePsiIndex = 1;
-  private final PsiFileImpl myFile;
-  private final Reference<StubTree> myStub;
-  private final Supplier<? extends FileElement> myTreeElementPointer; // SoftReference/WeakReference to ASTNode or a strong reference to a tree if the file is a DummyHolder
+  private final @NotNull PsiFileImpl myFile;
+  private final @Nullable Reference<StubTree> myStub;
 
-  /** Keeps references to all alive stubbed PSI (using {@link SpineRef}) to ensure PSI identity is preserved after AST/stubs are gc-ed and reloaded */
-  private final Reference<StubBasedPsiElementBase<?>> @Nullable [] myRefToPsi;
+  /**
+   * SoftReference/WeakReference to ASTNode or a strong reference to a tree if the file is a DummyHolder
+   */
+  private final @Nullable Supplier<? extends FileElement> myTreeElementPointer;
+
+  /**
+   * Keeps references to all alive stubbed PSI (using {@link SpineRef}) to ensure PSI identity is preserved after AST/stubs are gc-ed and reloaded
+   */
+  private final @Nullable Reference<StubBasedPsiElementBase<?>> @Nullable [] myRefToPsi;
 
   private FileTrees(@NotNull PsiFileImpl file,
                     @Nullable Reference<StubTree> stub,
                     @Nullable Supplier<? extends FileElement> ast,
-                    Reference<StubBasedPsiElementBase<?>> @Nullable [] refToPsi) {
+                    @Nullable Reference<StubBasedPsiElementBase<?>> @Nullable [] refToPsi) {
     myFile = file;
     myStub = stub;
     myTreeElementPointer = ast;
@@ -60,7 +66,7 @@ final class FileTrees {
     return deref(myTreeElementPointer);
   }
 
-  FileTrees switchToStrongRefs() {
+  @NotNull FileTrees switchToStrongRefs() {
     if (myRefToPsi == null) return this;
 
     forEachCachedPsi(psi -> {
@@ -72,7 +78,7 @@ final class FileTrees {
     return new FileTrees(myFile, myStub, myTreeElementPointer, null);
   }
 
-  private void forEachCachedPsi(Consumer<? super StubBasedPsiElementBase<?>> consumer) {
+  private void forEachCachedPsi(@NotNull Consumer<? super StubBasedPsiElementBase<?>> consumer) {
     assert myRefToPsi != null;
     for (Reference<StubBasedPsiElementBase<?>> t : myRefToPsi) {
       StubBasedPsiElementBase<?> psi = t == null ? null : t.get();
@@ -98,7 +104,7 @@ final class FileTrees {
     return myRefToPsi != null;
   }
 
-  FileTrees switchToSpineRefs(@NotNull List<PsiElement> spine) {
+  @NotNull FileTrees switchToSpineRefs(@NotNull List<PsiElement> spine) {
     Reference<StubBasedPsiElementBase<?>>[] refToPsi = myRefToPsi;
     if (refToPsi == null) {
       //noinspection unchecked
@@ -126,7 +132,7 @@ final class FileTrees {
     }
   }
 
-  FileTrees clearStub(@NotNull String reason) {
+  @NotNull FileTrees clearStub(@NotNull String reason) {
     StubTree stubHolder = derefStub();
     if (stubHolder != null) {
       ((PsiFileStubImpl<?>)stubHolder.getRoot()).clearPsi(reason);
@@ -142,16 +148,18 @@ final class FileTrees {
     return new FileTrees(myFile, null, myTreeElementPointer, null);
   }
 
-  FileTrees withAst(@NotNull Supplier<? extends FileElement> ast) throws StubTreeLoader.StubTreeAndIndexUnmatchCoarseException {
+  @NotNull FileTrees withAst(@NotNull Supplier<? extends FileElement> ast) throws StubTreeLoader.StubTreeAndIndexUnmatchCoarseException {
     return new FileTrees(myFile, myStub, ast, myRefToPsi).reconcilePsi(derefStub(), ast.get(), true);
   }
 
-  FileTrees withStub(@NotNull StubTree stub, @Nullable FileElement ast) throws StubTreeLoader.StubTreeAndIndexUnmatchCoarseException {
+  @NotNull FileTrees withStub(@NotNull StubTree stub,
+                              @Nullable FileElement ast) throws StubTreeLoader.StubTreeAndIndexUnmatchCoarseException {
     assert derefTreeElement() == ast;
     return new FileTrees(myFile, new SoftReference<>(stub), myTreeElementPointer, myRefToPsi)
       .reconcilePsi(stub, ast, false);
   }
 
+  @NotNull
   static FileTrees noStub(@Nullable FileElement ast, @NotNull PsiFileImpl file) {
     return new FileTrees(file, null, ast == null ? null : () -> ast, null);
   }
@@ -161,7 +169,9 @@ final class FileTrees {
    * In case several sources already have PSI (e.g. created during AST parsing), overwrites them with the "correct" one,
    * which is taken from {@link #myRefToPsi} if exists, otherwise from either stubs or AST depending on {@code takePsiFromStubs}.
    */
-  private FileTrees reconcilePsi(@Nullable StubTree stubTree, @Nullable FileElement astRoot, boolean takePsiFromStubs)
+  private @NotNull FileTrees reconcilePsi(@Nullable StubTree stubTree,
+                                          @Nullable FileElement astRoot,
+                                          boolean takePsiFromStubs)
     throws StubTreeLoader.StubTreeAndIndexUnmatchCoarseException {
     assert stubTree != null || astRoot != null;
 
@@ -210,11 +220,12 @@ final class FileTrees {
    * so shouldn't be invoked in the middle of a mutating operation to avoid leaving inconsistent state.
    * So we obtain PSI all at once in advance.
    */
-  static List<PsiElement> getAllSpinePsi(@NotNull StubbedSpine spine) {
+  static @NotNull List<PsiElement> getAllSpinePsi(@NotNull StubbedSpine spine) {
     return IntStream.range(0, spine.getStubCount()).mapToObj(index -> spine.getStubPsi(index)).collect(Collectors.toList());
   }
 
-  private void bindSubstratesToCachedPsi(List<StubElement<?>> stubList, List<? extends CompositeElement> nodeList) {
+  private void bindSubstratesToCachedPsi(@Nullable List<StubElement<?>> stubList,
+                                         @Nullable List<? extends CompositeElement> nodeList) {
     assert myRefToPsi != null;
     for (int i = firstNonFilePsiIndex; i < myRefToPsi.length; i++) {
       StubBasedPsiElementBase<?> cachedPsi = dereference(myRefToPsi[i]);
@@ -230,7 +241,10 @@ final class FileTrees {
     }
   }
 
-  private static void bindStubsWithAst(@NotNull List<? extends PsiElement> srcSpine, List<? extends StubElement<?>> stubList, List<? extends CompositeElement> nodeList, boolean takePsiFromStubs) {
+  private static void bindStubsWithAst(@NotNull List<? extends PsiElement> srcSpine,
+                                       @NotNull List<? extends StubElement<?>> stubList,
+                                       @NotNull List<? extends CompositeElement> nodeList,
+                                       boolean takePsiFromStubs) {
     for (int i = firstNonFilePsiIndex; i < stubList.size(); i++) {
       StubElement<?> stub = stubList.get(i);
       CompositeElement node = nodeList.get(i);
@@ -253,6 +267,6 @@ final class FileTrees {
            "stub=" + (myStub == null ? "noRef" : derefStub()) +
            ", AST=" + (myTreeElementPointer == null ? "noRef" : derefTreeElement()) +
            ", useSpineRefs=" + useSpineRefs() +
-           '}' ;
+           '}';
   }
 }
