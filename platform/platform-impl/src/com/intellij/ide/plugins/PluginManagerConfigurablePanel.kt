@@ -96,48 +96,48 @@ import javax.swing.ScrollPaneConstants
 
 @ApiStatus.Internal
 class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: String?) : Disposable {
-  private val myCoroutineScope: CoroutineScope
+  private val coroutineScope: CoroutineScope
 
-  private val myPluginModelFacade: PluginModelFacade
-  private var myPluginUpdatesService: PluginUpdatesService? = null
-  private val myPluginManagerCustomizer: PluginManagerCustomizer? = PluginManagerCustomizer.getInstance()
+  private val pluginModelFacade: PluginModelFacade
+  private var pluginUpdatesService: PluginUpdatesService? = null
+  private val pluginManagerCustomizer: PluginManagerCustomizer? = PluginManagerCustomizer.getInstance()
 
-  private var myTabHeaderComponent: TabbedPaneHeaderComponent? = null
-  private val myInstalledTabHeaderUpdatesCountIcon: CountIcon = CountIcon()
+  private var tabHeaderComponent: TabbedPaneHeaderComponent? = null
+  private val installedTabHeaderUpdatesCountIcon: CountIcon = CountIcon()
 
-  private var myMarketplaceTab: MarketplacePluginsTab? = null
-  private var myInstalledTab: InstalledPluginsTab? = null
-  private var myCardPanel: MultiPanel? = null
+  private var marketplaceTab: MarketplacePluginsTab? = null
+  private var installedTab: InstalledPluginsTab? = null
+  private var cardPanel: MultiPanel? = null
 
-  private var myLaterSearchQuery: String? = null
-  private var myForceShowInstalledTabForTag: Boolean = false
-  private var myShowMarketplaceTab: Boolean = false
+  private var laterSearchQuery: String? = null
+  private var forceShowInstalledTabForTag: Boolean = false
+  private var showMarketplaceTab: Boolean = false
 
-  private var myPluginsAutoUpdateEnabled: Boolean? = null
+  private var pluginsAutoUpdateEnabled: Boolean? = null
 
   @Volatile
-  private var myDisposeStarted: Boolean = false
+  private var disposeStarted: Boolean = false
 
-  private val myCallbackLock: Any = Any()
-  private var myShutdownCallbackExecuted: Boolean = false
+  private val callbackLock: Any = Any()
+  private var shutdownCallbackExecuted: Boolean = false
 
   init {
-    myPluginModelFacade = PluginModelFacade(MyPluginModel(null))
+    pluginModelFacade = PluginModelFacade(MyPluginModel(null))
     val parentScope = ApplicationManager.getApplication().getService(PluginManagerCoroutineScopeHolder::class.java).coroutineScope
     val childScope = parentScope.childScope(javaClass.name, Dispatchers.IO, true)
-    myPluginModelFacade.getModel().coroutineScope = childScope
-    myCoroutineScope = childScope
+    pluginModelFacade.getModel().coroutineScope = childScope
+    coroutineScope = childScope
 
-    myTabHeaderComponent = object : TabbedPaneHeaderComponent(createGearActions(), { index ->
-      myCardPanel!!.select(index, true)
+    tabHeaderComponent = object : TabbedPaneHeaderComponent(createGearActions(), { index ->
+      cardPanel!!.select(index, true)
       storeSelectionTab(index)
 
-      val query = if (index == MARKETPLACE_TAB) myInstalledTab!!.searchQuery else myMarketplaceTab!!.searchQuery
+      val query = if (index == MARKETPLACE_TAB) installedTab!!.searchQuery else marketplaceTab!!.searchQuery
       if (index == MARKETPLACE_TAB) {
-        myMarketplaceTab!!.searchQuery = query
+        marketplaceTab!!.searchQuery = query
       }
       else {
-        myInstalledTab!!.searchQuery = query
+        installedTab!!.searchQuery = query
       }
     }) {
       override fun uiDataSnapshot(sink: DataSink) {
@@ -147,61 +147,61 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
 
     createGearGotIt()
 
-    myLaterSearchQuery = searchQuery
+    laterSearchQuery = searchQuery
 
-    myTabHeaderComponent!!.addTab(message("plugin.manager.tab.marketplace"), null)
-    myTabHeaderComponent!!.addTab(message("plugin.manager.tab.installed"), myInstalledTabHeaderUpdatesCountIcon)
+    tabHeaderComponent!!.addTab(message("plugin.manager.tab.marketplace"), null)
+    tabHeaderComponent!!.addTab(message("plugin.manager.tab.installed"), installedTabHeaderUpdatesCountIcon)
 
     CustomPluginRepositoryService.getInstance().clearCache()
 
-    myPluginUpdatesService =
-      UiPluginManager.getInstance().subscribeToUpdatesCount(myPluginModelFacade.getModel().sessionId) { updatesCount ->
+    pluginUpdatesService =
+      UiPluginManager.getInstance().subscribeToUpdatesCount(pluginModelFacade.getModel().sessionId) { updatesCount ->
         getApplication().invokeLater {
           onPluginUpdatesRecalculation(updatesCount)
         }
       }
 
-    myPluginModelFacade.getModel().pluginUpdatesService = myPluginUpdatesService!!
+    pluginModelFacade.getModel().pluginUpdatesService = pluginUpdatesService!!
     UiPluginManager.getInstance().updateDescriptorsForInstalledPlugins()
 
     createMarketplaceTab()
     createInstalledTab()
     PluginManagerUsageCollector.sessionStarted()
 
-    myCardPanel = object : MultiPanel() {
+    cardPanel = object : MultiPanel() {
       override fun create(key: Int?): JComponent {
         if (key == MARKETPLACE_TAB) {
-          return myMarketplaceTab!!.createPanel()
+          return marketplaceTab!!.createPanel()
         }
         if (key == INSTALLED_TAB) {
-          return myInstalledTab!!.createPanel()
+          return installedTab!!.createPanel()
         }
         return super.create(key)
       }
     }
 
-    myCardPanel!!.minimumSize = JBDimension(580, 380)
-    myCardPanel!!.preferredSize = JBDimension(800, 600)
-    myTabHeaderComponent!!.setListener()
+    cardPanel!!.minimumSize = JBDimension(580, 380)
+    cardPanel!!.preferredSize = JBDimension(800, 600)
+    tabHeaderComponent!!.setListener()
     val selectionTab = getStoredSelectionTab()
-    myTabHeaderComponent!!.setSelection(selectionTab)
-    myCardPanel!!.select(selectionTab, true)
-    if (myLaterSearchQuery != null) {
-      val search = enableSearch(myLaterSearchQuery, myForceShowInstalledTabForTag)
+    tabHeaderComponent!!.setSelection(selectionTab)
+    cardPanel!!.select(selectionTab, true)
+    if (laterSearchQuery != null) {
+      val search = enableSearch(laterSearchQuery, forceShowInstalledTabForTag)
       if (search != null) {
         getApplication().invokeLater(search, any())
       }
-      myLaterSearchQuery = null
-      myForceShowInstalledTabForTag = false
+      laterSearchQuery = null
+      forceShowInstalledTabForTag = false
     }
-    if (myPluginManagerCustomizer != null) {
-      myPluginManagerCustomizer.initCustomizer(myCardPanel!!)
+    if (pluginManagerCustomizer != null) {
+      pluginManagerCustomizer.initCustomizer(cardPanel!!)
     }
   }
 
   fun getCenterComponent(controller: Configurable.TopComponentController): JComponent {
-    myPluginModelFacade.getModel().setTopController(controller)
-    return myTabHeaderComponent!!
+    pluginModelFacade.getModel().setTopController(controller)
+    return tabHeaderComponent!!
   }
 
   fun getTopComponent(): JComponent {
@@ -209,28 +209,28 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
   }
 
   fun getComponent(): JComponent {
-    return myCardPanel!!
+    return cardPanel!!
   }
 
   fun isMarketplaceTabShowing(): Boolean {
-    return myTabHeaderComponent!!.getSelectionTab() == MARKETPLACE_TAB
+    return tabHeaderComponent!!.getSelectionTab() == MARKETPLACE_TAB
   }
 
   fun isInstalledTabShowing(): Boolean {
-    return myTabHeaderComponent!!.getSelectionTab() == INSTALLED_TAB
+    return tabHeaderComponent!!.getSelectionTab() == INSTALLED_TAB
   }
 
   private fun createGearActions(): DefaultActionGroup {
     val actions = DefaultActionGroup()
     if (PluginManagementPolicy.getInstance().isPluginAutoUpdateAllowed()) {
       val state = UpdateSettings.getInstance().getState()
-      myPluginsAutoUpdateEnabled = state.isPluginsAutoUpdateEnabled
+      pluginsAutoUpdateEnabled = state.isPluginsAutoUpdateEnabled
 
       val connect: MessageBusConnection = ApplicationManager.getApplication().getMessageBus()
-        .connect(myCoroutineScope.asDisposable())
+        .connect(coroutineScope.asDisposable())
       connect.subscribe(PluginAutoUpdateListener.TOPIC, object : PluginAutoUpdateListener {
         override fun settingsChanged() {
-          myPluginsAutoUpdateEnabled = state.isPluginsAutoUpdateEnabled
+          pluginsAutoUpdateEnabled = state.isPluginsAutoUpdateEnabled
         }
       })
 
@@ -243,8 +243,8 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     actions.add(ManagePluginCertificatesAction())
 
     actions.add(CustomInstallPluginFromDiskAction())
-    if (myPluginManagerCustomizer != null) {
-      actions.addAll(myPluginManagerCustomizer.getExtraPluginsActions())
+    if (pluginManagerCustomizer != null) {
+      actions.addAll(pluginManagerCustomizer.getExtraPluginsActions())
     }
     actions.addSeparator()
     actions.add(ChangePluginStateAction(false))
@@ -267,7 +267,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     val title = IdeBundle.message("plugin.manager.plugins.auto.update.title")
     val tooltip = GotItTooltip(title, IdeBundle.message("plugin.manager.plugins.auto.update.description"), this)
     tooltip.withHeader(title)
-    tooltip.show(myTabHeaderComponent!!.getComponent(1) as JComponent) { component, _ ->
+    tooltip.show(tabHeaderComponent!!.getComponent(1) as JComponent) { component, _ ->
       Point(component.getWidth() / 2, (component as JComponent).visibleRect.height)
     }
   }
@@ -275,14 +275,14 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
   private fun resetPanels() {
     CustomPluginRepositoryService.getInstance().clearCache()
 
-    if (myMarketplaceTab != null) {
-      myMarketplaceTab!!.resetCache()
+    if (marketplaceTab != null) {
+      marketplaceTab!!.resetCache()
     }
 
-    myPluginUpdatesService!!.recalculateUpdates()
+    pluginUpdatesService!!.recalculateUpdates()
 
-    if (myMarketplaceTab != null) {
-      myMarketplaceTab!!.onPanelReset(myTabHeaderComponent!!.getSelectionTab() == MARKETPLACE_TAB)
+    if (marketplaceTab != null) {
+      marketplaceTab!!.onPanelReset(tabHeaderComponent!!.getSelectionTab() == MARKETPLACE_TAB)
     }
   }
 
@@ -291,28 +291,28 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     val text = Integer.toString(count)
 
     val tooltip = PluginUpdatesService.getUpdatesTooltip()
-    myTabHeaderComponent!!.setTabTooltip(INSTALLED_TAB, tooltip)
+    tabHeaderComponent!!.setTabTooltip(INSTALLED_TAB, tooltip)
 
-    myInstalledTab!!.onPluginUpdatesRecalculation(updatesCount, tooltip)
+    installedTab!!.onPluginUpdatesRecalculation(updatesCount, tooltip)
 
-    myInstalledTabHeaderUpdatesCountIcon.setText(text)
-    myTabHeaderComponent!!.update()
+    installedTabHeaderUpdatesCountIcon.setText(text)
+    tabHeaderComponent!!.update()
   }
 
   private fun createMarketplaceTab() {
-    myMarketplaceTab = MarketplacePluginsTab(myPluginModelFacade, myCoroutineScope, myPluginManagerCustomizer, myPluginUpdatesService!!)
+    marketplaceTab = MarketplacePluginsTab(pluginModelFacade, coroutineScope, pluginManagerCustomizer, pluginUpdatesService!!)
   }
 
   private fun createInstalledTab() {
-    myInstalledTab = InstalledPluginsTab(
-      myPluginModelFacade,
-      myPluginUpdatesService!!,
-      myCoroutineScope,
-      { _ -> myTabHeaderComponent!!.setSelectionWithEvents(MARKETPLACE_TAB) },
+    installedTab = InstalledPluginsTab(
+      pluginModelFacade,
+      pluginUpdatesService!!,
+      coroutineScope,
+      { _ -> tabHeaderComponent!!.setSelectionWithEvents(MARKETPLACE_TAB) },
     )
 
-    myPluginModelFacade.getModel().setCancelInstallCallback { descriptor ->
-      val installedSearchPanel = myInstalledTab!!.getInstalledSearchPanel() ?: return@setCancelInstallCallback
+    pluginModelFacade.getModel().setCancelInstallCallback { descriptor ->
+      val installedSearchPanel = installedTab!!.getInstalledSearchPanel() ?: return@setCancelInstallCallback
 
       val group: PluginsGroup = installedSearchPanel.group
 
@@ -330,58 +330,58 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
 
   @Suppress("SameParameterValue")
   fun setInstallSource(source: FUSEventSource?) {
-    myPluginModelFacade.getModel().setInstallSource(source)
+    pluginModelFacade.getModel().setInstallSource(source)
   }
 
   override fun dispose() {
-    synchronized(myCallbackLock) {
-      myDisposeStarted = true
+    synchronized(callbackLock) {
+      disposeStarted = true
     }
 
-    if (ComponentUtil.getParentOfType(WelcomeScreen::class.java, myCardPanel!!) != null && isModified()) {
+    if (ComponentUtil.getParentOfType(WelcomeScreen::class.java, cardPanel!!) != null && isModified()) {
       scheduleApply()
     }
     val pluginsState = InstalledPluginsState.getInstance()
-    if (myPluginModelFacade.getModel().toBackground()) {
+    if (pluginModelFacade.getModel().toBackground()) {
       pluginsState.clearShutdownCallback()
     }
 
-    if (myMarketplaceTab != null) {
-      myMarketplaceTab!!.dispose()
+    if (marketplaceTab != null) {
+      marketplaceTab!!.dispose()
     }
 
-    if (myInstalledTab != null) {
-      myInstalledTab!!.dispose()
+    if (installedTab != null) {
+      installedTab!!.dispose()
     }
 
-    if (myMarketplaceTab != null) {
-      myMarketplaceTab!!.dispose()
+    if (marketplaceTab != null) {
+      marketplaceTab!!.dispose()
     }
 
-    if (myInstalledTab!!.getInstalledSearchPanel() != null) {
-      myInstalledTab!!.getInstalledSearchPanel()!!.dispose()
+    if (installedTab!!.getInstalledSearchPanel() != null) {
+      installedTab!!.getInstalledSearchPanel()!!.dispose()
     }
 
-    myPluginUpdatesService!!.dispose()
+    pluginUpdatesService!!.dispose()
     PluginPriceService.cancel()
 
     pluginsState.runShutdownCallback()
     pluginsState.resetChangesAppliedWithoutRestart()
 
     Disposer.dispose(this)
-    myCoroutineScope.cancel(null)
+    coroutineScope.cancel(null)
   }
 
   fun cancel() {
-    myPluginModelFacade.getModel().cancel(myCardPanel!!, true)
+    pluginModelFacade.getModel().cancel(cardPanel!!, true)
   }
 
   fun isModified(): Boolean {
-    if (myPluginsAutoUpdateEnabled != null &&
-        UpdateSettings.getInstance().getState().isPluginsAutoUpdateEnabled != myPluginsAutoUpdateEnabled) {
+    if (pluginsAutoUpdateEnabled != null &&
+        UpdateSettings.getInstance().getState().isPluginsAutoUpdateEnabled != pluginsAutoUpdateEnabled) {
       return true
     }
-    return myPluginModelFacade.getModel().isModified()
+    return pluginModelFacade.getModel().isModified()
   }
 
   fun scheduleApply() {
@@ -389,8 +389,8 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
       try {
         apply()
         WelcomeScreenEventCollector.logPluginsModified()
-        synchronized(myCallbackLock) {
-          if (myDisposeStarted && !myShutdownCallbackExecuted) {
+        synchronized(callbackLock) {
+          if (disposeStarted && !shutdownCallbackExecuted) {
             InstalledPluginsState.getInstance().runShutdownCallback()
           }
         }
@@ -403,48 +403,48 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
 
   @Throws(ConfigurationException::class)
   fun apply() {
-    if (myPluginsAutoUpdateEnabled != null) {
+    if (pluginsAutoUpdateEnabled != null) {
       val state: UpdateOptions = UpdateSettings.getInstance().getState()
-      if (state.isPluginsAutoUpdateEnabled != myPluginsAutoUpdateEnabled) {
-        UiPluginManager.getInstance().setPluginsAutoUpdateEnabled(myPluginsAutoUpdateEnabled!!)
+      if (state.isPluginsAutoUpdateEnabled != pluginsAutoUpdateEnabled) {
+        UiPluginManager.getInstance().setPluginsAutoUpdateEnabled(pluginsAutoUpdateEnabled!!)
       }
     }
 
-    myPluginModelFacade.getModel().applyWithCallback(myCardPanel!!) { installedWithoutRestart ->
+    pluginModelFacade.getModel().applyWithCallback(cardPanel!!) { installedWithoutRestart ->
       if (installedWithoutRestart) {
         return@applyWithCallback
       }
       val installedPluginsState = InstalledPluginsState.getInstance()
 
-      synchronized(myCallbackLock) {
-        if (myShutdownCallbackExecuted) {
+      synchronized(callbackLock) {
+        if (shutdownCallbackExecuted) {
           return@applyWithCallback
         }
 
-        if (myPluginModelFacade.getModel().createShutdownCallback) {
+        if (pluginModelFacade.getModel().createShutdownCallback) {
           installedPluginsState.setShutdownCallback {
-            synchronized(myCallbackLock) {
-              if (myShutdownCallbackExecuted) {
+            synchronized(callbackLock) {
+              if (shutdownCallbackExecuted) {
                 return@setShutdownCallback
               }
-              myShutdownCallbackExecuted = true
+              shutdownCallbackExecuted = true
             }
 
             ApplicationManager.getApplication().invokeLater {
               if (ApplicationManager.getApplication().isExitInProgress) return@invokeLater // already shutting down
-              if (myPluginManagerCustomizer != null) {
-                myPluginManagerCustomizer.requestRestart(myPluginModelFacade, myTabHeaderComponent!!)
+              if (pluginManagerCustomizer != null) {
+                pluginManagerCustomizer.requestRestart(pluginModelFacade, tabHeaderComponent!!)
                 return@invokeLater
               }
-              myPluginModelFacade.closeSession()
+              pluginModelFacade.closeSession()
               PluginManagerConfigurable.shutdownOrRestartApp()
             }
           }
         }
       }
 
-      synchronized(myCallbackLock) {
-        if (myDisposeStarted && !myShutdownCallbackExecuted) {
+      synchronized(callbackLock) {
+        if (disposeStarted && !shutdownCallbackExecuted) {
           installedPluginsState.runShutdownCallback()
         }
       }
@@ -452,14 +452,14 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
   }
 
   fun reset() {
-    if (myPluginsAutoUpdateEnabled != null) {
-      myPluginsAutoUpdateEnabled = UpdateSettings.getInstance().getState().isPluginsAutoUpdateEnabled
+    if (pluginsAutoUpdateEnabled != null) {
+      pluginsAutoUpdateEnabled = UpdateSettings.getInstance().getState().isPluginsAutoUpdateEnabled
     }
-    myPluginModelFacade.getModel().clear(myCardPanel!!)
+    pluginModelFacade.getModel().clear(cardPanel!!)
   }
 
   fun selectAndEnable(descriptors: Set<IdeaPluginDescriptor>) {
-    myPluginModelFacade.getModel().enable(descriptors)
+    pluginModelFacade.getModel().enable(descriptors)
     select(descriptors.map { it.pluginId })
   }
 
@@ -476,7 +476,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     }
 
     if (!components.isEmpty()) {
-      myInstalledTab!!.getInstalledPanel()!!.setSelection(components)
+      installedTab!!.getInstalledPanel()!!.setSelection(components)
     }
   }
 
@@ -486,19 +486,19 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
 
   fun enableSearch(option: String?, ignoreTagMarketplaceTab: Boolean): Runnable? {
     if (StringUtil.isEmpty(option) &&
-        (myTabHeaderComponent!!.getSelectionTab() == MARKETPLACE_TAB || myInstalledTab!!.getInstalledSearchPanel()!!.isQueryEmpty)) {
+        (tabHeaderComponent!!.getSelectionTab() == MARKETPLACE_TAB || installedTab!!.getInstalledSearchPanel()!!.isQueryEmpty)) {
       return null
     }
 
     return Runnable {
       var marketplace = !ignoreTagMarketplaceTab && option != null && option.startsWith(SearchWords.TAG.value)
-      if (myShowMarketplaceTab) {
+      if (showMarketplaceTab) {
         marketplace = true
-        myShowMarketplaceTab = false
+        showMarketplaceTab = false
       }
       updateSelectionTab(if (marketplace) MARKETPLACE_TAB else INSTALLED_TAB)
 
-      val tab: PluginsTab = if (marketplace) myMarketplaceTab!! else myInstalledTab!!
+      val tab: PluginsTab = if (marketplace) marketplaceTab!! else installedTab!!
       tab.clearSearchPanel(option ?: "")
 
       if (!StringUtil.isEmpty(option)) {
@@ -508,22 +508,22 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
   }
 
   fun openMarketplaceTab(option: String) {
-    myLaterSearchQuery = option
-    myShowMarketplaceTab = true
-    if (myTabHeaderComponent != null) {
+    laterSearchQuery = option
+    showMarketplaceTab = true
+    if (tabHeaderComponent != null) {
       updateSelectionTab(MARKETPLACE_TAB)
     }
-    if (myMarketplaceTab != null) {
-      myMarketplaceTab!!.clearSearchPanel(option)
-      myMarketplaceTab!!.showSearchPanel(option)
+    if (marketplaceTab != null) {
+      marketplaceTab!!.clearSearchPanel(option)
+      marketplaceTab!!.showSearchPanel(option)
     }
   }
 
   fun openInstalledTab(option: String) {
-    myLaterSearchQuery = option
-    myShowMarketplaceTab = false
-    myForceShowInstalledTabForTag = true
-    if (myTabHeaderComponent != null) {
+    laterSearchQuery = option
+    showMarketplaceTab = false
+    forceShowInstalledTabForTag = true
+    if (tabHeaderComponent != null) {
       updateSelectionTab(INSTALLED_TAB)
     }
   }
@@ -531,8 +531,8 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
   @RequiresEdt
   private fun onPluginInstalledFromDisk(callbackData: PluginInstallCallbackData) {
     PluginModelAsyncOperationsExecutor.updateErrors(
-      myCoroutineScope,
-      myPluginModelFacade.getModel().sessionId,
+      coroutineScope,
+      pluginModelFacade.getModel().sessionId,
       callbackData.pluginDescriptor.pluginId,
     ) { errors ->
       updateAfterPluginInstalledFromDisk(callbackData, errors)
@@ -540,27 +540,27 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
   }
 
   private fun updateAfterPluginInstalledFromDisk(callbackData: PluginInstallCallbackData, errors: List<HtmlChunk>) {
-    myPluginModelFacade.getModel().pluginInstalledFromDisk(callbackData, errors)
+    pluginModelFacade.getModel().pluginInstalledFromDisk(callbackData, errors)
 
-    val select = myInstalledTab!!.getInstalledPanel() == null
+    val select = installedTab!!.getInstalledPanel() == null
     updateSelectionTab(INSTALLED_TAB)
 
-    myInstalledTab!!.clearSearchPanel("")
+    installedTab!!.clearSearchPanel("")
 
     val component = if (select) findInstalledPluginById(callbackData.pluginDescriptor.pluginId) else null
     if (component != null) {
-      myInstalledTab!!.getInstalledPanel()!!.setSelection(component)
+      installedTab!!.getInstalledPanel()!!.setSelection(component)
     }
   }
 
   private fun updateSelectionTab(tab: Int) {
-    if (myTabHeaderComponent!!.getSelectionTab() != tab) {
-      myTabHeaderComponent!!.setSelectionWithEvents(tab)
+    if (tabHeaderComponent!!.getSelectionTab() != tab) {
+      tabHeaderComponent!!.setSelectionWithEvents(tab)
     }
   }
 
   private fun findInstalledPluginById(pluginId: PluginId): ListPluginComponent? {
-    for (group in myInstalledTab!!.getInstalledGroups()!!) {
+    for (group in installedTab!!.getInstalledGroups()!!) {
       val component = group.findComponent(pluginId)
       if (component != null) {
         return component
@@ -600,8 +600,8 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
   private inner class ManagePluginRepositoriesAction : DumbAwareAction(IdeBundle.message("plugin.manager.repositories")) {
     override fun actionPerformed(e: AnActionEvent) {
       val oldRepoUrls = ArrayList(UpdateSettings.getInstance().getStoredPluginHosts())
-      if (ShowSettingsUtil.getInstance().editConfigurable(myCardPanel, PluginHostsConfigurable())) {
-        if (myPluginManagerCustomizer == null) {
+      if (ShowSettingsUtil.getInstance().editConfigurable(cardPanel, PluginHostsConfigurable())) {
+        if (pluginManagerCustomizer == null) {
           resetPanels()
         }
 
@@ -622,7 +622,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
 
   private inner class OpenHttpProxyConfigurableAction : DumbAwareAction(IdeBundle.message("button.http.proxy.settings")) {
     override fun actionPerformed(e: AnActionEvent) {
-      if (HttpProxyConfigurable.editConfigurable(myCardPanel)) {
+      if (HttpProxyConfigurable.editConfigurable(cardPanel)) {
         resetPanels()
       }
     }
@@ -630,21 +630,21 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
 
   private inner class ManagePluginCertificatesAction : DumbAwareAction(IdeBundle.message("plugin.manager.custom.certificates")) {
     override fun actionPerformed(e: AnActionEvent) {
-      if (ShowSettingsUtil.getInstance().editConfigurable(myCardPanel, PluginCertificateManager())) {
+      if (ShowSettingsUtil.getInstance().editConfigurable(cardPanel, PluginCertificateManager())) {
         resetPanels()
       }
     }
   }
 
   private inner class CustomInstallPluginFromDiskAction : InstallFromDiskAction(
-    this@PluginManagerConfigurablePanel.myPluginModelFacade.getModel(),
-    this@PluginManagerConfigurablePanel.myPluginModelFacade.getModel(),
-    this@PluginManagerConfigurablePanel.myCardPanel,
+    this@PluginManagerConfigurablePanel.pluginModelFacade.getModel(),
+    this@PluginManagerConfigurablePanel.pluginModelFacade.getModel(),
+    this@PluginManagerConfigurablePanel.cardPanel,
   ) {
     @RequiresEdt
     override fun onPluginInstalledFromDisk(callbackData: PluginInstallCallbackData, project: Project?) {
-      if (myPluginManagerCustomizer != null) {
-        myPluginManagerCustomizer.updateAfterModification {
+      if (pluginManagerCustomizer != null) {
+        pluginManagerCustomizer.updateAfterModification {
           this@PluginManagerConfigurablePanel.onPluginInstalledFromDisk(callbackData)
         }
         return
@@ -661,11 +661,11 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
 
   private inner class UpdatePluginsAutomaticallyToggleAction : DumbAwareToggleAction(IdeBundle.message("updates.plugins.autoupdate.settings.action")) {
     override fun isSelected(e: AnActionEvent): Boolean {
-      return myPluginsAutoUpdateEnabled!!
+      return pluginsAutoUpdateEnabled!!
     }
 
     override fun setSelected(e: AnActionEvent, state: Boolean) {
-      myPluginsAutoUpdateEnabled = state
+      pluginsAutoUpdateEnabled = state
     }
 
     override fun getActionUpdateThread(): ActionUpdateThread {
@@ -682,9 +682,9 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     private val myEnable: Boolean = enable
 
     override fun actionPerformed(e: AnActionEvent) {
-      PluginModelAsyncOperationsExecutor.switchPlugins(myCoroutineScope, myPluginModelFacade, myEnable) { models ->
+      PluginModelAsyncOperationsExecutor.switchPlugins(coroutineScope, pluginModelFacade, myEnable) { models ->
         //noinspection unchecked
-        setState(myPluginModelFacade, models as Collection<PluginUiModel>, myEnable)
+        setState(pluginModelFacade, models as Collection<PluginUiModel>, myEnable)
       }
     }
   }
