@@ -3,8 +3,8 @@
 
 package org.jetbrains.intellij.build.impl
 
-import com.intellij.util.bazelEnvironment.BazelLabel
-import com.intellij.util.bazelEnvironment.BazelRunfiles
+import com.intellij.platform.bazel.runfiles.BazelLabel
+import com.intellij.platform.bazel.runfiles.BazelRunfiles
 import kotlinx.coroutines.CoroutineScope
 import org.jetbrains.annotations.ApiStatus.Internal
 import org.jetbrains.intellij.build.BuildOptions

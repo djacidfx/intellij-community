@@ -31,6 +31,8 @@ jvm_library(
     "//platform/build-scripts/downloader:downloader_test_lib",
     "//platform/util",
     "//platform/util:util_test_lib",
+    "//platform/bazel-runfiles",
+    "//platform/bazel-runfiles:bazel-runfiles_test_lib",
     "//platform/testFramework",
     "//platform/testFramework:testFramework_test_lib",
     "//libraries/assertj-core",

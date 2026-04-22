@@ -20,6 +20,7 @@ jvm_library(
   resources = [":core_resources"],
   deps = [
     "//platform/util",
+    "//platform/bazel-runfiles",
     "//platform/util-class-loader:util-classLoader",
     "//platform/util/base/multiplatform",
     "//platform/util/base",
@@ -49,6 +50,7 @@ jvm_library(
   runtime_deps = [
     ":core",
     "//platform/util:util_test_lib",
+    "//platform/bazel-runfiles:bazel-runfiles_test_lib",
     "//platform/util-class-loader:util-classLoader_test_lib",
     "//platform/util/base/multiplatform:multiplatform_test_lib",
     "//platform/util/base:base_test_lib",

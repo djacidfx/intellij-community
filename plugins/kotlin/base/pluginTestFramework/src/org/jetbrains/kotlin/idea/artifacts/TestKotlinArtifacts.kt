@@ -13,7 +13,7 @@ import com.intellij.util.io.DigestUtil
 import com.intellij.util.io.createParentDirectories
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
-import com.intellij.util.bazelEnvironment.BazelLabel
+import com.intellij.platform.bazel.runfiles.BazelLabel
 import org.jetbrains.intellij.build.dependencies.BuildDependenciesCommunityRoot
 import org.jetbrains.intellij.build.dependencies.BuildDependenciesDownloader
 import org.jetbrains.intellij.build.dependencies.BuildDependenciesDownloader.extractFile
@@ -41,7 +41,6 @@ import kotlin.io.path.moveTo
 import kotlin.io.path.name
 import kotlin.io.path.nameWithoutExtension
 import kotlin.io.path.outputStream
-import kotlin.io.path.pathString
 import kotlin.io.path.readBytes
 import kotlin.io.path.relativeTo
 import kotlin.io.path.walk

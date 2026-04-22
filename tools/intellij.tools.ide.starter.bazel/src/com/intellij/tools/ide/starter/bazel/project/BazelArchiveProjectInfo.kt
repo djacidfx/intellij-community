@@ -8,7 +8,7 @@ import com.intellij.ide.starter.project.ProjectInfoSpec
 import com.intellij.ide.starter.utils.FileSystem
 import com.intellij.ide.starter.utils.FileSystem.isDirUpToDate
 import com.intellij.testFramework.common.BazelTestUtil
-import com.intellij.util.bazelEnvironment.BazelLabel
+import com.intellij.platform.bazel.runfiles.BazelLabel
 import org.kodein.di.instance
 import java.nio.file.Path
 import kotlin.io.path.ExperimentalPathApi

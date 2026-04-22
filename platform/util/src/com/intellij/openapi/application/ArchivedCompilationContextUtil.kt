@@ -2,7 +2,7 @@
 package com.intellij.openapi.application
 
 import com.intellij.openapi.application.ArchivedCompilationContextUtil.getBazelTargetsJsonPath
-import com.intellij.util.bazelEnvironment.BazelRunfiles
+import com.intellij.platform.bazel.runfiles.BazelRunfiles
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json

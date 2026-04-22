@@ -216,6 +216,8 @@ jvm_library(
     "//platform/kernel/rpc:rpc_test_lib",
     "//platform/testFramework/common",
     "//platform/testFramework/common:common_test_lib",
+    "//platform/bazel-runfiles",
+    "//platform/bazel-runfiles:bazel-runfiles_test_lib",
     "//platform/remote-topics/shared:rpc-topics",
     "//platform/remote-topics/shared:rpc-topics_test_lib",
     "//platform/execution",

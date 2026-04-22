@@ -1,7 +1,7 @@
 package com.intellij.tools.ide.starter.bazel.project
 
 import com.intellij.testFramework.common.bazel.BazelTestDependencyHttpFileDownloader
-import com.intellij.util.bazelEnvironment.BazelLabel
+import com.intellij.platform.bazel.runfiles.BazelLabel
 import java.nio.file.Path
 
 interface StarterBazelTestDependencyDownloader {

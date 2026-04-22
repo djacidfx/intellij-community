@@ -20,6 +20,7 @@
     <orderEntry type="module" module-name="intellij.platform.util.classLoader" />
     <orderEntry type="module" module-name="intellij.platform.ide.bootstrap" />
     <orderEntry type="module" module-name="intellij.platform.util" />
+    <orderEntry type="module" module-name="intellij.platform.bazel.runfiles" />
     <orderEntry type="module" module-name="intellij.platform.core" />
     <orderEntry type="module" module-name="intellij.platform.ide.core.impl" />
     <orderEntry type="module" module-name="intellij.platform.ide.core" />

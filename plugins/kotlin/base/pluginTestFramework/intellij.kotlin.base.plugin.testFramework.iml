@@ -42,6 +42,7 @@
     <orderEntry type="module" module-name="intellij.platform.util.trove" scope="RUNTIME" />
     <orderEntry type="module" module-name="intellij.libraries.maven.resolver.provider" />
     <orderEntry type="module" module-name="intellij.platform.util" />
+    <orderEntry type="module" module-name="intellij.platform.bazel.runfiles" />
     <orderEntry type="module" module-name="intellij.platform.util.ui" />
     <orderEntry type="module" module-name="intellij.platform.util.ex" />
     <orderEntry type="module" module-name="intellij.platform.buildScripts.downloader" />

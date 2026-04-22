@@ -33,6 +33,7 @@
     <orderEntry type="module" module-name="intellij.platform.buildScripts.downloader" />
     <orderEntry type="module" module-name="intellij.libraries.commons.compress" />
     <orderEntry type="module" module-name="intellij.platform.util" />
+    <orderEntry type="module" module-name="intellij.platform.bazel.runfiles" />
     <orderEntry type="module" module-name="intellij.platform.jps.model" />
     <orderEntry type="module" module-name="intellij.tools.jps.build.standalone" />
     <orderEntry type="library" name="opentelemetry" level="project" />

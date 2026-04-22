@@ -1,7 +1,7 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.intellij.build.impl
 
-import com.intellij.util.bazelEnvironment.BazelRunfiles
+import com.intellij.platform.bazel.runfiles.BazelRunfiles
 import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.common.Attributes
 import kotlinx.coroutines.Dispatchers

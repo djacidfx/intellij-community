@@ -534,6 +534,7 @@ platform/backend
 platform/backend/observation
 platform/backend/workspace
 platform/backend/workspace.impl
+platform/bazel-runfiles
 platform/bookmarks
 platform/bookmarks/backend
 platform/bookmarks/frontend

@@ -7,8 +7,8 @@ import com.intellij.TestCaseLoader.TEST_RUNNERS_COUNT
 import com.intellij.TestCaseLoader.TEST_RUNNER_INDEX
 import com.intellij.platform.testFramework.teamCity.TeamCityReporter
 import com.intellij.testFramework.TeamCityLogger
-import com.intellij.util.bazelEnvironment.BazelLabel
-import com.intellij.util.bazelEnvironment.BazelRunfiles
+import com.intellij.platform.bazel.runfiles.BazelLabel
+import com.intellij.platform.bazel.runfiles.BazelRunfiles
 import org.jetbrains.annotations.ApiStatus
 import tools.jackson.databind.SerializationFeature
 import tools.jackson.databind.json.JsonMapper
