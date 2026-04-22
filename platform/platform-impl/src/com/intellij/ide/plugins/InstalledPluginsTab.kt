@@ -3,12 +3,12 @@ package com.intellij.ide.plugins
 
 import com.intellij.icons.AllIcons
 import com.intellij.ide.IdeBundle
-import com.intellij.ide.plugins.PluginManagerConfigurablePanel.applyUpdates
-import com.intellij.ide.plugins.PluginManagerConfigurablePanel.clearUpdates
-import com.intellij.ide.plugins.PluginManagerConfigurablePanel.createScrollPane
-import com.intellij.ide.plugins.PluginManagerConfigurablePanel.registerCopyProvider
-import com.intellij.ide.plugins.PluginManagerConfigurablePanel.setState
-import com.intellij.ide.plugins.PluginManagerConfigurablePanel.showRightBottomPopup
+import com.intellij.ide.plugins.PluginManagerConfigurablePanel.Companion.applyUpdates
+import com.intellij.ide.plugins.PluginManagerConfigurablePanel.Companion.clearUpdates
+import com.intellij.ide.plugins.PluginManagerConfigurablePanel.Companion.createScrollPane
+import com.intellij.ide.plugins.PluginManagerConfigurablePanel.Companion.registerCopyProvider
+import com.intellij.ide.plugins.PluginManagerConfigurablePanel.Companion.setState
+import com.intellij.ide.plugins.PluginManagerConfigurablePanel.Companion.showRightBottomPopup
 import com.intellij.ide.plugins.marketplace.statistics.PluginManagerUsageCollector
 import com.intellij.ide.plugins.newui.ListPluginComponent
 import com.intellij.ide.plugins.newui.MultiSelectionEventHandler
