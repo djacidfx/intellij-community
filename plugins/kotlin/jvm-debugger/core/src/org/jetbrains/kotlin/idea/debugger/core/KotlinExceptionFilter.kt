@@ -4,6 +4,7 @@ package org.jetbrains.kotlin.idea.debugger.core
 
 import com.intellij.execution.filters.ExceptionFilter
 import com.intellij.execution.filters.ExceptionFilterFactory
+import com.intellij.execution.filters.ExceptionWorker
 import com.intellij.execution.filters.FileHyperlinkInfo
 import com.intellij.execution.filters.Filter
 import com.intellij.execution.filters.HyperlinkInfo
@@ -175,23 +176,15 @@ class KotlinExceptionFilter(private val searchScope: GlobalSearchScope) : Except
     }
 
     companion object {
-        // Matches strings like "\tat test.TestPackage$foo$f$1.invoke(a.kt:3)\n"
-        //                   or "\tBreakpoint reached at test.TestPackage$foo$f$1.invoke(a.kt:3)\n"
-        private val STACK_TRACE_ELEMENT_PATTERN = Pattern.compile("^[\\w|\\s]*at\\s+(.+)\\.(.+)\\((.+):(\\d+)\\)\\s*$")
-
         private val LINE_COLUMN_PATTERN = Pattern.compile("(\\d+):(\\d+)")
 
         private fun parseStackTraceLine(line: String): StackTraceElement? {
-            val matcher = STACK_TRACE_ELEMENT_PATTERN.matcher(line)
-            if (matcher.matches()) {
-                val declaringClass = matcher.group(1)
-                val methodName = matcher.group(2)
-                val fileName = matcher.group(3)
-                val lineNumber = matcher.group(4)
-                //noinspection ConstantConditions
-                return StackTraceElement(declaringClass, methodName, fileName, Integer.parseInt(lineNumber))
-            }
-            return null
+            val parsed = ExceptionWorker.parseExceptionLine(line) ?: return null
+            val declaringClass = parsed.classFqnRange.substring(line)
+            val methodName = parsed.methodNameRange.substring(line)
+            val fileName = parsed.fileName
+            val lineNumber = parsed.lineNumber
+            return StackTraceElement(declaringClass, methodName, fileName, lineNumber)
         }
 
         private fun findFile(fileName: String): VirtualFile? {
