@@ -27,6 +27,7 @@ import com.intellij.platform.project.projectId
 import com.intellij.platform.searchEverywhere.SeSession
 import com.intellij.platform.searchEverywhere.SeSessionEntity
 import com.intellij.platform.searchEverywhere.asRef
+import com.intellij.platform.searchEverywhere.frontend.ml.SeMlService
 import com.intellij.platform.searchEverywhere.frontend.tabs.SeAdaptedTab
 import com.intellij.platform.searchEverywhere.frontend.tabs.SeAdaptedTabFilterEditor
 import com.intellij.platform.searchEverywhere.frontend.tabs.actions.SeActionsTab
@@ -39,7 +40,6 @@ import com.intellij.platform.searchEverywhere.frontend.ui.SePopupContentPane
 import com.intellij.platform.searchEverywhere.frontend.ui.SePopupHeaderPane
 import com.intellij.platform.searchEverywhere.frontend.vm.SeDummyTabVm
 import com.intellij.platform.searchEverywhere.frontend.vm.SePopupVm
-import com.intellij.platform.searchEverywhere.frontend.ml.SeMlService
 import com.intellij.platform.searchEverywhere.impl.SeRemoteApi
 import com.intellij.platform.searchEverywhere.providers.SeLog
 import com.intellij.platform.searchEverywhere.providers.SeLog.LIFE_CYCLE
@@ -449,7 +449,7 @@ class SeFrontendService(val project: Project?, private val coroutineScope: Corou
     return if (project != null) WindowStateService.getInstance(project) else WindowStateService.getInstance()
   }
 
-  override fun isShown(): Boolean = popupInstance != null
+  override fun isShown(): Boolean = popupInstanceFuture != null
 
   @Deprecated("Deprecated in the interface")
   override fun getCurrentlyShownUI(): SearchEverywhereUI {
