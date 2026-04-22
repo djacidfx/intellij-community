@@ -426,7 +426,7 @@ internal class TestingTasksImpl(context: CompilationContext, private val options
 
     val searchForTestsAcrossModuleDependencies = options.searchScope == JUnitRunConfigurationProperties.TestSearchScope.MODULE_WITH_DEPENDENCIES.serialized
     val testModules = let {
-      if (searchForTestsAcrossModuleDependencies && System.getProperty("pass.jar.dependencies.to.tests") == null) guessTestModulesForGroupsAndPatterns(mainModule, rootExcludeCondition, systemProperties)
+      if (searchForTestsAcrossModuleDependencies && System.getProperty("pass.jar.dependencies.to.tests") == null && options.testSimplePatterns == null) guessTestModulesForGroupsAndPatterns(mainModule, rootExcludeCondition, systemProperties)
       else listOf(mainModule)
     }
 
