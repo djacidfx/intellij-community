@@ -2089,8 +2089,10 @@ public final class TableResultView extends JBTableWithResizableCells
     ModelIndexSet<GridColumn> indexSet = ViewIndexSet.forColumns(myResultPanel, selectedColumns).toModel(myResultPanel);
     List<GridColumn> columns = myResultPanel.getDataModel(DataAccessType.DATABASE_DATA).getColumns(indexSet);
     GridColumn uniqueColumn = GridHelper.get(myResultPanel).findUniqueColumn(myResultPanel, columns);
+    GridTableCellEditor editor = ObjectUtils.tryCast(getCellEditor(), GridTableCellEditor.class);
+    boolean uniqueOk = uniqueColumn == null || selectedRows.length == 1 || (editor != null && editor.allowsUniqueMultiEdit());
     return myCommonValue != null &&
-           (uniqueColumn == null || selectedRows.length == 1) &&
+           uniqueOk &&
            GridHelper.get(myResultPanel).canEditTogether(myResultPanel, columns);
   }
 

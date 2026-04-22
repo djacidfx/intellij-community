@@ -37,10 +37,13 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.EventObject;
 
+import static java.lang.Boolean.TRUE;
+
 public class GridTableCellEditor extends AbstractTableCellEditor {
   public static final String TABLE_CELL_EDITOR_PROPERTY = "tableCellEditor";
   public static final Key<EventObject> EDITING_STARTER_CLIENT_PROPERTY_KEY = Key.create("EventThatCausedEditingToStart");
   public static final Key<Object> CURRENT_VALUE_CLIENT_PROPERTY_KEY = Key.create("CurrentValue");
+  /** Set by the Value Editor when it reopens the inline editor in sync: keeps focus on the Value Editor instead of flickering to the inline cell. */
   public static final Key<Boolean> SUPPRESS_MOVE_FOCUS_CLIENT_PROPERTY_KEY = Key.create("SuppressMoveFocus");
 
   private final DataGrid myGrid;
@@ -50,6 +53,7 @@ public class GridTableCellEditor extends AbstractTableCellEditor {
 
   private GridCellEditor myEditor = null;
   private boolean myShouldMoveFocus = true;
+  private boolean myAllowUniqueMultiEdit = false;
 
   public GridTableCellEditor(DataGrid grid,
                              ModelIndex<GridRow> rowIdx,
@@ -65,6 +69,15 @@ public class GridTableCellEditor extends AbstractTableCellEditor {
     return myShouldMoveFocus && (myEditor == null || myEditor.shouldMoveFocus());
   }
 
+  /**
+   * True when this editing session bypasses the UNIQUE-multi-edit guard because the active factory's values evaluate
+   * per-row ({@link GridCellEditorFactory#allowsUniqueMultiEdit()}). JTable reuses one editor instance per
+   * editing session, so the flag's lifetime matches the session.
+   */
+  public boolean allowsUniqueMultiEdit() {
+    return myAllowUniqueMultiEdit;
+  }
+
   @TestOnly
   public GridCellEditor getEditor() {
     return myEditor;
@@ -77,8 +90,8 @@ public class GridTableCellEditor extends AbstractTableCellEditor {
     if (myEditor == null) {
       EventObject e = ClientProperty.get(table, EDITING_STARTER_CLIENT_PROPERTY_KEY);
       Object currentValue = ClientProperty.get(table, CURRENT_VALUE_CLIENT_PROPERTY_KEY);
-      Boolean suppressMoveFocus = ClientProperty.get(table, SUPPRESS_MOVE_FOCUS_CLIENT_PROPERTY_KEY);
-      myShouldMoveFocus = suppressMoveFocus == null || !suppressMoveFocus;
+      myShouldMoveFocus = !TRUE.equals(ClientProperty.get(table, SUPPRESS_MOVE_FOCUS_CLIENT_PROPERTY_KEY));
+      myAllowUniqueMultiEdit = myEditorFactory.allowsUniqueMultiEdit();
       myEditor = myEditorFactory.createEditor(myGrid, myRowIdx, myColumnIdx, currentValue == null ? value : currentValue, e);
       if (currentValue != null && !Comparing.equal(currentValue, value)) {
         myGrid.fireValueEdited(currentValue);

@@ -59,6 +59,14 @@ public interface GridCellEditorFactory {
                               @Nullable Object object,
                               EventObject initiator);
 
+    /**
+     * True when values produced by this factory evaluate per-row, so applying the same edited value across a multi-row
+     * selection is safe even on a UNIQUE-constrained column.
+     */
+    default boolean allowsUniqueMultiEdit() {
+      return false;
+    }
+
   interface IsEditableChecker {
     boolean isEditable(@Nullable Object value, @NotNull DataGrid grid, @NotNull ModelIndex<GridColumn> column);
   }
