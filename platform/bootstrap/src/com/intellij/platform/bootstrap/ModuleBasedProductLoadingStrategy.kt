@@ -128,7 +128,7 @@ internal class ModuleBasedProductLoadingStrategy(internal val moduleRepository: 
       )
     }
     val custom = loadCustomPluginDescriptors(scope, customPluginDir, loadingContext, zipPool)
-    val bundled = if (SystemProperties.getBooleanProperty("intellij.platform.module.based.loader.use.plugin.module.groups", true)) {
+    val bundled = if (SystemProperties.getBooleanProperty("intellij.platform.module.based.loader.use.plugin.module.groups", false)) {
       logger<ModuleBasedProductLoadingStrategy>().info("Loading bundled plugins using module groups")
       loadBundledPluginDescriptorsFromProductModules(scope, loadingContext, zipPool)
     }
