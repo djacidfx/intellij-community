@@ -196,9 +196,9 @@ public class TestAll implements Test {
       return ContainerUtil.map(getClassRoots(((URLClassLoader)loader).getURLs()), url -> Paths.get(url.toUri()));
     }
     if (loader instanceof UrlClassLoader) {
-      List<Path> urls = ((UrlClassLoader)loader).getBaseUrls();
+      List<Path> paths = ((UrlClassLoader)loader).getFiles();
       System.out.println("Collecting tests from TestAll class loader (" + UrlClassLoader.class.getName() + ")");
-      return urls;
+      return paths;
     }
     System.out.println("Collecting tests from java.class.path system property");
     return ContainerUtil.map(System.getProperty("java.class.path").split(File.pathSeparator), Paths::get);
