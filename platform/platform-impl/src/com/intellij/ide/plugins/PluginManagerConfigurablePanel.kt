@@ -104,7 +104,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
   private val tabHeaderComponent: TabbedPaneHeaderComponent
   private val installedTabHeaderUpdatesCountIcon: CountIcon = CountIcon()
 
-  private var marketplaceTab: MarketplacePluginsTab? = null
+  private val marketplaceTab: MarketplacePluginsTab
   private val installedTab: InstalledPluginsTab
   private val cardPanel: MultiPanel
 
@@ -131,9 +131,9 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
       cardPanel.select(index, true)
       storeSelectionTab(index)
 
-      val query = if (index == MARKETPLACE_TAB) installedTab.searchQuery else marketplaceTab!!.searchQuery
+      val query = if (index == MARKETPLACE_TAB) installedTab.searchQuery else marketplaceTab.searchQuery
       if (index == MARKETPLACE_TAB) {
-        marketplaceTab!!.searchQuery = query
+        marketplaceTab.searchQuery = query
       }
       else {
         installedTab.searchQuery = query
@@ -163,14 +163,14 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     pluginModelFacade.getModel().pluginUpdatesService = pluginUpdatesService!!
     UiPluginManager.getInstance().updateDescriptorsForInstalledPlugins()
 
-    createMarketplaceTab()
+    marketplaceTab = createMarketplaceTab()
     installedTab = createInstalledTab()
     PluginManagerUsageCollector.sessionStarted()
 
     cardPanel = object : MultiPanel() {
       override fun create(key: Int?): JComponent {
         if (key == MARKETPLACE_TAB) {
-          return marketplaceTab!!.createPanel()
+          return marketplaceTab.createPanel()
         }
         if (key == INSTALLED_TAB) {
           return installedTab.createPanel()
@@ -273,16 +273,9 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
 
   private fun resetPanels() {
     CustomPluginRepositoryService.getInstance().clearCache()
-
-    if (marketplaceTab != null) {
-      marketplaceTab!!.resetCache()
-    }
-
+    marketplaceTab.resetCache()
     pluginUpdatesService!!.recalculateUpdates()
-
-    if (marketplaceTab != null) {
-      marketplaceTab!!.onPanelReset(tabHeaderComponent.getSelectionTab() == MARKETPLACE_TAB)
-    }
+    marketplaceTab.onPanelReset(tabHeaderComponent.getSelectionTab() == MARKETPLACE_TAB)
   }
 
   private fun onPluginUpdatesRecalculation(updatesCount: Int?) {
@@ -298,8 +291,8 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     tabHeaderComponent.update()
   }
 
-  private fun createMarketplaceTab() {
-    marketplaceTab = MarketplacePluginsTab(pluginModelFacade, coroutineScope, pluginManagerCustomizer, pluginUpdatesService!!)
+  private fun createMarketplaceTab(): MarketplacePluginsTab {
+    return MarketplacePluginsTab(pluginModelFacade, coroutineScope, pluginManagerCustomizer, pluginUpdatesService!!)
   }
 
   private fun createInstalledTab(): InstalledPluginsTab {
@@ -347,15 +340,9 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
       pluginsState.clearShutdownCallback()
     }
 
-    if (marketplaceTab != null) {
-      marketplaceTab!!.dispose()
-    }
-
+    marketplaceTab.dispose()
     installedTab.dispose()
-
-    if (marketplaceTab != null) {
-      marketplaceTab!!.dispose()
-    }
+    marketplaceTab.dispose() // FIXME why the second time???
 
     if (installedTab.getInstalledSearchPanel() != null) {
       installedTab.getInstalledSearchPanel()!!.dispose()
@@ -497,7 +484,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
       }
       updateSelectionTab(if (marketplace) MARKETPLACE_TAB else INSTALLED_TAB)
 
-      val tab: PluginsTab = if (marketplace) marketplaceTab!! else installedTab
+      val tab: PluginsTab = if (marketplace) marketplaceTab else installedTab
       tab.clearSearchPanel(option ?: "")
 
       if (!StringUtil.isEmpty(option)) {
@@ -510,10 +497,8 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     laterSearchQuery = option
     showMarketplaceTab = true
     updateSelectionTab(MARKETPLACE_TAB)
-    if (marketplaceTab != null) {
-      marketplaceTab!!.clearSearchPanel(option)
-      marketplaceTab!!.showSearchPanel(option)
-    }
+    marketplaceTab.clearSearchPanel(option)
+    marketplaceTab.showSearchPanel(option)
   }
 
   fun openInstalledTab(option: String) {
