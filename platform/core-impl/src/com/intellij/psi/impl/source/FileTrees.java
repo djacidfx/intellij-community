@@ -72,7 +72,7 @@ final class FileTrees {
     forEachCachedPsi(psi -> {
       ASTNode node = psi.getNode();
       LOG.assertTrue(node.getPsi() == psi);
-      psi.setSubstrateRef(SubstrateRef.createAstStrongRef(node));
+      psi.setSubstrateRef(SubstrateRef.createAstRef(node));
     });
 
     return new FileTrees(myFile, myStub, myTreeElementPointer, null);
