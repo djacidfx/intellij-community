@@ -1,100 +1,95 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.ide.plugins.newui;
+package com.intellij.ide.plugins.newui
 
-import com.intellij.ide.IdeBundle;
-import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.util.Disposer;
-import com.intellij.util.ui.AsyncProcessIcon;
-import org.jetbrains.annotations.ApiStatus;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.awt.Graphics;
+import com.intellij.ide.IdeBundle
+import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.util.Disposer
+import com.intellij.util.ui.AsyncProcessIcon
+import com.intellij.util.ui.AsyncProcessIcon.BigCentered
+import org.jetbrains.annotations.ApiStatus
+import java.awt.Graphics
 
 @ApiStatus.Internal
-public abstract class PluginsGroupComponentWithProgress extends PluginsGroupComponent {
-  private static final Logger LOG = Logger.getInstance(PluginsGroupComponentWithProgress.class);
+abstract class PluginsGroupComponentWithProgress(eventHandler: EventHandler) : PluginsGroupComponent(eventHandler) {
+  private var myLoadingIcon: AsyncProcessIcon? = BigCentered(IdeBundle.message("progress.text.loading"))
+  private var myOnBecomingVisibleCallback: Runnable? = null
 
-  private AsyncProcessIcon myLoadingIcon = new AsyncProcessIcon.BigCentered(IdeBundle.message("progress.text.loading"));
-  private @Nullable Runnable myOnBecomingVisibleCallback;
-
-  public PluginsGroupComponentWithProgress(@NotNull EventHandler eventHandler) {
-    super(eventHandler);
-    myLoadingIcon.setOpaque(false);
-    myLoadingIcon.setPaintPassiveIcon(false);
-    add(myLoadingIcon);
-    myLoadingIcon.resume();
+  init {
+    myLoadingIcon!!.setOpaque(false)
+    myLoadingIcon!!.setPaintPassiveIcon(false)
+    add(myLoadingIcon)
+    myLoadingIcon!!.resume()
   }
 
-  @Override
-  public void doLayout() {
-    super.doLayout();
-    updateIconLocation();
+  override fun doLayout() {
+    super.doLayout()
+    updateIconLocation()
   }
 
-  @Override
-  public void paint(Graphics g) {
-    super.paint(g);
-    updateIconLocation();
+  override fun paint(g: Graphics?) {
+    super.paint(g)
+    updateIconLocation()
   }
 
-  private void updateIconLocation() {
-    if (myLoadingIcon != null && myLoadingIcon.isVisible()) {
-      myLoadingIcon.updateLocation(this);
+  private fun updateIconLocation() {
+    if (myLoadingIcon != null && myLoadingIcon!!.isVisible()) {
+      myLoadingIcon!!.updateLocation(this)
     }
   }
 
-  public void showLoadingIcon() {
-    LOG.debug("Marketplace tab: loading started");
+  fun showLoadingIcon() {
+    LOG.debug("Marketplace tab: loading started")
     if (myLoadingIcon != null) {
-      myLoadingIcon.setVisible(true);
-      myLoadingIcon.resume();
-      fullRepaint();
+      myLoadingIcon!!.setVisible(true)
+      myLoadingIcon!!.resume()
+      fullRepaint()
     }
   }
 
-  public void hideLoadingIcon() {
-    LOG.debug("Marketplace tab: loading stopped");
+  fun hideLoadingIcon() {
+    LOG.debug("Marketplace tab: loading stopped")
     if (myLoadingIcon != null) {
-      myLoadingIcon.suspend();
-      myLoadingIcon.setVisible(false);
-      fullRepaint();
+      myLoadingIcon!!.suspend()
+      myLoadingIcon!!.setVisible(false)
+      fullRepaint()
     }
   }
 
-  private void fullRepaint() {
-    doLayout();
-    revalidate();
-    repaint();
+  private fun fullRepaint() {
+    doLayout()
+    revalidate()
+    repaint()
   }
 
-  public void dispose() {
+  fun dispose() {
     if (myLoadingIcon != null) {
-      remove(myLoadingIcon);
-      Disposer.dispose(myLoadingIcon);
-      myLoadingIcon = null;
+      remove(myLoadingIcon)
+      Disposer.dispose(myLoadingIcon!!)
+      myLoadingIcon = null
     }
   }
 
-  @Override
-  public void clear() {
-    super.clear();
+  override fun clear() {
+    super.clear()
     if (myLoadingIcon != null) {
-      add(myLoadingIcon);
+      add(myLoadingIcon)
     }
   }
 
-  public void setOnBecomingVisibleCallback(@NotNull Runnable onVisibilityChangeCallbackOnce) {
-    myOnBecomingVisibleCallback = onVisibilityChangeCallbackOnce;
+  fun setOnBecomingVisibleCallback(onVisibilityChangeCallbackOnce: Runnable) {
+    myOnBecomingVisibleCallback = onVisibilityChangeCallbackOnce
   }
 
-  @Override
-  public void setVisible(boolean visible) {
-    super.setVisible(visible);
+  override fun setVisible(visible: Boolean) {
+    super.setVisible(visible)
     if (visible && myOnBecomingVisibleCallback != null) {
-      Runnable runnable = myOnBecomingVisibleCallback;
-      myOnBecomingVisibleCallback = null;
-      runnable.run();
+      val runnable = myOnBecomingVisibleCallback
+      myOnBecomingVisibleCallback = null
+      runnable!!.run()
     }
+  }
+
+  companion object {
+    private val LOG = Logger.getInstance(PluginsGroupComponentWithProgress::class.java)
   }
 }
