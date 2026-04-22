@@ -44,114 +44,15 @@ abstract class PluginsTab @RequiresEdt constructor(
   private var detailsPage: PluginDetailsPageComponent? = null
   private var cardPanel: MultiPanel? = null
 
-  @JvmField
-  protected val searchTextField: PluginSearchTextField
+  protected val searchTextField: PluginSearchTextField = createSearchTextField(searchTextFieldQueryDebouncePeriodMs)
   private var searchPanel: SearchResultPanel? = null
-
-  init {
-    searchTextField = object : PluginSearchTextField() {
-      override fun preprocessEventForTextField(event: KeyEvent): Boolean {
-        val keyCode = event.getKeyCode()
-        val id = event.getID()
-
-        if (keyCode == KeyEvent.VK_ENTER || event.getKeyChar() == '\n') {
-          if (id == KeyEvent.KEY_PRESSED && !searchPanel!!.controller.handleEnter(event)) {
-            val text = getText()
-            if (!text.isEmpty()) {
-              searchPanel!!.controller.hidePopup()
-              showSearchPanel(text)
-            }
-          }
-          return true
-        }
-        if ((keyCode == KeyEvent.VK_DOWN || keyCode == KeyEvent.VK_UP) && id == KeyEvent.KEY_PRESSED &&
-            searchPanel!!.controller.handleUpDown(event)
-        ) {
-          return true
-        }
-        return super.preprocessEventForTextField(event)
-      }
-
-      override fun toClearTextOnEscape(): Boolean {
-        object : AnAction() {
-          init {
-            setEnabledInModalContext(true)
-          }
-
-          override fun update(e: AnActionEvent) {
-            e.getPresentation().setEnabled(!getText().isEmpty())
-          }
-
-          override fun getActionUpdateThread(): ActionUpdateThread {
-            return ActionUpdateThread.EDT
-          }
-
-          override fun actionPerformed(e: AnActionEvent) {
-            if (searchPanel!!.controller.isPopupShow()) {
-              searchPanel!!.controller.hidePopup()
-            }
-            else {
-              setText("")
-            }
-          }
-        }.registerCustomShortcutSet(CommonShortcuts.ESCAPE, this)
-        return false
-      }
-
-      override fun onFieldCleared() {
-        hideSearchPanel()
-      }
-
-      override fun showCompletionPopup() {
-        if (!searchPanel!!.controller.isPopupShow()) {
-          showSearchPopup()
-        }
-      }
-    }
-
-    searchTextField.getTextEditor().getDocument().addDocumentListener(object : DocumentAdapter() {
-      override fun textChanged(e: DocumentEvent) {
-        if (!searchTextField.isSkipDocumentEvents()) {
-          searchUpdateAlarm.cancelAndRequest(
-            searchTextFieldQueryDebouncePeriodMs,
-            ModalityState.stateForComponent(searchTextField),
-            Runnable { this.searchOnTheFly() })
-        }
-      }
-
-      fun searchOnTheFly() {
-        val text = searchTextField.getText()
-        if (text.isNullOrBlank()) {
-          hideSearchPanel()
-        }
-        else {
-          searchPanel!!.controller.handleShowPopup()
-        }
-      }
-    })
-
-    val editor = searchTextField.getTextEditor()
-    editor.putClientProperty("JTextField.Search.Gap", scale(6))
-    editor.putClientProperty("JTextField.Search.GapEmptyText", scale(-1))
-    editor.putClientProperty(
-      TextComponentEmptyText.STATUS_VISIBLE_FUNCTION,
-      Predicate { field: JBTextField? -> field!!.getText().isEmpty() })
-    editor.setOpaque(true)
-    editor.setBackground(PluginManagerConfigurable.SEARCH_BG_COLOR)
-    editor.getAccessibleContext().setAccessibleName(IdeBundle.message("plugin.manager.search.accessible.name"))
-
-    val text = IdeBundle.message("plugin.manager.options.command")
-
-    val emptyText = searchTextField.getTextEditor().getEmptyText()
-    emptyText.appendText(text, SimpleTextAttributes(SimpleTextAttributes.STYLE_PLAIN, ListPluginComponent.GRAY_COLOR))
-  }
 
   @JvmField
   val searchListener: LinkListener<Any> = LinkListener { _: LinkLabel<Any>?, data: Any ->
     val query: String?
     when (data) {
       is String -> query = data
-      is TagComponent -> query = getTagQuery(data.getText())
+      is TagComponent -> query = getTagQuery(data.text)
       else -> return@LinkListener
     }
 
@@ -165,7 +66,7 @@ abstract class PluginsTab @RequiresEdt constructor(
 
   private val mySelectionListener = Consumer { panel: PluginsGroupComponent? ->
     val key: Int = if (searchPanel!!.panel === panel) SEARCH_PANEL else DEFAULT_PANEL
-    if (cardPanel!!.getKey() == key) {
+    if (cardPanel!!.key == key) {
       detailsPage!!.showPlugins(panel!!.selection)
     }
   }
@@ -230,7 +131,7 @@ abstract class PluginsTab @RequiresEdt constructor(
         return null
       }
       val query = searchPanel!!.query
-      return if (query.isEmpty()) null else query
+      return query.ifEmpty { null }
     }
     set(query) {
       searchTextField.setTextIgnoreEvents(query)
@@ -264,7 +165,7 @@ abstract class PluginsTab @RequiresEdt constructor(
   protected abstract fun onSearchReset()
 
   private fun showSearchPopup() {
-    if (searchTextField.getText().isNullOrBlank()) {
+    if (searchTextField.text.isNullOrBlank()) {
       searchPanel!!.controller.showAttributesPopup(null, 0)
     }
     else {
@@ -280,6 +181,106 @@ abstract class PluginsTab @RequiresEdt constructor(
   open fun dispose() {
     searchUpdateAlarm.dispose()
     searchTextField.disposeUIResources()
+  }
+
+  private fun createSearchTextField(searchTextFieldQueryDebouncePeriodMs: Long): PluginSearchTextField {
+    val searchTextField = object : PluginSearchTextField() {
+      override fun preprocessEventForTextField(event: KeyEvent): Boolean {
+        val keyCode = event.getKeyCode()
+        val id = event.getID()
+
+        if (keyCode == KeyEvent.VK_ENTER || event.getKeyChar() == '\n') {
+          if (id == KeyEvent.KEY_PRESSED && !searchPanel!!.controller.handleEnter(event)) {
+            val text = getText()
+            if (!text.isEmpty()) {
+              searchPanel!!.controller.hidePopup()
+              showSearchPanel(text)
+            }
+          }
+          return true
+        }
+        if ((keyCode == KeyEvent.VK_DOWN || keyCode == KeyEvent.VK_UP) && id == KeyEvent.KEY_PRESSED &&
+            searchPanel!!.controller.handleUpDown(event)
+        ) {
+          return true
+        }
+        return super.preprocessEventForTextField(event)
+      }
+
+      override fun toClearTextOnEscape(): Boolean {
+        object : AnAction() {
+          init {
+            isEnabledInModalContext = true
+          }
+
+          override fun update(e: AnActionEvent) {
+            e.presentation.setEnabled(!text.isEmpty())
+          }
+
+          override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+
+          override fun actionPerformed(e: AnActionEvent) {
+            if (searchPanel!!.controller.isPopupShow) {
+              searchPanel!!.controller.hidePopup()
+            }
+            else {
+              text = ""
+            }
+          }
+        }.registerCustomShortcutSet(CommonShortcuts.ESCAPE, this)
+        return false
+      }
+
+      override fun onFieldCleared() {
+        hideSearchPanel()
+      }
+
+      override fun showCompletionPopup() {
+        if (!searchPanel!!.controller.isPopupShow) {
+          showSearchPopup()
+        }
+      }
+    }
+
+    searchTextField.textEditor.document.addDocumentListener(createPerformSearchOnInputListener(searchTextFieldQueryDebouncePeriodMs))
+
+    val editor = searchTextField.textEditor
+    editor.putClientProperty("JTextField.Search.Gap", scale(6))
+    editor.putClientProperty("JTextField.Search.GapEmptyText", scale(-1))
+    editor.putClientProperty(
+      TextComponentEmptyText.STATUS_VISIBLE_FUNCTION,
+      Predicate { field: JBTextField? -> field!!.getText().isEmpty() })
+    editor.setOpaque(true)
+    editor.setBackground(PluginManagerConfigurable.SEARCH_BG_COLOR)
+    editor.getAccessibleContext().setAccessibleName(IdeBundle.message("plugin.manager.search.accessible.name"))
+
+    val text = IdeBundle.message("plugin.manager.options.command")
+
+    val emptyText = searchTextField.textEditor.emptyText
+    emptyText.appendText(text, SimpleTextAttributes(SimpleTextAttributes.STYLE_PLAIN, ListPluginComponent.GRAY_COLOR))
+
+    return searchTextField
+  }
+
+  private fun createPerformSearchOnInputListener(searchTextFieldQueryDebouncePeriodMs: Long): DocumentAdapter = object : DocumentAdapter() {
+    override fun textChanged(e: DocumentEvent) {
+      if (!searchTextField.isSkipDocumentEvents) {
+        searchUpdateAlarm.cancelAndRequest(
+          searchTextFieldQueryDebouncePeriodMs,
+          ModalityState.stateForComponent(searchTextField),
+          Runnable { this.searchOnTheFly() })
+      }
+    }
+
+    fun searchOnTheFly() {
+      val text = searchTextField.text
+      if (text.isNullOrBlank()) {
+        hideSearchPanel()
+      }
+      else {
+        searchPanel!!.controller.handleShowPopup()
+      }
+    }
   }
 
   companion object {
