@@ -2,16 +2,16 @@
 package org.jetbrains.kotlin.idea.k2.codeinsight.fixes
 
 import com.intellij.codeInsight.intention.IntentionAction
+import com.intellij.openapi.application.readAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
+import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.parentOfType
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.components.expandedSymbol
 import org.jetbrains.kotlin.analysis.api.fir.diagnostics.KaFirDiagnostic
-import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
-import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassLikeSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolModality
@@ -61,7 +61,11 @@ private class MoveToSealedMatchingPackageQuickFix(element: KtTypeReference) : Ko
 
         val classToMove = typeReference.parentOfType<KtClass>() ?: return
 
-        val targetFile = typeReference.resolveTargetFile() ?: return
+        val targetFile = runWithModalProgressBlocking(typeReference.project, KotlinBundle.message("dialog.progress.collect.members.to.generate")) {
+            readAction {
+                analyze(typeReference) { typeReference.type.expandedSymbol?.psi?.containingFile as? KtFile }
+            }
+        } ?: return
         val targetDirectory = targetFile.containingDirectory ?: return
         val className = classToMove.name ?: return
         val targetFileName = "${className}.kt"
@@ -82,13 +86,6 @@ private class MoveToSealedMatchingPackageQuickFix(element: KtTypeReference) : Ko
         val processor = K2MoveDeclarationsRefactoringProcessor(operationDescriptor)
         processor.setPrepareSuccessfulSwingThreadCallback { }
         processor.run()
-    }
-
-    @OptIn(KaAllowAnalysisOnEdt::class)
-    private fun KtTypeReference.resolveTargetFile(): KtFile? = allowAnalysisOnEdt {
-        analyze(this) {
-            type.expandedSymbol?.psi?.containingFile as? KtFile
-        }
     }
 
     override fun startInWriteAction(): Boolean = false

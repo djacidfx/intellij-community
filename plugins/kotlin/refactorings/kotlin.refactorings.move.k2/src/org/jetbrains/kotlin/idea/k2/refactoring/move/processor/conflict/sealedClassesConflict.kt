@@ -104,7 +104,7 @@ internal fun checkSealedClassesConflict(
                 )
             )
         } else {
-            //if we move ingeritors to the sealed class to fix existing issue
+            //if we move inheritors to the sealed class to fix existing issue
             if (sealedSuperType.getKaModule(sealedSuperType.project, useSiteModule = null) == targetKaModule
                 && sealedSuperType.containingKtFile.packageFqName == targetPackage
             ) continue
