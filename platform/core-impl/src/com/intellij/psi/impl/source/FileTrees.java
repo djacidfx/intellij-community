@@ -149,14 +149,14 @@ final class FileTrees {
   }
 
   @NotNull FileTrees withAst(@NotNull Supplier<? extends FileElement> ast) throws StubTreeLoader.StubTreeAndIndexUnmatchCoarseException {
-    return new FileTrees(myFile, myStub, ast, myRefToPsi).reconcilePsi(derefStub(), ast.get(), true);
+    return new FileTrees(myFile, myStub, ast, myRefToPsi).syncPsiWithStub(derefStub(), ast.get(), true);
   }
 
   @NotNull FileTrees withStub(@NotNull StubTree stub,
                               @Nullable FileElement ast) throws StubTreeLoader.StubTreeAndIndexUnmatchCoarseException {
     assert derefTreeElement() == ast;
     return new FileTrees(myFile, new SoftReference<>(stub), myTreeElementPointer, myRefToPsi)
-      .reconcilePsi(stub, ast, false);
+      .syncPsiWithStub(stub, ast, false);
   }
 
   @NotNull
@@ -169,9 +169,9 @@ final class FileTrees {
    * In case several sources already have PSI (e.g. created during AST parsing), overwrites them with the "correct" one,
    * which is taken from {@link #myRefToPsi} if exists, otherwise from either stubs or AST depending on {@code takePsiFromStubs}.
    */
-  private @NotNull FileTrees reconcilePsi(@Nullable StubTree stubTree,
-                                          @Nullable FileElement astRoot,
-                                          boolean takePsiFromStubs)
+  private @NotNull FileTrees syncPsiWithStub(@Nullable StubTree stubTree,
+                                             @Nullable FileElement astRoot,
+                                             boolean takePsiFromStubs)
     throws StubTreeLoader.StubTreeAndIndexUnmatchCoarseException {
     assert stubTree != null || astRoot != null;
 
