@@ -107,7 +107,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
 
   private var marketplaceTab: MarketplacePluginsTab? = null
   private var installedTab: InstalledPluginsTab? = null
-  private var cardPanel: MultiPanel? = null
+  private val cardPanel: MultiPanel
 
   private var laterSearchQuery: String? = null
   private var forceShowInstalledTabForTag: Boolean = false
@@ -129,7 +129,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     coroutineScope = childScope
 
     tabHeaderComponent = object : TabbedPaneHeaderComponent(createGearActions(), { index ->
-      cardPanel!!.select(index, true)
+      cardPanel.select(index, true)
       storeSelectionTab(index)
 
       val query = if (index == MARKETPLACE_TAB) installedTab!!.searchQuery else marketplaceTab!!.searchQuery
@@ -180,12 +180,12 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
       }
     }
 
-    cardPanel!!.minimumSize = JBDimension(580, 380)
-    cardPanel!!.preferredSize = JBDimension(800, 600)
+    cardPanel.minimumSize = JBDimension(580, 380)
+    cardPanel.preferredSize = JBDimension(800, 600)
     tabHeaderComponent.setListener()
     val selectionTab = getStoredSelectionTab()
     tabHeaderComponent.setSelection(selectionTab)
-    cardPanel!!.select(selectionTab, true)
+    cardPanel.select(selectionTab, true)
     if (laterSearchQuery != null) {
       val search = enableSearch(laterSearchQuery, forceShowInstalledTabForTag)
       if (search != null) {
@@ -195,7 +195,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
       forceShowInstalledTabForTag = false
     }
     if (pluginManagerCustomizer != null) {
-      pluginManagerCustomizer.initCustomizer(cardPanel!!)
+      pluginManagerCustomizer.initCustomizer(cardPanel)
     }
   }
 
@@ -209,7 +209,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
   }
 
   fun getComponent(): JComponent {
-    return cardPanel!!
+    return cardPanel
   }
 
   fun isMarketplaceTabShowing(): Boolean {
@@ -338,7 +338,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
       disposeStarted = true
     }
 
-    if (ComponentUtil.getParentOfType(WelcomeScreen::class.java, cardPanel!!) != null && isModified()) {
+    if (ComponentUtil.getParentOfType(WelcomeScreen::class.java, cardPanel) != null && isModified()) {
       scheduleApply()
     }
     val pluginsState = InstalledPluginsState.getInstance()
@@ -373,7 +373,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
   }
 
   fun cancel() {
-    pluginModelFacade.getModel().cancel(cardPanel!!, true)
+    pluginModelFacade.getModel().cancel(cardPanel, true)
   }
 
   fun isModified(): Boolean {
@@ -410,7 +410,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
       }
     }
 
-    pluginModelFacade.getModel().applyWithCallback(cardPanel!!) { installedWithoutRestart ->
+    pluginModelFacade.getModel().applyWithCallback(cardPanel) { installedWithoutRestart ->
       if (installedWithoutRestart) {
         return@applyWithCallback
       }
@@ -455,7 +455,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     if (pluginsAutoUpdateEnabled != null) {
       pluginsAutoUpdateEnabled = UpdateSettings.getInstance().getState().isPluginsAutoUpdateEnabled
     }
-    pluginModelFacade.getModel().clear(cardPanel!!)
+    pluginModelFacade.getModel().clear(cardPanel)
   }
 
   fun selectAndEnable(descriptors: Set<IdeaPluginDescriptor>) {
