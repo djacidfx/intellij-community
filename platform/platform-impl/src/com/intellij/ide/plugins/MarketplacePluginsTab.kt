@@ -103,7 +103,7 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
 
   override fun createSearchTextField() {
     super.createSearchTextField()
-    searchTextField!!.setHistoryPropertyName("MarketplacePluginsSearchHistory")
+    searchTextField.setHistoryPropertyName("MarketplacePluginsSearchHistory")
   }
 
   override fun createDetailsPanel(searchListener: LinkListener<Any>): PluginDetailsPageComponent {
@@ -310,7 +310,7 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
   }
 
   override fun createSearchPanel(selectionListener: Consumer<in PluginsGroupComponent?>): SearchResultPanel {
-    val marketplaceController = object : SearchUpDownPopupController(searchTextField!!) {
+    val marketplaceController = object : SearchUpDownPopupController(searchTextField) {
       override fun getAttributes(): List<String> {
         val attributes = ArrayList<String>()
         attributes.add(SearchWords.TAG.value)
@@ -344,11 +344,11 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
       }
 
       override fun showPopupForQuery() {
-        showSearchPanel(searchTextField!!.text)
+        showSearchPanel(searchTextField.text)
       }
 
       override fun handleEnter() {
-        if (!searchTextField!!.text.isEmpty()) {
+        if (!searchTextField.text.isEmpty()) {
           handleTrigger("marketplace.suggest.popup.enter")
         }
       }
@@ -482,7 +482,7 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
     }
 
     val queries = ArrayList<String>()
-    object : SearchQueryParser.Marketplace(searchTextField!!.text) { // FIXME: it's unused - why hasn't it been removed?
+    object : SearchQueryParser.Marketplace(searchTextField.text) { // FIXME: it's unused - why hasn't it been removed?
       override fun addToSearchQuery(query: String) {
         queries.add(query)
       }
@@ -505,7 +505,7 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
     }
 
     val query = StringUtil.join(queries, " ")
-    searchTextField!!.setTextIgnoreEvents(query)
+    searchTextField.setTextIgnoreEvents(query)
     if (query.isEmpty()) {
       hideSearchPanel()
     }
