@@ -70,6 +70,8 @@ object PortUtil {
             appendLine("Processes using the port $proposedPort:")
             pidsInfoMap.forEach { (_, info) -> appendLine(info.description) }
           }
+
+          appendLine(Throwable().stackTraceToString())
         }, "")
 
       repeat(100) {
