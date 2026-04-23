@@ -112,28 +112,7 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
   @RequiresEdt
   override fun createPluginsPanel(): JComponent {
     val eventHandler = MultiSelectionEventHandler()
-    val marketplacePanel = object : PluginsGroupComponentWithProgress(eventHandler) {
-      override fun createListComponent(
-        model: PluginUiModel,
-        group: PluginsGroup,
-        listPluginModel: ListPluginModel,
-      ): ListPluginComponent {
-        return ListPluginComponent(
-          pluginModelFacade,
-          model,
-          group,
-          listPluginModel,
-          searchListener,
-          coroutineScope,
-          true,
-        )
-      }
-    }
-    this@MarketplacePluginsTab.marketplacePanel = marketplacePanel
-
-    marketplacePanel.setSelectionListener(selectionListener)
-    marketplacePanel.getAccessibleContext().setAccessibleName(IdeBundle.message("plugin.manager.marketplace.panel.accessible.name"))
-    registerCopyProvider(marketplacePanel)
+    val marketplacePanel = createMarketplacePanel(eventHandler)
 
     (searchPanel.controller as SearchUpDownPopupController).setEventHandler(eventHandler)
 
@@ -154,6 +133,32 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
 
     doCreateMarketplaceTab(selectionListener, project)
     return createScrollPane(marketplacePanel, false)
+  }
+
+  private fun createMarketplacePanel(eventHandler: MultiSelectionEventHandler): PluginsGroupComponentWithProgress {
+    val marketplacePanel = object : PluginsGroupComponentWithProgress(eventHandler) {
+      override fun createListComponent(
+        model: PluginUiModel,
+        group: PluginsGroup,
+        listPluginModel: ListPluginModel,
+      ): ListPluginComponent {
+        return ListPluginComponent(
+          pluginModelFacade,
+          model,
+          group,
+          listPluginModel,
+          searchListener,
+          coroutineScope,
+          true,
+        )
+      }
+      }
+    this@MarketplacePluginsTab.marketplacePanel = marketplacePanel
+
+    marketplacePanel.setSelectionListener(selectionListener)
+    marketplacePanel.getAccessibleContext().setAccessibleName(IdeBundle.message("plugin.manager.marketplace.panel.accessible.name"))
+    registerCopyProvider(marketplacePanel)
+    return marketplacePanel
   }
 
   private fun doCreateMarketplaceTab(selectionListener: Consumer<in PluginsGroupComponent?>, project: Project?) {
