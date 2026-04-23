@@ -8,6 +8,7 @@ import com.intellij.openapi.util.FilesModificationTrackerBase
 import com.intellij.openapi.vfs.VirtualFile
 import com.jetbrains.python.sdk.pipenv.PipEnvFileHelper
 
+// TODO: REM
 @Service(Service.Level.PROJECT)
 internal class PipEnvLockModificationTracker(project: Project) : FilesModificationTrackerBase(project) {
   override fun isFileSupported(virtualFile: VirtualFile): Boolean {

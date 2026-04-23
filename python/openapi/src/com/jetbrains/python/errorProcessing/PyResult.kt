@@ -19,18 +19,6 @@ typealias PyExecResult<T> = com.jetbrains.python.Result<T, ExecError>
 inline fun <reified T : PyError> failure(pyError: T): com.jetbrains.python.Result.Failure<T> = com.jetbrains.python.Result.failure(pyError)
 
 
-@Deprecated("Migrate to native python result")
-fun <T> Result<T>.asPythonResult(): com.jetbrains.python.Result<T, PyError> =
-  com.jetbrains.python.Result.success(getOrElse {
-    return if (it is PyExecutionException) {
-      failure(it.pyError)
-    }
-    else {
-      failure(MessageError(it.localizedMessage))
-    }
-  }
-  )
-
 @ApiStatus.ScheduledForRemoval
 @Deprecated("Use python result, not kotlin result")
 fun <S> PyResult<S>.asKotlinResult(): Result<S> = when (this) {

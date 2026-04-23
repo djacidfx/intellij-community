@@ -83,16 +83,6 @@ class PythonPackageManagerUI private constructor(
     return installPyRequirementsBackground(confirmed, module = module)
   }
 
-  @ApiStatus.Internal
-  suspend fun installPyRequirementsDetachedWithConfirmation(packages: List<PyRequirement>): List<PythonPackage>? {
-    val confirmed = PyPackageManagerUiConfirmationHelpers.getConfirmedPackages(packages, project)
-    if (confirmed.isEmpty())
-      return null
-
-    PyPackagesUsageCollector.installAllEvent.log(confirmed.size)
-    return installPyRequirementsDetachedBackground(confirmed)
-  }
-
   /**
    * @return List of all installed packages or null if the operation was failed.
    */

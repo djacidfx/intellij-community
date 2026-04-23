@@ -83,7 +83,7 @@ class PySdkPopupFactory(val module: Module) {
         sdksByType.distinctBy { it.sdkAdditionalData?.javaClass to it.homePath }
       }
 
-      val actions = uniqueSdks.map { SwitchToSdkAction(it, currentSdk) }
+      val actions = uniqueSdks.map { SwitchToSdkAction(it) }
       group.addAll(actions)
     }
 
@@ -115,7 +115,7 @@ class PySdkPopupFactory(val module: Module) {
     ).apply { setHandleAutoSelectionBeforeShow(true) }
   }
 
-  private inner class SwitchToSdkAction(val sdk: Sdk, val currentSdk: Sdk?) : DumbAwareAction() {
+  private inner class SwitchToSdkAction(val sdk: Sdk) : DumbAwareAction() {
 
     init {
       val presentation = templatePresentation

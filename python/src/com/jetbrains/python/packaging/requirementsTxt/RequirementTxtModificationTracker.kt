@@ -8,6 +8,7 @@ import com.intellij.openapi.util.FilesModificationTrackerBase
 import com.intellij.openapi.vfs.VirtualFile
 
 @Service(Service.Level.PROJECT)
+//GTODO: REM
 internal class RequirementTxtModificationTracker(project: Project) : FilesModificationTrackerBase(project) {
   override fun isFileSupported(virtualFile: VirtualFile): Boolean =
     virtualFile.name.contains("requirements") &&
