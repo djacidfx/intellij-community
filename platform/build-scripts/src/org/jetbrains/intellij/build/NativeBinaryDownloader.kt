@@ -23,8 +23,7 @@ object NativeBinaryDownloader {
    *
    * Otherwise, downloads and unpacks the launcher tarball.
    *
-   * Returns a tuple of paths `(executable, license, extra-file?)` for the given platform
-   * (the `extra-file` might be a `Gcompat-ext` library for Linux or a console executable for Windows).
+   * Returns a tuple of paths `(executable, license, extra-file?)` for the given platform (e.g., a console executable for Windows).
    */
   suspend fun getLauncher(context: BuildContext, os: OsFamily, arch: JvmArchitecture): Triple<Path, Path, Path?> {
     if (context.options.isInDevelopmentMode && context.options.useLocalLauncher) {
@@ -37,7 +36,6 @@ object NativeBinaryDownloader {
     val licenseFile = findFile(archiveFile, unpackedDir, "license/${LICENSE_FILE_NAME}")
     val extraFile = when (os) {
       OsFamily.WINDOWS -> unpackedDir.resolve(binName(os, arch, "xplat-launcher-win-con"))
-      OsFamily.LINUX -> unpackedDir.resolve(libName(os, arch, @Suppress("SpellCheckingInspection") "gcompat-ext"))
       else -> null
     }?.takeIf { it.isRegularFile() }
     return Triple(executableFile, licenseFile, extraFile)
