@@ -155,6 +155,7 @@ class ContainingBranchesGetter internal constructor(private val logData: VcsLogD
   }
 
   private abstract class Task(private val myProvider: VcsLogProvider, val myRoot: VirtualFile, val myHash: Hash) {
+    abstract val shouldCache: Boolean
 
     @Throws(VcsException::class)
     fun getContainingBranches(): List<String> {
@@ -176,9 +177,16 @@ class ContainingBranchesGetter internal constructor(private val logData: VcsLogD
                                                  root: VirtualFile, hash: Hash): List<String>
   }
 
+  /**
+   * Computes containing branches by traversing the permanent graph.
+   * When the graph is not full [VcsLogGraphData.isFull], results are not correct for
+   * ancestor commits not yet loaded into the graph -- they are reported as reachable from no branch.
+   * Results from a partial graph are computed but not cached.
+   */
   private inner class GraphTask(provider: VcsLogProvider, root: VirtualFile, hash: Hash, dataPack: VcsLogGraphData) :
     Task(provider, root, hash) {
 
+    override val shouldCache = dataPack.isFull
     private val graph = dataPack.permanentGraph
     private val refs = dataPack.refsModel
 
@@ -196,6 +204,8 @@ class ContainingBranchesGetter internal constructor(private val logData: VcsLogD
   }
 
   private class ProviderTask(provider: VcsLogProvider, root: VirtualFile, hash: Hash) : Task(provider, root, hash) {
+    override val shouldCache = true
+
     @Throws(VcsException::class)
     override fun getContainingBranches(provider: VcsLogProvider,
                                        root: VirtualFile, hash: Hash) =
@@ -205,9 +215,11 @@ class ContainingBranchesGetter internal constructor(private val logData: VcsLogD
   private inner class CachingTask(private val delegate: Task, private val branchesChecksum: Int) {
     fun run(): List<String> {
       val branches = delegate.getContainingBranches()
-      val commitId = CommitId(delegate.myHash, delegate.myRoot)
-      UIUtil.invokeLaterIfNeeded {
-        cache(commitId, branches, branchesChecksum)
+      if (delegate.shouldCache) {
+        val commitId = CommitId(delegate.myHash, delegate.myRoot)
+        UIUtil.invokeLaterIfNeeded {
+          cache(commitId, branches, branchesChecksum)
+        }
       }
       return branches
     }
