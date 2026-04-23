@@ -260,7 +260,7 @@ public final class PathManager {
     return null;
   }
 
-  private static @Nullable Path getIdeaHomeUpwards(Path start) {
+  public static @Nullable Path getIdeaHomeUpwards(Path start) {
     Path root = start.toAbsolutePath();
     do root = root.getParent();
     while (root != null && !isIdeaHome(root));
