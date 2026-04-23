@@ -1,6 +1,19 @@
 #!/usr/bin/env python3
 """Notebook helper CLI for JetBrains experiment notebooks."""
 
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#   "ipykernel",
+#   "jupyter-client",
+#   "matplotlib",
+#   "nbconvert",
+#   "numpy",
+#   "pandas",
+#   "plotly",
+# ]
+# ///
+
 import argparse
 import json
 import os
@@ -18,9 +31,18 @@ def _find_repo_root() -> Path:
 
 _REPO_ROOT = _find_repo_root()
 
-# The pinned uv wrapper handles downloading and caching the right uv version.
-# It is a polyglot script that works on both Windows (cmd) and Unix (bash).
-_UV = str(_REPO_ROOT / "community" / "tools" / "uv.cmd")
+def _find_uv() -> str:
+    # Full monorepo: uv.cmd lives under community/tools/ relative to repo root.
+    # Community-only checkout: uv.cmd lives under tools/ relative to repo root.
+    for candidate in [
+        _REPO_ROOT / "community" / "tools" / "uv.cmd",
+        _REPO_ROOT / "tools" / "uv.cmd",
+    ]:
+        if candidate.exists():
+            return str(candidate)
+    return "uv"  # Fall back to system uv (e.g. when running outside the monorepo).
+
+_UV = _find_uv()
 
 _NB_PACKAGES = [
     "--with", "nbconvert",
@@ -328,8 +350,13 @@ def cmd_export_html(notebook: str, output_dir: str | None) -> None:
         else:
             src = str(nb_path)
 
-        args = [_UV, "run"] + _NB_PACKAGES + [
-            "jupyter", "nbconvert",
+        try:
+            import nbconvert  # noqa: F401 — available when run via `uv run nb.py`
+            jupyter_cmd = [sys.executable, "-m", "jupyter"]
+        except ImportError:
+            jupyter_cmd = [_UV, "run"] + _NB_PACKAGES + ["jupyter"]
+        args = jupyter_cmd + [
+            "nbconvert",
             "--to", "html",
         ]
         if hidden_cells:
@@ -347,23 +374,26 @@ def cmd_export_html(notebook: str, output_dir: str | None) -> None:
             os.unlink(tmp)
 
 
-
 def cmd_execute(notebook: str) -> None:
-    args = [_UV, "run"] + _NB_PACKAGES + [
-        "jupyter", "nbconvert",
-        "--to", "notebook",
-        "--execute",
-        "--inplace",
-        str(Path(notebook).resolve()),
-    ]
+    nb_path = str(Path(notebook).resolve())
+    try:
+        import nbconvert  # noqa: F401 — available when run via `uv run nb.py`
+        args = [sys.executable, "-m", "jupyter", "nbconvert",
+                "--to", "notebook", "--execute", "--inplace", nb_path]
+    except ImportError:
+        args = [_UV, "run"] + _NB_PACKAGES + [
+            "jupyter", "nbconvert", "--to", "notebook", "--execute", "--inplace", nb_path]
     sys.exit(subprocess.run(args).returncode)
 
 
 def cmd_serve(notebook: str) -> None:
-    args = [_UV, "run", "--with", "jupyterlab"] + _NB_PACKAGES + [
-        "jupyter", "lab",
-        str(Path(notebook).resolve()),
-    ]
+    nb_path = str(Path(notebook).resolve())
+    try:
+        import jupyterlab  # noqa: F401 — available when run via `uv run nb.py`
+        args = [sys.executable, "-m", "jupyter", "lab", nb_path]
+    except ImportError:
+        args = [_UV, "run", "--with", "jupyterlab"] + _NB_PACKAGES + [
+            "jupyter", "lab", nb_path]
     sys.exit(subprocess.run(args).returncode)
 
 

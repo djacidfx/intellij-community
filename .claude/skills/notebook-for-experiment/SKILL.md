@@ -32,7 +32,11 @@ Inside the IntelliJ monorepo, use the pinned wrapper instead of a system `uv`.
 It downloads and caches the right version automatically:
 
 ```bash
-community/tools/uv.cmd run ...
+# Full monorepo layout (project root contains community/):
+./community/tools/uv.cmd run ...
+
+# Community-only checkout (project root IS community/):
+./tools/uv.cmd run ...
 ```
 
 ### Notebook helper tool
@@ -42,54 +46,67 @@ most common notebook operations without requiring a running Jupyter server:
 
 ```bash
 # List all cells (index, type, first line)
-python ${CLAUDE_SKILL_DIR}/scripts/nb.py list-cells notebook.ipynb
+uv run ${CLAUDE_SKILL_DIR}/scripts/nb.py list-cells notebook.ipynb
 
 # Print source of cell N (0-based)
-python ${CLAUDE_SKILL_DIR}/scripts/nb.py get-cell notebook.ipynb 3
+uv run ${CLAUDE_SKILL_DIR}/scripts/nb.py get-cell notebook.ipynb 3
 
-# Replace cell N with content from a file (use '-' to read from stdin)
-python ${CLAUDE_SKILL_DIR}/scripts/nb.py set-cell notebook.ipynb 3 new_cell.py
+# Replace cell N with content from stdin (use a file path instead of '-' to read from a file)
+uv run ${CLAUDE_SKILL_DIR}/scripts/nb.py set-cell notebook.ipynb 3 -
 
 # Insert a new cell at position N (shifts later cells down); reads from stdin or a file
-python ${CLAUDE_SKILL_DIR}/scripts/nb.py insert-cell notebook.ipynb 6 markdown < description.md
-python ${CLAUDE_SKILL_DIR}/scripts/nb.py insert-cell notebook.ipynb 11 code snippet.py
+uv run ${CLAUDE_SKILL_DIR}/scripts/nb.py insert-cell notebook.ipynb 6 markdown < description.md
+uv run ${CLAUDE_SKILL_DIR}/scripts/nb.py insert-cell notebook.ipynb 11 code snippet.py
 
 # Delete cell N
-python ${CLAUDE_SKILL_DIR}/scripts/nb.py delete-cell notebook.ipynb 5
+uv run ${CLAUDE_SKILL_DIR}/scripts/nb.py delete-cell notebook.ipynb 5
 
 # Collapse all code cells except the config cell (cell 1) so the notebook
 # opens with only the editable config visible; use expand-cells to reverse
-python ${CLAUDE_SKILL_DIR}/scripts/nb.py collapse-cells notebook.ipynb
-python ${CLAUDE_SKILL_DIR}/scripts/nb.py expand-cells notebook.ipynb
+uv run ${CLAUDE_SKILL_DIR}/scripts/nb.py collapse-cells notebook.ipynb
+uv run ${CLAUDE_SKILL_DIR}/scripts/nb.py expand-cells notebook.ipynb
 
 # Keep a non-standard cell visible by tagging it nb:visible, or with --keep:
-python ${CLAUDE_SKILL_DIR}/scripts/nb.py collapse-cells notebook.ipynb --keep 1 4
+uv run ${CLAUDE_SKILL_DIR}/scripts/nb.py collapse-cells notebook.ipynb --keep 1 4
 
 # Apply the patch(es) embedded in the last cell to a git repo
 # --repo is required when the notebook and repo are on different paths
-python ${CLAUDE_SKILL_DIR}/scripts/nb.py apply-patch notebook.ipynb --repo D:/src/jetbrains/idea/main
+uv run ${CLAUDE_SKILL_DIR}/scripts/nb.py apply-patch notebook.ipynb --repo /path/to/repo
 
 # Apply the patch(es) embedded in a specific cell
-python ${CLAUDE_SKILL_DIR}/scripts/nb.py apply-patch notebook.ipynb 12 --repo D:/src/jetbrains/idea/main
+uv run ${CLAUDE_SKILL_DIR}/scripts/nb.py apply-patch notebook.ipynb 12 --repo /path/to/repo
 
 # Bake the current git diff back into the diff fence of the last cell
 # (the inverse of apply-patch — use after iterating on the patch)
-python ${CLAUDE_SKILL_DIR}/scripts/nb.py update-patch notebook.ipynb --repo D:/src/jetbrains/idea/main
-python ${CLAUDE_SKILL_DIR}/scripts/nb.py update-patch notebook.ipynb --repo D:/src/jetbrains/idea/main --staged
+uv run ${CLAUDE_SKILL_DIR}/scripts/nb.py update-patch notebook.ipynb --repo /path/to/repo
+uv run ${CLAUDE_SKILL_DIR}/scripts/nb.py update-patch notebook.ipynb --repo /path/to/repo --staged
 
 # Execute all cells in place (overwrites outputs)
-python ${CLAUDE_SKILL_DIR}/scripts/nb.py execute notebook.ipynb
+uv run ${CLAUDE_SKILL_DIR}/scripts/nb.py execute notebook.ipynb
 
 # Export to HTML (writes alongside the notebook; use -o for a custom directory).
 # Cells collapsed via collapse-cells have their source omitted in the HTML output.
-python ${CLAUDE_SKILL_DIR}/scripts/nb.py export-html notebook.ipynb
-python ${CLAUDE_SKILL_DIR}/scripts/nb.py export-html notebook.ipynb -o out/
+uv run ${CLAUDE_SKILL_DIR}/scripts/nb.py export-html notebook.ipynb
+uv run ${CLAUDE_SKILL_DIR}/scripts/nb.py export-html notebook.ipynb -o out/
 
 # Start JupyterLab for interactive editing (opens in browser)
-python ${CLAUDE_SKILL_DIR}/scripts/nb.py serve notebook.ipynb
+uv run ${CLAUDE_SKILL_DIR}/scripts/nb.py serve notebook.ipynb
 ```
 
-The tool invokes `community/tools/uv.cmd` internally, so no separate uv setup is needed.
+Always invoke nb.py via `uv run` — this ensures a compatible Python is used.
+nb.py carries inline dependency metadata (PEP 723), so uv installs the required packages
+(nbconvert, jupyter-client, ipykernel, numpy, pandas, matplotlib, plotly) automatically
+for commands that need them.
+
+If system `uv` is not available, use the pinned monorepo wrapper instead:
+
+```bash
+# Full monorepo layout:
+./community/tools/uv.cmd run ${CLAUDE_SKILL_DIR}/scripts/nb.py list-cells notebook.ipynb
+
+# Community-only checkout:
+./tools/uv.cmd run ${CLAUDE_SKILL_DIR}/scripts/nb.py list-cells notebook.ipynb
+```
 
 ### Passing complex arguments on Windows
 
@@ -120,7 +137,7 @@ reader only sees the config cell they need to edit. Use `collapse-cells` after
 finishing the notebook structure:
 
 ```bash
-python ${CLAUDE_SKILL_DIR}/scripts/nb.py collapse-cells notebook.ipynb
+uv run ${CLAUDE_SKILL_DIR}/scripts/nb.py collapse-cells notebook.ipynb
 ```
 
 This hides all code cells except cell 1 (the standard config cell). To mark a
@@ -136,7 +153,7 @@ When any code cell carries `nb:visible`, the tag takes precedence over `--keep`.
 After collapsing, open the notebook in the browser to verify the layout before committing:
 
 ```bash
-python ${CLAUDE_SKILL_DIR}/scripts/nb.py serve notebook.ipynb
+uv run ${CLAUDE_SKILL_DIR}/scripts/nb.py serve notebook.ipynb
 ```
 
 ## Standard cell layout
@@ -279,30 +296,29 @@ The `find_log` function is intentionally different: it raises because it guards 
 
 To change cell content without running a full Jupyter server:
 
-1. **For a single cell** — use `nb.py set-cell`:
+1. **For a single cell** — use `nb.py set-cell` with `-` to read from stdin:
+
+   Bash (macOS / Linux / Git Bash):
    ```bash
-   # Write the new cell content to a file, then apply it:
-   python ${CLAUDE_SKILL_DIR}/scripts/nb.py set-cell notebook.ipynb 3 new_cell3.py
+   uv run ${CLAUDE_SKILL_DIR}/scripts/nb.py set-cell notebook.ipynb 3 - <<'EOF'
+   import pandas as pd
+   df = pd.read_csv(log_path)
+   EOF
    ```
+
+   PowerShell:
+   ```powershell
+   @"
+   import pandas as pd
+   df = pd.read_csv(log_path)
+   "@ | uv run ${CLAUDE_SKILL_DIR}/scripts/nb.py set-cell notebook.ipynb 3 -
+   ```
+
+   Passing a file path instead of `-` is also supported when the content is already on disk.
 
    `set-cell` preserves the existing cell type — replacing a markdown cell with a `.md`
    file leaves it as markdown; replacing a code cell leaves it as code. Outputs are
    cleared only for code cells (stale outputs from old code would be misleading).
-
-   **Windows path pitfall:** the Write tool on Windows creates files at paths like
-   `\tmp\cell.py`, which resolves to `D:\tmp\cell.py` (drive-root `\tmp`). When that
-   path is passed to bash, the leading backslash is treated as an escape character and
-   the path is silently mangled. Always write temp files with an explicit drive letter
-   and forward slashes:
-   ```bash
-   # Good — explicit drive letter, forward slashes:
-   python ${CLAUDE_SKILL_DIR}/scripts/nb.py set-cell notebook.ipynb 3 D:/tmp/cell.py
-
-   # Bad — backslash is consumed by bash as an escape:
-   python ${CLAUDE_SKILL_DIR}/scripts/nb.py set-cell notebook.ipynb 3 \tmp\cell.py
-   ```
-   When using the Write tool, always set the file path to `D:/tmp/cell.py` (not
-   `\tmp\cell.py`) so the path survives round-tripping through bash.
 
 2. **For multi-cell edits** — write a temporary Python script that manipulates the JSON directly,
    run it, then delete the script:
@@ -327,11 +343,11 @@ To change cell content without running a full Jupyter server:
 3. **After modifying experiment source files** (Kotlin, Java, Rust, etc.) that are part
    of the patch — run `update-patch` to bake the updated diff back into the last cell:
    ```bash
-   python ${CLAUDE_SKILL_DIR}/scripts/nb.py update-patch notebook.ipynb \
-       --repo D:/src/jetbrains/idea/main
+   uv run ${CLAUDE_SKILL_DIR}/scripts/nb.py update-patch notebook.ipynb \
+       --repo /path/to/repo
    # or, if you have staged the changes instead:
-   python ${CLAUDE_SKILL_DIR}/scripts/nb.py update-patch notebook.ipynb \
-       --repo D:/src/jetbrains/idea/main --staged
+   uv run ${CLAUDE_SKILL_DIR}/scripts/nb.py update-patch notebook.ipynb \
+       --repo /path/to/repo --staged
    ```
    Do this after every iteration on the experiment code so the patch cell always
    reflects exactly what was applied when the data was collected. Forgetting this step
@@ -339,7 +355,7 @@ To change cell content without running a full Jupyter server:
 
 4. **Re-execute** to refresh all outputs:
    ```bash
-   python ${CLAUDE_SKILL_DIR}/scripts/nb.py execute notebook.ipynb
+   uv run ${CLAUDE_SKILL_DIR}/scripts/nb.py execute notebook.ipynb
    ```
 
 The notebook file itself is the artifact to commit; keep any update scripts temporary.
