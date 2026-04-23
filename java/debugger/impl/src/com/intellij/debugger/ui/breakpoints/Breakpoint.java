@@ -370,7 +370,7 @@ public abstract class Breakpoint<P extends JavaBreakpointProperties> implements 
     }
     catch (final EvaluateException ex) {
       if (ApplicationManager.getApplication().isUnitTestMode() && !DapMode.isDap()) {
-        System.out.println(ex.getMessage());
+        context.getDebugProcess().printToConsole(ex.getMessage() + "\n");
         return false;
       }
 
