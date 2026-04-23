@@ -64,8 +64,8 @@ internal object SplitModeModuleKindResolver {
 
     val moduleName = module.name
     val explicitModuleKind = when {
-      moduleName.endsWith("frontend") -> SplitModeApiRestrictionsService.ModuleKind.FRONTEND
-      moduleName.endsWith("backend") -> SplitModeApiRestrictionsService.ModuleKind.BACKEND
+      getModuleNameVariants("frontend", includeSplit = true, includeGradle = true).any { moduleName.endsWith(it) } -> SplitModeApiRestrictionsService.ModuleKind.FRONTEND
+      getModuleNameVariants("backend", includeSplit = true, includeGradle = true).any { moduleName.endsWith(it) } -> SplitModeApiRestrictionsService.ModuleKind.BACKEND
       else -> null
     }
 
