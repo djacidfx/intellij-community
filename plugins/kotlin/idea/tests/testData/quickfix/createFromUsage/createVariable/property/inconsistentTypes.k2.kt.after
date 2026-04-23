@@ -8,7 +8,7 @@
 // K2_AFTER_ERROR: Return type mismatch: expected 'Int', actual 'A<Int>'.
 
 class A<T>(val n: T) {
-    val foo: A<Int>
+    val foo: A<T>
 }
 
 fun test(): Int {

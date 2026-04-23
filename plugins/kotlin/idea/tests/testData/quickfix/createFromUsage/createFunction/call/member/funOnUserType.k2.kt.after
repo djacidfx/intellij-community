@@ -4,7 +4,7 @@
 // K2_ERROR: Unresolved reference 'foo'.
 
 class A<T>(val n: T) {
-    fun foo(i: Int): A<Int> {
+    fun foo(t: T): A<T> {
         TODO("Not yet implemented")
     }
 }
