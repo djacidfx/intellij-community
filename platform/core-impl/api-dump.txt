@@ -15,8 +15,10 @@ c:com.intellij.extapi.psi.StubBasedPsiElementBase
 com.intellij.lang.DefaultASTFactory
 - a:createComment(com.intellij.psi.tree.IElementType,java.lang.CharSequence):com.intellij.psi.impl.source.tree.LeafElement
 c:com.intellij.lang.impl.PsiBuilderAdapter
+- advanceToEOF():V
 - remapCurrentTokenAndRestoreOnRollback(com.intellij.psi.tree.IElementType):V
 c:com.intellij.lang.impl.PsiBuilderImpl
+- advanceToEOF():V
 - remapCurrentTokenAndRestoreOnRollback(com.intellij.psi.tree.IElementType):V
 com.intellij.lexer.FilterLexer$Filter
 - a:reject(com.intellij.psi.tree.IElementType):Z

@@ -151,6 +151,7 @@
 - com.intellij.platform.syntax.parser.SyntaxTreeBuilder
 - <init>(com.intellij.platform.syntax.parser.SyntaxTreeBuilder):V
 - advanceLexer():V
+- advanceToEOF():V
 - enforceCommentTokens(com.intellij.platform.syntax.SyntaxElementTypeSet):V
 - eof():Z
 - error(java.lang.String):V

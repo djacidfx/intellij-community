@@ -235,6 +235,7 @@ com.intellij.lang.PsiParser
 - a:parse(com.intellij.psi.tree.IElementType,com.intellij.lang.PsiBuilder):com.intellij.lang.ASTNode
 com.intellij.lang.SyntaxTreeBuilder
 - a:advanceLexer():V
+- advanceToEOF():V
 - a:enforceCommentTokens(com.intellij.psi.tree.TokenSet):V
 - a:eof():Z
 - a:error(java.lang.String):V

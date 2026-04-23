@@ -167,6 +167,7 @@
 - a:remap(com.intellij.platform.syntax.SyntaxElementType,I,I,java.lang.CharSequence):com.intellij.platform.syntax.SyntaxElementType
 *:com.intellij.platform.syntax.parser.SyntaxTreeBuilder
 - a:advanceLexer():V
+- advanceToEOF():V
 - a:enforceCommentTokens(com.intellij.platform.syntax.SyntaxElementTypeSet):V
 - a:eof():Z
 - a:error(java.lang.String):V
