@@ -52,7 +52,7 @@ import kotlin.time.Duration.Companion.milliseconds
 private val LOG by lazy { fileLogger() }
 
 @Service(Service.Level.PROJECT)
-internal class BackendRecentFileEventsModel(private val project: Project, private val coroutineScope: CoroutineScope) {
+internal class BackendRecentFileEventsModel(private val project: Project, coroutineScope: CoroutineScope) {
   private val bufferSize = Registry.intValue("editor.navigation.history.stack.size").coerceIn(100, 1000)
   private val updateDebounceMs = Registry.intValue("switcher.presentation.update.debounce.interval.ms").coerceIn(0, 10000)
 
@@ -107,7 +107,7 @@ internal class BackendRecentFileEventsModel(private val project: Project, privat
     return chooseTargetFlow(fileKind)
   }
 
-  suspend fun emitRecentFilesMetadata(metadataRequest: RecentFilesBackendRequest.FetchMetadata) {
+  fun emitRecentFilesMetadata(metadataRequest: RecentFilesBackendRequest.FetchMetadata) {
     LOG.debug("Switcher emit recent files metadata: $metadataRequest")
 
     val files = metadataRequest.frontendRecentFiles
@@ -128,7 +128,8 @@ internal class BackendRecentFileEventsModel(private val project: Project, privat
     targetFlow.emit(BackendRecentFilesEvent.AllItemsRemoved())
     val freshRecentFiles = collectRecentFiles(searchRequest)
     if (freshRecentFiles != null) {
-      scheduleApplyBackendChanges(FileChangeKind.ADDED, freshRecentFiles)
+      val models = createRecentFilesViewModels(freshRecentFiles)
+      targetFlow.emit(BackendRecentFilesEvent.ItemsAdded(models))
     }
   }
 
