@@ -43,11 +43,10 @@ abstract class PluginsTab @RequiresEdt constructor(
 
   protected val searchTextField: PluginSearchTextField = createSearchTextField(searchTextFieldQueryDebouncePeriodMs)
   private val defaultOrSearchResultsViewPanel: MultiPanel = createDefaultOrSearchResultsViewPanel()
-  private var searchPanel: SearchResultPanel? = null
-
   @JvmField val searchListener: LinkListener<Any> = createSearchListener()
   protected val selectionListener: Consumer<PluginsGroupComponent?> = createSelectionListener()
   private val detailsPage: PluginDetailsPageComponent = createDetailsPanel(searchListener)
+  private val searchPanel: SearchResultPanel = createSearchPanel(selectionListener)
 
   @RequiresEdt
   fun createPanel(): JComponent {
@@ -66,8 +65,6 @@ abstract class PluginsTab @RequiresEdt constructor(
     splitter.setFirstComponent(listPanel)
     splitter.setSecondComponent(detailsPage)
 
-    searchPanel = createSearchPanel(selectionListener)
-
     defaultOrSearchResultsViewPanel.select(DEFAULT_PANEL, true)
 
     return splitter
@@ -84,10 +81,10 @@ abstract class PluginsTab @RequiresEdt constructor(
 
   var searchQuery: String?
     get() {
-      if (searchPanel == null || searchPanel!!.isQueryEmpty) {
+      if (searchPanel.isQueryEmpty) {
         return null
       }
-      val query = searchPanel!!.query
+      val query = searchPanel.query
       return query.ifEmpty { null }
     }
     set(query) {
@@ -101,32 +98,32 @@ abstract class PluginsTab @RequiresEdt constructor(
     }
 
   fun showSearchPanel(query: String) {
-    if (searchPanel!!.isQueryEmpty) {
+    if (searchPanel.isQueryEmpty) {
       defaultOrSearchResultsViewPanel.select(SEARCH_PANEL, true)
       detailsPage.showPlugin(null)
     }
-    searchPanel!!.setQuery(query)
+    searchPanel.setQuery(query)
     searchTextField.addCurrentTextToHistory()
   }
 
   open fun hideSearchPanel() {
-    if (!searchPanel!!.isQueryEmpty) {
+    if (!searchPanel.isQueryEmpty) {
       onSearchReset()
       defaultOrSearchResultsViewPanel.select(DEFAULT_PANEL, true)
-      searchPanel!!.setQuery("")
+      searchPanel.setQuery("")
       updateMainSelection(selectionListener)
     }
-    searchPanel!!.controller.hidePopup()
+    searchPanel.controller.hidePopup()
   }
 
   protected abstract fun onSearchReset()
 
   private fun showSearchPopup() {
     if (searchTextField.text.isNullOrBlank()) {
-      searchPanel!!.controller.showAttributesPopup(null, 0)
+      searchPanel.controller.showAttributesPopup(null, 0)
     }
     else {
-      searchPanel!!.controller.handleShowPopup()
+      searchPanel.controller.handleShowPopup()
     }
   }
 
@@ -147,17 +144,17 @@ abstract class PluginsTab @RequiresEdt constructor(
         val id = event.getID()
 
         if (keyCode == KeyEvent.VK_ENTER || event.getKeyChar() == '\n') {
-          if (id == KeyEvent.KEY_PRESSED && !searchPanel!!.controller.handleEnter(event)) {
+          if (id == KeyEvent.KEY_PRESSED && !searchPanel.controller.handleEnter(event)) {
             val text = getText()
             if (!text.isEmpty()) {
-              searchPanel!!.controller.hidePopup()
+              searchPanel.controller.hidePopup()
               showSearchPanel(text)
             }
           }
           return true
         }
         if ((keyCode == KeyEvent.VK_DOWN || keyCode == KeyEvent.VK_UP) && id == KeyEvent.KEY_PRESSED &&
-            searchPanel!!.controller.handleUpDown(event)
+            searchPanel.controller.handleUpDown(event)
         ) {
           return true
         }
@@ -177,8 +174,8 @@ abstract class PluginsTab @RequiresEdt constructor(
           override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
 
           override fun actionPerformed(e: AnActionEvent) {
-            if (searchPanel!!.controller.isPopupShow) {
-              searchPanel!!.controller.hidePopup()
+            if (searchPanel.controller.isPopupShow) {
+              searchPanel.controller.hidePopup()
             }
             else {
               text = ""
@@ -193,7 +190,7 @@ abstract class PluginsTab @RequiresEdt constructor(
       }
 
       override fun showCompletionPopup() {
-        if (!searchPanel!!.controller.isPopupShow) {
+        if (!searchPanel.controller.isPopupShow) {
           showSearchPopup()
         }
       }
@@ -235,7 +232,7 @@ abstract class PluginsTab @RequiresEdt constructor(
         hideSearchPanel()
       }
       else {
-        searchPanel!!.controller.handleShowPopup()
+        searchPanel.controller.handleShowPopup()
       }
     }
   }
@@ -258,7 +255,7 @@ abstract class PluginsTab @RequiresEdt constructor(
           return createPluginsPanel()
         }
         if (key == SEARCH_PANEL) {
-          return searchPanel!!.createVScrollPane()
+          return searchPanel.createVScrollPane()
         }
         return super.create(key)
       }
@@ -277,12 +274,12 @@ abstract class PluginsTab @RequiresEdt constructor(
     IdeFocusManager.getGlobalInstance().doWhenFocusSettlesDown(Runnable {
       IdeFocusManager.getGlobalInstance().requestFocus(searchTextField, true)
     })
-    searchPanel!!.setEmptyQuery()
+    searchPanel.setEmptyQuery()
     showSearchPanel(query)
   }
 
   private fun createSelectionListener(): Consumer<PluginsGroupComponent?> = Consumer { panel: PluginsGroupComponent? ->
-    val key: Int = if (searchPanel!!.panel === panel) SEARCH_PANEL else DEFAULT_PANEL
+    val key: Int = if (searchPanel.panel === panel) SEARCH_PANEL else DEFAULT_PANEL
     if (defaultOrSearchResultsViewPanel.key == key) {
       detailsPage.showPlugins(panel!!.selection)
     }
