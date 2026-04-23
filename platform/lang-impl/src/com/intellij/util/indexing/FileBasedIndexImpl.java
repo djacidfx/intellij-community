@@ -64,6 +64,7 @@ import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.search.impl.VirtualFileEnumeration;
 import com.intellij.psi.stubs.SerializedStubTree;
+import com.intellij.psi.stubs.StubTreeBuilder;
 import com.intellij.psi.stubs.StubUpdatingIndex;
 import com.intellij.psi.util.CachedValueProvider;
 import com.intellij.psi.util.CachedValuesManager;
@@ -163,7 +164,8 @@ public final class FileBasedIndexImpl extends FileBasedIndexEx {
 
   @Internal
   public static final Logger LOG = Logger.getInstance(FileBasedIndexImpl.class);
-  private static final ThrottledLogger THROTTLED_LOG = new ThrottledLogger(LOG, 10 /*ms*/);
+  private static final ThrottledLogger THROTTLED_LOG = new ThrottledLogger(LOG, 1000);
+  private static final ThrottledLogger THROTTLED_LOG_FAST = new ThrottledLogger(LOG, 10 /*ms*/);
 
   /** How often, on average, flush each index to the disk */
   private static final long FLUSHING_PERIOD_MS = SECONDS.toMillis(FlushingDaemon.FLUSHING_PERIOD_IN_SECONDS);
@@ -883,6 +885,9 @@ public final class FileBasedIndexImpl extends FileBasedIndexEx {
     }
     if (FORBID_LOOKUP_IN_NON_CANCELLABLE_SECTIONS && ProgressManager.getInstance().isInNonCancelableSection()) {
       LOG.error("Indexes should not be accessed in non-cancellable section");
+    }
+    if (StubTreeBuilder.isBuildingStub()) {
+      THROTTLED_LOG.error("Stub building must not rely on data from indexes because it introduces circular dependency indexes -> stub building -> resolve -> indexes.");
     }
 
     ProgressManager.checkCanceled();
@@ -1947,7 +1952,7 @@ public final class FileBasedIndexImpl extends FileBasedIndexEx {
     long currentModCount = myFilesToUpdateCollector.modificationCount();
     if (lastProcessedModCount != null && lastProcessedModCount >= currentModCount) {
       if (LOG.isDebugEnabled()) {
-        THROTTLED_LOG.debug(() -> "modCountCheck[last: " + lastProcessedModCount + " >= current: " + currentModCount + "] -> skip updates");
+        THROTTLED_LOG_FAST.debug(() -> "modCountCheck[last: " + lastProcessedModCount + " >= current: " + currentModCount + "] -> skip updates");
       }
       //everything is already processed
       return;
