@@ -59,7 +59,6 @@ class InstalledPluginsTab @RequiresEdt constructor(
   private val searchInMarketplaceTabHandler: Consumer<String>?,
   searchTextFieldQueryDebouncePeriodMs: Long = 100,
 ) : PluginsTab(searchTextFieldQueryDebouncePeriodMs) {
-  private var installedPanel: PluginsGroupComponentWithProgress? = null
   private val installedSearchGroup = DefaultActionGroup().apply {
     for (option in InstalledSearchOption.entries) {
       add(InstalledSearchOptionAction(option))
@@ -78,6 +77,9 @@ class InstalledPluginsTab @RequiresEdt constructor(
 
   override val detailsPage: PluginDetailsPageComponent = createDetailsPanel(searchListener)
   override val searchPanel: InstalledPluginsTabSearchResultPanel = createSearchPanel(selectionListener)
+
+  private val eventHandler = MultiSelectionEventHandler()
+  private val installedPanel = createInstalledPanel(eventHandler)
 
   init {
     updateAllLink.isVisible = false
@@ -100,9 +102,6 @@ class InstalledPluginsTab @RequiresEdt constructor(
 
   @RequiresEdt
   override fun createPluginsPanel(): JComponent {
-    val eventHandler = MultiSelectionEventHandler()
-    val installedPanel = createInstalledPanel(eventHandler)
-
     (searchPanel.controller as SearchUpDownPopupController).setEventHandler(eventHandler)
     installedPanel.showLoadingIcon()
 
@@ -301,9 +300,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
       ): ListPluginComponent {
         return ListPluginComponent(pluginModelFacade, model, group, listPluginModel, searchListener, coroutineScope, false)
       }
-      }
-    this@InstalledPluginsTab.installedPanel = installedPanel
-
+    }
     installedPanel.setSelectionListener(selectionListener)
     installedPanel.accessibleContext.accessibleName = IdeBundle.message("plugin.manager.installed.panel.accessible.name")
     registerCopyProvider(installedPanel)
