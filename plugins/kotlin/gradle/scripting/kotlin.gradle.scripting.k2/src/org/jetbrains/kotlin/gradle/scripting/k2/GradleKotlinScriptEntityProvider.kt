@@ -35,13 +35,13 @@ import org.jetbrains.kotlin.idea.core.script.k2.modules.KotlinScriptLibraryEntit
 import org.jetbrains.kotlin.idea.core.script.k2.modules.KotlinScriptLibraryEntityId
 import org.jetbrains.kotlin.idea.core.script.k2.modules.map
 import org.jetbrains.kotlin.idea.core.script.k2.modules.modifyKotlinScriptLibraryEntity
+import org.jetbrains.kotlin.idea.core.script.shared.smartRefineScriptCompilationConfiguration
 import org.jetbrains.kotlin.idea.core.script.v1.indexSourceRootsEagerly
 import org.jetbrains.kotlin.idea.core.script.v1.scriptingDebugLog
 import org.jetbrains.kotlin.idea.core.script.v1.scriptingWarnLog
 import org.jetbrains.kotlin.scripting.resolve.ScriptCompilationConfigurationResult
 import org.jetbrains.kotlin.scripting.resolve.VirtualFileScriptSource
 import org.jetbrains.kotlin.scripting.resolve.adjustByDefinition
-import org.jetbrains.kotlin.scripting.resolve.refineScriptCompilationConfiguration
 import org.jetbrains.kotlin.utils.addIfNotNull
 import org.jetbrains.plugins.gradle.model.GradleBuildScriptClasspathModel
 import java.io.File
@@ -62,7 +62,7 @@ class GradleKotlinScriptEntityProvider(val project: Project) {
     private val urlManager: VirtualFileUrlManager
         get() = project.workspaceModel.getVirtualFileUrlManager()
 
-    fun getUpdatedStorage(
+    suspend fun getUpdatedStorage(
         scriptData: GradleScriptData,
         storageToUpdate: MutableEntityStorage
     ): ImmutableEntityStorage {
@@ -71,7 +71,7 @@ class GradleKotlinScriptEntityProvider(val project: Project) {
         return getUpdatedStorage(storageToUpdate, scriptData.models, definitions, javaHome)
     }
 
-    fun getUpdatedStorage(
+    suspend fun getUpdatedStorage(
         storage: MutableEntityStorage,
         models: Collection<GradleScriptModel>,
         definitions: Collection<GradleScriptDefinition>,
@@ -103,7 +103,7 @@ class GradleKotlinScriptEntityProvider(val project: Project) {
                 ide.dependenciesSources(JvmDependency(model.sourcePath.map { File(it) }))
             }.adjustByDefinition(definition)
 
-            val configurationResult = refineScriptCompilationConfiguration(sourceCode, definition, project, configuration)
+            val configurationResult = smartRefineScriptCompilationConfiguration(sourceCode, definition, project, configuration)
             updateStorage(storage, model.virtualFile.toVirtualFileUrl(urlManager), configurationResult, model.classpathModel)
         }
 
