@@ -1346,6 +1346,8 @@ com.intellij.psi.PsiDirectoryContainer
 com.intellij.psi.PsiDocCommentBase
 - com.intellij.psi.PsiComment
 - a:getOwner():com.intellij.psi.PsiElement
+a:com.intellij.psi.PsiDocumentManager
+- f:isUncommited(com.intellij.openapi.editor.Document):Z
 com.intellij.psi.PsiElement
 - com.intellij.openapi.util.Iconable
 - com.intellij.openapi.util.UserDataHolder

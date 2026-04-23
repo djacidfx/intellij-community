@@ -2625,7 +2625,6 @@ a:com.intellij.psi.PsiDocumentManager
 - a:hasUncommitedDocuments():Z
 - a:isCommitted(com.intellij.openapi.editor.Document):Z
 - a:isDocumentBlockedByPsi(com.intellij.openapi.editor.Document):Z
-- a:isUncommited(com.intellij.openapi.editor.Document):Z
 - a:performForCommittedDocument(com.intellij.openapi.editor.Document,java.lang.Runnable):V
 - a:performLaterWhenAllCommitted(com.intellij.openapi.application.ModalityState,java.lang.Runnable):V
 - a:performLaterWhenAllCommitted(java.lang.Runnable):V

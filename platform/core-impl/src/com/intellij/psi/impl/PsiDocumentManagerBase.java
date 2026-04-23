@@ -1036,11 +1036,6 @@ public abstract class PsiDocumentManagerBase extends PsiDocumentManagerEx implem
   }
 
   @Override
-  public boolean isUncommited(@NotNull Document document) {
-    return !isCommitted(document);
-  }
-
-  @Override
   public boolean isCommitted(@NotNull Document document) {
     document = getTopLevelDocument(document);
     if (getSynchronizer().isInSynchronization(document)) return true;

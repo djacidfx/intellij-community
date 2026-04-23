@@ -155,12 +155,15 @@ public abstract class PsiDocumentManager {
 
   /**
    * Checks if the specified document has been committed.
+   * Is equivalent to {@code !isUncommitted(document)}.
    *
    * @param document the document to check.
    * @return true if the document was modified but not committed, false otherwise
    * @see #commitDocument(Document)
    */
-  public abstract boolean isUncommited(@NotNull Document document);
+  public final boolean isUncommited(@NotNull Document document) {
+    return !isCommitted(document);
+  }
 
   /**
    * Checks if any modified documents have not been committed.

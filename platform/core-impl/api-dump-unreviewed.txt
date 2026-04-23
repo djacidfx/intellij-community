@@ -1878,7 +1878,6 @@ a:com.intellij.psi.impl.PsiDocumentManagerBase
 - isCommitInProgress():Z
 - isCommitted(com.intellij.openapi.editor.Document):Z
 - isDocumentBlockedByPsi(com.intellij.openapi.editor.Document):Z
-- isUncommited(com.intellij.openapi.editor.Document):Z
 - performForCommittedDocument(com.intellij.openapi.editor.Document,java.lang.Runnable):V
 - performLaterWhenAllCommitted(com.intellij.openapi.application.ModalityState,java.lang.Runnable):V
 - performLaterWhenAllCommitted(java.lang.Runnable):V
