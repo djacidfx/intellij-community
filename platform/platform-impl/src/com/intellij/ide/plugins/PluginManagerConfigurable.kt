@@ -1,325 +1,348 @@
+@file:Suppress("unused", "UNUSED_PARAMETER", "UsePropertyAccessSyntax", "ReplaceJavaStaticMethodWithKotlinAnalog", "CompanionObjectInExtension")
+
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.ide.plugins;
+package com.intellij.ide.plugins
 
-import com.intellij.ide.IdeBundle;
-import com.intellij.openapi.actionSystem.DataKey;
-import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.ApplicationNamesInfo;
-import com.intellij.openapi.application.ex.ApplicationManagerEx;
-import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.extensions.PluginId;
-import com.intellij.openapi.options.Configurable;
-import com.intellij.openapi.options.ConfigurationException;
-import com.intellij.openapi.options.SearchableConfigurable;
-import com.intellij.openapi.options.ShowSettingsUtil;
-import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.updateSettings.impl.pluginsAdvertisement.FUSEventSource;
-import com.intellij.openapi.util.Disposer;
-import com.intellij.openapi.util.NlsContexts;
-import com.intellij.openapi.util.SystemInfo;
-import com.intellij.ui.JBColor;
-import com.intellij.ui.RelativeFont;
-import com.intellij.util.concurrency.annotations.RequiresEdt;
-import com.intellij.util.containers.ContainerUtil;
-import com.intellij.util.ui.UIUtil;
-import org.jetbrains.annotations.ApiStatus;
-import org.jetbrains.annotations.Nls;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import javax.swing.JComponent;
-import java.awt.Color;
-import java.awt.Component;
-import java.text.SimpleDateFormat;
-import java.util.Collection;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.function.Function;
-
-import static com.intellij.ide.plugins.newui.PluginsViewCustomizerKt.getPluginsViewCustomizer;
+import com.intellij.ide.IdeBundle
+import com.intellij.ide.plugins.newui.getPluginsViewCustomizer
+import com.intellij.openapi.actionSystem.DataKey
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ApplicationNamesInfo
+import com.intellij.openapi.application.ex.ApplicationManagerEx
+import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.extensions.PluginId
+import com.intellij.openapi.options.Configurable
+import com.intellij.openapi.options.ConfigurationException
+import com.intellij.openapi.options.SearchableConfigurable
+import com.intellij.openapi.options.ShowSettingsUtil
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.updateSettings.impl.pluginsAdvertisement.FUSEventSource
+import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.util.NlsContexts
+import com.intellij.openapi.util.SystemInfo
+import com.intellij.ui.JBColor
+import com.intellij.ui.RelativeFont
+import com.intellij.util.concurrency.annotations.RequiresEdt
+import com.intellij.util.ui.UIUtil
+import org.jetbrains.annotations.ApiStatus
+import org.jetbrains.annotations.Nls
+import java.awt.Color
+import java.awt.Component
+import java.text.SimpleDateFormat
+import java.util.function.Consumer
+import java.util.function.Function
+import javax.swing.JComponent
 
 @ApiStatus.Internal
-public final class PluginManagerConfigurable
-  implements SearchableConfigurable, Configurable.NoScroll, Configurable.NoMargin, Configurable.TopComponentProvider {
+class PluginManagerConfigurable : SearchableConfigurable, Configurable.NoScroll, Configurable.NoMargin, Configurable.TopComponentProvider {
 
-  public static final String ID = "preferences.pluginManager";
-  public static final String SELECTION_TAB_KEY = "PluginConfigurable.selectionTab";
-  public static final DataKey<Consumer<PluginInstallCallbackData>> PLUGIN_INSTALL_CALLBACK_DATA_KEY =
-    DataKey.create("PLUGIN_INSTALL_CALLBACK_DATA_KEY");
+  companion object {
+    const val ID: String = "preferences.pluginManager"
+    const val SELECTION_TAB_KEY: String = "PluginConfigurable.selectionTab"
 
-  @SuppressWarnings("UseJBColor") public static final Color MAIN_BG_COLOR =
-    JBColor.namedColor("Plugins.background", JBColor.lazy(() -> JBColor.isBright() ? UIUtil.getListBackground() : new Color(0x313335)));
-  public static final Color SEARCH_BG_COLOR = JBColor.namedColor("Plugins.SearchField.background", MAIN_BG_COLOR);
-  public static final Color SEARCH_FIELD_BORDER_COLOR = JBColor.namedColor("Plugins.borderColor", JBColor.border());
+    @JvmField
+    val PLUGIN_INSTALL_CALLBACK_DATA_KEY: DataKey<Consumer<PluginInstallCallbackData>> =
+      DataKey.create("PLUGIN_INSTALL_CALLBACK_DATA_KEY")
 
-  public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("MMM dd, yyyy");
+    @Suppress("UseJBColor")
+    @JvmField
+    val MAIN_BG_COLOR: Color =
+      JBColor.namedColor("Plugins.background", JBColor.lazy { if (JBColor.isBright()) UIUtil.getListBackground() else Color(0x313335) })
 
-  private static final Logger LOG = Logger.getInstance(PluginManagerConfigurable.class);
+    @JvmField
+    val SEARCH_BG_COLOR: Color = JBColor.namedColor("Plugins.SearchField.background", MAIN_BG_COLOR)
 
-  private PluginManagerConfigurablePanel myPanel;
+    @JvmField
+    val SEARCH_FIELD_BORDER_COLOR: Color = JBColor.namedColor("Plugins.borderColor", JBColor.border())
+
+    @JvmField
+    val DATE_FORMAT: SimpleDateFormat = SimpleDateFormat("MMM dd, yyyy")
+
+    private val LOG = Logger.getInstance(PluginManagerConfigurable::class.java)
+
+    @JvmStatic
+    fun <T : Component> setTinyFont(component: T): T {
+      return if (SystemInfo.isMac) RelativeFont.TINY.install(component) else component
+    }
+
+    @JvmStatic
+    @Messages.YesNoResult
+    fun showRestartDialog(): Int {
+      return showRestartDialog(getUpdatesDialogTitle())
+    }
+
+    @JvmStatic
+    @Messages.YesNoResult
+    fun showRestartDialog(title: @NlsContexts.DialogTitle String): Int {
+      return showRestartDialog(title, ::getUpdatesDialogMessage)
+    }
+
+    @JvmStatic
+    @Messages.YesNoResult
+    fun showRestartDialog(
+      title: @NlsContexts.DialogTitle String,
+      message: Function<in String, @Nls String>,
+    ): Int {
+      val action = IdeBundle.message(
+        if (ApplicationManager.getApplication().isRestartCapable()) "ide.restart.action" else "ide.shutdown.action"
+      )
+      return Messages.showYesNoDialog(
+        message.apply(action),
+        title,
+        action,
+        IdeBundle.message("ide.notnow.action"),
+        Messages.getQuestionIcon(),
+      )
+    }
+
+    @JvmStatic
+    fun shutdownOrRestartApp() {
+      shutdownOrRestartApp(getUpdatesDialogTitle())
+    }
+
+    @JvmStatic
+    fun shutdownOrRestartApp(title: @NlsContexts.DialogTitle String) {
+      shutdownOrRestartAppAfterInstall(title, ::getUpdatesDialogMessage)
+    }
+
+    @JvmStatic
+    fun shutdownOrRestartAppAfterInstall(
+      title: @NlsContexts.DialogTitle String,
+      message: Function<in String, @Nls String>,
+    ) {
+      if (showRestartDialog(title, message) == Messages.YES) {
+        // TODO this function should
+        //  - schedule restart in invokeLater with ModalityState.nonModal();
+        //  - close settings dialog.
+        //  What happens:
+        //  - the settings dialog should be displayed in a service coroutine.
+        //  - restart awaits completion of all service coroutines.
+        //  - calling restart synchronously from this function prevents completion of the service coroutine.
+        //  => deadlock IDEA-335883.
+        //  IDEA-335883 is currently fixed by showing the dialog outside of the container scope.
+        ApplicationManagerEx.getApplicationEx().restart(true)
+      }
+    }
+
+    @JvmStatic
+    fun getUpdatesDialogTitle(): @NlsContexts.DialogTitle String {
+      return IdeBundle.message(
+        "updates.dialog.title",
+        ApplicationNamesInfo.getInstance().fullProductName,
+      )
+    }
+
+    @JvmStatic
+    fun getUpdatesDialogMessage(action: @Nls String): @NlsContexts.DialogMessage String {
+      return IdeBundle.message(
+        "ide.restart.required.message",
+        action,
+        ApplicationNamesInfo.getInstance().fullProductName,
+      )
+    }
+
+    /**
+     * @deprecated Please use {@link #showPluginConfigurable(Project, Collection)}.
+     */
+    @JvmStatic
+    @Deprecated(
+      "Please use showPluginConfigurable(Project, Collection).",
+      replaceWith = ReplaceWith("showPluginConfigurable(project, pluginIds)"),
+    )
+    fun showPluginConfigurable(project: Project?, vararg descriptors: IdeaPluginDescriptor) {
+      showPluginConfigurable(
+        project,
+        descriptors.map(IdeaPluginDescriptor::getPluginId),
+      )
+    }
+
+    @JvmStatic
+    fun showPluginConfigurable(project: Project?, pluginIds: Collection<PluginId?>) {
+      val configurable = PluginManagerConfigurable()
+      ShowSettingsUtil.getInstance().editConfigurable(
+        project,
+        configurable,
+        Runnable { configurable.select(pluginIds as Collection<PluginId>) },
+      )
+    }
+
+    @ApiStatus.Internal
+    @JvmStatic
+    fun showSuggestedPlugins(project: Project?, source: FUSEventSource?) {
+      val configurable = PluginManagerConfigurable()
+      ShowSettingsUtil.getInstance().editConfigurable(
+        project,
+        configurable,
+        Runnable {
+          configurable.setInstallSource(source)
+          configurable.openMarketplaceTab("/suggested")
+        },
+      )
+    }
+
+    @JvmStatic
+    fun showPluginConfigurable(parent: Component?, project: Project?, pluginIds: Collection<PluginId?>) {
+      if (parent != null) {
+        val configurable = PluginManagerConfigurable()
+        ShowSettingsUtil.getInstance().editConfigurable(
+          parent,
+          configurable,
+          Runnable { configurable.select(pluginIds as Collection<PluginId>) },
+        )
+      }
+      else {
+        showPluginConfigurable(project, pluginIds)
+      }
+    }
+
+    @JvmStatic
+    fun showPluginConfigurableAndEnable(project: Project?, descriptors: Set<IdeaPluginDescriptor>) {
+      val configurable = PluginManagerConfigurable()
+      ShowSettingsUtil.getInstance().editConfigurable(
+        project,
+        configurable,
+        Runnable {
+          configurable.selectAndEnable(descriptors)
+        },
+      )
+    }
+  }
+
+  private var myPanel: PluginManagerConfigurablePanel? = null
 
   /**
    * @deprecated Use {@link PluginManagerConfigurable#PluginManagerConfigurable()}
    */
-  @Deprecated
-  public PluginManagerConfigurable(@Nullable Project project) {
-    this();
+  @Deprecated("Use PluginManagerConfigurable()", replaceWith = ReplaceWith("PluginManagerConfigurable()"))
+  constructor(project: Project?) : this()
+
+  constructor()
+
+  override fun getId(): String {
+    return ID
   }
 
-  public PluginManagerConfigurable() {
+  override fun getDisplayName(): String {
+    return IdeBundle.message("title.plugins")
   }
 
-  @Override
-  public @NotNull String getId() {
-    return ID;
-  }
-
-  @Override
-  public String getDisplayName() {
-    return IdeBundle.message("title.plugins");
-  }
-
-  @Override
-  public @NotNull String getHelpTopic() {
-    return ID;
+  override fun getHelpTopic(): String {
+    return ID
   }
 
   @RequiresEdt
-  @Override
-  public @NotNull JComponent getCenterComponent(@NotNull TopComponentController controller) {
-    PluginManagerConfigurablePanel panel = createPanelIfNeeded();
-    return panel.getCenterComponent(controller);
+  override fun getCenterComponent(controller: Configurable.TopComponentController): JComponent {
+    val panel = createPanelIfNeeded()
+    return panel.getCenterComponent(controller)
   }
 
-  @RequiresEdt
-  public @NotNull JComponent getTopComponent() {
-    return getCenterComponent(TopComponentController.EMPTY);
-  }
+  @get:RequiresEdt
+  val topComponent: JComponent
+    get() = getCenterComponent(Configurable.TopComponentController.EMPTY)
 
-  @Override
-  public @NotNull JComponent createComponent() {
-    PluginManagerConfigurablePanel panel = createPanelIfNeeded();
+  override fun createComponent(): JComponent {
+    val panel = createPanelIfNeeded()
 
     try {
-      getPluginsViewCustomizer().processConfigurable(this);
+      getPluginsViewCustomizer().processConfigurable(this)
     }
-    catch (Exception e) {
-      LOG.error("Error while processing configurable", e);
+    catch (e: Exception) {
+      LOG.error("Error while processing configurable", e)
     }
 
-    return panel.getComponent();
+    return panel.getComponent()
   }
 
   @RequiresEdt
-  private @NotNull PluginManagerConfigurablePanel createPanelIfNeeded() {
-    return createPanelIfNeeded(null);
+  private fun createPanelIfNeeded(): PluginManagerConfigurablePanel {
+    return createPanelIfNeeded(null)
   }
 
   @RequiresEdt
-  private @NotNull PluginManagerConfigurablePanel createPanelIfNeeded(@Nullable String searchQuery) {
+  private fun createPanelIfNeeded(searchQuery: String?): PluginManagerConfigurablePanel {
     if (myPanel == null) {
-      myPanel = new PluginManagerConfigurablePanel(searchQuery);
+      myPanel = PluginManagerConfigurablePanel(searchQuery)
     }
-    return myPanel;
+    return myPanel!!
   }
 
-  public static <T extends Component> @NotNull T setTinyFont(@NotNull T component) {
-    return SystemInfo.isMac ? RelativeFont.TINY.install(component) : component;
-  }
-
-  @Messages.YesNoResult
-  public static int showRestartDialog() {
-    return showRestartDialog(getUpdatesDialogTitle());
-  }
-
-  @Messages.YesNoResult
-  public static int showRestartDialog(@NotNull @NlsContexts.DialogTitle String title) {
-    return showRestartDialog(title, PluginManagerConfigurable::getUpdatesDialogMessage);
-  }
-
-  @Messages.YesNoResult
-  public static int showRestartDialog(@NotNull @NlsContexts.DialogTitle String title,
-                                      @NotNull Function<? super String, @Nls String> message) {
-    String action = IdeBundle.message(ApplicationManager.getApplication().isRestartCapable() ?
-                                      "ide.restart.action" :
-                                      "ide.shutdown.action");
-    return Messages.showYesNoDialog(message.apply(action),
-                                    title,
-                                    action,
-                                    IdeBundle.message("ide.notnow.action"),
-                                    Messages.getQuestionIcon());
-  }
-
-  public static void shutdownOrRestartApp() {
-    shutdownOrRestartApp(getUpdatesDialogTitle());
-  }
-
-  public static void shutdownOrRestartApp(@NotNull @NlsContexts.DialogTitle String title) {
-    shutdownOrRestartAppAfterInstall(title, PluginManagerConfigurable::getUpdatesDialogMessage);
-  }
-
-  static void shutdownOrRestartAppAfterInstall(@NotNull @NlsContexts.DialogTitle String title,
-                                               @NotNull Function<? super String, @Nls String> message) {
-    if (showRestartDialog(title, message) == Messages.YES) {
-      // TODO this function should
-      //  - schedule restart in invokeLater with ModalityState.nonModal();
-      //  - close settings dialog.
-      //  What happens:
-      //  - the settings dialog should be displayed in a service coroutine.
-      //  - restart awaits completion of all service coroutines.
-      //  - calling restart synchronously from this function prevents completion of the service coroutine.
-      //  => deadlock IDEA-335883.
-      //  IDEA-335883 is currently fixed by showing the dialog outside of the container scope.
-      ApplicationManagerEx.getApplicationEx().restart(true);
-    }
-  }
-
-  static @NotNull @NlsContexts.DialogTitle String getUpdatesDialogTitle() {
-    return IdeBundle.message("updates.dialog.title",
-                             ApplicationNamesInfo.getInstance().getFullProductName());
-  }
-
-  static @NotNull @NlsContexts.DialogMessage String getUpdatesDialogMessage(@Nls @NotNull String action) {
-    return IdeBundle.message("ide.restart.required.message",
-                             action,
-                             ApplicationNamesInfo.getInstance().getFullProductName());
-  }
-
-  /**
-   * @deprecated Please use {@link #showPluginConfigurable(Project, Collection)}.
-   */
-  @Deprecated(since = "2020.2", forRemoval = true)
-  public static void showPluginConfigurable(@Nullable Project project, IdeaPluginDescriptor @NotNull ... descriptors) {
-    showPluginConfigurable(project,
-                           ContainerUtil.map(descriptors, IdeaPluginDescriptor::getPluginId));
-  }
-
-  public static void showPluginConfigurable(@Nullable Project project,
-                                            @NotNull Collection<PluginId> pluginIds) {
-    PluginManagerConfigurable configurable = new PluginManagerConfigurable();
-    ShowSettingsUtil.getInstance().editConfigurable(project,
-                                                    configurable,
-                                                    () -> configurable.select(pluginIds));
-  }
-
-  @ApiStatus.Internal
-  public static void showSuggestedPlugins(@Nullable Project project, @Nullable FUSEventSource source) {
-    PluginManagerConfigurable configurable = new PluginManagerConfigurable();
-    ShowSettingsUtil.getInstance().editConfigurable(project,
-                                                    configurable,
-                                                    () -> {
-                                                      configurable.setInstallSource(source);
-                                                      configurable.openMarketplaceTab("/suggested");
-                                                    });
-  }
-
-  public static void showPluginConfigurable(@Nullable Component parent,
-                                            @Nullable Project project,
-                                            @NotNull Collection<PluginId> pluginIds) {
-    if (parent != null) {
-      PluginManagerConfigurable configurable = new PluginManagerConfigurable();
-      ShowSettingsUtil.getInstance().editConfigurable(parent,
-                                                      configurable,
-                                                      () -> configurable.select(pluginIds));
-    }
-    else {
-      showPluginConfigurable(project, pluginIds);
-    }
-  }
-
-  public static void showPluginConfigurableAndEnable(@Nullable Project project,
-                                                     @NotNull Set<? extends IdeaPluginDescriptor> descriptors) {
-    PluginManagerConfigurable configurable = new PluginManagerConfigurable();
-    ShowSettingsUtil.getInstance().editConfigurable(project,
-                                                    configurable,
-                                                    () -> {
-                                                      configurable.selectAndEnable(descriptors);
-                                                    });
-  }
-
-  @Override
-  public void disposeUIResources() {
-
+  override fun disposeUIResources() {
     if (myPanel != null) {
-      Disposer.dispose(myPanel);
-      myPanel = null;
+      Disposer.dispose(myPanel!!)
+      myPanel = null
     }
   }
 
-  @Override
-  public void cancel() {
+  override fun cancel() {
     if (myPanel != null) {
-      myPanel.cancel();
+      myPanel!!.cancel()
     }
   }
 
-  @Override
-  public boolean isModified() {
-    return myPanel != null && myPanel.isModified();
+  override fun isModified(): Boolean {
+    return myPanel != null && myPanel!!.isModified()
   }
 
-  @Override
-  public void apply() throws ConfigurationException {
+  @Throws(ConfigurationException::class)
+  override fun apply() {
     if (myPanel != null) {
-      myPanel.apply();
+      myPanel!!.apply()
     }
   }
 
-  public void scheduleApply() {
+  fun scheduleApply() {
     if (myPanel != null) {
-      myPanel.scheduleApply();
+      myPanel!!.scheduleApply()
     }
   }
 
-  @Override
-  public void reset() {
+  override fun reset() {
     if (myPanel != null) {
-      myPanel.reset();
+      myPanel!!.reset()
     }
   }
 
-  @Override
   @RequiresEdt
-  public @Nullable Runnable enableSearch(String option) {
-    return createPanelIfNeeded(option).enableSearch(option);
-  }
-
-  @RequiresEdt
-  public @Nullable Runnable enableSearch(String option, boolean ignoreTagMarketplaceTab) {
-    return createPanelIfNeeded(option).enableSearch(option, ignoreTagMarketplaceTab);
-  }
-
-  public boolean isMarketplaceTabShowing() {
-    return myPanel != null && myPanel.isMarketplaceTabShowing();
-  }
-
-  public boolean isInstalledTabShowing() {
-    return myPanel != null && myPanel.isInstalledTabShowing();
+  override fun enableSearch(option: String?): Runnable? {
+    return createPanelIfNeeded(option).enableSearch(option)
   }
 
   @RequiresEdt
-  public void openMarketplaceTab(@NotNull String option) {
-    createPanelIfNeeded(option).openMarketplaceTab(option);
+  fun enableSearch(option: String?, ignoreTagMarketplaceTab: Boolean): Runnable? {
+    return createPanelIfNeeded(option).enableSearch(option, ignoreTagMarketplaceTab)
+  }
+
+  fun isMarketplaceTabShowing(): Boolean {
+    return myPanel != null && myPanel!!.isMarketplaceTabShowing()
+  }
+
+  fun isInstalledTabShowing(): Boolean {
+    return myPanel != null && myPanel!!.isInstalledTabShowing()
   }
 
   @RequiresEdt
-  public void openInstalledTab(@NotNull String option) {
-    createPanelIfNeeded(option).openInstalledTab(option);
+  fun openMarketplaceTab(option: String) {
+    createPanelIfNeeded(option).openMarketplaceTab(option)
   }
 
   @RequiresEdt
-  private void setInstallSource(@Nullable FUSEventSource source) {
-    createPanelIfNeeded().setInstallSource(source);
+  fun openInstalledTab(option: String) {
+    createPanelIfNeeded(option).openInstalledTab(option)
   }
 
   @RequiresEdt
-  private void selectAndEnable(@NotNull Set<? extends IdeaPluginDescriptor> descriptors) {
-    createPanelIfNeeded().selectAndEnable(descriptors);
+  private fun setInstallSource(source: FUSEventSource?) {
+    createPanelIfNeeded().setInstallSource(source)
   }
 
   @RequiresEdt
-  private void select(@NotNull Collection<PluginId> pluginIds) {
-    createPanelIfNeeded().select(pluginIds);
+  private fun selectAndEnable(descriptors: Set<IdeaPluginDescriptor>) {
+    createPanelIfNeeded().selectAndEnable(descriptors)
+  }
+
+  @RequiresEdt
+  private fun select(pluginIds: Collection<PluginId>) {
+    createPanelIfNeeded().select(pluginIds)
   }
 }

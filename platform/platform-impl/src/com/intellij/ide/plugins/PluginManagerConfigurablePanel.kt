@@ -6,7 +6,6 @@ package com.intellij.ide.plugins
 import com.intellij.ide.CopyProvider
 import com.intellij.ide.DataManager
 import com.intellij.ide.IdeBundle
-import com.intellij.ide.plugins.PluginManagerConfigurable.PLUGIN_INSTALL_CALLBACK_DATA_KEY
 import com.intellij.ide.plugins.certificates.PluginCertificateManager
 import com.intellij.ide.plugins.marketplace.statistics.PluginManagerUsageCollector
 import com.intellij.ide.plugins.newui.ListPluginComponent
@@ -194,7 +193,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
       }
     }) {
       override fun uiDataSnapshot(sink: DataSink) {
-        sink.set(PLUGIN_INSTALL_CALLBACK_DATA_KEY, Consumer { callbackData -> onPluginInstalledFromDisk(callbackData) })
+        sink.set(PluginManagerConfigurable.PLUGIN_INSTALL_CALLBACK_DATA_KEY, Consumer { callbackData -> onPluginInstalledFromDisk(callbackData) })
       }
     }
     tabHeaderComponent.createGearGotIt()
