@@ -1,9 +1,9 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
 use std::collections::HashMap;
+use std::env;
 use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
-use std::env;
 
 use anyhow::{bail, Context, Result};
 #[allow(unused_imports)]
@@ -498,12 +498,9 @@ fn preload_native_libs(ide_home_dir: &Path, is_musl: bool) -> Result<Option<Path
         bail!("Self-contained dir is present at {self_contained_dir:?}, but lib dir is missing at {libs_dir:?}")
     }
 
-    if is_musl {
-        let ld_lib_path = env::var_os("LD_LIBRARY_PATH").unwrap_or_default();
-        if env::split_paths(&ld_lib_path).all(|p| p != libs_dir) {
-          debug!("musl patch is not yet applied: LD_LIBRARY_PATH={ld_lib_path:?}");
-          return Ok(Some(libs_dir.clone()));
-        }
+    if is_musl && env::var_os("_IJ_PREV_LD_LIBRARY_PATH").is_none() {
+      debug!("musl patch is not yet applied");
+      return Ok(Some(libs_dir.clone()));
     }
 
     let lib_load_order_file = &self_contained_dir.join(if full_set { "lib-load-order" } else { "lib-load-order-limited" });

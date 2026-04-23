@@ -33,16 +33,16 @@ use std::env;
 use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, bail, Context, Result};
-use log::{debug, LevelFilter, warn};
+use log::{debug, warn, LevelFilter};
 use serde::Deserialize;
 
 #[cfg(target_os = "windows")]
 use {
+    windows::core::{GUID, HSTRING, PWSTR},
     windows::Win32::Foundation,
     windows::Win32::Foundation::HANDLE,
     windows::Win32::System::LibraryLoader,
     windows::Win32::UI::Shell,
-    windows::core::{HSTRING, GUID, PWSTR},
 };
 
 #[cfg(target_family = "unix")]
@@ -50,8 +50,8 @@ use std::os::unix::fs::PermissionsExt;
 
 #[cfg(all(target_os = "linux", target_env = "gnu"))]
 use {
-    std::os::unix::process::CommandExt,
     libc::{dl_iterate_phdr, dl_phdr_info, size_t},
+    std::os::unix::process::CommandExt,
 };
 
 use crate::cef_sandbox::CefScopedSandboxInfo;
@@ -126,11 +126,15 @@ fn main_impl(exe_path: PathBuf, remote_dev: bool, debug_mode: bool, sandbox_subp
     let (jre_home, main_class, _extra_libs) = configuration.prepare_for_launch(is_musl).context("Cannot find a runtime")?;
     debug!("Resolved runtime: {jre_home:?}");
 
-    #[cfg(all(target_os = "linux", target_env = "gnu"))]
+    #[cfg(target_os = "linux")]
     {
         if is_musl {
             adjust_to_musl(&exe_path, &jre_home, &_extra_libs)?;
-        } else {
+        }
+    }
+    #[cfg(all(target_os = "linux", target_env = "gnu"))]
+    {
+        if !is_musl {
             call_mallopt();
         }
     }
@@ -245,56 +249,44 @@ extern "C" fn check_gcompat_callback(info: *mut dl_phdr_info, _size: size_t, _da
     0
 }
 
-#[cfg(all(target_os = "linux", target_env = "gnu"))]
+#[cfg(target_os = "linux")]
 fn adjust_to_musl(exe_path: &Path, jre_home: &Path, extra_libs: &Option<PathBuf>) -> Result<()> {
-    let ext_lib_path = if cfg!(all(target_os = "linux", target_env = "gnu")) {
-        let ext_lib_path = exe_path.parent_or_err()?.join("libgcompat-ext.so");
-        if !ext_lib_path.exists() {
-            debug!("gcompat extensions missing: {ext_lib_path:?}");
-            None
-        } else {
-            Some(ext_lib_path)
-        }
-    } else {
-        None
-    };
-
-    let jvm_dir = jre_home.join("lib/server");
-    let ld_lib_path = env::var_os("LD_LIBRARY_PATH").unwrap_or_default();
-    if env::split_paths(&ld_lib_path).any(|p| p == jvm_dir) {
-        debug!("musl patch already applied: LD_LIBRARY_PATH={ld_lib_path:?}");
+    let prev_ld_lib_path = env::var_os("_IJ_PREV_LD_LIBRARY_PATH");
+    if let Some(val) = prev_ld_lib_path {
+        debug!("restoring LD_LIBRARY_PATH to {val:?}");
+        restore_env("LD_LIBRARY_PATH", &val);
+        restore_env("_IJ_PREV_LD_LIBRARY_PATH", &std::ffi::OsString::default());
         return Ok(());
     }
 
+    let ld_lib_path = env::var_os("LD_LIBRARY_PATH").unwrap_or_default();
+    let jvm_dir = jre_home.join("lib/server");
     let mut new_ld_lib_path = std::ffi::OsString::from(jvm_dir);
-    if !ld_lib_path.is_empty() {
-        new_ld_lib_path.push(":");
-        new_ld_lib_path.push(ld_lib_path);
-    };
     if let Some(extra_libs) = extra_libs {
         new_ld_lib_path.push(":");
         new_ld_lib_path.push(extra_libs);
     }
-
-    let new_ld_preload = if let Some(ext_lib_path) = ext_lib_path {
-        let mut new_ld_preload = std::ffi::OsString::from(ext_lib_path);
-        let ld_preload = env::var_os("LD_PRELOAD").unwrap_or_default();
-        if !ld_preload.is_empty() {
-            new_ld_preload.push(":");
-            new_ld_preload.push(ld_preload);
-        }
-        Some(("LD_PRELOAD", new_ld_preload))
-    } else {
-        None
+    if !ld_lib_path.is_empty() {
+        new_ld_lib_path.push(":");
+        new_ld_lib_path.push(&ld_lib_path);
     };
 
-    debug!("*** restarting with LD_LIBRARY_PATH={new_ld_lib_path:?} preload:{new_ld_preload:?}\n=====");
+    debug!("*** restarting with LD_LIBRARY_PATH={new_ld_lib_path:?}\n=====");
     let args: Vec<String> = env::args().collect();
     Err(std::process::Command::new(exe_path)
         .args(args[1..].to_vec())
         .env("LD_LIBRARY_PATH", new_ld_lib_path)
-        .envs(new_ld_preload)
+        .env("_IJ_PREV_LD_LIBRARY_PATH", ld_lib_path)
         .exec().into())
+}
+
+#[cfg(target_os = "linux")]
+fn restore_env(key: &str, val: &std::ffi::OsStr) {
+    if val.is_empty() {
+        unsafe { env::set_var(key, val); }
+    } else {
+        unsafe { env::remove_var(key); }
+    }
 }
 
 #[cfg(all(target_os = "linux", target_env = "gnu"))]
