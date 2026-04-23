@@ -78,7 +78,6 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
   private val pluginManagerCustomizer: PluginManagerCustomizer? = customizer
   private val pluginUpdatesService: PluginUpdatesService = service
 
-  private var marketplacePanel: PluginsGroupComponentWithProgress? = null
   private var marketplaceRunnable: Runnable? = null
 
   private val marketplaceSortByGroup: DefaultActionGroup = DefaultActionGroup()
@@ -88,6 +87,9 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
 
   override val detailsPage: PluginDetailsPageComponent = createDetailsPanel(searchListener)
   override val searchPanel: SearchResultPanel = createSearchPanel(selectionListener)
+
+  private val eventHandler = MultiSelectionEventHandler()
+  private val marketplacePanel = createMarketplacePanel(eventHandler)
 
   init {
     for (option in MarketplaceTabSearchSortByOptions.entries) {
@@ -111,9 +113,6 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
 
   @RequiresEdt
   override fun createPluginsPanel(): JComponent {
-    val eventHandler = MultiSelectionEventHandler()
-    val marketplacePanel = createMarketplacePanel(eventHandler)
-
     (searchPanel.controller as SearchUpDownPopupController).setEventHandler(eventHandler)
 
     val project = ProjectUtil.getActiveProject()
@@ -152,9 +151,7 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
           true,
         )
       }
-      }
-    this@MarketplacePluginsTab.marketplacePanel = marketplacePanel
-
+    }
     marketplacePanel.setSelectionListener(selectionListener)
     marketplacePanel.getAccessibleContext().setAccessibleName(IdeBundle.message("plugin.manager.marketplace.panel.accessible.name"))
     registerCopyProvider(marketplacePanel)
