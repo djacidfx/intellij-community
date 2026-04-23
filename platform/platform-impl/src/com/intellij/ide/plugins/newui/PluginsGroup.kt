@@ -79,12 +79,7 @@ open class PluginsGroup(
   }
 
   open fun getPluginIndex(pluginId: PluginId): Int {
-    for (i in models.indices) {
-      if (models[i].pluginId == pluginId) {
-        return i
-      }
-    }
-    return -1
+    return models.indexOfFirst { it.pluginId == pluginId }
   }
 
   open fun getPreloadedModel(): ListPluginModel {
