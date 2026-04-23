@@ -1,7 +1,6 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.platform.ijent.community.impl.nio.fs
 
-import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.io.FileUtil.toSystemIndependentName
 import com.intellij.platform.core.nio.fs.BasicFileAttributesHolder2
 import com.intellij.platform.core.nio.fs.DelegatingFileSystem
@@ -13,7 +12,7 @@ import com.intellij.platform.eel.EelOsFamily
 import com.intellij.platform.eel.provider.EelDescriptorOwner
 import com.intellij.platform.eel.provider.getEelDescriptor
 import com.intellij.platform.eel.provider.utils.EelPathUtils
- import com.intellij.platform.eel.provider.utils.WindowsPathUtils
+import com.intellij.platform.eel.provider.utils.WindowsPathUtils
 import com.intellij.platform.ijent.community.impl.nio.AbsoluteIjentNioPath
 import com.intellij.platform.ijent.community.impl.nio.IjentNioPath
 import com.intellij.util.text.nullize
@@ -186,7 +185,7 @@ class IjentEphemeralRootAwarePath(
 
   override fun toString(): String {
     return if (isAbsolute) {
-      when (originalPath.fileSystem.ijentFs.descriptor.osFamily) {
+      when (fileSystem.eelDescriptor.osFamily) {
         EelOsFamily.Posix -> {
           rootPath.resolve(originalPath.pathString.removePrefix("/").replace("\\", fileSystem.separator)).pathString
         }

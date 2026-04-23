@@ -1,8 +1,9 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.platform.ijent.community.impl.nio
 
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.platform.core.nio.fs.BasicFileAttributesHolder2.FetchAttributesFilter
+import com.intellij.platform.eel.EelOsFamily
 import com.intellij.platform.eel.directorySeparators
 import com.intellij.platform.eel.fs.EelFileInfo.Type.Directory
 import com.intellij.platform.eel.fs.EelFileInfo.Type.Other
@@ -26,7 +27,6 @@ import com.intellij.platform.eel.impl.fs.EelFsResultImpl
 import com.intellij.platform.eel.provider.utils.EelPathUtils
 import com.intellij.platform.eel.provider.utils.getOrThrowFileSystemException
 import com.intellij.platform.eel.provider.utils.throwFileSystemException
-import com.intellij.platform.ijent.community.impl.nio.IjentNioFileSystemProvider.Companion.newFileSystemMap
 import com.intellij.platform.ijent.fs.IjentFileSystemApi
 import com.intellij.platform.ijent.fs.IjentFileSystemPosixApi
 import com.intellij.platform.ijent.fs.IjentFileSystemWindowsApi
@@ -175,9 +175,9 @@ class IjentNioFileSystemProvider : FileSystemProvider() {
     val nioFs = getFileSystem(uri)
     val relativeUri = nioFs.uri.relativize(uri)
     return nioFs.getPath(
-      when (nioFs.ijentFs) {
-        is IjentFileSystemPosixApi -> relativeUri.path.nullize() ?: "/"
-        is IjentFileSystemWindowsApi -> {
+      when (nioFs.eelDescriptor.osFamily) {
+        EelOsFamily.Posix -> relativeUri.path.nullize() ?: "/"
+        EelOsFamily.Windows -> {
           val windowsPath = relativeUri.path.trimStart('/')
           require(windowsPath.length >= 2 && windowsPath[0].isLetter() && windowsPath[1] == ':') {
             "Windows URI path must contain a drive letter: $uri"
