@@ -57,7 +57,7 @@ data class RemoteArchiveProjectInfo(
     val targetDir = projectsUnpacked.resolve("${zipFile.fileName}.d")
     val projectHome = if (stripRoot) {
       val roots = getTopMostFoldersFromZip(zipFile)
-        .filterNot { it == "__MACOSX" }  // ignore
+        .filterNot { it == "__MACOSX" || it == "README.md" }  // ignore
       check(roots.size == 1) {
         "Expected exactly one top-level entry in .zip file to strip, got: ${roots.joinToString()}"
       }
