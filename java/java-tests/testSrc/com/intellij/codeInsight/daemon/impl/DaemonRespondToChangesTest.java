@@ -1104,7 +1104,9 @@ public class DaemonRespondToChangesTest extends ProductionDaemonAnalyzerTestCase
       PsiDocumentManager.getInstance(alienProject).commitAllDocuments();
       OpenFileDescriptor alienDescriptor = WriteAction.compute(() -> {
         VirtualFile alienFile = alienRoot.createChildData(this, "AlienFile.java");
-        setFileText(alienFile, "class Alien { }");
+        @Language("JAVA")
+        String alienText = "class Alien { }";
+        setFileText(alienFile, alienText);
         return new OpenFileDescriptor(alienProject, alienFile);
       });
 

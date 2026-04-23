@@ -300,12 +300,13 @@ public class FileStatusMapTest extends ProductionDaemonAnalyzerTestCase {
     TextRange scope = me.getFileDirtyScope(getEditor().getDocument(), getFile(), Pass.UPDATE_ALL);
     assertNull(scope);
 
+    myTestDaemonCodeAnalyzer.waitUpdateExpensiveFlags(excludedDocument);
     assertTrue(myTestDaemonCodeAnalyzer.isMarkedExcluded(excludedDocument));
     assertFalse(myTestDaemonCodeAnalyzer.isMarkedExcluded(myEditor.getDocument()));
 
     WriteCommandAction.runWriteCommandAction(getProject(), () -> ((PsiJavaFile)PsiManager.getInstance(myProject).findFile(excludedFile)).getClasses()[0].getMethods()[0].delete());
 
-    myTestDaemonCodeAnalyzer.waitUpdateExpensiveFlags();
+    myTestDaemonCodeAnalyzer.waitUpdateExpensiveFlags(excludedDocument);
     PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue();
     scope = me.getFileDirtyScope(getEditor().getDocument(), getFile(), Pass.UPDATE_ALL);
     assertNull(scope);
@@ -333,7 +334,8 @@ public class FileStatusMapTest extends ProductionDaemonAnalyzerTestCase {
         PsiDocumentManager.getInstance(getProject()).commitAllDocuments();
       });
       try {
-        myTestDaemonCodeAnalyzer.waitUpdateExpensiveFlags();
+        myTestDaemonCodeAnalyzer.waitUpdateExpensiveFlags(getEditor().getDocument());
+        myTestDaemonCodeAnalyzer.waitUpdateExpensiveFlags(excludedDocument);
       }
       catch (TimeoutException e) {
         throw new RuntimeException(e);

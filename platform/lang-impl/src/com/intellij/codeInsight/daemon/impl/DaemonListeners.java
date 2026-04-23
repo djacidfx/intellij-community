@@ -933,8 +933,10 @@ public final class DaemonListeners implements Disposable {
     myPsiChangeHandler.flushUpdateFileStatusQueue();
   }
   @TestOnly
-  void waitUpdateExpensiveFlags(long timeout, @NotNull TimeUnit unit) throws TimeoutException {
+  void waitUpdateExpensiveFlags(@NotNull Document document, long timeout, @NotNull TimeUnit unit) throws TimeoutException {
     assert ApplicationManager.getApplication().isUnitTestMode();
-    myRecomputeFlagsInBGT.waitForAllExecuted(timeout, unit);
+    while (getExpensiveFlags(document) == null) {
+      myRecomputeFlagsInBGT.waitForAllExecuted(timeout, unit);
+    }
   }
 }

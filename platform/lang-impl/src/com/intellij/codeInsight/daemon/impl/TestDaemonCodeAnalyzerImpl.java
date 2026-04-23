@@ -20,9 +20,13 @@ import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.application.ex.ApplicationManagerEx;
 import com.intellij.openapi.application.impl.NonBlockingReadActionImpl;
 import com.intellij.openapi.application.impl.TestOnlyThreading;
+import com.intellij.openapi.diagnostic.JulLogger;
+import com.intellij.openapi.diagnostic.LogLevel;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.impl.DocumentMarkupModel;
+import com.intellij.openapi.editor.impl.IntervalTreeImpl;
 import com.intellij.openapi.editor.impl.MarkupModelImpl;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -37,6 +41,7 @@ import com.intellij.openapi.progress.impl.CoreProgressManager;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Disposer;
+import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.ThrowableComputable;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -50,6 +55,7 @@ import com.intellij.psi.util.PsiUtilCore;
 import com.intellij.util.ExceptionUtil;
 import com.intellij.util.ExceptionUtilRt;
 import com.intellij.util.IncorrectOperationException;
+import com.intellij.util.ReflectionUtil;
 import com.intellij.util.ThrowableRunnable;
 import com.intellij.util.TimeoutUtil;
 import com.intellij.util.concurrency.AppExecutorUtil;
@@ -72,6 +78,7 @@ import java.awt.event.InvocationEvent;
 import java.lang.ref.Reference;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
@@ -121,7 +128,7 @@ public final class TestDaemonCodeAnalyzerImpl {
     assert application.isUnitTestMode();
 
     PsiDocumentManager.getInstance(myProject).commitAllDocuments();
-    waitForAllThingsBeforeDaemonStart(mustWaitForSmartMode, 10_000);
+    waitForAllThingsBeforeDaemonStart(document, mustWaitForSmartMode, 10_000);
     myDaemonCodeAnalyzer.clearReferences();
     // previous passes can be canceled but still in flight. wait for them to avoid interference
     myDaemonCodeAnalyzer.myPassExecutorService.cancelAll(false, "DaemonCodeAnalyzerImpl.runPasses");
@@ -145,7 +152,7 @@ public final class TestDaemonCodeAnalyzerImpl {
   }
 
   @RequiresEdt
-  private void waitForAllThingsBeforeDaemonStart(boolean mustWaitForSmartMode, long timeoutMs) {
+  private void waitForAllThingsBeforeDaemonStart(@NotNull Document document, boolean mustWaitForSmartMode, long timeoutMs) {
     ThreadingAssertions.assertEventDispatchThread();
     ((FileTypeManagerImpl)FileTypeManager.getInstance()).drainReDetectQueue();
     do {
@@ -167,7 +174,7 @@ public final class TestDaemonCodeAnalyzerImpl {
     // update the file status map before prohibiting its modifications
     waitForUpdateFileStatusBackgroundQueueInTests();
     try {
-      waitUpdateExpensiveFlags();
+      waitUpdateExpensiveFlags(document);
     }
     catch (TimeoutException e) {
       throw new RuntimeException(e);
@@ -379,9 +386,9 @@ public final class TestDaemonCodeAnalyzerImpl {
     myDaemonCodeAnalyzer.myListeners.waitForUpdateFileStatusQueue();
   }
 
-  public void waitUpdateExpensiveFlags() throws TimeoutException {
+  public void waitUpdateExpensiveFlags(@NotNull Document document) throws TimeoutException {
     assert ApplicationManager.getApplication().isUnitTestMode();
-    myDaemonCodeAnalyzer.myListeners.waitUpdateExpensiveFlags(1, TimeUnit.MINUTES);
+    myDaemonCodeAnalyzer.myListeners.waitUpdateExpensiveFlags(document, 1, TimeUnit.MINUTES);
   }
 
   @RequiresEdt
@@ -510,7 +517,7 @@ public final class TestDaemonCodeAnalyzerImpl {
       }
     });
     try {
-    waitForAllThingsBeforeDaemonStart(mustWaitForSmartModeByDefault, timeoutMs);
+    waitForAllThingsBeforeDaemonStart(document, mustWaitForSmartModeByDefault, timeoutMs);
     long deadline = System.currentTimeMillis() + timeoutMs;
     assert myDaemonCodeAnalyzer.isUpdateByTimerEnabled() : "codeAnalyzer.isUpdateByTimerEnabled()=false so waitForDaemonToStart() will never finish";
     while (!myDaemonCodeAnalyzer.isAllAnalysisFinished(psiFile) && !listenersCalled.get()) {
