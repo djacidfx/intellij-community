@@ -41,10 +41,9 @@ abstract class PluginsTab @RequiresEdt constructor(
 ) {
   private val searchUpdateAlarm = createSingleEdtTaskScheduler()
 
-  private var detailsPage: PluginDetailsPageComponent? = null
-  private var cardPanel: MultiPanel? = null
-
   protected val searchTextField: PluginSearchTextField = createSearchTextField(searchTextFieldQueryDebouncePeriodMs)
+  private var cardPanel: MultiPanel? = createCardPanel()
+  private var detailsPage: PluginDetailsPageComponent? = null
   private var searchPanel: SearchResultPanel? = null
 
   @JvmField
@@ -73,29 +72,6 @@ abstract class PluginsTab @RequiresEdt constructor(
 
   @RequiresEdt
   fun createPanel(): JComponent {
-    cardPanel = object : MultiPanel() {
-      override fun addNotify() {
-        super.addNotify()
-        EventHandler.addGlobalAction(
-          searchTextField, CustomShortcutSet(KeyStroke.getKeyStroke("meta alt F")),
-          Runnable {
-            IdeFocusManager.getGlobalInstance().doWhenFocusSettlesDown(Runnable {
-              IdeFocusManager.getGlobalInstance().requestFocus(searchTextField, true)
-            })
-          })
-      }
-
-      override fun create(key: Int): JComponent? {
-        if (key == DEFAULT_PANEL) {
-          return createPluginsPanel()
-        }
-        if (key == SEARCH_PANEL) {
-          return searchPanel!!.createVScrollPane()
-        }
-        return super.create(key)
-      }
-    }
-
     val listPanel = JPanel(BorderLayout())
     listPanel.setBorder(CustomLineBorder(PluginManagerConfigurable.SEARCH_FIELD_BORDER_COLOR, JBUI.insetsTop(1)))
     listPanel.add(searchTextField, BorderLayout.NORTH)
@@ -281,6 +257,31 @@ abstract class PluginsTab @RequiresEdt constructor(
       }
       else {
         searchPanel!!.controller.handleShowPopup()
+      }
+    }
+  }
+
+  private fun createCardPanel(): MultiPanel {
+    return object : MultiPanel() {
+      override fun addNotify() {
+        super.addNotify()
+        EventHandler.addGlobalAction(
+          searchTextField, CustomShortcutSet(KeyStroke.getKeyStroke("meta alt F")),
+          Runnable {
+            IdeFocusManager.getGlobalInstance().doWhenFocusSettlesDown(Runnable {
+              IdeFocusManager.getGlobalInstance().requestFocus(searchTextField, true)
+            })
+          })
+      }
+
+      override fun create(key: Int): JComponent? {
+        if (key == DEFAULT_PANEL) {
+          return createPluginsPanel()
+        }
+        if (key == SEARCH_PANEL) {
+          return searchPanel!!.createVScrollPane()
+        }
+        return super.create(key)
       }
     }
   }
