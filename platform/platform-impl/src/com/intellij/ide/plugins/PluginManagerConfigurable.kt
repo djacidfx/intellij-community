@@ -36,6 +36,142 @@ import javax.swing.JComponent
 
 @ApiStatus.Internal
 class PluginManagerConfigurable : SearchableConfigurable, Configurable.NoScroll, Configurable.NoMargin, Configurable.TopComponentProvider {
+  private var myPanel: PluginManagerConfigurablePanel? = null
+
+  /**
+   * @deprecated Use {@link PluginManagerConfigurable#PluginManagerConfigurable()}
+   */
+  @Deprecated("Use PluginManagerConfigurable()", replaceWith = ReplaceWith("PluginManagerConfigurable()"))
+  constructor(project: Project?) : this()
+
+  constructor()
+
+  override fun getId(): String {
+    return ID
+  }
+
+  override fun getDisplayName(): String {
+    return IdeBundle.message("title.plugins")
+  }
+
+  override fun getHelpTopic(): String {
+    return ID
+  }
+
+  @RequiresEdt
+  override fun getCenterComponent(controller: Configurable.TopComponentController): JComponent {
+    val panel = createPanelIfNeeded()
+    return panel.getCenterComponent(controller)
+  }
+
+  @get:RequiresEdt
+  val topComponent: JComponent
+    get() = getCenterComponent(Configurable.TopComponentController.EMPTY)
+
+  override fun createComponent(): JComponent {
+    val panel = createPanelIfNeeded()
+
+    try {
+      getPluginsViewCustomizer().processConfigurable(this)
+    }
+    catch (e: Exception) {
+      LOG.error("Error while processing configurable", e)
+    }
+
+    return panel.getComponent()
+  }
+
+  @RequiresEdt
+  private fun createPanelIfNeeded(): PluginManagerConfigurablePanel {
+    return createPanelIfNeeded(null)
+  }
+
+  @RequiresEdt
+  private fun createPanelIfNeeded(searchQuery: String?): PluginManagerConfigurablePanel {
+    if (myPanel == null) {
+      myPanel = PluginManagerConfigurablePanel(searchQuery)
+    }
+    return myPanel!!
+  }
+
+  override fun disposeUIResources() {
+    if (myPanel != null) {
+      Disposer.dispose(myPanel!!)
+      myPanel = null
+    }
+  }
+
+  override fun cancel() {
+    if (myPanel != null) {
+      myPanel!!.cancel()
+    }
+  }
+
+  override fun isModified(): Boolean {
+    return myPanel != null && myPanel!!.isModified()
+  }
+
+  @Throws(ConfigurationException::class)
+  override fun apply() {
+    if (myPanel != null) {
+      myPanel!!.apply()
+    }
+  }
+
+  fun scheduleApply() {
+    if (myPanel != null) {
+      myPanel!!.scheduleApply()
+    }
+  }
+
+  override fun reset() {
+    if (myPanel != null) {
+      myPanel!!.reset()
+    }
+  }
+
+  @RequiresEdt
+  override fun enableSearch(option: String?): Runnable? {
+    return createPanelIfNeeded(option).enableSearch(option)
+  }
+
+  @RequiresEdt
+  fun enableSearch(option: String?, ignoreTagMarketplaceTab: Boolean): Runnable? {
+    return createPanelIfNeeded(option).enableSearch(option, ignoreTagMarketplaceTab)
+  }
+
+  fun isMarketplaceTabShowing(): Boolean {
+    return myPanel != null && myPanel!!.isMarketplaceTabShowing()
+  }
+
+  fun isInstalledTabShowing(): Boolean {
+    return myPanel != null && myPanel!!.isInstalledTabShowing()
+  }
+
+  @RequiresEdt
+  fun openMarketplaceTab(option: String) {
+    createPanelIfNeeded(option).openMarketplaceTab(option)
+  }
+
+  @RequiresEdt
+  fun openInstalledTab(option: String) {
+    createPanelIfNeeded(option).openInstalledTab(option)
+  }
+
+  @RequiresEdt
+  private fun setInstallSource(source: FUSEventSource?) {
+    createPanelIfNeeded().setInstallSource(source)
+  }
+
+  @RequiresEdt
+  private fun selectAndEnable(descriptors: Set<IdeaPluginDescriptor>) {
+    createPanelIfNeeded().selectAndEnable(descriptors)
+  }
+
+  @RequiresEdt
+  private fun select(pluginIds: Collection<PluginId>) {
+    createPanelIfNeeded().select(pluginIds)
+  }
 
   companion object {
     const val ID: String = "preferences.pluginManager"
@@ -207,142 +343,5 @@ class PluginManagerConfigurable : SearchableConfigurable, Configurable.NoScroll,
         },
       )
     }
-  }
-
-  private var myPanel: PluginManagerConfigurablePanel? = null
-
-  /**
-   * @deprecated Use {@link PluginManagerConfigurable#PluginManagerConfigurable()}
-   */
-  @Deprecated("Use PluginManagerConfigurable()", replaceWith = ReplaceWith("PluginManagerConfigurable()"))
-  constructor(project: Project?) : this()
-
-  constructor()
-
-  override fun getId(): String {
-    return ID
-  }
-
-  override fun getDisplayName(): String {
-    return IdeBundle.message("title.plugins")
-  }
-
-  override fun getHelpTopic(): String {
-    return ID
-  }
-
-  @RequiresEdt
-  override fun getCenterComponent(controller: Configurable.TopComponentController): JComponent {
-    val panel = createPanelIfNeeded()
-    return panel.getCenterComponent(controller)
-  }
-
-  @get:RequiresEdt
-  val topComponent: JComponent
-    get() = getCenterComponent(Configurable.TopComponentController.EMPTY)
-
-  override fun createComponent(): JComponent {
-    val panel = createPanelIfNeeded()
-
-    try {
-      getPluginsViewCustomizer().processConfigurable(this)
-    }
-    catch (e: Exception) {
-      LOG.error("Error while processing configurable", e)
-    }
-
-    return panel.getComponent()
-  }
-
-  @RequiresEdt
-  private fun createPanelIfNeeded(): PluginManagerConfigurablePanel {
-    return createPanelIfNeeded(null)
-  }
-
-  @RequiresEdt
-  private fun createPanelIfNeeded(searchQuery: String?): PluginManagerConfigurablePanel {
-    if (myPanel == null) {
-      myPanel = PluginManagerConfigurablePanel(searchQuery)
-    }
-    return myPanel!!
-  }
-
-  override fun disposeUIResources() {
-    if (myPanel != null) {
-      Disposer.dispose(myPanel!!)
-      myPanel = null
-    }
-  }
-
-  override fun cancel() {
-    if (myPanel != null) {
-      myPanel!!.cancel()
-    }
-  }
-
-  override fun isModified(): Boolean {
-    return myPanel != null && myPanel!!.isModified()
-  }
-
-  @Throws(ConfigurationException::class)
-  override fun apply() {
-    if (myPanel != null) {
-      myPanel!!.apply()
-    }
-  }
-
-  fun scheduleApply() {
-    if (myPanel != null) {
-      myPanel!!.scheduleApply()
-    }
-  }
-
-  override fun reset() {
-    if (myPanel != null) {
-      myPanel!!.reset()
-    }
-  }
-
-  @RequiresEdt
-  override fun enableSearch(option: String?): Runnable? {
-    return createPanelIfNeeded(option).enableSearch(option)
-  }
-
-  @RequiresEdt
-  fun enableSearch(option: String?, ignoreTagMarketplaceTab: Boolean): Runnable? {
-    return createPanelIfNeeded(option).enableSearch(option, ignoreTagMarketplaceTab)
-  }
-
-  fun isMarketplaceTabShowing(): Boolean {
-    return myPanel != null && myPanel!!.isMarketplaceTabShowing()
-  }
-
-  fun isInstalledTabShowing(): Boolean {
-    return myPanel != null && myPanel!!.isInstalledTabShowing()
-  }
-
-  @RequiresEdt
-  fun openMarketplaceTab(option: String) {
-    createPanelIfNeeded(option).openMarketplaceTab(option)
-  }
-
-  @RequiresEdt
-  fun openInstalledTab(option: String) {
-    createPanelIfNeeded(option).openInstalledTab(option)
-  }
-
-  @RequiresEdt
-  private fun setInstallSource(source: FUSEventSource?) {
-    createPanelIfNeeded().setInstallSource(source)
-  }
-
-  @RequiresEdt
-  private fun selectAndEnable(descriptors: Set<IdeaPluginDescriptor>) {
-    createPanelIfNeeded().selectAndEnable(descriptors)
-  }
-
-  @RequiresEdt
-  private fun select(pluginIds: Collection<PluginId>) {
-    createPanelIfNeeded().select(pluginIds)
   }
 }
