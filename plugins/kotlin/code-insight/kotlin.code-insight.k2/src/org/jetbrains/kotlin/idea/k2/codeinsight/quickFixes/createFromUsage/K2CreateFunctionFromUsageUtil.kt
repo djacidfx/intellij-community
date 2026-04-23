@@ -178,7 +178,10 @@ object K2CreateFunctionFromUsageUtil {
         }
         if (expectedType == null) return null
 
-        val receiverExpression = (parent as? KtDotQualifiedExpression)?.receiverExpression
+        val receiverExpression = when (this) {
+            is KtBinaryExpression -> left
+            else -> (parent as? KtDotQualifiedExpression)?.receiverExpression
+        }
         val receiverType = receiverExpression?.expressionType
 
         expectedType = makeAccessibleInCreationPlace(expectedType, this) ?: return null
@@ -236,14 +239,29 @@ object K2CreateFunctionFromUsageUtil {
     }?.psi
 
     context(_: KaSession)
-    @OptIn(KaExperimentalApi::class)
     internal fun ValueArgument.getExpectedParameterInfo(
         defaultParameterName: String,
         isTheOnlyAnnotationParameter: Boolean,
         receiverType: KaType?
     ): ExpectedParameter {
         val parameterNameAsString = getArgumentName()?.asName?.asString()
-        val argumentExpression = getArgumentExpression()
+        return createExpectedParameterInfo(
+            argumentExpression = getArgumentExpression(),
+            defaultParameterName = defaultParameterName,
+            parameterNameAsString = parameterNameAsString,
+            isTheOnlyAnnotationParameter = isTheOnlyAnnotationParameter,
+            receiverType = receiverType,
+        )
+    }
+
+    context(_: KaSession)
+    internal fun createExpectedParameterInfo(
+        argumentExpression: KtExpression?,
+        defaultParameterName: String,
+        parameterNameAsString: String?,
+        isTheOnlyAnnotationParameter: Boolean,
+        receiverType: KaType?
+    ): ExpectedParameter {
         var expectedArgumentType = argumentExpression?.expressionType?.approximateAnonymousObjectToSupertypeOrSelf()
         if (expectedArgumentType != null && receiverType is KaClassType) {
             expectedArgumentType = guessAccessibleTypeByArguments(receiverType, expectedArgumentType)
@@ -253,20 +271,21 @@ object K2CreateFunctionFromUsageUtil {
             expectedArgumentType is KaTypeParameterType -> NAME_SUGGESTER.suggestTypeNames(expectedArgumentType)
             else -> argumentExpression?.let { NAME_SUGGESTER.suggestExpressionNames(it) }
         }
-        val jvmParameterType = expectedArgumentType?.convertToJvmType(argumentExpression!!)
+        val jvmParameterType = argumentExpression?.let { expectedArgumentType?.convertToJvmType(it) }
         val expectedType = when (jvmParameterType) {
-                    null if expectedArgumentType != null ->
-                        ExpectedTypeWithNullability.createExpectedKotlinType(
-                            PsiType.getJavaLangObject(
-                                argumentExpression!!.manager,
-                                argumentExpression.resolveScope
-                            ), Nullability.UNKNOWN
-                        )
-                    null -> ExpectedTypeWithNullability.INVALID_TYPE
-                    else -> ExpectedKotlinType.create(expectedArgumentType, jvmParameterType)
-                }
+            null if expectedArgumentType != null ->
+                ExpectedTypeWithNullability.createExpectedKotlinType(
+                    PsiType.getJavaLangObject(
+                        argumentExpression!!.manager,
+                        argumentExpression.resolveScope
+                    ), Nullability.UNKNOWN
+                )
+
+            null -> ExpectedTypeWithNullability.INVALID_TYPE
+            else -> ExpectedKotlinType.create(expectedArgumentType!!, jvmParameterType)
+        }
         val names = parameterNames?.toList() ?: listOf(defaultParameterName)
-        val nameArray = (if (isTheOnlyAnnotationParameter && parameterNameAsString==null) listOf("value") + names else names).toTypedArray()
+        val nameArray = (if (isTheOnlyAnnotationParameter && parameterNameAsString == null) listOf("value") + names else names).toTypedArray()
         return expectedParameter(expectedType, *nameArray)
     }
 

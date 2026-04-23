@@ -4803,6 +4803,100 @@ public abstract class HighLevelQuickFixTestGenerated extends AbstractHighLevelQu
     }
 
     @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../../idea/tests/testData/quickfix/createFromUsage/createFunction/binaryOperations")
+    public static class BinaryOperations extends AbstractHighLevelQuickFixTest {
+        @java.lang.Override
+        @org.jetbrains.annotations.NotNull
+        public final KotlinPluginMode getPluginMode() {
+            return KotlinPluginMode.K2;
+        }
+
+        private void runTest(String testDataFilePath) throws Exception {
+            KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
+        }
+
+        @TestMetadata("customOperationOnUserType.kt")
+        public void testCustomOperationOnUserType() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/createFromUsage/createFunction/binaryOperations/customOperationOnUserType.kt");
+        }
+
+        @TestMetadata("greaterOrEqualOnUserType.kt")
+        public void testGreaterOrEqualOnUserType() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/createFromUsage/createFunction/binaryOperations/greaterOrEqualOnUserType.kt");
+        }
+
+        @TestMetadata("inOnUserType.kt")
+        public void testInOnUserType() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/createFromUsage/createFunction/binaryOperations/inOnUserType.kt");
+        }
+
+        @TestMetadata("lessOnUserType.kt")
+        public void testLessOnUserType() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/createFromUsage/createFunction/binaryOperations/lessOnUserType.kt");
+        }
+
+        @TestMetadata("notInOnUserType.kt")
+        public void testNotInOnUserType() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/createFromUsage/createFunction/binaryOperations/notInOnUserType.kt");
+        }
+
+        @TestMetadata("plusAssignOnUserType.kt")
+        public void testPlusAssignOnUserType() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/createFromUsage/createFunction/binaryOperations/plusAssignOnUserType.kt");
+        }
+
+        @TestMetadata("plusExtraArgs.kt")
+        public void testPlusExtraArgs() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/createFromUsage/createFunction/binaryOperations/plusExtraArgs.kt");
+        }
+
+        @TestMetadata("plusForAssignmentOnUserType.kt")
+        public void testPlusForAssignmentOnUserType() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/createFromUsage/createFunction/binaryOperations/plusForAssignmentOnUserType.kt");
+        }
+
+        @TestMetadata("plusMissingArgs.kt")
+        public void testPlusMissingArgs() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/createFromUsage/createFunction/binaryOperations/plusMissingArgs.kt");
+        }
+
+        @TestMetadata("plusOnLibType.kt")
+        public void testPlusOnLibType() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/createFromUsage/createFunction/binaryOperations/plusOnLibType.kt");
+        }
+
+        @TestMetadata("plusOnUserType.kt")
+        public void testPlusOnUserType() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/createFromUsage/createFunction/binaryOperations/plusOnUserType.kt");
+        }
+
+        @TestMetadata("plusOnUserTypeWithTypeParams.kt")
+        public void testPlusOnUserTypeWithTypeParams() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/createFromUsage/createFunction/binaryOperations/plusOnUserTypeWithTypeParams.kt");
+        }
+
+        @TestMetadata("quotedName.kt")
+        public void testQuotedName() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/createFromUsage/createFunction/binaryOperations/quotedName.kt");
+        }
+
+        @TestMetadata("typeMismatch.kt")
+        public void testTypeMismatch() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/createFromUsage/createFunction/binaryOperations/typeMismatch.kt");
+        }
+
+        @TestMetadata("whenInOnUserType.kt")
+        public void testWhenInOnUserType() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/createFromUsage/createFunction/binaryOperations/whenInOnUserType.kt");
+        }
+
+        @TestMetadata("whenNotInOnUserType.kt")
+        public void testWhenNotInOnUserType() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/createFromUsage/createFunction/binaryOperations/whenNotInOnUserType.kt");
+        }
+    }
+
+    @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../../idea/tests/testData/quickfix/createFromUsage/createFunction/call")
     public abstract static class Call extends AbstractHighLevelQuickFixTest {
         @RunWith(JUnit3RunnerWithInners.class)

@@ -20,6 +20,7 @@ import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtClassBody
 import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtDeclaration
+import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtEnumEntry
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtFunctionLiteral
@@ -162,7 +163,7 @@ object CreateFromUsageUtil {
         return declarationInPlace
     }
 
-    fun patchVisibilityForInlineFunction(expression: KtCallExpression): KtModifierKeywordToken? {
+    fun patchVisibilityForInlineFunction(expression: KtElement): KtModifierKeywordToken? {
         val parentFunction = expression.getStrictParentOfType<KtNamedFunction>()
         return if (parentFunction?.hasModifier(KtTokens.INLINE_KEYWORD) == true) {
             when {
