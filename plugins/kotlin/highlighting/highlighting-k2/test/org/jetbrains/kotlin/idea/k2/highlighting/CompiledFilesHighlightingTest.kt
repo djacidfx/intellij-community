@@ -1,21 +1,17 @@
 // Copyright 2000-2023 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package org.jetbrains.kotlin.idea.highlighter
+package org.jetbrains.kotlin.idea.k2.highlighting
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
-import com.intellij.codeInsight.daemon.impl.DaemonCodeAnalyzerEx
 import com.intellij.codeInsight.daemon.impl.DaemonCodeAnalyzerImpl
 import com.intellij.codeInsight.daemon.impl.analysis.FileHighlightingSetting
 import com.intellij.codeInsight.daemon.impl.analysis.HighlightingSettingsPerFile
 import com.intellij.openapi.application.ReadAction
-import com.intellij.openapi.application.readAction
 import com.intellij.openapi.editor.impl.DocumentImpl
-import com.intellij.openapi.progress.runBlockingCancellable
 import com.intellij.openapi.roots.OrderRootType
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.StandardFileSystems
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
-import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import com.intellij.platform.testFramework.core.FileComparisonFailedError
 import com.intellij.psi.PsiManager
 import com.intellij.testFramework.ExpectedHighlightingData
@@ -23,20 +19,19 @@ import com.intellij.testFramework.TestDataPath
 import com.intellij.testFramework.fixtures.impl.CodeInsightTestFixtureImpl
 import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.io.URLUtil
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import org.jetbrains.kotlin.idea.artifacts.TestKotlinArtifacts
+import org.jetbrains.kotlin.idea.base.plugin.KotlinPluginMode
 import org.jetbrains.kotlin.idea.base.test.TestRoot
 import org.jetbrains.kotlin.idea.jvmDecompiler.KotlinBytecodeDecompiler
 import org.jetbrains.kotlin.idea.jvmDecompiler.KotlinBytecodeDecompilerTask
 import org.jetbrains.kotlin.idea.test.ConfigLibraryUtil
-import org.jetbrains.kotlin.idea.test.JUnit3RunnerWithInners
 import org.jetbrains.kotlin.idea.test.KotlinLightCodeInsightFixtureTestCase
 import org.jetbrains.kotlin.idea.test.TagsTestDataUtil
 import org.jetbrains.kotlin.idea.test.addRoot
 import org.jetbrains.kotlin.idea.test.withCustomCompilerOptions
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.test.TestMetadata
+import org.junit.internal.runners.JUnit38ClassRunner
 import org.junit.runner.RunWith
 import java.io.File
 import java.nio.file.Path
@@ -47,10 +42,12 @@ import kotlin.io.path.extension
 import kotlin.io.path.name
 
 @TestRoot("idea/tests")
-@TestDataPath("\$CONTENT_ROOT")
-@RunWith(JUnit3RunnerWithInners::class)
+@TestDataPath($$"$CONTENT_ROOT")
+@RunWith(JUnit38ClassRunner::class)
 @TestMetadata("testData/highlighter/compiled")
 class CompiledFilesHighlightingTest: KotlinLightCodeInsightFixtureTestCase() {
+    override val pluginMode: KotlinPluginMode = KotlinPluginMode.K2
+
     @TestMetadata("default/linkdata/package_kotlin.collections/26_collections.knm")
     fun testKotlinCollectionsGroupingKtKotlinMetadata() {
         doTestWithLibraryFile(
