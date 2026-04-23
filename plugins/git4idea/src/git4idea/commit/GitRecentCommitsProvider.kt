@@ -102,16 +102,18 @@ class GitRecentCommitsProvider(
     }
   }
 
-  private fun keepOnlyUnpublished(root: VirtualFile, commits: List<VcsCommitMetadata>): List<VcsCommitMetadata> {
+  private suspend fun keepOnlyUnpublished(root: VirtualFile, commits: List<VcsCommitMetadata>): List<VcsCommitMetadata> {
     val repository = GitRepositoryManager.getInstance(project).getRepositoryForRootQuick(root) ?: return commits
 
     // If a commit is published, then all its parents as well.
-    // So we can find this published suffix using binary search
-    val firstPublishedCommitIndex = commits.binarySearch { commit ->
-      if (isCommitPublished(repository, commit.id)) 1 else -1
-    }.let { -it - 1 }
-
-    return commits.take(firstPublishedCommitIndex)
+    // So we can find this published suffix using binary search.
+    var low = 0
+    var high = commits.size
+    while (low < high) {
+      val mid = (low + high) / 2
+      if (isCommitPublished(repository, commits[mid].id)) high = mid else low = mid + 1
+    }
+    return commits.take(low)
   }
 
   private fun findFromFirstMergeCommitRange(root: VirtualFile): VcsLogRangeFilter.RefRange? {

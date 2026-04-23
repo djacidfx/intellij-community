@@ -1,3 +1,7 @@
+f:git4idea.GitProtectedBranchesKt
+- sf:findProtectedRemoteBranchContainingCommit(git4idea.repo.GitRepository,com.intellij.vcs.log.Hash,kotlin.coroutines.Continuation):java.lang.Object
+- sf:isCommitPublished(git4idea.repo.GitRepository,com.intellij.vcs.log.Hash,kotlin.coroutines.Continuation):java.lang.Object
+- sf:isCommitPublishedBlocking(git4idea.repo.GitRepository,com.intellij.vcs.log.Hash):Z
 f:git4idea.checkin.GitCheckinEnvironment
 - getAmendCommitDetails(com.intellij.openapi.vfs.VirtualFile,com.intellij.vcs.commit.CommitToAmend):org.jetbrains.concurrency.CancellablePromise
 - getAmendSpecificCommitTargets(com.intellij.openapi.vfs.VirtualFile,kotlin.coroutines.Continuation):java.lang.Object
