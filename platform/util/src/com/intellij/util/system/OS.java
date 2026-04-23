@@ -28,6 +28,17 @@ public enum OS {
 
   /// Represents an operating system this JVM is running on.
   ///
+  /// In most cases you do not need this method, see `EelShowCaseTest`.
+  ///  ```kotlin
+  ///   suspend fun getOs(p:Project) {
+  ///     val d = p.getEelDescriptor()
+  ///     d.osFamily
+  ///     d.toEelApi().exec.environmentVariables().eelIt().await()
+  ///   }
+  ///   fun getOs(p:Path) {
+  ///     p.getEelDescriptor().osFamily
+  ///   }
+  ///  ```
   /// @see LowLevelLocalMachineAccess
   @LowLevelLocalMachineAccess
   public static final OS CURRENT = fromString(System.getProperty("os.name"));

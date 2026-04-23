@@ -28,6 +28,17 @@ import java.util.concurrent.TimeUnit;
 /// A utility class for reading shell environment.
 /// Use in two steps: first, call one of `*command` methods to prepare a command,
 /// then run it with [#readEnvironment(ProcessBuilder, long)].
+/// In most cases you do not need this method, see `EelShowCaseTest`.
+///  ```kotlin
+///   suspend fun getOs(p:Project) {
+///     val d = p.getEelDescriptor()
+///     d.osFamily
+///     d.toEelApi().exec.environmentVariables().eelIt().await()
+///   }
+///   fun getOs(p:Path) {
+///     p.getEelDescriptor().osFamily
+///   }
+///  ```
 ///
 /// @since 2025.3
 @ApiStatus.Experimental

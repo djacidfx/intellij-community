@@ -28,6 +28,18 @@ public enum CpuArch {
    * Except for the lowest level, all code must be written against Eel: {@link com.intellij.platform.eel.EelApi}.
    * You should either get {@link com.intellij.platform.eel.EelApi} as an argument, or obtain it from {@link java.nio.file.Path} or project, and use
    * {@link com.intellij.platform.eel.EelApi#getPlatform()} to check an OS.
+   * <br/>
+   * Showcase, see: <code>EelShowCaseTest</code>
+   *  <pre>
+   *   suspend fun getOs(p:Project) {
+   *     val d = p.getEelDescriptor()
+   *     d.osFamily
+   *     d.toEelApi().exec.environmentVariables().eelIt().await()
+   *   }
+   *   fun getOs(p:Path) {
+   *     p.getEelDescriptor().osFamily
+   *   }
+   * </pre>
    */
   @LowLevelLocalMachineAccess
   public static final CpuArch CURRENT = fromString(System.getProperty("os.arch"));

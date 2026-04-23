@@ -14,6 +14,20 @@ import org.jetbrains.annotations.ApiStatus
  * Except for the lowest level, all code must be written against Eel: [com.intellij.platform.eel.EelApi].
  * You should either get [com.intellij.platform.eel.EelApi] as an argument, or obtain it from [java.nio.file.Path] or project,
  * and use [com.intellij.platform.eel.EelApi.platform] to check an OS.
+ *
+ * Showcase: `EelShowCaseTest`
+ *
+ * ```kotlin
+ * suspend fun getOs(p:Project) {
+ *   val d = p.getEelDescriptor()
+ *   d.osFamily
+ *   d.toEelApi().exec.environmentVariables().eelIt().await()
+ * }
+ * fun getOs(p:Path) {
+ *   p.getEelDescriptor().osFamily
+ * }
+ * ```
+ * Contact `#ij-eel` in case of questions
  */
 @ApiStatus.Internal
 annotation class LowLevelLocalMachineAccess
