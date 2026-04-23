@@ -43,11 +43,11 @@ abstract class PluginsTab @RequiresEdt constructor(
 
   protected val searchTextField: PluginSearchTextField = createSearchTextField(searchTextFieldQueryDebouncePeriodMs)
   private val defaultOrSearchResultsViewPanel: MultiPanel = createDefaultOrSearchResultsViewPanel()
-  private var detailsPage: PluginDetailsPageComponent? = null
   private var searchPanel: SearchResultPanel? = null
 
   @JvmField val searchListener: LinkListener<Any> = createSearchListener()
   protected val selectionListener: Consumer<PluginsGroupComponent?> = createSelectionListener()
+  private val detailsPage: PluginDetailsPageComponent = createDetailsPanel(searchListener)
 
   @RequiresEdt
   fun createPanel(): JComponent {
@@ -64,7 +64,7 @@ abstract class PluginsTab @RequiresEdt constructor(
       }
     }
     splitter.setFirstComponent(listPanel)
-    splitter.setSecondComponent(createDetailsPanel(searchListener).also { detailsPage = it })
+    splitter.setSecondComponent(detailsPage)
 
     searchPanel = createSearchPanel(selectionListener)
 
@@ -103,7 +103,7 @@ abstract class PluginsTab @RequiresEdt constructor(
   fun showSearchPanel(query: String) {
     if (searchPanel!!.isQueryEmpty) {
       defaultOrSearchResultsViewPanel.select(SEARCH_PANEL, true)
-      detailsPage!!.showPlugin(null)
+      detailsPage.showPlugin(null)
     }
     searchPanel!!.setQuery(query)
     searchTextField.addCurrentTextToHistory()
@@ -284,7 +284,7 @@ abstract class PluginsTab @RequiresEdt constructor(
   private fun createSelectionListener(): Consumer<PluginsGroupComponent?> = Consumer { panel: PluginsGroupComponent? ->
     val key: Int = if (searchPanel!!.panel === panel) SEARCH_PANEL else DEFAULT_PANEL
     if (defaultOrSearchResultsViewPanel.key == key) {
-      detailsPage!!.showPlugins(panel!!.selection)
+      detailsPage.showPlugins(panel!!.selection)
     }
   }
 
