@@ -35,6 +35,8 @@ object CoreModuleSets {
    * @see librariesIde for UI and IDE-specific libraries
    */
   fun librariesPlatform(): ModuleSet = moduleSet("libraries.platform") {
+    embeddedModule("intellij.libraries.java.compatibility")
+
     embeddedModule("intellij.libraries.kotlin.reflect")
     // intellij.platform.wsl.impl and intellij.platform.util.http uses it
     embeddedModule("intellij.libraries.kotlinx.io")
@@ -269,7 +271,7 @@ object CoreModuleSets {
    *
    * @see coreIde for platform with basic IDE functionality
    * @see coreLang for platform with IDE and language support
-   * @see essentialMinimal for lightweight IDE with editing (most IDE products should use this)
+   * @see [CommunityModuleSets.essentialMinimal] for lightweight IDE with editing (most IDE products should use this)
    */
   fun corePlatform(): ModuleSet = moduleSet("core.platform", selfContained = true, outputModule = "intellij.platform.ide.core", includeDependencies = true) {
     moduleSet(librariesPlatform())
@@ -301,14 +303,10 @@ object CoreModuleSets {
     embeddedModule("intellij.platform.analysis")
     embeddedModule("intellij.platform.analysis.impl")
 
-    // Include minimal RPC infrastructure AFTER core platform modules
-    // (kernel depends on platform.core, so core must be available first)
     moduleSet(rpcMinimal())
 
     embeddedModule("intellij.platform.ide.core")
     embeddedModule("intellij.platform.ide.core.plugins")
-
-    embeddedModule("intellij.platform.usageView")
   }
 
   /**
@@ -336,6 +334,12 @@ object CoreModuleSets {
 
     // Add basic IDE functionality on top of platform
     embeddedModule("intellij.platform.ide")
+
+    embeddedModule("intellij.platform.remoteServers.agent.rt")
+    embeddedModule("intellij.platform.remoteServers")
+
+    embeddedModule("intellij.platform.usageView")
+    embeddedModule("intellij.platform.credentialStore")
   }
 
   /**
@@ -364,7 +368,7 @@ object CoreModuleSets {
    *
    * @see coreIde for IDE functionality without language support
    * @see corePlatform for base platform without IDE or language support
-   * @see essentialMinimal for full minimal IDE (includes this + RPC + editor + search) - RECOMMENDED
+   * @see [CommunityModuleSets.essentialMinimal] for full minimal IDE (includes this + RPC + editor + search) - RECOMMENDED
    */
   fun coreLang(): ModuleSet = moduleSet("core.lang", includeDependencies = true) {
     // Include core IDE (corePlatform + intellij.platform.ide)
@@ -379,6 +383,8 @@ object CoreModuleSets {
 
     // intellij.platform.lang depends on it
     embeddedModule("intellij.platform.lvcs")
+
+    embeddedModule("intellij.platform.configurationStore.impl")
 
     embeddedModule("intellij.platform.lang.core")
     embeddedModule("intellij.platform.lang")

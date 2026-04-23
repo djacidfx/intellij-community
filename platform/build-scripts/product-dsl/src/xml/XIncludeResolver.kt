@@ -1,11 +1,37 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 @file:Suppress("ReplaceGetOrSet")
 
-package org.jetbrains.intellij.build.impl
+package org.jetbrains.intellij.build.productLayout.xml
 
 import com.intellij.openapi.util.JDOMUtil
 import org.jdom.Element
 import org.jdom.Namespace
+
+/**
+ * Resolver that returns JDOM Elements directly instead of file paths.
+ * Useful when working with preloaded/cached XML documents.
+ */
+interface XIncludeElementResolver {
+  /** Return the Element for the given href, or null to leave the xi:include in place. */
+  fun resolveElement(relativePath: String, isOptional: Boolean, isDynamic: Boolean): Element?
+}
+
+/**
+ * Recursively resolves XInclude elements using preloaded Elements instead of file paths.
+ *
+ * This is an optimized variant useful when working with cached or scrambled descriptors
+ * already loaded in memory, avoiding file I/O operations.
+ *
+ * When the resolver returns `null` for a given xi:include, that element is left in place
+ * so a downstream resolver with a broader search scope can handle it.
+ *
+ * @param element The root element to process. Will be mutated in place.
+ * @param elementResolver Strategy for resolving include references to preloaded Elements.
+ */
+internal fun resolveIncludes(element: Element, elementResolver: XIncludeElementResolver) {
+  check(!isIncludeElement(element))
+  doResolveNonXIncludeElement(original = element, elementResolver = elementResolver)
+}
 
 private fun isIncludeElement(element: Element): Boolean {
   return element.name == "include" && element.namespace == JDOMUtil.XINCLUDE_NAMESPACE
@@ -38,30 +64,6 @@ private fun extractNeededChildren(element: Element, remoteElement: Element): Mut
     e = requireNotNull(e.getChild(subTagName.substring(1))) { "Child element not found: ${subTagName.substring(1)}" }
   }
   return e.children.toMutableList()
-}
-
-/**
- * Resolver that returns JDOM Elements directly instead of file paths.
- * Useful when working with preloaded/cached XML documents.
- */
-interface XIncludeElementResolver {
-  // Return the Element for the given href, or null if not found/optional
-  fun resolveElement(relativePath: String, isOptional: Boolean, isDynamic: Boolean): Element?
-}
-
-/**
- * Recursively resolves XInclude elements using preloaded Elements instead of file paths.
- *
- * This is an optimized variant useful when working with cached or scrambled descriptors
- * already loaded in memory, avoiding file I/O operations.
- *
- * @param element The root element to process. Will be mutated in place.
- * @param elementResolver Strategy for resolving include references to preloaded Elements.
- * @see resolveIncludes The file-based variant
- */
-internal fun resolveIncludes(element: Element, elementResolver: XIncludeElementResolver) {
-  check(!isIncludeElement(element))
-  doResolveNonXIncludeElementFromCache(original = element, elementResolver = elementResolver)
 }
 
 private fun resolveXIncludeElement(element: Element, elementResolver: XIncludeElementResolver): MutableList<Element>? {
@@ -104,7 +106,7 @@ private fun resolveXIncludeElement(element: Element, elementResolver: XIncludeEl
       }
     }
     else {
-      doResolveNonXIncludeElementFromCache(original = child, elementResolver = elementResolver)
+      doResolveNonXIncludeElement(original = child, elementResolver = elementResolver)
     }
 
     i++
@@ -116,7 +118,7 @@ private fun resolveXIncludeElement(element: Element, elementResolver: XIncludeEl
   return remoteParsed
 }
 
-private fun doResolveNonXIncludeElementFromCache(original: Element, elementResolver: XIncludeElementResolver) {
+private fun doResolveNonXIncludeElement(original: Element, elementResolver: XIncludeElementResolver) {
   val contentList = original.content
   for (i in contentList.size - 1 downTo 0) {
     val content = contentList.get(i)
@@ -129,7 +131,7 @@ private fun doResolveNonXIncludeElementFromCache(original: Element, elementResol
       }
       else {
         // process child element to resolve possible includes
-        doResolveNonXIncludeElementFromCache(original = content, elementResolver = elementResolver)
+        doResolveNonXIncludeElement(original = content, elementResolver = elementResolver)
       }
     }
   }

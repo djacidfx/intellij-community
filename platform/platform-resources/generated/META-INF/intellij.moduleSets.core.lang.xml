@@ -30,6 +30,7 @@
     <!-- endregion -->
 
     <!-- region direct modules -->
+    <module name="intellij.libraries.java.compatibility" loading="embedded"/>
     <module name="intellij.libraries.kotlin.reflect" loading="embedded"/>
     <module name="intellij.libraries.kotlinx.io" loading="embedded"/>
     <module name="intellij.libraries.kotlinx.serialization.cbor" loading="embedded"/>
@@ -150,7 +151,6 @@
     <module name="intellij.platform.analysis.impl" loading="embedded"/>
     <module name="intellij.platform.ide.core" loading="embedded"/>
     <module name="intellij.platform.ide.core.plugins" loading="embedded"/>
-    <module name="intellij.platform.usageView" loading="embedded"/>
     <!-- endregion -->
     <!-- endregion -->
 
@@ -174,6 +174,10 @@
 
     <!-- region direct modules -->
     <module name="intellij.platform.ide" loading="embedded"/>
+    <module name="intellij.platform.remoteServers.agent.rt" loading="embedded"/>
+    <module name="intellij.platform.remoteServers" loading="embedded"/>
+    <module name="intellij.platform.usageView" loading="embedded"/>
+    <module name="intellij.platform.credentialStore" loading="embedded"/>
     <!-- endregion -->
     <!-- endregion -->
 
@@ -190,6 +194,7 @@
     <module name="intellij.platform.execution" loading="embedded"/>
     <module name="intellij.platform.execution.impl" loading="embedded"/>
     <module name="intellij.platform.lvcs" loading="embedded"/>
+    <module name="intellij.platform.configurationStore.impl" loading="embedded"/>
     <module name="intellij.platform.lang.core" loading="embedded"/>
     <module name="intellij.platform.lang" loading="embedded"/>
     <module name="intellij.platform.lang.impl" loading="embedded"/>

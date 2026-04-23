@@ -1577,21 +1577,6 @@ jvm_import(
 )
 
 copy_file(
-  name = "com.jetbrains.infra/download-pgp-verifier-1.1.4.jar_copy",
-  src = "@com_jetbrains_infra-download-pgp-verifier-1_1_4_http//file",
-  out = "com.jetbrains.infra/download-pgp-verifier-1.1.4.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-jvm_import(
-  name = "download-pgp-verifier",
-  jar = "@com_jetbrains_infra-download-pgp-verifier-1_1_4_http//file",
-  source_jar = "@com_jetbrains_infra-download-pgp-verifier-1_1_4-sources_http//file",
-  visibility = ["//visibility:public"]
-)
-
-copy_file(
   name = "org.easymock/easymock-5.6.0.jar_copy",
   src = "@org_easymock-easymock-5_6_0_http//file",
   out = "org.easymock/easymock-5.6.0.jar",
@@ -6966,21 +6951,6 @@ java_library(
 )
 
 copy_file(
-  name = "org.jetbrains.intellij.deps/java-compatibility-1.0.1.jar_copy",
-  src = "@org_jetbrains_intellij_deps-java-compatibility-1_0_1_http//file",
-  out = "org.jetbrains.intellij.deps/java-compatibility-1.0.1.jar",
-  allow_symlink = True,
-  visibility = ["//visibility:public"]
-)
-
-jvm_import(
-  name = "java_compatibility",
-  jar = "@org_jetbrains_intellij_deps-java-compatibility-1_0_1_http//file",
-  source_jar = "@org_jetbrains_intellij_deps-java-compatibility-1_0_1-sources_http//file",
-  visibility = ["//visibility:public"]
-)
-
-copy_file(
   name = "org.jetbrains.intellij.deps/scenebuilderkit-11.0.5.jar_copy",
   src = "@org_jetbrains_intellij_deps-scenebuilderkit-11_0_5_http//file",
   out = "org.jetbrains.intellij.deps/scenebuilderkit-11.0.5.jar",
@@ -11771,6 +11741,21 @@ java_library(
 )
 
 copy_file(
+  name = "com.jetbrains.infra/download-pgp-verifier-1.1.4.jar_copy",
+  src = "@com_jetbrains_infra-download-pgp-verifier-1_1_4_http//file",
+  out = "com.jetbrains.infra/download-pgp-verifier-1.1.4.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "libraries-download-pgp-verifier-download-pgp-verifier",
+  jar = "@com_jetbrains_infra-download-pgp-verifier-1_1_4_http//file",
+  source_jar = "@com_jetbrains_infra-download-pgp-verifier-1_1_4-sources_http//file",
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
   name = "org.jetbrains.intellij.deps.fastutil/intellij-deps-fastutil-8.5.18-jb1.jar_copy",
   src = "@org_jetbrains_intellij_deps_fastutil-intellij-deps-fastutil-8_5_18-jb1_http//file",
   out = "org.jetbrains.intellij.deps.fastutil/intellij-deps-fastutil-8.5.18-jb1.jar",
@@ -12186,6 +12171,21 @@ jvm_import(
   name = "libraries-jackson3-module-kotlin-jackson3-module-kotlin",
   jar = "@tools_jackson_module-jackson-module-kotlin-3_1_0-rc1_http//file",
   source_jar = "@tools_jackson_module-jackson-module-kotlin-3_1_0-rc1-sources_http//file",
+  visibility = ["//visibility:public"]
+)
+
+copy_file(
+  name = "org.jetbrains.intellij.deps/java-compatibility-1.0.1.jar_copy",
+  src = "@org_jetbrains_intellij_deps-java-compatibility-1_0_1_http//file",
+  out = "org.jetbrains.intellij.deps/java-compatibility-1.0.1.jar",
+  allow_symlink = True,
+  visibility = ["//visibility:public"]
+)
+
+jvm_import(
+  name = "libraries-java-compatibility-java-compatibility",
+  jar = "@org_jetbrains_intellij_deps-java-compatibility-1_0_1_http//file",
+  source_jar = "@org_jetbrains_intellij_deps-java-compatibility-1_0_1-sources_http//file",
   visibility = ["//visibility:public"]
 )
 

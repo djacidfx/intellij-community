@@ -393,6 +393,7 @@ libraries/compose-foundation-desktop-junit
 libraries/compose-runtime-desktop
 libraries/detekt-compose-rules
 libraries/dokka
+libraries/download-pgp-verifier
 libraries/fastutil
 libraries/grpc
 libraries/grpc-netty-shaded
@@ -425,6 +426,7 @@ libraries/jackson3/dataformat-yaml
 libraries/jackson3/jackson
 libraries/jackson3/jr-objects
 libraries/jackson3/module-kotlin
+libraries/java-compatibility
 libraries/java-websocket
 libraries/javax/activation
 libraries/javax/annotation

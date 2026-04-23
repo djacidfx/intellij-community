@@ -115,6 +115,10 @@ internal fun getLibraryFileName(library: JpsLibrary): String {
   return PathUtilRt.getFileName(roots.first().url.removeSuffix(URLUtil.JAR_SEPARATOR))
 }
 
+private fun isJarPreSigned(file: Path, context: BuildContext): Boolean {
+  return context.productProperties.presignedNativeLibs.containsKey(getLibNameBySourceFile(file))
+}
+
 class JarPackager private constructor(
   private val outDir: Path,
   private val context: BuildContext,
@@ -128,9 +132,6 @@ class JarPackager private constructor(
   private val copiedFiles = HashMap<CopiedForKey, CopiedFor>()
 
   private val helper = (context as BuildContextImpl).jarPackagerDependencyHelper
-
-  private fun isJarPreSigned(file: Path): Boolean =
-    context.productProperties.presignedNativeLibs.containsKey(getLibNameBySourceFile(file))
 
   companion object {
     suspend fun pack(includedModules: Collection<ModuleItem>, outputDir: Path, context: BuildContext) {
@@ -568,7 +569,7 @@ class JarPackager private constructor(
               )
             }
           },
-          isPreSignedAndExtractedCandidate = isJarPreSigned(file),
+          isPreSignedAndExtractedCandidate = isJarPreSigned(file, context),
           filter = ::defaultLibrarySourcesNamesFilter,
           moduleName = null,
         )
@@ -733,7 +734,7 @@ class JarPackager private constructor(
       sources.add(
         ZipSource(
           file = file,
-          isPreSignedAndExtractedCandidate = isRootDir && isJarPreSigned(file),
+          isPreSignedAndExtractedCandidate = isRootDir && isJarPreSigned(file, context),
           optimizeConfigId = libraryName.takeIf { isRootDir && libraryName == "jsvg" },
           distributionFileEntryProducer = { size, hash, targetFile ->
             if (moduleName == null) {
@@ -844,8 +845,7 @@ private fun getLibraryFiles(library: JpsLibrary, copiedFiles: MutableMap<CopiedF
   return files
 }
 
-private fun nameToJarFileName(name: String): String =
-  "${sanitizeFileName(name.lowercase(), replacement = "-") { c -> c == ' '}}.jar"
+internal fun nameToJarFileName(name: String): String = sanitizeFileName(name.lowercase(), replacement = "-") { it == ' '} + ".jar"
 
 @Suppress("SpellCheckingInspection", "RedundantSuppression")
 private val excludedFromMergeLibs = setOf(

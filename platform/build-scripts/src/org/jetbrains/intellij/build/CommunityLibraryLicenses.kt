@@ -611,11 +611,11 @@ object CommunityLibraryLicenses {
       .apache("https://svn.apache.org/repos/asf/jakarta/oro/trunk/LICENSE")
       .suppliedByPersons("Daniel Savarese", "Jon S. Stevens", "Takashi Okamoto", "Mark Murphy", "Michael Davey", "Harald Kuhn"),
 
+    LibraryLicense(libraryName = "java-compatibility", url = "https://github.com/JetBrains/intellij-deps-java-compatibility")
+      .gpl2ce("https://github.com/JetBrains/intellij-deps-java-compatibility/raw/master/LICENSE"),
+
     LibraryLicense("Java-WebSocket", libraryName = "Java-WebSocket", url = "https://github.com/TooTallNate/Java-WebSocket")
       .mit("https://github.com/TooTallNate/Java-WebSocket/blob/master/LICENSE"),
-
-    LibraryLicense(libraryName = "Java Compatibility", url = "https://github.com/JetBrains/intellij-deps-java-compatibility")
-      .gpl2ce("https://github.com/JetBrains/intellij-deps-java-compatibility/raw/master/LICENSE"),
 
     LibraryLicense("Java Poet", libraryName = "javapoet", url = "https://github.com/square/javapoet")
       .apache("https://github.com/square/javapoet/blob/master/LICENSE.txt"),

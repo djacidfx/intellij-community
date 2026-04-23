@@ -71,6 +71,9 @@ object CommunityModuleSets {
     // Lang includes corePlatform (which includes librariesPlatform) as nested set
     moduleSet(coreLang())
 
+    embeddedModule("intellij.libraries.download.pgp.verifier")
+    embeddedModule("intellij.remoteDev.util")
+
     // RPC backend functionality (base RPC/kernel already in corePlatform via rpcMinimal)
     moduleSet(rpcBackend())
 
@@ -78,7 +81,6 @@ object CommunityModuleSets {
     moduleSet(librariesKtor())  // For RPC/Remote Dev
     moduleSet(librariesMisc())  // For specialized uses (XML-RPC, CSV, document store)
 
-    // Credential store (needed by 36 products)
     embeddedModule("intellij.platform.credentialStore.ui")
     embeddedModule("intellij.platform.credentialStore.impl")
 
@@ -104,6 +106,9 @@ object CommunityModuleSets {
 
     // Completion
     module("intellij.platform.inline.completion")
+
+    embeddedModule("intellij.platform.ide.initialConfigImport")
+    embeddedModule("intellij.platform.markdown.utils")
   }
 
   /**
@@ -193,6 +198,7 @@ object CommunityModuleSets {
     embeddedModule("intellij.platform.externalProcessAuthHelper")
 
     module("intellij.java.aetherDependencyResolver")
+    module("intellij.platform.util.commonsLangV2Shim")
   }
 
   /**
@@ -407,7 +413,10 @@ object CommunityModuleSets {
     module("intellij.platform.scriptDebugger.ui")
     module("intellij.platform.scriptDebugger.backend")
     module("intellij.platform.scriptDebugger.protocolReaderRuntime")
+
+    module("intellij.platform.ml")
     module("intellij.platform.ml.impl")
+
     module("intellij.libraries.microba")
     module("intellij.platform.diagnostic.freezeAnalyzer")
     module("intellij.platform.diagnostic.freezes")

@@ -1085,20 +1085,6 @@ http_file(
 )
 
 http_file(
-  name = "com_jetbrains_infra-download-pgp-verifier-1_1_4_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/com/jetbrains/infra/download-pgp-verifier/1.1.4/download-pgp-verifier-1.1.4.jar",
-  sha256 = "2bbfa931b2864c4f5e1fd22046d001df8d9a8592a20255baab0d396ed71c854c",
-  downloaded_file_path = "download-pgp-verifier-1.1.4.jar"
-)
-
-http_file(
-  name = "com_jetbrains_infra-download-pgp-verifier-1_1_4-sources_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/com/jetbrains/infra/download-pgp-verifier/1.1.4/download-pgp-verifier-1.1.4-sources.jar",
-  sha256 = "a74a11f703331f9e36f7554fde6ce6703e680d64000c688bf116d41aa149a466",
-  downloaded_file_path = "download-pgp-verifier-1.1.4-sources.jar"
-)
-
-http_file(
   name = "org_easymock-easymock-5_6_0_http",
   url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/org/easymock/easymock/5.6.0/easymock-5.6.0.jar",
   sha256 = "63efc00da99774fb0253330ef9b5788b261022ba73f36bf76889ce7edf3d2b31",
@@ -5593,20 +5579,6 @@ http_file(
 )
 
 http_file(
-  name = "org_jetbrains_intellij_deps-java-compatibility-1_0_1_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/java-compatibility/1.0.1/java-compatibility-1.0.1.jar",
-  sha256 = "1f799c9e7691a4dcddb1cb3e28e8517d5e6b27c2ac75093f39714afdc9216950",
-  downloaded_file_path = "java-compatibility-1.0.1.jar"
-)
-
-http_file(
-  name = "org_jetbrains_intellij_deps-java-compatibility-1_0_1-sources_http",
-  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/java-compatibility/1.0.1/java-compatibility-1.0.1-sources.jar",
-  sha256 = "e0d5352f2b2c2cb9093755269d197836bf884c6649b5030cbcf890729494c39b",
-  downloaded_file_path = "java-compatibility-1.0.1-sources.jar"
-)
-
-http_file(
   name = "org_jetbrains_intellij_deps-scenebuilderkit-11_0_5_http",
   url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/scenebuilderkit/11.0.5/scenebuilderkit-11.0.5.jar",
   sha256 = "36cd8f5bc933bcf726fadfc5276f0efcc7873d3a532e4e164674d2e8919f4781",
@@ -9184,6 +9156,20 @@ http_file(
 )
 
 http_file(
+  name = "com_jetbrains_infra-download-pgp-verifier-1_1_4_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/com/jetbrains/infra/download-pgp-verifier/1.1.4/download-pgp-verifier-1.1.4.jar",
+  sha256 = "2bbfa931b2864c4f5e1fd22046d001df8d9a8592a20255baab0d396ed71c854c",
+  downloaded_file_path = "download-pgp-verifier-1.1.4.jar"
+)
+
+http_file(
+  name = "com_jetbrains_infra-download-pgp-verifier-1_1_4-sources_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/com/jetbrains/infra/download-pgp-verifier/1.1.4/download-pgp-verifier-1.1.4-sources.jar",
+  sha256 = "a74a11f703331f9e36f7554fde6ce6703e680d64000c688bf116d41aa149a466",
+  downloaded_file_path = "download-pgp-verifier-1.1.4-sources.jar"
+)
+
+http_file(
   name = "org_jetbrains_intellij_deps_fastutil-intellij-deps-fastutil-8_5_18-jb1_http",
   url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/fastutil/intellij-deps-fastutil/8.5.18-jb1/intellij-deps-fastutil-8.5.18-jb1.jar",
   sha256 = "fdb9053d8584253099300e0196fc0d3ec5b828535b0f39b0f97cf66f629df356",
@@ -9559,6 +9545,20 @@ http_file(
   url = "https://cache-redirector.jetbrains.com/repo1.maven.org/maven2/tools/jackson/module/jackson-module-kotlin/3.1.0-rc1/jackson-module-kotlin-3.1.0-rc1-sources.jar",
   sha256 = "5288cdcb51e45b2f7aca1cec626223d924fac3131510e3f46bfbaacb25dd0f61",
   downloaded_file_path = "jackson-module-kotlin-3.1.0-rc1-sources.jar"
+)
+
+http_file(
+  name = "org_jetbrains_intellij_deps-java-compatibility-1_0_1_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/java-compatibility/1.0.1/java-compatibility-1.0.1.jar",
+  sha256 = "1f799c9e7691a4dcddb1cb3e28e8517d5e6b27c2ac75093f39714afdc9216950",
+  downloaded_file_path = "java-compatibility-1.0.1.jar"
+)
+
+http_file(
+  name = "org_jetbrains_intellij_deps-java-compatibility-1_0_1-sources_http",
+  url = "https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/ij/intellij-dependencies/org/jetbrains/intellij/deps/java-compatibility/1.0.1/java-compatibility-1.0.1-sources.jar",
+  sha256 = "e0d5352f2b2c2cb9093755269d197836bf884c6649b5030cbcf890729494c39b",
+  downloaded_file_path = "java-compatibility-1.0.1-sources.jar"
 )
 
 http_file(

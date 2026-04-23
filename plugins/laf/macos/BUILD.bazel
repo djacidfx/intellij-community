@@ -20,7 +20,7 @@ jvm_library(
     "//platform/util:util-ui",
     "//platform/platform-impl:ide-impl",
     "//platform/ide-core",
-    "@lib//:java_compatibility",
+    "//libraries/java-compatibility",
     "//platform/core-ui",
   ]
 )
@@ -37,6 +37,7 @@ jvm_library(
     "//platform/util:util-ui_test_lib",
     "//platform/platform-impl:ide-impl_test_lib",
     "//platform/ide-core:ide-core_test_lib",
+    "//libraries/java-compatibility:java-compatibility_test_lib",
     "//platform/core-ui:core-ui_test_lib",
   ]
 )

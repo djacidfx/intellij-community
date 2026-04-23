@@ -9,7 +9,7 @@ jvm_library(
   deps = [
     "@lib//:kotlin-stdlib",
     "//libraries/asm",
-    "@lib//:java_compatibility",
+    "//libraries/java-compatibility",
     "@lib//:javax-inject",
     "@lib//:vavr",
     "//libraries/kotlinx/coroutines/core",
@@ -33,6 +33,7 @@ jvm_library(
   runtime_deps = [
     ":util-compiler-classpath",
     "//libraries/asm:asm_test_lib",
+    "//libraries/java-compatibility:java-compatibility_test_lib",
     "//libraries/kotlinx/coroutines/core:core_test_lib",
     "//libraries/lz4:lz4_test_lib",
     "//java/java-psi-impl:psi-impl_test_lib",

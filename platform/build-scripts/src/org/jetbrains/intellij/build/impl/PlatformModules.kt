@@ -37,18 +37,11 @@ import java.util.SortedSet
  */
 @Suppress("RemoveRedundantQualifierName")
 internal val PLATFORM_CORE_MODULES = java.util.List.of(
-  "intellij.platform.ml",
-  "intellij.platform.remoteServers.agent.rt",
-
   "intellij.platform.remoteServers.impl",
-  "intellij.remoteDev.util",
   "intellij.platform.feedback",
   "intellij.platform.buildScripts.downloader",
 
   "intellij.platform.runtime.product",
-
-  "intellij.platform.markdown.utils",
-  "intellij.platform.util.commonsLangV2Shim",
 
   // do we need it?
   "intellij.platform.sqlite",
@@ -78,7 +71,6 @@ suspend fun createPlatformLayout(context: BuildContext): PlatformLayout {
 }
 
 internal suspend fun createPlatformLayout(projectLibrariesUsedByPlugins: SortedSet<ProjectLibraryData>, context: BuildContext): PlatformLayout {
-  val frontendModuleFilter = context.getFrontendModuleFilter()
   val productLayout = context.productProperties.productLayout
   val descriptorCacheContainer = DescriptorCacheContainer()
   val layout = PlatformLayout(descriptorCacheContainer)
@@ -197,6 +189,9 @@ internal suspend fun createPlatformLayout(projectLibrariesUsedByPlugins: SortedS
     "intellij.platform.externalSystem.rt",
     "intellij.platform.objectSerializer.annotations"
   ), productLayout = productLayout, layout = layout)
+
+  val frontendModuleFilter = context.getFrontendModuleFilter()
+
   val explicit = ArrayList<ModuleItem>()
   for (moduleName in productLayout.productImplementationModules) {
     if (productLayout.excludedModuleNames.contains(moduleName)) {
