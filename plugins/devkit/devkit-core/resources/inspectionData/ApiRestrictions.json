@@ -286,6 +286,18 @@
       ]
     },
     {
+      "apiName": "com.intellij.formatting.InjectedFormattingOptionsProvider",
+      "extensionPointNames": [
+        "com.intellij.formatting.injectedOptions"
+      ]
+    },
+    {
+      "apiName": "com.intellij.codeInspection.incorrectFormatting.IncorrectFormattingResultHandlerProvider",
+      "extensionPointNames": [
+        "com.intellij.resultHandlerProvider"
+      ]
+    },
+    {
       "apiName": "com.intellij.psi.codeStyle.arrangement.Rearranger",
       "extensionPointNames": [
         "com.intellij.lang.rearranger"
@@ -728,6 +740,18 @@
       ]
     },
     {
+      "apiName": "com.intellij.psi.codeStyle.arrangement.std.ArrangementUiComponent.Factory",
+      "extensionPointNames": [
+        "com.intellij.rearranger.ui"
+      ]
+    },
+    {
+      "apiName": "com.intellij.psi.codeStyle.FileTypeIndentOptionsProvider",
+      "extensionPointNames": [
+        "com.intellij.fileTypeIndentOptionsProvider"
+      ]
+    },
+    {
       "apiName": "com.intellij.psi.codeStyle.LanguageCodeStyleSettingsProvider",
       "extensionPointNames": [
         "com.intellij.langCodeStyleSettingsProvider"
@@ -737,6 +761,12 @@
       "apiName": "com.intellij.psi.codeStyle.LanguageCodeStyleSettingsContributor",
       "extensionPointNames": [
         "com.intellij.langCodeStyleSettingsContributor"
+      ]
+    },
+    {
+      "apiName": "com.intellij.psi.codeStyle.PredefinedCodeStyle",
+      "extensionPointNames": [
+        "com.intellij.predefinedCodeStyle"
       ]
     },
     {
