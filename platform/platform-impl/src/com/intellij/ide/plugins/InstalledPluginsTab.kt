@@ -90,9 +90,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
     customizeSearchTextField()
   }
 
-  fun getInstalledPanel(): PluginsGroupComponentWithProgress {
-    return installedPanel
-  }
+  fun getInstalledPanel(): PluginsGroupComponentWithProgress = installedPanel
 
   fun getInstalledSearchPanel(): SearchResultPanel = searchPanel
 
