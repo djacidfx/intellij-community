@@ -141,4 +141,4 @@ val Sdk.targetEnvConfiguration: TargetEnvironmentConfiguration?
 
 
 @Internal
-fun Sdk.pySdkPresentationInfo(customName: String? = null): PySdkPresentationInfo = buildPresentationInfo(customName)
+fun Sdk.pyInterpreterPresentation(customName: String? = null): PythonInterpreterPresentation = buildPresentationInfo(customName)

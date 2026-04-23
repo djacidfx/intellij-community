@@ -148,12 +148,10 @@ internal class PyEnvironmentYmlSdkConfiguration : PyProjectSdkConfigurationExten
   }
 
   private suspend fun useExistingCondaEnv(module: Module, condaExecutable: String): PyResult<Sdk> {
-    val project = module.project
     return PyCondaCommand(condaExecutable, null).createCondaSdkFromExistingEnvironment(
       getCondaEnvIdentity(module, condaExecutable)
       ?: return PyResult.localizedError(PyBundle.message("sdk.cannot.use.existing.conda.environment")),
-      PyConfigurableInterpreterList.getInstance(project).model.sdks.toList(),
-      project
+      PyConfigurableInterpreterList.getInstance(module.project).model.sdks.toList(),
     )
   }
 

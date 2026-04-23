@@ -107,7 +107,6 @@ internal class PyCondaSdkTest {
       val condaSdk = condaRule.condaCommand.createCondaSdkFromExistingEnvironment(
         condaIdentity = condaEnv.envIdentity,
         existingSdks = emptyList(),
-        project = projectRule.project,
       ).getOrThrow()
       val request = LocalTargetEnvironmentRequest()
       val targetEnvironment = LocalTargetEnvironment(request)
@@ -137,7 +136,6 @@ internal class PyCondaSdkTest {
     val sdk = condaRule.condaCommand.createCondaSdkFromExistingEnvironment(
       condaIdentity = condaEnv.envIdentity,
       existingSdks = emptyList(),
-      project = projectRule.project,
     ).getOrThrow()
     val request = LocalTargetEnvironmentRequest()
 
@@ -164,7 +162,6 @@ internal class PyCondaSdkTest {
     val sdk = condaRule.condaCommand.createCondaSdkFromExistingEnvironment(
       condaIdentity = env.envIdentity,
       existingSdks = emptyList(),
-      project = projectRule.project,
     ).getOrThrow()
 
     Assert.assertEquals(sdk.getOrCreateAdditionalData().flavor, CondaEnvSdkFlavor)

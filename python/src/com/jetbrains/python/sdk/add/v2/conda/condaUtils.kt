@@ -83,7 +83,6 @@ suspend fun PythonAddInterpreterModel<*>.selectCondaEnvironment(moduleOrProject:
   ).createCondaSdkFromExistingEnvironment(
     condaIdentity = pyCondaEnv.envIdentity,
     existingSdks = this@selectCondaEnvironment.existingSdks,
-    project = moduleOrProject.project,
   ).getOr { return it }
 
   PyProjectCreateHelpers.getModule(moduleOrProject, null)?.let { sdk.setAssociationToModule(it) }

@@ -134,11 +134,6 @@ sealed interface UvPathOperations<P : PathHolder> {
   fun mapProbablyWslPath(path: P): P
 
   /**
-   * Suggests SDK name appropriate for this context type.
-   */
-  fun suggestSdkName(sdkAdditionalData: PythonSdkAdditionalData): String
-
-  /**
    * Detects UV environments in immediate subdirectories of [workingDir].
    */
   suspend fun detectEnvironments(): List<DetectedSelectableInterpreter<P>>
@@ -155,10 +150,6 @@ sealed interface UvPathOperations<P : PathHolder> {
     ): PythonSdkAdditionalData {
       val venvPath = fileSystem.resolvePythonHome(pythonBinary)
       return UvSdkAdditionalData(workingDir, usePip, venvPath.path, uvPath.path)
-    }
-
-    override fun suggestSdkName(sdkAdditionalData: PythonSdkAdditionalData): String {
-      return "uv (${PathUtil.getFileName(workingDir.pathString)})"
     }
 
     override suspend fun detectEnvironments(): List<DetectedSelectableInterpreter<PathHolder.Eel>> {
@@ -191,11 +182,6 @@ sealed interface UvPathOperations<P : PathHolder> {
       return PyTargetAwareAdditionalData(flavorAndData, targetConfig).also {
         it.interpreterPath = pythonBinary.pathString
       }
-    }
-
-    override fun suggestSdkName(sdkAdditionalData: PythonSdkAdditionalData): String {
-      val baseName = PythonInterpreterTargetEnvironmentFactory.findDefaultSdkName(null, sdkAdditionalData as PyTargetAwareAdditionalData, null)
-      return "uv $baseName"
     }
 
     // TODO PY-87712 Support detection for remotes

@@ -49,11 +49,8 @@ suspend fun createPoetrySdk(
 ): PyResult<Sdk> = withProgressText(PyBundle.message("python.sdk.progress.poetry.configuring")) {
   createSdk(
     pythonBinaryPath = pythonBinaryPath,
-    associatedModulePath = basePath.toString(),
-    suggestedSdkName = suggestedSdkName(basePath),
     sdkAdditionalData = PyPoetrySdkAdditionalData(basePath)
-  )
-}
+)}
 
 internal val Sdk.isPoetry: Boolean
   get() {
