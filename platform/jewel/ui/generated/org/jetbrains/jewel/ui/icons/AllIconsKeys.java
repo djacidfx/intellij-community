@@ -2733,6 +2733,9 @@ public final class AllIconsKeys {
     public static final @NotNull IntelliJIconKey LogFolder = new IntelliJIconKey("nodes/logFolder.svg", "expui/nodes/logFolder.svg", AllIconsKeys.class);
     /** 16x16 */ 
     @GeneratedFromIntelliJSources
+    public static final @NotNull IntelliJIconKey McpServer = new IntelliJIconKey("expui/nodes/mcp-server.svg", "expui/nodes/mcp-server.svg", AllIconsKeys.class);
+    /** 16x16 */ 
+    @GeneratedFromIntelliJSources
     public static final @NotNull IntelliJIconKey Method = new IntelliJIconKey("nodes/method.svg", "expui/nodes/method.svg", AllIconsKeys.class);
     /** 16x16 */ 
     @GeneratedFromIntelliJSources

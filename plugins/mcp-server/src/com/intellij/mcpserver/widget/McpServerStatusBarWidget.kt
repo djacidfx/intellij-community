@@ -16,6 +16,7 @@ import com.intellij.ui.BadgeIconSupplier
 import com.intellij.openapi.wm.CustomStatusBarWidget
 import com.intellij.openapi.wm.StatusBar
 import androidx.compose.runtime.remember
+import com.intellij.icons.AllIcons
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.ui.components.IconLabelButton
 import com.intellij.ui.popup.PopupState
@@ -31,7 +32,7 @@ internal class McpServerStatusBarWidget(private val project: Project) : CustomSt
   private val popupState = PopupState.forPopup()
 
   companion object {
-    private val MCP_LOGO: Icon = IconLoader.getIcon("icons/expui/mcpLogo.svg", McpServerStatusBarWidget::class.java)
+    private val MCP_LOGO: Icon = AllIcons.Nodes.McpServer
     private val BADGE_ICON_SUPPLIER = BadgeIconSupplier(MCP_LOGO)
     const val POPUP_WIDTH: Int = 450
     private const val POPUP_HEIGHT = 180 //approx size of the content

@@ -16,7 +16,6 @@ public final class McpserverIcons {
   }
 
   public static final class Expui {
-    /** 16x16 */ public static final @NotNull Icon McpLogo = load("icons/expui/mcpLogo.svg", 1034032996, 2);
     /** 16x16 */ public static final @NotNull Icon StatusDisabled = load("icons/expui/statusDisabled.svg", -456172083, 2);
     /** 16x16 */ public static final @NotNull Icon StatusEnabled = load("icons/expui/statusEnabled.svg", 1099037481, 2);
   }

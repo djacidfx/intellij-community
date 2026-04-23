@@ -923,6 +923,7 @@ f:com.intellij.icons.AllIcons$Nodes
 - sf:Library:javax.swing.Icon
 - sf:Locked:javax.swing.Icon
 - sf:LogFolder:javax.swing.Icon
+- sf:McpServer:javax.swing.Icon
 - sf:Method:javax.swing.Icon
 - sf:MethodReference:javax.swing.Icon
 - sf:Mnemonic:javax.swing.Icon
