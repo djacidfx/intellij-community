@@ -303,6 +303,7 @@ public final class PluginManagerConfigurable
     createPanelIfNeeded(option).openMarketplaceTab(option);
   }
 
+  @RequiresEdt
   public void openInstalledTab(@NotNull String option) {
     createPanelIfNeeded(option).openInstalledTab(option);
   }
