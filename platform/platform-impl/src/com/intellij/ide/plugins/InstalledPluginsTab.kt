@@ -60,7 +60,6 @@ class InstalledPluginsTab @RequiresEdt constructor(
   searchTextFieldQueryDebouncePeriodMs: Long = 100,
 ) : PluginsTab(searchTextFieldQueryDebouncePeriodMs) {
   private var installedPanel: PluginsGroupComponentWithProgress? = null
-  private var installedSearchPanel: InstalledPluginsTabSearchResultPanel? = null
   private val installedSearchGroup = DefaultActionGroup().apply {
     for (option in InstalledSearchOption.entries) {
       add(InstalledSearchOptionAction(option))
@@ -78,7 +77,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
   private val bundledUpdateCounter: JLabel = CountComponent()
 
   override val detailsPage: PluginDetailsPageComponent = createDetailsPanel(searchListener)
-  override val searchPanel: SearchResultPanel = createSearchPanel(selectionListener)
+  override val searchPanel: InstalledPluginsTabSearchResultPanel = createSearchPanel(selectionListener)
 
   init {
     updateAllLink.isVisible = false
@@ -94,7 +93,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
   }
 
   fun getInstalledSearchPanel(): SearchResultPanel? {
-    return installedSearchPanel
+    return searchPanel
   }
 
   fun getInstalledGroups(): List<UIPluginGroup>? {
@@ -119,8 +118,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
     installedPanel.accessibleContext.accessibleName = IdeBundle.message("plugin.manager.installed.panel.accessible.name")
     registerCopyProvider(installedPanel)
 
-    //noinspection ConstantConditions
-    (installedSearchPanel!!.controller as SearchUpDownPopupController).setEventHandler(eventHandler)
+    (searchPanel.controller as SearchUpDownPopupController).setEventHandler(eventHandler)
     installedPanel.showLoadingIcon()
 
     val userInstalled = PluginsGroup(IdeBundle.message("plugins.configurable.userInstalled"), PluginsGroupType.INSTALLED)
@@ -290,15 +288,15 @@ class InstalledPluginsTab @RequiresEdt constructor(
                              ?: emptyList()
           if (ContainerUtil.isEmpty(updateModels)) {
             clearUpdates(installedPanel)
-            clearUpdates(installedSearchPanel!!.panel)
+            clearUpdates(searchPanel.panel)
           }
           else {
             applyUpdates(installedPanel, updateModels)
-            applyUpdates(installedSearchPanel!!.panel, updateModels)
+            applyUpdates(searchPanel.panel, updateModels)
           }
           applyBundledUpdates(updateModels)
           selectionListener.accept(installedPanel)
-          selectionListener.accept(installedSearchPanel!!.panel)
+          selectionListener.accept(searchPanel.panel)
         }
       }
       finally {
@@ -335,7 +333,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
     return detailPanel
   }
 
-  private fun createSearchPanel(selectionListener: Consumer<in PluginsGroupComponent?>): SearchResultPanel {
+  private fun createSearchPanel(selectionListener: Consumer<in PluginsGroupComponent?>): InstalledPluginsTabSearchResultPanel {
     val installedController = object : SearchUpDownPopupController(searchTextField) {
       override fun getAttributes(): List<String> {
         return listOf(
@@ -385,7 +383,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
     panel.setSelectionListener(selectionListener)
     registerCopyProvider(panel)
 
-    val installedSearchPanel = InstalledPluginsTabSearchResultPanel(
+    val searchPanel = InstalledPluginsTabSearchResultPanel(
       coroutineScope,
       installedController,
       panel,
@@ -395,8 +393,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
       if (searchInMarketplaceTabHandler == null) null else Consumer<String?> { query -> searchInMarketplaceTabHandler.accept(query!!) },
       pluginModelFacade,
     )
-    this@InstalledPluginsTab.installedSearchPanel = installedSearchPanel
-    return installedSearchPanel
+    return searchPanel
   }
 
   override fun updateMainSelection(selectionListener: Consumer<in PluginsGroupComponent?>) {

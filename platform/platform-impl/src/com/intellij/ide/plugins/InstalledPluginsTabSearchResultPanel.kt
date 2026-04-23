@@ -38,7 +38,7 @@ import java.util.function.Consumer
 import java.util.function.Supplier
 
 @ApiStatus.Internal
-internal class InstalledPluginsTabSearchResultPanel(
+class InstalledPluginsTabSearchResultPanel(
   coroutineScope: CoroutineScope,
   installedController: SearchUpDownPopupController,
   panel: PluginsGroupComponentWithProgress,
