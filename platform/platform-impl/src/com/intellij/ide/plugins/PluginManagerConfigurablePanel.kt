@@ -134,6 +134,8 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
       }
     pluginModelFacade.getModel().pluginUpdatesService = pluginUpdatesService
 
+    CustomPluginRepositoryService.getInstance().clearCache()
+
     marketplaceTab = createMarketplaceTab()
     installedTab = createInstalledTab()
 
@@ -142,8 +144,6 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     tabHeaderComponent = createTabHeaderComponent(selectionTab)
 
     laterSearchQuery = searchQuery
-
-    CustomPluginRepositoryService.getInstance().clearCache()
 
     UiPluginManager.getInstance().updateDescriptorsForInstalledPlugins()
 
