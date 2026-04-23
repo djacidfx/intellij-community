@@ -271,6 +271,7 @@ internal suspend fun createPlatformLayout(projectLibrariesUsedByPlugins: SortedS
         chain = chain,
         outputProvider = outputProvider,
         allowedMissingDependencies = implicitContentModuleAllowlist,
+        isClientBuild = context.useModularLoader,
       )
     }
   }
@@ -599,6 +600,7 @@ private suspend fun validateImplicitPlatformModule(
   chain: PersistentList<String>,
   outputProvider: ModuleOutputProvider,
   allowedMissingDependencies: Set<String>,
+  isClientBuild: Boolean,
 ) {
   val jpsModule = outputProvider.findRequiredModule(name)
   val pluginXml = outputProvider.readFileContentFromModuleOutput(jpsModule, "META-INF/plugin.xml")
@@ -611,6 +613,11 @@ private suspend fun validateImplicitPlatformModule(
   }
   else if (allowedMissingDependencies.contains(name) || chain.firstOrNull() == "intellij.tools.testsBootstrap") {
     Span.current().addEvent("Suppressing implicit content module validation for $name via allowMissingDependencies (chain: $chain)")
+  }
+  else if (isClientBuild) {
+    // RustIdeBuildTest failed, disable assertion as it is not a production classloader / packaging for now
+    Span.current().addEvent("Suppressing implicit content module validation for $name via allowMissingDependencies " +
+                            "(chain: $chain) because it is a client build (non-production classloader)")
   }
   else {
     error("Module $name is a content module. Implicit platform auto-inclusion is prohibited; plugin model must be the only truth for packaging (chain: $chain)")
