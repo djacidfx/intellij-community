@@ -46,29 +46,8 @@ abstract class PluginsTab @RequiresEdt constructor(
   private var detailsPage: PluginDetailsPageComponent? = null
   private var searchPanel: SearchResultPanel? = null
 
-  @JvmField
-  val searchListener: LinkListener<Any> = LinkListener { _: LinkLabel<Any>?, data: Any ->
-    val query: String?
-    when (data) {
-      is String -> query = data
-      is TagComponent -> query = getTagQuery(data.text)
-      else -> return@LinkListener
-    }
-
-    searchTextField.setTextIgnoreEvents(query)
-    IdeFocusManager.getGlobalInstance().doWhenFocusSettlesDown(Runnable {
-      IdeFocusManager.getGlobalInstance().requestFocus(searchTextField, true)
-    })
-    searchPanel!!.setEmptyQuery()
-    showSearchPanel(query)
-  }
-
-  protected val selectionListener: Consumer<PluginsGroupComponent?> = Consumer { panel: PluginsGroupComponent? ->
-    val key: Int = if (searchPanel!!.panel === panel) SEARCH_PANEL else DEFAULT_PANEL
-    if (defaultOrSearchResultsViewPanel.key == key) {
-      detailsPage!!.showPlugins(panel!!.selection)
-    }
-  }
+  @JvmField val searchListener: LinkListener<Any> = createSearchListener()
+  protected val selectionListener: Consumer<PluginsGroupComponent?> = createSelectionListener()
 
   @RequiresEdt
   fun createPanel(): JComponent {
@@ -283,6 +262,29 @@ abstract class PluginsTab @RequiresEdt constructor(
         }
         return super.create(key)
       }
+    }
+  }
+
+  private fun createSearchListener(): LinkListener<in Any> = LinkListener { _: LinkLabel<Any>?, data: Any ->
+    val query: String?
+    when (data) {
+      is String -> query = data
+      is TagComponent -> query = getTagQuery(data.text)
+      else -> return@LinkListener
+    }
+
+    searchTextField.setTextIgnoreEvents(query)
+    IdeFocusManager.getGlobalInstance().doWhenFocusSettlesDown(Runnable {
+      IdeFocusManager.getGlobalInstance().requestFocus(searchTextField, true)
+    })
+    searchPanel!!.setEmptyQuery()
+    showSearchPanel(query)
+  }
+
+  private fun createSelectionListener(): Consumer<PluginsGroupComponent?> = Consumer { panel: PluginsGroupComponent? ->
+    val key: Int = if (searchPanel!!.panel === panel) SEARCH_PANEL else DEFAULT_PANEL
+    if (defaultOrSearchResultsViewPanel.key == key) {
+      detailsPage!!.showPlugins(panel!!.selection)
     }
   }
 
