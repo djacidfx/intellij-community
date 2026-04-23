@@ -14,14 +14,6 @@ import javax.swing.Icon
 @ApiStatus.Experimental
 @ApiStatus.Internal
 interface PySdkProvider {
-  // SDK
-  /**
-   * Additional info to be displayed with the SDK's name.
-   */
-  fun getSdkAdditionalText(sdk: Sdk): String? = null
-
-  fun getSdkIcon(sdk: Sdk): Icon? = null
-
   /**
    * Try to load additional data for your SDK. Check for attributes, specific to your SDK before loading it. Return null if there is none.
    */

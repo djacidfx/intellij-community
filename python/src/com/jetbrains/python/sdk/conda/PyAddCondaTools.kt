@@ -26,10 +26,10 @@ import com.jetbrains.python.conda.saveLocalPythonCondaPath
 import com.jetbrains.python.errorProcessing.PyResult
 import com.jetbrains.python.getOrThrow
 import com.jetbrains.python.psi.LanguageLevel
-import com.jetbrains.python.run.PythonInterpreterTargetEnvironmentFactory
 import com.jetbrains.python.sdk.PythonSdkAdditionalData
 import com.jetbrains.python.sdk.PythonSdkType
 import com.jetbrains.python.sdk.add.v2.FileSystem
+import com.jetbrains.python.sdk.pyRichSdk
 import com.jetbrains.python.sdk.conda.execution.CondaExecutor
 import com.jetbrains.python.sdk.flavors.PyFlavorAndData
 import com.jetbrains.python.sdk.flavors.conda.CondaEnvSdkFlavor
@@ -66,8 +66,8 @@ val condaLatestSupportedLanguage: LanguageLevel
 suspend fun PyCondaCommand.createCondaSdkFromExistingEnv(
   condaIdentity: PyCondaEnvIdentity,
   existingSdks: List<Sdk>,
-  project: Project?,
-): Sdk = createCondaSdkFromExistingEnvironment(condaIdentity, existingSdks, project).getOrThrow()
+  @Suppress("unused", "UNUSED_PARAMETER") project: Project? = null,
+): Sdk = createCondaSdkFromExistingEnvironment(condaIdentity, existingSdks).getOrThrow()
 
 
 /**
@@ -76,34 +76,30 @@ suspend fun PyCondaCommand.createCondaSdkFromExistingEnv(
 suspend fun PyCondaCommand.createCondaSdkFromExistingEnvironment(
   condaIdentity: PyCondaEnvIdentity,
   existingSdks: List<Sdk>,
-  project: Project?,
 ): PyResult<Sdk> {
   val condaEnv = PyCondaEnv(condaIdentity, fullCondaPathOnTarget)
   val flavorAndData = PyFlavorAndData(PyCondaFlavorData(condaEnv), CondaEnvSdkFlavor)
   val interpreterPath = getCondaPythonBinaryPath(condaEnv, targetConfig).getOr { return it }
 
-  val (additionalData, customSdkSuggestedName) = when (targetConfig) {
-    null -> PythonSdkAdditionalData(flavorAndData) to condaIdentity.userReadableName
-    else -> {
-      val data = PyTargetAwareAdditionalData(flavorAndData, targetConfig)
-      data.interpreterPath = interpreterPath
-      val name = PythonInterpreterTargetEnvironmentFactory.findDefaultSdkName(project, data, condaIdentity.userReadableName)
-      data to name
+  val additionalData = when (targetConfig) {
+    null -> PythonSdkAdditionalData(flavorAndData)
+    else -> PyTargetAwareAdditionalData(flavorAndData, targetConfig).also {
+      it.interpreterPath = interpreterPath
     }
   }
 
+  val sdkType = PythonSdkType.getInstance()
   val sdk = ProjectJdkTable.getInstance().createSdk(
-    SdkConfigurationUtil.createUniqueSdkName(customSdkSuggestedName, existingSdks),
-    PythonSdkType.getInstance()
+    SdkConfigurationUtil.createUniqueSdkName(sdkType.suggestSdkName(null, interpreterPath), existingSdks),
+    sdkType
   )
   val sdkModificator = sdk.sdkModificator
   sdkModificator.sdkAdditionalData = additionalData
-  // homePath is not required by conda, but used by lots of tools all over the code and required by CondaPathFix
-  // Because homePath is not set yet, CondaPathFix does not work
   sdkModificator.homePath = interpreterPath
   edtWriteAction {
     sdkModificator.commitChanges()
   }
+  sdk.pyRichSdk()
   if (targetConfig == null) {
     saveLocalPythonCondaPath(Path.of(fullCondaPathOnTarget))
   }
@@ -141,7 +137,6 @@ suspend fun PyCondaCommand.createCondaSdkAlongWithNewEnv(
   val sdk = createCondaSdkFromExistingEnvironment(
     condaIdentity = newCondaEnvInfo.toIdentity(),
     existingSdks = existingSdks,
-    project = project,
   ).getOr { return it }
   if (targetConfig == null) {
     saveLocalPythonCondaPath(Path.of(this@createCondaSdkAlongWithNewEnv.fullCondaPathOnTarget))
@@ -278,4 +273,3 @@ private fun Process.captureProcessOutput(commandLine: List<String>): ProcessOutp
   val commandLineString = commandLine.joinToString(separator = " ")
   return CapturingProcessHandler(this, Charsets.UTF_8, commandLineString).runProcess()
 }
-

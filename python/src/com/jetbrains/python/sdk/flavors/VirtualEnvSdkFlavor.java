@@ -11,7 +11,8 @@ import com.intellij.util.concurrency.annotations.RequiresBackgroundThread;
 import com.intellij.util.containers.ContainerUtil;
 import com.jetbrains.python.sdk.BasePySdkExtKt;
 import com.jetbrains.python.sdk.PySdkExtKt;
-import com.jetbrains.python.sdk.legacy.PythonSdkUtil;
+import com.jetbrains.python.sdk.PythonEnvironmentKt;
+import com.jetbrains.python.sdk.PythonEnvironment;
 import com.jetbrains.python.venvReader.VirtualEnvReaderKt;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -69,18 +70,18 @@ public final class VirtualEnvSdkFlavor extends CPythonSdkFlavor<PyFlavorData.Emp
       candidates.addAll(reader.findPyenvInterpreters());
 
       return ContainerUtil.filter(candidates, (Path path) -> {
-        return PythonSdkUtil.isVirtualEnv(path.toString());
+        return PythonEnvironmentKt.detectPythonEnvironment(path).getSuccessOrNull() instanceof PythonEnvironment.Venv;
       });
     });
   }
 
   @Override
-  public boolean isValidSdkPath(@NotNull String pathStr) {
-    if (!super.isValidSdkPath(pathStr)) {
+  public boolean isValidSdkPath(@NotNull Path pythonBinaryPath) {
+    if (!super.isValidSdkPath(pythonBinaryPath)) {
       return false;
     }
 
-    return PythonSdkUtil.getVirtualEnvRoot(pathStr) != null;
+    return PythonEnvironmentKt.detectPythonEnvironment(pythonBinaryPath).getSuccessOrNull() instanceof PythonEnvironment.Venv;
   }
 
   @Override

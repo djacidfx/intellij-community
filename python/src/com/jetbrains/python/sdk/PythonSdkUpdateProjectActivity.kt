@@ -16,6 +16,8 @@ import com.jetbrains.python.packaging.common.PythonPackageManagementListener
 import com.jetbrains.python.packaging.management.PythonPackageManager
 import com.jetbrains.python.packaging.utils.PyPackageCoroutine
 import com.jetbrains.python.sdk.skeleton.PySkeletonUtil.getSitePackagesDirectory
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.jetbrains.annotations.ApiStatus
 
 @ApiStatus.Internal
@@ -42,7 +44,7 @@ class PythonSdkUpdateProjectActivity : ProjectActivity, DumbAware {
 }
 
 @ApiStatus.Internal
-suspend fun refreshPaths(project: Project, sdk: Sdk) {
+suspend fun refreshPaths(project: Project, sdk: Sdk) = withContext(Dispatchers.IO) {
   // Background refreshing breaks structured concurrency: there is a some activity in background that locks files.
   // Temporary folders can't be deleted on Windows due to that.
   // That breaks tests.

@@ -113,7 +113,7 @@ object UvSdkFlavor : CPythonSdkFlavor<UvSdkFlavorData>(), VirtualEnvBasedFlavor 
   override fun getIcon(): Icon = PythonCommunityImplUVCommonIcons.UV
   override fun getFlavorDataClass(): Class<UvSdkFlavorData> = UvSdkFlavorData::class.java
 
-  override fun isValidSdkPath(pathStr: String): Boolean {
+  override fun isValidSdkPath(pythonBinaryPath: Path): Boolean {
     return false
   }
 }

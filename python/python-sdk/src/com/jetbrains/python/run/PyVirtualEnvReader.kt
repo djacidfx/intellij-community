@@ -1,18 +1,30 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 @file:OptIn(LowLevelLocalMachineAccess::class)
+
 package com.jetbrains.python.run
 
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.platform.eel.EelOsFamily
+import com.intellij.platform.eel.provider.getEelDescriptor
 import com.intellij.util.EnvironmentUtil
 import com.intellij.util.ShellEnvironmentReader
 import com.intellij.util.system.LowLevelLocalMachineAccess
-import com.intellij.util.system.OS
 import com.jetbrains.python.packaging.PyCondaPackageService
-import com.jetbrains.python.sdk.legacy.PythonSdkUtil
-import java.nio.file.Files
+import com.jetbrains.python.sdk.PythonEnvironment
+import com.jetbrains.python.sdk.detectPythonEnvironment
+import org.jetbrains.annotations.ApiStatus
+import java.io.IOException
 import java.nio.file.Path
+import kotlin.io.path.absolutePathString
 import kotlin.io.path.exists
 import kotlin.io.path.name
+import kotlin.io.path.pathString
+
+@ApiStatus.Internal
+data class ActivateScript(
+  val scriptPath: Path,
+  val args: List<String>? = null,
+)
 
 internal class PyVirtualEnvReader(private val virtualEnvSdkPath: String) {
   companion object {
@@ -36,70 +48,77 @@ internal class PyVirtualEnvReader(private val virtualEnvSdkPath: String) {
 
   private val shell: String? by lazy {
     when {
-      Files.exists(Path.of("/bin/bash")) -> "/bin/bash"
-      Files.exists(Path.of("/bin/sh")) -> "/bin/sh"
+      Path.of("/bin/bash").exists() -> "/bin/bash"
+      Path.of("/bin/sh").exists() -> "/bin/sh"
       else -> System.getenv("SHELL")
     }
   }
 
   // in case of Conda we need to pass an argument to the activation script telling which environment to activate
-  val activate: Pair<String, String?>? = findActivateScript(virtualEnvSdkPath, shell)
+  val activate: ActivateScript? = resolveActivateScript(virtualEnvSdkPath, shell)
 
-  @Suppress("PyExceptionTooBroad")
   fun readPythonEnv(): MutableMap<String, String> {
-    try {
-      if (OS.CURRENT != OS.Windows) {
-        val activateScript = activate?.first?.let { Path.of(it) }
-        val args = activate?.second?.let { listOf(it) }
-        val command = ShellEnvironmentReader.shellCommand(shell, activateScript, /*interactive =*/ false, args)
-        // pass shell environment for correct virtualenv environment setup (virtualenv expects to be executed from the terminal)
-        command.environment().putAll(EnvironmentUtil.getEnvironmentMap())
-        return ShellEnvironmentReader.readEnvironment(command, 0).first
-      }
-      if (activate != null) {
-        val command = ShellEnvironmentReader.winShellCommand(Path.of(activate.first), listOfNotNull(activate.second))
-        return ShellEnvironmentReader.readEnvironment(command, 0).first
-      }
+    val script = activate ?: run {
       LOG.error("Can't find activate script for $virtualEnvSdkPath")
+      return mutableMapOf()
     }
-    catch (e: Exception) {
+
+    val command = if (script.scriptPath.getEelDescriptor().osFamily == EelOsFamily.Windows) {
+      ShellEnvironmentReader.winShellCommand(script.scriptPath, script.args)
+    }
+    else {
+      ShellEnvironmentReader.shellCommand(shell, script.scriptPath, false, script.args)
+    }
+    command.environment().putAll(EnvironmentUtil.getEnvironmentMap())
+
+    return try {
+      ShellEnvironmentReader.readEnvironment(command, 0).first
+    }
+    catch (e: IOException) {
       LOG.warn("Couldn't read shell environment: ${e.message}")
+      mutableMapOf()
     }
-
-    return mutableMapOf()
   }
 }
 
-fun findActivateScript(sdkPath: String?, shellPath: String?): Pair<String, String?>? {
-  if (PythonSdkUtil.isVirtualEnv(sdkPath)) {
-    val shellName = if (shellPath != null) Path.of(shellPath).name else null
-    val activate = findActivateInPath(Path.of(sdkPath!!), shellName)
-    return if (activate != null && activate.exists()) {
-      Pair(activate.toAbsolutePath().toString(), null)
-    }
-    else null
-  }
-  else if (@Suppress("DEPRECATION") PythonSdkUtil.isConda(sdkPath)) {
-    val condaExecutable = PyCondaPackageService.getCondaExecutable(sdkPath!!)
-    if (condaExecutable != null) {
-      val activate = findActivateInPath(Path.of(condaExecutable), shellName = null)
-      if (activate != null && activate.exists()) {
-        return Pair(activate.toAbsolutePath().toString(), condaEnvFolder(sdkPath))
-      }
-    }
-  }
+/**
+ * @deprecated Use [resolveActivateScript] which returns [ActivateScript].
+ */
+@Deprecated("Use resolveActivateScript()", ReplaceWith("resolveActivateScript(shellPath)"))
+fun findActivateScript(sdkPath: String?, shellPath: String?): Pair<String, String?>? =
+  resolveActivateScript(sdkPath, shellPath)?.let { Pair(it.scriptPath.absolutePathString(), it.args?.firstOrNull()) }
 
-  return null
+private fun resolveActivateScript(sdkPath: String?, shellPath: String?): ActivateScript? {
+  if (sdkPath == null) return null
+  val pythonBinaryPath = Path.of(sdkPath)
+  val pythonEnvironment = pythonBinaryPath.detectPythonEnvironment().getOr { return null }
+  return pythonEnvironment.resolveActivateScript(shellPath)
 }
 
-private fun findActivateInPath(path: Path, shellName: String?): Path? = when {
-  OS.CURRENT == OS.Windows -> findActivateOnWindows(path)
-  shellName == "fish" || shellName == "csh" -> path.resolveSibling("activate.${shellName}")
-  else -> path.resolveSibling("activate")
+@ApiStatus.Internal
+fun PythonEnvironment.resolveActivateScript(shellPath: String?): ActivateScript? = when (this) {
+  is PythonEnvironment.Venv -> {
+    val shellName = shellPath?.let { Path.of(it).name }
+    val activate = findActivateInPath(pythonBinaryPath, shellName)
+    if (activate != null && activate.exists()) ActivateScript(activate) else null
+  }
+  is PythonEnvironment.Conda -> {
+    val condaExecutable = condaExecutable ?: PyCondaPackageService.getCondaExecutable() ?: return null
+    val activate = condaExecutable.resolveSibling("activate").takeIf { it.exists() }
+                   ?: condaExecutable.parent?.parent?.resolve("bin/activate")?.takeIf { it.exists() }
+
+    if (activate != null && activate.exists()) ActivateScript(activate, listOf(pythonHomePath.pathString)) else null
+  }
+  is PythonEnvironment.SystemPython -> null
 }
 
-private fun condaEnvFolder(path: String): String? =
-  Path.of(path).let { if (OS.CURRENT == OS.Windows) it.parent else it.parent?.parent }?.toString()
+
+private fun findActivateInPath(path: Path, shellName: String?): Path? {
+  val parent = path.parent ?: return null
+  return if (path.getEelDescriptor().osFamily == EelOsFamily.Windows) findActivateOnWindows(parent)
+  else if (shellName == "fish" || shellName == "csh") parent.resolve("activate.$shellName")
+  else parent.resolve("activate")
+}
 
 private fun findActivateOnWindows(path: Path): Path? {
   for (location in arrayListOf("activate.bat", "Scripts/activate.bat")) {

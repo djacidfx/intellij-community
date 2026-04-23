@@ -12,14 +12,16 @@ import com.jetbrains.python.PythonBinary
 import com.jetbrains.python.errorProcessing.PyResult
 import com.jetbrains.python.sdk.WinRegistryService
 import com.jetbrains.python.sdk.getAppxFiles
-import com.jetbrains.python.sdk.legacy.PythonSdkUtil
+import com.jetbrains.python.sdk.PythonEnvironment
+import com.jetbrains.python.sdk.detectPythonEnvironment
 import com.jetbrains.python.venvReader.tryResolvePath
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.nio.file.InvalidPathException
 import java.nio.file.Path
+import java.io.IOException
 import java.util.regex.Pattern
 import kotlin.io.path.exists
-import kotlin.io.path.pathString
 
 
 class WindowsSystemPythonProvider(val winRegistryBase: WinRegistryService? = null) : SystemPythonProvider {
@@ -51,28 +53,34 @@ class WindowsSystemPythonProvider(val winRegistryBase: WinRegistryService? = nul
     }
 
     val pythons = withContext(Dispatchers.IO) {
-      val candidates = mutableSetOf<Path>()
+      val fromPath = names.flatMap { name ->
+        PathEnvironmentVariableUtil.findAllExeFilesInPath(name)
+      }.mapNotNull { file ->
+        try {
+          file.toPath()
+        }
+        catch (e: InvalidPathException) {
+          LOGGER.warn("Invalid path: $file", e)
+          null
+        }
+      }.filter { it.detectPythonEnvironment().successOrNull is PythonEnvironment.SystemPython }
 
-      for (name in names) {
-        val binaries = PathEnvironmentVariableUtil.findAllExeFilesInPath(name)
-          .mapNotNull { it.toPath() }
-          .filter { !PythonSdkUtil.isConda(it.pathString) }
-          .toSet()
-
-        candidates.addAll(binaries)
-      }
-
-      candidates.addAll(getPythonsFromStore())
-      candidates.addAll(getPythonsFromRegistry())
-
-      return@withContext candidates
+      (fromPath + getPythonsFromStore() + getPythonsFromRegistry()).toSet()
     }
 
     return PyResult.success(pythons)
   }
 
   // Check https://www.python.org/dev/peps/pep-0514/ for windows registry layout to understand
-  private fun getPythonsFromRegistry(): Set<Path> {
+  private fun getPythonsFromRegistry(): Set<Path> = try {
+    getPythonsFromRegistryImpl()
+  }
+  catch (e: IOException) {
+    LOGGER.debug("Error reading Python from Windows registry", e)
+    emptySet()
+  }
+
+  private fun getPythonsFromRegistryImpl(): Set<Path> {
     val candidates = mutableSetOf<Path>()
 
     for (regRoot in REG_ROOTS) {
@@ -100,8 +108,14 @@ class WindowsSystemPythonProvider(val winRegistryBase: WinRegistryService? = nul
   }
 
   private fun getPythonsFromStore(): Set<Path> {
-    return getAppxFiles(APPX_PRODUCT, pythonVersionedExePattern.toRegex())
-      .map { it.toAbsolutePath() }
-      .toSet()
+    return try {
+      getAppxFiles(APPX_PRODUCT, pythonVersionedExePattern.toRegex())
+        .map { it.toAbsolutePath() }
+        .toSet()
+    }
+    catch (e: IOException) {
+      LOGGER.debug("Error getting Python from Windows Store", e)
+      emptySet()
+    }
   }
 }

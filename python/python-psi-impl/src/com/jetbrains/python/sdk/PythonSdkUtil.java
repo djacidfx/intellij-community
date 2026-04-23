@@ -124,27 +124,45 @@ public final class PythonSdkUtil {
     return PySkeletonUtil.getSitePackagesDirectory(pythonSdk);
   }
 
+  /**
+   * @deprecated use {@link PyRichSdk}
+   */
+  @Deprecated
   @RequiresBackgroundThread(generateAssertion = false)
   public static boolean isVirtualEnv(@NotNull Sdk sdk) {
-    return com.jetbrains.python.sdk.legacy.PythonSdkUtil.isVirtualEnv(sdk);
-  }
-
-  @Contract("null -> false")
-  public static boolean isVirtualEnv(@Nullable String path) {
-    return com.jetbrains.python.sdk.legacy.PythonSdkUtil.isVirtualEnv(path);
-  }
-
-  @RequiresBackgroundThread(generateAssertion = false)
-  public static boolean isCondaVirtualEnv(@NotNull Sdk sdk) {
-    return com.jetbrains.python.sdk.legacy.PythonSdkUtil.isCondaVirtualEnv(sdk);
+    return PyRichSdkKt.pyRichSdk(sdk, false).isVirtualEnv();
   }
 
   /**
-   * @deprecated Check sdk flavour instead
+   * @deprecated use {@link PythonEnvironmentKt#detectPythonEnvironment}
    */
   @Deprecated
+  @Contract("null -> false")
+  public static boolean isVirtualEnv(@Nullable String path) {
+    if (path == null) return false;
+    return PythonEnvironmentKt.detectPythonEnvironment(Path.of(path)).getSuccessOrNull() instanceof PythonEnvironment.Venv;
+  }
+
+  /**
+   * @deprecated use {@link PyRichSdk}
+   */
+  @Deprecated
+  @RequiresBackgroundThread(generateAssertion = false)
+  public static boolean isCondaVirtualEnv(@NotNull Sdk sdk) {
+    PyRichSdk pyRichSdk = PyRichSdkKt.pyRichSdk(sdk, false);
+    PythonEnvironment environment = pyRichSdk.getPythonEnvironment();
+    return environment instanceof PythonEnvironment.Conda && !((PythonEnvironment.Conda)environment).isBase();
+  }
+
+  /**
+   * @deprecated use {@link PyRichSdk}
+   */
+  @Deprecated
+  @RequiresBackgroundThread(generateAssertion = false)
   // Conda virtual environment and base conda
   public static boolean isConda(@NotNull Sdk sdk) {
-    return com.jetbrains.python.sdk.legacy.PythonSdkUtil.isConda(sdk);
+    PyRichSdk<Sdk> pyRichSdk = PyRichSdkKt.pyRichSdk(sdk, false);
+    PythonEnvironment environment = pyRichSdk.getPythonEnvironment();
+    return environment instanceof PythonEnvironment.Conda;
   }
 }

@@ -13,7 +13,6 @@ import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.remote.RemoteSdkProperties
 import com.intellij.remote.RemoteSdkPropertiesHolder
-import com.jetbrains.python.PYCHARM_HELPERS
 import com.jetbrains.python.sdk.PyRemoteSdkAdditionalDataMarker
 import com.jetbrains.python.sdk.PythonSdkAdditionalData
 import com.jetbrains.python.sdk.flavors.PyFlavorAndData
@@ -22,6 +21,8 @@ import com.jetbrains.python.sdk.flavors.UnixPythonSdkFlavor
 import org.jdom.Element
 import org.jetbrains.annotations.ApiStatus
 import java.nio.file.Path
+
+internal const val PYCHARM_HELPERS: String = ".pycharm_helpers"
 
 open class PyTargetAwareAdditionalData private constructor(
   private val b: RemoteSdkPropertiesHolder,

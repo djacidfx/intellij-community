@@ -39,7 +39,6 @@ import java.util.TreeSet;
 
 import static com.jetbrains.python.sdk.WinAppxToolsKt.getAppxFiles;
 import static com.jetbrains.python.sdk.WinAppxToolsKt.getAppxProduct;
-import static com.jetbrains.python.venvReader.ResolveUtilKt.tryResolvePath;
 
 /**
  * This class knows how to find python in Windows Registry according to
@@ -129,17 +128,16 @@ public class WinPythonSdkFlavor extends CPythonSdkFlavor<PyFlavorData.Empty> {
     }
 
     String path = sdk.getHomePath();
-    return path != null && isValidSdkPath(path);
+    return path != null && isValidSdkPath(Path.of(path));
   }
 
   @Override
-  public final boolean isValidSdkPath(final @NotNull String pathStr) {
-    if (super.isValidSdkPath(pathStr)) {
+  public final boolean isValidSdkPath(final @NotNull Path pythonBinaryPath) {
+    if (super.isValidSdkPath(pythonBinaryPath)) {
       return true; // File is local and executable
     }
 
-    var path = tryResolvePath(pathStr);
-    return path != null && isPythonFromStore(path); // Python from store might be non-executable, but still usable
+    return isPythonFromStore(pythonBinaryPath); // Python from store might be non-executable, but still usable
   }
 
   @RequiresBackgroundThread(generateAssertion = false) // Still used by some code from EDT

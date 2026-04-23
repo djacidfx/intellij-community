@@ -9,10 +9,6 @@ import org.jdom.Element
 import javax.swing.Icon
 
 internal class HatchSdkProvider : PySdkProvider {
-  override fun getSdkAdditionalText(sdk: Sdk): String? = null
-
-  override fun getSdkIcon(sdk: Sdk): Icon? = if (sdk.isHatch) PythonHatchIcons.Logo else null
-
   override fun loadAdditionalDataForSdk(element: Element): SdkAdditionalData? = HatchSdkAdditionalData.createIfHatch(element)
 
 }

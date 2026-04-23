@@ -858,11 +858,6 @@
                     interface="com.jetbrains.python.debugger.PyDebugAsyncioCustomizer"
                     dynamic="true"/>
 
-    <!-- Experimental sdk EP, avoid using it -->
-    <extensionPoint qualifiedName="Pythonid.pySdkProvider"
-                    interface="com.jetbrains.python.sdk.PySdkProvider"
-                    dynamic="true"/>
-
     <extensionPoint qualifiedName="Pythonid.connectionCredentialsToTargetConfigurationConverter"
                     interface="com.jetbrains.python.run.target.ConnectionCredentialsToTargetConfigurationConverter"
                     dynamic="true"/>
@@ -971,10 +966,7 @@
 
     <!-- SDK Flavors -->
     <pythonFlavorProvider implementation="com.jetbrains.python.sdk.flavors.conda.CondaEnvSdkFlavorProvider"/>
-    <pythonSdkFlavor implementation="com.jetbrains.python.sdk.flavors.MacPythonSdkFlavor"/>
-    <pythonSdkFlavor implementation="com.jetbrains.python.sdk.flavors.UnixPythonSdkFlavor"/>
     <pythonSdkFlavor implementation="com.jetbrains.python.sdk.flavors.VirtualEnvSdkFlavor"/>
-    <pythonSdkFlavor implementation="com.jetbrains.python.sdk.flavors.WinPythonSdkFlavor"/>
 
     <!-- Other -->
     <pythonFlavorProvider implementation="com.jetbrains.python.sdk.flavors.MayaFlavorProvider"/>

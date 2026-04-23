@@ -4,12 +4,14 @@ package com.jetbrains.python.target
 import com.intellij.execution.target.LanguageRuntimeConfiguration
 import com.intellij.openapi.components.BaseState
 import com.intellij.openapi.components.PersistentStateComponent
+import org.jetbrains.annotations.ApiStatus
 
 /**
  * This is the intended misuse of [LanguageRuntimeConfiguration] concept. This class is for passing the target introspection results to the
  * panels that configure different Python virtual envs.
  */
-class PythonLanguageRuntimeConfiguration : LanguageRuntimeConfiguration(PythonLanguageRuntimeType.TYPE_ID),
+@ApiStatus.Internal
+class PythonLanguageRuntimeConfiguration : LanguageRuntimeConfiguration(TYPE_ID),
                                            PersistentStateComponent<PythonLanguageRuntimeConfiguration.State> {
   var pythonInterpreterPath: String = ""
   var userHome: String = ""
@@ -27,5 +29,9 @@ class PythonLanguageRuntimeConfiguration : LanguageRuntimeConfiguration(PythonLa
   override fun loadState(state: State) {
     pythonInterpreterPath = state.pythonInterpreterPath.orEmpty()
     userHome = state.userHome.orEmpty()
+  }
+
+  companion object {
+    const val TYPE_ID: String = "PythonLanguageRuntime"
   }
 }

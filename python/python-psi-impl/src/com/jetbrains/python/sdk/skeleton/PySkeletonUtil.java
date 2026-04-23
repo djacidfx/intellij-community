@@ -8,6 +8,7 @@ import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.util.ObjectUtils;
+import com.intellij.util.concurrency.annotations.RequiresBackgroundThread;
 import com.jetbrains.python.PyNames;
 import com.jetbrains.python.PythonRuntimeService;
 import com.jetbrains.python.codeInsight.typing.PyTypeShed;
@@ -24,7 +25,8 @@ import java.util.Objects;
 import static com.jetbrains.python.sdk.PySdkUtil.getLanguageLevelForSdk;
 import static com.jetbrains.python.sdk.legacy.PythonSdkUtil.findSkeletonsDir;
 import static com.jetbrains.python.sdk.legacy.PythonSdkUtil.isRemote;
-import static com.jetbrains.python.sdk.legacy.PythonSdkUtil.isVirtualEnv;
+import com.jetbrains.python.sdk.PyRichSdk;
+import com.jetbrains.python.sdk.PyRichSdkKt;
 
 /**
  * Skeleton logic from the original [com.jetbrains.python.sdk.PythonSdkUtil]
@@ -55,14 +57,12 @@ public final class PySkeletonUtil {
    * Also, on some systems, first of all in system distributions of Python on Linux, there might be no
    * "site-packages" at all, and this method returns {@code null} accordingly in this case.
    */
+  @RequiresBackgroundThread
   public static @Nullable VirtualFile getSitePackagesDirectory(@NotNull Sdk pythonSdk) {
-    final VirtualFile libDir;
-    if (isVirtualEnv(pythonSdk)) {
-      libDir = PySearchUtilBase.findVirtualEnvLibDir(pythonSdk);
-    }
-    else {
-      libDir = PySearchUtilBase.findLibDir(pythonSdk);
-    }
+    final PyRichSdk rich = PyRichSdkKt.pyRichSdk(pythonSdk, false);
+    final VirtualFile libDir = rich.isVirtualEnv()
+                               ? PySearchUtilBase.findVirtualEnvLibDir(rich)
+                               : PySearchUtilBase.findLibDir(pythonSdk);
     return libDir != null ? libDir.findChild(PyNames.SITE_PACKAGES) : null;
   }
 
@@ -106,7 +106,8 @@ public final class PySkeletonUtil {
       if (libDir != null && isUnderLibDirButNotSitePackages(originFile, originPath, libDir, pythonSdk, checkOnRemoteFS)) {
         return true;
       }
-      final VirtualFile venvLibDir = PySearchUtilBase.findVirtualEnvLibDir(pythonSdk);
+      final PyRichSdk<Sdk> rich = PyRichSdkKt.pyRichSdk(pythonSdk, false);
+      final VirtualFile venvLibDir = PySearchUtilBase.findVirtualEnvLibDir(rich);
       if (venvLibDir != null && isUnderLibDirButNotSitePackages(originFile, originPath, venvLibDir, pythonSdk, checkOnRemoteFS)) {
         return true;
       }
@@ -162,4 +163,3 @@ public final class PySkeletonUtil {
     return PyBuiltinCache.getBuiltinsFileName(getLanguageLevelForSdk(sdk));
   }
 }
-

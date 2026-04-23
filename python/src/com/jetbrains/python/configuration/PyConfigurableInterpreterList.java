@@ -10,7 +10,7 @@ import com.intellij.openapi.roots.ui.configuration.projectRoot.ProjectSdksModel;
 import com.intellij.openapi.util.Comparing;
 import com.jetbrains.python.run.PythonInterpreterTargetEnvironmentFactory;
 import com.jetbrains.python.run.TargetConfigurationWithLocalFsAccessExKt;
-import com.jetbrains.python.sdk.PySdkExtKt;
+import com.jetbrains.python.sdk.SdkExtKt;
 import com.jetbrains.python.sdk.legacy.PythonSdkUtil;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -66,7 +66,7 @@ public final class PyConfigurableInterpreterList {
     for (Sdk sdk : getModel().getSdks()) {
       if (!PythonSdkUtil.isPythonSdk(sdk)) continue;
       if (targetModuleSitsOn != null) {
-        var sdkConfig = PySdkExtKt.getTargetEnvConfiguration(sdk);
+        var sdkConfig = SdkExtKt.getTargetEnvConfiguration(sdk);
         if (!TargetConfigurationWithLocalFsAccessExKt.codeCouldProbablyBeRunWithConfig(targetModuleSitsOn, sdkConfig)) {
           continue;
         }

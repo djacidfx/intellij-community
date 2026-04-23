@@ -6,6 +6,7 @@ import com.jetbrains.python.sdk.flavors.CPythonSdkFlavor
 import com.jetbrains.python.sdk.flavors.PyFlavorData
 import com.jetbrains.python.sdk.flavors.PythonFlavorProvider
 import com.jetbrains.python.sdk.flavors.VirtualEnvBasedFlavor
+import java.nio.file.Path
 import javax.swing.Icon
 
 
@@ -17,7 +18,7 @@ object PyPoetrySdkFlavor : CPythonSdkFlavor<PyFlavorData.Empty>(), VirtualEnvBas
   override fun getIcon(): Icon = PythonCommunityImplPoetryCommonIcons.Poetry
   override fun getFlavorDataClass(): Class<PyFlavorData.Empty> = PyFlavorData.Empty::class.java
 
-  override fun isValidSdkPath(pathStr: String): Boolean = false
+  override fun isValidSdkPath(pythonBinaryPath: Path): Boolean = false
 }
 
 class PyPoetrySdkFlavorProvider : PythonFlavorProvider {

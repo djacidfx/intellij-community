@@ -3,7 +3,6 @@ package com.jetbrains.python.sdk
 
 import com.intellij.execution.ExecutionException
 import com.intellij.execution.target.FullPathOnTarget
-import com.intellij.execution.target.TargetBasedSdkAdditionalData
 import com.intellij.execution.target.TargetConfigurationWithLocalFsAccess
 import com.intellij.execution.target.TargetEnvironmentConfiguration
 import com.intellij.execution.target.TargetedCommandLineBuilder
@@ -11,14 +10,11 @@ import com.intellij.ide.projectView.actions.MarkRootsManager
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.PathManager
-import com.intellij.openapi.application.readAction
 import com.intellij.openapi.application.runInEdt
-import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtil
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
-import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.openapi.projectRoots.impl.SdkConfigurationUtil
@@ -35,23 +31,14 @@ import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.vfs.ex.temp.TempFileSystem
-import com.intellij.openapi.vfs.refreshAndFindVirtualFile
 import com.intellij.platform.eel.EelApi
-import com.intellij.platform.eel.EelOsFamily
-import com.intellij.platform.eel.provider.getEelDescriptor
-import com.intellij.platform.ide.progress.ModalTaskOwner
-import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import com.intellij.python.community.services.systemPython.SystemPythonService
-import com.intellij.util.PathUtil
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
-import com.intellij.util.ui.EDT
 import com.intellij.webcore.packaging.PackagesNotificationPanel
 import com.jetbrains.python.PyBundle
-import com.jetbrains.python.PythonBinary
 import com.jetbrains.python.errorProcessing.PyResult
 import com.jetbrains.python.isCondaVirtualEnv
-import com.jetbrains.python.isInnerVirtualEnv
-import com.jetbrains.python.isVirtualEnv
+import com.jetbrains.python.isNonToolVirtualEnv
 import com.jetbrains.python.packaging.ui.PyPackageManagementService
 import com.jetbrains.python.psi.LanguageLevel
 import com.jetbrains.python.run.PythonInterpreterTargetEnvironmentFactory
@@ -96,11 +83,11 @@ fun findAllPythonSdks(baseDir: Path?): List<Sdk> {
 @Internal
 fun findBaseSdks(existingSdks: List<Sdk>, module: Module?, context: UserDataHolder): List<Sdk> {
   val existing = filterSystemWideSdks(existingSdks)
+  val detected = detectSystemWideSdks(module, existingSdks, context)
+  return (existing + detected)
+    .map { it.pyRichSdk() }
     .sortedWith(PreferredSdkComparator.INSTANCE)
-    .filterNot { PythonSdkUtil.isBaseConda(it.homePath) }
-
-  val detected = detectSystemWideSdks(module, existingSdks, context).filterNot { PythonSdkUtil.isBaseConda(it.homePath) }
-  return existing + detected
+    .filterNot { (it.pythonEnvironment as? PythonEnvironment.Conda)?.isBase == true }
 }
 
 fun mostPreferred(sdks: List<Sdk>): Sdk? = sdks.minWithOrNull(PreferredSdkComparator.INSTANCE)
@@ -180,7 +167,7 @@ internal fun resetSystemWideSdksDetectors() {
 }
 
 @Internal
-fun detectVirtualEnvs(module: Module?, existingSdks: List<Sdk>, context: UserDataHolder): List<PyDetectedSdk> =
+fun detectVirtualEnvs(module: Module?, existingSdks: List<Sdk>, context: UserDataHolder): List<PyRichSdk> =
   filterSuggestedPaths(VirtualEnvSdkFlavor.getInstance(), existingSdks, module, context)
 
 @Internal
@@ -190,7 +177,7 @@ fun filterAssociatedSdks(module: Module, existingSdks: List<Sdk>): List<Sdk> {
 
 @Internal
 @RequiresBackgroundThread
-fun detectAssociatedEnvironments(module: Module, existingSdks: List<Sdk>, context: UserDataHolder): List<PyDetectedSdk> =
+fun detectAssociatedEnvironments(module: Module, existingSdks: List<Sdk>, context: UserDataHolder): List<PyRichSdk> =
   detectVirtualEnvs(module, existingSdks, context).filter { it.isAssociatedWithModule(module) }
 
 @Internal
@@ -198,7 +185,7 @@ fun createSdkByGenerateTask(
   generateSdkHomePath: Task.WithResult<String, ExecutionException>,
   existingSdks: List<Sdk>,
   baseSdk: Sdk?,
-  associatedProjectPath: String?,
+  associatedProjectPath: Path?,
   suggestedSdkName: String?,
   sdkAdditionalData: PythonSdkAdditionalData? = null,
 ): Sdk {
@@ -213,31 +200,17 @@ fun createSdkByGenerateTask(
     throw e
   }
 
-  val sdkName = suggestedSdkName ?: if (EDT.isCurrentThreadEdt()) {
-    runWithModalProgressBlocking(ModalTaskOwner.guess(), "...") {
-      withContext(Dispatchers.IO) {
-        suggestAssociatedSdkName(homeFile.path, associatedProjectPath)
-      }
-    }
-  }
-  else {
-    runBlockingMaybeCancellable {
-      suggestAssociatedSdkName(homeFile.path, associatedProjectPath)
-    }
-  }
   return SdkConfigurationUtil.setupSdk(
     existingSdks.toTypedArray(),
     homeFile,
     PythonSdkType.getInstance(),
     sdkAdditionalData,
-    sdkName)
+    suggestedSdkName)
 }
 
 @Internal
 suspend fun createSdk(
   pythonBinaryPath: PathHolder.Eel,
-  associatedModulePath: String,
-  suggestedSdkName: String?,
   sdkAdditionalData: PythonSdkAdditionalData? = null,
 ): PyResult<Sdk> {
   val pythonBinaryPathAsString = pythonBinaryPath.path.pathString
@@ -251,14 +224,12 @@ suspend fun createSdk(
     StandardFileSystems.local().refreshAndFindFileByPath(pythonBinaryPathAsString)
   } ?: return PyResult.localizedError(PyBundle.message("python.sdk.python.executable.not.found", pythonBinaryPath))
 
-  val sdkName = suggestedSdkName ?: suggestAssociatedSdkName(pythonBinaryPathAsString, associatedModulePath)
   val sdk = SdkConfigurationUtil.setupSdk(
     existingSdks.toTypedArray(),
     pythonBinaryVirtualFile,
     PythonSdkType.getInstance(),
-    false,
     sdkAdditionalData,
-    sdkName)
+    null)
 
   return sdk?.let { PyResult.success(it) }
          ?: PyResult.localizedError(PyBundle.message("python.sdk.failed.to.create.interpreter.title"))
@@ -267,7 +238,7 @@ suspend fun createSdk(
 @Internal
 suspend fun <P : PathHolder> createSdk(
   pythonBinaryPath: P,
-  suggestedSdkName: String?,
+  suggestedSdkName: String? = null,
   sdkAdditionalData: PythonSdkAdditionalData? = null,
 ): PyResult<Sdk> {
   val sdkType = PythonSdkType.getInstance()
@@ -366,20 +337,20 @@ val Sdk.associatedModuleDir: VirtualFile?
   }
 
 @Internal
-fun PyDetectedSdk.setup(existingSdks: List<Sdk>): Sdk? {
+fun Sdk.setup(existingSdks: List<Sdk>): Sdk? {
   val homeDir = homeDirectory ?: return null
   return SdkConfigurationUtil.setupSdk(existingSdks.toTypedArray(), homeDir, PythonSdkType.getInstance(), null, null)
 }
 
 
 @Internal
-suspend fun PyDetectedSdk.setupAssociated(
+suspend fun Sdk.setupAssociated(
   existingSdks: List<Sdk>,
   associatedModulePath: String?,
   doAssociate: Boolean,
   flavorAndData: PyFlavorAndData<*, *> = PyFlavorAndData.UNKNOWN_FLAVOR_DATA,
 ): PyResult<Sdk> = withContext(Dispatchers.IO) {
-  if (!sdkSeemsValid) {
+  if (!isSdkSeemsValid) {
     return@withContext PyResult.localizedError(PyBundle.message("python.sdk.error.invalid.interpreter.selected", homePath))
   }
 
@@ -393,11 +364,6 @@ suspend fun PyDetectedSdk.setupAssociated(
   if (homeDir == null) {
     return@withContext PyResult.localizedError(PyBundle.message("python.sdk.provided.path.is.invalid", null))
   }
-
-  val suggestedName = if (doAssociate) {
-    suggestAssociatedSdkName(homePath, associatedModulePath)
-  }
-  else null
 
   val data = targetEnvConfiguration?.let { targetConfig ->
     PyTargetAwareAdditionalData(flavorAndData).also {
@@ -415,7 +381,7 @@ suspend fun PyDetectedSdk.setupAssociated(
       homeDir,
       PythonSdkType.getInstance(),
       data,
-      suggestedName)
+      null)
 
   }
   PyResult.success(sdk)
@@ -446,7 +412,7 @@ var Project.pythonSdk: Sdk?
 
 @Internal
 fun Module.excludeInnerVirtualEnv(sdk: Sdk) {
-  val root = getInnerVirtualEnvRoot(sdk) ?: return
+  val root = getInnerVirtualEnvRoot(sdk.pyRichSdk()) ?: return
 
   runInEdt {
     MarkRootsManager.modifyRoots(this, arrayOf(root)) { vFile, entry ->
@@ -461,40 +427,12 @@ internal fun Project.excludeInnerVirtualEnv(sdk: Sdk) {
 }
 
 @Internal
-fun getInnerVirtualEnvRoot(sdk: Sdk): VirtualFile? {
-  val binaryPath = sdk.homePath?.toNioPathOrNull() ?: return null
-
-  val rootPath = when {
-    sdk.isInnerVirtualEnv -> VirtualEnvReader().getVenvRoot(binaryPath)
-    sdk.isCondaVirtualEnv -> when (binaryPath.getEelDescriptor().osFamily) {
-      EelOsFamily.Windows -> binaryPath.parent
-      EelOsFamily.Posix -> binaryPath.parent?.parent
-    }
-    else -> null
-  }
-
-  return rootPath?.let { LocalFileSystem.getInstance().findFileByNioFile(it) }
-}
-
-internal suspend fun suggestAssociatedSdkName(sdkHome: String, associatedPath: String?): String? = withContext(Dispatchers.IO) {
-  // please don't forget to update com.jetbrains.python.inspections.interpreter.PyInterpreterNotificationProvider (createCacheLoader)
-  // after changing this method
-
-  val baseSdkName = PythonSdkType.suggestBaseSdkName(sdkHome) ?: return@withContext null
-  val venvRoot = PythonSdkUtil.getVirtualEnvRoot(sdkHome)?.path
-  val associatedName = when {
-    venvRoot != null && (associatedPath == null || !FileUtil.isAncestor(associatedPath, venvRoot, true)) ->
-      PathUtil.getFileName(venvRoot)
-    PythonSdkUtil.isBaseConda(sdkHome) ->
-      "base"
-    else ->
-      associatedPath?.let { PathUtil.getFileName(associatedPath) } ?: return@withContext null
-  }
-  return@withContext "$baseSdkName ($associatedName)"
+fun getInnerVirtualEnvRoot(sdk: PyRichSdk): VirtualFile? = sdk.pythonHomePath?.let {
+  LocalFileSystem.getInstance().findFileByNioFile(it)
 }
 
 internal val Sdk.isSystemWide: Boolean
-  get() = !PythonSdkUtil.isRemote(this) && !this.isVirtualEnv && !this.isCondaVirtualEnv
+  get() = !PythonSdkUtil.isRemote(this) && !this.isNonToolVirtualEnv && !this.isCondaVirtualEnv
 
 
 @get:Internal
@@ -523,17 +461,8 @@ private fun Sdk.isLocatedInsideBaseDir(baseDir: Path?): Boolean {
   return FileUtil.isAncestor(basePath, homePath, true)
 }
 
-@Internal
-suspend fun PythonBinary.pyvenvContains(pattern: String): Boolean = withContext(Dispatchers.IO) {
-  // TODO: Support for remote targets as well
-  //  (probably the best way is to prepare a helper python script to check config file and run using exec service)
-  val pyvenvFile = this@pyvenvContains.parent?.parent?.resolve("pyvenv.cfg")?.refreshAndFindVirtualFile() ?: return@withContext false
-  val text = readAction { FileDocumentManager.getInstance().getDocument(pyvenvFile)?.text } ?: return@withContext false
-  pattern in text
-}
-
 @get:Internal
-val PyDetectedSdk.guessedLanguageLevel: LanguageLevel?
+val Sdk.guessedLanguageLevel: LanguageLevel?
   get() {
     val path = homePath ?: return null
     val result = Regex(""".*python(\d\.\d)""").find(path) ?: return null
@@ -557,7 +486,7 @@ private fun filterSuggestedPaths(
   module: Module?,
   context: UserDataHolder,
   mayContainCondaEnvs: Boolean = false,
-): List<PyDetectedSdk> {
+): List<PyRichSdk> {
   val targetModuleSitsOn = module?.let { PythonInterpreterTargetEnvironmentFactory.getTargetModuleResidesOn(it) }
   val existingPaths = existingSdks.mapTo(HashSet()) { TargetAndPath(it.targetEnvConfiguration, it.homePath) }
   val baseDirFromContext = context.getUserData(BASE_DIR)
@@ -568,34 +497,16 @@ private fun filterSuggestedPaths(
     .mapNotNull {
       if (targetModuleSitsOn == null) it.pathString else targetModuleSitsOn.getTargetPathIfLocalPathIsOnTarget(it)
     }
-    .map { createDetectedSdk(it, targetModuleSitsOn?.asTargetConfig, flavor) }
+    .map { createDetectedSdk(it, targetModuleSitsOn?.asTargetConfig, flavor).pyRichSdk() }
     .sortedWith(
       compareBy(
         { !it.isAssociatedWithModule(module) && !it.isLocatedInsideBaseDir(baseDirFromContext) },
-        { if (mayContainCondaEnvs) !PythonSdkUtil.isBaseConda(it.homePath) else false },
+        { if (mayContainCondaEnvs) (it.pythonEnvironment as? PythonEnvironment.Conda)?.isBase != true else false },
         { it.homePath }
       )
     )
     .toList()
 }
-
-@Internal
-fun Sdk?.isTargetBased(): Boolean = this != null && targetEnvConfiguration != null
-
-/**
- *  Additional data if sdk is target-based
- */
-@get:Internal
-val Sdk.targetAdditionalData: PyTargetAwareAdditionalData?
-  get():PyTargetAwareAdditionalData? = sdkAdditionalData as? PyTargetAwareAdditionalData
-
-/**
- * Returns target environment if configuration is target api based
- */
-
-@get:Internal
-val Sdk.targetEnvConfiguration: TargetEnvironmentConfiguration?
-  get():TargetEnvironmentConfiguration? = (sdkAdditionalData as? TargetBasedSdkAdditionalData)?.targetEnvironmentConfiguration
 
 /**
  * Where a "remote_sources" folder for certain SDK is stored
@@ -619,27 +530,9 @@ fun Sdk.configureBuilderToRunPythonOnTarget(targetCommandLineBuilder: TargetedCo
   getOrCreateAdditionalData().flavorAndData.data.prepareTargetCommandLine(this, targetCommandLineBuilder)
 }
 
-/**
- * Returns whether this [Sdk] seems valid or not.
- *
- * The actual check logic is located in [PythonSdkFlavor.sdkSeemsValid] and its overrides. In general, the method check whether the path to
- * the Python binary stored in this [Sdk] exists and the corresponding file can be executed. This check can be performed both locally and
- * on a target. The latter case takes place when [PythonSdkAdditionalData] of this [Sdk] implements [PyTargetAwareAdditionalData] and the
- * corresponding target provides file system operations (see [com.jetbrains.python.pathValidation.ValidationRequest]).
- *
- *
- * @see PythonSdkFlavor.sdkSeemsValid
- */
+@Deprecated("use SdkExtKt.isSdkSeemsValid")
 val Sdk.sdkSeemsValid: Boolean
-  get() {
-    if (!isPythonSdk(this, true)) return false
-    if (this.sdkAdditionalData == PyInvalidSdk) {
-      return false
-    }
-
-    val pythonSdkAdditionalData = getOrCreateAdditionalData()
-    return pythonSdkAdditionalData.flavorAndData.sdkSeemsValid(this, targetEnvConfiguration)
-  }
+  get() = isSdkSeemsValid
 
 
 @Internal
