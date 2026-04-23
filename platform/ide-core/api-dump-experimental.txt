@@ -7,8 +7,17 @@ f:com.intellij.notification.Notifications$Bus
 - *s:notifyAndHide(com.intellij.notification.Notification,com.intellij.openapi.project.Project):V
 *:com.intellij.openapi.options.Configurable$InnerWithModifiableParent
 - a:getModifiableParents():java.util.List
+c:com.intellij.openapi.options.ConfigurableEP
+- com.intellij.openapi.extensions.PluginAware
+- *:searchableInActions:Z
 *:com.intellij.openapi.options.ConfigurationQuickFix
 - a:applyFix(com.intellij.openapi.actionSystem.DataContext):V
+com.intellij.openapi.options.SearchableConfigurable
+- com.intellij.openapi.options.ConfigurableWithId
+- *:isSearchableInActions():Z
+c:com.intellij.openapi.options.SearchableConfigurable$Delegate
+- com.intellij.openapi.options.SearchableConfigurable
+- *:isSearchableInActions():Z
 f:com.intellij.openapi.project.ProjectUtil
 - *sf:clearCachesForAllProjects(java.lang.String):V
 - *sf:clearCachesForAllProjectsStartingWith(java.lang.String):V
