@@ -37,8 +37,10 @@ class AgentWorkbenchDirectoryWatcher private constructor(
   private val watchLoopFactory: (List<Path>, DirectoryChangeListener) -> AgentWorkbenchWatchLoop,
   @Suppress("unused") private val constructorMarker: Unit,
 ) : AutoCloseable {
+  private val roots = roots.toList()
   private val running = AtomicBoolean(true)
-  private val watchLoop: AgentWorkbenchWatchLoop?
+  @Volatile
+  private var watchLoop: AgentWorkbenchWatchLoop?
   private val watcherJob: Job?
 
   constructor(
@@ -60,7 +62,7 @@ class AgentWorkbenchDirectoryWatcher private constructor(
     watchLoop = createWatchLoop(roots)
     watcherJob = if (watchLoop != null) {
       scope.launch(Dispatchers.IO) {
-        runWatchLoop(watchLoop)
+        runWatchLoops()
       }
     }
     else {
@@ -122,17 +124,42 @@ class AgentWorkbenchDirectoryWatcher private constructor(
     return watchLoopFactory(ArrayList(watchRoots), listener)
   }
 
-  private suspend fun runWatchLoop(watcher: AgentWorkbenchWatchLoop) {
-    try {
-      watcher.watch()
-    }
-    catch (e: CancellationException) {
-      throw e
-    }
-    catch (t: Throwable) {
-      if (running.get()) {
-        onFailure(t)
+  private suspend fun runWatchLoops() {
+    while (running.get()) {
+      val watcher = watchLoop ?: return
+      val shouldRestart = try {
+        watcher.watch()
+        false
       }
+      catch (e: CancellationException) {
+        throw e
+      }
+      catch (t: Throwable) {
+        if (running.get()) {
+          onFailure(t)
+          true
+        }
+        else {
+          false
+        }
+      }
+      finally {
+        if (watchLoop === watcher) {
+          watchLoop = null
+        }
+        runCatching {
+          watcher.close()
+        }.onFailure { t ->
+          if (running.get()) {
+            onFailure(t)
+          }
+        }
+      }
+
+      if (!shouldRestart || !running.get()) {
+        return
+      }
+      watchLoop = createWatchLoop(roots)
     }
   }
 }

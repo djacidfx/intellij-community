@@ -162,6 +162,46 @@ class AgentWorkbenchDirectoryWatcherTest {
       assertThat(watcher.isActive).isFalse()
     }
   }
+
+  @Test
+  fun failedWatchLoopRestartsWithSameRoots() {
+    runBlocking(Dispatchers.Default) {
+      val events = LinkedBlockingQueue<AgentWorkbenchWatchEvent>()
+      val failures = LinkedBlockingQueue<Throwable>()
+      val restartedLoop = CompletableDeferred<FakeWatchLoop>()
+      val root = tempDir.toAbsolutePath()
+      var createCount = 0
+
+      AgentWorkbenchDirectoryWatcher(
+        roots = listOf(tempDir),
+        scope = this,
+        onWatchEvent = events::add,
+        onFailure = failures::add,
+        watchLoopFactory = { _, listener ->
+          createCount += 1
+          if (createCount == 1) {
+            FailingWatchLoop(IllegalStateException("watch loop failed"))
+          }
+          else {
+            FakeWatchLoop().also { loop ->
+              loop.listener = listener
+              restartedLoop.complete(loop)
+            }
+          }
+        },
+      ).use { watcher ->
+        val failure = withTimeout(5.seconds) { failures.take() }
+        val loop = withTimeout(5.seconds) { restartedLoop.await() }
+
+        loop.offer(DirectoryChangeEvent(DirectoryChangeEvent.EventType.CREATE, false, root.resolve("session.jsonl"), 1, root))
+        val event = withTimeout(5.seconds) { events.take() }
+
+        assertThat(failure).hasMessage("watch loop failed")
+        assertThat(event.path).isEqualTo(root.resolve("session.jsonl"))
+        assertThat(watcher.isActive).isTrue()
+      }
+    }
+  }
 }
 
 private class CompletingWatchLoop : AgentWorkbenchWatchLoop {
@@ -169,6 +209,15 @@ private class CompletingWatchLoop : AgentWorkbenchWatchLoop {
 
   override suspend fun watch() {
     completed.complete(Unit)
+  }
+
+  override fun close() {
+  }
+}
+
+private class FailingWatchLoop(private val error: Throwable) : AgentWorkbenchWatchLoop {
+  override suspend fun watch() {
+    throw error
   }
 
   override fun close() {

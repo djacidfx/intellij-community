@@ -3,7 +3,7 @@ name: Codex Sessions Rollout Source
 description: Requirements for Codex thread discovery, activity derivation, backend selection, and archive/write interoperability.
 targets:
   - ../codex/sessions/src/**/*.kt
-  - ../codex/common/src/CodexAppServerClient.kt
+  - ../codex/common/src/*.kt
   - ../sessions/src/AgentSessionModels.kt
   - ../sessions/src/service/AgentSessionRefreshCoordinator.kt
   - ../codex/sessions/testSrc/**/*.kt
@@ -13,7 +13,7 @@ targets:
 # Codex Sessions Rollout Source
 
 Status: Draft
-Date: 2026-03-09
+Date: 2026-04-24
 
 ## Summary
 Define Codex thread-list behavior where discovery and primary status projection come from app-server (`thread/list` + `thread/read`), while rollout parsing is used only as a refresh-hints fallback (pending-tab rebinding, concrete `/new` rebinding, and unread uplift). This spec owns backend selection, app-server sub-agent mapping, rollout hint wiring, and Codex activity derivation.
@@ -44,6 +44,9 @@ Define Codex thread-list behavior where discovery and primary status projection 
 
 - App-server backend must request `thread/list` with server-side `cwd` and `sourceKinds` filters so sub-agent sessions are included in listing results.
   [@test] ../sessions/testSrc/CodexAppServerClientTest.kt
+
+- App-server backend must support thread-scoped refresh by requesting `thread/read` with `includeTurns=false` for each requested top-level thread id, filtering snapshots by normalized `cwd`, and returning partial thread updates/removals instead of replacing the whole project path. Sub-agent chat refresh signals must target the folded parent thread id so parent row activity/sub-agent data can refresh without treating the child runtime id as a tree row.
+  [@test] ../sessions/testSrc/AgentSessionRefreshCoordinatorTest.kt
 
 - App-server backend must fold sub-agent thread-spawn sessions under parent threads and hide orphaned sub-agent sessions from tree rows.
   [@test] ../codex/sessions/testSrc/CodexAppServerSessionBackendTest.kt
@@ -114,6 +117,10 @@ Define Codex thread-list behavior where discovery and primary status projection 
 
 - Rollout refresh behavior must be event-driven; periodic polling timers are not allowed.
   [@test] ../codex/sessions/testSrc/CodexRolloutSessionsWatcherTest.kt
+
+- Watcher-loop failures in the shared directory watcher stack must restart watching the same roots while the owning watcher is active, so a transient invalid watch key or watch-service failure cannot permanently disable event-driven refresh.
+  [@test] ../filewatch/testSrc/AgentWorkbenchDirectoryWatcherTest.kt
+  [@test] ../filewatch/testSrc/impl/DirectoryWatcherImplTest.kt
 
 - Rollout backend must filter sessions by normalized `cwd` matching requested project/worktree path.
   [@test] ../codex/sessions/testSrc/CodexRolloutSessionBackendTest.kt
@@ -197,7 +204,7 @@ Define Codex thread-list behavior where discovery and primary status projection 
 - `updatedAt` derives from latest event timestamp with file mtime fallback.
 - `response_item` contributes to activity timing and pending user-input detection, but not title source extraction.
 - Branch value comes from rollout session metadata when present; no branch fallback store is used.
-- Listing stays app-server-backed; write operations (`thread/start`, `thread/archive`, `thread/unarchive`, persistence calls) remain app-server RPC.
+- Listing stays app-server-backed; thread-scoped refresh uses app-server `thread/read`; write operations (`thread/start`, `thread/archive`, `thread/unarchive`, persistence calls) remain app-server RPC.
 - Refresh hints merge app-server and rollout signals after app-server raw status normalization, with rollout able to fill missing activity, raise activity to unread, or override stale non-response-required app-server hints with fresher `processing` or `reviewing` activity.
 
 ## Error Handling

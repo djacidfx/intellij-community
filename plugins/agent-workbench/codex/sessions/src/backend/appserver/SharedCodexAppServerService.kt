@@ -35,6 +35,10 @@ class SharedCodexAppServerService(serviceScope: CoroutineScope) {
     return client.readThreadActivitySnapshot(threadId)
   }
 
+  internal suspend fun readThread(threadId: String): CodexThread? {
+    return client.readThread(threadId)
+  }
+
   @Suppress("unused")
   suspend fun createThread(cwd: String, yolo: Boolean): CodexThread {
     val session = createThreadInternal(cwd = cwd, yolo = yolo)

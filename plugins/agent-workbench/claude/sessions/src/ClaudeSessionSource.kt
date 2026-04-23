@@ -8,10 +8,13 @@ import com.intellij.agent.workbench.common.session.AgentSessionThread
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionRebindCandidate
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionRefreshHints
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionRefreshThreadSeed
+import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSourceRefreshRequest
+import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSourceRefreshResult
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSourceUpdate
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSourceUpdateEvent
 import com.intellij.agent.workbench.sessions.core.providers.BaseAgentSessionSource
 import com.intellij.openapi.project.Project
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
@@ -32,6 +35,59 @@ class ClaudeSessionSource(
     val visibleThreads = threads.filterNot(ClaudeBackendThread::archived)
     rememberActiveThreadRead(visibleThreads, ClaudeBackendThread::id, ClaudeBackendThread::updatedAt)
     return visibleThreads.map { it.toAgentSessionThread(readTracker) }
+  }
+
+  override suspend fun refreshThreads(request: AgentSessionSourceRefreshRequest): AgentSessionSourceRefreshResult {
+    if (!request.isThreadScoped) {
+      return super.refreshThreads(request)
+    }
+
+    val partialThreadsByPath = LinkedHashMap<String, List<AgentSessionThread>>()
+    val completeThreadsByPath = LinkedHashMap<String, List<AgentSessionThread>>()
+    val removedThreadIdsByPath = LinkedHashMap<String, Set<String>>()
+    val failuresByPath = LinkedHashMap<String, Throwable>()
+    for (path in request.paths) {
+      try {
+        val backendResult = backend.refreshThreads(path = path, threadIds = request.threadIds, openProject = null)
+        if (backendResult == null) {
+          completeThreadsByPath[path] = listThreads(path = path, openProject = null)
+          continue
+        }
+
+        val visibleThreads = backendResult.threads.filterNot(ClaudeBackendThread::archived)
+        rememberActiveThreadRead(visibleThreads, ClaudeBackendThread::id, ClaudeBackendThread::updatedAt)
+        val archivedThreadIds = backendResult.threads
+          .asSequence()
+          .filter(ClaudeBackendThread::archived)
+          .map(ClaudeBackendThread::id)
+          .toCollection(LinkedHashSet())
+        val removedThreadIds = LinkedHashSet<String>().apply {
+          addAll(backendResult.removedThreadIds)
+          addAll(archivedThreadIds)
+        }
+        val threads = visibleThreads.map { it.toAgentSessionThread(readTracker) }
+        if (backendResult.isComplete) {
+          completeThreadsByPath[path] = threads
+        }
+        else {
+          partialThreadsByPath[path] = threads
+        }
+        if (removedThreadIds.isNotEmpty()) {
+          removedThreadIdsByPath[path] = removedThreadIds
+        }
+      }
+      catch (e: Throwable) {
+        if (e is CancellationException) throw e
+        failuresByPath[path] = e
+      }
+    }
+
+    return AgentSessionSourceRefreshResult(
+      completeThreadsByPath = completeThreadsByPath,
+      partialThreadsByPath = partialThreadsByPath,
+      removedThreadIdsByPath = removedThreadIdsByPath,
+      failuresByPath = failuresByPath,
+    )
   }
 
   override suspend fun prefetchRefreshHints(

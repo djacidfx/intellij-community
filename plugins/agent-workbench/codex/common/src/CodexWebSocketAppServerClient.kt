@@ -192,6 +192,25 @@ class CodexWebSocketAppServerClient(
     }
   }
 
+  suspend fun readThread(threadId: String): CodexThread? {
+    val normalizedThreadId = threadId.trim()
+    if (normalizedThreadId.isEmpty()) {
+      return null
+    }
+
+    return request(
+      method = "thread/read",
+      paramsWriter = { generator ->
+        generator.writeStartObject()
+        generator.writeStringField("threadId", normalizedThreadId)
+        generator.writeBooleanField("includeTurns", false)
+        generator.writeEndObject()
+      },
+      resultParser = { parser -> protocol.parseThreadReadResult(parser) },
+      defaultResult = null,
+    )
+  }
+
   suspend fun createThreadSession(
     cwd: String? = null,
     approvalPolicy: String? = null,

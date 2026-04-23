@@ -11,6 +11,8 @@ import com.intellij.agent.workbench.common.session.AgentSessionProvider
 import com.intellij.agent.workbench.sessions.core.launch.AgentSessionLaunchSpecs
 import com.intellij.agent.workbench.sessions.core.providers.AgentInitialMessageDispatchPlan
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProviders
+import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSourceUpdate
+import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSourceUpdateEvent
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionTerminalLaunchSpec
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.EDT
@@ -40,23 +42,31 @@ private val fileEditorProviderOverrideForTests: AtomicReference<FileEditorProvid
 
 private data class AgentChatScopedRefreshSignal(
   val provider: AgentSessionProvider,
-  @JvmField val projectPaths: Set<String>,
+  @JvmField val updateEvent: AgentSessionSourceUpdateEvent,
 )
 
 private object AgentChatScopedRefreshSignalBus {
   private val signalFlow = MutableSharedFlow<AgentChatScopedRefreshSignal>(extraBufferCapacity = 64)
 
-  fun signal(provider: AgentSessionProvider, projectPath: String): Boolean {
+  fun signal(provider: AgentSessionProvider, projectPath: String, threadId: String? = null): Boolean {
     val normalizedPath = normalizeAgentWorkbenchPath(projectPath)
+    val normalizedThreadId = threadId?.trim()?.takeIf { it.isNotEmpty() }
     return normalizedPath.isNotBlank() && signalFlow.tryEmit(
-      AgentChatScopedRefreshSignal(provider = provider, projectPaths = setOf(normalizedPath))
+      AgentChatScopedRefreshSignal(
+        provider = provider,
+        updateEvent = AgentSessionSourceUpdateEvent(
+          type = AgentSessionSourceUpdate.THREADS_CHANGED,
+          scopedPaths = setOf(normalizedPath),
+          threadIds = normalizedThreadId?.let { setOf(it) },
+        ),
+      )
     )
   }
 
-  fun signals(provider: AgentSessionProvider): Flow<Set<String>> {
+  fun signals(provider: AgentSessionProvider): Flow<AgentSessionSourceUpdateEvent> {
     return signalFlow.asSharedFlow()
       .filter { signal -> signal.provider == provider }
-      .map { signal -> signal.projectPaths }
+      .map { signal -> signal.updateEvent }
   }
 }
 
@@ -346,11 +356,11 @@ suspend fun collectOpenPendingAgentChatProjectPaths(): Set<String> {
   return collectOpenAgentChatProjectPaths(includePendingOnly = true)
 }
 
-fun notifyAgentChatTerminalOutputForRefresh(provider: AgentSessionProvider, projectPath: String) {
-  AgentChatScopedRefreshSignalBus.signal(provider, projectPath)
+fun notifyAgentChatTerminalOutputForRefresh(provider: AgentSessionProvider, projectPath: String, threadId: String? = null) {
+  AgentChatScopedRefreshSignalBus.signal(provider, projectPath, threadId)
 }
 
-fun agentChatScopedRefreshSignals(provider: AgentSessionProvider): Flow<Set<String>> {
+fun agentChatScopedRefreshSignals(provider: AgentSessionProvider): Flow<AgentSessionSourceUpdateEvent> {
   return AgentChatScopedRefreshSignalBus.signals(provider)
 }
 
@@ -358,7 +368,7 @@ fun notifyCodexTerminalOutputForRefresh(projectPath: String) {
   notifyAgentChatTerminalOutputForRefresh(provider = AgentSessionProvider.CODEX, projectPath = projectPath)
 }
 
-fun codexScopedRefreshSignals(): Flow<Set<String>> {
+fun codexScopedRefreshSignals(): Flow<AgentSessionSourceUpdateEvent> {
   return agentChatScopedRefreshSignals(AgentSessionProvider.CODEX)
 }
 

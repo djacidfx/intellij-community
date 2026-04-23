@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.plugins.terminal.view.TerminalOffset
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import java.awt.event.KeyEvent
 import java.lang.reflect.Constructor
@@ -48,7 +49,19 @@ import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JPanel
 
+private val editorsToDispose = CopyOnWriteArrayList<AgentChatFileEditor>()
+
 class AgentChatFileEditorLifecycleTest {
+  @AfterEach
+  fun tearDown() {
+    editorsToDispose.asReversed().forEach { editor ->
+      if (editor.isValid) {
+        Disposer.dispose(editor)
+      }
+    }
+    editorsToDispose.clear()
+  }
+
   @Test
   fun editorTabActionGroupWrapperIsDumbAware() {
     val firstAction = DumbAwareAction.create("First") { }
@@ -1480,7 +1493,7 @@ private fun testEditor(
     liveTerminalRegistry = liveTerminalRegistry,
     tabSnapshotWriter = snapshotWriter,
     pendingScopedRefreshRetryIntervalMs = pendingScopedRefreshRetryIntervalMs,
-  )
+  ).also(editorsToDispose::add)
 }
 
 private fun codexPlanDispatchSteps(
@@ -1514,7 +1527,7 @@ private class CodexScopedRefreshSignalCollector {
     override val coroutineContext = Job() + Dispatchers.Default
   }.launch(start = CoroutineStart.UNDISPATCHED) {
     codexScopedRefreshSignals().collect { signal ->
-      codexSignals += signal
+      codexSignals += signal.scopedPaths.orEmpty()
     }
   }
 

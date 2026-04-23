@@ -6,8 +6,10 @@ import com.intellij.agent.workbench.codex.common.CodexThread
 import com.intellij.agent.workbench.codex.common.CodexThreadSourceKind
 import com.intellij.agent.workbench.codex.common.normalizeRootPath
 import com.intellij.agent.workbench.codex.sessions.backend.CodexBackendThread
+import com.intellij.agent.workbench.codex.sessions.backend.CodexBackendThreadRefreshResult
 import com.intellij.agent.workbench.codex.sessions.backend.CodexSessionActivity
 import com.intellij.agent.workbench.codex.sessions.backend.CodexSessionBackend
+import com.intellij.agent.workbench.codex.sessions.backend.isResponseRequired
 import com.intellij.agent.workbench.codex.sessions.backend.toCodexSessionActivity
 import com.intellij.agent.workbench.codex.sessions.resolveProjectDirectoryFromPath
 import com.intellij.openapi.components.service
@@ -30,6 +32,9 @@ class CodexAppServerSessionBackend(
     private val listThreadsForProject: suspend (Path) -> List<CodexThread> = { projectPath ->
         service<SharedCodexAppServerService>().listThreads(projectPath)
     },
+    private val readThread: suspend (String) -> CodexThread? = { threadId ->
+        service<SharedCodexAppServerService>().readThread(threadId)
+    },
     private val archiveThread: suspend (String) -> Unit = { threadId ->
         service<SharedCodexAppServerService>().archiveThread(threadId)
     },
@@ -46,6 +51,32 @@ class CodexAppServerSessionBackend(
             orphanArchiveAttemptRecorder = orphanArchiveAttemptRecorder,
         )
         return byPath[cwdFilter].orEmpty()
+    }
+
+    override suspend fun refreshThreads(path: String, threadIds: Set<String>, openProject: Project?): CodexBackendThreadRefreshResult? {
+        if (threadIds.isEmpty()) {
+            return null
+        }
+        val workingDirectory = resolveProjectDirectoryFromPath(path) ?: return CodexBackendThreadRefreshResult()
+        val cwdFilter = normalizeRootPath(workingDirectory.invariantSeparatorsPathString)
+        val threads = ArrayList<CodexBackendThread>(threadIds.size)
+        for (threadId in threadIds) {
+            val thread = readThread(threadId) ?: continue
+            if (thread.cwd != cwdFilter) {
+                continue
+            }
+            if (thread.shouldBeGroupedAsSubAgentChild()) {
+                continue
+            }
+            threads.add(
+                CodexBackendThread(
+                    thread = thread,
+                    activity = thread.toCodexSessionActivity(),
+                    requiresResponse = thread.activeFlags.isResponseRequired(),
+                )
+            )
+        }
+        return CodexBackendThreadRefreshResult(threads = threads, isComplete = false)
     }
 
     override suspend fun prefetchThreads(paths: List<String>): Map<String, List<CodexBackendThread>> {

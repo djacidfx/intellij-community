@@ -83,6 +83,7 @@ internal class AgentChatFileEditor(
   private var tab: AgentChatTerminalTab? = null
   private var initializationStarted: Boolean = false
   private var disposed: Boolean = false
+  private var scopedTerminalRefreshController: AgentChatDisposableController? = null
   private var patchFoldController: AgentChatDisposableController? = null
   private var semanticRegionController: AgentChatSemanticRegionController? = null
 
@@ -120,6 +121,8 @@ internal class AgentChatFileEditor(
     initialMessageDispatcher.dispose()
     pendingThreadRefreshController.dispose()
     concreteThreadRebindController.dispose()
+    scopedTerminalRefreshController?.dispose()
+    scopedTerminalRefreshController = null
     patchFoldController?.dispose()
     patchFoldController = null
     semanticRegionController?.dispose()
@@ -150,6 +153,7 @@ internal class AgentChatFileEditor(
       pendingThreadRefreshController.attach(createdTab)
       concreteThreadRebindController.attach(createdTab, providerDescriptor)
       initialMessageDispatcher.schedule(createdTab)
+      scopedTerminalRefreshController = createAgentChatScopedTerminalRefreshController(file, createdTab, providerDescriptor)
       patchFoldController = providerBehavior.createPatchFoldController(createdTab)
       semanticRegionController = providerBehavior.createSemanticRegionController(createdTab)
       component.removeAll()

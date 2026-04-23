@@ -94,6 +94,26 @@ class ClaudeSessionsWatcherTest {
   }
 
   @Test
+  fun classifiesPathlessProjectRootEventAsFullRescan() {
+    withWatcher { watcher ->
+      val projectRoot = tempDir.resolve(".claude").resolve("projects").resolve("-work-project")
+
+      val event = AgentWorkbenchWatchEvent(
+        eventType = AgentWorkbenchWatchEventType.MODIFY,
+        path = null,
+        rootPath = projectRoot,
+        isDirectory = false,
+        count = 1,
+      )
+
+      val changeSet = watcher.eventToChangeSet(event)
+
+      assertThat(changeSet).isNotNull
+      assertThat(changeSet!!.requiresFullRescan).isTrue()
+    }
+  }
+
+  @Test
   fun classifiesRootlessPathlessOverflowAsFullRescan() {
     withWatcher { watcher ->
       val event = AgentWorkbenchWatchEvent(
@@ -120,6 +140,27 @@ class ClaudeSessionsWatcherTest {
         eventType = AgentWorkbenchWatchEventType.CREATE,
         path = dirPath,
         rootPath = tempDir.resolve(".claude").resolve("projects"),
+        isDirectory = true,
+        count = 1,
+      )
+
+      val changeSet = watcher.eventToChangeSet(event)
+
+      assertThat(changeSet).isNotNull
+      assertThat(changeSet!!.requiresFullRescan).isTrue()
+    }
+  }
+
+  @Test
+  fun classifiesProjectsRootCreationUnderClaudeHomeAsFullRescan() {
+    withWatcher { watcher ->
+      val claudeHome = tempDir.resolve(".claude")
+      val projectsRoot = claudeHome.resolve("projects")
+
+      val event = AgentWorkbenchWatchEvent(
+        eventType = AgentWorkbenchWatchEventType.CREATE,
+        path = projectsRoot,
+        rootPath = claudeHome,
         isDirectory = true,
         count = 1,
       )

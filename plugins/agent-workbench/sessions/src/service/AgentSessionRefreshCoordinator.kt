@@ -22,6 +22,7 @@ import com.intellij.agent.workbench.sessions.AgentSessionsBundle
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProviderDescriptor
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProviders
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSource
+import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSourceUpdateEvent
 import com.intellij.agent.workbench.sessions.model.AgentSessionProviderWarning
 import com.intellij.agent.workbench.sessions.model.ArchiveThreadTarget
 import com.intellij.agent.workbench.sessions.model.ProjectEntry
@@ -46,7 +47,7 @@ internal class AgentSessionRefreshCoordinator(
   private val openAgentChatSnapshotProvider: suspend () -> AgentChatOpenTabsRefreshSnapshot = ::collectOpenAgentChatRefreshSnapshot,
   private val providerDescriptorsByIdProvider: () -> List<AgentSessionProviderDescriptor> = AgentSessionProviders::allProvidersById,
   private val providerDescriptorProvider: (AgentSessionProvider) -> AgentSessionProviderDescriptor? = AgentSessionProviders::find,
-  scopedRefreshSignalsProvider: (AgentSessionProvider) -> Flow<Set<String>> = { provider ->
+  scopedRefreshSignalsProvider: (AgentSessionProvider) -> Flow<AgentSessionSourceUpdateEvent> = { provider ->
       agentChatScopedRefreshSignals(provider)
     },
   private val openAgentChatTabPresentationUpdater: suspend (

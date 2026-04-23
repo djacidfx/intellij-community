@@ -23,12 +23,13 @@ import kotlin.time.Duration.Companion.milliseconds
 private val LOG = logger<AgentSessionRefreshScheduler>()
 private const val SOURCE_UPDATE_DEBOUNCE_MS = 350L
 private const val SOURCE_REFRESH_GATE_RETRY_MS = 500L
+private const val SOURCE_OBSERVER_RESTART_DELAY_MS = 1_000L
 
 internal class AgentSessionRefreshScheduler(
   private val serviceScope: CoroutineScope,
   private val sessionSourcesProvider: () -> List<AgentSessionSource>,
   private val scopedRefreshProvidersProvider: () -> List<AgentSessionProvider>,
-  private val scopedRefreshSignalsProvider: (AgentSessionProvider) -> Flow<Set<String>>,
+  private val scopedRefreshSignalsProvider: (AgentSessionProvider) -> Flow<AgentSessionSourceUpdateEvent>,
   private val isRefreshGateActive: suspend () -> Boolean,
   private val executeFullRefresh: suspend (RefreshLoadScope) -> Unit,
   private val executeProviderRefresh: suspend (AgentSessionProvider, Long, AgentSessionSourceUpdateEvent) -> Unit,
@@ -78,27 +79,34 @@ internal class AgentSessionRefreshScheduler(
         if (existing != null && existing.isActive) {
           return@forEach
         }
-        scopedRefreshObserverJobs[provider] = serviceScope.launch(Dispatchers.IO) {
+        val job = serviceScope.launch(Dispatchers.IO) {
           try {
-            scopedRefreshSignalsProvider(provider).collect { scopedPaths ->
-              if (scopedPaths.isEmpty()) {
+            scopedRefreshSignalsProvider(provider).collect { updateEvent ->
+              val normalizedUpdateEvent = normalizeUpdateEvent(updateEvent)
+              if (normalizedUpdateEvent.isUnscoped()) {
                 return@collect
               }
               LOG.debug {
-                "Received scoped refresh signal for ${provider.value} (paths=${scopedPaths.size}); scheduling scoped provider refresh"
+                "Received scoped refresh signal for ${provider.value} (${normalizedUpdateEvent.describeScope()}); scheduling scoped provider refresh"
               }
               enqueueSourceRefresh(
                 provider = provider,
-                updateEvent = AgentSessionSourceUpdateEvent(
-                  type = AgentSessionSourceUpdate.THREADS_CHANGED,
-                  scopedPaths = scopedPaths,
-                ),
+                updateEvent = normalizedUpdateEvent.copy(type = AgentSessionSourceUpdate.THREADS_CHANGED),
               )
             }
           }
           catch (e: Throwable) {
             if (e is CancellationException) throw e
             LOG.warn("Scoped refresh observer failed for ${provider.value}", e)
+            scheduleScopedRefreshObserverRestart(provider)
+          }
+        }
+        scopedRefreshObserverJobs[provider] = job
+        job.invokeOnCompletion {
+          synchronized(scopedRefreshObserverJobsLock) {
+            if (scopedRefreshObserverJobs[provider] === job) {
+              scopedRefreshObserverJobs.remove(provider)
+            }
           }
         }
       }
@@ -204,6 +212,7 @@ internal class AgentSessionRefreshScheduler(
           catch (e: Throwable) {
             if (e is CancellationException) throw e
             LOG.warn("Source updates observer failed for ${provider.value}", e)
+            scheduleSourceUpdateObserverRestart(provider)
           }
         }
         sourceObserverJobs[provider] = job
@@ -215,6 +224,22 @@ internal class AgentSessionRefreshScheduler(
           }
         }
       }
+    }
+  }
+
+  private fun scheduleSourceUpdateObserverRestart(provider: AgentSessionProvider) {
+    serviceScope.launch(Dispatchers.IO) {
+      delay(SOURCE_OBSERVER_RESTART_DELAY_MS.milliseconds)
+      LOG.debug { "Restarting source updates observer for ${provider.value} after failure" }
+      ensureSourceUpdateObservers()
+    }
+  }
+
+  private fun scheduleScopedRefreshObserverRestart(provider: AgentSessionProvider) {
+    serviceScope.launch(Dispatchers.IO) {
+      delay(SOURCE_OBSERVER_RESTART_DELAY_MS.milliseconds)
+      LOG.debug { "Restarting scoped refresh observer for ${provider.value} after failure" }
+      ensureScopedRefreshObservers()
     }
   }
 

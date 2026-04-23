@@ -45,8 +45,10 @@ internal class DirectoryWatcher(
 
   suspend fun watch() {
     check(!closed.get()) { "watcher already closed" }
-    registerPaths()
-    runEventLoop()
+    use {
+      registerPaths()
+      runEventLoop()
+    }
   }
 
   override fun close() {
@@ -87,11 +89,10 @@ internal class DirectoryWatcher(
         registeredPathToRootPath.remove(registeredPath)
         if (keyRoots.isEmpty()) {
           LOG.debug("No more directories left to watch; terminating watcher.")
-          break
+          throw IllegalStateException("No more directories left to watch")
         }
       }
     }
-    close()
   }
 
   private suspend fun handleEvent(key: WatchKey, event: WatchEvent<*>) {

@@ -213,6 +213,26 @@ class CodexAppServerClient(
     }
   }
 
+  @Suppress("unused")
+  suspend fun readThread(threadId: String): CodexThread? {
+    val normalizedThreadId = threadId.trim()
+    if (normalizedThreadId.isEmpty()) {
+      return null
+    }
+
+    return request(
+      method = "thread/read",
+      paramsWriter = { generator ->
+        generator.writeStartObject()
+        generator.writeStringField("threadId", normalizedThreadId)
+        generator.writeBooleanField("includeTurns", false)
+        generator.writeEndObject()
+      },
+      resultParser = { parser -> protocol.parseThreadReadResult(parser) },
+      defaultResult = null,
+    )
+  }
+
   suspend fun suggestPrompt(request: CodexPromptSuggestionRequest): CodexPromptSuggestionResult? {
     check(parsedNotificationsChannel != null) {
       "Codex prompt suggestions require parsed notification routing"

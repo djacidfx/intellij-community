@@ -17,6 +17,7 @@ import com.intellij.agent.workbench.common.normalizeAgentWorkbenchPath
 import com.intellij.agent.workbench.common.session.AgentSessionProvider
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionProviders
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSource
+import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSourceUpdateEvent
 import com.intellij.agent.workbench.sessions.frame.AGENT_SESSIONS_TOOL_WINDOW_ID
 import com.intellij.agent.workbench.sessions.frame.AgentWorkbenchDedicatedFrameProjectManager
 import com.intellij.agent.workbench.sessions.model.ArchiveThreadTarget
@@ -63,7 +64,7 @@ class AgentSessionRefreshService internal constructor(
       AgentSessionProvider,
       Map<String, List<AgentChatConcreteTabSnapshot>>,
   ) -> Int = ::clearOpenConcreteAgentChatNewThreadRebindAnchors,
-  private val scopedRefreshSignalsProvider: (AgentSessionProvider) -> kotlinx.coroutines.flow.Flow<Set<String>> = { provider ->
+  private val scopedRefreshSignalsProvider: (AgentSessionProvider) -> kotlinx.coroutines.flow.Flow<AgentSessionSourceUpdateEvent> = { provider ->
     agentChatScopedRefreshSignals(provider)
   },
   subscribeToProjectLifecycle: Boolean,
@@ -183,6 +184,13 @@ class AgentSessionRefreshService internal constructor(
   ): Job {
     return serviceScope.launch(Dispatchers.IO) {
       openAgentChatPendingTabsBinder(provider, requestsByProjectPath)
+      val scopedPaths = requestsByProjectPath.keys
+        .asSequence()
+        .map(::normalizeAgentWorkbenchPath)
+        .toCollection(LinkedHashSet())
+      if (scopedPaths.isNotEmpty()) {
+        loadingCoordinator.refreshProviderScope(provider = provider, scopedPaths = scopedPaths)
+      }
     }
   }
 

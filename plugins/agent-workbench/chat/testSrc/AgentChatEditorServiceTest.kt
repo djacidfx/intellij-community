@@ -1331,7 +1331,26 @@ class AgentChatEditorServiceTest {
 
     notifyCodexTerminalOutputForRefresh(outputPath)
 
-    assertThat(signalWaiter.await()).containsExactly("/work/project-terminal-output-delayed")
+    assertThat(signalWaiter.await().scopedPaths).containsExactly("/work/project-terminal-output-delayed")
+  }
+
+  @Test
+  fun testCodexScopedRefreshSignalsCarryKnownThreadId(): Unit = timeoutRunBlocking {
+    val signalWaiter = async(Dispatchers.Default, start = CoroutineStart.UNDISPATCHED) {
+      withTimeout(5.seconds) {
+        codexScopedRefreshSignals().first()
+      }
+    }
+
+    notifyAgentChatTerminalOutputForRefresh(
+      provider = AgentSessionProvider.CODEX,
+      projectPath = "/work/project-terminal-output-thread/",
+      threadId = "codex-thread-1",
+    )
+
+    val signal = signalWaiter.await()
+    assertThat(signal.scopedPaths).containsExactly("/work/project-terminal-output-thread")
+    assertThat(signal.threadIds).containsExactly("codex-thread-1")
   }
 
   @Test

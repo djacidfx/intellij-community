@@ -25,6 +25,7 @@ import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 
 @TestApplication
 class AgentSessionRefreshServiceIntegrationTest {
@@ -888,6 +889,121 @@ class AgentSessionRefreshServiceIntegrationTest {
 
       assertThat(warmState.getPathSnapshot(PROJECT_PATH)?.threads.orEmpty().map { it.id })
         .containsExactly("cached-1")
+    }
+  }
+
+  @Test
+  fun rebindPendingTabsInBackgroundRefreshesTreeToDropPendingProjection() = runBlocking(Dispatchers.Default) {
+    val codexUpdates = MutableSharedFlow<AgentSessionSourceUpdateEvent>(replay = 1, extraBufferCapacity = 1)
+    val pendingIdentity = "codex:new-rebind-tree"
+    val pendingTabsRef = AtomicReference(
+      mapOf(
+        PROJECT_PATH to listOf(
+          AgentChatPendingTabSnapshot(
+            projectPath = PROJECT_PATH,
+            pendingTabKey = "pending-codex:rebind-tree",
+            pendingThreadIdentity = pendingIdentity,
+            pendingCreatedAtMs = 200L,
+            pendingFirstInputAtMs = null,
+            pendingLaunchMode = null,
+          )
+        )
+      )
+    )
+    val rebindInvocations = mutableListOf<ServicePendingCodexRebindInvocation>()
+    val concreteTarget = AgentChatTabRebindTarget(
+      projectPath = PROJECT_PATH,
+      provider = AgentSessionProvider.CODEX,
+      threadIdentity = buildAgentSessionIdentity(AgentSessionProvider.CODEX, "codex-1"),
+      threadId = "codex-1",
+      threadTitle = "Codex thread",
+      threadActivity = AgentThreadActivity.READY,
+      threadUpdatedAt = 300L,
+    )
+
+    withService(
+      sessionSourcesProvider = {
+        listOf(
+          ScriptedSessionSource(
+            provider = AgentSessionProvider.CODEX,
+            supportsUpdates = true,
+            updateEvents = codexUpdates,
+            listFromOpenProject = { path, _ ->
+              if (path == PROJECT_PATH) {
+                listOf(thread(id = "codex-1", updatedAt = 300L, title = "Codex thread", provider = AgentSessionProvider.CODEX))
+              }
+              else {
+                emptyList()
+              }
+            },
+            listFromClosedProject = { path ->
+              if (path == PROJECT_PATH) {
+                listOf(thread(id = "codex-1", updatedAt = 300L, title = "Codex thread", provider = AgentSessionProvider.CODEX))
+              }
+              else {
+                emptyList()
+              }
+            },
+          )
+        )
+      },
+      projectEntriesProvider = {
+        listOf(openProjectEntry(PROJECT_PATH, "Project A"))
+      },
+      openPendingCodexTabsProvider = { pendingTabsRef.get() },
+      openConcreteChatThreadIdentitiesByPathProvider = { emptyMap() },
+      openAgentChatPendingTabsBinder = { requestsByPath ->
+        requestsByPath.forEach { (path, requests) ->
+          requests.forEach { request ->
+            rebindInvocations.add(
+              ServicePendingCodexRebindInvocation(
+                path = path,
+                pendingTabKey = request.pendingTabKey,
+                pendingThreadIdentity = request.pendingThreadIdentity,
+                target = request.target,
+              )
+            )
+          }
+        }
+        // Real binder drops the rebound pending tab from the AgentChatTabsService snapshot.
+        pendingTabsRef.set(emptyMap())
+        successfulPendingCodexRebindReport(requestsByPath)
+      },
+    ) { service ->
+      service.refresh()
+      waitForCondition {
+        service.state.value.projects.firstOrNull { it.path == PROJECT_PATH }?.hasLoaded == true
+      }
+
+      codexUpdates.emit(threadsChangedEvent())
+      waitForCondition {
+        service.state.value.projects.firstOrNull { it.path == PROJECT_PATH }
+          ?.threads
+          ?.any { it.id == "new-rebind-tree" } == true
+      }
+
+      service.rebindPendingTabsInBackground(
+        provider = AgentSessionProvider.CODEX,
+        requestsByProjectPath = mapOf(
+          PROJECT_PATH to listOf(
+            AgentChatPendingTabRebindRequest(
+              pendingTabKey = "pending-codex:rebind-tree",
+              pendingThreadIdentity = pendingIdentity,
+              target = concreteTarget,
+            )
+          )
+        ),
+      )
+
+      waitForCondition { rebindInvocations.isNotEmpty() }
+      waitForCondition {
+        val project = service.state.value.projects.firstOrNull { it.path == PROJECT_PATH } ?: return@waitForCondition false
+        project.threads.none { it.id == "new-rebind-tree" } && project.threads.any { it.id == "codex-1" }
+      }
+
+      val invocation = rebindInvocations.single()
+      assertThat(invocation.path).isEqualTo(PROJECT_PATH)
+      assertThat(invocation.pendingThreadIdentity).isEqualTo(pendingIdentity)
     }
   }
 }

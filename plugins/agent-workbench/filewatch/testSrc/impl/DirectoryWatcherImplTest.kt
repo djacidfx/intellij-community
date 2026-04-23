@@ -104,6 +104,48 @@ class DirectoryWatcherImplTest {
   }
 
   @Test
+  fun invalidatingOnlyWatchKeyFailsWatch() {
+    runBlocking(Dispatchers.IO) {
+      val watchService = TestWatchService(queueSize = 8)
+      val watcher = DirectoryWatcher(
+        listOf(tempDir),
+        EventRecorder(),
+        watchService,
+        watchablePathFactory = { path -> WatchablePath(path) },
+      )
+      val failure = CompletableDeferred<Throwable>()
+      val watchJob = launch {
+        try {
+          watcher.watch()
+        }
+        catch (t: Throwable) {
+          failure.complete(t)
+        }
+      }
+      try {
+        val key = withTimeout(5.seconds) {
+          watchService.awaitRegisteredKey()
+        }
+
+        key.cancel()
+        key.signalOverflow(tempDir)
+
+        val error = withTimeout(5.seconds) {
+          failure.await()
+        }
+
+        assertThat(error)
+          .isInstanceOf(IllegalStateException::class.java)
+          .hasMessage("No more directories left to watch")
+      }
+      finally {
+        watcher.close()
+        watchJob.cancelAndJoin()
+      }
+    }
+  }
+
+  @Test
   fun unsupportedFileTreeModifierFallbackWalksTreeOnce() {
     runBlocking(Dispatchers.IO) {
       val childDir = tempDir.resolve("child")
@@ -200,8 +242,20 @@ class DirectoryWatcherImplTest {
 }
 
 private class TestWatchService(private val queueSize: Int) : AbstractWatchService() {
+  @Volatile
+  private var registeredKey: AbstractWatchKey? = null
+
   override fun register(watchable: WatchablePath, eventTypes: Iterable<WatchEvent.Kind<*>>): AbstractWatchKey {
-    return AbstractWatchKey(this, watchable, eventTypes, queueSize)
+    return AbstractWatchKey(this, watchable, eventTypes, queueSize).also { key ->
+      registeredKey = key
+    }
+  }
+
+  fun awaitRegisteredKey(): AbstractWatchKey {
+    while (true) {
+      registeredKey?.let { key -> return key }
+      Thread.sleep(10)
+    }
   }
 
 }

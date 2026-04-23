@@ -19,12 +19,13 @@ internal class ClaudeSessionsWatcher(
   scope: CoroutineScope,
   onChange: (FileBackedSessionChangeSet) -> Unit,
 ) : AutoCloseable {
-  private val projectsRoot = normalizeFileBackedSessionPath(claudeHomeProvider().resolve("projects"))
+  private val claudeHome = normalizeFileBackedSessionPath(claudeHomeProvider())
+  private val projectsRoot = normalizeFileBackedSessionPath(claudeHome.resolve("projects"))
   private val watcher = FileBackedSessionWatcher(
     logger = LOG,
     watcherName = "Claude sessions",
     spec = FileBackedSessionWatcherSpec(
-      roots = listOf(projectsRoot),
+      roots = listOf(claudeHome, projectsRoot),
       eventToChangeSet = ::eventToChangeSet,
     ),
     scope = scope,
@@ -41,7 +42,7 @@ internal class ClaudeSessionsWatcher(
       event = event,
       isChangedPath = { path -> isJsonlPath(path, projectsRoot) || isIndexPath(path, projectsRoot) },
       isRelevantPath = { path -> isUnderRoot(path, projectsRoot) },
-      isRelevantRoot = { path -> normalizeFileBackedSessionPath(path) == projectsRoot },
+      isRelevantRoot = { path -> isRelevantWatcherRoot(path, claudeHome, projectsRoot) },
     )
   }
 }
@@ -58,4 +59,9 @@ private fun isJsonlPath(path: Path, normalizedRoot: Path): Boolean {
 private fun isIndexPath(path: Path, normalizedRoot: Path): Boolean {
   val fileName = path.fileName?.toString() ?: return false
   return fileName == CLAUDE_SESSION_INDEX_FILE && isUnderRoot(path, normalizedRoot)
+}
+
+private fun isRelevantWatcherRoot(path: Path, claudeHome: Path, projectsRoot: Path): Boolean {
+  val normalizedPath = normalizeFileBackedSessionPath(path)
+  return normalizedPath == claudeHome || normalizedPath.startsWith(projectsRoot)
 }

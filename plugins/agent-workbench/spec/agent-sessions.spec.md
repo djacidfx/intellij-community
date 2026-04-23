@@ -2,12 +2,16 @@
 name: Agent Threads Tool Window
 description: Requirements for the Swing Async Tree implementation of Agent Threads, including aggregation, loading, activation, tree lifecycle behavior, and UI-controller decomposition.
 targets:
+  - ../sessions-core/src/providers/*.kt
   - ../sessions/src/**/*.kt
   - ../sessions/resources/intellij.agent.workbench.sessions.xml
   - ../sessions/resources/messages/AgentSessionsBundle.properties
   - ../sessions/intellij.agent.workbench.sessions.iml
   - ../sessions/BUILD.bazel
-  - ../claude/sessions/src/*.kt
+  - ../codex/common/src/*.kt
+  - ../codex/sessions/src/**/*.kt
+  - ../claude/sessions/src/**/*.kt
+  - ../filewatch/src/**/*.kt
   - ../sessions/testSrc/*.kt
   - ../chat/src/*.kt
 ---
@@ -15,7 +19,7 @@ targets:
 # Agent Threads Tool Window
 
 Status: Draft
-Date: 2026-04-20
+Date: 2026-04-24
 
 ## Summary
 Define Agent Threads as a provider-agnostic, project-scoped browser implemented with native IntelliJ Swing tree APIs (`StructureTreeModel` + `AsyncTreeModel` + `Tree`).
@@ -149,6 +153,21 @@ Shared contracts remain in `spec/agent-core-contracts.spec.md`.
 - Session-source update observation and refresh scheduling must be event-driven; periodic polling loops are not allowed.
   [@test] ../sessions/testSrc/AgentSessionRefreshCoordinatorTest.kt
 
+- Session-source update observers and chat-scoped refresh observers must restart after collector failure so one provider signal failure cannot permanently stop refresh delivery.
+  [@test] ../sessions/testSrc/AgentSessionRefreshCoordinatorTest.kt
+
+- Source update events may scope refresh by normalized project/worktree path, by provider thread id, or by both. Thread-targeted events for known concrete threads must call the provider source with the bounded thread-id set and must not refresh every thread in the project path.
+  [@test] ../sessions/testSrc/AgentSessionRefreshCoordinatorTest.kt
+
+- Thread-targeted events with no resolvable loaded/open concrete path must be skipped instead of widening to a full project refresh.
+  [@test] ../sessions/testSrc/AgentSessionRefreshCoordinatorTest.kt
+
+- Provider thread refresh outcomes must distinguish complete path snapshots from partial thread updates:
+  - complete outcomes replace provider rows for that path,
+  - partial outcomes may update or remove only the explicit returned/removed thread ids,
+  - partial outcomes must preserve unrelated provider rows and shared thread presentation entries.
+  [@test] ../sessions/testSrc/AgentSessionRefreshCoordinatorTest.kt
+
 - Tree rendering must preserve precedence and exclusivity rules:
   - error row suppresses warning/empty rows for that path,
   - warning rows suppress empty row,
@@ -184,8 +203,8 @@ Shared contracts remain in `spec/agent-core-contracts.spec.md`.
   [@test] ../sessions/testSrc/AgentSessionsSwingNewSessionActionsTest.kt
 
 - Provider refresh must publish shared thread presentation keyed by normalized project path + canonical thread identity so Agent Threads and editor tabs resolve the same live title/activity values.
-- Scoped provider refresh may replace stale shared thread-presentation entries only for provider/path scopes backed by authoritative provider thread lists (`threads != null`).
-- Warning-only provider refresh outcomes must preserve existing shared thread-presentation entries for that scope while still updating provider warning state.
+- Complete provider refresh outcomes may replace stale shared thread-presentation entries only for the authoritative provider/path scope.
+- Partial and warning-only provider refresh outcomes must preserve existing shared thread-presentation entries outside the explicitly updated/removed thread ids while still updating provider warning state.
 - Session-driven thread title updates must refresh open chat tab metadata and editor-tab presentation through that shared refresh path.
 - Scoped pending-thread projection for unloaded paths must work for both Codex and Claude, projecting synthetic `new-*` rows from open pending tabs until a concrete provider thread is discovered.
   [@test] ../chat/testSrc/AgentChatEditorServiceTest.kt
@@ -265,6 +284,10 @@ Shared contracts remain in `spec/agent-core-contracts.spec.md`.
 ## Data & Backend
 - Open projects may use long-lived provider sessions where available.
 - Closed project/worktree loads may use path-scoped short-lived provider calls.
+- `AgentSessionSource.refreshThreads` is the single refresh entry point for provider updates; it receives normalized path scope, optional thread-id scope, and the source update event, and returns complete path snapshots, partial thread updates/removals, and path-local failures without widening a failed path to the whole refresh batch.
+- Claude store refresh may serve thread-scoped requests by resolving only the requested session transcript ids plus the session index for the normalized project path; missing, archived, or mismatched-path sessions must be reported as removed/absent partial results instead of triggering a full store scan.
+  [@test] ../claude/sessions/testSrc/ClaudeSessionSourceTest.kt
+  [@test] ../sessions/testSrc/AgentSessionRefreshCoordinatorTest.kt
 - Aggregation normalizes provider differences (paging/count capability) into one state model.
 - Session UI consumes normalized `AgentThreadActivity`; provider raw statuses remain backend inputs and must not create extra tree activity states.
 - Project-row branch visibility uses a local default-branch heuristic (`main`, `master`) and does not require remote default-branch lookup.
@@ -274,8 +297,12 @@ Shared contracts remain in `spec/agent-core-contracts.spec.md`.
 
 ## Error Handling
 - Missing provider tooling must produce provider-specific messages.
-- Unexpected provider failures must map to provider-unavailable warnings when partial data exists.
+- Unexpected provider failures must map to provider-unavailable warnings when partial data exists, and scoped provider refresh failures must preserve healthy paths in the same provider batch.
 - Load failures should preserve previously loaded thread data where safe.
+- File-backed provider watchers must recover correctness after watch-loop failure by closing the failed loop, recreating watchers for the same roots, and continuing to deliver later change events while the owning watcher is active.
+- Claude file-backed watching must include both the Claude home directory and the `projects` directory so creation/recreation of the projects root, overflow events, and pathless events can trigger a correctness-preserving rescan.
+  [@test] ../claude/sessions/testSrc/ClaudeSessionsWatcherTest.kt
+  [@test] ../filewatch/testSrc/AgentWorkbenchDirectoryWatcherTest.kt
 - Blocking open-path refresh failures should preserve the previous warm snapshot instead of overwriting it with error-state content.
 - Batch archive/unarchive failures should isolate to failing targets and preserve successful target state updates.
 - Chat metadata cleanup failures during archive must be logged and must not block successful thread removal/refresh.

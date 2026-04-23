@@ -12,6 +12,12 @@ data class CodexBackendThread(
   @JvmField val requiresResponse: Boolean = false,
 )
 
+data class CodexBackendThreadRefreshResult(
+  @JvmField val threads: List<CodexBackendThread> = emptyList(),
+  @JvmField val removedThreadIds: Set<String> = emptySet(),
+  @JvmField val isComplete: Boolean = false,
+)
+
 enum class CodexSessionActivity {
   UNREAD,
   REVIEWING,
@@ -21,6 +27,8 @@ enum class CodexSessionActivity {
 
 interface CodexSessionBackend {
   suspend fun listThreads(path: String, openProject: Project?): List<CodexBackendThread>
+
+  suspend fun refreshThreads(path: String, threadIds: Set<String>, openProject: Project?): CodexBackendThreadRefreshResult? = null
 
   val updates: Flow<Unit>
     get() = emptyFlow()

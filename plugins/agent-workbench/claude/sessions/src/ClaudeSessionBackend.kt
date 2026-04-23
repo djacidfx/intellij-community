@@ -18,6 +18,14 @@ data class ClaudeBackendThread(
 interface ClaudeSessionBackend {
   suspend fun listThreads(path: String, openProject: Project?): List<ClaudeBackendThread>
 
+  suspend fun refreshThreads(path: String, threadIds: Set<String>, openProject: Project?): ClaudeBackendThreadRefreshResult? = null
+
   val updates: Flow<Unit>
     get() = emptyFlow()
 }
+
+data class ClaudeBackendThreadRefreshResult(
+  @JvmField val threads: List<ClaudeBackendThread> = emptyList(),
+  @JvmField val removedThreadIds: Set<String> = emptySet(),
+  @JvmField val isComplete: Boolean = false,
+)

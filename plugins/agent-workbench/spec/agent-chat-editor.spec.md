@@ -17,7 +17,7 @@ targets:
 # Agent Chat Editor
 
 Status: Draft
-Date: 2026-04-20
+Date: 2026-04-24
 
 ## Summary
 Define how Agent chat tabs are opened, restored, reused, and rendered in editor tabs. This spec owns tab lifecycle and persistence behavior. Shared command mapping and shared editor-tab popup action semantics are owned by `spec/agent-core-contracts.spec.md`. Semantic transcript navigation and proposed-plan editor affordances are owned by `spec/agent-chat-semantic-navigation.spec.md`.
@@ -93,6 +93,7 @@ Define how Agent chat tabs are opened, restored, reused, and rendered in editor 
 - File-drop paste must preserve drop order, must not auto-execute, and must keep working while terminal content swaps between regular and alternate-buffer editors.
   [@test] ../chat/testSrc/AgentChatFileDropSupportTest.kt
 - Disposing an initialized chat editor instance must only release editor-local controller state; it must not interrupt or restart the live terminal while the same chat file remains open in the project.
+- Editor-local controller state includes scoped terminal refresh, patch folding, semantic-region tracking, and initial-message dispatch controllers; all must be disposed with the editor instance.
 - Closing the chat file after transient editor recreation has settled must always release terminal tab resources:
   - manager-backed tab content must close through `TerminalToolWindowTabsManager.closeTab`,
   - detached tab content (no content manager) must still be released.
@@ -114,7 +115,8 @@ Define how Agent chat tabs are opened, restored, reused, and rendered in editor 
 
 - Pending Codex tabs must capture first user-input timestamp once (on first terminal key event) and persist it for later rebind matching.
 - After the first pending Codex key event, chat must emit an immediate scoped refresh for the tab path and keep a bounded pending-only scoped refresh retry loop active until the tab rebinds, the tab closes, or the pending rebind window expires.
-- Restored pending Codex tabs with persisted first-input metadata must resume the same bounded scoped refresh retries on initialization.
+- Restored pending Codex tabs with persisted first-input metadata must resume the same bounded scoped refresh retries on initialization only while the pending rebind window is still valid.
+- Stale restored pending Codex tabs outside the pending rebind window must not emit an initial terminal-scoped refresh and must not resume pending scoped refresh retries.
 - Pending-identity tabs that finish in a deferred no-start outcome must remain open for inline result rendering, but must drop out of pending-thread projection and editor-tab rebind eligibility for the rest of the runtime.
 - Pending editor-tab rebind resolution must only target concrete provider-backed threads for the same normalized path; projected `new-*` rows and self-rebind targets are invalid.
 - Open pending-tab snapshot collection must preserve project path, pending thread identity, and pending metadata for providers that support pending editor-tab rebinding, including Codex and Claude.
@@ -126,6 +128,11 @@ Define how Agent chat tabs are opened, restored, reused, and rendered in editor 
 - Concrete top-level Codex tabs must detect execution of exact terminal command `/new`, persist a single rebind anchor timestamp (`newThreadRebindRequestedAtMs`), and request scoped refresh for the tab path.
 - `/new` detection must track the typed command line, handle backspace/delete and escape reset, and must not arm on partial commands or incidental `/new` substrings.
   [@test] ../chat/testSrc/AgentChatFileEditorLifecycleTest.kt
+
+- Concrete Agent Chat tabs whose provider emits scoped refresh signals must include the canonical provider session id in terminal-output and terminal-termination refresh signals. Sub-agent tabs must use the parent session id, not the runtime sub-agent thread id. Pending tabs and tabs without concrete thread identity must omit thread id so they stay on the pending-rebind path.
+  [@test] ../chat/testSrc/AgentChatScopedTerminalRefreshControllerTest.kt
+  [@test] ../chat/testSrc/AgentChatEditorServiceTest.kt
+  [@test] ../sessions/testSrc/AgentSessionRefreshCoordinatorTest.kt
 
 - Concrete top-level Codex tabs armed by `/new` may be rebound to a newly discovered concrete thread for the same normalized path; rebinding must update tab identity, resume command, title, activity, and persisted snapshot, then clear the `/new` anchor.
 - Concrete `/new` rebinding must validate the persisted anchor timestamp before applying so stale refresh work cannot rebind after a newer `/new` request.

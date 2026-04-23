@@ -19,6 +19,7 @@ import com.intellij.agent.workbench.sessions.core.providers.AgentSessionRebindCa
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionRefreshHints
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionRefreshThreadSeed
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSource
+import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSourceRefreshResult
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSourceUpdateEvent
 import com.intellij.agent.workbench.sessions.model.AgentProjectSessions
 import com.intellij.agent.workbench.sessions.model.ProjectEntry
@@ -35,6 +36,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -166,6 +169,76 @@ class AgentSessionRefreshCoordinatorTest {
   }
 
   @Test
+  fun sourceUpdateObserverRestartsAfterFailure() = runBlocking(Dispatchers.Default) {
+    val recoveredUpdates = MutableSharedFlow<AgentSessionSourceUpdateEvent>(replay = 1, extraBufferCapacity = 1)
+    val sourceProviderCalls = AtomicInteger(0)
+    val closedRefreshInvocations = AtomicInteger(0)
+
+    fun source(updateEvents: kotlinx.coroutines.flow.Flow<AgentSessionSourceUpdateEvent>): ScriptedSessionSource {
+      return ScriptedSessionSource(
+        provider = AgentSessionProvider.CODEX,
+        supportsUpdates = true,
+        updateEvents = updateEvents,
+        listFromClosedProject = { path ->
+          if (path != PROJECT_PATH) {
+            emptyList()
+          }
+          else {
+            closedRefreshInvocations.incrementAndGet()
+            listOf(thread(id = "codex-1", updatedAt = 300L, provider = AgentSessionProvider.CODEX))
+          }
+        },
+      )
+    }
+
+    withLoadingCoordinator(
+      sessionSourcesProvider = {
+        val call = sourceProviderCalls.incrementAndGet()
+        val updates = if (call == 1) {
+          flow {
+            throw IllegalStateException("source updates failed")
+          }
+        }
+        else {
+          recoveredUpdates
+        }
+        listOf(source(updates))
+      },
+      isRefreshGateActive = { true },
+    ) { coordinator, stateStore ->
+      stateStore.replaceProjects(
+        projects = listOf(
+          AgentProjectSessions(
+            path = PROJECT_PATH,
+            name = "Project A",
+            isOpen = true,
+            hasLoaded = true,
+            threads = listOf(thread(id = "codex-1", updatedAt = 100L, provider = AgentSessionProvider.CODEX)),
+          )
+        ),
+        visibleThreadCounts = emptyMap(),
+      )
+
+      coordinator.observeSessionSourceUpdates()
+
+      waitForCondition(timeoutMs = 4_000) {
+        sourceProviderCalls.get() >= 2
+      }
+
+      recoveredUpdates.tryEmit(threadsChangedEvent())
+
+      waitForCondition {
+        stateStore.snapshot().projects.firstOrNull { it.path == PROJECT_PATH }
+          ?.threads
+          ?.firstOrNull { it.provider == AgentSessionProvider.CODEX }
+          ?.updatedAt == 300L
+      }
+
+      assertThat(closedRefreshInvocations.get()).isEqualTo(1)
+    }
+  }
+
+  @Test
   fun scopedRefreshMergedWithThreadTargetedUpdateDoesNotWidenToOtherPaths() = runBlocking(Dispatchers.Default) {
     val projectB = "/work/project-b"
     val updates = MutableSharedFlow<AgentSessionSourceUpdateEvent>(replay = 1, extraBufferCapacity = 1)
@@ -232,7 +305,7 @@ class AgentSessionRefreshCoordinatorTest {
   }
 
   @Test
-  fun threadTargetedUpdateFallsBackToFullRefreshWhenThreadCannotBeResolved() = runBlocking(Dispatchers.Default) {
+  fun threadTargetedUpdateSkipsRefreshWhenThreadCannotBeResolved() = runBlocking(Dispatchers.Default) {
     val projectB = "/work/project-b"
     val updates = MutableSharedFlow<AgentSessionSourceUpdateEvent>(replay = 1, extraBufferCapacity = 1)
     val closedRefreshInvocations = LinkedHashMap<String, AtomicInteger>()
@@ -278,14 +351,13 @@ class AgentSessionRefreshCoordinatorTest {
       coordinator.observeSessionSourceUpdates()
       updates.tryEmit(hintsChangedEvent(threadIds = setOf("missing-thread")))
 
-      waitForCondition {
-        val projects = stateStore.snapshot().projects.associateBy { it.path }
-        projects[PROJECT_PATH]?.threads?.firstOrNull { it.provider == AgentSessionProvider.CODEX }?.updatedAt == 300L &&
-        projects[projectB]?.threads?.firstOrNull { it.provider == AgentSessionProvider.CODEX }?.updatedAt == 400L
-      }
+      delay(700.milliseconds)
 
-      assertThat(closedRefreshInvocations[PROJECT_PATH]?.get() ?: 0).isEqualTo(1)
-      assertThat(closedRefreshInvocations[projectB]?.get() ?: 0).isEqualTo(1)
+      val projects = stateStore.snapshot().projects.associateBy { it.path }
+      assertThat(projects[PROJECT_PATH]?.threads?.firstOrNull { it.provider == AgentSessionProvider.CODEX }?.updatedAt).isEqualTo(100L)
+      assertThat(projects[projectB]?.threads?.firstOrNull { it.provider == AgentSessionProvider.CODEX }?.updatedAt).isEqualTo(100L)
+      assertThat(closedRefreshInvocations[PROJECT_PATH]?.get() ?: 0).isEqualTo(0)
+      assertThat(closedRefreshInvocations[projectB]?.get() ?: 0).isEqualTo(0)
     }
   }
 
@@ -658,6 +730,72 @@ class AgentSessionRefreshCoordinatorTest {
       assertThat(receivedRefreshScopes.last()).isEmpty()
       assertThat(receivedTitleMaps.last()).isEmpty()
       assertThat(receivedActivityMaps.last()).isEmpty()
+    }
+  }
+
+  @Test
+  fun providerRefreshKeepsHealthyPathWhenAnotherPathFails() = runBlocking(Dispatchers.Default) {
+    val projectB = "/work/project-b"
+    val source = ScriptedSessionSource(
+      provider = AgentSessionProvider.CODEX,
+      listFromClosedProject = { path ->
+        when (path) {
+          PROJECT_PATH -> throw IllegalStateException("codex failed for project A")
+          projectB -> listOf(
+            thread(id = "codex-b", updatedAt = 500L, title = "Updated B", provider = AgentSessionProvider.CODEX)
+          )
+          else -> emptyList()
+        }
+      },
+    )
+
+    withLoadingCoordinator(
+      sessionSourcesProvider = { listOf(source) },
+      isRefreshGateActive = { true },
+    ) { coordinator, stateStore ->
+      stateStore.replaceProjects(
+        projects = listOf(
+          AgentProjectSessions(
+            path = PROJECT_PATH,
+            name = "Project A",
+            isOpen = true,
+            hasLoaded = true,
+            threads = listOf(
+              thread(id = "codex-a", updatedAt = 100L, title = "Stable A", provider = AgentSessionProvider.CODEX)
+            ),
+          ),
+          AgentProjectSessions(
+            path = projectB,
+            name = "Project B",
+            isOpen = true,
+            hasLoaded = true,
+            threads = listOf(
+              thread(id = "codex-b", updatedAt = 100L, title = "Stable B", provider = AgentSessionProvider.CODEX)
+            ),
+          ),
+        ),
+        visibleThreadCounts = emptyMap(),
+      )
+
+      coordinator.refreshProviderScope(
+        provider = AgentSessionProvider.CODEX,
+        scopedPaths = linkedSetOf(PROJECT_PATH, projectB),
+      )
+
+      waitForCondition {
+        val projects = stateStore.snapshot().projects.associateBy { it.path }
+        projects[PROJECT_PATH]?.providerWarnings?.singleOrNull()?.provider == AgentSessionProvider.CODEX &&
+        projects[projectB]?.threads?.singleOrNull()?.title == "Updated B"
+      }
+
+      val projects = stateStore.snapshot().projects.associateBy { it.path }
+      val projectAState = projects.getValue(PROJECT_PATH)
+      val projectBState = projects.getValue(projectB)
+      assertThat(projectAState.threads.single().title).isEqualTo("Stable A")
+      assertThat(projectAState.providerWarnings).hasSize(1)
+      assertThat(projectAState.providerWarnings.single().provider).isEqualTo(AgentSessionProvider.CODEX)
+      assertThat(projectBState.threads.single().title).isEqualTo("Updated B")
+      assertThat(projectBState.providerWarnings).isEmpty()
     }
   }
 
@@ -1386,6 +1524,117 @@ class AgentSessionRefreshCoordinatorTest {
   }
 
   @Test
+  fun threadScopedProviderUpdateMergesOnlyRequestedThread() = runBlocking(Dispatchers.Default) {
+    val updates = MutableSharedFlow<AgentSessionSourceUpdateEvent>(replay = 1, extraBufferCapacity = 1)
+    val refreshRequests = mutableListOf<Pair<List<String>, Set<String>>>()
+    val closedRefreshInvocations = AtomicInteger(0)
+
+    val source = ScriptedSessionSource(
+      provider = AgentSessionProvider.CODEX,
+      supportsUpdates = true,
+      updateEvents = updates,
+      listFromClosedProject = {
+        closedRefreshInvocations.incrementAndGet()
+        emptyList()
+      },
+      refreshThreadsProvider = { request ->
+        refreshRequests += request.paths to request.threadIds
+        AgentSessionSourceRefreshResult(
+          partialThreadsByPath = mapOf(
+            PROJECT_PATH to listOf(
+              thread(id = "codex-1", updatedAt = 900L, title = "Updated", provider = AgentSessionProvider.CODEX)
+            )
+          )
+        )
+      },
+    )
+
+    withLoadingCoordinator(
+      sessionSourcesProvider = { listOf(source) },
+      isRefreshGateActive = { true },
+    ) { coordinator, stateStore ->
+      stateStore.replaceProjects(
+        projects = listOf(
+          AgentProjectSessions(
+            path = PROJECT_PATH,
+            name = "Project A",
+            isOpen = true,
+            hasLoaded = true,
+            threads = listOf(
+              thread(id = "codex-1", updatedAt = 100L, title = "Old", provider = AgentSessionProvider.CODEX),
+              thread(id = "codex-2", updatedAt = 200L, title = "Stable", provider = AgentSessionProvider.CODEX),
+            ),
+          )
+        ),
+        visibleThreadCounts = emptyMap(),
+      )
+
+      coordinator.observeSessionSourceUpdates()
+      updates.tryEmit(threadsChangedEvent(threadIds = setOf("codex-1")))
+
+      waitForCondition {
+        stateStore.snapshot().projects.first().threads.first().id == "codex-1" &&
+        stateStore.snapshot().projects.first().threads.first().updatedAt == 900L
+      }
+
+      val project = stateStore.snapshot().projects.first()
+      assertThat(project.threads.map { it.id }).containsExactly("codex-1", "codex-2")
+      assertThat(project.threads.first { it.id == "codex-1" }.title).isEqualTo("Updated")
+      assertThat(project.threads.first { it.id == "codex-2" }.title).isEqualTo("Stable")
+      assertThat(refreshRequests).containsExactly(listOf(PROJECT_PATH) to setOf("codex-1"))
+      assertThat(closedRefreshInvocations.get()).isEqualTo(0)
+    }
+  }
+
+  @Test
+  fun unresolvedThreadScopedProviderUpdateDoesNotFallBackToFullRefresh() = runBlocking(Dispatchers.Default) {
+    val updates = MutableSharedFlow<AgentSessionSourceUpdateEvent>(replay = 1, extraBufferCapacity = 1)
+    val refreshInvocations = AtomicInteger(0)
+    val closedRefreshInvocations = AtomicInteger(0)
+
+    val source = ScriptedSessionSource(
+      provider = AgentSessionProvider.CODEX,
+      supportsUpdates = true,
+      updateEvents = updates,
+      listFromClosedProject = {
+        closedRefreshInvocations.incrementAndGet()
+        emptyList()
+      },
+      refreshThreadsProvider = {
+        refreshInvocations.incrementAndGet()
+        AgentSessionSourceRefreshResult()
+      },
+    )
+
+    withLoadingCoordinator(
+      sessionSourcesProvider = { listOf(source) },
+      isRefreshGateActive = { true },
+      openChatPathsProvider = { setOf(PROJECT_PATH) },
+    ) { coordinator, stateStore ->
+      stateStore.replaceProjects(
+        projects = listOf(
+          AgentProjectSessions(
+            path = PROJECT_PATH,
+            name = "Project A",
+            isOpen = true,
+            hasLoaded = true,
+            threads = listOf(thread(id = "codex-known", updatedAt = 100L, provider = AgentSessionProvider.CODEX)),
+          )
+        ),
+        visibleThreadCounts = emptyMap(),
+      )
+
+      coordinator.observeSessionSourceUpdates()
+      updates.tryEmit(threadsChangedEvent(threadIds = setOf("codex-missing")))
+      delay(700.milliseconds)
+
+      assertThat(refreshInvocations.get()).isEqualTo(0)
+      assertThat(closedRefreshInvocations.get()).isEqualTo(0)
+      assertThat(stateStore.snapshot().projects.first().threads.map { it.id }).containsExactly("codex-known")
+    }
+  }
+
+  @Test
   fun pendingCodexScopedRefreshWithoutKnownBaselineDoesNotTriggerRebindWithoutSafeMetadata() = runBlocking(Dispatchers.Default) {
     val closedRefreshInvocations = AtomicInteger(0)
     val binderInvocations = AtomicInteger(0)
@@ -1436,6 +1685,76 @@ class AgentSessionRefreshCoordinatorTest {
       delay(150.milliseconds)
 
       assertThat(binderInvocations.get()).isEqualTo(0)
+    }
+  }
+
+  @Test
+  fun scopedRefreshObserverRestartsAfterFailure() = runBlocking(Dispatchers.Default) {
+    val recoveredSignals = MutableSharedFlow<Set<String>>(replay = 1, extraBufferCapacity = 1)
+    val scopedSignalsProviderCalls = AtomicInteger(0)
+    val closedRefreshInvocations = AtomicInteger(0)
+
+    val source = ScriptedSessionSource(
+      provider = AgentSessionProvider.CODEX,
+      supportsUpdates = false,
+      listFromClosedProject = { path ->
+        if (path != PROJECT_PATH) {
+          emptyList()
+        }
+        else {
+          closedRefreshInvocations.incrementAndGet()
+          listOf(thread(id = "codex-1", updatedAt = 300L, provider = AgentSessionProvider.CODEX))
+        }
+      },
+    )
+
+    withLoadingCoordinator(
+      sessionSourcesProvider = { listOf(source) },
+      isRefreshGateActive = { true },
+      providerDescriptors = testRefreshCoordinatorProviderDescriptors().filter { descriptor ->
+        descriptor.provider == AgentSessionProvider.CODEX
+      },
+      codexScopedRefreshSignalsProvider = {
+        val call = scopedSignalsProviderCalls.incrementAndGet()
+        if (call == 1) {
+          flow {
+            throw IllegalStateException("scoped refresh failed")
+          }
+        }
+        else {
+          recoveredSignals
+        }
+      },
+    ) { coordinator, stateStore ->
+      stateStore.replaceProjects(
+        projects = listOf(
+          AgentProjectSessions(
+            path = PROJECT_PATH,
+            name = "Project A",
+            isOpen = true,
+            hasLoaded = true,
+            threads = listOf(thread(id = "codex-1", updatedAt = 100L, provider = AgentSessionProvider.CODEX)),
+          )
+        ),
+        visibleThreadCounts = emptyMap(),
+      )
+
+      coordinator.observeSessionSourceUpdates()
+
+      waitForCondition(timeoutMs = 4_000) {
+        scopedSignalsProviderCalls.get() >= 2
+      }
+
+      recoveredSignals.tryEmit(setOf(PROJECT_PATH))
+
+      waitForCondition {
+        stateStore.snapshot().projects.firstOrNull { it.path == PROJECT_PATH }
+          ?.threads
+          ?.firstOrNull { it.provider == AgentSessionProvider.CODEX }
+          ?.updatedAt == 300L
+      }
+
+      assertThat(closedRefreshInvocations.get()).isEqualTo(1)
     }
   }
 
@@ -2957,7 +3276,7 @@ private suspend fun withLoadingCoordinator(
           concreteThreadIdentitiesByPath = openConcreteChatThreadIdentitiesByPathProvider(),
         )
       },
-      scopedRefreshSignalsProvider = { _ -> codexScopedRefreshSignalsProvider() },
+      scopedRefreshSignalsProvider = { _ -> codexScopedRefreshSignalsProvider().map { paths -> threadsChangedEvent(scopedPaths = paths) } },
       openAgentChatTabPresentationUpdater = openChatTabPresentationUpdater,
       openAgentChatPendingTabsBinder = { _, requestsByPath -> openChatPendingTabsBinder(requestsByPath) },
       openAgentChatConcreteTabsBinder = { _, requestsByPath -> openChatConcreteTabsBinder(requestsByPath) },

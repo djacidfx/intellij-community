@@ -100,6 +100,7 @@ internal object ToolWindowAgentChatTerminalTabs : AgentChatTerminalTabs {
       delegate = terminalTab,
       projectPath = file.projectPath,
       provider = file.provider,
+      threadId = resolveAgentChatScopedRefreshThreadId(file),
     )
   }
 
@@ -144,6 +145,7 @@ private class ToolWindowAgentChatTerminalTab(
   val delegate: TerminalToolWindowTab,
   private val projectPath: String,
   private val provider: AgentSessionProvider?,
+  private val threadId: String?,
 ) : AgentChatTerminalTab {
   override val component: JComponent
     get() = delegate.content.component
@@ -178,7 +180,7 @@ private class ToolWindowAgentChatTerminalTab(
       checkpoint = checkpoint,
       onMeaningfulOutput = {
         if (provider != null && AgentSessionProviders.find(provider)?.emitsScopedRefreshSignals == true) {
-          notifyAgentChatTerminalOutputForRefresh(provider = provider, projectPath = projectPath)
+          notifyAgentChatTerminalOutputForRefresh(provider = provider, projectPath = projectPath, threadId = threadId)
         }
       },
     )
@@ -209,7 +211,7 @@ private class ToolWindowAgentChatTerminalTab(
       idleMs = idleMs,
       onMeaningfulOutput = {
         if (provider != null && AgentSessionProviders.find(provider)?.emitsScopedRefreshSignals == true) {
-          notifyAgentChatTerminalOutputForRefresh(provider = provider, projectPath = projectPath)
+          notifyAgentChatTerminalOutputForRefresh(provider = provider, projectPath = projectPath, threadId = threadId)
         }
       },
     )

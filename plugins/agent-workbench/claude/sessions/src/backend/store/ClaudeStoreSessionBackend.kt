@@ -3,6 +3,7 @@ package com.intellij.agent.workbench.claude.sessions.backend.store
 
 import com.intellij.agent.workbench.claude.common.ClaudeSessionsStore
 import com.intellij.agent.workbench.claude.sessions.ClaudeBackendThread
+import com.intellij.agent.workbench.claude.sessions.ClaudeBackendThreadRefreshResult
 import com.intellij.agent.workbench.claude.sessions.ClaudeSessionBackend
 import com.intellij.agent.workbench.json.filebacked.FileBackedSessionChangeSet
 import com.intellij.agent.workbench.json.filebacked.createFileBackedSessionChangeFlow
@@ -35,6 +36,7 @@ internal class ClaudeStoreSessionBackend(
       logger = LOG,
       watcherName = "Claude sessions",
       initContext = { "claudeHome=${claudeHomeProvider()}" },
+      emitInitialRefreshPing = true,
     ) { scope, onChange ->
       ClaudeSessionsWatcher(
         claudeHomeProvider = claudeHomeProvider,
@@ -47,6 +49,22 @@ internal class ClaudeStoreSessionBackend(
   override suspend fun listThreads(path: String, @Suppress("UNUSED_PARAMETER") openProject: Project?): List<ClaudeBackendThread> {
     return withContext(Dispatchers.IO) {
       threadIndex.collectByProject(path)
+    }
+  }
+
+  override suspend fun refreshThreads(
+    path: String,
+    threadIds: Set<String>,
+    @Suppress("UNUSED_PARAMETER") openProject: Project?,
+  ): ClaudeBackendThreadRefreshResult? {
+    if (threadIds.isEmpty()) {
+      return null
+    }
+    return withContext(Dispatchers.IO) {
+      ClaudeBackendThreadRefreshResult(
+        threads = threadIndex.collectByProjectAndSessionIds(projectPath = path, sessionIds = threadIds),
+        isComplete = false,
+      )
     }
   }
 }

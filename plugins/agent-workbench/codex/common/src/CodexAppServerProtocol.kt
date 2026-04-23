@@ -158,6 +158,28 @@ internal class CodexAppServerProtocol {
     return snapshot
   }
 
+  fun parseThreadReadResult(parser: JsonParser): CodexThread? {
+    if (parser.currentToken != JsonToken.START_OBJECT) {
+      parser.skipChildren()
+      return null
+    }
+
+    var thread: CodexThread? = null
+    forEachObjectField(parser) { fieldName ->
+      when (fieldName) {
+        "thread", "data" -> {
+          val payload = parseObjectOrNull(parser, ::parseThreadPayload)
+          if (payload != null) {
+            thread = createCodexThread(payload = payload, archived = false)
+          }
+        }
+        else -> parser.skipChildren()
+      }
+      true
+    }
+    return thread
+  }
+
   fun parseTurnStartResult(parser: JsonParser): CodexAppServerTurnStartResult? {
     if (parser.currentToken != JsonToken.START_OBJECT) {
       parser.skipChildren()

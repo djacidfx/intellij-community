@@ -10,6 +10,7 @@ import com.intellij.agent.workbench.common.session.AgentSessionProvider
 import com.intellij.agent.workbench.common.session.AgentSessionThread
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionRefreshThreadSeed
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSource
+import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSourceRefreshRequest
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSourceUpdateEvent
 import com.intellij.agent.workbench.sessions.core.providers.UNKNOWN_AGENT_SESSION_REFRESH_THREAD_UPDATED_AT
 import com.intellij.agent.workbench.sessions.core.providers.describeScope
@@ -79,39 +80,54 @@ internal class AgentSessionProviderRefreshRunner(
         "Provider refresh id=$refreshId provider=${provider.value} targetPaths=${targetPaths.size}"
       }
 
-      val prefetched = try {
-        source.prefetchThreads(targetPaths.toList())
-      }
-      catch (_: Throwable) {
-        emptyMap()
-      }
-
-      LOG.debug {
-        "Provider refresh id=$refreshId provider=${provider.value} prefetchedPaths=${prefetched.size}"
-      }
-
       val outcomes = LinkedHashMap<String, ProviderRefreshOutcome>(targetPaths.size)
-      for (path in targetPaths) {
-        val prefetchedThreads = prefetched[path]
-        if (prefetchedThreads != null) {
-          outcomes[path] = ProviderRefreshOutcome(
-            threads = archiveSuppressionSupport.apply(path = path, provider = provider, threads = prefetchedThreads),
+      try {
+        val refreshResult = source.refreshThreads(
+          AgentSessionSourceRefreshRequest(
+            paths = targetPaths.toList(),
+            threadIds = updateEvent.threadIds.orEmpty(),
+            updateEvent = updateEvent,
           )
-          continue
-        }
-
-        try {
+        )
+        for ((path, threads) in refreshResult.completeThreadsByPath) {
           outcomes[path] = ProviderRefreshOutcome(
-            threads = archiveSuppressionSupport.apply(
-              path = path,
-              provider = provider,
-              threads = source.listThreadsFromClosedProject(path),
-            ),
+            threads = archiveSuppressionSupport.apply(path = path, provider = provider, threads = threads),
+            isComplete = true,
+            removedThreadIds = refreshResult.removedThreadIdsByPath[path].orEmpty(),
           )
         }
-        catch (e: Throwable) {
-          if (e is CancellationException) throw e
-          LOG.warn("Failed to refresh ${provider.value} sessions for $path", e)
+        for ((path, threads) in refreshResult.partialThreadsByPath) {
+          val existing = outcomes[path]
+          val removedThreadIds = linkedSetOf<String>().apply {
+            addAll(existing?.removedThreadIds.orEmpty())
+            addAll(refreshResult.removedThreadIdsByPath[path].orEmpty())
+          }
+          outcomes[path] = ProviderRefreshOutcome(
+            threads = archiveSuppressionSupport.apply(path = path, provider = provider, threads = threads),
+            isComplete = false,
+            removedThreadIds = removedThreadIds,
+          )
+        }
+        for ((path, removedThreadIds) in refreshResult.removedThreadIdsByPath) {
+          if (path in outcomes) continue
+          outcomes[path] = ProviderRefreshOutcome(
+            threads = emptyList(),
+            isComplete = false,
+            removedThreadIds = removedThreadIds,
+          )
+        }
+        for ((path, failure) in refreshResult.failuresByPath) {
+          if (path !in targetPaths) continue
+          LOG.warn("Failed to refresh ${provider.value} sessions for $path", failure)
+          outcomes[path] = ProviderRefreshOutcome(
+            warningMessage = resolveProviderWarningMessage(provider, failure),
+          )
+        }
+      }
+      catch (e: Throwable) {
+        if (e is CancellationException) throw e
+        LOG.warn("Failed to refresh ${provider.value} sessions for ${targetPaths.size} paths", e)
+        for (path in targetPaths) {
           outcomes[path] = ProviderRefreshOutcome(
             warningMessage = resolveProviderWarningMessage(provider, e),
           )
@@ -287,7 +303,9 @@ internal class AgentSessionProviderRefreshRunner(
     val activityByPathAndThreadIdentity = LinkedHashMap<Pair<String, String>, AgentThreadActivity>()
     for ((path, outcome) in outcomes) {
       val threads = outcome.threads ?: continue
-      authoritativePaths += path
+      if (outcome.isComplete) {
+        authoritativePaths += path
+      }
       for (thread in threads) {
         if (thread.provider != provider) continue
         val identityKey = path to buildAgentSessionIdentity(thread.provider, thread.id)
@@ -322,6 +340,7 @@ private fun calculateNewProviderThreadIdsByPath(
       val newThreadIds = outcome.threads
         .orEmpty()
         .asSequence()
+        .filter { outcome.isComplete }
         .filter { thread -> thread.provider == provider && thread.id !in knownThreadIds }
         .map { thread -> thread.id }
         .toCollection(LinkedHashSet())
@@ -346,6 +365,10 @@ private fun resolveTargetPaths(
   targetPaths.addAll(resolvePathsForThreadIds(state, openChatSnapshot, provider, updateEvent.threadIds))
   if (targetPaths.isNotEmpty()) {
     return targetPaths
+  }
+
+  if (updateEvent.threadIds?.isNotEmpty() == true) {
+    return emptySet()
   }
 
   return collectFullRefreshTargetPaths(state, openChatSnapshot)
@@ -401,6 +424,8 @@ private fun collectFullRefreshTargetPaths(
 
 internal data class ProviderRefreshOutcome(
   @JvmField val threads: List<AgentSessionThread>? = null,
+  @JvmField val isComplete: Boolean = true,
+  @JvmField val removedThreadIds: Set<String> = emptySet(),
   @JvmField val warningMessage: String? = null,
 )
 
@@ -490,7 +515,12 @@ private fun AgentProjectSessions.withProviderRefreshOutcome(
   outcome: ProviderRefreshOutcome,
 ): AgentProjectSessions {
   val mergedThreads = outcome.threads?.let { threads ->
-    mergeThreadsForProvider(this.threads, provider, threads)
+    if (outcome.isComplete) {
+      mergeThreadsForProvider(this.threads, provider, threads)
+    }
+    else {
+      mergeThreadUpdatesForProvider(this.threads, provider, threads, outcome.removedThreadIds)
+    }
   } ?: this.threads
   return copy(
     threads = mergedThreads,
@@ -503,7 +533,12 @@ private fun AgentWorktree.withProviderRefreshOutcome(
   outcome: ProviderRefreshOutcome,
 ): AgentWorktree {
   val mergedThreads = outcome.threads?.let { threads ->
-    mergeThreadsForProvider(this.threads, provider, threads)
+    if (outcome.isComplete) {
+      mergeThreadsForProvider(this.threads, provider, threads)
+    }
+    else {
+      mergeThreadUpdatesForProvider(this.threads, provider, threads, outcome.removedThreadIds)
+    }
   } ?: this.threads
   return copy(
     threads = mergedThreads,
@@ -535,4 +570,41 @@ private fun mergeThreadsForProvider(
   mergedThreads.addAll(newProviderThreads)
   mergedThreads.sortByDescending { it.updatedAt }
   return mergedThreads
+}
+
+private fun mergeThreadUpdatesForProvider(
+  existingThreads: List<AgentSessionThread>,
+  provider: AgentSessionProvider,
+  updatedProviderThreads: List<AgentSessionThread>,
+  removedThreadIds: Set<String>,
+): List<AgentSessionThread> {
+  val updatesById = LinkedHashMap<String, AgentSessionThread>(updatedProviderThreads.size)
+  for (thread in updatedProviderThreads) {
+    if (thread.provider == provider) {
+      updatesById[thread.id] = thread
+    }
+  }
+
+  val mergedThreads = ArrayList<AgentSessionThread>(existingThreads.size + updatesById.size)
+  for (thread in existingThreads) {
+    if (thread.provider != provider) {
+      mergedThreads.add(thread)
+      continue
+    }
+    if (thread.id in removedThreadIds) {
+      continue
+    }
+    val update = updatesById.remove(thread.id)
+    mergedThreads.add(if (update == null) thread else mergeThreadUpdate(existing = thread, update = update))
+  }
+  mergedThreads.addAll(updatesById.values)
+  mergedThreads.sortByDescending { it.updatedAt }
+  return mergedThreads
+}
+
+private fun mergeThreadUpdate(existing: AgentSessionThread, update: AgentSessionThread): AgentSessionThread {
+  if (update.subAgents.isNotEmpty() || existing.subAgents.isEmpty()) {
+    return update
+  }
+  return update.copy(subAgents = existing.subAgents)
 }

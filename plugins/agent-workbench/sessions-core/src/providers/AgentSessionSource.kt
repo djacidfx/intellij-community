@@ -5,6 +5,7 @@ import com.intellij.agent.workbench.common.AgentThreadActivity
 import com.intellij.agent.workbench.common.session.AgentSessionProvider
 import com.intellij.agent.workbench.common.session.AgentSessionThread
 import com.intellij.openapi.project.Project
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 
@@ -45,6 +46,22 @@ data class AgentSessionSourceUpdateEvent(
   @JvmField val threadIds: Set<String>? = null,
 )
 
+data class AgentSessionSourceRefreshRequest(
+  @JvmField val paths: List<String>,
+  @JvmField val threadIds: Set<String> = emptySet(),
+  @JvmField val updateEvent: AgentSessionSourceUpdateEvent,
+) {
+  val isThreadScoped: Boolean
+    get() = threadIds.isNotEmpty()
+}
+
+data class AgentSessionSourceRefreshResult(
+  @JvmField val completeThreadsByPath: Map<String, List<AgentSessionThread>> = emptyMap(),
+  @JvmField val partialThreadsByPath: Map<String, List<AgentSessionThread>> = emptyMap(),
+  @JvmField val removedThreadIdsByPath: Map<String, Set<String>> = emptyMap(),
+  @JvmField val failuresByPath: Map<String, Throwable> = emptyMap(),
+)
+
 fun AgentSessionSourceUpdateEvent.isUnscoped(): Boolean {
   return scopedPaths == null && threadIds == null
 }
@@ -78,6 +95,47 @@ interface AgentSessionSource {
   suspend fun listThreadsFromOpenProject(path: String, project: Project): List<AgentSessionThread>
 
   suspend fun listThreadsFromClosedProject(path: String): List<AgentSessionThread>
+
+  /**
+   * Refreshes provider rows for [AgentSessionSourceRefreshRequest.paths].
+   *
+   * [AgentSessionSourceRefreshResult.completeThreadsByPath] is authoritative for a path and replaces all provider rows there.
+   * [AgentSessionSourceRefreshResult.partialThreadsByPath] updates only the returned thread ids and must not evict other rows.
+   * [AgentSessionSourceRefreshResult.failuresByPath] reports path-local failures; other paths in the same request may still succeed.
+   */
+  suspend fun refreshThreads(request: AgentSessionSourceRefreshRequest): AgentSessionSourceRefreshResult {
+    if (request.paths.isEmpty()) {
+      return AgentSessionSourceRefreshResult()
+    }
+
+    val prefetched = try {
+      prefetchThreads(request.paths)
+    }
+    catch (e: Throwable) {
+      if (e is CancellationException) throw e
+      emptyMap()
+    }
+    val completeThreadsByPath = LinkedHashMap<String, List<AgentSessionThread>>(request.paths.size)
+    val failuresByPath = LinkedHashMap<String, Throwable>()
+    for (path in request.paths) {
+      val prefetchedThreads = prefetched[path]
+      if (prefetchedThreads != null) {
+        completeThreadsByPath[path] = prefetchedThreads
+        continue
+      }
+      try {
+        completeThreadsByPath[path] = listThreadsFromClosedProject(path)
+      }
+      catch (e: Throwable) {
+        if (e is CancellationException) throw e
+        failuresByPath[path] = e
+      }
+    }
+    return AgentSessionSourceRefreshResult(
+      completeThreadsByPath = completeThreadsByPath,
+      failuresByPath = failuresByPath,
+    )
+  }
 
   /**
    * Prefetch threads for multiple paths in a single backend call.

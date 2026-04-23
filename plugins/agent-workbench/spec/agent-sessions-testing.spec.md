@@ -4,13 +4,15 @@ description: Coverage ownership matrix for Swing-based Agent Threads, shared con
 targets:
   - ../sessions/testSrc/*.kt
   - ../chat/testSrc/*.kt
+  - ../claude/sessions/testSrc/**/*.kt
   - ../codex/sessions/testSrc/**/*.kt
+  - ../filewatch/testSrc/**/*.kt
 ---
 
 # Agent Threads Testing
 
 Status: Draft
-Date: 2026-03-15
+Date: 2026-04-24
 
 ## Summary
 Define required coverage ownership for Agent Workbench specs after the hard Swing cutover.
@@ -31,8 +33,8 @@ This file does not redefine runtime behavior; it maps each contract area to requ
 ## Requirements
 - Core contract coverage must include identity and command mapping, shared editor-tab popup actions, archive gate behavior (including optional unarchive capability contract), and visibility primitive persistence.
 - Archive service coverage must include single-thread archive, multi-target archive with partial provider support, multi-target progress title and sequential provider order, background-failure rollback, and unarchive restore behavior for supported providers.
-- Claude sessions coverage must include archive-prefix title parsing, full-title preservation for long titles, active-list filtering of archived threads, and provider-backed archive/unarchive/rename command transport with the resumed non-interactive `--resume <id> --permission-mode default --print --name <title> -- <ack prompt>` command shape asserted, plus a plain rename case asserting the same `--name <title>` transport is reused for non-archive renames.
-- Sessions aggregation/service coverage must include ordering, partial warning, blocking error, unknown counts, warm-snapshot bootstrap, on-demand dedup, refresh concurrency, and local read-state synchronization.
+- Claude sessions coverage must include archive-prefix title parsing, full-title preservation for long titles, active-list filtering of archived threads, watcher classification for project-root creation/overflow/index/jsonl changes, thread-id scoped transcript collection, and provider-backed archive/unarchive/rename command transport with the resumed non-interactive `--resume <id> --permission-mode default --print --name <title> -- <ack prompt>` command shape asserted, plus a plain rename case asserting the same `--name <title>` transport is reused for non-archive renames.
+- Sessions aggregation/service coverage must include ordering, partial warning, blocking error, unknown counts, warm-snapshot bootstrap, on-demand dedup, refresh concurrency, local read-state synchronization, source/scoped observer restart, thread-scoped refresh merge, path-local provider refresh failure isolation, and no full-refresh fallback for unresolved thread-only events.
 - Swing tree rendering coverage must include warning/error precedence, empty-state exclusivity, `More` row exact/unknown behavior, and thread-row metadata presentation (badge + time, no inline status text, tooltip status preserved).
 - Swing tree interaction coverage must include single-click select behavior, activation-open policy, double-click open precedence on openable parent rows, path resolution for `More` rows, and context-menu selection retarget rules.
 - Persisted tree-state coverage must include collapsed-state restoration and expansion parent mapping for selected worktree paths.
@@ -43,7 +45,9 @@ This file does not redefine runtime behavior; it maps each contract area to requ
 - Tree-popup action coverage must include platform copy group registration (`CopyReferencePopupGroup`) for project/worktree context menus.
 - Dedicated-frame coverage must include gear toggle setting wiring, routing behavior in both modes, and dedicated-project filtering.
 - Claude quota hint coverage must include visibility/acknowledgement gating and toggle action registration.
-- Chat-editor lifecycle coverage must include protocol v2 restore, state round-trip, lazy initialization, shared tab-presentation refresh, scoped stale-entry replacement, sub-agent activity propagation without title overwrite, stable editor-kind naming, icon mapping fallback, and archive-triggered close+forget.
+- Chat-editor lifecycle coverage must include protocol v2 restore, state round-trip, lazy initialization, shared tab-presentation refresh, parent-session scoped refresh propagation for sub-agent tabs, stale pending-tab refresh suppression, scoped stale-entry replacement, sub-agent activity propagation without title overwrite, stable editor-kind naming, icon mapping fallback, editor-local controller disposal, and archive-triggered close+forget.
+- Filewatch coverage must include root-path preservation, pathless overflow delivery, close suppression, watch-loop restart after failure, automatic close of failed loops, invalid-watch-key failure, and closed-watcher behavior.
+- Codex backend coverage must also include app-server thread-scoped refresh.
 - Codex backend coverage must include raw status-kind parsing, rollout parser/title/activity behavior, watcher behavior (path-scoped + overflow/full-rescan), app-server sub-agent hierarchy/orphan handling, app-server-only backend selection, app-server `thread/read` status-and-flag normalization, response-required/read-tracker behavior, started-thread fallback mapping, app-server-first refresh-hints merge with rollout unread fallback, real-TUI rollout ingestion through the production rollout path, prompt-suggestion streamed turn handling, and prompt-suggestion interrupt cleanup.
 - Codex app-server contract tests must run against mock backend in all environments and real backend when CLI is available.
 - Real-backend contract assertions must be invariant-based (ordering and archived consistency) and must not depend on user-specific thread IDs.
@@ -51,7 +55,7 @@ This file does not redefine runtime behavior; it maps each contract area to requ
 
 ## Requirement Ownership Matrix
 - Core contracts: `ClaudeAgentSessionProviderDescriptorTest`, `CodexAgentSessionProviderDescriptorTest`, `AgentSessionsEditorTabActionsTest`, `AgentSessionArchiveServiceIntegrationTest`, `AgentSessionRefreshOnDemandIntegrationTest`
-- Sessions aggregation/loading: `AgentSessionLoadAggregationTest`, `AgentSessionRefreshServiceIntegrationTest`, `AgentSessionRefreshOnDemandIntegrationTest`, `AgentSessionRefreshConcurrencyIntegrationTest`
+- Sessions aggregation/loading: `AgentSessionLoadAggregationTest`, `AgentSessionRefreshServiceIntegrationTest`, `AgentSessionRefreshOnDemandIntegrationTest`, `AgentSessionRefreshConcurrencyIntegrationTest`, `AgentSessionRefreshCoordinatorTest`
 - Swing tree rendering: `AgentSessionsSwingTreeRenderingTest`, `AgentSessionsSwingTreeCellRendererTest`
 - Swing tree interaction: `AgentSessionsSwingTreeInteractionTest`
 - Swing tree state persistence: `AgentSessionsSwingTreeStatePersistenceTest`
@@ -62,7 +66,9 @@ This file does not redefine runtime behavior; it maps each contract area to requ
 - Tool-window factory wiring: `AgentSessionsToolWindowFactorySwingTest`, `AgentSessionsGearActionsTest`
 - Dedicated frame: `AgentSessionsGearActionsTest`, `AgentSessionPromptLauncherBridgeTest`
 - Quota hint gating: `AgentSessionsSwingQuotaHintTest`, `AgentSessionsClaudeQuotaWidgetActionRegistrationTest`
-- Chat tab lifecycle: `AgentChatEditorServiceTest`, `AgentChatFileEditorProviderTest`, `AgentChatTabSelectionServiceTest`
+- Chat tab lifecycle: `AgentChatEditorServiceTest`, `AgentChatFileEditorProviderTest`, `AgentChatFileEditorLifecycleTest`, `AgentChatScopedTerminalRefreshControllerTest`, `AgentChatTabSelectionServiceTest`
+- Filewatch: `AgentWorkbenchDirectoryWatcherTest`, `DirectoryWatcherImplTest`
+- Claude sessions watcher/store: `ClaudeSessionsWatcherTest`, `ClaudeSessionSourceTest`, `ClaudeStoreSessionBackendTest`
 - Codex rollout/app-server selection + hint wiring: `CodexRolloutSessionBackendTest`, `CodexRolloutSessionBackendFileWatchIntegrationTest`, `CodexRolloutSessionsWatcherTest`, `CodexSessionActivityResolverTest`, `CodexAppServerSessionBackendTest`, `CodexAppServerRefreshHintsProviderTest`, `CodexSessionSourceRefreshHintsTest`, `CodexSessionSourceRolloutIntegrationTest`, `CodexSessionSourceRealTuiIntegrationTest`, `CodexSessionBackendSelectorTest`, `CodexSessionsPagingLogicTest`, `AgentSessionRefreshCoordinatorTest`
 - Codex app-server contract: `CodexAppServerClientTest`
 - Prompt-suggestion AI mapping: `CodexAppServerPromptSuggestionBackendTest`

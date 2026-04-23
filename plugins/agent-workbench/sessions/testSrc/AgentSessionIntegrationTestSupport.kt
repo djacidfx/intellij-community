@@ -17,6 +17,8 @@ import com.intellij.agent.workbench.common.session.AgentSubAgent
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionRefreshHints
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionRefreshThreadSeed
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSource
+import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSourceRefreshRequest
+import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSourceRefreshResult
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSourceUpdate
 import com.intellij.agent.workbench.sessions.core.providers.AgentSessionSourceUpdateEvent
 import com.intellij.agent.workbench.sessions.frame.OPEN_CHAT_IN_DEDICATED_FRAME_SETTING_ID
@@ -155,6 +157,13 @@ class AgentSessionStateSyncTestFacade(
     syncService.refreshProviderForPath(path = path, provider = provider)
   }
 
+  fun rebindPendingTabsInBackground(
+    provider: AgentSessionProvider,
+    requestsByProjectPath: Map<String, List<AgentChatPendingTabRebindRequest>>,
+  ) {
+    syncService.rebindPendingTabsInBackground(provider = provider, requestsByProjectPath = requestsByProjectPath)
+  }
+
   fun markThreadAsRead(path: String, provider: AgentSessionProvider, threadId: String, updatedAt: Long) {
     syncService.markThreadAsRead(path = path, provider = provider, threadId = threadId, updatedAt = updatedAt)
   }
@@ -184,6 +193,7 @@ class ScriptedSessionSource(
   private val listFromOpenProject: suspend (path: String, project: Project) -> List<AgentSessionThread> = { _, _ -> emptyList() },
   private val listFromClosedProject: suspend (path: String) -> List<AgentSessionThread> = { _ -> emptyList() },
   private val prefetch: suspend (paths: List<String>) -> Map<String, List<AgentSessionThread>> = { emptyMap() },
+  private val refreshThreadsProvider: (suspend (AgentSessionSourceRefreshRequest) -> AgentSessionSourceRefreshResult)? = null,
   private val prefetchRefreshHintsProvider: suspend (
     paths: List<String>,
     knownThreadIdsByPath: Map<String, Set<String>>,
@@ -210,6 +220,10 @@ class ScriptedSessionSource(
 
   override suspend fun prefetchThreads(paths: List<String>): Map<String, List<AgentSessionThread>> {
     return prefetch(paths)
+  }
+
+  override suspend fun refreshThreads(request: AgentSessionSourceRefreshRequest): AgentSessionSourceRefreshResult {
+    return refreshThreadsProvider?.invoke(request) ?: super.refreshThreads(request)
   }
 
   override suspend fun prefetchRefreshHints(

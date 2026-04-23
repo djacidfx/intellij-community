@@ -11,6 +11,7 @@ import com.intellij.agent.workbench.json.filebacked.FileBackedSessionCachedFile
 import com.intellij.agent.workbench.json.filebacked.FileBackedSessionChangeSet
 import com.intellij.agent.workbench.json.filebacked.FileBackedSessionFileStat
 import com.intellij.agent.workbench.json.filebacked.FileBackedSessionInvalidationState
+import com.intellij.agent.workbench.json.filebacked.FileBackedSessionRescanPlan
 import com.intellij.agent.workbench.json.filebacked.buildFileBackedSessionFileStat
 import com.intellij.agent.workbench.json.filebacked.toFileBackedSessionPathKey
 import com.intellij.openapi.diagnostic.debug
@@ -70,41 +71,114 @@ internal class ClaudeThreadIndex(
 
     val threadRescanPlan = threadInvalidationState.planRescan(allJsonlFiles)
     val indexRescanPlan = indexInvalidationState.planRescan(allIndexFiles)
+    applyThreadRescan(threadRescanPlan)
+    applyIndexRescan(indexRescanPlan)
+    val threads = buildBackendThreads(allJsonlFiles)
 
-    if (threadRescanPlan.filesToParse.isNotEmpty()) {
-      val parsedUpdates = HashMap<String, FileBackedSessionCachedFile<com.intellij.agent.workbench.claude.common.ClaudeSessionThread?>>(
-        threadRescanPlan.filesToParse.size,
+    LOG.debug {
+      "Resolved Claude threads for project (directories=${directories.size}, jsonlFiles=${allJsonlFiles.size}, indexFiles=${allIndexFiles.size}, parsedJsonl=${threadRescanPlan.filesToParse.size}, parsedIndex=${indexRescanPlan.filesToParse.size}, total=${threads.size})"
+    }
+
+    return threads
+  }
+
+  fun collectByProjectAndSessionIds(projectPath: String, sessionIds: Set<String>): List<ClaudeBackendThread> {
+    val normalizedSessionIds = sessionIds
+      .asSequence()
+      .map(String::trim)
+      .filter { it.isNotEmpty() && '/' !in it && '\\' !in it }
+      .toCollection(LinkedHashSet())
+    if (normalizedSessionIds.isEmpty()) {
+      return emptyList()
+    }
+
+    val directories = try {
+      store.findMatchingDirectories(projectPath)
+    }
+    catch (_: Throwable) {
+      LOG.debug { "Failed to find matching directories for $projectPath" }
+      return emptyList()
+    }
+    if (directories.isEmpty()) {
+      return emptyList()
+    }
+
+    val jsonlFiles = LinkedHashMap<String, FileBackedSessionFileStat>()
+    val indexFiles = LinkedHashMap<String, FileBackedSessionFileStat>()
+    for (directory in directories) {
+      try {
+        scanIndexFiles(directory, indexFiles)
+        for (sessionId in normalizedSessionIds) {
+          val stat = buildFileBackedSessionFileStat(directory.resolve("$sessionId.jsonl")) ?: continue
+          jsonlFiles[stat.pathKey] = stat
+        }
+      }
+      catch (_: Throwable) {
+        LOG.debug { "Failed to resolve Claude session files in $directory" }
+      }
+    }
+
+    if (jsonlFiles.isEmpty()) {
+      return emptyList()
+    }
+
+    val threadRescanPlan = threadInvalidationState.planRescan(jsonlFiles)
+    val indexRescanPlan = indexInvalidationState.planRescan(indexFiles)
+    applyThreadRescan(threadRescanPlan)
+    applyIndexRescan(indexRescanPlan)
+    val threads = buildBackendThreads(jsonlFiles)
+
+    LOG.debug {
+      "Resolved Claude thread subset for project (directories=${directories.size}, requestedSessions=${normalizedSessionIds.size}, " +
+      "jsonlFiles=${jsonlFiles.size}, indexFiles=${indexFiles.size}, parsedJsonl=${threadRescanPlan.filesToParse.size}, " +
+      "parsedIndex=${indexRescanPlan.filesToParse.size}, total=${threads.size})"
+    }
+
+    return threads
+  }
+
+  private fun applyThreadRescan(threadRescanPlan: FileBackedSessionRescanPlan) {
+    if (threadRescanPlan.filesToParse.isEmpty()) {
+      return
+    }
+
+    val parsedUpdates = HashMap<String, FileBackedSessionCachedFile<com.intellij.agent.workbench.claude.common.ClaudeSessionThread?>>(
+      threadRescanPlan.filesToParse.size,
+    )
+    for (stat in threadRescanPlan.filesToParse) {
+      parsedUpdates[stat.pathKey] = FileBackedSessionCachedFile(
+        lastModifiedNs = stat.lastModifiedNs,
+        sizeBytes = stat.sizeBytes,
+        parsedValue = store.parseJsonlFile(stat.path),
       )
-      for (stat in threadRescanPlan.filesToParse) {
-        parsedUpdates[stat.pathKey] = FileBackedSessionCachedFile(
-          lastModifiedNs = stat.lastModifiedNs,
-          sizeBytes = stat.sizeBytes,
-          parsedValue = store.parseJsonlFile(stat.path),
-        )
-      }
-      threadInvalidationState.applyParsedUpdates(parsedUpdates)
+    }
+    threadInvalidationState.applyParsedUpdates(parsedUpdates)
+  }
+
+  private fun applyIndexRescan(indexRescanPlan: FileBackedSessionRescanPlan) {
+    if (indexRescanPlan.filesToParse.isEmpty()) {
+      return
     }
 
-    if (indexRescanPlan.filesToParse.isNotEmpty()) {
-      val parsedUpdates = HashMap<String, FileBackedSessionCachedFile<Map<String, String>>>(indexRescanPlan.filesToParse.size)
-      for (stat in indexRescanPlan.filesToParse) {
-        parsedUpdates[stat.pathKey] = FileBackedSessionCachedFile(
-          lastModifiedNs = stat.lastModifiedNs,
-          sizeBytes = stat.sizeBytes,
-          parsedValue = store.parseSessionsIndex(stat.path),
-        )
-      }
-      indexInvalidationState.applyParsedUpdates(parsedUpdates)
+    val parsedUpdates = HashMap<String, FileBackedSessionCachedFile<Map<String, String>>>(indexRescanPlan.filesToParse.size)
+    for (stat in indexRescanPlan.filesToParse) {
+      parsedUpdates[stat.pathKey] = FileBackedSessionCachedFile(
+        lastModifiedNs = stat.lastModifiedNs,
+        sizeBytes = stat.sizeBytes,
+        parsedValue = store.parseSessionsIndex(stat.path),
+      )
     }
+    indexInvalidationState.applyParsedUpdates(parsedUpdates)
+  }
 
+  private fun buildBackendThreads(jsonlFilesByPath: Map<String, FileBackedSessionFileStat>): List<ClaudeBackendThread> {
     val threads = ArrayList<ClaudeBackendThread>()
-
     val cachedThreadsByPath = threadInvalidationState.snapshotCachedFiles()
     val cachedIndexFilesByPath = indexInvalidationState.snapshotCachedFiles()
-    for (pathKey in allJsonlFiles.keys) {
+    for (pathKey in jsonlFilesByPath.keys) {
       val parsed = cachedThreadsByPath[pathKey]?.parsedValue ?: continue
       val indexedTitle = resolveIndexedTitle(
-        sessionFile = allJsonlFiles[pathKey]?.path,
+        sessionFile = jsonlFilesByPath[pathKey]?.path,
         sessionId = parsed.id,
         cachedIndexFilesByPath = cachedIndexFilesByPath,
       )
@@ -120,13 +194,7 @@ internal class ClaudeThreadIndex(
         )
       )
     }
-
     threads.sortByDescending { it.updatedAt }
-
-    LOG.debug {
-      "Resolved Claude threads for project (directories=${directories.size}, jsonlFiles=${allJsonlFiles.size}, indexFiles=${allIndexFiles.size}, parsedJsonl=${threadRescanPlan.filesToParse.size}, parsedIndex=${indexRescanPlan.filesToParse.size}, total=${threads.size})"
-    }
-
     return threads
   }
 }
