@@ -27,11 +27,7 @@ internal object SplitModeModuleKindResolver {
     actualApiUsageModuleKind: SplitModeApiRestrictionsService.ModuleKind,
     expectedKind: SplitModeApiRestrictionsService.ModuleKind,
   ): Boolean {
-    return when {
-      expectedKind == SplitModeApiRestrictionsService.ModuleKind.SHARED -> true
-      actualApiUsageModuleKind == SplitModeApiRestrictionsService.ModuleKind.SHARED -> false
-      else -> expectedKind.id == actualApiUsageModuleKind.id
-    }
+    return expectedKind.id == actualApiUsageModuleKind.id
   }
 
   internal fun collectMatchedDependencies(
