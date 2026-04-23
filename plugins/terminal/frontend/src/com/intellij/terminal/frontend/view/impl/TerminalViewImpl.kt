@@ -39,6 +39,7 @@ import com.intellij.terminal.frontend.view.typeahead.TerminalTypeAhead
 import com.intellij.terminal.frontend.view.typeahead.TerminalTypeAheadOutputModelController
 import com.intellij.terminal.frontend.view.typeahead.TerminalTypeAheadOutputModelControllerV1
 import com.intellij.terminal.frontend.view.typeahead.TerminalTypeAheadOutputModelControllerV2
+import com.intellij.terminal.refreshVfsOnFocusChange
 import com.intellij.ui.components.JBLayeredPane
 import com.intellij.ui.components.panels.ListLayout
 import com.intellij.util.AwaitCancellationAndInvoke
@@ -356,9 +357,13 @@ class TerminalViewImpl(
     listenApplicationTitleChanges()
     listenKeyEvents()
 
-    TerminalVfsSynchronizer.install(
+    refreshVfsOnFocusChange(
+      component = terminalPanel,
+      coroutineScope.childScope("Terminal VFS refresh on focus change"),
+    )
+    refreshVfsOnCommandFinish(
       terminalView = this,
-      coroutineScope.childScope("TerminalVfsSynchronizer"),
+      coroutineScope.childScope("Terminal VFS refresh on command finish")
     )
 
     shellIntegrationFeaturesInitJob = coroutineScope.launch(
