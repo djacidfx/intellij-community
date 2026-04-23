@@ -545,7 +545,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
   }
 
   private fun findInstalledPluginById(pluginId: PluginId): ListPluginComponent? {
-    for (group in installedTab.getInstalledGroups()!!) {
+    for (group in installedTab.getInstalledGroups()) {
       val component = group.findComponent(pluginId)
       if (component != null) {
         return component

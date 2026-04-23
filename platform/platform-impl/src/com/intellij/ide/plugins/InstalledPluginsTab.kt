@@ -96,9 +96,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
 
   fun getInstalledSearchPanel(): SearchResultPanel = searchPanel
 
-  fun getInstalledGroups(): List<UIPluginGroup>? {
-    return getInstalledPanel().groups
-  }
+  fun getInstalledGroups(): List<UIPluginGroup> = getInstalledPanel().groups
 
   @RequiresEdt
   override fun createPluginsPanel(): JComponent {
@@ -112,7 +110,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
       updateAllLink.isEnabled = false
       bundledUpdateAllLink.isEnabled = false
 
-      for (group in getInstalledGroups()!!) {
+      for (group in getInstalledGroups()) {
         if (group.isBundledUpdatesGroup) {
           continue
         }
