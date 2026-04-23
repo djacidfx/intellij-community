@@ -675,6 +675,114 @@
       "extensionPointNames": [
         "com.intellij.codeInsight.completion.intention.offset.provider"
       ]
+    },
+    {
+      "apiName": "com.intellij.lang.refactoring.RefactoringSupportProvider",
+      "extensionPointNames": [
+        "com.intellij.lang.refactoringSupport"
+      ]
+    },
+    {
+      "apiName": "com.intellij.lang.refactoring.NamesValidator",
+      "extensionPointNames": [
+        "com.intellij.lang.namesValidator"
+      ]
+    },
+    {
+      "apiName": "com.intellij.refactoring.rename.RenameHandler",
+      "extensionPointNames": [
+        "com.intellij.renameHandler"
+      ]
+    },
+    {
+      "apiName": "com.intellij.refactoring.rename.RenamePsiElementProcessorBase",
+      "extensionPointNames": [
+        "com.intellij.renamePsiElementProcessor"
+      ]
+    },
+    {
+      "apiName": "com.intellij.psi.impl.file.UpdateAddedFileProcessor",
+      "extensionPointNames": [
+        "com.intellij.updateAddedFileProcessor"
+      ]
+    },
+    {
+      "apiName": "com.intellij.refactoring.rename.naming.AutomaticRenamerFactory",
+      "extensionPointNames": [
+        "com.intellij.automaticRenamerFactory"
+      ]
+    },
+    {
+      "apiName": "com.intellij.refactoring.rename.NameSuggestionProvider",
+      "extensionPointNames": [
+        "com.intellij.nameSuggestionProvider"
+      ]
+    },
+    {
+      "apiName": "com.intellij.refactoring.rename.RenamerFactory",
+      "extensionPointNames": [
+        "com.intellij.renamerFactory"
+      ]
+    },
+    {
+      "apiName": "com.intellij.refactoring.RefactoringHelper",
+      "extensionPointNames": [
+        "com.intellij.refactoring.helper"
+      ]
+    },
+    {
+      "apiName": "com.intellij.lang.refactoring.InlineActionHandler",
+      "extensionPointNames": [
+        "com.intellij.inlineActionHandler"
+      ]
+    },
+    {
+      "apiName": "com.intellij.lang.refactoring.InlineHandler",
+      "extensionPointNames": [
+        "com.intellij.refactoring.inlineHandler"
+      ]
+    },
+    {
+      "apiName": "com.intellij.refactoring.rename.ResolveSnapshotProvider",
+      "extensionPointNames": [
+        "com.intellij.rename.inplace.resolveSnapshotProvider"
+      ]
+    },
+    {
+      "apiName": "com.intellij.refactoring.rename.RenameInputValidator",
+      "extensionPointNames": [
+        "com.intellij.renameInputValidator"
+      ]
+    },
+    {
+      "apiName": "com.intellij.refactoring.listeners.RefactoringElementListenerProvider",
+      "extensionPointNames": [
+        "com.intellij.refactoring.elementListenerProvider"
+      ]
+    },
+    {
+      "apiName": "com.intellij.find.FindInProjectSearchEngine",
+      "extensionPointNames": [
+        "com.intellij.findInProjectSearchEngine"
+      ]
+    },
+    {
+      "apiName": "com.intellij.ide.actions.QualifiedNameProvider",
+      "extensionPointNames": [
+        "com.intellij.qualifiedNameProvider"
+      ]
+    },
+    {
+      "apiName": "com.intellij.ide.actions.VirtualFileQualifiedNameProvider",
+      "extensionPointNames": [
+        "com.intellij.virtualFileQualifiedNameProvider"
+      ]
+    },
+    {
+      "apiName": "com.intellij.openapi.roots.TestSourcesFilter",
+      "extensionPointNames": [
+        "com.intellij.testSourcesFilter"
+      ]
     }
   ],
   "shared": [
