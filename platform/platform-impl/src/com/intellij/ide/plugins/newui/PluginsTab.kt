@@ -42,7 +42,7 @@ abstract class PluginsTab @RequiresEdt constructor(
   private val searchUpdateAlarm = createSingleEdtTaskScheduler()
 
   protected val searchTextField: PluginSearchTextField = createSearchTextField(searchTextFieldQueryDebouncePeriodMs)
-  private var cardPanel: MultiPanel? = createCardPanel()
+  private val cardPanel: MultiPanel = createCardPanel()
   private var detailsPage: PluginDetailsPageComponent? = null
   private var searchPanel: SearchResultPanel? = null
 
@@ -65,7 +65,7 @@ abstract class PluginsTab @RequiresEdt constructor(
 
   protected val selectionListener: Consumer<PluginsGroupComponent?> = Consumer { panel: PluginsGroupComponent? ->
     val key: Int = if (searchPanel!!.panel === panel) SEARCH_PANEL else DEFAULT_PANEL
-    if (cardPanel!!.key == key) {
+    if (cardPanel.key == key) {
       detailsPage!!.showPlugins(panel!!.selection)
     }
   }
@@ -89,7 +89,7 @@ abstract class PluginsTab @RequiresEdt constructor(
 
     searchPanel = createSearchPanel(selectionListener)
 
-    cardPanel!!.select(DEFAULT_PANEL, true)
+    cardPanel.select(DEFAULT_PANEL, true)
 
     return splitter
   }
@@ -123,7 +123,7 @@ abstract class PluginsTab @RequiresEdt constructor(
 
   fun showSearchPanel(query: String) {
     if (searchPanel!!.isQueryEmpty) {
-      cardPanel!!.select(SEARCH_PANEL, true)
+      cardPanel.select(SEARCH_PANEL, true)
       detailsPage!!.showPlugin(null)
     }
     searchPanel!!.setQuery(query)
@@ -133,7 +133,7 @@ abstract class PluginsTab @RequiresEdt constructor(
   open fun hideSearchPanel() {
     if (!searchPanel!!.isQueryEmpty) {
       onSearchReset()
-      cardPanel!!.select(DEFAULT_PANEL, true)
+      cardPanel.select(DEFAULT_PANEL, true)
       searchPanel!!.setQuery("")
       updateMainSelection(selectionListener)
     }
