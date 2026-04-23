@@ -24,7 +24,7 @@ class CommonElementLocationFeatures : ElementFeatureProvider {
 
     // ruby blocks tree access in tests - org.jetbrains.plugins.ruby.ruby.testCases.RubyCodeInsightTestFixture.complete
     if (completionElement?.language?.isKindOf("ruby") != true) {
-      val linesDiff = LocationFeaturesUtil.linesDiff(location.completionParameters, completionElement)
+      val linesDiff = LocationFeaturesUtil.linesDiff(location.baseCompletionParameters, completionElement)
       if (linesDiff != null) {
         result["lines_diff"] = MLFeatureValue.float(linesDiff)
       }

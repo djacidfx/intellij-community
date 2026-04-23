@@ -3,6 +3,7 @@ package com.intellij.modcompletion;
 
 import com.intellij.codeInsight.completion.BaseCompletionParameters;
 import com.intellij.codeInsight.completion.CompletionContributor;
+import com.intellij.codeInsight.completion.CompletionProcess;
 import com.intellij.codeInsight.completion.CompletionSorter;
 import com.intellij.codeInsight.completion.CompletionType;
 import com.intellij.codeInsight.completion.PrefixMatcher;
@@ -91,6 +92,7 @@ public interface ModCompletionItemProvider extends PossiblyDumbAware {
    * @param type completion type
    */
   record CompletionContext(
+    CompletionProcess process,
     PsiFile originalFile,
     int offset,
     @Nullable PsiElement original,
@@ -148,6 +150,11 @@ public interface ModCompletionItemProvider extends PossiblyDumbAware {
 
     public Project getProject() {
       return originalFile.getProject();
+    }
+
+    @Override
+    public CompletionProcess getProcess() {
+      return process;
     }
 
     @Override

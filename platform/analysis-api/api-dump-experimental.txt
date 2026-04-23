@@ -343,7 +343,7 @@ com.intellij.modcommand.ModPsiUpdater
 *f:com.intellij.modcompletion.ModCompletionItemProvider$CompletionContext
 - java.lang.Record
 - com.intellij.codeInsight.completion.BaseCompletionParameters
-- <init>(com.intellij.psi.PsiFile,I,com.intellij.psi.PsiElement,com.intellij.psi.PsiElement,com.intellij.codeInsight.completion.PrefixMatcher,I,com.intellij.codeInsight.completion.CompletionType):V
+- <init>(com.intellij.codeInsight.completion.CompletionProcess,com.intellij.psi.PsiFile,I,com.intellij.psi.PsiElement,com.intellij.psi.PsiElement,com.intellij.codeInsight.completion.PrefixMatcher,I,com.intellij.codeInsight.completion.CompletionType):V
 - element():com.intellij.psi.PsiElement
 - f:equals(java.lang.Object):Z
 - getCompletionType():com.intellij.codeInsight.completion.CompletionType
@@ -352,6 +352,7 @@ com.intellij.modcommand.ModPsiUpdater
 - getOriginalFile():com.intellij.psi.PsiFile
 - getOriginalPosition():com.intellij.psi.PsiElement
 - getPosition():com.intellij.psi.PsiElement
+- getProcess():com.intellij.codeInsight.completion.CompletionProcess
 - getProject():com.intellij.openapi.project.Project
 - f:hashCode():I
 - invocationCount():I
@@ -362,6 +363,7 @@ com.intellij.modcommand.ModPsiUpdater
 - original():com.intellij.psi.PsiElement
 - originalFile():com.intellij.psi.PsiFile
 - prefix():java.lang.String
+- process():com.intellij.codeInsight.completion.CompletionProcess
 - type():com.intellij.codeInsight.completion.CompletionType
 *:com.intellij.modcompletion.ModCompletionResult
 - java.util.function.Consumer
