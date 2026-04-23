@@ -456,8 +456,8 @@ class InstalledPluginsTab @RequiresEdt constructor(
       for (descriptor in updates) {
         for (group in getInstalledPanel()!!.groups) {
           val component = group.findComponent(descriptor.pluginId)
-          if (component != null && component.pluginModel.isBundled) {
-            bundledUpdateGroup.addModel(component.pluginModel)
+          if (component != null && component.getPluginModel().isBundled) {
+            bundledUpdateGroup.addModel(component.getPluginModel())
             break
           }
         }
@@ -490,7 +490,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
       for (plugin in bundledUpdateGroup.ui!!.plugins) {
         var exist = false
         for (update in updates) {
-          if (plugin.pluginModel.pluginId == update.pluginId) {
+          if (plugin.getPluginModel().pluginId == update.pluginId) {
             exist = true
             break
           }
@@ -501,7 +501,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
       }
 
       for (component in toDelete) {
-        getInstalledPanel()!!.removeFromGroup(bundledUpdateGroup, component.pluginModel)
+        getInstalledPanel()!!.removeFromGroup(bundledUpdateGroup, component.getPluginModel())
       }
 
       for (update in updates) {
@@ -514,8 +514,8 @@ class InstalledPluginsTab @RequiresEdt constructor(
             continue
           }
           val component = group.findComponent(update.pluginId)
-          if (component != null && component.pluginModel.isBundled) {
-            getInstalledPanel()!!.addToGroup(bundledUpdateGroup, component.pluginModel)
+          if (component != null && component.getPluginModel().isBundled) {
+            getInstalledPanel()!!.addToGroup(bundledUpdateGroup, component.getPluginModel())
             break
           }
         }

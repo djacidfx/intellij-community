@@ -764,7 +764,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
           val text = StringUtil.join(
             component.selection,
             { pluginComponent: ListPluginComponent ->
-              val model = pluginComponent.pluginModel
+              val model = pluginComponent.getPluginModel()
               String.format("%s (%s)", model.name, model.version)
             },
             "\n",

@@ -1,764 +1,744 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.ide.plugins.newui;
+package com.intellij.ide.plugins.newui
 
-import com.intellij.accessibility.AccessibilityUtils;
-import com.intellij.icons.AllIcons;
-import com.intellij.ide.IdeBundle;
-import com.intellij.ide.plugins.IdeaPluginDescriptor;
-import com.intellij.ide.plugins.ListPluginModel;
-import com.intellij.ide.plugins.PluginEnableDisableAction;
-import com.intellij.ide.plugins.PluginEnabledState;
-import com.intellij.ide.plugins.PluginManagerConfigurable;
-import com.intellij.ide.plugins.PluginUtilsKt;
-import com.intellij.internal.inspector.PropertyBean;
-import com.intellij.internal.inspector.UiInspectorContextProvider;
-import com.intellij.internal.inspector.UiInspectorUtil;
-import com.intellij.openapi.actionSystem.ActionManager;
-import com.intellij.openapi.actionSystem.ActionPlaces;
-import com.intellij.openapi.actionSystem.ActionToolbar;
-import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.CommonShortcuts;
-import com.intellij.openapi.actionSystem.DefaultActionGroup;
-import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.ModalityState;
-import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.extensions.PluginId;
-import com.intellij.openapi.progress.util.AbstractProgressIndicatorExBase;
-import com.intellij.openapi.project.DumbAwareAction;
-import com.intellij.openapi.util.Ref;
-import com.intellij.openapi.util.text.HtmlChunk;
-import com.intellij.openapi.util.text.StringUtil;
-import com.intellij.openapi.util.text.Strings;
-import com.intellij.openapi.wm.IdeFocusManager;
-import com.intellij.openapi.wm.ex.ProgressIndicatorEx;
-import com.intellij.ui.ColorUtil;
-import com.intellij.ui.Gray;
-import com.intellij.ui.JBColor;
-import com.intellij.ui.LicensingFacade;
-import com.intellij.ui.RelativeFont;
-import com.intellij.ui.components.JBLabel;
-import com.intellij.ui.components.labels.LinkListener;
-import com.intellij.ui.components.panels.NonOpaquePanel;
-import com.intellij.ui.scale.JBUIScale;
-import com.intellij.util.PlatformUtils;
-import com.intellij.util.containers.ContainerUtil;
-import com.intellij.util.system.OS;
-import com.intellij.util.ui.AbstractLayoutManager;
-import com.intellij.util.ui.AsyncProcessIcon;
-import com.intellij.util.ui.JBInsets;
-import com.intellij.util.ui.JBUI;
-import com.intellij.util.ui.JBValue;
-import com.intellij.util.ui.UIUtil;
-import kotlinx.coroutines.CoroutineScope;
-import org.jetbrains.annotations.ApiStatus;
-import org.jetbrains.annotations.Nls;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import javax.accessibility.AccessibleContext;
-import javax.accessibility.AccessibleRole;
-import javax.swing.Icon;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.SwingConstants;
-import javax.swing.UIManager;
-import javax.swing.plaf.ButtonUI;
-import javax.swing.text.BadLocationException;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Container;
-import java.awt.Dimension;
-import java.awt.Insets;
-import java.awt.KeyboardFocusManager;
-import java.awt.Rectangle;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.StringJoiner;
-import java.util.function.BooleanSupplier;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import com.intellij.accessibility.AccessibilityUtils
+import com.intellij.icons.AllIcons
+import com.intellij.ide.IdeBundle
+import com.intellij.ide.plugins.IdeaPluginDescriptor
+import com.intellij.ide.plugins.ListPluginModel
+import com.intellij.ide.plugins.PluginEnableDisableAction
+import com.intellij.ide.plugins.PluginEnabledState
+import com.intellij.ide.plugins.PluginManagerConfigurable
+import com.intellij.ide.plugins.getUiInspectorContextFor
+import com.intellij.internal.inspector.PropertyBean
+import com.intellij.internal.inspector.UiInspectorContextProvider
+import com.intellij.internal.inspector.UiInspectorUtil
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ActionPlaces
+import com.intellij.openapi.actionSystem.ActionToolbar
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.CommonShortcuts
+import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.progress.util.AbstractProgressIndicatorExBase
+import com.intellij.openapi.project.DumbAwareAction
+import com.intellij.openapi.util.Ref
+import com.intellij.openapi.util.text.HtmlChunk
+import com.intellij.openapi.util.text.StringUtil
+import com.intellij.openapi.util.text.Strings
+import com.intellij.openapi.wm.IdeFocusManager
+import com.intellij.openapi.wm.ex.ProgressIndicatorEx
+import com.intellij.ui.ColorUtil
+import com.intellij.ui.Gray
+import com.intellij.ui.JBColor
+import com.intellij.ui.LicensingFacade
+import com.intellij.ui.RelativeFont
+import com.intellij.ui.components.JBLabel
+import com.intellij.ui.components.labels.LinkListener
+import com.intellij.ui.components.panels.NonOpaquePanel
+import com.intellij.ui.scale.JBUIScale
+import com.intellij.util.PlatformUtils
+import com.intellij.util.containers.ContainerUtil
+import com.intellij.util.system.OS
+import com.intellij.util.ui.AbstractLayoutManager
+import com.intellij.util.ui.AsyncProcessIcon
+import com.intellij.util.ui.JBInsets
+import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.JBValue
+import com.intellij.util.ui.UIUtil
+import kotlinx.coroutines.CoroutineScope
+import org.jetbrains.annotations.ApiStatus
+import org.jetbrains.annotations.Nls
+import java.awt.BorderLayout
+import java.awt.Color
+import java.awt.Component
+import java.awt.Container
+import java.awt.Dimension
+import java.awt.KeyboardFocusManager
+import java.awt.Rectangle
+import java.awt.event.ActionListener
+import java.awt.event.KeyEvent
+import java.lang.Deprecated
+import java.util.Arrays
+import java.util.Collections
+import java.util.StringJoiner
+import java.util.function.BooleanSupplier
+import java.util.function.Function
+import java.util.function.Supplier
+import javax.accessibility.AccessibleContext
+import javax.accessibility.AccessibleRole
+import javax.swing.Icon
+import javax.swing.JButton
+import javax.swing.JCheckBox
+import javax.swing.JComponent
+import javax.swing.JLabel
+import javax.swing.JPanel
+import javax.swing.SwingConstants
+import javax.swing.UIManager
+import javax.swing.plaf.ButtonUI
+import javax.swing.text.BadLocationException
 
 @ApiStatus.Internal
-public final class ListPluginComponent extends JPanel {
-  public static final Color DisabledColor = JBColor.namedColor("Plugins.disabledForeground", new JBColor(0xB1B1B1, 0x696969));
-  public static final Color GRAY_COLOR = JBColor.namedColor("Label.infoForeground", new JBColor(Gray._120, Gray._135));
-  public static final Color SELECTION_COLOR = JBColor.namedColor("Plugins.lightSelectionBackground", new JBColor(0xEDF6FE, 0x464A4D));
-  public static final Color HOVER_COLOR = JBColor.namedColor("Plugins.hoverBackground", new JBColor(0xEDF6FE, 0x464A4D));
-  private static final Logger LOG = Logger.getInstance(ListPluginComponent.class);
+class ListPluginComponent(
+  pluginModelFacade: PluginModelFacade,
+  pluginUiModel: PluginUiModel,
+  group: PluginsGroup,
+  listModel: ListPluginModel,
+  searchListener: LinkListener<Any>,
+  coroutineScope: CoroutineScope,
+  marketplace: Boolean,
+) : JPanel() {
+  private val myModelFacade: PluginModelFacade = pluginModelFacade
+  private val mySearchListener: LinkListener<Any> = searchListener
+  private val myMarketplace: Boolean = marketplace
+  private val myGroup: PluginsGroup = group
+  private val myIsAvailable: Boolean
 
-  private static final Ref<Boolean> HANDLE_FOCUS_ON_SELECTION = new Ref<>(Boolean.TRUE);
-
-  private final PluginModelFacade myModelFacade;
-  private final LinkListener<Object> mySearchListener;
-  private final boolean myMarketplace;
-  private final boolean myIsAvailable;
   /** FIXME value logic is duplicated with {@link com.intellij.ide.plugins.newui.PluginDetailsPageComponent} */
-  private final boolean myIsDisableAllowed;
-  private final boolean myIsNotFreeInFreeMode;
-  private @NotNull PluginUiModel myPlugin;
-  private PluginUiModel myInstalledPluginMarketplaceNode;
-  private final @NotNull PluginsGroup myGroup;
-  private boolean myOnlyUpdateMode;
-  private boolean myAfterUpdate;
-  public @Nullable PluginUiModel myUpdateDescriptor;
-  PluginUiModel myInstalledDescriptorForMarketplace;
+  private val myIsDisableAllowed: Boolean
+  private val myIsNotFreeInFreeMode: Boolean
+  private var myPlugin: PluginUiModel = pluginUiModel
+  private var myInstalledPluginMarketplaceNode: PluginUiModel? = null
+  private var myOnlyUpdateMode = false
+  private var myAfterUpdate = false
 
-  private final JBLabel myNameComponent = new JBLabel();
-  private final JLabel myIconComponent = new JLabel(AllIcons.Plugins.PluginLogo);
-  private final BaselineLayout myLayout = new BaselineLayout();
-  private boolean succesefullyFinishedOnce = false;
-  JButton myRestartButton;
-  InstallButton myInstallButton;
-  JButton myUpdateButton;
-  private JComponent myEnableDisableButton;
-  private JCheckBox myChooseUpdateButton;
-  private JComponent myAlignButton;
-  private JPanel myMetricsPanel;
-  private JLabel myRating;
-  private JLabel myDownloads;
-  private JLabel myVersion;
-  private JLabel myVendor;
-  private LicensePanel myLicensePanel;
-  private LicensePanel myUpdateLicensePanel;
-  private JPanel myErrorPanel;
-  private ErrorComponent myErrorComponent;
-  private ProgressIndicatorEx myIndicator;
-  private EventHandler myEventHandler;
-  private PluginManagerCustomizer myCustomizer;
-  private CoroutineScope myCoroutineScope;
-  private @NotNull EventHandler.SelectionType mySelection = EventHandler.SelectionType.NONE;
+  @JvmField
+  var myUpdateDescriptor: PluginUiModel? = null
 
-  public ListPluginComponent(@NotNull PluginModelFacade pluginModelFacade,
-                             @NotNull PluginUiModel pluginUiModel,
-                             @NotNull PluginsGroup group,
-                             @NotNull ListPluginModel listModel,
-                             @NotNull LinkListener<Object> searchListener,
-                             @NotNull CoroutineScope coroutineScope,
-                             boolean marketplace) {
-    myPlugin = pluginUiModel;
-    myGroup = group;
-    myModelFacade = pluginModelFacade;
-    mySearchListener = searchListener;
-    myMarketplace = marketplace;
-    myCoroutineScope = coroutineScope;
-    myInstalledDescriptorForMarketplace = listModel.getInstalledModels().get(pluginUiModel.getPluginId());
-    PluginId pluginId = myPlugin.getPluginId();
-    boolean compatible = !myPlugin.isIncompatibleWithCurrentPlatform();
-    PluginInstallationState pluginInstallationState = listModel.getPluginInstallationStates().get(pluginId);
-    myIsAvailable = (compatible || isInstalledAndEnabled(pluginInstallationState)) && pluginUiModel.getCanBeEnabled();
-    UiPluginManager pluginManager = UiPluginManager.getInstance();
-    myIsNotFreeInFreeMode = pluginManager
-      .isPluginRequiresUltimateButItIsDisabled(pluginModelFacade.getModel().getSessionId(), pluginUiModel.getPluginId());
-    myIsDisableAllowed = pluginUiModel.isDisableAllowed() && !myIsNotFreeInFreeMode;
-    pluginModelFacade.addComponent(this);
-    myCustomizer = UiPluginManager.isCombinedPluginManagerEnabled() ? PluginManagerCustomizer.getInstance() : null;
-    setOpaque(true);
-    setBorder(JBUI.Borders.empty(10));
-    setLayout(myLayout);
+  @JvmField
+  var myInstalledDescriptorForMarketplace: PluginUiModel? = null
 
-    myIconComponent.setVerticalAlignment(SwingConstants.TOP);
-    myIconComponent.setOpaque(false);
-    myLayout.setIconComponent(myIconComponent);
+  private val myNameComponent = JBLabel()
+  private val myIconComponent = JLabel(AllIcons.Plugins.PluginLogo)
+  private val myLayout = BaselineLayout()
+  private var succesefullyFinishedOnce = false
 
-    myNameComponent.setText(pluginUiModel.getName());
-    myLayout.setNameComponent(RelativeFont.BOLD.install(myNameComponent));
+  @JvmField
+  var myRestartButton: JButton? = null
 
-    createTag();
+  @JvmField
+  var myInstallButton: InstallButton? = null
+
+  @JvmField
+  var myUpdateButton: JButton? = null
+  private var myEnableDisableButton: JComponent? = null
+  private var myChooseUpdateButton: JCheckBox? = null
+  private var myAlignButton: JComponent? = null
+  private var myMetricsPanel: JPanel? = null
+  private var myRating: JLabel? = null
+  private var myDownloads: JLabel? = null
+  private var myVersion: JLabel? = null
+  private var myVendor: JLabel? = null
+  private var myLicensePanel: LicensePanel? = null
+  private var myUpdateLicensePanel: LicensePanel? = null
+  private var myErrorPanel: JPanel? = null
+  private var myErrorComponent: ErrorComponent? = null
+  private var myIndicator: ProgressIndicatorEx? = null
+  private var myEventHandler: EventHandler? = null
+  private var myCustomizer: PluginManagerCustomizer? = null
+  private val myCoroutineScope: CoroutineScope = coroutineScope
+  private var mySelection: EventHandler.SelectionType = EventHandler.SelectionType.NONE
+
+  init {
+    myInstalledDescriptorForMarketplace = listModel.installedModels.get(pluginUiModel.pluginId)
+    val pluginId = myPlugin.pluginId
+    val compatible = !myPlugin.isIncompatibleWithCurrentPlatform
+    val pluginInstallationState = listModel.pluginInstallationStates.get(pluginId)
+    myIsAvailable = (compatible || isInstalledAndEnabled(pluginInstallationState!!)) && pluginUiModel.canBeEnabled
+    val pluginManager = UiPluginManager.getInstance()
+    myIsNotFreeInFreeMode =
+      pluginManager.isPluginRequiresUltimateButItIsDisabled(pluginModelFacade.getModel().sessionId, pluginUiModel.pluginId)
+    myIsDisableAllowed = pluginUiModel.isDisableAllowed && !myIsNotFreeInFreeMode
+    pluginModelFacade.addComponent(this)
+    myCustomizer = if (UiPluginManager.isCombinedPluginManagerEnabled()) PluginManagerCustomizer.getInstance() else null
+    isOpaque = true
+    border = JBUI.Borders.empty(10)
+    layout = myLayout
+
+    myIconComponent.verticalAlignment = SwingConstants.TOP
+    myIconComponent.isOpaque = false
+    myLayout.setIconComponent(myIconComponent)
+
+    myNameComponent.setText(pluginUiModel.name)
+    myLayout.setNameComponent(RelativeFont.BOLD.install(myNameComponent))
+
+    createTag()
 
     if (myIsAvailable) {
-      createButtons(listModel.getInstalledModels().get(pluginId), pluginInstallationState);
-      createMetricsPanel();
-      createLicensePanel();
+      createButtons(listModel.installedModels.get(pluginId), pluginInstallationState)
+      createMetricsPanel()
+      createLicensePanel()
     }
     else {
-      createNotAvailableMarker(compatible);
+      createNotAvailableMarker(compatible)
     }
 
     if (marketplace && myInstalledDescriptorForMarketplace == null) {
-      updateIcon(false, !myIsAvailable);
+      updateIcon(false, !myIsAvailable)
     }
     else {
-      updateErrors(listModel.getErrors().getOrDefault(pluginId, Collections.emptyList()));
+      updateErrors(listModel.errors.getOrDefault(pluginId, Collections.emptyList()))
     }
     if (myModelFacade.isPluginInstallingOrUpdating(pluginUiModel)) {
-      showProgress(false);
+      showProgress(false)
     }
-    updateColors(EventHandler.SelectionType.NONE);
+    updateColors(EventHandler.SelectionType.NONE)
 
-    putClientProperty(AccessibleContext.ACCESSIBLE_NAME_PROPERTY, pluginUiModel.getName());
+    putClientProperty(AccessibleContext.ACCESSIBLE_NAME_PROPERTY, pluginUiModel.name)
 
-    UiInspectorUtil.registerProvider(this, new PluginIdUiInspectorContextProvider());
+    UiInspectorUtil.registerProvider(this, PluginIdUiInspectorContextProvider())
 
     try {
-      PluginsViewCustomizerKt.getListPluginComponentCustomizer().processListPluginComponent(this);
+      getListPluginComponentCustomizer().processListPluginComponent(this)
     }
-    catch (Exception e) {
-      LOG.error("Error while customizing list plugin component", e);
+    catch (e: Exception) {
+      LOG.error("Error while customizing list plugin component", e)
     }
   }
 
-  @NotNull PluginsGroup getGroup() { return myGroup; }
-
-  @NotNull EventHandler.SelectionType getSelection() {
-    return mySelection;
+  fun getGroup(): PluginsGroup {
+    return myGroup
   }
 
-  void setSelection(@NotNull EventHandler.SelectionType type) {
-    setSelection(type, type == EventHandler.SelectionType.SELECTION);
+  fun getSelection(): EventHandler.SelectionType {
+    return mySelection
   }
 
-  void setSelection(@NotNull EventHandler.SelectionType type, boolean scrollAndFocus) {
-    mySelection = type;
+  fun setSelection(type: EventHandler.SelectionType) {
+    setSelection(type, type == EventHandler.SelectionType.SELECTION)
+  }
+
+  fun setSelection(type: EventHandler.SelectionType, scrollAndFocus: Boolean) {
+    mySelection = type
 
     if (scrollAndFocus) {
-      JComponent parent = (JComponent)getParent();
+      val parent = parent as JComponent?
       if (parent != null) {
-        scrollToVisible(parent, getBounds());
+        scrollToVisible(parent, bounds)
 
-        if (type == EventHandler.SelectionType.SELECTION &&
-            HANDLE_FOCUS_ON_SELECTION.get()) {
-          IdeFocusManager.getGlobalInstance().doWhenFocusSettlesDown(() -> IdeFocusManager.getGlobalInstance().requestFocus(this, true));
+        if (type == EventHandler.SelectionType.SELECTION && HANDLE_FOCUS_ON_SELECTION.get()) {
+          IdeFocusManager.getGlobalInstance().doWhenFocusSettlesDown { IdeFocusManager.getGlobalInstance().requestFocus(this, true) }
         }
       }
     }
 
-    updateColors(type);
-    repaint();
+    updateColors(type)
+    repaint()
   }
 
-  void onSelection(@NotNull Runnable runnable) {
+  fun onSelection(runnable: Runnable) {
     try {
-      HANDLE_FOCUS_ON_SELECTION.set(Boolean.FALSE);
-      runnable.run();
+      HANDLE_FOCUS_ON_SELECTION.set(false)
+      runnable.run()
     }
     finally {
-      HANDLE_FOCUS_ON_SELECTION.set(Boolean.TRUE);
+      HANDLE_FOCUS_ON_SELECTION.set(true)
     }
   }
 
-  private static void scrollToVisible(@NotNull JComponent parent,
-                                      @NotNull Rectangle bounds) {
-    if (!parent.getVisibleRect().contains(bounds)) {
-      parent.scrollRectToVisible(bounds);
-    }
-  }
-
-  private void createNotAvailableMarker(boolean compatible) {
-    myInstallButton = createInstallButton();
+  private fun createNotAvailableMarker(compatible: Boolean) {
+    myInstallButton = createInstallButton()
     if (!compatible) {
-      setupNotCompatibleMarkerButton();
+      setupNotCompatibleMarkerButton()
     }
     else {
-      setupNotAllowedMarkerButton();
+      setupNotAllowedMarkerButton()
     }
-    myLayout.addButtonComponent(myInstallButton);
+    myLayout.addButtonComponent(myInstallButton!!)
   }
 
-  private void setupNotCompatibleMarkerButton() {
-    myInstallButton.setButtonColors(false);
-    myInstallButton.setEnabled(false, IdeBundle.message("plugins.configurable.unavailable.for.platform"));
-    myInstallButton.setToolTipText(IdeBundle.message("plugins.configurable.plugin.unavailable.for.platform", OS.CURRENT));
+  private fun setupNotCompatibleMarkerButton() {
+    val myInstallButton = myInstallButton!!
+    myInstallButton.setButtonColors(false)
+    myInstallButton.setEnabled(false, IdeBundle.message("plugins.configurable.unavailable.for.platform"))
+    myInstallButton.toolTipText = IdeBundle.message("plugins.configurable.plugin.unavailable.for.platform", OS.CURRENT)
   }
 
-  private void setupNotAllowedMarkerButton() {
-    if (myMarketplace || myModelFacade.getState(myPlugin).isDisabled()) {
-      myInstallButton.setButtonColors(false);
-      myInstallButton.setEnabled(false, IdeBundle.message("plugin.status.not.allowed"));
-      myInstallButton.setToolTipText(IdeBundle.message("plugin.status.not.allowed.tooltip"));
+  private fun setupNotAllowedMarkerButton() {
+    val myInstallButton = myInstallButton!!
+    if (myMarketplace || myModelFacade.getState(myPlugin).isDisabled) {
+      myInstallButton.setButtonColors(false)
+      myInstallButton.setEnabled(false, IdeBundle.message("plugin.status.not.allowed"))
+      myInstallButton.toolTipText = IdeBundle.message("plugin.status.not.allowed.tooltip")
     }
     else {
-      myInstallButton.setButtonColors(false);
-      myInstallButton.setEnabled(true, IdeBundle.message("plugin.status.not.allowed.but.enabled"));
-      myInstallButton.setText(IdeBundle.message("plugin.status.not.allowed.but.enabled"));
-      myInstallButton.setToolTipText(IdeBundle.message("plugin.status.not.allowed.tooltip.but.enabled"));
-      myInstallButton.setBorderColor(JBColor.red);
-      myInstallButton.setTextColor(JBColor.red);
-      myInstallButton.addActionListener(e -> {
-        myModelFacade.disable(myPlugin);
-        setupNotAllowedMarkerButton();
-      });
+      myInstallButton.setButtonColors(false)
+      myInstallButton.setEnabled(true, IdeBundle.message("plugin.status.not.allowed.but.enabled"))
+      myInstallButton.text = IdeBundle.message("plugin.status.not.allowed.but.enabled")
+      myInstallButton.toolTipText = IdeBundle.message("plugin.status.not.allowed.tooltip.but.enabled")
+      myInstallButton.setBorderColor(JBColor.red)
+      myInstallButton.setTextColor(JBColor.red)
+      myInstallButton.addActionListener {
+        myModelFacade.disable(myPlugin)
+        setupNotAllowedMarkerButton()
+      }
     }
-    ColorButton.setWidth72(myInstallButton);
+    ColorButton.setWidth72(myInstallButton)
   }
 
-  private void createButtons(PluginUiModel installedModel, PluginInstallationState installationState) {
-    installationState = installationState == null ? new PluginInstallationState(false, null) : installationState;
+  private fun createButtons(installedModel: PluginUiModel?, installationState: PluginInstallationState?) {
+    var installationState = installationState
+    if (installationState == null) {
+      installationState = PluginInstallationState(false, null)
+    }
     if (myMarketplace) {
-      if (installationState.getStatus() == PluginStatus.INSTALLED_AND_REQUIRED_RESTART) {
-        myLayout.addButtonComponent(myRestartButton = new RestartButton(myModelFacade));
+      if (installationState.status == PluginStatus.INSTALLED_AND_REQUIRED_RESTART) {
+        myRestartButton = RestartButton(myModelFacade)
+        myLayout.addButtonComponent(myRestartButton!!)
       }
       else {
-        boolean showInstall = installedModel == null;
+        val showInstall = installedModel == null
 
-        myLayout.addButtonComponent(myInstallButton = createInstallButton());
+        myInstallButton = createInstallButton()
+        myLayout.addButtonComponent(myInstallButton!!)
 
-        myInstallButton.addActionListener(e -> {
-          PluginModelAsyncOperationsExecutor.INSTANCE.performAutoInstall(myCoroutineScope, myModelFacade, myPlugin, myCustomizer, this);
-        });
-        myInstallButton.setEnabled(showInstall, IdeBundle.message("plugin.status.installed"));
+        myInstallButton!!.addActionListener {
+          PluginModelAsyncOperationsExecutor.performAutoInstall(myCoroutineScope, myModelFacade, myPlugin, myCustomizer, this)
+        }
+        myInstallButton!!.setEnabled(showInstall, IdeBundle.message("plugin.status.installed"))
 
-        ColorButton.setWidth72(myInstallButton);
+        ColorButton.setWidth72(myInstallButton!!)
 
-        myInstalledDescriptorForMarketplace = installedModel;
-        myInstallButton.setVisible(showInstall);
+        myInstalledDescriptorForMarketplace = installedModel
+        myInstallButton!!.isVisible = showInstall
 
-        if (myInstalledDescriptorForMarketplace != null && myInstalledDescriptorForMarketplace.isDeleted()) {
-          if (installationState.getStatus() == PluginStatus.UNINSTALLED_WITHOUT_RESTART) {
-            myInstallButton.setVisible(true);
-            myInstallButton.setEnabled(false, IdeBundle.message("plugins.configurable.uninstalled"));
-            myInstallButton.setPreferredSize(null);
-            myAfterUpdate = true;
+        if (myInstalledDescriptorForMarketplace != null && myInstalledDescriptorForMarketplace!!.isDeleted) {
+          if (installationState.status == PluginStatus.UNINSTALLED_WITHOUT_RESTART) {
+            myInstallButton!!.isVisible = true
+            myInstallButton!!.setEnabled(false, IdeBundle.message("plugins.configurable.uninstalled"))
+            myInstallButton!!.preferredSize = null
+            myAfterUpdate = true
           }
           else {
-            myLayout.addButtonComponent(myRestartButton = new RestartButton(myModelFacade));
+            myRestartButton = RestartButton(myModelFacade)
+            myLayout.addButtonComponent(myRestartButton!!)
 
-            myModelFacade.addUninstalled(myInstalledDescriptorForMarketplace.getPluginId());
+            myModelFacade.addUninstalled(myInstalledDescriptorForMarketplace!!.pluginId)
           }
         }
         else {
-          createEnableDisableButton(this::getInstalledDescriptorForMarketplace);
-          myEnableDisableButton.setVisible(!showInstall);
+          createEnableDisableButton(Supplier { getInstalledDescriptorForMarketplace()!! })
+          myEnableDisableButton!!.isVisible = !showInstall
 
           if (!showInstall) {
-            updateEnabledStateUI();
+            updateEnabledStateUI()
           }
         }
       }
     }
     else {
-      if (myPlugin.isDeleted()) {
-        if (installationState.getStatus() == PluginStatus.UNINSTALLED_WITHOUT_RESTART) {
-          addInstalledStatusButton("plugins.configurable.uninstalled");
-          myAfterUpdate = true;
+      if (myPlugin.isDeleted) {
+        if (installationState.status == PluginStatus.UNINSTALLED_WITHOUT_RESTART) {
+          addInstalledStatusButton("plugins.configurable.uninstalled")
+          myAfterUpdate = true
         }
         else {
-          myLayout.addButtonComponent(myRestartButton = new RestartButton(myModelFacade));
+          myRestartButton = RestartButton(myModelFacade)
+          myLayout.addButtonComponent(myRestartButton!!)
 
-          myModelFacade.addUninstalled(myPlugin.getPluginId());
+          myModelFacade.addUninstalled(myPlugin.pluginId)
         }
       }
       else {
-        if (installationState.getStatus() == PluginStatus.INSTALLED_AND_REQUIRED_RESTART ||
-            installationState.getStatus() == PluginStatus.UPDATED_WITH_RESTART) {
-          myLayout.addButtonComponent(myRestartButton = new RestartButton(myModelFacade));
+        if (installationState.status == PluginStatus.INSTALLED_AND_REQUIRED_RESTART ||
+            installationState.status == PluginStatus.UPDATED_WITH_RESTART) {
+          myRestartButton = RestartButton(myModelFacade)
+          myLayout.addButtonComponent(myRestartButton!!)
         }
-        else if (installedModel == null && installationState.getStatus() == PluginStatus.INSTALLED_WITHOUT_RESTART) {
-          addInstalledStatusButton("plugins.configurable.installed");
+        else if (installedModel == null && installationState.status == PluginStatus.INSTALLED_WITHOUT_RESTART) {
+          addInstalledStatusButton("plugins.configurable.installed")
         }
         else {
-          createEnableDisableButton(this::getPluginModel);
-          updateEnabledStateUI();
+          createEnableDisableButton(Supplier { getPluginModel() })
+          updateEnabledStateUI()
         }
       }
 
-      myLayout.addButtonComponent(myAlignButton = new JComponent() {
-        @Override
-        public Dimension getPreferredSize() {
-          return myEnableDisableButton instanceof JCheckBox ?
-                 myEnableDisableButton.getPreferredSize() :
-                 super.getPreferredSize();
+      myAlignButton = object : JComponent() {
+        override fun getPreferredSize(): Dimension {
+          return if (myEnableDisableButton is JCheckBox) {
+            myEnableDisableButton!!.preferredSize
+          }
+          else {
+            super.getPreferredSize()
+          }
         }
 
-        @Override
-        public boolean isFocusable() {
-          return false;
+        override fun isFocusable(): Boolean {
+          return false
         }
-      });
-      myAlignButton.setOpaque(false);
+      }
+      myLayout.addButtonComponent(myAlignButton!!)
+      myAlignButton!!.isOpaque = false
     }
 
     try {
-      PluginsViewCustomizerKt.getListPluginComponentCustomizer().processCreateButtons(this);
+      getListPluginComponentCustomizer().processCreateButtons(this)
     }
-    catch (Exception e) {
-      LOG.error("Error while customizing create buttons", e);
+    catch (e: Exception) {
+      LOG.error("Error while customizing create buttons", e)
     }
   }
 
-  private @NotNull InstallButton createInstallButton() {
-    return new InstallButton(false, myPlugin.getRequiresUpgrade());
+  private fun createInstallButton(): InstallButton {
+    return InstallButton(false, myPlugin.requiresUpgrade)
   }
 
-  private void createEnableDisableButton(@NotNull Supplier<PluginUiModel> modelFunction) {
-    myEnableDisableButton = createEnableDisableButton(__ -> {
-      PluginUiModel pluginToSwitch = modelFunction.get();
-      PluginEnableDisableAction action = myModelFacade.getState(myPlugin).isDisabled()
-                                         ? PluginEnableDisableAction.ENABLE_GLOBALLY
-                                         : PluginEnableDisableAction.DISABLE_GLOBALLY;
-      myModelFacade.setEnabledState(Collections.singletonList(pluginToSwitch), action);
-    });
+  private fun createEnableDisableButton(modelFunction: Supplier<PluginUiModel>) {
+    myEnableDisableButton = createEnableDisableButton(ActionListener {
+      val pluginToSwitch = modelFunction.get()
+      val action = if (myModelFacade.getState(myPlugin).isDisabled) {
+        PluginEnableDisableAction.ENABLE_GLOBALLY
+      }
+      else {
+        PluginEnableDisableAction.DISABLE_GLOBALLY
+      }
+      myModelFacade.setEnabledState(Collections.singletonList(pluginToSwitch), action)
+    })
 
-    myLayout.addButtonComponent(myEnableDisableButton);
-    myEnableDisableButton.setOpaque(false);
-    myEnableDisableButton.setEnabled(myIsDisableAllowed);
-    myEnableDisableButton.getAccessibleContext()
-      .setAccessibleName(IdeBundle.message("plugins.configurable.enable.checkbox.accessible.name"));
+    myLayout.addButtonComponent(myEnableDisableButton!!)
+    myEnableDisableButton!!.isOpaque = false
+    myEnableDisableButton!!.isEnabled = myIsDisableAllowed
+    myEnableDisableButton!!.accessibleContext.setAccessibleName(IdeBundle.message("plugins.configurable.enable.checkbox.accessible.name"))
   }
 
-  private static @NotNull JCheckBox createEnableDisableButton(@NotNull ActionListener listener) {
-    return new JCheckBox() {
-
-      private int myBaseline = -1;
-
-      {
-        addActionListener(listener);
-      }
-
-      @Override
-      public int getBaseline(int width, int height) {
-        if (myBaseline == -1) {
-          JCheckBox checkBox = new JCheckBox("Foo", true);  // NON-NLS
-          Dimension size = checkBox.getPreferredSize();
-          myBaseline = checkBox.getBaseline(size.width, size.height) - JBUIScale.scale(1);
-        }
-        return myBaseline;
-      }
-
-      @Override
-      public void setUI(ButtonUI ui) {
-        myBaseline = -1;
-        super.setUI(ui);
-      }
-
-      @Override
-      public Dimension getPreferredSize() {
-        Dimension size = super.getPreferredSize();
-        return new Dimension(
-          size.width + JBUIScale.scale(8),
-          size.height + JBUIScale.scale(2)
-        );
-      }
-    };
-  }
-
-  private void createMetricsPanel() {
-    myMetricsPanel = new NonOpaquePanel(new TextHorizontalLayout(JBUIScale.scale(7)));
-    myMetricsPanel.setBorder(JBUI.Borders.emptyTop(5));
-    myLayout.addLineComponent(myMetricsPanel);
+  private fun createMetricsPanel() {
+    myMetricsPanel = NonOpaquePanel(TextHorizontalLayout(JBUIScale.scale(7)))
+    myMetricsPanel!!.border = JBUI.Borders.emptyTop(5)
+    myLayout.addLineComponent(myMetricsPanel!!)
     if (myMarketplace) {
-      String downloads = PluginUiModelKt.presentableDownloads(myPlugin);
+      val downloads = myPlugin.presentableDownloads()
       if (downloads != null) {
-        myDownloads = createRatingLabel(myMetricsPanel, downloads, AllIcons.Plugins.Downloads);
+        myDownloads = createRatingLabel(myMetricsPanel!!, downloads, AllIcons.Plugins.Downloads)
       }
 
-      String rating = PluginUiModelKt.presentableRating(myPlugin);
+      val rating = myPlugin.presentableRating()
       if (rating != null) {
-        myRating = createRatingLabel(myMetricsPanel, rating, AllIcons.Plugins.Rating);
+        myRating = createRatingLabel(myMetricsPanel!!, rating, AllIcons.Plugins.Rating)
       }
-      String version = myInstalledDescriptorForMarketplace == null ? "" : myInstalledDescriptorForMarketplace.getVersion();
-      myVersion = createVersionLabel(myMetricsPanel, version, false);
-      myVersion.setVisible(!StringUtil.isEmptyOrSpaces(version));
+      val version = if (myInstalledDescriptorForMarketplace == null) "" else myInstalledDescriptorForMarketplace!!.version
+      myVersion = createVersionLabel(myMetricsPanel!!, version, false)
+      myVersion!!.isVisible = !StringUtil.isEmptyOrSpaces(version)
     }
     else {
-      String version = myPlugin.getVersion();
+      val version = myPlugin.version
       if (!StringUtil.isEmptyOrSpaces(version)) {
-        myVersion = createVersionLabel(myMetricsPanel, version, myPlugin.isBundledUpdate());
+        myVersion = createVersionLabel(myMetricsPanel!!, version, myPlugin.isBundledUpdate)
       }
     }
 
-    if (!myPlugin.isBundled()) {
-      String vendor = StringUtil.defaultIfEmpty(Strings.trim(myPlugin.getVendor()), Strings.trim(myPlugin.getOrganization()));
+    if (!myPlugin.isBundled) {
+      val vendor = StringUtil.defaultIfEmpty(Strings.trim(myPlugin.vendor), Strings.trim(myPlugin.organization))
       if (!StringUtil.isEmptyOrSpaces(vendor)) {
-        myVendor = createRatingLabel(myMetricsPanel, TextHorizontalLayout.FIX_LABEL, vendor, null, null, true);
+        myVendor = createRatingLabel(myMetricsPanel!!, TextHorizontalLayout.FIX_LABEL, vendor, null, null, true)
       }
     }
   }
 
-  private void createTag() {
-    List<String> tags = PluginUiModelKt.calculateTags(myPlugin);
-    String tooltip = null;
+  private fun createTag() {
+    var tags = myPlugin.calculateTags()
+    var tooltip: String? = null
 
     if (myIsNotFreeInFreeMode) {
       if (PlatformUtils.isPyCharmPro()) {
-        tags = Collections.singletonList(Tags.Pro.name());
+        tags = Collections.singletonList(Tags.Pro.name)
       }
       else {
-        tags = Collections.singletonList(Tags.Ultimate.name());
+        tags = Collections.singletonList(Tags.Ultimate.name)
       }
-      tooltip = UnavailableWithoutSubscriptionComponent.getHelpTooltip();
+      tooltip = UnavailableWithoutSubscriptionComponent.getHelpTooltip()
     }
     if (!tags.isEmpty()) {
-      TagComponent tagComponent = createTagComponent(tags.get(0));
+      val tagComponent = createTagComponent(tags[0])
       if (tooltip != null) {
-        tagComponent.setToolTipText(tooltip);
+        tagComponent.toolTipText = tooltip
       }
-      myLayout.setTagComponent(PluginManagerConfigurable.setTinyFont(tagComponent));
+      myLayout.setTagComponent(PluginManagerConfigurable.setTinyFont(tagComponent))
     }
   }
 
-  private @NotNull TagComponent createTagComponent(@Nls @NotNull String tag) {
-    TagComponent component = new TagComponent(tag);
+  private fun createTagComponent(tag: @Nls String): TagComponent {
+    val component = TagComponent(tag)
     //noinspection unchecked
-    component.setListener(mySearchListener, component);
-    return component;
+    component.setListener(mySearchListener, component)
+    return component
   }
 
-  private void setTagTooltip(@Nullable @Nls String text) {
+  private fun setTagTooltip(text: @Nls String?) {
     if (myLayout.myTagComponent != null) {
-      myLayout.myTagComponent.setToolTipText(text);
+      myLayout.myTagComponent!!.toolTipText = text
     }
   }
 
-  private void createLicensePanel() {
-    String productCode = myPlugin.getProductCode();
-    LicensingFacade instance = LicensingFacade.getInstance();
-    if (myMarketplace || productCode == null || instance == null || myPlugin.isBundled() || LicensePanel.isEA2Product(productCode)) {
-      return;
+  private fun createLicensePanel() {
+    val productCode = myPlugin.productCode
+    val instance = LicensingFacade.getInstance()
+    if (myMarketplace || productCode == null || instance == null || myPlugin.isBundled || LicensePanel.isEA2Product(productCode)) {
+      return
     }
 
-    LicensePanel licensePanel = new LicensePanel(true);
+    val licensePanel = LicensePanel(true)
 
-    String stamp = instance.getConfirmationStamp(productCode);
+    val stamp = instance.getConfirmationStamp(productCode)
     if (stamp == null) {
-      if (ApplicationManager.getApplication().isEAP() &&
-          !Arrays.asList("release", "true").contains(System.getProperty("eap.require.license"))) {
-        setTagTooltip(IdeBundle.message("label.text.plugin.eap.license.not.required"));
-        return;
+      if (ApplicationManager.getApplication().isEAP &&
+          Arrays.asList("release", "true").contains(System.getProperty("eap.require.license"))) {
+        setTagTooltip(IdeBundle.message("label.text.plugin.eap.license.not.required"))
+        return
       }
 
-      if (myPlugin.isLicenseOptional()) {
-        return; // do not show "No License" for Freemium plugins
+      if (myPlugin.isLicenseOptional) {
+        return // do not show "No License" for Freemium plugins
       }
 
-      licensePanel.setText(IdeBundle.message("label.text.plugin.no.license"), true, false);
+      licensePanel.setText(IdeBundle.message("label.text.plugin.no.license"), true, false)
     }
     else {
-      licensePanel.setTextFromStamp(stamp, instance.getExpirationDate(productCode));
+      licensePanel.setTextFromStamp(stamp, instance.getExpirationDate(productCode))
     }
-    setTagTooltip(licensePanel.getMessage());
+    setTagTooltip(licensePanel.getMessage())
 
     if (licensePanel.isNotification()) {
-      licensePanel.setBorder(JBUI.Borders.emptyTop(3));
+      licensePanel.border = JBUI.Borders.emptyTop(3)
       //licensePanel.setLink("Manage licenses", () -> { XXX }, false);
-      myLayout.addLineComponent(licensePanel);
-      myLicensePanel = licensePanel;
+      myLayout.addLineComponent(licensePanel)
+      myLicensePanel = licensePanel
     }
   }
 
-  public void setOnlyUpdateMode(@Nullable PluginUiModel installedPlugin) {
-    myOnlyUpdateMode = true;
+  fun setOnlyUpdateMode(installedPlugin: PluginUiModel?) {
+    myOnlyUpdateMode = true
 
-    removeButtons(false);
+    removeButtons(false)
 
-    myLayout.setCheckBoxComponent(myChooseUpdateButton = new JCheckBox((String)null, true));
-    myChooseUpdateButton.setOpaque(false);
-    myChooseUpdateButton.getAccessibleContext()
-      .setAccessibleName(IdeBundle.message("plugins.configurable.choose.update.checkbox.accessible.name"));
+    myChooseUpdateButton = JCheckBox(null as String?, true)
+    myLayout.setCheckBoxComponent(myChooseUpdateButton!!)
+    myChooseUpdateButton!!.isOpaque = false
+    myChooseUpdateButton!!.accessibleContext.setAccessibleName(IdeBundle.message("plugins.configurable.choose.update.checkbox.accessible.name"))
 
     if (installedPlugin != null) {
       if (myDownloads != null) {
-        myMetricsPanel.remove(myDownloads);
+        myMetricsPanel!!.remove(myDownloads)
       }
       if (myRating != null) {
-        myMetricsPanel.remove(myRating);
+        myMetricsPanel!!.remove(myRating)
       }
       if (myVendor != null) {
-        myMetricsPanel.remove(myVendor);
+        myMetricsPanel!!.remove(myVendor)
       }
       if (myVersion != null) {
-        myMetricsPanel.remove(myVersion);
+        myMetricsPanel!!.remove(myVersion)
       }
 
-      String version = NewUiUtil.getUpdateVersionText(installedPlugin.getVersion(), myPlugin.getVersion());
-      String size = PluginUiModelKt.presentableSize(myPlugin);
-      myVersion = createRatingLabel(myMetricsPanel,
-                                    null,
-                                    size != null ? version + " | " + size : version,
-                                    null,
-                                    null,
-                                    false);
+      val version = NewUiUtil.getUpdateVersionText(installedPlugin.version, myPlugin.version)
+      val size = myPlugin.presentableSize()
+      myVersion = createRatingLabel(
+        myMetricsPanel!!,
+        null,
+        if (size != null) "$version | $size" else version,
+        null,
+        null,
+        false,
+      )
     }
 
-    updateColors(EventHandler.SelectionType.NONE);
+    updateColors(EventHandler.SelectionType.NONE)
   }
 
-  public JCheckBox getChooseUpdateButton() {
-    return myChooseUpdateButton;
+  fun getChooseUpdateButton(): JCheckBox? {
+    return myChooseUpdateButton
   }
 
   @Deprecated
-  public void setUpdateDescriptor(@Nullable IdeaPluginDescriptor descriptor) {
-    setUpdateDescriptor(descriptor == null ? null : new PluginUiModelAdapter(descriptor));
+  fun setUpdateDescriptor(descriptor: IdeaPluginDescriptor?) {
+    setUpdateDescriptor(if (descriptor == null) null else PluginUiModelAdapter(descriptor))
   }
 
-  public void setUpdateDescriptor(@Nullable PluginUiModel descriptor) {
+  fun setUpdateDescriptor(descriptor: PluginUiModel?) {
     if (myMarketplace && myInstalledDescriptorForMarketplace == null ||
-        (descriptor != null && myModelFacade.isUninstalled(descriptor.getPluginId()))) {
-      return;
+        descriptor != null && myModelFacade.isUninstalled(descriptor.pluginId)) {
+      return
     }
     if (myUpdateDescriptor == null && descriptor == null) {
-      return;
+      return
     }
     if (myIndicator != null || isRestartEnabled()) {
-      return;
+      return
     }
 
-    myUpdateDescriptor = descriptor;
+    myUpdateDescriptor = descriptor
 
-    PluginUiModel plugin = getDescriptorForActions();
+    val plugin = getDescriptorForActions()
 
     if (myUpdateDescriptor == null) {
       if (myVersion != null) {
-        setVersionLabelState(myVersion, plugin.getVersion(), plugin.isBundledUpdate());
+        setVersionLabelState(myVersion!!, plugin.version, plugin.isBundledUpdate)
       }
       if (myUpdateLicensePanel != null) {
-        myLayout.removeLineComponent(myUpdateLicensePanel);
-        myUpdateLicensePanel = null;
+        myLayout.removeLineComponent(myUpdateLicensePanel!!)
+        myUpdateLicensePanel = null
       }
       if (myUpdateButton != null) {
-        myUpdateButton.setVisible(false);
+        myUpdateButton!!.isVisible = false
       }
       if (myAlignButton != null) {
-        myAlignButton.setVisible(false);
+        myAlignButton!!.isVisible = false
       }
     }
     else {
       if (myVersion != null) {
-        setVersionLabelState(myVersion, plugin.getVersion(), plugin.isBundledUpdate());
+        setVersionLabelState(myVersion!!, plugin.version, plugin.isBundledUpdate)
       }
-      if (plugin.getProductCode() == null && myUpdateDescriptor.getProductCode() != null &&
-          !plugin.isBundled() && !LicensePanel.isEA2Product(myUpdateDescriptor.getProductCode()) &&
-          !LicensePanel.shouldSkipPluginLicenseDescriptionPublishing(myUpdateDescriptor)) {
+      if (plugin.productCode == null && myUpdateDescriptor!!.productCode != null &&
+          !plugin.isBundled && !LicensePanel.isEA2Product(myUpdateDescriptor!!.productCode) &&
+          !LicensePanel.shouldSkipPluginLicenseDescriptionPublishing(myUpdateDescriptor!!)) {
         if (myUpdateLicensePanel == null) {
-          myLayout.addLineComponent(myUpdateLicensePanel = new LicensePanel(true));
-          myUpdateLicensePanel.setBorder(JBUI.Borders.emptyTop(3));
-          myUpdateLicensePanel.setVisible(myErrorPanel == null);
+          myUpdateLicensePanel = LicensePanel(true)
+          myLayout.addLineComponent(myUpdateLicensePanel!!)
+          myUpdateLicensePanel!!.border = JBUI.Borders.emptyTop(3)
+          myUpdateLicensePanel!!.isVisible = myErrorPanel == null
           if (myEventHandler != null) {
-            myEventHandler.addAll(myUpdateLicensePanel);
+            myEventHandler!!.addAll(myUpdateLicensePanel!!)
           }
         }
 
-        myUpdateLicensePanel.showBuyPluginWithText(IdeBundle.message("label.next.plugin.version.is"), true, false,
-                                                   () -> myUpdateDescriptor, true,
-                                                   true);
+        myUpdateLicensePanel!!.showBuyPluginWithText(
+          IdeBundle.message("label.next.plugin.version.is"),
+          true,
+          false,
+          { myUpdateDescriptor },
+          true,
+          true,
+        )
       }
       if (myUpdateButton == null) {
-        myLayout.addButtonComponent(myUpdateButton = new UpdateButton(), 0);
-        myUpdateButton.addActionListener(
-          e -> updatePlugin(plugin));
+        myUpdateButton = UpdateButton()
+        myLayout.addButtonComponent(myUpdateButton!!, 0)
+        myUpdateButton!!.addActionListener { updatePlugin(plugin) }
       }
       else if (!succesefullyFinishedOnce) {
-        myUpdateButton.setEnabled(true);
-        myUpdateButton.setVisible(true);
+        myUpdateButton!!.isEnabled = true
+        myUpdateButton!!.isVisible = true
       }
       if (myAlignButton != null) {
-        myAlignButton.setVisible(myEnableDisableButton != null && !myEnableDisableButton.isVisible());
+        myAlignButton!!.isVisible = myEnableDisableButton != null && !myEnableDisableButton!!.isVisible
       }
     }
 
-    fullRepaint();
+    fullRepaint()
   }
 
-  public void setListeners(@NotNull EventHandler eventHandler) {
-    myEventHandler = eventHandler;
-    eventHandler.addAll(this);
+  fun setListeners(eventHandler: EventHandler) {
+    myEventHandler = eventHandler
+    eventHandler.addAll(this)
   }
 
-  void updateColors(@NotNull EventHandler.SelectionType type) {
-    Color background = PluginManagerConfigurable.MAIN_BG_COLOR;
-    Color foreground = (type == EventHandler.SelectionType.NONE)
-                       ? background
-                       : (type == EventHandler.SelectionType.HOVER ? HOVER_COLOR : SELECTION_COLOR);
+  fun updateColors(type: EventHandler.SelectionType) {
+    val background = PluginManagerConfigurable.MAIN_BG_COLOR
+    val foreground = if (type == EventHandler.SelectionType.NONE) {
+      background
+    }
+    else if (type == EventHandler.SelectionType.HOVER) {
+      HOVER_COLOR
+    }
+    else {
+      SELECTION_COLOR
+    }
 
-    updateColors(GRAY_COLOR, JBColor.lazy(() -> ColorUtil.alphaBlending(foreground, background)));
+    updateColors(GRAY_COLOR, JBColor.lazy { ColorUtil.alphaBlending(foreground, background) })
   }
 
-  private void updateColors(@NotNull Color grayedFg, @NotNull Color background) {
-    setBackground(background);
+  private fun updateColors(grayedFg: Color, background: Color) {
+    setBackground(background)
 
-    Color nameForeground = null;
-    Color otherForeground = grayedFg;
-    boolean calcColor = true;
+    var nameForeground: Color? = null
+    var otherForeground: Color = grayedFg
+    var calcColor = true
 
     if (mySelection != EventHandler.SelectionType.NONE) {
-      Color color = UIManager.getColor("Plugins.selectionForeground");
+      val color = UIManager.getColor("Plugins.selectionForeground")
       if (color != null) {
-        nameForeground = otherForeground = color;
-        calcColor = false;
+        nameForeground = color
+        otherForeground = color
+        calcColor = false
       }
     }
 
     if (calcColor && !myIsAvailable) {
-      calcColor = false;
-      nameForeground = otherForeground = DisabledColor;
+      calcColor = false
+      nameForeground = DisabledColor
+      otherForeground = DisabledColor
     }
 
     if (calcColor && (!myMarketplace || myInstalledDescriptorForMarketplace != null)) {
-      PluginUiModel plugin = getDescriptorForActions();
-      boolean disabled =
-        myModelFacade.isUninstalled(plugin.getPluginId()) || !myModelFacade.isPluginInstallingOrUpdating(myPlugin) && !isEnabledState();
+      val plugin = getDescriptorForActions()
+      val disabled =
+        myModelFacade.isUninstalled(plugin.pluginId) || !myModelFacade.isPluginInstallingOrUpdating(myPlugin) && !isEnabledState()
       if (disabled) {
-        nameForeground = otherForeground = DisabledColor;
+        nameForeground = DisabledColor
+        otherForeground = DisabledColor
       }
     }
 
-    myNameComponent.setHorizontalTextPosition(SwingConstants.LEFT);
-    myNameComponent.setForeground(nameForeground);
+    myNameComponent.horizontalTextPosition = SwingConstants.LEFT
+    myNameComponent.foreground = nameForeground
 
     if (myRating != null) {
-      myRating.setForeground(otherForeground);
+      myRating!!.foreground = otherForeground
     }
     if (myDownloads != null) {
-      myDownloads.setForeground(otherForeground);
+      myDownloads!!.foreground = otherForeground
     }
     if (myVersion != null) {
-      myVersion.setForeground(otherForeground);
+      myVersion!!.foreground = otherForeground
     }
     if (myVendor != null) {
-      myVendor.setForeground(otherForeground);
+      myVendor!!.foreground = otherForeground
     }
   }
 
-  public void updateErrors(List<? extends HtmlChunk> errors) {
-    PluginUiModel plugin = getDescriptorForActions();
-    boolean hasErrors = !errors.isEmpty() && !myIsNotFreeInFreeMode;
-    updateIcon(hasErrors,
-               myModelFacade.isUninstalled(plugin.getPluginId()) || !isEnabledState() || !myIsAvailable);
+  fun updateErrors(errors: List<out HtmlChunk>) {
+    val plugin = getDescriptorForActions()
+    val hasErrors = errors.isNotEmpty() && !myIsNotFreeInFreeMode
+    updateIcon(hasErrors, myModelFacade.isUninstalled(plugin.pluginId) || !isEnabledState() || !myIsAvailable)
 
     if (myAlignButton != null) {
-      myAlignButton.setVisible(myRestartButton != null || myAfterUpdate);
+      myAlignButton!!.isVisible = myRestartButton != null || myAfterUpdate
     }
 
     if (hasErrors) {
-      boolean addListeners = myErrorComponent == null && myEventHandler != null;
+      val addListeners = myErrorComponent == null && myEventHandler != null
 
       if (myErrorPanel == null) {
-        myErrorPanel = new NonOpaquePanel();
-        myLayout.addLineComponent(myErrorPanel);
+        myErrorPanel = NonOpaquePanel()
+        myLayout.addLineComponent(myErrorPanel!!)
       }
 
       if (myErrorComponent == null) {
-        myErrorComponent = new ErrorComponent();
-        myErrorComponent.setBorder(JBUI.Borders.emptyTop(5));
-        myErrorPanel.add(myErrorComponent, BorderLayout.CENTER);
+        myErrorComponent = ErrorComponent()
+        myErrorComponent!!.border = JBUI.Borders.emptyTop(5)
+        myErrorPanel!!.add(myErrorComponent, BorderLayout.CENTER)
       }
 
-      myErrorComponent.setErrors(errors, () -> myModelFacade.enableRequiredPluginsAsync(plugin));
+      myErrorComponent!!.setErrors(errors) { myModelFacade.enableRequiredPluginsAsync(plugin) }
 
       if (addListeners) {
-        myEventHandler.addAll(myErrorPanel);
+        myEventHandler!!.addAll(myErrorPanel!!)
       }
     }
     else if (myErrorPanel != null) {
-      myLayout.removeLineComponent(myErrorPanel);
-      myErrorPanel = null;
-      myErrorComponent = null;
+      myLayout.removeLineComponent(myErrorPanel!!)
+      myErrorPanel = null
+      myErrorComponent = null
     }
 
     if (myLicensePanel != null) {
-      myLicensePanel.setVisible(!hasErrors && !myIsNotFreeInFreeMode);
+      myLicensePanel!!.isVisible = !hasErrors && !myIsNotFreeInFreeMode
     }
     if (myUpdateLicensePanel != null) {
-      myUpdateLicensePanel.setVisible(!hasErrors && !myIsNotFreeInFreeMode);
+      myUpdateLicensePanel!!.isVisible = !hasErrors && !myIsNotFreeInFreeMode
     }
   }
 
@@ -766,1053 +746,1116 @@ public final class ListPluginComponent extends JPanel {
    * @deprecated use #updateErrors(List<? extends HtmlChunk>)
    */
   @Deprecated(forRemoval = true)
-  public void updateErrors() {
-    PluginUiModel plugin = getDescriptorForActions();
+  fun updateErrors() {
+    val plugin = getDescriptorForActions()
     if (myOnlyUpdateMode) {
-      updateErrors(List.of());
+      updateErrors(emptyList())
     }
     else {
-      PluginModelAsyncOperationsExecutor.INSTANCE.updateErrors(myModelFacade.getModel().getSessionId(), plugin.getPluginId(), res -> {
-        updateErrors(res);
-        return null;
-      });
+      PluginModelAsyncOperationsExecutor.updateErrors(myCoroutineScope, myModelFacade.getModel().sessionId, plugin.pluginId) { res ->
+        updateErrors(res)
+      }
     }
   }
 
-  private void updatePlugin(PluginUiModel plugin) {
-    PluginModelAsyncOperationsExecutor.INSTANCE.updatePlugin(myCoroutineScope,
-                                                             myModelFacade,
-                                                             plugin,
-                                                             myUpdateDescriptor,
-                                                             myCustomizer,
-                                                             ModalityState.stateForComponent(myUpdateButton),
-                                                             this);
+  private fun updatePlugin(plugin: PluginUiModel) {
+    PluginModelAsyncOperationsExecutor.updatePlugin(
+      myCoroutineScope,
+      myModelFacade,
+      plugin,
+      myUpdateDescriptor,
+      myCustomizer,
+      ModalityState.stateForComponent(myUpdateButton!!),
+      this,
+    )
   }
 
-  private void updateIcon(boolean errors, boolean disabled) {
-    myIconComponent.setIcon(myModelFacade.getIcon(myPlugin, false, errors, disabled));
+  private fun updateIcon(errors: Boolean, disabled: Boolean) {
+    myIconComponent.icon = myModelFacade.getIcon(myPlugin, false, errors, disabled)
   }
 
-  public void showProgress() {
-    showProgress(true);
+  fun showProgress() {
+    showProgress(true)
   }
 
-  private void showProgress(boolean repaint) {
-    if (succesefullyFinishedOnce) return;
-    myIndicator = new AbstractProgressIndicatorExBase();
-    myLayout.setProgressComponent(new AsyncProcessIcon("PluginListComponentIconProgress") {
-      @Override
-      public int getBaseline(int width, int height) {
-        return (int)(height * 0.85);
+  private fun showProgress(repaint: Boolean) {
+    if (succesefullyFinishedOnce) return
+    myIndicator = AbstractProgressIndicatorExBase()
+    myLayout.setProgressComponent(object : AsyncProcessIcon("PluginListComponentIconProgress") {
+      override fun getBaseline(width: Int, height: Int): Int {
+        return (height * 0.85).toInt()
       }
 
-      @Override
-      public void removeNotify() {
-        super.removeNotify();
+      override fun removeNotify() {
+        super.removeNotify()
         if (!isDisposed()) {
-          dispose();
+          dispose()
         }
       }
-    });
+    })
 
-    PluginModelFacade.addProgress(getDescriptorForActions(), myIndicator);
+    PluginModelFacade.addProgress(getDescriptorForActions(), myIndicator!!)
 
     if (repaint) {
-      fullRepaint();
+      fullRepaint()
     }
   }
 
-  public void hideProgress() {
-    if (succesefullyFinishedOnce) return;
-    myIndicator = null;
-    myLayout.removeProgressComponent();
+  fun hideProgress() {
+    if (succesefullyFinishedOnce) return
+    myIndicator = null
+    myLayout.removeProgressComponent()
   }
 
-  public void pluginInstalled(boolean success, boolean restartRequired, PluginUiModel installedPlugin) {
+  fun pluginInstalled(success: Boolean, restartRequired: Boolean, installedPlugin: PluginUiModel?) {
     if (success) {
-      succesefullyFinishedOnce = true;
+      succesefullyFinishedOnce = true
       if (restartRequired) {
-        enableRestart();
+        enableRestart()
       }
       else {
         if (myInstallButton != null) {
-          myInstallButton.setEnabled(false, IdeBundle.message("plugin.status.installed"));
-          if (myInstallButton.isVisible()) {
-            myInstalledDescriptorForMarketplace = installedPlugin;
+          myInstallButton!!.setEnabled(false, IdeBundle.message("plugin.status.installed"))
+          if (myInstallButton!!.isVisible) {
+            myInstalledDescriptorForMarketplace = installedPlugin
             if (myInstalledDescriptorForMarketplace != null) {
               if (myMarketplace) {
-                myInstallButton.setVisible(false);
-                myEnableDisableButton.setVisible(true);
-                setVersionLabelState(myVersion, myInstalledDescriptorForMarketplace.getVersion(), myInstalledDescriptorForMarketplace.isBundledUpdate());
-                myVersion.setVisible(true);
-                updateEnabledStateUI();
-                fullRepaint();
+                myInstallButton!!.isVisible = false
+                myEnableDisableButton!!.isVisible = true
+                setVersionLabelState(myVersion!!,
+                                     myInstalledDescriptorForMarketplace!!.version,
+                                     myInstalledDescriptorForMarketplace!!.isBundledUpdate)
+                myVersion!!.isVisible = true
+                updateEnabledStateUI()
+                fullRepaint()
               }
               else {
-                myPlugin = myInstalledDescriptorForMarketplace;
-                myInstalledDescriptorForMarketplace = null;
-                updateButtons(installedPlugin, new PluginInstallationState(true, PluginStatus.INSTALLED_WITHOUT_RESTART));
+                myPlugin = myInstalledDescriptorForMarketplace!!
+                myInstalledDescriptorForMarketplace = null
+                updateButtons(installedPlugin, PluginInstallationState(true, PluginStatus.INSTALLED_WITHOUT_RESTART))
               }
-              return;
+              return
             }
           }
         }
         if (myUpdateButton != null) {
-          myUpdateButton.setEnabled(false);
-          myUpdateButton.setText(IdeBundle.message("plugin.status.installed"));
-          myAfterUpdate = true;
+          myUpdateButton!!.isEnabled = false
+          myUpdateButton!!.text = IdeBundle.message("plugin.status.installed")
+          myAfterUpdate = true
         }
         if (myInstallButton == null && myUpdateButton == null) {
-          addInstalledStatusButton("plugins.configurable.installed");
+          addInstalledStatusButton("plugins.configurable.installed")
         }
         if (myEnableDisableButton != null) {
-          myLayout.removeButtonComponent(myEnableDisableButton);
-          myEnableDisableButton = null;
+          myLayout.removeButtonComponent(myEnableDisableButton!!)
+          myEnableDisableButton = null
 
           if (myAlignButton != null) {
-            myAlignButton.setVisible(true);
+            myAlignButton!!.isVisible = true
           }
         }
       }
     }
 
-    fullRepaint();
+    fullRepaint()
   }
 
-  private void addInstalledStatusButton(String key) {
-    if (myRestartButton != null && myRestartButton.isVisible()) {
-      return;
+  private fun addInstalledStatusButton(key: String) {
+    if (myRestartButton != null && myRestartButton!!.isVisible) {
+      return
     }
-    myLayout.addButtonComponent(myInstallButton = createInstallButton());
-    myInstallButton.setVisible(true);
-    myInstallButton.setEnabled(false, IdeBundle.message(key));
+    myInstallButton = createInstallButton()
+    myLayout.addButtonComponent(myInstallButton!!)
+    myInstallButton!!.isVisible = true
+    myInstallButton!!.setEnabled(false, IdeBundle.message(key))
   }
 
-  public void clearProgress() {
-    myIndicator = null;
+  fun clearProgress() {
+    myIndicator = null
   }
 
-  public void enableRestart() {
-    removeButtons(true);
+  fun enableRestart() {
+    removeButtons(true)
   }
 
-  private void removeButtons(boolean showRestart) {
+  private fun removeButtons(showRestart: Boolean) {
     if (myInstallButton != null) {
-      myLayout.removeButtonComponent(myInstallButton);
-      myInstallButton = null;
+      myLayout.removeButtonComponent(myInstallButton!!)
+      myInstallButton = null
     }
     if (myUpdateButton != null) {
-      myLayout.removeButtonComponent(myUpdateButton);
-      myUpdateButton = null;
+      myLayout.removeButtonComponent(myUpdateButton!!)
+      myUpdateButton = null
     }
     if (myEnableDisableButton != null) {
-      myLayout.removeButtonComponent(myEnableDisableButton);
-      myEnableDisableButton = null;
+      myLayout.removeButtonComponent(myEnableDisableButton!!)
+      myEnableDisableButton = null
     }
     if (myIsAvailable && showRestart && myRestartButton == null) {
-      myLayout.addButtonComponent(myRestartButton = new RestartButton(myModelFacade), 0);
+      myRestartButton = RestartButton(myModelFacade)
+      myLayout.addButtonComponent(myRestartButton!!, 0)
     }
     if (myAlignButton != null) {
-      myAlignButton.setVisible(true);
+      myAlignButton!!.isVisible = true
     }
 
     try {
-      PluginsViewCustomizerKt.getListPluginComponentCustomizer().processRemoveButtons(this);
+      getListPluginComponentCustomizer().processRemoveButtons(this)
     }
-    catch (Exception e) {
-      LOG.error("Error while customizing remove buttons", e);
+    catch (e: Exception) {
+      LOG.error("Error while customizing remove buttons", e)
     }
   }
 
-  public void updateButtons(PluginUiModel installedPlugin, PluginInstallationState state) {
+  fun updateButtons(installedPlugin: PluginUiModel?, state: PluginInstallationState?) {
     if (myIsAvailable) {
-      removeButtons(false);
+      removeButtons(false)
       if (myRestartButton != null) {
-        myLayout.removeButtonComponent(myRestartButton);
-        myRestartButton = null;
+        myLayout.removeButtonComponent(myRestartButton!!)
+        myRestartButton = null
       }
       if (myAlignButton != null) {
-        myLayout.removeButtonComponent(myAlignButton);
-        myAlignButton = null;
+        myLayout.removeButtonComponent(myAlignButton!!)
+        myAlignButton = null
       }
-      myAfterUpdate = false;
-      createButtons(installedPlugin, state);
+      myAfterUpdate = false
+      createButtons(installedPlugin, state)
       if (myUpdateDescriptor != null) {
-        setUpdateDescriptor(myUpdateDescriptor);
+        setUpdateDescriptor(myUpdateDescriptor)
       }
-      doUpdateEnabledState();
+      doUpdateEnabledState()
     }
   }
 
-  public void updateEnabledState() {
+  fun updateEnabledState() {
     if (myMarketplace && myInstalledDescriptorForMarketplace == null) {
-      return;
+      return
     }
-    doUpdateEnabledState();
+    doUpdateEnabledState()
   }
 
-  private void doUpdateEnabledState() {
-    if (!myModelFacade.isUninstalled(getDescriptorForActions().getPluginId())) {
-      updateEnabledStateUI();
+  @Suppress("removal")
+  private fun doUpdateEnabledState() {
+    if (!myModelFacade.isUninstalled(getDescriptorForActions().pluginId)) {
+      updateEnabledStateUI()
     }
-    updateErrors();
-    setSelection(mySelection, false);
+    updateErrors()
+    setSelection(mySelection, false)
 
     try {
-      PluginsViewCustomizerKt.getListPluginComponentCustomizer().processUpdateEnabledState(this);
+      getListPluginComponentCustomizer().processUpdateEnabledState(this)
     }
-    catch (Exception e) {
-      LOG.error("Error while customizing enabled state", e);
-    }
-  }
-
-  private void updateEnabledStateUI() {
-    if (myEnableDisableButton instanceof JCheckBox) {
-      ((JCheckBox)myEnableDisableButton).setSelected(
-        myModelFacade.isEnabled(getDescriptorForActions()) && !myIsNotFreeInFreeMode);
+    catch (e: Exception) {
+      LOG.error("Error while customizing enabled state", e)
     }
   }
 
-  public void updateAfterUninstall(boolean needRestartForUninstall, PluginInstallationState pluginInstallationState) {
-    myModelFacade.addUninstalled(getDescriptorForActions().getPluginId());
-    updateColors(mySelection);
-    removeButtons(needRestartForUninstall);
+  private fun updateEnabledStateUI() {
+    if (myEnableDisableButton is JCheckBox) {
+      (myEnableDisableButton as JCheckBox).isSelected = myModelFacade.isEnabled(getDescriptorForActions()) && !myIsNotFreeInFreeMode
+    }
+  }
+
+  fun updateAfterUninstall(needRestartForUninstall: Boolean, pluginInstallationState: PluginInstallationState) {
+    myModelFacade.addUninstalled(getDescriptorForActions().pluginId)
+    updateColors(mySelection)
+    removeButtons(needRestartForUninstall)
 
     if (!needRestartForUninstall &&
-        pluginInstallationState.getStatus() == PluginStatus.UNINSTALLED_WITHOUT_RESTART &&
-        (myRestartButton == null || !myRestartButton.isVisible())) {
-      myLayout.addButtonComponent(myInstallButton = createInstallButton());
-      myInstallButton.setEnabled(false, IdeBundle.message("plugins.configurable.uninstalled"));
+        pluginInstallationState.status == PluginStatus.UNINSTALLED_WITHOUT_RESTART &&
+        (myRestartButton == null || !myRestartButton!!.isVisible)) {
+      myInstallButton = createInstallButton()
+      myLayout.addButtonComponent(myInstallButton!!)
+      myInstallButton!!.setEnabled(false, IdeBundle.message("plugins.configurable.uninstalled"))
     }
-    fullRepaint();
+    fullRepaint()
   }
 
-  public void updatePlugin() {
+  fun updatePlugin() {
     if ((!myMarketplace || myInstalledDescriptorForMarketplace == null) &&
-        myUpdateButton != null && myUpdateButton.isVisible() && myUpdateButton.isEnabled()) {
-      myUpdateButton.doClick();
+        myUpdateButton != null && myUpdateButton!!.isVisible && myUpdateButton!!.isEnabled) {
+      myUpdateButton!!.doClick()
     }
   }
 
-  private boolean isEnabledState() {
-    return myModelFacade.isEnabled(getDescriptorForActions()) && !myIsNotFreeInFreeMode;
+  private fun isEnabledState(): Boolean {
+    return myModelFacade.isEnabled(getDescriptorForActions()) && !myIsNotFreeInFreeMode
+
   }
 
-  public boolean isMarketplace() {
-    return myMarketplace;
+  fun isMarketplace(): Boolean {
+    return myMarketplace
   }
 
-  boolean isNotFreeInFreeMode() {
-    return myIsNotFreeInFreeMode;
+  fun isNotFreeInFreeMode(): Boolean {
+    return myIsNotFreeInFreeMode
   }
 
-  public boolean isDisableAllowed() {
-    return myIsDisableAllowed;
+  fun isDisableAllowed(): Boolean {
+    return myIsDisableAllowed
   }
 
-  public boolean isRestartEnabled() {
-    return myRestartButton != null && myRestartButton.isVisible();
+  fun isRestartEnabled(): Boolean {
+    return myRestartButton != null && myRestartButton!!.isVisible
   }
 
-  public boolean isUpdatedWithoutRestart() {
-    return myUpdateButton != null && myUpdateButton.isVisible() && !myUpdateButton.isEnabled();
+  fun isUpdatedWithoutRestart(): Boolean {
+    return myUpdateButton != null && myUpdateButton!!.isVisible && !myUpdateButton!!.isEnabled
   }
 
-  public boolean underProgress() {
-    return myIndicator != null;
+  fun underProgress(): Boolean {
+    return myIndicator != null
   }
 
-  public void close() {
+  fun close() {
     if (myIndicator != null) {
-      PluginModelFacade.removeProgress(getDescriptorForActions(), myIndicator);
-      myIndicator = null;
+      PluginModelFacade.removeProgress(getDescriptorForActions(), myIndicator!!)
+      myIndicator = null
     }
-    myModelFacade.removeComponent(this);
+    myModelFacade.removeComponent(this)
   }
 
-  public void createPopupMenu(@NotNull DefaultActionGroup group,
-                              @NotNull List<ListPluginComponent> selection) {
+  fun createPopupMenu(group: DefaultActionGroup, selection: List<ListPluginComponent>) {
     if (selection.isEmpty()) {
-      return;
+      return
     }
 
     if (!myIsAvailable) {
-      return;
+      return
     }
 
     if (myOnlyUpdateMode) {
-      return;
+      return
     }
 
-    for (ListPluginComponent component : selection) {
+    for (component in selection) {
       if (myModelFacade.isPluginInstallingOrUpdating(component.myPlugin) || component.myAfterUpdate) {
-        return;
+        return
       }
     }
 
-    boolean restart = true;
-    for (ListPluginComponent component : selection) {
+    var restart = true
+    for (component in selection) {
       if (component.myRestartButton == null) {
-        restart = false;
-        break;
+        restart = false
+        break
       }
     }
     if (restart) {
-      group.add(new ButtonAnAction(selection.get(0).myRestartButton));
-      return;
+      group.add(ButtonAnAction(selection[0].myRestartButton!!))
+      return
     }
 
-    int size = selection.size();
-    boolean getDescriptorFunction = true;
+    val size = selection.size
+    var getDescriptorFunction = true
 
     if (myMarketplace) {
-      JButton[] installButtons = new JButton[size];
-      int installCount = 0;
-      int installedCount = 0;
+      val installButtons = arrayOfNulls<JButton>(size)
+      var installCount = 0
+      var installedCount = 0
 
-      for (int i = 0; i < size; i++) {
-        ListPluginComponent component = selection.get(i);
-        JButton button = component.myInstallButton;
-        if (button != null && button.isVisible() && button.isEnabled()) {
-          installButtons[i] = button;
-          installCount++;
+      for (i in 0 until size) {
+        val component = selection[i]
+        val button = component.myInstallButton
+        if (button != null && button.isVisible && button.isEnabled) {
+          installButtons[i] = button
+          installCount++
         }
         else if (component.myInstalledDescriptorForMarketplace != null) {
-          installedCount++;
+          installedCount++
         }
         else {
-          return;
+          return
         }
       }
 
       if (installCount == size) {
-        group.add(new ButtonAnAction(installButtons));
-        return;
+        group.add(ButtonAnAction(*installButtons.requireNoNulls()))
+        return
       }
       if (installedCount != size) {
-        return;
+        return
       }
 
-      getDescriptorFunction = false;
+      getDescriptorFunction = false
     }
 
-    JButton[] updateButtons = new JButton[size];
+    var updateButtons: Array<JButton?>? = arrayOfNulls(size)
 
-    for (int i = 0; i < size; i++) {
-      JButton button = selection.get(i).myUpdateButton;
-      if (button == null || !button.isVisible() || !button.isEnabled()) {
-        updateButtons = null;
-        break;
+    for (i in 0 until size) {
+      val button = selection[i].myUpdateButton
+      if (button == null || !button.isVisible || !button.isEnabled) {
+        updateButtons = null
+        break
       }
-      updateButtons[i] = button;
+      updateButtons!![i] = button
     }
 
     if (updateButtons != null) {
-      group.add(new ButtonAnAction(updateButtons));
+      group.add(ButtonAnAction(*updateButtons.requireNoNulls()))
       if (size > 1) {
-        return;
+        return
       }
     }
 
-    Function<ListPluginComponent, PluginUiModel> function =
-      getDescriptorFunction ? ListPluginComponent::getPluginModel : ListPluginComponent::getInstalledDescriptorForMarketplace;
-    SelectionBasedPluginModelAction.addActionsTo(group,
-                                                 action -> createEnableDisableAction(action, selection, function),
-                                                 () -> createUninstallAction(selection, function));
+    val function: Function<ListPluginComponent, PluginUiModel> = if (getDescriptorFunction) {
+      Function { it.getPluginModel() }
+    }
+    else {
+      Function { it.getInstalledDescriptorForMarketplace()!! }
+    }
+    SelectionBasedPluginModelAction.addActionsTo(
+      group,
+      { action -> createEnableDisableAction(action, selection, function) },
+      { createUninstallAction(selection.toMutableList(), function as Function<ListPluginComponent, PluginUiModel?>) },
+    )
   }
 
-  public void handleKeyAction(@NotNull KeyEvent event,
-                              @NotNull List<ListPluginComponent> selection) {
+  fun handleKeyAction(event: KeyEvent, selection: List<ListPluginComponent>) {
     if (selection.isEmpty()) {
-      return;
+      return
     }
 
     // If the focus is not on a ListPluginComponent, the focused component will handle the event.
-    Component focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
-    if (event.getKeyCode() == KeyEvent.VK_SPACE && !(focusOwner instanceof ListPluginComponent)) {
-      return;
+    val focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
+    if (event.keyCode == KeyEvent.VK_SPACE && focusOwner !is ListPluginComponent) {
+      return
     }
 
     if (myOnlyUpdateMode) {
-      if (event.getKeyCode() == KeyEvent.VK_SPACE) {
-        for (ListPluginComponent component : selection) {
-          component.myChooseUpdateButton.doClick();
+      if (event.keyCode == KeyEvent.VK_SPACE) {
+        for (component in selection) {
+          component.myChooseUpdateButton!!.doClick()
         }
       }
-      return;
+      return
     }
 
-    for (ListPluginComponent component : selection) {
+    for (component in selection) {
       if (myModelFacade.isPluginInstallingOrUpdating(component.myPlugin) || component.myAfterUpdate) {
-        return;
+        return
       }
     }
 
-    boolean restart = true;
-    for (ListPluginComponent component : selection) {
+    var restart = true
+    for (component in selection) {
       if (component.myRestartButton == null) {
-        restart = false;
-        break;
+        restart = false
+        break
       }
     }
 
-    boolean getDescriptorFunction = true;
-
-    int keyCode = event.getKeyCode();
+    var getDescriptorFunction = true
+    val keyCode = event.keyCode
     if (myMarketplace) {
       if (keyCode == KeyEvent.VK_ENTER) {
         if (restart) {
-          selection.get(0).myRestartButton.doClick();
+          selection[0].myRestartButton!!.doClick()
         }
 
-        int installCount = 0;
-        int installedCount = 0;
+        var installCount = 0
+        var installedCount = 0
 
-        for (ListPluginComponent component : selection) {
-          JButton button = component.myInstallButton;
-          if (button != null && button.isVisible() && button.isEnabled()) {
-            installCount++;
+        for (component in selection) {
+          val button = component.myInstallButton
+          if (button != null && button.isVisible && button.isEnabled) {
+            installCount++
           }
           else if (component.myInstalledDescriptorForMarketplace != null) {
-            installedCount++;
+            installedCount++
           }
           else {
-            return;
+            return
           }
         }
-        int size = selection.size();
+        val size = selection.size
         if (installCount == size) {
-          for (ListPluginComponent component : selection) {
-            component.myInstallButton.doClick();
+          for (component in selection) {
+            component.myInstallButton!!.doClick()
           }
-          return;
+          return
         }
         if (installedCount != size) {
-          return;
+          return
         }
-        getDescriptorFunction = false;
+        getDescriptorFunction = false
       }
       else if (keyCode == KeyEvent.VK_SPACE || keyCode == EventHandler.DELETE_CODE) {
-        int installedCount = 0;
-        for (ListPluginComponent component : selection) {
+        var installedCount = 0
+        for (component in selection) {
           if (component.myInstalledDescriptorForMarketplace != null) {
-            installedCount++;
+            installedCount++
           }
           else {
-            return;
+            return
           }
         }
-        if (installedCount != selection.size()) {
-          return;
+        if (installedCount != selection.size) {
+          return
         }
-        getDescriptorFunction = false;
+        getDescriptorFunction = false
       }
       else {
-        return;
+        return
       }
     }
 
-    boolean update = true;
-    for (ListPluginComponent component : selection) {
-      JButton button = component.myUpdateButton;
-      if (button == null || !button.isVisible() || !button.isEnabled()) {
-        update = false;
-        break;
+    var update = true
+    for (component in selection) {
+      val button = component.myUpdateButton
+      if (button == null || !button.isVisible || !button.isEnabled) {
+        update = false
+        break
       }
     }
 
     if (keyCode == KeyEvent.VK_ENTER) {
       if (restart) {
-        selection.get(0).myRestartButton.doClick();
+        selection[0].myRestartButton!!.doClick()
       }
       else if (update) {
-        for (ListPluginComponent component : selection) {
-          component.myUpdateButton.doClick();
+        for (component in selection) {
+          component.myUpdateButton!!.doClick()
         }
       }
     }
     else if (!restart && !update) {
-      Function<ListPluginComponent, PluginUiModel> function =
-        getDescriptorFunction ? ListPluginComponent::getPluginModel : ListPluginComponent::getInstalledDescriptorForMarketplace;
-
-      DumbAwareAction action;
-
-      if (keyCode == KeyEvent.VK_SPACE && event.getModifiersEx() == 0) {
-        action = createEnableDisableAction(getEnableDisableAction(selection), selection, function);
-      }
-      else if (keyCode == EventHandler.DELETE_CODE) {
-        action = createUninstallAction(selection, function);
+      val function: Function<ListPluginComponent, PluginUiModel> = if (getDescriptorFunction) {
+        Function { it.getPluginModel() }
       }
       else {
-        return;
+        Function { it.getInstalledDescriptorForMarketplace()!! }
       }
 
-      ActionManager.getInstance().tryToExecute(action, event, this, ActionPlaces.UNKNOWN, true);
+      val action: DumbAwareAction = if (keyCode == KeyEvent.VK_SPACE && event.modifiersEx == 0) {
+        createEnableDisableAction(getEnableDisableAction(selection), selection, function)
+      }
+      else if (keyCode == EventHandler.DELETE_CODE) {
+        createUninstallAction(selection.toMutableList(), function as Function<ListPluginComponent, PluginUiModel?>)
+      }
+      else {
+        return
+      }
+
+      ActionManager.getInstance().tryToExecute(action, event, this, ActionPlaces.UNKNOWN, true)
     }
   }
 
-  private void fullRepaint() {
-    Container parent = getParent();
-    parent.doLayout();
-    parent.revalidate();
-    parent.repaint();
+  private fun fullRepaint() {
+    val parent = parent!!
+    parent.doLayout()
+    parent.revalidate()
+    parent.repaint()
   }
 
   @Deprecated
-  public @NotNull IdeaPluginDescriptor getPluginDescriptor() {
-    return myPlugin.getDescriptor();
+  fun getPluginDescriptor(): IdeaPluginDescriptor {
+    return myPlugin.getDescriptor()
   }
 
-  public PluginUiModel getPluginModel() {
-    return myPlugin;
+  fun getPluginModel(): PluginUiModel {
+    return myPlugin
   }
 
-  public PluginUiModel getInstalledDescriptorForMarketplace() {
-    return myInstalledDescriptorForMarketplace;
+  fun getInstalledDescriptorForMarketplace(): PluginUiModel? {
+    return myInstalledDescriptorForMarketplace
   }
 
-  public PluginUiModel getUpdatePluginDescriptor() {
-    return myUpdateDescriptor != null ? myUpdateDescriptor : null;
+  fun getUpdatePluginDescriptor(): PluginUiModel? {
+    return if (myUpdateDescriptor != null) myUpdateDescriptor else null
   }
 
-  public PluginUiModel getDescriptorForActions() {
-    return !myMarketplace || myInstalledDescriptorForMarketplace == null ? myPlugin : myInstalledDescriptorForMarketplace;
+  fun getDescriptorForActions(): PluginUiModel {
+    return if (!myMarketplace || myInstalledDescriptorForMarketplace == null) myPlugin else myInstalledDescriptorForMarketplace!!
   }
 
-  public void setPluginModel(@NotNull PluginUiModel pluginModel) {
-    myPlugin = pluginModel;
+  fun setPluginModel(pluginModel: PluginUiModel) {
+    myPlugin = pluginModel
   }
 
-  public synchronized @Nullable PluginUiModel getInstalledPluginMarketplaceModel() {
-    return myInstalledPluginMarketplaceNode;
+  @Synchronized
+  fun getInstalledPluginMarketplaceModel(): PluginUiModel? {
+    return myInstalledPluginMarketplaceNode
   }
 
-  public synchronized void setInstalledPluginMarketplaceModel(@NotNull PluginUiModel model) {
-    myInstalledPluginMarketplaceNode = model;
+  @Synchronized
+  fun setInstalledPluginMarketplaceModel(model: PluginUiModel) {
+    myInstalledPluginMarketplaceNode = model
   }
 
-  private @NotNull PluginEnableDisableAction getEnableDisableAction(@NotNull List<? extends ListPluginComponent> selection) {
-    Iterator<? extends ListPluginComponent> iterator = selection.iterator();
-    BooleanSupplier isGloballyEnabledGenerator = () ->
-      myModelFacade.getState(iterator.next().getPluginModel()) == PluginEnabledState.ENABLED;
+  fun getCoroutineScope(): CoroutineScope {
+    return myCoroutineScope
+  }
 
-    boolean firstDisabled = !isGloballyEnabledGenerator.getAsBoolean();
+  fun getModelFacade(): PluginModelFacade {
+    return myModelFacade
+  }
+
+  fun getCustomizer(): PluginManagerCustomizer? {
+    return myCustomizer
+  }
+
+  private fun getEnableDisableAction(selection: List<out ListPluginComponent>): PluginEnableDisableAction {
+    val iterator = selection.iterator()
+    val isGloballyEnabledGenerator = BooleanSupplier {
+      myModelFacade.getState(iterator.next().getPluginModel()) == PluginEnabledState.ENABLED
+    }
+
+    val firstDisabled = !isGloballyEnabledGenerator.asBoolean
     while (iterator.hasNext()) {
-      if (firstDisabled == isGloballyEnabledGenerator.getAsBoolean()) {
-        return PluginEnableDisableAction.ENABLE_GLOBALLY;
+      if (firstDisabled == isGloballyEnabledGenerator.asBoolean) {
+        return PluginEnableDisableAction.ENABLE_GLOBALLY
       }
     }
 
-    return PluginEnableDisableAction.globally(firstDisabled);
+    return PluginEnableDisableAction.globally(firstDisabled)
   }
 
-  private @NotNull SelectionBasedPluginModelAction.EnableDisableAction<ListPluginComponent> createEnableDisableAction(@NotNull PluginEnableDisableAction action,
-                                                                                                                      @NotNull List<? extends ListPluginComponent> selection,
-                                                                                                                      @NotNull Function<? super ListPluginComponent, PluginUiModel> function) {
-    PluginModelFacade model = myModelFacade;
+  private fun createEnableDisableAction(
+    action: PluginEnableDisableAction,
+    selection: List<out ListPluginComponent>,
+    function: Function<ListPluginComponent, PluginUiModel>,
+  ): SelectionBasedPluginModelAction.EnableDisableAction<ListPluginComponent> {
+    var model = myModelFacade
     if (myIsNotFreeInFreeMode) {
-      model = new PluginModelFacade(model.getModel()) {
-        @Override
-        public @NotNull PluginEnabledState getState(@NotNull PluginUiModel model) {
-          if (model == function.apply(ListPluginComponent.this)) {
-            return PluginEnabledState.DISABLED;
+      model = object : PluginModelFacade(model.getModel()) {
+        override fun getState(model: PluginUiModel): PluginEnabledState {
+          if (model == function.apply(this@ListPluginComponent)) {
+            return PluginEnabledState.DISABLED
           }
-          return super.getState(model);
+          return super.getState(model)
         }
-      };
-    }
-
-    return new SelectionBasedPluginModelAction.EnableDisableAction<>(model, action, true, selection, function, () -> {
-    });
-  }
-
-  private @NotNull UninstallAction<ListPluginComponent> createUninstallAction(@NotNull List<ListPluginComponent> selection,
-                                                                              @NotNull Function<ListPluginComponent, PluginUiModel> function) {
-    return new UninstallAction<>(myCoroutineScope, myModelFacade, true, this, selection, function, () -> {
-    });
-  }
-
-  @NotNull CoroutineScope getCoroutineScope() {
-    return myCoroutineScope;
-  }
-
-  @NotNull PluginModelFacade getModelFacade() {
-    return myModelFacade;
-  }
-
-  @Nullable PluginManagerCustomizer getCustomizer() {
-    return myCustomizer;
-  }
-
-  static @NotNull JLabel createRatingLabel(@NotNull JPanel panel, @NotNull @Nls String text, @Nullable Icon icon) {
-    return createRatingLabel(panel, null, text, icon, null, true);
-  }
-
-  static @NotNull JLabel createVersionLabel(@NotNull JPanel panel,
-                                            @Nullable @Nls String text,
-                                            boolean isBundledUpdate) {
-    var label = createRatingLabel(panel, null, null, null, null, true);
-    setVersionLabelState(label, text, isBundledUpdate);
-    return label;
-  }
-
-  static void setVersionLabelState(@NotNull JLabel versionLabel, @Nullable @Nls String text, boolean isBundledUpdate) {
-    if (isBundledUpdate) {
-      if (versionLabel.getToolTipText() == null) {
-        versionLabel.setToolTipText(IdeBundle.message("plugin.status.is.updated.bundled.plugin.tooltip"));
       }
-      if (versionLabel.getIcon() != AllIcons.Plugins.Updated) {
-        versionLabel.setIcon(AllIcons.Plugins.Updated);
-      }
-    } else {
-      versionLabel.setToolTipText(null);
-      versionLabel.setIcon(null);
     }
-    versionLabel.setText(text);
+
+    return SelectionBasedPluginModelAction.EnableDisableAction(model, action, true, selection, function) {
+    }
   }
 
-  static @NotNull JLabel createRatingLabel(@NotNull JPanel panel,
-                                           @Nullable Object constraints,
-                                           @Nullable @Nls String text,
-                                           @Nullable Icon icon,
-                                           @Nullable Color color,
-                                           boolean tiny) {
-    JLabel label = new JLabel(text, icon, SwingConstants.CENTER);
-    label.setOpaque(false);
-    label.setIconTextGap(2);
-    if (color != null) {
-      label.setForeground(color);
+  private fun createUninstallAction(
+    selection: MutableList<ListPluginComponent>,
+    function: Function<ListPluginComponent, PluginUiModel?>,
+  ): UninstallAction<ListPluginComponent> {
+    return UninstallAction(myCoroutineScope, myModelFacade, true, this, selection, function) {
     }
-    panel.add(tiny ? PluginManagerConfigurable.setTinyFont(label) : label, constraints);
-    return label;
   }
 
-  @NotNull List<JComponent> getFocusableComponents() {
-    List<JComponent> components = new ArrayList<>();
+  fun getFocusableComponents(): List<JComponent> {
+    val components: MutableList<JComponent> = ArrayList()
     if (UIUtil.isFocusable(myLayout.myCheckBoxComponent)) {
-      components.add(myLayout.myCheckBoxComponent);
+      components.add(myLayout.myCheckBoxComponent!!)
     }
-    components.addAll(ContainerUtil.filter(myLayout.myButtonComponents, UIUtil::isFocusable));
-    return components;
+    components.addAll(ContainerUtil.filter(myLayout.myButtonComponents, UIUtil::isFocusable))
+    return components
   }
 
-  public static final class ButtonAnAction extends DumbAwareAction {
-    private final JButton[] myButtons;
+  class ButtonAnAction(vararg buttons: JButton) : DumbAwareAction(buttons[0].text) {
+    private val myButtons: Array<out JButton> = buttons
 
-    ButtonAnAction(JButton @NotNull ... buttons) {
-      super(buttons[0].getText()); //NON-NLS
-      myButtons = buttons;
-      setShortcutSet(CommonShortcuts.ENTER);
+    init {
+      shortcutSet = CommonShortcuts.ENTER
     }
 
-    @Override
-    public void actionPerformed(@NotNull AnActionEvent e) {
-      for (JButton button : myButtons) {
-        button.doClick();
+    override fun actionPerformed(e: AnActionEvent) {
+      for (button in myButtons) {
+        button.doClick()
       }
     }
   }
 
-  private final class PluginIdUiInspectorContextProvider implements UiInspectorContextProvider {
-    @Override
-    public @NotNull List<PropertyBean> getUiInspectorContext() {
-      return PluginUtilsKt.getUiInspectorContextFor(myPlugin);
+  private inner class PluginIdUiInspectorContextProvider : UiInspectorContextProvider {
+    override fun getUiInspectorContext(): List<PropertyBean> {
+      return getUiInspectorContextFor(myPlugin)
     }
   }
 
-  private final class BaselineLayout extends AbstractLayoutManager {
-    private final JBValue myHGap = new JBValue.Float(10);
-    private final JBValue myHOffset = new JBValue.Float(8);
-    private final JBValue myButtonOffset = new JBValue.Float(6);
+  private inner class BaselineLayout : AbstractLayoutManager() {
+    private val myHGap: JBValue = JBValue.Float(10f)
+    private val myHOffset: JBValue = JBValue.Float(8f)
+    private val myButtonOffset: JBValue = JBValue.Float(6f)
 
-    private JComponent myIconComponent;
-    private JLabel myNameComponent;
-    private JComponent myProgressComponent;
-    private JComponent myTagComponent;
-    private JComponent myCheckBoxComponent;
-    private final List<JComponent> myButtonComponents = new ArrayList<>();
-    private final List<JComponent> myLineComponents = new ArrayList<>();
-    private boolean[] myButtonEnableStates;
+    var myIconComponent: JComponent? = null
+      private set
+    var myNameComponent: JLabel? = null
+      private set
+    private var myProgressComponent: JComponent? = null
+    var myTagComponent: JComponent? = null
+      private set
+    var myCheckBoxComponent: JComponent? = null
+      private set
+    val myButtonComponents: MutableList<JComponent> = ArrayList()
+    private val myLineComponents: MutableList<JComponent> = ArrayList()
+    private var myButtonEnableStates: BooleanArray? = null
 
-    @Override
-    public Dimension preferredLayoutSize(Container parent) {
-      Dimension result = new Dimension(myNameComponent.getPreferredSize());
+    override fun preferredLayoutSize(parent: Container): Dimension {
+      val result = Dimension(myNameComponent!!.preferredSize)
 
       if (myProgressComponent == null) {
         if (myCheckBoxComponent != null) {
-          Dimension size = myCheckBoxComponent.getPreferredSize();
-          result.width += size.width + myHOffset.get();
-          result.height = Math.max(result.height, size.height);
+          val size = myCheckBoxComponent!!.preferredSize
+          result.width += size.width + myHOffset.get()
+          result.height = Math.max(result.height, size.height)
         }
 
         if (myTagComponent != null) {
-          Dimension size = myTagComponent.getPreferredSize();
-          result.width += size.width + 2 * myHOffset.get();
-          result.height = Math.max(result.height, size.height);
+          val size = myTagComponent!!.preferredSize
+          result.width += size.width + 2 * myHOffset.get()
+          result.height = Math.max(result.height, size.height)
         }
 
-        int count = myButtonComponents.size();
+        val count = myButtonComponents.size
         if (count > 0) {
-          int visibleCount = 0;
+          var visibleCount = 0
 
-          for (Component component : myButtonComponents) {
-            if (component.isVisible()) {
-              Dimension size = component.getPreferredSize();
-              result.width += size.width;
-              result.height = Math.max(result.height, size.height);
-              visibleCount++;
+          for (component in myButtonComponents) {
+            if (component.isVisible) {
+              val size = component.preferredSize
+              result.width += size.width
+              result.height = Math.max(result.height, size.height)
+              visibleCount++
             }
           }
 
           if (visibleCount > 0) {
-            result.width += myHOffset.get();
-            result.width += (visibleCount - 1) * myButtonOffset.get();
+            result.width += myHOffset.get()
+            result.width += (visibleCount - 1) * myButtonOffset.get()
           }
         }
       }
       else {
-        Dimension size = myProgressComponent.getPreferredSize();
-        result.width += myHOffset.get() + size.width;
-        result.height = Math.max(result.height, size.height);
+        val size = myProgressComponent!!.preferredSize
+        result.width += myHOffset.get() + size.width
+        result.height = Math.max(result.height, size.height)
       }
 
-      for (JComponent component : myLineComponents) {
-        if (component.isVisible()) {
-          Dimension size = component.getPreferredSize();
-          result.width = Math.max(result.width, size.width);
-          result.height += size.height;
+      for (component in myLineComponents) {
+        if (component.isVisible) {
+          val size = component.preferredSize
+          result.width = Math.max(result.width, size.width)
+          result.height += size.height
         }
       }
 
-      Dimension iconSize = myIconComponent.getPreferredSize();
-      result.width += iconSize.width + myHGap.get();
-      result.height = Math.max(result.height, iconSize.height);
+      val iconSize = myIconComponent!!.preferredSize
+      result.width += iconSize.width + myHGap.get()
+      result.height = Math.max(result.height, iconSize.height)
 
-      JBInsets.addTo(result, getInsets());
-      return result;
+      JBInsets.addTo(result, insets)
+      return result
     }
 
-    @Override
-    public void layoutContainer(Container parent) {
-      Insets insets = getInsets();
-      int x = insets.left;
-      int y = insets.top;
+    override fun layoutContainer(parent: Container) {
+      val insets = insets
+      var x = insets.left
+      var y = insets.top
 
       if (myProgressComponent == null && myCheckBoxComponent != null) {
-        Dimension size = myCheckBoxComponent.getPreferredSize();
-        myCheckBoxComponent.setBounds(x, (parent.getHeight() - size.height) / 2, size.width, size.height);
-        x += size.width + myHGap.get();
+        val size = myCheckBoxComponent!!.preferredSize
+        myCheckBoxComponent!!.setBounds(x, (parent.height - size.height) / 2, size.width, size.height)
+        x += size.width + myHGap.get()
       }
 
-      Dimension iconSize = myIconComponent.getPreferredSize();
-      myIconComponent.setBounds(x, y, iconSize.width, iconSize.height);
-      x += iconSize.width + myHGap.get();
-      y += JBUIScale.scale(2);
+      val iconSize = myIconComponent!!.preferredSize
+      myIconComponent!!.setBounds(x, y, iconSize.width, iconSize.height)
+      x += iconSize.width + myHGap.get()
+      y += JBUIScale.scale(2)
 
-      int width20 = JBUIScale.scale(20);
-      int calcNameWidth = Math.max(width20, calculateNameWidth());
-      Dimension nameSize = myNameComponent.getPreferredSize();
-      int baseline = y + myNameComponent.getBaseline(nameSize.width, nameSize.height);
+      val width20 = JBUIScale.scale(20)
+      val calcNameWidth = Math.max(width20, calculateNameWidth())
+      val nameSize = myNameComponent!!.preferredSize
+      val baseline = y + myNameComponent!!.getBaseline(nameSize.width, nameSize.height)
 
-      myNameComponent.setToolTipText(calcNameWidth < nameSize.width ? myNameComponent.getText() : null);
-      nameSize.width = Math.min(nameSize.width, calcNameWidth);
-      myNameComponent.setBounds(x, y, nameSize.width, nameSize.height);
-      y += nameSize.height;
+      myNameComponent!!.toolTipText = if (calcNameWidth < nameSize.width) myNameComponent!!.text else null
+      nameSize.width = Math.min(nameSize.width, calcNameWidth)
+      myNameComponent!!.setBounds(x, y, nameSize.width, nameSize.height)
+      y += nameSize.height
 
-      int width = getWidth();
+      val width = width
 
       if (myProgressComponent == null) {
-        int nextX = x + nameSize.width + myHOffset.get();
+        var nextX = x + nameSize.width + myHOffset.get()
 
         if (myTagComponent != null) {
-          Dimension size = myTagComponent.getPreferredSize();
-          setBaselineBounds(nextX, baseline, myTagComponent, size);
-          nextX += size.width;
+          val size = myTagComponent!!.preferredSize
+          setBaselineBounds(nextX, baseline, myTagComponent!!, size)
+          nextX += size.width
         }
 
-        int lastX = width - insets.right;
+        var lastX = width - insets.right
 
         if (calcNameWidth > width20) {
-          for (Component component : myButtonComponents.reversed()) {
-            if (!component.isVisible()) {
-              continue;
+          for (component in myButtonComponents.asReversed()) {
+            if (!component.isVisible) {
+              continue
             }
-            Dimension size = component.getPreferredSize();
-            lastX -= size.width;
-            setBaselineBounds(lastX, baseline, component, size);
-            lastX -= myButtonOffset.get();
+            val size = component.preferredSize
+            lastX -= size.width
+            setBaselineBounds(lastX, baseline, component, size)
+            lastX -= myButtonOffset.get()
           }
         }
         else {
-          for (JComponent component : myButtonComponents) {
-            if (component.isVisible()) {
-              Dimension size = component.getPreferredSize();
-              setBaselineBounds(nextX, baseline, component, size);
-              nextX += size.width + myButtonOffset.get();
+          for (component in myButtonComponents) {
+            if (component.isVisible) {
+              val size = component.preferredSize
+              setBaselineBounds(nextX, baseline, component, size)
+              nextX += size.width + myButtonOffset.get()
             }
           }
         }
       }
       else {
-        Dimension size = myProgressComponent.getPreferredSize();
-        setBaselineBounds(width - size.width - insets.right, baseline, myProgressComponent, size);
+        val size = myProgressComponent!!.preferredSize
+        setBaselineBounds(width - size.width - insets.right, baseline, myProgressComponent!!, size)
       }
 
-      int lineWidth = width - x - insets.right;
+      val lineWidth = width - x - insets.right
 
-      for (JComponent component : myLineComponents) {
-        if (component.isVisible()) {
-          int lineHeight = component.getPreferredSize().height;
-          component.setBounds(x, y, lineWidth, lineHeight);
-          y += lineHeight;
+      for (component in myLineComponents) {
+        if (component.isVisible) {
+          val lineHeight = component.preferredSize.height
+          component.setBounds(x, y, lineWidth, lineHeight)
+          y += lineHeight
         }
       }
     }
 
-    private int calculateNameWidth() {
-      Insets insets = getInsets();
-      int width = getWidth() - insets.left - insets.right - myIconComponent.getPreferredSize().width - myHGap.get();
+    private fun calculateNameWidth(): Int {
+      val insets = insets
+      var width = width - insets.left - insets.right - myIconComponent!!.preferredSize.width - myHGap.get()
 
       if (myProgressComponent != null) {
-        return width - myProgressComponent.getPreferredSize().width - myHOffset.get();
+        return width - myProgressComponent!!.preferredSize.width - myHOffset.get()
       }
 
       if (myCheckBoxComponent != null) {
-        width -= myCheckBoxComponent.getPreferredSize().width + myHOffset.get();
+        width -= myCheckBoxComponent!!.preferredSize.width + myHOffset.get()
       }
 
       if (myTagComponent != null) {
-        width -= myTagComponent.getPreferredSize().width + 2 * myHOffset.get();
+        width -= myTagComponent!!.preferredSize.width + 2 * myHOffset.get()
       }
 
-      int visibleCount = 0;
-      for (Component component : myButtonComponents) {
-        if (component.isVisible()) {
-          width -= component.getPreferredSize().width;
-          visibleCount++;
+      var visibleCount = 0
+      for (component in myButtonComponents) {
+        if (component.isVisible) {
+          width -= component.preferredSize.width
+          visibleCount++
         }
       }
-      width -= myButtonOffset.get() * (visibleCount - 1);
+      width -= myButtonOffset.get() * (visibleCount - 1)
       if (visibleCount > 0) {
-        width -= myHOffset.get();
+        width -= myHOffset.get()
       }
 
-      return width;
+      return width
     }
 
-    private void setBaselineBounds(int x, int y, @NotNull Component component, @NotNull Dimension size) {
-      if (component instanceof ActionToolbar) {
-        component.setBounds(x, getInsets().top - JBUI.scale(1), size.width, size.height);
+    private fun setBaselineBounds(x: Int, y: Int, component: Component, size: Dimension) {
+      if (component is ActionToolbar) {
+        component.setBounds(x, insets.top - JBUI.scale(1), size.width, size.height)
       }
       else {
-        component.setBounds(x, y - component.getBaseline(size.width, size.height), size.width, size.height);
+        component.setBounds(x, y - component.getBaseline(size.width, size.height), size.width, size.height)
       }
     }
 
-    public void setIconComponent(@NotNull JComponent iconComponent) {
-      assert myIconComponent == null;
-      myIconComponent = iconComponent;
-      add(iconComponent);
+    fun setIconComponent(iconComponent: JComponent) {
+      assert(myIconComponent == null)
+      myIconComponent = iconComponent
+      add(iconComponent)
     }
 
-    public void setNameComponent(@NotNull JLabel nameComponent) {
-      assert myNameComponent == null;
-      add(myNameComponent = nameComponent);
+    fun setNameComponent(nameComponent: JLabel) {
+      assert(myNameComponent == null)
+      myNameComponent = nameComponent
+      add(nameComponent)
     }
 
-    public void setTagComponent(@NotNull JComponent component) {
-      assert myTagComponent == null;
-      add(myTagComponent = component);
+    fun setTagComponent(component: JComponent) {
+      assert(myTagComponent == null)
+      myTagComponent = component
+      add(component)
     }
 
-    public void addLineComponent(@NotNull JComponent component) {
-      myLineComponents.add(component);
-      add(component);
+    fun addLineComponent(component: JComponent) {
+      myLineComponents.add(component)
+      add(component)
     }
 
-    public void removeLineComponent(@NotNull JComponent component) {
-      myLineComponents.remove(component);
-      remove(component);
+    fun removeLineComponent(component: JComponent) {
+      myLineComponents.remove(component)
+      remove(component)
     }
 
-    public void addButtonComponent(@NotNull JComponent component) {
-      addButtonComponent(component, -1);
+    fun addButtonComponent(component: JComponent) {
+      addButtonComponent(component, -1)
     }
 
-    public void addButtonComponent(@NotNull JComponent component, int index) {
+    fun addButtonComponent(component: JComponent, index: Int) {
       if (myButtonComponents.isEmpty() || index == -1) {
-        myButtonComponents.add(component);
+        myButtonComponents.add(component)
       }
       else {
-        myButtonComponents.add(index, component);
+        myButtonComponents.add(index, component)
       }
-      add(component);
-      updateVisibleOther();
+      add(component)
+      updateVisibleOther()
     }
 
-    public void removeButtonComponent(@NotNull JComponent component) {
-      myButtonComponents.remove(component);
-      remove(component);
-      updateVisibleOther();
+    fun removeButtonComponent(component: JComponent) {
+      myButtonComponents.remove(component)
+      remove(component)
+      updateVisibleOther()
     }
 
-    public void setCheckBoxComponent(@NotNull JComponent checkBoxComponent) {
-      assert myCheckBoxComponent == null;
-      myCheckBoxComponent = checkBoxComponent;
-      add(checkBoxComponent);
-      doLayout();
+    fun setCheckBoxComponent(checkBoxComponent: JComponent) {
+      assert(myCheckBoxComponent == null)
+      myCheckBoxComponent = checkBoxComponent
+      add(checkBoxComponent)
+      doLayout()
     }
 
-    public void setProgressComponent(@NotNull JComponent progressComponent) {
-      if (myProgressComponent != null) return;
-      myProgressComponent = progressComponent;
-      add(progressComponent);
+    fun setProgressComponent(progressComponent: JComponent) {
+      if (myProgressComponent != null) return
+      myProgressComponent = progressComponent
+      add(progressComponent)
 
       if (myEventHandler != null) {
-        myEventHandler.addAll(progressComponent);
-        myEventHandler.updateHover(ListPluginComponent.this);
+        myEventHandler!!.addAll(progressComponent)
+        myEventHandler!!.updateHover(this@ListPluginComponent)
       }
 
-      setVisibleOther(false);
-      doLayout();
+      setVisibleOther(false)
+      doLayout()
     }
 
-    public void removeProgressComponent() {
+    fun removeProgressComponent() {
       if (myProgressComponent == null) {
-        return;
+        return
       }
 
-      remove(myProgressComponent);
-      myProgressComponent = null;
+      remove(myProgressComponent)
+      myProgressComponent = null
 
-      setVisibleOther(true);
-      doLayout();
+      setVisibleOther(true)
+      doLayout()
     }
 
-    private void updateVisibleOther() {
+    private fun updateVisibleOther() {
       if (myProgressComponent != null) {
-        myButtonEnableStates = null;
-        setVisibleOther(false);
+        myButtonEnableStates = null
+        setVisibleOther(false)
       }
     }
 
-    private void setVisibleOther(boolean value) {
+    private fun setVisibleOther(value: Boolean) {
       if (myTagComponent != null) {
-        myTagComponent.setVisible(value);
+        myTagComponent!!.isVisible = value
       }
 
       if (myButtonComponents.isEmpty()) {
-        return;
+        return
       }
       if (value) {
-        assert myButtonEnableStates != null && myButtonEnableStates.length == myButtonComponents.size();
+        assert(myButtonEnableStates != null && myButtonEnableStates!!.size == myButtonComponents.size)
 
-        for (int i = 0, size = myButtonComponents.size(); i < size; i++) {
-          myButtonComponents.get(i).setVisible(myButtonEnableStates[i]);
+        for (i in myButtonComponents.indices) {
+          myButtonComponents[i].isVisible = myButtonEnableStates!![i]
         }
-        myButtonEnableStates = null;
+        myButtonEnableStates = null
       }
       else {
-        assert myButtonEnableStates == null;
-        myButtonEnableStates = new boolean[myButtonComponents.size()];
+        assert(myButtonEnableStates == null)
+        myButtonEnableStates = BooleanArray(myButtonComponents.size)
 
-        for (int i = 0, size = myButtonComponents.size(); i < size; i++) {
-          Component component = myButtonComponents.get(i);
-          myButtonEnableStates[i] = component.isVisible();
-          component.setVisible(false);
+        for (i in myButtonComponents.indices) {
+          val component = myButtonComponents[i]
+          myButtonEnableStates!![i] = component.isVisible
+          component.isVisible = false
         }
       }
     }
   }
 
-  private boolean isInstalledAndEnabled(PluginInstallationState pluginInstallationState) {
-    return pluginInstallationState.getFullyInstalled() &&
-           !myModelFacade.getState(myPlugin).isDisabled();
+  private fun isInstalledAndEnabled(pluginInstallationState: PluginInstallationState): Boolean {
+    return pluginInstallationState.fullyInstalled && !myModelFacade.getState(myPlugin).isDisabled
   }
 
-  @Override
-  public AccessibleContext getAccessibleContext() {
+  override fun getAccessibleContext(): AccessibleContext {
     if (accessibleContext == null) {
-      accessibleContext = new AccessibleListPluginComponent();
+      accessibleContext = AccessibleListPluginComponent()
     }
-    return accessibleContext;
+    return accessibleContext
   }
 
-  protected class AccessibleListPluginComponent extends AccessibleJComponent {
-    @Override
-    public AccessibleRole getAccessibleRole() {
-      return AccessibilityUtils.GROUPED_ELEMENTS;
+  protected inner class AccessibleListPluginComponent : AccessibleJComponent() {
+    override fun getAccessibleRole(): AccessibleRole {
+      return AccessibilityUtils.GROUPED_ELEMENTS
     }
 
-    @Override
-    public String getAccessibleDescription() {
-      @Nls StringJoiner description = new StringJoiner(", ");
+    override fun getAccessibleDescription(): String {
+      val description = StringJoiner(", ")
 
       if (isNotNullAndVisible(myRestartButton)) {
-        description.add(IdeBundle.message("plugins.configurable.list.component.accessible.description.restart.pending"));
+        description.add(IdeBundle.message("plugins.configurable.list.component.accessible.description.restart.pending"))
       }
 
       if (isNotNullAndVisible(myUpdateButton)) {
-        if (myUpdateButton.isEnabled()) {
-          description.add(IdeBundle.message("plugins.configurable.list.component.accessible.description.update.available"));
+        if (myUpdateButton!!.isEnabled) {
+          description.add(IdeBundle.message("plugins.configurable.list.component.accessible.description.update.available"))
         }
         else {
           // Disabled but visible Update button contains update result text.
-          description.add(myUpdateButton.getText());
+          description.add(myUpdateButton!!.text)
         }
       }
 
-      if (isNotNullAndVisible(myEnableDisableButton) && myEnableDisableButton instanceof JCheckBox) {
-        String key = ((JCheckBox)myEnableDisableButton).isSelected() ? "plugins.configurable.enabled" : "plugins.configurable.disabled";
-        description.add(IdeBundle.message(key));
+      if (isNotNullAndVisible(myEnableDisableButton) && myEnableDisableButton is JCheckBox) {
+        val key = if ((myEnableDisableButton as JCheckBox).isSelected) "plugins.configurable.enabled" else "plugins.configurable.disabled"
+        description.add(IdeBundle.message(key))
       }
 
       if (isNotNullAndVisible(myInstallButton)) {
-        boolean isDefaultText = IdeBundle.message("action.AnActionButton.text.install").equals(myInstallButton.getText());
-        if (myInstallButton.isEnabled() && isDefaultText) {
-          description.add(IdeBundle.message("plugins.configurable.list.component.accessible.description.install.available"));
+        val isDefaultText = IdeBundle.message("action.AnActionButton.text.install") == myInstallButton!!.text
+        if (myInstallButton!!.isEnabled && isDefaultText) {
+          description.add(IdeBundle.message("plugins.configurable.list.component.accessible.description.install.available"))
         }
-        else if (!myInstallButton.isEnabled() && !isDefaultText) {
+        else if (!myInstallButton!!.isEnabled && !isDefaultText) {
           // Install button contains status text when it is disabled and its text is not default.
           // Disabled buttons are not focusable, so this information can be missed by screen reader users.
-          description.add(myInstallButton.getText());
+          description.add(myInstallButton!!.text)
         }
       }
 
-      if (isNotNullAndVisible(myLayout.myTagComponent) && myLayout.myTagComponent instanceof TagComponent) {
-        description.add(((TagComponent)myLayout.myTagComponent).getText());
+      if (isNotNullAndVisible(myLayout.myTagComponent) && myLayout.myTagComponent is TagComponent) {
+        description.add((myLayout.myTagComponent as TagComponent).getText())
       }
 
       if (isNotNullAndVisible(myDownloads)) {
-        description.add(IdeBundle.message("plugins.configurable.list.component.accessible.description.0.downloads", myDownloads.getText()));
+        description.add(IdeBundle.message("plugins.configurable.list.component.accessible.description.0.downloads", myDownloads!!.text))
       }
 
       if (isNotNullAndVisible(myRating)) {
-        description.add(IdeBundle.message("plugins.configurable.list.component.accessible.description.0.stars", myRating.getText()));
+        description.add(IdeBundle.message("plugins.configurable.list.component.accessible.description.0.stars", myRating!!.text))
       }
 
       if (isNotNullAndVisible(myVersion)) {
-        description.add(myVersion.getText());
+        description.add(myVersion!!.text)
       }
 
       if (isNotNullAndVisible(myVendor)) {
-        description.add(myVendor.getText());
+        description.add(myVendor!!.text)
       }
 
       if (isNotNullAndVisible(myErrorComponent)) {
         try {
-          description.add(myErrorComponent.getDocument().getText(0, myErrorComponent.getDocument().getLength()));
+          val myErrorComponent = myErrorComponent!!
+          description.add(myErrorComponent.document.getText(0, myErrorComponent.document.length))
         }
-        catch (BadLocationException ignored) {
+        catch (_: BadLocationException) {
         }
       }
 
       //noinspection HardCodedStringLiteral
-      return description.toString();
+      return description.toString()
     }
 
-    private static boolean isNotNullAndVisible(JComponent component) {
-      return component != null && component.isVisible();
+    private fun isNotNullAndVisible(component: JComponent?): Boolean {
+      return component != null && component.isVisible
+    }
+  }
+
+  companion object {
+    @JvmField
+    val DisabledColor: Color = JBColor.namedColor("Plugins.disabledForeground", JBColor(0xB1B1B1, 0x696969))
+
+    @JvmField
+    val GRAY_COLOR: Color = JBColor.namedColor("Label.infoForeground", JBColor(Gray._120, Gray._135))
+
+    @JvmField
+    val SELECTION_COLOR: Color = JBColor.namedColor("Plugins.lightSelectionBackground", JBColor(0xEDF6FE, 0x464A4D))
+
+    @JvmField
+    val HOVER_COLOR: Color = JBColor.namedColor("Plugins.hoverBackground", JBColor(0xEDF6FE, 0x464A4D))
+
+    private val LOG: Logger = Logger.getInstance(ListPluginComponent::class.java)
+    private val HANDLE_FOCUS_ON_SELECTION: Ref<Boolean> = Ref(true)
+
+    private fun scrollToVisible(parent: JComponent, bounds: Rectangle) {
+      if (!parent.visibleRect.contains(bounds)) {
+        parent.scrollRectToVisible(bounds)
+      }
+    }
+
+    private fun createEnableDisableButton(listener: ActionListener): JCheckBox {
+      return object : JCheckBox() {
+        private var myBaseline = -1
+
+        init {
+          addActionListener(listener)
+        }
+
+        override fun getBaseline(width: Int, height: Int): Int {
+          if (myBaseline == -1) {
+            val checkBox = JCheckBox("Foo", true) // NON-NLS
+            val size = checkBox.preferredSize
+            myBaseline = checkBox.getBaseline(size.width, size.height) - JBUIScale.scale(1)
+          }
+          return myBaseline
+        }
+
+        override fun setUI(ui: ButtonUI) {
+          myBaseline = -1
+          super.setUI(ui)
+        }
+
+        override fun getPreferredSize(): Dimension {
+          val size = super.getPreferredSize()
+          return Dimension(size.width + JBUIScale.scale(8), size.height + JBUIScale.scale(2))
+        }
+      }
+    }
+
+    @JvmStatic
+    fun createRatingLabel(panel: JPanel, text: @Nls String, icon: Icon?): JLabel {
+      return createRatingLabel(panel, null, text, icon, null, true)
+    }
+
+    @JvmStatic
+    fun createVersionLabel(panel: JPanel, text: @Nls String?, isBundledUpdate: Boolean): JLabel {
+      val label = createRatingLabel(panel, null, null, null, null, true)
+      setVersionLabelState(label, text, isBundledUpdate)
+      return label
+    }
+
+    @JvmStatic
+    fun setVersionLabelState(versionLabel: JLabel, text: @Nls String?, isBundledUpdate: Boolean) {
+      if (isBundledUpdate) {
+        if (versionLabel.toolTipText == null) {
+          versionLabel.toolTipText = IdeBundle.message("plugin.status.is.updated.bundled.plugin.tooltip")
+        }
+        if (versionLabel.icon != AllIcons.Plugins.Updated) {
+          versionLabel.icon = AllIcons.Plugins.Updated
+        }
+      }
+      else {
+        versionLabel.toolTipText = null
+        versionLabel.icon = null
+      }
+      versionLabel.text = text
+    }
+
+    @JvmStatic
+    fun createRatingLabel(panel: JPanel, constraints: Any?, text: @Nls String?, icon: Icon?, color: Color?, tiny: Boolean): JLabel {
+      val label = JLabel(text, icon, SwingConstants.CENTER)
+      label.isOpaque = false
+      label.iconTextGap = 2
+      if (color != null) {
+        label.foreground = color
+      }
+      panel.add(if (tiny) PluginManagerConfigurable.setTinyFont(label) else label, constraints)
+      return label
     }
   }
 }
