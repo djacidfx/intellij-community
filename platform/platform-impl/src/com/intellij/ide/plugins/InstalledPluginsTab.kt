@@ -101,20 +101,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
   @RequiresEdt
   override fun createPluginsPanel(): JComponent {
     val eventHandler = MultiSelectionEventHandler()
-    val installedPanel = object : PluginsGroupComponentWithProgress(eventHandler) {
-      override fun createListComponent(
-        model: PluginUiModel,
-        group: PluginsGroup,
-        listPluginModel: ListPluginModel,
-      ): ListPluginComponent {
-        return ListPluginComponent(pluginModelFacade, model, group, listPluginModel, searchListener, coroutineScope, false)
-      }
-    }
-    this@InstalledPluginsTab.installedPanel = installedPanel
-
-    installedPanel.setSelectionListener(selectionListener)
-    installedPanel.accessibleContext.accessibleName = IdeBundle.message("plugin.manager.installed.panel.accessible.name")
-    registerCopyProvider(installedPanel)
+    val installedPanel = createInstalledPanel(eventHandler)
 
     (searchPanel.controller as SearchUpDownPopupController).setEventHandler(eventHandler)
     installedPanel.showLoadingIcon()
@@ -303,6 +290,24 @@ class InstalledPluginsTab @RequiresEdt constructor(
     }
 
     return createScrollPane(installedPanel, true)
+  }
+
+  private fun createInstalledPanel(eventHandler: MultiSelectionEventHandler): PluginsGroupComponentWithProgress {
+    val installedPanel = object : PluginsGroupComponentWithProgress(eventHandler) {
+      override fun createListComponent(
+        model: PluginUiModel,
+        group: PluginsGroup,
+        listPluginModel: ListPluginModel,
+      ): ListPluginComponent {
+        return ListPluginComponent(pluginModelFacade, model, group, listPluginModel, searchListener, coroutineScope, false)
+      }
+      }
+    this@InstalledPluginsTab.installedPanel = installedPanel
+
+    installedPanel.setSelectionListener(selectionListener)
+    installedPanel.accessibleContext.accessibleName = IdeBundle.message("plugin.manager.installed.panel.accessible.name")
+    registerCopyProvider(installedPanel)
+    return installedPanel
   }
 
   private fun customizeSearchTextField() {
