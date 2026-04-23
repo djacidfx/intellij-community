@@ -144,9 +144,10 @@ abstract class GradleNewProjectWizardStep<ParentStep>(parent: ParentStep) :
         .validationOnInput { validateJavaSdk(withDialog = false) }
         .validationOnApply { validateJavaSdk(withDialog = true) }
         .validationOnApply {
-          if (kotlinVersion != null && maxKotlinJvmTarget != null) validateKotlinJdkCompatibility(withDialog = true,
-                                                                                                  sdkFilter,
-                                                                                                  maxKotlinJvmTarget, kotlinVersion)
+          if (validateGradleVersion(gradleVersion, withDialog = false) == null
+              && (kotlinVersion != null && maxKotlinJvmTarget != null)) validateKotlinJdkCompatibility(withDialog = true,
+                                                                                                       sdkFilter,
+                                                                                                       maxKotlinJvmTarget, kotlinVersion)
           else null
         }
         .whenItemSelectedFromUi { jdkIntent.javaVersion?.let { logSdkChanged(it.feature) } }
