@@ -29,9 +29,27 @@
       "extensionPointNames": []
     },
     {
+      "apiName": "com.intellij.openapi.editor.actions.WordBoundaryFilter",
+      "extensionPointNames": [
+        "com.intellij.wordBoundaryFilter"
+      ]
+    },
+    {
+      "apiName": "com.intellij.openapi.editor.bidi.BidiRegionsSeparator",
+      "extensionPointNames": [
+        "com.intellij.bidiRegionsSeparator"
+      ]
+    },
+    {
       "apiName": "com.intellij.codeInsight.editorActions.TypedHandlerDelegate",
       "extensionPointNames": [
         "com.intellij.typedHandler"
+      ]
+    },
+    {
+      "apiName": "com.intellij.openapi.editor.NonWriteAccessTypedHandler",
+      "extensionPointNames": [
+        "com.intellij.nonWriteAccessTypedHandler"
       ]
     },
     {
@@ -107,9 +125,21 @@
       ]
     },
     {
+      "apiName": "com.intellij.application.options.editor.EditorOptionsPageCustomizer",
+      "extensionPointNames": [
+        "com.intellij.generalEditorOptionsCustomizer"
+      ]
+    },
+    {
       "apiName": "com.intellij.codeInsight.editorActions.CopyPastePostProcessor",
       "extensionPointNames": [
         "com.intellij.copyPastePostProcessor"
+      ]
+    },
+    {
+      "apiName": "com.intellij.codeInsight.editorActions.CopyPastePreProcessor",
+      "extensionPointNames": [
+        "com.intellij.copyPastePreProcessor"
       ]
     },
     {
@@ -280,6 +310,12 @@
       ]
     },
     {
+      "apiName": "com.intellij.codeInsight.editorActions.SelectionQuotingTypedHandler.UnquotingFilter",
+      "extensionPointNames": [
+        "com.intellij.selectionUnquotingFilter"
+      ]
+    },
+    {
       "apiName": "com.intellij.codeInsight.editorActions.moveUpDown.StatementUpDownMover",
       "extensionPointNames": [
         "com.intellij.statementUpDownMover"
@@ -334,8 +370,15 @@
       ]
     },
     {
+      "apiName": "com.intellij.codeInsight.editorActions.smartEnter.SmartEnterProcessor",
+      "extensionPointNames": [
+        "com.intellij.lang.smartEnterProcessor"
+      ]
+    },
+    {
       "apiName": "com.intellij.codeInsight.editorActions.QuoteHandler",
       "extensionPointNames": [
+        "com.intellij.quoteHandler",
         "com.intellij.lang.quoteHandler"
       ]
     },
@@ -343,6 +386,63 @@
       "apiName": "com.intellij.codeInsight.editorActions.TypingActionsExtension",
       "extensionPointNames": [
         "com.intellij.typingActionsExtension"
+      ]
+    },
+    {
+      "apiName": "com.intellij.ide.PasteProvider",
+      "extensionPointNames": [
+        "com.intellij.customPasteProvider"
+      ]
+    },
+    {
+      "apiName": "com.intellij.codeInsight.editorActions.PreserveIndentOnPasteBean",
+      "extensionPointNames": [
+        "com.intellij.preserveIndentOnPaste"
+      ]
+    },
+    {
+      "apiName": "com.intellij.codeInsight.lookup.impl.LookupDisplayStrategy",
+      "extensionPointNames": [
+        "com.intellij.lookup.displayStrategy"
+      ]
+    },
+    {
+      "apiName": "com.intellij.codeInsight.lookup.LookupBottomPanelProvider",
+      "extensionPointNames": [
+        "com.intellij.lookup.bottomPanelProvider"
+      ]
+    },
+    {
+      "apiName": "com.intellij.codeInsight.lookup.LookupBottomPanelAdvertiserCustomizer",
+      "extensionPointNames": [
+        "com.intellij.lookup.bottomPanelAdvertiserCustomizer"
+      ]
+    },
+    {
+      "apiName": "com.intellij.codeInsight.lookup.LookupMayHaveCustomPreviewProvider",
+      "extensionPointNames": [
+        "com.intellij.lookup.may.have.custom.preview.provider"
+      ]
+    },
+    {
+      "apiName": "com.intellij.ide.actions.CreateDirectoryCompletionContributor",
+      "extensionPointNames": [
+        "com.intellij.createDirectoryCompletionContributor"
+      ]
+    },
+    {
+      "apiName": "com.intellij.codeInsight.completion.TemplateParameterTraversalPolicy",
+      "extensionPointNames": [
+        "com.intellij.templateParameterTraversalPolicy"
+      ]
+    },
+    {
+      "apiName": "com.intellij.openapi.options.UnnamedConfigurable",
+      "extensionPointNames": [
+        "com.intellij.codeCompletionConfigurable",
+        "com.intellij.generalEditorOptionsExtension",
+        "com.intellij.inlineCompletionConfigurable",
+        "com.intellij.mlCodeCompletionConfigurable"
       ]
     }
   ],
@@ -422,12 +522,6 @@
       ]
     },
     {
-      "apiName": "com.intellij.codeInsight.completion.CompletionContributor",
-      "extensionPointNames": [
-        "com.intellij.completion.contributor"
-      ]
-    },
-    {
       "apiName": "com.jetbrains.jsonSchema.extension.JsonSchemaProviderFactory",
       "extensionPointNames": []
     },
@@ -485,6 +579,90 @@
     {
       "apiName": "com.intellij.openapi.actionSystem.LangDataKeys.MODIFIABLE_MODULE_MODEL",
       "extensionPointNames": []
+    },
+    {
+      "apiName": "com.intellij.codeInsight.completion.CompletionPreselectionBehaviourProvider",
+      "extensionPointNames": [
+        "com.intellij.completion.preselectionBehaviourProvider"
+      ]
+    },
+    {
+      "apiName": "com.intellij.codeInsight.completion.ml.ContextFeatureProvider",
+      "extensionPointNames": [
+        "com.intellij.completion.ml.contextFeatures"
+      ]
+    },
+    {
+      "apiName": "com.intellij.internal.ml.completion.RankingModelProvider",
+      "extensionPointNames": [
+        "com.intellij.completion.ml.model"
+      ]
+    },
+    {
+      "apiName": "com.intellij.codeInsight.completion.ml.ElementFeatureProvider",
+      "extensionPointNames": [
+        "com.intellij.completion.ml.elementFeatures"
+      ]
+    },
+    {
+      "apiName": "com.intellij.codeInsight.completion.PlainTextSymbolCompletionContributor",
+      "extensionPointNames": [
+        "com.intellij.completion.plainTextSymbol"
+      ]
+    },
+    {
+      "apiName": "com.intellij.lang.WordCompletionElementFilter",
+      "extensionPointNames": [
+        "com.intellij.codeInsight.wordCompletionFilter"
+      ]
+    },
+    {
+      "apiName": "com.intellij.codeInsight.completion.ml.MLFeatureProvider",
+      "extensionPointNames": [
+        "com.intellij.internal.ml.featureProvider"
+      ]
+    },
+    {
+      "apiName": "com.intellij.modcompletion.ModCompletionItemProvider",
+      "extensionPointNames": [
+        "com.intellij.modcompletion.completionItemProvider"
+      ]
+    },
+    {
+      "apiName": "com.intellij.modcompletion.ModCompletionItemFilter",
+      "extensionPointNames": [
+        "com.intellij.modcompletion.completionItemFilter"
+      ]
+    },
+    {
+      "apiName": "com.intellij.codeInsight.completion.command.CommandCompletionFactory",
+      "extensionPointNames": [
+        "com.intellij.codeInsight.completion.command.factory"
+      ]
+    },
+    {
+      "apiName": "com.intellij.codeInsight.completion.command.CommandProvider",
+      "extensionPointNames": [
+        "com.intellij.codeInsight.completion.command.provider"
+      ]
+    },
+    {
+      "apiName": "com.intellij.codeInsight.completion.command.commands.IntentionCommandSkipper",
+      "extensionPointNames": [
+        "com.intellij.codeInsight.completion.intention.skipper"
+      ]
+    },
+    {
+      "apiName": "com.intellij.codeInsight.completion.command.commands.ErrorFixCommandProvider",
+      "extensionPointNames": [
+        "com.intellij.codeInsight.completion.error.intention"
+      ]
+    },
+    {
+      "apiName": "com.intellij.codeInsight.completion.command.commands.IntentionCommandOffsetProvider",
+      "extensionPointNames": [
+        "com.intellij.codeInsight.completion.intention.offset.provider"
+      ]
     }
   ],
   "shared": [
