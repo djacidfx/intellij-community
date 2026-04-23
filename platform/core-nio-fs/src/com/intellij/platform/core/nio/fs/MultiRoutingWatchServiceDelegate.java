@@ -101,7 +101,10 @@ final class MultiRoutingWatchServiceDelegate implements WatchService {
     if (myClosed) throw new ClosedWatchServiceException();
     WatchKey key = myEventQueue.poll();
     if (key == null) return null;
-    if (key == CLOSE_SENTINEL || myClosed) throw new ClosedWatchServiceException();
+    if (key == CLOSE_SENTINEL || myClosed) {
+      myEventQueue.add(CLOSE_SENTINEL);
+      throw new ClosedWatchServiceException();
+    }
     return wrapDelegateKey(key);
   }
 
@@ -110,7 +113,10 @@ final class MultiRoutingWatchServiceDelegate implements WatchService {
     if (myClosed) throw new ClosedWatchServiceException();
     WatchKey key = myEventQueue.poll(timeout, unit);
     if (key == null) return null;
-    if (key == CLOSE_SENTINEL || myClosed) throw new ClosedWatchServiceException();
+    if (key == CLOSE_SENTINEL || myClosed) {
+      myEventQueue.add(CLOSE_SENTINEL);
+      throw new ClosedWatchServiceException();
+    }
     return wrapDelegateKey(key);
   }
 
@@ -118,7 +124,10 @@ final class MultiRoutingWatchServiceDelegate implements WatchService {
   public WatchKey take() throws InterruptedException {
     if (myClosed) throw new ClosedWatchServiceException();
     WatchKey key = myEventQueue.take();
-    if (key == CLOSE_SENTINEL || myClosed) throw new ClosedWatchServiceException();
+    if (key == CLOSE_SENTINEL || myClosed) {
+      myEventQueue.add(CLOSE_SENTINEL);
+      throw new ClosedWatchServiceException();
+    }
     return wrapDelegateKey(key);
   }
 

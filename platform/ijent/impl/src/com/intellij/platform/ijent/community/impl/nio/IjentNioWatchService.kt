@@ -36,6 +36,7 @@ internal class IjentNioWatchService(
   @Volatile
   private var closed = false
   private var changeFlow: Flow<PathChange>? = null
+  @Volatile
   private var collectJob: Job? = null
 
   /**
