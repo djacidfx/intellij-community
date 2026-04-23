@@ -8,6 +8,7 @@ import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.jetbrains.python.PythonBinary
 import com.jetbrains.python.errorProcessing.PyResult
 import com.jetbrains.python.packaging.findCondaExecutableRelativeToEnv
+import com.jetbrains.python.packaging.PyCondaPackageService
 import com.jetbrains.python.sdk.PythonEnvironment
 import com.jetbrains.python.sdk.impl.PySdkBundle.message
 import org.jetbrains.annotations.ApiStatus
@@ -67,7 +68,10 @@ internal fun PythonBinary.detectPythonEnvironmentImpl(): PyResult<PythonEnvironm
       pythonHomePath = home,
       condaMetaPath = condaMeta,
       isBase = isBase,
-      condaExecutable = findCondaExecutableRelativeToEnv(this),
+      // Prefer the per-env conda executable when the layout exposes one (base conda or
+      // <root>/envs/<name> envs); fall back to the user-configured / system-wide conda so that
+      // venv-style conda envs still get a usable handle for activation pipelines.
+      condaExecutable = findCondaExecutableRelativeToEnv(this) ?: PyCondaPackageService.getCondaExecutable(),
     ).let { PyResult.success(it) }
   }
 

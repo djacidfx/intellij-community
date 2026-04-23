@@ -9,7 +9,6 @@ import com.intellij.platform.eel.provider.getEelDescriptor
 import com.intellij.util.EnvironmentUtil
 import com.intellij.util.ShellEnvironmentReader
 import com.intellij.util.system.LowLevelLocalMachineAccess
-import com.jetbrains.python.packaging.PyCondaPackageService
 import com.jetbrains.python.sdk.PythonEnvironment
 import com.jetbrains.python.sdk.detectPythonEnvironment
 import org.jetbrains.annotations.ApiStatus
@@ -103,7 +102,7 @@ fun PythonEnvironment.resolveActivateScript(shellPath: String?): ActivateScript?
     if (activate != null && activate.exists()) ActivateScript(activate) else null
   }
   is PythonEnvironment.Conda -> {
-    val condaExecutable = condaExecutable ?: PyCondaPackageService.getCondaExecutable() ?: return null
+    val condaExecutable = condaExecutable ?: return null
     val activate = condaExecutable.resolveSibling("activate").takeIf { it.exists() }
                    ?: condaExecutable.parent?.parent?.resolve("bin/activate")?.takeIf { it.exists() }
 

@@ -11,10 +11,12 @@ import com.intellij.platform.eel.EelExecApi
 import com.intellij.platform.eel.ExecuteProcessException
 import com.intellij.platform.eel.ThrowsChecked
 import com.intellij.platform.eel.provider.asEelPath
+import com.intellij.platform.eel.provider.asNioPath
 import com.intellij.platform.eel.provider.localEel
 import com.intellij.platform.eel.provider.utils.readWholeText
 import com.intellij.platform.eel.provider.utils.sendWholeText
 import com.intellij.platform.eel.spawnProcess
+import com.intellij.platform.eel.where
 import com.intellij.python.community.junit5Tests.framework.conda.CondaEnv
 import com.intellij.python.community.junit5Tests.framework.conda.PyEnvTestCaseWithConda
 import com.intellij.python.community.junit5Tests.framework.conda.createCondaEnv
@@ -88,11 +90,16 @@ class PyVirtualEnvTerminalCustomizerTest {
   }
 
 
-  private fun getShellPath(shellType: ShellType): Path = when (shellType) {
-    ShellType.POWERSHELL -> PathEnvironmentVariableUtil.findInPath("powershell.exe")?.toPath()
-                            ?: Path((System.getenv("SystemRoot")
-                                     ?: "c:\\windows"), "system32", "WindowsPowerShell", "v1.0", "powershell.exe")
-    ShellType.FISH, ShellType.BASH, ShellType.ZSH -> Path("/usr/bin/${shellType.name.lowercase()}")
+  private suspend fun getShellPath(shellType: ShellType): Path = when (shellType) {
+    ShellType.POWERSHELL -> {
+      PathEnvironmentVariableUtil.findInPath("powershell.exe")?.toPath()
+      ?: Path((System.getenv("SystemRoot")
+               ?: "c:\\windows"), "system32", "WindowsPowerShell", "v1.0", "powershell.exe")
+    }
+    ShellType.FISH, ShellType.BASH, ShellType.ZSH -> {
+      localEel.exec.where(shellType.name.lowercase())?.asNioPath()
+      ?: Path("/usr/bin/${shellType.name.lowercase()}")
+    }
   }
 
 
@@ -143,7 +150,10 @@ class PyVirtualEnvTerminalCustomizerTest {
     catch (_: IOException) {
       pythonBinary
     }
-    val shellOptions = getShellStartupOptions(pythonBinary.parent, shellType)
+    // The terminal's working directory is always inside the project (a content root of
+    // some module), regardless of where the SDK's env lives on disk. The customizer
+    // looks up the SDK via the module that owns this directory.
+    val shellOptions = getShellStartupOptions(tempDirFixture.get(), shellType)
     val command = shellOptions.shellCommand!!
     val exe = command[0]
     val args = if (command.size == 1) emptyList() else command.subList(1, command.size)
@@ -196,7 +206,7 @@ class PyVirtualEnvTerminalCustomizerTest {
     }
   }
 
-  private fun getShellStartupOptions(workDir: Path, shellType: ShellType): ShellStartupOptions {
+  private suspend fun getShellStartupOptions(workDir: Path, shellType: ShellType): ShellStartupOptions {
     val sut = PyVirtualEnvTerminalCustomizer()
     val env = mutableMapOf<String, String>()
     val command = sut.customizeCommandAndEnvironment(
