@@ -185,7 +185,7 @@ internal object PluginModelAsyncOperationsExecutor {
         }
       }
       else {
-        for (component in group.ui.plugins) {
+        for (component in group.ui!!.plugins) {
           val plugin: PluginUiModel = component.pluginModel
           if (pluginModelFacade.isEnabled(plugin) != enable) {
             models.add(plugin)

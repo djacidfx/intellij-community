@@ -319,7 +319,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
         group.titleWithCount()
         installedSearchPanel.fullRepaint()
 
-        if (group.models.isEmpty()) {
+        if (group.getModels().isEmpty()) {
           installedSearchPanel.removeGroup()
         }
       }

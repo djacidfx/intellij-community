@@ -178,7 +178,7 @@ open class MyPluginModel(project: Project?) : InstalledPluginsTableModel(project
     val pluginId = descriptor.pluginId
     if (!component.isMarketplace) {
       if (installingPlugins.contains(descriptor) &&
-          (myInstalling == null || myInstalling!!.ui == null || myInstalling!!.ui.findComponent(pluginId) == null)
+          (myInstalling == null || myInstalling!!.ui == null || myInstalling!!.ui!!.findComponent(pluginId) == null)
       ) {
         return
       }
@@ -486,7 +486,7 @@ open class MyPluginModel(project: Project?) : InstalledPluginsTableModel(project
         appendOrUpdateDescriptor(installedDescriptor ?: descriptor, restartRequired, errorList)
         appendDependsAfterInstall(success, restartRequired, errors, installedDescriptor)
         if (installedDescriptor == null && descriptor.isFromMarketplace && this.userInstalled != null && userInstalled!!.ui != null) {
-          val component = userInstalled!!.ui.findComponent(descriptor.pluginId)
+          val component = userInstalled!!.ui!!.findComponent(descriptor.pluginId)
           component?.setInstalledPluginMarketplaceModel(descriptor)
         }
       }
@@ -496,7 +496,7 @@ open class MyPluginModel(project: Project?) : InstalledPluginsTableModel(project
     }
     else if (success) {
       if (this.userInstalled != null && userInstalled!!.ui != null && restartRequired) {
-        val component = userInstalled!!.ui.findComponent(pluginId)
+        val component = userInstalled!!.ui!!.findComponent(pluginId)
         component?.enableRestart()
       }
     }
@@ -548,12 +548,12 @@ open class MyPluginModel(project: Project?) : InstalledPluginsTableModel(project
 
   private fun clearInstallingProgress(descriptor: PluginUiModel) {
     if (installingPlugins.isEmpty()) {
-      for (listComponent in myInstalling!!.ui.plugins) {
+      for (listComponent in myInstalling!!.ui!!.plugins) {
         listComponent.clearProgress()
       }
     }
     else {
-      for (listComponent in myInstalling!!.ui.plugins) {
+      for (listComponent in myInstalling!!.ui!!.plugins) {
         if (listComponent.pluginModel === descriptor) {
           listComponent.clearProgress()
           return
@@ -587,7 +587,7 @@ open class MyPluginModel(project: Project?) : InstalledPluginsTableModel(project
     }
     for (descriptor in InstalledPluginsState.getInstance().installedPlugins) {
       val pluginId = descriptor.getPluginId()
-      if (userInstalled!!.ui.findComponent(pluginId) != null) {
+      if (userInstalled!!.ui!!.findComponent(pluginId) != null) {
         continue
       }
 
@@ -643,13 +643,13 @@ open class MyPluginModel(project: Project?) : InstalledPluginsTableModel(project
       userInstalled!!.titleWithEnabled(PluginModelFacade(this))
 
       myInstalledPanel!!.addGroup(this.userInstalled!!, if (myInstalling == null || myInstalling!!.ui == null) 0 else 1)
-      myInstalledPanel!!.setSelection(userInstalled!!.ui.plugins[0])
+      myInstalledPanel!!.setSelection(userInstalled!!.ui!!.plugins[0])
       myInstalledPanel!!.doLayout()
 
       addEnabledGroup(this.userInstalled!!)
     }
     else {
-      val component = userInstalled!!.ui.findComponent(id)
+      val component = userInstalled!!.ui!!.findComponent(id)
       if (component != null) {
         if (restartNeeded) {
           myInstalledPanel!!.setSelection(component)
@@ -657,9 +657,9 @@ open class MyPluginModel(project: Project?) : InstalledPluginsTableModel(project
         }
         return
       }
-      userInstalled!!.preloadedModel.setErrors(descriptor.pluginId, errors)
+      userInstalled!!.getPreloadedModel().setErrors(descriptor.pluginId, errors)
       val pluginInstallationState = pluginManager.getPluginInstallationState(descriptor.pluginId)
-      userInstalled!!.preloadedModel.setPluginInstallationState(descriptor.pluginId, pluginInstallationState)
+      userInstalled!!.getPreloadedModel().setPluginInstallationState(descriptor.pluginId, pluginInstallationState)
       myInstalledPanel!!.addToGroup(this.userInstalled!!, descriptor)
       userInstalled!!.titleWithEnabled(PluginModelFacade(this))
       myInstalledPanel!!.doLayout()

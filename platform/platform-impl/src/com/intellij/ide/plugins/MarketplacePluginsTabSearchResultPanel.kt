@@ -235,7 +235,7 @@ internal class MarketplacePluginsTabSearchResultPanel(
         customPlugins,
         false
       )
-    result.addModels(0, ArrayList<PluginUiModel?>(plugins))
+    result.addModels(0, ArrayList<PluginUiModel>(plugins))
 
     if (parser.searchQuery != null) {
       val descriptors = customPlugins.filter { descriptor: PluginUiModel ->

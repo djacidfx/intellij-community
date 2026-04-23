@@ -153,21 +153,21 @@ class InstalledPluginsTab @RequiresEdt constructor(
     PluginManagerPanelFactory.createInstalledPanel(coroutineScope, pluginModelFacade.getModel()) { model ->
       try {
         pluginModelFacade.getModel().setDownloadedGroup(installedPanel, userInstalled, installing)
-        installing.preloadedModel.setErrors(model.errors)
-        installing.preloadedModel.setPluginInstallationStates(model.installationStates)
+        installing.getPreloadedModel().setErrors(model.errors)
+        installing.getPreloadedModel().setPluginInstallationStates(model.installationStates)
         installing.addModels(MyPluginModel.installingPlugins)
-        if (!installing.models.isEmpty()) {
+        if (!installing.getModels().isEmpty()) {
           installing.sortByName()
           installing.titleWithCount()
           installedPanel.addGroup(installing)
         }
 
-        userInstalled.preloadedModel.setErrors(model.errors)
-        userInstalled.preloadedModel.setPluginInstallationStates(model.installationStates)
+        userInstalled.getPreloadedModel().setErrors(model.errors)
+        userInstalled.getPreloadedModel().setPluginInstallationStates(model.installationStates)
         userInstalled.addModels(model.installedPlugins)
 
-        bundledUpdateGroup.preloadedModel.setErrors(model.errors)
-        bundledUpdateGroup.preloadedModel.setPluginInstallationStates(model.installationStates)
+        bundledUpdateGroup.getPreloadedModel().setErrors(model.errors)
+        bundledUpdateGroup.getPreloadedModel().setPluginInstallationStates(model.installationStates)
 
         // bundled includes bundled plugin updates
         val visibleNonBundledPlugins = ArrayList<PluginUiModel>()
@@ -254,15 +254,15 @@ class InstalledPluginsTab @RequiresEdt constructor(
           // Add priority groups with promotion panel before userInstalled
           for (group in sortedBundledGroups) {
             if (group.promotionPanel != null) {
-              group.preloadedModel.setErrors(model.errors)
-              group.preloadedModel.setPluginInstallationStates(model.installationStates)
+              group.getPreloadedModel().setErrors(model.errors)
+              group.getPreloadedModel().setPluginInstallationStates(model.installationStates)
               installedPanel.addGroup(group)
               pluginModelFacade.getModel().addEnabledGroup(group)
             }
           }
         }
 
-        if (!userInstalled.models.isEmpty()) {
+        if (!userInstalled.getModels().isEmpty()) {
           userInstalled.sortByName()
 
           var enabledNonBundledCount = 0L
@@ -280,8 +280,8 @@ class InstalledPluginsTab @RequiresEdt constructor(
 
         for (group in sortedBundledGroups) {
           if (!Registry.`is`("ide.plugins.category.promotion.enabled") || group.promotionPanel == null) {
-            group.preloadedModel.setErrors(model.errors)
-            group.preloadedModel.setPluginInstallationStates(model.installationStates)
+            group.getPreloadedModel().setErrors(model.errors)
+            group.getPreloadedModel().setPluginInstallationStates(model.installationStates)
             installedPanel.addGroup(group)
             pluginModelFacade.getModel().addEnabledGroup(group)
           }
@@ -462,7 +462,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
           }
         }
       }
-      if (!bundledUpdateGroup.models.isEmpty()) {
+      if (!bundledUpdateGroup.getModels().isEmpty()) {
         var insertPosition = 0
         if (Registry.`is`("ide.plugins.category.promotion.enabled")) {
           val groups = getInstalledPanel()!!.groups
@@ -521,7 +521,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
         }
       }
 
-      if (bundledUpdateGroup.models.isEmpty()) {
+      if (bundledUpdateGroup.getModels().isEmpty()) {
         getInstalledPanel()!!.removeGroup(bundledUpdateGroup)
       }
       else {

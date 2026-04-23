@@ -115,9 +115,10 @@ abstract class PluginsGroupComponent(eventHandler: EventHandler) : JBPanelWithEm
       val listener = object : AdjustmentListener {
         override fun adjustmentValueChanged(e: AdjustmentEvent) {
           if ((scrollBar.value + scrollBar.visibleAmount) >= scrollBar.maximum) {
-            val fromIndex = group.ui.plugins.size
-            val toIndex = Math.min(fromIndex + gapSize, group.getDescriptors().size)
-            val lastComponent = group.ui.plugins[fromIndex - 1]
+            val uiGroup = group.ui!!
+            val fromIndex = uiGroup.plugins.size
+            val toIndex = Math.min(fromIndex + gapSize, group.getModels().size)
+            val lastComponent = uiGroup.plugins[fromIndex - 1]
             val uiIndex = getComponentIndex(lastComponent)
             val eventIndex = myEventHandler.getCellIndex(lastComponent)
             try {
@@ -128,7 +129,7 @@ abstract class PluginsGroupComponent(eventHandler: EventHandler) : JBPanelWithEm
               PluginLogo.endBatchMode()
             }
 
-            if (group.getDescriptors().size == group.ui.plugins.size) {
+            if (group.getModels().size == uiGroup.plugins.size) {
               scrollBar.removeAdjustmentListener(this)
               group.clearCallback = null
             }
@@ -257,9 +258,10 @@ abstract class PluginsGroupComponent(eventHandler: EventHandler) : JBPanelWithEm
   private fun addToGroup(group: PluginsGroup, models: List<PluginUiModel>, index: Int, eventIndex: Int) {
     var index = index
     var eventIndex = eventIndex
+    val uiGroup = group.ui!!
     for (pluginUiModel in models) {
       val pluginComponent = createListComponent(pluginUiModel, group, group.getPreloadedModel())
-      group.ui.plugins.add(pluginComponent)
+      uiGroup.plugins.add(pluginComponent)
       add(pluginComponent, index)
       myEventHandler.addCell(pluginComponent, eventIndex)
       pluginComponent.setListeners(myEventHandler)
@@ -277,9 +279,10 @@ abstract class PluginsGroupComponent(eventHandler: EventHandler) : JBPanelWithEm
     var anchor: ListPluginComponent? = null
     var uiIndex = -1
 
-    val plugins = group.ui.plugins
+    val uiGroup = group.ui!!
+    val plugins = uiGroup.plugins
     if (index == plugins.size) {
-      val groupIndex = myGroups.indexOf(group.ui)
+      val groupIndex = myGroups.indexOf(uiGroup)
       if (groupIndex < myGroups.size - 1) {
         val nextGroup = myGroups[groupIndex + 1]
         anchor = nextGroup.plugins[0]
@@ -299,10 +302,11 @@ abstract class PluginsGroupComponent(eventHandler: EventHandler) : JBPanelWithEm
   }
 
   fun removeGroup(group: PluginsGroup) {
-    myGroups.remove(group.ui)
-    remove(group.ui.panel!!)
+    val uiGroup = group.ui!!
+    myGroups.remove(uiGroup)
+    remove(uiGroup.panel!!)
 
-    for (plugin in group.ui.plugins) {
+    for (plugin in uiGroup.plugins) {
       plugin.close()
       remove(plugin)
       myEventHandler.removeCell(plugin)
@@ -313,9 +317,10 @@ abstract class PluginsGroupComponent(eventHandler: EventHandler) : JBPanelWithEm
   }
 
   fun removeFromGroup(group: PluginsGroup, descriptor: PluginUiModel) {
-    val index = ContainerUtil.indexOf(group.ui.plugins) { component -> component.getPluginModel() === descriptor }
+    val uiGroup = group.ui!!
+    val index = ContainerUtil.indexOf(uiGroup.plugins) { component -> component.getPluginModel() === descriptor }
     assert(index != -1)
-    val component = group.ui.plugins.removeAt(index)
+    val component = uiGroup.plugins.removeAt(index)
     component.close()
     remove(component)
     myEventHandler.removeCell(component)

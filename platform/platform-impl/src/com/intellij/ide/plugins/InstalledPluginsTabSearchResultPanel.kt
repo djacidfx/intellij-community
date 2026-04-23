@@ -191,7 +191,7 @@ internal class InstalledPluginsTabSearchResultPanel(
           null,
           LinkListener<Any?> { _, _ ->
             result.mainAction!!.setEnabled(false)
-            for (plugin in result.ui.plugins) {
+            for (plugin in result.ui!!.plugins) {
               plugin.updatePlugin()
             }
           })

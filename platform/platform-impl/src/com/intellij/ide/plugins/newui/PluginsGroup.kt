@@ -1,161 +1,161 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.ide.plugins.newui;
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+package com.intellij.ide.plugins.newui
 
-import com.intellij.ide.IdeBundle;
-import com.intellij.ide.plugins.IdeaPluginDescriptor;
-import com.intellij.ide.plugins.ListPluginModel;
-import com.intellij.ide.plugins.PluginsGroupType;
-import com.intellij.openapi.extensions.PluginId;
-import com.intellij.openapi.util.text.StringUtil;
-import com.intellij.ui.components.labels.LinkLabel;
-import com.intellij.util.containers.ContainerUtil;
-import org.jetbrains.annotations.ApiStatus;
-import org.jetbrains.annotations.Nls;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import com.intellij.ide.IdeBundle
+import com.intellij.ide.plugins.IdeaPluginDescriptor
+import com.intellij.ide.plugins.ListPluginModel
+import com.intellij.ide.plugins.PluginsGroupType
+import com.intellij.openapi.extensions.PluginId
+import com.intellij.openapi.util.text.StringUtil
+import com.intellij.ui.components.labels.LinkLabel
+import com.intellij.util.containers.ContainerUtil
+import org.jetbrains.annotations.ApiStatus
+import org.jetbrains.annotations.Nls
+import javax.swing.JComponent
+import javax.swing.JLabel
 
 @ApiStatus.Internal
-public class PluginsGroup {
-  protected final @Nls String myTitlePrefix;
-  public @Nls String title;
-  public JLabel titleLabel;
-  /** if `mainAction` is not null, it is shown. Otherwise, `secondaryActions` are shown*/
-  public @Nullable LinkLabel<Object> mainAction;
-  public @Nullable List<JComponent> secondaryActions;
-  public UIPluginGroup ui;
-  public Runnable clearCallback;
-  public PluginsGroupType type;
-  protected final List<PluginUiModel> models = new ArrayList<>();
-  private final ListPluginModel preloadedModel = new ListPluginModel();
-  public JComponent promotionPanel;
+open class PluginsGroup(
+  @JvmField var title: @Nls String,
+  @JvmField var type: PluginsGroupType,
+) {
+  @JvmField protected val myTitlePrefix: @Nls String = title
+  @JvmField var titleLabel: JLabel? = null
 
-  public PluginsGroup(@NotNull @Nls String title, @NotNull PluginsGroupType type) {
-    myTitlePrefix = title;
-    this.title = title;
-    this.type = type;
-  }
+  /** if `mainAction` is not null, it is shown. Otherwise, `secondaryActions` are shown */
+  @JvmField var mainAction: LinkLabel<Any?>? = null
+  @JvmField var secondaryActions: MutableList<JComponent>? = null
+  @JvmField var ui: UIPluginGroup? = null
+  @JvmField var clearCallback: Runnable? = null
+  @JvmField protected val models: MutableList<PluginUiModel> = ArrayList()
+  private val preloadedModel: ListPluginModel = ListPluginModel()
+  @JvmField var promotionPanel: JComponent? = null
 
-  public void clear() {
-    ui = null;
-    models.clear();
-    titleLabel = null;
-    mainAction = null;
-    secondaryActions = null;
-    promotionPanel = null;
+  open fun clear() {
+    ui = null
+    models.clear()
+    titleLabel = null
+    mainAction = null
+    secondaryActions = null
+    promotionPanel = null
     if (clearCallback != null) {
-      clearCallback.run();
-      clearCallback = null;
+      clearCallback!!.run()
+      clearCallback = null
     }
   }
 
-  public void addSecondaryAction(@NotNull JComponent component) {
+  open fun addSecondaryAction(component: JComponent) {
     if (secondaryActions == null) {
-      secondaryActions = new ArrayList<>();
+      secondaryActions = ArrayList()
     }
-    secondaryActions.add(component);
+    secondaryActions!!.add(component)
   }
 
-  public void setPromotionPanel(@NotNull JComponent panel) {
-    promotionPanel = panel;
+  open fun setPromotionPanel(panel: JComponent) {
+    promotionPanel = panel
   }
 
-  public void titleWithCount() {
-    title = myTitlePrefix + " (" + models.size() + ")";
-    updateTitle();
+  open fun titleWithCount() {
+    title = myTitlePrefix + " (" + models.size + ")"
+    updateTitle()
   }
 
-  public void titleWithEnabled(@NotNull PluginModelFacade pluginModelFacade) {
-    int enabled = 0;
-    for (PluginUiModel descriptor : models) {
+  open fun titleWithEnabled(pluginModelFacade: PluginModelFacade) {
+    var enabled = 0
+    for (descriptor in models) {
       if (pluginModelFacade.isLoaded(descriptor) &&
           pluginModelFacade.isEnabled(descriptor) &&
-          !descriptor.isIncompatible()) {
-        enabled++;
+          !descriptor.isIncompatible
+      ) {
+        enabled++
       }
     }
-    titleWithCount(enabled);
+    titleWithCount(enabled)
   }
 
-  public void titleWithCount(int enabled) {
-    title = IdeBundle.message("plugins.configurable.title.with.count", myTitlePrefix, enabled, models.size());
-    updateTitle();
+  open fun titleWithCount(enabled: Int) {
+    title = IdeBundle.message("plugins.configurable.title.with.count", myTitlePrefix, enabled, models.size)
+    updateTitle()
   }
 
-  public int getPluginIndex(@NotNull PluginId pluginId) {
-    for (int i = 0; i < models.size(); i++) {
-      if (models.get(i).getPluginId().equals(pluginId)) {
-        return i;
+  open fun getPluginIndex(pluginId: PluginId): Int {
+    for (i in models.indices) {
+      if (models[i].pluginId == pluginId) {
+        return i
       }
     }
-    return -1;
+    return -1
   }
 
-  public ListPluginModel getPreloadedModel() {
-    return preloadedModel;
+  open fun getPreloadedModel(): ListPluginModel {
+    return preloadedModel
   }
 
-  protected void updateTitle() {
+  protected open fun updateTitle() {
     if (titleLabel != null) {
-      titleLabel.setText(title);
+      titleLabel!!.text = title
     }
   }
 
-  public int addWithIndex(@NotNull PluginUiModel model) {
-    models.add(model);
-    sortByName();
-    return models.indexOf(model);
+  open fun addWithIndex(model: PluginUiModel): Int {
+    models.add(model)
+    sortByName()
+    return models.indexOf(model)
   }
 
-  @Deprecated
-  public void addDescriptor(@NotNull IdeaPluginDescriptor descriptor) {
-    models.add(new PluginUiModelAdapter(descriptor));
+  @Deprecated("Use addModel(PluginUiModelAdapter(descriptor))", replaceWith = ReplaceWith("addModel(PluginUiModelAdapter(descriptor))"))
+  open fun addDescriptor(descriptor: IdeaPluginDescriptor) {
+    models.add(PluginUiModelAdapter(descriptor))
   }
 
-  public void addModel(@NotNull PluginUiModel model) {
-    models.add(model);
+  open fun addModel(model: PluginUiModel) {
+    models.add(model)
   }
 
-  @Deprecated
-  public void addDescriptors(@NotNull Collection<? extends IdeaPluginDescriptor> descriptors) {
-    this.models.addAll(ContainerUtil.map(descriptors, PluginUiModelAdapter::new));
+  @Deprecated(
+    "Use addModels(descriptors.map(::PluginUiModelAdapter))",
+    replaceWith = ReplaceWith("addModels(descriptors.map(::PluginUiModelAdapter))"),
+  )
+  open fun addDescriptors(descriptors: Collection<IdeaPluginDescriptor>) {
+    models.addAll(descriptors.map(::PluginUiModelAdapter))
   }
 
-  public void addModels(@NotNull Collection<? extends PluginUiModel> models) {
-    this.models.addAll(models);
+  open fun addModels(models: Collection<PluginUiModel>) {
+    this.models.addAll(models)
   }
 
-  public void addModels(int index, @NotNull Collection<PluginUiModel> models) {
-    this.models.addAll(index, models);
+  open fun addModels(index: Int, models: Collection<PluginUiModel>) {
+    this.models.addAll(index, models)
   }
 
-  public void removeDescriptor(@NotNull PluginUiModel model) {
-    models.remove(model);
+  open fun removeDescriptor(model: PluginUiModel) {
+    models.remove(model)
   }
 
-  @Deprecated
-  public @NotNull List<IdeaPluginDescriptor> getDescriptors() {
-    return ContainerUtil.map(models, it -> it.getDescriptor());
+  @Deprecated(
+    "Use models.map(PluginUiModel::descriptor)",
+    replaceWith = ReplaceWith("models.map(PluginUiModel::descriptor)"),
+  )
+  open fun getDescriptors(): List<IdeaPluginDescriptor> {
+    return models.map { it.getDescriptor() }
   }
 
-  public @NotNull List<PluginUiModel> getModels() {
-    return models;
+  open fun getModels(): MutableList<PluginUiModel> {
+    return models
   }
 
-  public void removeDuplicates(){
-    ContainerUtil.removeDuplicates(models);
+  open fun removeDuplicates() {
+    ContainerUtil.removeDuplicates(models)
   }
 
-  public void sortByName() {
-    sortByName(models);
+  open fun sortByName() {
+    sortByName(models)
   }
 
-  public static void sortByName(@NotNull List<PluginUiModel> models) {
-    ContainerUtil.sort(models, (o1, o2) -> StringUtil.compare(o1.getName(), o2.getName(), true));
+  companion object {
+    @JvmStatic
+    fun sortByName(models: MutableList<PluginUiModel>) {
+      ContainerUtil.sort(models) { o1, o2 -> StringUtil.compare(o1.name, o2.name, true) }
+    }
   }
 }
