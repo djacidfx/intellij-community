@@ -7,6 +7,7 @@ import com.intellij.openapi.diagnostic.fileLogger
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.openapi.roots.ModuleRootModificationUtil
+import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.jetbrains.python.module.PyModuleService
 import com.jetbrains.python.sdk.legacy.PythonSdkUtil
 import org.jetbrains.annotations.ApiStatus
@@ -31,10 +32,16 @@ suspend fun Module.findPythonSdk(): Sdk? {
 var Module.pythonSdk: Sdk?
   @ApiStatus.Obsolete
   get() = PythonSdkUtil.findPythonSdk(this)
+
+  /**
+   * Must be called under [withSdkConfigurationLock] to prevent concurrent Module/SDK changes.
+   */
   @ApiStatus.Internal
+  @RequiresBackgroundThread(generateAssertion = false)
   set(newSdk) {
     val prevSdk = pythonSdk
     thisLogger.info("Setting PythonSDK $newSdk to module $this")
+    newSdk?.pyRichSdk(forceRefresh = true)
     ModuleRootModificationUtil.setModuleSdk(this, newSdk)
     runInEdt {
       DaemonCodeAnalyzer.getInstance(project).restart("Setting PythonSDK $newSdk to module $this")
