@@ -49,6 +49,7 @@ import com.intellij.openapi.ui.popup.LightweightWindowEvent
 import com.intellij.openapi.ui.popup.ListItemDescriptorAdapter
 import com.intellij.openapi.ui.popup.ListSeparator
 import com.intellij.openapi.ui.popup.PopupStep
+import com.intellij.openapi.ui.popup.StackingPopupDispatcher
 import com.intellij.openapi.ui.popup.util.BaseListPopupStep
 import com.intellij.openapi.ui.popup.util.PopupUtil
 import com.intellij.openapi.util.ActionCallback
@@ -1733,6 +1734,12 @@ open class JBTabsImpl internal constructor(
 
   private fun requestFocusLater(inWindow: Boolean): ActionCallback {
     if (!isShowing) return ActionCallback.REJECTED
+    // On Wayland, requestFocusInWindow() will steal the focus from the popup,
+    // leading to an uncomfortable state when the popup is still showing,
+    // but the editor is focused (and receives input!).
+    // Especially annoying with the Recent Files popup, when the active editor is closed from the popup (Del / Backspace)
+    // and the focus is transferred to the next editor.
+    if (StartupUiUtil.isWaylandToolkit() && StackingPopupDispatcher.getInstance().focusedPopup != null) return ActionCallback.REJECTED
 
     val result = ActionCallback()
     ApplicationManager.getApplication().invokeLater {
