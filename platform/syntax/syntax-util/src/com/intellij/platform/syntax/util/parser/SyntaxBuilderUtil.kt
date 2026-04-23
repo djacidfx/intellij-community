@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.platform.syntax.util.parser
 
 import com.intellij.platform.syntax.CancellationProvider
@@ -83,8 +83,12 @@ object SyntaxBuilderUtil {
   }
 
   /**
-   * tries to parse a code block with corresponding left and right braces.
-   * @return collapsed marker of the block or `null` if there is no code block at all.
+   * Builds a shallow marker which starts with [leftBrace] and ends with [rightBrace].
+   *
+   * If [leftBrace] is missing, returns `null`.
+   * If [rightBrace] is missing, consumes everything until EOF.
+   *
+   * @return collapsed marker of the block or `null` if [leftBrace] is missing.
    */
   @JvmStatic
   fun SyntaxTreeBuilder.parseBlockLazy(
