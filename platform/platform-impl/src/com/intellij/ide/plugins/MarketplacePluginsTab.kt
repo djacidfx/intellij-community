@@ -73,37 +73,37 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
   service: PluginUpdatesService,
   searchTextFieldQueryDebouncePeriodMs: Long = 250,
 ) : PluginsTab(searchTextFieldQueryDebouncePeriodMs) {
-  private val myPluginModelFacade: PluginModelFacade = facade
-  private val myCoroutineScope: CoroutineScope = scope
-  private val myPluginManagerCustomizer: PluginManagerCustomizer? = customizer
-  private val myPluginUpdatesService: PluginUpdatesService = service
+  private val pluginModelFacade: PluginModelFacade = facade
+  private val coroutineScope: CoroutineScope = scope
+  private val pluginManagerCustomizer: PluginManagerCustomizer? = customizer
+  private val pluginUpdatesService: PluginUpdatesService = service
 
-  private var myMarketplacePanel: PluginsGroupComponentWithProgress? = null
-  private var myMarketplaceSearchPanel: SearchResultPanel? = null
-  private var myMarketplaceRunnable: Runnable? = null
+  private var marketplacePanel: PluginsGroupComponentWithProgress? = null
+  private var marketplaceSearchPanel: SearchResultPanel? = null
+  private var marketplaceRunnable: Runnable? = null
 
-  private val myMarketplaceSortByGroup: DefaultActionGroup = DefaultActionGroup()
+  private val marketplaceSortByGroup: DefaultActionGroup = DefaultActionGroup()
 
-  private var myTagsSorted: List<String>? = null
-  private var myVendorsSorted: List<String>? = null
+  private var tagsSorted: List<String>? = null
+  private var vendorsSorted: List<String>? = null
 
   override val detailsPage: PluginDetailsPageComponent = createDetailsPanel(searchListener)
   override val searchPanel: SearchResultPanel = createSearchPanel(selectionListener)
 
   init {
     for (option in MarketplaceTabSearchSortByOptions.entries) {
-      myMarketplaceSortByGroup.addAction(MarketplaceSortByAction(option))
+      marketplaceSortByGroup.addAction(MarketplaceSortByAction(option))
     }
 
-    myTagsSorted = null
-    myVendorsSorted = null
+    tagsSorted = null
+    vendorsSorted = null
 
     customizeSearchTextField()
   }
 
   fun resetCache() {
-    myTagsSorted = null
-    myVendorsSorted = null
+    tagsSorted = null
+    vendorsSorted = null
   }
 
   private fun customizeSearchTextField() {
@@ -120,28 +120,28 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
         listPluginModel: ListPluginModel,
       ): ListPluginComponent {
         return ListPluginComponent(
-          myPluginModelFacade,
+          pluginModelFacade,
           model,
           group,
           listPluginModel,
           searchListener,
-          myCoroutineScope,
+          coroutineScope,
           true,
         )
       }
     }
-    myMarketplacePanel = marketplacePanel
+    this@MarketplacePluginsTab.marketplacePanel = marketplacePanel
 
     marketplacePanel.setSelectionListener(selectionListener)
     marketplacePanel.getAccessibleContext().setAccessibleName(IdeBundle.message("plugin.manager.marketplace.panel.accessible.name"))
     registerCopyProvider(marketplacePanel)
 
     //noinspection ConstantConditions
-    (myMarketplaceSearchPanel!!.controller as SearchUpDownPopupController).setEventHandler(eventHandler)
+    (marketplaceSearchPanel!!.controller as SearchUpDownPopupController).setEventHandler(eventHandler)
 
     val project = ProjectUtil.getActiveProject()
 
-    myMarketplaceRunnable = Runnable {
+    marketplaceRunnable = Runnable {
       marketplacePanel.clear()
       marketplacePanel.showLoadingIcon()
       doCreateMarketplaceTab(selectionListener, project)
@@ -152,14 +152,14 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
       .appendSecondaryText(
         IdeBundle.message("message.link.refresh"),
         SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES,
-      ) { myMarketplaceRunnable!!.run() }
+      ) { marketplaceRunnable!!.run() }
 
     doCreateMarketplaceTab(selectionListener, project)
     return createScrollPane(marketplacePanel, false)
   }
 
   private fun doCreateMarketplaceTab(selectionListener: Consumer<in PluginsGroupComponent?>, project: Project?) {
-    PluginManagerPanelFactory.createMarketplacePanel(myCoroutineScope, myPluginModelFacade.getModel(), project) { model ->
+    PluginManagerPanelFactory.createMarketplacePanel(coroutineScope, pluginModelFacade.getModel(), project) { model ->
       val groups = ArrayList<PluginsGroup>()
       try {
         try {
@@ -259,14 +259,14 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
             )
           }
         }
-        if (myPluginManagerCustomizer != null) {
-          myPluginManagerCustomizer.ensurePluginStatesLoaded()
+        if (pluginManagerCustomizer != null) {
+          pluginManagerCustomizer.ensurePluginStatesLoaded()
         }
       }
       finally {
         ApplicationManager.getApplication().invokeLater({
-          val marketplacePanel = myMarketplacePanel!!
-          val marketplaceSearchPanel = myMarketplaceSearchPanel!!
+          val marketplacePanel = marketplacePanel!!
+          val marketplaceSearchPanel = marketplaceSearchPanel!!
           marketplacePanel.hideLoadingIcon()
           try {
             PluginLogo.startBatchMode()
@@ -281,12 +281,12 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
           marketplacePanel.doLayout()
           marketplacePanel.initialSelection()
 
-          myPluginUpdatesService.calculateUpdates { updates ->
+          pluginUpdatesService.calculateUpdates { updates ->
             val updateModels: List<PluginUiModel> = if (updates == null) {
               emptyList()
             }
             else {
-              updates.filter { plugin -> myPluginModelFacade.isEnabled(plugin) }
+              updates.filter { plugin -> pluginModelFacade.isEnabled(plugin) }
             }
             if (ContainerUtil.isEmpty(updateModels)) {
               clearUpdates(marketplacePanel)
@@ -305,12 +305,12 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
   }
 
   override fun updateMainSelection(selectionListener: Consumer<in PluginsGroupComponent?>) {
-    selectionListener.accept(myMarketplacePanel)
+    selectionListener.accept(marketplacePanel)
   }
 
   private fun createDetailsPanel(searchListener: LinkListener<Any>): PluginDetailsPageComponent {
-    val detailPanel = PluginDetailsPageComponent(myPluginModelFacade, searchListener, true)
-    myPluginModelFacade.getModel().addDetailPanel(detailPanel)
+    val detailPanel = PluginDetailsPageComponent(pluginModelFacade, searchListener, true)
+    pluginModelFacade.getModel().addDetailPanel(detailPanel)
     return detailPanel
   }
 
@@ -379,12 +379,12 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
         listPluginModel: ListPluginModel,
       ): ListPluginComponent {
         return ListPluginComponent(
-          myPluginModelFacade,
+          pluginModelFacade,
           model,
           group,
           listPluginModel,
           searchListener,
-          myCoroutineScope,
+          coroutineScope,
           true,
         )
       }
@@ -396,21 +396,21 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
     val project = ProjectUtil.getActiveProject()
 
     val marketplaceSearchPanel = MarketplacePluginsTabSearchResultPanel(
-      myCoroutineScope,
+      coroutineScope,
       marketplaceController,
       panel,
       project,
       selectionListener,
-      myMarketplaceSortByGroup,
-      Supplier { myMarketplacePanel },
+      marketplaceSortByGroup,
+      Supplier { marketplacePanel },
     )
-    myMarketplaceSearchPanel = marketplaceSearchPanel
+    this@MarketplacePluginsTab.marketplaceSearchPanel = marketplaceSearchPanel
     return marketplaceSearchPanel
   }
 
   private fun getOrCalculateVendors(): List<String> {
-    if (myVendorsSorted == null ||
-        myVendorsSorted!!.isEmpty() // FIXME seems like it shouldn't be here...
+    if (vendorsSorted == null ||
+        vendorsSorted!!.isEmpty() // FIXME seems like it shouldn't be here...
     ) {
       val vendors = LinkedHashSet<String>()
       try {
@@ -424,14 +424,14 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
       catch (e: java.util.concurrent.ExecutionException) {
         LOG.error("Error while getting vendors from marketplace", e)
       }
-      myVendorsSorted = ArrayList(vendors)
+      vendorsSorted = ArrayList(vendors)
     }
-    return myVendorsSorted!!
+    return vendorsSorted!!
   }
 
   private fun getOrCalculateTags(): List<String> {
-    if (myTagsSorted == null ||
-        myTagsSorted!!.isEmpty() // FIXME seems like it shouldn't be here...
+    if (tagsSorted == null ||
+        tagsSorted!!.isEmpty() // FIXME seems like it shouldn't be here...
     ) {
       val allTags = HashSet<String>()
       val customRepoTags = UiPluginManager.getInstance().getCustomRepoTags()
@@ -449,9 +449,9 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
       catch (e: java.util.concurrent.ExecutionException) {
         LOG.error("Error while getting tags from marketplace", e)
       }
-      myTagsSorted = ContainerUtil.sorted(allTags, String.CASE_INSENSITIVE_ORDER)
+      tagsSorted = ContainerUtil.sorted(allTags, String.CASE_INSENSITIVE_ORDER)
     }
-    return myTagsSorted!!
+    return tagsSorted!!
   }
 
   private fun handleSortByOptionSelection(updateAction: MarketplaceSortByAction) {
@@ -459,7 +459,7 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
     var addAction: MarketplaceSortByAction? = null
 
     if (updateAction.myState) {
-      for (action in myMarketplaceSortByGroup.getChildren(ActionManager.getInstance())) {
+      for (action in marketplaceSortByGroup.getChildren(ActionManager.getInstance())) {
         val sortByAction = action as MarketplaceSortByAction
         if (sortByAction !== updateAction && sortByAction.myState) {
           sortByAction.myState = false
@@ -475,7 +475,7 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
         return
       }
 
-      for (action in myMarketplaceSortByGroup.getChildren(ActionManager.getInstance())) {
+      for (action in marketplaceSortByGroup.getChildren(ActionManager.getInstance())) {
         val sortByAction = action as MarketplaceSortByAction
         if (sortByAction.myOption == MarketplaceTabSearchSortByOptions.RELEVANCE) {
           sortByAction.myState = true
@@ -630,22 +630,22 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
   }
 
   override fun dispose() {
-    if (myMarketplacePanel != null) {
-      myMarketplacePanel!!.dispose()
+    if (marketplacePanel != null) {
+      marketplacePanel!!.dispose()
     }
-    if (myMarketplaceSearchPanel != null) {
-      myMarketplaceSearchPanel!!.dispose()
+    if (marketplaceSearchPanel != null) {
+      marketplaceSearchPanel!!.dispose()
     }
     super.dispose()
   }
 
   fun onPanelReset(isMarketplaceTabSelected: Boolean) {
-    if (myMarketplacePanel != null) {
+    if (marketplacePanel != null) {
       if (isMarketplaceTabSelected) {
-        myMarketplaceRunnable!!.run()
+        marketplaceRunnable!!.run()
       }
       else {
-        myMarketplacePanel!!.setOnBecomingVisibleCallback(myMarketplaceRunnable!!)
+        marketplacePanel!!.setOnBecomingVisibleCallback(marketplaceRunnable!!)
       }
     }
   }
