@@ -44,11 +44,12 @@ class ContainingBranchesGetter internal constructor(private val logData: VcsLogD
   init {
     taskExecutor = SequentialLimitedLifoExecutor(parentDisposable, 10, CachingTask::run)
     logData.addDataPackChangeListener {
+      // Use logData.graphData (not `it`) for the checksum: when an overlay (transient small) pack fires,
+      // logData.graphData still points to the previous full pack, so the checksum stays stable.
       val checksum = logData.graphData.refsModel.branches.hashCode()
-      if (currentBranchesChecksum != checksum) { // clear cache if branches set changed after refresh
+      if (currentBranchesChecksum != checksum) {
         clearCache()
       }
-      //do not cache transient small data pack branches checksum as it will be substituted by regular data pack
       currentBranchesChecksum = checksum
     }
   }
