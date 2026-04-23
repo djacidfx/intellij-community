@@ -133,7 +133,7 @@ import static com.intellij.openapi.wm.ex.ProjectFrameCapabilitiesKt.isBackground
 @State(name = "DaemonCodeAnalyzer", storages = @Storage(StoragePathMacros.PRODUCT_WORKSPACE_FILE))
 @ApiStatus.Internal
 public final class DaemonCodeAnalyzerImpl extends DaemonCodeAnalyzerEx
-  implements PersistentStateComponent<Element>, Disposable, DaemonCodeAnalysisStatus {
+  implements PersistentStateComponent<Element>, Disposable, DaemonCodeAnalysisStatus, Runnable {
 
   static final Logger LOG = Logger.getInstance(DaemonCodeAnalyzerImpl.class);
 
@@ -806,15 +806,12 @@ public final class DaemonCodeAnalyzerImpl extends DaemonCodeAnalyzerEx
       LOG.debug("Rescheduling highlighting: isDone: ", isDone+"; delta="+Long.toHexString(getDelta()));
     }
     if (incrementQueuedRequests() || isDone) {
-      scheduleUpdateRunnable(autoReparseDelayNanos);
+      scheduleUpdateRunnable();
     }
   }
 
-  private synchronized void scheduleUpdateRunnable(long delayNanos) {
+  private synchronized void scheduleUpdateRunnable() {
     Future<?> oldFuture = myUpdateRunnableFuture;
-    if (LOG.isTraceEnabled()) {
-      LOG.trace("scheduleUpdateRunnable("+TimeUnit.NANOSECONDS.toMillis(delayNanos)+"ms); oldFuture="+oldFuture+"; isDone="+oldFuture.isDone());
-    }
     Application application = ApplicationManager.getApplication();
     if (application == null || application.isDisposed()) {
       return;
@@ -826,16 +823,28 @@ public final class DaemonCodeAnalyzerImpl extends DaemonCodeAnalyzerEx
     else {
       oldFuture.cancel(false); // do not have too many requests sit in the EdtExecutorService queue
     }
-    Runnable runnable = () -> {
-      myUpdateRunnableFuture =
-        EdtExecutorService.getScheduledExecutorInstance().schedule(myUpdateRunnable, delayNanos, TimeUnit.NANOSECONDS);
-    };
     if (myListeners == null) {
-      runnable.run();
+      run();
     }
     else {
-      myListeners.runAfterUpdateFileStatusQueue(runnable);
+      myListeners.runAfterUpdateFileStatusQueue(this);
     }
+  }
+
+  /**
+  * do not use: it's technical private override,
+   * to make the runnable we pass to `myListeners.runAfterUpdateFileStatusQueue(this);` (in {@link #scheduleUpdateRunnable}) stable,
+   * to allow for its canceling via {@link com.intellij.util.Alarm#cancelRequest},
+   * see {@link PsiChangeHandler#runAfterUpdateFileStatusQueue}
+  */
+  @ApiStatus.Internal
+  @Override
+  public synchronized void run() {
+    long delayNanos = myScheduledUpdateTimestamp - System.nanoTime();
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("scheduleUpdateRunnable(" + TimeUnit.NANOSECONDS.toMillis(delayNanos) + "ms); oldFuture=" + myUpdateRunnableFuture + "; isDone=" + myUpdateRunnableFuture.isDone());
+    }
+    myUpdateRunnableFuture = EdtExecutorService.getScheduledExecutorInstance().schedule(myUpdateRunnable, delayNanos, TimeUnit.NANOSECONDS);
   }
 
   // return true if the progress really was canceled
@@ -1147,7 +1156,10 @@ public final class DaemonCodeAnalyzerImpl extends DaemonCodeAnalyzerEx
           if (LOG.isDebugEnabled()) {
             LOG.debug("runUpdate newDelta="+newDelta);
           }
-          analyzer.scheduleUpdateRunnable(0);
+          synchronized (analyzer) {
+            analyzer.myScheduledUpdateTimestamp = System.nanoTime();
+            analyzer.scheduleUpdateRunnable();
+          }
         }
       }
     }
@@ -1161,7 +1173,7 @@ public final class DaemonCodeAnalyzerImpl extends DaemonCodeAnalyzerEx
       long actualDelay = myScheduledUpdateTimestamp - System.nanoTime();
       if (actualDelay > 0) {
         // started too soon (there must've been some typings after we'd scheduled this; need to re-schedule)
-        scheduleUpdateRunnable(actualDelay);
+        scheduleUpdateRunnable();
         return "wasn't run because called too soon: rescheduled in "+TimeUnit.NANOSECONDS.toMillis(actualDelay)+"ms";
       }
     }
@@ -1199,6 +1211,7 @@ public final class DaemonCodeAnalyzerImpl extends DaemonCodeAnalyzerEx
     }
 
     boolean submitted = false;
+    boolean shouldRestart = true;
     ProcessCanceledException pce = null;
     // have to store created indicators because myUpdateProgress removes the canceled indicator immediately
     List<ProgressIndicator> createdIndicators = new ArrayList<>();
@@ -1227,7 +1240,8 @@ public final class DaemonCodeAnalyzerImpl extends DaemonCodeAnalyzerEx
             PassExecutorService.log(null, null, "runUpdate for ", fileEditor, " rescheduled because the editor was not loaded yet");
           }
           result.add("didn't submit " + fileEditor + " because it's not loaded");
-          // AsyncEditorLoader will restart
+          // do not restart immediately, because it will be futile; AsyncEditorLoader will restart when the editor is loaded
+          shouldRestart = false;
         }
         else {
           VirtualFile virtualFile = getVirtualFile(fileEditor);
@@ -1255,7 +1269,7 @@ public final class DaemonCodeAnalyzerImpl extends DaemonCodeAnalyzerEx
     }
     finally {
       boolean wasCanceledDuringSubmit = ContainerUtil.exists(createdIndicators, p -> p.isCanceled());
-      if (!submitted || wasCanceledDuringSubmit) {
+      if ((!submitted || wasCanceledDuringSubmit) && shouldRestart) {
         // happens e.g., when we are trying to open a directory and there's a FileEditor supporting this
         // invokeLater is required because we can't stop daemon from inside UpdateRunnable, since its future hasn't been scheduled yet
         // or when PCE happened in queuePassesCreation

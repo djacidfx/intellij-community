@@ -176,7 +176,9 @@ public final class DaemonListeners implements Disposable {
         VirtualFile virtualFile = FileDocumentManager.getInstance().getFile(document);
         Project project = virtualFile == null ? null : guessProject(virtualFile);
         //no need to stop daemon if something happened in the console or in non-physical document
-        if (!myProject.isDisposed() && ApplicationManager.getApplication().isDispatchThread() && worthBothering(document, project)) {
+        if (!myProject.isDisposed() && ApplicationManager.getApplication().isDispatchThread() && worthBothering(document, project)
+          && !document.isInBulkUpdate()/*if the document is in the bulk mode, daemon was already stopped in bulkUpdateStarting()*/
+        ) {
           // do not restart daemon yet, wait for the psi events fired after the doc committed, PsiChangeHandler handled these events, updated FileStatusMap and called daemon restart
           stopDaemon(false, "Before document change");
           UpdateHighlightersUtil.updateHighlightersByTyping(myProject, e);
@@ -358,7 +360,7 @@ public final class DaemonListeners implements Disposable {
     ApplicationManagerEx.getApplicationEx().addWriteActionListener(new WriteActionListener() {
       @Override
       public void beforeWriteActionStart(@NotNull Class<?> action) {
-        if (myDaemonCodeAnalyzer.isRunning()) {
+        if (myDaemonCodeAnalyzer.isRunning() && !myProject.isDisposed()) {
           stopDaemon(false, "Write action start: " + action);
         } // we'll restart in writeActionFinished()
       }
@@ -366,7 +368,7 @@ public final class DaemonListeners implements Disposable {
       @Override
       public void writeActionFinished(@NotNull Class<?> action) {
         // otherwise we'll restart when PSI commit happens, or changed PSI elements will be handled in PsiChangeHandler
-        if (!psiDocumentManager.hasEventSystemEnabledUncommittedDocuments()) {
+        if (!psiDocumentManager.hasEventSystemEnabledUncommittedDocuments() && !myProject.isDisposed()) {
           stopDaemon(true, "Write action finish: "+action);
         }
       }
@@ -749,7 +751,9 @@ public final class DaemonListeners implements Disposable {
           // prevent Esc key to leave the document in the not-highlighted state
           // todo IJPL-339 investigate this place
           if (!myDaemonCodeAnalyzer.getFileStatusMap().allDirtyScopesAreNullFor(affectedDocument)) {
-            stopDaemon(true, "Command finish");
+            String name = event.getCommandName() == null ? ""
+                       : ": '" + event.getCommandName() + "'" + (event.getCommandGroupId() == null ? "" : "(" + event.getCommandGroupId() + ")");
+            stopDaemon(true, "Command finish" + name);
           }
         }
       }

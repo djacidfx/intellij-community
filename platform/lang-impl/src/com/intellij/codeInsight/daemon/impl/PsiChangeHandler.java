@@ -117,11 +117,7 @@ final class PsiChangeHandler extends PsiTreeChangeAdapter implements Runnable {
         }
       }, ModalityState.stateForComponent(selectedEditor.getComponent()), myProject.getDisposed());
     }
-
-    synchronized (myUpdateFileStatusAlarm) {
-      myUpdateFileStatusAlarm.cancelRequest(this);
-      myUpdateFileStatusAlarm.addRequest(this, 0);
-    }
+    runAfterUpdateFileStatusQueue(this);
   }
 
   private PsiFile getRawCachedPsiFile(@NotNull Document document) {
@@ -376,6 +372,7 @@ final class PsiChangeHandler extends PsiTreeChangeAdapter implements Runnable {
   void runAfterUpdateFileStatusQueue(@NotNull Runnable runnable) {
     // synchronized to avoid data race when myUpdateFileStatusAlarm.cancel() in updateChangesForDocument called, then (from interleaved thread) waitForUpdateFileStatusQueue() called, then myUpdateFileStatusAlarm.addRequest() called, resulting in immediate return from waitForUpdateFileStatusQueue method because alarm is temporarily empty
     synchronized (myUpdateFileStatusAlarm) {
+      myUpdateFileStatusAlarm.cancelRequest(runnable);
       myUpdateFileStatusAlarm.addRequest(runnable, 0);
     }
   }
