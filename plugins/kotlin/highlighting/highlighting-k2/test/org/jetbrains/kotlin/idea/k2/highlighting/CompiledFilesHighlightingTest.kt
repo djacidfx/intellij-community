@@ -48,6 +48,7 @@ import kotlin.io.path.name
 class CompiledFilesHighlightingTest: KotlinLightCodeInsightFixtureTestCase() {
     override val pluginMode: KotlinPluginMode = KotlinPluginMode.K2
 
+    // KTIJ-38501
     @TestMetadata("default/linkdata/package_kotlin.collections/26_collections.knm")
     fun testKotlinCollectionsGroupingKtKotlinMetadata() {
         doTestWithLibraryFile(
@@ -56,6 +57,7 @@ class CompiledFilesHighlightingTest: KotlinLightCodeInsightFixtureTestCase() {
         )
     }
 
+    // KTIJ-38501
     @TestMetadata("kotlin/time/TimeSource.class")
     fun testKotlinTimeTimeSourceClass() {
         doTestWithLibraryFile(
@@ -64,6 +66,7 @@ class CompiledFilesHighlightingTest: KotlinLightCodeInsightFixtureTestCase() {
         )
     }
 
+    // KTIJ-38501
     @TestMetadata("default/linkdata/package_kotlin.io/0_io.knm")
     fun testKotlinNativeLinkdataPackageKotlinIO0ioKnm() {
         doTestWithLibraryFile(
