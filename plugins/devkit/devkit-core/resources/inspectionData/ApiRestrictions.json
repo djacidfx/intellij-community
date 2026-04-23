@@ -783,6 +783,96 @@
       "extensionPointNames": [
         "com.intellij.testSourcesFilter"
       ]
+    },
+    {
+      "apiName": "com.intellij.refactoring.classMembers.ClassMembersRefactoringSupport",
+      "extensionPointNames": [
+        "com.intellij.lang.refactoringSupport.classMembersRefactoringSupport"
+      ]
+    },
+    {
+      "apiName": "com.intellij.refactoring.copy.CopyHandlerDelegate",
+      "extensionPointNames": [
+        "com.intellij.refactoring.copyHandler"
+      ]
+    },
+    {
+      "apiName": "com.intellij.refactoring.move.MoveHandlerDelegate",
+      "extensionPointNames": [
+        "com.intellij.refactoring.moveHandler"
+      ]
+    },
+    {
+      "apiName": "com.intellij.refactoring.introduceParameterObject.IntroduceParameterObjectDelegate",
+      "extensionPointNames": [
+        "com.intellij.refactoring.introduceParameterObject"
+      ]
+    },
+    {
+      "apiName": "com.intellij.refactoring.memberPushDown.PushDownDelegate",
+      "extensionPointNames": [
+        "com.intellij.refactoring.pushDown"
+      ]
+    },
+    {
+      "apiName": "com.intellij.refactoring.move.moveClassesOrPackages.MoveDirectoryWithClassesHelper",
+      "extensionPointNames": [
+        "com.intellij.refactoring.moveDirectoryWithClassesHelper"
+      ]
+    },
+    {
+      "apiName": "com.intellij.refactoring.safeDelete.SafeDeleteProcessorDelegate",
+      "extensionPointNames": [
+        "com.intellij.refactoring.safeDeleteProcessor"
+      ]
+    },
+    {
+      "apiName": "com.intellij.refactoring.RefactoringActionHandler",
+      "extensionPointNames": [
+        "com.intellij.refactoring.extractIncludeHandler"
+      ]
+    },
+    {
+      "apiName": "com.intellij.refactoring.changeSignature.ChangeSignatureUsageProcessor",
+      "extensionPointNames": [
+        "com.intellij.refactoring.changeSignatureUsageProcessor"
+      ]
+    },
+    {
+      "apiName": "com.intellij.refactoring.move.moveFilesOrDirectories.MoveFileHandler",
+      "extensionPointNames": [
+        "com.intellij.moveFileHandler"
+      ]
+    },
+    {
+      "apiName": "com.intellij.refactoring.rename.symbol.SymbolRenameTargetFactory",
+      "extensionPointNames": [
+        "com.intellij.rename.symbolRenameTargetFactory"
+      ]
+    },
+    {
+      "apiName": "com.intellij.refactoring.actions.RenameFileActionProvider",
+      "extensionPointNames": [
+        "com.intellij.renameFileActionProvider"
+      ]
+    },
+    {
+      "apiName": "com.intellij.refactoring.changeSignature.inplace.LanguageChangeSignatureDetector",
+      "extensionPointNames": [
+        "com.intellij.changeSignatureDetector"
+      ]
+    },
+    {
+      "apiName": "com.intellij.refactoring.suggested.SuggestedRefactoringSupport",
+      "extensionPointNames": [
+        "com.intellij.suggestedRefactoringSupport"
+      ]
+    },
+    {
+      "apiName": "com.intellij.refactoring.changeSignature.ChangeSignatureUsageProvider",
+      "extensionPointNames": [
+        "com.intellij.changeSignature.usageProvider"
+      ]
     }
   ],
   "shared": [
