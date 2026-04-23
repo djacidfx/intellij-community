@@ -354,7 +354,7 @@ public final class ConsentOptions implements ModificationTracker {
   }
 
   public @NotNull Pair<List<Consent>, Boolean> getConsents() {
-    return getConsents(consent -> true);
+    return getConsents(_ -> true);
   }
 
   public @NotNull Pair<List<Consent>, Boolean> getConsents(@NotNull Predicate<? super Consent> filter) {
@@ -370,8 +370,7 @@ public final class ConsentOptions implements ModificationTracker {
       allDefaults.remove(lookupConsentID(EAP_FEEDBACK_OPTION_ID));
     }
 
-    if (!ExceptionAutoReportUtil.isAutoReportVisible()
-        || ExceptionAutoReportUtil.isAutoReportForced()) { // do not show consents UI if level is forced
+    if (!ExceptionAutoReportUtil.isConsentAllowedToBeVisible()) {
       allDefaults.remove(EA_AUTO_REPORT_OPTION_ID);
     }
 
