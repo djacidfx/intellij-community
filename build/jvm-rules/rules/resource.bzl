@@ -26,7 +26,6 @@ _resourcegroup_jps = rule(
         "strip_prefix": attr.label(
             doc = """The path prefix to remove from Java resources""",
             allow_single_file = True,
-            providers = ["FileProvider"],
         ),
         "resource_strip_prefix": attr.string(
             doc = """\
