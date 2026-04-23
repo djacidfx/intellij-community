@@ -265,7 +265,6 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
       }
       finally {
         ApplicationManager.getApplication().invokeLater({
-          val marketplacePanel = marketplacePanel!!
           marketplacePanel.hideLoadingIcon()
           try {
             PluginLogo.startBatchMode()
@@ -628,21 +627,17 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
   }
 
   override fun dispose() {
-    if (marketplacePanel != null) {
-      marketplacePanel!!.dispose()
-    }
+    marketplacePanel.dispose()
     searchPanel.dispose()
     super.dispose()
   }
 
   fun onPanelReset(isMarketplaceTabSelected: Boolean) {
-    if (marketplacePanel != null) {
-      if (isMarketplaceTabSelected) {
-        marketplaceRunnable!!.run()
-      }
-      else {
-        marketplacePanel!!.setOnBecomingVisibleCallback(marketplaceRunnable!!)
-      }
+    if (isMarketplaceTabSelected) {
+      marketplaceRunnable!!.run()
+    }
+    else {
+      marketplacePanel.setOnBecomingVisibleCallback(marketplaceRunnable!!)
     }
   }
 
