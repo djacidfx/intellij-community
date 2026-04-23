@@ -79,7 +79,6 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
   private val pluginUpdatesService: PluginUpdatesService = service
 
   private var marketplacePanel: PluginsGroupComponentWithProgress? = null
-  private var marketplaceSearchPanel: SearchResultPanel? = null
   private var marketplaceRunnable: Runnable? = null
 
   private val marketplaceSortByGroup: DefaultActionGroup = DefaultActionGroup()
@@ -136,8 +135,7 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
     marketplacePanel.getAccessibleContext().setAccessibleName(IdeBundle.message("plugin.manager.marketplace.panel.accessible.name"))
     registerCopyProvider(marketplacePanel)
 
-    //noinspection ConstantConditions
-    (marketplaceSearchPanel!!.controller as SearchUpDownPopupController).setEventHandler(eventHandler)
+    (searchPanel.controller as SearchUpDownPopupController).setEventHandler(eventHandler)
 
     val project = ProjectUtil.getActiveProject()
 
@@ -266,7 +264,6 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
       finally {
         ApplicationManager.getApplication().invokeLater({
           val marketplacePanel = marketplacePanel!!
-          val marketplaceSearchPanel = marketplaceSearchPanel!!
           marketplacePanel.hideLoadingIcon()
           try {
             PluginLogo.startBatchMode()
@@ -290,14 +287,14 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
             }
             if (ContainerUtil.isEmpty(updateModels)) {
               clearUpdates(marketplacePanel)
-              clearUpdates(marketplaceSearchPanel.panel)
+              clearUpdates(searchPanel.panel)
             }
             else {
               applyUpdates(marketplacePanel, updateModels)
-              applyUpdates(marketplaceSearchPanel.panel, updateModels)
+              applyUpdates(searchPanel.panel, updateModels)
             }
             selectionListener.accept(marketplacePanel)
-            selectionListener.accept(marketplaceSearchPanel.panel)
+            selectionListener.accept(searchPanel.panel)
           }
         }, ModalityState.any())
       }
@@ -395,7 +392,7 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
 
     val project = ProjectUtil.getActiveProject()
 
-    val marketplaceSearchPanel = MarketplacePluginsTabSearchResultPanel(
+    val searchPanel = MarketplacePluginsTabSearchResultPanel(
       coroutineScope,
       marketplaceController,
       panel,
@@ -404,8 +401,7 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
       marketplaceSortByGroup,
       Supplier { marketplacePanel },
     )
-    this@MarketplacePluginsTab.marketplaceSearchPanel = marketplaceSearchPanel
-    return marketplaceSearchPanel
+    return searchPanel
   }
 
   private fun getOrCalculateVendors(): List<String> {
@@ -633,9 +629,7 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
     if (marketplacePanel != null) {
       marketplacePanel!!.dispose()
     }
-    if (marketplaceSearchPanel != null) {
-      marketplaceSearchPanel!!.dispose()
-    }
+    searchPanel.dispose()
     super.dispose()
   }
 
