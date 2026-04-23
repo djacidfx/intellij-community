@@ -460,6 +460,11 @@ public abstract class JsK2HighlightingMetaInfoTestGenerated extends AbstractK2Hi
             runTest("../../idea/tests/testData/highlighterMetaInfo/unresolved/unresolvedKDocLink.kt");
         }
 
+        @TestMetadata("unresolvedKDocLinkWithSuppressedSamples.kt")
+        public void testUnresolvedKDocLinkWithSuppressedSamples() throws Exception {
+            runTest("../../idea/tests/testData/highlighterMetaInfo/unresolved/unresolvedKDocLinkWithSuppressedSamples.kt");
+        }
+
         @TestMetadata("unresolvedLabel.kt")
         public void testUnresolvedLabel() throws Exception {
             runTest("../../idea/tests/testData/highlighterMetaInfo/unresolved/unresolvedLabel.kt");

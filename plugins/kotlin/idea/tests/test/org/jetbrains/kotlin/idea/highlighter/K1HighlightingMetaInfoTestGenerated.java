@@ -744,6 +744,11 @@ public abstract class K1HighlightingMetaInfoTestGenerated extends AbstractK1High
             runTest("testData/highlighterMetaInfo/unresolved/unresolvedKDocLink.kt");
         }
 
+        @TestMetadata("unresolvedKDocLinkWithSuppressedSamples.kt")
+        public void testUnresolvedKDocLinkWithSuppressedSamples() throws Exception {
+            runTest("testData/highlighterMetaInfo/unresolved/unresolvedKDocLinkWithSuppressedSamples.kt");
+        }
+
         @TestMetadata("unresolvedLabel.kt")
         public void testUnresolvedLabel() throws Exception {
             runTest("testData/highlighterMetaInfo/unresolved/unresolvedLabel.kt");

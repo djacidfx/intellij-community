@@ -603,7 +603,12 @@
                      groupBundle="messages.KotlinBundle" groupKey="group.names.probable.bugs"
                      enabledByDefault="true"
                      level="WARNING" key="inspection.k.doc.unresolved.link.display.name" bundle="messages.KotlinBundle"/>
-    
+
+    <registryKey key="kotlin.kdoc.should.report.samples"
+                 description="Whether `KDoc unresolved link` inspection should report unresolved samples"
+                 defaultValue="true"
+                 restartRequired="false"/>
+
     <localInspection implementationClass="org.jetbrains.kotlin.idea.k2.codeinsight.inspections.KDocResolutionResultHasChangedInspection"
                      groupPath="Kotlin"
                      groupBundle="messages.KotlinBundle" groupKey="group.names.probable.bugs"

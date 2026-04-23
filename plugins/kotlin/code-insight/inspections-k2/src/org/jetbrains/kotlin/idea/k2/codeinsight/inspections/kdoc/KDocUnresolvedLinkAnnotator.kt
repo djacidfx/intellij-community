@@ -7,6 +7,7 @@ import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.ExternalAnnotator
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.util.registry.RegistryManager
 import com.intellij.profile.codeInspection.InspectionProjectProfileManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
@@ -14,9 +15,12 @@ import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
 import org.jetbrains.kotlin.idea.codeinsight.utils.KDocUnresolvedLinkQuickFixFactory
 import org.jetbrains.kotlin.idea.references.KDocReference
 import org.jetbrains.kotlin.idea.references.mainReference
+import org.jetbrains.kotlin.kdoc.parser.KDocKnownTag
+import org.jetbrains.kotlin.kdoc.psi.impl.KDocLink
 import org.jetbrains.kotlin.kdoc.psi.impl.KDocName
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtVisitorVoid
+import org.jetbrains.kotlin.psi.psiUtil.getStrictParentOfType
 
 /**
  * This is a paired annotator for [KDocUnresolvedReferenceInspection].
@@ -63,7 +67,16 @@ class KDocUnresolvedLinkAnnotator : ExternalAnnotator<List<KDocReference>, List<
                 if (element is KDocName) {
                     val reference = element.mainReference
                     if (reference.multiResolve(incompleteCode = false).isEmpty()) {
-                        unresolvedReferences.add(reference)
+
+                        val containingKDocLink = element.getStrictParentOfType<KDocLink>()
+                        val isSubjectOfSampleTag = containingKDocLink?.getTagIfSubject()?.knownTag == KDocKnownTag.SAMPLE
+
+                        // Some `@sample` tag subjects are not resolved at the moment due to the implementation limitations
+                        // and lack of design. To avoid polluting the inspection results, we have introduced a registry key
+                        // as a temporary workaround. See KTIJ-21248, OSIP-678 and KTIJ-8414
+                        if (!isSubjectOfSampleTag || RegistryManager.getInstance().`is`("kotlin.kdoc.should.report.samples")) {
+                            unresolvedReferences.add(reference)
+                        }
                     }
                 }
                 element.acceptChildren(this)
