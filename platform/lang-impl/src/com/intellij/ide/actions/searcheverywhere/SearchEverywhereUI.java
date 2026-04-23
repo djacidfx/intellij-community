@@ -952,18 +952,6 @@ public final class SearchEverywhereUI extends BigPopupUI implements UiDataProvid
     }
 
     String tabId = myHeader.getSelectedTab().getID();
-    if (myMlService != null) {
-      var searchResults = myListModel.listElements
-        .stream()
-        .filter(e -> e.element != SearchListModel.MORE_ELEMENT)
-        .toList();
-      myMlService.onStateFinished(searchResults);
-      myMlService.onStateStarted(
-        tabId, reason,
-        namePattern,
-        getSelectedSearchScope(myHeader.getSelectedTab()), myHeader.isEverywhere()
-      );
-    }
 
     myListModel.expireResults();
     contributors.forEach(contributor -> myListModel.setHasMore(contributor, false));
@@ -986,11 +974,32 @@ public final class SearchEverywhereUI extends BigPopupUI implements UiDataProvid
         else {
           myListModel.clear();
           List<SearchEverywhereFoundElementInfo> lst = ContainerUtil.map(
-            commands, command -> new SearchEverywhereFoundElementInfo(command, 0, myStubCommandContributor));
+            commands, command -> {
+              if (myMlService == null) {
+                return new SearchEverywhereFoundElementInfo(command, 0, myStubCommandContributor);
+              }
+              else {
+                return myMlService.createFoundElementInfo(myStubCommandContributor, command, 0,
+                                                          SearchEverywhereSpellCheckResult.NoCorrection.INSTANCE);
+              }
+            });
           myListModel.addElements(lst);
           ScrollingUtil.ensureSelectionExists(myResultsList);
         }
       }
+    }
+
+    if (myMlService != null) {
+      var searchResults = myListModel.listElements
+        .stream()
+        .filter(e -> e.element != SearchListModel.MORE_ELEMENT)
+        .toList();
+      myMlService.onStateFinished(searchResults);
+      myMlService.onStateStarted(
+        tabId, reason,
+        namePattern,
+        getSelectedSearchScope(myHeader.getSelectedTab()), myHeader.isEverywhere()
+      );
     }
 
     myHintHelper.setSearchInProgress(StringUtil.isNotEmpty(getSearchPattern()));
