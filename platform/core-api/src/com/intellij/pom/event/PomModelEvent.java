@@ -37,7 +37,8 @@ public class PomModelEvent extends EventObject {
   public void merge(@NotNull PomModelEvent event) {
     if (event.myChangeSet != null && myChangeSet != null) {
       myChangeSet.merge(event.myChangeSet);
-    } else if (myChangeSet == null) {
+    }
+    else if (myChangeSet == null) {
       myChangeSet = event.myChangeSet;
     }
   }
