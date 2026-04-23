@@ -35,7 +35,7 @@ import java.util.function.Function
 import javax.swing.JComponent
 
 @ApiStatus.Internal
-class PluginManagerConfigurable : SearchableConfigurable, Configurable.NoScroll, Configurable.NoMargin, Configurable.TopComponentProvider {
+class PluginManagerConfigurable() : SearchableConfigurable, Configurable.NoScroll, Configurable.NoMargin, Configurable.TopComponentProvider {
   private var myPanel: PluginManagerConfigurablePanel? = null
 
   /**
@@ -43,8 +43,6 @@ class PluginManagerConfigurable : SearchableConfigurable, Configurable.NoScroll,
    */
   @Deprecated("Use PluginManagerConfigurable()", replaceWith = ReplaceWith("PluginManagerConfigurable()"))
   constructor(project: Project?) : this()
-
-  constructor()
 
   override fun getId(): String {
     return ID
