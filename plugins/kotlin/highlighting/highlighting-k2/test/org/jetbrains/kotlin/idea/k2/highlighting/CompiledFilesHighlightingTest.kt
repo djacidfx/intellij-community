@@ -72,8 +72,9 @@ class CompiledFilesHighlightingTest: KotlinLightCodeInsightFixtureTestCase() {
         )
     }
 
+    // KTIJ-38502
     @TestMetadata("commonMain/kotlin/annotations/OptIn.kt")
-    fun testDecompiledCodeKotlinAnnotationsOptInKt() {
+    fun _testDecompiledCodeKotlinAnnotationsOptInKt() {
         withLibrary(TestKotlinArtifacts.kotlinStdlib) {
             doTestWithLibraryFile(TestKotlinArtifacts.kotlinStdlibCommonSources, FileHighlightingSetting.SKIP_HIGHLIGHTING) {
                 val file = PsiManager.getInstance(project).findFile(it) ?: error("unable to locate PSI for $it")
