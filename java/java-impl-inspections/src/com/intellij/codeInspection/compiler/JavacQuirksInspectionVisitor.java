@@ -1,39 +1,56 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.codeInspection.compiler;
 
 import com.intellij.codeInsight.daemon.JavaErrorBundle;
 import com.intellij.codeInsight.daemon.QuickFixBundle;
 import com.intellij.codeInsight.daemon.impl.analysis.JavaHighlightUtil;
 import com.intellij.codeInsight.daemon.impl.quickfix.AddTypeArgumentsFix;
+import com.intellij.codeInsight.daemon.impl.quickfix.OrderEntryFix;
+import com.intellij.codeInsight.intention.IntentionAction;
 import com.intellij.codeInsight.intention.QuickFixFactory;
+import com.intellij.codeInspection.LambdaCanBeMethodReferenceInspection;
+import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.codeInspection.ProblemsHolder;
 import com.intellij.java.analysis.JavaAnalysisBundle;
 import com.intellij.modcommand.ModPsiUpdater;
 import com.intellij.modcommand.PsiUpdateModCommandQuickFix;
+import com.intellij.openapi.module.Module;
+import com.intellij.openapi.module.ModuleUtilCore;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.projectRoots.JavaSdkVersion;
 import com.intellij.openapi.projectRoots.JavaVersionService;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.patterns.ElementPattern;
 import com.intellij.pom.java.LanguageLevel;
 import com.intellij.psi.CommonClassNames;
 import com.intellij.psi.JavaElementVisitor;
+import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.JavaRecursiveElementWalkingVisitor;
 import com.intellij.psi.JavaResolveResult;
 import com.intellij.psi.JavaTokenType;
 import com.intellij.psi.PsiArrayInitializerMemberValue;
+import com.intellij.psi.PsiArrayType;
 import com.intellij.psi.PsiAssignmentExpression;
 import com.intellij.psi.PsiBinaryExpression;
 import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiClassType;
+import com.intellij.psi.PsiCodeBlock;
+import com.intellij.psi.PsiCompiledFile;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiExpression;
+import com.intellij.psi.PsiField;
+import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiIntersectionType;
 import com.intellij.psi.PsiJavaCodeReferenceElement;
 import com.intellij.psi.PsiJavaToken;
+import com.intellij.psi.PsiMember;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.psi.PsiMethodReferenceExpression;
 import com.intellij.psi.PsiModifier;
+import com.intellij.psi.PsiNamedElement;
+import com.intellij.psi.PsiParameter;
 import com.intellij.psi.PsiReferenceExpression;
 import com.intellij.psi.PsiReferenceList;
 import com.intellij.psi.PsiReferenceParameterList;
@@ -43,26 +60,35 @@ import com.intellij.psi.PsiTypeCastExpression;
 import com.intellij.psi.PsiTypeElement;
 import com.intellij.psi.PsiTypeParameter;
 import com.intellij.psi.PsiTypeParameterList;
-import com.intellij.psi.impl.source.resolve.JavaResolveUtil;
+import com.intellij.psi.PsiWildcardType;
 import com.intellij.psi.impl.source.resolve.graphInference.PsiPolyExpressionUtil;
 import com.intellij.psi.infos.MethodCandidateInfo;
+import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.tree.IElementType;
+import com.intellij.psi.util.CachedValueProvider;
+import com.intellij.psi.util.CachedValuesManager;
 import com.intellij.psi.util.InheritanceUtil;
 import com.intellij.psi.util.PsiFormatUtil;
 import com.intellij.psi.util.PsiFormatUtilBase;
+import com.intellij.psi.util.PsiModificationTracker;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.util.PsiTypesUtil;
 import com.intellij.psi.util.PsiUtil;
 import com.intellij.psi.util.TypeConversionUtil;
 import com.intellij.util.ArrayUtilRt;
 import com.intellij.util.ObjectUtils;
+import com.intellij.util.containers.ContainerUtil;
 import com.siyeh.ig.PsiReplacementUtil;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import static com.intellij.patterns.PsiJavaPatterns.psiElement;
 
@@ -72,39 +98,24 @@ public class JavacQuirksInspectionVisitor extends JavaElementVisitor {
 
   private final ProblemsHolder myHolder;
   private final LanguageLevel myLanguageLevel;
+  private final JavaSdkVersion myJavaSdkVersion;
 
   public JavacQuirksInspectionVisitor(ProblemsHolder holder) {
     myHolder = holder;
-    myLanguageLevel = PsiUtil.getLanguageLevel(myHolder.getFile());
+    PsiFile file = myHolder.getFile();
+    myLanguageLevel = PsiUtil.getLanguageLevel(file);
+    myJavaSdkVersion = ObjectUtils
+      .notNull(JavaVersionService.getInstance().getJavaSdkVersion(file), JavaSdkVersion.fromLanguageLevel(myLanguageLevel));
   }
 
   @Override
   public void visitMethodReferenceExpression(@NotNull PsiMethodReferenceExpression methodRef) {
     PsiMethod method = ObjectUtils.tryCast(methodRef.resolve(), PsiMethod.class);
-    PsiClass targetClass = getInaccessibleMethodReferenceClass(methodRef, method);
+    PsiClass targetClass = LambdaCanBeMethodReferenceInspection.getInaccessibleMethodReferenceClass(methodRef, method);
     if (targetClass == null) return;
     String className = PsiFormatUtil.formatClass(targetClass, PsiFormatUtilBase.SHOW_NAME | PsiFormatUtilBase.SHOW_FQ_NAME);
     myHolder.registerProblem(methodRef,
                              JavaAnalysisBundle.message("inspection.quirk.method.reference.return.type.message", className));
-  }
-
-  /**
-   * @param context PsiElement where accessibility should be checked
-   * @param method method reference target method
-   * @return class that needs to be accessible at runtime to link the method reference but is not accessible at runtime;
-   * null if there's no accessibility problem
-   */
-  public static @Nullable PsiClass getInaccessibleMethodReferenceClass(@NotNull PsiElement context, @Nullable PsiMethod method) {
-    if (method == null) return null;
-    PsiClass targetClass = PsiUtil.resolveClassInType(TypeConversionUtil.erasure(method.getReturnType()));
-    if (targetClass == null) return null;
-    if (!targetClass.hasModifierProperty(PsiModifier.PACKAGE_LOCAL) && !targetClass.hasModifierProperty(PsiModifier.PRIVATE)) {
-      return null;
-    }
-    if (JavaResolveUtil.isAccessible(targetClass, targetClass.getContainingClass(), targetClass.getModifierList(), context, null, null)) {
-      return null;
-    }
-    return targetClass;
   }
 
   @Override
@@ -264,6 +275,156 @@ public class JavacQuirksInspectionVisitor extends JavaElementVisitor {
 
   @Override
   public void visitReferenceElement(@NotNull PsiJavaCodeReferenceElement ref) {
+    checkHiddenClassReference(ref);
+    checkTypeAnnotationModuleDependency(ref);
+  }
+
+  private void checkTypeAnnotationModuleDependency(@NotNull PsiJavaCodeReferenceElement ref) {
+    // See JDK-8225377 and JDK-8370800
+    if (myJavaSdkVersion.getMaxLanguageLevel().isLessThan(LanguageLevel.JDK_22)) return;
+    if (!(ref.resolve() instanceof PsiClass target)) return;
+    PsiFile targetFile = target.getContainingFile();
+    if (targetFile == null || targetFile instanceof PsiCompiledFile) return;
+    PsiTypeElement typeElement = PsiTreeUtil.getParentOfType(ref, PsiTypeElement.class, false, PsiExpression.class, PsiCodeBlock.class);
+    if (typeElement == null) return;
+    PsiFile file = myHolder.getFile();
+    Module module = ModuleUtilCore.findModuleForFile(file);
+    if (module == null) return;
+    Module targetModule = ModuleUtilCore.findModuleForFile(targetFile);
+    if (targetModule == null || targetModule == module) return;
+    GlobalSearchScope scope = file.getResolveScope();
+    List<RequiredModuleAccess> requiredModuleAccesses = getRequiredModuleAccesses(target);
+    for (RequiredModuleAccess access : requiredModuleAccesses) {
+      PsiFile requiredFile = access.target.getContainingFile();
+      if (requiredFile == null) continue;
+      VirtualFile virtualFile = requiredFile.getVirtualFile();
+      if (virtualFile == null) continue;
+      if (scope.contains(virtualFile)) continue;
+      Module requiredModule = ModuleUtilCore.findModuleForFile(requiredFile);
+      if (requiredModule == null) continue;
+      List<IntentionAction> registrar = new ArrayList<>();
+      String targetName = access.target.getName();
+      if (targetName == null) continue;
+      PsiJavaCodeReferenceElement fakeRef = JavaPsiFacade.getElementFactory(file.getProject()).createReferenceFromText(targetName, ref);
+      List<@NotNull LocalQuickFix> fixes = OrderEntryFix.registerFixes(fakeRef, access.target, registrar);
+      myHolder.registerProblem(ref, JavaAnalysisBundle.message("inspection.quirk.type.annotation.transitive.dependency.message",
+                                                               module.getName(), requiredModule.getName(), formatElement(access.member)),
+                               fixes.toArray(LocalQuickFix.EMPTY_ARRAY));
+    }
+  }
+
+  private static @Nls String formatElement(@NotNull PsiNamedElement element) {
+    if (element instanceof PsiField || element instanceof PsiMethod) {
+      PsiClass psiClass = ((PsiMember)element).getContainingClass();
+      if (psiClass != null) {
+        String name = psiClass.getName();
+        if (name != null) return "'" + name + "." + element.getName() + "'";
+      }
+    }
+    if (element instanceof PsiParameter parameter && parameter.getDeclarationScope() instanceof PsiMethod method) {
+      return JavaAnalysisBundle.message("inspection.quirk.type.annotation.transitive.dependency.parameter.format", parameter.getName(), formatElement(method));
+    }
+    return "'" + element.getName() + "'";
+  }
+
+  private static @NotNull List<@NotNull RequiredModuleAccess> getRequiredModuleAccesses(@NotNull PsiClass target) {
+    return CachedValuesManager.getCachedValue(
+      target, () -> CachedValueProvider.Result.create(computeRequiredModuleAccesses(target),
+                                                      PsiModificationTracker.MODIFICATION_COUNT));
+  }
+
+  private static @NotNull List<@NotNull RequiredModuleAccess> computeRequiredModuleAccesses(@NotNull PsiClass target) {
+    Module module = ModuleUtilCore.findModuleForPsiElement(target);
+    if (module == null) return List.of();
+    List<RequiredModuleAccess> result = new ArrayList<>();
+    for (PsiField field : target.getFields()) {
+      result.addAll(ContainerUtil.map(computeRequiredModuleAccesses(module, field.getType()), t -> new RequiredModuleAccess(field, t)));
+    }
+    for (PsiMethod method : target.getMethods()) {
+      result.addAll(ContainerUtil.map(computeRequiredModuleAccesses(module, method.getReturnType()), t -> new RequiredModuleAccess(method, t)));
+      for (PsiParameter parameter : method.getParameterList().getParameters()) {
+        result.addAll(ContainerUtil.map(computeRequiredModuleAccesses(module, parameter.getType()), t -> new RequiredModuleAccess(parameter, t)));
+      }
+    }
+    return result;
+  }
+
+  private static @NotNull Set<@NotNull PsiClass> computeRequiredModuleAccesses(@NotNull Module module, @Nullable PsiType type) {
+    if (type == null || !hasTypeAnnotations(type)) return Set.of();
+    return getGenericClasses(module, type);
+  }
+
+  private static @NotNull Set<@NotNull PsiClass> getGenericClasses(@NotNull Module module, @Nullable PsiType type) {
+    Set<PsiClass> result = new HashSet<>();
+    collectGenericClasses(module, type, result);
+    return result;
+  }
+
+  private static void collectGenericClasses(@NotNull Module module, @Nullable PsiType type, @NotNull Set<PsiClass> result) {
+    if (type == null) return;
+
+    if (type instanceof PsiArrayType arrayType) {
+      collectGenericClasses(module, arrayType.getComponentType(), result);
+    }
+    else if (type instanceof PsiClassType classType) {
+      PsiType[] parameters = classType.getParameters();
+      if (parameters.length > 0) {
+        PsiClass psiClass = classType.resolve();
+        if (psiClass != null) {
+          Module requiredModule = ModuleUtilCore.findModuleForPsiElement(psiClass);
+          if (requiredModule != null && requiredModule != module) {
+            result.add(psiClass);
+          }
+        }
+        for (PsiType parameter : parameters) {
+          collectGenericClasses(module, parameter, result);
+        }
+      }
+    }
+    else if (type instanceof PsiWildcardType wildcardType) {
+      PsiType bound = wildcardType.getBound();
+      if (bound != null) {
+        collectGenericClasses(module, bound, result);
+      }
+    }
+    else if (type instanceof PsiIntersectionType intersectionType) {
+      for (PsiType conjunct : intersectionType.getConjuncts()) {
+        collectGenericClasses(module, conjunct, result);
+      }
+    }
+  }
+
+  private static boolean hasTypeAnnotations(@NotNull PsiType type) {
+    if (type.getAnnotations().length > 0) return true;
+
+    if (type instanceof PsiArrayType arrayType) {
+      return hasTypeAnnotations(arrayType.getComponentType());
+    }
+
+    if (type instanceof PsiClassType classType) {
+      for (PsiType parameter : classType.getParameters()) {
+        if (hasTypeAnnotations(parameter)) return true;
+      }
+    }
+
+    if (type instanceof PsiWildcardType wildcardType) {
+      PsiType bound = wildcardType.getBound();
+      if (bound != null && hasTypeAnnotations(bound)) return true;
+    }
+
+    if (type instanceof PsiIntersectionType intersectionType) {
+      for (PsiType conjunct : intersectionType.getConjuncts()) {
+        if (hasTypeAnnotations(conjunct)) return true;
+      }
+    }
+
+    return false;
+  }
+
+  record RequiredModuleAccess(@NotNull PsiNamedElement member, @NotNull PsiClass target) {
+  }
+
+  private void checkHiddenClassReference(@NotNull PsiJavaCodeReferenceElement ref) {
     if (myLanguageLevel.isAtLeast(LanguageLevel.JDK_1_9)) return;//javac 9 has no such bug
     if (ref.getParent() instanceof PsiTypeElement) {
       final PsiClass psiClass = PsiTreeUtil.getParentOfType(ref, PsiClass.class);
