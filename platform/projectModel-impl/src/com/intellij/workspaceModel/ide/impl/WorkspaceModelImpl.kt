@@ -4,6 +4,7 @@ package com.intellij.workspaceModel.ide.impl
 import com.intellij.concurrency.ThreadContextAwareReentrantLock
 import com.intellij.diagnostic.StartUpMeasurer
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.edtWriteAction
 import com.intellij.openapi.components.serviceIfCreated
 import com.intellij.openapi.diagnostic.ControlFlowException
@@ -478,6 +479,9 @@ open class WorkspaceModelImpl : WorkspaceModelInternal {
   override suspend fun <T> flowOfDiff(query: CollectionQuery<T>): Flow<Diff<T>> = reactive.flowOfDiff(query)
 
   override suspend fun awaitSynchronizationWithJpsModel() {
+    if (ModalityState.current() != ModalityState.nonModal()) {
+      throw IllegalStateException("awaitSynchronizationWithJpsModel() can only be called in non-modal context. Current context: ${ModalityState.current()}")
+    }
     GlobalWorkspaceModel.getInstance(LocalEelMachine).awaitSynchronizationWithJpsModel()
 
     CompletableDeferred<Unit>().also { deferred ->

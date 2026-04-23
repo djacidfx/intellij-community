@@ -100,7 +100,9 @@ public interface WorkspaceModelInternal: WorkspaceModel {
    * Project model (modules, libraries, etc.) is serialized to iml/xml files, which we treat as a source of truth.
    * This method waits until [WorkspaceModel] is synchronized with the JPS model.
    *
-   * This method should be used in the situations when it's critical to have WSM in the up to date state.
+   * This method requires non-modal context as it waits for an event that can only happen in a non-modal context.
+   *
+   * This method should be used in the situations when it's critical to have WSM in the up-to-date state.
    * Particularly, when you want to automatically change WSM based on its current state, for example, add a missing SDK.
    *
    * Note that if WSM was loaded without cache (it was completely empty), then you already have the up-to-date state because it's read from iml/xml files.
