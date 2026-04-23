@@ -2514,7 +2514,7 @@ com.intellij.pom.event.PomChangeSet
 - beforeNestedTransaction():V
 - a:getAspect():com.intellij.pom.PomModelAspect
 - a:merge(com.intellij.pom.event.PomChangeSet):V
-c:com.intellij.pom.event.PomModelEvent
+f:com.intellij.pom.event.PomModelEvent
 - java.util.EventObject
 - beforeNestedTransaction():V
 - getChangeSet(com.intellij.pom.PomModelAspect):com.intellij.pom.event.PomChangeSet
