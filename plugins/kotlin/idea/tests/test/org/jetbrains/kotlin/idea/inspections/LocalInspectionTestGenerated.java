@@ -4895,6 +4895,11 @@ public abstract class LocalInspectionTestGenerated extends AbstractK1LocalInspec
             runTest("testData/inspectionsLocal/deprecatedCallableAddReplaceWith/justLambdaInScript.kts");
         }
 
+        @TestMetadata("lineBreaks.kt")
+        public void testLineBreaks() throws Exception {
+            runTest("testData/inspectionsLocal/deprecatedCallableAddReplaceWith/lineBreaks.kt");
+        }
+
         @TestMetadata("NoCompanionObjectImport.kt")
         public void testNoCompanionObjectImport() throws Exception {
             runTest("testData/inspectionsLocal/deprecatedCallableAddReplaceWith/NoCompanionObjectImport.kt");

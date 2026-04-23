@@ -184,7 +184,8 @@ internal class DeprecatedCallableAddReplaceWithInspection :
             return null
         }
 
-        return (expression.reformatted(true) as KtExpression).text.trim()
+        val string = (expression.reformatted(true) as KtExpression).text
+        return string.split("\n").joinToString(" ") { it.trim() }.replace('\n', ' ')
     }
 
     private fun KaAnnotation.argumentValueByName(name: String): KaAnnotationValue? =

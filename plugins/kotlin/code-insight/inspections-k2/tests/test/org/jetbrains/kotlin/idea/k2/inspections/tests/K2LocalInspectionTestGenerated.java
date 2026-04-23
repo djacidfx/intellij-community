@@ -20571,6 +20571,11 @@ public abstract class K2LocalInspectionTestGenerated extends AbstractK2LocalInsp
             runTest("../../../idea/tests/testData/inspectionsLocal/deprecatedCallableAddReplaceWith/Imports.kt");
         }
 
+        @TestMetadata("lineBreaks.kt")
+        public void testLineBreaks() throws Exception {
+            runTest("../../../idea/tests/testData/inspectionsLocal/deprecatedCallableAddReplaceWith/lineBreaks.kt");
+        }
+
         @TestMetadata("NoCompanionObjectImport.kt")
         public void testNoCompanionObjectImport() throws Exception {
             runTest("../../../idea/tests/testData/inspectionsLocal/deprecatedCallableAddReplaceWith/NoCompanionObjectImport.kt");
