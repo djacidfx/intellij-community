@@ -90,14 +90,14 @@ class InstalledPluginsTab @RequiresEdt constructor(
     customizeSearchTextField()
   }
 
-  fun getInstalledPanel(): PluginsGroupComponentWithProgress? {
+  fun getInstalledPanel(): PluginsGroupComponentWithProgress {
     return installedPanel
   }
 
   fun getInstalledSearchPanel(): SearchResultPanel = searchPanel
 
   fun getInstalledGroups(): List<UIPluginGroup>? {
-    return if (getInstalledPanel() != null) getInstalledPanel()!!.groups else null
+    return getInstalledPanel().groups
   }
 
   @RequiresEdt
@@ -443,8 +443,8 @@ class InstalledPluginsTab @RequiresEdt constructor(
   private fun applyBundledUpdates(updates: Collection<PluginUiModel>?) {
     if (updates.isNullOrEmpty()) {
       if (bundledUpdateGroup.ui != null) {
-        getInstalledPanel()!!.removeGroup(bundledUpdateGroup)
-        getInstalledPanel()!!.doLayout()
+        getInstalledPanel().removeGroup(bundledUpdateGroup)
+        getInstalledPanel().doLayout()
       }
     }
     else if (bundledUpdateGroup.ui == null) {
@@ -455,7 +455,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
         bundledUpdateGroup.addSecondaryAction(bundledUpdateCounter)
       }
       for (descriptor in updates) {
-        for (group in getInstalledPanel()!!.groups) {
+        for (group in getInstalledPanel().groups) {
           val component = group.findComponent(descriptor.pluginId)
           if (component != null && component.getPluginModel().isBundled) {
             bundledUpdateGroup.addModel(component.getPluginModel())
@@ -466,7 +466,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
       if (!bundledUpdateGroup.getModels().isEmpty()) {
         var insertPosition = 0
         if (Registry.`is`("ide.plugins.category.promotion.enabled")) {
-          val groups = getInstalledPanel()!!.groups
+          val groups = getInstalledPanel().groups
           for (i in groups.indices) {
             if (groups[i].promotionPanel != null) {
               insertPosition = i + 1
@@ -474,7 +474,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
             }
           }
         }
-        getInstalledPanel()!!.addGroup(bundledUpdateGroup, insertPosition)
+        getInstalledPanel().addGroup(bundledUpdateGroup, insertPosition)
         bundledUpdateGroup.ui!!.isBundledUpdatesGroup = true
 
         for (descriptor in updates) {
@@ -482,7 +482,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
           component?.setUpdateDescriptor(descriptor)
         }
 
-        getInstalledPanel()!!.doLayout()
+        getInstalledPanel().doLayout()
       }
     }
     else {
@@ -502,7 +502,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
       }
 
       for (component in toDelete) {
-        getInstalledPanel()!!.removeFromGroup(bundledUpdateGroup, component.getPluginModel())
+        getInstalledPanel().removeFromGroup(bundledUpdateGroup, component.getPluginModel())
       }
 
       for (update in updates) {
@@ -510,20 +510,20 @@ class InstalledPluginsTab @RequiresEdt constructor(
         if (exist != null) {
           continue
         }
-        for (group in getInstalledPanel()!!.groups) {
+        for (group in getInstalledPanel().groups) {
           if (group == bundledUpdateGroup.ui) {
             continue
           }
           val component = group.findComponent(update.pluginId)
           if (component != null && component.getPluginModel().isBundled) {
-            getInstalledPanel()!!.addToGroup(bundledUpdateGroup, component.getPluginModel())
+            getInstalledPanel().addToGroup(bundledUpdateGroup, component.getPluginModel())
             break
           }
         }
       }
 
       if (bundledUpdateGroup.getModels().isEmpty()) {
-        getInstalledPanel()!!.removeGroup(bundledUpdateGroup)
+        getInstalledPanel().removeGroup(bundledUpdateGroup)
       }
       else {
         for (descriptor in updates) {
@@ -532,7 +532,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
         }
       }
 
-      getInstalledPanel()!!.doLayout()
+      getInstalledPanel().doLayout()
     }
 
     updateAllLink.isVisible = updateAllLink.isVisible && bundledUpdateGroup.ui == null

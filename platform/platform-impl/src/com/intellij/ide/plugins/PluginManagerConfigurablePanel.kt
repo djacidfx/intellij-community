@@ -467,7 +467,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     }
 
     if (!components.isEmpty()) {
-      installedTab.getInstalledPanel()!!.setSelection(components)
+      installedTab.getInstalledPanel().setSelection(components)
     }
   }
 
@@ -527,14 +527,14 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
   private fun updateAfterPluginInstalledFromDisk(callbackData: PluginInstallCallbackData, errors: List<HtmlChunk>) {
     pluginModelFacade.getModel().pluginInstalledFromDisk(callbackData, errors)
 
-    val select = installedTab.getInstalledPanel() == null
+    val select = false
     updateSelectionTab(INSTALLED_TAB)
 
     installedTab.clearSearchPanel("")
 
     val component = if (select) findInstalledPluginById(callbackData.pluginDescriptor.pluginId) else null
     if (component != null) {
-      installedTab.getInstalledPanel()!!.setSelection(component)
+      installedTab.getInstalledPanel().setSelection(component)
     }
   }
 
