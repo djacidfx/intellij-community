@@ -17,7 +17,7 @@ import javax.swing.JLabel
 @ApiStatus.Internal
 open class PluginsGroup(
   @JvmField var title: @Nls String,
-  @JvmField var type: PluginsGroupType,
+  @JvmField val type: PluginsGroupType,
 ) {
   @JvmField protected val myTitlePrefix: @Nls String = title
   @JvmField var titleLabel: JLabel? = null
