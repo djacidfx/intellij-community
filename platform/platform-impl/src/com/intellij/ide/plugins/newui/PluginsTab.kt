@@ -71,6 +71,7 @@ abstract class PluginsTab @RequiresEdt constructor(
     }
   }
 
+  @RequiresEdt
   fun createPanel(): JComponent {
     cardPanel = object : MultiPanel() {
       override fun addNotify() {
@@ -119,6 +120,7 @@ abstract class PluginsTab @RequiresEdt constructor(
 
   protected abstract fun createDetailsPanel(searchListener: LinkListener<Any>): PluginDetailsPageComponent
 
+  @RequiresEdt
   protected abstract fun createPluginsPanel(): JComponent
 
   protected abstract fun updateMainSelection(selectionListener: Consumer<in PluginsGroupComponent?>)

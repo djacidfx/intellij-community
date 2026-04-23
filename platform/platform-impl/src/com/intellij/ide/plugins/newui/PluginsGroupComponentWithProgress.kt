@@ -4,13 +4,14 @@ package com.intellij.ide.plugins.newui
 import com.intellij.ide.IdeBundle
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.Disposer
+import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.AsyncProcessIcon
 import com.intellij.util.ui.AsyncProcessIcon.BigCentered
 import org.jetbrains.annotations.ApiStatus
 import java.awt.Graphics
 
 @ApiStatus.Internal
-abstract class PluginsGroupComponentWithProgress(eventHandler: EventHandler) : PluginsGroupComponent(eventHandler) {
+abstract class PluginsGroupComponentWithProgress @RequiresEdt constructor(eventHandler: EventHandler) : PluginsGroupComponent(eventHandler) {
   private var myLoadingIcon: AsyncProcessIcon? = BigCentered(IdeBundle.message("progress.text.loading"))
   private var myOnBecomingVisibleCallback: Runnable? = null
 

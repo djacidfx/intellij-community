@@ -104,6 +104,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
     return detailPanel
   }
 
+  @RequiresEdt
   override fun createPluginsPanel(): JComponent {
     val eventHandler = MultiSelectionEventHandler()
     val installedPanel = object : PluginsGroupComponentWithProgress(eventHandler) {

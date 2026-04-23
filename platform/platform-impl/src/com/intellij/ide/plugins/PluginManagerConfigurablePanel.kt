@@ -161,6 +161,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     }
   }
 
+  @RequiresEdt
   private fun createCardPanel(selectionTab: Int): MultiPanel {
     val cardPanel = object : MultiPanel() {
       override fun create(key: Int?): JComponent {

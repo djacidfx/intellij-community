@@ -10,6 +10,7 @@ import com.intellij.ui.components.JBPanelWithEmptyText
 import com.intellij.ui.components.panels.NonOpaquePanel
 import com.intellij.ui.components.panels.OpaquePanel
 import com.intellij.ui.scale.JBUIScale
+import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
@@ -33,7 +34,7 @@ import javax.swing.JScrollBar
 import javax.swing.SwingUtilities
 
 @ApiStatus.Internal
-abstract class PluginsGroupComponent(eventHandler: EventHandler) : JBPanelWithEmptyText(PluginListLayout()) {
+abstract class PluginsGroupComponent @RequiresEdt constructor(eventHandler: EventHandler) : JBPanelWithEmptyText(PluginListLayout()) {
 
   private val myEventHandler: EventHandler = eventHandler
   private val myGroups: MutableList<UIPluginGroup> = ArrayList()
