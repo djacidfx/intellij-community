@@ -2339,6 +2339,18 @@ public class AbstractPopup implements JBPopup, ScreenAreaConsumer, AlignedPopup,
     myForceCancelOnFocusLoss = forceCancelOnFocusLoss;
   }
 
+  /**
+   * Returns true iff the popup will close on focus loss even on Wayland.
+   *
+   * @see #setForceCancelOnFocusLoss(boolean)
+   * @param popup the popup to check
+   * @return true iff the popup will close on focus loss even on Wayland
+   */
+  @ApiStatus.Internal
+  public static boolean isForceCancelOnFocusLoss(@NotNull JBPopup popup) {
+    return popup instanceof AbstractPopup abstractPopup && abstractPopup.myForceCancelOnFocusLoss;
+  }
+
   @ApiStatus.Internal
   public void setIsMovable(boolean movable) {
     myMovable = movable;
