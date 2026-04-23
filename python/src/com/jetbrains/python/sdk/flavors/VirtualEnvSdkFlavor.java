@@ -27,7 +27,7 @@ import java.util.Collection;
  */
 @ApiStatus.Internal
 
-public final class VirtualEnvSdkFlavor extends CPythonSdkFlavor<PyFlavorData.Empty> {
+public final class VirtualEnvSdkFlavor extends CPythonSdkFlavor<PyFlavorData.Empty> implements VirtualEnvBasedFlavor {
   private VirtualEnvSdkFlavor() {
   }
 

@@ -5,9 +5,10 @@ import com.intellij.python.community.impl.pipenv.PIPENV_ICON
 import com.jetbrains.python.sdk.flavors.CPythonSdkFlavor
 import com.jetbrains.python.sdk.flavors.PyFlavorData
 import com.jetbrains.python.sdk.flavors.PythonFlavorProvider
+import com.jetbrains.python.sdk.flavors.VirtualEnvBasedFlavor
 import javax.swing.Icon
 
-object PyPipEnvSdkFlavor : CPythonSdkFlavor<PyFlavorData.Empty>() {
+object PyPipEnvSdkFlavor : CPythonSdkFlavor<PyFlavorData.Empty>(), VirtualEnvBasedFlavor {
   override fun getIcon(): Icon = PIPENV_ICON
   override fun getFlavorDataClass(): Class<PyFlavorData.Empty> = PyFlavorData.Empty::class.java
 

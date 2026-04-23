@@ -8,13 +8,14 @@ import com.jetbrains.python.sdk.flavors.PyFlavorAndData
 import com.jetbrains.python.sdk.flavors.PyFlavorData
 import com.jetbrains.python.sdk.flavors.PythonFlavorProvider
 import com.jetbrains.python.sdk.flavors.PythonSdkFlavor
+import com.jetbrains.python.sdk.flavors.VirtualEnvBasedFlavor
 import org.jdom.Element
 import java.nio.file.Path
 import javax.swing.Icon
 
 typealias HatchSdkFlavorData = PyFlavorData.Empty
 
-internal object HatchSdkFlavor : CPythonSdkFlavor<HatchSdkFlavorData>() {
+internal object HatchSdkFlavor : CPythonSdkFlavor<HatchSdkFlavorData>(), VirtualEnvBasedFlavor {
   override fun getIcon(): Icon = PythonHatchIcons.Logo
   override fun getFlavorDataClass(): Class<HatchSdkFlavorData> = HatchSdkFlavorData::class.java
   override fun isValidSdkPath(pathStr: String): Boolean = false

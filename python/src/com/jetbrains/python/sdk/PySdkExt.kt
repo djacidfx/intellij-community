@@ -28,6 +28,7 @@ import com.intellij.openapi.util.NlsContexts
 import com.intellij.openapi.util.UserDataHolder
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.util.io.FileUtil
+import com.intellij.openapi.util.io.toNioPathOrNull
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.StandardFileSystems
 import com.intellij.openapi.vfs.VfsUtil
@@ -36,6 +37,8 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.vfs.ex.temp.TempFileSystem
 import com.intellij.openapi.vfs.refreshAndFindVirtualFile
 import com.intellij.platform.eel.EelApi
+import com.intellij.platform.eel.EelOsFamily
+import com.intellij.platform.eel.provider.getEelDescriptor
 import com.intellij.platform.ide.progress.ModalTaskOwner
 import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import com.intellij.python.community.services.systemPython.SystemPythonService
@@ -47,6 +50,7 @@ import com.jetbrains.python.PyBundle
 import com.jetbrains.python.PythonBinary
 import com.jetbrains.python.errorProcessing.PyResult
 import com.jetbrains.python.isCondaVirtualEnv
+import com.jetbrains.python.isInnerVirtualEnv
 import com.jetbrains.python.isVirtualEnv
 import com.jetbrains.python.packaging.ui.PyPackageManagementService
 import com.jetbrains.python.psi.LanguageLevel
@@ -60,6 +64,7 @@ import com.jetbrains.python.sdk.legacy.PythonSdkUtil.isPythonSdk
 import com.jetbrains.python.sdk.readOnly.PythonSdkReadOnlyProvider
 import com.jetbrains.python.target.PyTargetAwareAdditionalData
 import com.jetbrains.python.target.createDetectedSdk
+import com.jetbrains.python.venvReader.VirtualEnvReader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.annotations.ApiStatus
@@ -457,19 +462,18 @@ internal fun Project.excludeInnerVirtualEnv(sdk: Sdk) {
 
 @Internal
 fun getInnerVirtualEnvRoot(sdk: Sdk): VirtualFile? {
-  val binaryPath = sdk.homePath ?: return null
+  val binaryPath = sdk.homePath?.toNioPathOrNull() ?: return null
 
-  val possibleVirtualEnv = PythonSdkUtil.getVirtualEnvRoot(binaryPath)
+  val rootPath = when {
+    sdk.isInnerVirtualEnv -> VirtualEnvReader().getVenvRoot(binaryPath)
+    sdk.isCondaVirtualEnv -> when (binaryPath.getEelDescriptor().osFamily) {
+      EelOsFamily.Windows -> binaryPath.parent
+      EelOsFamily.Posix -> binaryPath.parent?.parent
+    }
+    else -> null
+  }
 
-  return if (possibleVirtualEnv != null) {
-    LocalFileSystem.getInstance().findFileByIoFile(possibleVirtualEnv)
-  }
-  else if (PythonSdkUtil.isCondaVirtualEnv(binaryPath)) {
-    PythonSdkUtil.getCondaDirectory(sdk)
-  }
-  else {
-    null
-  }
+  return rootPath?.let { LocalFileSystem.getInstance().findFileByNioFile(it) }
 }
 
 internal suspend fun suggestAssociatedSdkName(sdkHome: String, associatedPath: String?): String? = withContext(Dispatchers.IO) {
