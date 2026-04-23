@@ -45,8 +45,9 @@ abstract class PluginsTab @RequiresEdt constructor(
   private val defaultOrSearchResultsViewPanel: MultiPanel = createDefaultOrSearchResultsViewPanel()
   @JvmField val searchListener: LinkListener<Any> = createSearchListener()
   protected val selectionListener: Consumer<PluginsGroupComponent?> = createSelectionListener()
-  private val detailsPage: PluginDetailsPageComponent = createDetailsPanel(searchListener)
-  private val searchPanel: SearchResultPanel = createSearchPanel(selectionListener)
+
+  protected abstract val detailsPage: PluginDetailsPageComponent
+  protected abstract val searchPanel: SearchResultPanel
 
   @RequiresEdt
   fun createPanel(): JComponent {
@@ -70,14 +71,10 @@ abstract class PluginsTab @RequiresEdt constructor(
     return splitter
   }
 
-  protected abstract fun createDetailsPanel(searchListener: LinkListener<Any>): PluginDetailsPageComponent
-
   @RequiresEdt
   protected abstract fun createPluginsPanel(): JComponent
 
   protected abstract fun updateMainSelection(selectionListener: Consumer<in PluginsGroupComponent?>)
-
-  protected abstract fun createSearchPanel(selectionListener: Consumer<in PluginsGroupComponent?>): SearchResultPanel
 
   var searchQuery: String?
     get() {

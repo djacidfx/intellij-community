@@ -87,6 +87,9 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
   private var myTagsSorted: List<String>? = null
   private var myVendorsSorted: List<String>? = null
 
+  override val detailsPage: PluginDetailsPageComponent = createDetailsPanel(searchListener)
+  override val searchPanel: SearchResultPanel = createSearchPanel(selectionListener)
+
   init {
     for (option in MarketplaceTabSearchSortByOptions.entries) {
       myMarketplaceSortByGroup.addAction(MarketplaceSortByAction(option))
@@ -105,12 +108,6 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
 
   private fun customizeSearchTextField() {
     searchTextField.setHistoryPropertyName("MarketplacePluginsSearchHistory")
-  }
-
-  override fun createDetailsPanel(searchListener: LinkListener<Any>): PluginDetailsPageComponent {
-    val detailPanel = PluginDetailsPageComponent(myPluginModelFacade, searchListener, true)
-    myPluginModelFacade.getModel().addDetailPanel(detailPanel)
-    return detailPanel
   }
 
   @RequiresEdt
@@ -311,7 +308,13 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
     selectionListener.accept(myMarketplacePanel)
   }
 
-  override fun createSearchPanel(selectionListener: Consumer<in PluginsGroupComponent?>): SearchResultPanel {
+  private fun createDetailsPanel(searchListener: LinkListener<Any>): PluginDetailsPageComponent {
+    val detailPanel = PluginDetailsPageComponent(myPluginModelFacade, searchListener, true)
+    myPluginModelFacade.getModel().addDetailPanel(detailPanel)
+    return detailPanel
+  }
+
+  private fun createSearchPanel(selectionListener: Consumer<in PluginsGroupComponent?>): SearchResultPanel {
     val marketplaceController = object : SearchUpDownPopupController(searchTextField) {
       override fun getAttributes(): List<String> {
         val attributes = ArrayList<String>()

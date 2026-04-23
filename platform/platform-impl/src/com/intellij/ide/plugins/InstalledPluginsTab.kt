@@ -77,6 +77,9 @@ class InstalledPluginsTab @RequiresEdt constructor(
   private val updateCounter: JLabel = CountComponent()
   private val bundledUpdateCounter: JLabel = CountComponent()
 
+  override val detailsPage: PluginDetailsPageComponent = createDetailsPanel(searchListener)
+  override val searchPanel: SearchResultPanel = createSearchPanel(selectionListener)
+
   init {
     updateAllLink.isVisible = false
     bundledUpdateAllLink.isVisible = false
@@ -96,12 +99,6 @@ class InstalledPluginsTab @RequiresEdt constructor(
 
   fun getInstalledGroups(): List<UIPluginGroup>? {
     return if (getInstalledPanel() != null) getInstalledPanel()!!.groups else null
-  }
-
-  override fun createDetailsPanel(searchListener: LinkListener<Any>): PluginDetailsPageComponent {
-    val detailPanel = PluginDetailsPageComponent(pluginModelFacade, searchListener, false)
-    pluginModelFacade.getModel().addDetailPanel(detailPanel)
-    return detailPanel
   }
 
   @RequiresEdt
@@ -332,7 +329,13 @@ class InstalledPluginsTab @RequiresEdt constructor(
     searchTextField.setHistoryPropertyName("InstalledPluginsSearchHistory")
   }
 
-  override fun createSearchPanel(selectionListener: Consumer<in PluginsGroupComponent?>): SearchResultPanel {
+  private fun createDetailsPanel(searchListener: LinkListener<Any>): PluginDetailsPageComponent {
+    val detailPanel = PluginDetailsPageComponent(pluginModelFacade, searchListener, false)
+    pluginModelFacade.getModel().addDetailPanel(detailPanel)
+    return detailPanel
+  }
+
+  private fun createSearchPanel(selectionListener: Consumer<in PluginsGroupComponent?>): SearchResultPanel {
     val installedController = object : SearchUpDownPopupController(searchTextField) {
       override fun getAttributes(): List<String> {
         return listOf(
