@@ -77,10 +77,10 @@ internal class GitLabSettingsConfigurable(private val project: Project)
         scope,
         service<GitLabAccountManager>().canPersistCredentials,
         ::panel
-      ).align(AlignX.RIGHT)
+      ).align(AlignX.LEFT)
 
       addWarningForEnabledCredentialHelper(GitVcsApplicationSettings.getInstance().isUseCredentialHelper, ::panel)
-        .align(AlignX.RIGHT)
+        .align(AlignX.LEFT)
     }
   }
 }

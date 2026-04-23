@@ -79,10 +79,10 @@ internal class GithubSettingsConfigurable internal constructor(
         scope,
         service<GHAccountManager>().canPersistCredentials,
         ::panel
-      ).align(AlignX.RIGHT)
+      ).align(AlignX.LEFT)
 
       addWarningForEnabledCredentialHelper(GitVcsApplicationSettings.getInstance().isUseCredentialHelper, ::panel)
-        .align(AlignX.RIGHT)
+        .align(AlignX.LEFT)
     }
   }
 }
