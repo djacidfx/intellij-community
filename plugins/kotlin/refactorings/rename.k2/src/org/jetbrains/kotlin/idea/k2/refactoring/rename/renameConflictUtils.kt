@@ -317,7 +317,7 @@ private fun createQualifiedExpression(callExpression: KtExpression, newName: Str
         }
 
         val qualifierText = when (receiver) {
-            is KaImplicitReceiverValue -> runUnless(appliedSymbol?.symbol?.isStatic == true) { getThisQualifier(receiver) }
+            is KaImplicitReceiverValue -> runUnless(appliedSymbol?.symbol?.isCompanion == true) { getThisQualifier(receiver) }
 
             is KaExplicitReceiverValue -> {
                 getExplicitQualifier(receiver) ?: return QualifiedState(null, true)
