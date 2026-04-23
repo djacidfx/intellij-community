@@ -315,12 +315,11 @@ internal abstract class K2AbstractCallableCompletionContributor<P : KotlinNameRe
 
     context(_: KaSession, context: K2CompletionSectionContext<P>)
     private fun completeWithoutReceiverFromIndex(): Sequence<CallableWithMetadataForCompletion> = sequence {
-        val prefix = context.prefixMatcher.prefix
         val invocationCount = context.parameters.invocationCount
         val scopeContext = context.weighingContext.scopeContext
 
 
-        if (prefix.isNotEmpty()) {
+        if (shouldShowElementsFromIndex()) {
             val callablesFromIndex = if (invocationCount > 1) {
                 getAllTopLevelCallablesFromIndex()
             } else {

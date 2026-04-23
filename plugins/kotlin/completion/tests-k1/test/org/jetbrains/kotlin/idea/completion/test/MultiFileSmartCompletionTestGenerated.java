@@ -160,6 +160,11 @@ public class MultiFileSmartCompletionTestGenerated extends AbstractMultiFileSmar
         runTest("../testData/smartMultiFile/NotImportedGetValue/");
     }
 
+    @TestMetadata("ShowElementsFromIndexWithoutPrefix")
+    public void testShowElementsFromIndexWithoutPrefix() throws Exception {
+        runTest("../testData/smartMultiFile/ShowElementsFromIndexWithoutPrefix/");
+    }
+
     @TestMetadata("StaticMembers1")
     public void testStaticMembers1() throws Exception {
         runTest("../testData/smartMultiFile/StaticMembers1/");

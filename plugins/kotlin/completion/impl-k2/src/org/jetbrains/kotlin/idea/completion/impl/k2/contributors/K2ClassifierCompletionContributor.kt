@@ -215,7 +215,7 @@ internal open class K2ClassifierCompletionContributor : K2CompletionContributor<
 
     context(_: KaSession, sectionContext: K2CompletionSectionContext<KotlinNameReferencePositionContext>)
     private fun completeWithoutReceiverFromIndex() {
-        val indexClassifiers = if (sectionContext.prefixMatcher.prefix.isNotEmpty()) {
+        val indexClassifiers = if (shouldShowElementsFromIndex()) {
             getAvailableClassifiersFromIndex(
                 positionContext = sectionContext.positionContext,
                 parameters = sectionContext.parameters,

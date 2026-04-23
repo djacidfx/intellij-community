@@ -160,6 +160,11 @@ public class HighLevelMultiFileSmartCompletionTestGenerated extends AbstractHigh
         runTest("../../completion/testData/smartMultiFile/NotImportedGetValue/");
     }
 
+    @TestMetadata("ShowElementsFromIndexWithoutPrefix")
+    public void testShowElementsFromIndexWithoutPrefix() throws Exception {
+        runTest("../../completion/testData/smartMultiFile/ShowElementsFromIndexWithoutPrefix/");
+    }
+
     @TestMetadata("StaticMembers1")
     public void testStaticMembers1() throws Exception {
         runTest("../../completion/testData/smartMultiFile/StaticMembers1/");
