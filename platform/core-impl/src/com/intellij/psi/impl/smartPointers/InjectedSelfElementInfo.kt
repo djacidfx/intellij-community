@@ -101,14 +101,13 @@ internal class InjectedSelfElementInfo(
     val docManager = PsiDocumentManager.getInstance(project) as PsiDocumentManagerEx
 
     var result: PsiFile? = null
-    val visitor = PsiLanguageInjectionHost.InjectedPsiVisitor { injectedPsi: PsiFile, _ ->
-      val document = docManager.getDocument(injectedPsi)
-      if (document is DocumentWindow) {
-        val window = docManager.getLastCommittedDocument(document) as DocumentWindow
-        val hostRange = window.injectedToHost(TextRange(0, injectedPsi.textLength))
-        if (rangeInHostFile in hostRange) {
-          result = injectedPsi
-        }
+
+    fun processInjectedFile(injectedPsi: PsiFile) {
+      val document = docManager.getDocument(injectedPsi) as? DocumentWindow ?: return
+      val window = docManager.getLastCommittedDocument(document) as DocumentWindow
+      val hostRange = window.injectedToHost(TextRange(0, injectedPsi.textLength))
+      if (rangeInHostFile in hostRange) {
+        result = injectedPsi
       }
     }
 
@@ -118,7 +117,7 @@ internal class InjectedSelfElementInfo(
       val documents = injectionManager.getCachedInjectedDocumentsInRange(hostFile, rangeInHostFile)
       val injectedFiles = ContainerUtil.map2SetNotNull(documents) { d -> docManager.getPsiFile(d) }
       for (injectedFile in injectedFiles) {
-        visitor.visit(injectedFile, ContainerUtil.emptyList())
+        processInjectedFile(injectedFile)
       }
     }
     else {
@@ -126,7 +125,7 @@ internal class InjectedSelfElementInfo(
       if (injected != null) {
         val injectedFiles = ContainerUtil.map2SetNotNull(injected) { pair -> pair.first.containingFile }
         for (injectedFile in injectedFiles) {
-          visitor.visit(injectedFile, ContainerUtil.emptyList())
+          processInjectedFile(injectedFile)
         }
       }
     }
@@ -208,7 +207,7 @@ private class AffixOffsets(
   val startAffixIndex: Int,
   val startAffixOffset: Int,
   val endAffixIndex: Int,
-  val endAffixOffset: Int
+  val endAffixOffset: Int,
 ) {
   init {
     assert(startAffixIndex < 0 ||
