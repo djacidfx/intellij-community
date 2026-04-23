@@ -50,7 +50,7 @@ import com.jetbrains.python.sdk.flavors.conda.PyCondaCommand
 import com.jetbrains.python.sdk.flavors.conda.PyCondaEnv
 import com.jetbrains.python.sdk.flavors.conda.PyCondaEnvIdentity
 import com.jetbrains.python.sdk.service.PySdkService.Companion.pySdkService
-import com.jetbrains.python.sdk.setAssociationToModuleAsync
+import com.jetbrains.python.sdk.setAssociationToModule
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.annotations.ApiStatus
@@ -137,7 +137,7 @@ internal class PyEnvironmentYmlSdkConfiguration : PyProjectSdkConfigurationExten
       this@PyEnvironmentYmlSdkConfiguration.thisLogger()
         .debug("Adding conda environment: ${sdk.homePath}, associated ${shared}}, module path ${basePath})")
       if (!shared) {
-        sdk.setAssociationToModuleAsync(module)
+        sdk.setAssociationToModule(module)
       }
 
       SdkConfigurationUtil.addSdk(sdk)

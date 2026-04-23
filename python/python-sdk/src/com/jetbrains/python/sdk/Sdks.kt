@@ -194,30 +194,6 @@ object SdksKeeper {
   private fun load() = configUrl?.let { Resources.toString(it, StandardCharsets.UTF_8) }
 }
 
-// Non suspend version is required for all cases where it is possible to call it from quick-fixes,
-// as right now calling pyModuleBlocking from quick-fix is not allowed in EDT.
-@ApiStatus.Internal
-fun Sdk.setAssociationToModuleAsync(module: Module) {
-  requirePythonSdk()
-
-  val path = module.baseDir?.path
-  assert(path != null) { "Module $module has not paths, and can't be associated" }
-
-  val data = getOrCreateAdditionalData()
-    .also {
-      it.associatedModulePath = path
-    }
-
-  val modificator = sdkModificator
-  modificator.sdkAdditionalData = data
-
-  runInEdt {
-    ApplicationManager.getApplication().runWriteAction {
-      modificator.commitChanges()
-    }
-  }
-}
-
 @ApiStatus.Internal
 suspend fun Sdk.setAssociationToModule(module: Module) {
   requirePythonSdk()
