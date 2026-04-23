@@ -1,34 +1,41 @@
-// Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
-package org.jetbrains.uast.test.kotlin
+package org.jetbrains.fir.uast.test
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
+import org.jetbrains.fir.uast.test.env.kotlin.AbstractFirUastTest
 import org.jetbrains.kotlin.idea.KotlinLanguage
 import org.jetbrains.kotlin.idea.base.plugin.KotlinPluginMode
+import org.jetbrains.kotlin.idea.test.JUnit3RunnerWithInners
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.uast.DEFAULT_TYPES_LIST
 import org.jetbrains.uast.UFile
 import org.jetbrains.uast.UastLanguagePlugin
 import org.jetbrains.uast.test.env.kotlin.assertEqualsToFile
-import java.io.File
+import org.jetbrains.uast.test.kotlin.TEST_KOTLIN_MODEL_PATH
+import org.junit.runner.RunWith
+import java.nio.file.Path
 
-class AlternativesRenderLogTest : AbstractKotlinUastTest() {
+@RunWith(JUnit3RunnerWithInners::class)
+class AlternativesRenderLogTest : AbstractFirUastTest() {
 
     override val pluginMode: KotlinPluginMode
-        get() = KotlinPluginMode.K1
+        get() = KotlinPluginMode.K2
 
-    fun testClassAnnotation() = doTest("ClassAnnotation")
+    override val testBasePath: Path = TEST_KOTLIN_MODEL_PATH
 
-    fun testInnerClasses() = doTest("InnerClasses")
+    fun testClassAnnotation() = doCheck("ClassAnnotation.kt")
 
-    fun testLocalDeclarations() = doTest("LocalDeclarations")
+    fun testInnerClasses() = doCheck("InnerClasses.kt")
 
-    fun testParameterPropertyWithAnnotation() = doTest("ParameterPropertyWithAnnotation")
+    fun testLocalDeclarations() = doCheck("LocalDeclarations.kt")
 
-    override fun check(testName: String, file: UFile) {
-        val valuesFile = getTestFile(testName, "altlog.txt")
-        assertEqualsToFile("alternatives conversion result", valuesFile, file.asMultiplesTargetConversionResult())
+    fun testParameterPropertyWithAnnotation() = doCheck("ParameterPropertyWithAnnotation.kt")
+
+    override fun check(filePath: String, file: UFile) {
+        val valuesFile = testBasePath.resolve("${getTestName(false)}.altlog.txt")
+        assertEqualsToFile("alternatives conversion result", valuesFile.toFile(), file.asMultiplesTargetConversionResult())
     }
 
     private fun UFile.asMultiplesTargetConversionResult(): String {
@@ -52,8 +59,4 @@ class AlternativesRenderLogTest : AbstractKotlinUastTest() {
         })
         return builder.toString()
     }
-
-    private fun getTestFile(testName: String, ext: String) =
-        File(File(TEST_KOTLIN_MODEL_DIR, testName).canonicalPath + '.' + ext)
-
 }
