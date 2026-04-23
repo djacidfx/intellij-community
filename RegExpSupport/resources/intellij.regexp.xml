@@ -65,6 +65,14 @@
       <bundleName>messages.RegExpBundle</bundleName>
       <categoryKey>inspection.group.name.regexp</categoryKey>
     </intentionAction>
+    <intentionAction>
+      <language>RegExp</language>
+      <className>org.intellij.lang.regexp.intention.ExplainRegExpIntention</className>
+      <bundleName>messages.RegExpBundle</bundleName>
+      <categoryKey>inspection.group.name.regexp</categoryKey>
+    </intentionAction>
+    <registryKey key="explain.regexp.intention.enable.info.links" defaultValue="true"
+                 description="Enable links to https://www.regular-expressions.info/"/>
 
     <inspection.basicVisitor class="org.intellij.lang.regexp.psi.RegExpElementVisitor"/>
 
