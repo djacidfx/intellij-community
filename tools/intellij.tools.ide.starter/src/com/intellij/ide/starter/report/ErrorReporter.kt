@@ -16,6 +16,8 @@ interface ErrorReporter {
     const val ERRORS_DIR_NAME = "errors"
     const val MAX_TEST_NAME_LENGTH = 250
     const val APP_NAME_KEY = "app.name"
+    const val APP_PRODUCT_CODE_KEY = "app.product.code"
+    const val APP_BUILD_NUMBER_KEY = "app.build.number"
     const val APP_NAME_FULL_KEY = "app.name.full"
     val instance: ErrorReporter
       get() = di.direct.instance<ErrorReporter>()

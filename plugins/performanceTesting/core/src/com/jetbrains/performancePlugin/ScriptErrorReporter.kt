@@ -119,6 +119,7 @@ private suspend fun reportScriptError(errorMessage: AbstractMessage) {
         appendLine("app.name=${namesInfo.productName}")
         appendLine("app.name.full=${namesInfo.fullProductName}")
         appendLine("app.product.code=${build.productCode}")
+        appendLine("app.build.number=${build.asStringWithoutProductCode()}")
       })
       val attachments = errorMessage.allAttachments
       val nameConflicts = attachments.groupBy { it.name }.filter { it.value.size > 1 }.keys
