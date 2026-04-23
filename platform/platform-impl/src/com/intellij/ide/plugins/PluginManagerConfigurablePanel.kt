@@ -311,7 +311,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     )
 
     pluginModelFacade.getModel().setCancelInstallCallback { descriptor ->
-      val installedSearchPanel = installedTab.getInstalledSearchPanel() ?: return@setCancelInstallCallback
+      val installedSearchPanel = installedTab.getInstalledSearchPanel()
 
       val group: PluginsGroup = installedSearchPanel.group
 
@@ -351,9 +351,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     installedTab.dispose()
     marketplaceTab.dispose() // FIXME why the second time???
 
-    if (installedTab.getInstalledSearchPanel() != null) {
-      installedTab.getInstalledSearchPanel()!!.dispose()
-    }
+    installedTab.getInstalledSearchPanel().dispose()
 
     pluginUpdatesService.dispose()
     PluginPriceService.cancel()
@@ -479,7 +477,7 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
 
   fun enableSearch(option: String?, ignoreTagMarketplaceTab: Boolean): Runnable? {
     if (StringUtil.isEmpty(option) &&
-        (tabHeaderComponent.getSelectionTab() == MARKETPLACE_TAB || installedTab.getInstalledSearchPanel()!!.isQueryEmpty)) {
+        (tabHeaderComponent.getSelectionTab() == MARKETPLACE_TAB || installedTab.getInstalledSearchPanel().isQueryEmpty)) {
       return null
     }
 

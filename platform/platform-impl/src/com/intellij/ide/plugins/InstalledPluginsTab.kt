@@ -92,9 +92,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
     return installedPanel
   }
 
-  fun getInstalledSearchPanel(): SearchResultPanel? {
-    return searchPanel
-  }
+  fun getInstalledSearchPanel(): SearchResultPanel = searchPanel
 
   fun getInstalledGroups(): List<UIPluginGroup>? {
     return if (getInstalledPanel() != null) getInstalledPanel()!!.groups else null
