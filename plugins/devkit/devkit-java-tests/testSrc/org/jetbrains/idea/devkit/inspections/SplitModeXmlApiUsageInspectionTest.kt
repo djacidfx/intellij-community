@@ -7,6 +7,7 @@ import com.intellij.testFramework.common.waitUntil
 import com.intellij.testFramework.fixtures.JavaCodeInsightFixtureTestCase
 import org.jetbrains.idea.devkit.inspections.remotedev.SplitModeApiRestrictionsService
 import org.jetbrains.idea.devkit.inspections.remotedev.SplitModeXmlApiUsageInspection
+import org.jetbrains.idea.devkit.module.PluginModuleType
 import kotlin.time.Duration.Companion.seconds
 
 internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCase() {
@@ -105,6 +106,39 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
           <extensions defaultExtensionNs="com.intellij">
             <<warning descr="'com.intellij.fileEditorProvider' can only be used in 'frontend' module type. Actual module type is 'mixed'">fileEditorProvider</warning>/>
             <<warning descr="'com.intellij.localInspection' can only be used in 'backend' module type. Actual module type is 'mixed'">localInspection</warning>/>
+          </extensions>
+        </idea-plugin>
+      """.trimIndent()
+    )
+
+    myFixture.checkHighlighting()
+  }
+
+  fun testFrontendExtensionInTransitivelyFrontendModule() {
+    PsiTestUtil.addModule(
+      project,
+      PluginModuleType.getInstance(),
+      "intellij.transitive.frontend",
+      myFixture.tempDirFixture.findOrCreateDir("intellij.transitive.frontend")
+    )
+    myFixture.addFileToProject(
+      "intellij.transitive.frontend/intellij.transitive.frontend.xml",
+      """
+        <idea-plugin>
+          <dependencies>
+            <module name="intellij.platform.frontend"/>
+          </dependencies>
+        </idea-plugin>
+      """.trimIndent()
+    )
+    configurePluginXml(
+      """
+        <idea-plugin>
+          <dependencies>
+            <module name="intellij.transitive.frontend"/>
+          </dependencies>
+          <extensions defaultExtensionNs="com.intellij">
+            <fileEditorProvider/>
           </extensions>
         </idea-plugin>
       """.trimIndent()

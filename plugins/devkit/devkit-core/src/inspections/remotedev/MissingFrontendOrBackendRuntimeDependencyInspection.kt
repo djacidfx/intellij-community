@@ -4,15 +4,12 @@ package org.jetbrains.idea.devkit.inspections.remotedev
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.openapi.project.Project
-import com.intellij.psi.xml.XmlAttribute
-import com.intellij.util.containers.OrderedSet
 import com.intellij.util.xml.DomElement
 import com.intellij.util.xml.DomUtil
 import com.intellij.util.xml.highlighting.DomElementAnnotationHolder
 import com.intellij.util.xml.highlighting.DomHighlightingHelper
 import org.jetbrains.idea.devkit.DevKitBundle.message
 import org.jetbrains.idea.devkit.dom.DependencyDescriptor
-import org.jetbrains.idea.devkit.dom.DependencyDescriptor.ModuleDescriptor
 import org.jetbrains.idea.devkit.dom.IdeaPlugin
 import org.jetbrains.idea.devkit.inspections.DevKitPluginXmlInspectionBase
 
@@ -38,7 +35,7 @@ internal class MissingFrontendOrBackendRuntimeDependencyInspection : DevKitPlugi
     for ((moduleNameSuffix, requiredRuntimeDependency) in moduleNameSuffixToRequiredRuntimeDependency) {
       if (currentModuleName.endsWith(moduleNameSuffix)) {
         val dependencies = element.dependencies
-        if (!dependencies.exists() || !dependencies.hasDependencyOn(requiredRuntimeDependency)) {
+        if (!SplitModePluginDependencyUtil.hasTransitiveDependency(element, requiredRuntimeDependency)) {
           val reportedElement = if (dependencies.exists()) dependencies else element
           holder.createProblem(
             reportedElement,
@@ -52,33 +49,6 @@ internal class MissingFrontendOrBackendRuntimeDependencyInspection : DevKitPlugi
         return // only one module name suffix can be matched, so don't check more
       }
     }
-  }
-
-  private fun DependencyDescriptor.hasDependencyOn(requiredRuntimeDependency: String): Boolean {
-    return hasDependencyOnInternal(requiredRuntimeDependency, OrderedSet())
-  }
-
-  /**
-   * @param visited stores visited module names to avoid infinite recursion
-   */
-  private fun DependencyDescriptor.hasDependencyOnInternal(requiredRuntimeDependency: String, visited: MutableSet<String>): Boolean {
-    val modules = this.moduleEntry
-    if (modules.any { it.getNameAsString() == requiredRuntimeDependency }) {
-      return true
-    }
-    for (module in modules) {
-      val moduleName = module.getNameAsString() ?: continue
-      if (!visited.add(moduleName)) continue
-      val dependencies = module.name.value?.dependencies ?: continue
-      if (dependencies.hasDependencyOnInternal(requiredRuntimeDependency, visited)) {
-        return true
-      }
-    }
-    return false
-  }
-
-  private fun ModuleDescriptor.getNameAsString(): String? {
-    return (this.name.xmlElement as? XmlAttribute)?.value
   }
 
   private class AddDependencyFix(private val dependencyName: String) : LocalQuickFix {

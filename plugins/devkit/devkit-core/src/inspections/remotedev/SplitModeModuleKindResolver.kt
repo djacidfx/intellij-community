@@ -1,13 +1,13 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.idea.devkit.inspections.remotedev
 
+import com.intellij.lang.xml.XMLLanguage
 import com.intellij.openapi.module.ModuleUtilCore
+import com.intellij.openapi.roots.ProjectRootModificationTracker
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiModificationTracker
-import org.jetbrains.idea.devkit.dom.IdeaPlugin
 import org.jetbrains.idea.devkit.module.PluginModuleType
 import org.jetbrains.idea.devkit.util.DescriptorUtil
 
@@ -19,7 +19,11 @@ internal object SplitModeModuleKindResolver {
     val cacheHolder = element.containingFile ?: return SplitModeApiRestrictionsService.ModuleKind.SHARED
     return CachedValuesManager.getCachedValue(cacheHolder) {
       val moduleKind = computeModuleKind(cacheHolder)
-      CachedValueProvider.Result.create(moduleKind, PsiModificationTracker.MODIFICATION_COUNT)
+      CachedValueProvider.Result.create(
+        moduleKind,
+        ProjectRootModificationTracker.getInstance(cacheHolder.project),
+        cacheHolder.manager.modificationTracker.forLanguage(XMLLanguage.INSTANCE),
+      )
     }
   }
 
@@ -75,7 +79,7 @@ internal object SplitModeModuleKindResolver {
       return explicitModuleKind ?: SplitModeApiRestrictionsService.ModuleKind.SHARED
     }
 
-    val allDependencies = collectAllDirectDependencies(ideaPlugin)
+    val allDependencies = SplitModePluginDependencyUtil.collectTransitiveDependencyNames(ideaPlugin)
     val matchedDependencies = collectMatchedDependencies(allDependencies)
 
     return when {
@@ -116,25 +120,6 @@ internal object SplitModeModuleKindResolver {
 
   private fun doesLookLikeBackendDependency(moduleDependency: String): Boolean {
     return getModuleNameVariants("backend").any { moduleDependency.endsWith(".$it") }
-  }
-
-  private fun collectAllDirectDependencies(ideaPlugin: IdeaPlugin): Set<String> {
-    val allDependencies = mutableSetOf<String>()
-
-    ideaPlugin.getDepends().forEach { dependency ->
-      dependency.rawText?.let { allDependencies.add(it) }
-    }
-
-    val dependenciesDescriptor = ideaPlugin.dependencies
-    if (dependenciesDescriptor.isValid) {
-      dependenciesDescriptor.moduleEntry.forEach { moduleDescriptor ->
-        moduleDescriptor.name.stringValue?.let { allDependencies.add(it) }
-      }
-      dependenciesDescriptor.plugin.forEach { pluginDescriptor ->
-        pluginDescriptor.id.stringValue?.let { allDependencies.add(it) }
-      }
-    }
-    return allDependencies
   }
 
   private fun getModuleNameVariants(
