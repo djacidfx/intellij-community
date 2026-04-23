@@ -16,6 +16,7 @@ import com.intellij.codeInsight.template.postfix.templates.JavaPostfixTemplatePr
 import com.intellij.codeInsight.template.postfix.templates.NotNullCheckPostfixTemplate;
 import com.intellij.codeInsight.template.postfix.templates.PostfixTemplate;
 import com.intellij.codeInsight.template.postfix.templates.SwitchStatementPostfixTemplate;
+import com.intellij.idea.TestFor;
 import com.intellij.openapi.util.registry.Registry;
 import com.intellij.testFramework.EdtTestUtil;
 import com.intellij.testFramework.NeedsIndex;
@@ -184,6 +185,7 @@ public class TemplatesCompletionTest extends JavaCompletionAutoPopupTestCase {
     myFixture.assertPreferredCompletionItems(selectedIndex, ".par", "parents");
   }
 
+  @TestFor(issues = "IDEA-388573")
   public void testInvalidRangeAfterDeletingPostfixDot() {
     Registry.get("postfix.template.mod.completion.enabled").setValue(true, myFixture.getTestRootDisposable());
     configureByFile();
