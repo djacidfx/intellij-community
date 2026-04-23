@@ -82,6 +82,7 @@ import com.intellij.platform.ide.core.permissions.RequiresPermissions
 import com.intellij.ui.ClientProperty
 import com.intellij.ui.ColorUtil
 import com.intellij.ui.GroupedElementsRenderer
+import com.intellij.ui.PopupBorder
 import com.intellij.ui.components.JBList
 import com.intellij.ui.popup.ActionPopupOptions
 import com.intellij.ui.popup.ActionPopupStep
@@ -103,6 +104,7 @@ import com.intellij.util.xmlb.annotations.XCollection
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nls
 import java.awt.Component
+import java.awt.Dimension
 import java.awt.FontMetrics
 import java.awt.Point
 import java.util.WeakHashMap
@@ -276,6 +278,7 @@ internal class RunConfigurationsActionGroupPopup(actionGroup: ActionGroup,
 
   private val pinnedSize: Int
   private val serviceState: RunConfigurationStartHistory
+  internal var maxWidth: Int = JBUI.scale(MAXIMAL_POPUP_WIDTH)
 
   init {
     serviceState = RunConfigurationStartHistory.getInstance(project)
@@ -316,6 +319,14 @@ internal class RunConfigurationsActionGroupPopup(actionGroup: ActionGroup,
         }
       }
     })
+  }
+
+  override fun createContentPanel(
+    resizable: Boolean,
+    border: PopupBorder,
+    isToDrawMacCorner: Boolean,
+  ): MyContentPanel {
+    return ContentPanelWithMaxWidth(border)
   }
 
   override fun createPopup(parent: WizardPopup?, step: PopupStep<*>?, parentValue: Any?): WizardPopup {
@@ -361,7 +372,19 @@ internal class RunConfigurationsActionGroupPopup(actionGroup: ActionGroup,
     else 0
   }
 
+  private inner class ContentPanelWithMaxWidth(border: PopupBorder) : MyContentPanel(border) {
+    // AbstractPopup only uses the preferred size, so we coerce it instead of overriding the max size.
+    override fun getPreferredSize(): Dimension? {
+      return super.getPreferredSize().also {
+        it.width = it.width.coerceAtMost(maxWidth)
+      }
+    }
+  }
+
   private inner class MyListElementRenderer : PopupListElementRenderer<PopupFactoryImpl.ActionItem>(this) {
+    private lateinit var mainPanel: JComponent
+    private lateinit var mainPanelLayout: GroupLayout
+    
     override fun isShowSecondaryText(): Boolean = mySpeedSearch.isHoldingFilter
 
     override fun isShowSecondaryIcon(): Boolean = mySpeedSearch.isHoldingFilter
@@ -371,6 +394,8 @@ internal class RunConfigurationsActionGroupPopup(actionGroup: ActionGroup,
       value: PopupFactoryImpl.ActionItem?,
       isSelected: Boolean,
     ) {
+      isReserveSpaceForExtraButtons = false // otherwise the name won't fit if the popup has the same width as the button
+      mainPanelLayout.invalidateLayout(mainPanel) // clear the cached preferred size
       super.customizeComponent(list, value, isSelected)
       ClientProperty.put(myTextLabel, SwingTextTrimmer.KEY, SwingTextTrimmer.createCustomTrimmer(object : SwingTextTrimmerStrategy {
         override fun trim(text: @NlsActions.ActionText String, metrics: FontMetrics, availableWidth: Int): String {
@@ -390,9 +415,10 @@ internal class RunConfigurationsActionGroupPopup(actionGroup: ActionGroup,
      * It uses `BorderLayout` by default, which doesn't support shrinking of the west and east components.
      */
     private fun relayoutMainPanel(panel: JComponent) {
+      mainPanel = panel
       val components = panel.components.toList()
       panel.removeAll()
-      val layout = GroupLayout(panel)
+      val layout = GroupLayout(panel).also { mainPanelLayout = it }
       val hg = layout.createSequentialGroup()
       val vg = layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
       layout.setHorizontalGroup(hg)
@@ -400,8 +426,8 @@ internal class RunConfigurationsActionGroupPopup(actionGroup: ActionGroup,
       val height = JBUI.CurrentTheme.List.rowHeight()
 
       for ((i, c) in components.withIndex()) {
-        // The first two (main and secondary) components expand, the last one (shortcut) doesn't.
-        if (i <= 1) {
+        // The first component expand, pushing the others (the secondary text and the shortcut) to the right.
+        if (i == 0) {
           hg.addComponent(c, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, 99999)
         }
         else {

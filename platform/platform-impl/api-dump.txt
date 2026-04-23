@@ -1692,6 +1692,9 @@ com.intellij.ui.popup.list.ComboBoxPopup$Context
 com.intellij.ui.popup.list.FilterableListPopupStep
 - com.intellij.openapi.ui.popup.ListPopupStep
 - a:updateFilter(java.lang.String):V
+c:com.intellij.ui.popup.list.PopupListElementRenderer
+- isReserveSpaceForExtraButtons():Z
+- setReserveSpaceForExtraButtons(Z):V
 f:com.intellij.ui.render.RenderingHelper
 - sf:RESIZE_EDITOR_TO_RENDERER_SIZE:com.intellij.openapi.util.Key
 - sf:SHRINK_LONG_RENDERER:com.intellij.openapi.util.Key

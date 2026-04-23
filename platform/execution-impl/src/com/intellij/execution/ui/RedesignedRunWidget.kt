@@ -303,6 +303,7 @@ private class RunWidgetButtonLook : HeaderToolbarButtonLook(
 }
 
 internal const val MINIMAL_POPUP_WIDTH = 270
+internal const val MAXIMAL_POPUP_WIDTH = 500
 
 @ApiStatus.Internal
 abstract class TogglePopupAction : ToggleAction {
@@ -487,11 +488,17 @@ open class RedesignedRunConfigurationSelector : TogglePopupAction(), CustomCompo
   }
 
   override fun createPopup(actionGroup: ActionGroup, e: AnActionEvent, disposeCallback: () -> Unit): ListPopup {
-    val component = e.getData(IdeFrame.KEY)?.component ?: e.inputEvent?.component!!
+    val inputEventComponent = e.inputEvent?.component
+    val component = e.getData(IdeFrame.KEY)?.component ?: inputEventComponent!!
     val dataContext = DataManager.getInstance().getDataContext(component)
-    return RunConfigurationsActionGroupPopup(actionGroup, dataContext, disposeCallback).also { result ->
+    val result = RunConfigurationsActionGroupPopup(actionGroup, dataContext, disposeCallback)
+    if (inputEventComponent != null && inputEventComponent.width > result.maxWidth) {
+      // the invoking button is huge, a long configuration is selected, so relax the limit on the popup as well
+      result.maxWidth = inputEventComponent.width
+      // this will force the popup to take its owner size, otherwise it may expand beyond reason if there are very long lines
       result.setStretchToOwnerWidth(true)
     }
+    return result
   }
 
   override fun update(e: AnActionEvent) {
