@@ -18,7 +18,9 @@ import org.jetbrains.intellij.build.OsFamily
 import org.jetbrains.intellij.build.WindowsDistributionCustomizer
 import org.jetbrains.intellij.build.impl.LibraryPackMode
 import org.jetbrains.intellij.build.impl.PlatformLayout
+import org.jetbrains.intellij.build.productLayout.CommunityModuleSets
 import org.jetbrains.intellij.build.productLayout.ProductModulesContentSpec
+import org.jetbrains.intellij.build.productLayout.productModules
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
@@ -185,7 +187,19 @@ class MPSProperties : JetBrainsProductProperties() {
     override val customProductCode: String
         get() = "MPS"
 
-    override fun getProductContentDescriptor(): ProductModulesContentSpec? = null
+    override fun getProductContentDescriptor(): ProductModulesContentSpec = productModules {
+        alias("com.intellij.modules.java-capable")
+
+        deprecatedInclude("intellij.platform.resources", "META-INF/PlatformLangPlugin.xml")
+
+        moduleSet(CommunityModuleSets.ideCommon())
+
+        module("intellij.platform.tips")
+        module("intellij.ide.startup.importSettings")
+
+        module("intellij.platform.customization.min")
+        module("intellij.idea.customization.base")
+    }
 
     override fun getSystemSelector(appInfo: ApplicationInfoProperties, buildNumber: String): String {
         return "MPS${appInfo.majorVersion}.${appInfo.minorVersionMainPart}"
