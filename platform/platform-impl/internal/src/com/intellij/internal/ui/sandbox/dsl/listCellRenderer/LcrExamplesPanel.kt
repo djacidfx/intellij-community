@@ -130,7 +130,7 @@ internal class LcrExamplesPanel : UISandboxPanel {
         when (value) {
           1 -> {
             separator {
-              text = "Text attributes"
+              text = "Text"
             }
             text("Normal text")
           }
@@ -164,7 +164,7 @@ internal class LcrExamplesPanel : UISandboxPanel {
 
           7 -> {
             separator {
-              text = "Icons"
+              text = "Icon"
             }
             icon(AllIcons.Empty)
             text("With reserved space for icon")
@@ -227,7 +227,7 @@ internal class LcrExamplesPanel : UISandboxPanel {
         when (value) {
           items[0] -> {
             separator {
-              text = "Text attributes"
+              text = "Text"
             }
             text(value) {
               speedSearch { }

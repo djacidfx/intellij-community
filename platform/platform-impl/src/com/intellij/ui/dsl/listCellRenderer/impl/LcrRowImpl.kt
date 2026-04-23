@@ -90,7 +90,7 @@ open class LcrRowImpl<T>(private val renderer: LcrRow<T>.() -> Unit) : LcrRow<T>
   override var rowWidth: Int? = null
   override var uiInspectorContext: List<PropertyBean>? = null
   override var selectable: Boolean = true
-  override var font: Font? = UIManager.getFont("Label.font")
+  override var font: Font? = null
   override var copyWholeRow: Boolean = false
 
   private var foreground: Color = JBUI.CurrentTheme.List.FOREGROUND
@@ -146,31 +146,18 @@ open class LcrRowImpl<T>(private val renderer: LcrRow<T>.() -> Unit) : LcrRow<T>
     isSelected: Boolean,
     cellHasFocus: Boolean,
   ): Component {
-    cells.clear()
-    separator = null
-    gap = LcrRow.Gap.DEFAULT
-    selectable = true
-    toolTipText = null
-    listCellRendererParams = ListCellRendererParams(list, value, index, isSelected, cellHasFocus)
-    rowHeight = JBUI.CurrentTheme.List.rowHeight()
-
     val renderingType = getRenderingType(list, index)
-    // The list is not focused when isSwingPopup = false
-    val isListFocused = renderingType.isComboBoxPopup() || RenderingUtil.isFocused(list)
-    val selectionBg = if (isSelected) JBUI.CurrentTheme.List.Selection.background(isListFocused) else null
-    val enabled: Boolean
-    if (renderingType == RenderingType.COLLAPSED_SELECTED_COMBO_BOX_ITEM) {
-      background = null
-      selectionColor = null
-      enabled = getComboBox(list)?.isEnabled ?: (list.getClientProperty(DarculaComboBoxUI.COLLAPSED_VALUE_DISABLED) != true)
+
+    cells.clear()
+    listCellRendererParams = ListCellRendererParams(list, value, index, isSelected, cellHasFocus)
+    resetState(renderingType)
+
+    val enabled = if (renderingType == RenderingType.COLLAPSED_SELECTED_COMBO_BOX_ITEM) {
+      getComboBox(list)?.isEnabled ?: (list.getClientProperty(DarculaComboBoxUI.COLLAPSED_VALUE_DISABLED) != true)
     }
     else {
-      background = list.background
-      selectionColor = selectionBg
-      enabled = list.isEnabled
+      list.isEnabled
     }
-
-    foreground = if (selected) JBUI.CurrentTheme.List.Selection.foreground(isListFocused) else RenderingUtil.getForeground(list)
 
     renderer()
 
@@ -228,6 +215,36 @@ open class LcrRowImpl<T>(private val renderer: LcrRow<T>.() -> Unit) : LcrRow<T>
     listCellRendererParams = null
 
     return result
+  }
+
+  /**
+   * Resets all modifiable fields into the initial state
+   */
+  private fun resetState(renderingType: RenderingType) {
+    val list = listCellRendererParams!!.list
+    // The list is not focused when isSwingPopup = false
+    val isListFocused = renderingType.isComboBoxPopup() || RenderingUtil.isFocused(list)
+
+    separator = null
+    gap = LcrRow.Gap.DEFAULT
+
+    if (renderingType == RenderingType.COLLAPSED_SELECTED_COMBO_BOX_ITEM) {
+      background = null
+      selectionColor = null
+    }
+    else {
+      background = list.background
+      selectionColor = if (selected) JBUI.CurrentTheme.List.Selection.background(isListFocused) else null
+    }
+
+    toolTipText = null
+    rowHeight = JBUI.CurrentTheme.List.rowHeight()
+    rowWidth = null
+    uiInspectorContext = null
+    selectable = true
+    font = UIManager.getFont("Label.font")
+    copyWholeRow = false
+    foreground = if (selected) JBUI.CurrentTheme.List.Selection.foreground(isListFocused) else RenderingUtil.getForeground(list)
   }
 
   private fun applyRowStyle(
