@@ -521,6 +521,11 @@ public class TableResultPanel extends UserDataHolderBase
       }
 
       @Override
+      public void dropModelDependentCache(@NotNull GridRequestSource source) {
+        TableResultPanel.this.dropModelDependentCache();
+      }
+
+      @Override
       public void requestFinished(@NotNull GridRequestSource source, boolean success) {
         doRepaint(source);
         GridRequestSource.GridRequestPlace<?, ?> gridRequestPlace = ObjectUtils.tryCast(source.place, GridRequestSource.GridRequestPlace.class);
@@ -1342,6 +1347,16 @@ public class TableResultPanel extends UserDataHolderBase
   @Override
   public @Nullable DatabaseDisplayObjectFormatterConfig getFormatterConfig(@NotNull ModelIndex<GridColumn> columnIdx) {
     return myFormatterConfigCached.getValue().get(columnIdx);
+  }
+
+  private void dropModelDependentCache() {
+    if (!(myResultView instanceof ResultViewWithColumns resultViewWithColumns)) return;
+    for (var columnIdx : getDataModel(DATA_WITH_MUTATIONS).getColumnIndices().asIterable()) {
+      var layoutColumn = resultViewWithColumns.getLayoutColumn(columnIdx);
+      if (layoutColumn != null) {
+        layoutColumn.dropModelDependentCache();
+      }
+    }
   }
 
   public static class ColumnAttributes {

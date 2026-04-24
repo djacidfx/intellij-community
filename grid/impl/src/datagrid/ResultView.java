@@ -162,6 +162,7 @@ public interface ResultView extends CoreResultView, GridModel.Listener<GridRow, 
 
   default void setHoveredRowHighlightMode(HoveredRowBgHighlightMode mode) {}
 
+
   enum HoveredRowBgHighlightMode {
     HIGHLIGHT,
     NOT_HIGHLIGHT,
