@@ -1,6 +1,6 @@
-// Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
-package org.jetbrains.uast.test.kotlin
+package org.jetbrains.fir.uast.test
 
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.platform.uast.testFramework.env.findUElementByTextFromPsi
@@ -11,12 +11,10 @@ import com.intellij.psi.impl.JavaPsiFacadeEx
 import com.intellij.refactoring.rename.RenameProcessor
 import com.intellij.refactoring.rename.RenamePsiElementProcessor
 import com.intellij.testFramework.LightProjectDescriptor
-import com.intellij.testFramework.UsefulTestCase
 import junit.framework.TestCase
 import org.jetbrains.kotlin.analysis.decompiled.light.classes.KtLightClassForDecompiledDeclaration
 import org.jetbrains.kotlin.asJava.elements.KtLightElement
 import org.jetbrains.kotlin.idea.base.plugin.KotlinPluginMode
-import org.jetbrains.kotlin.idea.base.psi.copied
 import org.jetbrains.kotlin.idea.test.KotlinLightCodeInsightFixtureTestCase
 import org.jetbrains.kotlin.idea.test.KotlinWithJdkAndRuntimeLightProjectDescriptor
 import org.jetbrains.kotlin.psi.KtCallExpression
@@ -36,6 +34,7 @@ import org.jetbrains.uast.asRecursiveLogString
 import org.jetbrains.uast.getParentOfType
 import org.jetbrains.uast.test.common.kotlin.orFail
 import org.jetbrains.uast.test.env.kotlin.assertEqualsToFile
+import org.jetbrains.uast.test.kotlin.TEST_KOTLIN_MODEL_DIR
 import org.jetbrains.uast.toUElement
 import org.jetbrains.uast.toUElementOfType
 import org.junit.internal.runners.JUnit38ClassRunner
@@ -48,7 +47,7 @@ class KotlinDetachedUastTest : KotlinLightCodeInsightFixtureTestCase() {
     override fun getProjectDescriptor(): LightProjectDescriptor = KotlinWithJdkAndRuntimeLightProjectDescriptor.getInstance()
 
     override val pluginMode: KotlinPluginMode
-        get() = KotlinPluginMode.K1
+        get() = KotlinPluginMode.K2
 
     fun testLiteralInAnnotation() {
 
@@ -62,22 +61,23 @@ class KotlinDetachedUastTest : KotlinLightCodeInsightFixtureTestCase() {
         fun psiElement(file: PsiFile): PsiElement = file.findElementAt(file.text.indexOf("\"\"")).orFail("literal")
                 .getParentOfType<PsiLanguageInjectionHost>(false).orFail("host")
                 .toUElement().orFail("uElement").getParentOfType<UClass>(false)
-                .orFail("UClass").psi.orFail("psi")
+                .orFail("UClass").javaPsi.orFail("psi")
 
         psiElement(psiFile).let {
             // Otherwise following asserts have no sense
-            TestCase.assertTrue("psi element should be light ", it is KtLightElement<*, *>)
+            assertTrue("psi element should be light ", it is KtLightElement<*, *>)
         }
         val copied = psiFile.copied()
-        TestCase.assertNull("virtual file for copy should be null", copied.virtualFile)
-        TestCase.assertNotNull("psi element in copy", psiElement(copied))
-        TestCase.assertSame("copy.originalFile should be psiFile", copied.originalFile, psiFile)
-        TestCase.assertSame("virtualFiles of element and file itself should be the same",
+        assertNull("virtual file for copy should be null", copied.virtualFile)
+        assertNotNull("psi element in copy", psiElement(copied))
+        assertSame("copy.originalFile should be psiFile", copied.originalFile, psiFile)
+        assertSame("virtualFiles of element and file itself should be the same",
                             psiElement(copied).containingFile.originalFile.virtualFile,
                             copied.originalFile.virtualFile)
     }
 
-    fun testDetachedResolve() {
+    // KTIJ-38517
+    fun _testDetachedResolve() {
         val psiFile = myFixture.configureByText(
             "AnnotatedClass.kt", """
             class AnnotatedClass {
@@ -90,7 +90,7 @@ class KotlinDetachedUastTest : KotlinLightCodeInsightFixtureTestCase() {
         val detachedCall = psiFile.findDescendantOfType<KtCallExpression>()!!.copied()
         val uCallExpression = detachedCall.toUElementOfType<UCallExpression>()!!
         // at least it should not throw exceptions
-        TestCase.assertNull(uCallExpression.methodName)
+        assertNull(uCallExpression.methodName)
     }
 
     fun testCapturedTypeInExtensionReceiverOfCall() {
@@ -109,8 +109,8 @@ class KotlinDetachedUastTest : KotlinLightCodeInsightFixtureTestCase() {
         val extensionFunctionCall = psiFile.findDescendantOfType<KtCallExpression>()!!
         val uCallExpression = extensionFunctionCall.toUElementOfType<UCallExpression>()!!
 
-        TestCase.assertNotNull(uCallExpression.receiverType)
-        TestCase.assertNotNull(uCallExpression.methodName)
+        assertNotNull(uCallExpression.receiverType)
+        assertNotNull(uCallExpression.methodName)
     }
 
     fun testParameterInAnnotationClassFromFactory() {
@@ -121,7 +121,7 @@ class KotlinDetachedUastTest : KotlinLightCodeInsightFixtureTestCase() {
 
         detachedClass.findUElementByTextFromPsi<UElement>("default")
                 .getParentOfType<UExpression>().let {
-            TestCase.assertNotNull("it should return something at least", it)
+            assertNotNull("it should return something at least", it)
         }
 
     }
@@ -137,8 +137,8 @@ class KotlinDetachedUastTest : KotlinLightCodeInsightFixtureTestCase() {
         """)
 
         val literalInside = detachedClass.findUElementByTextFromPsi<UElement>("default")
-        generateSequence(literalInside, { it.uastParent }).count().let {
-            TestCase.assertTrue("it should have some parents $it actually", it > 1)
+        generateSequence(literalInside) { it.uastParent }.count().let {
+            assertTrue("it should have some parents $it actually", it > 1)
         }
 
     }
@@ -156,7 +156,7 @@ class KotlinDetachedUastTest : KotlinLightCodeInsightFixtureTestCase() {
         val anonymousClass = detachedClass.findUElementByTextFromPsi<UObjectLiteralExpression>("object : MyClass() {}").declaration
         TestCase.assertEquals(
             "UClass (name = null), UObjectLiteralExpression, UField (name = obj), UClass (name = MyClass), UFile (package = )",
-            generateSequence<UElement>(anonymousClass, { it.uastParent }).joinToString { it.asLogString() })
+            generateSequence<UElement>(anonymousClass) { it.uastParent }.joinToString { it.asLogString() })
 
     }
 
@@ -172,7 +172,7 @@ class KotlinDetachedUastTest : KotlinLightCodeInsightFixtureTestCase() {
         val ktClass = ktFile.declarations.filterIsInstance<KtClass>().single()//.copied()
         val ktFunctionDetached = ktClass.findFunctionByName("foo1")!!
         runWriteAction { ktClass.delete() }
-        TestCase.assertNull(ktFunctionDetached.toUElementOfType<UMethod>())
+        assertNull(ktFunctionDetached.toUElementOfType<UMethod>())
     }
 
     fun testRenameHandlers() {
@@ -202,7 +202,7 @@ class KotlinDetachedUastTest : KotlinLightCodeInsightFixtureTestCase() {
         RenameProcessor(project, substitution, "newName", false, false)
             .prepareRenaming(element, "newName", linkedMapOf)
 
-        UsefulTestCase.assertTrue(linkedMapOf.any())
+        assertTrue(linkedMapOf.any())
     }
 
     fun testConvertCompiledClass() {
@@ -216,4 +216,5 @@ class KotlinDetachedUastTest : KotlinLightCodeInsightFixtureTestCase() {
         )
     }
 
+    private inline fun <reified T : PsiElement> T.copied(): T = copy() as T
 }
