@@ -71,6 +71,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static com.intellij.util.progress.CancellationUtil.withLockMaybeCancellable;
 import static com.intellij.xdebugger.impl.proxy.MonolithBreakpointProxyKt.asProxy;
@@ -105,7 +106,7 @@ public final class XBreakpointManagerImpl implements XBreakpointManager {
     myProject = project;
     myDebuggerManager = debuggerManager;
     myCoroutineScope = coroutineScope;
-    myDependentBreakpointManager = new XDependentBreakpointManager(this, messageBusConnection);
+    myDependentBreakpointManager = new XDependentBreakpointManager(this);
     myLineBreakpointManager = new XLineBreakpointManager(project, coroutineScope, !SplitDebuggerMode.isSplitDebugger(),
                                                          MonolithBreakpointManagerKt.asProxy(this));
 
@@ -350,7 +351,7 @@ public final class XBreakpointManagerImpl implements XBreakpointManager {
     XBreakpointType type = breakpoint.getType();
     XBreakpointBase<?, ?, ?> breakpointBase = (XBreakpointBase<?, ?, ?>)breakpoint;
 
-    withLockMaybeCancellable(myLock, () -> {
+    List<XBreakpoint<?>> breakpointsToClear = withStateLock(() -> {
       if (isDefaultBreakpoint) {
         Set<XBreakpointBase<?, ?, ?>> typeDefaultBreakpoints = myDefaultBreakpoints.get(breakpoint.getType());
         if (typeDefaultBreakpoints != null) {
@@ -364,10 +365,12 @@ public final class XBreakpointManagerImpl implements XBreakpointManager {
       if (breakpointBase instanceof XLineBreakpointImpl<?> lineBreakpoint) {
         myLineBreakpointManager.unregisterBreakpoint(asProxy(lineBreakpoint));
       }
+      return myDependentBreakpointManager.onBreakpointRemoved(breakpoint);
     });
 
     UIUtil.invokeLaterIfNeeded(() -> breakpointBase.dispose());
     sendBreakpointEvent(type, listener -> listener.breakpointRemoved(breakpoint));
+    myDependentBreakpointManager.fireDependenciesCleared(breakpointsToClear);
   }
 
   private void sendBreakpointEvent(XBreakpointType type, Consumer<? super XBreakpointListener<XBreakpoint<?>>> event) {
@@ -817,6 +820,14 @@ public final class XBreakpointManagerImpl implements XBreakpointManager {
     state.setTypeId(type.getId());
     state.setSuspendPolicy(type.getDefaultSuspendPolicy());
     return state;
+  }
+
+  <T> T withStateLock(@NotNull Supplier<T> action) {
+    return withLockMaybeCancellable(myLock, action::get);
+  }
+
+  void withStateLock(@NotNull Runnable action) {
+    withLockMaybeCancellable(myLock, action);
   }
 
   public void removeBreakpointsInDocument(Document document) {

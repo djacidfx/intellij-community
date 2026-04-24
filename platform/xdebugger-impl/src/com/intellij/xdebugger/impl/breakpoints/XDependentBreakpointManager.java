@@ -4,9 +4,7 @@ package com.intellij.xdebugger.impl.breakpoints;
 import com.intellij.util.SmartList;
 import com.intellij.util.containers.ContainerUtil;
 import com.intellij.util.containers.MultiMap;
-import com.intellij.util.messages.SimpleMessageBusConnection;
 import com.intellij.xdebugger.breakpoints.XBreakpoint;
-import com.intellij.xdebugger.breakpoints.XBreakpointListener;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -18,49 +16,45 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
-
-import static com.intellij.util.progress.CancellationUtil.withLockMaybeCancellable;
 
 @SuppressWarnings("rawtypes")
 @ApiStatus.Internal
 public final class XDependentBreakpointManager {
-  private final ReentrantLock myLock = new ReentrantLock();
   private final Map<XBreakpoint<?>,  XDependentBreakpointInfo> mySlave2Info = new HashMap<>();
   private final MultiMap<XBreakpointBase, XDependentBreakpointInfo> myMaster2Info = new MultiMap<>();
   private final XBreakpointManagerImpl myBreakpointManager;
   private final XDependentBreakpointListener myEventPublisher;
 
-  public XDependentBreakpointManager(@NotNull XBreakpointManagerImpl breakpointManager, SimpleMessageBusConnection messageBusConnection) {
+  public XDependentBreakpointManager(@NotNull XBreakpointManagerImpl breakpointManager) {
     myBreakpointManager = breakpointManager;
     myEventPublisher = breakpointManager.getProject().getMessageBus().syncPublisher(XDependentBreakpointListener.TOPIC);
-    messageBusConnection.subscribe(XBreakpointListener.TOPIC, new XBreakpointListener<>() {
-      @Override
-      public void breakpointRemoved(final @NotNull XBreakpoint<?> breakpoint) {
-        List<XBreakpoint<?>> breakpointsToClear = withStateLock(() -> {
-          XDependentBreakpointInfo info = mySlave2Info.remove(breakpoint);
-          if (info != null) {
-            myMaster2Info.remove(info.myMasterBreakpoint, info);
-          }
+  }
 
-          Collection<XDependentBreakpointInfo> infos = myMaster2Info.remove((XBreakpointBase)breakpoint);
-          if (infos == null) {
-            return Collections.emptyList();
-          }
+  // called from XBreakpointManagerImpl with lock
+  @NotNull List<XBreakpoint<?>> onBreakpointRemoved(final @NotNull XBreakpoint<?> breakpoint) {
+    XDependentBreakpointInfo info = mySlave2Info.remove(breakpoint);
+    if (info != null) {
+      myMaster2Info.remove(info.myMasterBreakpoint, info);
+    }
 
-          List<XBreakpoint<?>> result = new SmartList<>();
-          for (XDependentBreakpointInfo breakpointInfo : infos) {
-            XDependentBreakpointInfo removed = mySlave2Info.remove(breakpointInfo.mySlaveBreakpoint);
-            if (removed != null) {
-              result.add(breakpointInfo.mySlaveBreakpoint);
-            }
-          }
-          return result;
-        });
-        breakpointsToClear.forEach(myEventPublisher::dependencyCleared);
+    Collection<XDependentBreakpointInfo> infos = myMaster2Info.remove((XBreakpointBase)breakpoint);
+    if (infos == null) {
+      return Collections.emptyList();
+    }
+
+    List<XBreakpoint<?>> result = new SmartList<>();
+    for (XDependentBreakpointInfo breakpointInfo : infos) {
+      XDependentBreakpointInfo removed = mySlave2Info.remove(breakpointInfo.mySlaveBreakpoint);
+      if (removed != null) {
+        result.add(breakpointInfo.mySlaveBreakpoint);
       }
-    });
+    }
+    return result;
+  }
+
+  void fireDependenciesCleared(@NotNull Collection<? extends XBreakpoint<?>> breakpoints) {
+    breakpoints.forEach(myEventPublisher::dependencyCleared);
   }
 
   public void loadState() {
@@ -192,11 +186,11 @@ public final class XDependentBreakpointManager {
   }
 
   private <T> T withStateLock(@NotNull Supplier<T> action) {
-    return withLockMaybeCancellable(myLock, action::get);
+    return myBreakpointManager.withStateLock(action);
   }
 
   private void withStateLock(@NotNull Runnable action) {
-    withLockMaybeCancellable(myLock, action);
+    myBreakpointManager.withStateLock(action);
   }
 
   private static final class XDependentBreakpointInfo {

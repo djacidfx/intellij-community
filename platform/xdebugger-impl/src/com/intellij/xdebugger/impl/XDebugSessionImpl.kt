@@ -208,8 +208,9 @@ class XDebugSessionImpl @JvmOverloads constructor(
   private val suspendContextModel = AtomicReference<XSuspendContextModel?>(null)
   private val sessionInitializedDeferred = CompletableDeferred<Unit>()
 
-  @Volatile
+  // protected with myLock
   private var breakpointsInitialized = false
+
   private var myUserRequestStart: Long = 0
   private var myUserRequestAction: String? = null
 
@@ -470,7 +471,9 @@ class XDebugSessionImpl @JvmOverloads constructor(
   }
 
   fun reset() {
-    breakpointsInitialized = false
+    myLock.withLockMaybeCancellable {
+      breakpointsInitialized = false
+    }
     removeBreakpointListeners()
     myPaused.value = false
     clearPausedData()
@@ -478,13 +481,9 @@ class XDebugSessionImpl @JvmOverloads constructor(
   }
 
   override fun initBreakpoints() {
-    LOG.assertTrue(!breakpointsInitialized)
-    breakpointsInitialized = true
-
-    disableSlaveBreakpoints()
-    processAllBreakpoints(true, false)
-
     myLock.withLockMaybeCancellable {
+      LOG.assertTrue(!breakpointsInitialized)
+      breakpointsInitialized = true
       var breakpointListenerDisposable = myBreakpointListenerDisposable
       if (breakpointListenerDisposable == null) {
         breakpointListenerDisposable = Disposer.newDisposable()
@@ -495,6 +494,9 @@ class XDebugSessionImpl @JvmOverloads constructor(
         busConnection.subscribe(XDependentBreakpointListener.TOPIC, MyDependentBreakpointListener())
       }
     }
+
+    disableSlaveBreakpoints()
+    processAllBreakpoints(true, false)
   }
 
   override fun getConsoleView(): ConsoleView? {
@@ -655,16 +657,17 @@ class XDebugSessionImpl @JvmOverloads constructor(
         }
         myMockRunContentDescriptor = mockDescriptor
         debugProcess.sessionInitialized()
-        project.messageBus.connect(localTabScope).subscribe(RUN_CONTENT_DESCRIPTOR_LIFECYCLE_TOPIC, object : RunContentDescriptorLifecycleListener {
-          override fun beforeContentShown(descriptor: RunContentDescriptor, executor: Executor) {
-            if (descriptor === mockDescriptor) {
-              myShowTabDeferred.complete(Unit)
+        project.messageBus.connect(localTabScope)
+          .subscribe(RUN_CONTENT_DESCRIPTOR_LIFECYCLE_TOPIC, object : RunContentDescriptorLifecycleListener {
+            override fun beforeContentShown(descriptor: RunContentDescriptor, executor: Executor) {
+              if (descriptor === mockDescriptor) {
+                myShowTabDeferred.complete(Unit)
+              }
             }
-          }
 
-          override fun afterContentShown(descriptor: RunContentDescriptor, executor: Executor) {
-          }
-        })
+            override fun afterContentShown(descriptor: RunContentDescriptor, executor: Executor) {
+            }
+          })
       }
       else {
         localTabScope.cancel()

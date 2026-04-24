@@ -231,18 +231,16 @@ class XBreakpointVisualRepresentation(
   }
 
   fun removeHighlighter() {
-    val marker = rangeMarker
-    if (marker != null) {
-      DebuggerUIUtil.invokeLaterIfNeeded {
-        try {
-          marker.dispose()
-        }
-        catch (e: Exception) {
-          LOG.error(e)
-        }
+    val marker = rangeMarker ?: return
+    rangeMarker = null
+    DebuggerUIUtil.invokeLater {
+      try {
+        marker.dispose()
+      }
+      catch (e: Exception) {
+        LOG.error(e)
       }
     }
-    rangeMarker = null
   }
 
   private fun redrawInlineInlays() {
