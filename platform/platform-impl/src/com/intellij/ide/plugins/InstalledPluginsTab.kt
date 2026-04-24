@@ -109,7 +109,11 @@ class InstalledPluginsTab @RequiresEdt constructor(
   @RequiresEdt
   override fun createPluginsPanel(): JComponent {
     installedPanel.showLoadingIcon()
+    computeAndApplyInstalledPanelModel()
+    return createScrollPane(installedPanel, true)
+  }
 
+  private fun computeAndApplyInstalledPanelModel() {
     PluginManagerPanelFactory.createInstalledPanel(coroutineScope, pluginModelFacade.getModel()) { model ->
       try {
         pluginModelFacade.getModel().setDownloadedGroup(installedPanel, userInstalled, installing)
@@ -260,9 +264,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
       finally {
         installedPanel.hideLoadingIcon()
       }
-    }
-
-    return createScrollPane(installedPanel, true)
+      }
   }
 
   private fun onUpdateAllClick() {
