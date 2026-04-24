@@ -96,7 +96,6 @@ class InstalledPluginsTab @RequiresEdt constructor(
 
   @RequiresEdt
   override fun createPluginsPanel(): JComponent {
-    (searchPanel.controller as SearchUpDownPopupController).setEventHandler(eventHandler)
     installedPanel.showLoadingIcon()
 
     val userInstalled = PluginsGroup(IdeBundle.message("plugins.configurable.userInstalled"), PluginsGroupType.INSTALLED)
@@ -357,6 +356,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
 
     val eventHandler = MultiSelectionEventHandler()
     installedController.setSearchResultEventHandler(eventHandler)
+    installedController.setEventHandler(eventHandler)
 
     val panel = object : PluginsGroupComponentWithProgress(eventHandler) {
       override fun createListComponent(
