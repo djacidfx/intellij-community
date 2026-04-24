@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
 package com.intellij.psi.impl;
 
@@ -26,6 +26,7 @@ import com.intellij.util.IncorrectOperationException;
 import com.intellij.util.ReflectionUtil;
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread;
 import com.intellij.util.concurrency.annotations.RequiresReadLock;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -196,7 +197,12 @@ public abstract class PsiElementBase extends ElementBase implements NavigatableP
 
   @Override
   public void navigate(boolean requestFocus) {
-    Navigatable descriptor = PsiNavigationSupport.getInstance().getDescriptor(this);
+    doNavigate(this, requestFocus);
+  }
+
+  @ApiStatus.Internal
+  public static void doNavigate(@NotNull PsiElement element, boolean requestFocus) {
+    Navigatable descriptor = PsiNavigationSupport.getInstance().getDescriptor(element);
     if (descriptor != null) {
       descriptor.navigate(requestFocus);
     }
