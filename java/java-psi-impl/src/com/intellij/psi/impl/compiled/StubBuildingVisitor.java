@@ -2,6 +2,7 @@
 package com.intellij.psi.impl.compiled;
 
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.util.registry.Registry;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.pom.java.LanguageLevel;
 import com.intellij.psi.PsiPackage;
@@ -861,7 +862,13 @@ public class StubBuildingVisitor<T> extends ClassVisitor {
       int start = canonicalText.lastIndexOf('/') + 2; // -1 => 1 if no package; skip first char in class name
       for (int p = start; p < sb.length(); p++) {
         char c = sb.charAt(p);
-        if (c == '$' && p < sb.length() - 1 && sb.charAt(p + 1) != '$') {
+        if (c == '$' && p < sb.length() - 1) {
+          char next = sb.charAt(p + 1);
+          // Keep '$' before another '$' (JVM-escaped '$' in names like `A$$Lambda`).
+          // Also, before a digit (anonymous / local classes such as `Outer$1`, `Outer$1Helper`),
+          // it is often used to create synthetic classes.
+          // writing those as `Outer.1` is inappropriate.
+          if (next == '$' || Registry.is("java.dont.convert.digits.after.dollar.name") && Character.isDigit(next)) continue;
           sb.setCharAt(p, '.');
           updated = true;
         }

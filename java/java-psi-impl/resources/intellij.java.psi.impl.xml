@@ -152,6 +152,9 @@
     <registryKey key="JDK8042508.bug.fixed" defaultValue="false"
                  description="Disable check for type variable until javac bug is fixed" />
 
+    <registryKey key="java.dont.convert.digits.after.dollar.name" defaultValue="true"
+                 description="Skip digits after '$' in class names in class files"/>
+
     <registryKey key="java.folding.icons.for.control.flow"
                  defaultValue="true"
                  description="Add folding icons to the gutter for control flow statements"/>
