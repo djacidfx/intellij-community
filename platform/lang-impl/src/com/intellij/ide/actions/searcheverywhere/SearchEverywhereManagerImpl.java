@@ -8,6 +8,7 @@ import com.intellij.ide.actions.searcheverywhere.statistics.SearchFieldStatistic
 import com.intellij.ide.lightEdit.LightEdit;
 import com.intellij.ide.lightEdit.LightEditCompatible;
 import com.intellij.internal.statistic.utils.StartMoment;
+import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.ActionPlaces;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DataKey;
@@ -25,6 +26,7 @@ import com.intellij.ui.ScreenUtil;
 import com.intellij.ui.SearchTextField;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.popup.AbstractPopup;
+import com.intellij.util.Alarm;
 import com.intellij.util.PlatformUtils;
 import com.intellij.util.SystemProperties;
 import com.intellij.util.containers.ContainerUtil;
@@ -180,6 +182,32 @@ public final class SearchEverywhereManagerImpl implements SearchEverywhereManage
       myBalloon.setSize(prefSize);
     }
     calcPositionAndShow(initEvent, project, myBalloon);
+
+    if (Registry.is("search.everywhere.freeze.reproducer.enabled")) {
+      startWriteActions(myBalloon);
+    }
+  }
+
+  // Remove this function and scheduleWriteAction as soon as the ticket is fixed
+  // IJPL-240542 Search Everywhere freeze caused by VFS-refresh write-action contention (https://youtrack.jetbrains.com/issue/IJPL-240542)
+  private static void startWriteActions(Disposable disposable) {
+    if (disposable == null) {
+      throw new IllegalArgumentException("Disposable cannot be null");
+    }
+
+    Alarm alarm = new Alarm(Alarm.ThreadToUse.SWING_THREAD, disposable);
+    scheduleWriteAction(alarm);
+  }
+
+  private static void scheduleWriteAction(Alarm alarm) {
+    alarm.addRequest(() -> {
+      ApplicationManager.getApplication().runWriteAction(() -> {
+        // short write action
+      });
+      if (!alarm.isDisposed()) {
+        scheduleWriteAction(alarm);
+      }
+    }, 0);
   }
 
   @Override
