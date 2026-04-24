@@ -1,15 +1,25 @@
-// Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
-package org.jetbrains.uast.test.kotlin
+package org.jetbrains.fir.uast.test
 
+import org.jetbrains.fir.uast.test.env.kotlin.AbstractFirUastTest
+import org.jetbrains.kotlin.idea.base.plugin.KotlinPluginMode
+import org.jetbrains.kotlin.idea.base.test.KotlinRoot
 import org.jetbrains.uast.UElement
 import org.jetbrains.uast.UExpression
 import org.jetbrains.uast.UFile
 import org.jetbrains.uast.evaluation.uValueOf
+import org.jetbrains.uast.test.kotlin.TEST_KOTLIN_MODEL_PATH
 import org.jetbrains.uast.visitor.UastVisitor
+import java.nio.file.Path
 
-abstract class AbstractKotlinExpressionValueTest : AbstractKotlinUastTest() {
-    override fun check(testName: String, file: UFile) {
+abstract class AbstractKotlinExpressionValueTest : AbstractFirUastTest() {
+    override val pluginMode: KotlinPluginMode
+        get() = KotlinPluginMode.K2
+
+    override val testBasePath: Path = TEST_KOTLIN_MODEL_PATH
+
+    override fun check(filePath: String, file: UFile) {
         var valuesFound = 0
         file.accept(object : UastVisitor {
             override fun visitElement(node: UElement): Boolean {
