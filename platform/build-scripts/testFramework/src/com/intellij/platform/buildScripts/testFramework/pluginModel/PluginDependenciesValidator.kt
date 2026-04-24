@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 @file:OptIn(IntellijInternalApi::class)
 
 package com.intellij.platform.buildScripts.testFramework.pluginModel
@@ -38,6 +38,8 @@ import com.intellij.platform.pluginSystem.testFramework.resolveModuleSetPath
 import com.intellij.platform.runtime.product.ProductMode
 import com.intellij.util.SystemProperties
 import com.intellij.util.lang.UrlClassLoader
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.jetbrains.intellij.build.BuildPaths
 import org.jetbrains.jps.model.JpsProject
 import org.jetbrains.jps.model.java.JavaSourceRootType
@@ -64,15 +66,29 @@ class PluginDependenciesValidator private constructor(
   private val options: PluginDependenciesValidationOptions,
 ) {
   companion object {
-    fun validatePluginDependencies(
+    private val pluginLoadingErrorsMutex = Mutex()
+
+    suspend fun validatePluginDependencies(
       project: JpsProject,
       productMode: ProductMode,
       pluginLayoutProvider: PluginLayoutProvider,
       tempDir: Path,
       options: PluginDependenciesValidationOptions,
     ): List<PluginModuleConfigurationError> {
-      val validator = PluginDependenciesValidator(tempDir, project, productMode, pluginLayoutProvider, options)
-      validator.verifyClassLoaderConfigurations()
+      val validator = PluginDependenciesValidator(tempDir = tempDir, project = project, productMode = productMode, pluginLayoutProvider = pluginLayoutProvider, options = options)
+      val pluginSetTestBuilder = validator.createPluginSet()
+      val (pluginSet, loadingErrors) = pluginLoadingErrorsMutex.withLock {
+        // PluginManagerCore stores loading errors in process-global state.
+        PluginManagerCore.getAndClearPluginLoadingErrors()
+        try {
+          pluginSetTestBuilder.build() to PluginManagerCore.getAndClearPluginLoadingErrors()
+        }
+        finally {
+          PluginManagerCore.getAndClearPluginLoadingErrors()
+        }
+      }
+      validator.reportPluginLoadingErrors(loadingErrors)
+      validator.checkPluginSet(pluginSet)
       return validator.errors
     }
   }
@@ -99,14 +115,6 @@ class PluginDependenciesValidator private constructor(
 
   private val zipPool = ZipFilePoolImpl()
   private val errors = ArrayList<PluginModuleConfigurationError>()
-
-  fun verifyClassLoaderConfigurations() {
-    PluginManagerCore.getAndClearPluginLoadingErrors() //clear errors from previous invocations, if any
-    val pluginSet = loadPluginSet()
-    val loadingErrors = PluginManagerCore.getAndClearPluginLoadingErrors()
-    reportPluginLoadingErrors(loadingErrors)
-    checkPluginSet(pluginSet)
-  }
 
   private fun reportPluginLoadingErrors(loadingErrors: List<PluginLoadingError>) {
     for (error in loadingErrors) {
@@ -341,7 +349,7 @@ class PluginDependenciesValidator private constructor(
     return descriptor
   }
 
-  private fun loadPluginSet(): PluginSet {
+  private fun createPluginSet(): PluginSetTestBuilder {
     val pluginSetBuilder = PluginSetTestBuilder.fromDescriptors { loadingContext ->
       moduleNameToPluginLayout.values.mapNotNull {
         try {
@@ -363,7 +371,7 @@ class PluginDependenciesValidator private constructor(
       .withDisabledPlugins(*options.pluginsToIgnore.toTypedArray())
       .withCustomCoreLoader(UrlClassLoader.build().files(corePluginDescription.jpsModulesInClasspath.map { getModuleOutputDir(it) }).get())
 
-    return pluginSetBuilder.build()
+    return pluginSetBuilder
   }
 
   private fun createPluginDescriptor(pluginLayout: PluginLayoutDescription, loadingContext: PluginDescriptorLoadingContext): PluginMainDescriptor {

@@ -24,6 +24,7 @@ import org.jetbrains.annotations.ApiStatus.Internal
 import org.jetbrains.intellij.build.BuildContext
 import org.jetbrains.intellij.build.BuildPaths
 import org.jetbrains.intellij.build.CompilationContext
+import org.jetbrains.intellij.build.ModuleOutputProvider
 import org.jetbrains.intellij.build.ProductProperties
 import org.jetbrains.intellij.build.ProprietaryBuildTools
 import org.jetbrains.intellij.build.impl.asArchivedIfNeeded
@@ -67,12 +68,18 @@ private data class ValidationTask(
   @JvmField val resultDeferred: Deferred<TaskResult<List<PackagingCheckFailure>>>,
 )
 
+private data class TargetValidationTask(
+  @JvmField val spec: PackagingTargetValidationSpec,
+  @JvmField val resultDeferred: Deferred<TaskResult<List<PackagingCheckFailure>>>,
+)
+
 private data class PackagingTask(
   @JvmField val spec: PackagingTargetSpec,
   @JvmField val resultDeferred: Deferred<TaskResult<PackageResult>>,
 )
 
 typealias PackagingSuiteValidator = suspend (context: PackagingSuiteContext) -> List<PackagingCheckFailure>
+typealias PackagingTargetValidator = suspend (context: PackagingTargetValidationContext) -> List<PackagingCheckFailure>
 
 @Internal
 data class PackagingSuiteContext(
@@ -97,6 +104,26 @@ data class PackagingSuiteValidationSpec(
 )
 
 @Internal
+data class PackagingTargetValidationContext(
+  @JvmField val target: PackagingTargetSpec,
+  @JvmField val projectHome: Path,
+  @JvmField val tempDir: Path,
+  @JvmField val project: JpsProject,
+  @JvmField val outputProvider: ModuleOutputProvider,
+  @JvmField val content: ParsedContentReport,
+)
+
+@Internal
+data class PackagingTargetValidationSpec(
+  @JvmField val targetId: String,
+  @JvmField val name: String,
+  @JvmField val problemMessage: String,
+  @JvmField val threshold: Int = Int.MAX_VALUE,
+  @JvmField val alwaysCreateSuccessTest: Boolean = true,
+  @JvmField val validator: PackagingTargetValidator,
+)
+
+@Internal
 data class PackagingTargetSpec(
   @JvmField val id: String,
   @JvmField val createProductProperties: (projectHome: Path) -> ProductProperties,
@@ -114,6 +141,7 @@ data class PackagingSuiteSpec(
   @JvmField val homePath: Path,
   @JvmField val targets: List<PackagingTargetSpec>,
   @JvmField val validations: List<PackagingSuiteValidationSpec> = emptyList(),
+  @JvmField val targetValidations: List<PackagingTargetValidationSpec> = emptyList(),
 )
 
 @Internal
@@ -136,12 +164,15 @@ class PackagingSuiteFixture private constructor(
   private val suiteContextDeferred: Deferred<PackagingSuiteContext>,
   private val validationTasks: List<ValidationTask>,
   private val packagingTasks: List<PackagingTask>,
+  private val targetValidationTasks: List<TargetValidationTask>,
 ) : AutoCloseable {
   companion object {
     fun create(spec: PackagingSuiteSpec): PackagingSuiteFixture {
       require(spec.targets.isNotEmpty()) { "Packaging suite must contain at least one target" }
       ensureUniqueNames(kind = "target", names = spec.targets.map { it.id })
       ensureUniqueNames(kind = "validation", names = spec.validations.map { it.name })
+      ensureUniqueNames(kind = "target validation", names = spec.targetValidations.map { "${it.targetId}:${it.name}" })
+      ensureTargetValidationsReferenceExistingTargets(spec)
 
       return createSharedFixture(spec)
     }
@@ -190,6 +221,13 @@ class PackagingSuiteFixture private constructor(
           validationTasks = validationTasks,
           telemetry = telemetry,
         )
+        val targetValidationTasks = createTargetValidationTasks(
+          scope = scope,
+          spec = spec,
+          suiteContextDeferred = suiteContextDeferred,
+          packagingTasks = packagingTasks,
+          telemetry = telemetry,
+        )
 
         return PackagingSuiteFixture(
           spec = spec,
@@ -200,6 +238,7 @@ class PackagingSuiteFixture private constructor(
           suiteContextDeferred = suiteContextDeferred,
           validationTasks = validationTasks,
           packagingTasks = packagingTasks,
+          targetValidationTasks = targetValidationTasks,
         )
       }
       catch (t: Throwable) {
@@ -322,6 +361,29 @@ class PackagingSuiteFixture private constructor(
     return tests
   }
 
+  fun createTargetValidationTests(): List<DynamicTest> {
+    val tests = ArrayList<DynamicTest>()
+    for (task in targetValidationTasks) {
+      val taskResult = runBlocking { task.resultDeferred.await() }
+      val testName = "${task.spec.targetId} ${task.spec.name}"
+      val failure = taskResult.failure
+      if (failure != null) {
+        tests.add(DynamicTest.dynamicTest(testName) { throw failure })
+        continue
+      }
+
+      tests.addAll(
+        createDynamicTests(
+          failures = taskResult.value.orEmpty().map { it.copy(name = "$testName: ${it.name}") },
+          problemMessage = "${task.spec.problemMessage} for ${task.spec.targetId}",
+          threshold = task.spec.threshold,
+          successTestName = testName.takeIf { task.spec.alwaysCreateSuccessTest },
+        )
+      )
+    }
+    return tests
+  }
+
   override fun close() {
     scope.cancel()
     try {
@@ -356,6 +418,9 @@ abstract class PackagingSuiteTestBase {
 
   @TestFactory
   fun plugins(): List<DynamicTest> = packagingFixture.createPluginTests()
+
+  @TestFactory
+  fun targetValidations(): List<DynamicTest> = packagingFixture.createTargetValidationTests()
 }
 
 private fun createValidationTasks(
@@ -476,6 +541,59 @@ private fun createPackagingTasks(
   return result
 }
 
+private fun createTargetValidationTasks(
+  scope: CoroutineScope,
+  spec: PackagingSuiteSpec,
+  suiteContextDeferred: Deferred<PackagingSuiteContext>,
+  packagingTasks: List<PackagingTask>,
+  telemetry: PackagingSuiteTelemetry?,
+): List<TargetValidationTask> {
+  val packagingTasksByTargetId = packagingTasks.associateBy { it.spec.id }
+  val result = ArrayList<TargetValidationTask>(spec.targetValidations.size)
+  for (validation in spec.targetValidations) {
+    val packagingTask = requireNotNull(packagingTasksByTargetId.get(validation.targetId)) {
+      "Cannot find packaging target '${validation.targetId}' for target validation '${validation.name}'"
+    }
+    result.add(
+      TargetValidationTask(
+        spec = validation,
+        resultDeferred = scope.async {
+          captureTaskResult {
+            withTelemetrySpan(
+              telemetry = telemetry,
+              name = "target validation: ${validation.targetId} ${validation.name}",
+              configure = { span ->
+                span.setAttribute("packaging.target.id", validation.targetId)
+                span.setAttribute("packaging.validation.name", validation.name)
+              },
+            ) {
+              val suiteContext = suiteContextDeferred.await()
+              val packageResult = packagingTask.resultDeferred.await()
+                .getOrAbort("Target validation '${validation.name}' for ${validation.targetId} skipped because packaging failed")
+              val validationTempDir = suiteContext.tempDir
+                .resolve("target-validation")
+                .resolve(validation.targetId)
+                .resolve(validation.name)
+                .createDirectories()
+              validation.validator(
+                PackagingTargetValidationContext(
+                  target = packagingTask.spec,
+                  projectHome = packageResult.projectHome,
+                  tempDir = validationTempDir,
+                  project = packageResult.jpsProject,
+                  outputProvider = suiteContext.compilationContext.outputProvider,
+                  content = packageResult.content,
+                )
+              )
+            }
+          }
+        },
+      )
+    )
+  }
+  return result
+}
+
 private fun createDynamicTests(
   failures: List<PackagingCheckFailure>,
   problemMessage: String,
@@ -569,6 +687,15 @@ private fun ensureUniqueNames(kind: String, names: List<String>) {
   val seen = HashSet<String>(names.size)
   for (name in names) {
     check(seen.add(name)) { "Duplicate packaging $kind: $name" }
+  }
+}
+
+private fun ensureTargetValidationsReferenceExistingTargets(spec: PackagingSuiteSpec) {
+  val targetIds = spec.targets.mapTo(HashSet()) { it.id }
+  for (validation in spec.targetValidations) {
+    require(validation.targetId in targetIds) {
+      "Cannot find packaging target '${validation.targetId}' for target validation '${validation.name}'"
+    }
   }
 }
 
