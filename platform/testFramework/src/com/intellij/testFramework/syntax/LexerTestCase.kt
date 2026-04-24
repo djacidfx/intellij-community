@@ -1,14 +1,14 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.testFramework.syntax
 
-import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.platform.syntax.SyntaxElementType
 import com.intellij.platform.syntax.lexer.Lexer
 import com.intellij.testFramework.UsefulTestCase
 import com.intellij.testFramework.fixtures.IdeaTestExecutionPolicy
-import java.io.File
 import java.io.IOException
+import java.nio.file.Path
+import kotlin.io.path.readText
 
 abstract class LexerTestCase : UsefulTestCase() {
   protected abstract val dirPath: String
@@ -57,7 +57,7 @@ abstract class LexerTestCase : UsefulTestCase() {
   protected fun loadTestDataFile(fileExt: String): String {
     val fileName = getPathToTestDataFile(fileExt)
     try {
-      val fileText = FileUtil.loadFile(File(fileName))
+      val fileText = Path.of(fileName).readText()
       return StringUtil.convertLineSeparators(fileText.trim { it <= ' ' })
     }
     catch (e: IOException) {
