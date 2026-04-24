@@ -6,7 +6,6 @@ import com.intellij.codeInsight.daemon.QuickFixBundle;
 import com.intellij.codeInsight.daemon.impl.analysis.JavaHighlightUtil;
 import com.intellij.codeInsight.daemon.impl.quickfix.AddTypeArgumentsFix;
 import com.intellij.codeInsight.daemon.impl.quickfix.OrderEntryFix;
-import com.intellij.codeInsight.intention.IntentionAction;
 import com.intellij.codeInsight.intention.QuickFixFactory;
 import com.intellij.codeInspection.LambdaCanBeMethodReferenceInspection;
 import com.intellij.codeInspection.LocalQuickFix;
@@ -302,11 +301,10 @@ public class JavacQuirksInspectionVisitor extends JavaElementVisitor {
       if (scope.contains(virtualFile)) continue;
       Module requiredModule = ModuleUtilCore.findModuleForFile(requiredFile);
       if (requiredModule == null) continue;
-      List<IntentionAction> registrar = new ArrayList<>();
       String targetName = access.target.getName();
       if (targetName == null) continue;
       PsiJavaCodeReferenceElement fakeRef = JavaPsiFacade.getElementFactory(file.getProject()).createReferenceFromText(targetName, ref);
-      List<@NotNull LocalQuickFix> fixes = OrderEntryFix.registerFixes(fakeRef, access.target, registrar);
+      List<@NotNull LocalQuickFix> fixes = OrderEntryFix.registerFixes(fakeRef, access.target, new ArrayList<>());
       myHolder.registerProblem(ref, JavaAnalysisBundle.message("inspection.quirk.type.annotation.transitive.dependency.message",
                                                                module.getName(), requiredModule.getName(), formatElement(access.member)),
                                fixes.toArray(LocalQuickFix.EMPTY_ARRAY));
