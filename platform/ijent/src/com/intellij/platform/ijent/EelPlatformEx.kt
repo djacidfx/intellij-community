@@ -16,6 +16,7 @@ val EelPlatform.executableName: String
       when (arch) {
         EelPlatform.Arch.ARM_64 -> "ijent-aarch64-unknown-linux-musl-release"
         EelPlatform.Arch.X86_64 -> "ijent-x86_64-unknown-linux-musl-release"
+        EelPlatform.Arch.ARM_32 -> "ijent-armv7-unknown-linux-musleabihf-release"
         else -> throw IllegalArgumentException("Unsupported linux arch: $arch")
       }
     }
