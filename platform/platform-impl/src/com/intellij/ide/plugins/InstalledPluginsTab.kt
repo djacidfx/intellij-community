@@ -13,6 +13,7 @@ import com.intellij.ide.plugins.newui.ListPluginComponent
 import com.intellij.ide.plugins.newui.MultiSelectionEventHandler
 import com.intellij.ide.plugins.newui.MyPluginModel
 import com.intellij.ide.plugins.newui.PluginDetailsPageComponent
+import com.intellij.ide.plugins.newui.PluginLogo
 import com.intellij.ide.plugins.newui.PluginModelFacade
 import com.intellij.ide.plugins.newui.PluginUiModel
 import com.intellij.ide.plugins.newui.PluginUpdatesService
@@ -25,11 +26,15 @@ import com.intellij.ide.plugins.newui.SearchResultPanel
 import com.intellij.ide.plugins.newui.SearchUpDownPopupController
 import com.intellij.ide.plugins.newui.SearchWords
 import com.intellij.ide.plugins.newui.UIPluginGroup
+import com.intellij.ide.plugins.newui.UiPluginManager
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.KeepPopupOnPerform
 import com.intellij.openapi.actionSystem.ToggleAction
+import com.intellij.openapi.application.EDT
+import com.intellij.openapi.application.ModalityState.any
+import com.intellij.openapi.application.asContextElement
 import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.project.DumbAware
@@ -41,6 +46,9 @@ import com.intellij.ui.components.labels.LinkLabel
 import com.intellij.ui.components.labels.LinkListener
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nls
 import java.util.SortedSet
@@ -113,7 +121,33 @@ class InstalledPluginsTab @RequiresEdt constructor(
   }
 
   private fun computeAndApplyInstalledPanelModel() {
-    PluginManagerPanelFactory.createInstalledPanel(coroutineScope, pluginModelFacade.getModel(), ::applyInstalledPanelModel)
+    val myPluginModel = pluginModelFacade.getModel()
+    coroutineScope.launch(Dispatchers.IO) {
+      myPluginModel.waitForSessionInitialization()
+      val pluginManager = UiPluginManager.getInstance()
+      val installedPlugins = pluginManager.getInstalledPlugins()
+      val visiblePlugins = pluginManager.getVisiblePlugins(Registry.`is`("plugins.show.implementation.details"))
+      val errorCheckResults = pluginManager.loadErrors(myPluginModel.mySessionId.toString())
+      val visiblePluginsRequiresUltimate = pluginManager.getPluginsRequiresUltimateMap(visiblePlugins.map { it.pluginId })
+      val errors = MyPluginModel.getErrors(errorCheckResults)
+      val installationStates = pluginManager.getInstallationStates()
+      withContext(Dispatchers.EDT + any().asContextElement()) {
+        try {
+          PluginLogo.startBatchMode()
+          val model = CreateInstalledPanelModel(
+            installedPlugins,
+            visiblePlugins,
+            errors,
+            visiblePluginsRequiresUltimate,
+            installationStates
+          )
+          applyInstalledPanelModel(model)
+        }
+        finally {
+          PluginLogo.endBatchMode()
+        }
+      }
+    }
   }
 
   private fun applyInstalledPanelModel(model: CreateInstalledPanelModel) {

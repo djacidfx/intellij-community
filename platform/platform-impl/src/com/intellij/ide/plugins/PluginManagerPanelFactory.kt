@@ -4,7 +4,6 @@ package com.intellij.ide.plugins
 import com.intellij.ide.plugins.marketplace.PluginSearchResult
 import com.intellij.ide.plugins.newui.MyPluginModel
 import com.intellij.ide.plugins.newui.PluginInstallationState
-import com.intellij.ide.plugins.newui.PluginLogo
 import com.intellij.ide.plugins.newui.PluginUiModel
 import com.intellij.ide.plugins.newui.PluginsViewCustomizer
 import com.intellij.ide.plugins.newui.UiPluginManager
@@ -18,7 +17,6 @@ import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.updateSettings.impl.pluginsAdvertisement.findSuggestedPlugins
 import com.intellij.openapi.util.IntellijInternalApi
-import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.util.text.HtmlChunk
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -63,29 +61,6 @@ object PluginManagerPanelFactory {
       val installedPlugins = pluginManager.findInstalledPlugins(pluginIds)
       withContext(Dispatchers.EDT + ModalityState.any().asContextElement()) {
         callback(CreateMarketplacePanelModel(marketplaceData, errors, suggestedPlugins, customRepositoriesMap, installedPlugins, installationStates, internalPluginsGroupDescriptor))
-      }
-    }
-  }
-
-  @ApiStatus.Internal
-  fun createInstalledPanel(cs: CoroutineScope, myPluginModel: MyPluginModel, callback: (CreateInstalledPanelModel) -> Unit) {
-    cs.launch(Dispatchers.IO) {
-      myPluginModel.waitForSessionInitialization()
-      val pluginManager = UiPluginManager.getInstance()
-      val installedPlugins = pluginManager.getInstalledPlugins()
-      val visiblePlugins = pluginManager.getVisiblePlugins(Registry.`is`("plugins.show.implementation.details"))
-      val errorCheckResults = pluginManager.loadErrors(myPluginModel.mySessionId.toString())
-      val visiblePluginsRequiresUltimate = pluginManager.getPluginsRequiresUltimateMap(visiblePlugins.map { it.pluginId })
-      val errors = MyPluginModel.getErrors(errorCheckResults)
-      val installationStates = pluginManager.getInstallationStates()
-      withContext(Dispatchers.EDT + ModalityState.any().asContextElement()) {
-        try {
-          PluginLogo.startBatchMode()
-          callback(CreateInstalledPanelModel(installedPlugins, visiblePlugins, errors, visiblePluginsRequiresUltimate, installationStates))
-        }
-        finally {
-          PluginLogo.endBatchMode()
-        }
       }
     }
   }
