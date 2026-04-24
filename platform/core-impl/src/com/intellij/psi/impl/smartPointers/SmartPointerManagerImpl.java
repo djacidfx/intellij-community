@@ -58,6 +58,13 @@ public final class SmartPointerManagerImpl extends SmartPointerManagerEx {
   @Override
   public void dispose() {
     SmartPointerTracker.processQueue();
+    synchronized (myPhysicalTrackers) {
+      for (SmartPointerTracker tracker : myPhysicalTrackers.values()) {
+        if (tracker != null) {
+          tracker.clearPendingState();
+        }
+      }
+    }
   }
 
   private static @NotNull @NonNls String anonymize(@NotNull Project project) {

@@ -217,6 +217,13 @@ class SmartPointerTracker {
     pendingContextMappings.add(mapping)
   }
 
+  @JvmName("clearPendingState")
+  @Synchronized
+  internal fun clearPendingState() {
+    pendingContextMappings.clear()
+    holderCache.clear()
+  }
+
   private val SmartPsiElementPointerImpl<*>.selfInfo: SelfElementInfo
     get() = this.elementInfo as SelfElementInfo
 
