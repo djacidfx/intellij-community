@@ -3,7 +3,6 @@ package org.jetbrains.kotlin.gradle.multiplatformTests
 
 import com.intellij.openapi.externalSystem.importing.ImportSpec
 import com.intellij.openapi.externalSystem.importing.ImportSpecBuilder
-import com.intellij.openapi.externalSystem.util.waitForProjectActivity
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.testFramework.TestDataPath
@@ -176,9 +175,7 @@ abstract class AbstractKotlinMppGradleImportingTest : GradleImportingTestCase(),
                 configureByFiles()
                 runForEnabledFeatures { context.beforeImport() }
                 if (runImport) {
-                    waitForProjectActivity(context.testProject) {
-                        importProject()
-                    }
+                    importProject()
                 }
                 afterImport.invoke(context)
 
