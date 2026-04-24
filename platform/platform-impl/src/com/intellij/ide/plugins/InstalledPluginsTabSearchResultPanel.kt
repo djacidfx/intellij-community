@@ -200,7 +200,7 @@ class InstalledPluginsTabSearchResultPanel(
         PluginModelAsyncOperationsExecutor.loadUpdates().let { updates ->
           if (!ContainerUtil.isEmpty(updates)) {
             withContext(Dispatchers.EDT + ModalityState.any().asContextElement()) {
-              PluginManagerConfigurablePanel.applyUpdates(myPanel, updates)
+              PluginManagerConfigurablePanel.setUpdateDescriptors(myPanel, updates)
               mySelectionListener.accept(myInstalledPanelSupplier.get())
               mySelectionListener.accept(panel)
               fullRepaint()

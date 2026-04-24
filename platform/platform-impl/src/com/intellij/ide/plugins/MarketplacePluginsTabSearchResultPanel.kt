@@ -189,7 +189,7 @@ internal class MarketplacePluginsTabSearchResultPanel(
               val updates = PluginModelAsyncOperationsExecutor.loadUpdates()
               if (updates.isNotEmpty()) {
                 withContext(Dispatchers.EDT + ModalityState.any().asContextElement()) {
-                  PluginManagerConfigurablePanel.applyUpdates(myPanel, updates)
+                  PluginManagerConfigurablePanel.setUpdateDescriptors(myPanel, updates)
                   mySelectionListener.accept(myMarketplacePanelSupplier.get())
                   mySelectionListener.accept(panel)
                   fullRepaint()

@@ -3,11 +3,10 @@ package com.intellij.ide.plugins
 
 import com.intellij.icons.AllIcons
 import com.intellij.ide.IdeBundle
-import com.intellij.ide.plugins.PluginManagerConfigurablePanel.Companion.applyUpdates
-import com.intellij.ide.plugins.PluginManagerConfigurablePanel.Companion.clearUpdates
 import com.intellij.ide.plugins.PluginManagerConfigurablePanel.Companion.createScrollPane
 import com.intellij.ide.plugins.PluginManagerConfigurablePanel.Companion.registerCopyProvider
 import com.intellij.ide.plugins.PluginManagerConfigurablePanel.Companion.setState
+import com.intellij.ide.plugins.PluginManagerConfigurablePanel.Companion.setUpdateDescriptors
 import com.intellij.ide.plugins.PluginManagerConfigurablePanel.Companion.showRightBottomPopup
 import com.intellij.ide.plugins.marketplace.statistics.PluginManagerUsageCollector
 import com.intellij.ide.plugins.newui.ListPluginComponent
@@ -41,7 +40,6 @@ import com.intellij.ui.components.fields.ExtendableTextComponent
 import com.intellij.ui.components.labels.LinkLabel
 import com.intellij.ui.components.labels.LinkListener
 import com.intellij.util.concurrency.annotations.RequiresEdt
-import com.intellij.util.containers.ContainerUtil
 import kotlinx.coroutines.CoroutineScope
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nls
@@ -266,14 +264,8 @@ class InstalledPluginsTab @RequiresEdt constructor(
         pluginUpdatesService.calculateUpdates { updates ->
           val updateModels = updates?.filter { plugin -> pluginModelFacade.isEnabled(plugin) }
                              ?: emptyList()
-          if (ContainerUtil.isEmpty(updateModels)) {
-            clearUpdates(installedPanel)
-            clearUpdates(searchPanel.panel)
-          }
-          else {
-            applyUpdates(installedPanel, updateModels)
-            applyUpdates(searchPanel.panel, updateModels)
-          }
+          setUpdateDescriptors(installedPanel, updateModels)
+          setUpdateDescriptors(searchPanel.panel, updateModels)
           applyBundledUpdates(updateModels)
           selectionListener.accept(installedPanel)
           selectionListener.accept(searchPanel.panel)

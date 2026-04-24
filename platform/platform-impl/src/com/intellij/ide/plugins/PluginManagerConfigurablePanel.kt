@@ -735,23 +735,12 @@ class PluginManagerConfigurablePanel @RequiresEdt constructor(searchQuery: Strin
     }
 
     @JvmStatic
-    fun clearUpdates(panel: PluginsGroupComponent) {
+    fun setUpdateDescriptors(panel: PluginsGroupComponent, updates: Collection<PluginUiModel>) {
+      val idToUpdate = updates.associateBy { it.pluginId }
       for (group in panel.groups) {
         for (plugin in group.plugins) {
-          plugin.setUpdateDescriptor(null as IdeaPluginDescriptor?)
-        }
-      }
-    }
-
-    @JvmStatic
-    fun applyUpdates(panel: PluginsGroupComponent, updates: Collection<PluginUiModel>) {
-      for (descriptor in updates) {
-        for (group in panel.groups) {
-          val component = group.findComponent(descriptor.pluginId)
-          if (component != null) {
-            component.setUpdateDescriptor(descriptor)
-            break
-          }
+          val update = idToUpdate[plugin.getPluginDescriptor().pluginId]
+          plugin.setUpdateDescriptor(update)
         }
       }
     }

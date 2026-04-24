@@ -5,10 +5,9 @@ import com.intellij.execution.process.ProcessIOExecutorService
 import com.intellij.featureStatistics.FeatureUsageTracker
 import com.intellij.ide.IdeBundle
 import com.intellij.ide.impl.ProjectUtil
-import com.intellij.ide.plugins.PluginManagerConfigurablePanel.Companion.applyUpdates
-import com.intellij.ide.plugins.PluginManagerConfigurablePanel.Companion.clearUpdates
 import com.intellij.ide.plugins.PluginManagerConfigurablePanel.Companion.createScrollPane
 import com.intellij.ide.plugins.PluginManagerConfigurablePanel.Companion.registerCopyProvider
+import com.intellij.ide.plugins.PluginManagerConfigurablePanel.Companion.setUpdateDescriptors
 import com.intellij.ide.plugins.marketplace.PluginSearchResult
 import com.intellij.ide.plugins.marketplace.statistics.PluginManagerUsageCollector
 import com.intellij.ide.plugins.newui.ListPluginComponent
@@ -286,14 +285,8 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
             else {
               updates.filter { plugin -> pluginModelFacade.isEnabled(plugin) }
             }
-            if (ContainerUtil.isEmpty(updateModels)) {
-              clearUpdates(marketplacePanel)
-              clearUpdates(searchPanel.panel)
-            }
-            else {
-              applyUpdates(marketplacePanel, updateModels)
-              applyUpdates(searchPanel.panel, updateModels)
-            }
+            setUpdateDescriptors(marketplacePanel, updateModels)
+            setUpdateDescriptors(searchPanel.panel, updateModels)
             selectionListener.accept(marketplacePanel)
             selectionListener.accept(searchPanel.panel)
           }
