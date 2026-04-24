@@ -93,9 +93,6 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
   private val marketplacePanel = createMarketplacePanel(eventHandler)
 
   init {
-    tagsSorted = null
-    vendorsSorted = null
-
     customizeSearchTextField()
   }
 
