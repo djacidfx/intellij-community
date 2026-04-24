@@ -55,7 +55,14 @@ sealed class Toolchain(
     name: ToolchainNames = ToolchainNames.MINGW_GDB,
   ) : Toolchain(name, compiler, debugger, buildTool)
 
-  class CustomMingwGDB(
+  class CustomMingw(
+    compiler: Compiler = Compiler.DEFAULT,
+    debugger: Debugger = Debugger.MINGW_CUSTOM_GDB,
+    buildTool: BuildTool = BuildTool.DEFAULT,
+    name: ToolchainNames = ToolchainNames.MINGW_GDB,
+  ) : Toolchain(name, compiler, debugger, buildTool)
+
+  class MingwCustomGDB(
     compiler: Compiler = Compiler.DEFAULT,
     debugger: Debugger = Debugger.CUSTOM_GDB,
     buildTool: BuildTool = BuildTool.DEFAULT,
@@ -147,6 +154,13 @@ enum class Debugger {
     override fun getDebuggerFieldName(): String = "Bundled LLDB"
     override fun toString(): String = "LLDB"
     override fun type(): String = "LLDB"
+  },
+
+  MINGW_CUSTOM_GDB {
+    override fun getDebuggerPath(): String = "MinGW-w64 GDB"
+    override fun getDebuggerFieldName(): String = "MinGW-w64 GDB"
+    override fun toString(): String = "MinGW-w64 GDB"
+    override fun type(): String = "GDB"
   },
 
   CUSTOM_GDB {
