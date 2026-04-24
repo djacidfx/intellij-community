@@ -48,11 +48,10 @@ use {
 #[cfg(target_family = "unix")]
 use std::os::unix::fs::PermissionsExt;
 
+#[cfg(target_os = "linux")]
+use std::os::unix::process::CommandExt;
 #[cfg(all(target_os = "linux", target_env = "gnu"))]
-use {
-    libc::{dl_iterate_phdr, dl_phdr_info, size_t},
-    std::os::unix::process::CommandExt,
-};
+use libc::{dl_iterate_phdr, dl_phdr_info, size_t};
 
 use crate::cef_sandbox::CefScopedSandboxInfo;
 use crate::default::DefaultLaunchConfiguration;
@@ -262,6 +261,8 @@ fn adjust_to_musl(exe_path: &Path, jre_home: &Path, extra_libs: &Option<PathBuf>
     let ld_lib_path = env::var_os("LD_LIBRARY_PATH").unwrap_or_default();
     let jvm_dir = jre_home.join("lib/server");
     let mut new_ld_lib_path = std::ffi::OsString::from(jvm_dir);
+    new_ld_lib_path.push(":");
+    new_ld_lib_path.push(jre_home.join("lib"));
     if let Some(extra_libs) = extra_libs {
         new_ld_lib_path.push(":");
         new_ld_lib_path.push(extra_libs);
