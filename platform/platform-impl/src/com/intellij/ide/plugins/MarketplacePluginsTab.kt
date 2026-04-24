@@ -739,3 +739,13 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
     private const val ITEMS_PER_GROUP = 9
   }
 }
+
+private data class CreateMarketplacePanelModel(
+  val marketplaceData: Map<String, PluginSearchResult>,
+  val errors: Map<PluginId, List<HtmlChunk>>,
+  val suggestedPlugins: List<PluginUiModel>,
+  val customRepositories: Map<String, List<PluginUiModel>>,
+  val installedPlugins: Map<PluginId, PluginUiModel>,
+  val installationStates: Map<PluginId, PluginInstallationState>,
+  val internalPluginsGroupDescriptor: PluginsViewCustomizer.PluginsGroupDescriptor?,
+)

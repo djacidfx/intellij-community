@@ -13,6 +13,7 @@ import com.intellij.ide.plugins.newui.ListPluginComponent
 import com.intellij.ide.plugins.newui.MultiSelectionEventHandler
 import com.intellij.ide.plugins.newui.MyPluginModel
 import com.intellij.ide.plugins.newui.PluginDetailsPageComponent
+import com.intellij.ide.plugins.newui.PluginInstallationState
 import com.intellij.ide.plugins.newui.PluginLogo
 import com.intellij.ide.plugins.newui.PluginModelFacade
 import com.intellij.ide.plugins.newui.PluginUiModel
@@ -40,6 +41,7 @@ import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.registry.Registry
+import com.intellij.openapi.util.text.HtmlChunk
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.ui.components.fields.ExtendableTextComponent
 import com.intellij.ui.components.labels.LinkLabel
@@ -690,3 +692,11 @@ class InstalledPluginsTab @RequiresEdt constructor(
       ExtensionPointName.create("com.intellij.pluginCategoryPromotionProvider")
   }
 }
+
+private data class CreateInstalledPanelModel(
+  val installedPlugins: List<PluginUiModel>,
+  val visiblePlugins: List<PluginUiModel>,
+  val errors: Map<PluginId, List<HtmlChunk>>,
+  val visiblePluginsRequiresUltimate: Map<PluginId, Boolean>,
+  val installationStates: Map<PluginId, PluginInstallationState>,
+)
