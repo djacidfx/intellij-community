@@ -37,14 +37,12 @@ import com.intellij.openapi.module.ModuleUtilCore;
 import com.intellij.openapi.options.advanced.AdvancedSettings;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.roots.ModuleRootManager;
 import com.intellij.openapi.util.Condition;
 import com.intellij.openapi.util.NlsContexts;
 import com.intellij.openapi.util.Ref;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.util.registry.Registry;
 import com.intellij.openapi.util.text.StringUtil;
-import com.intellij.openapi.vfs.JarFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.patterns.ElementPattern;
 import com.intellij.patterns.PatternCondition;
@@ -140,7 +138,6 @@ import com.intellij.psi.filters.types.AssignableFromFilter;
 import com.intellij.psi.impl.java.stubs.index.JavaAutoModuleNameIndex;
 import com.intellij.psi.impl.java.stubs.index.JavaModuleNameIndex;
 import com.intellij.psi.impl.java.stubs.index.JavaSourceModuleNameIndex;
-import com.intellij.psi.impl.light.LightJavaModule;
 import com.intellij.psi.impl.source.PsiJavaCodeReferenceElementImpl;
 import com.intellij.psi.impl.source.resolve.JavaResolveUtil;
 import com.intellij.psi.impl.source.tree.JavaElementType;
@@ -1413,17 +1410,9 @@ public final class JavaCompletionContributor extends CompletionContributor imple
           Module module = ModuleUtilCore.findModuleForFile(originalFile);
           if (module != null) {
             scope = ProjectScope.getAllScope(project);
-            Set<String> shadowedNames = new HashSet<>();
             for (String name : JavaSourceModuleNameIndex.getAllKeys(project)) {
               Collection<VirtualFile> manifests = JavaSourceModuleNameIndex.getFilesByKey(name, scope);
               if (!manifests.isEmpty()) {
-                shadowedNames.add(name);
-                for (VirtualFile manifest : manifests) {
-                  VirtualFile jarRoot = manifest.getParent().getParent();
-                  if (jarRoot.getFileSystem() instanceof JarFileSystem) {
-                    shadowedNames.add(LightJavaModule.moduleName(jarRoot.getNameWithoutExtension()));
-                  }
-                }
                 LookupElement lookupElement = getAutoModuleReference(name, parent, filter);
                 if (lookupElement != null) {
                   if (!checkAccess) {
@@ -1436,12 +1425,7 @@ public final class JavaCompletionContributor extends CompletionContributor imple
                 }
               }
             }
-            VirtualFile[] roots = ModuleRootManager.getInstance(module).orderEntries().withoutSdk().librariesOnly().getClassesRoots();
-            scope = GlobalSearchScope.filesScope(project, Arrays.asList(roots));
             for (String name : JavaAutoModuleNameIndex.getAllKeys(project)) {
-              if (shadowedNames.contains(name)) {
-                continue;
-              }
               Collection<VirtualFile> files = JavaAutoModuleNameIndex.getFilesByKey(name, scope);
               if (!files.isEmpty()) {
                 LookupElement lookupElement = getAutoModuleReference(name, parent, filter);

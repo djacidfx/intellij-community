@@ -21,6 +21,7 @@ import com.intellij.psi.util.CachedValueProvider;
 import com.intellij.psi.util.CachedValuesManager;
 import com.intellij.util.Processor;
 import com.intellij.util.QueryExecutor;
+import com.intellij.util.containers.ContainerUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -115,6 +116,11 @@ public final class JavaModuleSearcher implements QueryExecutor<PsiJavaModule, Ja
         }
       }
 
+      // do not create auto-module if manifest exists without "Automatic-Module-Name" to avoid conflict with SourceModuleNameIndex
+      if (autoModuleName == null && ContainerUtil.exists(sourceRoots, r -> r.findFileByRelativePath(JarFile.MANIFEST_NAME) != null)) {
+        continue;
+      }
+
       // default module name derived from module name
       String defaultModuleName = valuesManager.getCachedValue(module, () ->
         CachedValueProvider.Result.create(LightJavaModule.moduleName(module.getName()), tracker));
@@ -146,28 +152,16 @@ public final class JavaModuleSearcher implements QueryExecutor<PsiJavaModule, Ja
       if (!consumer.process(module)) return false;
     }
 
-    // Light modules created from source manifests
-    Set<VirtualFile> shadowedRoots = new HashSet<>();
     for (VirtualFile manifest : JavaSourceModuleNameIndex.getFilesByKey(moduleName, scope)) {
       ProgressManager.checkCanceled();
       VirtualFile root = getSourceRootFromManifest(manifest);
       if (root == null) continue;
-
       namesWithResults.add(moduleName);
-      shadowedRoots.add(root);
-
       if (!consumer.process(LightJavaModule.create(psiManager, root, moduleName))) return false;
     }
 
-    // Light modules created from auto-module-name (jar roots)
     for (VirtualFile root : JavaAutoModuleNameIndex.getFilesByKey(moduleName, scope)) {
       ProgressManager.checkCanceled();
-      if (shadowedRoots.contains(root)) continue;
-
-      VirtualFile manifest = root.findFileByRelativePath(JarFile.MANIFEST_NAME);
-      // If the manifest claims a module name (possibly different), skip this root.
-      if (manifest != null && LightJavaModule.claimedModuleName(manifest) != null) continue;
-
       namesWithResults.add(moduleName);
       if (!consumer.process(LightJavaModule.create(psiManager, root, moduleName))) return false;
     }

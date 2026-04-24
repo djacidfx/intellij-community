@@ -33,6 +33,11 @@
     <extensionPoint qualifiedName="com.intellij.customPropertyScopeProvider" interface="com.intellij.psi.impl.search.CustomPropertyScopeProvider" dynamic="true"/>
   </extensionPoints>
 
+  <applicationListeners>
+    <listener class="com.intellij.psi.impl.java.stubs.index.AutoModuleManifestChangeListener"
+              topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+  </applicationListeners>
+
   <extensions defaultExtensionNs="com.intellij">
     <languageStubDefinition language="JAVA" implementationClass="com.intellij.psi.impl.java.stubs.JavaStubDefinition"/>
 
