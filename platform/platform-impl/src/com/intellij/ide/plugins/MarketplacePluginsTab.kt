@@ -114,13 +114,6 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
 
   @RequiresEdt
   override fun createPluginsPanel(): JComponent {
-    marketplacePanel.getEmptyText().setText(IdeBundle.message("plugins.configurable.marketplace.plugins.not.loaded"))
-      .appendSecondaryText(IdeBundle.message("message.check.the.internet.connection.and") + " ", StatusText.DEFAULT_ATTRIBUTES, null)
-      .appendSecondaryText(
-        IdeBundle.message("message.link.refresh"),
-        SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES,
-      ) { reloadMarketplaceTab() }
-
     val project = ProjectUtil.getActiveProject()
     doCreateMarketplaceTab(selectionListener, project)
     return createScrollPane(marketplacePanel, false)
@@ -147,6 +140,14 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
     marketplacePanel.setSelectionListener(selectionListener)
     marketplacePanel.getAccessibleContext().setAccessibleName(IdeBundle.message("plugin.manager.marketplace.panel.accessible.name"))
     registerCopyProvider(marketplacePanel)
+
+    marketplacePanel.getEmptyText().setText(IdeBundle.message("plugins.configurable.marketplace.plugins.not.loaded"))
+      .appendSecondaryText(IdeBundle.message("message.check.the.internet.connection.and") + " ", StatusText.DEFAULT_ATTRIBUTES, null)
+      .appendSecondaryText(
+        IdeBundle.message("message.link.refresh"),
+        SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES,
+      ) { reloadMarketplaceTab() }
+
     return marketplacePanel
   }
 
