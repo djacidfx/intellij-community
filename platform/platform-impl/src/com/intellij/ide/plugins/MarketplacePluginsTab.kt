@@ -96,27 +96,20 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
     customizeSearchTextField()
   }
 
-  fun resetCache() {
-    tagsSorted = null
-    vendorsSorted = null
-  }
-
-  private fun reloadMarketplaceTab() {
-    val project = ProjectUtil.getActiveProject()
-    marketplacePanel.clear()
-    marketplacePanel.showLoadingIcon()
-    computeAndApplyMarketplacePanelModel(selectionListener, project)
-  }
-
-  private fun customizeSearchTextField() {
-    searchTextField.setHistoryPropertyName("MarketplacePluginsSearchHistory")
-  }
-
   @RequiresEdt
   override fun createPluginsPanel(): JComponent {
     val project = ProjectUtil.getActiveProject()
     computeAndApplyMarketplacePanelModel(selectionListener, project)
     return createScrollPane(marketplacePanel, false)
+  }
+
+  override fun updateMainSelection(selectionListener: Consumer<in PluginsGroupComponent?>) {
+    selectionListener.accept(marketplacePanel)
+  }
+
+  fun resetCache() {
+    tagsSorted = null
+    vendorsSorted = null
   }
 
   private fun createMarketplacePanel(eventHandler: MultiSelectionEventHandler): PluginsGroupComponentWithProgress {
@@ -289,10 +282,6 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
     }
   }
 
-  override fun updateMainSelection(selectionListener: Consumer<in PluginsGroupComponent?>) {
-    selectionListener.accept(marketplacePanel)
-  }
-
   private fun createDetailsPanel(searchListener: LinkListener<Any>): PluginDetailsPageComponent {
     val detailPanel = PluginDetailsPageComponent(pluginModelFacade, searchListener, true)
     pluginModelFacade.getModel().addDetailPanel(detailPanel)
@@ -391,6 +380,17 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
       Supplier { marketplacePanel },
     )
     return searchPanel
+  }
+
+  private fun reloadMarketplaceTab() {
+    val project = ProjectUtil.getActiveProject()
+    marketplacePanel.clear()
+    marketplacePanel.showLoadingIcon()
+    computeAndApplyMarketplacePanelModel(selectionListener, project)
+  }
+
+  private fun customizeSearchTextField() {
+    searchTextField.setHistoryPropertyName("MarketplacePluginsSearchHistory")
   }
 
   private fun getOrCalculateVendors(): List<String> {
