@@ -998,6 +998,8 @@ jvm_library(
     "//platform/syntax/syntax-i18n:i18n-tests_test_lib",
     "//platform/syntax/syntax-api:tests",
     "//platform/syntax/syntax-api:tests_test_lib",
+    "//platform/syntax/syntax-util:util-tests",
+    "//platform/syntax/syntax-util:util-tests_test_lib",
     "//platform/testFramework/junit5.jimfs:junit5-jimfs-tests",
     "//platform/testFramework/junit5.jimfs:junit5-jimfs-tests_test_lib",
     "//platform/testFramework/junit5/projectStructure:testFramework-junit5-projectStructure-tests",
