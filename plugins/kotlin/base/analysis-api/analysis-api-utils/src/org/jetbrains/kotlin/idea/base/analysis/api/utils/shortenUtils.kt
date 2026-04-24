@@ -15,7 +15,6 @@ import org.jetbrains.kotlin.analysis.api.components.containingSymbol
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisFromWriteAction
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
-import org.jetbrains.kotlin.analysis.api.symbols.KaClassKind
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassLikeSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaConstructorSymbol
@@ -260,6 +259,30 @@ private fun ((KaClassLikeSymbol) -> ShortenStrategy).respectClassImportFilter(co
         }
     }
 
+context(_: KaSession)
+private fun ((KaCallableSymbol) -> ShortenStrategy).respectClassImportFilterForConstructors(contextFile: KtFile): (KaCallableSymbol) -> ShortenStrategy =
+    fun(callableSymbol: KaCallableSymbol): ShortenStrategy {
+        val strategy = this(callableSymbol)
+        val constructorSymbol = callableSymbol as? KaConstructorSymbol ?: return strategy
+        val classId = constructorSymbol.containingClassId ?: return strategy
+        val classSymbol = constructorSymbol.containingSymbol as? KaClassSymbol ?: return strategy
+
+        return when (strategy) {
+            ShortenStrategy.SHORTEN_AND_IMPORT, ShortenStrategy.SHORTEN_AND_STAR_IMPORT -> {
+                val allowClassImport = ClassImportFilter.allowClassImport(
+                    classId.asSingleFqName(),
+                    classSymbol.classKind,
+                    constructorSymbol.modality,
+                    constructorSymbol.visibility,
+                    classId.isNestedClass,
+                    contextFile
+                )
+                if (allowClassImport) strategy else ShortenStrategy.SHORTEN_IF_ALREADY_IMPORTED
+            }
+            else -> strategy
+        }
+    }
+
 /**
  * Collects possible references to shorten.
  *
@@ -289,7 +312,7 @@ fun collectPossibleReferenceShorteningsForIde(
         selection,
         shortenOptions.toShortenOptions(),
         classShortenStrategy.respectClassImportFilter(file),
-        callableShortenStrategy.respectConstructorImportFilter(file)
+        callableShortenStrategy.respectClassImportFilterForConstructors(file)
     )
 
     val companionReferencesToShorten = collectPossibleCompanionReferenceShortenings(file, selection, shortenOptions)
@@ -297,30 +320,6 @@ fun collectPossibleReferenceShorteningsForIde(
 
     return ShortenCommandForIdeImpl(shortenCommand, companionReferencesToShorten)
 }
-
-context(_: KaSession)
-private fun ((KaCallableSymbol) -> ShortenStrategy).respectConstructorImportFilter(contextFile: KtFile): (KaCallableSymbol) -> ShortenStrategy =
-    fun(callableSymbol: KaCallableSymbol): ShortenStrategy {
-        val strategy = this(callableSymbol)
-        val constructorSymbol = callableSymbol as? KaConstructorSymbol ?: return strategy
-        val classId = constructorSymbol.containingClassId ?: return strategy
-        val classSymbol = constructorSymbol.containingSymbol as? KaClassSymbol ?: return strategy
-
-        return when (strategy) {
-            ShortenStrategy.SHORTEN_AND_IMPORT, ShortenStrategy.SHORTEN_AND_STAR_IMPORT -> {
-                val allowClassImport = ClassImportFilter.allowClassImport(
-                    classId.asSingleFqName(),
-                    classSymbol.classKind,
-                    constructorSymbol.modality,
-                    constructorSymbol.visibility,
-                    classId.isNestedClass,
-                    contextFile
-                )
-                if (allowClassImport) strategy else ShortenStrategy.SHORTEN_IF_ALREADY_IMPORTED
-            }
-            else -> strategy
-        }
-    }
 
 /**
  * Collects possible references to shorten.
@@ -350,7 +349,7 @@ fun collectPossibleReferenceShorteningsInElementForIde(
         element,
         shortenOptions.toShortenOptions(),
         classShortenStrategy.respectClassImportFilter(file),
-        callableShortenStrategy.respectConstructorImportFilter(file),
+        callableShortenStrategy.respectClassImportFilterForConstructors(file),
     )
 
     val companionReferencesToShorten = collectPossibleCompanionReferenceShorteningsInElement(element, shortenOptions)
