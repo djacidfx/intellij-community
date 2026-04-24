@@ -46,7 +46,6 @@ import com.intellij.openapi.util.ThrowableComputable;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.newvfs.RefreshQueueImpl;
-import com.intellij.platform.backend.observation.Observation;
 import com.intellij.psi.PsiConsistencyAssertions;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
@@ -172,11 +171,6 @@ public final class TestDaemonCodeAnalyzerImpl {
     dispatchAllInvocationEventsInIdeEventQueueReleasingWIL();
     NonBlockingReadActionImpl.waitForAsyncTaskCompletion(); // wait for async editor loading
 
-    // tracked activities (e.g., external system import, vendor scan) may fire write actions
-    // that trigger rootsChanged — same reason we wait for VFS refresh above
-    while (Observation.INSTANCE.configurationFlow(myProject).getValue()) {
-      dispatchAllInvocationEventsInIdeEventQueueReleasingWIL();
-    }
     // update the file status map before prohibiting its modifications
     waitForUpdateFileStatusBackgroundQueueInTests();
     try {
