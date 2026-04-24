@@ -2,6 +2,7 @@
 package org.jetbrains.idea.devkit.inspections
 
 import com.intellij.openapi.project.IntelliJProjectUtil
+import com.intellij.psi.PsiFile
 import com.intellij.testFramework.PsiTestUtil
 import com.intellij.testFramework.common.timeoutRunBlocking
 import com.intellij.testFramework.common.waitUntil
@@ -9,6 +10,8 @@ import com.intellij.testFramework.fixtures.JavaCodeInsightFixtureTestCase
 import org.jetbrains.idea.devkit.inspections.remotedev.SplitModeApiRestrictionsService
 import org.jetbrains.idea.devkit.inspections.remotedev.SplitModeXmlApiUsageInspection
 import org.jetbrains.idea.devkit.module.PluginModuleType
+import org.jetbrains.jps.model.java.JavaResourceRootType
+import org.junit.Assert
 import kotlin.time.Duration.Companion.seconds
 
 internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCase() {
@@ -88,11 +91,90 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
             <module name="intellij.platform.frontend"/>
           </dependencies>
           <extensions defaultExtensionNs="com.intellij">
-            <<warning descr="'com.intellij.localInspection' can only be used in 'backend' module type. Actual module type is 'shared'">localInspection</warning>/>
+            <<warning descr="'com.intellij.localInspection' can only be used in 'backend' module type. Actual module type is 'frontend'">localInspection</warning>/>
           </extensions>
         </idea-plugin>
       """.trimIndent()
     )
+
+    myFixture.checkHighlighting()
+  }
+
+  fun testFrontendExtensionInContentModuleOfBackendOnlyPlugin() {
+    addModuleWithXmlDescriptor(
+      moduleName = "com.example.backend.plugin",
+      descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
+      """
+        <idea-plugin>
+          <id>com.example.backend.plugin</id>
+          <dependencies>
+            <module name="intellij.platform.backend"/>
+          </dependencies>
+          <content>
+            <module name="com.example.content.module"/>
+          </content>
+        </idea-plugin>
+      """.trimIndent()
+    )
+    val contentModuleDescriptor = addModuleWithXmlDescriptor(
+      moduleName = "com.example.content.module",
+      descriptorRelativePathToResourcesDirectory = "com.example.content.module.xml",
+      """
+        <idea-plugin>
+          <extensions defaultExtensionNs="com.intellij">
+            <<warning descr="'com.intellij.fileEditorProvider' can only be used in 'frontend' module type. Actual module type is 'backend'">fileEditorProvider</warning>/>
+          </extensions>
+        </idea-plugin>
+      """.trimIndent()
+    )
+    myFixture.configureFromExistingVirtualFile(contentModuleDescriptor.virtualFile)
+
+    myFixture.checkHighlighting()
+  }
+
+  fun testFrontendExtensionInContentModuleWithMultipleContainingPlugins() {
+    addModuleWithXmlDescriptor(
+      moduleName = "com.example.frontend.plugin",
+      descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
+      """
+        <idea-plugin>
+          <id>com.example.frontend.plugin</id>
+          <dependencies>
+            <module name="intellij.platform.frontend"/>
+          </dependencies>
+          <content>
+            <module name="com.example.shared.content.module"/>
+          </content>
+        </idea-plugin>
+      """.trimIndent()
+    )
+    addModuleWithXmlDescriptor(
+      moduleName = "com.example.backend.plugin",
+      descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
+      """
+        <idea-plugin>
+          <id>com.example.backend.plugin</id>
+          <dependencies>
+            <module name="intellij.platform.backend"/>
+          </dependencies>
+          <content>
+            <module name="com.example.shared.content.module"/>
+          </content>
+        </idea-plugin>
+      """.trimIndent()
+    )
+    val contentModuleDescriptor = addModuleWithXmlDescriptor(
+      moduleName = "com.example.shared.content.module",
+      descriptorRelativePathToResourcesDirectory = "com.example.shared.content.module.xml",
+      """
+        <idea-plugin>
+          <extensions defaultExtensionNs="com.intellij">
+            <<warning descr="'com.intellij.fileEditorProvider' can only be used in 'frontend' module type. Actual module type is 'shared'">fileEditorProvider</warning>/>
+          </extensions>
+        </idea-plugin>
+      """.trimIndent()
+    )
+    myFixture.configureFromExistingVirtualFile(contentModuleDescriptor.virtualFile)
 
     myFixture.checkHighlighting()
   }
@@ -173,6 +255,21 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
 
   private fun configureContentModuleXml(pluginXmlContent: String) {
     configureDescriptor("resources/light_idea_test_case.xml", pluginXmlContent)
+  }
+
+  private fun addModuleWithXmlDescriptor(
+    moduleName: String,
+    descriptorRelativePathToResourcesDirectory: String,
+    pluginXmlContent: String,
+  ): PsiFile {
+    val addedModule =
+      PsiTestUtil.addModule(project, PluginModuleType.getInstance(), moduleName, myFixture.tempDirFixture.findOrCreateDir(moduleName))
+    PsiTestUtil.addSourceRoot(addedModule,
+                              myFixture.tempDirFixture.findOrCreateDir("$moduleName/resources"),
+                              JavaResourceRootType.RESOURCE)
+    val createdDescriptorFile = myFixture.addFileToProject("$moduleName/resources/$descriptorRelativePathToResourcesDirectory", pluginXmlContent)
+    Assert.assertNotNull("XML descriptor for module $moduleName was not created", createdDescriptorFile)
+    return createdDescriptorFile!!
   }
 
   private fun configureDescriptor(relativePath: String, pluginXmlContent: String) {

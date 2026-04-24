@@ -2,19 +2,28 @@
 package org.jetbrains.idea.devkit.inspections.remotedev
 
 import com.intellij.lang.xml.XMLLanguage
+import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.roots.ProjectRootModificationTracker
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
+import com.intellij.psi.xml.XmlFile
+import com.intellij.util.xml.DomService
+import org.jetbrains.idea.devkit.dom.IdeaPlugin
 import org.jetbrains.idea.devkit.module.PluginModuleType
 import org.jetbrains.idea.devkit.util.DescriptorUtil
+import org.jetbrains.idea.devkit.util.PluginRelatedLocatorsUtils
 
 private const val FRONTEND_PLATFORM_MODULE_BASE_NAME = "intellij.platform.frontend"
 private const val BACKEND_PLATFORM_MODULE_BASE_NAME = "intellij.platform.backend"
 
 internal object SplitModeModuleKindResolver {
+  private val LOG: Logger = logger<SplitModeModuleKindResolver>()
+
   fun getOrComputeModuleKind(element: PsiElement): SplitModeApiRestrictionsService.ModuleKind {
     val cacheHolder = element.containingFile ?: return SplitModeApiRestrictionsService.ModuleKind.SHARED
     return CachedValuesManager.getCachedValue(cacheHolder) {
@@ -72,17 +81,20 @@ internal object SplitModeModuleKindResolver {
       else -> null
     }
 
-    val pluginXml = PluginModuleType.getPluginXml(module) ?: PluginModuleType.getContentModuleDescriptorXml(module)
-    if (pluginXml == null) {
+    val descriptorFile = getDescriptorFile(file) ?: findDescriptorFileInModule(module)
+    if (descriptorFile == null) {
       return explicitModuleKind ?: SplitModeApiRestrictionsService.ModuleKind.SHARED
     }
 
-    val ideaPlugin = DescriptorUtil.getIdeaPlugin(pluginXml)
+    val ideaPlugin = DescriptorUtil.getIdeaPlugin(descriptorFile)
     if (ideaPlugin == null) {
       return explicitModuleKind ?: SplitModeApiRestrictionsService.ModuleKind.SHARED
     }
 
-    val allDependencies = SplitModePluginDependencyUtil.collectTransitiveDependencyNames(ideaPlugin)
+    val allDependencies = LinkedHashSet(SplitModePluginDependencyUtil.collectTransitiveDependencyNames(ideaPlugin))
+    if (isInspectedContentModuleDescriptor(file, descriptorFile, module)) {
+      allDependencies.addAll(collectContainingPluginDirectDependencyNames(descriptorFile))
+    }
     val matchedDependencies = collectMatchedDependencies(allDependencies)
 
     return when {
@@ -94,6 +106,64 @@ internal object SplitModeModuleKindResolver {
       matchedDependencies.hasBackend -> SplitModeApiRestrictionsService.ModuleKind.LIKELY_BACKEND
       else -> SplitModeApiRestrictionsService.ModuleKind.SHARED
     }
+  }
+
+  private fun getDescriptorFile(file: PsiFile): XmlFile? {
+    if (file !is XmlFile) return null
+    if (DescriptorUtil.getIdeaPlugin(file) == null) return null
+    return file
+  }
+
+  private fun findDescriptorFileInModule(module: Module): XmlFile? {
+    return PluginModuleType.getContentModuleDescriptorXml(module) ?: PluginModuleType.getPluginXml(module)
+  }
+
+  private fun isInspectedContentModuleDescriptor(file: PsiFile, descriptorFile: XmlFile, module: Module): Boolean {
+    if (file !is XmlFile || file.virtualFile != descriptorFile.virtualFile) {
+      return false
+    }
+
+    val contentModuleDescriptor = PluginModuleType.getContentModuleDescriptorXml(module) ?: return false
+    return contentModuleDescriptor.virtualFile == descriptorFile.virtualFile
+  }
+
+  private fun collectContainingPluginDirectDependencyNames(contentModuleDescriptor: XmlFile): Set<String> {
+    val contentModuleName = contentModuleDescriptor.virtualFile?.nameWithoutExtension ?: return emptySet()
+    val containingPlugins = mutableListOf<Pair<XmlFile, IdeaPlugin>>()
+    val scope = PluginRelatedLocatorsUtils.getCandidatesScope(contentModuleDescriptor.project)
+    DomService.getInstance().getDomFileCandidates(IdeaPlugin::class.java, scope).forEach { pluginXmlFile ->
+      val pluginXml = contentModuleDescriptor.manager.findFile(pluginXmlFile) as? XmlFile ?: return@forEach
+      val ideaPlugin = DescriptorUtil.getIdeaPlugin(pluginXml) ?: return@forEach
+      if (ideaPlugin.content.none { content -> content.moduleEntry.any { it.name.stringValue == contentModuleName } }) {
+        return@forEach
+      }
+      containingPlugins += pluginXml to ideaPlugin
+    }
+
+    if (containingPlugins.size > 1) {
+      LOG.info(
+        "Content module descriptor ${contentModuleDescriptor.virtualFile.path} is included by multiple plugin descriptors: " +
+        containingPlugins.joinToString { it.first.virtualFile.path } +
+        ". Skipping containing plugin dependencies."
+      )
+      return emptySet()
+    }
+
+    return containingPlugins.singleOrNull()?.let { collectDirectDependencyNames(it.second) }.orEmpty()
+  }
+
+  private fun collectDirectDependencyNames(ideaPlugin: IdeaPlugin): Set<String> {
+    val dependencyNames = LinkedHashSet<String>()
+    ideaPlugin.depends.mapNotNullTo(dependencyNames) { it.rawText ?: it.stringValue }
+
+    val dependencies = ideaPlugin.dependencies
+    if (!dependencies.isValid) {
+      return dependencyNames
+    }
+
+    dependencies.moduleEntry.mapNotNullTo(dependencyNames) { it.name.stringValue }
+    dependencies.plugin.mapNotNullTo(dependencyNames) { it.id.stringValue }
+    return dependencyNames
   }
 
   private fun isDefinitelyFrontendModule(moduleName: String, moduleDependencies: Set<String>): Boolean {
