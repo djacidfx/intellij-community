@@ -77,13 +77,6 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
   private val pluginManagerCustomizer: PluginManagerCustomizer? = customizer
   private val pluginUpdatesService: PluginUpdatesService = service
 
-  private val marketplaceRunnable = Runnable {
-    val project = ProjectUtil.getActiveProject()
-    marketplacePanel.clear()
-    marketplacePanel.showLoadingIcon()
-    doCreateMarketplaceTab(selectionListener, project)
-  }
-
   private val marketplaceSortByGroup: DefaultActionGroup = DefaultActionGroup()
 
   private var tagsSorted: List<String>? = null
@@ -111,6 +104,13 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
     vendorsSorted = null
   }
 
+  private fun reloadMarketplaceTab() {
+    val project = ProjectUtil.getActiveProject()
+    marketplacePanel.clear()
+    marketplacePanel.showLoadingIcon()
+    doCreateMarketplaceTab(selectionListener, project)
+  }
+
   private fun customizeSearchTextField() {
     searchTextField.setHistoryPropertyName("MarketplacePluginsSearchHistory")
   }
@@ -124,7 +124,7 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
       .appendSecondaryText(
         IdeBundle.message("message.link.refresh"),
         SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES,
-      ) { marketplaceRunnable.run() }
+      ) { reloadMarketplaceTab() }
 
     val project = ProjectUtil.getActiveProject()
     doCreateMarketplaceTab(selectionListener, project)
@@ -625,10 +625,10 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
 
   fun onPanelReset(isMarketplaceTabSelected: Boolean) {
     if (isMarketplaceTabSelected) {
-      marketplaceRunnable.run()
+      reloadMarketplaceTab()
     }
     else {
-      marketplacePanel.setOnBecomingVisibleCallback(marketplaceRunnable)
+      marketplacePanel.setOnBecomingVisibleCallback(::reloadMarketplaceTab)
     }
   }
 
