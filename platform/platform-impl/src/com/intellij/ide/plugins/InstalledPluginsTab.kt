@@ -113,157 +113,159 @@ class InstalledPluginsTab @RequiresEdt constructor(
   }
 
   private fun computeAndApplyInstalledPanelModel() {
-    PluginManagerPanelFactory.createInstalledPanel(coroutineScope, pluginModelFacade.getModel()) { model ->
-      try {
-        pluginModelFacade.getModel().setDownloadedGroup(installedPanel, userInstalled, installing)
-        installing.getPreloadedModel().setErrors(model.errors)
-        installing.getPreloadedModel().setPluginInstallationStates(model.installationStates)
-        installing.addModels(MyPluginModel.installingPlugins)
-        if (!installing.getModels().isEmpty()) {
-          installing.sortByName()
-          installing.titleWithCount()
-          installedPanel.addGroup(installing)
+    PluginManagerPanelFactory.createInstalledPanel(coroutineScope, pluginModelFacade.getModel(), ::applyInstalledPanelModel)
+  }
+
+  private fun applyInstalledPanelModel(model: CreateInstalledPanelModel) {
+    try {
+      pluginModelFacade.getModel().setDownloadedGroup(installedPanel, userInstalled, installing)
+      installing.getPreloadedModel().setErrors(model.errors)
+      installing.getPreloadedModel().setPluginInstallationStates(model.installationStates)
+      installing.addModels(MyPluginModel.installingPlugins)
+      if (!installing.getModels().isEmpty()) {
+        installing.sortByName()
+        installing.titleWithCount()
+        installedPanel.addGroup(installing)
+      }
+
+      userInstalled.getPreloadedModel().setErrors(model.errors)
+      userInstalled.getPreloadedModel().setPluginInstallationStates(model.installationStates)
+      userInstalled.addModels(model.installedPlugins)
+
+      bundledUpdateGroup.getPreloadedModel().setErrors(model.errors)
+      bundledUpdateGroup.getPreloadedModel().setPluginInstallationStates(model.installationStates)
+
+      // bundled includes bundled plugin updates
+      val visibleNonBundledPlugins = ArrayList<PluginUiModel>()
+      val visibleBundledPlugins = ArrayList<PluginUiModel>()
+      for (plugin in model.visiblePlugins) {
+        if (plugin.isBundled || plugin.isBundledUpdate) {
+          visibleBundledPlugins.add(plugin)
         }
-
-        userInstalled.getPreloadedModel().setErrors(model.errors)
-        userInstalled.getPreloadedModel().setPluginInstallationStates(model.installationStates)
-        userInstalled.addModels(model.installedPlugins)
-
-        bundledUpdateGroup.getPreloadedModel().setErrors(model.errors)
-        bundledUpdateGroup.getPreloadedModel().setPluginInstallationStates(model.installationStates)
-
-        // bundled includes bundled plugin updates
-        val visibleNonBundledPlugins = ArrayList<PluginUiModel>()
-        val visibleBundledPlugins = ArrayList<PluginUiModel>()
-        for (plugin in model.visiblePlugins) {
-          if (plugin.isBundled || plugin.isBundledUpdate) {
-            visibleBundledPlugins.add(plugin)
-          }
-          else {
-            visibleNonBundledPlugins.add(plugin)
-          }
+        else {
+          visibleNonBundledPlugins.add(plugin)
         }
+      }
 
-        val installedPluginIds = model.installedPlugins.map { it.pluginId }
+      val installedPluginIds = model.installedPlugins.map { it.pluginId }
 
-        val nonBundledPlugins = ArrayList<PluginUiModel>()
-        for (plugin in visibleNonBundledPlugins) {
-          if (!installedPluginIds.contains(plugin.pluginId)) {
-            nonBundledPlugins.add(plugin)
-          }
+      val nonBundledPlugins = ArrayList<PluginUiModel>()
+      for (plugin in visibleNonBundledPlugins) {
+        if (!installedPluginIds.contains(plugin.pluginId)) {
+          nonBundledPlugins.add(plugin)
         }
+      }
 
-        userInstalled.addModels(nonBundledPlugins)
+      userInstalled.addModels(nonBundledPlugins)
 
-        val defaultCategory = IdeBundle.message("plugins.configurable.other.bundled")
+      val defaultCategory = IdeBundle.message("plugins.configurable.other.bundled")
 
-        val promotionPanelSuppliers = HashMap<String, Supplier<JComponent?>>()
+      val promotionPanelSuppliers = HashMap<String, Supplier<JComponent?>>()
+      if (Registry.`is`("ide.plugins.category.promotion.enabled")) {
+        for (provider in PROMOTION_EP_NAME.extensionList) {
+          promotionPanelSuppliers[provider.getCategoryName()] = Supplier { provider.createPromotionPanel() }
+        }
+      }
+
+      val groupedVisibleBundledPlugins = HashMap<String, MutableList<PluginUiModel>>()
+      for (descriptor in visibleBundledPlugins) {
+        val category = StringUtil.defaultIfEmpty(descriptor.displayCategory, defaultCategory)
+        val group = groupedVisibleBundledPlugins.getOrPut(category) { ArrayList() }
+        group.add(descriptor)
+      }
+
+      val sortedBundledGroups = ArrayList<ComparablePluginsGroup>()
+      for ((category, descriptors) in groupedVisibleBundledPlugins) {
+        val group = ComparablePluginsGroup(category, descriptors, model.visiblePluginsRequiresUltimate)
         if (Registry.`is`("ide.plugins.category.promotion.enabled")) {
+          val promotionPanelSupplier = promotionPanelSuppliers[category]
+          if (promotionPanelSupplier != null) {
+            val promotionPanel = promotionPanelSupplier.get()
+            if (promotionPanel != null) {
+              group.setPromotionPanel(promotionPanel)
+            }
+          }
+        }
+        sortedBundledGroups.add(group)
+      }
+      sortedBundledGroups.sortWith { o1, o2 ->
+        if (Registry.`is`("ide.plugins.category.promotion.enabled")) {
+          var isPriorityO1 = false
+          var isPriorityO2 = false
           for (provider in PROMOTION_EP_NAME.extensionList) {
-            promotionPanelSuppliers[provider.getCategoryName()] = Supplier { provider.createPromotionPanel() }
-          }
-        }
-
-        val groupedVisibleBundledPlugins = HashMap<String, MutableList<PluginUiModel>>()
-        for (descriptor in visibleBundledPlugins) {
-          val category = StringUtil.defaultIfEmpty(descriptor.displayCategory, defaultCategory)
-          val group = groupedVisibleBundledPlugins.getOrPut(category) { ArrayList() }
-          group.add(descriptor)
-        }
-
-        val sortedBundledGroups = ArrayList<ComparablePluginsGroup>()
-        for ((category, descriptors) in groupedVisibleBundledPlugins) {
-          val group = ComparablePluginsGroup(category, descriptors, model.visiblePluginsRequiresUltimate)
-          if (Registry.`is`("ide.plugins.category.promotion.enabled")) {
-            val promotionPanelSupplier = promotionPanelSuppliers[category]
-            if (promotionPanelSupplier != null) {
-              val promotionPanel = promotionPanelSupplier.get()
-              if (promotionPanel != null) {
-                group.setPromotionPanel(promotionPanel)
+            if (provider.isPriorityCategory()) {
+              val priorityCategory = provider.getCategoryName()
+              if (priorityCategory == o1.title) {
+                isPriorityO1 = true
+              }
+              if (priorityCategory == o2.title) {
+                isPriorityO2 = true
               }
             }
           }
-          sortedBundledGroups.add(group)
-        }
-        sortedBundledGroups.sortWith { o1, o2 ->
-          if (Registry.`is`("ide.plugins.category.promotion.enabled")) {
-            var isPriorityO1 = false
-            var isPriorityO2 = false
-            for (provider in PROMOTION_EP_NAME.extensionList) {
-              if (provider.isPriorityCategory()) {
-                val priorityCategory = provider.getCategoryName()
-                if (priorityCategory == o1.title) {
-                  isPriorityO1 = true
-                }
-                if (priorityCategory == o2.title) {
-                  isPriorityO2 = true
-                }
-              }
-            }
-            if (isPriorityO1 != isPriorityO2) {
-              return@sortWith if (isPriorityO1) -1 else 1
-            }
-          }
-          if (defaultCategory == o1.title) {
-            return@sortWith 1
-          }
-          if (defaultCategory == o2.title) {
-            return@sortWith -1
-          }
-          o1.compareTo(o2)
-        }
-
-        if (Registry.`is`("ide.plugins.category.promotion.enabled")) {
-          // Add priority groups with promotion panel before userInstalled
-          for (group in sortedBundledGroups) {
-            if (group.promotionPanel != null) {
-              group.getPreloadedModel().setErrors(model.errors)
-              group.getPreloadedModel().setPluginInstallationStates(model.installationStates)
-              installedPanel.addGroup(group)
-              pluginModelFacade.getModel().addEnabledGroup(group)
-            }
+          if (isPriorityO1 != isPriorityO2) {
+            return@sortWith if (isPriorityO1) -1 else 1
           }
         }
-
-        if (!userInstalled.getModels().isEmpty()) {
-          userInstalled.sortByName()
-
-          var enabledNonBundledCount = 0L
-          for (descriptor in nonBundledPlugins) {
-            if (!pluginModelFacade.getModel().isDisabled(descriptor.pluginId)) {
-              enabledNonBundledCount++
-            }
-          }
-          userInstalled.titleWithCount(Math.toIntExact(enabledNonBundledCount))
-          if (userInstalled.ui == null) {
-            installedPanel.addGroup(userInstalled)
-          }
-          pluginModelFacade.getModel().addEnabledGroup(userInstalled)
+        if (defaultCategory == o1.title) {
+          return@sortWith 1
         }
+        if (defaultCategory == o2.title) {
+          return@sortWith -1
+        }
+        o1.compareTo(o2)
+      }
 
+      if (Registry.`is`("ide.plugins.category.promotion.enabled")) {
+        // Add priority groups with promotion panel before userInstalled
         for (group in sortedBundledGroups) {
-          if (!Registry.`is`("ide.plugins.category.promotion.enabled") || group.promotionPanel == null) {
+          if (group.promotionPanel != null) {
             group.getPreloadedModel().setErrors(model.errors)
             group.getPreloadedModel().setPluginInstallationStates(model.installationStates)
             installedPanel.addGroup(group)
             pluginModelFacade.getModel().addEnabledGroup(group)
           }
         }
+      }
 
-        pluginUpdatesService.calculateUpdates { updates ->
-          val updateModels = updates?.filter { plugin -> pluginModelFacade.isEnabled(plugin) }
-                             ?: emptyList()
-          setUpdateDescriptors(installedPanel, updateModels)
-          setUpdateDescriptors(searchPanel.panel, updateModels)
-          applyBundledUpdates(updateModels)
-          selectionListener.accept(installedPanel)
-          selectionListener.accept(searchPanel.panel)
+      if (!userInstalled.getModels().isEmpty()) {
+        userInstalled.sortByName()
+
+        var enabledNonBundledCount = 0L
+        for (descriptor in nonBundledPlugins) {
+          if (!pluginModelFacade.getModel().isDisabled(descriptor.pluginId)) {
+            enabledNonBundledCount++
+          }
+        }
+        userInstalled.titleWithCount(Math.toIntExact(enabledNonBundledCount))
+        if (userInstalled.ui == null) {
+          installedPanel.addGroup(userInstalled)
+        }
+        pluginModelFacade.getModel().addEnabledGroup(userInstalled)
+      }
+
+      for (group in sortedBundledGroups) {
+        if (!Registry.`is`("ide.plugins.category.promotion.enabled") || group.promotionPanel == null) {
+          group.getPreloadedModel().setErrors(model.errors)
+          group.getPreloadedModel().setPluginInstallationStates(model.installationStates)
+          installedPanel.addGroup(group)
+          pluginModelFacade.getModel().addEnabledGroup(group)
         }
       }
-      finally {
-        installedPanel.hideLoadingIcon()
+
+      pluginUpdatesService.calculateUpdates { updates ->
+        val updateModels = updates?.filter { plugin -> pluginModelFacade.isEnabled(plugin) }
+                           ?: emptyList()
+        setUpdateDescriptors(installedPanel, updateModels)
+        setUpdateDescriptors(searchPanel.panel, updateModels)
+        applyBundledUpdates(updateModels)
+        selectionListener.accept(installedPanel)
+        selectionListener.accept(searchPanel.panel)
       }
-      }
+    }
+    finally {
+      installedPanel.hideLoadingIcon()
+    }
   }
 
   private fun onUpdateAllClick() {
