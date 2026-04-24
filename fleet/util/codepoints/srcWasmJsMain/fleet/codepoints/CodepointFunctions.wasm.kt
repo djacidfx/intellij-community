@@ -22,5 +22,4 @@ import fleet.util.multiplatform.Actual
 @Actual internal fun isJavaIdentifierStartWasmJs(codepoint: Int): Boolean = MultiplatformCodepoints.isJavaIdentifierStart(codepoint)
 @Actual internal fun isJavaIdentifierPartWasmJs(codepoint: Int): Boolean = MultiplatformCodepoints.isJavaIdentifierPart(codepoint)
 @Actual internal fun isISOControlWasmJs(codepoint: Int): Boolean = MultiplatformCodepoints.isISOControl(codepoint)
-@Actual internal fun isPrivateUseWasmJs(codepoint: Int): Boolean = MultiplatformCodepoints.isPrivateUse(codepoint)
 @Actual internal fun getUnicodeScriptWasmJs(codepoint: Int): UnicodeScript = MultiplatformCodepoints.getUnicodeScript(codepoint)

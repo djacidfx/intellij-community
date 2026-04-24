@@ -179,9 +179,5 @@ internal object MultiplatformCodepoints {
       // C0 control codes (U+0000..U+001F) and C1 control codes (U+007F..U+009F)
         codepoint in 0x00..0x1F || codepoint in 0x7F..0x9F
 
-    fun isPrivateUse(codepoint: Int): Boolean =
-        // Co: BMP Private Use Area (PUA), Supplementary Private Use Area-A (SPUA-A), Supplementary Private Use Area-B (SPUA-B)
-        codepoint in 0xE000..0xF8FF || codepoint in 0xF0000..0xFFFFF || codepoint in 0x100000..0x10FFFF
-
     fun getUnicodeScript(codepoint: Int): UnicodeScript = ScriptData.getScript(codepoint)
 }

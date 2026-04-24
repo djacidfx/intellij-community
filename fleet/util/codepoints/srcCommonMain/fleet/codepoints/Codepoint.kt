@@ -108,11 +108,6 @@ value class Codepoint(val codepoint: Int) {
    */
   fun isISOControl(): Boolean = isISOControl(codepoint)
 
-  /**
-   * Returns true if this codepoint belongs to the Unicode private use area (PUA, category Co).
-   */
-  fun isPrivateUse(): Boolean = isPrivateUse(codepoint)
-
   fun asString(): String {
     return codepointsToString(codepoint)
   }
