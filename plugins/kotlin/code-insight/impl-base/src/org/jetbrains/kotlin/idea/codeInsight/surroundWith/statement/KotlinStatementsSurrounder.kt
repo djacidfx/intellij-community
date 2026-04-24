@@ -1,19 +1,18 @@
 // Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
 package org.jetbrains.kotlin.idea.codeInsight.surroundWith.statement
 
-import com.intellij.lang.surroundWith.ModCommandSurrounder
 import com.intellij.lang.surroundWith.PsiUpdateModCommandSurrounder
 import com.intellij.modcommand.ActionContext
-import com.intellij.modcommand.ModCommand
 import com.intellij.modcommand.ModPsiUpdater
-import com.intellij.openapi.editor.Document
 import com.intellij.psi.PsiElement
 import com.intellij.util.IncorrectOperationException
 import org.jetbrains.kotlin.analysis.api.analyze
+import org.jetbrains.kotlin.analysis.api.analyzeCopy
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
+import org.jetbrains.kotlin.analysis.api.projectStructure.KaDanglingFileResolutionMode
 import org.jetbrains.kotlin.psi.KtExpression
-import java.util.function.Consumer
+import org.jetbrains.kotlin.psi.KtFile
 
 abstract class KotlinStatementsSurrounder : PsiUpdateModCommandSurrounder() {
     @OptIn(KaAllowAnalysisOnEdt::class)
@@ -43,7 +42,9 @@ abstract class KotlinStatementsSurrounder : PsiUpdateModCommandSurrounder() {
         updater: ModPsiUpdater
     ) {
         val container = elementsInCopy[0].parent ?: return
-        surroundStatements(context, container, elementsInCopy.map { it }.toTypedArray(), updater)
+        analyzeCopy(container.containingFile as KtFile, resolutionMode = KaDanglingFileResolutionMode.PREFER_SELF) {
+            surroundStatements(context, container, elementsInCopy.map { it }.toTypedArray(), updater)
+        }
     }
 
     protected abstract fun surroundStatements(
