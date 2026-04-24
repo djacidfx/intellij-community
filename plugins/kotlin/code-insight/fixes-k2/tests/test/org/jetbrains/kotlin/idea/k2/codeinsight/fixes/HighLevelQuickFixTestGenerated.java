@@ -13558,6 +13558,105 @@ public abstract class HighLevelQuickFixTestGenerated extends AbstractHighLevelQu
     }
 
     @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../../idea/tests/testData/quickfix/replaceWithSafeCallForScopeFunction")
+    public static class ReplaceWithSafeCallForScopeFunction extends AbstractHighLevelQuickFixTest {
+        @java.lang.Override
+        @org.jetbrains.annotations.NotNull
+        public final KotlinPluginMode getPluginMode() {
+            return KotlinPluginMode.K2;
+        }
+
+        private void runTest(String testDataFilePath) throws Exception {
+            KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
+        }
+
+        @TestMetadata("also.kt")
+        public void testAlso() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/replaceWithSafeCallForScopeFunction/also.kt");
+        }
+
+        @TestMetadata("applyWithFake.kt")
+        public void testApplyWithFake() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/replaceWithSafeCallForScopeFunction/applyWithFake.kt");
+        }
+
+        @TestMetadata("applyWithThis.kt")
+        public void testApplyWithThis() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/replaceWithSafeCallForScopeFunction/applyWithThis.kt");
+        }
+
+        @TestMetadata("applyWithThisAndArrow.kt")
+        public void testApplyWithThisAndArrow() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/replaceWithSafeCallForScopeFunction/applyWithThisAndArrow.kt");
+        }
+
+        @TestMetadata("applyWithThisLabeled.kt")
+        public void testApplyWithThisLabeled() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/replaceWithSafeCallForScopeFunction/applyWithThisLabeled.kt");
+        }
+
+        @TestMetadata("applyWithThisLabeledFake.kt")
+        public void testApplyWithThisLabeledFake() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/replaceWithSafeCallForScopeFunction/applyWithThisLabeledFake.kt");
+        }
+
+        @TestMetadata("applyWithoutThis.kt")
+        public void testApplyWithoutThis() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/replaceWithSafeCallForScopeFunction/applyWithoutThis.kt");
+        }
+
+        @TestMetadata("applyWithoutThisMethodCall.kt")
+        public void testApplyWithoutThisMethodCall() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/replaceWithSafeCallForScopeFunction/applyWithoutThisMethodCall.kt");
+        }
+
+        @TestMetadata("assignment.kt")
+        public void testAssignment() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/replaceWithSafeCallForScopeFunction/assignment.kt");
+        }
+
+        @TestMetadata("comment.kt")
+        public void testComment() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/replaceWithSafeCallForScopeFunction/comment.kt");
+        }
+
+        @TestMetadata("let.kt")
+        public void testLet() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/replaceWithSafeCallForScopeFunction/let.kt");
+        }
+
+        @TestMetadata("letWithParam.kt")
+        public void testLetWithParam() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/replaceWithSafeCallForScopeFunction/letWithParam.kt");
+        }
+
+        @TestMetadata("letWithWrongImplicitThis.kt")
+        public void testLetWithWrongImplicitThis() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/replaceWithSafeCallForScopeFunction/letWithWrongImplicitThis.kt");
+        }
+
+        @TestMetadata("letWithWrongParam.kt")
+        public void testLetWithWrongParam() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/replaceWithSafeCallForScopeFunction/letWithWrongParam.kt");
+        }
+
+        @TestMetadata("lineBreak.kt")
+        public void testLineBreak() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/replaceWithSafeCallForScopeFunction/lineBreak.kt");
+        }
+
+        @TestMetadata("notInsideScope.kt")
+        public void testNotInsideScope() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/replaceWithSafeCallForScopeFunction/notInsideScope.kt");
+        }
+
+        @TestMetadata("run.kt")
+        public void testRun() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/replaceWithSafeCallForScopeFunction/run.kt");
+        }
+    }
+
+    @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../../idea/tests/testData/quickfix/returnInExpressionBody")
     public static class ReturnInExpressionBody extends AbstractHighLevelQuickFixTest {
         @java.lang.Override

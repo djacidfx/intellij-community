@@ -1519,6 +1519,30 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
     }
 
     @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../../idea/tests/testData/quickfix/replaceWithSafeCallForScopeFunction")
+    public static class ReplaceWithSafeCallForScopeFunction extends AbstractHighLevelQuickFixMultiFileTest {
+        @java.lang.Override
+        @org.jetbrains.annotations.NotNull
+        public final KotlinPluginMode getPluginMode() {
+            return KotlinPluginMode.K2;
+        }
+
+        private void runTest(String testDataFilePath) throws Exception {
+            KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
+        }
+
+        @TestMetadata("javaReceiverNullabilityAlso.test")
+        public void testJavaReceiverNullabilityAlso() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/replaceWithSafeCallForScopeFunction/javaReceiverNullabilityAlso.test");
+        }
+
+        @TestMetadata("javaReceiverNullabilityRunExplicitThis.test")
+        public void testJavaReceiverNullabilityRunExplicitThis() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/replaceWithSafeCallForScopeFunction/javaReceiverNullabilityRunExplicitThis.test");
+        }
+    }
+
+    @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../../idea/tests/testData/quickfix/modifiers")
     public abstract static class Modifiers extends AbstractHighLevelQuickFixMultiFileTest {
         @RunWith(JUnit3RunnerWithInners.class)
