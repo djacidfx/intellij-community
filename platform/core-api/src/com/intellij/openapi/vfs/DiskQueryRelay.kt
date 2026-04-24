@@ -141,6 +141,7 @@ class DiskQueryRelay<Param : Any, Result>(
           val t = outerCause.cause
           if (t != null) {
             ExceptionUtil.rethrowUnchecked(t)
+            throw t
           }
         }
         throw wrapper
