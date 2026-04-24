@@ -25,6 +25,7 @@ import org.jetbrains.kotlin.analysis.api.symbols.KaClassKind
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassLikeSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaNamedClassSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolVisibility
 import org.jetbrains.kotlin.analysis.api.symbols.KaTypeAliasSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaTypeParameterSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.findClassLike
@@ -350,6 +351,18 @@ internal class K2TypeInstantiationContributor : K2CompletionContributor<KotlinNa
         importingStrategy: ImportStrategy,
         aliasName: Name?
     ) {
+        if (symbol.classKind.isClass) {
+            // For creating anonymous objects of open/abstract classes, we also
+            // need to check that some constructor in the base class is visible to be called
+            // by the inheriting class.
+            val constructorSymbols = symbol.memberScope.constructors
+                .filter {
+                    it.visibility == KaSymbolVisibility.PROTECTED ||
+                            context.visibilityChecker.isVisible(it, context.positionContext)
+                }.toList()
+            if (constructorSymbols.isEmpty()) return
+        }
+
         val element = createAnonymousObjectLookupElement(symbol, typeArguments, importingStrategy, aliasName)
         element.matchesExpectedType = ExpectedTypeWeigher.MatchesExpectedType.MATCHES
         element.applyWeighs(KtSymbolWithOrigin(symbol))

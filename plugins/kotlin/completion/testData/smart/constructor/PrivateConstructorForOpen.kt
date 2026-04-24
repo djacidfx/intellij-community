@@ -1,4 +1,4 @@
-abstract class Foo private()
+open class Foo private()
 
 var a : Foo = <caret>
 

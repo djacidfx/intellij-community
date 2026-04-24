@@ -270,6 +270,11 @@ public abstract class K2SmartCompletionTestGenerated extends AbstractK2SmartComp
             runTest("../../completion/testData/smart/constructor/InnerClass.kt");
         }
 
+        @TestMetadata("InternalConstructorForOpenSameModule.kt")
+        public void testInternalConstructorForOpenSameModule() throws Exception {
+            runTest("../../completion/testData/smart/constructor/InternalConstructorForOpenSameModule.kt");
+        }
+
         @TestMetadata("JavaClass.kt")
         public void testJavaClass() throws Exception {
             runTest("../../completion/testData/smart/constructor/JavaClass.kt");
@@ -295,9 +300,19 @@ public abstract class K2SmartCompletionTestGenerated extends AbstractK2SmartComp
             runTest("../../completion/testData/smart/constructor/PrivateConstructorForAbstract.kt");
         }
 
+        @TestMetadata("PrivateConstructorForOpen.kt")
+        public void testPrivateConstructorForOpen() throws Exception {
+            runTest("../../completion/testData/smart/constructor/PrivateConstructorForOpen.kt");
+        }
+
         @TestMetadata("ProtectedConstructorForAbstract.kt")
         public void testProtectedConstructorForAbstract() throws Exception {
             runTest("../../completion/testData/smart/constructor/ProtectedConstructorForAbstract.kt");
+        }
+
+        @TestMetadata("ProtectedConstructorForOpen.kt")
+        public void testProtectedConstructorForOpen() throws Exception {
+            runTest("../../completion/testData/smart/constructor/ProtectedConstructorForOpen.kt");
         }
 
         @TestMetadata("Simple.kt")
