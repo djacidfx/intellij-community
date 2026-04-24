@@ -905,7 +905,7 @@ class MarketplaceRequests(private val coroutineScope: CoroutineScope) : PluginIn
     val pluginIds = try {
       DiskQueryRelay.compute<Set<PluginId>?, IOException> {
         val pluginXmlIdsPath = getPluginXmlIdsPath()
-        if (Files.size(pluginXmlIdsPath) > 0) {
+        if (pluginXmlIdsPath.exists() && Files.size(pluginXmlIdsPath) > 0) {
           Files.newInputStream(pluginXmlIdsPath).use(::parseXmlIds)
         }
         else {
@@ -1037,9 +1037,13 @@ fun RequestBuilder.setHeadersViaTuner(): RequestBuilder {
   }
 }
 
+private const val NO_ETAG = ""
+
 private fun loadETagForFile(file: Path): String {
   val eTagFile = getETagFile(file)
   try {
+    if (!eTagFile.exists()) return NO_ETAG
+
     val lines = Files.readAllLines(eTagFile)
     if (lines.size == 1) {
       return lines[0]
@@ -1053,7 +1057,7 @@ private fun loadETagForFile(file: Path): String {
   catch (e: IOException) {
     LOG.warn("Can't load ETag from '$eTagFile'", e)
   }
-  return ""
+  return NO_ETAG
 }
 
 private fun getETagFile(file: Path): Path = file.parent.resolve("${file.fileName}.etag")
