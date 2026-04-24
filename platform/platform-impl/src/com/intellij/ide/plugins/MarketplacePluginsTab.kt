@@ -146,139 +146,147 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
 
   private fun computeAndApplyMarketplacePanelModel(selectionListener: Consumer<in PluginsGroupComponent?>, project: Project?) {
     PluginManagerPanelFactory.createMarketplacePanel(coroutineScope, pluginModelFacade.getModel(), project) { model ->
-      val groups = ArrayList<PluginsGroup>()
+      applyMarketplacePanelModel(project, model, selectionListener)
+    }
+  }
+
+  private fun applyMarketplacePanelModel(
+    project: Project?,
+    model: CreateMarketplacePanelModel,
+    selectionListener: Consumer<in PluginsGroupComponent?>,
+  ) {
+    val groups = ArrayList<PluginsGroup>()
+    try {
       try {
-        try {
-          if (project != null) {
-            addSuggestedGroup(
-              groups,
-              model.errors,
-              model.suggestedPlugins,
-              model.installedPlugins,
-              model.installationStates,
-            )
-          }
-          val internalPluginsGroupDescriptor: PluginsViewCustomizer.PluginsGroupDescriptor? = model.internalPluginsGroupDescriptor
-          if (internalPluginsGroupDescriptor != null) {
-            val customPlugins: List<PluginUiModel> = internalPluginsGroupDescriptor.plugins.map { PluginUiModelAdapter(it) }
-            addGroup(
-              groups,
-              internalPluginsGroupDescriptor.name,
-              PluginsGroupType.INTERNAL,
-              SearchWords.INTERNAL.value,
-              customPlugins,
-              Predicate { customPlugins.size >= ITEMS_PER_GROUP },
-              model.errors,
-              model.installedPlugins,
-              model.installationStates,
-            )
-          }
-
-          val marketplaceData = model.marketplaceData
-          addGroupViaLightDescriptor(
+        if (project != null) {
+          addSuggestedGroup(
             groups,
-            IdeBundle.message("plugins.configurable.staff.picks"),
-            PluginsGroupType.STAFF_PICKS,
-            "is_featured_search=true",
-            SearchWords.STAFF_PICKS.value,
-            marketplaceData,
             model.errors,
-            model.installedPlugins,
-            model.installationStates,
-          )
-          addGroupViaLightDescriptor(
-            groups,
-            IdeBundle.message("plugins.configurable.new.and.updated"),
-            PluginsGroupType.NEW_AND_UPDATED,
-            "orderBy=update+date",
-            "/sortBy:updated",
-            marketplaceData,
-            model.errors,
-            model.installedPlugins,
-            model.installationStates,
-          )
-          addGroupViaLightDescriptor(
-            groups,
-            IdeBundle.message("plugins.configurable.top.downloads"),
-            PluginsGroupType.TOP_DOWNLOADS,
-            "orderBy=downloads",
-            "/sortBy:downloads",
-            marketplaceData,
-            model.errors,
-            model.installedPlugins,
-            model.installationStates,
-          )
-          addGroupViaLightDescriptor(
-            groups,
-            IdeBundle.message("plugins.configurable.top.rated"),
-            PluginsGroupType.TOP_RATED,
-            "orderBy=rating",
-            "/sortBy:rating",
-            marketplaceData,
-            model.errors,
+            model.suggestedPlugins,
             model.installedPlugins,
             model.installationStates,
           )
         }
-        catch (e: IOException) {
-          LOG.info("Main plugin repository is not available ('" + e.message + "'). Please check your network settings.")
+        val internalPluginsGroupDescriptor: PluginsViewCustomizer.PluginsGroupDescriptor? = model.internalPluginsGroupDescriptor
+        if (internalPluginsGroupDescriptor != null) {
+          val customPlugins: List<PluginUiModel> = internalPluginsGroupDescriptor.plugins.map { PluginUiModelAdapter(it) }
+          addGroup(
+            groups,
+            internalPluginsGroupDescriptor.name,
+            PluginsGroupType.INTERNAL,
+            SearchWords.INTERNAL.value,
+            customPlugins,
+            Predicate { customPlugins.size >= ITEMS_PER_GROUP },
+            model.errors,
+            model.installedPlugins,
+            model.installationStates,
+          )
         }
 
-        for (host in RepositoryHelper.getCustomPluginRepositoryHosts()) {
-          val allDescriptors = model.customRepositories[host]
-          if (allDescriptors != null) {
-            val groupName = IdeBundle.message("plugins.configurable.repository.0", host)
-            LOG.info("Marketplace tab: '" + groupName + "' group load started")
-            addGroup(
-              groups,
-              groupName,
-              PluginsGroupType.CUSTOM_REPOSITORY,
-              "/repository:\"" + host + "\"",
-              allDescriptors,
-              Predicate { group ->
-                PluginsGroup.sortByName(group.getModels())
-                allDescriptors.size > ITEMS_PER_GROUP
-              },
-              model.errors,
-              model.installedPlugins,
-              model.installationStates,
-            )
-          }
-        }
-        if (pluginManagerCustomizer != null) {
-          pluginManagerCustomizer.ensurePluginStatesLoaded()
+        val marketplaceData = model.marketplaceData
+        addGroupViaLightDescriptor(
+          groups,
+          IdeBundle.message("plugins.configurable.staff.picks"),
+          PluginsGroupType.STAFF_PICKS,
+          "is_featured_search=true",
+          SearchWords.STAFF_PICKS.value,
+          marketplaceData,
+          model.errors,
+          model.installedPlugins,
+          model.installationStates,
+        )
+        addGroupViaLightDescriptor(
+          groups,
+          IdeBundle.message("plugins.configurable.new.and.updated"),
+          PluginsGroupType.NEW_AND_UPDATED,
+          "orderBy=update+date",
+          "/sortBy:updated",
+          marketplaceData,
+          model.errors,
+          model.installedPlugins,
+          model.installationStates,
+        )
+        addGroupViaLightDescriptor(
+          groups,
+          IdeBundle.message("plugins.configurable.top.downloads"),
+          PluginsGroupType.TOP_DOWNLOADS,
+          "orderBy=downloads",
+          "/sortBy:downloads",
+          marketplaceData,
+          model.errors,
+          model.installedPlugins,
+          model.installationStates,
+        )
+        addGroupViaLightDescriptor(
+          groups,
+          IdeBundle.message("plugins.configurable.top.rated"),
+          PluginsGroupType.TOP_RATED,
+          "orderBy=rating",
+          "/sortBy:rating",
+          marketplaceData,
+          model.errors,
+          model.installedPlugins,
+          model.installationStates,
+        )
+      }
+      catch (e: IOException) {
+        LOG.info("Main plugin repository is not available ('" + e.message + "'). Please check your network settings.")
+      }
+
+      for (host in RepositoryHelper.getCustomPluginRepositoryHosts()) {
+        val allDescriptors = model.customRepositories[host]
+        if (allDescriptors != null) {
+          val groupName = IdeBundle.message("plugins.configurable.repository.0", host)
+          LOG.info("Marketplace tab: '" + groupName + "' group load started")
+          addGroup(
+            groups,
+            groupName,
+            PluginsGroupType.CUSTOM_REPOSITORY,
+            "/repository:\"" + host + "\"",
+            allDescriptors,
+            Predicate { group ->
+              PluginsGroup.sortByName(group.getModels())
+              allDescriptors.size > ITEMS_PER_GROUP
+            },
+            model.errors,
+            model.installedPlugins,
+            model.installationStates,
+          )
         }
       }
-      finally {
-        ApplicationManager.getApplication().invokeLater({
-          marketplacePanel.hideLoadingIcon()
-          try {
-            PluginLogo.startBatchMode()
-
-            for (group in groups) {
-              marketplacePanel.addGroup(group)
-            }
-          }
-          finally {
-            PluginLogo.endBatchMode()
-          }
-          marketplacePanel.doLayout()
-          marketplacePanel.initialSelection()
-
-          pluginUpdatesService.calculateUpdates { updates ->
-            val updateModels: List<PluginUiModel> = if (updates == null) {
-              emptyList()
-            }
-            else {
-              updates.filter { plugin -> pluginModelFacade.isEnabled(plugin) }
-            }
-            setUpdateDescriptors(marketplacePanel, updateModels)
-            setUpdateDescriptors(searchPanel.panel, updateModels)
-            selectionListener.accept(marketplacePanel)
-            selectionListener.accept(searchPanel.panel)
-          }
-        }, ModalityState.any())
+      if (pluginManagerCustomizer != null) {
+        pluginManagerCustomizer.ensurePluginStatesLoaded()
       }
+    }
+    finally {
+      ApplicationManager.getApplication().invokeLater({
+                                                        marketplacePanel.hideLoadingIcon()
+                                                        try {
+                                                          PluginLogo.startBatchMode()
+
+                                                          for (group in groups) {
+                                                            marketplacePanel.addGroup(group)
+                                                          }
+                                                        }
+                                                        finally {
+                                                          PluginLogo.endBatchMode()
+                                                        }
+                                                        marketplacePanel.doLayout()
+                                                        marketplacePanel.initialSelection()
+
+                                                        pluginUpdatesService.calculateUpdates { updates ->
+                                                          val updateModels: List<PluginUiModel> = if (updates == null) {
+                                                            emptyList()
+                                                          }
+                                                          else {
+                                                            updates.filter { plugin -> pluginModelFacade.isEnabled(plugin) }
+                                                          }
+                                                          setUpdateDescriptors(marketplacePanel, updateModels)
+                                                          setUpdateDescriptors(searchPanel.panel, updateModels)
+                                                          selectionListener.accept(marketplacePanel)
+                                                          selectionListener.accept(searchPanel.panel)
+                                                        }
+                                                      }, ModalityState.any())
     }
   }
 
