@@ -7,6 +7,7 @@ import com.intellij.testFramework.PsiTestUtil
 import com.intellij.testFramework.common.timeoutRunBlocking
 import com.intellij.testFramework.common.waitUntil
 import com.intellij.testFramework.fixtures.JavaCodeInsightFixtureTestCase
+import org.jetbrains.idea.devkit.build.PluginBuildConfiguration
 import org.jetbrains.idea.devkit.inspections.remotedev.SplitModeApiRestrictionsService
 import org.jetbrains.idea.devkit.inspections.remotedev.SplitModeXmlApiUsageInspection
 import org.jetbrains.idea.devkit.module.PluginModuleType
@@ -25,12 +26,13 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
       waitUntil("API restrictions failed to load", 2.seconds) { service.isLoaded() }
     }
 
-    PsiTestUtil.addResourceContentToRoots(module, myFixture.tempDirFixture.findOrCreateDir("resources"), false)
     myFixture.enableInspections(SplitModeXmlApiUsageInspection())
   }
 
   fun testFrontendExtensionInBackendModule() {
-    configurePluginXml(
+    val pluginXml = addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.1",
+      descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
       """
         <idea-plugin>
           <dependencies>
@@ -42,12 +44,15 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
         </idea-plugin>
       """.trimIndent()
     )
+    myFixture.configureFromExistingVirtualFile(pluginXml.virtualFile)
 
     myFixture.checkHighlighting()
   }
 
   fun testBackendExtensionInFrontendModule() {
-    configurePluginXml(
+    val pluginXml = addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.2",
+      descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
       """
         <idea-plugin>
           <dependencies>
@@ -59,12 +64,15 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
         </idea-plugin>
       """.trimIndent()
     )
+    myFixture.configureFromExistingVirtualFile(pluginXml.virtualFile)
 
     myFixture.checkHighlighting()
   }
 
   fun testFrontendAndBackendExtensionsInSharedModule() {
-    configurePluginXml(
+    val pluginXml = addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.3",
+      descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
       """
         <idea-plugin>
           <dependencies>
@@ -79,12 +87,15 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
         </idea-plugin>
       """.trimIndent()
     )
+    myFixture.configureFromExistingVirtualFile(pluginXml.virtualFile)
 
     myFixture.checkHighlighting()
   }
 
   fun testBackendExtensionInFrontendContentModule() {
-    configureContentModuleXml(
+    val contentModuleDescriptor = addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.4",
+      descriptorRelativePathToResourcesDirectory = "unique.module.name.4.xml",
       """
         <idea-plugin>
           <dependencies>
@@ -96,13 +107,14 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
         </idea-plugin>
       """.trimIndent()
     )
+    myFixture.configureFromExistingVirtualFile(contentModuleDescriptor.virtualFile)
 
     myFixture.checkHighlighting()
   }
 
   fun testFrontendExtensionInContentModuleOfBackendOnlyPlugin() {
     addModuleWithXmlDescriptor(
-      moduleName = "com.example.backend.plugin",
+      moduleName = "unique.module.name.5",
       descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
       """
         <idea-plugin>
@@ -111,14 +123,14 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
             <module name="intellij.platform.backend"/>
           </dependencies>
           <content>
-            <module name="com.example.content.module"/>
+            <module name="unique.module.name.6"/>
           </content>
         </idea-plugin>
       """.trimIndent()
     )
     val contentModuleDescriptor = addModuleWithXmlDescriptor(
-      moduleName = "com.example.content.module",
-      descriptorRelativePathToResourcesDirectory = "com.example.content.module.xml",
+      moduleName = "unique.module.name.6",
+      descriptorRelativePathToResourcesDirectory = "unique.module.name.6.xml",
       """
         <idea-plugin>
           <extensions defaultExtensionNs="com.intellij">
@@ -134,7 +146,7 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
 
   fun testFrontendExtensionInContentModuleWithMultipleContainingPlugins() {
     addModuleWithXmlDescriptor(
-      moduleName = "com.example.frontend.plugin",
+      moduleName = "unique.module.name.7",
       descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
       """
         <idea-plugin>
@@ -149,7 +161,7 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
       """.trimIndent()
     )
     addModuleWithXmlDescriptor(
-      moduleName = "com.example.backend.plugin",
+      moduleName = "unique.module.name.8",
       descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
       """
         <idea-plugin>
@@ -164,8 +176,8 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
       """.trimIndent()
     )
     val contentModuleDescriptor = addModuleWithXmlDescriptor(
-      moduleName = "com.example.shared.content.module",
-      descriptorRelativePathToResourcesDirectory = "com.example.shared.content.module.xml",
+      moduleName = "unique.module.name.9",
+      descriptorRelativePathToResourcesDirectory = "unique.module.name.9.xml",
       """
         <idea-plugin>
           <extensions defaultExtensionNs="com.intellij">
@@ -180,7 +192,9 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
   }
 
   fun testFrontendAndBackendExtensionsInMixedModule() {
-    configurePluginXml(
+    val pluginXml = addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.10",
+      descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
       """
         <idea-plugin>
           <dependencies>
@@ -194,19 +208,15 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
         </idea-plugin>
       """.trimIndent()
     )
+    myFixture.configureFromExistingVirtualFile(pluginXml.virtualFile)
 
     myFixture.checkHighlighting()
   }
 
   fun testFrontendExtensionInTransitivelyFrontendModule() {
-    PsiTestUtil.addModule(
-      project,
-      PluginModuleType.getInstance(),
-      "intellij.transitive.frontend",
-      myFixture.tempDirFixture.findOrCreateDir("intellij.transitive.frontend")
-    )
-    myFixture.addFileToProject(
-      "intellij.transitive.frontend/intellij.transitive.frontend.xml",
+    addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.11",
+      descriptorRelativePathToResourcesDirectory = "unique.module.name.11.xml",
       """
         <idea-plugin>
           <dependencies>
@@ -215,7 +225,9 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
         </idea-plugin>
       """.trimIndent()
     )
-    configurePluginXml(
+    val pluginXml = addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.12",
+      descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
       """
         <idea-plugin>
           <dependencies>
@@ -227,13 +239,16 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
         </idea-plugin>
       """.trimIndent()
     )
+    myFixture.configureFromExistingVirtualFile(pluginXml.virtualFile)
 
     myFixture.checkHighlighting()
   }
 
   fun testNoWarningsForFrontendExtensionInSingleModuleExternalPluginWithBackendVcsDependency() {
     IntelliJProjectUtil.markAsIntelliJPlatformProject(project, false)
-    configurePluginXml(
+    val pluginXml = addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.13",
+      descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
       """
         <idea-plugin>
           <dependencies>
@@ -245,16 +260,9 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
         </idea-plugin>
       """.trimIndent()
     )
+    myFixture.configureFromExistingVirtualFile(pluginXml.virtualFile)
 
     myFixture.checkHighlighting()
-  }
-
-  private fun configurePluginXml(pluginXmlContent: String) {
-    configureDescriptor("resources/META-INF/plugin.xml", pluginXmlContent)
-  }
-
-  private fun configureContentModuleXml(pluginXmlContent: String) {
-    configureDescriptor("resources/light_idea_test_case.xml", pluginXmlContent)
   }
 
   private fun addModuleWithXmlDescriptor(
@@ -269,11 +277,11 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
                               JavaResourceRootType.RESOURCE)
     val createdDescriptorFile = myFixture.addFileToProject("$moduleName/resources/$descriptorRelativePathToResourcesDirectory", pluginXmlContent)
     Assert.assertNotNull("XML descriptor for module $moduleName was not created", createdDescriptorFile)
+    if (descriptorRelativePathToResourcesDirectory == "META-INF/plugin.xml") {
+      val buildConfiguration = PluginBuildConfiguration.getInstance(addedModule)
+      Assert.assertNotNull("Plugin build configuration for module $moduleName was not created", buildConfiguration)
+      buildConfiguration!!.setPluginXmlFromVirtualFile(createdDescriptorFile!!.virtualFile)
+    }
     return createdDescriptorFile!!
-  }
-
-  private fun configureDescriptor(relativePath: String, pluginXmlContent: String) {
-    val descriptor = myFixture.addFileToProject(relativePath, pluginXmlContent)
-    myFixture.configureFromExistingVirtualFile(descriptor.virtualFile)
   }
 }
