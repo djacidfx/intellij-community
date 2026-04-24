@@ -275,13 +275,19 @@ internal object SystemHealthMonitor {
     if (OS.isGenericUnix()) {
       try {
         val probe = Files.createTempFile(PathManager.getTempDir(), "ij-exec-check-", ".sh")
-        NioFiles.setExecutable(probe)
-        val process = ProcessBuilder(probe.toString()).start()
-        if (!process.waitFor(1, TimeUnit.MINUTES)) throw IOException("${probe} timed out")
-        if (process.exitValue() != 0) throw IOException("${probe} returned ${process.exitValue()}")
+        try {
+          Files.writeString(probe, "#!/bin/sh\n")
+          NioFiles.setExecutable(probe)
+          val process = ProcessBuilder(probe.toString()).start()
+          if (!process.waitFor(1, TimeUnit.MINUTES)) throw IOException("${probe} timed out")
+          if (process.exitValue() != 0) throw IOException("${probe} returned ${process.exitValue()}")
+        }
+        finally {
+          Files.delete(probe)
+        }
       }
       catch (e: Exception) {
-        LOG.debug(e)
+        LOG.info(e)
         showNotification("temp.dir.exec.failed", suppressable = false, action = null, shorten(PathManager.getTempDir()))
       }
     }
@@ -320,7 +326,7 @@ internal object SystemHealthMonitor {
     val changedOptions = MultiRoutingFileSystemVmOptionsSetter.ensureInVmOptions()
     when {
       changedOptions.isEmpty() -> Unit
-      
+
       PluginManagerCore.isRunningFromSources() || AppMode.isRunningFromDevBuild() -> {
         logger<MultiRoutingFileSystemVmOptionsSetter>().warn(
           changedOptions.joinToString(
