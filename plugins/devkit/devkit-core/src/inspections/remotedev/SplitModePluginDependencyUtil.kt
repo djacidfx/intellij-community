@@ -12,8 +12,8 @@ import org.jetbrains.idea.devkit.dom.IdeaPlugin
 import java.util.concurrent.ConcurrentHashMap
 
 internal object SplitModePluginDependencyUtil {
-  fun collectTransitiveDependencyNames(ideaPlugin: IdeaPlugin): Set<String> {
-    return getCachedGraph(ideaPlugin.manager.project).collectTransitiveDependencyNames(ideaPlugin)
+  fun collectTransitiveDependencyNames(parsedXmlDescriptor: IdeaPlugin): Set<String> {
+    return getCachedGraph(parsedXmlDescriptor.manager.project).collectTransitiveDependencyNames(parsedXmlDescriptor)
   }
 
   fun hasTransitiveDependency(ideaPlugin: IdeaPlugin, dependencyName: String): Boolean {

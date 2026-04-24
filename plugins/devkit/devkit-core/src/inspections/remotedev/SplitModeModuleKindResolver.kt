@@ -8,7 +8,7 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.roots.ProjectRootModificationTracker
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiManager
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.xml.XmlFile
@@ -25,13 +25,14 @@ internal object SplitModeModuleKindResolver {
   private val LOG: Logger = logger<SplitModeModuleKindResolver>()
 
   fun getOrComputeModuleKind(element: PsiElement): SplitModeApiRestrictionsService.ModuleKind {
-    val cacheHolder = element.containingFile ?: return SplitModeApiRestrictionsService.ModuleKind.SHARED
-    return CachedValuesManager.getCachedValue(cacheHolder) {
-      val moduleKind = computeModuleKind(cacheHolder)
+    val module = ModuleUtilCore.findModuleForPsiElement(element) ?: return SplitModeApiRestrictionsService.ModuleKind.SHARED
+    val project = module.project
+    return CachedValuesManager.getManager(project).getCachedValue(module) {
+      val moduleKind = computeModuleKind(module)
       CachedValueProvider.Result.create(
         moduleKind,
-        ProjectRootModificationTracker.getInstance(cacheHolder.project),
-        cacheHolder.manager.modificationTracker.forLanguage(XMLLanguage.INSTANCE),
+        ProjectRootModificationTracker.getInstance(project),
+        PsiManager.getInstance(project).modificationTracker.forLanguage(XMLLanguage.INSTANCE),
       )
     }
   }
@@ -71,29 +72,35 @@ internal object SplitModeModuleKindResolver {
     return MatchedDependencies(frontendDependencies, backendDependencies)
   }
 
-  private fun computeModuleKind(file: PsiFile): SplitModeApiRestrictionsService.ModuleKind {
-    val module = ModuleUtilCore.findModuleForFile(file) ?: return SplitModeApiRestrictionsService.ModuleKind.SHARED
-
+  private fun computeModuleKind(module: Module): SplitModeApiRestrictionsService.ModuleKind {
     val moduleName = module.name
     val explicitModuleKind = when {
-      getModuleNameVariants("frontend", includeSplit = true, includeGradle = true).any { moduleName.endsWith(it) } -> SplitModeApiRestrictionsService.ModuleKind.FRONTEND
-      getModuleNameVariants("backend", includeSplit = true, includeGradle = true).any { moduleName.endsWith(it) } -> SplitModeApiRestrictionsService.ModuleKind.BACKEND
+      getModuleNameVariants("frontend",
+                            includeSplit = true,
+                            includeGradle = true).any { moduleName.endsWith(it) } -> SplitModeApiRestrictionsService.ModuleKind.FRONTEND
+      getModuleNameVariants("backend",
+                            includeSplit = true,
+                            includeGradle = true).any { moduleName.endsWith(it) } -> SplitModeApiRestrictionsService.ModuleKind.BACKEND
       else -> null
     }
 
-    val descriptorFile = getDescriptorFile(file) ?: findDescriptorFileInModule(module)
-    if (descriptorFile == null) {
+    val contentModuleXmlDescriptor = PluginModuleType.getContentModuleDescriptorXml(module)
+    val pluginXmlDescriptor = if (contentModuleXmlDescriptor != null) null else PluginModuleType.getPluginXml(module)
+
+    val effectiveXmlModuleDescriptor = contentModuleXmlDescriptor ?: pluginXmlDescriptor
+
+    if (effectiveXmlModuleDescriptor == null) {
       return explicitModuleKind ?: SplitModeApiRestrictionsService.ModuleKind.SHARED
     }
 
-    val ideaPlugin = DescriptorUtil.getIdeaPlugin(descriptorFile)
-    if (ideaPlugin == null) {
+    val parsedXmlDescriptor = DescriptorUtil.getIdeaPlugin(effectiveXmlModuleDescriptor)
+    if (parsedXmlDescriptor == null) {
       return explicitModuleKind ?: SplitModeApiRestrictionsService.ModuleKind.SHARED
     }
 
-    val allDependencies = LinkedHashSet(SplitModePluginDependencyUtil.collectTransitiveDependencyNames(ideaPlugin))
-    if (isInspectedContentModuleDescriptor(file, descriptorFile, module)) {
-      allDependencies.addAll(collectContainingPluginDirectDependencyNames(descriptorFile))
+    val allDependencies = LinkedHashSet(SplitModePluginDependencyUtil.collectTransitiveDependencyNames(parsedXmlDescriptor))
+    if (contentModuleXmlDescriptor != null) {
+      allDependencies.addAll(collectContainingPluginDirectDependencyNames(contentModuleXmlDescriptor))
     }
     val matchedDependencies = collectMatchedDependencies(allDependencies)
 
@@ -106,25 +113,6 @@ internal object SplitModeModuleKindResolver {
       matchedDependencies.hasBackend -> SplitModeApiRestrictionsService.ModuleKind.LIKELY_BACKEND
       else -> SplitModeApiRestrictionsService.ModuleKind.SHARED
     }
-  }
-
-  private fun getDescriptorFile(file: PsiFile): XmlFile? {
-    if (file !is XmlFile) return null
-    if (DescriptorUtil.getIdeaPlugin(file) == null) return null
-    return file
-  }
-
-  private fun findDescriptorFileInModule(module: Module): XmlFile? {
-    return PluginModuleType.getContentModuleDescriptorXml(module) ?: PluginModuleType.getPluginXml(module)
-  }
-
-  private fun isInspectedContentModuleDescriptor(file: PsiFile, descriptorFile: XmlFile, module: Module): Boolean {
-    if (file !is XmlFile || file.virtualFile != descriptorFile.virtualFile) {
-      return false
-    }
-
-    val contentModuleDescriptor = PluginModuleType.getContentModuleDescriptorXml(module) ?: return false
-    return contentModuleDescriptor.virtualFile == descriptorFile.virtualFile
   }
 
   private fun collectContainingPluginDirectDependencyNames(contentModuleDescriptor: XmlFile): Set<String> {
