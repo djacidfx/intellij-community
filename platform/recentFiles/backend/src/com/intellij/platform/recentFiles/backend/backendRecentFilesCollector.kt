@@ -6,6 +6,7 @@ import com.intellij.openapi.fileEditor.ex.IdeDocumentHistory
 import com.intellij.openapi.fileEditor.impl.EditorHistoryManager
 import com.intellij.openapi.fileEditor.impl.EditorTabPresentationUtil
 import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.io.FileUtil
@@ -118,7 +119,10 @@ private fun getRecentFiles(project: Project): List<VirtualFile> {
 
 private val IDENTICAL_NAMES_CACHE_KEY = Key.create<Boolean>("IDENTICAL_NAMES_CACHE_KEY")
 
+@RequiresReadLock
 private fun areThereFilesWithSameName(virtualFile: VirtualFile, project: Project): Boolean {
+  if (DumbService.getInstance(project).isDumb) return false
+
   val alreadyComputedValue = virtualFile.getUserData(IDENTICAL_NAMES_CACHE_KEY)
   if (alreadyComputedValue != null) return alreadyComputedValue
 
@@ -148,6 +152,7 @@ private class StopOnTwoIdenticalNamesProcessor(private val searchedName: String)
   }
 }
 
+@RequiresReadLock
 internal fun createRecentFileViewModel(virtualFile: VirtualFile, project: Project): BackendRecentFilePresentation {
   ProgressManager.checkCanceled()
   val parentPath = virtualFile.parent?.path?.toNioPathOrNull()
