@@ -551,11 +551,6 @@ class ListPluginComponent(
     return myChooseUpdateButton
   }
 
-  @Deprecated
-  fun setUpdateDescriptor(descriptor: IdeaPluginDescriptor?) {
-    setUpdateDescriptor(if (descriptor == null) null else PluginUiModelAdapter(descriptor))
-  }
-
   fun setUpdateDescriptor(descriptor: PluginUiModel?) {
     if (myMarketplace && myInstalledDescriptorForMarketplace == null ||
         descriptor != null && myModelFacade.isUninstalled(descriptor.pluginId)) {
