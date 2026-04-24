@@ -404,7 +404,6 @@ abstract class AbstractAllIntellijEntitiesGenerationTest {
 
     private val skippedModules: Set<String> = setOf(
       "intellij.platform.workspace.storage.tests",
-      "intellij.platform.workspace.storage.testEntities",
       "intellij.java.compiler.tests", // IJPL-178663
       "intellij.graphql",
       "intellij.gradle.tests",
