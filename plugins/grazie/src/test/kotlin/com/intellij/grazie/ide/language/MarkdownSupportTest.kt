@@ -53,6 +53,11 @@ class MarkdownSupportTest : GrazieTestBase() {
     myFixture.checkHighlighting()
   }
 
+  fun `test html entity excluded before grazie checks`() {
+    myFixture.configureByText("a.md", "You&#39;re here.")
+    myFixture.checkHighlighting()
+  }
+
   fun `test grazie rule controls associated LT rules`() {
     // ALL_OF_THE is enabled by default in LT, so the style error should be detected
     GrazieConfig.update { it.copy(userEnabledRules = setOf(), userDisabledRules = setOf()) }

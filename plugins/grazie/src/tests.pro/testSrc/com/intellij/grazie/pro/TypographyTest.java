@@ -111,6 +111,8 @@ public class TypographyTest extends BaseTestCase {
     myFixture.launchAction(myFixture.findSingleIntention("z. B."));
     myFixture.checkResult("Die Datei wird benötigt (z. B. aus welchem Sourcestand die Anwendung gebaut wurde).");
     myFixture.checkHighlighting();
+    myFixture.configureByText("a.md", "Ich mag Tiere, z.&nbsp;B. Hunde oder Katzen");
+    myFixture.checkHighlighting();
   }
 
   @NeedsCloud
@@ -146,6 +148,15 @@ public class TypographyTest extends BaseTestCase {
     myFixture.checkHighlighting();
     myFixture.launchAction(myFixture.findSingleIntention("bedeutet ..."));
     myFixture.checkResult("// Was das wohl bedeutet ...");
+    myFixture.checkHighlighting();
+  }
+
+  @NeedsCloud
+  @Test
+  public void testFormattingIssuesForRegisteredTrademark() {
+    myFixture.configureByText("a.md", "Somebody likes CocaCola&reg;.");
+    myFixture.checkHighlighting();
+    myFixture.configureByText("a.java", "/** Somebody likes CocaCola&reg;. */\nclass C {}");
     myFixture.checkHighlighting();
   }
 }
