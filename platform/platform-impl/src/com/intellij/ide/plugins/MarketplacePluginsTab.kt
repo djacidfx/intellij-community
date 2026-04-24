@@ -77,7 +77,7 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
   private val pluginManagerCustomizer: PluginManagerCustomizer? = customizer
   private val pluginUpdatesService: PluginUpdatesService = service
 
-  private var marketplaceRunnable: Runnable? = Runnable {
+  private val marketplaceRunnable = Runnable {
     val project = ProjectUtil.getActiveProject()
     marketplacePanel.clear()
     marketplacePanel.showLoadingIcon()
@@ -124,7 +124,7 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
       .appendSecondaryText(
         IdeBundle.message("message.link.refresh"),
         SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES,
-      ) { marketplaceRunnable!!.run() }
+      ) { marketplaceRunnable.run() }
 
     val project = ProjectUtil.getActiveProject()
     doCreateMarketplaceTab(selectionListener, project)
@@ -625,10 +625,10 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
 
   fun onPanelReset(isMarketplaceTabSelected: Boolean) {
     if (isMarketplaceTabSelected) {
-      marketplaceRunnable!!.run()
+      marketplaceRunnable.run()
     }
     else {
-      marketplacePanel.setOnBecomingVisibleCallback(marketplaceRunnable!!)
+      marketplacePanel.setOnBecomingVisibleCallback(marketplaceRunnable)
     }
   }
 
