@@ -75,8 +75,6 @@ class InstalledPluginsTab @RequiresEdt constructor(
   private val updateCounter: JLabel = CountComponent()
   private val bundledUpdateCounter: JLabel = CountComponent()
 
-  private val updateAllListener = LinkListener<Any?> { _, _ -> onUpdateAllClick() }
-
   override val detailsPage: PluginDetailsPageComponent = createDetailsPanel(searchListener)
   override val searchPanel: InstalledPluginsTabSearchResultPanel = createSearchPanel(selectionListener)
 
@@ -89,6 +87,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
     updateCounter.isVisible = false
     bundledUpdateCounter.isVisible = false
 
+    val updateAllListener = LinkListener<Any?> { _, _ -> onUpdateAllClick() }
     updateAllLink.setListener(updateAllListener, null)
     userInstalled.addSecondaryAction(updateAllLink)
     userInstalled.addSecondaryAction(updateCounter)
