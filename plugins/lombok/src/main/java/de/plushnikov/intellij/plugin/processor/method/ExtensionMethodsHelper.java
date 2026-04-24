@@ -128,14 +128,15 @@ public final class ExtensionMethodsHelper {
   }
 
   /// Finds potential extension method implementation candidates from the provided class by inspecting its static methods.
-  /// Filters methods that are public, have at least one parameter, and whose first parameter is not a primitive type.
+  /// Filters methods that are public, have a declared return type, have at least one parameter,
+  /// and whose first parameter is not a primitive type.
   ///
   /// @param providerClass the class to scan for extension method candidates.
   /// @return a list of static methods from the provider class that are eligible as extension method candidates.
   private static List<PsiMethod> findExtensionMethodImplCandidates(PsiClass providerClass) {
     final List<PsiMethod> result = new ArrayList<>();
     for (PsiMethod staticMethod : PsiClassUtil.collectClassStaticMethodsIntern(providerClass)) {
-      if (staticMethod.hasModifierProperty(PsiModifier.PUBLIC)) {
+      if (staticMethod.hasModifierProperty(PsiModifier.PUBLIC) && staticMethod.getReturnType() != null) {
         PsiParameter[] parameters = staticMethod.getParameterList().getParameters();
         if (parameters.length > 0 && !(parameters[0].getType() instanceof PsiPrimitiveType)) {
           result.add(staticMethod);
@@ -183,9 +184,9 @@ public final class ExtensionMethodsHelper {
     return createLightMethod(extensionMethodImpl, targetClass, substitutor);
   }
 
-  private static PsiExtensionMethod createLightMethod(final PsiMethod staticMethod,
-                                                      final PsiClass targetClass,
-                                                      final PsiSubstitutor substitutor) {
+  private static @Nullable PsiExtensionMethod createLightMethod(final PsiMethod staticMethod,
+                                                                final PsiClass targetClass,
+                                                                final PsiSubstitutor substitutor) {
     final LombokExtensionMethod lightMethod = new LombokExtensionMethod(staticMethod);
     lightMethod.addModifiers(PsiModifier.PUBLIC);
     PsiParameter[] parameters = staticMethod.getParameterList().getParameters();
@@ -194,7 +195,11 @@ public final class ExtensionMethodsHelper {
       lightMethod.addModifier(PsiModifier.DEFAULT);
     }
 
-    lightMethod.setMethodReturnType(substitutor.substitute(staticMethod.getReturnType()));
+    PsiType returnType = staticMethod.getReturnType();
+    if (returnType == null) {
+      return null;
+    }
+    lightMethod.setMethodReturnType(substitutor.substitute(returnType));
 
     for (int i = 1, length = parameters.length; i < length; i++) {
       PsiParameter parameter = parameters[i];

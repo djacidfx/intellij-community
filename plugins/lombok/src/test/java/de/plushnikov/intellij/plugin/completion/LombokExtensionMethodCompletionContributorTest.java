@@ -99,6 +99,10 @@ public class LombokExtensionMethodCompletionContributorTest extends AbstractLomb
     doTestBothCompletionTypes();
   }
 
+  public void testMalformedExtensionMethodWithoutReturnType() {
+    doTestBothCompletionTypes();
+  }
+
   public void testSameNameButDifferentSignatureThanInstanceMethod() {
     doTestBothCompletionTypes(suggestion("myInstanceMethod", "(String value, int x)", "void"));
   }
