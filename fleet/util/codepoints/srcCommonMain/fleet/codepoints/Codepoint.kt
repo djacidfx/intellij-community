@@ -106,7 +106,7 @@ value class Codepoint(val codepoint: Int) {
   /**
    * Returns true if this codepoint is a Unicode control character (category Cc).
    */
-  fun isIsoControl(): Boolean = isIsoControl(codepoint)
+  fun isISOControl(): Boolean = isISOControl(codepoint)
 
   /**
    * Returns true if this codepoint belongs to the Unicode private use area (PUA, category Co).

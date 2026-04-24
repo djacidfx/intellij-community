@@ -175,8 +175,8 @@ internal object MultiplatformCodepoints {
         return (props and CharacterData.IS_JAVA_ID_PART_BIT) != 0
     }
 
-    fun isIsoControl(codepoint: Int): Boolean =
-        // Cc: C0 and C1 control codes
+    fun isISOControl(codepoint: Int): Boolean =
+      // C0 control codes (U+0000..U+001F) and C1 control codes (U+007F..U+009F)
         codepoint in 0x00..0x1F || codepoint in 0x7F..0x9F
 
     fun isPrivateUse(codepoint: Int): Boolean =
