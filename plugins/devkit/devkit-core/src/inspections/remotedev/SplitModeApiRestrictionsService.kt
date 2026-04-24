@@ -24,8 +24,8 @@ class SplitModeApiRestrictionsService(private val coroutineScope: CoroutineScope
 
   companion object {
     private val LOG: Logger = logger<SplitModeApiRestrictionsService>()
-    private const val API_RESTRICTIONS_FILE_PATH = "/inspectionData/ApiRestrictions.json"
-    private const val DEPENDENCY_RESTRICTIONS_FILE_PATH = "/inspectionData/DependencyRestrictions.json"
+    private const val API_RESTRICTIONS_FILE_PATH = "/remotedevInspectionData/ApiRestrictions.json"
+    private const val DEPENDENCY_RESTRICTIONS_FILE_PATH = "/remotedevInspectionData/DependencyRestrictions.json"
     private const val BACKEND_API_ANNOTATION = "com.intellij.util.remdev.BackendApi"
     private const val FRONTEND_API_ANNOTATION = "com.intellij.util.remdev.FrontendApi"
 
