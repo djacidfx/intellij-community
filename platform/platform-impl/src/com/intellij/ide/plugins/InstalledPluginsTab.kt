@@ -65,6 +65,8 @@ class InstalledPluginsTab @RequiresEdt constructor(
 
   private val bundledUpdateGroup =
     PluginsGroup(IdeBundle.message("plugins.configurable.bundled.updates"), PluginsGroupType.BUNDLED_UPDATE)
+  private val userInstalled = PluginsGroup(IdeBundle.message("plugins.configurable.userInstalled"), PluginsGroupType.INSTALLED)
+  private val installing = PluginsGroup(IdeBundle.message("plugins.configurable.installing"), PluginsGroupType.INSTALLING)
 
   private val updateAllLink: LinkLabel<Any?> =
     PluginManagerConfigurablePanel.LinkLabelButton(IdeBundle.message("plugin.manager.update.all"), null)
@@ -72,6 +74,8 @@ class InstalledPluginsTab @RequiresEdt constructor(
     PluginManagerConfigurablePanel.LinkLabelButton(IdeBundle.message("plugin.manager.update.all"), null)
   private val updateCounter: JLabel = CountComponent()
   private val bundledUpdateCounter: JLabel = CountComponent()
+
+  private val updateAllListener = LinkListener<Any?> { _, _ -> onUpdateAllClick() }
 
   override val detailsPage: PluginDetailsPageComponent = createDetailsPanel(searchListener)
   override val searchPanel: InstalledPluginsTabSearchResultPanel = createSearchPanel(selectionListener)
@@ -85,6 +89,14 @@ class InstalledPluginsTab @RequiresEdt constructor(
     updateCounter.isVisible = false
     bundledUpdateCounter.isVisible = false
 
+    updateAllLink.setListener(updateAllListener, null)
+    userInstalled.addSecondaryAction(updateAllLink)
+    userInstalled.addSecondaryAction(updateCounter)
+
+    bundledUpdateAllLink.setListener(updateAllListener, null)
+    bundledUpdateGroup.addSecondaryAction(bundledUpdateAllLink)
+    bundledUpdateGroup.addSecondaryAction(bundledUpdateCounter)
+
     customizeSearchTextField()
   }
 
@@ -97,21 +109,6 @@ class InstalledPluginsTab @RequiresEdt constructor(
   @RequiresEdt
   override fun createPluginsPanel(): JComponent {
     installedPanel.showLoadingIcon()
-
-    val userInstalled = PluginsGroup(IdeBundle.message("plugins.configurable.userInstalled"), PluginsGroupType.INSTALLED)
-    val installing = PluginsGroup(IdeBundle.message("plugins.configurable.installing"), PluginsGroupType.INSTALLING)
-
-    val updateAllListener = LinkListener<Any?> { _, _ ->
-      onUpdateAllClick()
-    }
-
-    updateAllLink.setListener(updateAllListener, null)
-    userInstalled.addSecondaryAction(updateAllLink)
-    userInstalled.addSecondaryAction(updateCounter)
-
-    bundledUpdateAllLink.setListener(updateAllListener, null)
-    bundledUpdateGroup.addSecondaryAction(bundledUpdateAllLink)
-    bundledUpdateGroup.addSecondaryAction(bundledUpdateCounter)
 
     PluginManagerPanelFactory.createInstalledPanel(coroutineScope, pluginModelFacade.getModel()) { model ->
       try {
