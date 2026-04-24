@@ -26,6 +26,7 @@
     </extensionPoint>
 
     <extensionPoint qualifiedName="com.intellij.iconProvider" interface="com.intellij.ide.IconProvider" dynamic="true"/>
+    <extensionPoint qualifiedName="com.intellij.fileIconProvider" interface="com.intellij.ide.FileIconProvider" dynamic="true"/>
 
     <extensionPoint qualifiedName="com.intellij.metaLanguage" interface="com.intellij.lang.MetaLanguage" dynamic="true"/>
     <extensionPoint qualifiedName="com.intellij.metaLanguageProvider" interface="com.intellij.lang.MetaLanguageProvider" dynamic="true"/>
