@@ -302,7 +302,7 @@ private class RunWidgetButtonLook : HeaderToolbarButtonLook(
   }
 }
 
-internal const val MINIMAL_POPUP_WIDTH = 270
+internal const val MINIMAL_POPUP_WIDTH = 310
 internal const val MAXIMAL_POPUP_WIDTH = 500
 
 @ApiStatus.Internal
