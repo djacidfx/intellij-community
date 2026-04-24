@@ -12,6 +12,7 @@ import com.intellij.openapi.util.NlsContexts.NotificationSubtitle
 import com.intellij.openapi.util.NlsContexts.NotificationTitle
 import org.jetbrains.annotations.ApiStatus
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CopyOnWriteArrayList
 import javax.swing.Icon
 
 /**
@@ -75,12 +76,27 @@ class NotificationGroup private constructor(val displayId: String,
       if (title == null) {
         title = registeredTitles[displayId]
       }
+
+      fireGroupEvent(displayId, true)
     }
   }
 
   companion object {
     private val registeredGroups = ConcurrentHashMap<String, NotificationGroup>()
     private val registeredTitles = ConcurrentHashMap<String, @NotificationTitle String>()
+    private val listeners = CopyOnWriteArrayList<(String, Boolean) -> Unit>()
+
+    @ApiStatus.Internal
+    @JvmStatic
+    fun addGroupListener(listener: (String, Boolean) -> Unit) {
+      listeners.add(listener)
+    }
+
+    @ApiStatus.Internal
+    @JvmStatic
+    fun fireGroupEvent(id: String, registered: Boolean) {
+      listeners.forEach { it(id, registered) }
+    }
 
     @ApiStatus.Internal
     @JvmStatic
