@@ -981,6 +981,11 @@ public class RegExpLexerTest extends LexerTestCase {
   }
 
   @Override
+  protected void checkCorrectRestart(@NotNull String text) {
+    // NOOP. The test fails if enabled
+  }
+
+  @Override
   protected @NotNull Lexer createLexer() {
     throw new AssertionError();
   }

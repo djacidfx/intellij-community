@@ -39,6 +39,8 @@ public abstract class LexerTestCase extends UsefulTestCase {
     else {
       assertSameLinesWithFile(getPathToTestDataFile(getExpectedFileExtension()), result);
     }
+
+    checkCorrectRestart(text);
   }
 
   protected String printTokens(@NotNull Lexer lexer, @NotNull CharSequence text, int start) {
