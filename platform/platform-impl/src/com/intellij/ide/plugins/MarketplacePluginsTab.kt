@@ -199,6 +199,7 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
     }
   }
 
+  @RequiresEdt
   private fun applyMarketplacePanelModel(
     project: Project?,
     model: CreateMarketplacePanelModel,

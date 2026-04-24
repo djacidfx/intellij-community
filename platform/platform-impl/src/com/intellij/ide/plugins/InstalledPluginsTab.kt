@@ -152,6 +152,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
     }
   }
 
+  @RequiresEdt
   private fun applyInstalledPanelModel(model: CreateInstalledPanelModel) {
     try {
       pluginModelFacade.getModel().setDownloadedGroup(installedPanel, userInstalled, installing)
