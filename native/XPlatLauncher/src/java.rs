@@ -21,8 +21,10 @@ use crate::{jvm_property, ui};
 use {
     core_foundation::base::{CFRelease, kCFAllocatorDefault, TCFTypeRef},
     core_foundation::date::CFTimeInterval,
-    core_foundation::runloop::{CFRunLoopAddTimer, CFRunLoopGetCurrent, CFRunLoopRunInMode, CFRunLoopTimerCreate,
-                               CFRunLoopTimerRef, kCFRunLoopDefaultMode, kCFRunLoopRunFinished}
+    core_foundation::runloop::{
+        CFRunLoopAddTimer, CFRunLoopGetCurrent, CFRunLoopRunInMode, CFRunLoopTimerCreate, CFRunLoopTimerRef,
+        kCFRunLoopDefaultMode, kCFRunLoopRunFinished
+    }
 };
 
 #[cfg(target_os = "windows")]
