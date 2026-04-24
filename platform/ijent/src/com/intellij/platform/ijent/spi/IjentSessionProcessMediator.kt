@@ -7,6 +7,7 @@ import com.intellij.openapi.diagnostic.debug
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.progress.Cancellation.ensureActive
 import com.intellij.openapi.util.IntellijInternalApi
+import com.intellij.platform.eel.SafeDeferred
 import com.intellij.platform.ijent.IjentUnavailableException
 import com.intellij.platform.ijent.coroutineNameAppended
 import com.intellij.platform.ijent.spi.IjentSessionProcessMediator.ProcessExitPolicy.CHECK_CODE
@@ -15,7 +16,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -39,7 +39,7 @@ import java.util.concurrent.TimeUnit
 abstract class IjentSessionProcessMediator private constructor(
   override val ijentProcessScope: CoroutineScope,
   val process: Process,
-  override val processExit: Deferred<Unit>,
+  override val processExit: SafeDeferred<Unit>,
 ): IjentSessionMediator {
   /**
    * Defines how process exits should be handled in terms of error reporting.
@@ -101,7 +101,7 @@ abstract class IjentSessionProcessMediator private constructor(
 
       val processExit = CompletableDeferred<Unit>()
 
-      val mediator = object : IjentSessionProcessMediator(ijentProcessScope, process, processExit) {
+      val mediator = object : IjentSessionProcessMediator(ijentProcessScope, process, SafeDeferred(processExit)) {
         override suspend fun isExpectedProcessExit(exitCode: Int): Boolean = isExpectedProcessExit(exitCode)
       }
 

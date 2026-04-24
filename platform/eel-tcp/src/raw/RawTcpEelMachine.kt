@@ -2,6 +2,7 @@
 package com.intellij.platform.eel.tcp.raw
 
 import com.intellij.platform.eel.EelPlatform
+import com.intellij.platform.eel.SafeDeferred
 import com.intellij.platform.eel.tcp.TcpEelMachine
 import com.intellij.platform.ijent.spi.IjentConnectionContext
 import com.intellij.platform.ijent.spi.IjentConnectionStrategy
@@ -24,7 +25,7 @@ class RawTcpEelMachine(
           connectionStrategy = IjentConnectionStrategy.Tcp(deploy, null),
           mediator = IjentTcpSessionMediator(
             ijentProcessScope = coroutineScope,
-            processExit = CompletableDeferred(),
+            processExit = SafeDeferred(CompletableDeferred()),
             remotePid = CompletableDeferred(),
           )
         )

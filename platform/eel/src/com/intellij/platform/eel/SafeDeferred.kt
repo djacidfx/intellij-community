@@ -1,8 +1,10 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.platform.eel
 
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.completeWith
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.future.asCompletableFuture
@@ -125,4 +127,17 @@ class SafeDeferred<T>(private val deferred: Deferred<T>) {
       block(state as State.Finished<T>)
     }
   }
+}
+
+@ApiStatus.Experimental
+inline fun <A, B> SafeDeferred<A>.map(crossinline block: (A) -> B): SafeDeferred<B> {
+  val result = CompletableDeferred<B>()
+  invokeWhenCompleted {
+    when (it) {
+      is SafeDeferred.State.Completed -> result.completeWith(runCatching { block(it.value) })
+      is SafeDeferred.State.Canceled -> result.cancel(it.error)
+      is SafeDeferred.State.Failed -> result.completeExceptionally(it.error)
+    }
+  }
+  return SafeDeferred(result)
 }

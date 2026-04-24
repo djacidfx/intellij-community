@@ -7,6 +7,7 @@ import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.diagnostic.trace
 import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.platform.eel.EelPlatform
+import com.intellij.platform.eel.SafeDeferred
 import com.intellij.platform.ijent.IjentUnavailableException
 import com.intellij.platform.ijent.getIjentGrpcArgv
 import com.intellij.platform.ijent.tcp.TcpDeployInfo
@@ -165,10 +166,14 @@ abstract class IjentDeployingOverShellProcessStrategy(scope: CoroutineScope, cur
         while (true) {
           ensureActive()
           while (stream.available() == 0) {
-            if (mediator!!.processExit.isCompleted) {
-              throw IOException("Shell process exited instead of reading a line.")
+            when (mediator!!.processExit.state) {
+              is SafeDeferred.State.Finished -> {
+                throw IOException("Shell process exited instead of reading a line.")
+              }
+              SafeDeferred.State.Active -> {
+                delay(1.milliseconds)
+              }
             }
-            delay(1.milliseconds)
           }
           val c = stream.read()
           if (c < 0 || c == '\n'.code) {

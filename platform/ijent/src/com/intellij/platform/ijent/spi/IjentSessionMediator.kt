@@ -2,9 +2,9 @@
 package com.intellij.platform.ijent.spi
 
 import com.intellij.platform.eel.EelPlatform
+import com.intellij.platform.eel.SafeDeferred
 import com.intellij.platform.ijent.IjentUnavailableException
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
 
 /**
  * A wrapper for the Ijent process. The wrapper logs stderr lines, waits for the exit code, terminates the process in case
@@ -19,7 +19,7 @@ import kotlinx.coroutines.Deferred
  */
 sealed interface IjentSessionMediator {
   val ijentProcessScope: CoroutineScope
-  val processExit: Deferred<Unit>
+  val processExit: SafeDeferred<Unit>
 }
 
 /**

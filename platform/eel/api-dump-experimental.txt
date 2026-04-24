@@ -509,6 +509,8 @@ f:com.intellij.platform.eel.EelTunnelsApiKt
 - com.intellij.platform.eel.SafeDeferred$State$Finished
 - a:getError():java.lang.Throwable
 - a:throwWrapped():java.lang.Void
+f:com.intellij.platform.eel.SafeDeferredKt
+- *sf:map(com.intellij.platform.eel.SafeDeferred,kotlin.jvm.functions.Function1):com.intellij.platform.eel.SafeDeferred
 *a:com.intellij.platform.eel.channels.EelChannelException
 - java.io.IOException
 - com.intellij.platform.eel.EelError
