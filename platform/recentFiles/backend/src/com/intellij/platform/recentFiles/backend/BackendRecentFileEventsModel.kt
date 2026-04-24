@@ -109,16 +109,21 @@ internal class BackendRecentFileEventsModel(private val project: Project, privat
 
   suspend fun emitRecentFilesMetadata(metadataRequest: RecentFilesBackendRequest.FetchMetadata) {
     LOG.debug("Switcher emit recent files metadata: $metadataRequest")
+    val targetFlow = chooseTargetFlow(metadataRequest.filesKind)
 
-    val files = metadataRequest.frontendRecentFiles
-      .mapNotNull { frontendFileId -> frontendFileId.virtualFile() }
-
-    val changeKind = when {
-      metadataRequest.forceAddToModel -> FileChangeKind.ADDED
-      else -> FileChangeKind.UPDATED
+    val metadata = readAction {
+      metadataRequest.frontendRecentFiles
+        .mapNotNull { frontendFileId -> frontendFileId.virtualFile() }
+        .filter { virtualFile -> virtualFile.isValid }
+        .map { frontendFile -> createRecentFileViewModel(frontendFile, project) }
     }
 
-    scheduleApplyBackendChanges(changeKind, files)
+    val event = if (metadataRequest.forceAddToModel)
+      BackendRecentFilesEvent.ItemsAdded(metadata)
+    else
+      BackendRecentFilesEvent.ItemsUpdated(metadata, false)
+
+    targetFlow.emit(event)
   }
 
   suspend fun emitRecentFiles(searchRequest: RecentFilesBackendRequest.FetchFiles) {
@@ -128,7 +133,7 @@ internal class BackendRecentFileEventsModel(private val project: Project, privat
     targetFlow.emit(BackendRecentFilesEvent.AllItemsRemoved())
     val freshRecentFiles = collectRecentFiles(searchRequest)
     if (freshRecentFiles != null) {
-      scheduleApplyBackendChanges(FileChangeKind.ADDED, freshRecentFiles)
+      targetFlow.emit(freshRecentFiles)
     }
   }
 
@@ -251,7 +256,7 @@ internal class BackendRecentFileEventsModel(private val project: Project, privat
     return recentFiles.subtract(openFiles.toSet()).toList()
   }
 
-  private suspend fun collectRecentFiles(filter: RecentFilesBackendRequest.FetchFiles): List<VirtualFile>? {
+  private suspend fun collectRecentFiles(filter: RecentFilesBackendRequest.FetchFiles): BackendRecentFilesEvent? {
     LOG.debug("Switcher started fetching recent files")
     val project = filter.projectId.findProjectOrNull() ?: return null
 
@@ -259,11 +264,12 @@ internal class BackendRecentFileEventsModel(private val project: Project, privat
       getFilesToShow(project = project,
                      recentFileKind = filter.filesKind,
                      filesFromFrontendEditorSelectionHistory = filter.frontendEditorSelectionHistory.mapNotNull(VirtualFileId::virtualFile))
+        .map { createRecentFileViewModel(it, project) }
     }
     LOG.debug("Switcher collected ${collectedFiles.size} recent files")
-    LOG.trace { "Switcher collected recent files list: ${collectedFiles.joinToString(prefix = "\n", separator = "\n") { it.path }}" }
+    LOG.trace { "Switcher collected recent files list: ${collectedFiles.joinToString(prefix = "\n", separator = "\n") { it.mainText }}" }
 
-    return collectedFiles
+    return BackendRecentFilesEvent.ItemsAdded(collectedFiles)
   }
 
   private fun chooseTargetFlow(fileKind: RecentFileKind): MutableSharedFlow<BackendRecentFilesEvent> {
