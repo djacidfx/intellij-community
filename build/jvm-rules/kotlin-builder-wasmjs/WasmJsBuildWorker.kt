@@ -82,7 +82,7 @@ private fun List<String>.normalizeCompilerArgs(baseDir: Path): List<String> {
   // Path given:               C:\programdata\_bazel\dnzrtnud\execroot\_main\bazel-out\jvm-fastbuild\bin\external\community+\fleet\util\multiplatform\fleet.util.multiplatform_multiplatform_wasmjs.klib
   // `kotlinc`-expected path:  C:\ProgramData\_bazel\dnzrtnud\execroot\_main\bazel-out\jvm-fastbuild\bin\external\community+\fleet\util\multiplatform\fleet.util.multiplatform_multiplatform_wasmjs.klib
   //
-  // As `toRealPath()` is expensive, Eugene Zhuravlev suggested we only call it on `baseDir` assuming the relative paths given by Bazel will respect proper case
+  // As `toRealPath()` is expensive we only call it on `baseDir`, relative paths given by Bazel seems to respect proper case so far
   val realBaseDir = baseDir.toRealPath()
 
   return mapIndexed { index, arg ->
