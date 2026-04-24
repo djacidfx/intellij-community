@@ -105,7 +105,7 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
     val project = ProjectUtil.getActiveProject()
     marketplacePanel.clear()
     marketplacePanel.showLoadingIcon()
-    doCreateMarketplaceTab(selectionListener, project)
+    computeAndApplyMarketplacePanelModel(selectionListener, project)
   }
 
   private fun customizeSearchTextField() {
@@ -115,7 +115,7 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
   @RequiresEdt
   override fun createPluginsPanel(): JComponent {
     val project = ProjectUtil.getActiveProject()
-    doCreateMarketplaceTab(selectionListener, project)
+    computeAndApplyMarketplacePanelModel(selectionListener, project)
     return createScrollPane(marketplacePanel, false)
   }
 
@@ -151,7 +151,7 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
     return marketplacePanel
   }
 
-  private fun doCreateMarketplaceTab(selectionListener: Consumer<in PluginsGroupComponent?>, project: Project?) {
+  private fun computeAndApplyMarketplacePanelModel(selectionListener: Consumer<in PluginsGroupComponent?>, project: Project?) {
     PluginManagerPanelFactory.createMarketplacePanel(coroutineScope, pluginModelFacade.getModel(), project) { model ->
       val groups = ArrayList<PluginsGroup>()
       try {
