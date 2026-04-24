@@ -102,17 +102,7 @@ class InstalledPluginsTab @RequiresEdt constructor(
     val installing = PluginsGroup(IdeBundle.message("plugins.configurable.installing"), PluginsGroupType.INSTALLING)
 
     val updateAllListener = LinkListener<Any?> { _, _ ->
-      updateAllLink.isEnabled = false
-      bundledUpdateAllLink.isEnabled = false
-
-      for (group in getInstalledGroups()) {
-        if (group.isBundledUpdatesGroup) {
-          continue
-        }
-        for (plugin in group.plugins) {
-          plugin.updatePlugin()
-        }
-      }
+      onUpdateAllClick()
     }
 
     updateAllLink.setListener(updateAllListener, null)
@@ -276,6 +266,20 @@ class InstalledPluginsTab @RequiresEdt constructor(
     }
 
     return createScrollPane(installedPanel, true)
+  }
+
+  private fun onUpdateAllClick() {
+    updateAllLink.isEnabled = false
+    bundledUpdateAllLink.isEnabled = false
+
+    for (group in getInstalledGroups()) {
+      if (group.isBundledUpdatesGroup) {
+        continue
+      }
+      for (plugin in group.plugins) {
+        plugin.updatePlugin()
+      }
+    }
   }
 
   private fun createInstalledPanel(eventHandler: MultiSelectionEventHandler): PluginsGroupComponentWithProgress {
