@@ -144,7 +144,7 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
     myFixture.checkHighlighting()
   }
 
-  fun testFrontendExtensionInContentModuleWithMultipleContainingPlugins() {
+  fun testFrontendAndBackendExtensionsInMixedContentModuleWithMultipleContainingPlugins() {
     addModuleWithXmlDescriptor(
       moduleName = "unique.module.name.7",
       descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
@@ -155,7 +155,7 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
             <module name="intellij.platform.frontend"/>
           </dependencies>
           <content>
-            <module name="com.example.shared.content.module"/>
+            <module name="unique.module.name.9"/>
           </content>
         </idea-plugin>
       """.trimIndent()
@@ -170,7 +170,7 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
             <module name="intellij.platform.backend"/>
           </dependencies>
           <content>
-            <module name="com.example.shared.content.module"/>
+            <module name="unique.module.name.9"/>
           </content>
         </idea-plugin>
       """.trimIndent()
@@ -181,7 +181,8 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
       """
         <idea-plugin>
           <extensions defaultExtensionNs="com.intellij">
-            <<warning descr="'com.intellij.fileEditorProvider' can only be used in 'frontend' module type. Actual module type is 'shared'">fileEditorProvider</warning>/>
+            <<warning descr="'com.intellij.fileEditorProvider' can only be used in 'frontend' module type. Actual module type is 'mixed'">fileEditorProvider</warning>/>
+            <<warning descr="'com.intellij.localInspection' can only be used in 'backend' module type. Actual module type is 'mixed'">localInspection</warning>/>
           </extensions>
         </idea-plugin>
       """.trimIndent()
@@ -261,6 +262,53 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
       """.trimIndent()
     )
     myFixture.configureFromExistingVirtualFile(pluginXml.virtualFile)
+
+    myFixture.checkHighlighting()
+  }
+
+  fun testBackendExtensionInContentModuleWithMultipleContainingFrontendPlugins() {
+    addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.14",
+      descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
+      """
+        <idea-plugin>
+          <id>com.example.frontend.plugin.one</id>
+          <dependencies>
+            <module name="intellij.platform.frontend"/>
+          </dependencies>
+          <content>
+            <module name="unique.module.name.16"/>
+          </content>
+        </idea-plugin>
+      """.trimIndent()
+    )
+    addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.15",
+      descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
+      """
+        <idea-plugin>
+          <id>com.example.frontend.plugin.two</id>
+          <dependencies>
+            <module name="intellij.platform.frontend"/>
+          </dependencies>
+          <content>
+            <module name="unique.module.name.16"/>
+          </content>
+        </idea-plugin>
+      """.trimIndent()
+    )
+    val contentModuleDescriptor = addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.16",
+      descriptorRelativePathToResourcesDirectory = "unique.module.name.16.xml",
+      """
+        <idea-plugin>
+          <extensions defaultExtensionNs="com.intellij">
+            <<warning descr="'com.intellij.localInspection' can only be used in 'backend' module type. Actual module type is 'frontend'">localInspection</warning>/>
+          </extensions>
+        </idea-plugin>
+      """.trimIndent()
+    )
+    myFixture.configureFromExistingVirtualFile(contentModuleDescriptor.virtualFile)
 
     myFixture.checkHighlighting()
   }

@@ -1,6 +1,7 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.idea.devkit.inspections.remotedev
 
+import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.util.xml.DomElement
 import com.intellij.util.xml.highlighting.DomElementAnnotationHolder
 import com.intellij.util.xml.highlighting.DomHighlightingHelper
@@ -43,17 +44,18 @@ internal class SplitModeMixedDependenciesInspection : DevKitPluginXmlInspectionB
       }
     }
 
-    val matchedDependencies = SplitModeModuleKindResolver.collectMatchedDependencies(dependencyNames = declaredDependencies.map { it.name })
-    if (!matchedDependencies.isMixed) return
+    val moduleName = ModuleUtilCore.findModuleForFile(holder.fileElement.file)?.name ?: return
+    val dependencyAnalysis = SplitModeModuleKindResolver.analyzeModuleDependencies(moduleName, declaredDependencies.map { it.name }.toSet())
+    if (!dependencyAnalysis.hasMixedDependencies) return
 
     val message = DevKitBundle.message(
       "inspection.remote.dev.mixed.dependencies.message",
-      matchedDependencies.frontendDependencies.joinToString(),
-      matchedDependencies.backendDependencies.joinToString(),
+      dependencyAnalysis.frontendDependencies.joinToString(),
+      dependencyAnalysis.backendDependencies.joinToString(),
     )
     declaredDependencies
       .filter { dependency ->
-        dependency.name in matchedDependencies.frontendDependencies || dependency.name in matchedDependencies.backendDependencies
+        dependency.name in dependencyAnalysis.frontendDependencies || dependency.name in dependencyAnalysis.backendDependencies
       }
       .forEach { dependency ->
         holder.createProblem(dependency.element, message).highlightWholeElement()

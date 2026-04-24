@@ -3,10 +3,12 @@ package org.jetbrains.idea.devkit.inspections.remotedev
 
 import com.intellij.lang.xml.XMLLanguage
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.diagnostic.debug
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.roots.ProjectRootModificationTracker
+import com.intellij.openapi.util.NlsSafe
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
 import com.intellij.psi.util.CachedValueProvider
@@ -26,6 +28,10 @@ internal object SplitModeModuleKindResolver {
 
   fun getOrComputeModuleKind(element: PsiElement): SplitModeApiRestrictionsService.ModuleKind {
     val module = ModuleUtilCore.findModuleForPsiElement(element) ?: return SplitModeApiRestrictionsService.ModuleKind.SHARED
+    return getOrComputeModuleKind(module)
+  }
+
+  private fun getOrComputeModuleKind(module: Module): SplitModeApiRestrictionsService.ModuleKind {
     val project = module.project
     return CachedValuesManager.getManager(project).getCachedValue(module) {
       val moduleKind = computeModuleKind(module)
@@ -47,13 +53,14 @@ internal object SplitModeModuleKindResolver {
     }
   }
 
-  internal fun collectMatchedDependencies(
-    dependencyNames: Iterable<String>,
-  ): MatchedDependencies {
+  internal fun analyzeModuleDependencies(
+    moduleName: @NlsSafe String,
+    allModuleDependencies: Set<String>,
+  ): AnalyzedModuleDependencies {
     val frontendDependencies = mutableSetOf<String>()
     val backendDependencies = mutableSetOf<String>()
 
-    dependencyNames.forEach { dependencyName ->
+    allModuleDependencies.forEach { dependencyName ->
       when (resolveDependencyKind(dependencyName)) {
         SplitModeApiRestrictionsService.ModuleKind.FRONTEND, SplitModeApiRestrictionsService.ModuleKind.LIKELY_FRONTEND -> {
           frontendDependencies.add(dependencyName)
@@ -69,7 +76,7 @@ internal object SplitModeModuleKindResolver {
       }
     }
 
-    return MatchedDependencies(frontendDependencies, backendDependencies)
+    return AnalyzedModuleDependencies(moduleName, allModuleDependencies, frontendDependencies, backendDependencies)
   }
 
   private fun computeModuleKind(module: Module): SplitModeApiRestrictionsService.ModuleKind {
@@ -98,26 +105,28 @@ internal object SplitModeModuleKindResolver {
       return explicitModuleKind ?: SplitModeApiRestrictionsService.ModuleKind.SHARED
     }
 
+    val containingPluginsInfo = contentModuleXmlDescriptor?.let { collectContainingPluginsInfo(it) }
     val allDependencies = LinkedHashSet(SplitModePluginDependencyUtil.collectTransitiveDependencyNames(parsedXmlDescriptor))
-    if (contentModuleXmlDescriptor != null) {
-      allDependencies.addAll(collectContainingPluginDirectDependencyNames(contentModuleXmlDescriptor))
-    }
-    val matchedDependencies = collectMatchedDependencies(allDependencies)
+    allDependencies.addAll(containingPluginsInfo?.directDependencyNames.orEmpty())
+    val moduleDependencyAnalysis = analyzeModuleDependencies(moduleName, allDependencies)
+    val containingPluginModuleKind = containingPluginsInfo?.effectiveModuleKind
 
     return when {
-      matchedDependencies.isMixed -> SplitModeApiRestrictionsService.ModuleKind.MIXED
+      moduleDependencyAnalysis.hasMixedDependencies -> SplitModeApiRestrictionsService.ModuleKind.MIXED
+      moduleDependencyAnalysis.hasNoMarkerDependencies && containingPluginModuleKind != null -> containingPluginModuleKind
+      moduleDependencyAnalysis.hasExplicitFrontendDependencies -> SplitModeApiRestrictionsService.ModuleKind.FRONTEND
+      moduleDependencyAnalysis.hasExplicitBackendDependencies -> SplitModeApiRestrictionsService.ModuleKind.BACKEND
+      moduleDependencyAnalysis.hasEffectivelyFrontendDependencies -> SplitModeApiRestrictionsService.ModuleKind.LIKELY_FRONTEND
+      moduleDependencyAnalysis.hasEffectivelyBackendDependencies -> SplitModeApiRestrictionsService.ModuleKind.LIKELY_BACKEND
       explicitModuleKind != null -> explicitModuleKind
-      isDefinitelyFrontendModule(moduleName, allDependencies) -> SplitModeApiRestrictionsService.ModuleKind.FRONTEND
-      isDefinitelyBackendModule(moduleName, allDependencies) -> SplitModeApiRestrictionsService.ModuleKind.BACKEND
-      matchedDependencies.hasFrontend -> SplitModeApiRestrictionsService.ModuleKind.LIKELY_FRONTEND
-      matchedDependencies.hasBackend -> SplitModeApiRestrictionsService.ModuleKind.LIKELY_BACKEND
       else -> SplitModeApiRestrictionsService.ModuleKind.SHARED
     }
   }
 
-  private fun collectContainingPluginDirectDependencyNames(contentModuleDescriptor: XmlFile): Set<String> {
-    val contentModuleName = contentModuleDescriptor.virtualFile?.nameWithoutExtension ?: return emptySet()
-    val containingPlugins = mutableListOf<Pair<XmlFile, IdeaPlugin>>()
+  private fun collectContainingPluginsInfo(contentModuleDescriptor: XmlFile): ContainingPluginsInfo {
+    val contentModuleName = contentModuleDescriptor.virtualFile?.nameWithoutExtension
+                            ?: return ContainingPluginsInfo(emptySet(), null)
+    val containingPlugins = mutableListOf<ContainingPluginInfo>()
     val scope = PluginRelatedLocatorsUtils.getCandidatesScope(contentModuleDescriptor.project)
     DomService.getInstance().getDomFileCandidates(IdeaPlugin::class.java, scope).forEach { pluginXmlFile ->
       val pluginXml = contentModuleDescriptor.manager.findFile(pluginXmlFile) as? XmlFile ?: return@forEach
@@ -125,19 +134,34 @@ internal object SplitModeModuleKindResolver {
       if (ideaPlugin.content.none { content -> content.moduleEntry.any { it.name.stringValue == contentModuleName } }) {
         return@forEach
       }
-      containingPlugins += pluginXml to ideaPlugin
-    }
-
-    if (containingPlugins.size > 1) {
-      LOG.info(
-        "Content module descriptor ${contentModuleDescriptor.virtualFile.path} is included by multiple plugin descriptors: " +
-        containingPlugins.joinToString { it.first.virtualFile.path } +
-        ". Skipping containing plugin dependencies."
+      val containingModule = ModuleUtilCore.findModuleForPsiElement(pluginXml) ?: return@forEach
+      containingPlugins += ContainingPluginInfo(
+        xmlFile = pluginXml,
+        moduleName = containingModule.name,
+        moduleKind = getOrComputeModuleKind(containingModule),
+        directDependencyNames = collectDirectDependencyNames(ideaPlugin),
       )
-      return emptySet()
     }
 
-    return containingPlugins.singleOrNull()?.let { collectDirectDependencyNames(it.second) }.orEmpty()
+    if (containingPlugins.isNotEmpty()) {
+      LOG.debug {
+        "Content module descriptor ${contentModuleDescriptor.virtualFile.path} is included by plugin descriptors: " +
+        containingPlugins.joinToString {
+          "${it.xmlFile.virtualFile.path} [module=${it.moduleName}, kind=${it.moduleKind.presentableName}]"
+        }
+      }
+    }
+
+    val distinctKinds = containingPlugins.map { it.moduleKind }.distinct()
+    val effectiveModuleKind = when {
+      distinctKinds.isEmpty() -> null
+      distinctKinds.size == 1 -> distinctKinds.single()
+      else -> SplitModeApiRestrictionsService.ModuleKind.MIXED
+    }
+    return ContainingPluginsInfo(
+      directDependencyNames = containingPlugins.flatMapTo(LinkedHashSet()) { it.directDependencyNames },
+      effectiveModuleKind = effectiveModuleKind,
+    )
   }
 
   private fun collectDirectDependencyNames(ideaPlugin: IdeaPlugin): Set<String> {
@@ -196,17 +220,37 @@ internal object SplitModeModuleKindResolver {
     }
   }
 
-  internal data class MatchedDependencies(
+  internal data class AnalyzedModuleDependencies(
+    val moduleName: @NlsSafe String,
+    val allDependencies: Set<String>,
     val frontendDependencies: Set<String>,
     val backendDependencies: Set<String>,
   ) {
-    val hasFrontend: Boolean
-      get() = frontendDependencies.isNotEmpty()
+    val hasExplicitFrontendDependencies: Boolean = isDefinitelyFrontendModule(moduleName, allDependencies)
+    val hasExplicitBackendDependencies: Boolean = isDefinitelyBackendModule(moduleName, allDependencies)
+    val hasEffectivelyFrontendDependencies: Boolean = frontendDependencies.isNotEmpty()
+    val hasEffectivelyBackendDependencies: Boolean = backendDependencies.isNotEmpty()
 
-    val hasBackend: Boolean
-      get() = backendDependencies.isNotEmpty()
+    val hasNoMarkerDependencies: Boolean =
+      !hasExplicitFrontendDependencies
+      && !hasExplicitBackendDependencies
+      && !hasEffectivelyFrontendDependencies
+      && !hasEffectivelyBackendDependencies
 
-    val isMixed: Boolean
-      get() = hasFrontend && hasBackend
+    val hasMixedDependencies: Boolean =
+      (hasEffectivelyFrontendDependencies || hasExplicitFrontendDependencies)
+      && (hasEffectivelyBackendDependencies || hasExplicitBackendDependencies)
   }
+
+  private data class ContainingPluginsInfo(
+    val directDependencyNames: Set<String>,
+    val effectiveModuleKind: SplitModeApiRestrictionsService.ModuleKind?,
+  )
+
+  private data class ContainingPluginInfo(
+    val xmlFile: XmlFile,
+    val moduleName: String,
+    val moduleKind: SplitModeApiRestrictionsService.ModuleKind,
+    val directDependencyNames: Set<String>,
+  )
 }
