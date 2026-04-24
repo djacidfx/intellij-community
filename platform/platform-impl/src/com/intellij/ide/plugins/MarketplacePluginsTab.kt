@@ -77,7 +77,11 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
   private val pluginManagerCustomizer: PluginManagerCustomizer? = customizer
   private val pluginUpdatesService: PluginUpdatesService = service
 
-  private val marketplaceSortByGroup: DefaultActionGroup = DefaultActionGroup()
+  private val marketplaceSortByGroup: DefaultActionGroup = DefaultActionGroup().apply {
+    for (option in MarketplaceTabSearchSortByOptions.entries) {
+      addAction(MarketplaceSortByAction(option))
+    }
+  }
 
   private var tagsSorted: List<String>? = null
   private var vendorsSorted: List<String>? = null
@@ -89,10 +93,6 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
   private val marketplacePanel = createMarketplacePanel(eventHandler)
 
   init {
-    for (option in MarketplaceTabSearchSortByOptions.entries) {
-      marketplaceSortByGroup.addAction(MarketplaceSortByAction(option))
-    }
-
     tagsSorted = null
     vendorsSorted = null
 
