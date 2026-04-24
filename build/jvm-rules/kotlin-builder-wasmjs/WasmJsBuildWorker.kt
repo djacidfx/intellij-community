@@ -72,13 +72,26 @@ private fun String.removePrefixStrict(prefix: String): String {
 }
 
 private fun List<String>.normalizeCompilerArgs(baseDir: Path): List<String> {
+
+  // Windows hosts cannot locate the klib modules:
+  // ```
+  // java.lang.IllegalStateException: No module with C:\programdata\_bazel\dnzrtnud\execroot\_main\bazel-out\jvm-fastbuild\bin\external\community+\fleet\util\multiplatform\fleet.util.multiplatform_multiplatform_wasmjs.klib found
+  // ```
+  //
+  // Internally, it seems that the Kotlin compiler compares with case-sensitivness even on case-insensitive filesystems
+  // Path given:               C:\programdata\_bazel\dnzrtnud\execroot\_main\bazel-out\jvm-fastbuild\bin\external\community+\fleet\util\multiplatform\fleet.util.multiplatform_multiplatform_wasmjs.klib
+  // `kotlinc`-expected path:  C:\ProgramData\_bazel\dnzrtnud\execroot\_main\bazel-out\jvm-fastbuild\bin\external\community+\fleet\util\multiplatform\fleet.util.multiplatform_multiplatform_wasmjs.klib
+  //
+  // As `toRealPath()` is expensive, Eugene Zhuravlev suggested we only call it on `baseDir` assuming the relative paths given by Bazel will respect proper case
+  val realBaseDir = baseDir.toRealPath()
+
   return mapIndexed { index, arg ->
     when {
-      arg.startsWith("-Xinclude=") -> "-Xinclude=${baseDir.resolveRelative(arg.removePrefix("-Xinclude="))}"
+      arg.startsWith("-Xinclude=") -> "-Xinclude=${realBaseDir.resolveRelative(arg.removePrefix("-Xinclude="))}"
       getOrNull(index - 1) == "-libraries" -> arg.split(File.pathSeparatorChar).filter { path ->
         path.isNotBlank()
       }.joinToString(File.pathSeparator) {
-        baseDir.resolveRelative(it)
+        realBaseDir.resolveRelative(it)
       }
       else -> arg
     }
@@ -90,7 +103,5 @@ private fun Path.resolveRelative(path: String): String {
   return when {
     candidate.isAbsolute -> candidate
     else -> resolve(candidate)
-  }
-    .toRealPath() // Windows hosts cannot locate the klib modules without conversion to real path `exception: java.lang.IllegalStateException: No module with C:\programdata\_bazel\dnzrtnud\execroot\_main\bazel-out\jvm-fastbuild\bin\external\community+\fleet\util\multiplatform\fleet.util.multiplatform_multiplatform_wasmjs.klib found`
-    .pathString // using usual `\` separator on Windows hosts, kotlinc is happy with it
+  }.normalize().pathString // using usual `\` separator on Windows hosts, kotlinc is happy with it
 }
