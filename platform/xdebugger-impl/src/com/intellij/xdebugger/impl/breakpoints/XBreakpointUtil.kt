@@ -184,8 +184,8 @@ val XBreakpoint<*>.propertyXMLDescriptions: List<@Nls String>
 
 val XBreakpoint<*>.hasCustomCondition: Boolean
   get() {
-    @Suppress("UNCHECKED_CAST") val t = type as XBreakpointType<XBreakpoint<*>, *>
-    return t.hasCustomCondition(this)
+    @Suppress("UNCHECKED_CAST")
+    return (this.type as XBreakpointType<XBreakpoint<*>, *>).hasCustomCondition(this)
   }
 
 
