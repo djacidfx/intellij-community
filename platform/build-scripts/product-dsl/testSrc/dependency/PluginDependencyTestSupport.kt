@@ -45,6 +45,7 @@ import org.jetbrains.intellij.build.productLayout.util.FileUpdateStrategy
 import org.jetbrains.intellij.build.productLayout.util.withUpdateSuppressions
 import org.jetbrains.intellij.build.productLayout.validator.ContentModulePluginDependencyValidator
 import org.jetbrains.intellij.build.productLayout.validator.PluginContentDependencyValidator
+import org.jetbrains.intellij.build.productLayout.xml.extractDependenciesEntries
 import org.jetbrains.intellij.build.productLayout.xml.updateXmlDependencies
 import java.nio.file.Files
 
@@ -244,6 +245,9 @@ private suspend fun generatePluginDependency(
   val pluginContentModuleName = graphDeps.pluginContentModuleName
   val existingXmlModuleDeps = info.moduleDependencies
   val existingXmlPluginDeps: Set<PluginId> = info.depsByFile.firstOrNull()?.pluginDependencies ?: emptySet()
+  val mainDependencyEntries = extractDependenciesEntries(info.pluginXmlContent)
+  val managedXmlModuleDeps = mainDependencyEntries?.managedModuleNames?.mapTo(HashSet(), ::ContentModuleName) ?: existingXmlModuleDeps
+  val managedXmlPluginDeps = mainDependencyEntries?.managedPluginIds?.mapTo(HashSet(), ::PluginId) ?: existingXmlPluginDeps
   val effectiveJpsPluginDependencies = graphDeps.jpsPluginDependencies - graphDeps.legacyConfigFilePluginDependencies
   val suppressedModules = effectiveConfig.getPluginSuppressedModules(pluginContentModuleName)
   val suppressedPlugins = effectiveConfig.getPluginSuppressedPlugins(pluginContentModuleName)
@@ -252,6 +256,7 @@ private suspend fun generatePluginDependency(
     existingXmlDeps = existingXmlModuleDeps,
     jpsDeps = graphDeps.jpsModuleDependencies,
     suppressedDeps = suppressedModules,
+    xmlOnlySuppressionCandidateDeps = managedXmlModuleDeps,
   )
   val pluginHandling = computeExistingDependencyHandling(
     updateSuppressions = updateSuppressions,
@@ -259,6 +264,7 @@ private suspend fun generatePluginDependency(
     jpsDeps = effectiveJpsPluginDependencies,
     suppressedDeps = suppressedPlugins,
     semanticallyPreservedExistingDeps = computeAliasPreservedPluginDeps(graph, existingXmlPluginDeps),
+    xmlOnlySuppressionCandidateDeps = managedXmlPluginDeps,
   )
   val effectiveSuppressedModules = moduleHandling.effectiveSuppressedDeps
   val effectiveSuppressedPlugins = pluginHandling.effectiveSuppressedDeps

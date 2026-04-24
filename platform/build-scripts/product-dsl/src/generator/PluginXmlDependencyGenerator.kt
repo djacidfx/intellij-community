@@ -212,6 +212,9 @@ private suspend fun buildPluginDependencyPlan(
 
   val existingXmlModuleDeps = info.moduleDependencies
   val existingXmlPluginDeps: Set<PluginId> = info.depsByFile.firstOrNull()?.pluginDependencies ?: emptySet()
+  val mainDependencyEntries = extractDependenciesEntries(info.pluginXmlContent)
+  val managedXmlModuleDeps = mainDependencyEntries?.managedModuleNames?.mapTo(HashSet(), ::ContentModuleName) ?: existingXmlModuleDeps
+  val managedXmlPluginDeps = mainDependencyEntries?.managedPluginIds?.mapTo(HashSet(), ::PluginId) ?: existingXmlPluginDeps
   val effectiveJpsPluginDependencies = graphDeps.jpsPluginDependencies - graphDeps.legacyConfigFilePluginDependencies
   val suppressedModules = suppressionConfig.getPluginSuppressedModules(pluginContentModuleName)
   val suppressedPlugins = suppressionConfig.getPluginSuppressedPlugins(pluginContentModuleName)
@@ -220,6 +223,7 @@ private suspend fun buildPluginDependencyPlan(
     existingXmlDeps = existingXmlModuleDeps,
     jpsDeps = graphDeps.jpsModuleDependencies,
     suppressedDeps = suppressedModules,
+    xmlOnlySuppressionCandidateDeps = managedXmlModuleDeps,
   )
   val pluginHandling = computeExistingDependencyHandling(
     updateSuppressions = updateSuppressions,
@@ -227,6 +231,7 @@ private suspend fun buildPluginDependencyPlan(
     jpsDeps = effectiveJpsPluginDependencies,
     suppressedDeps = suppressedPlugins,
     semanticallyPreservedExistingDeps = computeAliasPreservedPluginDeps(graph, existingXmlPluginDeps),
+    xmlOnlySuppressionCandidateDeps = managedXmlPluginDeps,
   )
 
   val deps = filterPluginDependencies(
@@ -238,7 +243,7 @@ private suspend fun buildPluginDependencyPlan(
   )
 
   // Remove duplicate legacy <depends> only when modern deps are present, or we are generating a <dependencies> section.
-  val hasDependenciesSection = extractDependenciesEntries(info.pluginXmlContent) != null
+  val hasDependenciesSection = mainDependencyEntries != null
   val hasModernDepsInXIncludes = info.depsByFile.drop(1).any { it.pluginDependencies.isNotEmpty() || it.moduleDependencies.isNotEmpty() }
   val legacyPluginIds = info.legacyDepends.map { it.pluginId.value }.sorted()
   val autoPluginIds = deps.pluginDependencies.map { it.value }.sorted()

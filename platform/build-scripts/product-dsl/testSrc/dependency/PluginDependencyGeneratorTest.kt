@@ -13,6 +13,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.intellij.build.productLayout.TestFailureLogger
 import org.jetbrains.intellij.build.productLayout.config.ContentModuleSuppression
 import org.jetbrains.intellij.build.productLayout.config.SuppressionConfig
+import org.jetbrains.intellij.build.productLayout.generator.computeExistingDependencyHandling
 import org.jetbrains.intellij.build.productLayout.model.ErrorSink
 import org.jetbrains.intellij.build.productLayout.model.error.DslTestPluginDependencyError
 import org.jetbrains.intellij.build.productLayout.model.error.ErrorCategory
@@ -23,6 +24,7 @@ import org.jetbrains.intellij.build.productLayout.stats.SuppressionUsage
 import org.jetbrains.intellij.build.productLayout.validator.rule.createResolutionQuery
 import org.jetbrains.intellij.build.productLayout.validator.rule.existsAnywhere
 import org.jetbrains.intellij.build.productLayout.validator.rule.forProductionPlugin
+import org.jetbrains.intellij.build.productLayout.xml.extractDependenciesEntries
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.api.io.TempDir
@@ -192,6 +194,43 @@ class PluginDependencyGeneratorTest {
         .describedAs("Should have at most one diff for shared content module (was duplicated before fix)")
         .hasSizeLessThanOrEqualTo(1)
     }
+  }
+
+  @Test
+  fun `update suppressions ignores manual plugin xml dependencies outside generated region`() {
+    val content = """
+      <idea-plugin>
+        <dependencies>
+          <plugin id="manual.plugin"/>
+          <module name="manual.module"/>
+          <!-- region Generated dependencies - run `Generate Product Layouts` to regenerate -->
+          <plugin id="generated.plugin"/>
+          <module name="generated.module"/>
+          <!-- endregion -->
+        </dependencies>
+      </idea-plugin>
+    """.trimIndent()
+
+    val entries = extractDependenciesEntries(content)!!
+    val moduleHandling = computeExistingDependencyHandling(
+      updateSuppressions = true,
+      existingXmlDeps = entries.moduleNames.mapTo(HashSet(), ::ContentModuleName),
+      jpsDeps = emptySet(),
+      suppressedDeps = emptySet(),
+      xmlOnlySuppressionCandidateDeps = entries.managedModuleNames.mapTo(HashSet(), ::ContentModuleName),
+    )
+    val pluginHandling = computeExistingDependencyHandling(
+      updateSuppressions = true,
+      existingXmlDeps = entries.pluginIds.mapTo(HashSet(), ::PluginId),
+      jpsDeps = emptySet(),
+      suppressedDeps = emptySet(),
+      xmlOnlySuppressionCandidateDeps = entries.managedPluginIds.mapTo(HashSet(), ::PluginId),
+    )
+
+    assertThat(moduleHandling.effectiveSuppressedDeps)
+      .containsExactly(ContentModuleName("generated.module"))
+    assertThat(pluginHandling.effectiveSuppressedDeps)
+      .containsExactly(PluginId("generated.plugin"))
   }
 
   // --- ON_DEMAND deps with productAllowedMissing test ---

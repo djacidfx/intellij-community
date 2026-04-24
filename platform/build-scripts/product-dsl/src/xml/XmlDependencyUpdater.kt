@@ -42,6 +42,8 @@ private data class DepOccurrence(
 internal data class ParsedDependenciesEntries(
   @JvmField val moduleNames: List<String>,
   @JvmField val pluginIds: List<String>,
+  @JvmField val managedModuleNames: List<String>,
+  @JvmField val managedPluginIds: List<String>,
 )
 
 private class DependenciesInfo(
@@ -284,9 +286,16 @@ internal fun buildUpdatedXmlDependenciesContent(
  */
 internal fun extractDependenciesEntries(content: String): ParsedDependenciesEntries? {
   val info = parseDependenciesInfo(content = content, allowInsideSectionRegion = true) ?: return null
-  val moduleNames = info.entries.mapNotNull { (it.entry as? DepEntry.Module)?.name }
-  val pluginIds = info.entries.mapNotNull { (it.entry as? DepEntry.Plugin)?.id }
-  return ParsedDependenciesEntries(moduleNames = moduleNames, pluginIds = pluginIds)
+  val managedEntries = when (info.regionType) {
+    RegionType.INSIDE_SECTION -> info.entries.filter { it.inRegion }
+    else -> info.entries
+  }
+  return ParsedDependenciesEntries(
+    moduleNames = info.entries.mapNotNull { (it.entry as? DepEntry.Module)?.name },
+    pluginIds = info.entries.mapNotNull { (it.entry as? DepEntry.Plugin)?.id },
+    managedModuleNames = managedEntries.mapNotNull { (it.entry as? DepEntry.Module)?.name },
+    managedPluginIds = managedEntries.mapNotNull { (it.entry as? DepEntry.Plugin)?.id },
+  )
 }
 
 private fun parseDependenciesInfo(content: String, allowInsideSectionRegion: Boolean): DependenciesInfo? {

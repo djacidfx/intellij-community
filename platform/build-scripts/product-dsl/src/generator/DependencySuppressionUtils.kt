@@ -49,6 +49,7 @@ internal fun <T> computeExistingDependencyHandling(
   jpsDeps: Set<T>,
   suppressedDeps: Set<T>,
   semanticallyPreservedExistingDeps: Set<T> = emptySet(),
+  xmlOnlySuppressionCandidateDeps: Set<T> = existingXmlDeps,
 ): ExistingDependencyHandling<T> {
   val preservedWithoutSuppression = semanticallyPreservedExistingDeps.filterTo(LinkedHashSet()) { it in existingXmlDeps }
   val suppressionRelevantDeps = suppressedDeps.filterTo(LinkedHashSet()) { it !in preservedWithoutSuppression }
@@ -59,7 +60,7 @@ internal fun <T> computeExistingDependencyHandling(
     )
   }
   val missingInXml = jpsDeps.filterNotTo(LinkedHashSet()) { it in existingXmlDeps }
-  val xmlOnly = existingXmlDeps.filterNotTo(LinkedHashSet()) {
+  val xmlOnly = xmlOnlySuppressionCandidateDeps.filterNotTo(LinkedHashSet()) {
     it in jpsDeps || it in preservedWithoutSuppression
   }
   val effectiveSuppressedDeps = suppressionRelevantDeps + missingInXml + xmlOnly
