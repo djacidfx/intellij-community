@@ -5657,6 +5657,7 @@ f:com.intellij.util.ui.accessibility.AccessibleContextUtil
 - sf:combineAccessibleStrings(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String):java.lang.String
 - sf:getCombinedDescription(java.awt.Component,java.lang.String,java.awt.Component):java.lang.String
 - sf:getCombinedDescription(java.awt.Component,java.lang.String,java.awt.Component,java.lang.String,java.awt.Component):java.lang.String
+- sf:getCombinedDescription(java.lang.String,java.awt.Component[]):java.lang.String
 - sf:getCombinedName(java.awt.Component,java.lang.String,java.awt.Component):java.lang.String
 - sf:getCombinedName(java.awt.Component,java.lang.String,java.awt.Component,java.lang.String,java.awt.Component):java.lang.String
 - sf:getCombinedName(java.lang.String,java.awt.Component[]):java.lang.String
