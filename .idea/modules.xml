@@ -424,6 +424,7 @@
       <module fileurl="file://$PROJECT_DIR$/plugins/stream-debugger-core/intellij.debugger.streams.core.iml" filepath="$PROJECT_DIR$/plugins/stream-debugger-core/intellij.debugger.streams.core.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/stream-debugger-core/testFramework/intellij.debugger.streams.core.testFramework.iml" filepath="$PROJECT_DIR$/plugins/stream-debugger-core/testFramework/intellij.debugger.streams.core.testFramework.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/stream-debugger-core/intellij.debugger.streams.shared/intellij.debugger.streams.shared.iml" filepath="$PROJECT_DIR$/plugins/stream-debugger-core/intellij.debugger.streams.shared/intellij.debugger.streams.shared.iml" />
+      <module fileurl="file://$PROJECT_DIR$/tools/testUtil/debugger.ui.test.util/intellij.debugger.ui.test.util.iml" filepath="$PROJECT_DIR$/tools/testUtil/debugger.ui.test.util/intellij.debugger.ui.test.util.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/dev/intellij.dev/intellij.dev.iml" filepath="$PROJECT_DIR$/plugins/dev/intellij.dev/intellij.dev.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/dev/intellij.dev.codeInsight/intellij.dev.codeInsight.iml" filepath="$PROJECT_DIR$/plugins/dev/intellij.dev.codeInsight/intellij.dev.codeInsight.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/dev/intellij.dev.noJava.plugin.main.iml" filepath="$PROJECT_DIR$/plugins/dev/intellij.dev.noJava.plugin.main.iml" />
@@ -741,6 +742,7 @@
       <module fileurl="file://$PROJECT_DIR$/plugins/junit5_rt_tests/intellij.junit.v5.rt.tests.iml" filepath="$PROJECT_DIR$/plugins/junit5_rt_tests/intellij.junit.v5.rt.tests.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/junit6_rt/intellij.junit.v6.rt.iml" filepath="$PROJECT_DIR$/plugins/junit6_rt/intellij.junit.v6.rt.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/junit6_rt_tests/intellij.junit.v6.rt.tests.iml" filepath="$PROJECT_DIR$/plugins/junit6_rt_tests/intellij.junit.v6.rt.tests.iml" />
+      <module fileurl="file://$PROJECT_DIR$/tools/testUtil/jupyter.ui.test.util/intellij.jupyter.ui.test.util.iml" filepath="$PROJECT_DIR$/tools/testUtil/jupyter.ui.test.util/intellij.jupyter.ui.test.util.iml" />
       <module fileurl="file://$PROJECT_DIR$/jvm/jvm-analysis-api/intellij.jvm.analysis.iml" filepath="$PROJECT_DIR$/jvm/jvm-analysis-api/intellij.jvm.analysis.iml" />
       <module fileurl="file://$PROJECT_DIR$/jvm/jvm-analysis-impl/intellij.jvm.analysis.impl.iml" filepath="$PROJECT_DIR$/jvm/jvm-analysis-impl/intellij.jvm.analysis.impl.iml" />
       <module fileurl="file://$PROJECT_DIR$/jvm/jvm-analysis-internal-testFramework/intellij.jvm.analysis.internal.testFramework.iml" filepath="$PROJECT_DIR$/jvm/jvm-analysis-internal-testFramework/intellij.jvm.analysis.internal.testFramework.iml" />
