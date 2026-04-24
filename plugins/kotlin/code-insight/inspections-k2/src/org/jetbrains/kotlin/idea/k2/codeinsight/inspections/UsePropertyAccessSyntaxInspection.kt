@@ -454,8 +454,8 @@ class UsePropertyAccessSyntaxInspection : LocalInspectionTool(), CleanupLocalIns
     /**
      * Fixes the case from KTIJ-21051
      */
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     private fun receiverOrItsAncestorsContainVisibleFieldWithSameName(receiverType: KaType, propertyName: String): Boolean {
         val fieldWithSameName = receiverType.scope?.declarationScope?.callables(Name.identifier(propertyName))
             ?.filter { it is KaJavaFieldSymbol && it.visibility != KaSymbolVisibility.PRIVATE }
@@ -464,8 +464,8 @@ class UsePropertyAccessSyntaxInspection : LocalInspectionTool(), CleanupLocalIns
         return fieldWithSameName != null
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     private fun getSyntheticProperty(
         propertyNames: List<String>,
         receiverType: KaType
@@ -511,8 +511,8 @@ class UsePropertyAccessSyntaxInspection : LocalInspectionTool(), CleanupLocalIns
         }
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     private fun propertyResolvesToSyntheticProperty(
         callExpression: KtExpression,
         propertyAccessorKind: PropertyAccessorKind,

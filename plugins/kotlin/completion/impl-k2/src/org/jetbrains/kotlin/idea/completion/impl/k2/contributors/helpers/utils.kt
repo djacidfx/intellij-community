@@ -127,8 +127,8 @@ internal fun collectLocalAndMemberNonExtensionsFromScopeContext(
     }
 }
 
-context(_: KaSession)
 @OptIn(KaExperimentalApi::class)
+context(_: KaSession)
 internal fun collectNonExtensionsForType(
     parameters: KotlinFirCompletionParameters,
     positionContext: KotlinNameReferencePositionContext,
@@ -167,8 +167,8 @@ internal fun collectNonExtensionsForType(
     }
 }
 
-context(_: KaSession)
 @OptIn(KaExperimentalApi::class)
+context(_: KaSession)
 private fun Sequence<KaCallableSignature<*>>.filterOutJavaGettersAndSetters(
     positionContext: KotlinNameReferencePositionContext,
     type: KaType,
@@ -195,8 +195,8 @@ private fun Sequence<KaCallableSignature<*>>.filterOutJavaGettersAndSetters(
  * Returns non-extensions from [KtScope]. Resulting callables do not include synthetic Java properties and constructors of inner classes.
  * To get them use [collectNonExtensionsForType].
  */
-context(_: KaSession)
 @OptIn(KaExperimentalApi::class)
+context(_: KaSession)
 internal fun collectNonExtensionsFromScope(
     parameters: KotlinFirCompletionParameters,
     positionContext: KotlinNameReferencePositionContext,

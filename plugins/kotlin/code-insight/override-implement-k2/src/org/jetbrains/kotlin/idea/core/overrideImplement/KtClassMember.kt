@@ -164,9 +164,9 @@ fun createKtClassMember(
     preferConstructorParameter: Boolean
 ): KtClassMember = KtClassMember(memberInfo, bodyType, preferConstructorParameter)
 
-context(_: KaSession)
 @KaExperimentalApi
 @ApiStatus.Internal
+context(_: KaSession)
 fun generateMember(
     project: Project,
     ktClassMember: KtClassMember?,
@@ -237,9 +237,9 @@ private fun getBodyType(
     }
 }
 
-context(_: KaSession)
 @KaExperimentalApi
 @ApiStatus.Internal
+context(_: KaSession)
 fun generateClassWithMembers(
     project: Project,
     symbol: KaClassSymbol,
@@ -305,8 +305,8 @@ fun generateClassWithMembers(
 
 private fun KtClassOrObject.areConstructorPropertiesAllowed(): Boolean = this is KtClass && (isAnnotation() || isInline())
 
-context(_: KaSession)
 @KaExperimentalApi
+context(_: KaSession)
 private fun createRenderer(
     targetClass: KtClassOrObject?,
     mode: MemberGenerateMode,
@@ -442,8 +442,8 @@ private fun createRenderer(
 
 // When the return type is an error type (e.g. from an unresolved or malformed type in compiled bytecode),
 // fall back to the PSI type reference text from the original declaration to avoid generating "ERROR" as the type.
-context(_: KaSession)
 @OptIn(KaExperimentalApi::class)
+context(_: KaSession)
 private fun renderCallableWithPsiFallbackForErrorType(
     targetSymbol: KaCallableSymbol,
     renderer: KaDeclarationRenderer
@@ -543,8 +543,8 @@ private fun KaClassSymbol.hasRequiresOptInAnnotation(): Boolean = annotations.an
     isRequiresOptInFqName(annotation.classId?.asSingleFqName())
 }
 
-context(_: KaSession)
 @KaExperimentalApi
+context(_: KaSession)
 private fun generateConstructorParameter(
     project: Project,
     symbol: KaCallableSymbol,
@@ -553,8 +553,8 @@ private fun generateConstructorParameter(
     return KtPsiFactory(project).createParameter(renderMemberText(symbol, renderer))
 }
 
-context(_: KaSession)
 @KaExperimentalApi
+context(_: KaSession)
 private fun generateFunction(
     project: Project,
     symbol: KaFunctionSymbol,
@@ -590,8 +590,8 @@ private fun generateFunction(
     return factory.createFunction(functionText)
 }
 
-context(_: KaSession)
 @KaExperimentalApi
+context(_: KaSession)
 private fun generateClass(
     project: Project,
     symbol: KaClassSymbol,
@@ -689,8 +689,8 @@ private fun generateClass(
     return klass
 }
 
-context(_: KaSession)
 @KaExperimentalApi
+context(_: KaSession)
 private fun generateProperty(
     project: Project,
     symbol: KaPropertySymbol,
@@ -721,7 +721,8 @@ private fun isToKeepAbstract(
     symbol: KaCallableSymbol
 ): Boolean = mode != MemberGenerateMode.OVERRIDE && symbol.modality == KaSymbolModality.ABSTRACT
 
-context(_: KaSession) @OptIn(KaExperimentalApi::class)
+@OptIn(KaExperimentalApi::class)
+context(_: KaSession)
 fun <T> generateUnsupportedOrSuperCall(
     project: Project, symbol: T, bodyType: BodyType, canBeEmpty: Boolean = true
 ): String where T : KaCallableSymbol {

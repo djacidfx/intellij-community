@@ -194,8 +194,8 @@ internal object SuperClassNotInitializedFactories {
         return superTypeEntry.parents.match(KtSuperTypeList::class, last = KtClass::class)
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     private fun createAddParametersFixes(superTypeEntry: KtSuperTypeEntry, superClassSymbol: KaNamedClassSymbol): List<AddParametersFix> {
         val containingClass = getContainingClass(superTypeEntry) ?: return emptyList()
         val containingClassSymbol = containingClass.classSymbol ?: return emptyList()
@@ -210,8 +210,8 @@ internal object SuperClassNotInitializedFactories {
         }.toList()
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     private fun createSingleConstructorFix(
         superClassSymbol: KaNamedClassSymbol,
         superTypeEntry: KtSuperTypeEntry,
@@ -244,8 +244,8 @@ internal object SuperClassNotInitializedFactories {
         )
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     private fun prepareParameterInfo(
         superParameter: KaVariableSignature<KaValueParameterSymbol>,
         primaryConstructorParameters: List<KaValueParameterSymbol>,

@@ -391,8 +391,8 @@ class CodeInliner(
         }
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     private fun arrayOfFunctionName(elementType: KaType): String {
         return when {
             elementType.isIntType -> "kotlin.intArrayOf"

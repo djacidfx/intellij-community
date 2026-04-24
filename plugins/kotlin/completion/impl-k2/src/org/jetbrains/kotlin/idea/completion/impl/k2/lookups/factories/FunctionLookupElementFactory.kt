@@ -150,8 +150,8 @@ internal object FunctionLookupElementFactory {
     }
 
     @OptIn(KaExperimentalApi::class)
-    context(_: KaSession)
     @ApiStatus.Experimental
+    context(_: KaSession)
     fun createLookupWithTrailingLambda(
         shortName: Name,
         signature: KaFunctionSignature<*>,
@@ -248,8 +248,8 @@ internal data class WithCallArgsInsertionHandler(
 }
 
 object FunctionInsertionHelper {
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     fun functionCanBeCalledWithoutExplicitTypeArguments(
         symbol: KaFunctionSymbol,
         expectedType: KaType?

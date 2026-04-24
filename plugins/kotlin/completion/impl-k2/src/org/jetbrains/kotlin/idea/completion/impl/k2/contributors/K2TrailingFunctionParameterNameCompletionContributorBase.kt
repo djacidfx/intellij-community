@@ -251,8 +251,8 @@ internal sealed class K2TrailingFunctionParameterNameCompletionContributorBase<P
         }
     }
 
-    context(_: KaSession, context: K2CompletionSectionContext<P>)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession, context: K2CompletionSectionContext<P>)
     private fun KaNamedClassSymbol.getSignatures(
         parameterType: KaClassType,
         receiverTypes: List<KaClassType> = listOf(parameterType), // todo all receiver types
@@ -404,8 +404,8 @@ internal data class CompoundInsertionHandler(
     }
 }
 
-context(_: KaSession)
 @OptIn(KaExperimentalApi::class)
+context(_: KaSession)
 private val KaType.text: String
     get() = render(
         renderer = NoAnnotationsTypeRenderer,

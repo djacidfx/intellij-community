@@ -31,8 +31,8 @@ internal fun getCommentText(comment: PsiComment): String {
     }
 }
 
-context(_: KaSession)
 @OptIn(KaExperimentalApi::class)
+context(_: KaSession)
 internal fun KaType.renderNames(): Array<String> = arrayOf(
     render(KaTypeRendererForSource.WITH_SHORT_NAMES.with {
         classIdRenderer = KaClassTypeQualifierRenderer.WITH_SHORT_NAMES

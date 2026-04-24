@@ -66,8 +66,8 @@ object ChangeParameterTypeFixFactory {
         createTypeMismatchFixes(psi, diagnostic.expectedType.withNullability(KaTypeNullability.NULLABLE))
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     private fun createTypeMismatchFixes(psi: KtExpression, targetType: KaType): List<KotlinQuickFixAction<*>> {
         val outermostExpression = psi.getOutermostParenthesizedExpressionOrThis()
         val psiParent = outermostExpression.parent ?: return emptyList()
@@ -127,8 +127,8 @@ object ChangeParameterTypeFixFactory {
         }
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     private fun createChangeParameterTypeFix(
         parameter: KtParameter,
         targetType: KaType,

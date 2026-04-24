@@ -74,8 +74,8 @@ class KotlinOverrideHierarchyNodeDescriptor(
     context(_: KaSession)
     private fun getCurrentClassSymbol() = psiElement?.let { resolveToSymbol(it) } as? KaClassSymbol
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     private fun getCurrentSymbol(): KaCallableSymbol? {
         val classSymbol = getCurrentClassSymbol() ?: return null
         val baseSymbol = getBaseSymbol() ?: return null

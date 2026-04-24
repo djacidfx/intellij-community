@@ -33,8 +33,8 @@ import org.jetbrains.kotlin.name.Name
 
 @ApiStatus.Internal
 object KotlinFirLookupElementFactory {
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     fun createConstructorCallLookupElement(
         containingSymbol: KaClassLikeSymbol,
         visibleConstructorSymbols: List<KaConstructorSymbol>,
@@ -65,8 +65,8 @@ object KotlinFirLookupElementFactory {
         is KaTypeParameterSymbol -> TypeParameterLookupElementFactory.createLookup(symbol)
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     fun createLookupElement(
         symbol: KaNamedSymbol,
         importStrategyDetector: ImportStrategyDetector,

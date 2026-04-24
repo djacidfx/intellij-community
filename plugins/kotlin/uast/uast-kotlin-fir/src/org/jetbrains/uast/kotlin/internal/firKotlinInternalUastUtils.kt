@@ -162,8 +162,8 @@ internal fun toPsiClass(
     )
 }
 
-context(_: KaSession)
 @OptIn(KaExperimentalApi::class)
+context(_: KaSession)
 private fun fakePsiMethodForReifiedInline(
     functionSymbol: KaFunctionSymbol,
     context: KtElement,
@@ -252,8 +252,8 @@ internal fun toPsiMethod(
     }
 }
 
-context(_: KaSession)
 @OptIn(KaExperimentalApi::class)
+context(_: KaSession)
 private fun toPsiMethodForDeserialized(
     functionSymbol: KaFunctionSymbol,
     context: KtElement,
@@ -437,8 +437,8 @@ internal fun toPsiType(
         config
     )
 
-context(session: KaSession)
 @OptIn(KaExperimentalApi::class, KaImplementationDetail::class)
+context(session: KaSession)
 internal fun toPsiType(
     ktType: KaType,
     containingLightDeclaration: PsiModifierListOwner?,
@@ -547,8 +547,8 @@ internal fun getKtType(ktCallableDeclaration: KtCallableDeclaration): KaType? {
 /**
  * Finds Java stub-based [PsiElement] for symbols that refer to declarations from [KaSymbolOrigin.LIBRARY]
  */
-context(session: KaSession)
 @OptIn(KaExperimentalApi::class)
+context(session: KaSession)
 internal tailrec fun psiForUast(
     symbol: KaSymbol,
     context: KtElement,

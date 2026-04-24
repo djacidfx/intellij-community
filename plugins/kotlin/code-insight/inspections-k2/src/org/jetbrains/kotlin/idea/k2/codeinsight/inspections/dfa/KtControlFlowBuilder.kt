@@ -1602,8 +1602,8 @@ class KtControlFlowBuilder(val factory: DfaValueFactory, val context: KtExpressi
         return PsiTreeUtil.isAncestor(containingFunction, context, false)
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     private fun getLambdaOccurrenceRange(expr: KtCallExpression, parameter: KaValueParameterSymbol): EventOccurrencesRange {
         val functionCall = expr.resolveToCall()?.singleFunctionCallOrNull() ?: return EventOccurrencesRange.UNKNOWN
         val functionSymbol = functionCall.partiallyAppliedSymbol.symbol as? KaNamedFunctionSymbol ?: return EventOccurrencesRange.UNKNOWN

@@ -43,8 +43,8 @@ open class KtOverrideMembersHandler : KtGenerateMembersHandler(false) {
         }
     }
 
-context(_: KaSession)
 @OptIn(KaExperimentalApi::class)
+context(_: KaSession)
 private fun collectMembers(classOrObject: KtClassOrObject): List<KtClassMember> {
     if (classOrObject is KtClass && classOrObject.isAnnotation()) return emptyList()
     val classSymbol = (classOrObject.symbol as? KaEnumEntrySymbol)?.enumEntryInitializer as? KaClassSymbol ?: classOrObject.classSymbol ?: return emptyList()
@@ -81,8 +81,8 @@ private fun collectMembers(classOrObject: KtClassOrObject): List<KtClassMember> 
         return symbol.directlyOverriddenSymbols.none { isConcreteFunction(it) }
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     private fun getOverridableMembers(classOrObjectSymbol: KaClassSymbol): List<OverrideMember> {
         return buildList {
             classOrObjectSymbol.memberScope.callables.forEach { symbol ->

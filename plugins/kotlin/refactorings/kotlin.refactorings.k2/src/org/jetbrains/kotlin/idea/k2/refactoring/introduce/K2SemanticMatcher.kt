@@ -1022,8 +1022,8 @@ object K2SemanticMatcher {
         null -> patternReceiver == null
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     private fun KaCallableMemberCall<*, *>.getTypeArguments(): List<KaType?> = symbol.typeParameters.map { typeArgumentsMapping[it] }
 
     context(_: KaSession)

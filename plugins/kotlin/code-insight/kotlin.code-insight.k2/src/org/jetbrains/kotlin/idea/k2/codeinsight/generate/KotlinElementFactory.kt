@@ -64,8 +64,8 @@ private const val _NO_NAME_PROVIDED_ = "`<no name provided>`"
  * Kotlin factory for creating [FieldElement] or [ClassElement] objects.
  */
 object KotlinElementFactory {
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     fun newClassElement(clazz: KtClassOrObject): ClassElement {
         val ce = ClassElement()
 
@@ -149,8 +149,8 @@ object KotlinElementFactory {
         return me
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     fun setElementInfo(element: AbstractElement, type: KaType, modifiersList: KtModifierList?) {
         val typeSymbol = type.symbol
         element.typeName = typeSymbol?.classId?.shortClassName?.asString()

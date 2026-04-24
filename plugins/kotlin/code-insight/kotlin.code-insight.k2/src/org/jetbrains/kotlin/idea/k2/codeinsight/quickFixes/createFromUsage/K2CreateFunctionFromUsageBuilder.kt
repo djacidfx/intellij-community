@@ -318,8 +318,8 @@ object K2CreateFunctionFromUsageBuilder {
     /**
      * Returns the type of the class containing this [KtSimpleNameExpression] if the class is abstract. Otherwise, returns null.
      */
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     private fun KtSimpleNameExpression.getAbstractTypeOfContainingClass(): KaType? {
         val containingClass = PsiTreeUtil.getParentOfType(
             /* element = */ this,

@@ -227,8 +227,8 @@ object K2CreateFunctionFromUsageUtil {
         return null
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     fun KaType.convertToJvmType(useSitePosition: PsiElement): JvmType? = asPsiType(useSitePosition, allowErrorTypes = false)
 
     context(_: KaSession)
@@ -289,7 +289,8 @@ object K2CreateFunctionFromUsageUtil {
         return expectedParameter(expectedType, *nameArray)
     }
 
-    context(_: KaSession) @OptIn(KaExperimentalApi::class)
+    @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     private fun guessAccessibleTypeByArguments(
         receiverType: KaClassType, expectedArgumentType: KaType
     ): KaType {
@@ -299,8 +300,8 @@ object K2CreateFunctionFromUsageUtil {
         return guessUnsubstitutedType(expectedArgumentType, substitutions)
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     private fun guessUnsubstitutedType(type: KaType, substitutions: List<Pair<KaType, KaTypeParameterType>>): KaType {
         val matchedArg = substitutions.find { (receiverTypeArgument, _) ->
             type.semanticallyEquals(receiverTypeArgument)
@@ -314,8 +315,8 @@ object K2CreateFunctionFromUsageUtil {
         }?.let { if (type.isMarkedNullable) it.withNullability(true) else it } ?: type
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     private fun guessUnsubstitutedType(type: KaClassType, substitutions: List<Pair<KaType, KaTypeParameterType>>): KaType {
         return typeCreator.classType(type.symbol) {
             type.typeArguments.forEach { typeArgument ->
@@ -330,8 +331,8 @@ object K2CreateFunctionFromUsageUtil {
         }
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     private fun guessUnsubstitutedType(type: KaFunctionType, substitutions: List<Pair<KaType, KaTypeParameterType>>): KaType {
         val substitutedReceiverType = type.receiverType?.let { originalReceiverType ->
             guessUnsubstitutedType(originalReceiverType, substitutions)
@@ -438,8 +439,8 @@ object K2CreateFunctionFromUsageUtil {
 
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     private fun JvmType.toKtType(useSitePosition: PsiElement): KaType? = when (this) {
         is PsiType -> if (isValid) {
             try {
@@ -547,8 +548,8 @@ object K2CreateFunctionFromUsageUtil {
         }
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     fun computeExpectedParams(call: KtCallElement, isAnnotation:Boolean=false): List<ExpectedParameter> {
         val receiverExpression = (call.parent as? KtDotQualifiedExpression)?.receiverExpression
         val receiverType = receiverExpression?.expressionType

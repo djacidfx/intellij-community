@@ -118,8 +118,8 @@ internal fun KtPsiFactory.createType(
     return createType(typeText)
 }
 
-context(_: KaSession)
 @KaExperimentalApi
+context(_: KaSession)
 private fun createSubstitutor(inheritorDeclaration: KtDeclaration, baseFunction: PsiElement): KaSubstitutor? {
     val inheritorCallable = inheritorDeclaration.symbol
     val baseCallable = (baseFunction as? KtCallableDeclaration)?.symbol

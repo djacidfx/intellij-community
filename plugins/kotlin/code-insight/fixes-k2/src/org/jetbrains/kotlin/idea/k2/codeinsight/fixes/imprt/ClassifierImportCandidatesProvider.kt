@@ -37,8 +37,8 @@ internal open class ClassifierImportCandidatesProvider(
         is KaClassSymbol -> this
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     override fun collectCandidates(
         name: Name,
         indexProvider: KtSymbolFromIndexProvider,

@@ -13,8 +13,8 @@ import org.jetbrains.kotlin.analysis.api.types.KaErrorType
 import org.jetbrains.kotlin.analysis.api.types.KaType
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
 
-context(_: KaSession)
 @OptIn(KaExperimentalApi::class)
+context(_: KaSession)
 internal fun renderMemberText(symbol: KaCallableSymbol, renderer: KaDeclarationRenderer = KtGenerateMembersHandler.renderer): String {
     if (symbol.returnType is KaErrorType) {
         val psiReturnType = (symbol.fakeOverrideOriginal.psi as? KtCallableDeclaration)?.typeReference?.text

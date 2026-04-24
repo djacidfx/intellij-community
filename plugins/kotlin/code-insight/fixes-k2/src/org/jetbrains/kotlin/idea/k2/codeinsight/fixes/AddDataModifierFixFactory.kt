@@ -85,9 +85,9 @@ internal object AddDataModifierFixFactory {
     }
 }
 
-context(_: KaSession)
 @ApiStatus.Internal
 @OptIn(KaExperimentalApi::class)
+context(_: KaSession)
 fun KaDeclarationSymbol.isVisible(position: PsiElement): Boolean {
     val file = (position.containingFile as? KtFile)?.symbol ?: return false
     return createUseSiteVisibilityChecker(file, receiverExpression = null, position).isVisible(this)

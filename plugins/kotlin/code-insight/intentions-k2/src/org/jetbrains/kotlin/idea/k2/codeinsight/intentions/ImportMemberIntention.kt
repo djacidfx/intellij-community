@@ -79,8 +79,8 @@ internal class ImportMemberIntention :
     }
 }
 
-context(_: KaSession)
 @OptIn(KaIdeApi::class)
+context(_: KaSession)
 private fun computeContext(file: KtFile, symbol: KaSymbol): ImportMemberIntention.Context? {
     return when (symbol) {
         is KaConstructorSymbol,

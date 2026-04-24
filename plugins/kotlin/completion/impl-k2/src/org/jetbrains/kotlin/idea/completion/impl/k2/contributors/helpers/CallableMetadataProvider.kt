@@ -108,8 +108,8 @@ internal object CallableMetadataProvider {
             else -> this
         }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     fun getCallableMetadata(
         signature: KaCallableSignature<*>,
         scopeKind: KaScopeKind?,
@@ -172,8 +172,8 @@ internal object CallableMetadataProvider {
             .applyIf(hasOverriddenSymbols) { CallableMetadata(kind.correspondingBaseForThisOrSelf, scopeIndex) }
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     private fun extensionWeight(
         signature: KaCallableSignature<*>,
         actualReceiverTypes: List<List<KaType>>,

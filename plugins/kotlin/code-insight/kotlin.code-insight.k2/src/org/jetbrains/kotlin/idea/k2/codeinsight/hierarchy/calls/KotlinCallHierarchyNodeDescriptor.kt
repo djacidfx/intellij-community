@@ -147,8 +147,8 @@ class KotlinCallHierarchyNodeDescriptor(
     }
 
     companion object {
-        context(_: KaSession)
         @NlsSafe
+        context(_: KaSession)
         private fun renderElement(element: KtElement): String? {
             when (element) {
                 is KtFile -> {
@@ -210,8 +210,8 @@ class KotlinCallHierarchyNodeDescriptor(
             }
         }
 
-        context(_: KaSession)
         @OptIn(KaExperimentalApi::class)
+        context(_: KaSession)
         fun renderNamedFunction(symbol: KaFunctionSymbol): String? {
             val name = ((symbol as? KaNamedFunctionSymbol)?.name ?: ((symbol as? KaConstructorSymbol)?.containingDeclaration as? KaClassSymbol)?.name)?.asString() ?: return null
             val paramTypes =

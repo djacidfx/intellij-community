@@ -314,8 +314,8 @@ abstract class KotlinHighLevelParameterInfoWithCallHandlerBase<TArgumentList : K
             .count { it.node.elementType == KtTokens.COMMA }
     }
 
-    context(session: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(session: KaSession)
     private fun renderParameter(
         parameter: KaVariableSignature<KaValueParameterSymbol>,
     ): String {

@@ -298,8 +298,8 @@ private fun ((KaCallableSymbol) -> ShortenStrategy).respectClassImportFilterForC
  * Overall, consider using more simple and straighforward [shortenReferences] functions,
  * or [org.jetbrains.kotlin.idea.base.codeInsight.ShortenReferencesFacility] if you need to support both K1 and K2 Modes.
  */
-context(_: KaSession)
 @ApiStatus.Internal
+context(_: KaSession)
 fun collectPossibleReferenceShorteningsForIde(
     file: KtFile,
     selection: TextRange = file.textRange,
@@ -336,8 +336,8 @@ fun collectPossibleReferenceShorteningsForIde(
  * Overall, consider using more simple and straighforward [shortenReferences] functions,
  * or [org.jetbrains.kotlin.idea.base.codeInsight.ShortenReferencesFacility] if you need to support both K1 and K2 Modes.
  */
-context(_: KaSession)
 @ApiStatus.Internal
+context(_: KaSession)
 fun collectPossibleReferenceShorteningsInElementForIde(
     element: KtElement,
     shortenOptions: ShortenOptionsForIde = ShortenOptionsForIde.DEFAULT,

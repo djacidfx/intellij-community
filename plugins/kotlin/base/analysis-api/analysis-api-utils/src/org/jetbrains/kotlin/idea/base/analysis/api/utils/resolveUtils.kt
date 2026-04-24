@@ -57,8 +57,8 @@ import org.jetbrains.kotlin.utils.exceptions.errorWithAttachment
 import org.jetbrains.kotlin.utils.exceptions.withPsiEntry
 
 // Analogous to Call.resolveCandidates() in plugins/kotlin/core/src/org/jetbrains/kotlin/idea/core/Utils.kt
-context(_: KaSession)
 @OptIn(KaExperimentalApi::class)
+context(_: KaSession)
 fun collectCallCandidates(callElement: KtElement): List<KaCallCandidateInfo> {
     val (candidates, explicitReceiver) = when (callElement) {
         is KtCallElement -> {
@@ -76,8 +76,8 @@ fun collectCallCandidates(callElement: KtElement): List<KaCallCandidateInfo> {
     return candidates.filter { filterCandidate(it, callElement, explicitReceiver, visibilityChecker) }
 }
 
-context(_: KaSession)
 @OptIn(KaExperimentalApi::class)
+context(_: KaSession)
 private fun filterCandidate(
     candidateInfo: KaCallCandidateInfo,
     callElement: KtElement,
@@ -90,8 +90,8 @@ private fun filterCandidate(
     return filterCandidateByReceiverTypeAndVisibility(signature, callElement, explicitReceiver, visibilityChecker)
 }
 
-context(_: KaSession)
 @OptIn(KaExperimentalApi::class)
+context(_: KaSession)
 fun filterCandidateByReceiverTypeAndVisibility(
     signature: KaFunctionSignature<KaFunctionSymbol>,
     callElement: KtElement,

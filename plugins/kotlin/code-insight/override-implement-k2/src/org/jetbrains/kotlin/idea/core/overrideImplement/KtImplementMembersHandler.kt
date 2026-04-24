@@ -160,8 +160,8 @@ object MemberNotImplementedQuickfixFactories {
     }
 }
 
-context(_: KaSession)
 @OptIn(KaExperimentalApi::class)
+context(_: KaSession)
 private fun List<KaCallableSymbol>.mapToKtClassMemberInfo(): List<KtClassMemberInfo> {
     return map { unimplementedMemberSymbol ->
         val containingSymbol = unimplementedMemberSymbol.fakeOverrideOriginal.containingSymbol as? KaClassSymbol

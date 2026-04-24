@@ -111,8 +111,8 @@ internal object ClassLookupElementFactory {
             .let { withClassifierSymbolInfo(symbol, it) }
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     fun createConstructorLookup(
         containingSymbol: KaClassLikeSymbol,
         constructorSymbols: List<KaConstructorSymbol>,

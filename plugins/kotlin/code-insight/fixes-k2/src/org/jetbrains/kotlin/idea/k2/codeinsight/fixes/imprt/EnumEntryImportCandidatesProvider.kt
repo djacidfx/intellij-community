@@ -26,8 +26,8 @@ internal class EnumEntryImportCandidatesProvider(override val importContext: Imp
         return !enumEntry.isImported() && enumEntry.canBeImported()
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     override fun collectCandidates(name: Name, indexProvider: KtSymbolFromIndexProvider): List<CallableImportCandidate> {
         val kotlinEnumEntries = indexProvider.getKotlinEnumEntriesByName(
             name = name,

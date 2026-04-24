@@ -37,13 +37,13 @@ infix fun KaType.isPossiblySubTypeOf(superType: KaType): Boolean {
     return superTypeWithReplacedTypeArguments != null && isSubtypeOf(superTypeWithReplacedTypeArguments)
 }
 
-context(_: KaSession)
 @OptIn(KaExperimentalApi::class)
+context(_: KaSession)
 private fun buildClassTypeWithStarProjections(symbol: KaClassSymbol, nullability: Boolean): KaType =
     buildClassTypeWithStarProjections(symbol).withNullability(nullability)
 
-context(_: KaSession)
 @OptIn(KaExperimentalApi::class)
+context(_: KaSession)
 fun buildClassTypeWithStarProjections(symbol: KaClassLikeSymbol): KaType = symbol.defaultTypeWithStarProjections
 
 /**
@@ -54,8 +54,8 @@ fun buildClassTypeWithStarProjections(symbol: KaClassLikeSymbol): KaType = symbo
  *
  * @return The approximated type if the input is an anonymous object type, otherwise returns the input type unchanged.
  */
-context(_: KaSession)
 @OptIn(KaExperimentalApi::class)
+context(_: KaSession)
 fun KaType.approximateAnonymousObjectToSupertypeOrSelf(): KaType {
     return (this as? KaClassType)?.let { classType ->
         when (val symbol = classType.symbol) {

@@ -56,8 +56,8 @@ internal object OptInFixFactories {
         createQuickFix(diagnostic)
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class, KaImplementationDetail::class)
+    context(_: KaSession)
     private fun createQuickFix(diagnostic: KaFirDiagnostic<PsiElement>): List<ModCommandAction> {
         val element = diagnostic.psi.findParentOfType<KtElement>(strict = false) ?: return emptyList()
         val annotationClassId = OptInFixUtils.optInMarkerClassId(diagnostic) ?: return emptyList()

@@ -101,8 +101,8 @@ private data class TrailingLambdaParameterData(
     val typeText: String,
 )
 
-context(_: KaSession)
 @OptIn(KaExperimentalApi::class)
+context(_: KaSession)
 private fun buildTrailingLambdaParameterData(
     trailingFunctionType: KaFunctionType,
     suggestedParameterNames: List<Name?> = emptyList(),

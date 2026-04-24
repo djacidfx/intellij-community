@@ -161,8 +161,8 @@ internal abstract class K2AbstractCallableCompletionContributor<P : KotlinNameRe
             else -> CallableInsertionStrategy.AsIdentifier
         }
 
-    context(_: KaSession)
     @KaExperimentalApi
+    context(_: KaSession)
     protected open fun getInsertionStrategyForFunctionalVariables(
         applicabilityResult: KaExtensionApplicabilityResult.ApplicableAsFunctionalVariableCall,
     ): CallableInsertionStrategy? = CallableInsertionStrategy.AsCall
@@ -274,8 +274,8 @@ internal abstract class K2AbstractCallableCompletionContributor<P : KotlinNameRe
             .forEach { addElement(it) }
     }
 
-    context(_: KaSession, context: K2CompletionSectionContext<P>)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession, context: K2CompletionSectionContext<P>)
     private fun createAndFilterMetadataForMemberCallables(
         callables: Sequence<KaCallableSymbol>,
     ): Sequence<CallableWithMetadataForCompletion> = callables.filter { filter(it) }
@@ -441,8 +441,8 @@ internal abstract class K2AbstractCallableCompletionContributor<P : KotlinNameRe
             )
         }
 
-    context(_: KaSession, context: K2CompletionSectionContext<P>)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession, context: K2CompletionSectionContext<P>)
     protected fun collectDotCompletionForCallableReceiver(
         explicitReceiver: KtExpression,
         forRuntimeType: Boolean
@@ -638,8 +638,8 @@ internal abstract class K2AbstractCallableCompletionContributor<P : KotlinNameRe
      * If [candidate] is applicable returns substituted signature and insertion options, otherwise, null.
      * When the extensionChecker from the [context] is null, no check is carried and applicability result is null.
      */
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     protected open fun checkApplicabilityAndSubstitute(
         context: K2CompletionSectionContext<P>,
         candidate: KaCallableSymbol,
@@ -689,8 +689,8 @@ internal abstract class K2AbstractCallableCompletionContributor<P : KotlinNameRe
      *
      * @see NotPropertiesService
      */
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     private fun KaCallableSignature<*>.getJavaGetterSignatureIfNotProperty(): KaCallableSignature<*>? {
         if (this !is KaVariableSignature<*>) return null
         val symbol = symbol
@@ -1150,8 +1150,8 @@ internal class K2CallableReferenceCompletionContributor : K2AbstractCallableComp
     override fun getInsertionStrategy(signature: KaCallableSignature<*>): CallableInsertionStrategy =
         CallableInsertionStrategy.AsIdentifier
 
-    context(_: KaSession)
     @KaExperimentalApi
+    context(_: KaSession)
     override fun getInsertionStrategyForFunctionalVariables(
         applicabilityResult: KaExtensionApplicabilityResult.ApplicableAsFunctionalVariableCall,
     ): CallableInsertionStrategy? = null
@@ -1208,8 +1208,8 @@ internal class K2InfixCallableCompletionContributor : K2AbstractCallableCompleti
     override fun getInsertionStrategy(signature: KaCallableSignature<*>): CallableInsertionStrategy =
         CallableInsertionStrategy.InfixCallableInsertionStrategy
 
-    context(_: KaSession)
     @KaExperimentalApi
+    context(_: KaSession)
     override fun getInsertionStrategyForFunctionalVariables(
         applicabilityResult: KaExtensionApplicabilityResult.ApplicableAsFunctionalVariableCall,
     ): CallableInsertionStrategy? = null
@@ -1231,14 +1231,14 @@ internal class K2KDocCallableCompletionContributor : K2AbstractCallableCompletio
     /**
      * Is not used directly, @see [checkApplicabilityAndSubstitute].
      */
-    context(_: KaSession)
     @KaExperimentalApi
+    context(_: KaSession)
     override fun getInsertionStrategyForFunctionalVariables(
         applicabilityResult: KaExtensionApplicabilityResult.ApplicableAsFunctionalVariableCall,
     ): CallableInsertionStrategy = throw RuntimeException("Should not be used directly")
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     override fun checkApplicabilityAndSubstitute(
         context: K2CompletionSectionContext<KDocLinkNamePositionContext>,
         candidate: KaCallableSymbol,
@@ -1257,8 +1257,8 @@ internal class K2KDocCallableCompletionContributor : K2AbstractCallableCompletio
         forRuntimeType: Boolean
     ): Sequence<CallableWithMetadataForCompletion> = emptySequence()
 
-    context(_: KaSession, context: K2CompletionSectionContext<KDocLinkNamePositionContext>)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession, context: K2CompletionSectionContext<KDocLinkNamePositionContext>)
     override fun collectDotCompletionFromLocalScope(
         explicitReceiver: KtElement,
         showReceiver: Boolean,

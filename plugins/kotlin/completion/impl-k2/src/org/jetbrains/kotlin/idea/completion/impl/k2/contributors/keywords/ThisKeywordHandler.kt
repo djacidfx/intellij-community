@@ -84,8 +84,8 @@ internal class ThisKeywordHandler(
         return parameters.offset in companionPsi.textRange
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     private fun createThisLookupElement(receiver: KaImplicitReceiver, labelName: Name?): LookupElement {
         return createKeywordElement(KtTokens.THIS_KEYWORD.value, labelName.labelNameToTail(), lookupObject = KeywordLookupObject())
             .withTypeText(receiver.type.renderVerbose())

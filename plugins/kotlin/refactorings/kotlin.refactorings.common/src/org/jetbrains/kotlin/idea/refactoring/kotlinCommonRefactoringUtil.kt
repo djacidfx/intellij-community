@@ -271,8 +271,8 @@ fun <ListType : KtElement> replaceListPsiAndKeepDelimiters(
     return originalList
 }
 
-context(_: KaSession)
 @ApiStatus.Internal
+context(_: KaSession)
 fun KtCallExpression.canMoveLambdaOutsideParentheses(
     skipComplexCalls: Boolean = true
 ): Boolean {

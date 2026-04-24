@@ -248,9 +248,9 @@ object CallableReturnTypeUpdaterUtils {
         override fun getResult(element: TypeInfo.Type): String = element.longTypeRepresentation
     }
 
-    context(session: KaSession)
     @OptIn(KaExperimentalApi::class)
     @ApiStatus.Internal
+    context(session: KaSession)
     fun <T> calculateAllTypes(
         declaration: KtCallableDeclaration,
         useSmartCastType: Boolean = false,
@@ -309,9 +309,9 @@ object CallableReturnTypeUpdaterUtils {
     private fun KaClassType.isLocal(): Boolean =
         classId.isLocal
 
-    context(_: KaSession)
     @ApiStatus.Internal
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     fun getTypeInfo(declaration: KtCallableDeclaration, useSmartCastType: Boolean = false, useTemplate: Boolean = true): TypeInfo {
         val calculateAllTypes = calculateAllTypes(declaration, useSmartCastType = useSmartCastType) { declarationType, allTypes, cannotBeNull ->
             if (isUnitTestMode()) {
@@ -398,8 +398,8 @@ object CallableReturnTypeUpdaterUtils {
                 useTemplate: Boolean = false
             ): TypeInfo = TypeInfo(createTypeByKtType(ktType), otherTypes.map { createTypeByKtType(it) }.toList(), useTemplate)
 
-            context(_: KaSession)
             @OptIn(KaExperimentalApi::class)
+            context(_: KaSession)
             internal fun createTypeByKtType(ktType: KaType): Type = Type(
                 isUnit = ktType.isUnitType,
                 isError = ktType is KaErrorType,

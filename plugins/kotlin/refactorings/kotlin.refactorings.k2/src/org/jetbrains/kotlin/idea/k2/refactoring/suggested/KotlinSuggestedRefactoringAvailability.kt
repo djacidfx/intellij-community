@@ -185,8 +185,8 @@ class KotlinSuggestedRefactoringAvailability(refactoringSupport: SuggestedRefact
         return oldTypeInCode to newTypeInCode
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     private fun KaType.fqText() = render(position = Variance.INVARIANT)
 
     override fun detectAvailableRefactoring(state: SuggestedRefactoringState): SuggestedRefactoringData? {

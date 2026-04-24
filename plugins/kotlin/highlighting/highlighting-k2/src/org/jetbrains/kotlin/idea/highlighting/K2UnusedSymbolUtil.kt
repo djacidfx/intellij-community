@@ -264,8 +264,8 @@ object K2UnusedSymbolUtil {
         return declaration is KtParameter && !(declaration.parent.parent is KtPrimaryConstructor && declaration.hasValOrVar())
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     fun getPsiToReportProblem(declaration: KtNamedDeclaration, isJavaEntryPointInspection: UnusedDeclarationInspectionBase): PsiElement? {
         val symbol = declaration.symbol
         if (declaration.languageVersionSettings.getFlag(

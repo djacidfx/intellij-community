@@ -253,8 +253,8 @@ internal class ConvertLambdaToReferenceIntention :
     }
 }
 
-context(_: KaSession)
 @OptIn(KaExperimentalApi::class)
+context(_: KaSession)
 private fun buildReferenceText(lambdaExpression: KtLambdaExpression): String? {
     val lambdaParameterType = lambdaExpression.lambdaParameterType()
     return when (val singleStatement = lambdaExpression.singleStatementOrNull()) {
@@ -348,8 +348,8 @@ private fun KtLambdaExpression.parentValueArgument(): KtValueArgument? {
     } as? KtValueArgument
 }
 
-context(_: KaSession)
 @OptIn(KaExperimentalApi::class)
+context(_: KaSession)
 private fun KtNameReferenceExpression.renderTargetReceiverType(): String {
     val partiallyAppliedSymbol = this.resolveToCall()?.successfulCallOrNull<KaCallableMemberCall<*, *>>()?.partiallyAppliedSymbol
     val receiverType = (partiallyAppliedSymbol?.dispatchReceiver ?: partiallyAppliedSymbol?.extensionReceiver)?.type ?: return ""

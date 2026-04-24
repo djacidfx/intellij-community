@@ -69,8 +69,8 @@ internal abstract class AbstractAddAccessorIntention(
         return isApplicable.asUnit
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     private fun KtProperty.isPropertyNotInitialized(): Boolean {
         // TODO: when KT-63221 is fixed use `diagnostics(KaDiagnosticCheckerFilter.ONLY_COMMON_CHECKERS)` instead
         return containingKtFile.collectDiagnostics(KaDiagnosticCheckerFilter.ONLY_COMMON_CHECKERS)

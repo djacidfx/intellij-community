@@ -168,8 +168,8 @@ fun KtExpression.resolveExpression(): KaSymbol? {
  * N.B. This function should NOT be used everywhere - only in cases where exceptions are too frequent.
  */
 @OptIn(KaContextParameterApi::class)
-context(_: KaSession)
 @get:ApiStatus.Internal
+context(_: KaSession)
 val KtTypeReference.typeIfSafeToResolve: KaType?
     get() {
         if (!this.isSafeToResolve) return null
