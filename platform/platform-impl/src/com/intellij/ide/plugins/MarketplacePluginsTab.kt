@@ -12,6 +12,7 @@ import com.intellij.ide.plugins.marketplace.PluginSearchResult
 import com.intellij.ide.plugins.marketplace.statistics.PluginManagerUsageCollector
 import com.intellij.ide.plugins.newui.ListPluginComponent
 import com.intellij.ide.plugins.newui.MultiSelectionEventHandler
+import com.intellij.ide.plugins.newui.MyPluginModel
 import com.intellij.ide.plugins.newui.NoOpPluginsViewCustomizer
 import com.intellij.ide.plugins.newui.PluginDetailsPageComponent
 import com.intellij.ide.plugins.newui.PluginInstallationState
@@ -40,12 +41,16 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.KeepPopupOnPerform
 import com.intellij.openapi.actionSystem.ToggleAction
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.application.ModalityState.any
+import com.intellij.openapi.application.asContextElement
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.updateSettings.impl.pluginsAdvertisement.FUSEventSource
+import com.intellij.openapi.updateSettings.impl.pluginsAdvertisement.findSuggestedPlugins
 import com.intellij.openapi.util.text.HtmlChunk
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.ui.SimpleTextAttributes
@@ -55,6 +60,9 @@ import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.StatusText
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nls
 import org.jetbrains.annotations.NonNls
@@ -145,8 +153,49 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
   }
 
   private fun computeAndApplyMarketplacePanelModel(selectionListener: Consumer<in PluginsGroupComponent?>, project: Project?) {
-    PluginManagerPanelFactory.createMarketplacePanel(coroutineScope, pluginModelFacade.getModel(), project) { model ->
-      applyMarketplacePanelModel(project, model, selectionListener)
+    val myPluginModel = pluginModelFacade.getModel()
+    coroutineScope.launch(Dispatchers.IO) {
+      myPluginModel.waitForSessionInitialization()
+      val customRepositoriesMap = UiPluginManager.getInstance().getCustomRepositoryPluginMap()
+      val suggestedPlugins = if (project != null) findSuggestedPlugins(project, customRepositoriesMap) else emptyList()
+      val pluginManager = UiPluginManager.getInstance()
+      val marketplaceData = mutableMapOf<String, PluginSearchResult>()
+      val internalPluginsGroupDescriptor = getPluginsViewCustomizer().getInternalPluginsGroupDescriptor()
+      val installationStates = pluginManager.getInstallationStates()
+
+      val queries = listOf(
+        "is_featured_search=true",
+        "orderBy=update+date",
+        "orderBy=downloads",
+        "orderBy=rating"
+      )
+
+      val errorCheckResults = pluginManager.loadErrors(myPluginModel.mySessionId.toString())
+      val errors = MyPluginModel.getErrors(errorCheckResults)
+      try {
+        for (query in queries) {
+          val result = pluginManager.executeMarketplaceQuery(query, 18, false)
+          marketplaceData[query] = result
+        }
+      }
+      catch (e: Exception) {
+        LOG.info("Main plugin repository is not available (${e.message}). Please check your network settings.")
+      }
+      val pluginIds = marketplaceData.flatMap { it.value.getPlugins().map { plugin -> plugin.pluginId } }.toSet() +
+                      customRepositoriesMap.flatMap { it.value.map { plugin -> plugin.pluginId } }.toSet()
+      val installedPlugins = pluginManager.findInstalledPlugins(pluginIds)
+      withContext(Dispatchers.EDT + any().asContextElement()) {
+        val model = CreateMarketplacePanelModel(
+          marketplaceData,
+          errors,
+          suggestedPlugins,
+          customRepositoriesMap,
+          installedPlugins,
+          installationStates,
+          internalPluginsGroupDescriptor
+        )
+        applyMarketplacePanelModel(project, model, selectionListener)
+      }
     }
   }
 
