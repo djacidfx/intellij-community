@@ -36,6 +36,13 @@ class IntellijModulesPublication(
     val version: String,
     var modulesToPublish: List<String> = listProperty("intellij.modules.publication.list"),
     /**
+     * Maven coordinates of extra pom-only artifacts to publish, as `"groupId:artifactId"` strings.
+     * Version is taken from [version]. These artifacts are expected to be pre-built by
+     * [MavenArtifactsBuilder.generateAggregatorPom] (or any compatible producer) and placed under
+     * [outputDir] at the standard Maven repo layout.
+     */
+    var aggregatorPomsToPublish: List<String> = listProperty("intellij.modules.publication.aggregator.poms.list"),
+    /**
      * Output of [MavenArtifactsBuilder]
      */
     var outputDir: Path = property("intellij.modules.publication.prebuilt.artifacts.dir")!!.let { Path.of(it).normalize() },
@@ -83,7 +90,7 @@ class IntellijModulesPublication(
       }
     }
     modules = modules.filterTo(LinkedHashSet()) { !options.modulesToExclude.contains(it.name) }
-    if (modules.isEmpty()) {
+    if (modules.isEmpty() && options.aggregatorPomsToPublish.isEmpty()) {
       context.messages.warning("Nothing to publish")
     }
     val builder = MavenArtifactsBuilder(context)
@@ -95,6 +102,25 @@ class IntellijModulesPublication(
       if (Files.exists(options.outputDir.resolve(squashedCoordinates.directoryPath))) {
         deployModuleArtifact(squashedCoordinates)
       }
+    }
+    deployAggregatorPoms()
+  }
+
+  private fun deployAggregatorPoms() {
+    for (entry in options.aggregatorPomsToPublish) {
+      val parts = entry.split(':')
+      require(parts.size == 2) {
+        "Invalid aggregator pom coordinates '$entry' — expected 'groupId:artifactId'"
+      }
+      val coordinates = MavenCoordinates(groupId = parts[0], artifactId = parts[1], version = options.version)
+      val pom = options.outputDir
+        .resolve(coordinates.directoryPath)
+        .resolve(coordinates.getFileName(packaging = "pom"))
+      if (!pom.exists()) {
+        context.messages.warning("Aggregator pom $coordinates not found at $pom")
+        continue
+      }
+      deployFile(pom, coordinates, "", "-DpomFile=${pom.absolutePathString()}")
     }
   }
 
