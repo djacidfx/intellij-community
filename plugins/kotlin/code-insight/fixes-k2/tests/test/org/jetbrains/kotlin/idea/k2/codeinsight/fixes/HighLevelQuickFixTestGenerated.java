@@ -12990,7 +12990,59 @@ public abstract class HighLevelQuickFixTestGenerated extends AbstractHighLevelQu
         }
     }
 
+    @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../../idea/tests/testData/quickfix/renameToUnderscore")
+    public static class RenameToUnderscore extends AbstractHighLevelQuickFixTest {
+        @java.lang.Override
+        @org.jetbrains.annotations.NotNull
+        public final KotlinPluginMode getPluginMode() {
+            return KotlinPluginMode.K2;
+        }
 
+        private void runTest(String testDataFilePath) throws Exception {
+            KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
+        }
+
+        @TestMetadata("commonDestructuring.kt")
+        public void testCommonDestructuring() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/renameToUnderscore/commonDestructuring.kt");
+        }
+
+        @TestMetadata("forDestructuring.kt")
+        public void testForDestructuring() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/renameToUnderscore/forDestructuring.kt");
+        }
+
+        @TestMetadata("functionExpressionParameterNoRemoveParameter.kt")
+        public void testFunctionExpressionParameterNoRemoveParameter() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/renameToUnderscore/functionExpressionParameterNoRemoveParameter.kt");
+        }
+
+        @TestMetadata("lambdaDestructuring.kt")
+        public void testLambdaDestructuring() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/renameToUnderscore/lambdaDestructuring.kt");
+        }
+
+        @TestMetadata("lambdaParameter.kt")
+        public void testLambdaParameter() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/renameToUnderscore/lambdaParameter.kt");
+        }
+
+        @TestMetadata("lambdaParameterNoRemoveParameter.kt")
+        public void testLambdaParameterNoRemoveParameter() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/renameToUnderscore/lambdaParameterNoRemoveParameter.kt");
+        }
+
+        @TestMetadata("noActionForCommonFunction.kt")
+        public void testNoActionForCommonFunction() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/renameToUnderscore/noActionForCommonFunction.kt");
+        }
+
+        @TestMetadata("noActionForCommonVal.kt")
+        public void testNoActionForCommonVal() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/renameToUnderscore/noActionForCommonVal.kt");
+        }
+    }
 
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../../idea/tests/testData/quickfix/renameUnresolvedReference")

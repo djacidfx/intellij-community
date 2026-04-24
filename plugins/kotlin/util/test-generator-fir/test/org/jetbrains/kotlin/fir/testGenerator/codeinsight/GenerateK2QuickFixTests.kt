@@ -172,7 +172,7 @@ internal fun MutableTWorkspace.generateK2FixTests() {
             model("$idea/quickfix/removeUnusedParameter", pattern = pattern, isIgnored = true)
             model("$idea/quickfix/removeUnusedReceiver", pattern = pattern)
             model("$idea/quickfix/removeUseSiteTarget", pattern = pattern)
-            model("$idea/quickfix/renameToUnderscore", pattern = pattern, isIgnored = true)
+            model("$idea/quickfix/renameToUnderscore", pattern = pattern)
             model("$idea/quickfix/renameUnresolvedReference", pattern = pattern)
             model("$idea/quickfix/reorderParameters", pattern = pattern)
             model("$idea/quickfix/replaceAndWithWhenGuard", pattern = pattern)
