@@ -77,7 +77,12 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
   private val pluginManagerCustomizer: PluginManagerCustomizer? = customizer
   private val pluginUpdatesService: PluginUpdatesService = service
 
-  private var marketplaceRunnable: Runnable? = null
+  private var marketplaceRunnable: Runnable? = Runnable {
+    val project = ProjectUtil.getActiveProject()
+    marketplacePanel.clear()
+    marketplacePanel.showLoadingIcon()
+    doCreateMarketplaceTab(selectionListener, project)
+  }
 
   private val marketplaceSortByGroup: DefaultActionGroup = DefaultActionGroup()
 
@@ -114,14 +119,6 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
   override fun createPluginsPanel(): JComponent {
     (searchPanel.controller as SearchUpDownPopupController).setEventHandler(eventHandler)
 
-    val project = ProjectUtil.getActiveProject()
-
-    marketplaceRunnable = Runnable {
-      marketplacePanel.clear()
-      marketplacePanel.showLoadingIcon()
-      doCreateMarketplaceTab(selectionListener, project)
-    }
-
     marketplacePanel.getEmptyText().setText(IdeBundle.message("plugins.configurable.marketplace.plugins.not.loaded"))
       .appendSecondaryText(IdeBundle.message("message.check.the.internet.connection.and") + " ", StatusText.DEFAULT_ATTRIBUTES, null)
       .appendSecondaryText(
@@ -129,6 +126,7 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
         SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES,
       ) { marketplaceRunnable!!.run() }
 
+    val project = ProjectUtil.getActiveProject()
     doCreateMarketplaceTab(selectionListener, project)
     return createScrollPane(marketplacePanel, false)
   }
