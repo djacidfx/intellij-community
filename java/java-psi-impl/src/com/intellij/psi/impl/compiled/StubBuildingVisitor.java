@@ -279,6 +279,7 @@ public class StubBuildingVisitor<T> extends ClassVisitor {
 
   @Override
   public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
+    if (!isSupportedAnnotationDescriptor(desc)) return null;
     return new AnnotationTextCollector(desc, myFirstPassData, text -> new PsiAnnotationStubImpl(myModList, text));
   }
 
@@ -584,6 +585,7 @@ public class StubBuildingVisitor<T> extends ClassVisitor {
 
     @Override
     public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
+      if (!isSupportedAnnotationDescriptor(desc)) return null;
       return new AnnotationTextCollector(desc, myFirstPassData, text -> {
         new PsiAnnotationStubImpl(myModList, text);
       });
@@ -616,6 +618,7 @@ public class StubBuildingVisitor<T> extends ClassVisitor {
 
     @Override
     public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
+      if (!isSupportedAnnotationDescriptor(desc)) return null;
       return new AnnotationTextCollector(desc, myFirstPassData, text -> {
         new PsiAnnotationStubImpl(myModList, text);
       });
@@ -673,6 +676,7 @@ public class StubBuildingVisitor<T> extends ClassVisitor {
 
     @Override
     public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
+      if (!isSupportedAnnotationDescriptor(desc)) return null;
       return new AnnotationTextCollector(desc, myFirstPassData, text -> {
         new PsiAnnotationStubImpl(myModList, text);
       });
@@ -680,7 +684,8 @@ public class StubBuildingVisitor<T> extends ClassVisitor {
 
     @Override
     public AnnotationVisitor visitParameterAnnotation(int parameter, String desc, boolean visible) {
-      return parameter < myParamIgnoreCount ? null : new AnnotationTextCollector(desc, myFirstPassData, text -> {
+      if (parameter < myParamIgnoreCount || !isSupportedAnnotationDescriptor(desc)) return null;
+      return new AnnotationTextCollector(desc, myFirstPassData, text -> {
         int idx = parameter - myParamIgnoreCount;
         new PsiAnnotationStubImpl(myOwner.findParameter(idx).getModList(), text);
       });
@@ -872,6 +877,16 @@ public class StubBuildingVisitor<T> extends ClassVisitor {
   public static final TypeInfoProvider GUESSING_PROVIDER = TypeInfoProvider.from(GUESSING_MAPPER);
 
   public static AnnotationVisitor getAnnotationTextCollector(String desc, Consumer<? super String> consumer) {
+    if (!isSupportedAnnotationDescriptor(desc)) return null;
     return new AnnotationTextCollector(desc, GUESSING_PROVIDER, consumer);
+  }
+
+  /**
+   * Synthetic JDK markers such as {@code Ljdk/Profile+Annotation;} carry a {@code '+'} in their
+   * internal class name. Those names are legal in the class file format but are
+   * not a valid Java identifier reference. Skip them at the bytecode reader.
+   */
+  private static boolean isSupportedAnnotationDescriptor(@Nullable String desc) {
+    return desc == null || desc.indexOf('+') < 0;
   }
 }
