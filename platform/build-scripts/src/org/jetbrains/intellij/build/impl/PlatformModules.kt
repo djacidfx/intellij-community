@@ -288,7 +288,7 @@ internal suspend fun createPlatformLayout(projectLibrariesUsedByPlugins: SortedS
      implicit.asSequence().map {
        ModuleItem(
          moduleName = it.first,
-         relativeOutputFile = nameToJarFileName(it.first),
+         relativeOutputFile = "${it.first}.jar",
          reason = "<- " + it.second.asReversed().joinToString(separator = " <- ")
        )
      })
@@ -455,7 +455,7 @@ private fun toModuleItemSequence(
 ): Sequence<ModuleItem> {
   return list.asSequence()
     .filter { !productLayout.excludedModuleNames.contains(it) }
-    .map { ModuleItem(moduleName = it, relativeOutputFile = nameToJarFileName(it), reason = reason) }
+    .map { ModuleItem(moduleName = it, relativeOutputFile = "$it.jar", reason = reason) }
 }
 
 /**

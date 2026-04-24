@@ -109,6 +109,7 @@ object CommunityModuleSets {
 
     embeddedModule("intellij.platform.ide.initialConfigImport")
     embeddedModule("intellij.platform.markdown.utils")
+    embeddedModule("intellij.platform.ml")
   }
 
   /**
@@ -414,7 +415,6 @@ object CommunityModuleSets {
     module("intellij.platform.scriptDebugger.backend")
     module("intellij.platform.scriptDebugger.protocolReaderRuntime")
 
-    module("intellij.platform.ml")
     module("intellij.platform.ml.impl")
 
     module("intellij.libraries.microba")

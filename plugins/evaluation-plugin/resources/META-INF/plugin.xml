@@ -46,7 +46,6 @@
     <plugin id="com.intellij.completion.ml.ranking"/>
     <plugin id="com.intellij.stats.completion"/>
     <module name="intellij.libraries.commons.text"/>
-    <module name="intellij.platform.ml"/>
     <module name="intellij.platform.warmup"/>
     <!-- endregion -->
   </dependencies>

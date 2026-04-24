@@ -274,6 +274,7 @@
     <module name="intellij.platform.inline.completion"/>
     <module name="intellij.platform.ide.initialConfigImport" loading="embedded"/>
     <module name="intellij.platform.markdown.utils" loading="embedded"/>
+    <module name="intellij.platform.ml" loading="embedded"/>
     <!-- endregion -->
     <!-- endregion -->
 
@@ -420,7 +421,6 @@
     <module name="intellij.platform.scriptDebugger.ui"/>
     <module name="intellij.platform.scriptDebugger.backend"/>
     <module name="intellij.platform.scriptDebugger.protocolReaderRuntime"/>
-    <module name="intellij.platform.ml"/>
     <module name="intellij.platform.ml.impl"/>
     <module name="intellij.libraries.microba"/>
     <module name="intellij.platform.diagnostic.freezeAnalyzer"/>

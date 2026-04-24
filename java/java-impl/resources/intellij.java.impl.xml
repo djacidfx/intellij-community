@@ -26,7 +26,6 @@
     <module name="intellij.java.structureView"/>
     <module name="intellij.jsp"/>
     <module name="intellij.jsp.spi"/>
-    <module name="intellij.platform.ml"/>
     <module name="intellij.spellchecker"/>
   </dependencies>
   <!-- endregion -->
