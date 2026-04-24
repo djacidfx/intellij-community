@@ -12575,7 +12575,64 @@ public abstract class HighLevelQuickFixTestGenerated extends AbstractHighLevelQu
         }
     }
 
+    @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../../idea/tests/testData/quickfix/removeSingleLambdaParameter")
+    public static class RemoveSingleLambdaParameter extends AbstractHighLevelQuickFixTest {
+        @java.lang.Override
+        @org.jetbrains.annotations.NotNull
+        public final KotlinPluginMode getPluginMode() {
+            return KotlinPluginMode.K2;
+        }
 
+        private void runTest(String testDataFilePath) throws Exception {
+            KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
+        }
+
+        @TestMetadata("inIf.kt")
+        public void testInIf() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/removeSingleLambdaParameter/inIf.kt");
+        }
+
+        @TestMetadata("inIf2.kt")
+        public void testInIf2() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/removeSingleLambdaParameter/inIf2.kt");
+        }
+
+        @TestMetadata("inWhen.kt")
+        public void testInWhen() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/removeSingleLambdaParameter/inWhen.kt");
+        }
+
+        @TestMetadata("inWhen2.kt")
+        public void testInWhen2() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/removeSingleLambdaParameter/inWhen2.kt");
+        }
+
+        @TestMetadata("multiple.kt")
+        public void testMultiple() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/removeSingleLambdaParameter/multiple.kt");
+        }
+
+        @TestMetadata("propertyWithExplicitType.kt")
+        public void testPropertyWithExplicitType() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/removeSingleLambdaParameter/propertyWithExplicitType.kt");
+        }
+
+        @TestMetadata("propertyWithImplicitType.kt")
+        public void testPropertyWithImplicitType() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/removeSingleLambdaParameter/propertyWithImplicitType.kt");
+        }
+
+        @TestMetadata("receiver.kt")
+        public void testReceiver() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/removeSingleLambdaParameter/receiver.kt");
+        }
+
+        @TestMetadata("simple.kt")
+        public void testSimple() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/removeSingleLambdaParameter/simple.kt");
+        }
+    }
 
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../../idea/tests/testData/quickfix/removeSuspend")
