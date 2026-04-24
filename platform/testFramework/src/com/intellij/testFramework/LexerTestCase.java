@@ -73,6 +73,14 @@ public abstract class LexerTestCase extends UsefulTestCase {
     return printTokens(text, start, createLexer());
   }
 
+  /**
+   * Verifies that the lexer produces the same token sequence when restarted from any position
+   * where {@link Lexer#getState()} returns zero or {@link RestartableLexer#isRestartableState(int)} returns {@code true}.
+   *
+   * <p>For every such position the lexer is restarted via {@link Lexer#start(CharSequence, int, int, int)}
+   * with the recorded offset and state, and the resulting tokens are compared against the tail of the
+   * initial full-text tokenization.
+   */
   protected void checkCorrectRestart(@NotNull String text) {
     Lexer mainLexer = createLexer();
     List<TokenState> allTokens = tokenize(text, 0, 0, mainLexer);
