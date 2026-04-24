@@ -908,17 +908,15 @@
   },
   "icons": {
     "ColorPalette": {
-      "Checkbox.Background.Default.Dark": "#363738",
-      "Checkbox.Border.Default.Dark": "#6B6B6B",
-      "Checkbox.Border.Selected.Dark": "#6B6B6B",
-      "Checkbox.Foreground.Selected.Dark": "#A7A7A7",
-      "Checkbox.Focus.Wide.Dark": "#366799",
-      "Checkbox.Focus.Thin.Default.Dark": "#466D94",
-      "Checkbox.Focus.Thin.Selected.Dark": "#466D94",
-      "Checkbox.Background.Disabled.Dark": "#43494A",
-      "Checkbox.Background.Selected.Dark": "#363738",
-      "Checkbox.Border.Disabled.Dark": "#545556",
-      "Checkbox.Foreground.Disabled.Dark": "#606060"
+      "Checkbox.Background.Default": "#363738",
+      "Checkbox.Border.Default": "#6B6B6B",
+      "Checkbox.Border.Selected": "#6B6B6B",
+      "Checkbox.Foreground.Selected": "#A7A7A7",
+      "Checkbox.Focus.Wide": "#366799",
+      "Checkbox.Background.Disabled": "#43494A",
+      "Checkbox.Background.Selected": "#363738",
+      "Checkbox.Border.Disabled": "#545556",
+      "Checkbox.Foreground.Disabled": "#606060"
     }
   }
 }
