@@ -9,7 +9,6 @@ import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.intellij.build.BuildContext
-import org.jetbrains.intellij.build.FrontendModuleFilter
 import org.jetbrains.intellij.build.ModuleOutputProvider
 import org.jetbrains.intellij.build.PLATFORM_LOADER_JAR
 import org.jetbrains.intellij.build.UTIL_8_JAR
@@ -206,8 +205,8 @@ internal suspend fun createPlatformLayout(projectLibrariesUsedByPlugins: SortedS
       )
     )
   }
-  explicit.addAll(toModuleItemSequence(list = PLATFORM_CORE_MODULES, productLayout = productLayout, reason = "PLATFORM_CORE_MODULES", frontendModuleFilter = frontendModuleFilter))
-  explicit.addAll(toModuleItemSequence(list = productLayout.productApiModules, productLayout = productLayout, reason = "productApiModules", frontendModuleFilter = frontendModuleFilter))
+  explicit.addAll(toModuleItemSequence(list = PLATFORM_CORE_MODULES, productLayout = productLayout, reason = "PLATFORM_CORE_MODULES"))
+  explicit.addAll(toModuleItemSequence(list = productLayout.productApiModules, productLayout = productLayout, reason = "productApiModules"))
 
   val explicitModuleNames = explicit.map { it.moduleName }
   val outputProvider = context.outputProvider
@@ -289,7 +288,7 @@ internal suspend fun createPlatformLayout(projectLibrariesUsedByPlugins: SortedS
      implicit.asSequence().map {
        ModuleItem(
          moduleName = it.first,
-         relativeOutputFile = PlatformJarNames.getPlatformModuleJarName(it.first, frontendModuleFilter),
+         relativeOutputFile = nameToJarFileName(it.first),
          reason = "<- " + it.second.asReversed().joinToString(separator = " <- ")
        )
      })
@@ -453,11 +452,10 @@ private fun toModuleItemSequence(
   list: Collection<String>,
   productLayout: ProductModulesLayout,
   reason: String,
-  frontendModuleFilter: FrontendModuleFilter,
 ): Sequence<ModuleItem> {
   return list.asSequence()
     .filter { !productLayout.excludedModuleNames.contains(it) }
-    .map { ModuleItem(moduleName = it, relativeOutputFile = PlatformJarNames.getPlatformModuleJarName(it, frontendModuleFilter), reason = reason) }
+    .map { ModuleItem(moduleName = it, relativeOutputFile = nameToJarFileName(it), reason = reason) }
 }
 
 /**

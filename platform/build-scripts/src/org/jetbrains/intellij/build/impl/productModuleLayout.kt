@@ -27,7 +27,7 @@ import org.jetbrains.jps.model.java.JavaSourceRootType
 internal fun getProductModuleJarName(moduleName: String, context: BuildContext, frontendModuleFilter: FrontendModuleFilter): String {
   return when {
     isModuleCloseSource(moduleName = moduleName, context = context) -> if (frontendModuleFilter.isBackendModule(moduleName)) PRODUCT_BACKEND_JAR else PRODUCT_JAR
-    else -> PlatformJarNames.getPlatformModuleJarName(moduleName, frontendModuleFilter)
+    else -> nameToJarFileName(moduleName)
   }
 }
 
