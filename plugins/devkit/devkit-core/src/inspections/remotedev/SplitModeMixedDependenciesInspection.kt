@@ -13,6 +13,7 @@ internal class SplitModeMixedDependenciesInspection : DevKitPluginXmlInspectionB
 
   override fun isAllowed(holder: DomElementAnnotationHolder): Boolean {
     if (!super.isAllowed(holder)) return false
+    if (SplitModeInspectionUtil.shouldSuppressForSingleModuleExternalPlugin(holder.fileElement.file)) return false
 
     if (restrictionsService.isLoaded()) {
       return true

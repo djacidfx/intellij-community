@@ -39,6 +39,7 @@ class SplitModeApiUsageInspection : DevKitUastInspectionBase(UClass::class.java,
 
   override fun isAllowed(holder: ProblemsHolder): Boolean {
     if (!super.isAllowed(holder)) return false
+    if (SplitModeInspectionUtil.shouldSuppressForSingleModuleExternalPlugin(holder.file)) return false
 
     val isRestrictionServiceReady = restrictionsService.isLoaded()
     if (isRestrictionServiceReady) {

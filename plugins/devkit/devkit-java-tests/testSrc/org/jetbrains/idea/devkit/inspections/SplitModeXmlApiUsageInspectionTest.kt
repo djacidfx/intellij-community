@@ -1,6 +1,7 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.idea.devkit.inspections
 
+import com.intellij.openapi.project.IntelliJProjectUtil
 import com.intellij.testFramework.PsiTestUtil
 import com.intellij.testFramework.common.timeoutRunBlocking
 import com.intellij.testFramework.common.waitUntil
@@ -13,6 +14,7 @@ import kotlin.time.Duration.Companion.seconds
 internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCase() {
   override fun setUp() {
     super.setUp()
+    IntelliJProjectUtil.markAsIntelliJPlatformProject(project, true)
 
     val service = SplitModeApiRestrictionsService.getInstance()
     service.scheduleLoadRestrictions()
@@ -136,6 +138,24 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
         <idea-plugin>
           <dependencies>
             <module name="intellij.transitive.frontend"/>
+          </dependencies>
+          <extensions defaultExtensionNs="com.intellij">
+            <fileEditorProvider/>
+          </extensions>
+        </idea-plugin>
+      """.trimIndent()
+    )
+
+    myFixture.checkHighlighting()
+  }
+
+  fun testNoWarningsForFrontendExtensionInSingleModuleExternalPluginWithBackendVcsDependency() {
+    IntelliJProjectUtil.markAsIntelliJPlatformProject(project, false)
+    configurePluginXml(
+      """
+        <idea-plugin>
+          <dependencies>
+            <module name="intellij.platform.vcs.impl"/>
           </dependencies>
           <extensions defaultExtensionNs="com.intellij">
             <fileEditorProvider/>
