@@ -28,24 +28,6 @@ fun CharSequence.codePointBefore(index: Int): Codepoint {
   return Codepoint(secondChar.code)
 }
 
-fun CharSequence.codePointCount(startIndex: Int = 0, endIndex: Int = length): Int {
-  require(startIndex >= 0 && endIndex <= length) {
-    "Invalid range: startIndex=$startIndex, endIndex=$endIndex, length=$length"
-  }
-  require(startIndex <= endIndex) { "startIndex must be less than or equal to endIndex" }
-
-  var count = 0
-  var i = startIndex
-  while (i < endIndex) {
-    val character = get(i++)
-    if (character.isHighSurrogate() && i < endIndex && get(i).isLowSurrogate()) {
-      i++ // consume low surrogate
-    }
-    count++
-  }
-  return count
-}
-
 inline fun CharSequence.forEachCodepoint(f: (Codepoint) -> Unit) {
   var i = 0
   val len = length
