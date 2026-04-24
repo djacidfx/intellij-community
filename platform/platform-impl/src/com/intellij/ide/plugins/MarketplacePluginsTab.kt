@@ -114,8 +114,6 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
 
   @RequiresEdt
   override fun createPluginsPanel(): JComponent {
-    (searchPanel.controller as SearchUpDownPopupController).setEventHandler(eventHandler)
-
     marketplacePanel.getEmptyText().setText(IdeBundle.message("plugins.configurable.marketplace.plugins.not.loaded"))
       .appendSecondaryText(IdeBundle.message("message.check.the.internet.connection.and") + " ", StatusText.DEFAULT_ATTRIBUTES, null)
       .appendSecondaryText(
@@ -357,6 +355,7 @@ internal class MarketplacePluginsTab @RequiresEdt constructor(
 
     val eventHandler = MultiSelectionEventHandler()
     marketplaceController.setSearchResultEventHandler(eventHandler)
+    marketplaceController.setEventHandler(eventHandler)
 
     val panel = object : PluginsGroupComponentWithProgress(eventHandler) {
       override fun createListComponent(
