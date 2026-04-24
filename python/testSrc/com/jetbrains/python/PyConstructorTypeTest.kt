@@ -220,4 +220,15 @@ internal class PyConstructorTypeTest : PyInspectionTestCase() {
       """.trimIndent()
     )
   }
+
+  fun `test annotated self in generic class __init__`() {
+    doTestByText("""
+      class MyClass[T]:
+          def __init__(self: "MyClass[int]") -> None: ...
+                   
+      MyClass()
+      MyClass[int]()
+      <warning descr="Expected type 'MyClass[int]', got 'MyClass[str]' instead">MyClass[str]</warning>()
+      """.trimIndent())
+  }
 }
