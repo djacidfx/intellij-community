@@ -1,4 +1,4 @@
-@file:JvmName("SimpleEntityModifications")
+@file:JvmName("NoCompatibilityEntityModifications")
 
 package com.intellij.workspaceModel.test.api
 
@@ -10,22 +10,22 @@ import com.intellij.platform.workspace.storage.WorkspaceEntity
 import com.intellij.platform.workspace.storage.WorkspaceEntityBuilder
 
 @GeneratedCodeApiVersion(3)
-interface SimpleEntityBuilder: WorkspaceEntityBuilder<SimpleEntity>{
+interface NoCompatibilityEntityBuilder: WorkspaceEntityBuilder<NoCompatibilityEntity>{
 override var entitySource: EntitySource
 var version: Int
 var name: String
 var isSimple: Boolean
 }
 
-internal object SimpleEntityType : EntityType<SimpleEntity, SimpleEntityBuilder>(){
-override val entityClass: Class<SimpleEntity> get() = SimpleEntity::class.java
+internal object NoCompatibilityEntityType : EntityType<NoCompatibilityEntity, NoCompatibilityEntityBuilder>(){
+override val entityClass: Class<NoCompatibilityEntity> get() = NoCompatibilityEntity::class.java
 operator fun invoke(
 version: Int,
 name: String,
 isSimple: Boolean,
 entitySource: EntitySource,
-init: (SimpleEntityBuilder.() -> Unit)? = null,
-): SimpleEntityBuilder{
+init: (NoCompatibilityEntityBuilder.() -> Unit)? = null,
+): NoCompatibilityEntityBuilder{
 val builder = builder()
 builder.version = version
 builder.name = name
@@ -36,17 +36,17 @@ return builder
 }
 }
 
-fun MutableEntityStorage.modifySimpleEntity(
-entity: SimpleEntity,
-modification: SimpleEntityBuilder.() -> Unit,
-): SimpleEntity = modifyEntity(SimpleEntityBuilder::class.java, entity, modification)
+fun MutableEntityStorage.modifyNoCompatibilityEntity(
+entity: NoCompatibilityEntity,
+modification: NoCompatibilityEntityBuilder.() -> Unit,
+): NoCompatibilityEntity = modifyEntity(NoCompatibilityEntityBuilder::class.java, entity, modification)
 
 @JvmOverloads
-@JvmName("createSimpleEntity")
-fun SimpleEntity(
+@JvmName("createNoCompatibilityEntity")
+fun NoCompatibilityEntity(
 version: Int,
 name: String,
 isSimple: Boolean,
 entitySource: EntitySource,
-init: (SimpleEntityBuilder.() -> Unit)? = null,
-): SimpleEntityBuilder = SimpleEntityType(version, name, isSimple, entitySource, init)
+init: (NoCompatibilityEntityBuilder.() -> Unit)? = null,
+): NoCompatibilityEntityBuilder = NoCompatibilityEntityType(version, name, isSimple, entitySource, init)

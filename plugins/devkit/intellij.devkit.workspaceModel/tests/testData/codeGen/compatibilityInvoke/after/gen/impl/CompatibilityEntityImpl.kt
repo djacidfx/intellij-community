@@ -17,13 +17,13 @@ import com.intellij.platform.workspace.storage.impl.WorkspaceEntityData
 import com.intellij.platform.workspace.storage.instrumentation.EntityStorageInstrumentation
 import com.intellij.platform.workspace.storage.instrumentation.EntityStorageInstrumentationApi
 import com.intellij.platform.workspace.storage.metadata.model.EntityMetadata
-import com.intellij.workspaceModel.test.api.SimpleEntity
-import com.intellij.workspaceModel.test.api.SimpleEntityBuilder
+import com.intellij.workspaceModel.test.api.CompatibilityEntity
+import com.intellij.workspaceModel.test.api.CompatibilityEntityBuilder
 
 @GeneratedCodeApiVersion(3)
 @GeneratedCodeImplVersion(7)
 @OptIn(WorkspaceEntityInternalApi::class)
-internal class SimpleEntityImpl(private val dataSource: SimpleEntityData): SimpleEntity, WorkspaceEntityBase(dataSource) {
+internal class CompatibilityEntityImpl(private val dataSource: CompatibilityEntityData): CompatibilityEntity, WorkspaceEntityBase(dataSource) {
 
 private companion object {
 
@@ -58,8 +58,8 @@ return connections
 }
 
 
-internal class Builder(result: SimpleEntityData?): ModifiableWorkspaceEntityBase<SimpleEntity, SimpleEntityData>(result), SimpleEntityBuilder {
-internal constructor(): this(SimpleEntityData())
+internal class Builder(result: CompatibilityEntityData?): ModifiableWorkspaceEntityBase<CompatibilityEntity, CompatibilityEntityData>(result), CompatibilityEntity.Builder {
+internal constructor(): this(CompatibilityEntityData())
 
 override fun applyToBuilder(builder: MutableEntityStorage){
 if (this.diff != null){
@@ -68,7 +68,7 @@ this.diff = builder
 return
 }
 else{
-error("Entity SimpleEntity is already created in a different builder")
+error("Entity CompatibilityEntity is already created in a different builder")
 }
 }
 this.diff = builder
@@ -88,7 +88,7 @@ if (!getEntityData().isEntitySourceInitialized()){
 error("Field WorkspaceEntity#entitySource should be initialized")
 }
 if (!getEntityData().isNameInitialized()){
-error("Field SimpleEntity#name should be initialized")
+error("Field CompatibilityEntity#name should be initialized")
 }
 }
 override fun connectionIdList(): List<ConnectionId>{
@@ -96,7 +96,7 @@ return connections
 }
 // Relabeling code, move information from dataSource to this builder
 override fun relabel(dataSource: WorkspaceEntity, parents: Set<WorkspaceEntity>?){
-dataSource as SimpleEntity
+dataSource as CompatibilityEntity
 if (this.entitySource != dataSource.entitySource) this.entitySource = dataSource.entitySource
 if (this.version != dataSource.version) this.version = dataSource.version
 if (this.name != dataSource.name) this.name = dataSource.name
@@ -135,13 +135,13 @@ getEntityData(true).isSimple = value
 changedProperty.add("isSimple")
 }
 
-override fun getEntityClass(): Class<SimpleEntity> = SimpleEntity::class.java
+override fun getEntityClass(): Class<CompatibilityEntity> = CompatibilityEntity::class.java
 }
 
 }
 
 @OptIn(WorkspaceEntityInternalApi::class)
-internal class SimpleEntityData : WorkspaceEntityData<SimpleEntity>(){
+internal class CompatibilityEntityData : WorkspaceEntityData<CompatibilityEntity>(){
 var version: Int = 0
 lateinit var name: String
 var isSimple: Boolean = false
@@ -150,17 +150,17 @@ var isSimple: Boolean = false
 internal fun isNameInitialized(): Boolean = ::name.isInitialized
 
 
-override fun wrapAsModifiable(diff: MutableEntityStorage): WorkspaceEntityBuilder<SimpleEntity>{
-val modifiable = SimpleEntityImpl.Builder(null)
+override fun wrapAsModifiable(diff: MutableEntityStorage): WorkspaceEntityBuilder<CompatibilityEntity>{
+val modifiable = CompatibilityEntityImpl.Builder(null)
 modifiable.diff = diff
 modifiable.id = createEntityId()
 return modifiable
 }
 
-override fun createEntity(snapshot: EntityStorageInstrumentation): SimpleEntity{
+override fun createEntity(snapshot: EntityStorageInstrumentation): CompatibilityEntity{
 val entityId = createEntityId()
 return snapshot.initializeEntity(entityId){
-val entity = SimpleEntityImpl(this)
+val entity = CompatibilityEntityImpl(this)
 entity.snapshot = snapshot
 entity.id = entityId
 entity
@@ -168,15 +168,15 @@ entity
 }
 
 override fun getMetadata(): EntityMetadata{
-return MetadataStorageImpl.getMetadataByTypeFqn("com.intellij.workspaceModel.test.api.SimpleEntity") as EntityMetadata
+return MetadataStorageImpl.getMetadataByTypeFqn("com.intellij.workspaceModel.test.api.CompatibilityEntity") as EntityMetadata
 }
 
 override fun getEntityInterface(): Class<out WorkspaceEntity>{
-return SimpleEntity::class.java
+return CompatibilityEntity::class.java
 }
 
 override fun createDetachedEntity(parents: List<WorkspaceEntityBuilder<*>>): WorkspaceEntityBuilder<*>{
-return SimpleEntity(version, name, isSimple, entitySource)
+return CompatibilityEntity(version, name, isSimple, entitySource)
 }
 
 override fun getRequiredParents(): List<Class<out WorkspaceEntity>>{
@@ -187,7 +187,7 @@ return res
 override fun equals(other: Any?): Boolean{
 if (other == null) return false
 if (this.javaClass != other.javaClass) return false
-other as SimpleEntityData
+other as CompatibilityEntityData
 if (this.entitySource != other.entitySource) return false
 if (this.version != other.version) return false
 if (this.name != other.name) return false
@@ -198,7 +198,7 @@ return true
 override fun equalsIgnoringEntitySource(other: Any?): Boolean{
 if (other == null) return false
 if (this.javaClass != other.javaClass) return false
-other as SimpleEntityData
+other as CompatibilityEntityData
 if (this.version != other.version) return false
 if (this.name != other.name) return false
 if (this.isSimple != other.isSimple) return false
