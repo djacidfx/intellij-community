@@ -42,8 +42,8 @@ import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.util.Pair;
+import com.intellij.openapi.util.Segment;
 import com.intellij.openapi.util.ThrowableComputable;
-import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.newvfs.RefreshQueueImpl;
 import com.intellij.psi.PsiConsistencyAssertions;
@@ -442,7 +442,7 @@ public final class TestDaemonCodeAnalyzerImpl {
              "\nprogress: "+progresses+
              "\ndaemonIsWorkingOrPending(document)="+daemonIsWorkingOrPending(document)+
              "\nPsiDocumentManager.getInstance(myProject).isCommitted(document)="+PsiDocumentManager.getInstance(myProject).isCommitted(document)+
-             "\ncurrent highlights:("+highlighters.size()+")\n" + StringUtil.join(ContainerUtil.getFirstItems(highlighters, 100), Object::toString, "\n")+
+             "\ncurrent highlights:("+highlighters.size()+")\n" + HighlightInfoUpdaterImpl.debugRender(highlighters, Segment.BY_START_OFFSET_THEN_END_OFFSET)+
              "\nthread dump:"+ dump);
           DaemonCodeAnalyzerImpl.LOG.info(e);
           throw e;
