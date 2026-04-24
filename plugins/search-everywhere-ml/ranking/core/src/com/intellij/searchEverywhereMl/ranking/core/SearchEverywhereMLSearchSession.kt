@@ -8,7 +8,6 @@ import com.intellij.concurrency.ConcurrentCollectionFactory
 import com.intellij.ide.actions.searcheverywhere.*
 import com.intellij.ide.util.scopeChooser.ScopeDescriptor
 import com.intellij.internal.statistic.eventLog.events.EventPair
-import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
@@ -468,7 +467,7 @@ internal class SearchEverywhereMLSearchSession private constructor(
     private fun SearchResultAdapter.Processed.tryComputeId(): SearchResultAdapter.Processed {
       if (rawItem == null) return this
 
-      val id = ReadAction.compute<Int?, Nothing> { sessionWideIdProvider.getId(rawItem) }
+      val id = sessionWideIdProvider.getId(rawItem)
       return if (id != null) {
           this.copy(sessionWideId = SessionWideId(id))
       }
