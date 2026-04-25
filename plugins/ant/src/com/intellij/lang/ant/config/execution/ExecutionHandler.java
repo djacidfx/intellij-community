@@ -40,6 +40,7 @@ import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.NlsSafe;
+import com.intellij.openapi.vfs.newvfs.persistent.PersistentFSImpl;
 import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.encoding.EncodingProjectManager;
 import com.intellij.openapi.wm.StatusBar;
@@ -110,6 +111,7 @@ public final class ExecutionHandler {
       try {
         final SimpleJavaParameters javaParameters = WriteIntentReadAction.computeThrowable(() -> {
           FileDocumentManager.getInstance().saveAllDocuments();
+          PersistentFSImpl.flushPendingUpdatesOrNotify();
           final AntCommandLineBuilder builder = new AntCommandLineBuilder();
 
           builder.setBuildFile(buildFile.getAllOptions(), VfsUtilCore.virtualToIoFile(buildFile.getVirtualFile()));
