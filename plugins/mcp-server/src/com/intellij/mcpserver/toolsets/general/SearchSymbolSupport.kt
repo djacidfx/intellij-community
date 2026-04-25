@@ -37,7 +37,6 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.GlobalSearchScopes
 import com.intellij.psi.util.PsiUtilCore
-import com.intellij.usageView.UsageViewUtil
 import com.intellij.util.Processor
 import com.intellij.util.asDisposable
 import com.intellij.util.concurrency.annotations.RequiresReadLock
@@ -178,16 +177,13 @@ private fun mapNavigationItem(
   if (filePath.isBlank()) return null
   if (!matchesPathScope(pathScope, projectDir, filePath)) return null
 
-  val snippet = buildPsiSnippet(project, projectDir, fileDocumentManager, anchor)
+  val snippet = buildSnippet(project, fileDocumentManager, anchor)
   return SearchItem(
     filePath = filePath,
     startLine = snippet?.startLine,
     startColumn = snippet?.startColumn,
     endLine = snippet?.endLine,
     endColumn = snippet?.endColumn,
-    startOffset = snippet?.startOffset,
-    endOffset = snippet?.endOffset,
-    lineText = snippet?.lineText,
   )
 }
 
@@ -207,79 +203,18 @@ private fun toRelativePath(projectDir: Path, filePath: String): Path? {
 }
 
 @RequiresReadLock
-private fun buildPsiSnippet(
-  project: Project,
-  projectDir: Path,
-  fileDocumentManager: FileDocumentManager,
-  anchor: NavigationAnchor,
-): UsageSnippet? {
-  return buildSnippet(project, projectDir, fileDocumentManager, anchor)
-}
-
-@RequiresReadLock
 private fun buildSnippet(
   project: Project,
-  projectDir: Path,
   fileDocumentManager: FileDocumentManager,
   anchor: NavigationAnchor,
-): UsageSnippet? {
+): SearchSnippet? {
   if (anchor.file.fileType.isBinary) {
-    return buildCompiledSnippet(projectDir, anchor)
+    return null
   }
   val document = fileDocumentManager.getDocument(anchor.file, project) ?: return null
   val textRange = resolveSnippetRange(anchor, document)
-  val snippet = buildSearchSnippet(document = document, textRange = textRange, maxTextChars = Constants.MAX_USAGE_TEXT_CHARS)
-  return UsageSnippet(
-    file = anchor.file,
-    filePath = projectDir.relativizeIfPossible(anchor.file),
-    lineText = snippet.lineText,
-    startLine = snippet.startLine,
-    startColumn = snippet.startColumn,
-    endLine = snippet.endLine,
-    endColumn = snippet.endColumn,
-    startOffset = snippet.startOffset,
-    endOffset = snippet.endOffset,
-  )
+  return buildSearchSnippet(document = document, textRange = textRange)
 }
-
-@RequiresReadLock
-private fun buildCompiledSnippet(projectDir: Path, anchor: NavigationAnchor): UsageSnippet? {
-  val rendered = UsageViewUtil.createNodeText(anchor.element).trim()
-  if (rendered.isEmpty()) return null
-
-  val prefix = "compiled/binary code: "
-  val maxSnippetLength = (Constants.MAX_USAGE_TEXT_CHARS - prefix.length).coerceAtLeast(1)
-  val truncated = if (rendered.length > maxSnippetLength) {
-    rendered.take(maxSnippetLength - 1).trimEnd() + "…"
-  }
-  else {
-    rendered
-  }
-
-  return UsageSnippet(
-    file = anchor.file,
-    filePath = projectDir.relativizeIfPossible(anchor.file),
-    lineText = prefix + truncated,
-    startLine = null,
-    startColumn = null,
-    endLine = null,
-    endColumn = null,
-    startOffset = null,
-    endOffset = null,
-  )
-}
-
-private data class UsageSnippet(
-  @JvmField val file: VirtualFile,
-  @JvmField val filePath: String,
-  @JvmField val lineText: String,
-  @JvmField val startLine: Int?,
-  @JvmField val startColumn: Int?,
-  @JvmField val endLine: Int?,
-  @JvmField val endColumn: Int?,
-  @JvmField val startOffset: Int?,
-  @JvmField val endOffset: Int?,
-)
 
 private data class NavigationAnchor(
   @JvmField val element: PsiElement,

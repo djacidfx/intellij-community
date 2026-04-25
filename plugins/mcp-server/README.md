@@ -901,7 +901,7 @@ suspend fun search_text(
 ): SearchResult
 ```
 
-Look at [`Constants.MAX_LINES_COUNT_VALUE`](src/com/intellij/mcpserver/toolsets/Constants.kt), `MAX_USAGE_TEXT_CHARS`, and
+Look at [`Constants.MAX_LINES_COUNT_VALUE`](src/com/intellij/mcpserver/toolsets/Constants.kt) and
 `MAX_RESULTS_UPPER_BOUND` in [`SearchToolset.kt:65`](src/com/intellij/mcpserver/toolsets/general/SearchToolset.kt) for typical caps. Use the
 streaming accumulator in [`util/OutputCollector.kt`](src/com/intellij/mcpserver/util/OutputCollector.kt) when you need to trim in the middle
 of growing output.

@@ -22404,10 +22404,8 @@ function coerceSearchItem(value) {
     if (typeof value[0] !== "string")
       return null;
     let item = { filePath: value[0] };
-    if (typeof value[1] === "number") {
-      if (item.lineNumber = value[1], typeof value[2] === "string")
-        item.lineText = value[2];
-    }
+    if (typeof value[1] === "number")
+      item.startLine = value[1];
     return item;
   }
   if (isRecord(value)) {
@@ -22415,15 +22413,19 @@ function coerceSearchItem(value) {
     if (!filePath)
       return null;
     let item = { ...value, filePath };
-    if (typeof value.lineNumber === "number")
-      item.lineNumber = value.lineNumber;
+    if (typeof value.startLine === "number")
+      item.startLine = value.startLine;
+    else if (typeof value.lineNumber === "number")
+      item.startLine = value.lineNumber;
     else
-      delete item.lineNumber;
-    if (typeof value.lineText === "string")
-      item.lineText = value.lineText;
-    else
-      delete item.lineText;
-    return item;
+      delete item.startLine;
+    if (typeof value.startColumn !== "number")
+      delete item.startColumn;
+    if (typeof value.endLine !== "number")
+      delete item.endLine;
+    if (typeof value.endColumn !== "number")
+      delete item.endColumn;
+    return delete item.lineNumber, delete item.lineText, delete item.startOffset, delete item.endOffset, item;
   }
   return null;
 }
@@ -22461,8 +22463,7 @@ function extractItemsFromValue(value) {
 function itemsToEntries(items) {
   return items.map((item) => ({
     filePath: item.filePath,
-    lineNumber: item.lineNumber,
-    lineText: item.lineText
+    lineNumber: item.startLine
   }));
 }
 function extractItems(result) {
@@ -24147,9 +24148,13 @@ function normalizeItems(items, projectPath, maxResults, includeDetails) {
     if (!normalizedPath)
       continue;
     let normalizedItem = { filePath: normalizedPath };
-    if (includeDetails && typeof item.lineNumber === "number") {
-      if (normalizedItem.lineNumber = item.lineNumber, typeof item.lineText === "string")
-        normalizedItem.lineText = item.lineText;
+    if (includeDetails && typeof item.startLine === "number") {
+      if (normalizedItem.startLine = item.startLine, typeof item.startColumn === "number")
+        normalizedItem.startColumn = item.startColumn;
+      if (typeof item.endLine === "number")
+        normalizedItem.endLine = item.endLine;
+      if (typeof item.endColumn === "number")
+        normalizedItem.endColumn = item.endColumn;
     }
     let key = JSON.stringify(normalizedItem);
     if (seen.has(key))
@@ -24168,10 +24173,8 @@ function normalizeItemsFromEntries(entries, projectPath, maxResults, includeDeta
     if (!normalizedPath)
       continue;
     let item = { filePath: normalizedPath };
-    if (includeDetails && typeof entry.lineNumber === "number") {
-      if (item.lineNumber = entry.lineNumber, typeof entry.lineText === "string")
-        item.lineText = entry.lineText;
-    }
+    if (includeDetails && typeof entry.lineNumber === "number")
+      item.startLine = entry.lineNumber;
     let key = JSON.stringify(item);
     if (seen.has(key))
       continue;

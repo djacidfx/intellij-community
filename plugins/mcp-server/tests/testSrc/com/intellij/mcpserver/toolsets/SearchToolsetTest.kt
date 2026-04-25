@@ -85,9 +85,6 @@ class SearchToolsetTest : GeneralMcpToolsetTestBase() {
     val startColumn: Int? = null,
     val endLine: Int? = null,
     val endColumn: Int? = null,
-    val startOffset: Int? = null,
-    val endOffset: Int? = null,
-    val lineText: String? = null,
   )
 
   @Serializable
@@ -151,9 +148,6 @@ class SearchToolsetTest : GeneralMcpToolsetTestBase() {
       assertThat(item?.startColumn).isNull()
       assertThat(item?.endLine).isNull()
       assertThat(item?.endColumn).isNull()
-      assertThat(item?.startOffset).isNull()
-      assertThat(item?.endOffset).isNull()
-      assertThat(item?.lineText).isNull()
     }
   }
 
@@ -255,7 +249,7 @@ class SearchToolsetTest : GeneralMcpToolsetTestBase() {
   }
 
   @Test
-  fun search_text_returns_snippet_details() = runBlocking(Dispatchers.Default) {
+  fun search_text_returns_match_coordinate_details() = runBlocking(Dispatchers.Default) {
     awaitExternalChangesAndIndexing(project)
     val query = "Search Everywhere file content"
     testMcpTool(
@@ -271,10 +265,6 @@ class SearchToolsetTest : GeneralMcpToolsetTestBase() {
       assertThat(item?.startColumn).isNotNull
       assertThat(item?.endLine).isNotNull
       assertThat(item?.endColumn).isNotNull
-      assertThat(item?.startOffset).isNotNull
-      assertThat(item?.endOffset).isNotNull
-      assertThat(item?.lineText).contains("||")
-      assertThat(item?.lineText).contains("Search Everywhere")
     }
   }
 
@@ -294,8 +284,6 @@ class SearchToolsetTest : GeneralMcpToolsetTestBase() {
       assertThat(item?.startLine).isEqualTo(1)
       assertThat(item?.endLine).isEqualTo(1)
       assertThat(item?.startColumn).isEqualTo(1)
-      assertThat(item?.startOffset).isEqualTo(0)
-      assertThat(item?.endOffset).isEqualTo(query.length)
       assertThat(item?.endColumn).isEqualTo(query.length + 1)
     }
   }
@@ -316,8 +304,6 @@ class SearchToolsetTest : GeneralMcpToolsetTestBase() {
       assertThat(item?.endLine).isNotNull
       assertThat(item?.startColumn).isNotNull
       assertThat(item?.endColumn).isNotNull
-      assertThat(item?.startOffset).isNotNull
-      assertThat(item?.endOffset).isNotNull
     }
   }
 
@@ -399,7 +385,7 @@ class SearchToolsetTest : GeneralMcpToolsetTestBase() {
   }
 
   @Test
-  fun search_symbol_returns_snippet_details() = runBlocking(Dispatchers.Default) {
+  fun search_symbol_returns_match_coordinate_details() = runBlocking(Dispatchers.Default) {
     DumbService.getInstance(project).waitForSmartMode()
     val query = "${symbolPrefix}Alpha"
     testMcpTool(
@@ -412,7 +398,9 @@ class SearchToolsetTest : GeneralMcpToolsetTestBase() {
       val item = result.items.firstOrNull { it.filePath.contains(symbolFileInSubdir1.name) }
       assertThat(item).isNotNull
       assertThat(item?.startLine).isNotNull
-      assertThat(item?.lineText).contains(query)
+      assertThat(item?.startColumn).isNotNull
+      assertThat(item?.endLine).isNotNull
+      assertThat(item?.endColumn).isNotNull
     }
   }
 

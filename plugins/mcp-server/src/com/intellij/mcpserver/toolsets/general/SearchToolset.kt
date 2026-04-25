@@ -16,7 +16,6 @@ import com.intellij.mcpserver.mcpFail
 import com.intellij.mcpserver.project
 import com.intellij.mcpserver.reportToolActivity
 import com.intellij.mcpserver.toolsets.Constants
-import com.intellij.mcpserver.toolsets.Constants.MAX_USAGE_TEXT_CHARS
 import com.intellij.mcpserver.util.projectDirectory
 import com.intellij.mcpserver.util.relativizeIfPossible
 import com.intellij.mcpserver.util.resolveInProject
@@ -32,7 +31,6 @@ import com.intellij.openapi.roots.ContentIterator
 import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.Segment
-import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.getPathMatcher
 import com.intellij.openapi.util.io.FileUtilRt
 import com.intellij.openapi.vfs.LocalFileSystem
@@ -82,8 +80,8 @@ internal class SearchToolset : McpToolset {
   @McpTool
   @McpDescription("""
         |Searches for a text substring within project files.
-        |Use this tool for fast text search with snippet results.
-        |Results include match coordinates when available (1-based line/column, 0-based offsets).
+        |Use this tool for fast text search with match coordinates.
+        |Results include match coordinates when available (1-based line/column, end exclusive).
         |
         |Paths are glob patterns relative to the project root.
         |Examples: ["src/**", "!**/test/**"], ["**/*.kt"], ["foo/"].
@@ -102,8 +100,8 @@ internal class SearchToolset : McpToolset {
   @McpTool
   @McpDescription("""
         |Searches for regex matches within project files.
-        |Use this tool when you need regex search with snippet results.
-        |Results include match coordinates when available (1-based line/column, 0-based offsets).
+        |Use this tool when you need regex search with match coordinates.
+        |Results include match coordinates when available (1-based line/column, end exclusive).
         |
         |Paths are glob patterns relative to the project root.
         |Examples: ["src/**", "!**/test/**"], ["**/*.kt"], ["foo/"].
@@ -123,7 +121,7 @@ internal class SearchToolset : McpToolset {
   @McpDescription("""
         |Searches for symbols (classes, methods, fields).
         |Use this tool for semantic lookup by identifier fragments.
-        |Results include match coordinates when available (1-based line/column, 0-based offsets).
+        |Results include match coordinates when available (1-based line/column, end exclusive).
         |
         |Paths are glob patterns relative to the project root.
         |By default this searches project symbols only.
@@ -254,7 +252,7 @@ private suspend fun searchInFiles(
 }
 
 /**
- * Converts usage hits into [SearchItem]s with snippet text.
+ * Converts usage hits into [SearchItem]s with match coordinates.
  */
 private suspend fun mapUsagesToItems(usages: List<UsageInfo>, projectDir: Path): List<SearchItem> {
   val fileDocumentManager = serviceAsync<FileDocumentManager>()
@@ -263,7 +261,7 @@ private suspend fun mapUsagesToItems(usages: List<UsageInfo>, projectDir: Path):
       val file = usage.virtualFile ?: return@mapNotNull null
       val document = fileDocumentManager.getDocument(file) ?: return@mapNotNull null
       val textRange = usage.navigationRange ?: return@mapNotNull null
-      val snippet = buildSearchSnippet(document, textRange, MAX_USAGE_TEXT_CHARS)
+      val snippet = buildSearchSnippet(document, textRange)
       val filePath = projectDir.relativizeIfPossible(file)
       if (filePath.isBlank()) return@mapNotNull null
       SearchItem(
@@ -272,9 +270,6 @@ private suspend fun mapUsagesToItems(usages: List<UsageInfo>, projectDir: Path):
         startColumn = snippet.startColumn,
         endLine = snippet.endLine,
         endColumn = snippet.endColumn,
-        startOffset = snippet.startOffset,
-        endOffset = snippet.endOffset,
-        lineText = snippet.lineText,
       )
     }
   }
@@ -687,13 +682,10 @@ internal fun normalizeLimit(limit: Int): Int {
 }
 
 internal data class SearchSnippet(
-  @JvmField val lineText: String,
   @JvmField val startLine: Int,
   @JvmField val startColumn: Int,
   @JvmField val endLine: Int,
   @JvmField val endColumn: Int,
-  @JvmField val startOffset: Int,
-  @JvmField val endOffset: Int,
 )
 
 @Serializable
@@ -704,16 +696,13 @@ internal data class SearchItem(
    * allows adding optional fields later without breaking existing consumers.
    * For search_file we only populate filePath; other fields remain null
    * because there is no text match to report for pure glob-based file search.
-   * Match coordinates use 1-based line/column and 0-based offsets; end is exclusive.
+   * Match coordinates use 1-based line/column; end is exclusive.
    */
   @JvmField val filePath: String,
   @JvmField val startLine: Int? = null,
   @JvmField val startColumn: Int? = null,
   @JvmField val endLine: Int? = null,
   @JvmField val endColumn: Int? = null,
-  @JvmField val startOffset: Int? = null,
-  @JvmField val endOffset: Int? = null,
-  @JvmField val lineText: String? = null,
 )
 
 @OptIn(ExperimentalSerializationApi::class)
@@ -723,24 +712,17 @@ internal data class SearchResult(
   @JvmField @EncodeDefault(mode = EncodeDefault.Mode.NEVER) val more: Boolean = false,
 )
 
-internal fun buildSearchSnippet(document: Document, textRange: Segment, @Suppress("SameParameterValue") maxTextChars: Int): SearchSnippet {
+internal fun buildSearchSnippet(document: Document, textRange: Segment): SearchSnippet {
   val startOffset = textRange.startOffset
   val endOffset = textRange.endOffset
   val startLineNumber = document.getLineNumber(startOffset)
   val startLineStartOffset = document.getLineStartOffset(startLineNumber)
   val endLineNumber = document.getLineNumber(endOffset)
   val endLineStartOffset = document.getLineStartOffset(endLineNumber)
-  val endLineEndOffset = document.getLineEndOffset(endLineNumber)
-  val textBeforeOccurrence = document.getText(TextRange(startLineStartOffset, startOffset)).take(maxTextChars)
-  val textInner = document.getText(TextRange(startOffset, endOffset)).take(maxTextChars)
-  val textAfterOccurrence = document.getText(TextRange(endOffset, endLineEndOffset)).take(maxTextChars)
   return SearchSnippet(
-    lineText = "$textBeforeOccurrence||$textInner||$textAfterOccurrence",
     startLine = startLineNumber + 1,
     startColumn = startOffset - startLineStartOffset + 1,
     endLine = endLineNumber + 1,
     endColumn = endOffset - endLineStartOffset + 1,
-    startOffset = startOffset,
-    endOffset = endOffset,
   )
 }
