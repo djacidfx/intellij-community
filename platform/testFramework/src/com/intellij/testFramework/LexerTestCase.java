@@ -111,6 +111,20 @@ public abstract class LexerTestCase extends UsefulTestCase {
     }
   }
 
+  /**
+   * Verifies that the lexer produces the same token sequence when restored to any position
+   * captured by {@link Lexer#getCurrentPosition()}.
+   *
+   * <p>Unlike {@link #checkCorrectRestart(String)}, which restarts the lexer via
+   * {@link Lexer#start(CharSequence, int, int, int)} using only the integer offset and state
+   * (and therefore can only test positions where the integer state is sufficient for a faithful restart),
+   * this method uses {@link Lexer#restore(LexerPosition)} and tests <em>every</em> token position.
+   *
+   * <p>This is possible because {@link LexerPosition} implementations may carry additional internal
+   * state beyond the integer returned by {@link Lexer#getState()} (e.g. delegate positions,
+   * lookahead caches, or embedment info), allowing {@code restore()} to reconstruct the full
+   * lexer state at any point.
+   */
   protected void checkCorrectRestartUsingPosition(@NotNull String text) {
     Lexer mainLexer = createLexer();
     List<TokenState> allTokens = tokenize(text, 0, 0, mainLexer);
