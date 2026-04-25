@@ -172,18 +172,17 @@ private suspend fun processProductModule(
 ) {
   // - Embedded modules: scrambled if close-source (isModuleCloseSource check)
   // - Non-embedded modules: scrambled if in contentModulesToScramble list
-  val willBeScrambled = isModuleCloseSource(moduleName = moduleName, context = context) ||
-                        context.productProperties.contentModulesToScramble.contains(moduleName)
+  val willBeScrambled = isModuleCloseSource(moduleName = moduleName, context = context) || context.productProperties.contentModulesToScramble.contains(moduleName)
 
   // Step 2: Determine jar location based on embedded status
-  val relativeOutFile = if (isEmbedded && isModuleCloseSource(moduleName, context)) {
-    // Embedded modules use `getProductModuleJarName` which handles product vs. app jar selection
+  val relativeOutFile = if (isEmbedded && willBeScrambled) {
+    // Embedded modules use `getProductModuleJarName`, which handles product vs. app jar selection
     // based on close-source check (product.jar/product-backend.jar for close-source,
     // app.jar/app-backend.jar for open-source)
-    getProductModuleJarName(moduleName, context, frontendModuleFilter)
+    if (frontendModuleFilter.isBackendModule(moduleName)) PRODUCT_BACKEND_JAR else PRODUCT_JAR
   }
   else {
-    // Non-embedded modules always get per-module jars
+    // non-embedded modules always get per-module jars
     "$moduleName.jar"
   }
 
@@ -222,6 +221,14 @@ private suspend fun processProductModule(
   // We prefer not to increase code complexity without a strong reason.
 }
 
+private val excludedFromScrambling = hashSetOf(
+  "fleet.protocol",
+  "intellij.platform.lsp",
+  "intellij.platform.lsp.iml",
+  "intellij.platform.webide",
+  "intellij.platform.webide.impl",
+)
+
 private fun isModuleCloseSource(moduleName: String, context: CompilationContext): Boolean {
   if (moduleName.endsWith(".resources") || moduleName.endsWith(".icons") || moduleName.startsWith(LIB_MODULE_PREFIX)) {
     return false
@@ -232,16 +239,12 @@ private fun isModuleCloseSource(moduleName: String, context: CompilationContext)
   }
 
   // todo will be removed on the next stage
-  if (moduleName == "fleet.protocol" || moduleName.startsWith("fleet.rpc.")) {
+  if (excludedFromScrambling.contains(moduleName) || moduleName.startsWith("fleet.rpc.")) {
     return false
   }
 
   val sourceRoots = context.outputProvider.findRequiredModule(moduleName).sourceRoots.filter { it.rootType == JavaSourceRootType.SOURCE }
-  if (sourceRoots.isEmpty()) {
-    return false
-  }
-
-  return sourceRoots.any {
+  return sourceRoots.isNotEmpty() && sourceRoots.any {
     !it.path.startsWith(context.paths.communityHomeDir)
   }
 }

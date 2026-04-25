@@ -12,12 +12,6 @@ object PlatformJarNames {
   internal const val APP_BACKEND_JAR: String = "app-backend.jar"
 
   /**
-   * Used by default for modules and module-level libraries included in the platform part of the distribution, which are also used by 
-   * JetBrains Client.
-   */
-  internal const val APP_JAR: String = "app.jar"
-
-  /**
    * Used by default for project-level libraries included in the platform part of the distribution.
    */
   internal const val LIB_BACKEND_JAR: String = "lib-backend.jar"
