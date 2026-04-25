@@ -221,12 +221,15 @@ private suspend fun processProductModule(
   // We prefer not to increase code complexity without a strong reason.
 }
 
+// todo will be removed on the next stage
 private val excludedFromScrambling = hashSetOf(
   "fleet.protocol",
   "intellij.platform.lsp",
-  "intellij.platform.lsp.iml",
+  "intellij.platform.lsp.impl",
   "intellij.platform.webide",
   "intellij.platform.webide.impl",
+  "intellij.rml.dfa",
+  "intellij.platform.commercial.dependencies",
 )
 
 private fun isModuleCloseSource(moduleName: String, context: CompilationContext): Boolean {

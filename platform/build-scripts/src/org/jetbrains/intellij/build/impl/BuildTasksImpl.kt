@@ -716,7 +716,6 @@ private fun checkProductLayout(context: BuildContext) {
     " but no pluginModulesToPublish are specified"
   }
   val outputProvider = context.outputProvider
-  checkModules(layout.productApiModules, "productProperties.productLayout.productApiModules", outputProvider)
   checkModules(layout.productImplementationModules, "productProperties.productLayout.productImplementationModules", outputProvider)
   checkModules(layout.moduleExcludes.keys, "productProperties.productLayout.moduleExcludes", outputProvider)
   for (plugin in pluginLayouts) {

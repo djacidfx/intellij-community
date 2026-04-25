@@ -102,11 +102,8 @@ class MPSProperties : JetBrainsProductProperties() {
         productLayout.pluginLayouts = pluginLayouts.toPersistentList()
 
         productLayout.addPlatformSpec { layout, _ ->
-
             for (moduleName in listOf("intellij.platform.testFramework", "intellij.platform.testFramework.common", "intellij.java.testFramework", "intellij.platform.testFramework.core", "intellij.platform.testFramework.teamCity")) {
-                if (!productLayout.productApiModules.contains(moduleName)) {
-                    layout.withModule(moduleName, "testFramework.jar")
-                }
+              layout.withModule(moduleName, "testFramework.jar")
             }
 
             // Contains the expanded plugin.xml inside

@@ -32,7 +32,6 @@ open class PyCharmCommunityProperties(protected val communityHome: Path) : PyCha
     scrambleMainJar = false
     buildSourcesArchive = true
 
-    productLayout.productApiModules = listOf()
     productLayout.productImplementationModules = listOf(
       "intellij.platform.starter",
       "intellij.pycharm.community",
@@ -78,6 +77,7 @@ open class PyCharmCommunityProperties(protected val communityHome: Path) : PyCha
     deprecatedInclude("intellij.pycharm.community", "META-INF/pycharm-core-customization.xml")
 
     allowMissingDependencies(knownMissingModuleDependencies)
+    allowMissingDependencies("intellij.platform.commercial.dependencies")
     bundledPlugins(productLayout.bundledPluginModules)
   }
 

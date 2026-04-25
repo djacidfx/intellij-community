@@ -205,8 +205,7 @@ internal suspend fun createPlatformLayout(projectLibrariesUsedByPlugins: SortedS
       )
     )
   }
-  explicit.addAll(toModuleItemSequence(list = PLATFORM_CORE_MODULES, productLayout = productLayout, reason = "PLATFORM_CORE_MODULES"))
-  explicit.addAll(toModuleItemSequence(list = productLayout.productApiModules, productLayout = productLayout, reason = "productApiModules"))
+  explicit.addAll(toModuleItemSequence(list = PLATFORM_CORE_MODULES, productLayout = productLayout))
 
   val explicitModuleNames = explicit.map { it.moduleName }
   val outputProvider = context.outputProvider
@@ -448,14 +447,10 @@ fun getEnabledPluginModules(pluginsToPublish: Set<PluginLayout>, context: BuildC
   return result
 }
 
-private fun toModuleItemSequence(
-  list: Collection<String>,
-  productLayout: ProductModulesLayout,
-  reason: String,
-): Sequence<ModuleItem> {
+private fun toModuleItemSequence(list: Collection<String>, productLayout: ProductModulesLayout): Sequence<ModuleItem> {
   return list.asSequence()
     .filter { !productLayout.excludedModuleNames.contains(it) }
-    .map { ModuleItem(moduleName = it, relativeOutputFile = "$it.jar", reason = reason) }
+    .map { ModuleItem(moduleName = it, relativeOutputFile = "$it.jar", reason = "PLATFORM_CORE_MODULES") }
 }
 
 /**

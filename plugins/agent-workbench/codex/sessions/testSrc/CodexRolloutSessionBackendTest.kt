@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardOpenOption
 import java.time.Instant
 import kotlin.time.Duration.Companion.seconds
 
@@ -604,6 +605,66 @@ class CodexRolloutSessionBackendTest {
   }
 
   @Test
+  fun emitsTrailingUpdateToCatchAppendAfterFirstWatcherEvent() {
+    runBlocking(Dispatchers.Default) {
+      val projectDir = tempDir.resolve("project-updates-trailing")
+      Files.createDirectories(projectDir)
+
+      val rollout = tempDir.resolve("sessions").resolve("2026").resolve("02").resolve("16")
+        .resolve("rollout-updates-trailing.jsonl")
+      writeRollout(
+        file = rollout,
+        lines = listOf(
+          sessionMetaLine(timestamp = "2026-02-16T10:00:00.000Z", id = "session-updates-trailing", cwd = projectDir),
+          """{"timestamp":"2026-02-16T10:00:01.000Z","type":"event_msg","payload":{"type":"task_started"}}""",
+        ),
+      )
+
+      val sourceUpdates = MutableSharedFlow<FileBackedSessionChangeSet>(replay = 1, extraBufferCapacity = 1)
+      val backend = CodexRolloutSessionBackend(
+        codexHomeProvider = { tempDir },
+        rolloutChangeSource = { sourceUpdates },
+        trailingRefreshDelayMs = 1_000L,
+      )
+      val updates = Channel<Unit>(capacity = Channel.UNLIMITED)
+      val updatesJob = launch {
+        backend.updates.collect {
+          updates.trySend(Unit)
+        }
+      }
+
+      try {
+        val initialThreads = backend.listThreads(path = projectDir.toString(), openProject = null)
+        assertThat(initialThreads).hasSize(1)
+        assertThat(initialThreads.single().activity).isEqualTo(CodexSessionActivity.PROCESSING)
+
+        drainUpdateChannel(updates)
+        sourceUpdates.emit(FileBackedSessionChangeSet(changedPaths = setOf(rollout)))
+
+        val immediateUpdate = awaitWatcherUpdate(updates)
+        assertThat(immediateUpdate).isTrue()
+        val threadsBeforeTrailingUpdate = backend.listThreads(path = projectDir.toString(), openProject = null)
+        assertThat(threadsBeforeTrailingUpdate).hasSize(1)
+        assertThat(threadsBeforeTrailingUpdate.single().activity).isEqualTo(CodexSessionActivity.PROCESSING)
+
+        appendRolloutLine(
+          file = rollout,
+          line = """{"timestamp":"2026-02-16T10:00:02.000Z","type":"event_msg","payload":{"type":"task_complete"}}""",
+        )
+
+        val trailingUpdate = awaitWatcherUpdate(updates)
+        assertThat(trailingUpdate).isTrue()
+        val threadsAfterTrailingUpdate = backend.listThreads(path = projectDir.toString(), openProject = null)
+        assertThat(threadsAfterTrailingUpdate).hasSize(1)
+        assertThat(threadsAfterTrailingUpdate.single().activity).isEqualTo(CodexSessionActivity.READY)
+      }
+      finally {
+        updatesJob.cancelAndJoin()
+      }
+    }
+  }
+
+  @Test
   fun emitsUpdatesForNonRolloutSessionEventAndRefreshesByStatDiff() {
     runBlocking(Dispatchers.Default) {
       val projectDir = tempDir.resolve("project-updates-refresh-ping")
@@ -803,6 +864,10 @@ private fun subAgentSessionMetaLine(timestamp: String, id: String, cwd: Path, pa
 private fun writeRollout(file: Path, lines: List<String>) {
   Files.createDirectories(file.parent)
   Files.write(file, lines)
+}
+
+private fun appendRolloutLine(file: Path, line: String) {
+  Files.write(file, listOf(line), StandardOpenOption.APPEND)
 }
 
 private data class ActivityCase(

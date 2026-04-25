@@ -15,27 +15,45 @@ import com.intellij.agent.workbench.json.filebacked.createFileBackedSessionChang
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.conflate
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.nio.file.Path
 import kotlin.io.path.invariantSeparatorsPathString
 
 private val LOG = logger<CodexRolloutSessionBackend>()
+private const val CODEX_ROLLOUT_TRAILING_REFRESH_DELAY_MS = 250L
 
 internal class CodexRolloutSessionBackend(
   private val codexHomeProvider: () -> Path = { Path.of(System.getProperty("user.home"), ".codex") },
   rolloutChangeSource: (() -> Flow<FileBackedSessionChangeSet>)? = null,
+  private val trailingRefreshDelayMs: Long = CODEX_ROLLOUT_TRAILING_REFRESH_DELAY_MS,
 ) : CodexSessionBackend {
   private val parser = CodexRolloutParser()
   private val threadIndex = CodexRolloutThreadIndex(codexHomeProvider = codexHomeProvider, parser = parser)
 
-  override val updates: Flow<Unit> = (rolloutChangeSource?.invoke() ?: createWatcherUpdates())
-    .map { changeSet ->
-      threadIndex.markDirty(changeSet)
-    }
+  override val updates: Flow<Unit> = createUpdatesFlow(rolloutChangeSource?.invoke() ?: createWatcherUpdates())
     .conflate()
+
+  private fun createUpdatesFlow(sourceUpdates: Flow<FileBackedSessionChangeSet>): Flow<Unit> {
+    return channelFlow {
+      var trailingRefreshJob: Job? = null
+      sourceUpdates.collect { changeSet ->
+        threadIndex.markDirty(changeSet)
+        send(Unit)
+
+        trailingRefreshJob?.cancel()
+        trailingRefreshJob = launch {
+          delay(trailingRefreshDelayMs)
+          send(Unit)
+        }
+      }
+    }
+  }
 
   private fun createWatcherUpdates(): Flow<FileBackedSessionChangeSet> {
     return createFileBackedSessionChangeFlow(
