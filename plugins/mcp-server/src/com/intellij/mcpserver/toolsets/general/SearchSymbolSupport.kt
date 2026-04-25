@@ -32,8 +32,10 @@ import com.intellij.openapi.util.Segment
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.toNioPathOrNull
 import com.intellij.platform.ide.progress.withBackgroundProgress
 import com.intellij.psi.PsiElement
+import com.intellij.psi.search.DelegatingGlobalSearchScope
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.GlobalSearchScopes
 import com.intellij.psi.util.PsiUtilCore
@@ -41,6 +43,7 @@ import com.intellij.util.Processor
 import com.intellij.util.asDisposable
 import com.intellij.util.concurrency.annotations.RequiresReadLock
 import com.intellij.util.indexing.FindSymbolParameters
+import org.jetbrains.annotations.ApiStatus
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.nio.file.Path
@@ -49,7 +52,8 @@ import kotlin.time.Duration.Companion.milliseconds
 /**
  * Searches for symbols via Choose By Name models and maps them to [SearchItem]s.
  */
-internal suspend fun searchSymbols(
+@ApiStatus.Internal
+suspend fun searchSymbols(
   q: String,
   paths: List<String>?,
   includeExternal: Boolean,
@@ -61,15 +65,16 @@ internal suspend fun searchSymbols(
   val pathScope = buildPathScope(projectDir, paths)
   val directoryFilterPath = resolveDirectoryFilter(project, pathScope)
   val directoryFilterFile = directoryFilterPath?.let { LocalFileSystem.getInstance().refreshAndFindFileByNioFile(it) }
-  val searchScope = directoryFilterFile?.let { GlobalSearchScopes.directoryScope(project, it, true) }
-                    ?: if (includeExternal) GlobalSearchScope.allScope(project)
-                    else GlobalSearchScope.projectScope(project)
+  val baseSearchScope = directoryFilterFile?.let { GlobalSearchScopes.directoryScope(project, it, true) }
+                        ?: if (includeExternal) GlobalSearchScope.allScope(project)
+                        else GlobalSearchScope.projectScope(project)
+  val searchScope = pathScope?.let { PathFilteredGlobalSearchScope(baseSearchScope, projectDir, it) } ?: baseSearchScope
 
   val fileDocumentManager = serviceAsync<FileDocumentManager>()
   val provider = DefaultChooseByNameItemProvider(null)
   val items = LinkedHashSet<SearchItem>()
   val requestedCount = (effectiveLimit * SEARCH_SCOPE_MULTIPLIER).coerceAtMost(MAX_RESULTS_UPPER_BOUND)
-  var seenCount = 0
+  var providerStoppedEarly = false
   var reachedLimit = false
 
   val timedOut = withTimeoutOrNull(Constants.MEDIUM_TIMEOUT_MILLISECONDS_VALUE.milliseconds) {
@@ -95,8 +100,7 @@ internal suspend fun searchSymbols(
             val indicator = ProgressManager.getInstance().progressIndicator ?: EmptyProgressIndicator()
             provider.filterElementsWithWeights(viewModel, params, indicator, Processor { descriptor: FoundItemDescriptor<*> ->
               indicator.checkCanceled()
-              seenCount++
-              val navigationItem = descriptor.item as? NavigationItem ?: return@Processor seenCount < requestedCount
+              val navigationItem = descriptor.item as? NavigationItem ?: return@Processor true
               val searchItem = mapNavigationItem(
                 project = project,
                 item = navigationItem,
@@ -111,20 +115,43 @@ internal suspend fun searchSymbols(
                   return@Processor false
                 }
               }
-              return@Processor seenCount < requestedCount
+              return@Processor true
             })
           }
         }
 
-        if (!completed || reachedLimit || seenCount >= requestedCount) break
+        if (!completed) {
+          providerStoppedEarly = true
+        }
+        if (!completed || reachedLimit) break
       }
     }
   } == null
 
   return SearchResult(
     items = items.toList(),
-    more = timedOut || reachedLimit || seenCount >= requestedCount,
+    more = timedOut || reachedLimit || providerStoppedEarly,
   )
+}
+
+private class PathFilteredGlobalSearchScope(
+  baseScope: GlobalSearchScope,
+  private val projectDir: Path,
+  private val pathScope: PathScope,
+) : DelegatingGlobalSearchScope(baseScope) {
+  @Suppress("RedundantIf")
+  override fun contains(file: VirtualFile): Boolean {
+    if (!super.contains(file)) return false
+    val filePath = file.toNioPathOrNull() ?: return false
+    val relativePath = try {
+      projectDir.relativize(filePath)
+    }
+    catch (_: IllegalArgumentException) {
+      return false
+    }
+    if (relativePath.nameCount > 0 && relativePath.getName(0).toString() == "..") return false
+    return pathScope.matches(relativePath)
+  }
 }
 
 private class SimpleChooseByNameViewModel(
@@ -167,10 +194,10 @@ private fun mapNavigationItem(
   pathScope: PathScope?,
 ): SearchItem? {
   val psiElement = when (item) {
-    is PsiElement -> item
-    is PsiElementNavigationItem -> item.targetElement
-    else -> null
-  } ?: return null
+                     is PsiElement -> item
+                     is PsiElementNavigationItem -> item.targetElement
+                     else -> null
+                   } ?: return null
 
   val anchor = resolveNavigationAnchor(psiElement) ?: return null
   val filePath = projectDir.relativizeIfPossible(anchor.file)
