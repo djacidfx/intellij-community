@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public abstract class LexerTestCase extends UsefulTestCase {
@@ -54,7 +55,7 @@ public abstract class LexerTestCase extends UsefulTestCase {
     return ".txt";
   }
 
-  protected void checkZeroState(@NotNull String text, TokenSet tokenTypes) {
+  protected void checkZeroState(@NotNull String text, @NotNull TokenSet tokenTypes) {
     Lexer lexer = createLexer();
     lexer.start(text);
 
@@ -237,10 +238,39 @@ public abstract class LexerTestCase extends UsefulTestCase {
            : StringUtil.replace(sequence.subSequence(start, end).toString(), "\n", "\\n");
   }
 
+  /**
+   * If you need to customize the lexer creation, see {@link WithLexerFactory}.
+   */
   protected abstract @NotNull Lexer createLexer();
 
   protected abstract @NotNull String getDirPath();
 
   private record TokenState(@NotNull IElementType type, int offset, int state) {
+  }
+
+  /**
+   * Utility class for lexer testing with a custom lexer factory.
+   */
+  public abstract static class WithLexerFactory extends LexerTestCase {
+    private @Nullable Supplier<? extends @NotNull Lexer> myLexerFactory = null;
+
+    @Override
+    protected void tearDown() throws Exception {
+      myLexerFactory = null;
+      super.tearDown();
+    }
+
+    public final void setLexerFactory(@NotNull Supplier<? extends @NotNull Lexer> lexerFactory) {
+      myLexerFactory = lexerFactory;
+    }
+
+    @Override
+    protected final @NotNull Lexer createLexer() {
+      if (myLexerFactory == null) {
+        throw new AssertionError("Lexer factory is not set, you must call `setLexerFactory(...)` before calling doTest(...)");
+      }
+
+      return myLexerFactory.get();
+    }
   }
 }
