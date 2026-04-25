@@ -10112,6 +10112,11 @@ public abstract class K1QuickFixTestGenerated extends AbstractK1QuickFixTest {
             KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
         }
 
+        @TestMetadata("applyAllRemoveNonNullAssertionFixesInFile.kt")
+        public void testApplyAllRemoveNonNullAssertionFixesInFile() throws Exception {
+            runTest("testData/quickfix/expressions/applyAllRemoveNonNullAssertionFixesInFile.kt");
+        }
+
         @TestMetadata("kt11594.kt")
         public void testKt11594() throws Exception {
             runTest("testData/quickfix/expressions/kt11594.kt");

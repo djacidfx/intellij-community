@@ -8699,6 +8699,11 @@ public abstract class HighLevelQuickFixTestGenerated extends AbstractHighLevelQu
             KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
         }
 
+        @TestMetadata("applyAllRemoveNonNullAssertionFixesInFile.kt")
+        public void testApplyAllRemoveNonNullAssertionFixesInFile() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/expressions/applyAllRemoveNonNullAssertionFixesInFile.kt");
+        }
+
         @TestMetadata("kt11594.kt")
         public void testKt11594() throws Exception {
             runTest("../../../idea/tests/testData/quickfix/expressions/kt11594.kt");
