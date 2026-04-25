@@ -2,12 +2,17 @@
 package org.jetbrains.idea.devkit.inspections
 
 import com.intellij.openapi.project.IntelliJProjectUtil
+import com.intellij.psi.PsiFile
 import com.intellij.testFramework.PsiTestUtil
 import com.intellij.testFramework.common.timeoutRunBlocking
 import com.intellij.testFramework.common.waitUntil
 import com.intellij.testFramework.fixtures.JavaCodeInsightFixtureTestCase
+import org.jetbrains.idea.devkit.build.PluginBuildConfiguration
 import org.jetbrains.idea.devkit.inspections.remotedev.SplitModeApiRestrictionsService
 import org.jetbrains.idea.devkit.inspections.remotedev.SplitModeMixedDependenciesInspection
+import org.jetbrains.idea.devkit.module.PluginModuleType
+import org.jetbrains.jps.model.java.JavaResourceRootType
+import org.junit.Assert
 import kotlin.time.Duration.Companion.seconds
 
 internal class SplitModeMixedDependenciesInspectionTest : JavaCodeInsightFixtureTestCase() {
@@ -21,13 +26,14 @@ internal class SplitModeMixedDependenciesInspectionTest : JavaCodeInsightFixture
       waitUntil("API restrictions failed to load", 2.seconds) { service.isLoaded() }
     }
 
-    PsiTestUtil.addResourceContentToRoots(module, myFixture.tempDirFixture.findOrCreateDir("resources"), false)
     myFixture.enableInspections(SplitModeMixedDependenciesInspection())
   }
 
   fun testMixedModuleDependenciesInPluginXml() {
-    configurePluginXml(
-      """
+    val pluginXml = addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.17",
+      descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
+      pluginXmlContent = """
         <idea-plugin>
           <dependencies>
             <error descr="This dependency list mixes frontend-only dependencies (intellij.platform.frontend) and backend-only dependencies (intellij.platform.backend)"><module name="intellij.platform.frontend"/></error>
@@ -37,13 +43,16 @@ internal class SplitModeMixedDependenciesInspectionTest : JavaCodeInsightFixture
         </idea-plugin>
       """.trimIndent()
     )
+    myFixture.configureFromExistingVirtualFile(pluginXml.virtualFile)
 
     myFixture.checkHighlighting()
   }
 
   fun testMixedPluginDependenciesInPluginXml() {
-    configurePluginXml(
-      """
+    val pluginXml = addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.18",
+      descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
+      pluginXmlContent = """
         <idea-plugin>
           <dependencies>
             <error descr="This dependency list mixes frontend-only dependencies (com.intellij.jetbrains.client) and backend-only dependencies (com.jetbrains.remoteDevelopment)"><plugin id="com.intellij.jetbrains.client"/></error>
@@ -52,13 +61,16 @@ internal class SplitModeMixedDependenciesInspectionTest : JavaCodeInsightFixture
         </idea-plugin>
       """.trimIndent()
     )
+    myFixture.configureFromExistingVirtualFile(pluginXml.virtualFile)
 
     myFixture.checkHighlighting()
   }
 
   fun testMixedDependenciesInContentModuleXml() {
-    configureContentModuleXml(
-      """
+    val contentModuleDescriptor = addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.19",
+      descriptorRelativePathToResourcesDirectory = "unique.module.name.19.xml",
+      pluginXmlContent = """
         <idea-plugin>
           <dependencies>
             <error descr="This dependency list mixes frontend-only dependencies (intellij.platform.frontend.split) and backend-only dependencies (intellij.platform.kernel.backend)"><module name="intellij.platform.frontend.split"/></error>
@@ -67,13 +79,16 @@ internal class SplitModeMixedDependenciesInspectionTest : JavaCodeInsightFixture
         </idea-plugin>
       """.trimIndent()
     )
+    myFixture.configureFromExistingVirtualFile(contentModuleDescriptor.virtualFile)
 
     myFixture.checkHighlighting()
   }
 
   fun testOnlyFrontendDependenciesAreAllowed() {
-    configurePluginXml(
-      """
+    val pluginXml = addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.20",
+      descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
+      pluginXmlContent = """
         <idea-plugin>
           <dependencies>
             <module name="intellij.platform.frontend"/>
@@ -83,20 +98,94 @@ internal class SplitModeMixedDependenciesInspectionTest : JavaCodeInsightFixture
         </idea-plugin>
       """.trimIndent()
     )
+    myFixture.configureFromExistingVirtualFile(pluginXml.virtualFile)
 
     myFixture.checkHighlighting()
   }
 
-  private fun configurePluginXml(pluginXmlContent: String) {
-    configureDescriptor("resources/META-INF/plugin.xml", pluginXmlContent)
+  fun testMixedDependenciesInContentModuleOfBackendOnlyPlugin() {
+    addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.21",
+      descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
+      pluginXmlContent = """
+        <idea-plugin>
+          <id>com.example.backend.plugin</id>
+          <dependencies>
+            <module name="intellij.platform.backend"/>
+          </dependencies>
+          <content>
+            <module name="unique.module.name.22"/>
+          </content>
+        </idea-plugin>
+      """.trimIndent()
+    )
+    val contentModuleDescriptor = addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.22",
+      descriptorRelativePathToResourcesDirectory = "unique.module.name.22.xml",
+      pluginXmlContent = """
+        <idea-plugin>
+          <dependencies>
+            <error descr="This dependency list mixes frontend-only dependencies (intellij.platform.plugins.frontend.split) and backend-only dependencies (intellij.platform.backend)"><module name="intellij.platform.plugins.frontend.split"/></error>
+          </dependencies>
+        </idea-plugin>
+      """.trimIndent()
+    )
+    myFixture.configureFromExistingVirtualFile(contentModuleDescriptor.virtualFile)
+
+    myFixture.checkHighlighting()
   }
 
-  private fun configureContentModuleXml(pluginXmlContent: String) {
-    configureDescriptor("resources/light_idea_test_case.xml", pluginXmlContent)
+  fun testMixedDependenciesInContentModuleOfFrontendOnlyPlugin() {
+    addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.23",
+      descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
+      pluginXmlContent = """
+        <idea-plugin>
+          <id>com.example.frontend.plugin</id>
+          <dependencies>
+            <module name="intellij.platform.frontend"/>
+          </dependencies>
+          <content>
+            <module name="unique.module.name.24"/>
+          </content>
+        </idea-plugin>
+      """.trimIndent()
+    )
+    val contentModuleDescriptor = addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.24",
+      descriptorRelativePathToResourcesDirectory = "unique.module.name.24.xml",
+      pluginXmlContent = """
+        <idea-plugin>
+          <dependencies>
+            <error descr="This dependency list mixes frontend-only dependencies (intellij.platform.frontend) and backend-only dependencies (intellij.platform.kernel.backend)"><module name="intellij.platform.kernel.backend"/></error>
+          </dependencies>
+        </idea-plugin>
+      """.trimIndent()
+    )
+    myFixture.configureFromExistingVirtualFile(contentModuleDescriptor.virtualFile)
+
+    myFixture.checkHighlighting()
   }
 
-  private fun configureDescriptor(relativePath: String, pluginXmlContent: String) {
-    val descriptor = myFixture.addFileToProject(relativePath, pluginXmlContent)
-    myFixture.configureFromExistingVirtualFile(descriptor.virtualFile)
+  private fun addModuleWithXmlDescriptor(
+    moduleName: String,
+    descriptorRelativePathToResourcesDirectory: String,
+    pluginXmlContent: String,
+  ): PsiFile {
+    val addedModule =
+      PsiTestUtil.addModule(project, PluginModuleType.getInstance(), moduleName, myFixture.tempDirFixture.findOrCreateDir(moduleName))
+    PsiTestUtil.addSourceRoot(
+      addedModule,
+      myFixture.tempDirFixture.findOrCreateDir("$moduleName/resources"),
+      JavaResourceRootType.RESOURCE,
+    )
+    val createdDescriptorFile = myFixture.addFileToProject("$moduleName/resources/$descriptorRelativePathToResourcesDirectory", pluginXmlContent)
+    Assert.assertNotNull("XML descriptor for module $moduleName was not created", createdDescriptorFile)
+    if (descriptorRelativePathToResourcesDirectory == "META-INF/plugin.xml") {
+      val buildConfiguration = PluginBuildConfiguration.getInstance(addedModule)
+      Assert.assertNotNull("Plugin build configuration for module $moduleName was not created", buildConfiguration)
+      buildConfiguration!!.setPluginXmlFromVirtualFile(createdDescriptorFile!!.virtualFile)
+    }
+    return createdDescriptorFile!!
   }
 }

@@ -14,9 +14,9 @@ import com.intellij.util.SmartList
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.NotNull
 import org.jetbrains.annotations.VisibleForTesting
-import org.jetbrains.idea.devkit.DevKitBundle
 import org.jetbrains.idea.devkit.inspections.DevKitUastInspectionBase
 import org.jetbrains.idea.devkit.inspections.remotedev.SplitModeModuleKindResolver.doesApiKindMatchExpectedModuleKind
+import org.jetbrains.idea.devkit.inspections.remotedev.SplitModeInspectionUtil.buildModuleKindMismatchMessage
 import org.jetbrains.uast.UCallExpression
 import org.jetbrains.uast.UClass
 import org.jetbrains.uast.UElement
@@ -57,7 +57,7 @@ class SplitModeApiUsageInspection : DevKitUastInspectionBase(UClass::class.java,
     isOnTheFly: Boolean,
   ): Array<out ProblemDescriptor?>? {
     val sourcePsi = aClass.sourcePsi ?: return null
-    val moduleType = SplitModeModuleKindResolver.getOrComputeModuleKind(sourcePsi)
+    val moduleType = SplitModeModuleKindResolver.getOrComputeModuleKind(sourcePsi) ?: return null
     val descriptors = SmartList<ProblemDescriptor>()
     aClass.uastSuperTypes.forEach { superTypeExpression ->
       checkApiUsage(superTypeExpression, moduleType, manager, isOnTheFly, descriptors)
@@ -80,7 +80,7 @@ class SplitModeApiUsageInspection : DevKitUastInspectionBase(UClass::class.java,
     isOnTheFly: Boolean,
   ): Array<ProblemDescriptor>? {
     val sourcePsi = uElement.sourcePsi ?: return null
-    val moduleType = SplitModeModuleKindResolver.getOrComputeModuleKind(sourcePsi)
+    val moduleType = SplitModeModuleKindResolver.getOrComputeModuleKind(sourcePsi) ?: return null
     val descriptors = SmartList<ProblemDescriptor>()
 
     uElement.accept(object : AbstractUastVisitor() {
@@ -110,7 +110,7 @@ class SplitModeApiUsageInspection : DevKitUastInspectionBase(UClass::class.java,
 
   private fun checkApiUsage(
     expression: UExpression,
-    currentModuleType: SplitModeApiRestrictionsService.ModuleKind,
+    currentModuleType: ResolvedModuleKind,
     manager: InspectionManager,
     isOnTheFly: Boolean,
     descriptors: MutableList<ProblemDescriptor>,
@@ -120,12 +120,7 @@ class SplitModeApiUsageInspection : DevKitUastInspectionBase(UClass::class.java,
 
     if (!doesApiKindMatchExpectedModuleKind(currentModuleType, expectedModuleKind)) {
       val sourcePsi = expression.sourcePsi ?: return
-      val message = DevKitBundle.message(
-        "inspection.api.usage.restricted.to.module.type.default.message",
-        resolvedApi.qualifiedName,
-        expectedModuleKind.presentableName,
-        currentModuleType.presentableName,
-      )
+      val message = buildModuleKindMismatchMessage(resolvedApi.qualifiedName, expectedModuleKind, currentModuleType)
 
       descriptors.add(
         manager.createProblemDescriptor(

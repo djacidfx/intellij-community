@@ -28,42 +28,62 @@ internal class SplitModeMixedDependenciesInspection : DevKitPluginXmlInspectionB
     if (element !is IdeaPlugin) return
     if (!isAllowed(holder)) return
 
-    val dependencies = element.dependencies
-    if (!dependencies.exists()) return
+    if (!element.dependencies.exists()) return
+    val inspectedFile = holder.fileElement.file
+    if (SplitModeModuleKindResolver.getOrComputeModuleKind(inspectedFile)?.kind != SplitModeApiRestrictionsService.ModuleKind.MIXED) return
 
-    val declaredDependencies = buildList {
-      dependencies.moduleEntry.forEach { moduleDescriptor ->
-        moduleDescriptor.name.stringValue?.let { dependencyName ->
-          add(DeclaredDependency(dependencyName, moduleDescriptor))
-        }
-      }
-      dependencies.plugin.forEach { pluginDescriptor ->
-        pluginDescriptor.id.stringValue?.let { dependencyName ->
-          add(DeclaredDependency(dependencyName, pluginDescriptor))
-        }
+    val dependencyAnalysis = SplitModeModuleKindResolver.getOrComputeDependencyAnalysis(inspectedFile) ?: return
+    val moduleName = ModuleUtilCore.findModuleForFile(inspectedFile)?.name ?: return
+    val declaredDependencies = collectDeclaredDependencies(element, moduleName)
+    val highlightedDependencies = ArrayList<DependencyInfo>()
+    for (dependency in declaredDependencies) {
+      if (dependencyAnalysis.containsDependency(dependency.name)) {
+        highlightedDependencies.add(dependency)
       }
     }
-
-    val moduleName = ModuleUtilCore.findModuleForFile(holder.fileElement.file)?.name ?: return
-    val dependencyAnalysis = SplitModeModuleKindResolver.analyzeModuleDependencies(moduleName, declaredDependencies.map { it.name }.toSet())
-    if (!dependencyAnalysis.hasMixedDependencies) return
+    if (highlightedDependencies.isEmpty()) return
 
     val message = DevKitBundle.message(
       "inspection.remote.dev.mixed.dependencies.message",
-      dependencyAnalysis.frontendDependencies.joinToString(),
-      dependencyAnalysis.backendDependencies.joinToString(),
+      dependencyAnalysis.getFrontendDependencyNames(),
+      dependencyAnalysis.getBackendDependencyNames(),
     )
-    declaredDependencies
-      .filter { dependency ->
-        dependency.name in dependencyAnalysis.frontendDependencies || dependency.name in dependencyAnalysis.backendDependencies
-      }
-      .forEach { dependency ->
-        holder.createProblem(dependency.element, message).highlightWholeElement()
+
+    for (dependency in highlightedDependencies) {
+      holder.createProblem(dependency.element ?: continue, message).highlightWholeElement()
     }
   }
 
-  private data class DeclaredDependency(
-    val name: String,
-    val element: DomElement,
-  )
+  private fun collectDeclaredDependencies(element: IdeaPlugin, moduleName: String): List<DependencyInfo> {
+    val declaredDependencies = ArrayList<DependencyInfo>()
+
+    for (moduleDescriptor in element.dependencies.moduleEntry) {
+      val dependencyName = moduleDescriptor.name.stringValue
+      if (dependencyName != null) {
+        declaredDependencies.add(
+          DependencyInfo(
+            dependencyName,
+            "declared in module '$moduleName'",
+            true,
+            moduleDescriptor,
+          )
+        )
+      }
+    }
+    for (pluginDescriptor in element.dependencies.plugin) {
+      val dependencyName = pluginDescriptor.id.stringValue
+      if (dependencyName != null) {
+        declaredDependencies.add(
+          DependencyInfo(
+            dependencyName,
+            "declared in module '$moduleName'",
+            true,
+            pluginDescriptor,
+          )
+        )
+      }
+    }
+
+    return declaredDependencies
+  }
 }

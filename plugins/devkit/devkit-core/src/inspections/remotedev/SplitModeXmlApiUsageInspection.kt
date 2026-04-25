@@ -4,11 +4,11 @@ package org.jetbrains.idea.devkit.inspections.remotedev
 import com.intellij.util.xml.DomElement
 import com.intellij.util.xml.highlighting.DomElementAnnotationHolder
 import com.intellij.util.xml.highlighting.DomHighlightingHelper
-import org.jetbrains.idea.devkit.DevKitBundle
 import org.jetbrains.idea.devkit.dom.Extension
 import org.jetbrains.idea.devkit.dom.Extensions
 import org.jetbrains.idea.devkit.inspections.DevKitPluginXmlInspectionBase
 import org.jetbrains.idea.devkit.inspections.remotedev.SplitModeModuleKindResolver.doesApiKindMatchExpectedModuleKind
+import org.jetbrains.idea.devkit.inspections.remotedev.SplitModeInspectionUtil.buildModuleKindMismatchMessage
 
 internal class SplitModeXmlApiUsageInspection : DevKitPluginXmlInspectionBase() {
   private val restrictionsService = SplitModeApiRestrictionsService.getInstance()
@@ -32,18 +32,13 @@ internal class SplitModeXmlApiUsageInspection : DevKitPluginXmlInspectionBase() 
     val extensionPointName = getExtensionPointName(element) ?: return
     val expectedModuleKind = restrictionsService.getExtensionPointKind(extensionPointName) ?: return
     val xmlTag = element.xmlTag ?: return
-    val actualModuleKind = SplitModeModuleKindResolver.getOrComputeModuleKind(xmlTag)
+    val actualModuleKind = SplitModeModuleKindResolver.getOrComputeModuleKind(xmlTag) ?: return
 
     if (doesApiKindMatchExpectedModuleKind(actualModuleKind, expectedModuleKind)) return
 
     holder.createProblem(
       element,
-      DevKitBundle.message(
-        "inspection.api.usage.restricted.to.module.type.default.message",
-        extensionPointName,
-        expectedModuleKind.presentableName,
-        actualModuleKind.presentableName,
-      )
+      buildModuleKindMismatchMessage(extensionPointName, expectedModuleKind, actualModuleKind)
     )
   }
 

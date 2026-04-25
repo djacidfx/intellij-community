@@ -39,16 +39,14 @@ class SplitModeApiRestrictionsService(private val coroutineScope: CoroutineScope
     COMPLETED
   }
 
-  enum class ModuleKind(val id: String, val presentableName: String) {
-    FRONTEND("frontend", "frontend"),
-    LIKELY_FRONTEND("frontend", "[possibly] frontend"),
-    BACKEND("backend", "backend"),
-    LIKELY_BACKEND("backend", "[possibly] backend"),
-    MIXED("mixed", "mixed"),
-    SHARED("shared", "shared")
+  enum class ModuleKind(val presentableName: String) {
+    FRONTEND("frontend"),
+    BACKEND("backend"),
+    MIXED("mixed"),
+    SHARED("shared")
   }
 
-  private val loadingState = AtomicReference<LoadingState>(LoadingState.NOT_STARTED)
+  private val loadingState = AtomicReference(LoadingState.NOT_STARTED)
   private val codeRestrictionsRef = AtomicReference<Map<String, ModuleKind>>(emptyMap())
   private val extensionPointRestrictionsRef = AtomicReference<Map<String, ModuleKind>>(emptyMap())
   private val dependencyRestrictionsRef = AtomicReference<Map<String, ModuleKind>>(emptyMap())

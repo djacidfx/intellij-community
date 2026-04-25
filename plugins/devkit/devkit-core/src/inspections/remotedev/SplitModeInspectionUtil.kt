@@ -6,14 +6,40 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.project.IntelliJProjectUtil
 import com.intellij.openapi.roots.ProjectRootModificationTracker
+import com.intellij.openapi.util.NlsSafe
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
+import org.jetbrains.annotations.Nls
+import org.jetbrains.idea.devkit.DevKitBundle
 import org.jetbrains.idea.devkit.module.PluginModuleType
 import org.jetbrains.idea.devkit.util.DescriptorUtil
 
 internal object SplitModeInspectionUtil {
+  @Nls
+  fun buildModuleKindMismatchMessage(
+    apiName: @NlsSafe String,
+    expectedModuleKind: SplitModeApiRestrictionsService.ModuleKind,
+    actualModuleKind: ResolvedModuleKind,
+  ): String {
+    val baseMessage = DevKitBundle.message(
+      "inspection.api.usage.restricted.to.module.type.default.message",
+      apiName,
+      expectedModuleKind.presentableName,
+      actualModuleKind.kind.presentableName,
+    )
+    return if (actualModuleKind.reasoning.isBlank()) {
+      baseMessage
+    }
+    else {
+      baseMessage + DevKitBundle.message(
+        "inspection.api.usage.restricted.to.module.type.reasoning.message.suffix",
+        actualModuleKind.reasoning,
+      )
+    }
+  }
+
   fun shouldSuppressForSingleModuleExternalPlugin(file: PsiFile): Boolean {
     val module = ModuleUtilCore.findModuleForPsiElement(file) ?: return false
     val project = file.project
