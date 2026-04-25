@@ -3,7 +3,7 @@ package com.intellij.ide.plugins
 
 import com.intellij.platform.pluginSystem.parser.impl.elements.ModuleVisibilityValue
 import com.intellij.platform.pluginSystem.testFramework.PluginSetSpecBuilder
-import com.intellij.platform.pluginSystem.testFramework.buildPluginSet
+import com.intellij.platform.pluginSystem.testFramework.buildPluginSetState
 import com.intellij.platform.testFramework.plugins.content
 import com.intellij.platform.testFramework.plugins.dependencies
 import com.intellij.platform.testFramework.plugins.module
@@ -20,6 +20,7 @@ internal class ContentModuleDependencyResolutionTest {
   @RegisterExtension
   @JvmField
   val inMemoryFs = InMemoryFsExtension()
+  private var loadingErrors: List<PluginLoadingError> = emptyList()
 
   @Test
   fun `reference to modules from the same plugin without namespace`() {
@@ -137,8 +138,7 @@ internal class ContentModuleDependencyResolutionTest {
       // FIXME 'bar' and 'core' conflict on 'bar' module while namespaces are not active, they should be both excluded,
       //  but it does not happen with old plugin init, 'bar' overwrites mapping for the module
       assertThat(pluginSet).hasExactlyEnabledPlugins("foo")
-      val errors = PluginManagerCore.getAndClearPluginLoadingErrors()
-      assertThat(errors.joinToString { it.reason?.logMessage ?: "" }).contains(
+      assertThat(loadingErrors.joinToString { it.reason?.logMessage ?: "" }).contains(
         "declares id 'foo' which conflicts with the same id from plugin 'bar'",
         "declares id 'foo' which conflicts with the same id from plugin 'core'"
       )
@@ -147,6 +147,8 @@ internal class ContentModuleDependencyResolutionTest {
 
   private fun buildPluginSet(builder: PluginSetSpecBuilder.() -> Unit): PluginSet {
     val pluginsDirPath = inMemoryFs.fs.getPath("/").resolve("plugins")
-    return buildPluginSet(pluginsDirPath, builder)
+    val state = buildPluginSetState(pluginsDirPath, builder)
+    loadingErrors = state.loadingErrors
+    return state.pluginSet
   }
 }

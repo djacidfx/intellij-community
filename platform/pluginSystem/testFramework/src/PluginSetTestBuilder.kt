@@ -4,6 +4,7 @@ package com.intellij.platform.pluginSystem.testFramework
 import com.intellij.ide.plugins.DiscoveredPluginsList
 import com.intellij.ide.plugins.PluginDescriptorLoadingContext
 import com.intellij.ide.plugins.PluginInitializationContext
+import com.intellij.ide.plugins.PluginLoadingErrorReportingPolicy
 import com.intellij.ide.plugins.PluginMainDescriptor
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.ide.plugins.PluginManagerState
@@ -100,9 +101,6 @@ class PluginSetTestBuilder private constructor(
   }
 
   fun buildState(): PluginManagerState {
-    //clear errors, which may be registered by other tests
-    PluginManagerCore.getAndClearPluginLoadingErrors()
-
     val initContext = buildInitContext()
     val loadingContext = PluginDescriptorLoadingContext(getBuildNumberForDefaultDescriptorVersion = { productBuildNumber })
     val pluginList = withInitContextForLoadingRuleDetermination(initContext) { // FIXME this should not exist
@@ -115,6 +113,7 @@ class PluginSetTestBuilder private constructor(
       discoveredPlugins = discoveredPlugins,
       coreLoader = customCoreLoader ?: UrlClassLoader.build().get(),
       parentActivity = null,
+      reportingPolicy = PluginLoadingErrorReportingPolicy.TEST,
     )
   }
 

@@ -36,7 +36,6 @@ import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Contract
 import org.jetbrains.annotations.Nls
 import org.jetbrains.annotations.VisibleForTesting
-import java.awt.GraphicsEnvironment
 import java.nio.file.FileVisitResult
 import java.nio.file.Files
 import java.nio.file.Path
@@ -320,6 +319,7 @@ object PluginManagerCore {
     descriptorLoadingErrors: List<PluginDescriptorLoadingError>,
     cycleErrors: List<PluginLoadingError>,
     initContext: PluginInitializationContext,
+    reportingPolicy: PluginLoadingErrorReportingPolicy,
   ): List<PluginLoadingError> {
     // name shadowing is intended
     val pluginNonLoadReasons = pluginNonLoadReasons.filterValues {
@@ -348,26 +348,19 @@ object PluginManagerCore {
       "Problems found loading plugins:\n  " +
       (globalErrors.asSequence().map { it.htmlMessage.toString() } + loadingErrors.asSequence().map { it.logMessage })
         .joinToString(separator = "\n  ")
-    if (isUnitTestMode || !GraphicsEnvironment.isHeadless()) {
-      if (!isUnitTestMode) {
-        logger.warn(logMessage)
-      }
-      else {
-        logger.info(logMessage)
-      }
-      val mappedLoadingErrors = loadingErrors.asSequence()
-        .filter { it.shouldNotifyUser }
-        .map { reason -> PluginLoadingError(reason, htmlMessageSupplier = { HtmlChunk.text(reason.detailedMessage) }, error = null) }
-      return (globalErrors.asSequence() + mappedLoadingErrors).toList()
+    when (reportingPolicy.logLevel) {
+      PluginLoadingErrorLogLevel.INFO -> logger.info(logMessage)
+      PluginLoadingErrorLogLevel.WARN -> logger.warn(logMessage)
+      PluginLoadingErrorLogLevel.ERROR -> logger.error(logMessage)
     }
-    else if (PlatformUtils.isFleetBackend()) {
-      logger.warn(logMessage)
-    }
-    else {
-      logger.error(logMessage)
-    }
-    return emptyList()
+    return if (reportingPolicy.reportToUser) globalErrors + mapForUserNotification(loadingErrors) else emptyList()
   }
+
+  private fun mapForUserNotification(loadingErrors: Collection<PluginNonLoadReason>): List<PluginLoadingError> =
+    loadingErrors.asSequence()
+      .filter { it.shouldNotifyUser }
+      .map { reason -> PluginLoadingError(reason, htmlMessageSupplier = { HtmlChunk.text(reason.detailedMessage) }, error = null) }
+      .toList()
 
   @ApiStatus.Internal
   fun getPluginNonLoadReason(pluginId: PluginId): PluginNonLoadReason? = pluginsState.getPluginNonLoadReason(pluginId)
@@ -522,6 +515,7 @@ object PluginManagerCore {
     discoveredPlugins: PluginsDiscoveryResult,
     coreLoader: ClassLoader,
     parentActivity: Activity?,
+    reportingPolicy: PluginLoadingErrorReportingPolicy,
   ): PluginManagerState {
     var initStagesActivity = parentActivity?.startChild("selectPluginsToLoad") // no safe end() call, because if it fails, it won't matter
     val excludedFromLoading = IdentityHashMap<PluginMainDescriptor, PluginNonLoadReason>()
@@ -614,7 +608,7 @@ object PluginManagerCore {
 
     initStagesActivity = initStagesActivity?.endAndStart("error reporting")
     pluginsState.addPluginNonLoadReasons(pluginNonLoadReasons.filter { it.value !is PluginIsMarkedDisabled })
-    pluginsState.setErrorsForNotificationReporterAndLogger(preparePluginErrors(pluginNonLoadReasons, descriptorLoadingErrors, cycleErrors, initContext))
+    val loadingErrors = preparePluginErrors(pluginNonLoadReasons, descriptorLoadingErrors, cycleErrors, initContext, reportingPolicy)
 
     if (initContext.checkEssentialPlugins) {
       initStagesActivity = initStagesActivity?.endAndStart("check essential plugins")
@@ -629,6 +623,7 @@ object PluginManagerCore {
       pluginSet = pluginSet,
       pluginToDisable = pluginsToDisable.values.toList(),
       pluginToEnable = pluginsToEnable.values.toList(),
+      loadingErrors = loadingErrors,
       incompletePluginsForLogging = incompletePlugins.values.toList(),
       shadowedBundledPlugins = shadowedBundledIds,
     )
@@ -900,10 +895,18 @@ object PluginManagerCore {
     val tracerShim = CoroutineTracerShim.coroutineTracer
     return tracerShim.span("plugin initialization") {
       val coreLoader = PluginManagerCore::class.java.classLoader
-      val initResult = initializePlugins(descriptorLoadingErrors, initContext, discoveredPlugins, coreLoader, tracerShim.getTraceActivity())
+      val initResult = initializePlugins(
+        descriptorLoadingErrors = descriptorLoadingErrors,
+        initContext = initContext,
+        discoveredPlugins = discoveredPlugins,
+        coreLoader = coreLoader,
+        parentActivity = tracerShim.getTraceActivity(),
+        reportingPolicy = PluginLoadingErrorReportingPolicy.forCurrentProduct(),
+      )
       val pluginState = pluginsState
       pluginState.pluginsToDisable = initResult.pluginToDisable
       pluginState.pluginsToEnable = initResult.pluginToEnable
+      pluginState.setErrorsForNotificationReporterAndLogger(initResult.loadingErrors)
       pluginState.shadowedBundledPlugins = initResult.shadowedBundledPlugins
       //activity.setDescription("plugin count: ${initResult.pluginSet.enabledPlugins.size}")
       pluginState.nullablePluginSet = initResult.pluginSet

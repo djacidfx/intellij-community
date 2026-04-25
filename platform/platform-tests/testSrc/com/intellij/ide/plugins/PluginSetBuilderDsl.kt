@@ -1,6 +1,7 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.platform.pluginSystem.testFramework
 
+import com.intellij.ide.plugins.PluginManagerState
 import com.intellij.ide.plugins.PluginSet
 import com.intellij.platform.testFramework.plugins.PluginSpecBuilder
 import com.intellij.platform.testFramework.plugins.buildDir
@@ -14,8 +15,12 @@ import com.intellij.platform.testFramework.plugins.plugin as buildPlugin
  */
 //todo: move this to some testFramework module
 fun buildPluginSet(pluginsDirPath: Path, builder: PluginSetSpecBuilder.() -> Unit): PluginSet {
+  return buildPluginSetState(pluginsDirPath, builder).pluginSet
+}
+
+fun buildPluginSetState(pluginsDirPath: Path, builder: PluginSetSpecBuilder.() -> Unit): PluginManagerState {
   builder(PluginSetSpecBuilder(pluginsDirPath))
-  return PluginSetTestBuilder.fromPath(pluginsDirPath).build()
+  return PluginSetTestBuilder.fromPath(pluginsDirPath).buildState()
 }
 
 class PluginSetSpecBuilder internal constructor(private val pluginsDirPath: Path) {

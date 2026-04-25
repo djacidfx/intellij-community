@@ -211,7 +211,6 @@ class PluginManagerTest {
 
     @Throws(IOException::class, XMLStreamException::class)
     private fun doPluginSortTest(testDataName: String?, isBundled: Boolean) {
-      PluginManagerCore.getAndClearPluginLoadingErrors()
       val loadPluginResult: PluginManagerState = loadAndInitializeDescriptors("$testDataName.xml", isBundled)
       val text = StringBuilder()
       for (descriptor in loadPluginResult.pluginSet.getEnabledModules()) {
@@ -222,7 +221,7 @@ class PluginManagerTest {
         text.append('\n')
       }
       text.append("\n\n")
-      for (html in PluginManagerCore.getAndClearPluginLoadingErrors()) {
+      for (html in loadPluginResult.loadingErrors) {
         text.append(html.htmlMessage.toString().replace("<br/>", "\n").replace("&#39;", "")).append('\n')
       }
       val expectedResultFilename = if (PluginManagerCore.fallbackToOldPluginSetResolution()) {
@@ -338,7 +337,8 @@ class PluginManagerTest {
         initContext = initContext,
         discoveredPlugins = discoveredPlugins,
         coreLoader = PluginManagerTest::class.java.getClassLoader(),
-        parentActivity = null
+        parentActivity = null,
+        reportingPolicy = PluginLoadingErrorReportingPolicy.TEST,
       )
     }
 

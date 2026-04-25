@@ -37,6 +37,7 @@ internal class PluginDependenciesTest {
 
   private val rootPath get() = inMemoryFs.fs.getPath("/")
   private val pluginDirPath get() = rootPath.resolve("plugin")
+  private var loadingErrors: List<PluginLoadingError> = emptyList()
 
   @Test
   fun `plugin is loaded when depends dependency is resolved`() {
@@ -235,9 +236,8 @@ internal class PluginDependenciesTest {
   }
 
   private fun assertFirstErrorContains(vararg messagePart: String) {
-    val errors = PluginManagerCore.getAndClearPluginLoadingErrors()
-    assertThat(errors).isNotEmpty
-    assertThat(errors.first().htmlMessage.toString()).contains(*messagePart)
+    assertThat(loadingErrors).isNotEmpty
+    assertThat(loadingErrors.first().htmlMessage.toString()).contains(*messagePart)
   }
 
   @Test
@@ -1443,9 +1443,12 @@ internal class PluginDependenciesTest {
     }
   }.buildDir(pluginDirPath.resolve("baz"))
 
-  private fun buildPluginSet(expiredPluginIds: Array<String> = emptyArray(), disabledPluginIds: Array<String> = emptyArray()) =
-    PluginSetTestBuilder.fromPath(pluginDirPath)
+  private fun buildPluginSet(expiredPluginIds: Array<String> = emptyArray(), disabledPluginIds: Array<String> = emptyArray()): PluginSet {
+    val state = PluginSetTestBuilder.fromPath(pluginDirPath)
       .withExpiredPlugins(*expiredPluginIds)
       .withDisabledPlugins(*disabledPluginIds)
-      .build()
+      .buildState()
+    loadingErrors = state.loadingErrors
+    return state.pluginSet
+  }
 }

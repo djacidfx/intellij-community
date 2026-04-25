@@ -66,7 +66,7 @@ class PluginDependenciesValidator private constructor(
   private val options: PluginDependenciesValidationOptions,
 ) {
   companion object {
-    private val pluginLoadingErrorsMutex = Mutex()
+    private val pluginSetBuildMutex = Mutex()
 
     suspend fun validatePluginDependencies(
       project: JpsProject,
@@ -77,15 +77,9 @@ class PluginDependenciesValidator private constructor(
     ): List<PluginModuleConfigurationError> {
       val validator = PluginDependenciesValidator(tempDir = tempDir, project = project, productMode = productMode, pluginLayoutProvider = pluginLayoutProvider, options = options)
       val pluginSetTestBuilder = validator.createPluginSet()
-      val (pluginSet, loadingErrors) = pluginLoadingErrorsMutex.withLock {
-        // PluginManagerCore stores loading errors in process-global state.
-        PluginManagerCore.getAndClearPluginLoadingErrors()
-        try {
-          pluginSetTestBuilder.build() to PluginManagerCore.getAndClearPluginLoadingErrors()
-        }
-        finally {
-          PluginManagerCore.getAndClearPluginLoadingErrors()
-        }
+      val (pluginSet, loadingErrors) = pluginSetBuildMutex.withLock {
+        val pluginManagerState = pluginSetTestBuilder.buildState()
+        pluginManagerState.pluginSet to pluginManagerState.loadingErrors
       }
       validator.reportPluginLoadingErrors(loadingErrors)
       validator.checkPluginSet(pluginSet)

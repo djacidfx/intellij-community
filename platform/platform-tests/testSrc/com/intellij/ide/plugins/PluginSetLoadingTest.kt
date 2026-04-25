@@ -40,6 +40,18 @@ class PluginSetLoadingTest {
 
   private val rootPath get() = inMemoryFs.fs.getPath("/")
   private val pluginsDirPath get() = rootPath.resolve("wd/plugins")
+  private var loadingErrors: List<PluginLoadingError> = emptyList()
+
+  @Test
+  fun `fleet backend logs plugin loading errors without scheduling user notification`() {
+    val policy = PluginLoadingErrorReportingPolicy.product(
+      isUnitTestMode = false,
+      isHeadless = true,
+      isFleetBackend = true,
+    )
+    assertThat(policy.logLevel).isEqualTo(PluginLoadingErrorLogLevel.WARN)
+    assertThat(policy.reportToUser).isFalse()
+  }
 
   @Test
   fun `use newer plugin`() {
@@ -245,9 +257,8 @@ class PluginSetLoadingTest {
     }.buildDir(pluginsDirPath.resolve("bar"))
     val pluginSet = buildPluginSet()
     assertThat(pluginSet).hasExactlyEnabledPlugins("foo")
-    val errors = PluginManagerCore.getAndClearPluginLoadingErrors()
-    assertThat(errors).hasSizeGreaterThan(0)
-    assertThat(errors[0].htmlMessage.toString()).contains("conflicts with", "bar.module", "foo.module", "package prefix")
+    assertThat(loadingErrors).hasSizeGreaterThan(0)
+    assertThat(loadingErrors[0].htmlMessage.toString()).contains("conflicts with", "bar.module", "foo.module", "package prefix")
   }
   
   @Test
@@ -277,9 +288,8 @@ class PluginSetLoadingTest {
     }.buildDir(pluginsDirPath.resolve("foo"))
     val pluginSet = buildPluginSet()
     assertThat(pluginSet).doesNotHaveEnabledPlugins()
-    val errors = PluginManagerCore.getAndClearPluginLoadingErrors()
-    assertThat(errors).hasSizeGreaterThan(0)
-    assertThat(errors[0].htmlMessage.toString()).contains("conflicts with", "foo.module", "package prefix")
+    assertThat(loadingErrors).hasSizeGreaterThan(0)
+    assertThat(loadingErrors[0].htmlMessage.toString()).contains("conflicts with", "foo.module", "package prefix")
   }
 
   @Test
@@ -298,9 +308,8 @@ class PluginSetLoadingTest {
     assertThat(pluginSet).hasExactlyEnabledPlugins("foo", "bar")
     // FIXME these plugins are not related, but one of them loads => depends on implicit order
     assertThat(pluginSet).hasExactlyEnabledModulesWithoutMainDescriptors("foo.module")
-    val errors = PluginManagerCore.getAndClearPluginLoadingErrors()
-    assertThat(errors).isNotEmpty()
-    assertThat(errors[0].htmlMessage.toString()).contains("conflicts with", "bar", "foo.module", "package prefix")
+    assertThat(loadingErrors).isNotEmpty()
+    assertThat(loadingErrors[0].htmlMessage.toString()).contains("conflicts with", "bar", "foo.module", "package prefix")
   }
 
   @Test
@@ -455,9 +464,8 @@ class PluginSetLoadingTest {
     }.buildDir(pluginsDirPath.resolve("foo"))
     val pluginSet = buildPluginSet()
     assertThat(pluginSet).doesNotHaveEnabledPlugins()
-    val errors = PluginManagerCore.getAndClearPluginLoadingErrors()
-    assertThat(errors).hasSizeGreaterThan(0)
-    assertThat(errors[0].htmlMessage.toString()).contains("foo", "invalid plugin descriptor")
+    assertThat(loadingErrors).hasSizeGreaterThan(0)
+    assertThat(loadingErrors[0].htmlMessage.toString()).contains("foo", "invalid plugin descriptor")
   }
 
   @Test
@@ -619,7 +627,7 @@ class PluginSetLoadingTest {
     }.buildDir(pluginsDirPath.resolve("com.jetbrains.restClient"))
 
     val pluginSet = buildPluginSet()
-    assertThat(PluginManagerCore.getAndClearPluginLoadingErrors()).isEmpty()
+    assertThat(loadingErrors).isEmpty()
     val moduleOrder = pluginSet.getEnabledModules().map { it.getPluginId().idString + ":" + it.contentModuleName }
     val validOrders = listOf(
       listOf(
@@ -647,9 +655,8 @@ class PluginSetLoadingTest {
 
     val pluginSet = buildPluginSet()
     assertThat(pluginSet).hasExactlyEnabledPlugins("foo")
-    val errors = PluginManagerCore.getAndClearPluginLoadingErrors()
-    assertThat(errors).hasSize(1)
-    val error = errors[0]
+    assertThat(loadingErrors).hasSize(1)
+    val error = loadingErrors[0]
     assertThat(error.htmlMessage.toString()).contains("bar", "not compatible", "foo")
   }
 
@@ -664,5 +671,9 @@ class PluginSetLoadingTest {
     assertThat(pluginSet).hasExactlyEnabledPlugins(*enabledIds.toTypedArray())
   }
 
-  private fun buildPluginSet(builder: PluginSetTestBuilder.() -> Unit = {}): PluginSet = PluginSetTestBuilder.fromPath(pluginsDirPath).apply(builder).build()
+  private fun buildPluginSet(builder: PluginSetTestBuilder.() -> Unit = {}): PluginSet {
+    val state = PluginSetTestBuilder.fromPath(pluginsDirPath).apply(builder).buildState()
+    loadingErrors = state.loadingErrors
+    return state.pluginSet
+  }
 }
