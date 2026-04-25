@@ -203,11 +203,13 @@ class MavenCentralPublication(
       for (artifact in artifacts) {
         for (file in artifact.distributionFiles.minus(artifact.checksums.toSet())) {
           launch(CoroutineName("checksums for $file")) {
-            val checksumAlgorithms = listOf(Checksums.Algorithm.SHA1,
-                                            Checksums.Algorithm.SHA256,
-                                            Checksums.Algorithm.SHA512,
-                                            Checksums.Algorithm.MD5)
-            val checksums = Checksums(
+            val checksumAlgorithms = listOf(
+              Checksums.Algorithm.SHA1,
+              Checksums.Algorithm.SHA256,
+              Checksums.Algorithm.SHA512,
+              Checksums.Algorithm.MD5
+            )
+            val checksums = Checksums.compute(
               file,
               *checksumAlgorithms.toTypedArray(),
             )

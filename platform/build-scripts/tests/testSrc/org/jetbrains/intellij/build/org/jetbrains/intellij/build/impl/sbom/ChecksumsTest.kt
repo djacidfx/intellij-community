@@ -11,10 +11,16 @@ import kotlin.io.path.readText
 
 class ChecksumsTest {
   @Test
-  fun checksums(@TempDir tempDir: Path) {
+  fun checksums(@TempDir tempDir: Path) = runBlocking {
     val file = tempDir.resolve("file.txt")
     file.write("test")
-    val checksums = Checksums(file, Checksums.Algorithm.SHA1, Checksums.Algorithm.SHA256, Checksums.Algorithm.SHA512, Checksums.Algorithm.MD5)
+    val checksums = Checksums.compute(
+      file,
+      Checksums.Algorithm.SHA1,
+      Checksums.Algorithm.SHA256,
+      Checksums.Algorithm.SHA512,
+      Checksums.Algorithm.MD5
+    )
     assert(checksums.sha1sum == "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3") {
       "Unexpected SHA1 checksum '${checksums.sha1sum}'"
     }
@@ -33,7 +39,7 @@ class ChecksumsTest {
   fun `verify or write checksum file with file name`(@TempDir tempDir: Path) = runBlocking {
     val file = tempDir.resolve("file.txt")
     file.write("test")
-    val checksums = Checksums(file, Checksums.Algorithm.SHA256)
+    val checksums = Checksums.compute(file, Checksums.Algorithm.SHA256)
 
     val checksumFile = checksums.verifyOrWriteChecksumFile(Checksums.Algorithm.SHA256)
 
@@ -46,7 +52,7 @@ class ChecksumsTest {
   fun `verify or write checksum file without file name`(@TempDir tempDir: Path) = runBlocking {
     val file = tempDir.resolve("file.txt")
     file.write("test")
-    val checksums = Checksums(file, Checksums.Algorithm.SHA256)
+    val checksums = Checksums.compute(file, Checksums.Algorithm.SHA256)
 
     val checksumFile = checksums.verifyOrWriteChecksumFile(Checksums.Algorithm.SHA256, withFileName = false)
 

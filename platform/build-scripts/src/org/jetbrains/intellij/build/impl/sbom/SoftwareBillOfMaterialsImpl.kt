@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 @file:Suppress("ReplaceGetOrSet")
 
 package org.jetbrains.intellij.build.impl.sbom
@@ -13,8 +13,6 @@ import io.opentelemetry.api.trace.Span
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
@@ -38,13 +36,13 @@ import org.jetbrains.intellij.build.impl.Docker
 import org.jetbrains.intellij.build.impl.SUPPORTED_DISTRIBUTIONS
 import org.jetbrains.intellij.build.impl.getLibraryFilename
 import org.jetbrains.intellij.build.impl.getOsAndArchSpecificDistDirectory
-import org.jetbrains.intellij.build.impl.suspendingLazy
 import org.jetbrains.intellij.build.impl.maven.MavenCoordinates
 import org.jetbrains.intellij.build.impl.projectStructureMapping.DistributionFileEntry
 import org.jetbrains.intellij.build.impl.projectStructureMapping.LibraryFileEntry
 import org.jetbrains.intellij.build.impl.projectStructureMapping.ModuleLibraryFileEntry
 import org.jetbrains.intellij.build.impl.projectStructureMapping.ProjectLibraryEntry
 import org.jetbrains.intellij.build.impl.projectStructureMapping.getIncludedModules
+import org.jetbrains.intellij.build.impl.suspendingLazy
 import org.jetbrains.intellij.build.io.ZipEntryProcessorResult
 import org.jetbrains.intellij.build.io.readZipFile
 import org.jetbrains.intellij.build.mapConcurrent
@@ -239,14 +237,9 @@ class SoftwareBillOfMaterialsImpl(
   }
 
   private suspend fun generateFromDistributions(): List<Path> {
-    return withContext(Dispatchers.IO) {
-      distributions.associateWith { distribution ->
-        getFiles(distribution)
-          .mapConcurrent { file ->
-            withContext(CoroutineName("checksums for $file")) {
-              Checksums(file)
-            }
-          }
+    return distributions.associateWith { distribution ->
+      getFiles(distribution).mapConcurrent { file ->
+        Checksums.compute(file)
       }
     }.flatMap { (distribution, filesWithChecksums) ->
       filesWithChecksums.map {
@@ -279,7 +272,7 @@ class SoftwareBillOfMaterialsImpl(
    * then should be replaced with [addRuntimeDocumentRef]
    */
   private suspend fun SpdxDocument.runtimePackage(os: OsFamily, arch: JvmArchitecture, libc: LibcImpl): SpdxPackage {
-    val checksums = Checksums(context.bundledRuntime.findArchive(os = os, arch = arch, libc = libc))
+    val checksums = Checksums.compute(context.bundledRuntime.findArchive(os = os, arch = arch, libc = libc))
     val version = context.bundledRuntime.build
     val runtimeArchivePackage = spdxPackageForFile(
       this,
@@ -461,9 +454,10 @@ class SoftwareBillOfMaterialsImpl(
         .map { it.path }.distinct()
         // non-bundled plugins, for example
         .filterNot { it.startsWith(context.paths.tempDir) }
-        .toList().map {
-          async(CoroutineName("checksums for $it")) { Checksums(it) }
-        }.awaitAll()
+        .toList()
+        .mapConcurrent {
+          Checksums.compute(it)
+        }
     }
   }
 
@@ -1043,21 +1037,15 @@ class SoftwareBillOfMaterialsImpl(
     val sortedLibraries = mavenLibraries.sortedBy {
       it.library.name ?: it.library.libraryName
     }
-    val errors = supervisorScope {
-      sortedLibraries.slice(50..100).map {
-        async {
-          it.checkCopyrightText()
-        }
-      }.mapNotNull {
-        try {
-          it.await()
-          null
-        }
-        catch (e: IllegalStateException) {
-          e.message
-        }
+    val errors = sortedLibraries.slice(50..100).mapConcurrent {
+      try {
+        it.checkCopyrightText()
+        null
       }
-    }
+      catch (e: IllegalStateException) {
+        e.message
+      }
+    }.filterNotNull()
     if (errors.any()) {
       throw RuntimeException(
         errors.joinToString(

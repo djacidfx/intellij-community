@@ -99,11 +99,11 @@ interface OsSpecificDistributionBuilder {
 
   fun isRuntimeBundled(file: Path): Boolean
 
-  suspend fun createChecksumAndGpgSignFiles(context: BuildContext, buildArtifact: suspend () -> Path) : Path {
+  suspend fun createChecksumAndGpgSignFiles(context: BuildContext, buildArtifact: suspend () -> Path): Path {
     val artifactFile = buildArtifact.invoke()
 
     coroutineScope {
-      val checksums = Checksums(artifactFile, Checksums.Algorithm.SHA256, Checksums.Algorithm.SHA512)
+      val checksums = Checksums.compute(artifactFile, Checksums.Algorithm.SHA256, Checksums.Algorithm.SHA512)
 
       launch {
         checksums.verifyOrWriteChecksumFile(Checksums.Algorithm.SHA256).also {
