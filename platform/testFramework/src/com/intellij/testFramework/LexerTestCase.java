@@ -28,6 +28,7 @@ public abstract class LexerTestCase extends UsefulTestCase {
 
   protected void doTest(@NotNull String text, @Nullable String expected) {
     doTest(text, expected, createLexer());
+    checkCorrectRestart(text);
   }
 
   protected void doTest(@NotNull String text, @Nullable String expected, @NotNull Lexer lexer) {
@@ -39,8 +40,6 @@ public abstract class LexerTestCase extends UsefulTestCase {
     else {
       assertSameLinesWithFile(getPathToTestDataFile(getExpectedFileExtension()), result);
     }
-
-    checkCorrectRestart(text);
   }
 
   protected String printTokens(@NotNull Lexer lexer, @NotNull CharSequence text, int start) {
