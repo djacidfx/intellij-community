@@ -9,6 +9,7 @@ import com.intellij.testFramework.common.waitUntil
 import com.intellij.testFramework.fixtures.JavaCodeInsightFixtureTestCase
 import org.jetbrains.idea.devkit.build.PluginBuildConfiguration
 import org.jetbrains.idea.devkit.inspections.remotedev.SplitModeApiRestrictionsService
+import org.jetbrains.idea.devkit.inspections.remotedev.SplitModeMixedDependenciesInspection
 import org.jetbrains.idea.devkit.inspections.remotedev.SplitModeXmlApiUsageInspection
 import org.jetbrains.idea.devkit.module.PluginModuleType
 import org.jetbrains.jps.model.java.JavaResourceRootType
@@ -26,7 +27,7 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
       waitUntil("API restrictions failed to load", 2.seconds) { service.isLoaded() }
     }
 
-    myFixture.enableInspections(SplitModeXmlApiUsageInspection())
+    myFixture.enableInspections(SplitModeXmlApiUsageInspection(), SplitModeMixedDependenciesInspection())
   }
 
   fun testFrontendExtensionInBackendModule() {
@@ -179,10 +180,10 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
       moduleName = "unique.module.name.9",
       descriptorRelativePathToResourcesDirectory = "unique.module.name.9.xml",
       """
-        <idea-plugin>
+        <<error descr="This dependency list mixes frontend-only dependencies (intellij.platform.frontend) and backend-only dependencies (intellij.platform.backend)">idea-plugin</error>>
           <extensions defaultExtensionNs="com.intellij">
-            <<warning descr="'com.intellij.fileEditorProvider' can only be used in 'frontend' module type. Actual module type is 'mixed'. Reason: frontend dependencies: dependency 'intellij.platform.frontend' from containing plugin descriptor 'plugin.xml' in module 'unique.module.name.7'; backend dependencies: dependency 'intellij.platform.backend' from containing plugin descriptor 'plugin.xml' in module 'unique.module.name.8'">fileEditorProvider</warning>/>
-            <<warning descr="'com.intellij.localInspection' can only be used in 'backend' module type. Actual module type is 'mixed'. Reason: frontend dependencies: dependency 'intellij.platform.frontend' from containing plugin descriptor 'plugin.xml' in module 'unique.module.name.7'; backend dependencies: dependency 'intellij.platform.backend' from containing plugin descriptor 'plugin.xml' in module 'unique.module.name.8'">localInspection</warning>/>
+            <fileEditorProvider/>
+            <localInspection/>
           </extensions>
         </idea-plugin>
       """.trimIndent()
@@ -199,12 +200,12 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
       """
         <idea-plugin>
           <dependencies>
-            <module name="intellij.platform.frontend"/>
-            <module name="intellij.platform.backend"/>
+            <error descr="This dependency list mixes frontend-only dependencies (intellij.platform.frontend) and backend-only dependencies (intellij.platform.backend)"><module name="intellij.platform.frontend"/></error>
+            <error descr="This dependency list mixes frontend-only dependencies (intellij.platform.frontend) and backend-only dependencies (intellij.platform.backend)"><module name="intellij.platform.backend"/></error>
           </dependencies>
           <extensions defaultExtensionNs="com.intellij">
-            <<warning descr="'com.intellij.fileEditorProvider' can only be used in 'frontend' module type. Actual module type is 'mixed'. Reason: frontend dependencies: dependency 'intellij.platform.frontend' from descriptor 'plugin.xml' in module 'unique.module.name.10'; backend dependencies: dependency 'intellij.platform.backend' from descriptor 'plugin.xml' in module 'unique.module.name.10'">fileEditorProvider</warning>/>
-            <<warning descr="'com.intellij.localInspection' can only be used in 'backend' module type. Actual module type is 'mixed'. Reason: frontend dependencies: dependency 'intellij.platform.frontend' from descriptor 'plugin.xml' in module 'unique.module.name.10'; backend dependencies: dependency 'intellij.platform.backend' from descriptor 'plugin.xml' in module 'unique.module.name.10'">localInspection</warning>/>
+            <fileEditorProvider/>
+            <localInspection/>
           </extensions>
         </idea-plugin>
       """.trimIndent()

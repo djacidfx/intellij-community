@@ -26,6 +26,7 @@ private const val BACKEND_PLATFORM_MODULE_BASE_NAME = "intellij.platform.backend
 internal class ModuleAnalysis(
   val resolvedModuleKind: ResolvedModuleKind,
   val dependencyAnalysis: DependencyAnalysis,
+  val declaredDependencies: Set<DependencyInfo>,
 )
 
 internal data class ResolvedModuleKind(
@@ -252,7 +253,9 @@ internal object SplitModeModuleKindResolver {
     actualApiUsageModuleKind: ResolvedModuleKind,
     expectedKind: SplitModeApiRestrictionsService.ModuleKind,
   ): Boolean {
-    return expectedKind == SplitModeApiRestrictionsService.ModuleKind.SHARED || expectedKind == actualApiUsageModuleKind.kind
+    return actualApiUsageModuleKind.kind == SplitModeApiRestrictionsService.ModuleKind.MIXED
+           || expectedKind == SplitModeApiRestrictionsService.ModuleKind.SHARED
+           || expectedKind == actualApiUsageModuleKind.kind
   }
 
   fun getOrComputeModuleKind(element: PsiElement): ResolvedModuleKind? {
@@ -260,12 +263,7 @@ internal object SplitModeModuleKindResolver {
     return getOrComputeModuleAnalysis(module).resolvedModuleKind
   }
 
-  fun getOrComputeDependencyAnalysis(element: PsiElement): DependencyAnalysis? {
-    val module = ModuleUtilCore.findModuleForPsiElement(element) ?: return null
-    return getOrComputeModuleAnalysis(module).dependencyAnalysis
-  }
-
-  private fun getOrComputeModuleAnalysis(module: Module): ModuleAnalysis {
+  fun getOrComputeModuleAnalysis(module: Module): ModuleAnalysis {
     return CachedValuesManager.getManager(module.project).getCachedValue(module) {
       CachedValueProvider.Result.create(
         computeModuleAnalysis(module),
@@ -284,15 +282,17 @@ internal object SplitModeModuleKindResolver {
       return ModuleAnalysis(
         ResolvedModuleKind(SplitModeApiRestrictionsService.ModuleKind.SHARED, ""),
         DependencyAnalysis(moduleName, emptyList(), emptyList()),
+        emptySet(),
       )
     }
 
     val directDependencies = collectDescriptorDependencies(moduleName, xmlDescriptor, parsedXmlDescriptor)
+    val declaredDependencies = collectDeclaredDependencies(moduleName, xmlDescriptor, parsedXmlDescriptor)
     val containingPlugins = if (contentModuleXmlDescriptor == null) emptyList() else collectContainingPlugins(contentModuleXmlDescriptor)
     val dependencyAnalysis = DependencyAnalysis(moduleName, directDependencies, containingPlugins)
     val resolvedModuleKind = computeModuleKind(dependencyAnalysis)
 
-    return ModuleAnalysis(resolvedModuleKind, dependencyAnalysis)
+    return ModuleAnalysis(resolvedModuleKind, dependencyAnalysis, declaredDependencies)
   }
 
   private fun collectDescriptorDependencies(
@@ -305,6 +305,42 @@ internal object SplitModeModuleKindResolver {
       descriptorDependencies.add(DependencyInfo(dependencyName, "descriptor '${xmlDescriptor.name}' in module '$moduleName'", true, null))
     }
     return descriptorDependencies
+  }
+
+  private fun collectDeclaredDependencies(
+    moduleName: String,
+    xmlDescriptor: XmlFile,
+    ideaPlugin: IdeaPlugin,
+  ): Set<DependencyInfo> {
+    val originDescription = "descriptor '${xmlDescriptor.name}' in module '$moduleName'"
+    val declaredDependencies = LinkedHashSet<DependencyInfo>()
+
+    for (dependency in ideaPlugin.depends) {
+      val dependencyName = dependency.rawText ?: dependency.stringValue
+      if (dependencyName != null) {
+        declaredDependencies.add(DependencyInfo(dependencyName, originDescription, true, dependency))
+      }
+    }
+
+    val dependencies = ideaPlugin.dependencies
+    if (!dependencies.isValid) {
+      return declaredDependencies
+    }
+
+    for (moduleDescriptor in dependencies.moduleEntry) {
+      val dependencyName = moduleDescriptor.name.stringValue
+      if (dependencyName != null) {
+        declaredDependencies.add(DependencyInfo(dependencyName, originDescription, true, moduleDescriptor))
+      }
+    }
+    for (pluginDescriptor in dependencies.plugin) {
+      val dependencyName = pluginDescriptor.id.stringValue
+      if (dependencyName != null) {
+        declaredDependencies.add(DependencyInfo(dependencyName, originDescription, true, pluginDescriptor))
+      }
+    }
+
+    return declaredDependencies
   }
 
   private fun computeModuleKind(dependencyAnalysis: DependencyAnalysis): ResolvedModuleKind {

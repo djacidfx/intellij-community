@@ -66,6 +66,22 @@ internal class SplitModeMixedDependenciesInspectionTest : JavaCodeInsightFixture
     myFixture.checkHighlighting()
   }
 
+  fun testMixedDependsInPluginXml() {
+    val pluginXml = addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.28",
+      descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
+      pluginXmlContent = """
+        <idea-plugin>
+          <error descr="This dependency list mixes frontend-only dependencies (com.intellij.jetbrains.client) and backend-only dependencies (com.jetbrains.remoteDevelopment)"><depends>com.intellij.jetbrains.client</depends></error>
+          <error descr="This dependency list mixes frontend-only dependencies (com.intellij.jetbrains.client) and backend-only dependencies (com.jetbrains.remoteDevelopment)"><depends>com.jetbrains.remoteDevelopment</depends></error>
+        </idea-plugin>
+      """.trimIndent()
+    )
+    myFixture.configureFromExistingVirtualFile(pluginXml.virtualFile)
+
+    myFixture.checkHighlighting()
+  }
+
   fun testMixedDependenciesInContentModuleXml() {
     val contentModuleDescriptor = addModuleWithXmlDescriptor(
       moduleName = "unique.module.name.19",
@@ -159,6 +175,50 @@ internal class SplitModeMixedDependenciesInspectionTest : JavaCodeInsightFixture
           <dependencies>
             <error descr="This dependency list mixes frontend-only dependencies (intellij.platform.frontend) and backend-only dependencies (intellij.platform.kernel.backend)"><module name="intellij.platform.kernel.backend"/></error>
           </dependencies>
+        </idea-plugin>
+      """.trimIndent()
+    )
+    myFixture.configureFromExistingVirtualFile(contentModuleDescriptor.virtualFile)
+
+    myFixture.checkHighlighting()
+  }
+
+  fun testMixedContentModuleWithoutOwnDependenciesBlock() {
+    addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.25",
+      descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
+      pluginXmlContent = """
+        <idea-plugin>
+          <id>com.example.frontend.plugin</id>
+          <dependencies>
+            <module name="intellij.platform.frontend"/>
+          </dependencies>
+          <content>
+            <module name="unique.module.name.27"/>
+          </content>
+        </idea-plugin>
+      """.trimIndent()
+    )
+    addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.26",
+      descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
+      pluginXmlContent = """
+        <idea-plugin>
+          <id>com.example.backend.plugin</id>
+          <dependencies>
+            <module name="intellij.platform.backend"/>
+          </dependencies>
+          <content>
+            <module name="unique.module.name.27"/>
+          </content>
+        </idea-plugin>
+      """.trimIndent()
+    )
+    val contentModuleDescriptor = addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.27",
+      descriptorRelativePathToResourcesDirectory = "unique.module.name.27.xml",
+      pluginXmlContent = """
+        <<error descr="This dependency list mixes frontend-only dependencies (intellij.platform.frontend) and backend-only dependencies (intellij.platform.backend)">idea-plugin</error>>
         </idea-plugin>
       """.trimIndent()
     )

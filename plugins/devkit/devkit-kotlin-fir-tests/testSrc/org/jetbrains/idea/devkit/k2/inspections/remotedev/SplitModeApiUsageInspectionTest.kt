@@ -369,4 +369,38 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
 
     myFixture.checkHighlighting()
   }
+
+  fun testNoWarningsInMixedModule() {
+    configurePluginXml(
+      """
+      <idea-plugin>
+        <dependencies>
+          <module name="intellij.platform.frontend"/>
+          <module name="intellij.platform.backend"/>
+        </dependencies>
+      </idea-plugin>
+    """.trimIndent()
+    )
+
+    myFixture.configureByText(
+      "MixedService.kt", """
+      package com.example.mixed
+
+      import com.intellij.openapi.wm.ToolWindowFactory
+      import com.intellij.openapi.vfs.VirtualFileManager
+
+      class MixedService {
+        fun testFrontendApi() {
+          class MyToolWindow: ToolWindowFactory {}
+        }
+
+        fun testBackendApi() {
+          VirtualFileManager.getInstance()
+        }
+      }
+    """.trimIndent()
+    )
+
+    myFixture.checkHighlighting()
+  }
 }
