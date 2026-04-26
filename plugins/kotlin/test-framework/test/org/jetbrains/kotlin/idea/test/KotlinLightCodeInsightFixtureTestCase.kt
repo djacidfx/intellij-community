@@ -43,7 +43,6 @@ import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiJavaFile
 import com.intellij.psi.PsiManager
-import com.intellij.psi.codeStyle.CodeStyleSettings
 import com.intellij.psi.codeStyle.CodeStyleSettingsManager
 import com.intellij.psi.search.FileTypeIndex
 import com.intellij.psi.search.ProjectScope
@@ -560,18 +559,6 @@ fun configureRegistryAndRun(project: Project, fileText: String, body: () -> Unit
             register.resetToDefault()
         }
     }
-}
-
-fun configureCodeStyleAndRun(
-    project: Project,
-    configurator: (CodeStyleSettings) -> Unit = { },
-    body: () -> Unit
-) {
-    val testSettings = CodeStyle.createTestSettings(CodeStyle.getSettings(project))
-    CodeStyle.doWithTemporarySettings(project, testSettings, Runnable {
-        configurator(testSettings)
-        body()
-    })
 }
 
 fun enableKotlinOfficialCodeStyle(project: Project) {

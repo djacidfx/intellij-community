@@ -4,15 +4,17 @@ package org.jetbrains.kotlin.formatter
 import com.intellij.openapi.actionSystem.IdeActions
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.util.io.FileUtil
+import com.intellij.psi.codeStyle.CodeStyleSettings
 import com.intellij.psi.codeStyle.lineIndent.LineIndentProvider
 import com.intellij.psi.impl.source.tree.injected.InjectedLanguageEditorUtil
 import com.intellij.testFramework.EditorTestUtil
 import org.jetbrains.kotlin.idea.KotlinLanguage
 import org.jetbrains.kotlin.idea.base.test.InTextDirectivesUtils
+import org.jetbrains.kotlin.idea.base.test.configureCodeStyleAndRun
+import org.jetbrains.kotlin.idea.base.test.formatter.FormatSettingsUtil
 import org.jetbrains.kotlin.idea.formatter.KotlinLineIndentProvider
 import org.jetbrains.kotlin.idea.test.KotlinLightPlatformCodeInsightTestCase
 import org.jetbrains.kotlin.idea.test.KotlinTestUtils
-import org.jetbrains.kotlin.idea.test.configureCodeStyleAndRun
 import org.junit.Assert
 import java.io.File
 
@@ -65,7 +67,7 @@ abstract class AbstractEnterHandlerTest : KotlinLightPlatformCodeInsightTestCase
 
         configureCodeStyleAndRun(
             project = project,
-            configurator = {
+            configurator = { it: CodeStyleSettings ->
                 val configurator = FormatSettingsUtil.createConfigurator(originalFileText, it)
                 if (!inverted) {
                     configurator.configureSettings()

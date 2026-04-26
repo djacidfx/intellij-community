@@ -3,10 +3,10 @@ package org.jetbrains.kotlin.idea.editor.commenter
 
 import com.intellij.openapi.actionSystem.IdeActions
 import com.intellij.openapi.util.io.FileUtil
-import org.jetbrains.kotlin.formatter.FormatSettingsUtil
+import org.jetbrains.kotlin.idea.base.test.configureCodeStyleAndRun
+import org.jetbrains.kotlin.idea.base.test.formatter.FormatSettingsUtil
 import org.jetbrains.kotlin.idea.test.DirectiveBasedActionUtils.ACTION_DIRECTIVE
 import org.jetbrains.kotlin.idea.test.KotlinLightCodeInsightFixtureTestCase
-import org.jetbrains.kotlin.idea.test.configureCodeStyleAndRun
 import org.jetbrains.kotlin.test.InTextDirectivesUtils
 import java.io.File
 

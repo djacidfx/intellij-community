@@ -30,6 +30,8 @@ jvm_library(
     "@lib//:slf4j-api",
     "//java/java-runtime:rt",
     "//plugins/kotlin/base/pluginTestFramework:kotlin-base-plugin-testFramework",
+    "//platform/code-style-api:codeStyle",
+    "//plugins/kotlin/formatter/minimal",
   ],
   exports = ["//plugins/junit_rt:junit-rt"]
 )
@@ -62,6 +64,8 @@ jvm_library(
     "//plugins/junit_rt:junit-rt_test_lib",
     "//java/java-runtime:rt_test_lib",
     "//plugins/kotlin/base/pluginTestFramework:kotlin-base-plugin-testFramework_test_lib",
+    "//platform/code-style-api:codeStyle_test_lib",
+    "//plugins/kotlin/formatter/minimal:minimal_test_lib",
   ]
 )
 ### auto-generated section `build intellij.kotlin.base.testFramework` end

@@ -1,12 +1,12 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
-package org.jetbrains.kotlin.formatter;
+package org.jetbrains.kotlin.idea.base.test.formatter;
 
 import com.intellij.psi.codeStyle.CodeStyleSettings;
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings;
 import org.jetbrains.kotlin.idea.KotlinLanguage;
 import org.jetbrains.kotlin.idea.core.formatter.KotlinCodeStyleSettings;
-import org.jetbrains.kotlin.test.SettingsConfigurator;
+import org.jetbrains.kotlin.idea.test.SettingsConfigurator;
 
 public final class FormatSettingsUtil {
     private FormatSettingsUtil() {
