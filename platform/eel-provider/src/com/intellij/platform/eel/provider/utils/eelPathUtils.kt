@@ -40,6 +40,7 @@ import com.intellij.platform.eel.getOrThrow
 import com.intellij.platform.eel.isPosix
 import com.intellij.platform.eel.isWindows
 import com.intellij.platform.eel.path.EelPath
+import com.intellij.platform.eel.path.EelPathException
 import com.intellij.platform.eel.provider.LocalEelDescriptor
 import com.intellij.platform.eel.provider.asEelPath
 import com.intellij.platform.eel.provider.asNioPath
@@ -51,7 +52,6 @@ import com.intellij.platform.eel.provider.utils.EelPathUtils.UnixFilePermissionB
 import com.intellij.platform.eel.provider.utils.EelPathUtils.UnixFilePermissionBranch.OTHER
 import com.intellij.platform.eel.provider.utils.EelPathUtils.UnixFilePermissionBranch.OWNER
 import com.intellij.platform.eel.provider.utils.EelPathUtils.incrementalWalkingTransfer
-import com.intellij.platform.eel.provider.utils.EelPathUtils.transferLocalContentToRemote
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.intellij.util.containers.CollectionFactory
 import kotlinx.coroutines.CoroutineScope
@@ -1803,6 +1803,7 @@ object EelPathUtils {
  * Same as Java [Path.of] but supports paths on eels
  */
 @ApiStatus.Experimental
+@Throws(EelPathException::class)
 fun Path(pathOnEel: @NlsSafe String, eel: EelDescriptor): Path = EelPath.parse(pathOnEel, eel).asNioPath()
 
 private inline fun <T> Result<T>.handleIOExceptionOrThrow(action: (exception: IOException) -> Unit): Result<T> =

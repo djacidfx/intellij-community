@@ -14,10 +14,13 @@ import com.jetbrains.python.PythonBinary
 import com.jetbrains.python.errorProcessing.PyResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.IOException
 
 
 internal class AsdfSystemPythonProvider : SystemPythonProvider {
-  private val LOGGER: Logger = Logger.getInstance(AsdfSystemPythonProvider::class.java)
+  private companion object {
+    private val LOGGER: Logger = Logger.getInstance(AsdfSystemPythonProvider::class.java)
+  }
 
   override suspend fun findSystemPythons(eelApi: EelApi): PyResult<Set<PythonBinary>> {
     if (useLegacyPythonProvider()) {
@@ -25,41 +28,39 @@ internal class AsdfSystemPythonProvider : SystemPythonProvider {
     }
 
     val pythons = withContext(Dispatchers.IO) {
-      try {
-        val env = eelApi.exec.fetchLoginShellEnvVariables()
-        val rawAsdfRoot = env["ASDF_DATA_DIR"]?.takeIf { it.isNotBlank() }
-        val asdfRoot = if (rawAsdfRoot != null) {
-          try {
-            EelPath.parse(rawAsdfRoot, eelApi.descriptor)
-          }
-          catch (e: EelPathException) {
-            LOGGER.warn("ASDF_DATA_DIR='$rawAsdfRoot' is not a valid ${eelApi.descriptor.osFamily} absolute path; skipping asdf discovery", e)
-            return@withContext emptySet()
-          }
+      val env = try {
+        eelApi.exec.fetchLoginShellEnvVariables()
+      }
+      catch (e: IOException) {
+        LOGGER.warn("Failed to fetch login shell env variables for asdf discovery", e)
+        return@withContext emptySet()
+      }
+      val rawAsdfRoot = env["ASDF_DATA_DIR"]?.takeIf { it.isNotBlank() }
+      val asdfRoot = if (rawAsdfRoot != null) {
+        try {
+          EelPath.parse(rawAsdfRoot, eelApi.descriptor)
         }
-        else {
-          eelApi.userInfo.home.resolve(".asdf")
-        }
-
-        val versionsDir = asdfRoot.resolve("installs").resolve("python")
-        val entries = eelApi.fs.listDirectory(versionsDir)
-          .getOrNull()
-
-        if (entries == null) {
+        catch (e: EelPathException) {
+          LOGGER.warn("ASDF_DATA_DIR='$rawAsdfRoot' is not a valid ${eelApi.descriptor.osFamily} absolute path; skipping asdf discovery", e)
           return@withContext emptySet()
         }
-
-        val paths = entries
-          .map { versionsDir.resolve(it).resolve("bin").asNioPath() }
-
-        return@withContext collectPythonsInPaths( paths, listOf(python3NamePattern))
       }
-      catch (e: RuntimeException) {
-        if (Logger.shouldRethrow(e)) throw e
-        LOGGER.error("failed to discover asdf pythons", e)
+      else {
+        eelApi.userInfo.home.resolve(".asdf")
       }
 
-      return@withContext emptySet()
+      val versionsDir = asdfRoot.resolve("installs").resolve("python")
+      val entries = eelApi.fs.listDirectory(versionsDir)
+        .getOrNull()
+
+      if (entries == null) {
+        return@withContext emptySet()
+      }
+
+      val paths = entries
+        .map { versionsDir.resolve(it).resolve("bin").asNioPath() }
+
+      return@withContext collectPythonsInPaths(paths, listOf(python3NamePattern))
     }
 
     return PyResult.success(pythons)

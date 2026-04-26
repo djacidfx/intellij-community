@@ -23,7 +23,9 @@ import kotlin.io.path.pathString
 
 
 class WindowsSystemPythonProvider(val winRegistryBase: WinRegistryService? = null) : SystemPythonProvider {
-  private val LOGGER: Logger = Logger.getInstance(WindowsSystemPythonProvider::class.java)
+  private companion object {
+    private val LOGGER: Logger = Logger.getInstance(WindowsSystemPythonProvider::class.java)
+  }
 
   private val names = listOf(
     "pypy.exe",
@@ -49,28 +51,21 @@ class WindowsSystemPythonProvider(val winRegistryBase: WinRegistryService? = nul
     }
 
     val pythons = withContext(Dispatchers.IO) {
-      try {
-        val candidates = mutableSetOf<Path>()
+      val candidates = mutableSetOf<Path>()
 
-        for (name in names) {
-          val binaries = PathEnvironmentVariableUtil.findAllExeFilesInPath(name)
-            .mapNotNull { it.toPath() }
-            .filter { !PythonSdkUtil.isConda(it.pathString) }
-            .toSet()
+      for (name in names) {
+        val binaries = PathEnvironmentVariableUtil.findAllExeFilesInPath(name)
+          .mapNotNull { it.toPath() }
+          .filter { !PythonSdkUtil.isConda(it.pathString) }
+          .toSet()
 
-          candidates.addAll(binaries)
-        }
-
-        candidates.addAll(getPythonsFromStore())
-        candidates.addAll(getPythonsFromRegistry())
-
-        return@withContext candidates
-      }
-      catch (e: RuntimeException) {
-        LOGGER.error("Failed to discover Windows system pythons", e)
+        candidates.addAll(binaries)
       }
 
-      return@withContext emptySet<PythonBinary>()
+      candidates.addAll(getPythonsFromStore())
+      candidates.addAll(getPythonsFromRegistry())
+
+      return@withContext candidates
     }
 
     return PyResult.success(pythons)
@@ -105,14 +100,8 @@ class WindowsSystemPythonProvider(val winRegistryBase: WinRegistryService? = nul
   }
 
   private fun getPythonsFromStore(): Set<Path> {
-    return try {
-      getAppxFiles(APPX_PRODUCT, pythonVersionedExePattern.toRegex())
-        .map { it.toAbsolutePath() }
-        .toSet()
-    }
-    catch (e: Exception) {
-      LOGGER.debug("Error getting Python from Windows Store", e)
-      emptySet()
-    }
+    return getAppxFiles(APPX_PRODUCT, pythonVersionedExePattern.toRegex())
+      .map { it.toAbsolutePath() }
+      .toSet()
   }
 }
