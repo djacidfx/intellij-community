@@ -59,6 +59,7 @@ jvm_library(
     "//platform/util/progress",
     "//platform/vcs-api/vcs-api-core:vcs-core",
     "//platform/statistics",
+    "@lib//:kotlinc-allopen-compiler-plugin",
   ]
 )
 

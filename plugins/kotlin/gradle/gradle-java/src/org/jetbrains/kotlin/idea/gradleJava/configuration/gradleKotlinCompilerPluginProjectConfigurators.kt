@@ -11,6 +11,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.util.indexing.DumbModeAccessType
 import com.intellij.util.indexing.FileBasedIndex
+import org.jetbrains.kotlin.allopen.AllOpenPluginNames
 import org.jetbrains.kotlin.idea.base.platforms.KotlinJvmStdlibDetectorFacility
 import org.jetbrains.kotlin.idea.compiler.configuration.IdeKotlinVersion
 import org.jetbrains.kotlin.idea.configuration.ChangedConfiguratorFiles
@@ -19,6 +20,7 @@ import org.jetbrains.kotlin.idea.configuration.KotlinCompilerPluginProjectConfig
 import org.jetbrains.kotlin.idea.configuration.KotlinDependencyProvider
 import org.jetbrains.kotlin.idea.framework.ui.ConfigureDialogWithModulesAndVersion.Companion.defaultKotlinVersion
 import org.jetbrains.kotlin.idea.gradle.KotlinIdeaGradleBundle
+import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.GradleBuildScriptManipulator
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.GradleBuildScriptSupport
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.getBuildScriptPsiFile
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.getTopLevelBuildScriptPsiFile
@@ -37,7 +39,9 @@ abstract class AbstractGradleKotlinCompilerPluginProjectConfigurator : KotlinCom
 
         project.executeWriteCommand(KotlinIdeaGradleBundle.message("command.name.configure.0", topLevelFile.name), null) {
             topLevelFile.add(addVersion = true, sourceModule = module, changedFiles = configurationResultBuilder.changedFiles)
+            topLevelFile.addCustomization(addVersion = true, sourceModule = module, changedFiles = configurationResultBuilder.changedFiles)
             moduleFile?.add(addVersion = false, sourceModule = module, changedFiles = configurationResultBuilder.changedFiles)
+            moduleFile?.addCustomization(addVersion = false, sourceModule = module, changedFiles = configurationResultBuilder.changedFiles)
             configurationResultBuilder.configuredModule(module)
         }
     }
@@ -53,11 +57,13 @@ abstract class AbstractGradleKotlinCompilerPluginProjectConfigurator : KotlinCom
             val moduleBuildScriptPsiFile = module.getBuildScriptPsiFile()
             val moduleFile = moduleBuildScriptPsiFile.takeIf { it != topLevelFile }?.let(updater::getWritable)
             writablePomFile.add(addVersion = true, sourceModule = module, changedFiles = changedFiles)
+            writablePomFile.addCustomization(addVersion = true, sourceModule = module, changedFiles = changedFiles)
             moduleFile?.add(addVersion = false, sourceModule = module, changedFiles = changedFiles)
+            moduleFile?.addCustomization(addVersion = false, sourceModule = module, changedFiles = changedFiles)
         }.andThen(KotlinDependencyProvider.syncModCommand(topLevelFile))
     }
 
-    private fun PsiFile.add(addVersion: Boolean, sourceModule: Module, changedFiles: ChangedConfiguratorFiles) {
+    protected fun PsiFile.manipulatorAndVersion(sourceModule: Module): Pair<GradleBuildScriptManipulator<*>, IdeKotlinVersion> {
         val manipulator = GradleBuildScriptSupport.getManipulator(this)
 
         val version =
@@ -65,6 +71,12 @@ abstract class AbstractGradleKotlinCompilerPluginProjectConfigurator : KotlinCom
                 ?: GradleBuildScriptSupport.findKotlinPluginManagementVersion(sourceModule)?.parsedVersion
                 ?: detectKotlinStdlibVersion(sourceModule)
                 ?: defaultKotlinVersion
+        return manipulator to version
+    }
+
+    protected fun PsiFile.add(addVersion: Boolean, sourceModule: Module, changedFiles: ChangedConfiguratorFiles) {
+        val (manipulator, version) = manipulatorAndVersion(sourceModule)
+
         manipulator.configureBuildScripts(
             "kotlin.$kotlinCompilerPluginId",
             getKotlinPluginExpression(this is KtFile),
@@ -73,6 +85,9 @@ abstract class AbstractGradleKotlinCompilerPluginProjectConfigurator : KotlinCom
             jvmTarget = null,
             changedFiles = changedFiles
         )
+    }
+
+    protected open fun PsiFile.addCustomization(addVersion: Boolean, sourceModule: Module, changedFiles: ChangedConfiguratorFiles) {
     }
 
     fun detectKotlinStdlibVersion(module: Module): IdeKotlinVersion? {
@@ -127,4 +142,24 @@ class JpaGradleKotlinCompilerPluginProjectConfigurator : AbstractGradleKotlinCom
 
     override fun getKotlinPluginExpression(forKotlinDsl: Boolean): String =
         if (forKotlinDsl) "kotlin(\"plugin.jpa\")" else "id \"org.jetbrains.kotlin.plugin.jpa\""
+
+    override fun PsiFile.addCustomization(addVersion: Boolean, sourceModule: Module, changedFiles: ChangedConfiguratorFiles) {
+        val (manipulator, version) = manipulatorAndVersion(sourceModule)
+        if (version.kotlinVersion.isAtLeast(2, 3, 20)) return
+
+        manipulator.configureBuildScripts(
+            "kotlin.$kotlinCompilerPluginId",
+            "kotlin(\"plugin.allopen\")".takeIf { this is KtFile } ?: "id \"org.jetbrains.kotlin.plugin.allopen\"",
+            addVersion = addVersion,
+            version = version,
+            jvmTarget = null,
+            changedFiles = changedFiles
+        )
+
+        val opts = (AllOpenPluginNames.SUPPORTED_PRESETS[kotlinCompilerPluginId] ?: return).map {
+            "${AllOpenPluginNames.ANNOTATION_OPTION_NAME}(\"$it\")"
+        }.toTypedArray()
+
+        manipulator.configurePluginOptions("allOpen", changedFiles, *opts)
+    }
 }

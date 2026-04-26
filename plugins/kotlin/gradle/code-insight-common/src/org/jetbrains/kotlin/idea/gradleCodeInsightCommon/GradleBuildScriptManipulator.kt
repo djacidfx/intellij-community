@@ -65,6 +65,12 @@ interface GradleBuildScriptManipulator<out Psi : PsiFile> {
         changedFiles: ChangedConfiguratorFiles
     )
 
+    fun configurePluginOptions(
+        kotlinPluginName: String,
+        changedFiles: ChangedConfiguratorFiles,
+        vararg options: String
+    )
+
     fun configureProjectBuildScript(kotlinPluginName: String, version: IdeKotlinVersion): Boolean
 
     fun configureSettingsFile(kotlinPluginName: String, version: IdeKotlinVersion): Boolean
