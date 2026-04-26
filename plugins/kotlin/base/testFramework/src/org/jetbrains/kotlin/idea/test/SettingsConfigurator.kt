@@ -1,120 +1,110 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
-package org.jetbrains.kotlin.idea.test;
+package org.jetbrains.kotlin.idea.test
 
-import com.intellij.util.containers.ContainerUtil;
-import kotlin.Pair;
-import org.jetbrains.kotlin.idea.base.test.InTextDirectivesUtils;
+import org.jetbrains.kotlin.idea.base.test.InTextDirectivesUtils
+import java.lang.reflect.Field
+import java.lang.reflect.InvocationTargetException
+import java.lang.reflect.Method
 
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.Arrays;
-
-public class SettingsConfigurator {
-    public static final String SET_TRUE_DIRECTIVE = "SET_TRUE:";
-    public static final String SET_FALSE_DIRECTIVE = "SET_FALSE:";
-    private static final String SET_INT_DIRECTIVE = "SET_INT:";
-
-    private final String[] settingsToTrue;
-    private final String[] settingsToFalse;
-    private final Pair<String, Integer>[] settingsToIntValue;
-    private final Object[] objects;
-
-    public SettingsConfigurator(String fileText, Object... objects) {
-        settingsToTrue = InTextDirectivesUtils.findArrayWithPrefixes(fileText, SET_TRUE_DIRECTIVE);
-        settingsToFalse = InTextDirectivesUtils.findArrayWithPrefixes(fileText, SET_FALSE_DIRECTIVE);
-        //noinspection unchecked
-        settingsToIntValue = ContainerUtil.map2Array(
-                InTextDirectivesUtils.findArrayWithPrefixes(fileText, SET_INT_DIRECTIVE),
-                Pair.class,
-                s -> {
-                    String[] tokens = s.split("=");
-                    return new Pair<>(tokens[0].trim(), Integer.valueOf(tokens[1].trim()));
-                }
-        );
-        this.objects = objects;
+class SettingsConfigurator(fileText: String, private vararg val objects: Any?) {
+    companion object {
+        const val SET_TRUE_DIRECTIVE = "SET_TRUE:"
+        const val SET_FALSE_DIRECTIVE = "SET_FALSE:"
+        private const val SET_INT_DIRECTIVE = "SET_INT:"
     }
 
-    private static void setSettingValue(String settingName, Object value, Class<?> valueType, Object... objects) {
-        for (Object object : objects) {
-            if (setSettingWithField(settingName, object, value) || setSettingWithMethod(settingName, object, value, valueType)) {
-                return;
+    private val settingsToTrue: Array<String> = InTextDirectivesUtils.findArrayWithPrefixes(fileText, SET_TRUE_DIRECTIVE)
+    private val settingsToFalse: Array<String> = InTextDirectivesUtils.findArrayWithPrefixes(fileText, SET_FALSE_DIRECTIVE)
+    private val settingsToIntValue: List<Pair<String, Int>> = InTextDirectivesUtils.findArrayWithPrefixes(fileText, SET_INT_DIRECTIVE).map { s ->
+        val tokens = s.split("=")
+        Pair(tokens[0].trim(), tokens[1].trim().toInt())
+    }
+
+    private fun setSettingValue(settingName: String, value: Any, valueType: Class<*>, vararg objects: Any?) {
+        for (obj in objects) {
+            if (setSettingWithField(settingName, obj, value) || setSettingWithMethod(settingName, obj, value, valueType)) {
+                return
             }
         }
 
-        throw new IllegalArgumentException(String.format(
-                "There's no property or method with name '%s' in given objects: %s", settingName, Arrays.toString(objects)));
+        throw IllegalArgumentException(
+            "There's no property or method with name '$settingName' in given objects: ${objects.contentToString()}"
+        )
     }
 
-    private static void setBooleanSetting(String setting, Boolean value, Object... objects) {
-        setSettingValue(setting, value, boolean.class, objects);
+    private fun setBooleanSetting(setting: String, value: Boolean, vararg objects: Any?) {
+        setSettingValue(setting, value, Boolean::class.javaPrimitiveType!!, *objects)
     }
 
-    private static void setIntSetting(String setting, Integer value, Object... objects) {
-        setSettingValue(setting, value, int.class, objects);
+    private fun setIntSetting(setting: String, value: Int, vararg objects: Any?) {
+        setSettingValue(setting, value, Int::class.javaPrimitiveType!!, *objects)
     }
 
-    public void configureSettings() {
-        for (String trueSetting : settingsToTrue) {
-            setBooleanSetting(trueSetting, true, objects);
+    fun configureSettings() {
+        for (trueSetting in settingsToTrue) {
+            setBooleanSetting(trueSetting, true, *objects)
         }
 
-        for (String falseSetting : settingsToFalse) {
-            setBooleanSetting(falseSetting, false, objects);
+        for (falseSetting in settingsToFalse) {
+            setBooleanSetting(falseSetting, false, *objects)
         }
 
-        for (Pair<String, Integer> setting : settingsToIntValue) {
-            setIntSetting(setting.getFirst(), setting.getSecond(), objects);
-        }
-    }
-
-    public void configureInvertedSettings() {
-        for (String trueSetting : settingsToTrue) {
-            setBooleanSetting(trueSetting, false, objects);
-        }
-
-        for (String falseSetting : settingsToFalse) {
-            setBooleanSetting(falseSetting, true, objects);
-        }
-
-        for (Pair<String, Integer> setting : settingsToIntValue) {
-            setIntSetting(setting.getFirst(), setting.getSecond(), objects);
+        for (setting in settingsToIntValue) {
+            setIntSetting(setting.first, setting.second, *objects)
         }
     }
 
-    private static boolean setSettingWithField(String settingName, Object object, Object value) {
+    fun configureInvertedSettings() {
+        for (trueSetting in settingsToTrue) {
+            setBooleanSetting(trueSetting, false, *objects)
+        }
+
+        for (falseSetting in settingsToFalse) {
+            setBooleanSetting(falseSetting, true, *objects)
+        }
+
+        for (setting in settingsToIntValue) {
+            setIntSetting(setting.first, setting.second, *objects)
+        }
+    }
+
+    private fun setSettingWithField(settingName: String, obj: Any?, value: Any): Boolean {
+        if (obj == null) return false
+
         try {
-            Field field = object.getClass().getField(settingName);
-            field.set(object, value);
-            return true;
+            val field: Field = obj.javaClass.getField(settingName)
+            field.set(obj, value)
+            return true
         }
-        catch (IllegalAccessException e) {
-            throw new IllegalArgumentException(String.format("Can't set property with the name %s in object %s", settingName, object));
+        catch (e: IllegalAccessException) {
+            throw IllegalArgumentException("Can't set property with the name $settingName in object $obj")
         }
-        catch (NoSuchFieldException e) {
+        catch (e: NoSuchFieldException) {
             // Do nothing - will try other variants
         }
 
-        return false;
+        return false
     }
 
-    private static boolean setSettingWithMethod(String setterName, Object object, Object value, Class<?> valueType) {
+    private fun setSettingWithMethod(setterName: String, obj: Any?, value: Any, valueType: Class<*>): Boolean {
+        if (obj == null) return false
+
         try {
-            Method method = object.getClass().getMethod(setterName, valueType);
-            method.invoke(object, value);
-            return true;
+            val method: Method = obj.javaClass.getMethod(setterName, valueType)
+            method.invoke(obj, value)
+            return true
         }
-        catch (InvocationTargetException e) {
-            throw new IllegalArgumentException(String.format("Can't call method with name %s for object %s", setterName, object));
+        catch (e: InvocationTargetException) {
+            throw IllegalArgumentException("Can't call method with name $setterName for object $obj")
         }
-        catch (IllegalAccessException e) {
-            throw new IllegalArgumentException(String.format("Can't access to method with name %s for object %s", setterName, object));
+        catch (e: IllegalAccessException) {
+            throw IllegalArgumentException("Can't access to method with name $setterName for object $obj")
         }
-        catch (NoSuchMethodException e) {
+        catch (e: NoSuchMethodException) {
             // Do nothing - will try other variants
         }
 
-        return false;
+        return false
     }
 }
