@@ -17,7 +17,7 @@ import kotlinx.serialization.json.JsonElement
 
 suspend fun withBaseProtocolFraming(
   connection: LspConnection,
-  exitSignal: CompletableDeferred<Unit>?,
+  exitSignal: CompletableDeferred<Unit>? = null,
   body: suspend CoroutineScope.(
     incoming: ReceiveChannel<JsonElement>,
     outgoing: SendChannel<JsonElement>,
