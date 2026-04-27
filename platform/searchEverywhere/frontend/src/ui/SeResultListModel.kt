@@ -62,8 +62,13 @@ class SeResultListModel(private val searchStatePublisher: SeSearchStatePublisher
     if (!isValid) {
       reset()
 
-      // Fo non-all tab we should freeze the list immediately, because results flickers on every typed symbol otherwise
-      shouldFreezeImmediately = (searchContext.tabId != SeAllTab.ID)
+      // For non-all tab right after receiving first accumulated items
+      // we should freeze the list immediately, because results flickers on every typed symbol otherwise
+      shouldFreezeImmediately = (searchContext.tabId != SeAllTab.ID) && throttledEvent is ThrottledAccumulatedItems
+
+      if (shouldFreezeImmediately) {
+        SeLog.log(SeLog.FROZEN_COUNT) { "Will freeze immediately (searchId = ${searchContext.searchId})" }
+      }
     }
 
     val wasEmpty = isEmpty

@@ -208,10 +208,19 @@ class SeTabVmImpl(
 
             val essential = tab.essentialProviderIds().filter { it !in disabledProviderIds }.toSet()
             if (essential.isEmpty()) {
-              if (shouldThrottle.load()) resultsFlowWithAdaptedPresentations.throttledWithAccumulation(shouldPassItem = { item -> item !is SeResultEndEvent })
-              else resultsFlowWithAdaptedPresentations.map { event -> ThrottledOneItem(event) }
+              if (shouldThrottle.load()) {
+                SeLog.log(SeLog.THROTTLING) { "Will throttle with accumulation (searchId = $searchId)" }
+                resultsFlowWithAdaptedPresentations.throttledWithAccumulation(shouldPassItem = { item -> item !is SeResultEndEvent })
+              }
+              else {
+                SeLog.log(SeLog.THROTTLING) { "Will not throttle (searchId = $searchId)" }
+                resultsFlowWithAdaptedPresentations.map { event -> ThrottledOneItem(event) }
+              }
             }
-            else resultsFlowWithAdaptedPresentations.throttleUntilEssentialsArrive(essential)
+            else {
+              SeLog.log(SeLog.THROTTLING) { "Will throttle until essentials arrive (searchId = $searchId)" }
+              resultsFlowWithAdaptedPresentations.throttleUntilEssentialsArrive(essential)
+            }
           }.map { item ->
             if (!shouldLoadMoreFlow.value) _resultsHitBackPressureFlow.emit(searchId to true)
             shouldLoadMoreFlow.first { it }
