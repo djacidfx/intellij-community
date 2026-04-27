@@ -233,6 +233,7 @@ internal fun MutableTWorkspace.generateK2InspectionTests() {
             model("${idea}/multiFileLocalInspections/reconcilePackageWithDirectory", pattern = pattern)
             model("${idea}/multiFileLocalInspections/convertSealedSubClassToObject", pattern = pattern)
             model("${idea}/multiFileLocalInspections/redundantQualifierName", pattern = pattern)
+            model("${idea}/multiFileLocalInspections/moveFileToPackageMatchingDirectory", pattern = pattern)
             model("${idea}/multiFileLocalInspections/usePropertyAccessSyntax", pattern = pattern, flatten = true)
             model("code-insight/inspections-k2/tests/testData/multiFileInspectionsLocal", pattern = pattern)
         }
