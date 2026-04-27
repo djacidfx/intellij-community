@@ -151,5 +151,8 @@
     { "dependencyName": "intellij.vcs.git.backend.split" },
     { "dependencyName": "intellij.yaml.backend" }
   ],
+  "monolith": [
+    { "dependencyName": "intellij.platform.monolith" }
+  ],
   "shared": []
 }

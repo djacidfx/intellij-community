@@ -18,9 +18,9 @@ import org.jetbrains.idea.devkit.module.PluginModuleType
 import org.jetbrains.idea.devkit.util.DescriptorUtil
 import org.jetbrains.idea.devkit.util.PluginRelatedLocatorsUtils
 
-private const val FRONTEND_PLATFORM_MODULE_BASE_NAME = "intellij.platform.frontend"
-private const val BACKEND_PLATFORM_MODULE_BASE_NAME = "intellij.platform.backend"
-private const val MONOLITH_PLATFORM_MODULE_BASE_NAME = "intellij.platform.monolith"
+internal const val FRONTEND_PLATFORM_MODULE_BASE_NAME = "intellij.platform.frontend"
+internal const val BACKEND_PLATFORM_MODULE_BASE_NAME = "intellij.platform.backend"
+internal const val MONOLITH_PLATFORM_MODULE_BASE_NAME = "intellij.platform.monolith"
 
 internal class ModuleAnalysis(
   val resolvedModuleKind: ResolvedModuleKind,
@@ -211,7 +211,7 @@ private fun isExplicitBackendDependency(dependencyName: String): Boolean {
 }
 
 private fun isExplicitMonolithDependency(dependencyName: String): Boolean {
-  return dependencyName == MONOLITH_PLATFORM_MODULE_BASE_NAME
+  return dependencyName == getExplicitPlatformDependencyName(SplitModeApiRestrictionsService.ModuleKind.MONOLITH)
 }
 
 internal fun isFrontendDependency(dependencyName: String): Boolean {

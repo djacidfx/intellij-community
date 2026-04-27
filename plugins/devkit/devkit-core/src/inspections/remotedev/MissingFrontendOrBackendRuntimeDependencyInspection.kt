@@ -11,8 +11,8 @@ import org.jetbrains.idea.devkit.DevKitBundle.message
 internal class MissingFrontendOrBackendRuntimeDependencyInspection : DevKitPluginXmlInspectionBase() {
 
   private val moduleNameSuffixToRequiredRuntimeDependency = listOf(
-    ".frontend" to "intellij.platform.frontend",
-    ".backend" to "intellij.platform.backend",
+    ".frontend" to FRONTEND_PLATFORM_MODULE_BASE_NAME,
+    ".backend" to BACKEND_PLATFORM_MODULE_BASE_NAME,
   )
 
   private val coreModuleNames = moduleNameSuffixToRequiredRuntimeDependency.map { it.second }
@@ -51,8 +51,8 @@ internal class MissingFrontendOrBackendRuntimeDependencyInspection : DevKitPlugi
 
   private fun moduleKindByDependencyName(dependencyName: String): SplitModeApiRestrictionsService.ModuleKind {
     return when (dependencyName) {
-      "intellij.platform.frontend" -> SplitModeApiRestrictionsService.ModuleKind.FRONTEND
-      "intellij.platform.backend" -> SplitModeApiRestrictionsService.ModuleKind.BACKEND
+      FRONTEND_PLATFORM_MODULE_BASE_NAME -> SplitModeApiRestrictionsService.ModuleKind.FRONTEND
+      BACKEND_PLATFORM_MODULE_BASE_NAME -> SplitModeApiRestrictionsService.ModuleKind.BACKEND
       else -> error("Unsupported split-mode runtime dependency: $dependencyName")
     }
   }

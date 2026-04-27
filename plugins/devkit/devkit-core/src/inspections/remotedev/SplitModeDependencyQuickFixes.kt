@@ -1,10 +1,10 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.idea.devkit.inspections.remotedev
 
-import com.intellij.codeInspection.LocalQuickFix
-import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
 import com.intellij.codeInsight.intention.preview.IntentionPreviewUtils
+import com.intellij.codeInspection.LocalQuickFix
+import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.project.Project
 import com.intellij.psi.xml.XmlFile
@@ -61,7 +61,7 @@ internal object SplitModeDependencyQuickFixes {
       SplitModeApiRestrictionsService.ModuleKind.MONOLITH,
       SplitModeApiRestrictionsService.ModuleKind.MIXED,
       SplitModeApiRestrictionsService.ModuleKind.SHARED,
-      -> false
+        -> false
     }
   }
 
@@ -83,7 +83,7 @@ internal object SplitModeDependencyQuickFixes {
       SplitModeApiRestrictionsService.ModuleKind.MONOLITH,
       SplitModeApiRestrictionsService.ModuleKind.MIXED,
       SplitModeApiRestrictionsService.ModuleKind.SHARED,
-      -> false
+        -> false
     }
   }
 
@@ -123,7 +123,7 @@ internal object SplitModeDependencyQuickFixes {
     }
 
     override fun getFamilyName(): String {
-      return message("inspection.remote.dev.missing.runtime.dependency.fix.add", getExplicitDependencyName(desiredModuleKind))
+      return message("inspection.remote.dev.missing.runtime.dependency.fix.add", getExplicitPlatformDependencyName(desiredModuleKind))
     }
 
     override fun generatePreview(project: Project, descriptor: ProblemDescriptor): IntentionPreviewInfo {
@@ -136,7 +136,7 @@ internal object SplitModeDependencyQuickFixes {
         IntentionPreviewInfo.Html(
           message(
             "inspection.remote.dev.add.explicit.kind.dependency.fix.description",
-            getExplicitDependencyName(desiredModuleKind),
+            getExplicitPlatformDependencyName(desiredModuleKind),
             moduleName,
             desiredModuleKind.presentableName,
           )
@@ -151,7 +151,7 @@ internal object SplitModeDependencyQuickFixes {
 
       removeInappropriateDependencies(ideaPlugin, desiredModuleKind)
 
-      val dependencyName = getExplicitDependencyName(desiredModuleKind)
+      val dependencyName = getExplicitPlatformDependencyName(desiredModuleKind)
       if (hasDirectDependency(ideaPlugin, dependencyName)) {
         return
       }
@@ -213,16 +213,18 @@ private fun shouldRemoveDependency(
   val dependencyKind = SplitModeApiRestrictionsService.getInstance().getDependencyKind(dependencyName)
   return when (desiredModuleKind) {
     SplitModeApiRestrictionsService.ModuleKind.FRONTEND -> {
-      dependencyKind == SplitModeApiRestrictionsService.ModuleKind.BACKEND || dependencyName == "intellij.platform.monolith"
+      dependencyKind == SplitModeApiRestrictionsService.ModuleKind.BACKEND
+      || dependencyKind == SplitModeApiRestrictionsService.ModuleKind.MONOLITH
     }
     SplitModeApiRestrictionsService.ModuleKind.BACKEND -> {
-      dependencyKind == SplitModeApiRestrictionsService.ModuleKind.FRONTEND || dependencyName == "intellij.platform.monolith"
+      dependencyKind == SplitModeApiRestrictionsService.ModuleKind.FRONTEND
+      || dependencyKind == SplitModeApiRestrictionsService.ModuleKind.MONOLITH
     }
     SplitModeApiRestrictionsService.ModuleKind.MONOLITH -> {
-      dependencyName == getExplicitDependencyName(SplitModeApiRestrictionsService.ModuleKind.FRONTEND)
-      || dependencyName == getExplicitDependencyName(SplitModeApiRestrictionsService.ModuleKind.BACKEND)
+      dependencyName == getExplicitPlatformDependencyName(SplitModeApiRestrictionsService.ModuleKind.FRONTEND)
+      || dependencyName == getExplicitPlatformDependencyName(SplitModeApiRestrictionsService.ModuleKind.BACKEND)
     }
-    SplitModeApiRestrictionsService.ModuleKind.MIXED, SplitModeApiRestrictionsService.ModuleKind.SHARED, -> {
+    SplitModeApiRestrictionsService.ModuleKind.MIXED, SplitModeApiRestrictionsService.ModuleKind.SHARED -> {
       false
     }
   }
@@ -234,19 +236,16 @@ private fun hasDirectDependency(ideaPlugin: IdeaPlugin, dependencyName: String):
   }
 
   val dependencies = ideaPlugin.dependencies
-  return dependencies.isValid && (
-    dependencies.moduleEntry.any { it.name.stringValue == dependencyName }
-    || dependencies.plugin.any { it.id.stringValue == dependencyName }
-  )
+  return dependencies.isValid
+         && (dependencies.moduleEntry.any { it.name.stringValue == dependencyName }
+           || dependencies.plugin.any { it.id.stringValue == dependencyName })
 }
 
-private fun getExplicitDependencyName(moduleKind: SplitModeApiRestrictionsService.ModuleKind): String {
+internal fun getExplicitPlatformDependencyName(moduleKind: SplitModeApiRestrictionsService.ModuleKind): String {
   return when (moduleKind) {
-    SplitModeApiRestrictionsService.ModuleKind.FRONTEND -> "intellij.platform.frontend"
-    SplitModeApiRestrictionsService.ModuleKind.BACKEND -> "intellij.platform.backend"
-    SplitModeApiRestrictionsService.ModuleKind.MONOLITH -> "intellij.platform.monolith"
-    SplitModeApiRestrictionsService.ModuleKind.MIXED,
-    SplitModeApiRestrictionsService.ModuleKind.SHARED,
-    -> error("Explicit split-mode dependency is only supported for frontend/backend/monolith module kinds")
+    SplitModeApiRestrictionsService.ModuleKind.FRONTEND -> FRONTEND_PLATFORM_MODULE_BASE_NAME
+    SplitModeApiRestrictionsService.ModuleKind.BACKEND -> BACKEND_PLATFORM_MODULE_BASE_NAME
+    SplitModeApiRestrictionsService.ModuleKind.MONOLITH -> MONOLITH_PLATFORM_MODULE_BASE_NAME
+    SplitModeApiRestrictionsService.ModuleKind.MIXED, SplitModeApiRestrictionsService.ModuleKind.SHARED -> error("Explicit split-mode dependency is only supported for frontend/backend/monolith module kinds")
   }
 }

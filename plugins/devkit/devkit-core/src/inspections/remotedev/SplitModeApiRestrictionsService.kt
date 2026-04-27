@@ -158,6 +158,7 @@ class SplitModeApiRestrictionsService(private val coroutineScope: CoroutineScope
     return sequenceOf(
       frontend.asSequence().map { ModuleKind.FRONTEND to it },
       backend.asSequence().map { ModuleKind.BACKEND to it },
+      monolith.asSequence().map { ModuleKind.MONOLITH to it },
       shared.asSequence().map { ModuleKind.SHARED to it },
     ).flatten()
   }
@@ -174,6 +175,9 @@ class SplitModeApiRestrictionsService(private val coroutineScope: CoroutineScope
 
     @SerialName("backend")
     val backend: List<T> = emptyList(),
+
+    @SerialName("monolith")
+    val monolith: List<T> = emptyList(),
 
     @SerialName("shared")
     val shared: List<T> = emptyList(),
