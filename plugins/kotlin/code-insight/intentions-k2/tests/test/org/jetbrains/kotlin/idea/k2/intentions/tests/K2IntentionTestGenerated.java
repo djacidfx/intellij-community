@@ -7854,7 +7854,64 @@ public abstract class K2IntentionTestGenerated extends AbstractK2IntentionTest {
         }
     }
 
+    @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../../idea/tests/testData/intentions/replaceUnderscoreWithParameterName")
+    public static class ReplaceUnderscoreWithParameterName extends AbstractK2IntentionTest {
+        @java.lang.Override
+        @org.jetbrains.annotations.NotNull
+        public final KotlinPluginMode getPluginMode() {
+            return KotlinPluginMode.K2;
+        }
 
+        private void runTest(String testDataFilePath) throws Exception {
+            KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
+        }
+
+        @TestMetadata("anonymous.kt")
+        public void testAnonymous() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/replaceUnderscoreWithParameterName/anonymous.kt");
+        }
+
+        @TestMetadata("conflict.kt")
+        public void testConflict() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/replaceUnderscoreWithParameterName/conflict.kt");
+        }
+
+        @TestMetadata("destructuringDeclaration.kt")
+        public void testDestructuringDeclaration() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/replaceUnderscoreWithParameterName/destructuringDeclaration.kt");
+        }
+
+        @TestMetadata("for.kt")
+        public void testFor() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/replaceUnderscoreWithParameterName/for.kt");
+        }
+
+        @TestMetadata("lambda.kt")
+        public void testLambda() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/replaceUnderscoreWithParameterName/lambda.kt");
+        }
+
+        @TestMetadata("lambdaConflict.kt")
+        public void testLambdaConflict() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/replaceUnderscoreWithParameterName/lambdaConflict.kt");
+        }
+
+        @TestMetadata("lambdaNoNames.kt")
+        public void testLambdaNoNames() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/replaceUnderscoreWithParameterName/lambdaNoNames.kt");
+        }
+
+        @TestMetadata("map.kt")
+        public void testMap() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/replaceUnderscoreWithParameterName/map.kt");
+        }
+
+        @TestMetadata("triple.kt")
+        public void testTriple() throws Exception {
+            runTest("../../../idea/tests/testData/intentions/replaceUnderscoreWithParameterName/triple.kt");
+        }
+    }
 
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../../idea/tests/testData/intentions/convertFunctionToProperty")
