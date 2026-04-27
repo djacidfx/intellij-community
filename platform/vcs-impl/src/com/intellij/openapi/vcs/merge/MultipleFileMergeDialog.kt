@@ -459,9 +459,10 @@ open class MultipleFileMergeDialog(
     iterativelyResolved.forEach { file ->
       saveDocument(file)
       checkMarkModifiedProject(project, file)
-
-      runWithModalProgressBlocking(getModalTaskOwner(),
-                                   VcsBundle.message("multiple.file.merge.dialog.progress.title.resolving.conflicts")) {
+    }
+    runWithModalProgressBlocking(getModalTaskOwner(),
+                                 VcsBundle.message("multiple.file.merge.dialog.progress.title.resolving.conflicts")) {
+      iterativelyResolved.forEach { file ->
         markFileProcessed(file, getSessionResolution(MergeResult.RESOLVED))
       }
     }
