@@ -13,7 +13,24 @@ fun IdeaFrameUI.goPerformanceToolWindow(action: GoPerformanceToolWindowUI.() -> 
     )
   }.apply(action)
 
+fun IdeaFrameUI.flameGraphViewSettingsPopup(anchor: String): UiComponent =
+  x {
+    componentWithChild(
+      byClass("HeavyWeightWindow"),
+      byClass("MyList") and contains(byVisibleText(anchor))
+    )
+  }
+
 class GoPerformanceToolWindowUI(data: ComponentData) : ToolWindowUiComponent(data) {
   fun viewerTab(name: String): UiComponent =
     x { and(byClass("SimpleColoredComponent"), byAccessibleName(name)) }
+
+  val graphViewport: UiComponent
+    get() = x { byType("com.intellij.uml.components.UmlGraphZoomableViewport") }
+
+  val viewSettingsButton: UiComponent
+    get() = x { and(byClass("ActionButton"), byAccessibleName("View Settings")) }
+
+  val sampleTypeSelectorLabel: UiComponent
+    get() = x { and(byClass("JLabel"), byAccessibleName("Show:")) }
 }
