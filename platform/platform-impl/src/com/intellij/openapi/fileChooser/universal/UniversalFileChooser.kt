@@ -101,6 +101,8 @@ import kotlin.io.path.pathString
 import kotlin.streams.asSequence
 import kotlin.time.Duration.Companion.seconds
 
+private const val leftPanel: Boolean = false
+
 @ApiStatus.Internal
 object UniversalFileChooser {
   @JvmStatic
@@ -190,17 +192,23 @@ object UniversalFileChooser {
       preferredSize = Dimension(screenSize.width / 2, screenSize.height / 2)
       tabbedPane = JBTabbedPane()
       for (contributor in UniversalFileChooserContributor.EP_NAME.extensionList) {
-        val fileView = FileView(contributor, descriptor, disposable, project, okAction, scope)
+        val navigateToProjectAction = if (project.isDefault) null else Runnable { navigateToProject() }
+        val fileView = FileView(contributor, descriptor, disposable, project, okAction, scope, Runnable { navigateToHome() }, navigateToProjectAction)
         fileViews.add(fileView)
         tabbedPane.addTab(contributor.tabTitle, fileView.topComponent)
       }
 
       preselectProjectTab(project)
 
-      val splitter = OnePixelSplitter(false, LOCATIONS_PROPORTION_KEY, LOCATIONS_DEFAULT_PROPORTION)
-      splitter.firstComponent = createLocationsPanel(project)
-      splitter.secondComponent = tabbedPane
-      add(splitter, BorderLayout.CENTER)
+      if (leftPanel) {
+        val splitter = OnePixelSplitter(false, LOCATIONS_PROPORTION_KEY, LOCATIONS_DEFAULT_PROPORTION)
+        splitter.firstComponent = createLocationsPanel(project)
+        splitter.secondComponent = tabbedPane
+        add(splitter, BorderLayout.CENTER)
+      }
+      else {
+        add(tabbedPane, BorderLayout.CENTER)
+      }
 
       disposable.whenDisposed {
         scope.cancel()
@@ -334,6 +342,8 @@ object UniversalFileChooser {
       project: Project,
       okAction: Runnable,
       val scope: CoroutineScope,
+      private val navigateToHome: Runnable,
+      private val navigateToProject: Runnable?,
     ) {
       val topComponent: JComponent
       val fileTree: NioFileSystemTree
@@ -745,7 +755,35 @@ object UniversalFileChooser {
           }
         }
 
+        val homeAction = object : AnAction(
+          IdeBundle.message("universal.file.chooser.action.home.text"),
+          IdeBundle.message("universal.file.chooser.action.home.description"),
+          AllIcons.Nodes.HomeFolder
+        ) {
+          override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+
+          override fun actionPerformed(e: AnActionEvent) {
+            navigateToHome.run()
+          }
+        }
+
+        val projectAction = if (navigateToProject != null) object : AnAction(
+          IdeBundle.message("universal.file.chooser.action.project.text"),
+          IdeBundle.message("universal.file.chooser.action.project.description"),
+          AllIcons.Nodes.Project
+        ) {
+          override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+
+          override fun actionPerformed(e: AnActionEvent) {
+            navigateToProject.run()
+          }
+        } else null
+
         val actionGroup = DefaultActionGroup().apply {
+          if (!leftPanel) {
+            add(homeAction)
+            if (projectAction != null) add(projectAction)
+          }
           add(mountStatusAction)
           add(showHiddenAction)
           add(createDirectoryAction)
