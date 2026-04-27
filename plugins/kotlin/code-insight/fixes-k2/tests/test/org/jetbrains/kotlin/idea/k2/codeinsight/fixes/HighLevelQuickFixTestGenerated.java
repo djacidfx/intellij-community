@@ -8586,6 +8586,11 @@ public abstract class HighLevelQuickFixTestGenerated extends AbstractHighLevelQu
             runTest("../../../idea/tests/testData/quickfix/destructingNameMismatch/matchProp.kt");
         }
 
+        @TestMetadata("matchPropInBatch.kt")
+        public void testMatchPropInBatch() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/destructingNameMismatch/matchPropInBatch.kt");
+        }
+
         @TestMetadata("matchPropLambdaCollision.kt")
         public void testMatchPropLambdaCollision() throws Exception {
             runTest("../../../idea/tests/testData/quickfix/destructingNameMismatch/matchPropLambdaCollision.kt");

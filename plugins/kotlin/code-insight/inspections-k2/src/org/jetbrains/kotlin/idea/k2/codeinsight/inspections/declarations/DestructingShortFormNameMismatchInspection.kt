@@ -1,13 +1,19 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.kotlin.idea.k2.codeinsight.inspections.declarations
 
-import com.intellij.codeInspection.IntentionWrapper
+import com.intellij.codeInspection.BatchQuickFix
+import com.intellij.codeInspection.CommonProblemDescriptor
+import com.intellij.codeInspection.LocalQuickFix
+import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemsHolder
+import com.intellij.codeInspection.util.IntentionName
 import com.intellij.modcommand.ModPsiUpdater
-import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.refactoring.rename.RenameProcessor
+import com.siyeh.ig.psiutils.PsiElementOrderComparator
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.config.LanguageFeature
@@ -15,7 +21,6 @@ import org.jetbrains.kotlin.idea.base.projectStructure.languageVersionSettings
 import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
 import org.jetbrains.kotlin.idea.codeinsight.api.applicable.inspections.KotlinModCommandQuickFix
 import org.jetbrains.kotlin.idea.codeinsight.api.classic.inspections.AbstractKotlinInspection
-import org.jetbrains.kotlin.idea.codeinsight.api.classic.quickfixes.KotlinQuickFixAction
 import org.jetbrains.kotlin.idea.codeinsight.utils.convertDestructuringToPositionalForm
 import org.jetbrains.kotlin.idea.codeinsight.utils.extractPrimaryParameters
 import org.jetbrains.kotlin.idea.codeinsight.utils.isPositionalDestructuringType
@@ -23,7 +28,7 @@ import org.jetbrains.kotlin.idea.codeinsights.impl.base.applicators.Applicabilit
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.psi.KtDestructuringDeclaration
 import org.jetbrains.kotlin.psi.KtDestructuringDeclarationEntry
-import org.jetbrains.kotlin.psi.KtFile
+import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtVisitor
 import org.jetbrains.kotlin.psi.KtVisitorVoid
 
@@ -75,7 +80,7 @@ internal class DestructingShortFormNameMismatchInspection : AbstractKotlinInspec
                     holder.registerProblem(
                         entry,
                         KotlinBundle.message("inspection.destruction.declaration.mismatch"),
-                        IntentionWrapper(RenameVariableToMatchPropertiesQuickFix(entry, expectedName))
+                        RenameVariableToMatchPropertiesQuickFix(expectedName)
                     )
                 }
             }
@@ -105,19 +110,62 @@ private fun KaSession.analyzeDestructuringDeclaration(declaration: KtDestructuri
 
 
 private class RenameVariableToMatchPropertiesQuickFix(
-    entry: KtDestructuringDeclarationEntry,
     private val targetName: Name
-) : KotlinQuickFixAction<KtDestructuringDeclarationEntry>(entry) {
-    override fun getText() = KotlinBundle.message("rename.var.to.property.name", targetName)
+) : LocalQuickFix, BatchQuickFix  {
+    override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
+        val element = descriptor.psiElement ?: return
+        RenameProcessor(project, element, targetName.toString(), false, false).run()
+    }
+
+    override fun applyFix(
+        project: Project,
+        descriptors: Array<CommonProblemDescriptor>,
+        psiElementsToIgnore: MutableList<PsiElement>,
+        refreshViews: Runnable?
+    ) {
+        val orderComparator = PsiElementOrderComparator.getInstance()
+        val elementToName = descriptors.filterIsInstance<ProblemDescriptor>().mapNotNull { d ->
+            val element = d.psiElement ?: return@mapNotNull null
+            val fix = d.fixes?.filterIsInstance<RenameVariableToMatchPropertiesQuickFix>()?.firstOrNull() ?: return@mapNotNull null
+            element to fix.targetName.toString()
+        }.sortedWith { p1, p2 -> orderComparator.compare(p1.first, p2.first) }
+        if (elementToName.isEmpty()) return
+
+        // these are local variables, and we should not have any additional elements to rename based on new names,
+        // so it must be fine to rename in batch as simple entries without the full processor restart.
+        // Entries in the same code blocks with the same target names are ignored because it would lead to re-declarations,
+        // which won't be caught by the processor
+        val firstToRename = elementToName.first()
+        val scopes = mutableMapOf<String, MutableSet<KtElement>>()
+
+        fun getContainingBlock(element: PsiElement): KtElement? = element.parent.parent as? KtElement
+
+        val (firstElementToRename, firstNameToRename) = firstToRename
+        psiElementsToIgnore.add(firstElementToRename)
+        scopes[firstNameToRename] = getContainingBlock(firstElementToRename)?.let { mutableSetOf(it) } ?: mutableSetOf()
+        object : RenameProcessor(project, firstElementToRename, firstNameToRename, false, false) {
+            init {
+                elementToName.subList(1, elementToName.size).forEach { (element, name) ->
+                    val scope = getContainingBlock(element)
+                    val namedScopes = scopes.getOrPut(name) { mutableSetOf() }
+                    if (scope != null && namedScopes.none { PsiTreeUtil.isAncestor(it, scope, false) } && namedScopes.add(scope)) {
+                        addElement(element, name)
+                        psiElementsToIgnore.add(element)
+                    }
+                }
+            }
+            override fun doRun() {
+                super.doRun()
+                refreshViews?.run()
+            }
+        }.run()
+    }
+
+    override fun getName(): @IntentionName String = KotlinBundle.message("rename.var.to.property.name", targetName)
 
     override fun startInWriteAction(): Boolean = false
     
     override fun getFamilyName(): String = KotlinBundle.message("rename.var.to.match.destructing.property")
-
-    override fun invoke(project: Project, editor: Editor?, file: KtFile) {
-        val element = element ?: return
-        RenameProcessor(project, element, targetName.toString(), false, false).run()
-    }
 }
 
 private class ConvertNameBasedDestructuringShortFormToPositionalFix : KotlinModCommandQuickFix<KtDestructuringDeclaration>() {
