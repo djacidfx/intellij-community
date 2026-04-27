@@ -20,6 +20,7 @@ import com.intellij.platform.workspace.storage.url.VirtualFileUrl;
 import com.intellij.util.ArrayUtilRt;
 import com.intellij.util.containers.ContainerUtil;
 import com.intellij.util.messages.SimpleMessageBusConnection;
+import com.intellij.workspaceModel.core.fileIndex.EntityStorageKind;
 import com.intellij.workspaceModel.core.fileIndex.WorkspaceFileIndexContributor;
 import com.intellij.workspaceModel.core.fileIndex.WorkspaceFileKind;
 import com.intellij.workspaceModel.core.fileIndex.WorkspaceFileSetData;
@@ -77,14 +78,20 @@ final class ExcludeRootsCache {
       else {
         Set<String> excludedUrls = new HashSet<>();
         for (Project project : ProjectManager.getInstance().getOpenProjects()) {
-          WorkspaceModel workspaceModel = WorkspaceModel.getInstance(project);
-          EntityStorage storage = workspaceModel.getCurrentSnapshot();
+          WorkspaceModelInternal workspaceModel = (WorkspaceModelInternal)WorkspaceModel.getInstance(project);
+          EntityStorage currentStorage = workspaceModel.getCurrentSnapshot();
+          EntityStorage unloadedStorage = workspaceModel.getCurrentSnapshotOfUnloadedEntities();
 
           // Collect excluded URLs from all contributors using the same pattern as ProjectRootManagerComponent
           ExtensionPointName<WorkspaceFileIndexContributor<?>> EP_NAME = ExtensionPointName.create("com.intellij.workspaceModel.fileIndexContributor");
           ExcludedRootsCollector collector = new ExcludedRootsCollector();
           for (WorkspaceFileIndexContributor<?> contributor : EP_NAME.getExtensionList()) {
-            collectExcludedRootsFromContributor(contributor, storage, collector);
+            if (contributor.getStorageKind() == EntityStorageKind.MAIN) {
+              collectExcludedRootsFromContributor(contributor, currentStorage, collector);
+            }
+            else if (contributor.getStorageKind() == EntityStorageKind.UNLOADED) {
+              collectExcludedRootsFromContributor(contributor, unloadedStorage, collector);
+            }
           }
           excludedUrls.addAll(collector.getExcludedUrls());
           for (DirectoryIndexExcludePolicy policy : DirectoryIndexExcludePolicy.EP_NAME.getExtensions(project)) {
