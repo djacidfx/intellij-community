@@ -1,9 +1,18 @@
 import argparse
-import atexit
 import json
 import logging
 import os
 import sys
+
+from generator3.constants import (
+    LOGGING_CATEGORIES,
+    LOGGING_LEVEL_TRACE,
+)
+from generator3.util_methods import (
+    timed,
+    _enable_segfault_tracebacks,
+    _configure_logging,
+)
 
 _containing_dir = os.path.dirname(os.path.abspath(__file__))
 _helpers_dir = os.path.dirname(_containing_dir)
@@ -16,20 +25,6 @@ def _cleanup_sys_path():
 
 def _bootstrap_sys_path():
     sys.path.insert(0, _helpers_dir)
-
-
-def _setup_logging():
-    from generator3.util_methods import configure_logging
-    configure_logging(logging.DEBUG)
-
-
-def _enable_segfault_tracebacks():
-    try:
-        import faulthandler
-
-        faulthandler.enable()
-    except ImportError:
-        pass
 
 
 def _configure_multiprocessing():
@@ -80,17 +75,15 @@ def parse_args(gen_version):
     )
 
     # Common flags
-    # TODO evaluate these flags, some of them seem redundant now with proper logging
-    parser.add_argument(
-        '-q', dest='quiet', action='store_true',
-        help='Be quiet, do not print anything on stdout. Errors still go to stderr.'
-    )
     parser.add_argument(
         '-v', dest='verbose', action='store_true',
         help='Be verbose, print lots of debug output to stderr.'
     )
 
     parser.add_argument('-V', action='version', version=gen_version)
+
+    parser.add_argument("--extra-tracing", nargs="+",
+                        choices=LOGGING_CATEGORIES, default=[])
 
     parser.add_argument(
         "mod_name", nargs='?', default=None,
@@ -104,22 +97,20 @@ def parse_args(gen_version):
 
 
 def main():
-    import generator3.core
-    from generator3.constants import Timer
-    from generator3.core import version, GenerationStatus, SkeletonGenerator
-    from generator3.util_methods import set_verbose, say, note
+    from generator3.core import (
+        version,
+        GenerationStatus,
+        SkeletonGenerator,
+    )
 
     args = parse_args(version())
-
-    generator3.core.quiet = args.quiet
-    set_verbose(args.verbose)
 
     if args.roots:
         for p in args.roots:
             if p and p not in sys.path:
                 # we need this to make things in additional dirs importable
                 sys.path.append(p)
-        note("Altered sys.path: %r", sys.path)
+        logging.debug("Altered sys.path: %r", sys.path)
 
     if args.state_file:
         # We can't completely shut off stdin in case Docker-based interpreter to use
@@ -132,6 +123,12 @@ def main():
     else:
         state_json = None
 
+    logging_config = {"": LOGGING_LEVEL_TRACE if args.verbose else logging.DEBUG}
+    for category in args.extra_tracing:
+        logging.getLogger("generator3." + category).setLevel(LOGGING_LEVEL_TRACE)
+
+    _configure_logging(logging_config)
+
     target_roots = _cleanup_sys_path()
 
     generator = SkeletonGenerator(
@@ -141,21 +138,18 @@ def main():
         write_state_json=bool(args.init_state_file or args.state_file)
     )
 
-    timer = Timer()
-    if not args.mod_name:
-        generator.discover_and_process_all_modules(name_pattern=args.name_pattern,
-                                                   builtins_only=args.builtins_only)
-        sys.exit(0)
+    with timed("Generation completed in {elapsed:.2f} ms"):
+        if not args.mod_name:
+            generator.discover_and_process_all_modules(name_pattern=args.name_pattern,
+                                                       builtins_only=args.builtins_only)
+            sys.exit(0)
 
-    if generator.process_module(args.mod_name, args.mod_path) == GenerationStatus.FAILED:
-        sys.exit(1)
-
-    say("Generation completed in %d ms", timer.elapsed())
+        if generator.process_module(args.mod_name, args.mod_path) == GenerationStatus.FAILED:
+            sys.exit(1)
 
 
 if __name__ == "__main__":
     _bootstrap_sys_path()
-    _setup_logging()
     _enable_segfault_tracebacks()
     _configure_multiprocessing()
     main()

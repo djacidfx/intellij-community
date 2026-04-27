@@ -5,9 +5,9 @@ import functools
 import hashlib
 import json
 import keyword
-import logging
-import multiprocessing
 import shutil
+import time
+import traceback
 from contextlib import contextmanager
 
 from generator3.constants import *
@@ -343,17 +343,6 @@ def report(msg, *data):
     sys.stderr.write("\n")
 
 
-def say(msg, *data):
-    """Say something at info level (stdout)"""
-    sys.stderr.write(msg)
-    sys.stderr.write("\n")
-    sys.stderr.write(str(data))
-    sys.stderr.write("\n")
-    sys.stdout.write(msg % data)
-    sys.stdout.write("\n")
-    sys.stdout.flush()
-
-
 def flatten(seq):
     """Transforms tree lists like ['a', ['b', 'c'], 'd'] to strings like '(a, (b, c), d)', enclosing each tree level in parens."""
     ret = []
@@ -553,26 +542,17 @@ def detect_constructor(p_class):
         return None
 
 ##############  notes, actions #################################################################
-_is_verbose = False # controlled by -v
-
 CURRENT_ACTION = "nothing yet"
 
 def action(msg, *data):
     global CURRENT_ACTION
     CURRENT_ACTION = msg % data
-    note(msg, *data)
+    trace(msg, *data)
 
 
-def set_verbose(verbose):
-    global _is_verbose
-    _is_verbose = verbose
-
-
-def note(msg, *data):
-    """Say something at debug info level (stderr)"""
-    if _is_verbose:
-        sys.stderr.write(msg % data)
-        sys.stderr.write("\n")
+def trace(msg, *args, **kwargs):
+    category = kwargs.pop("category", "misc")
+    logging.getLogger("generator3." + category).log(LOGGING_LEVEL_TRACE, msg, *args, **kwargs)
 
 
 ##############  plaform-specific methods    #######################################################
@@ -788,11 +768,11 @@ def get_portable_test_module_path(abs_path, qname):
 
 # This wrapper is intentionally made top-level: local functions can't be pickled.
 def _multiprocessing_wrapper(data, func, *args, **kwargs):
-    configure_logging(data.root_logger_level)
+    _configure_logging(data.logging_config)
     data.result_conn.send(func(*args, **kwargs))
 
 
-_MainProcessData = collections.namedtuple('_MainProcessData', ['result_conn', 'root_logger_level'])
+_MainProcessData = collections.namedtuple('_MainProcessData', ['result_conn', 'logging_config'])
 
 
 def execute_in_subprocess_synchronously(name, func, args, kwargs, failure_result=None):
@@ -808,7 +788,7 @@ def execute_in_subprocess_synchronously(name, func, args, kwargs, failure_result
     #  (it will require an additional service process)
     recv_conn, send_conn = mp.Pipe(duplex=False)
     data = _MainProcessData(result_conn=send_conn,
-                            root_logger_level=logging.getLogger().level)
+                            logging_config=get_logging_config())
     p = mp.Process(name=name,
                    target=_multiprocessing_wrapper,
                    args=(data, func) + args,
@@ -826,12 +806,23 @@ def execute_in_subprocess_synchronously(name, func, args, kwargs, failure_result
     else:
         return failure_result
 
+def get_logging_config():
+    # type: () -> dict[str, int]
+    result = {"": logging.getLogger().level}
+    for category in LOGGING_CATEGORIES:
+        logger_name = "generator3." + category
+        result[logger_name] = logging.getLogger(logger_name).level
+    return result
 
-def configure_logging(root_level):
-    logging.addLevelName(logging.DEBUG - 1, 'TRACE')
+
+def _configure_logging(logging_config):
+    # type: (dict[str, int]) -> None
+    logging.addLevelName(LOGGING_LEVEL_TRACE, 'TRACE')
 
     root = logging.getLogger()
-    root.setLevel(root_level)
+
+    for name, level in logging_config.items():
+        logging.getLogger(name).setLevel(level)
 
     # In environments where fork is implemented entire logging configuration is already inherited by child processes.
     # Configuring it twice will lead to duplicated records.
@@ -852,6 +843,45 @@ def configure_logging(root_level):
                 'message': s
             })
 
+    class Filter(logging.Filter):
+        def filter(self, record):
+            # Don't pass through logging from imported third-party modules
+            return record.name == "root" or record.name.startswith("generator3")
+
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(JsonFormatter())
+    handler.addFilter(Filter())
     root.addHandler(handler)
+
+
+@contextmanager
+def timed(
+        message=None,  # type: str | None
+        logger=None,  # type: logging.Logger | None
+        level=None,  # type: int | None
+):
+    if message and "{elapsed" not in message:
+        raise ValueError("`message` should contain the `{elapsed}` placeholder")
+
+    timer = time.perf_counter if sys.version_info >= (3, 3) else time.time
+    start = timer()
+    elapsed_ms = lambda: (timer() - start) * 1000  # noqa
+    try:
+        yield elapsed_ms
+    finally:
+        if not logger:
+            logger = logging.getLogger("generator3.time")
+        if not level:
+            level = LOGGING_LEVEL_TRACE
+
+        if message:
+            logger.log(level, message.format(elapsed=elapsed_ms()))
+
+
+def _enable_segfault_tracebacks():
+    try:
+        import faulthandler
+
+        faulthandler.enable(file=sys.stderr, all_threads=True)
+    except ImportError:
+        pass

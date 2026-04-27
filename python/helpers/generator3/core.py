@@ -1,8 +1,8 @@
 # encoding: utf-8
-import collections
+from __future__ import print_function
+
 import fnmatch
-import json
-import logging
+import sys
 from copy import deepcopy
 
 from generator3.util_methods import *
@@ -19,7 +19,6 @@ if TYPE_CHECKING:
     GenerationStatusId = NewType('GenerationStatusId', str)
     GeneratorVersion = Tuple[int, int]
 
-quiet = False
 _parent_dir = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -405,11 +404,11 @@ def progress(text=None, fraction=None, minor=False):
 
 def control_message(msg_type, data):
     data['type'] = msg_type
-    say(json.dumps(data))
-
-
-def trace(msg, *args, **kwargs):
-    logging.log(logging.getLevelName('TRACE'), msg, *args, **kwargs)
+    if sys.version_info >= (3, 3):
+        print(json.dumps(data), flush=True)
+    else:
+        print(json.dumps(data))
+        sys.stdout.flush()
 
 
 class SkeletonGenerator(object):
@@ -539,8 +538,7 @@ class SkeletonGenerator(object):
 
     def reuse_or_generate_skeleton(self, mod_name, mod_path, mod_state_json):
         # type: (str, str, Dict[str, Any]) -> GenerationStatusId
-        if not quiet:
-            logging.info('%s (%r)', mod_name, mod_path or 'built-in')
+        trace('%s (%r)', mod_name, mod_path or 'built-in')
         action("doing nothing")
 
         try:
@@ -558,14 +556,15 @@ class SkeletonGenerator(object):
             mod_cache_dir = build_cache_dir_path(self.cache_dir, mod_name, mod_path)
             cached_skeleton_status = skeleton_status(mod_cache_dir, mod_name, mod_path, mod_state_json)
             if cached_skeleton_status == SkeletonStatus.OUTDATED:
-                return execute_in_subprocess_synchronously(name='Skeleton Generator Worker',
-                                                           func=generate_skeleton,
-                                                           args=(mod_name,
-                                                                 mod_path,
-                                                                 mod_cache_dir,
-                                                                 self.output_dir),
-                                                           kwargs={},
-                                                           failure_result=GenerationStatus.FAILED)
+                with timed("Processed module {} in {{elapsed:.2f}} ms".format(mod_name)):
+                    return execute_in_subprocess_synchronously(name='Skeleton Generator Worker',
+                                                               func=generate_skeleton,
+                                                               args=(mod_name,
+                                                                     mod_path,
+                                                                     mod_cache_dir,
+                                                                     self.output_dir),
+                                                               kwargs={},
+                                                               failure_result=GenerationStatus.FAILED)
             elif cached_skeleton_status == SkeletonStatus.FAILING:
                 logging.info('Cache entry for %s at %r indicates failed generation', mod_name, mod_cache_dir)
                 return GenerationStatus.FAILED
@@ -622,7 +621,9 @@ def generate_skeleton(name, mod_file_name, mod_cache_dir, output_dir):
     with imported_names_collected() as imported_module_names:
         __import__(name)  # sys.modules will fill up with what we want
 
-    redo_module(name, mod_file_name, mod_cache_dir, output_dir)
+    with timed("Restored module {name} in {{elapsed:.3f}} ms".format(name=name)):
+        redo_module(name, mod_file_name, mod_cache_dir, output_dir)
+
     # The C library may have called Py_InitModule() multiple times to define several modules (gtk._gtk and gtk.gdk);
     # restore all of them
     path = name.split(".")
@@ -643,8 +644,7 @@ def generate_skeleton(name, mod_file_name, mod_cache_dir, output_dir):
                 continue
             # Synthetic module, not explicitly imported
             if m not in imported_module_names and not hasattr(sys.modules[m], '__file__'):
-                if not quiet:
-                    logging.info('Processing submodule %s of %s', m, name)
+                trace('Processing submodule %s of %s', m, name)
                 action("opening %r", mod_cache_dir)
                 try:
                     redo_module(m, mod_file_name, cache_dir=mod_cache_dir, output_dir=output_dir)

@@ -35,6 +35,8 @@ class GeneratorTestCase(HelpersTestCase):
     @classmethod
     def setUpClass(cls):
         super(GeneratorTestCase, cls).setUpClass()
+        import logging
+        logging.addLevelName(logging.DEBUG - 1, "TRACE")
         os.environ[ENV_TEST_MODE_FLAG] = 'True'
 
     @classmethod
