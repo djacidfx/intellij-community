@@ -16,6 +16,7 @@ import com.intellij.openapi.components.Storage
 import com.intellij.openapi.components.StoragePathMacros
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.modules
 import com.intellij.openapi.roots.ModuleRootManager
@@ -163,7 +164,15 @@ internal class KotlinModuleSizeCollector : ProjectUsagesCollector() {
 
             readAction {
                 val moduleFileIndex = ModuleRootManager.getInstance(module).fileIndex
+                var iteratedFiles = 0
                 moduleFileIndex.iterateContent { file ->
+                    // Some modules could have a huge number of files, so
+                    // we should periodically check for cancellation
+                    if (++iteratedFiles % 100 == 0) {
+                        ProgressManager.checkCanceled()
+                        iteratedFiles = 0
+                    }
+
                     if (file.extension == KotlinFileType.EXTENSION && !file.isGeneratedGradleFile()) {
                         moduleStatistics.fileCount++
                         moduleStatistics.fileSize += file.length.toInt()
