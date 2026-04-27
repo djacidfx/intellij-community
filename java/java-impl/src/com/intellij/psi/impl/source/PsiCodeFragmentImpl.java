@@ -1,4 +1,4 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.psi.impl.source;
 
 import com.intellij.ide.highlighter.JavaFileType;
@@ -45,6 +45,7 @@ import java.util.StringTokenizer;
 
 public class PsiCodeFragmentImpl extends PsiFileImpl implements JavaCodeFragment, IntentionFilterOwner {
   private final PsiElement myContext;
+  private boolean myIsInDefaultPackage;
   private boolean myPhysical;
   private PsiType myThisType;
   private PsiType mySuperType;
@@ -127,6 +128,16 @@ public class PsiCodeFragmentImpl extends PsiFileImpl implements JavaCodeFragment
   @Override
   public void setSuperType(final PsiType superType) {
     mySuperType = superType;
+  }
+
+  @Override
+  public boolean isInDefaultPackage() {
+    return myIsInDefaultPackage;
+  }
+
+  @Override
+  public void setInDefaultPackage(boolean inDefaultPackage) {
+    myIsInDefaultPackage = inDefaultPackage;
   }
 
   @Override

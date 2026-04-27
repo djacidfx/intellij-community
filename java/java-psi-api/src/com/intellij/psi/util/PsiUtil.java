@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.psi.util;
 
 import com.intellij.codeInsight.AnnotationUtil;
@@ -1607,6 +1607,10 @@ public final class PsiUtil extends PsiUtilCore {
     }
 
     if (containingFile instanceof JavaCodeFragment) {
+      JavaCodeFragment fragment = (JavaCodeFragment)containingFile;
+      if (fragment.isInDefaultPackage()) {
+        return true;
+      }
       PsiElement context = containingFile.getContext();
       if (context instanceof PsiPackage) {
         return StringUtil.isEmpty(((PsiPackage)context).getName());
