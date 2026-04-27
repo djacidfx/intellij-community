@@ -58,6 +58,16 @@ class TestCaseXmlRenderer {
       }
     }
 
+    var parent = testPlan.getParent(id);
+    if (parent.isPresent() && "test-template".equals(parent.get().getUniqueIdObject().getLastSegment().getType())) {
+      String parentName = parent.get().getLegacyReportingName();
+      int index = parentName.indexOf('(');
+      if (index != -1) {
+        parentName = parentName.substring(0, index);
+      }
+      name = parentName + "." + name;
+    }
+
     xml.writeStartElement("testcase");
     xml.writeAttribute("name", escapeIllegalCharacters(name));
     xml.writeAttribute("classname", LegacyReportingUtils.getClassName(testPlan, id));

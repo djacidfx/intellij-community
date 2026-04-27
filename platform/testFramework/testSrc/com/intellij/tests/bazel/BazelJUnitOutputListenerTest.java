@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.platform.launcher.core.LauncherConfig;
 import org.junit.platform.launcher.core.LauncherDiscoveryRequestBuilder;
 import org.junit.platform.launcher.core.LauncherFactory;
@@ -49,6 +51,18 @@ class BazelJUnitOutputListenerTest {
     assertThat(countTestCasesWithTag(xml, "failure")).isEqualTo(1);
     assertThat(getOnlyTestCase(xml, "successfulTest").getElementsByTagName("failure").getLength()).isEqualTo(0);
     assertThat(getOnlyTestCase(xml, "successfulTest").getElementsByTagName("skipped").getLength()).isEqualTo(0);
+  }
+
+  @Test
+  void includesParameterizedMethodNameInXmlReport(@TempDir Path tempDir) throws Exception {
+    Document xml = executeAndReadXml(ParameterizedScenario.class, tempDir.resolve("parameterized.xml"));
+
+    assertThat(getTestCaseNames(xml)).containsExactlyInAnyOrder(
+      "firstParameterizedTest.FIRST",
+      "firstParameterizedTest.SECOND",
+      "secondParameterizedTest.FIRST",
+      "secondParameterizedTest.SECOND"
+    );
   }
 
   private static Document executeAndReadXml(Class<?> scenarioRootClass, Path xmlOutputFile) throws Exception {
@@ -143,5 +157,22 @@ class BazelJUnitOutputListenerTest {
         throw new IllegalStateException("afterAll failure");
       }
     }
+  }
+
+  static class ParameterizedScenario {
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(ParameterizedValue.class)
+    void firstParameterizedTest(ParameterizedValue value) {
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(ParameterizedValue.class)
+    void secondParameterizedTest(ParameterizedValue value) {
+    }
+  }
+
+  private enum ParameterizedValue {
+    FIRST,
+    SECOND
   }
 }
