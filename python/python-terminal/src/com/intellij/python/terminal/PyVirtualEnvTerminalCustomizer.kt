@@ -14,48 +14,19 @@ import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.jetbrains.python.orLogException
-import com.jetbrains.python.run.ActivateScript
-import com.jetbrains.python.run.resolveActivateScript
+import com.jetbrains.python.sdk.Activatable
 import com.jetbrains.python.sdk.PySdkUtil
 import com.jetbrains.python.sdk.PythonEnvironment
 import com.jetbrains.python.sdk.pyRichSdk
 import com.jetbrains.python.sdk.pythonSdk
+import com.jetbrains.python.sdk.terminal.Shell
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.plugins.terminal.LocalTerminalCustomizer
 import org.jetbrains.plugins.terminal.TerminalOptionsProvider
 import java.nio.file.Path
 import javax.swing.JCheckBox
-import kotlin.io.path.Path
-import kotlin.io.path.exists
 import kotlin.io.path.isExecutable
-import kotlin.io.path.name
 
-
-private data class Shell(val path: Path, val type: Type) {
-  enum class Type(vararg val aliases: String) {
-    BASH("bash"),
-    SH("sh"),
-    ZSH("zsh"),
-    POWERSHELL("powershell.exe", "pwsh.exe"),
-    FISH("fish"),
-    UNKNOWN;
-
-    companion object {
-      fun resolve(shellPath: Path): Type {
-        return shellPath.name.let { fileName ->
-          entries.find { it.aliases.contains(fileName) } ?: UNKNOWN
-        }
-      }
-    }
-  }
-
-  companion object {
-    fun resolve(command: Array<out String>): Shell? {
-      val path = command.firstOrNull()?.let { Path(it) }
-      return path?.let { Shell(it, Type.resolve(it)) }
-    }
-  }
-}
 
 private data class Jediterm(val source: String, val sourceArgs: List<String>? = null) {
   private companion object {
@@ -68,7 +39,7 @@ private data class Jediterm(val source: String, val sourceArgs: List<String>? = 
   }
 
   constructor(path: Path, args: List<String>? = null) : this(path.toAbsolutePath().toString(), args)
-  constructor(activateScript: ActivateScript) : this(activateScript.scriptPath, activateScript.args)
+  constructor(activateScript: Activatable.Script) : this(activateScript.scriptPath, activateScript.args)
 
   fun buildEnvironmentVariables(): Map<String, String> = buildMap {
     put(JEDITERM_SOURCE, source)
@@ -129,21 +100,16 @@ class PyVirtualEnvTerminalCustomizer : LocalTerminalCustomizer() {
 
   private fun activateVenv(shell: Shell, sdk: Sdk, venv: PythonEnvironment.Venv, envs: MutableMap<String, String>): Jediterm? {
     return when (shell.type) {
-      Shell.Type.POWERSHELL -> {
-        venv.pythonHomePath.resolve("activate.ps1").takeIf { it.exists() }?.let { Jediterm(it) }
-      }
-      Shell.Type.BASH, Shell.Type.SH, Shell.Type.ZSH, Shell.Type.FISH -> {
-        venv.resolveActivateScript(shell.path.toString())?.let { Jediterm(it) }
-      }
       Shell.Type.UNKNOWN -> activateUnknownShell(sdk, envs)
+      else -> venv.activation.invoke(shell.type)?.let { Jediterm(it) }
     }
   }
 
   private fun activateConda(shell: Shell, sdk: Sdk, condaEnv: PythonEnvironment.Conda, envs: MutableMap<String, String>): Jediterm? {
     return when (shell.type) {
       Shell.Type.POWERSHELL -> condaEnv.getPowerShellActivationCommand()
-      Shell.Type.BASH, Shell.Type.SH, Shell.Type.ZSH, Shell.Type.FISH -> {
-        condaEnv.resolveActivateScript(shell.path.toString())?.let { Jediterm(it) }
+      Shell.Type.BASH, Shell.Type.SH, Shell.Type.ZSH, Shell.Type.FISH, Shell.Type.CSH -> {
+        condaEnv.activation.invoke(shell.type)?.let { Jediterm(it) }
       }
       Shell.Type.UNKNOWN -> activateUnknownShell(sdk, envs)
     }

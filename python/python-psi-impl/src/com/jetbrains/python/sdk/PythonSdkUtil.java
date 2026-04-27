@@ -8,6 +8,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiElement;
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread;
 import com.jetbrains.python.sdk.skeleton.PySkeletonUtil;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -54,24 +55,8 @@ public final class PythonSdkUtil {
     return com.jetbrains.python.sdk.legacy.PythonSdkUtil.findSkeletonsDir(sdk);
   }
 
-  /**
-   * @deprecated use PySdkExt.isSdkSeemsValid
-   */
-  @Deprecated(forRemoval = true)
-  public static boolean isInvalid(@NotNull Sdk sdk) {
-    if (isRemote(sdk)) {
-      return true;
-    }
-    final VirtualFile interpreter = sdk.getHomeDirectory();
-    return interpreter == null || !interpreter.exists();
-  }
-
   public static boolean isDisposed(@NotNull Sdk sdk) {
     return com.jetbrains.python.sdk.legacy.PythonSdkUtil.isDisposed(sdk);
-  }
-
-  public static List<Sdk> getAllLocalCPythons() {
-    return com.jetbrains.python.sdk.legacy.PythonSdkUtil.getAllLocalCPythons();
   }
 
   // It is only here for external plugins
@@ -80,24 +65,13 @@ public final class PythonSdkUtil {
     return com.jetbrains.python.sdk.legacy.PythonSdkUtil.getPythonExecutable(rootPath);
   }
 
-  /**
-   * @deprecated use {@link #getExecutablePath(Path, String)}
-   */
-  @Deprecated
-  @RequiresBackgroundThread(generateAssertion = false)
-  public static @Nullable String getExecutablePath(final @NotNull String homeDirectory, @NotNull String name) {
-    return com.jetbrains.python.sdk.legacy.PythonSdkUtil.getExecutablePath(homeDirectory, name);
-  }
 
-  @RequiresBackgroundThread(generateAssertion = false)
-  public static @Nullable Path getExecutablePath(@NotNull Path homeDirectory, @NotNull String name) {
-    return com.jetbrains.python.sdk.legacy.PythonSdkUtil.getExecutablePath(homeDirectory, name);
-  }
-
+  @ApiStatus.Internal
   public static @Nullable Sdk findSdkByKey(@NotNull String key) {
     return com.jetbrains.python.sdk.legacy.PythonSdkUtil.findSdkByKey(key);
   }
 
+  @ApiStatus.Internal
   public static @Nullable Sdk findPythonSdk(final @NotNull PsiElement element) {
     return com.jetbrains.python.sdk.legacy.PythonSdkUtil.findPythonSdk(element);
   }
@@ -130,17 +104,7 @@ public final class PythonSdkUtil {
   @Deprecated
   @RequiresBackgroundThread(generateAssertion = false)
   public static boolean isVirtualEnv(@NotNull Sdk sdk) {
-    return PyRichSdkKt.pyRichSdk(sdk, false).isVirtualEnv();
-  }
-
-  /**
-   * @deprecated use {@link PythonEnvironmentKt#detectPythonEnvironment}
-   */
-  @Deprecated
-  @Contract("null -> false")
-  public static boolean isVirtualEnv(@Nullable String path) {
-    if (path == null) return false;
-    return PythonEnvironmentKt.detectPythonEnvironment(Path.of(path)).getSuccessOrNull() instanceof PythonEnvironment.Venv;
+    return PyRichSdkKt.pyRichSdk(sdk, false).getPythonEnvironment() instanceof PythonEnvironment.Venv;
   }
 
   /**
@@ -152,17 +116,5 @@ public final class PythonSdkUtil {
     PyRichSdk pyRichSdk = PyRichSdkKt.pyRichSdk(sdk, false);
     PythonEnvironment environment = pyRichSdk.getPythonEnvironment();
     return environment instanceof PythonEnvironment.Conda && !((PythonEnvironment.Conda)environment).isBase();
-  }
-
-  /**
-   * @deprecated use {@link PyRichSdk}
-   */
-  @Deprecated
-  @RequiresBackgroundThread(generateAssertion = false)
-  // Conda virtual environment and base conda
-  public static boolean isConda(@NotNull Sdk sdk) {
-    PyRichSdk<Sdk> pyRichSdk = PyRichSdkKt.pyRichSdk(sdk, false);
-    PythonEnvironment environment = pyRichSdk.getPythonEnvironment();
-    return environment instanceof PythonEnvironment.Conda;
   }
 }

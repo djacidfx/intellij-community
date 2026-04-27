@@ -11,7 +11,6 @@ import com.jetbrains.python.packaging.findCondaExecutableRelativeToEnv
 import com.jetbrains.python.packaging.PyCondaPackageService
 import com.jetbrains.python.sdk.PythonEnvironment
 import com.jetbrains.python.sdk.impl.PySdkBundle.message
-import org.jetbrains.annotations.ApiStatus
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -79,7 +78,7 @@ internal fun PythonBinary.detectPythonEnvironmentImpl(): PyResult<PythonEnvironm
 }
 
 private fun parsePyvenvCfg(path: Path): Map<String, String> {
-  val result = LinkedHashMap<String, String>()
+  val result = mutableMapOf<String, String>()
   try {
     for (line in Files.readAllLines(path)) {
       val eq = line.indexOf('=')

@@ -631,17 +631,16 @@ public final class PythonSdkUpdater {
   }
 
   private static @Nullable VirtualFile sdkPathToRoot(@NotNull PyRichSdk richSdk, @Nullable String path) {
-    if (path != null && !FileUtilRt.extensionEquals(path, "egg-info")) {
-      // TODO: Refactor SDK so they can provide exclusions for root paths
-      final var homePath = richSdk.getPythonHomePath();
-      final VirtualFile condaFolder = richSdk.isConda() && homePath != null
-                                      ? LocalFileSystem.getInstance().findFileByNioFile(homePath)
-                                      : null;
+    if (path == null || FileUtilRt.extensionEquals(path, "egg-info")) {
+      return null;
+    }
 
-      final VirtualFile virtualFile = StandardFileSystems.local().refreshAndFindFileByPath(path);
-      if (virtualFile != null && !virtualFile.equals(condaFolder)) {
-        return PythonSdkType.getSdkRootVirtualFile(virtualFile);
-      }
+    final var homePath = richSdk.getPythonHomePath();
+    final VirtualFile homeFolder = homePath != null ? LocalFileSystem.getInstance().findFileByNioFile(homePath) : null;
+
+    final VirtualFile virtualFile = StandardFileSystems.local().refreshAndFindFileByPath(path);
+    if (virtualFile != null && !virtualFile.equals(homeFolder)) {
+      return PythonSdkType.getSdkRootVirtualFile(virtualFile);
     }
 
     return null;

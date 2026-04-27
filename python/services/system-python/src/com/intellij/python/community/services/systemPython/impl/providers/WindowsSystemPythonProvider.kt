@@ -63,7 +63,12 @@ class WindowsSystemPythonProvider(val winRegistryBase: WinRegistryService? = nul
           LOGGER.warn("Invalid path: $file", e)
           null
         }
-      }.filter { it.detectPythonEnvironment().successOrNull is PythonEnvironment.SystemPython }
+      }.filter {
+        when (it.detectPythonEnvironment().successOrNull) {
+          is PythonEnvironment.SystemPython -> true
+          is PythonEnvironment.Venv, is PythonEnvironment.Conda, null -> false
+        }
+      }
 
       (fromPath + getPythonsFromStore() + getPythonsFromRegistry()).toSet()
     }

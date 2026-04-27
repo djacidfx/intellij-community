@@ -82,7 +82,12 @@ fun findBaseSdks(existingSdks: List<Sdk>, module: Module?, context: UserDataHold
   return (existing + detected)
     .map { it.pyRichSdk() }
     .sortedWith(PreferredSdkComparator.INSTANCE)
-    .filterNot { (it.pythonEnvironment as? PythonEnvironment.Conda)?.isBase == true }
+    .filter { sdk ->
+      when (val env = sdk.pythonEnvironment) {
+        is PythonEnvironment.Conda -> env.isBase
+        is PythonEnvironment.Venv, is PythonEnvironment.SystemPython, null -> true
+      }
+    }
 }
 
 fun mostPreferred(sdks: List<Sdk>): Sdk? = sdks.minWithOrNull(PreferredSdkComparator.INSTANCE)
@@ -496,7 +501,13 @@ private fun filterSuggestedPaths(
     .sortedWith(
       compareBy(
         { !it.isAssociatedWithModule(module) && !it.isLocatedInsideBaseDir(baseDirFromContext) },
-        { if (mayContainCondaEnvs) (it.pythonEnvironment as? PythonEnvironment.Conda)?.isBase != true else false },
+        { sdk ->
+          if (!mayContainCondaEnvs) false
+          else when (val env = sdk.pythonEnvironment) {
+            is PythonEnvironment.Conda -> !env.isBase
+            is PythonEnvironment.Venv, is PythonEnvironment.SystemPython, null -> true
+          }
+        },
         { it.homePath }
       )
     )

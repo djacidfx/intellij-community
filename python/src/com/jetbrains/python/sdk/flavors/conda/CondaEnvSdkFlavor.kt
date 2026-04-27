@@ -48,7 +48,10 @@ object CondaEnvSdkFlavor : CPythonSdkFlavor<PyCondaFlavorData>() {
       return false
     }
 
-    return pythonBinaryPath.detectPythonEnvironment().successOrNull is PythonEnvironment.Conda
+    return when (pythonBinaryPath.detectPythonEnvironment().successOrNull) {
+      is PythonEnvironment.Conda -> true
+      is PythonEnvironment.Venv, is PythonEnvironment.SystemPython, null -> false
+    }
   }
 
   override fun isPlatformIndependent(): Boolean = true

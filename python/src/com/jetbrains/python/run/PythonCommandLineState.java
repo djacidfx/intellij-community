@@ -778,9 +778,8 @@ public abstract class PythonCommandLineState extends CommandLineState {
     Sdk sdk = runParams.getSdk();
     if (sdk == null) return;
 
-    PyRichSdk<Sdk> rich = PyRichSdkKt.pyRichSdk(sdk, false);
-    boolean shouldActivate = (Registry.is("python.activate.virtualenv.on.run") && rich.isVirtualEnv()) ||
-                             rich.isConda();
+    PyRichSdk pyRichSdk = PyRichSdkKt.pyRichSdk(sdk, false);
+    boolean shouldActivate = (Registry.is("python.activate.virtualenv.on.run") && pyRichSdk.isActivatable());
     if (!shouldActivate) return;
 
     Map<String, String> activated = PySdkUtil.activateVirtualEnv(sdk);

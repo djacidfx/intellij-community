@@ -50,13 +50,8 @@ class PyRichSdk internal constructor(
   val pythonHomePath: PythonHomePath?
     get() = (pythonEnvironment as? HasPythonHome)?.pythonHomePath
 
-  /** `true` if the detected environment is a [PythonEnvironment.Venv] (a virtualenv / `pyvenv.cfg`). */
-  val isVirtualEnv: Boolean
-    get() = pythonEnvironment is PythonEnvironment.Venv
-
-  /** `true` if the detected environment is a [PythonEnvironment.Conda] (has `conda-meta/`). */
-  val isConda: Boolean
-    get() = pythonEnvironment is PythonEnvironment.Conda
+  val isActivatable: Boolean
+    get() = pythonEnvironment is Activatable
 }
 
 /**
