@@ -8,13 +8,9 @@ import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.application.runWriteActionAndWait
 import com.intellij.openapi.project.RootsChangeRescanningInfo
 import com.intellij.openapi.roots.OrderRootType
-import com.intellij.openapi.roots.libraries.Library
 import com.intellij.openapi.util.JDOMUtil
 import com.intellij.platform.ide.progress.runWithModalProgressBlocking
-import com.intellij.testFramework.HeavyPlatformTestCase
 import com.intellij.testFramework.IndexingTestUtil
-import com.intellij.testFramework.UsefulTestCase
-import junit.framework.TestCase
 import org.jetbrains.kotlin.config.ApiVersion
 import org.jetbrains.kotlin.config.KotlinFacetSettingsProvider
 import org.jetbrains.kotlin.config.LanguageVersion
@@ -27,8 +23,6 @@ import org.jetbrains.kotlin.idea.compiler.configuration.KotlinCommonCompilerArgu
 import org.jetbrains.kotlin.idea.compiler.configuration.KotlinJpsPluginSettings
 import org.jetbrains.kotlin.idea.compiler.configuration.KotlinPluginLayout
 import org.jetbrains.kotlin.idea.configuration.AbstractConfigureKotlinInTempDirTest
-import org.jetbrains.kotlin.idea.configuration.AbstractConfigureKotlinTest
-import org.jetbrains.kotlin.idea.configuration.AbstractConfigureKotlinTestBase
 import org.jetbrains.kotlin.idea.configuration.getCanBeConfiguredModules
 import org.jetbrains.kotlin.idea.facet.KotlinFacet
 import org.jetbrains.kotlin.idea.macros.KotlinBundledUsageDetector
@@ -113,12 +107,12 @@ class ConfigureKotlinInTempDirTest : AbstractConfigureKotlinInTempDirTest() {
     fun testMigrationNotificationWithStdlib() {
         val notificationText = catchNotificationText(project) {
             val languageVersionSettingsBefore = module.languageVersionSettings
-            Assert.assertEquals(LanguageVersion.KOTLIN_1_5, languageVersionSettingsBefore.languageVersion)
-            Assert.assertEquals(ApiVersion.KOTLIN_1_5, languageVersionSettingsBefore.apiVersion)
+            Assert.assertEquals(LanguageVersion.KOTLIN_2_2, languageVersionSettingsBefore.languageVersion)
+            Assert.assertEquals(ApiVersion.KOTLIN_2_2, languageVersionSettingsBefore.apiVersion)
 
             val projectLanguageVersionSettingsBefore = myProject.languageVersionSettings
-            Assert.assertEquals(LanguageVersion.KOTLIN_1_5, projectLanguageVersionSettingsBefore.languageVersion)
-            Assert.assertEquals(ApiVersion.KOTLIN_1_5, projectLanguageVersionSettingsBefore.apiVersion)
+            Assert.assertEquals(LanguageVersion.KOTLIN_2_2, projectLanguageVersionSettingsBefore.languageVersion)
+            Assert.assertEquals(ApiVersion.KOTLIN_2_2, projectLanguageVersionSettingsBefore.apiVersion)
 
             runWithModalProgressBlocking(project, "") {
                 saveProjectsAndApp(forceSavingAllSettings = true, onlyProject = myProject)
@@ -126,7 +120,7 @@ class ConfigureKotlinInTempDirTest : AbstractConfigureKotlinInTempDirTest() {
             checkKotlincPresence(true)
 
             KotlinCommonCompilerArgumentsHolder.getInstance(project).update {
-                languageVersion = LanguageVersion.KOTLIN_1_6.versionString
+                languageVersion = LanguageVersion.KOTLIN_2_3.versionString
             }
 
             // Emulate project root change, as after changing Kotlin language settings in the preferences
@@ -135,16 +129,16 @@ class ConfigureKotlinInTempDirTest : AbstractConfigureKotlinInTempDirTest() {
             }
 
             val languageVersionSettingsAfter = module.languageVersionSettings
-            Assert.assertEquals(LanguageVersion.KOTLIN_1_6, languageVersionSettingsAfter.languageVersion)
-            Assert.assertEquals(ApiVersion.KOTLIN_1_5, languageVersionSettingsAfter.apiVersion)
+            Assert.assertEquals(LanguageVersion.KOTLIN_2_3, languageVersionSettingsAfter.languageVersion)
+            Assert.assertEquals(ApiVersion.KOTLIN_2_2, languageVersionSettingsAfter.apiVersion)
 
             val projectLanguageVersionSettingsAfter = myProject.languageVersionSettings
-            Assert.assertEquals(LanguageVersion.KOTLIN_1_6, projectLanguageVersionSettingsAfter.languageVersion)
-            Assert.assertEquals(ApiVersion.KOTLIN_1_5, projectLanguageVersionSettingsAfter.apiVersion)
+            Assert.assertEquals(LanguageVersion.KOTLIN_2_3, projectLanguageVersionSettingsAfter.languageVersion)
+            Assert.assertEquals(ApiVersion.KOTLIN_2_2, projectLanguageVersionSettingsAfter.apiVersion)
         }
 
         assertEquals(
-            "Update your code to replace the use of deprecated language and library features with supported constructs<br/><br/>Detected migration:<br/>&nbsp;&nbsp;Language version: 1.5 to 1.6<br/>",
+            "Update your code to replace the use of deprecated language and library features with supported constructs<br/><br/>Detected migration:<br/>&nbsp;&nbsp;Language version: 2.2 to 2.3<br/>",
             notificationText,
         )
     }
