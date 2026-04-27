@@ -9,6 +9,7 @@ from generator3.constants import (
     LOGGING_LEVEL_TRACE,
 )
 from generator3.util_methods import (
+    delete,
     timed,
     _enable_segfault_tracebacks,
     _configure_logging,
@@ -82,6 +83,8 @@ def parse_args(gen_version):
 
     parser.add_argument('-V', action='version', version=gen_version)
 
+    parser.add_argument("--clean", action='store_true',
+                        help="Remove generated directories after run")
     parser.add_argument("--extra-tracing", nargs="+",
                         choices=LOGGING_CATEGORIES, default=[])
 
@@ -137,15 +140,25 @@ def main():
         state_json=state_json,
         write_state_json=bool(args.init_state_file or args.state_file)
     )
+    exit_code = 0
+    try:
+        with timed("Generation completed in {elapsed:.2f} ms"):
+            if args.mod_name:
+                result = generator.process_module(args.mod_name, args.mod_path)
+                if result == GenerationStatus.FAILED:
+                    exit_code = 1
+            else:
+                generator.discover_and_process_all_modules(
+                    name_pattern=args.name_pattern,
+                    builtins_only=args.builtins_only
+                )
 
-    with timed("Generation completed in {elapsed:.2f} ms"):
-        if not args.mod_name:
-            generator.discover_and_process_all_modules(name_pattern=args.name_pattern,
-                                                       builtins_only=args.builtins_only)
-            sys.exit(0)
-
-        if generator.process_module(args.mod_name, args.mod_path) == GenerationStatus.FAILED:
-            sys.exit(1)
+    finally:
+        if args.clean:
+            logging.debug("Removing output and cache directories")
+            delete(generator.output_dir)
+            delete(generator.cache_dir)
+    sys.exit(exit_code)
 
 
 if __name__ == "__main__":
