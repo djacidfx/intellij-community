@@ -74,7 +74,7 @@ class OnlyIndexableFilesAreLoadedIntoVfsOnDirectoryCreationTest {
       delay(1.seconds) // wait for fs events to arrive
       RefreshQueue.getInstance().refresh(true, listOf(rootVirtualFile))
       val filesInVfs = visitChildrenInVfsRecursively(rootVirtualFile).toList()
-      assertThat(filesInVfs).hasSize(3)
+      assertThat(filesInVfs.map { it.name }).containsExactlyInAnyOrder(rootVirtualFile.name, ".idea", "d1")
     }
   }
 
@@ -98,7 +98,7 @@ class OnlyIndexableFilesAreLoadedIntoVfsOnDirectoryCreationTest {
       delay(1.seconds) // wait for fs events to arrive
       RefreshQueue.getInstance().refresh(true, listOf(rootVirtualFile))
       val filesInVfs = visitChildrenInVfsRecursively(rootVirtualFile).toList()
-      assertThat(filesInVfs).hasSize(3)
+      assertThat(filesInVfs.map { it.name }).containsExactlyInAnyOrder(rootVirtualFile.name, ".idea", "d1")
     }
   }
 
