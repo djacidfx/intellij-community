@@ -1,3 +1,4 @@
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.intellij.lang.regexp.intention;
 
 import com.intellij.openapi.util.text.StringUtil;
@@ -12,46 +13,70 @@ import javax.swing.tree.TreeNode;
  * @author Bas Leijdekkers
  */
 public final class ExplainRegExpIntentionTest extends BasePlatformTestCase {
-  
+
   public void testSimple() {
     doTest("faceteous|hackneyed",
            """
              faceteous|hackneyed Alternation (https://www.regular-expressions.info/alternation.html) – matches 1 of 2 alternatives
-             faceteous – matches these characters exactly
-               f – matches the LATIN SMALL LETTER F character exactly
-               a – matches the LATIN SMALL LETTER A character exactly
-               c – matches the LATIN SMALL LETTER C character exactly
-               e – matches the LATIN SMALL LETTER E character exactly
-               t – matches the LATIN SMALL LETTER T character exactly
-               e – matches the LATIN SMALL LETTER E character exactly
-               o – matches the LATIN SMALL LETTER O character exactly
-               u – matches the LATIN SMALL LETTER U character exactly
-               s – matches the LATIN SMALL LETTER S character exactly
-             hackneyed – matches these characters exactly
-               h – matches the LATIN SMALL LETTER H character exactly
-               a – matches the LATIN SMALL LETTER A character exactly
-               c – matches the LATIN SMALL LETTER C character exactly
-               k – matches the LATIN SMALL LETTER K character exactly
-               n – matches the LATIN SMALL LETTER N character exactly
-               e – matches the LATIN SMALL LETTER E character exactly
-               y – matches the LATIN SMALL LETTER Y character exactly
-               e – matches the LATIN SMALL LETTER E character exactly
-               d – matches the LATIN SMALL LETTER D character exactly""");
+               faceteous – matches characters in order
+                 f – matches the LATIN SMALL LETTER F character
+                 a – matches the LATIN SMALL LETTER A character
+                 c – matches the LATIN SMALL LETTER C character
+                 e – matches the LATIN SMALL LETTER E character
+                 t – matches the LATIN SMALL LETTER T character
+                 e – matches the LATIN SMALL LETTER E character
+                 o – matches the LATIN SMALL LETTER O character
+                 u – matches the LATIN SMALL LETTER U character
+                 s – matches the LATIN SMALL LETTER S character
+               hackneyed – matches characters in order
+                 h – matches the LATIN SMALL LETTER H character
+                 a – matches the LATIN SMALL LETTER A character
+                 c – matches the LATIN SMALL LETTER C character
+                 k – matches the LATIN SMALL LETTER K character
+                 n – matches the LATIN SMALL LETTER N character
+                 e – matches the LATIN SMALL LETTER E character
+                 y – matches the LATIN SMALL LETTER Y character
+                 e – matches the LATIN SMALL LETTER E character
+                 d – matches the LATIN SMALL LETTER D character
+             """);
+  }
+
+  public void testJustCharacters() {
+    doTest("\\(vitreous humour\\)",
+           """
+             \\( – matches the LEFT PARENTHESIS character
+             vitreous – matches characters in order
+               v – matches the LATIN SMALL LETTER V character
+               i – matches the LATIN SMALL LETTER I character
+               t – matches the LATIN SMALL LETTER T character
+               r – matches the LATIN SMALL LETTER R character
+               e – matches the LATIN SMALL LETTER E character
+               o – matches the LATIN SMALL LETTER O character
+               u – matches the LATIN SMALL LETTER U character
+               s – matches the LATIN SMALL LETTER S character
+               – matches the SPACE character
+             humour – matches characters in order
+               h – matches the LATIN SMALL LETTER H character
+               u – matches the LATIN SMALL LETTER U character
+               m – matches the LATIN SMALL LETTER M character
+               o – matches the LATIN SMALL LETTER O character
+               u – matches the LATIN SMALL LETTER U character
+               r – matches the LATIN SMALL LETTER R character
+             \\) – matches the RIGHT PARENTHESIS character
+             """);
   }
 
   private void doTest(@Language("RegExp") String regexp, String result) {
     PsiFile file = myFixture.configureByText(RegExpFileType.INSTANCE, regexp);
-    String tree = toString(ExplainRegExpIntention.buildExplanationTree(file));
-    assertEquals(result, tree);
+    assertEquals(result, toString(ExplainRegExpIntention.buildExplanationTree(file)));
   }
 
   private static String toString(TreeNode node) {
-    return buildString(node, -2, new StringBuilder()).toString().trim();
+    return buildString(node, -1, new StringBuilder()).toString();
   }
 
   private static StringBuilder buildString(TreeNode node, int depth, StringBuilder out) {
-    if (depth > 0) out.append(StringUtil.repeat("  ", depth));
-    out.append(node).append('\n');
+    if (depth >= 0) out.append(StringUtil.repeat("  ", depth)).append(node).append('\n');
     int count = node.getChildCount();
     depth++;
     for (int i = 0; i < count; i++) {

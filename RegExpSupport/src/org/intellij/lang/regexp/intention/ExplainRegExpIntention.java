@@ -511,25 +511,22 @@ class ExplanationVisitor extends RegExpRecursiveElementVisitor {
   @Override
   public void visitRegExpChar(RegExpChar c) {
     super.visitRegExpChar(c);
-    List<Fragment> pattern = buildCharRangeMarkupText(c);
-    if (pattern != null) {
-      charGroup = true;
-      node(new ValueNode(pattern, EMPTY_NAME_NODE, "matches these characters exactly", false), true);
+    if (!charGroup) {
+      List<Fragment> pattern = createSimpleCharSequence(c);
+      if (pattern != null) {
+        charGroup = true;
+        node(new ValueNode(pattern, EMPTY_NAME_NODE, "matches characters in order", false), true);
+      }
     }
-    String text = "matches the " + charText(c);
-    PsiElement next = c.getNextSibling();
-    if (next == null || next instanceof RegExpChar && !(c.getParent() instanceof RegExpClass)) {
-      text += " exactly";
-    }
-    leaf(c, EMPTY_NAME_NODE, text);
-    if (charGroup && (!(c.getNextSibling() instanceof RegExpChar n) || n.getType() != RegExpChar.Type.CHAR)) {
+    leaf(c, EMPTY_NAME_NODE, "matches the " + charText(c));
+    if (charGroup && !isSimpleChar(c.getNextSibling())) {
       charGroup = false;
       parent();
     }
   }
-  
-  private static List<Fragment> buildCharRangeMarkupText(RegExpChar c) {
-    if (c.getType() != RegExpChar.Type.CHAR || c.getParent() instanceof RegExpClass || isSimpleChar(c.getPrevSibling())) {
+
+  private static List<Fragment> createSimpleCharSequence(RegExpChar c) {
+    if (!isSimpleChar(c) || c.getParent() instanceof RegExpClass || isSimpleChar(c.getPrevSibling())) {
       return null;
     }
     RegExpElement next = (RegExpElement)c.getNextSibling();
@@ -548,12 +545,12 @@ class ExplanationVisitor extends RegExpRecursiveElementVisitor {
   private static @NotNull @Nls String charText(RegExpChar c) {
     int value = c.getValue();
     return c.getType() == RegExpChar.Type.CHAR || !isVisibleCodePoint(value)
-               ? Character.getName(value) + " character"
-               : Character.getName(value) + " " + Character.toString(value) + " character";
+           ? Character.getName(value) + " character"
+           : Character.getName(value) + " " + Character.toString(value) + " character";
   }
 
   private static boolean isVisibleCodePoint(int c) {
-    if (Character.isWhitespace(c) || c == '\u00A0' || c == '\u2007' || c == '\u3164' || c == '\u202F'/* non-breaking spaces */) return false;
+    if (Character.isWhitespace(c) || c == '\u00A0' || c == '\u2007' || c == '\u3164' || c == '\u202F'/* non-breaking space */) return false;
     return switch (Character.getType(c)) {
       case Character.CONTROL,       // \p{Cc}
            Character.FORMAT,        // \p{Cf}
@@ -569,7 +566,10 @@ class ExplanationVisitor extends RegExpRecursiveElementVisitor {
   }
 
   private static boolean isSimpleChar(PsiElement element) {
-    return element instanceof RegExpChar c && c.getType() == RegExpChar.Type.CHAR && c.getUnescapedText().charAt(0) != '\\';
+    return element instanceof RegExpChar c
+           && c.getType() == RegExpChar.Type.CHAR
+           && c.getUnescapedText().charAt(0) != '\\'
+           && isVisibleCodePoint(c.getValue());
   }
 
   @NlsContexts.ColumnName
