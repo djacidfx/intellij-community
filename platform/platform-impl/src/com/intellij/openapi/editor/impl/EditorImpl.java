@@ -5874,6 +5874,16 @@ public final class EditorImpl extends UserDataHolderBase implements EditorEx, Hi
     return null;
   }
 
+  /**
+   * Used in the ModernDiffPreview to support the layout of the modern diff popup. The size passed is logically a border there; hence we
+   * don't apply any scaling here, ignore fractional scrolling problems, and pass the value directly to EditorSizeManager#getPreferredHeight.
+   * <p />
+   * DO NOT use this as a way to extend the editor's height for over-scrolling. This is the job of EditorSettings#getAdditinalLinesCount.
+   * That method actually supports both scaling and scrolling, since it relates the additional height to a multiple of line height,
+   * which itself is
+   * (a) a scalable font metric
+   * (b) the unit of editor scrolling.
+   */
   @ApiStatus.Experimental
   @ApiStatus.Internal
   public void setAdditionalSizeForMeasure(int size) {
@@ -5892,6 +5902,26 @@ public final class EditorImpl extends UserDataHolderBase implements EditorEx, Hi
     return myShouldCalculateInsetsWithRegardsToViewport;
   }
 
+  /**
+   * Used in the ModernDiffPreview to support the layout of the modern diff popup. By default, EditorSizeManager#getPreferredHeight looks up the insets'
+   * sizes that are needed for the rendering of the scrollbars inside the editor viewport (because the editor is scrollable inside a ScrollPane).
+   * In the modern diff the editors are (a) limited on height, since they only show a couple of lines around the diffed region (b) not
+   * supposed to be scrolled horizontally. So, we are free to remove this measure, since we should never have editor scroll bars there.
+   * <p />
+   * NOTE: under "normal" circumstances, the UI framework should figure the scrollbars out on itself, without this interference. It doesn't
+   * happen in the modern diff popup, though, due to it not repacking every time the UI framework decides to change the measured size of the
+   * editor component. We could have made it so that the popup would listen for the size changes and repack accordingly, but that would lead
+   * to the said popup flickering, which we considered to be poor UX.
+   * <p />
+   * Moreover, the scrollbars-related measure interleaves with UI framework calls that draw the popup out, since it is itself triggered
+   * dynamically inside other measuring calls (being itself a dependent measure). It means that sometimes the popup would capture
+   * the state of the editor component measured for being laid out with scrollbars, and other times -- without scrollbars.
+   * This leads to the editors inside the ModernDiffPreview being laid out inconsistently across different intention actions in
+   * the intention menu. Which we have also considered to be poor UX.
+   * <p />
+   * DO NOT use this method in any other scenario except the ones similar to ModernDiffPreiview. The scrollbars on an editor component
+   * SHOULD be able to measure themselves away in all contexts except for a non-modal non-focusable hand-laid-out popup.
+   */
   @ApiStatus.Experimental
   @ApiStatus.Internal
   public void setShouldIgnoreViewportInsets(boolean shouldCalculateInsetsWithRegardsToViewport) {
