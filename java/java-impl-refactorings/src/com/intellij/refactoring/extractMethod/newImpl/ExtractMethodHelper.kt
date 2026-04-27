@@ -156,7 +156,10 @@ object ExtractMethodHelper {
     val nullabilityManager = NullableNotNullManager.getInstance(project)
     if (nullability == Nullability.UNKNOWN && containerNullability(targetClass) != Nullability.NOT_NULL) return
     if (nullability == Nullability.NOT_NULL && containerNullability(targetClass) == Nullability.NOT_NULL) return
-    val annotation = nullabilityManager.getDefaultAnnotation(nullability, psiModifierListOwner)
+    var annotation = nullabilityManager.getDefaultAnnotation(nullability, psiModifierListOwner)
+    if (nullability == Nullability.UNKNOWN && JavaPsiFacade.getInstance(project).findClass(annotation, targetClass.resolveScope) == null) {
+      annotation = nullabilityManager.getDefaultAnnotation(Nullability.NULLABLE, psiModifierListOwner)
+    }
     val annotationOwner = AnnotationTargetUtil.getTarget(psiModifierListOwner, annotation) ?: return
     val annotationElement = AddAnnotationPsiFix.addPhysicalAnnotationIfAbsent(annotation, PsiNameValuePair.EMPTY_ARRAY, annotationOwner)
     if (annotationElement != null) {
