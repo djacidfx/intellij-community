@@ -27,7 +27,6 @@ import com.intellij.openapi.util.io.FileUtilRt
 import com.intellij.openapi.util.io.FileUtilRt.extensionEquals
 import com.intellij.openapi.util.io.FileUtilRt.getExtension
 import com.intellij.openapi.util.registry.Registry
-import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
@@ -264,29 +263,22 @@ class SpellCheckerManager @Internal constructor(@Internal val project: Project, 
       return
     }
 
-    val transformed = transform(word) ?: return
     val dictionary = dictionaryLayer.dictionary
     if (file != null) {
       WriteCommandAction.writeCommandAction(project)
         .run<RuntimeException> {
           UndoManager.getInstance(project).undoableActionPerformed(object : BasicUndoableAction(file) {
             override fun undo() {
-              removeWordFromDictionary(dictionary, transformed)
+              removeWordFromDictionary(dictionary, word)
             }
 
             override fun redo() {
-              addWordToDictionary(dictionary, transformed)
+              addWordToDictionary(dictionary, word)
             }
           })
         }
     }
-    addWordToDictionary(dictionary = dictionary, word = transformed)
-  }
-  
-  private fun transform(word: String): String? {
-    val spellChecker = spellChecker ?: return null
-    if (StringUtil.isLowerCase(StringUtil.decapitalize(word))) return word
-    return spellChecker.transformation.transform(word)
+    addWordToDictionary(dictionary, word)
   }
 
   private fun addWordToDictionary(dictionary: EditableDictionary, word: String) {

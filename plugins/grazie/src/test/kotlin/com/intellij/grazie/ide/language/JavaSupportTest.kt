@@ -3,11 +3,13 @@
 
 package com.intellij.grazie.ide.language
 
+import ai.grazie.spell.GrazieSplittingSpeller
 import com.intellij.grazie.GrazieConfig
 import com.intellij.grazie.GrazieTestBase
 import com.intellij.grazie.jlanguage.Lang
 import com.intellij.grazie.spellcheck.engine.GrazieSpellCheckerEngine
 import com.intellij.grazie.utils.TextStyleDomain
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.spellchecker.ProjectDictionaryLayer
 import com.intellij.spellchecker.SpellCheckerManager
@@ -226,6 +228,16 @@ class JavaSupportTest : GrazieTestBase() {
     myFixture.checkHighlighting()
   }
 
+  fun `test mixed words can be added via SaveTo action`() {
+    assertTrue(getSpeller(project).isMisspelled("typppoStatusChanged"))
+    myFixture.configureByText("a.java", "// <TYPO descr=\"Typo: In word 'typppoStatusChanged'\">typppoStatusChanged</TYPO>")
+    myFixture.checkHighlighting()
+
+    SpellCheckerManager.getInstance(project).acceptWordAsCorrect("typppoStatusChanged", project)
+    myFixture.configureByText("a.java", "// typppoStatusChanged")
+    myFixture.checkHighlighting()
+  }
+
   @PerformanceUnitTest
   fun `test performance on typos by word-level spellchecker`() {
     // German is not enabled on purpose to disable suggestion-based typo detection
@@ -334,5 +346,13 @@ class JavaSupportTest : GrazieTestBase() {
     assertNotNull(intentionAction)
     myFixture.launchAction(intentionAction)
     myFixture.checkResult(afterText)
+  }
+
+  private fun getSpeller(project: Project): GrazieSplittingSpeller {
+    val speller = GrazieSpellCheckerEngine.getInstance(project).getSpeller()
+    if (speller == null) {
+      fail("`GrazieSplittingSpeller` should be initialized")
+    }
+    return speller as GrazieSplittingSpeller
   }
 }
