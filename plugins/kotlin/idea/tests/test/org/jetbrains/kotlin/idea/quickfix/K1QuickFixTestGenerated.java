@@ -10227,6 +10227,16 @@ public abstract class K1QuickFixTestGenerated extends AbstractK1QuickFixTest {
             runTest("testData/quickfix/expressions/removeUselessIsCheckInWhenExpressionlessNegateForNull.kt");
         }
 
+        @TestMetadata("removeUselessIsCheckInWhenMultipleConditions.kt")
+        public void testRemoveUselessIsCheckInWhenMultipleConditions() throws Exception {
+            runTest("testData/quickfix/expressions/removeUselessIsCheckInWhenMultipleConditions.kt");
+        }
+
+        @TestMetadata("removeUselessIsCheckInWhenMultipleConditionsFirst.kt")
+        public void testRemoveUselessIsCheckInWhenMultipleConditionsFirst() throws Exception {
+            runTest("testData/quickfix/expressions/removeUselessIsCheckInWhenMultipleConditionsFirst.kt");
+        }
+
         @TestMetadata("removeUselessIsCheckInWhenNegate.kt")
         public void testRemoveUselessIsCheckInWhenNegate() throws Exception {
             runTest("testData/quickfix/expressions/removeUselessIsCheckInWhenNegate.kt");
