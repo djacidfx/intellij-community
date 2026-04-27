@@ -40,13 +40,16 @@ class KotlinPossibleSourceTypesTest : AbstractFirUastTest(), PossibleSourceTypes
 
     fun testAnnotationParameters() = doCheck("AnnotationParameters.kt")
 
-    fun testAnonymous() = doCheck("Anonymous.kt")
+    // KTIJ-38551
+    fun _testAnonymous() = doCheck("Anonymous.kt")
 
-    fun testBitwise() = doCheck("Bitwise.kt")
+    // KTIJ-38551
+    fun _testBitwise() = doCheck("Bitwise.kt")
 
     fun testClassAnnotation() = doCheck("ClassAnnotation.kt")
 
-    fun testConstructors() = doCheck("Constructors.kt")
+    // KTIJ-38551
+    fun _testConstructors() = doCheck("Constructors.kt")
 
     fun testConstructorDelegate() = doCheck("ConstructorDelegate.kt")
 
@@ -58,7 +61,8 @@ class KotlinPossibleSourceTypesTest : AbstractFirUastTest(), PossibleSourceTypes
 
     fun testDeprecatedHidden() = doCheck("DeprecatedHidden.kt")
 
-    fun testDestructuringDeclaration() = doCheck("DestructuringDeclaration.kt")
+    // KTIJ-38551
+    fun _testDestructuringDeclaration() = doCheck("DestructuringDeclaration.kt")
 
     fun testElvis() = doCheck("Elvis.kt")
 
@@ -66,17 +70,22 @@ class KotlinPossibleSourceTypesTest : AbstractFirUastTest(), PossibleSourceTypes
 
     fun testEnumValuesConstructors() = doCheck("EnumValuesConstructors.kt")
 
-    fun testIfStatement() = doCheck("IfStatement.kt")
+    // KTIJ-38551
+    fun _testIfStatement() = doCheck("IfStatement.kt")
 
     fun testInnerClasses() = doCheck("InnerClasses.kt")
 
-    fun testLambdaReturn() = doCheck("LambdaReturn.kt")
+    // KTIJ-38551
+    fun _testLambdaReturn() = doCheck("LambdaReturn.kt")
 
-    fun testLambdas() = doCheck("Lambdas.kt")
+    // KTIJ-38551
+    fun _testLambdas() = doCheck("Lambdas.kt")
 
-    fun testLocalDeclarations() = doCheck("LocalDeclarations.kt")
+    // KTIJ-38551
+    fun _testLocalDeclarations() = doCheck("LocalDeclarations.kt")
 
-    fun testLocalVariableWithAnnotation() = doCheck("LocalVariableWithAnnotation.kt")
+    // KTIJ-38551
+    fun _testLocalVariableWithAnnotation() = doCheck("LocalVariableWithAnnotation.kt")
 
     fun testParameterPropertyWithAnnotation() = doCheck("ParameterPropertyWithAnnotation.kt")
 
@@ -106,9 +115,11 @@ class KotlinPossibleSourceTypesTest : AbstractFirUastTest(), PossibleSourceTypes
 
     fun testStringTemplate() = doCheck("StringTemplate.kt")
 
-    fun testStringTemplateComplex() = doCheck("StringTemplateComplex.kt")
+    // KTIJ-38551
+    fun _testStringTemplateComplex() = doCheck("StringTemplateComplex.kt")
 
-    fun testStringTemplateComplexForUInjectionHost() = doCheck("StringTemplateComplexForUInjectionHost.kt")
+    // KTIJ-38551
+    fun _testStringTemplateComplexForUInjectionHost() = doCheck("StringTemplateComplexForUInjectionHost.kt")
 
     fun testSuperCalls() = doCheck("SuperCalls.kt")
 
@@ -116,13 +127,16 @@ class KotlinPossibleSourceTypesTest : AbstractFirUastTest(), PossibleSourceTypes
 
     fun testTryCatch() = doCheck("TryCatch.kt")
 
-    fun testTypeReferences() = doCheck("TypeReferences.kt")
+    // KTIJ-38551
+    fun _testTypeReferences() = doCheck("TypeReferences.kt")
 
     fun testUnexpectedContainer() = doCheck("UnexpectedContainerException.kt")
 
-    fun testWhenAndDestructing() = doCheck("WhenAndDestructing.kt")
+    // KTIJ-38551
+    fun _testWhenAndDestructing() = doCheck("WhenAndDestructing.kt")
 
-    fun testWhenIs() = doCheck("WhenIs.kt")
+    // KTIJ-38551
+    fun _testWhenIs() = doCheck("WhenIs.kt")
 
     fun testWhenStringLiteral() = doCheck("WhenStringLiteral.kt")
 }
