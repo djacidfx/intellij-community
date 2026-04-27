@@ -21,6 +21,7 @@ import com.intellij.psi.ResolveState;
 import com.intellij.psi.scope.PsiScopeProcessor;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.search.SearchScope;
+import com.intellij.psi.util.PsiUtilCore;
 import com.intellij.util.ArrayUtil;
 import com.intellij.util.IncorrectOperationException;
 import com.intellij.util.ReflectionUtil;
@@ -202,6 +203,7 @@ public abstract class PsiElementBase extends ElementBase implements NavigatableP
 
   @ApiStatus.Internal
   public static void doNavigate(@NotNull PsiElement element, boolean requestFocus) {
+    PsiUtilCore.ensureValid(element);
     Navigatable descriptor = PsiNavigationSupport.getInstance().getDescriptor(element);
     if (descriptor != null) {
       descriptor.navigate(requestFocus);
