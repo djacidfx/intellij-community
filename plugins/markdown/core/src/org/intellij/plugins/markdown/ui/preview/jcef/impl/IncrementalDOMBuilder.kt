@@ -1,6 +1,7 @@
 // Copyright 2000-2021 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
 package org.intellij.plugins.markdown.ui.preview.jcef.impl
 
+import com.intellij.ide.trustedProjects.TrustedProjects.isProjectTrusted
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.util.SystemInfo
@@ -8,6 +9,7 @@ import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.toNioPathOrNull
 import org.intellij.plugins.markdown.ui.preview.PreviewStaticServer
 import org.intellij.plugins.markdown.ui.preview.ResourceProvider
 import org.intellij.plugins.markdown.ui.preview.html.PreviewEncodingUtil
@@ -21,8 +23,10 @@ import org.jsoup.nodes.TextNode
 import org.jsoup.parser.Parser
 import org.jsoup.parser.Tag
 import org.jsoup.parser.TagSet
+import java.net.URI
 import java.net.URLDecoder
 import java.nio.charset.Charset
+import java.nio.file.Path
 
 @ApiStatus.Internal
 class IncrementalDOMBuilder(
@@ -119,6 +123,9 @@ class IncrementalDOMBuilder(
   }
 
   private fun actuallyProcessImageNode(node: Node, baseFile: VirtualFile, projectRoot: VirtualFile) {
+    val fileSchemeResourceProcessor = fileSchemeResourceProcessor ?: return
+    val projectPath = projectRoot.toNioPathOrNull() ?: return
+
     var path = node.attr("src")
     val hasFileHost = path.startsWith("file:/")
     if (hasFileHost && !node.hasAttr("from-extension")) {
@@ -138,11 +145,15 @@ class IncrementalDOMBuilder(
       }
       path = FileUtil.toSystemIndependentName(path)
     }
-    if (fileSchemeResourceProcessor != null) {
-      val processed = PreviewStaticServer.getStaticUrl(fileSchemeResourceProcessor, path)
-      node.attr("data-original-src", path)
-      node.attr("src", processed)
-    }
+
+    val filePath = if (hasFileHost) Path.of(URI(path))
+    else baseFile.toNioPath().resolve(path).normalize()
+
+    if (!hasFileHost && !isProjectTrusted(projectPath) && !filePath.startsWith(projectPath)) return
+
+    val processed = PreviewStaticServer.getStaticUrl(fileSchemeResourceProcessor, filePath.toString())
+    node.attr("data-original-src", path)
+    node.attr("src", processed)
   }
 
   private fun shouldPreprocessImageNode(node: Node): Boolean {
