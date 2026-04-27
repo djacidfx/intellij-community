@@ -5,11 +5,8 @@ import com.intellij.workspaceModel.codegen.deft.meta.ObjClass
 import com.intellij.workspaceModel.codegen.deft.meta.ObjProperty
 import com.intellij.workspaceModel.codegen.deft.meta.OwnProperty
 import com.intellij.workspaceModel.codegen.deft.meta.ValueType
-import com.intellij.workspaceModel.codegen.engine.GenerationProblem
-import com.intellij.workspaceModel.codegen.engine.ProblemLocation
 import com.intellij.workspaceModel.codegen.impl.CodeGeneratorVersionCalculator
 import com.intellij.workspaceModel.codegen.impl.engine.ProblemReporter
-import com.intellij.workspaceModel.codegen.impl.writer.classes.isEntityWithSymbolicId
 import com.intellij.workspaceModel.codegen.impl.writer.classes.noDefaultValue
 import com.intellij.workspaceModel.codegen.impl.writer.classes.noEntitySource
 import com.intellij.workspaceModel.codegen.impl.writer.classes.noOptional
@@ -18,7 +15,6 @@ import com.intellij.workspaceModel.codegen.impl.writer.classes.noSymbolicId
 import com.intellij.workspaceModel.codegen.impl.writer.extensions.additionalAnnotations
 import com.intellij.workspaceModel.codegen.impl.writer.extensions.allExtensions
 import com.intellij.workspaceModel.codegen.impl.writer.extensions.allFields
-import com.intellij.workspaceModel.codegen.impl.writer.extensions.allSuperClasses
 import com.intellij.workspaceModel.codegen.impl.writer.extensions.builderWithTypeParameter
 import com.intellij.workspaceModel.codegen.impl.writer.extensions.defaultJavaBuilderName
 import com.intellij.workspaceModel.codegen.impl.writer.extensions.isRefType
@@ -51,88 +47,6 @@ fun ObjClass<*>.generateMutableCode(reporter: ProblemReporter): String = lines {
     }
   }
 }
-
-fun checkSuperTypes(objClass: ObjClass<*>, reporter: ProblemReporter) {
-  objClass.superTypes.filterIsInstance<ObjClass<*>>().forEach { superClass ->
-    if (!superClass.openness.extendable) {
-      reporter.reportProblem(GenerationProblem("Class '${superClass.name}' cannot be extended", GenerationProblem.Level.ERROR,
-        ProblemLocation.Class(objClass)))
-    }
-    else if (!superClass.openness.openHierarchy && superClass.module != objClass.module) {
-      reporter.reportProblem(GenerationProblem("Class '${superClass.name}' cannot be extended from other modules",
-        GenerationProblem.Level.ERROR, ProblemLocation.Class(objClass)))
-    }
-  }
-}
-
-fun checkSymbolicId(objClass: ObjClass<*>, reporter: ProblemReporter) {
-  if (!objClass.isEntityWithSymbolicId) return
-  if (objClass.openness == ObjClass.Openness.abstract) return
-  if (objClass.fields.none { it.name == "symbolicId" }) {
-    reporter.reportProblem(GenerationProblem("Class extends '${WorkspaceEntityWithSymbolicId.simpleName}' but " +
-      "doesn't override 'WorkspaceEntityWithSymbolicId.getSymbolicId' property",
-      GenerationProblem.Level.ERROR, ProblemLocation.Class(objClass)))
-  }
-}
-
-private fun checkProperty(objProperty: ObjProperty<*, *>, reporter: ProblemReporter) {
-  checkInheritance(objProperty, reporter)
-  checkAllImmutable(objProperty, reporter)
-  checkPropertyType(objProperty, reporter)
-}
-
-fun checkInheritance(objProperty: ObjProperty<*, *>, reporter: ProblemReporter) {
-  objProperty.receiver.allSuperClasses.mapNotNull { it.fieldsByName[objProperty.name] }.forEach { overriddenField ->
-    if (!overriddenField.open) {
-      reporter.reportProblem(
-        GenerationProblem("Property '${overriddenField.receiver.name}::${overriddenField.name}' cannot be overridden",
-          GenerationProblem.Level.ERROR, ProblemLocation.Property(objProperty)))
-    }
-  }
-}
-
-private fun checkPropertyType(objProperty: ObjProperty<*, *>, reporter: ProblemReporter) {
-  val errorMessage = when (val type = objProperty.valueType) {
-    is ValueType.ObjRef<*> -> {
-      if (type.child) "Child references should always be nullable"
-      else null
-    }
-
-    else -> checkType(type)
-  }
-  if (errorMessage != null) {
-    reporter.reportProblem(GenerationProblem(errorMessage, GenerationProblem.Level.ERROR, ProblemLocation.Property(objProperty)))
-  }
-}
-
-fun checkAllImmutable(objProperty: ObjProperty<*, *>, reporter: ProblemReporter) {
-  if (objProperty.mutable) {
-    reporter.reportProblem(GenerationProblem("An immutable interface can't contain mutable properties", GenerationProblem.Level.ERROR, ProblemLocation.Property(objProperty)))
-  }
-}
-
-private fun checkType(type: ValueType<*>): String? = when (type) {
-  is ValueType.Optional -> when (type.type) {
-    is ValueType.List<*> -> "Optional lists aren't supported"
-    is ValueType.Set<*> -> "Optional sets aren't supported"
-    else -> checkType(type.type)
-  }
-
-  is ValueType.Set<*> -> {
-    if (type.elementType.isRefType()) {
-      "Set of references isn't supported"
-    }
-    else checkType(type.elementType)
-  }
-
-  is ValueType.Map<*, *> -> {
-    checkType(type.keyType) ?: checkType(type.valueType)
-  }
-
-  else -> null
-}
-
-private val knownInterfaces = setOf(VirtualFileUrl.decoded, EntitySource.decoded, SymbolicEntityId.decoded)
 
 fun ObjClass<*>.generateEntityTypeObject(): String = lines {
   val builderGeneric = if (openness.extendable) "<$javaFullName>" else ""

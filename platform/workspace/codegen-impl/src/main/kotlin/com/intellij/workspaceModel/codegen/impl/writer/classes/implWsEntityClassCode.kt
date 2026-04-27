@@ -2,10 +2,7 @@
 package com.intellij.workspaceModel.codegen.impl.writer.classes
 
 import com.intellij.workspaceModel.codegen.deft.meta.ObjClass
-import com.intellij.workspaceModel.codegen.engine.GenerationProblem
-import com.intellij.workspaceModel.codegen.engine.ProblemLocation
 import com.intellij.workspaceModel.codegen.impl.CodeGeneratorVersionCalculator
-import com.intellij.workspaceModel.codegen.impl.engine.ProblemReporter
 import com.intellij.workspaceModel.codegen.impl.writer.ConnectionId
 import com.intellij.workspaceModel.codegen.impl.writer.EntityStorageInstrumentationApi
 import com.intellij.workspaceModel.codegen.impl.writer.GeneratedCodeApiVersion
@@ -16,21 +13,16 @@ import com.intellij.workspaceModel.codegen.impl.writer.extensions.additionalAnno
 import com.intellij.workspaceModel.codegen.impl.writer.extensions.allFields
 import com.intellij.workspaceModel.codegen.impl.writer.extensions.allRefsFields
 import com.intellij.workspaceModel.codegen.impl.writer.extensions.defaultJavaBuilderName
-import com.intellij.workspaceModel.codegen.impl.writer.extensions.getRefType
 import com.intellij.workspaceModel.codegen.impl.writer.extensions.implPackage
 import com.intellij.workspaceModel.codegen.impl.writer.extensions.javaFullName
 import com.intellij.workspaceModel.codegen.impl.writer.extensions.javaImplName
-import com.intellij.workspaceModel.codegen.impl.writer.extensions.refsFields
 import com.intellij.workspaceModel.codegen.impl.writer.fields.implWsEntityFieldCode
 import com.intellij.workspaceModel.codegen.impl.writer.fields.javaType
 import com.intellij.workspaceModel.codegen.impl.writer.fields.refsConnectionId
 import com.intellij.workspaceModel.codegen.impl.writer.fields.refsConnectionIdCode
 import com.intellij.workspaceModel.codegen.impl.writer.lines
 
-fun ObjClass<*>.implWsEntityCode(reporter: ProblemReporter): String {
-  checkReferences(this@implWsEntityCode, reporter)
-  if (reporter.hasErrors()) return ""
-
+fun ObjClass<*>.implWsEntityCode(): String {
   val inheritanceModifier = when {
     openness.extendable && !openness.instantiatable -> "abstract "
     openness.extendable && openness.instantiatable -> "open "
@@ -85,48 +77,5 @@ private fun getLinksOfConnectionIds(type: ObjClass<*>): String {
     line(type.allRefsFields.joinToString(separator = ",",
                                          prefix = "private val connections = listOf<$ConnectionId>(",
                                          postfix = ")") { it.refsConnectionId })
-  }
-}
-
-private fun checkReferences(objClass: ObjClass<*>, reporter: ProblemReporter) {
-  for (refField in objClass.allRefsFields) {
-    val ref = refField.valueType.getRefType()
-    val declaredReferenceFromChild =
-      ref.target.refsFields.filter { it.valueType.getRefType().target == refField.receiver && it != refField } + setOf(ref.target.module,
-                                                                                                                       refField.receiver.module).flatMap { it.extensions }
-        .filter { it.valueType.getRefType().target == refField.receiver && it.receiver == ref.target && it != refField }
-    if (declaredReferenceFromChild.isEmpty()) {
-      reporter.reportProblem(
-        GenerationProblem("Reference should be declared at both entities. It exist at ${objClass.name}#${refField.name}, but is absent from ${ref.target.name}. Instantiatable: from ${objClass.openness.instantiatable} to ${ref.target.openness.instantiatable}",
-                          GenerationProblem.Level.ERROR,
-                          ProblemLocation.Property(refField))
-      )
-      return@checkReferences
-    }
-    if (declaredReferenceFromChild.size > 1) {
-      reporter.reportProblem(
-        GenerationProblem("""
-        |More then one reference to ${objClass.name} declared at ${declaredReferenceFromChild[0].receiver.name}#${declaredReferenceFromChild[0].name}, 
-        |${declaredReferenceFromChild[1].receiver.name}#${declaredReferenceFromChild[1].name}
-        |""".trimMargin(),
-                          GenerationProblem.Level.ERROR,
-                          ProblemLocation.Property(declaredReferenceFromChild[0]))
-      )
-      return@checkReferences
-    }
-    val referencedField = declaredReferenceFromChild[0]
-    if (ref.child == referencedField.valueType.getRefType().child) {
-      val (childStr, fix) = if (ref.child) {
-        "child" to "Probably @Parent annotation is missing from one of the properties."
-      }
-      else {
-        "parent" to "Probably both properties are annotated with @Parent, while only one should be."
-      }
-      reporter.reportProblem(
-        GenerationProblem("Both fields ${objClass.name}#${refField.name} and ${ref.target.name}#${referencedField.name} are marked as $childStr. $fix",
-                          GenerationProblem.Level.ERROR,
-                          ProblemLocation.Property(refField))
-      )
-    }
   }
 }

@@ -13,6 +13,7 @@ import com.intellij.workspaceModel.codegen.engine.ObjModuleFileGeneratedCode
 import com.intellij.workspaceModel.codegen.engine.ProblemLocation
 import com.intellij.workspaceModel.codegen.impl.writer.MetadataStorage
 import com.intellij.workspaceModel.codegen.impl.writer.checkExtensionFields
+import com.intellij.workspaceModel.codegen.impl.writer.checkReferences
 import com.intellij.workspaceModel.codegen.impl.writer.checkSuperTypes
 import com.intellij.workspaceModel.codegen.impl.writer.checkSymbolicId
 import com.intellij.workspaceModel.codegen.impl.writer.classes.implWsMetadataStorageBridgeCode
@@ -41,12 +42,13 @@ class CodeGeneratorImpl : CodeGenerator {
       try {
         checkSuperTypes(type, reporter)
         checkSymbolicId(type, reporter)
+        checkReferences(type, reporter)
         if (reporter.hasErrors()) return failedGenerationResult(reporter)
         val topLevelCode = type.generateTopLevelCode(reporter)
         if (reporter.hasErrors()) return failedGenerationResult(reporter)
         val compatibilityBuilder = type.generateCompatabilityBuilder()
         val compatibilityCompanion = type.generateCompatibilityCompanion()
-        val implementationClass = type.implWsCode(reporter)
+        val implementationClass = type.implWsCode()
         if (reporter.hasErrors()) return failedGenerationResult(reporter)
         generatedCode.add(
           ObjClassGeneratedCode(

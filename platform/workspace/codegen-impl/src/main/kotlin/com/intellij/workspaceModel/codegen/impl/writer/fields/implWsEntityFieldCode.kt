@@ -2,7 +2,10 @@ package com.intellij.workspaceModel.codegen.impl.writer.fields
 
 import com.intellij.workspaceModel.codegen.deft.meta.ObjProperty
 import com.intellij.workspaceModel.codegen.deft.meta.ValueType
+import com.intellij.workspaceModel.codegen.engine.GenerationProblem
+import com.intellij.workspaceModel.codegen.impl.engine.ProblemReporter
 import com.intellij.workspaceModel.codegen.impl.writer.Instrumentation
+import com.intellij.workspaceModel.codegen.impl.writer.checkReference
 import com.intellij.workspaceModel.codegen.impl.writer.extensions.getRefType
 import com.intellij.workspaceModel.codegen.impl.writer.extensions.hasSetter
 import com.intellij.workspaceModel.codegen.impl.writer.extensions.isOverride
@@ -140,29 +143,19 @@ internal val ObjProperty<*, *>.implWsBlockingCodeOverride: String
 
 internal val ObjProperty<*, *>.referencedField: ObjProperty<*, *>
   get() {
+    checkReference(this, object : ProblemReporter {
+      override val problems: List<GenerationProblem>
+        get() = emptyList()
+
+      override fun reportProblem(problem: GenerationProblem) {
+        error("ERROR MISSED BY PROBLEM CHECKER: ${problem.message}")
+      }
+    })
     val ref = valueType.getRefType()
     val declaredReferenceFromChild =
       ref.target.refsFields.filter { it.valueType.getRefType().target == receiver && it != this } +
       setOf(ref.target.module,
             receiver.module).flatMap { it.extensions }.filter { it.valueType.getRefType().target == receiver && it.receiver == ref.target && it != this }
-    if (declaredReferenceFromChild.isEmpty()) {
-      error("Reference should be declared at both entities. It exist at ${receiver.name}#$name but absent at ${ref.target.name}")
-    }
-    if (declaredReferenceFromChild.size > 1) {
-      error("""
-        |More then one reference to ${receiver.name} declared at ${declaredReferenceFromChild[0].receiver.name}#${declaredReferenceFromChild[0].name}, 
-        |${declaredReferenceFromChild[1].receiver.name}#${declaredReferenceFromChild[1].name}
-        |""".trimMargin())
-    }
     val referencedField = declaredReferenceFromChild[0]
-    if (this.valueType.getRefType().child == referencedField.valueType.getRefType().child) {
-      val (childStr, fix) = if (this.valueType.getRefType().child) {
-        "child" to "Probably @Parent annotation is missing from one of the properties."
-      }
-      else {
-        "parent" to "Probably both properties are annotated with @Parent, while only one should be."
-      }
-      error("Both fields ${receiver.name}#$name and ${ref.target.name}#${referencedField.name} are marked as $childStr. $fix")
-    }
     return referencedField
   }
