@@ -65,7 +65,7 @@ kt_jvm_library(
 
 kt_jvm_library(
     name = "bazel-generator-integration-tests-lib",
-    srcs = ["test/org/jetbrains/intellij/build/bazel/BazelGeneratorIntegrationTests.kt"],
+    srcs = glob(["test/**/*.kt"]),
     associates = [":jps_to_bazel-lib"],
     deps = [
         "@j2b_maven//:junit_junit",
@@ -76,7 +76,10 @@ kt_jvm_library(
 
 filegroup(
     name = "bazel-generator-integration-test-data",
-    srcs = glob(["testData/integration/**"]),
+    srcs = glob([
+        "testData/integration/**",
+        "testData/kotlinc-defaults/**",
+    ]),
 )
 
 java_test(
@@ -88,6 +91,19 @@ java_test(
     ],
     env = {
         "BAZEL_GENERATOR_INTEGRATION_TEST_DATA_MARKER": "$(rlocationpath testData/integration/marker.txt)",
+    },
+    runtime_deps = [":bazel-generator-integration-tests-lib"],
+)
+
+java_test(
+    name = "kotlinc-project-defaults-tests",
+    test_class = "org.jetbrains.intellij.build.bazel.KotlincProjectDefaultsTest",
+    data = [
+        ":bazel-generator-integration-test-data",
+        "testData/kotlinc-defaults/marker.txt",
+    ],
+    env = {
+        "BAZEL_GENERATOR_KOTLINC_DEFAULTS_TEST_DATA_MARKER": "$(rlocationpath testData/kotlinc-defaults/marker.txt)",
     },
     runtime_deps = [":bazel-generator-integration-tests-lib"],
 )

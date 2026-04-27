@@ -141,6 +141,7 @@ internal class JpsModuleToBazelTargetsOnly {
           urlCache = UrlCache(modulesBazel = emptyList(), repositories = emptyList()),
           customModules = if (defaultCustomModules.toBooleanStrict()) DEFAULT_CUSTOM_MODULES else emptyMap(),
           snapshotLibraryMode = SnapshotLibraryMode.REUSE_GENERATED,
+          kotlincDefaults = parseKotlincProjectDefaults(projectDir),
         )
 
         // additional check: all iml files are available (to additionally check manifest)

@@ -105,6 +105,7 @@ internal class BazelBuildFileGenerator(
   val urlCache: UrlCache,
   val customModules: Map<String, CustomModuleDescription>,
   val snapshotLibraryMode: SnapshotLibraryMode = SnapshotLibraryMode.WRITE_TO_REPO,
+  private val kotlincDefaults: KotlincProjectDefaults,
 ) {
   @JvmField
   val javaExtensionService: JpsJavaExtensionService = JpsJavaExtensionService.getInstance()
@@ -592,8 +593,8 @@ internal class BazelBuildFileGenerator(
     val module = moduleDescriptor.module
     val customModule = customModules[moduleDescriptor.module.name]
     val jvmTarget = getLanguageLevel(module)
-    val kotlincOptionsLabel = computeKotlincOptions(buildFile = this, module = moduleDescriptor, jvmTarget = jvmTarget)
-                              ?: (if (jvmTarget == "25") null else "@community//:k$jvmTarget")
+    val kotlincOptionsLabel = computeKotlincOptions(buildFile = this, module = moduleDescriptor, jvmTarget = jvmTarget, kotlincDefaults = kotlincDefaults)
+                              ?: (if (jvmTarget == kotlincDefaults.jvmTarget) null else "@community//:k$jvmTarget")
     val javacOptionsLabel = computeJavacOptions(moduleDescriptor, jvmTarget)
 
     val resourceTargets = mutableListOf<BazelLabel>()
@@ -1011,7 +1012,7 @@ private fun resolveRelativeToBazelBuildFileDirectory(childDir: Path, contentRoot
   return bazelBuildDir.relativize(childDir)
 }
 
-private fun computeKotlincOptions(buildFile: BuildFile, module: ModuleDescriptor, jvmTarget: String): String? {
+private fun computeKotlincOptions(buildFile: BuildFile, module: ModuleDescriptor, jvmTarget: String, kotlincDefaults: KotlincProjectDefaults): String? {
   val kotlinFacetModuleExtension = module.module.container.getChild(JpsKotlinFacetModuleExtension.KIND) ?: return null
   val mergedCompilerArguments = kotlinFacetModuleExtension.settings.mergedCompilerArguments as? K2JVMCompilerArguments ?: return null
   val options = HashMap<String, Any>()
@@ -1024,24 +1025,21 @@ private fun computeKotlincOptions(buildFile: BuildFile, module: ModuleDescriptor
 
   //api_version
   handleArgument(K2JVMCompilerArguments::apiVersion) { apiVersion ->
-    if (apiVersion != null && apiVersion != "2.3") {
+    if (apiVersion != null && apiVersion != kotlincDefaults.apiVersion) {
       options.put("api_version", apiVersion)
     }
   }
   //language_version
   handleArgument(K2JVMCompilerArguments::languageVersion) { languageVersion ->
-    if (languageVersion != null && languageVersion != "2.3") {
+    if (languageVersion != null && languageVersion != kotlincDefaults.languageVersion) {
       options.put("language_version", languageVersion)
     }
   }
   //optin
   handleArgument(K2JVMCompilerArguments::optIn) {
-    // see create_kotlinc_options
-    var effectiveOptIn = it?.asList() ?: emptyList()
-    if (effectiveOptIn.size == 1 && effectiveOptIn[0] == "com.intellij.openapi.util.IntellijInternalApi") {
-      effectiveOptIn = emptyList()
-    }
-    if (effectiveOptIn.isNotEmpty()) {
+    // see create_kotlinc_options; treat empty facet opt-in as "use project default"
+    val effectiveOptIn = it?.asList() ?: emptyList()
+    if (effectiveOptIn.isNotEmpty() && effectiveOptIn != kotlincDefaults.optIn) {
       options.put("opt_in", effectiveOptIn)
     }
   }
@@ -1108,7 +1106,7 @@ private fun computeKotlincOptions(buildFile: BuildFile, module: ModuleDescriptor
   //x_jvm_default
   handleArgument(K2JVMCompilerArguments::jvmDefault) { xJvmDefault ->
     if (xJvmDefault != null) {
-      if (xJvmDefault != "all") {
+      if (xJvmDefault != kotlincDefaults.rawJvmDefault) {
         options.put("x_jvm_default", xJvmDefault)
       }
     } else {
@@ -1117,7 +1115,7 @@ private fun computeKotlincOptions(buildFile: BuildFile, module: ModuleDescriptor
       }
     }
   }
-  //x_lambdas
+  //x_lambdas: not project-configurable via kotlinc.xml; default is the kt_kotlinc_options default "indy".
   handleArgument(K2JVMCompilerArguments::lambdas) { lambdas ->
     if (lambdas != null && lambdas != "indy") {
       options.put("x_lambdas", lambdas)
@@ -1147,7 +1145,7 @@ private fun computeKotlincOptions(buildFile: BuildFile, module: ModuleDescriptor
       options.put("x_report_all_warnings", true)
     }
   }
-  //x_sam_conversions
+  //x_sam_conversions: not project-configurable via kotlinc.xml; default is the kt_kotlinc_options default "indy".
   handleArgument(K2JVMCompilerArguments::samConversions) { samConversions ->
     if (samConversions != null && samConversions != "indy") {
       options.put("x_sam_conversions", samConversions)
@@ -1175,15 +1173,20 @@ private fun computeKotlincOptions(buildFile: BuildFile, module: ModuleDescriptor
   }
   //x_x_language
   val effectiveXXLanguage = mergedCompilerArguments.internalArguments.map { it.stringRepresentation }.filter { it.startsWith("-XXLanguage:") }
-  if (effectiveXXLanguage.size != 1 || effectiveXXLanguage[0] != "-XXLanguage:+AllowEagerSupertypeAccessibilityChecks") {
-    options.put("x_x_language", effectiveXXLanguage.map { it.removePrefix("-XXLanguage:") })
+    .map { it.removePrefix("-XXLanguage:") }
+  if (effectiveXXLanguage != kotlincDefaults.xxLanguage) {
+    options.put("x_x_language", effectiveXXLanguage)
   }
+
+  val handledInternalXXLanguage = kotlincDefaults.xxLanguage.map { "-XXLanguage:$it" }.toMutableSet()
+  // Some modules use -XXLanguage:+InlineClasses to opt into inline classes; this pre-existed kotlinc.xml-driven defaults.
+  handledInternalXXLanguage += "-XXLanguage:+InlineClasses"
 
   checkNoUnhandledKotlincOptions(
     module.module,
     mergedCompilerArguments,
     handledArguments = handledArguments + setOf("jvmTarget", "pluginClasspaths"),
-    handledInternalArguments = setOf("-XXLanguage:+AllowEagerSupertypeAccessibilityChecks", "-XXLanguage:+InlineClasses"),
+    handledInternalArguments = handledInternalXXLanguage,
     handledUnknownExtraFlags = setOf("-Xallow-result-return-type", "-Xstrict-java-nullability-assertions", "-Xwasm-attach-js-exception", "-Xwasm-kclass-fqn"),
   )
 
@@ -1196,7 +1199,7 @@ private fun computeKotlincOptions(buildFile: BuildFile, module: ModuleDescriptor
   val kotlincOptionsName = "custom_" + module.targetName
   buildFile.target("create_kotlinc_options") {
     option("name", kotlincOptionsName)
-    if (jvmTarget != "25") {
+    if (jvmTarget != kotlincDefaults.jvmTarget) {
       option("jvm_target", jvmTarget)
     }
     for ((name, value) in options.entries.sortedBy { it.key }) {
