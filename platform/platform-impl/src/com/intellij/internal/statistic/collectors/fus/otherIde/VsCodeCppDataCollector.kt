@@ -22,7 +22,7 @@ internal class VsCodeCppDataCollector : ProjectUsagesCollector() {
     val hasCppProperties = vsCodeDir.findChild("c_cpp_properties.json")?.isFile == true
     val hasCppSettings = detectCppInVsCodeSettings(vsCodeDir)
     if (!hasCppProperties && !hasCppSettings) return emptySet()
-    return setOf(cppConfigurationEvent.metric(hasCppProperties, hasCppSettings))
+    return setOf(VsCodeCppDataCollectorEvents.cppConfigurationEvent.metric(hasCppProperties, hasCppSettings))
   }
 
   private fun detectCppInVsCodeSettings(vsCodeDir: VirtualFile): Boolean {
@@ -41,8 +41,10 @@ internal class VsCodeCppDataCollector : ProjectUsagesCollector() {
 
 }
 
-private val hasCppPropertiesField = EventFields.Boolean("has_cpp_properties")
-private val hasCppSettingsField = EventFields.Boolean("has_cpp_settings")
-private val cppConfigurationEvent = LaunchJsonUsagesCollector.GROUP.registerEvent(
-  "cpp.configuration", hasCppPropertiesField, hasCppSettingsField
-)
+internal object VsCodeCppDataCollectorEvents {
+  private val hasCppPropertiesField = EventFields.Boolean("has_cpp_properties")
+  private val hasCppSettingsField = EventFields.Boolean("has_cpp_settings")
+  val cppConfigurationEvent = LaunchJsonUsagesCollector.GROUP.registerEvent(
+    "cpp.configuration", hasCppPropertiesField, hasCppSettingsField
+  )
+}
