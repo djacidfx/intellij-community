@@ -17,7 +17,6 @@ import com.intellij.openapi.util.io.OSAgnosticPathUtil
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.platform.eel.EelApi
 import com.intellij.platform.eel.EelPlatform
-import com.intellij.platform.eel.provider.localEel
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.components.textFieldWithBrowseButton
 import com.intellij.ui.dsl.builder.AlignX
@@ -319,7 +318,7 @@ internal class JdkDownloadDialog(
 
     vendorComboBox.selectedItem = it.selectItem
     val newVersion = it.item
-    val path = JdkInstaller.getInstance().defaultInstallDir(newVersion, localEel).toString()
+    val path = JdkInstaller.getInstance().defaultInstallDir(newVersion, eel).toString()
     val relativePath = FileUtil.getLocationRelativeToUserHome(path)
     installDirTextField.text = relativePath
     selectedPath = path
