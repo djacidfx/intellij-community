@@ -3,6 +3,9 @@ package org.jetbrains.idea.devkit.k2.inspections.remotedev
 
 import com.intellij.openapi.project.IntelliJProjectUtil
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.roots.ModuleOrderEntry
+import com.intellij.openapi.roots.ModuleRootManager
+import com.intellij.openapi.roots.ModuleRootModificationUtil
 import com.intellij.testFramework.PsiTestUtil
 import com.intellij.testFramework.common.timeoutRunBlocking
 import com.intellij.testFramework.common.waitUntil
@@ -470,6 +473,7 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
     val result = FileDocumentManager.getInstance().getDocument(pluginXml)!!.text
     assertTrue(result.contains("<module name=\"intellij.platform.core\"/>"))
     assertTrue(result.contains("<module name=\"intellij.platform.frontend\"/>"))
+    assertTrue(getModuleDependencyNames().contains("intellij.platform.frontend"))
   }
 
   fun testMakeModuleMonolithOnlyFixForFrontendApiInBackendModule() {
@@ -498,6 +502,7 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
       }
     """.trimIndent()
     )
+    addCurrentModuleDependencies("intellij.platform.backend", "com.jetbrains.remoteDevelopment")
 
     val intention = myFixture.findSingleIntention("Make module 'light_idea_test_case' work in 'monolith' only")
     myFixture.launchAction(intention)
@@ -508,6 +513,8 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
     assertTrue(result.contains("<module name=\"intellij.platform.monolith\"/>"))
     assertFalse(result.contains("intellij.platform.backend"))
     assertTrue(result.contains("<plugin id=\"com.jetbrains.remoteDevelopment\"/>"))
+    assertTrue(getModuleDependencyNames().contains("intellij.platform.monolith"))
+    assertFalse(getModuleDependencyNames().contains("intellij.platform.backend"))
     myFixture.checkHighlighting()
   }
 
@@ -537,6 +544,7 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
       }
     """.trimIndent()
     )
+    addCurrentModuleDependencies("intellij.platform.frontend", "com.intellij.jetbrains.client")
 
     val intention = myFixture.findSingleIntention("Make module 'light_idea_test_case' work in 'monolith' only")
     myFixture.launchAction(intention)
@@ -547,6 +555,8 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
     assertTrue(result.contains("<module name=\"intellij.platform.monolith\"/>"))
     assertFalse(result.contains("intellij.platform.frontend"))
     assertTrue(result.contains("<plugin id=\"com.intellij.jetbrains.client\"/>"))
+    assertTrue(getModuleDependencyNames().contains("intellij.platform.monolith"))
+    assertFalse(getModuleDependencyNames().contains("intellij.platform.frontend"))
     myFixture.checkHighlighting()
   }
 
@@ -575,6 +585,7 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
       }
     """.trimIndent()
     )
+    addCurrentModuleDependencies("intellij.platform.frontend")
 
     val intention = myFixture.findSingleIntention("Make module 'light_idea_test_case' work in 'backend' only")
     myFixture.launchAction(intention)
@@ -583,5 +594,20 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
     val result = FileDocumentManager.getInstance().getDocument(pluginXml)!!.text
     assertTrue(result.contains("<module name=\"intellij.platform.core\"/>"))
     assertFalse(result.contains("intellij.platform.frontend"))
+    assertFalse(getModuleDependencyNames().contains("intellij.platform.frontend"))
+  }
+
+  private fun getModuleDependencyNames(): Set<String> {
+    return ModuleRootManager.getInstance(module).orderEntries.filterIsInstance<ModuleOrderEntry>().map { it.moduleName }.toSet()
+  }
+
+  private fun addCurrentModuleDependencies(vararg dependencyNames: String) {
+    ModuleRootModificationUtil.updateModel(module) { model ->
+      for (dependencyName in dependencyNames) {
+        if (model.orderEntries.filterIsInstance<ModuleOrderEntry>().none { it.moduleName == dependencyName }) {
+          model.addInvalidModuleEntry(dependencyName)
+        }
+      }
+    }
   }
 }

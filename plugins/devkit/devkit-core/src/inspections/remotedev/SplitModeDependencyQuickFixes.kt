@@ -1,11 +1,14 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.idea.devkit.inspections.remotedev
 
-import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
 import com.intellij.codeInsight.intention.preview.IntentionPreviewUtils
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
+import com.intellij.openapi.module.Module
+import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.module.ModuleUtilCore
+import com.intellij.openapi.roots.ModuleOrderEntry
+import com.intellij.openapi.roots.ModuleRootModificationUtil
 import com.intellij.openapi.project.Project
 import com.intellij.psi.xml.XmlFile
 import org.jetbrains.idea.devkit.DevKitBundle.message
@@ -99,18 +102,13 @@ internal object SplitModeDependencyQuickFixes {
       return message("inspection.remote.dev.make.only.kind.dependencies.fix.name", desiredModuleKind.presentableName)
     }
 
-    override fun generatePreview(project: Project, descriptor: ProblemDescriptor): IntentionPreviewInfo {
-      return IntentionPreviewInfo.Html(
-        message("inspection.remote.dev.make.only.kind.dependencies.fix.description", moduleName, desiredModuleKind.presentableName)
-      )
-    }
-
     override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
       val ideaPlugin = findModuleDescriptor(descriptor) ?: return
+      val module = findTargetModule(descriptor)
       val xmlFile = ideaPlugin.xmlElement?.containingFile ?: return
       if (!IntentionPreviewUtils.prepareElementForWrite(xmlFile)) return
 
-      removeInappropriateDependencies(ideaPlugin, desiredModuleKind)
+      removeInappropriateDependencies(ideaPlugin, module, desiredModuleKind)
     }
   }
 
@@ -126,44 +124,28 @@ internal object SplitModeDependencyQuickFixes {
       return message("inspection.remote.dev.missing.runtime.dependency.fix.add", getExplicitPlatformDependencyName(desiredModuleKind))
     }
 
-    override fun generatePreview(project: Project, descriptor: ProblemDescriptor): IntentionPreviewInfo {
-      return if (desiredModuleKind == SplitModeApiRestrictionsService.ModuleKind.MONOLITH) {
-        IntentionPreviewInfo.Html(
-          message("inspection.remote.dev.add.explicit.monolith.dependency.fix.description", moduleName)
-        )
-      }
-      else {
-        IntentionPreviewInfo.Html(
-          message(
-            "inspection.remote.dev.add.explicit.kind.dependency.fix.description",
-            getExplicitPlatformDependencyName(desiredModuleKind),
-            moduleName,
-            desiredModuleKind.presentableName,
-          )
-        )
-      }
-    }
-
     override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
       val ideaPlugin = findModuleDescriptor(descriptor) ?: return
+      val module = findTargetModule(descriptor)
       val xmlFile = ideaPlugin.xmlElement?.containingFile ?: return
       if (!IntentionPreviewUtils.prepareElementForWrite(xmlFile)) return
 
-      removeInappropriateDependencies(ideaPlugin, desiredModuleKind)
+      removeInappropriateDependencies(ideaPlugin, module, desiredModuleKind)
 
       val dependencyName = getExplicitPlatformDependencyName(desiredModuleKind)
-      if (hasDirectDependency(ideaPlugin, dependencyName)) {
-        return
+      if (!hasDirectDependency(ideaPlugin, dependencyName)) {
+        val newModuleEntry = ideaPlugin.dependencies.addModuleEntry()
+        newModuleEntry.name.stringValue = dependencyName
       }
 
-      val newModuleEntry = ideaPlugin.dependencies.addModuleEntry()
-      newModuleEntry.name.stringValue = dependencyName
+      addModuleDependency(module, dependencyName)
     }
   }
 }
 
 private fun removeInappropriateDependencies(
   ideaPlugin: IdeaPlugin,
+  module: Module?,
   desiredModuleKind: SplitModeApiRestrictionsService.ModuleKind,
 ) {
   for (dependency in ideaPlugin.depends.toList()) {
@@ -175,6 +157,7 @@ private fun removeInappropriateDependencies(
 
   val dependencies = ideaPlugin.dependencies
   if (!dependencies.isValid) {
+    removeInappropriateModuleDependencies(module, desiredModuleKind)
     return
   }
 
@@ -190,6 +173,8 @@ private fun removeInappropriateDependencies(
       pluginEntry.xmlElement?.delete()
     }
   }
+
+  removeInappropriateModuleDependencies(module, desiredModuleKind)
 }
 
 private fun findModuleDescriptor(descriptor: ProblemDescriptor): IdeaPlugin? {
@@ -204,6 +189,48 @@ private fun findModuleDescriptor(descriptor: ProblemDescriptor): IdeaPlugin? {
   val module = ModuleUtilCore.findModuleForPsiElement(descriptor.psiElement) ?: return null
   val descriptorFile = PluginModuleType.getContentModuleDescriptorXml(module) ?: PluginModuleType.getPluginXml(module) ?: return null
   return DescriptorUtil.getIdeaPlugin(descriptorFile)
+}
+
+private fun findTargetModule(descriptor: ProblemDescriptor): Module? {
+  return ModuleUtilCore.findModuleForPsiElement(descriptor.psiElement)
+}
+
+private fun removeInappropriateModuleDependencies(
+  module: Module?,
+  desiredModuleKind: SplitModeApiRestrictionsService.ModuleKind,
+) {
+  if (module == null || IntentionPreviewUtils.isIntentionPreviewActive()) {
+    return
+  }
+
+  ModuleRootModificationUtil.updateModel(module) { model ->
+    for (orderEntry in model.orderEntries) {
+      val moduleOrderEntry = orderEntry as? ModuleOrderEntry ?: continue
+      if (shouldRemoveDependency(moduleOrderEntry.moduleName, desiredModuleKind)) {
+        model.removeOrderEntry(moduleOrderEntry)
+      }
+    }
+  }
+}
+
+private fun addModuleDependency(module: Module?, dependencyName: String) {
+  if (module == null || IntentionPreviewUtils.isIntentionPreviewActive()) {
+    return
+  }
+
+  ModuleRootModificationUtil.updateModel(module) { model ->
+    if (model.orderEntries.filterIsInstance<ModuleOrderEntry>().any { it.moduleName == dependencyName }) {
+      return@updateModel
+    }
+
+    val dependencyModule = ModuleManager.getInstance(module.project).findModuleByName(dependencyName)
+    if (dependencyModule != null) {
+      model.addModuleOrderEntry(dependencyModule)
+    }
+    else {
+      model.addInvalidModuleEntry(dependencyName)
+    }
+  }
 }
 
 private fun shouldRemoveDependency(

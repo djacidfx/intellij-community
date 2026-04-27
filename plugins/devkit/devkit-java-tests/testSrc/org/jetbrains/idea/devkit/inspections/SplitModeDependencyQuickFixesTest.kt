@@ -1,6 +1,10 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.idea.devkit.inspections
 
+import com.intellij.openapi.module.ModuleUtilCore
+import com.intellij.openapi.roots.ModuleOrderEntry
+import com.intellij.openapi.roots.ModuleRootManager
+import com.intellij.openapi.roots.ModuleRootModificationUtil
 import com.intellij.openapi.project.IntelliJProjectUtil
 import com.intellij.psi.PsiFile
 import com.intellij.testFramework.PsiTestUtil
@@ -52,6 +56,7 @@ internal class SplitModeDependencyQuickFixesTest : JavaCodeInsightFixtureTestCas
     val result = myFixture.file.text
     Assert.assertTrue(result.contains("<module name=\"intellij.platform.core\"/>"))
     Assert.assertTrue(result.contains("<module name=\"intellij.platform.frontend\"/>"))
+    Assert.assertTrue(getModuleDependencyNames(pluginXml).contains("intellij.platform.frontend"))
   }
 
   fun testMakeModuleFrontendDependenciesFixInXmlInspection() {
@@ -71,6 +76,7 @@ internal class SplitModeDependencyQuickFixesTest : JavaCodeInsightFixtureTestCas
       """.trimIndent()
     )
     myFixture.configureFromExistingVirtualFile(pluginXml.virtualFile)
+    addModuleDependencies(pluginXml, "intellij.platform.backend", "com.jetbrains.remoteDevelopment")
 
     val intention = myFixture.findSingleIntention("Make module 'unique.module.name.quick.fix.2' work in 'frontend' only")
     myFixture.launchAction(intention)
@@ -79,6 +85,10 @@ internal class SplitModeDependencyQuickFixesTest : JavaCodeInsightFixtureTestCas
     Assert.assertTrue(result.contains("<module name=\"intellij.platform.core\"/>"))
     Assert.assertFalse(result.contains("intellij.platform.backend"))
     Assert.assertFalse(result.contains("com.jetbrains.remoteDevelopment"))
+
+    val moduleDependencies = getModuleDependencyNames(pluginXml)
+    Assert.assertFalse(moduleDependencies.contains("intellij.platform.backend"))
+    Assert.assertFalse(moduleDependencies.contains("com.jetbrains.remoteDevelopment"))
   }
 
   fun testMakeModuleFrontendDependenciesFixInMixedInspection() {
@@ -97,6 +107,13 @@ internal class SplitModeDependencyQuickFixesTest : JavaCodeInsightFixtureTestCas
       """.trimIndent()
     )
     myFixture.configureFromExistingVirtualFile(pluginXml.virtualFile)
+    addModuleDependencies(
+      pluginXml,
+      "intellij.platform.frontend",
+      "intellij.platform.backend",
+      "com.intellij.jetbrains.client",
+      "com.jetbrains.remoteDevelopment",
+    )
 
     val intention = myFixture.findSingleIntention("Make module 'unique.module.name.quick.fix.3' work in 'frontend' only")
     myFixture.launchAction(intention)
@@ -107,6 +124,12 @@ internal class SplitModeDependencyQuickFixesTest : JavaCodeInsightFixtureTestCas
     Assert.assertTrue(result.contains("<plugin id=\"com.intellij.jetbrains.client\"/>"))
     Assert.assertFalse(result.contains("intellij.platform.backend"))
     Assert.assertFalse(result.contains("com.jetbrains.remoteDevelopment"))
+
+    val moduleDependencies = getModuleDependencyNames(pluginXml)
+    Assert.assertTrue(moduleDependencies.contains("intellij.platform.frontend"))
+    Assert.assertTrue(moduleDependencies.contains("com.intellij.jetbrains.client"))
+    Assert.assertFalse(moduleDependencies.contains("intellij.platform.backend"))
+    Assert.assertFalse(moduleDependencies.contains("com.jetbrains.remoteDevelopment"))
   }
 
   fun testMakeModuleMonolithOnlyFixInXmlInspection() {
@@ -131,6 +154,7 @@ internal class SplitModeDependencyQuickFixesTest : JavaCodeInsightFixtureTestCas
     val result = myFixture.file.text
     Assert.assertTrue(result.contains("<module name=\"intellij.platform.core\"/>"))
     Assert.assertTrue(result.contains("<module name=\"intellij.platform.monolith\"/>"))
+    Assert.assertTrue(getModuleDependencyNames(pluginXml).contains("intellij.platform.monolith"))
   }
 
   fun testMakeModuleMonolithOnlyFixInMixedInspection() {
@@ -149,6 +173,13 @@ internal class SplitModeDependencyQuickFixesTest : JavaCodeInsightFixtureTestCas
       """.trimIndent()
     )
     myFixture.configureFromExistingVirtualFile(pluginXml.virtualFile)
+    addModuleDependencies(
+      pluginXml,
+      "intellij.platform.frontend",
+      "intellij.platform.backend",
+      "com.intellij.jetbrains.client",
+      "com.jetbrains.remoteDevelopment",
+    )
 
     val intention = myFixture.filterAvailableIntentions("Make module 'unique.module.name.quick.fix.5' work in 'monolith' only").single()
     myFixture.launchAction(intention)
@@ -160,7 +191,30 @@ internal class SplitModeDependencyQuickFixesTest : JavaCodeInsightFixtureTestCas
     Assert.assertFalse(result.contains("intellij.platform.backend"))
     Assert.assertTrue(result.contains("<plugin id=\"com.intellij.jetbrains.client\"/>"))
     Assert.assertTrue(result.contains("<plugin id=\"com.jetbrains.remoteDevelopment\"/>"))
+
+    val moduleDependencies = getModuleDependencyNames(pluginXml)
+    Assert.assertTrue(moduleDependencies.contains("intellij.platform.monolith"))
+    Assert.assertTrue(moduleDependencies.contains("com.intellij.jetbrains.client"))
+    Assert.assertTrue(moduleDependencies.contains("com.jetbrains.remoteDevelopment"))
+    Assert.assertFalse(moduleDependencies.contains("intellij.platform.frontend"))
+    Assert.assertFalse(moduleDependencies.contains("intellij.platform.backend"))
     myFixture.checkHighlighting()
+  }
+
+  private fun addModuleDependencies(file: PsiFile, vararg dependencyNames: String) {
+    val module = ModuleUtilCore.findModuleForPsiElement(file) ?: return
+    ModuleRootModificationUtil.updateModel(module) { model ->
+      for (dependencyName in dependencyNames) {
+        if (model.orderEntries.filterIsInstance<ModuleOrderEntry>().none { it.moduleName == dependencyName }) {
+          model.addInvalidModuleEntry(dependencyName)
+        }
+      }
+    }
+  }
+
+  private fun getModuleDependencyNames(file: PsiFile): Set<String> {
+    val module = ModuleUtilCore.findModuleForPsiElement(file) ?: return emptySet()
+    return ModuleRootManager.getInstance(module).orderEntries.filterIsInstance<ModuleOrderEntry>().map { it.moduleName }.toSet()
   }
 
   private fun addModuleWithXmlDescriptor(
