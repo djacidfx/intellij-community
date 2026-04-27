@@ -5,9 +5,9 @@ import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.util.xml.DomElement
 import com.intellij.util.xml.highlighting.DomElementAnnotationHolder
 import com.intellij.util.xml.highlighting.DomHighlightingHelper
-import org.jetbrains.idea.devkit.DevKitBundle.message
 import org.jetbrains.idea.devkit.dom.IdeaPlugin
 import org.jetbrains.idea.devkit.inspections.DevKitPluginXmlInspectionBase
+import org.jetbrains.idea.devkit.inspections.remotedev.SplitModeInspectionUtil.buildMixedModuleDependenciesMessage
 
 internal class SplitModeMixedDependenciesInspection : DevKitPluginXmlInspectionBase() {
   private val restrictionsService = SplitModeApiRestrictionsService.getInstance()
@@ -32,11 +32,7 @@ internal class SplitModeMixedDependenciesInspection : DevKitPluginXmlInspectionB
     if (moduleAnalysis.resolvedModuleKind.kind != SplitModeApiRestrictionsService.ModuleKind.MIXED) return
 
     val dependencyAnalysis = moduleAnalysis.dependencyAnalysis
-    val mixedDependenciesMessage = message(
-      "inspection.remote.dev.mixed.dependencies.message",
-      dependencyAnalysis.getFrontendDependencyNames(),
-      dependencyAnalysis.getBackendDependencyNames(),
-    )
+    val mixedDependenciesMessage = buildMixedModuleDependenciesMessage(dependencyAnalysis)
     holder.createProblem(element, ProblemHighlightType.GENERIC_ERROR, mixedDependenciesMessage, null)
   }
 }

@@ -18,6 +18,14 @@ import org.jetbrains.idea.devkit.util.DescriptorUtil
 
 internal object SplitModeInspectionUtil {
   @Nls
+  fun buildMixedModuleDependenciesMessage(dependencyAnalysis: DependencyAnalysis): String {
+    return DevKitBundle.message("inspection.remote.dev.mixed.dependencies.message") + DevKitBundle.message(
+      "inspection.api.usage.restricted.to.module.type.reasoning.message.suffix",
+      dependencyAnalysis.buildMixedReasoning(),
+    )
+  }
+
+  @Nls
   fun buildModuleKindMismatchMessage(
     apiName: @NlsSafe String,
     expectedModuleKind: SplitModeApiRestrictionsService.ModuleKind,

@@ -34,7 +34,7 @@ internal class SplitModeMixedDependenciesInspectionTest : JavaCodeInsightFixture
       moduleName = "unique.module.name.17",
       descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
       pluginXmlContent = """
-        <<error descr="This module mixes frontend-only dependencies (intellij.platform.frontend) and backend-only dependencies (intellij.platform.backend)">idea-plugin</error>>
+        <<error descr="This module effectively depends on frontend-only and backend-only modules simultaneously. It will not get loaded in runtime. Reason: frontend dependencies: dependency 'intellij.platform.frontend' from descriptor 'plugin.xml' in module 'unique.module.name.17'; backend dependencies: dependency 'intellij.platform.backend' from descriptor 'plugin.xml' in module 'unique.module.name.17'">idea-plugin</error>>
           <dependencies>
             <module name="intellij.platform.frontend"/>
             <module name="intellij.platform.rpc.split"/>
@@ -53,7 +53,7 @@ internal class SplitModeMixedDependenciesInspectionTest : JavaCodeInsightFixture
       moduleName = "unique.module.name.18",
       descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
       pluginXmlContent = """
-        <<error descr="This module mixes frontend-only dependencies (com.intellij.jetbrains.client) and backend-only dependencies (com.jetbrains.remoteDevelopment)">idea-plugin</error>>
+        <<error descr="This module effectively depends on frontend-only and backend-only modules simultaneously. It will not get loaded in runtime. Reason: frontend dependencies: dependency 'com.intellij.jetbrains.client' from descriptor 'plugin.xml' in module 'unique.module.name.18'; backend dependencies: dependency 'com.jetbrains.remoteDevelopment' from descriptor 'plugin.xml' in module 'unique.module.name.18'">idea-plugin</error>>
           <dependencies>
             <plugin id="com.intellij.jetbrains.client"/>
             <plugin id="com.jetbrains.remoteDevelopment"/>
@@ -71,7 +71,7 @@ internal class SplitModeMixedDependenciesInspectionTest : JavaCodeInsightFixture
       moduleName = "unique.module.name.28",
       descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
       pluginXmlContent = """
-        <<error descr="This module mixes frontend-only dependencies (com.intellij.jetbrains.client) and backend-only dependencies (com.jetbrains.remoteDevelopment)">idea-plugin</error>>
+        <<error descr="This module effectively depends on frontend-only and backend-only modules simultaneously. It will not get loaded in runtime. Reason: frontend dependencies: dependency 'com.intellij.jetbrains.client' from descriptor 'plugin.xml' in module 'unique.module.name.28'; backend dependencies: dependency 'com.jetbrains.remoteDevelopment' from descriptor 'plugin.xml' in module 'unique.module.name.28'">idea-plugin</error>>
           <depends>com.intellij.jetbrains.client</depends>
           <depends>com.jetbrains.remoteDevelopment</depends>
         </idea-plugin>
@@ -87,7 +87,7 @@ internal class SplitModeMixedDependenciesInspectionTest : JavaCodeInsightFixture
       moduleName = "unique.module.name.19",
       descriptorRelativePathToResourcesDirectory = "unique.module.name.19.xml",
       pluginXmlContent = """
-        <<error descr="This module mixes frontend-only dependencies (intellij.platform.frontend.split) and backend-only dependencies (intellij.platform.kernel.backend)">idea-plugin</error>>
+        <<error descr="This module effectively depends on frontend-only and backend-only modules simultaneously. It will not get loaded in runtime. Reason: frontend dependencies: dependency 'intellij.platform.frontend.split' from descriptor 'unique.module.name.19.xml' in module 'unique.module.name.19'; backend dependencies: dependency 'intellij.platform.kernel.backend' from descriptor 'unique.module.name.19.xml' in module 'unique.module.name.19'">idea-plugin</error>>
           <dependencies>
             <module name="intellij.platform.frontend.split"/>
             <module name="intellij.platform.kernel.backend"/>
@@ -139,7 +139,7 @@ internal class SplitModeMixedDependenciesInspectionTest : JavaCodeInsightFixture
       moduleName = "unique.module.name.22",
       descriptorRelativePathToResourcesDirectory = "unique.module.name.22.xml",
       pluginXmlContent = """
-        <<error descr="This module mixes frontend-only dependencies (intellij.platform.plugins.frontend.split) and backend-only dependencies (intellij.platform.backend)">idea-plugin</error>>
+        <<error descr="This module effectively depends on frontend-only and backend-only modules simultaneously. It will not get loaded in runtime. Reason: frontend dependencies: dependency 'intellij.platform.plugins.frontend.split' from descriptor 'unique.module.name.22.xml' in module 'unique.module.name.22'; backend dependencies: dependency 'intellij.platform.backend' from containing plugin descriptor 'plugin.xml' in module 'unique.module.name.21'">idea-plugin</error>>
           <dependencies>
             <module name="intellij.platform.plugins.frontend.split"/>
           </dependencies>
@@ -171,7 +171,7 @@ internal class SplitModeMixedDependenciesInspectionTest : JavaCodeInsightFixture
       moduleName = "unique.module.name.24",
       descriptorRelativePathToResourcesDirectory = "unique.module.name.24.xml",
       pluginXmlContent = """
-        <<error descr="This module mixes frontend-only dependencies (intellij.platform.frontend) and backend-only dependencies (intellij.platform.kernel.backend)">idea-plugin</error>>
+        <<error descr="This module effectively depends on frontend-only and backend-only modules simultaneously. It will not get loaded in runtime. Reason: frontend dependencies: dependency 'intellij.platform.frontend' from containing plugin descriptor 'plugin.xml' in module 'unique.module.name.23'; backend dependencies: dependency 'intellij.platform.kernel.backend' from descriptor 'unique.module.name.24.xml' in module 'unique.module.name.24'">idea-plugin</error>>
           <dependencies>
             <module name="intellij.platform.kernel.backend"/>
           </dependencies>
@@ -218,7 +218,7 @@ internal class SplitModeMixedDependenciesInspectionTest : JavaCodeInsightFixture
       moduleName = "unique.module.name.27",
       descriptorRelativePathToResourcesDirectory = "unique.module.name.27.xml",
       pluginXmlContent = """
-        <<error descr="This module mixes frontend-only dependencies (intellij.platform.frontend) and backend-only dependencies (intellij.platform.backend)">idea-plugin</error>>
+        <<error descr="This module effectively depends on frontend-only and backend-only modules simultaneously. It will not get loaded in runtime. Reason: frontend dependencies: dependency 'intellij.platform.frontend' from containing plugin descriptor 'plugin.xml' in module 'unique.module.name.25'; backend dependencies: dependency 'intellij.platform.backend' from containing plugin descriptor 'plugin.xml' in module 'unique.module.name.26'">idea-plugin</error>>
         </idea-plugin>
       """.trimIndent()
     )
