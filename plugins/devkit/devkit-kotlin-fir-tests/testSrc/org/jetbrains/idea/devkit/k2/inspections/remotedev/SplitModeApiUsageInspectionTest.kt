@@ -472,6 +472,76 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
     assertTrue(result.contains("<module name=\"intellij.platform.frontend\"/>"))
   }
 
+  fun testMakeModuleMonolithOnlyFixForFrontendApiInBackendModule() {
+    configurePluginXml(
+      """
+      <idea-plugin>
+        <dependencies>
+          <module name="intellij.platform.backend"/>
+        </dependencies>
+      </idea-plugin>
+    """.trimIndent()
+    )
+
+    myFixture.configureByText(
+      "BackendService.kt", """
+      package com.example.backend
+
+      import com.intellij.openapi.wm.ToolWindowFactory
+
+      class BackendService {
+        fun testFrontendApi() {
+          class MyToolWindow: <caret>ToolWindowFactory {}
+        }
+      }
+    """.trimIndent()
+    )
+
+    val intention = myFixture.findSingleIntention("Make module 'light_idea_test_case' work in 'monolith' only")
+    myFixture.launchAction(intention)
+
+    val pluginXml = myFixture.findFileInTempDir("resources/META-INF/plugin.xml")
+    val result = FileDocumentManager.getInstance().getDocument(pluginXml)!!.text
+    assertTrue(result.contains("<module name=\"intellij.platform.backend\"/>"))
+    assertTrue(result.contains("<module name=\"intellij.platform.monolith\"/>"))
+    myFixture.checkHighlighting()
+  }
+
+  fun testMakeModuleMonolithOnlyFixForBackendApiInFrontendModule() {
+    configurePluginXml(
+      """
+      <idea-plugin>
+        <dependencies>
+          <module name="intellij.platform.frontend"/>
+        </dependencies>
+      </idea-plugin>
+    """.trimIndent()
+    )
+
+    myFixture.configureByText(
+      "FrontendService.kt", """
+      package com.example.frontend
+
+      import com.intellij.openapi.vfs.VirtualFileManager
+
+      class FrontendService {
+        fun testBackendApi() {
+          <caret>VirtualFileManager.getInstance()
+        }
+      }
+    """.trimIndent()
+    )
+
+    val intention = myFixture.findSingleIntention("Make module 'light_idea_test_case' work in 'monolith' only")
+    myFixture.launchAction(intention)
+
+    val pluginXml = myFixture.findFileInTempDir("resources/META-INF/plugin.xml")
+    val result = FileDocumentManager.getInstance().getDocument(pluginXml)!!.text
+    assertTrue(result.contains("<module name=\"intellij.platform.frontend\"/>"))
+    assertTrue(result.contains("<module name=\"intellij.platform.monolith\"/>"))
+    myFixture.checkHighlighting()
+  }
+
   fun testMakeModuleHaveOnlyBackendDependenciesFix() {
     configurePluginXml(
       """

@@ -227,6 +227,25 @@ internal class SplitModeMixedDependenciesInspectionTest : JavaCodeInsightFixture
     myFixture.checkHighlighting()
   }
 
+  fun testMixedDependenciesWithExplicitMonolithDependency() {
+    val pluginXml = addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.29",
+      descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
+      pluginXmlContent = """
+        <idea-plugin>
+          <dependencies>
+            <module name="intellij.platform.frontend"/>
+            <module name="intellij.platform.backend"/>
+            <module name="intellij.platform.monolith"/>
+          </dependencies>
+        </idea-plugin>
+      """.trimIndent()
+    )
+    myFixture.configureFromExistingVirtualFile(pluginXml.virtualFile)
+
+    myFixture.checkHighlighting()
+  }
+
   private fun addModuleWithXmlDescriptor(
     moduleName: String,
     descriptorRelativePathToResourcesDirectory: String,

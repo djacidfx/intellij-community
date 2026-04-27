@@ -133,6 +133,30 @@ internal class SplitModeDependencyQuickFixesTest : JavaCodeInsightFixtureTestCas
     Assert.assertTrue(result.contains("<module name=\"intellij.platform.monolith\"/>"))
   }
 
+  fun testMakeModuleMonolithOnlyFixInMixedInspection() {
+    val pluginXml = addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.quick.fix.5",
+      pluginXmlContent = """
+        <idea-<caret>plugin>
+          <dependencies>
+            <module name="intellij.platform.frontend"/>
+            <module name="intellij.platform.backend"/>
+          </dependencies>
+        </idea-plugin>
+      """.trimIndent()
+    )
+    myFixture.configureFromExistingVirtualFile(pluginXml.virtualFile)
+
+    val intention = myFixture.filterAvailableIntentions("Make module 'unique.module.name.quick.fix.5' work in 'monolith' only").single()
+    myFixture.launchAction(intention)
+
+    val result = myFixture.file.text
+    Assert.assertTrue(result.contains("<module name=\"intellij.platform.frontend\"/>"))
+    Assert.assertTrue(result.contains("<module name=\"intellij.platform.backend\"/>"))
+    Assert.assertTrue(result.contains("<module name=\"intellij.platform.monolith\"/>"))
+    myFixture.checkHighlighting()
+  }
+
   private fun addModuleWithXmlDescriptor(
     moduleName: String,
     pluginXmlContent: String,
