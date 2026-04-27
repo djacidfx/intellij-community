@@ -243,7 +243,12 @@ open class DumbServiceImpl @NonInjectable @VisibleForTesting constructor(
     isDisposed = true
     ApplicationManager.getApplication().assertWriteIntentLockAcquired()
     balloon.dispose()
-    scheduledTasksScope.cancel("On dispose of DumbService", ProcessCanceledException())
+    val job = scheduledTasksScope.coroutineContext[Job] ?: error("Scope cannot be cancelled because it does not have a job: ${scheduledTasksScope}")
+    job.cancel(CancellationException("On dispose of DumbService"))
+    job.invokeOnCompletion {
+      // dispose of the tasks that were about to be scheduled while DumbService.disposed was called
+      taskQueue.disposePendingTasks()
+    }
     taskQueue.disposePendingTasks()
   }
 
