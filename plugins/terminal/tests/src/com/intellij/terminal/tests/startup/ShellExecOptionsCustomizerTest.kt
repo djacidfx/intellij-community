@@ -134,15 +134,31 @@ class ShellExecOptionsCustomizerTest(private val eelHolder: EelHolder) {
   }
 
   @Test
-  fun `local path in _INTELLIJ_FORCE_PREPEND_PATH is translated`(): Unit = timeoutRunBlocking(TIMEOUT) {
+  fun `local path prepended to _INTELLIJ_FORCE_PREPEND_${env name} is translated`(): Unit = timeoutRunBlocking(TIMEOUT) {
+    val dir = tempDir.asDirectory()
+    register(customizer {
+      it.prependEntryToPathLikeEnv(IJ_PREPEND_PATH, dir.nioDir)
+    })
+    val result = configureStartupOptions(dir) {
+      it[IJ_PREPEND_PATH] = "foo"
+    }
+    Assertions.assertThat(result.getEnvVarValue(IJ_PREPEND_PATH)).isEqualTo(
+      joinEntries(dir.remoteDir, "foo", eelApi.descriptor) + eelApi.descriptor.osFamily.pathSeparator
+    )
+  }
+
+  @Test
+  fun `local path appended to _INTELLIJ_FORCE_PREPEND_${env name} is translated`(): Unit = timeoutRunBlocking(TIMEOUT) {
     val dir = tempDir.asDirectory()
     register(customizer {
       it.appendEntryToPathLikeEnv(IJ_PREPEND_PATH, dir.nioDir)
     })
     val result = configureStartupOptions(dir) {
-      it[IJ_PREPEND_PATH] = "foo"
+      it[IJ_PREPEND_PATH] = "bar"
     }
-    result.assertPathLikeEnv(IJ_PREPEND_PATH, "foo", dir.remoteDir)
+    Assertions.assertThat(result.getEnvVarValue(IJ_PREPEND_PATH)).isEqualTo(
+      joinEntries("bar", dir.remoteDir, eelApi.descriptor) + eelApi.descriptor.osFamily.pathSeparator
+    )
   }
 
   @Test
