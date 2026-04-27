@@ -315,7 +315,11 @@ class ExplanationVisitor extends RegExpRecursiveElementVisitor {
                               emphasize ? PATTERN_ATTRIBUTES : SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES));
       }
       else {
-        boolean keepEmphasis = element instanceof RegExpCharRange || element instanceof RegExpClosure && child instanceof RegExpQuantifier;
+        boolean keepEmphasis = element instanceof RegExpCharRange
+                               || element instanceof RegExpBranch
+                               || element instanceof RegExpClosure && child instanceof RegExpQuantifier
+                               || element instanceof RegExpConditional && (child instanceof RegExpBackref
+                                                                           || child instanceof RegExpNamedGroupRef);
         buildPatternFragments(child, keepEmphasis && emphasize, list);
       }
       child = child.getNextSibling();
@@ -359,6 +363,29 @@ class ExplanationVisitor extends RegExpRecursiveElementVisitor {
     else {
       super.visitRegExpPattern(pattern);
     }
+  }
+
+  @Override
+  public void visitRegExpBranch(RegExpBranch branch) {
+    if (!(branch.getParent() instanceof RegExpPattern pattern) || pattern.getBranches().length > 1) {
+      PsiElement[] children = branch.getChildren();
+      if (children.length > 1) {
+        boolean allSimpleChars = true;
+        for (PsiElement child : children) {
+          if (!isSimpleChar(child)) {
+            allSimpleChars = false;
+            break;
+          }
+        }
+        if (!allSimpleChars) {
+          branch(branch, EMPTY_NAME_NODE, "matches elements in order");
+          super.visitRegExpBranch(branch);
+          parent();
+          return;
+        }
+      }
+    }
+    super.visitRegExpBranch(branch);
   }
 
   @Override
