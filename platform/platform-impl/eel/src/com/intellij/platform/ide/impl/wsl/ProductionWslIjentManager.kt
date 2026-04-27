@@ -13,6 +13,7 @@ import com.intellij.platform.ijent.IjentId
 import com.intellij.platform.ijent.IjentPosixApi
 import com.intellij.platform.ijent.IjentSession
 import com.intellij.platform.ijent.IjentSessionRegistry
+import com.intellij.platform.ijent.ParentOfIjentScopes
 import com.intellij.platform.ijent.spi.IjentThreadPool
 import com.intellij.platform.util.coroutines.childScope
 import com.intellij.util.containers.ContainerUtil
@@ -45,7 +46,7 @@ class ProductionWslIjentManager(private val scope: CoroutineScope) : WslIjentMan
     wslDistribution: WSLDistribution,
     project: Project?,
     rootUser: Boolean,
-    sessionScope: CoroutineScope,
+    sessionScope: ParentOfIjentScopes,
   ): IjentSession.Posix {
     val ijentSessionRegistry = IjentSessionRegistry.instanceAsync()
     val ijentIdLabel = ijentIdLabel(wslDistribution, rootUser)
@@ -57,12 +58,12 @@ class ProductionWslIjentManager(private val scope: CoroutineScope) : WslIjentMan
           ijentId.toString(),
           wslCommandLineOptionsModifier = { it.setSudo(rootUser) },
         )
-        sessionScope.coroutineContext.job.invokeOnCompletion {
+        sessionScope.s.coroutineContext.job.invokeOnCompletion {
           ijentSession.close()
         }
         ijentSession
       }
-      sessionScope.coroutineContext.job.invokeOnCompletion {
+      sessionScope.s.coroutineContext.job.invokeOnCompletion {
         ijentSessionRegistry.unregister(ijentId)
         myCache.remove(ijentName)
       }
@@ -74,7 +75,7 @@ class ProductionWslIjentManager(private val scope: CoroutineScope) : WslIjentMan
 
   override suspend fun getIjentApi(descriptor: EelDescriptor?, wslDistribution: WSLDistribution, project: Project?, rootUser: Boolean): IjentPosixApi {
     val descriptor = (descriptor ?: (project?.getEelDescriptor() as? WslEelDescriptor) ?: WslEelDescriptor(wslDistribution)) as WslEelDescriptor
-    return getIjentSession(wslDistribution, project, rootUser, scope).getIjentInstance(descriptor)
+    return getIjentSession(wslDistribution, project, rootUser, ParentOfIjentScopes(scope)).getIjentInstance(descriptor)
   }
 
   override fun isIjentInitialized(descriptor: EelDescriptor): Boolean {

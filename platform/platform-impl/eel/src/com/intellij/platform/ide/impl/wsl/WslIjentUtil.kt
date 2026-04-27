@@ -11,10 +11,10 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.platform.ijent.IjentLogger.CONN_MGR_LOG
 import com.intellij.platform.ijent.IjentSession
+import com.intellij.platform.ijent.ParentOfIjentScopes
 import com.intellij.platform.ijent.community.impl.guessVmIdOfWsl
 import com.intellij.platform.ijent.currentCoroutineDispatcher
 import com.intellij.util.io.blockingDispatcher
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -22,7 +22,7 @@ import org.jetbrains.annotations.ApiStatus
 
 @ApiStatus.Internal
 suspend fun WSLDistribution.createIjentSession(
-  parentScope: CoroutineScope,
+  parentScope: ParentOfIjentScopes,
   project: Project?,
   ijentLabel: String,
   wslCommandLineOptionsModifier: (WSLCommandLineOptions) -> Unit = {},
@@ -42,7 +42,7 @@ suspend fun WSLDistribution.createIjentSession(
     }
     else {
       @OptIn(DelicateCoroutinesApi::class)
-      ijentSession.sessionCoroutineScope.launch { initMultipleTransports(this@createIjentSession, ijentSession) }
+      ijentSession.sessionCoroutineScope.s.launch { initMultipleTransports(this@createIjentSession, ijentSession) }
     }
   }
 
