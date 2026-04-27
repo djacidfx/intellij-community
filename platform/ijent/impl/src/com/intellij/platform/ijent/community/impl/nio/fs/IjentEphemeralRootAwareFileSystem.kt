@@ -400,6 +400,15 @@ class IjentEphemeralRootAwareFileSystem(
     addAll(ijentFs.supportedFileAttributeViews())
   }
 
+  override fun equals(other: Any?): Boolean {
+    if (this === other) return true
+    if (other !is IjentEphemeralRootAwareFileSystem) return false
+    return eelDescriptor == other.eelDescriptor
+           && ijentFs == other.ijentFs
+           && originalFs == other.originalFs
+           && useRootDirectoriesFromOriginalFs == other.useRootDirectoriesFromOriginalFs
+  }
+
   private fun isPathUnderRoot(path: String): Boolean {
     return toSystemIndependentName(path).startsWith(invariantSeparatorRootPathString)
   }
@@ -422,5 +431,16 @@ class IjentEphemeralRootAwareFileSystem(
         }
       }
     }
+  }
+
+  override fun hashCode(): Int {
+    var result = useRootDirectoriesFromOriginalFs.hashCode()
+    result = 31 * result + rootAwareFileSystemProvider.hashCode()
+    result = 31 * result + ijentFs.hashCode()
+    result = 31 * result + originalFs.hashCode()
+    result = 31 * result + eelDescriptor.hashCode()
+    result = 31 * result + root.hashCode()
+    result = 31 * result + invariantSeparatorRootPathString.hashCode()
+    return result
   }
 }
