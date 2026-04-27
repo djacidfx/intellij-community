@@ -18909,8 +18909,6 @@ public abstract class HighLevelQuickFixTestGenerated extends AbstractHighLevelQu
         }
     }
 
-
-
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../../idea/tests/testData/quickfix/overridingIgnorableWithMustUse")
     public static class OverridingIgnorableWithMustUse extends AbstractHighLevelQuickFixTest {

@@ -220,7 +220,6 @@ internal fun MutableTWorkspace.generateK2FixTests() {
             model("$idea/quickfix/wrapWhenExpressionInParentheses", pattern = pattern)
             model("$idea/quickfix/wrapWithSafeLetCall", pattern = pattern)
             model("$idea/quickfix/wrongLongSuffix", pattern = pattern)
-            model("$idea/quickfix/yieldUnsupported", pattern = pattern, isIgnored = true)
             model("$idea/quickfix/overridingIgnorableWithMustUse", pattern = pattern)
             model("$idea/quickfix/replaceArrayEqualityOpWithArraysEquals", pattern = pattern)
         }

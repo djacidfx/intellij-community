@@ -22296,28 +22296,4 @@ public abstract class K1QuickFixTestGenerated extends AbstractK1QuickFixTest {
             runTest("testData/quickfix/wrongLongSuffix/simple.kt");
         }
     }
-
-    @RunWith(JUnit3RunnerWithInners.class)
-    @TestMetadata("testData/quickfix/yieldUnsupported")
-    public static class YieldUnsupported extends AbstractK1QuickFixTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K1;
-        }
-
-        private void runTest(String testDataFilePath) throws Exception {
-            KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
-        }
-
-        @TestMetadata("yieldAsSimpleName.kt")
-        public void testYieldAsSimpleName() throws Exception {
-            runTest("testData/quickfix/yieldUnsupported/yieldAsSimpleName.kt");
-        }
-
-        @TestMetadata("yieldBeforeLambda.kt")
-        public void testYieldBeforeLambda() throws Exception {
-            runTest("testData/quickfix/yieldUnsupported/yieldBeforeLambda.kt");
-        }
-    }
 }
