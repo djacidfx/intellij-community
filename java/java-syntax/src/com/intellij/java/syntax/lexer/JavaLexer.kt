@@ -21,6 +21,9 @@ class JavaLexer(level: LanguageLevel) : Lexer {
   private var myTokenEndOffset = 0 // positioned after the last symbol of the current token
   private var myTokenType: SyntaxElementType? = null
 
+  /** State at the start of the current token; [getState] must reflect this, not the post-mutation top of [myStateStack]. */
+  private var myStateBeforeToken: Int = 0
+
   /** The length of the last valid unicode escape (6 or greater), or 1 when no unicode escape was found.  */
   private var mySymbolLength = 1
 
@@ -34,6 +37,7 @@ class JavaLexer(level: LanguageLevel) : Lexer {
     mySymbolLength = 1
     myStateStack.clear()
     myStateStack.push(initialState)
+    myStateBeforeToken = initialState
     myFlexLexer.reset(myBuffer, startOffset, endOffset, 0)
   }
 
@@ -46,7 +50,7 @@ class JavaLexer(level: LanguageLevel) : Lexer {
   }
 
   override fun getState(): Int {
-    return myStateStack.topInt()
+    return myStateBeforeToken
   }
 
   override fun getTokenType(): SyntaxElementType? {
@@ -91,6 +95,7 @@ class JavaLexer(level: LanguageLevel) : Lexer {
       return
     }
 
+    myStateBeforeToken = myStateStack.topInt()
     myBufferIndex = myTokenEndOffset
 
     val c = locateCharAt(myBufferIndex)

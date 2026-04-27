@@ -535,9 +535,4 @@ public abstract class AbstractBasicJavaLexerTest extends LexerTestCase {
   protected @NotNull String getDirPath() {
     return "";
   }
-
-  @Override
-  protected boolean isCheckCorrectRestart() {
-    return false; // fixme this method should return true. Now a couple of tests fail if it's enabled
-  }
 }
