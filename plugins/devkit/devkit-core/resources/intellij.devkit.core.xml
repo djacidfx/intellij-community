@@ -796,7 +796,6 @@
     <useScopeEnlarger implementation="org.jetbrains.idea.devkit.references.DomTargetUseScopeEnlarger"/>
 
     <postStartupActivity implementation="org.jetbrains.idea.devkit.templates.UpdateFileTemplatesSchemeToProjectActivity"/>
-    <postStartupActivity implementation="org.jetbrains.idea.devkit.inspections.remotedev.RestrictionsLoadingActivity"/>
   </extensions>
 
   <extensions defaultExtensionNs="DevKit.lang">
