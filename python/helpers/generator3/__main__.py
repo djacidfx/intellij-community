@@ -85,6 +85,9 @@ def parse_args(gen_version):
 
     parser.add_argument("--clean", action='store_true',
                         help="Remove generated directories after run")
+    parser.add_argument("--use-worker-process-pool", action='store_true',
+                        help="If true use a multiprocessing pool for running generation tasks,"
+                             " otherwise runs tasks sequentially.")
     parser.add_argument("--no-cache", action='store_true',
                         help="Disable using cache for generated files")
     parser.add_argument("--extra-tracing", nargs="+",
@@ -134,34 +137,33 @@ def main():
 
     _configure_logging(logging_config)
 
-    target_roots = _cleanup_sys_path()
-
-    generator = SkeletonGenerator(
-        output_dir=args.output_dir,
-        roots=target_roots,
-        state_json=state_json,
-        write_state_json=bool(args.init_state_file or args.state_file),
-        no_cache=args.no_cache,
-    )
     exit_code = 0
-    try:
-        with timed("Generation completed in {elapsed:.2f} ms"):
-            if args.mod_name:
-                result = generator.process_module(args.mod_name, args.mod_path)
-                if result == GenerationStatus.FAILED:
-                    exit_code = 1
-            else:
-                generator.discover_and_process_all_modules(
-                    name_pattern=args.name_pattern,
-                    builtins_only=args.builtins_only
-                )
+    with SkeletonGenerator(
+            output_dir=args.output_dir,
+            roots=_cleanup_sys_path(),
+            state_json=state_json,
+            write_state_json=bool(args.init_state_file or args.state_file),
+            use_worker_process_pool=args.use_worker_process_pool,
+            no_cache=args.no_cache,
+    ) as generator:
+        try:
+            with timed("Generation completed in {elapsed:.2f} ms"):
+                if args.mod_name:
+                    result = generator.process_module(args.mod_name, args.mod_path)
+                    if result == GenerationStatus.FAILED:
+                        exit_code = 1
+                else:
+                    generator.discover_and_process_all_modules(
+                        name_pattern=args.name_pattern,
+                        builtins_only=args.builtins_only
+                    )
 
-    finally:
-        if args.clean:
-            logging.debug("Removing output and cache directories")
-            delete(generator.output_dir)
-            if generator.cache_dir:
-                delete(generator.cache_dir)
+        finally:
+            if args.clean:
+                logging.debug("Removing output and cache directories")
+                delete(generator.output_dir)
+                if generator.cache_dir:
+                    delete(generator.cache_dir)
     sys.exit(exit_code)
 
 

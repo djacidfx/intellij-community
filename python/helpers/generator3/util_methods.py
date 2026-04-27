@@ -766,45 +766,111 @@ def get_portable_test_module_path(abs_path, qname):
     return '/'.join(abs_path_components[-rel_path_components_count:])
 
 
+class WorkerProcessExecutor(object):
+    def submit(self, fn, *args, **kwargs):
+        raise NotImplementedError
+
+    def shutdown(self):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.shutdown()
+
+
+class PooledWorkerProcessExecutor(WorkerProcessExecutor):
+    def __init__(self, max_workers, failure_result):
+        logging.getLogger("generator3.multiprocessing").debug("Using multiprocessing mode: POOL")
+        self._failure_result = failure_result
+        self._max_workers = max_workers
+        self._executor = self._create_executor()
+
+    def _create_executor(self):
+        from concurrent.futures import ProcessPoolExecutor
+
+        return ProcessPoolExecutor(
+            max_workers=self._max_workers,
+            initializer=_pool_worker_initializer,
+            initargs=(get_logging_config(),)
+        )
+
+    def submit(self, fn, *args, **kwargs):
+        from concurrent.futures.process import BrokenProcessPool
+
+        try:
+            return self._executor.submit(_pool_worker_wrapper, *((fn,) + args),
+                                         **kwargs).result()
+        except BrokenProcessPool:
+            self._restart()
+        except Exception:
+            traceback.print_exc()
+        return self._failure_result
+
+    def _restart(self):
+        self.shutdown()
+        self._executor = self._create_executor()
+
+    def shutdown(self):
+        if self._executor:
+            self._executor.shutdown(wait=True, cancel_futures=False)
+            self._executor = None
+
+
+def _pool_worker_wrapper(func, *args, **kwargs):
+    return func(*args, **kwargs)
+
+
+def _pool_worker_initializer(logging_config):
+    # type: (dict[str, int]) -> None
+    _configure_logging(logging_config)
+    _enable_segfault_tracebacks()
+
+
+class StandaloneWorkerProcessExecutor(WorkerProcessExecutor):
+    def __init__(self, failure_result):
+        logging.getLogger("generator3.multiprocessing").debug("Using multiprocessing mode: STANDALONE")
+        self._failure_result = failure_result
+
+    def submit(self, fn, *args, **kwargs):
+        import multiprocessing as mp
+
+        extra_process_kwargs = {}
+        if sys.version_info[0] >= 3:
+            extra_process_kwargs['daemon'] = True
+
+        # There is no need to use a full-blown queue for single producer/single consumer scenario.
+        # Also, Pipes don't suffer from issues such as https://bugs.python.org/issue35797.
+        # TODO experiment with a shared queue maintained by multiprocessing.Manager
+        #  (it will require an additional service process)
+        recv_conn, send_conn = mp.Pipe(duplex=False)
+        data = _MainProcessData(result_conn=send_conn,
+                                logging_config=get_logging_config())
+        p = mp.Process(name=name,
+                       target=_standalone_wrapper,
+                       args=(data, fn) + args,
+                       kwargs=kwargs,
+                       **extra_process_kwargs)
+        p.start()
+        # This is actually against the multiprocessing guidelines
+        # https://docs.python.org/3/library/multiprocessing.html#programming-guidelines
+        # but allows us to fail-fast if the child process terminated abnormally with a segfault
+        # (otherwise we would have to wait by timeout on acquiring the result) and should work
+        # fine for small result values such as generation status.
+        p.join()
+        if recv_conn.poll():
+            return recv_conn.recv()
+        else:
+            return self._failure_result
+
 # This wrapper is intentionally made top-level: local functions can't be pickled.
-def _multiprocessing_wrapper(data, func, *args, **kwargs):
+def _standalone_wrapper(data, func, *args, **kwargs):
     _configure_logging(data.logging_config)
     data.result_conn.send(func(*args, **kwargs))
 
 
 _MainProcessData = collections.namedtuple('_MainProcessData', ['result_conn', 'logging_config'])
-
-
-def execute_in_subprocess_synchronously(name, func, args, kwargs, failure_result=None):
-    import multiprocessing as mp
-
-    extra_process_kwargs = {}
-    if sys.version_info[0] >= 3:
-        extra_process_kwargs['daemon'] = True
-
-    # There is no need to use a full-blown queue for single producer/single consumer scenario.
-    # Also, Pipes don't suffer from issues such as https://bugs.python.org/issue35797.
-    # TODO experiment with a shared queue maintained by multiprocessing.Manager
-    #  (it will require an additional service process)
-    recv_conn, send_conn = mp.Pipe(duplex=False)
-    data = _MainProcessData(result_conn=send_conn,
-                            logging_config=get_logging_config())
-    p = mp.Process(name=name,
-                   target=_multiprocessing_wrapper,
-                   args=(data, func) + args,
-                   kwargs=kwargs,
-                   **extra_process_kwargs)
-    p.start()
-    # This is actually against the multiprocessing guidelines
-    # https://docs.python.org/3/library/multiprocessing.html#programming-guidelines
-    # but allows us to fail-fast if the child process terminated abnormally with a segfault
-    # (otherwise we would have to wait by timeout on acquiring the result) and should work
-    # fine for small result values such as generation status.
-    p.join()
-    if recv_conn.poll():
-        return recv_conn.recv()
-    else:
-        return failure_result
 
 def get_logging_config():
     # type: () -> dict[str, int]

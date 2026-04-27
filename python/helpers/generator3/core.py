@@ -417,6 +417,7 @@ class SkeletonGenerator(object):
                  roots=None,  # type: List[str]
                  state_json=None,  # type: Dict[str, Any]
                  write_state_json=False,
+                 use_worker_process_pool=False,
                  no_cache=False,
                  ):
         self.output_dir = output_dir.rstrip(os.path.sep)
@@ -429,6 +430,22 @@ class SkeletonGenerator(object):
         self.in_state_json = state_json
         self.out_state_json = {'sdk_skeletons': {}}
         self.write_state_json = write_state_json
+        if use_worker_process_pool and sys.version_info >= (3, 7):
+            self.executor = PooledWorkerProcessExecutor(
+                max_workers=1,
+                failure_result=GenerationStatus.FAILED,
+            )
+        else:
+            self.executor = StandaloneWorkerProcessExecutor(failure_result=GenerationStatus.FAILED)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.shutdown()
+
+    def shutdown(self):
+        self.executor.shutdown()
 
     def discover_and_process_all_modules(self, name_pattern=None, builtins_only=False):
         if name_pattern is None:
@@ -565,14 +582,11 @@ class SkeletonGenerator(object):
                 cached_skeleton_status = sdk_skeleton_status
             if cached_skeleton_status == SkeletonStatus.OUTDATED:
                 with timed("Processed module {} in {{elapsed:.2f}} ms".format(mod_name)):
-                    return execute_in_subprocess_synchronously(name='Skeleton Generator Worker',
-                                                               func=generate_skeleton,
-                                                               args=(mod_name,
-                                                                     mod_path,
-                                                                     mod_cache_dir,
-                                                                     self.output_dir),
-                                                               kwargs={},
-                                                               failure_result=GenerationStatus.FAILED)
+                    return self.executor.submit(generate_skeleton,
+                                                mod_name,
+                                                mod_path,
+                                                mod_cache_dir,
+                                                self.output_dir)
             elif cached_skeleton_status == SkeletonStatus.FAILING:
                 logging.info('Cache entry for %s at %r indicates failed generation', mod_name, mod_cache_dir)
                 return GenerationStatus.FAILED
