@@ -477,7 +477,9 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
       """
       <idea-plugin>
         <dependencies>
+          <module name="intellij.platform.core"/>
           <module name="intellij.platform.backend"/>
+          <plugin id="com.jetbrains.remoteDevelopment"/>
         </dependencies>
       </idea-plugin>
     """.trimIndent()
@@ -502,8 +504,10 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
 
     val pluginXml = myFixture.findFileInTempDir("resources/META-INF/plugin.xml")
     val result = FileDocumentManager.getInstance().getDocument(pluginXml)!!.text
-    assertTrue(result.contains("<module name=\"intellij.platform.backend\"/>"))
+    assertTrue(result.contains("<module name=\"intellij.platform.core\"/>"))
     assertTrue(result.contains("<module name=\"intellij.platform.monolith\"/>"))
+    assertFalse(result.contains("intellij.platform.backend"))
+    assertTrue(result.contains("<plugin id=\"com.jetbrains.remoteDevelopment\"/>"))
     myFixture.checkHighlighting()
   }
 
@@ -512,7 +516,9 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
       """
       <idea-plugin>
         <dependencies>
+          <module name="intellij.platform.core"/>
           <module name="intellij.platform.frontend"/>
+          <plugin id="com.intellij.jetbrains.client"/>
         </dependencies>
       </idea-plugin>
     """.trimIndent()
@@ -537,8 +543,10 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
 
     val pluginXml = myFixture.findFileInTempDir("resources/META-INF/plugin.xml")
     val result = FileDocumentManager.getInstance().getDocument(pluginXml)!!.text
-    assertTrue(result.contains("<module name=\"intellij.platform.frontend\"/>"))
+    assertTrue(result.contains("<module name=\"intellij.platform.core\"/>"))
     assertTrue(result.contains("<module name=\"intellij.platform.monolith\"/>"))
+    assertFalse(result.contains("intellij.platform.frontend"))
+    assertTrue(result.contains("<plugin id=\"com.intellij.jetbrains.client\"/>"))
     myFixture.checkHighlighting()
   }
 

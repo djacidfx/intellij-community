@@ -139,8 +139,11 @@ internal class SplitModeDependencyQuickFixesTest : JavaCodeInsightFixtureTestCas
       pluginXmlContent = """
         <idea-<caret>plugin>
           <dependencies>
+            <module name="intellij.platform.core"/>
             <module name="intellij.platform.frontend"/>
             <module name="intellij.platform.backend"/>
+            <plugin id="com.intellij.jetbrains.client"/>
+            <plugin id="com.jetbrains.remoteDevelopment"/>
           </dependencies>
         </idea-plugin>
       """.trimIndent()
@@ -151,9 +154,12 @@ internal class SplitModeDependencyQuickFixesTest : JavaCodeInsightFixtureTestCas
     myFixture.launchAction(intention)
 
     val result = myFixture.file.text
-    Assert.assertTrue(result.contains("<module name=\"intellij.platform.frontend\"/>"))
-    Assert.assertTrue(result.contains("<module name=\"intellij.platform.backend\"/>"))
+    Assert.assertTrue(result.contains("<module name=\"intellij.platform.core\"/>"))
     Assert.assertTrue(result.contains("<module name=\"intellij.platform.monolith\"/>"))
+    Assert.assertFalse(result.contains("intellij.platform.frontend"))
+    Assert.assertFalse(result.contains("intellij.platform.backend"))
+    Assert.assertTrue(result.contains("<plugin id=\"com.intellij.jetbrains.client\"/>"))
+    Assert.assertTrue(result.contains("<plugin id=\"com.jetbrains.remoteDevelopment\"/>"))
     myFixture.checkHighlighting()
   }
 

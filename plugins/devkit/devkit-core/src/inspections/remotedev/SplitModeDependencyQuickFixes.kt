@@ -110,30 +110,7 @@ internal object SplitModeDependencyQuickFixes {
       val xmlFile = ideaPlugin.xmlElement?.containingFile ?: return
       if (!IntentionPreviewUtils.prepareElementForWrite(xmlFile)) return
 
-      for (dependency in ideaPlugin.depends.toList()) {
-        val dependencyName = dependency.rawText ?: dependency.stringValue ?: continue
-        if (shouldRemoveDependency(dependencyName, desiredModuleKind)) {
-          dependency.xmlElement?.delete()
-        }
-      }
-
-      val dependencies = ideaPlugin.dependencies
-      if (!dependencies.isValid) {
-        return
-      }
-
-      for (moduleEntry in dependencies.moduleEntry.toList()) {
-        val dependencyName = moduleEntry.name.stringValue ?: continue
-        if (shouldRemoveDependency(dependencyName, desiredModuleKind)) {
-          moduleEntry.xmlElement?.delete()
-        }
-      }
-      for (pluginEntry in dependencies.plugin.toList()) {
-        val dependencyName = pluginEntry.id.stringValue ?: continue
-        if (shouldRemoveDependency(dependencyName, desiredModuleKind)) {
-          pluginEntry.xmlElement?.delete()
-        }
-      }
+      removeInappropriateDependencies(ideaPlugin, desiredModuleKind)
     }
   }
 
@@ -172,6 +149,8 @@ internal object SplitModeDependencyQuickFixes {
       val xmlFile = ideaPlugin.xmlElement?.containingFile ?: return
       if (!IntentionPreviewUtils.prepareElementForWrite(xmlFile)) return
 
+      removeInappropriateDependencies(ideaPlugin, desiredModuleKind)
+
       val dependencyName = getExplicitDependencyName(desiredModuleKind)
       if (hasDirectDependency(ideaPlugin, dependencyName)) {
         return
@@ -179,6 +158,36 @@ internal object SplitModeDependencyQuickFixes {
 
       val newModuleEntry = ideaPlugin.dependencies.addModuleEntry()
       newModuleEntry.name.stringValue = dependencyName
+    }
+  }
+}
+
+private fun removeInappropriateDependencies(
+  ideaPlugin: IdeaPlugin,
+  desiredModuleKind: SplitModeApiRestrictionsService.ModuleKind,
+) {
+  for (dependency in ideaPlugin.depends.toList()) {
+    val dependencyName = dependency.rawText ?: dependency.stringValue ?: continue
+    if (shouldRemoveDependency(dependencyName, desiredModuleKind)) {
+      dependency.xmlElement?.delete()
+    }
+  }
+
+  val dependencies = ideaPlugin.dependencies
+  if (!dependencies.isValid) {
+    return
+  }
+
+  for (moduleEntry in dependencies.moduleEntry.toList()) {
+    val dependencyName = moduleEntry.name.stringValue ?: continue
+    if (shouldRemoveDependency(dependencyName, desiredModuleKind)) {
+      moduleEntry.xmlElement?.delete()
+    }
+  }
+  for (pluginEntry in dependencies.plugin.toList()) {
+    val dependencyName = pluginEntry.id.stringValue ?: continue
+    if (shouldRemoveDependency(dependencyName, desiredModuleKind)) {
+      pluginEntry.xmlElement?.delete()
     }
   }
 }
@@ -201,13 +210,21 @@ private fun shouldRemoveDependency(
   dependencyName: String,
   desiredModuleKind: SplitModeApiRestrictionsService.ModuleKind,
 ): Boolean {
+  val dependencyKind = SplitModeApiRestrictionsService.getInstance().getDependencyKind(dependencyName)
   return when (desiredModuleKind) {
-    SplitModeApiRestrictionsService.ModuleKind.FRONTEND -> isBackendDependency(dependencyName) || dependencyName == "intellij.platform.monolith"
-    SplitModeApiRestrictionsService.ModuleKind.BACKEND -> isFrontendDependency(dependencyName) || dependencyName == "intellij.platform.monolith"
-    SplitModeApiRestrictionsService.ModuleKind.MONOLITH -> false
-    SplitModeApiRestrictionsService.ModuleKind.MIXED,
-    SplitModeApiRestrictionsService.ModuleKind.SHARED,
-    -> false
+    SplitModeApiRestrictionsService.ModuleKind.FRONTEND -> {
+      dependencyKind == SplitModeApiRestrictionsService.ModuleKind.BACKEND || dependencyName == "intellij.platform.monolith"
+    }
+    SplitModeApiRestrictionsService.ModuleKind.BACKEND -> {
+      dependencyKind == SplitModeApiRestrictionsService.ModuleKind.FRONTEND || dependencyName == "intellij.platform.monolith"
+    }
+    SplitModeApiRestrictionsService.ModuleKind.MONOLITH -> {
+      dependencyName == getExplicitDependencyName(SplitModeApiRestrictionsService.ModuleKind.FRONTEND)
+      || dependencyName == getExplicitDependencyName(SplitModeApiRestrictionsService.ModuleKind.BACKEND)
+    }
+    SplitModeApiRestrictionsService.ModuleKind.MIXED, SplitModeApiRestrictionsService.ModuleKind.SHARED, -> {
+      false
+    }
   }
 }
 
