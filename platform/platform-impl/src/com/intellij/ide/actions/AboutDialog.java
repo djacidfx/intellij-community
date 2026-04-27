@@ -198,21 +198,28 @@ public final class AboutDialog extends DialogWrapper {
     }
     lines.add("");
 
+    if (PlatformUtils.isCommunityEdition()) {
+      lines.add(IdeBundle.message("about.box.oss.build"));
+      lines.add("");
+      myInfo.add("Open-source build");
+    }
+
     var la = LicensingFacade.getInstance();
     if (la != null) {
+      var prevSize = lines.size();
       var licensedTo = la.getLicensedToMessage();
       if (licensedTo != null) {
         lines.add(licensedTo);
         myInfo.add(licensedTo);
       }
-      lines.addAll(la.getLicenseRestrictionsMessages());
-      lines.add("");
-      myInfo.addAll(la.getLicenseRestrictionsMessages());
-    }
-    else if (PlatformUtils.isCommunityEdition()) {
-      lines.add(IdeBundle.message("about.box.oss.build"));
-      lines.add("");
-      myInfo.add("Open-source build");
+      var restrictions = la.getLicenseRestrictionsMessages();
+      if (!restrictions.isEmpty()) {
+        lines.addAll(restrictions);
+        myInfo.addAll(restrictions);
+      }
+      if (lines.size() > prevSize) {
+        lines.add("");
+      }
     }
 
     var properties = System.getProperties();
