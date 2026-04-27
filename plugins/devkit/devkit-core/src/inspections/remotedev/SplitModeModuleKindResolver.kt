@@ -217,13 +217,11 @@ private fun isExplicitMonolithDependency(dependencyName: String): Boolean {
 internal fun isFrontendDependency(dependencyName: String): Boolean {
   val dependencyKind = resolveDependencyKind(dependencyName)
   return dependencyKind == SplitModeApiRestrictionsService.ModuleKind.FRONTEND
-         || dependencyKind == SplitModeApiRestrictionsService.ModuleKind.MIXED // todo remove
 }
 
 internal fun isBackendDependency(dependencyName: String): Boolean {
   val dependencyKind = resolveDependencyKind(dependencyName)
   return dependencyKind == SplitModeApiRestrictionsService.ModuleKind.BACKEND
-         || dependencyKind == SplitModeApiRestrictionsService.ModuleKind.MIXED // todo remove
 }
 
 private fun computeContainingPluginsKind(containingPlugins: List<ContainingPlugin>): SplitModeApiRestrictionsService.ModuleKind {
