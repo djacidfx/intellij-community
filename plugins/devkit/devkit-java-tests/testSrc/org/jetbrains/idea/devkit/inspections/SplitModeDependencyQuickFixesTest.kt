@@ -46,7 +46,7 @@ internal class SplitModeDependencyQuickFixesTest : JavaCodeInsightFixtureTestCas
     )
     myFixture.configureFromExistingVirtualFile(pluginXml.virtualFile)
 
-    val intention = myFixture.findSingleIntention("Add the 'intellij.platform.frontend' dependency")
+    val intention = myFixture.findSingleIntention("Make module 'unique.module.name.quick.fix.1' work in 'frontend' only")
     myFixture.launchAction(intention)
 
     val result = myFixture.file.text
@@ -72,7 +72,7 @@ internal class SplitModeDependencyQuickFixesTest : JavaCodeInsightFixtureTestCas
     )
     myFixture.configureFromExistingVirtualFile(pluginXml.virtualFile)
 
-    val intention = myFixture.findSingleIntention("Make module have only 'frontend' dependencies")
+    val intention = myFixture.findSingleIntention("Make module 'unique.module.name.quick.fix.2' work in 'frontend' only")
     myFixture.launchAction(intention)
 
     val result = myFixture.file.text
@@ -98,7 +98,7 @@ internal class SplitModeDependencyQuickFixesTest : JavaCodeInsightFixtureTestCas
     )
     myFixture.configureFromExistingVirtualFile(pluginXml.virtualFile)
 
-    val intention = myFixture.findSingleIntention("Make module have only 'frontend' dependencies")
+    val intention = myFixture.findSingleIntention("Make module 'unique.module.name.quick.fix.3' work in 'frontend' only")
     myFixture.launchAction(intention)
 
     val result = myFixture.file.text
@@ -107,6 +107,30 @@ internal class SplitModeDependencyQuickFixesTest : JavaCodeInsightFixtureTestCas
     Assert.assertTrue(result.contains("<plugin id=\"com.intellij.jetbrains.client\"/>"))
     Assert.assertFalse(result.contains("intellij.platform.backend"))
     Assert.assertFalse(result.contains("com.jetbrains.remoteDevelopment"))
+  }
+
+  fun testMakeModuleMonolithOnlyFixInXmlInspection() {
+    val pluginXml = addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.quick.fix.4",
+      pluginXmlContent = """
+        <idea-plugin>
+          <dependencies>
+            <module name="intellij.platform.core"/>
+          </dependencies>
+          <extensions defaultExtensionNs="com.intellij">
+            <fileEditorProvider<caret>/>
+          </extensions>
+        </idea-plugin>
+      """.trimIndent()
+    )
+    myFixture.configureFromExistingVirtualFile(pluginXml.virtualFile)
+
+    val intention = myFixture.findSingleIntention("Make module 'unique.module.name.quick.fix.4' work in 'monolith' only")
+    myFixture.launchAction(intention)
+
+    val result = myFixture.file.text
+    Assert.assertTrue(result.contains("<module name=\"intellij.platform.core\"/>"))
+    Assert.assertTrue(result.contains("<module name=\"intellij.platform.monolith\"/>"))
   }
 
   private fun addModuleWithXmlDescriptor(

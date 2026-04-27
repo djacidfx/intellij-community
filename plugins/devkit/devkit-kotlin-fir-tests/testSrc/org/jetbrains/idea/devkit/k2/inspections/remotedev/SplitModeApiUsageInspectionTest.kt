@@ -405,6 +405,39 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
     myFixture.checkHighlighting()
   }
 
+  fun testNoWarningsInMonolithModule() {
+    configurePluginXml(
+      """
+      <idea-plugin>
+        <dependencies>
+          <module name="intellij.platform.monolith"/>
+        </dependencies>
+      </idea-plugin>
+    """.trimIndent()
+    )
+
+    myFixture.configureByText(
+      "MonolithService.kt", """
+      package com.example.monolith
+
+      import com.intellij.openapi.wm.ToolWindowFactory
+      import com.intellij.openapi.vfs.VirtualFileManager
+
+      class MonolithService {
+        fun testFrontendApi() {
+          class MyToolWindow: ToolWindowFactory {}
+        }
+
+        fun testBackendApi() {
+          VirtualFileManager.getInstance()
+        }
+      }
+    """.trimIndent()
+    )
+
+    myFixture.checkHighlighting()
+  }
+
   fun testAddFrontendDependencyFix() {
     configurePluginXml(
       """
@@ -430,7 +463,7 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
     """.trimIndent()
     )
 
-    val intention = myFixture.findSingleIntention("Add the 'intellij.platform.frontend' dependency")
+    val intention = myFixture.findSingleIntention("Make module 'light_idea_test_case' work in 'frontend' only")
     myFixture.launchAction(intention)
 
     val pluginXml = myFixture.findFileInTempDir("resources/META-INF/plugin.xml")
@@ -465,7 +498,7 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
     """.trimIndent()
     )
 
-    val intention = myFixture.findSingleIntention("Make module have only 'backend' dependencies")
+    val intention = myFixture.findSingleIntention("Make module 'light_idea_test_case' work in 'backend' only")
     myFixture.launchAction(intention)
 
     val pluginXml = myFixture.findFileInTempDir("resources/META-INF/plugin.xml")

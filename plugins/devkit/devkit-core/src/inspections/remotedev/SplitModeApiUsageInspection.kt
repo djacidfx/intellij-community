@@ -2,7 +2,6 @@
 package org.jetbrains.idea.devkit.inspections.remotedev
 
 import com.intellij.codeInspection.InspectionManager
-import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
@@ -125,7 +124,8 @@ class SplitModeApiUsageInspection : DevKitUastInspectionBase(UClass::class.java,
     if (!doesApiKindMatchExpectedModuleKind(currentModuleType, expectedModuleKind)) {
       val sourcePsi = expression.sourcePsi ?: return
       val message = buildModuleKindMismatchMessage(resolvedApi.qualifiedName, expectedModuleKind, currentModuleType)
-      val fixes = SplitModeDependencyQuickFixes.createMismatchFixes(currentModuleAnalysis, expectedModuleKind)
+      val moduleName = ModuleUtilCore.findModuleForPsiElement(sourcePsi)?.name ?: return
+      val fixes = SplitModeDependencyQuickFixes.createMismatchFixes(moduleName, currentModuleAnalysis, expectedModuleKind)
 
       descriptors.add(
         manager.createProblemDescriptor(

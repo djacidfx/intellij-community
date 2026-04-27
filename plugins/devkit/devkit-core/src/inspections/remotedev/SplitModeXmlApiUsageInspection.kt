@@ -40,7 +40,7 @@ internal class SplitModeXmlApiUsageInspection : DevKitPluginXmlInspectionBase() 
     holder.createProblem(
       element,
       buildModuleKindMismatchMessage(extensionPointName, expectedModuleKind, actualModuleKind),
-      *SplitModeDependencyQuickFixes.createMismatchFixes(moduleAnalysis, expectedModuleKind)
+      *SplitModeDependencyQuickFixes.createMismatchFixes(module.name, moduleAnalysis, expectedModuleKind)
     )
   }
 

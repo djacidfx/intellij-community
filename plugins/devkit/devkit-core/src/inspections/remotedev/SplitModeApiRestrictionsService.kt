@@ -42,6 +42,7 @@ class SplitModeApiRestrictionsService(private val coroutineScope: CoroutineScope
   enum class ModuleKind(val presentableName: String) {
     FRONTEND("frontend"),
     BACKEND("backend"),
+    MONOLITH("monolith"),
     MIXED("mixed"),
     SHARED("shared")
   }

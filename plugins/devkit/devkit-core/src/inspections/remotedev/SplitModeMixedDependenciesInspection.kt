@@ -28,7 +28,8 @@ internal class SplitModeMixedDependenciesInspection : DevKitPluginXmlInspectionB
     if (element !is IdeaPlugin) return
     if (!isAllowed(holder)) return
 
-    val moduleAnalysis = SplitModeModuleKindResolver.getOrComputeModuleAnalysis(element.module ?: return)
+    val module = element.module ?: return
+    val moduleAnalysis = SplitModeModuleKindResolver.getOrComputeModuleAnalysis(module)
     if (moduleAnalysis.resolvedModuleKind.kind != SplitModeApiRestrictionsService.ModuleKind.MIXED) return
 
     val dependencyAnalysis = moduleAnalysis.dependencyAnalysis
@@ -38,7 +39,7 @@ internal class SplitModeMixedDependenciesInspection : DevKitPluginXmlInspectionB
       ProblemHighlightType.GENERIC_ERROR,
       mixedDependenciesMessage,
       null,
-      *SplitModeDependencyQuickFixes.createMixedModuleFixes(dependencyAnalysis)
+      *SplitModeDependencyQuickFixes.createMixedModuleFixes(module.name, dependencyAnalysis)
     )
   }
 }

@@ -212,7 +212,9 @@ internal class MissingFrontendOrBackendRuntimeDependencyFixTest : JavaCodeInsigh
   ) {
     val testedFile = myFixture.addXmlFile(fileName, before)
     myFixture.configureFromExistingVirtualFile(testedFile.virtualFile)
-    val intention = myFixture.findSingleIntention("Add the 'intellij.platform.$frontendOrBackend' dependency")
+    val intention = myFixture.findSingleIntention(
+      "Make module 'intellij.test.feature.$frontendOrBackend' work in '$frontendOrBackend' only"
+    )
     myFixture.checkPreviewAndLaunchAction(intention)
 
     val fileText = FileDocumentManager.getInstance().getDocument(testedFile.virtualFile)!!.text

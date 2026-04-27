@@ -38,7 +38,10 @@ internal class MissingFrontendOrBackendRuntimeDependencyInspection : DevKitPlugi
               "inspection.remote.dev.missing.runtime.dependency.message",
               currentModuleName, moduleNameSuffix, requiredRuntimeDependency
             ),
-            SplitModeDependencyQuickFixes.createAddExplicitDependencyFix(moduleKindByDependencyName(requiredRuntimeDependency))
+            SplitModeDependencyQuickFixes.createAddExplicitDependencyFix(
+              currentModuleName,
+              moduleKindByDependencyName(requiredRuntimeDependency),
+            )
           )
         }
         return // only one module name suffix can be matched, so don't check more

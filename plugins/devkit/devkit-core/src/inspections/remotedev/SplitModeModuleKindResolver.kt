@@ -8,7 +8,6 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.roots.ProjectRootModificationTracker
 import com.intellij.openapi.util.NlsSafe
-import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
@@ -21,6 +20,7 @@ import org.jetbrains.idea.devkit.util.PluginRelatedLocatorsUtils
 
 private const val FRONTEND_PLATFORM_MODULE_BASE_NAME = "intellij.platform.frontend"
 private const val BACKEND_PLATFORM_MODULE_BASE_NAME = "intellij.platform.backend"
+private const val MONOLITH_PLATFORM_MODULE_BASE_NAME = "intellij.platform.monolith"
 
 internal class ModuleAnalysis(
   val resolvedModuleKind: ResolvedModuleKind,
@@ -64,6 +64,8 @@ internal class DependencyAnalysis(
   val declaresExplicitBackendDependencies: Boolean =
     isBackendModuleByConvention || dependencies.any { it.isOwn && isExplicitBackendDependency(it.name) }
 
+  val declaresExplicitMonolithDependency: Boolean = dependencies.any { it.isOwn && isExplicitMonolithDependency(it.name) }
+
   val declaresFrontendDependencies: Boolean = dependencies.any { it.isOwn && isFrontendDependency(it.name) }
 
   val declaresBackendDependencies: Boolean = dependencies.any { it.isOwn && isBackendDependency(it.name) }
@@ -73,12 +75,14 @@ internal class DependencyAnalysis(
   val hasBackendDependencies: Boolean = dependencies.any { isBackendDependency(it.name) }
 
   val lacksOwnDependencies: Boolean = !declaresExplicitFrontendDependencies
-                                      && !declaresExplicitBackendDependencies
-                                      && !declaresFrontendDependencies
-                                      && !declaresBackendDependencies
+                                       && !declaresExplicitBackendDependencies
+                                       && !declaresExplicitMonolithDependency
+                                       && !declaresFrontendDependencies
+                                       && !declaresBackendDependencies
 
-  val hasMixedDependencies: Boolean = (isFrontendModuleByConvention || hasFrontendDependencies)
-                                      && (isBackendModuleByConvention || hasBackendDependencies)
+  val hasMixedDependencies: Boolean = !declaresExplicitMonolithDependency
+                                      && (isFrontendModuleByConvention || hasFrontendDependencies)
+                                       && (isBackendModuleByConvention || hasBackendDependencies)
 
   fun buildFrontendReasoning(explicitOnly: Boolean): String {
     return buildReasoning(
@@ -128,6 +132,17 @@ internal class DependencyAnalysis(
     )
   }
 
+  fun buildOwnMonolithReasoning(): String {
+    return buildReasoning(
+      "monolith dependencies",
+      false,
+      true,
+      ::isExplicitMonolithDependency,
+      ::isExplicitMonolithDependency,
+      requireOwnDependencies = true,
+    )
+  }
+
   fun buildContainingPluginsReasoning(): String {
     if (containingPlugins.isEmpty()) {
       return "no containing plugin descriptors were found"
@@ -147,14 +162,6 @@ internal class DependencyAnalysis(
     }
 
     return "no frontend or backend dependencies were found among: ${dependencyNames.joinToString { dependencyName -> "'$dependencyName'" }}"
-  }
-
-  fun getFrontendDependencyNames(): String {
-    return collectDependencyNames(dependencies, ::isFrontendDependency)
-  }
-
-  fun getBackendDependencyNames(): String {
-    return collectDependencyNames(dependencies, ::isBackendDependency)
   }
 
   private fun buildReasoning(
@@ -181,12 +188,6 @@ internal class DependencyAnalysis(
     return "$label: ${evidence.distinct().joinToString()}"
   }
 
-  private fun collectDependencyNames(
-    dependencies: Collection<DependencyInfo>,
-    dependencyMatcher: (String) -> Boolean,
-  ): String {
-    return dependencies.filter { dependencyMatcher(it.name) }.map { it.name }.distinct().joinToString()
-  }
 }
 
 private fun collectDependencies(
@@ -207,6 +208,10 @@ private fun isExplicitFrontendDependency(dependencyName: String): Boolean {
 
 private fun isExplicitBackendDependency(dependencyName: String): Boolean {
   return dependencyName in getModuleNameVariants(BACKEND_PLATFORM_MODULE_BASE_NAME).toSet()
+}
+
+private fun isExplicitMonolithDependency(dependencyName: String): Boolean {
+  return dependencyName == MONOLITH_PLATFORM_MODULE_BASE_NAME
 }
 
 internal fun isFrontendDependency(dependencyName: String): Boolean {
@@ -243,13 +248,9 @@ internal object SplitModeModuleKindResolver {
     expectedKind: SplitModeApiRestrictionsService.ModuleKind,
   ): Boolean {
     return actualApiUsageModuleKind.kind == SplitModeApiRestrictionsService.ModuleKind.MIXED
+           || actualApiUsageModuleKind.kind == SplitModeApiRestrictionsService.ModuleKind.MONOLITH
            || expectedKind == SplitModeApiRestrictionsService.ModuleKind.SHARED
            || expectedKind == actualApiUsageModuleKind.kind
-  }
-
-  fun getOrComputeModuleKind(element: PsiElement): ResolvedModuleKind? {
-    val module = ModuleUtilCore.findModuleForPsiElement(element) ?: return null
-    return getOrComputeModuleAnalysis(module).resolvedModuleKind
   }
 
   fun getOrComputeModuleAnalysis(module: Module): ModuleAnalysis {
@@ -296,7 +297,7 @@ internal object SplitModeModuleKindResolver {
 
   private fun computeModuleKind(dependencyAnalysis: DependencyAnalysis): ResolvedModuleKind {
     return when {
-      dependencyAnalysis.hasMixedDependencies -> mixedModuleKindFromDependencies(dependencyAnalysis)
+      dependencyAnalysis.declaresExplicitMonolithDependency -> monolithModuleKindFromDirectDependencies(dependencyAnalysis)
       dependencyAnalysis.lacksOwnDependencies
       && dependencyAnalysis.hasContainingPlugins
       && dependencyAnalysis.containingPluginKind == SplitModeApiRestrictionsService.ModuleKind.FRONTEND -> {
@@ -315,12 +316,20 @@ internal object SplitModeModuleKindResolver {
       dependencyAnalysis.lacksOwnDependencies && dependencyAnalysis.hasContainingPlugins -> {
         sharedModuleKindFromContainingPlugins(dependencyAnalysis)
       }
+      dependencyAnalysis.hasMixedDependencies -> mixedModuleKindFromDependencies(dependencyAnalysis)
       dependencyAnalysis.declaresExplicitFrontendDependencies -> frontendModuleKindFromDirectDependencies(dependencyAnalysis)
       dependencyAnalysis.declaresExplicitBackendDependencies -> backendModuleKindFromDirectDependencies(dependencyAnalysis)
       dependencyAnalysis.declaresFrontendDependencies -> frontendModuleKindFromDependencies(dependencyAnalysis)
       dependencyAnalysis.declaresBackendDependencies -> backendModuleKindFromDependencies(dependencyAnalysis)
       else -> sharedModuleKindFromDependencies(dependencyAnalysis)
     }
+  }
+
+  private fun monolithModuleKindFromDirectDependencies(dependencyAnalysis: DependencyAnalysis): ResolvedModuleKind {
+    return ResolvedModuleKind(
+      SplitModeApiRestrictionsService.ModuleKind.MONOLITH,
+      dependencyAnalysis.buildOwnMonolithReasoning(),
+    )
   }
 
   private fun mixedModuleKindFromDependencies(dependencyAnalysis: DependencyAnalysis): ResolvedModuleKind {
@@ -460,6 +469,9 @@ private fun resolveDependencyKind(dependencyName: String): SplitModeApiRestricti
   }
   if (isExplicitBackendDependency(dependencyName)) {
     return SplitModeApiRestrictionsService.ModuleKind.BACKEND
+  }
+  if (isExplicitMonolithDependency(dependencyName)) {
+    return SplitModeApiRestrictionsService.ModuleKind.MONOLITH
   }
 
   return SplitModeApiRestrictionsService.getInstance().getDependencyKind(dependencyName) ?: guessDependencyKindByName(dependencyName)
