@@ -17,7 +17,7 @@ internal class MutableShellExecOptionsImpl(
   private var _execCommand: ShellExecCommand,
   override val workingDirectory: EelPath,
   private val mutableEnvs: MutableMap<String, String>,
-  shellIntegration: ShellIntegration?,
+  private val shellIntegration: ShellIntegration?,
   private val requester: Class<out ShellExecOptionsCustomizer>,
 ) : MutableShellExecOptions {
 
@@ -73,6 +73,7 @@ internal class MutableShellExecOptionsImpl(
       LOG.debug { "$requester: prependEntryToPathLikeEnv('$envName', '$entry') failed, skipping" }
       return
     }
+    val envName = if (shellIntegration != null) envName.ensureStartsWith(INTELLIJ_FORCE_PREPEND_PREFIX) else envName
     mutableEnvs[envName] = joinWithPathLikeEnv(remotePath, envName, true)
     LOG.debug { "$requester: prependEntryToPathLikeEnv('$envName', '$remotePath')" }
   }
@@ -125,6 +126,7 @@ internal class MutableShellExecOptionsImpl(
   override fun toString() = ShellExecOptionsImpl.stringify(_execCommand, workingDirectory, envs)
 }
 
+private fun String.ensureStartsWith(prefix: String): String = if (this.startsWith(prefix)) this else prefix + this
 private fun String.ensureEndsWith(suffix: String): String = if (this.endsWith(suffix)) this else this + suffix
 
 private const val PATH: String = "PATH"

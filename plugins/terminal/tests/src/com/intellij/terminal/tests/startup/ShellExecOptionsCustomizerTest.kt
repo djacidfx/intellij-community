@@ -6,8 +6,10 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.platform.eel.EelApi
 import com.intellij.platform.eel.EelDescriptor
+import com.intellij.platform.eel.EelOsFamily
 import com.intellij.platform.eel.fs.createTemporaryDirectory
 import com.intellij.platform.eel.getOrThrow
+import com.intellij.platform.eel.isPosix
 import com.intellij.platform.eel.path.EelPath
 import com.intellij.platform.eel.pathSeparator
 import com.intellij.platform.eel.provider.LocalEelDescriptor
@@ -17,10 +19,10 @@ import com.intellij.platform.eel.provider.getEelDescriptor
 import com.intellij.platform.testFramework.junit5.eel.params.api.EelHolder
 import com.intellij.platform.testFramework.junit5.eel.params.api.TestApplicationWithEel
 import com.intellij.terminal.tests.reworked.util.TerminalTestUtil.setValueInTest
-import com.intellij.terminal.tests.reworked.util.withShellPathAndShellIntegration
+import com.intellij.terminal.tests.reworked.util.withShellIntegration
 import com.intellij.testFramework.ExtensionTestUtil
 import com.intellij.testFramework.common.timeoutRunBlocking
-import com.intellij.testFramework.junit5.fixture.disposableFixture
+import com.intellij.testFramework.junit5.TestDisposable
 import com.intellij.testFramework.junit5.fixture.projectFixture
 import com.intellij.testFramework.junit5.fixture.tempPathFixture
 import com.intellij.util.io.delete
@@ -31,11 +33,11 @@ import org.jetbrains.plugins.terminal.LocalTerminalDirectRunner
 import org.jetbrains.plugins.terminal.ShellStartupOptions
 import org.jetbrains.plugins.terminal.TerminalOptionsProvider
 import org.jetbrains.plugins.terminal.TerminalProjectOptionsProvider
-import org.jetbrains.plugins.terminal.session.ShellName
 import org.jetbrains.plugins.terminal.startup.MutableShellExecOptions
 import org.jetbrains.plugins.terminal.startup.ShellExecCommandImpl
 import org.jetbrains.plugins.terminal.startup.ShellExecOptions
 import org.jetbrains.plugins.terminal.startup.ShellExecOptionsCustomizer
+import org.jetbrains.plugins.terminal.util.ShellType
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.condition.OS
@@ -55,7 +57,8 @@ class ShellExecOptionsCustomizerTest(private val eelHolder: EelHolder) {
 
   private val project: Project by projectFixture()
   private val tempDir: Path by tempPathFixture()
-  private val testDisposable: Disposable by disposableFixture()
+  @TestDisposable
+  private lateinit var testDisposable: Disposable
 
   private val eelApi: EelApi
     get() = eelHolder.eel
@@ -66,22 +69,28 @@ class ShellExecOptionsCustomizerTest(private val eelHolder: EelHolder) {
     register(customizer {
       it.appendEntryToPATH(dir.nioDir)
     })
-    val result = configureStartupOptions(dir) {
+    val result = configureStartupOptions(dir, false) {
       it[PATH] = ""
     }
     result.assertPathLikeEnv(PATH, dir.remoteDir)
   }
 
-  @Test
-  fun `local dir prepended to PATH is translated to remote`(): Unit = timeoutRunBlocking(TIMEOUT) {
+  @TestFactory
+  fun `local dir prepended to PATH is translated to remote`() = withShellIntegration { shellIntegration, testDisposable ->
     val dir = tempDir.asDirectory()
     register(customizer {
       it.prependEntryToPATH(dir.nioDir)
-    })
-    val result = configureStartupOptions(dir) {
+    }, parentDisposable = testDisposable)
+    val result = configureStartupOptions(dir, shellIntegration, testDisposable) {
       it[PATH] = "foo"
     }
-    result.assertPathLikeEnv(PATH, dir.remoteDir, "foo")
+    if (shellIntegration) {
+      Assertions.assertThat(result.getEnvVarValue(PATH)).isEqualTo("foo")
+      Assertions.assertThat(result.getEnvVarValue(IJ_FORCE_PREPEND_PATH)).isEqualTo(dir.remoteDir + eelApi.descriptor.osFamily.pathSeparator)
+    }
+    else {
+      result.assertPathLikeEnv(PATH, dir.remoteDir, "foo")
+    }
   }
 
   @Test
@@ -91,24 +100,30 @@ class ShellExecOptionsCustomizerTest(private val eelHolder: EelHolder) {
     register(customizer {
       it.prependEntryToPATH(dir.nioDir)
     })
-    val result = configureStartupOptions(dir) {
+    val result = configureStartupOptions(dir, false) {
       it[PATH] = initialPath
     }
     result.assertPathLikeEnv(PATH, dir.remoteDir, initialPath)
   }
 
-  @Test
-  fun `local dirs appended and prepended are translated to remote`(): Unit = timeoutRunBlocking(TIMEOUT) {
+  @TestFactory
+  fun `local dirs appended and prepended are translated to remote`() = withShellIntegration { shellIntegration, testDisposable ->
     val dir1 = tempDir.asDirectory()
     val dir2 = createTmpDir("dir2").asDirectory()
     register(customizer {
       it.prependEntryToPATH(dir1.nioDir)
       it.appendEntryToPATH(dir2.nioDir)
-    })
-    val result = configureStartupOptions(dir1) {
+    }, parentDisposable = testDisposable)
+    val result = configureStartupOptions(dir1, shellIntegration, testDisposable) {
       it[PATH] = "/foo:/bar"
     }
-    result.assertPathLikeEnv(PATH, dir1.remoteDir, "/foo:/bar", dir2.remoteDir)
+    if (shellIntegration) {
+      result.assertPathLikeEnv(PATH, "/foo:/bar", dir2.remoteDir)
+      Assertions.assertThat(result.getEnvVarValue(IJ_FORCE_PREPEND_PATH)).isEqualTo(dir1.remoteDir + eelApi.descriptor.osFamily.pathSeparator)
+    }
+    else {
+      result.assertPathLikeEnv(PATH, dir1.remoteDir, "/foo:/bar", dir2.remoteDir)
+    }
   }
 
   @Test
@@ -123,7 +138,7 @@ class ShellExecOptionsCustomizerTest(private val eelHolder: EelHolder) {
       it.setEnvironmentVariable(PATH, joinEntries(it.envs[PATH], "foo", LocalEelDescriptor))
       it.setEnvironmentVariable(PATH, joinEntries("bar", it.envs[PATH], LocalEelDescriptor))
     })
-    val result = configureStartupOptions(dir1) {
+    val result = configureStartupOptions(dir1, false) {
       it[PATH] = "/path/to/baz"
     }
     Assertions.assertThat(result.shellExecOptions.envs[PATH]).isEqualTo(
@@ -133,16 +148,16 @@ class ShellExecOptionsCustomizerTest(private val eelHolder: EelHolder) {
     )
   }
 
-  @Test
-  fun `local path prepended to _INTELLIJ_FORCE_PREPEND_${env name} is translated`(): Unit = timeoutRunBlocking(TIMEOUT) {
+  @TestFactory
+  fun `local path prepended to _INTELLIJ_FORCE_PREPEND_${env name} is translated`() = withShellIntegration { shellIntegration, testDisposable ->
     val dir = tempDir.asDirectory()
     register(customizer {
-      it.prependEntryToPathLikeEnv(IJ_PREPEND_PATH, dir.nioDir)
-    })
-    val result = configureStartupOptions(dir) {
-      it[IJ_PREPEND_PATH] = "foo"
+      it.prependEntryToPathLikeEnv(IJ_FORCE_PREPEND_PATH, dir.nioDir)
+    }, parentDisposable = testDisposable)
+    val result = configureStartupOptions(dir, shellIntegration, testDisposable) {
+      it[IJ_FORCE_PREPEND_PATH] = "foo"
     }
-    Assertions.assertThat(result.getEnvVarValue(IJ_PREPEND_PATH)).isEqualTo(
+    Assertions.assertThat(result.getEnvVarValue(IJ_FORCE_PREPEND_PATH)).isEqualTo(
       joinEntries(dir.remoteDir, "foo", eelApi.descriptor) + eelApi.descriptor.osFamily.pathSeparator
     )
   }
@@ -151,27 +166,33 @@ class ShellExecOptionsCustomizerTest(private val eelHolder: EelHolder) {
   fun `local path appended to _INTELLIJ_FORCE_PREPEND_${env name} is translated`(): Unit = timeoutRunBlocking(TIMEOUT) {
     val dir = tempDir.asDirectory()
     register(customizer {
-      it.appendEntryToPathLikeEnv(IJ_PREPEND_PATH, dir.nioDir)
+      it.appendEntryToPathLikeEnv(IJ_FORCE_PREPEND_PATH, dir.nioDir)
     })
-    val result = configureStartupOptions(dir) {
-      it[IJ_PREPEND_PATH] = "bar"
+    val result = configureStartupOptions(dir, false) {
+      it[IJ_FORCE_PREPEND_PATH] = "bar"
     }
-    Assertions.assertThat(result.getEnvVarValue(IJ_PREPEND_PATH)).isEqualTo(
+    Assertions.assertThat(result.getEnvVarValue(IJ_FORCE_PREPEND_PATH)).isEqualTo(
       joinEntries("bar", dir.remoteDir, eelApi.descriptor) + eelApi.descriptor.osFamily.pathSeparator
     )
   }
 
-  @Test
-  fun `prepend to custom Path-like env`(): Unit = timeoutRunBlocking(TIMEOUT) {
+  @TestFactory
+  fun `prepend to custom Path-like env`() = withShellIntegration { shellIntegration, testDisposable ->
     val dir = tempDir.asDirectory()
     val customEnvName = "MY_ENV"
     register(customizer {
       it.prependEntryToPathLikeEnv(customEnvName, dir.nioDir)
-    })
-    val result = configureStartupOptions(dir) {
+    }, parentDisposable = testDisposable)
+    val result = configureStartupOptions(dir, shellIntegration, testDisposable) {
       it[customEnvName] = "foo"
     }
-    result.assertPathLikeEnv(customEnvName, dir.remoteDir, "foo")
+    if (shellIntegration) {
+      Assertions.assertThat(result.getEnvVarValue(customEnvName)).isEqualTo("foo")
+      Assertions.assertThat(result.getEnvVarValue(IJ_FORCE_PREPEND_PREFIX + customEnvName)).isEqualTo(dir.remoteDir + eelApi.descriptor.osFamily.pathSeparator)
+    }
+    else {
+      result.assertPathLikeEnv(customEnvName, dir.remoteDir, "foo")
+    }
   }
 
   @Test
@@ -181,7 +202,7 @@ class ShellExecOptionsCustomizerTest(private val eelHolder: EelHolder) {
     register(customizer {
       it.setEnvironmentVariable(customEnvName, null)
     })
-    val result = configureStartupOptions(dir) {
+    val result = configureStartupOptions(dir, false) {
       it[customEnvName] = "foo"
     }
     Assertions.assertThat(result.getEnvVarValue(customEnvName)).isNull()
@@ -194,7 +215,7 @@ class ShellExecOptionsCustomizerTest(private val eelHolder: EelHolder) {
     register(customizer {
       it.setEnvironmentVariableToPath(JEDITERM_SOURCE, fileToSource)
     })
-    val result = configureStartupOptions(dir) {
+    val result = configureStartupOptions(dir, false) {
       it.remove(JEDITERM_SOURCE)
     }
     result.assertSinglePathEnv(JEDITERM_SOURCE, fileToSource)
@@ -220,7 +241,7 @@ class ShellExecOptionsCustomizerTest(private val eelHolder: EelHolder) {
       it.setExecCommand(newExecCommand)
       Assertions.assertThat(it.execCommand).isEqualTo(newExecCommand)
     })
-    val result = configureStartupOptions(tempDir.asDirectory()) {
+    val result = configureStartupOptions(tempDir.asDirectory(), false) {
       it[PATH] = "/path/to/baz"
     }
     Assertions.assertThat(result.shellExecOptions.envs[customEnvName1]).isEqualTo("foo")
@@ -230,9 +251,7 @@ class ShellExecOptionsCustomizerTest(private val eelHolder: EelHolder) {
   }
 
   @TestFactory
-  fun `source custom shell script via shell integration`() = withShellPathAndShellIntegration(eelApi, TIMEOUT) { shellPath, shellIntegration, testDisposable ->
-    TerminalOptionsProvider.instance::shellIntegration.setValueInTest(shellIntegration, testDisposable)
-    TerminalProjectOptionsProvider.getInstance(project)::shellPath.setValueInTest(shellPath.toString(), testDisposable)
+  fun `source custom shell script via shell integration`() = withShellIntegration { shellIntegration, testDisposable ->
     val workingDir = tempDir.asDirectory()
     val customShellScript = workingDir.nioDir.resolve("my-custom-shell-script")
     var shellIntegrationInjected = false
@@ -240,11 +259,11 @@ class ShellExecOptionsCustomizerTest(private val eelHolder: EelHolder) {
       shellIntegrationInjected = it.shellIntegrationConfigurer != null
       it.shellIntegrationConfigurer?.sourceShellScriptAtShellStartup(customShellScript, listOf("my-arg1", "my-arg2"))
     }, parentDisposable = testDisposable)
-    val result = configureStartupOptions(workingDir) {
+    val result = configureStartupOptions(workingDir, shellIntegration, testDisposable) {
       it.remove(JEDITERM_SOURCE)
       it.remove(JEDITERM_SOURCE_ARGS)
     }
-    Assertions.assertThat(shellIntegrationInjected).isEqualTo(shellIntegration && isShellIntegrationAvailableFor(shellPath))
+    Assertions.assertThat(shellIntegrationInjected).isEqualTo(shellIntegration)
     if (shellIntegrationInjected) {
       result.assertSinglePathEnv(JEDITERM_SOURCE, customShellScript)
       Assertions.assertThat(result.getEnvVarValue(JEDITERM_SOURCE_ARGS)).isEqualTo("my-arg1 my-arg2")
@@ -253,11 +272,6 @@ class ShellExecOptionsCustomizerTest(private val eelHolder: EelHolder) {
       Assertions.assertThat(result.getEnvVarValue(JEDITERM_SOURCE)).isNull()
       Assertions.assertThat(result.getEnvVarValue(JEDITERM_SOURCE_ARGS)).isNull()
     }
-  }
-
-  private fun isShellIntegrationAvailableFor(shellPath: EelPath): Boolean {
-    val shellName = ShellExecCommandImpl(listOf(shellPath.toString())).shellName
-    return shellName in listOf(ShellName.BASH, ShellName.ZSH, ShellName.FISH, ShellName.POWERSHELL, ShellName.PWSH)
   }
 
   private fun customizer(handler: (execOptions: MutableShellExecOptions) -> Unit): ShellExecOptionsCustomizer {
@@ -297,8 +311,13 @@ class ShellExecOptionsCustomizerTest(private val eelHolder: EelHolder) {
 
   private fun configureStartupOptions(
     workingDir: Directory,
+    allowShellIntegration: Boolean,
+    testDisposable: Disposable = this.testDisposable,
     initialEnvironmentCallback: ((MutableMap<String, String>) -> Unit)? = null,
   ): CustomizationResult {
+    TerminalOptionsProvider.instance::shellIntegration.setValueInTest(allowShellIntegration, testDisposable)
+    val shellPathWithShellIntegration = if (eelApi.descriptor.osFamily.isPosix) "zsh" else "powershell.exe"
+    TerminalProjectOptionsProvider.getInstance(project)::shellPath.setValueInTest(shellPathWithShellIntegration, testDisposable)
     fileLogger().info("Running on ${workingDir.descriptor} in ${workingDir.nioDir} (${workingDir.eelDir})")
     val startupOptionsBuilder = ShellStartupOptions.Builder().workingDirectory(workingDir.nioDir.toString())
     initialEnvironmentCallback?.invoke(startupOptionsBuilder.envVariables as MutableMap<String, String>)
@@ -306,6 +325,12 @@ class ShellExecOptionsCustomizerTest(private val eelHolder: EelHolder) {
     val terminalRunner = LocalTerminalDirectRunner(project)
     val configuredOptions = terminalRunner.configureStartupOptions(startupOptions)
     Assertions.assertThat(configuredOptions.eelDescriptorNotNull).isEqualTo(workingDir.descriptor)
+    Assertions.assertThat(configuredOptions.shellIntegration?.shellType).isEqualTo(
+      when (eelApi.descriptor.osFamily) {
+        EelOsFamily.Posix -> ShellType.ZSH
+        EelOsFamily.Windows -> ShellType.POWERSHELL
+      }.takeIf { allowShellIntegration }
+    )
     return CustomizationResult(configuredOptions.toExecOptions())
   }
 
@@ -343,7 +368,8 @@ private fun joinEntries(path1: String?, path2: String?, descriptor: EelDescripto
 }
 
 private const val PATH: String = "PATH"
-private const val IJ_PREPEND_PATH: String = "_INTELLIJ_FORCE_PREPEND_PATH"
+private const val IJ_FORCE_PREPEND_PREFIX: String = "_INTELLIJ_FORCE_PREPEND_"
+private const val IJ_FORCE_PREPEND_PATH: String = IJ_FORCE_PREPEND_PREFIX + PATH
 private const val JEDITERM_SOURCE: String = "JEDITERM_SOURCE"
 private const val JEDITERM_SOURCE_ARGS: String = "JEDITERM_SOURCE_ARGS"
 private val TIMEOUT: Duration = 60.seconds
