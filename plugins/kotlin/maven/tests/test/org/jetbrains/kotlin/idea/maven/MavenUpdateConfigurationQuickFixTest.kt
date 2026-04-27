@@ -3,7 +3,6 @@
 package org.jetbrains.kotlin.idea.maven
 
 import kotlinx.coroutines.runBlocking
-import org.junit.Ignore
 import org.junit.Test
 
 class MavenUpdateConfigurationQuickFixTest12 : AbstractMavenUpdateConfigurationQuickFixTest() {
@@ -11,28 +10,19 @@ class MavenUpdateConfigurationQuickFixTest12 : AbstractMavenUpdateConfigurationQ
     override val testRoot: String
         get() = "maven/tests/testData/languageFeature"
 
-    @Ignore("KTIJ-36424")
     @Test
     fun testUpdateLanguageVersion() = runBlocking {
-        doTest("Set module language version to 1.1")
+        doTest("Increase language version to 2.2")
     }
 
-    @Ignore("KTIJ-36424")
     @Test
     fun testUpdateLanguageVersionProperty() = runBlocking {
-        doTest("Set module language version to 1.1")
+        doTest("Increase language version to 2.2")
     }
 
-    @Ignore("KTIJ-36424")
-    @Test
-    fun testUpdateApiVersion() = runBlocking {
-        doTest("Set module API version to 1.1")
-    }
-
-    @Ignore("KTIJ-36424")
     @Test
     fun testUpdateLanguageAndApiVersion() = runBlocking {
-        doTest("Set module language version to 1.1")
+        doTest("Increase language version to 2.2")
     }
 
     @Test

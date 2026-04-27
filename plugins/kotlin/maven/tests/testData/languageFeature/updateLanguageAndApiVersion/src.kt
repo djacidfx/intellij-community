@@ -1,1 +1,3 @@
-val x = <caret>"s"::length
+fun test() {
+    <caret>$$""
+}
