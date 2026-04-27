@@ -37,7 +37,7 @@ import java.nio.file.Path
  * Migration Notes:
  * - Port forwarding is now handled by EelTargetEnvironment, which uses EelTunnelsApi
  * - The legacy WslProxy mechanism for WSL2 port forwarding is replaced by EEL's native tunneling
- * - Volume synchronization uses EelPathUtils.walkingTransfer instead of WslSync
+ * - Volume synchronization uses EelPathTransfer.walkingTransfer instead of WslSync
  * - Process creation goes through EelApi.exec instead of WSLDistribution.patchCommandLine
  *
  * Known Differences:

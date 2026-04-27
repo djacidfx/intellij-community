@@ -10,6 +10,7 @@ jvm_library(
   deps = [
     "//platform/eel",
     "//platform/util-rt",
+    "//libraries/kotlinx/coroutines/core",
     "@lib//:kotlin-stdlib",
     "@lib//:jetbrains-annotations",
   ],
@@ -31,6 +32,7 @@ jvm_library(
     ":eel-nioFs",
     "//platform/eel:eel_test_lib",
     "//platform/util-rt:util-rt_test_lib",
+    "//libraries/kotlinx/coroutines/core:core_test_lib",
   ]
 )
 ### auto-generated section `build intellij.platform.eel.nioFs` end

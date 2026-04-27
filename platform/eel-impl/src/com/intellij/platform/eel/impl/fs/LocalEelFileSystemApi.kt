@@ -31,8 +31,8 @@ import com.intellij.platform.eel.path.EelPath
 import com.intellij.platform.eel.path.EelPathException
 import com.intellij.platform.eel.provider.LocalEelDescriptor
 import com.intellij.platform.eel.provider.asNioPath
-import com.intellij.platform.eel.provider.utils.EelPathUtils
-import com.intellij.platform.eel.provider.utils.EelPathUtils.convertPosixPermissionsToMask
+import com.intellij.platform.eel.provider.utils.EelPathTransfer
+import com.intellij.platform.eel.provider.utils.EelPathTransfer.convertPosixPermissionsToMask
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -304,7 +304,7 @@ abstract class NioBasedEelFileSystemApi(@VisibleForTesting val fs: FileSystem) :
         return EelFsResultImpl.Error(EelFsResultImpl.TargetAlreadyExists(target, "Target already exists"))
       }
       withContext(Dispatchers.IO) {
-        EelPathUtils.walkingTransfer(sourceNioPath, targetNioPath, removeSource = true, copyAttributes = true)
+        EelPathTransfer.walkingTransfer(sourceNioPath, targetNioPath, removeSource = true, copyAttributes = true)
       }
     }
 
