@@ -427,32 +427,34 @@ public abstract class AbstractConstructorClassProcessor extends AbstractClassPro
       methodBuilder.withRelatedMember(param);
     }
 
+    PsiElementFactory factory = JavaPsiFacade.getElementFactory(psiClass.getProject());
     PsiSubstitutor substitutor = PsiSubstitutor.EMPTY;
     if (psiClass.hasTypeParameters()) {
       final PsiTypeParameter[] classTypeParameters = psiClass.getTypeParameters();
+      List<LightTypeParameterBuilder> methodTypeParameters = new ArrayList<>(classTypeParameters.length);
 
-      // Need to create new type parameters
-      // and update the bounds of the new type parameters using the substitutor
+      // Create method type parameters first so all class type parameters can be substituted in one pass.
       for (int index = 0; index < classTypeParameters.length; index++) {
         final PsiTypeParameter classTypeParameter = classTypeParameters[index];
-
         final LightTypeParameterBuilder methodTypeParameter =
           new LightTypeParameterBuilder(StringUtil.notNullize(classTypeParameter.getName()), methodBuilder, index);
         methodBuilder.withTypeParameter(methodTypeParameter);
+        methodTypeParameters.add(methodTypeParameter);
+        substitutor = substitutor.put(classTypeParameter, factory.createType(methodBuilder.getTypeParameters()[index]));
+      }
 
-        final LightReferenceListBuilder methodExtendsList = methodTypeParameter.getExtendsList();
+      for (int index = 0; index < classTypeParameters.length; index++) {
+        PsiTypeParameter classTypeParameter = classTypeParameters[index];
+        final LightReferenceListBuilder methodExtendsList = methodTypeParameters.get(index).getExtendsList();
         for (PsiClassType classReferencedType : classTypeParameter.getExtendsList().getReferencedTypes()) {
           final PsiType substitutedType = substitutor.substitute(classReferencedType);
-
-          if (substitutedType instanceof PsiClassType psiClassSubstitutedType &&
-              Arrays.binarySearch(methodExtendsList.getReferencedTypes(), psiClassSubstitutedType) < 0) {
+          if (substitutedType instanceof PsiClassType psiClassSubstitutedType) {
             methodExtendsList.addReference(psiClassSubstitutedType);
           }
         }
       }
     }
 
-    final PsiElementFactory factory = JavaPsiFacade.getElementFactory(psiClass.getProject());
     final PsiType returnType = factory.createType(psiClass, substitutor);
     methodBuilder.withMethodReturnType(returnType);
 
