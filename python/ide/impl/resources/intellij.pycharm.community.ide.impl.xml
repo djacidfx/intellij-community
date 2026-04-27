@@ -150,7 +150,7 @@
   </extensions>
 
   <applicationListeners>
-    <listener class="com.intellij.pycharm.community.ide.impl.welcomeScreen.PyWelcomeScreenNewUsersTracker"
+    <listener class="com.intellij.pycharm.community.ide.impl.welcomeScreen.PyWelcomeScreenFreeModeTracker"
               topic="com.intellij.ide.AppLifecycleListener"/>
     <listener class="com.intellij.pycharm.community.ide.impl.promo.CommunityToUnifiedListener"
               topic="com.intellij.ide.AppLifecycleListener"/>
