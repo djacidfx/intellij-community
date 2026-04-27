@@ -4,6 +4,13 @@ package org.jetbrains.idea.devkit.inspections.remotedev
 import com.intellij.codeInsight.intention.preview.IntentionPreviewUtils
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ActionPlaces
+import com.intellij.openapi.actionSystem.ActionUiKind
+import com.intellij.openapi.actionSystem.ex.ActionUtil
+import com.intellij.openapi.actionSystem.impl.SimpleDataContext
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.module.ModuleUtilCore
@@ -109,6 +116,7 @@ internal object SplitModeDependencyQuickFixes {
       if (!IntentionPreviewUtils.prepareElementForWrite(xmlFile)) return
 
       removeInappropriateDependencies(ideaPlugin, module, desiredModuleKind)
+      runJpsToBazelConverter(project)
     }
   }
 
@@ -139,6 +147,7 @@ internal object SplitModeDependencyQuickFixes {
       }
 
       addModuleDependency(module, dependencyName)
+      runJpsToBazelConverter(project)
     }
   }
 }
@@ -231,6 +240,16 @@ private fun addModuleDependency(module: Module?, dependencyName: String) {
       model.addInvalidModuleEntry(dependencyName)
     }
   }
+}
+
+private fun runJpsToBazelConverter(project: Project) {
+  if (IntentionPreviewUtils.isIntentionPreviewActive() || ApplicationManager.getApplication().isUnitTestMode) {
+    return
+  }
+
+  val action = ActionManager.getInstance().getAction("MonorepoDevkit.Bazel.JpsToBazelConverter") ?: return
+  val event = AnActionEvent.createEvent(action, SimpleDataContext.getProjectContext(project), null, ActionPlaces.UNKNOWN, ActionUiKind.NONE, null)
+  ActionUtil.performAction(action, event)
 }
 
 private fun shouldRemoveDependency(
