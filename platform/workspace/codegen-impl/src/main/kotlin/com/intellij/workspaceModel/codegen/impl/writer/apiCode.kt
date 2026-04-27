@@ -259,5 +259,5 @@ fun ObjProperty<*, *>.getWsBuilderApi(objClass: ObjClass<*>): String {
     valueType is ValueType.Collection<*, *> && !valueType.isRefType() -> valueType.javaMutableType
     else -> valueType.javaBuilderTypeWithGeneric
   }
-  return "${override}var $javaName: $returnType"
+  return "${generatedCodeVisibilityModifier}${override}var $javaName: $returnType"
 }
