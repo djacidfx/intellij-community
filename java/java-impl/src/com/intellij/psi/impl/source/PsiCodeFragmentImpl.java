@@ -126,7 +126,7 @@ public class PsiCodeFragmentImpl extends PsiFileImpl implements JavaCodeFragment
   }
 
   @Override
-  public void setSuperType(final PsiType superType) {
+  public void setSuperType(PsiType superType) {
     mySuperType = superType;
   }
 
@@ -172,8 +172,8 @@ public class PsiCodeFragmentImpl extends PsiFileImpl implements JavaCodeFragment
 
   @Override
   public void accept(@NotNull PsiElementVisitor visitor) {
-    if (visitor instanceof JavaElementVisitor) {
-      ((JavaElementVisitor)visitor).visitCodeFragment(this);
+    if (visitor instanceof JavaElementVisitor v) {
+      v.visitCodeFragment(this);
     }
     else {
       visitor.visitFile(this);
@@ -261,10 +261,7 @@ public class PsiCodeFragmentImpl extends PsiFileImpl implements JavaCodeFragment
     private final String myQName;
     private final LinkedHashMap<String, String> myPseudoImports;
 
-    ImportClassUndoableAction(final String className,
-                                     final String qName,
-                                     final Document document,
-                                     final LinkedHashMap<String, String> pseudoImportsMap) {
+    ImportClassUndoableAction(String className, String qName, Document document, LinkedHashMap<String, String> pseudoImportsMap) {
       super(document);
       myClassName = className;
       myQName = qName;
@@ -288,7 +285,7 @@ public class PsiCodeFragmentImpl extends PsiFileImpl implements JavaCodeFragment
   }
 
   @Override
-  public void setIntentionActionsFilter(final @NotNull IntentionActionsFilter filter) {
+  public void setIntentionActionsFilter(@NotNull IntentionActionsFilter filter) {
     myIntentionActionsFilter = filter;
   }
 
@@ -314,7 +311,7 @@ public class PsiCodeFragmentImpl extends PsiFileImpl implements JavaCodeFragment
   }
 
   @Override
-  public void setExceptionHandler(final ExceptionHandler exceptionHandler) {
+  public void setExceptionHandler(ExceptionHandler exceptionHandler) {
     myExceptionHandler = exceptionHandler;
   }
 }
