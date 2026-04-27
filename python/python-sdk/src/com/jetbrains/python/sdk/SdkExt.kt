@@ -8,11 +8,16 @@ import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.application.writeAction
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.projectRoots.Sdk
+import com.intellij.openapi.util.Key
 import com.jetbrains.python.sdk.flavors.PythonSdkFlavor
 import com.jetbrains.python.sdk.impl.buildPresentationInfo
 import com.jetbrains.python.sdk.legacy.PythonSdkUtil.isPythonSdk
 import com.jetbrains.python.target.PyTargetAwareAdditionalData
 import org.jetbrains.annotations.ApiStatus.Internal
+import java.nio.file.Path
+
+@get:Internal
+val BASE_DIR: Key<Path> = Key.create("PYTHON_PROJECT_BASE_PATH")
 
 /**
  * Asserts that this SDK has [PythonSdkType].
