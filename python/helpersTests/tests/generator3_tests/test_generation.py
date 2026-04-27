@@ -413,7 +413,7 @@ class MultiModuleGenerationTest(FunctionalGeneratorTestCase):
     def test_logging_configured_and_propagates_from_worker_subprocess(self):
         result = self.run_generator()
         subprocess_messages = [m for m in result.control_messages('log')
-                               if m['message'].startswith('Updating cache for mod')]
+                               if m['message'].startswith('Updating skeleton for mod')]
         self.assertEqual(2, len(subprocess_messages))
 
 

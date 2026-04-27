@@ -59,7 +59,7 @@ class ClassBuf(Buf):
 
 #noinspection PyBroadException
 class ModuleRedeclarator(object):
-    def __init__(self, module, mod_qname, mod_filename, cache_dir, indent_size=4, doing_builtins=False):
+    def __init__(self, module, mod_qname, mod_filename, output_dir, indent_size=4, doing_builtins=False):
         """
         @param module: module object
         @param mod_qname: module qualified name
@@ -74,7 +74,7 @@ class ModuleRedeclarator(object):
         self.gen_version = generator3.core.version()
         self.module = module
         self.qname = mod_qname
-        self.cache_dir = cache_dir
+        self.output_dir = output_dir
         self.mod_filename = mod_filename
         # we write things into buffers out-of-order
         self.header_buf = Buf(self)
@@ -127,7 +127,7 @@ class ModuleRedeclarator(object):
     def flush(self):
         qname_parts = self.qname.split('.')
         if self.split_modules:
-            last_pkg_dir = build_pkg_structure(self.cache_dir, self.qname)
+            last_pkg_dir = build_pkg_structure(self.output_dir, self.qname)
             with fopen(os.path.join(last_pkg_dir, "__init__.py"), "w") as init:
                 for buf in (self.header_buf, self.imports_buf, self.functions_buf, self.classes_buf):
                     buf.flush(init)
@@ -143,7 +143,7 @@ class ModuleRedeclarator(object):
                 init.write(data)
                 self.footer_buf.flush(init)
         else:
-            last_pkg_dir = build_pkg_structure(self.cache_dir, '.'.join(qname_parts[:-1]))
+            last_pkg_dir = build_pkg_structure(self.output_dir, '.'.join(qname_parts[:-1]))
             # In some rare cases submodules of a binary might have been generated earlier than the module
             # for the binary itself. For instance, it happens for "pyexpat" built-in module which
             # submodules "pyexpat.errors" and "pyexpat.model" are processed together with "_elementtree"

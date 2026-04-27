@@ -85,6 +85,8 @@ def parse_args(gen_version):
 
     parser.add_argument("--clean", action='store_true',
                         help="Remove generated directories after run")
+    parser.add_argument("--no-cache", action='store_true',
+                        help="Disable using cache for generated files")
     parser.add_argument("--extra-tracing", nargs="+",
                         choices=LOGGING_CATEGORIES, default=[])
 
@@ -138,7 +140,8 @@ def main():
         output_dir=args.output_dir,
         roots=target_roots,
         state_json=state_json,
-        write_state_json=bool(args.init_state_file or args.state_file)
+        write_state_json=bool(args.init_state_file or args.state_file),
+        no_cache=args.no_cache,
     )
     exit_code = 0
     try:
@@ -157,7 +160,8 @@ def main():
         if args.clean:
             logging.debug("Removing output and cache directories")
             delete(generator.output_dir)
-            delete(generator.cache_dir)
+            if generator.cache_dir:
+                delete(generator.cache_dir)
     sys.exit(exit_code)
 
 

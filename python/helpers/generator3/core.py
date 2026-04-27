@@ -417,10 +417,14 @@ class SkeletonGenerator(object):
                  roots=None,  # type: List[str]
                  state_json=None,  # type: Dict[str, Any]
                  write_state_json=False,
+                 no_cache=False,
                  ):
         self.output_dir = output_dir.rstrip(os.path.sep)
         # TODO make cache directory configurable via CLI
-        self.cache_dir = os.path.join(os.path.dirname(self.output_dir), CACHE_DIR_NAME)
+        if not no_cache:
+            self.cache_dir = os.path.join(os.path.dirname(self.output_dir), CACHE_DIR_NAME)
+        else:
+            self.cache_dir = None
         self.roots = roots
         self.in_state_json = state_json
         self.out_state_json = {'sdk_skeletons': {}}
@@ -553,8 +557,12 @@ class SkeletonGenerator(object):
             if mod_state_json:
                 mod_state_json.clear()
 
-            mod_cache_dir = build_cache_dir_path(self.cache_dir, mod_name, mod_path)
-            cached_skeleton_status = skeleton_status(mod_cache_dir, mod_name, mod_path, mod_state_json)
+            if self.cache_dir:
+                mod_cache_dir = build_cache_dir_path(self.cache_dir, mod_name, mod_path)
+                cached_skeleton_status = skeleton_status(mod_cache_dir, mod_name, mod_path, mod_state_json)
+            else:
+                mod_cache_dir = None
+                cached_skeleton_status = sdk_skeleton_status
             if cached_skeleton_status == SkeletonStatus.OUTDATED:
                 with timed("Processed module {} in {{elapsed:.2f}} ms".format(mod_name)):
                     return execute_in_subprocess_synchronously(name='Skeleton Generator Worker',
@@ -605,16 +613,20 @@ def imported_names_collected():
 
 
 def generate_skeleton(name, mod_file_name, mod_cache_dir, output_dir):
-    # type: (str, str, str, str) -> GenerationStatusId
+    # type: (str, str, str | None, str) -> GenerationStatusId
 
-    logging.info('Updating cache for %s at %r', name, mod_cache_dir)
+    logging.info('Updating skeleton for %s at %r', name, mod_cache_dir or output_dir)
     doing_builtins = mod_file_name is None
     # All builtin modules go into the same directory
-    if not doing_builtins:
-        delete(mod_cache_dir)
-    mkdir(mod_cache_dir)
+    if mod_cache_dir:
+        if not doing_builtins:
+            delete(mod_cache_dir)
+        mkdir(mod_cache_dir)
 
-    create_failed_version_stamp(mod_cache_dir, name)
+        create_failed_version_stamp(mod_cache_dir, name)
+    else:
+        # Otherwise it will be created on copying from the cache to the output dir
+        mkdir(output_dir)
 
     action("importing")
     old_modules = list(sys.modules.keys())
@@ -658,7 +670,7 @@ def generate_skeleton(name, mod_file_name, mod_cache_dir, output_dir):
 
 
 def redo_module(module_name, module_file_name, cache_dir, output_dir):
-    # type: (str, str, str, str) -> None
+    # type: (str, str, str | None, str) -> None
     # gobject does 'del _gobject' in its __init__.py, so the chained attribute lookup code
     # fails to find 'gobject._gobject'. thus we need to pull the module directly out of
     # sys.modules
@@ -667,15 +679,18 @@ def redo_module(module_name, module_file_name, cache_dir, output_dir):
     if mod:
         action("restoring")
         from generator3.module_redeclarator import ModuleRedeclarator
-        r = ModuleRedeclarator(mod, module_name, module_file_name, cache_dir=cache_dir,
+        r = ModuleRedeclarator(mod, module_name, module_file_name,
+                               output_dir=(cache_dir or output_dir),
                                doing_builtins=(module_file_name is None))
-        create_failed_version_stamp(cache_dir, module_name)
+        if cache_dir:
+            create_failed_version_stamp(cache_dir, module_name)
         r.redo(module_name, ".".join(mod_path[:-1]) in MODULES_INSPECT_DIR)
         action("flushing")
         r.flush()
-        delete_failed_version_stamp(cache_dir, module_name)
-        # Incrementally copy whatever we managed to successfully generate so far
-        copy_skeletons(cache_dir, output_dir, get_module_origin(module_file_name, module_name))
+        if cache_dir:
+            delete_failed_version_stamp(cache_dir, module_name)
+            # Incrementally copy whatever we managed to successfully generate so far
+            copy_skeletons(cache_dir, output_dir, get_module_origin(module_file_name, module_name))
     else:
         report("Failed to find imported module in sys.modules " + module_name)
 
