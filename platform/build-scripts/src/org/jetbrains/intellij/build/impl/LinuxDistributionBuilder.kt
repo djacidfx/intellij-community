@@ -362,6 +362,11 @@ class LinuxDistributionBuilder(
         context.notifyArtifactBuilt(snapArtifactPath)
         checkExecutablePermissions(distribution = snapArtifactPath, root = "", includeRuntime = true, arch, targetLibcImpl, context)
 
+        createChecksumAndGpgSignFiles(
+          context = context,
+          buildArtifact = { snapArtifactPath }
+        )
+
         val snapProductInfoJsonPath = snapArtifactPath.resolveProductInfoJsonSibling()
         copyFile(productJsonFile, snapProductInfoJsonPath)
         context.notifyArtifactBuilt(snapProductInfoJsonPath)
