@@ -31,14 +31,16 @@ internal class SplitModeXmlApiUsageInspection : DevKitPluginXmlInspectionBase() 
 
     val extensionPointName = getExtensionPointName(element) ?: return
     val expectedModuleKind = restrictionsService.getExtensionPointKind(extensionPointName) ?: return
-    val xmlTag = element.xmlTag ?: return
-    val actualModuleKind = SplitModeModuleKindResolver.getOrComputeModuleKind(xmlTag) ?: return
+    val module = element.module ?: return
+    val moduleAnalysis = SplitModeModuleKindResolver.getOrComputeModuleAnalysis(module)
+    val actualModuleKind = moduleAnalysis.resolvedModuleKind
 
     if (doesApiKindMatchExpectedModuleKind(actualModuleKind, expectedModuleKind)) return
 
     holder.createProblem(
       element,
-      buildModuleKindMismatchMessage(extensionPointName, expectedModuleKind, actualModuleKind)
+      buildModuleKindMismatchMessage(extensionPointName, expectedModuleKind, actualModuleKind),
+      *SplitModeDependencyQuickFixes.createMismatchFixes(moduleAnalysis, expectedModuleKind)
     )
   }
 

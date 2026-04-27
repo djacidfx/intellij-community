@@ -2,6 +2,7 @@
 package org.jetbrains.idea.devkit.k2.inspections.remotedev
 
 import com.intellij.openapi.project.IntelliJProjectUtil
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.testFramework.PsiTestUtil
 import com.intellij.testFramework.common.timeoutRunBlocking
 import com.intellij.testFramework.common.waitUntil
@@ -402,5 +403,74 @@ class SplitModeApiUsageInspectionTest : LightJavaCodeInsightFixtureTestCase(), E
     )
 
     myFixture.checkHighlighting()
+  }
+
+  fun testAddFrontendDependencyFix() {
+    configurePluginXml(
+      """
+      <idea-plugin>
+        <dependencies>
+          <module name="intellij.platform.core"/>
+        </dependencies>
+      </idea-plugin>
+    """.trimIndent()
+    )
+
+    myFixture.configureByText(
+      "SharedFrontendService.kt", """
+      package com.example.shared
+
+      import com.intellij.openapi.wm.ToolWindowFactory
+
+      class SharedFrontendService {
+        fun testFrontendApi() {
+          class MyToolWindow: <caret>ToolWindowFactory {}
+        }
+      }
+    """.trimIndent()
+    )
+
+    val intention = myFixture.findSingleIntention("Add the 'intellij.platform.frontend' dependency")
+    myFixture.launchAction(intention)
+
+    val pluginXml = myFixture.findFileInTempDir("resources/META-INF/plugin.xml")
+    val result = FileDocumentManager.getInstance().getDocument(pluginXml)!!.text
+    assertTrue(result.contains("<module name=\"intellij.platform.core\"/>"))
+    assertTrue(result.contains("<module name=\"intellij.platform.frontend\"/>"))
+  }
+
+  fun testMakeModuleHaveOnlyBackendDependenciesFix() {
+    configurePluginXml(
+      """
+      <idea-plugin>
+        <dependencies>
+          <module name="intellij.platform.core"/>
+          <module name="intellij.platform.frontend"/>
+        </dependencies>
+      </idea-plugin>
+    """.trimIndent()
+    )
+
+    myFixture.configureByText(
+      "FrontendService.kt", """
+      package com.example.frontend
+
+      import com.intellij.openapi.vfs.VirtualFileManager
+
+      class FrontendService {
+        fun doStuff() {
+          <caret>VirtualFileManager.getInstance()
+        }
+      }
+    """.trimIndent()
+    )
+
+    val intention = myFixture.findSingleIntention("Make module have only 'backend' dependencies")
+    myFixture.launchAction(intention)
+
+    val pluginXml = myFixture.findFileInTempDir("resources/META-INF/plugin.xml")
+    val result = FileDocumentManager.getInstance().getDocument(pluginXml)!!.text
+    assertTrue(result.contains("<module name=\"intellij.platform.core\"/>"))
+    assertFalse(result.contains("intellij.platform.frontend"))
   }
 }

@@ -33,6 +33,12 @@ internal class SplitModeMixedDependenciesInspection : DevKitPluginXmlInspectionB
 
     val dependencyAnalysis = moduleAnalysis.dependencyAnalysis
     val mixedDependenciesMessage = buildMixedModuleDependenciesMessage(dependencyAnalysis)
-    holder.createProblem(element, ProblemHighlightType.GENERIC_ERROR, mixedDependenciesMessage, null)
+    holder.createProblem(
+      element,
+      ProblemHighlightType.GENERIC_ERROR,
+      mixedDependenciesMessage,
+      null,
+      *SplitModeDependencyQuickFixes.createMixedModuleFixes(dependencyAnalysis)
+    )
   }
 }

@@ -6,6 +6,7 @@ import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
+import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiModifierListOwner
@@ -57,10 +58,11 @@ class SplitModeApiUsageInspection : DevKitUastInspectionBase(UClass::class.java,
     isOnTheFly: Boolean,
   ): Array<out ProblemDescriptor?>? {
     val sourcePsi = aClass.sourcePsi ?: return null
-    val moduleType = SplitModeModuleKindResolver.getOrComputeModuleKind(sourcePsi) ?: return null
+    val module = ModuleUtilCore.findModuleForPsiElement(sourcePsi) ?: return null
+    val moduleAnalysis = SplitModeModuleKindResolver.getOrComputeModuleAnalysis(module)
     val descriptors = SmartList<ProblemDescriptor>()
     aClass.uastSuperTypes.forEach { superTypeExpression ->
-      checkApiUsage(superTypeExpression, moduleType, manager, isOnTheFly, descriptors)
+      checkApiUsage(superTypeExpression, moduleAnalysis, manager, isOnTheFly, descriptors)
     }
 
     return if (descriptors.isEmpty()) null else descriptors.toTypedArray()
@@ -80,19 +82,20 @@ class SplitModeApiUsageInspection : DevKitUastInspectionBase(UClass::class.java,
     isOnTheFly: Boolean,
   ): Array<ProblemDescriptor>? {
     val sourcePsi = uElement.sourcePsi ?: return null
-    val moduleType = SplitModeModuleKindResolver.getOrComputeModuleKind(sourcePsi) ?: return null
+    val module = ModuleUtilCore.findModuleForPsiElement(sourcePsi) ?: return null
+    val moduleAnalysis = SplitModeModuleKindResolver.getOrComputeModuleAnalysis(module)
     val descriptors = SmartList<ProblemDescriptor>()
 
     uElement.accept(object : AbstractUastVisitor() {
       override fun visitCallExpression(node: UCallExpression): Boolean {
-        checkApiUsage(node, moduleType, manager, isOnTheFly, descriptors)
+        checkApiUsage(node, moduleAnalysis, manager, isOnTheFly, descriptors)
         return true
       }
 
       override fun visitQualifiedReferenceExpression(node: UQualifiedReferenceExpression): Boolean {
         // For a.b.c.d, check left-to-right and stop at the first error
         val sizeBeforeCheck = descriptors.size
-        checkApiUsage(node, moduleType, manager, isOnTheFly, descriptors)
+        checkApiUsage(node, moduleAnalysis, manager, isOnTheFly, descriptors)
         val errorReported = descriptors.size > sizeBeforeCheck
 
         // If error reported, skip visiting children
@@ -100,7 +103,7 @@ class SplitModeApiUsageInspection : DevKitUastInspectionBase(UClass::class.java,
       }
 
       override fun visitSimpleNameReferenceExpression(node: USimpleNameReferenceExpression): Boolean {
-        checkApiUsage(node, moduleType, manager, isOnTheFly, descriptors)
+        checkApiUsage(node, moduleAnalysis, manager, isOnTheFly, descriptors)
         return true
       }
     })
@@ -110,24 +113,26 @@ class SplitModeApiUsageInspection : DevKitUastInspectionBase(UClass::class.java,
 
   private fun checkApiUsage(
     expression: UExpression,
-    currentModuleType: ResolvedModuleKind,
+    currentModuleAnalysis: ModuleAnalysis,
     manager: InspectionManager,
     isOnTheFly: Boolean,
     descriptors: MutableList<ProblemDescriptor>,
   ) {
     val resolvedApi = resolveApiUsage(expression) ?: return
     val expectedModuleKind = restrictionsService.getCodeApiKind(resolvedApi.qualifiedName, resolvedApi.owner) ?: return
+    val currentModuleType = currentModuleAnalysis.resolvedModuleKind
 
     if (!doesApiKindMatchExpectedModuleKind(currentModuleType, expectedModuleKind)) {
       val sourcePsi = expression.sourcePsi ?: return
       val message = buildModuleKindMismatchMessage(resolvedApi.qualifiedName, expectedModuleKind, currentModuleType)
+      val fixes = SplitModeDependencyQuickFixes.createMismatchFixes(currentModuleAnalysis, expectedModuleKind)
 
       descriptors.add(
         manager.createProblemDescriptor(
           sourcePsi,
           message,
           isOnTheFly,
-          emptyArray<LocalQuickFix>(),
+          fixes,
           ProblemHighlightType.WEAK_WARNING
         )
       )

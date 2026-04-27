@@ -209,16 +209,16 @@ private fun isExplicitBackendDependency(dependencyName: String): Boolean {
   return dependencyName in getModuleNameVariants(BACKEND_PLATFORM_MODULE_BASE_NAME).toSet()
 }
 
-private fun isFrontendDependency(dependencyName: String): Boolean {
+internal fun isFrontendDependency(dependencyName: String): Boolean {
   val dependencyKind = resolveDependencyKind(dependencyName)
   return dependencyKind == SplitModeApiRestrictionsService.ModuleKind.FRONTEND
-         || dependencyKind == SplitModeApiRestrictionsService.ModuleKind.MIXED
+         || dependencyKind == SplitModeApiRestrictionsService.ModuleKind.MIXED // todo remove
 }
 
-private fun isBackendDependency(dependencyName: String): Boolean {
+internal fun isBackendDependency(dependencyName: String): Boolean {
   val dependencyKind = resolveDependencyKind(dependencyName)
   return dependencyKind == SplitModeApiRestrictionsService.ModuleKind.BACKEND
-         || dependencyKind == SplitModeApiRestrictionsService.ModuleKind.MIXED
+         || dependencyKind == SplitModeApiRestrictionsService.ModuleKind.MIXED // todo remove
 }
 
 private fun computeContainingPluginsKind(containingPlugins: List<ContainingPlugin>): SplitModeApiRestrictionsService.ModuleKind {
@@ -462,10 +462,10 @@ private fun resolveDependencyKind(dependencyName: String): SplitModeApiRestricti
     return SplitModeApiRestrictionsService.ModuleKind.BACKEND
   }
 
-  return SplitModeApiRestrictionsService.getInstance().getDependencyKind(dependencyName) ?: guessModuleKind(dependencyName)
+  return SplitModeApiRestrictionsService.getInstance().getDependencyKind(dependencyName) ?: guessDependencyKindByName(dependencyName)
 }
 
-private fun guessModuleKind(dependencyName: String): SplitModeApiRestrictionsService.ModuleKind? {
+private fun guessDependencyKindByName(dependencyName: String): SplitModeApiRestrictionsService.ModuleKind? {
   return when {
     doesLookLikeFrontendDependency(dependencyName) -> SplitModeApiRestrictionsService.ModuleKind.FRONTEND
     doesLookLikeBackendDependency(dependencyName) -> SplitModeApiRestrictionsService.ModuleKind.BACKEND
