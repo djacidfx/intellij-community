@@ -180,7 +180,7 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
       moduleName = "unique.module.name.9",
       descriptorRelativePathToResourcesDirectory = "unique.module.name.9.xml",
       """
-        <<error descr="This dependency list mixes frontend-only dependencies (intellij.platform.frontend) and backend-only dependencies (intellij.platform.backend)">idea-plugin</error>>
+        <<error descr="This module mixes frontend-only dependencies (intellij.platform.frontend) and backend-only dependencies (intellij.platform.backend)">idea-plugin</error>>
           <extensions defaultExtensionNs="com.intellij">
             <fileEditorProvider/>
             <localInspection/>
@@ -198,10 +198,10 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
       moduleName = "unique.module.name.10",
       descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
       """
-        <idea-plugin>
+        <<error descr="This module mixes frontend-only dependencies (intellij.platform.frontend) and backend-only dependencies (intellij.platform.backend)">idea-plugin</error>>
           <dependencies>
-            <error descr="This dependency list mixes frontend-only dependencies (intellij.platform.frontend) and backend-only dependencies (intellij.platform.backend)"><module name="intellij.platform.frontend"/></error>
-            <error descr="This dependency list mixes frontend-only dependencies (intellij.platform.frontend) and backend-only dependencies (intellij.platform.backend)"><module name="intellij.platform.backend"/></error>
+            <module name="intellij.platform.frontend"/>
+            <module name="intellij.platform.backend"/>
           </dependencies>
           <extensions defaultExtensionNs="com.intellij">
             <fileEditorProvider/>

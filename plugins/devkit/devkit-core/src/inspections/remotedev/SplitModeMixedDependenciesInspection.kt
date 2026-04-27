@@ -32,27 +32,11 @@ internal class SplitModeMixedDependenciesInspection : DevKitPluginXmlInspectionB
     if (moduleAnalysis.resolvedModuleKind.kind != SplitModeApiRestrictionsService.ModuleKind.MIXED) return
 
     val dependencyAnalysis = moduleAnalysis.dependencyAnalysis
-    val declaredDependencies = moduleAnalysis.declaredDependencies
-    val highlightedDependencies = ArrayList<DependencyInfo>()
-    for (dependency in declaredDependencies) {
-      if (dependencyAnalysis.containsDependency(dependency.name)) {
-        highlightedDependencies.add(dependency)
-      }
-    }
     val mixedDependenciesMessage = message(
       "inspection.remote.dev.mixed.dependencies.message",
       dependencyAnalysis.getFrontendDependencyNames(),
       dependencyAnalysis.getBackendDependencyNames(),
     )
-    if (highlightedDependencies.isEmpty()) {
-      if (!element.dependencies.exists()) {
-        holder.createProblem(element, ProblemHighlightType.GENERIC_ERROR, mixedDependenciesMessage, null)
-      }
-      return
-    }
-
-    for (dependency in highlightedDependencies) {
-      holder.createProblem(dependency.element ?: continue, ProblemHighlightType.GENERIC_ERROR, mixedDependenciesMessage, null).highlightWholeElement()
-    }
+    holder.createProblem(element, ProblemHighlightType.GENERIC_ERROR, mixedDependenciesMessage, null)
   }
 }

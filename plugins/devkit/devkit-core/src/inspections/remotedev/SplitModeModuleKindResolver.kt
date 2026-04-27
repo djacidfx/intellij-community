@@ -13,7 +13,6 @@ import com.intellij.psi.PsiManager
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.xml.XmlFile
-import com.intellij.util.xml.DomElement
 import com.intellij.util.xml.DomService
 import org.jetbrains.idea.devkit.dom.IdeaPlugin
 import org.jetbrains.idea.devkit.module.PluginModuleType
@@ -26,7 +25,6 @@ private const val BACKEND_PLATFORM_MODULE_BASE_NAME = "intellij.platform.backend
 internal class ModuleAnalysis(
   val resolvedModuleKind: ResolvedModuleKind,
   val dependencyAnalysis: DependencyAnalysis,
-  val declaredDependencies: Set<DependencyInfo>,
 )
 
 internal data class ResolvedModuleKind(
@@ -38,7 +36,6 @@ internal data class DependencyInfo(
   val name: String,
   val originDescription: String,
   val isOwn: Boolean,
-  val element: DomElement?,
 )
 
 internal data class ContainingPlugin(
@@ -160,10 +157,6 @@ internal class DependencyAnalysis(
     return collectDependencyNames(dependencies, ::isBackendDependency)
   }
 
-  fun containsDependency(dependencyName: String): Boolean {
-    return dependencies.any { it.name == dependencyName && isSplitModeDependency(it.name) }
-  }
-
   private fun buildReasoning(
     label: String,
     moduleNameFollowsNamingConvention: Boolean,
@@ -228,10 +221,6 @@ private fun isBackendDependency(dependencyName: String): Boolean {
          || dependencyKind == SplitModeApiRestrictionsService.ModuleKind.MIXED
 }
 
-private fun isSplitModeDependency(dependencyName: String): Boolean {
-  return isFrontendDependency(dependencyName) || isBackendDependency(dependencyName)
-}
-
 private fun computeContainingPluginsKind(containingPlugins: List<ContainingPlugin>): SplitModeApiRestrictionsService.ModuleKind {
   if (containingPlugins.isEmpty()) {
     return SplitModeApiRestrictionsService.ModuleKind.SHARED
@@ -282,17 +271,15 @@ internal object SplitModeModuleKindResolver {
       return ModuleAnalysis(
         ResolvedModuleKind(SplitModeApiRestrictionsService.ModuleKind.SHARED, ""),
         DependencyAnalysis(moduleName, emptyList(), emptyList()),
-        emptySet(),
       )
     }
 
     val directDependencies = collectDescriptorDependencies(moduleName, xmlDescriptor, parsedXmlDescriptor)
-    val declaredDependencies = collectDeclaredDependencies(moduleName, xmlDescriptor, parsedXmlDescriptor)
     val containingPlugins = if (contentModuleXmlDescriptor == null) emptyList() else collectContainingPlugins(contentModuleXmlDescriptor)
     val dependencyAnalysis = DependencyAnalysis(moduleName, directDependencies, containingPlugins)
     val resolvedModuleKind = computeModuleKind(dependencyAnalysis)
 
-    return ModuleAnalysis(resolvedModuleKind, dependencyAnalysis, declaredDependencies)
+    return ModuleAnalysis(resolvedModuleKind, dependencyAnalysis)
   }
 
   private fun collectDescriptorDependencies(
@@ -302,45 +289,9 @@ internal object SplitModeModuleKindResolver {
   ): Set<DependencyInfo> {
     val descriptorDependencies = mutableSetOf<DependencyInfo>()
     for (dependencyName in SplitModePluginDependencyUtil.collectTransitiveDependencyNames(ideaPlugin)) {
-      descriptorDependencies.add(DependencyInfo(dependencyName, "descriptor '${xmlDescriptor.name}' in module '$moduleName'", true, null))
+      descriptorDependencies.add(DependencyInfo(dependencyName, "descriptor '${xmlDescriptor.name}' in module '$moduleName'", true))
     }
     return descriptorDependencies
-  }
-
-  private fun collectDeclaredDependencies(
-    moduleName: String,
-    xmlDescriptor: XmlFile,
-    ideaPlugin: IdeaPlugin,
-  ): Set<DependencyInfo> {
-    val originDescription = "descriptor '${xmlDescriptor.name}' in module '$moduleName'"
-    val declaredDependencies = LinkedHashSet<DependencyInfo>()
-
-    for (dependency in ideaPlugin.depends) {
-      val dependencyName = dependency.rawText ?: dependency.stringValue
-      if (dependencyName != null) {
-        declaredDependencies.add(DependencyInfo(dependencyName, originDescription, true, dependency))
-      }
-    }
-
-    val dependencies = ideaPlugin.dependencies
-    if (!dependencies.isValid) {
-      return declaredDependencies
-    }
-
-    for (moduleDescriptor in dependencies.moduleEntry) {
-      val dependencyName = moduleDescriptor.name.stringValue
-      if (dependencyName != null) {
-        declaredDependencies.add(DependencyInfo(dependencyName, originDescription, true, moduleDescriptor))
-      }
-    }
-    for (pluginDescriptor in dependencies.plugin) {
-      val dependencyName = pluginDescriptor.id.stringValue
-      if (dependencyName != null) {
-        declaredDependencies.add(DependencyInfo(dependencyName, originDescription, true, pluginDescriptor))
-      }
-    }
-
-    return declaredDependencies
   }
 
   private fun computeModuleKind(dependencyAnalysis: DependencyAnalysis): ResolvedModuleKind {
@@ -462,7 +413,6 @@ internal object SplitModeModuleKindResolver {
             dependencyName,
             "containing plugin descriptor '${pluginXml.name}' in module '${containingModule.name}'",
             false,
-            null,
           )
         )
       }

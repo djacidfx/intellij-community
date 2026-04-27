@@ -34,11 +34,11 @@ internal class SplitModeMixedDependenciesInspectionTest : JavaCodeInsightFixture
       moduleName = "unique.module.name.17",
       descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
       pluginXmlContent = """
-        <idea-plugin>
+        <<error descr="This module mixes frontend-only dependencies (intellij.platform.frontend) and backend-only dependencies (intellij.platform.backend)">idea-plugin</error>>
           <dependencies>
-            <error descr="This dependency list mixes frontend-only dependencies (intellij.platform.frontend) and backend-only dependencies (intellij.platform.backend)"><module name="intellij.platform.frontend"/></error>
+            <module name="intellij.platform.frontend"/>
             <module name="intellij.platform.rpc.split"/>
-            <error descr="This dependency list mixes frontend-only dependencies (intellij.platform.frontend) and backend-only dependencies (intellij.platform.backend)"><module name="intellij.platform.backend"/></error>
+            <module name="intellij.platform.backend"/>
           </dependencies>
         </idea-plugin>
       """.trimIndent()
@@ -53,10 +53,10 @@ internal class SplitModeMixedDependenciesInspectionTest : JavaCodeInsightFixture
       moduleName = "unique.module.name.18",
       descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
       pluginXmlContent = """
-        <idea-plugin>
+        <<error descr="This module mixes frontend-only dependencies (com.intellij.jetbrains.client) and backend-only dependencies (com.jetbrains.remoteDevelopment)">idea-plugin</error>>
           <dependencies>
-            <error descr="This dependency list mixes frontend-only dependencies (com.intellij.jetbrains.client) and backend-only dependencies (com.jetbrains.remoteDevelopment)"><plugin id="com.intellij.jetbrains.client"/></error>
-            <error descr="This dependency list mixes frontend-only dependencies (com.intellij.jetbrains.client) and backend-only dependencies (com.jetbrains.remoteDevelopment)"><plugin id="com.jetbrains.remoteDevelopment"/></error>
+            <plugin id="com.intellij.jetbrains.client"/>
+            <plugin id="com.jetbrains.remoteDevelopment"/>
           </dependencies>
         </idea-plugin>
       """.trimIndent()
@@ -71,9 +71,9 @@ internal class SplitModeMixedDependenciesInspectionTest : JavaCodeInsightFixture
       moduleName = "unique.module.name.28",
       descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
       pluginXmlContent = """
-        <idea-plugin>
-          <error descr="This dependency list mixes frontend-only dependencies (com.intellij.jetbrains.client) and backend-only dependencies (com.jetbrains.remoteDevelopment)"><depends>com.intellij.jetbrains.client</depends></error>
-          <error descr="This dependency list mixes frontend-only dependencies (com.intellij.jetbrains.client) and backend-only dependencies (com.jetbrains.remoteDevelopment)"><depends>com.jetbrains.remoteDevelopment</depends></error>
+        <<error descr="This module mixes frontend-only dependencies (com.intellij.jetbrains.client) and backend-only dependencies (com.jetbrains.remoteDevelopment)">idea-plugin</error>>
+          <depends>com.intellij.jetbrains.client</depends>
+          <depends>com.jetbrains.remoteDevelopment</depends>
         </idea-plugin>
       """.trimIndent()
     )
@@ -87,10 +87,10 @@ internal class SplitModeMixedDependenciesInspectionTest : JavaCodeInsightFixture
       moduleName = "unique.module.name.19",
       descriptorRelativePathToResourcesDirectory = "unique.module.name.19.xml",
       pluginXmlContent = """
-        <idea-plugin>
+        <<error descr="This module mixes frontend-only dependencies (intellij.platform.frontend.split) and backend-only dependencies (intellij.platform.kernel.backend)">idea-plugin</error>>
           <dependencies>
-            <error descr="This dependency list mixes frontend-only dependencies (intellij.platform.frontend.split) and backend-only dependencies (intellij.platform.kernel.backend)"><module name="intellij.platform.frontend.split"/></error>
-            <error descr="This dependency list mixes frontend-only dependencies (intellij.platform.frontend.split) and backend-only dependencies (intellij.platform.kernel.backend)"><module name="intellij.platform.kernel.backend"/></error>
+            <module name="intellij.platform.frontend.split"/>
+            <module name="intellij.platform.kernel.backend"/>
           </dependencies>
         </idea-plugin>
       """.trimIndent()
@@ -139,9 +139,9 @@ internal class SplitModeMixedDependenciesInspectionTest : JavaCodeInsightFixture
       moduleName = "unique.module.name.22",
       descriptorRelativePathToResourcesDirectory = "unique.module.name.22.xml",
       pluginXmlContent = """
-        <idea-plugin>
+        <<error descr="This module mixes frontend-only dependencies (intellij.platform.plugins.frontend.split) and backend-only dependencies (intellij.platform.backend)">idea-plugin</error>>
           <dependencies>
-            <error descr="This dependency list mixes frontend-only dependencies (intellij.platform.plugins.frontend.split) and backend-only dependencies (intellij.platform.backend)"><module name="intellij.platform.plugins.frontend.split"/></error>
+            <module name="intellij.platform.plugins.frontend.split"/>
           </dependencies>
         </idea-plugin>
       """.trimIndent()
@@ -171,9 +171,9 @@ internal class SplitModeMixedDependenciesInspectionTest : JavaCodeInsightFixture
       moduleName = "unique.module.name.24",
       descriptorRelativePathToResourcesDirectory = "unique.module.name.24.xml",
       pluginXmlContent = """
-        <idea-plugin>
+        <<error descr="This module mixes frontend-only dependencies (intellij.platform.frontend) and backend-only dependencies (intellij.platform.kernel.backend)">idea-plugin</error>>
           <dependencies>
-            <error descr="This dependency list mixes frontend-only dependencies (intellij.platform.frontend) and backend-only dependencies (intellij.platform.kernel.backend)"><module name="intellij.platform.kernel.backend"/></error>
+            <module name="intellij.platform.kernel.backend"/>
           </dependencies>
         </idea-plugin>
       """.trimIndent()
@@ -218,7 +218,7 @@ internal class SplitModeMixedDependenciesInspectionTest : JavaCodeInsightFixture
       moduleName = "unique.module.name.27",
       descriptorRelativePathToResourcesDirectory = "unique.module.name.27.xml",
       pluginXmlContent = """
-        <<error descr="This dependency list mixes frontend-only dependencies (intellij.platform.frontend) and backend-only dependencies (intellij.platform.backend)">idea-plugin</error>>
+        <<error descr="This module mixes frontend-only dependencies (intellij.platform.frontend) and backend-only dependencies (intellij.platform.backend)">idea-plugin</error>>
         </idea-plugin>
       """.trimIndent()
     )
