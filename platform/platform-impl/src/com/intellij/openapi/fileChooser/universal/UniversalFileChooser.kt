@@ -511,7 +511,12 @@ object UniversalFileChooser {
               mountStatusCache.clear()
               ((tree.model as AsyncTreeModel).model as NioFileTreeModel).resetRoots()
               cardLayout.show(contentPanel, TREE_CARD)
-              fileToSelect?.let { fileTree.select(it, null) }
+              fileToSelect?.let {
+                val selection = if ( it.root == it ) {
+                  ((tree.model as AsyncTreeModel).model as NioFileTreeModel).matchRoot(it)
+                } else it
+                fileTree.select(selection, null)
+              }
               startCacheUpdates()
             }
           }
@@ -553,7 +558,9 @@ object UniversalFileChooser {
           }
           MountStatus.Mounted -> {
             loadRoots()
-            toolbar?.updateActionsAsync()
+            runOnEdt {
+              toolbar?.updateActionsAsync()
+            }
           }
           else -> {}
         }
@@ -722,6 +729,7 @@ object UniversalFileChooser {
                       contributor.mount(root)
                     }
                   }
+                  fileToSelect = root
                 }
                 finally {
                   topComponent.cursor = Cursor.getDefaultCursor()
