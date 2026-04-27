@@ -711,13 +711,13 @@ public abstract class PsiDocumentManagerBase extends PsiDocumentManagerEx implem
     }
 
     while (true) {
-      boolean executed = ReadAction.computeBlocking(() -> {
+      boolean executed = ReadAction.nonBlocking(() -> {
         if (!hasEventSystemEnabledUncommittedDocuments()) {
           runnable.run();
           return true;
         }
         return false;
-      });
+      }).executeSynchronously();
       if (executed) break;
 
       ModalityState modality = ModalityState.defaultModalityState();

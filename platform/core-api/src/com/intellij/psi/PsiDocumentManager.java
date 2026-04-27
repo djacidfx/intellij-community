@@ -182,7 +182,7 @@ public abstract class PsiDocumentManager {
   }
 
   /**
-   * Commits the documents and runs the specified operation, which does not return a value, in a read action.
+   * Commits the documents and runs the specified operation, which does not return a value, in a non-blocking read action.
    * Can be called from a thread other than the Swing dispatch thread.
    *
    * @param runnable the operation to execute.
@@ -190,7 +190,7 @@ public abstract class PsiDocumentManager {
   public abstract void commitAndRunReadAction(@NotNull Runnable runnable);
 
   /**
-   * Commits the documents and runs the specified operation, which returns a value, in a read action.
+   * Commits the documents and runs the specified operation, which returns a value, in a non-blocking read action.
    * Can be called from a thread other than the Swing dispatch thread.
    *
    * @param computation the operation to execute.
