@@ -40,8 +40,6 @@ class TypeEvalContextFactoryImpl : TypeEvalContextFactory {
     return getContextFromCache(project, anchor)
   }
 
-
-
   override fun deepCodeInsight(project: Project): TypeEvalContext {
     return getContextFromCache(project, TypeEvalContextImpl(false, true, false, false, null))
   }
