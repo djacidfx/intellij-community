@@ -83,7 +83,6 @@ jvm_library(
     "//plugins/kotlin/code-insight/impl-base:kotlin-codeInsight-shared",
     "//plugins/kotlin/uast/uast-kotlin-base:kotlin-uast-base",
     "//platform/lang-api:lang",
-    "//platform/indexing-api:indexing",
   ]
 )
 
@@ -136,7 +135,6 @@ jvm_library(
     "//plugins/kotlin/code-insight/impl-base:kotlin-codeInsight-shared_test_lib",
     "//plugins/kotlin/uast/uast-kotlin-base:kotlin-uast-base_test_lib",
     "//platform/lang-api:lang_test_lib",
-    "//platform/indexing-api:indexing_test_lib",
   ]
 )
 ### auto-generated section `build intellij.kotlin.gradle.scripting` end
