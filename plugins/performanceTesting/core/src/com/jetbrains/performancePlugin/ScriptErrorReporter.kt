@@ -12,6 +12,7 @@ import com.intellij.openapi.diagnostic.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.IOException
+import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
@@ -101,11 +102,13 @@ private suspend fun reportScriptError(errorMessage: AbstractMessage) {
 
     for (i in 1..999) {
       val errorDir = scriptErrorsDir.resolve("$ERROR_DIR_PREFIX$i")
-      if (Files.exists(errorDir)) {
+      try {
+        Files.createDirectory(errorDir)
+      }
+      catch (_: FileAlreadyExistsException) {
         continue
       }
 
-      Files.createDirectories(errorDir)
       Files.writeString(errorDir.resolve(MESSAGE_FILE), causeMessage)
       Files.writeString(errorDir.resolve(SYNTHETIC_TEST_NAME_FILE), (syntheticTestName ?: causeMessage).take(maxSyntheticTestNameLength))
       if (activeTestNameFile.exists()) {
