@@ -26,7 +26,6 @@ load("//:rules/common-attrs.bzl", "add_dicts")
 load("//:rules/impl/associates.bzl", "get_associates")
 load("//:rules/impl/builder-args.bzl", "init_builder_args")
 load("//:rules/impl/compiler-plugins.bzl", "collect_compiler_plugins_for_export", "compiler_plugins_from", "exported_compiler_plugins_from")
-load("//:rules/impl/kotlinc-options.bzl", "KotlincOptions")
 load("//:rules/resource.bzl", "ResourceGroupInfo")
 
 visibility("private")
@@ -193,12 +192,6 @@ def _run_jvm_builder(
 
     kotlin_cri_storage_file = None
 
-    kotlin_inc_threshold = ctx.attr._kotlin_inc_threshold[BuildSettingInfo].value
-    if kotlin_inc_threshold == -1:
-        kotlinc_options = ctx.attr.kotlinc_opts[KotlincOptions]
-        kotlin_inc_threshold = kotlinc_options.inc_threshold
-    java_inc_threshold = ctx.attr._java_inc_threshold[BuildSettingInfo].value
-
     args = init_builder_args(ctx, srcs, resources, associates, transitiveInputs, plugins = plugins, compile_deps = compile_deps)
     args.add("--out", output_jar)
 
@@ -218,10 +211,6 @@ def _run_jvm_builder(
         args.add_all("--add-export", javac_opts.add_exports)
     if javac_opts and javac_opts.no_proc:
         args.add("--no-proc")
-
-    isIncremental = (kotlin_inc_threshold != -1 and len(srcs.kt) >= kotlin_inc_threshold) or (java_inc_threshold != -1 and len(srcs.java) >= java_inc_threshold)
-    if not isIncremental:
-        args.add("--non-incremental")
 
     javaCount = len(srcs.java)
     args.add("--java-count", javaCount)
@@ -251,7 +240,7 @@ def _run_jvm_builder(
             ctx.file._jvm_builder.path,
             args,
         ],
-        progress_message = "compile %%{label} (kt: %d, java: %d%s}" % (len(srcs.kt), javaCount, "" if isIncremental else ", non-incremental"),
+        progress_message = "compile %%{label} (kt: %d, java: %d)" % (len(srcs.kt), javaCount),
     )
 
     return struct(abi_jar = abi_jar, kotlin_cri_storage_file = kotlin_cri_storage_file)

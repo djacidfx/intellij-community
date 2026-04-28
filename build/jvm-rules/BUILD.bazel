@@ -1,5 +1,5 @@
 load("//:jvm.bzl", "jvm_import", "jvm_provided_library", "kt_javac_options", "kt_kotlinc_options")
-load("@bazel_skylib//rules:common_settings.bzl", "bool_flag", "int_flag")
+load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
 load("@protobuf//bazel/toolchains:proto_lang_toolchain.bzl", "proto_lang_toolchain")
 load("@rules_java//java:defs.bzl", "java_import", "java_library")
 load("@rules_kotlin//kotlin:core.bzl", "define_kt_toolchain")
@@ -55,17 +55,6 @@ bool_flag(
 exports_files(
     ["rules/impl/MemoryLauncher.java"],
     visibility = ["//visibility:public"],
-)
-
-# --@rules_jvm//:koltin_inc_threshold=100
-int_flag(
-    name = "koltin_inc_threshold",
-    build_setting_default = -1,
-)
-
-int_flag(
-    name = "java_inc_threshold",
-    build_setting_default = -1,
 )
 
 jvm_import(
