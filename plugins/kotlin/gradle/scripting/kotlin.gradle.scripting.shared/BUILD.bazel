@@ -58,6 +58,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-gradle-scripting-shared_test_lib",
+  testonly = True,
   module_name = "kotlin.gradle.scripting.shared",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

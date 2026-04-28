@@ -54,6 +54,7 @@ jvm_library(
 
 jvm_library(
   name = "properties-backend_test_lib",
+  testonly = True,
   module_name = "intellij.properties.backend",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

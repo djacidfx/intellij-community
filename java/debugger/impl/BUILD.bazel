@@ -91,6 +91,7 @@ jvm_library(
 
 jvm_library(
   name = "impl_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form"], allow_empty = True),
   resources = [":impl_test_resources"],

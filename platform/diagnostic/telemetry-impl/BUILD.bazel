@@ -54,6 +54,7 @@ jvm_library(
 
 jvm_library(
   name = "telemetry-impl_test_lib",
+  testonly = True,
   module_name = "intellij.platform.diagnostic.telemetry.impl",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

@@ -27,6 +27,7 @@ jvm_library(
 
 jvm_library(
   name = "util-compiler-classpath_test_lib",
+  testonly = True,
   module_name = "kotlin.util.compiler-classpath",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

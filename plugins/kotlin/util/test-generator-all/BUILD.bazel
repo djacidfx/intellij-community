@@ -10,6 +10,7 @@ jvm_library(
 
 jvm_library(
   name = "test-generator-all_test_lib",
+  testonly = True,
   module_name = "kotlin.util.test-generator-all",
   visibility = ["//visibility:public"],
   srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form"], allow_empty = True),

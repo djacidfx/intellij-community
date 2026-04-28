@@ -27,6 +27,7 @@ jvm_library(
 
 jvm_library(
   name = "fenceInjection_test_lib",
+  testonly = True,
   module_name = "intellij.markdown.fenceInjection",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

@@ -61,6 +61,7 @@ jvm_library(
 
 jvm_library(
   name = "settingsSync-core_test_lib",
+  testonly = True,
   module_name = "intellij.settingsSync.core",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -154,6 +155,7 @@ jvm_library(
 
 jvm_library(
   name = "settingsSync-core-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["tests/**/*.kt", "tests/**/*.java", "tests/**/*.form"], allow_empty = True),
   associates = [

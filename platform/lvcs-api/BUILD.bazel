@@ -24,6 +24,7 @@ jvm_library(
 
 jvm_library(
   name = "lvcs_test_lib",
+  testonly = True,
   module_name = "intellij.platform.lvcs",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

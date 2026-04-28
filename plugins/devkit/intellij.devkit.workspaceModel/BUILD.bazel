@@ -75,6 +75,7 @@ jvm_library(
 
 jvm_library(
   name = "workspaceModel_test_lib",
+  testonly = True,
   module_name = "intellij.devkit.workspaceModel",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

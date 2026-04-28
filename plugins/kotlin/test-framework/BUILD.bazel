@@ -24,6 +24,7 @@ jvm_library(
 
 jvm_library(
   name = "test-framework_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.testFramework",
   visibility = ["//visibility:public"],
   srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form"], allow_empty = True),

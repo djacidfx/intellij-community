@@ -45,6 +45,7 @@ jvm_library(
 
 jvm_library(
   name = "java-byteCodeViewer_test_lib",
+  testonly = True,
   module_name = "intellij.java.byteCodeViewer",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -97,6 +98,7 @@ jvm_library(
 
 jvm_library(
   name = "java-byteCodeViewer-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form"], allow_empty = True),
   kotlinc_opts = ":custom_java-byteCodeViewer-tests",

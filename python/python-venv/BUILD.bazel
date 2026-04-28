@@ -32,6 +32,7 @@ jvm_library(
 
 jvm_library(
   name = "venv_test_lib",
+  testonly = True,
   module_name = "intellij.python.venv",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -74,6 +75,7 @@ jvm_library(
 
 jvm_library(
   name = "venv-tests_test_lib",
+  testonly = True,
   module_name = "intellij.python.venv.tests",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

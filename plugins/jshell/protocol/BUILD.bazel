@@ -11,6 +11,7 @@ jvm_library(
 
 jvm_library(
   name = "protocol_test_lib",
+  testonly = True,
   module_name = "intellij.java.jshell.protocol",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -39,6 +40,7 @@ jvm_library(
 
 jvm_library(
   name = "java-jshell-protocol-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["testStrc/**/*.kt", "testStrc/**/*.java", "testStrc/**/*.form"], allow_empty = True),
   associates = [

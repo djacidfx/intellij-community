@@ -97,6 +97,7 @@ jvm_library(
 
 jvm_library(
   name = "fir-all-tests_test_lib",
+  testonly = True,
   module_name = "kotlin.fir-all-tests",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

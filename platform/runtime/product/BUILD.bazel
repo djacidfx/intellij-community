@@ -27,6 +27,7 @@ jvm_library(
 
 jvm_library(
   name = "product_test_lib",
+  testonly = True,
   module_name = "intellij.platform.runtime.product",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

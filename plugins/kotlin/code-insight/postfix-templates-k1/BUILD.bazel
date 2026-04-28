@@ -52,6 +52,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-code-insight-postfix-templates-k1_test_lib",
+  testonly = True,
   module_name = "kotlin.code-insight.postfix-templates.k1",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

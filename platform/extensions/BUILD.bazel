@@ -28,6 +28,7 @@ jvm_library(
 
 jvm_library(
   name = "extensions_test_lib",
+  testonly = True,
   module_name = "intellij.platform.extensions",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

@@ -51,6 +51,7 @@ jvm_library(
 
 jvm_library(
   name = "compiler-reference-index_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.compilerReferenceIndex",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

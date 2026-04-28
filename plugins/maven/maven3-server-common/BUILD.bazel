@@ -23,6 +23,7 @@ jvm_library(
 
 jvm_library(
   name = "server-m3-common_test_lib",
+  testonly = True,
   module_name = "intellij.maven.server.m3.common",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

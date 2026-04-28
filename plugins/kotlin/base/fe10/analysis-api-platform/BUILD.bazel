@@ -47,6 +47,7 @@ jvm_library(
 
 jvm_library(
   name = "analysis-api-platform_test_lib",
+  testonly = True,
   module_name = "kotlin.base.fe10.analysis-api-platform",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

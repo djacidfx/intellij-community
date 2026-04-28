@@ -21,6 +21,7 @@ jvm_library(
 
 jvm_library(
   name = "plugin_test_lib",
+  testonly = True,
   module_name = "kotlin.base.fe10.plugin",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

@@ -17,6 +17,7 @@ jvm_library(
 
 jvm_library(
   name = "color-scheme-cobalt_test_lib",
+  testonly = True,
   module_name = "intellij.color.scheme.cobalt",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

@@ -11,6 +11,7 @@ jvm_library(
 
 jvm_library(
   name = "tests-compose_test_lib",
+  testonly = True,
   module_name = "kotlin.tests-compose",
   visibility = ["//visibility:public"],
   srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form"], allow_empty = True),

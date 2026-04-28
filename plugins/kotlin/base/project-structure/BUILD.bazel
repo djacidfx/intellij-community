@@ -76,6 +76,7 @@ jvm_library(
 
 jvm_library(
   name = "project-structure_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.base.projectStructure",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -152,6 +153,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-base-projectStructure-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form"], allow_empty = True),
   kotlinc_opts = ":custom_kotlin-base-projectStructure-tests",

@@ -26,6 +26,7 @@ jvm_library(
 
 jvm_library(
   name = "analysis-refactoring_test_lib",
+  testonly = True,
   module_name = "intellij.jvm.analysis.refactoring",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

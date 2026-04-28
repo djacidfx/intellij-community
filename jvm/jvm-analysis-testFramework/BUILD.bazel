@@ -22,6 +22,7 @@ jvm_library(
 
 jvm_library(
   name = "analysis-testFramework_test_lib",
+  testonly = True,
   module_name = "intellij.jvm.analysis.testFramework",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

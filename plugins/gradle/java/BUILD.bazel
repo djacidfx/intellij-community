@@ -82,6 +82,7 @@ jvm_library(
 
 jvm_library(
   name = "java_test_lib",
+  testonly = True,
   module_name = "intellij.gradle.java",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -183,6 +184,7 @@ jvm_library(
 
 jvm_library(
   name = "java-tests_test_lib",
+  testonly = True,
   module_name = "intellij.gradle.java.tests",
   visibility = ["//visibility:public"],
   srcs = glob(["testSources/**/*.kt", "testSources/**/*.java", "testSources/**/*.form"], allow_empty = True),

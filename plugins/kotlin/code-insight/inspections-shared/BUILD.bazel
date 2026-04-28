@@ -74,6 +74,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-code-insight-inspections-shared_test_lib",
+  testonly = True,
   module_name = "kotlin.code-insight.inspections.shared",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

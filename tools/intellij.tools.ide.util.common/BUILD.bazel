@@ -28,6 +28,7 @@ jvm_library(
 
 jvm_library(
   name = "ide-util-common_test_lib",
+  testonly = True,
   module_name = "intellij.tools.ide.util.common",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

@@ -21,6 +21,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-gradle-tooling_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.gradle.tooling",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

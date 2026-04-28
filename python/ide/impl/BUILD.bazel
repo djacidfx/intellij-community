@@ -84,6 +84,7 @@ jvm_library(
 
 jvm_library(
   name = "impl_test_lib",
+  testonly = True,
   module_name = "intellij.pycharm.community.ide.impl",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -183,6 +184,7 @@ jvm_library(
 
 jvm_library(
   name = "pycharm-community-ide-impl-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["tests/**/*.kt", "tests/**/*.java", "tests/**/*.form"], allow_empty = True),
   resources = [":pycharm-community-ide-impl-tests_test_resources"],

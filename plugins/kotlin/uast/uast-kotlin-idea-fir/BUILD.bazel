@@ -43,6 +43,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-uast-idea_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.uast.idea",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

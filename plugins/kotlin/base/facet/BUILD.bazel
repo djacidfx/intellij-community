@@ -50,6 +50,7 @@ jvm_library(
 
 jvm_library(
   name = "facet_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.base.facet",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

@@ -45,6 +45,7 @@ jvm_library(
 
 jvm_library(
   name = "community-execService_test_lib",
+  testonly = True,
   module_name = "intellij.python.community.execService",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -110,6 +111,7 @@ jvm_library(
 
 jvm_library(
   name = "community-execService-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["tests/**/*.kt", "tests/**/*.java", "tests/**/*.form"], allow_empty = True),
   resources = [":community-execService-tests_test_resources"],

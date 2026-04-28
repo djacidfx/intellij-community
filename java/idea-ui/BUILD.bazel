@@ -81,6 +81,7 @@ jvm_library(
 
 jvm_library(
   name = "ui_test_lib",
+  testonly = True,
   module_name = "intellij.java.ui",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -173,6 +174,7 @@ jvm_library(
 
 jvm_library(
   name = "ui-tests_test_lib",
+  testonly = True,
   module_name = "intellij.java.ui.tests",
   visibility = ["//visibility:public"],
   srcs = glob(["testSrc/**/*.kt", "testSrc/**/*.java", "testSrc/**/*.form"], allow_empty = True),

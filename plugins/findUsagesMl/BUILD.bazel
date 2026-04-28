@@ -29,6 +29,7 @@ jvm_library(
 
 jvm_library(
   name = "findUsagesMl_test_lib",
+  testonly = True,
   module_name = "intellij.findUsagesMl",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -68,6 +69,7 @@ jvm_library(
 
 jvm_library(
   name = "findUsagesMl-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form"], allow_empty = True),
   associates = [

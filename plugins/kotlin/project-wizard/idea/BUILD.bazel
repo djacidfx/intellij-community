@@ -66,6 +66,7 @@ jvm_library(
 
 jvm_library(
   name = "idea_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.projectWizard.idea",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

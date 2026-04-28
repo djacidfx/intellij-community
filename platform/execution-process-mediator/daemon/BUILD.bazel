@@ -28,6 +28,7 @@ jvm_library(
 
 jvm_library(
   name = "daemon_test_lib",
+  testonly = True,
   module_name = "intellij.execution.process.mediator.daemon",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

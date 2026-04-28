@@ -33,6 +33,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-highlighting-minimal_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.highlighting.minimal",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

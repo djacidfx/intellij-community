@@ -17,6 +17,7 @@ jvm_library(
 
 jvm_library(
   name = "completion_test_lib",
+  testonly = True,
   module_name = "intellij.terminal.completion",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -49,6 +50,7 @@ jvm_library(
 
 jvm_library(
   name = "completion-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["testSrc/**/*.kt", "testSrc/**/*.java", "testSrc/**/*.form"], allow_empty = True),
   associates = [

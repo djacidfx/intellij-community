@@ -29,6 +29,7 @@ jvm_library(
 
 jvm_library(
   name = "api-dump_test_lib",
+  testonly = True,
   module_name = "intellij.devkit.apiDump",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

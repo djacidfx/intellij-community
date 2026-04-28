@@ -23,6 +23,7 @@ jvm_library(
 
 jvm_library(
   name = "junit5-pioneer_test_lib",
+  testonly = True,
   module_name = "intellij.libraries.junit5.pioneer",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

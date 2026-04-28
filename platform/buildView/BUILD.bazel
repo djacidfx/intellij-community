@@ -32,6 +32,7 @@ jvm_library(
 
 jvm_library(
   name = "buildView_test_lib",
+  testonly = True,
   module_name = "intellij.platform.buildView",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

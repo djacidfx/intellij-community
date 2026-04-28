@@ -79,6 +79,7 @@ jvm_library(
 
 jvm_library(
   name = "coroutines_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.jvm.debugger.coroutines",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

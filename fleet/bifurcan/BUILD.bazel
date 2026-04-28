@@ -35,6 +35,7 @@ jvm_library(
 
 jvm_library(
   name = "bifurcan_test_lib",
+  testonly = True,
   module_name = "fleet.bifurcan",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

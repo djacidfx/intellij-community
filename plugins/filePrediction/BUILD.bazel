@@ -40,6 +40,7 @@ jvm_library(
 
 jvm_library(
   name = "filePrediction_test_lib",
+  testonly = True,
   module_name = "intellij.filePrediction",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -99,6 +100,7 @@ jvm_library(
 
 jvm_library(
   name = "filePrediction-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form"], allow_empty = True),
   resources = [":filePrediction-tests_test_resources"],

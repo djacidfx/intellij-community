@@ -41,6 +41,7 @@ jvm_library(
 
 jvm_library(
   name = "completion-ml-ranking-models_test_lib",
+  testonly = True,
   module_name = "intellij.completionMlRankingModels",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -70,6 +71,7 @@ jvm_library(
 
 jvm_library(
   name = "completionMlRankingModels-tests_test_lib",
+  testonly = True,
   module_name = "intellij.completionMlRankingModels.tests",
   visibility = ["//visibility:public"],
   srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form"], allow_empty = True),

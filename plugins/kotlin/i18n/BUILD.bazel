@@ -29,6 +29,7 @@ jvm_library(
 
 jvm_library(
   name = "i18n_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.i18n",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

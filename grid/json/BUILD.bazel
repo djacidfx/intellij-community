@@ -24,6 +24,7 @@ jvm_library(
 
 jvm_library(
   name = "json-impl_test_lib",
+  testonly = True,
   module_name = "intellij.grid.json.impl",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

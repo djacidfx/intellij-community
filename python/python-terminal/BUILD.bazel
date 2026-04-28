@@ -28,6 +28,7 @@ jvm_library(
 
 jvm_library(
   name = "terminal_test_lib",
+  testonly = True,
   module_name = "intellij.python.terminal",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -88,6 +89,7 @@ jvm_library(
 
 jvm_library(
   name = "terminal-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["tests/**/*.kt", "tests/**/*.java", "tests/**/*.form"], allow_empty = True),
   resources = [":terminal-tests_test_resources"],

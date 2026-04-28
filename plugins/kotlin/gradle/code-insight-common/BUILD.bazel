@@ -63,6 +63,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-gradle-codeInsight-common_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.gradle.codeInsight.common",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

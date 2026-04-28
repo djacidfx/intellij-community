@@ -17,6 +17,7 @@ jvm_library(
 
 jvm_library(
   name = "color-scheme-rails_casts_test_lib",
+  testonly = True,
   module_name = "intellij.color.scheme.rails_casts",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

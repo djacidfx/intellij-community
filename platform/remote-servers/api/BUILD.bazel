@@ -30,6 +30,7 @@ jvm_library(
 
 jvm_library(
   name = "remoteServers_test_lib",
+  testonly = True,
   module_name = "intellij.platform.remoteServers",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

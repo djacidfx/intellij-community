@@ -58,6 +58,7 @@ jvm_library(
 
 jvm_library(
   name = "kernel_test_lib",
+  testonly = True,
   module_name = "fleet.kernel",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

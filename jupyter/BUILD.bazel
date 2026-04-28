@@ -30,6 +30,7 @@ jvm_library(
 
 jvm_library(
   name = "notebooks-jupyter-core_test_lib",
+  testonly = True,
   module_name = "intellij.notebooks.jupyter.core",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

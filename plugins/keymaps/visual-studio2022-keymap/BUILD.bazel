@@ -17,6 +17,7 @@ jvm_library(
 
 jvm_library(
   name = "keymap-visualStudio2022_test_lib",
+  testonly = True,
   module_name = "intellij.keymap.visualStudio2022",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

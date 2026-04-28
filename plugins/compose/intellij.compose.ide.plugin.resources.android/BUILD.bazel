@@ -23,6 +23,7 @@ jvm_library(
 
 jvm_library(
   name = "ide-plugin-resources-android_test_lib",
+  testonly = True,
   module_name = "intellij.compose.ide.plugin.resources.android",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

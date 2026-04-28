@@ -81,6 +81,7 @@ jvm_library(
 
 jvm_library(
   name = "execution-impl_test_lib",
+  testonly = True,
   module_name = "intellij.platform.execution.impl",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -172,6 +173,7 @@ jvm_library(
 
 jvm_library(
   name = "execution-tests_test_lib",
+  testonly = True,
   module_name = "intellij.platform.execution.tests",
   visibility = ["//visibility:public"],
   srcs = glob(["testSources/**/*.kt", "testSources/**/*.java", "testSources/**/*.form"], allow_empty = True),

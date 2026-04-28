@@ -63,6 +63,7 @@ jvm_library(
 
 jvm_library(
   name = "build_test_lib",
+  testonly = True,
   module_name = "intellij.platform.jps.build",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -136,6 +137,7 @@ jvm_library(
 
 jvm_library(
   name = "build-tests_test_lib",
+  testonly = True,
   module_name = "intellij.platform.jps.build.tests",
   visibility = ["//visibility:public"],
   srcs = glob(["testSrc/**/*.kt", "testSrc/**/*.java", "testSrc/**/*.form"], allow_empty = True),

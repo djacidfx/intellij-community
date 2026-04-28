@@ -41,6 +41,7 @@ jvm_library(
 
 jvm_library(
   name = "jewel-intUi-decoratedWindow_test_lib",
+  testonly = True,
   module_name = "intellij.platform.jewel.intUi.decoratedWindow",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

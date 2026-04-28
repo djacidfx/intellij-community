@@ -35,6 +35,7 @@ jvm_library(
 
 jvm_library(
   name = "inline-completion_test_lib",
+  testonly = True,
   module_name = "intellij.platform.inline.completion",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

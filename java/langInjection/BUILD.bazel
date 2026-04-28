@@ -57,6 +57,7 @@ jvm_library(
 
 jvm_library(
   name = "langInjection_test_lib",
+  testonly = True,
   module_name = "intellij.java.langInjection",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

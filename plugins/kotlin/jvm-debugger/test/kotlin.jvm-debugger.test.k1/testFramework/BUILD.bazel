@@ -21,6 +21,7 @@ jvm_library(
 
 jvm_library(
   name = "testFramework_test_lib",
+  testonly = True,
   module_name = "kotlin.jvm-debugger.test.k1.testFramework",
   visibility = ["//visibility:public"],
   srcs = glob(["testSrc/**/*.kt", "testSrc/**/*.java", "testSrc/**/*.form"], allow_empty = True),

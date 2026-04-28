@@ -41,6 +41,7 @@ jvm_library(
 
 jvm_library(
   name = "andel_test_lib",
+  testonly = True,
   module_name = "fleet.andel",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

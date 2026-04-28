@@ -14,6 +14,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-gradle-codeInsight-groovy-tests_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.gradle.codeInsight.groovy.tests",
   visibility = ["//visibility:public"],
   srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form"], allow_empty = True),

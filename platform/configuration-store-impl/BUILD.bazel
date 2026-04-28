@@ -60,6 +60,7 @@ jvm_library(
 
 jvm_library(
   name = "configurationStore-impl_test_lib",
+  testonly = True,
   module_name = "intellij.platform.configurationStore.impl",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -130,6 +131,7 @@ jvm_library(
 
 jvm_library(
   name = "configurationStore-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["testSrc/**/*.kt", "testSrc/**/*.java", "testSrc/**/*.form"], allow_empty = True),
   resources = [":configurationStore-tests_test_resources"],

@@ -26,6 +26,7 @@ jvm_library(
 
 jvm_library(
   name = "ijent_test_lib",
+  testonly = True,
   module_name = "intellij.platform.ijent",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -63,6 +64,7 @@ jvm_library(
 
 jvm_library(
   name = "ijent-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["tests/**/*.kt", "tests/**/*.java", "tests/**/*.form"], allow_empty = True),
   associates = [

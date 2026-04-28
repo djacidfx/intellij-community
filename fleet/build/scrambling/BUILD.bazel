@@ -37,6 +37,7 @@ jvm_library(
 
 jvm_library(
   name = "scrambling_test_lib",
+  testonly = True,
   module_name = "fleet.build.scrambling",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

@@ -79,6 +79,7 @@ jvm_library(
 
 jvm_library(
   name = "rhizomedb.transactor.rebase_test_lib",
+  testonly = True,
   module_name = "fleet.rhizomedb.transactor.rebase",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

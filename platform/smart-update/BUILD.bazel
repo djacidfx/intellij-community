@@ -37,6 +37,7 @@ jvm_library(
 
 jvm_library(
   name = "smart-update_test_lib",
+  testonly = True,
   module_name = "intellij.smart.update",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

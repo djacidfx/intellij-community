@@ -27,6 +27,7 @@ jvm_library(
 
 jvm_library(
   name = "groovy-dev_test_lib",
+  testonly = True,
   module_name = "intellij.groovy.dev",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

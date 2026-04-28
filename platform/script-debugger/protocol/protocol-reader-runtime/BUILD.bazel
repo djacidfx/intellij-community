@@ -27,6 +27,7 @@ jvm_library(
 
 jvm_library(
   name = "protocol-reader-runtime_test_lib",
+  testonly = True,
   module_name = "intellij.platform.scriptDebugger.protocolReaderRuntime",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

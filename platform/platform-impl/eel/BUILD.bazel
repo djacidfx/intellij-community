@@ -38,6 +38,7 @@ jvm_library(
 
 jvm_library(
   name = "ide-impl-wsl_test_lib",
+  testonly = True,
   module_name = "intellij.platform.ide.impl.wsl",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

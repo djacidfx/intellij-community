@@ -53,6 +53,7 @@ jvm_library(
 
 jvm_library(
   name = "settings-local_test_lib",
+  testonly = True,
   module_name = "intellij.platform.settings.local",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -106,6 +107,7 @@ jvm_library(
 
 jvm_library(
   name = "settings-local-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["testSrc/**/*.kt", "testSrc/**/*.java", "testSrc/**/*.form"], allow_empty = True),
   kotlinc_opts = ":custom_settings-local-tests",

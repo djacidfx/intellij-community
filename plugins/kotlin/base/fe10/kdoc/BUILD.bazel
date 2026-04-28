@@ -36,6 +36,7 @@ jvm_library(
 
 jvm_library(
   name = "kdoc_test_lib",
+  testonly = True,
   module_name = "kotlin.base.fe10.kdoc",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

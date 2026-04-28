@@ -34,6 +34,7 @@ jvm_library(
 
 jvm_library(
   name = "editor-ui_test_lib",
+  testonly = True,
   module_name = "intellij.platform.editor.ui",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

@@ -12,6 +12,7 @@ jvm_library(
 
 jvm_library(
   name = "rt-java8_test_lib",
+  testonly = True,
   module_name = "intellij.platform.util.rt.java8",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

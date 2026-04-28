@@ -42,6 +42,7 @@ jvm_library(
 
 jvm_library(
   name = "syntax_test_lib",
+  testonly = True,
   module_name = "intellij.python.syntax",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

@@ -34,6 +34,7 @@ jvm_library(
 
 jvm_library(
   name = "progress_test_lib",
+  testonly = True,
   module_name = "intellij.platform.util.progress",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -69,6 +70,7 @@ jvm_library(
 
 jvm_library(
   name = "progress-tests_test_lib",
+  testonly = True,
   module_name = "intellij.platform.util.progress.tests",
   visibility = ["//visibility:public"],
   srcs = glob(["tests/**/*.kt", "tests/**/*.java", "tests/**/*.form"], allow_empty = True),

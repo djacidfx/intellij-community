@@ -21,6 +21,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["testSrc/**/*.kt", "testSrc/**/*.java", "testSrc/**/*.form"], allow_empty = True),
   resources = [":kotlin-tests_test_resources"],

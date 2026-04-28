@@ -42,6 +42,7 @@ jvm_library(
 
 jvm_library(
   name = "autolink_test_lib",
+  testonly = True,
   module_name = "intellij.platform.jewel.markdown.extensions.autolink",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -91,6 +92,7 @@ jvm_library(
 
 jvm_library(
   name = "jewel-markdown-extensions-autolink-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["src/test/kotlin/**/*.kt", "src/test/kotlin/**/*.java", "src/test/kotlin/**/*.form"], allow_empty = True),
   kotlinc_opts = ":custom_jewel-markdown-extensions-autolink-tests",

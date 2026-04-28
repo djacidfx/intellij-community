@@ -57,6 +57,7 @@ jvm_library(
 
 jvm_library(
   name = "eclipse_test_lib",
+  testonly = True,
   module_name = "intellij.eclipse",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -132,6 +133,7 @@ jvm_library(
 
 jvm_library(
   name = "eclipse-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["testSources/**/*.kt", "testSources/**/*.java", "testSources/**/*.form"], allow_empty = True),
   associates = [

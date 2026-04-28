@@ -27,6 +27,7 @@ jvm_library(
 
 jvm_library(
   name = "tooling-proxy_test_lib",
+  testonly = True,
   module_name = "intellij.gradle.toolingProxy",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

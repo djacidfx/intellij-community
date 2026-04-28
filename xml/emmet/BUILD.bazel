@@ -179,6 +179,7 @@ jvm_library(
 
 jvm_library(
   name = "emmet_test_lib",
+  testonly = True,
   module_name = "intellij.xml.emmet",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

@@ -28,6 +28,7 @@ jvm_library(
 
 jvm_library(
   name = "search-everywhere-ml_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["testSrc/**/*.kt", "testSrc/**/*.java", "testSrc/**/*.form"], allow_empty = True),
   associates = [":search-everywhere-ml"],

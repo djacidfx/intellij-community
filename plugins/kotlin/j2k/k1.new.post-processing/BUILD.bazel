@@ -66,6 +66,7 @@ jvm_library(
 
 jvm_library(
   name = "k1.new.post-processing_test_lib",
+  testonly = True,
   module_name = "kotlin.j2k.k1.new.post-processing",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

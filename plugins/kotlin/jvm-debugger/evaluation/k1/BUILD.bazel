@@ -60,6 +60,7 @@ jvm_library(
 
 jvm_library(
   name = "k1_test_lib",
+  testonly = True,
   module_name = "kotlin.jvm-debugger.evaluation.k1",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

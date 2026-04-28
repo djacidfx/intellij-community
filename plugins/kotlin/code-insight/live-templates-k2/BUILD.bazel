@@ -43,6 +43,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-codeInsight-liveTemplates_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.codeInsight.liveTemplates",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -88,6 +89,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-codeInsight-liveTemplates-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form"], allow_empty = True),
   kotlinc_opts = ":custom_kotlin-codeInsight-liveTemplates-tests",

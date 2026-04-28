@@ -16,6 +16,7 @@ jvm_library(
 
 jvm_library(
   name = "monolith-main_test_lib",
+  testonly = True,
   module_name = "intellij.platform.monolith.main",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

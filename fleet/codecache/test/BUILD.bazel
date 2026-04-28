@@ -24,6 +24,7 @@ jvm_library(
 
 jvm_library(
   name = "test_test_lib",
+  testonly = True,
   module_name = "fleet.codecache.test",
   visibility = ["//visibility:public"],
   srcs = glob(["src/**/*.kt", "src/**/*.java", "src/**/*.form"], allow_empty = True),

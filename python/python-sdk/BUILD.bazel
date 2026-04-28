@@ -55,6 +55,7 @@ jvm_library(
 
 jvm_library(
   name = "sdk_test_lib",
+  testonly = True,
   module_name = "intellij.python.sdk",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -123,6 +124,7 @@ jvm_library(
 
 jvm_library(
   name = "sdk-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["tests/**/*.kt", "tests/**/*.java", "tests/**/*.form"], allow_empty = True),
   resources = [":sdk-tests_test_resources"],

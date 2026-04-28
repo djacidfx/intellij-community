@@ -38,6 +38,7 @@ jvm_library(
 
 jvm_library(
   name = "impl_test_lib",
+  testonly = True,
   module_name = "intellij.python.community.plugin.impl",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

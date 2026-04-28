@@ -41,6 +41,7 @@ jvm_library(
 
 jvm_library(
   name = "plugin-updater_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.plugin.updater",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
