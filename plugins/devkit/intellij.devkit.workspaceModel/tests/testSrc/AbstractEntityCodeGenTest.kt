@@ -205,7 +205,7 @@ abstract class AbstractEntityCodeGenTest {
 
   @Test
   fun testBothLinksAreParents() {
-    doTestAndCheckErrorMessage("Both fields MainEntity#secondaryEntity and SecondaryEntity#mainEntity are marked as parent. Probably both properties are annotated with @Parent, while only one should be.")
+    doTestAndCheckErrorMessage("Failed to generate code for secondaryEntity (MainEntity): Both fields MainEntity#secondaryEntity and SecondaryEntity#mainEntity are marked as parent. Probably both properties are annotated with @Parent, while only one should be.")
   }
 
   @Test

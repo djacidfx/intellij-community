@@ -33,6 +33,7 @@ import com.intellij.platform.workspace.jps.entities.ModuleEntity
 import com.intellij.platform.workspace.jps.entities.ModuleSourceDependency
 import com.intellij.platform.workspace.jps.entities.SourceRootEntity
 import com.intellij.platform.workspace.jps.entities.modifyContentRootEntity
+import com.intellij.platform.workspace.jps.entities.sourceRoots
 import com.intellij.platform.workspace.jps.serialization.impl.ErrorReporter
 import com.intellij.platform.workspace.jps.serialization.impl.JpsProjectEntitiesLoader
 import com.intellij.platform.workspace.jps.serialization.impl.JpsProjectSerializers
@@ -68,6 +69,8 @@ import kotlinx.coroutines.runBlocking
 import org.editorconfig.Utils
 import org.editorconfig.configmanagement.extended.EditorConfigCodeStyleSettingsModifier
 import org.jetbrains.jps.model.serialization.PathMacroUtil
+import org.jetbrains.kotlin.config.ExplicitApiMode
+import org.jetbrains.kotlin.idea.workspaceModel.kotlinSettings
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeEach
@@ -244,7 +247,7 @@ abstract class AbstractAllIntellijEntitiesGenerationTest {
                         module = testProjectModule,
                         actualSrcRoot,
                         processAbstractTypes = ultimateModuleEntity.withAbstractTypes,
-                        explicitApiEnabled = false,
+                        explicitApiEnabled = ultimateModuleEntity.explicitApiEnabled,
                         isTestSourceFolder = false,
                         isTestModule = isTestModule,
                         targetFolderGenerator = { actualGenRoot },
@@ -307,9 +310,8 @@ abstract class AbstractAllIntellijEntitiesGenerationTest {
     val moduleEntity = ultimateSourceRoot.contentRoot.module
 
     val ultimateSrcPath = Path.of(ultimateSourceRoot.url.presentableUrl)
-    val ultimateGenPath = ultimateSourceRoot.contentRoot.sourceRoots.flatMap { it.javaSourceRoots }.firstOrNull { it.generated }?.let {
-      Path.of(it.sourceRoot.url.presentableUrl)
-    } ?: error("No generated source root for ${moduleEntity.name} ${ultimateSourceRoot.url.presentableUrl}")
+    val ultimateGenPath = findGenSourceRoot(ultimateSourceRoot)?.let { Path.of(it.url.presentableUrl) }
+                          ?: error("No generated source root for ${moduleEntity.name} ${ultimateSourceRoot.url.presentableUrl}")
     val genIsInsideSrc = ultimateGenPath.startsWith(ultimateSrcPath) && ultimateGenPath != ultimateSrcPath
 
     //val expectedSrcDir = FileUtil.createTempDirectory(CodeGenerationTestBase::class.java.simpleName, "${testDirectoryName}_api", true)
@@ -349,7 +351,12 @@ abstract class AbstractAllIntellijEntitiesGenerationTest {
     if (inContentRoot != null) {
       return inContentRoot.sourceRoot
     }
-    return null
+    if (sourceRoot.rootTypeId != JAVA_TEST_ROOT_ENTITY_TYPE_ID)
+      return null
+    val testGenSourceRoot = sourceRoot.contentRoot.module.sourceRoots.flatMap { it.javaSourceRoots }.firstOrNull { it.generated }?.takeIf {
+      it.sourceRoot.url.presentableUrl.endsWith("/testGen")
+    }
+    return testGenSourceRoot?.sourceRoot
   }
 
   private fun createGenSourceRoot(storage: MutableEntityStorage, sourceRoot: SourceRootEntity): SourceRootEntity {
@@ -404,15 +411,6 @@ abstract class AbstractAllIntellijEntitiesGenerationTest {
     private val ModuleEntity.withAbstractTypes: Boolean
       get() = name in modulesWithAbstractTypes || name.startsWith(RIDER_MODULES_PREFIX)
 
-    private val skippedModules: Set<String> = setOf(
-      "intellij.platform.workspace.storage.tests",
-      "intellij.java.compiler.tests", // IJPL-178663
-      "intellij.graphql",
-      "intellij.gradle.tests",
-      "intellij.platform.lang.tests",
-      "intellij.java.impl" // IJPL-196541
-    )
-
     private fun processFileIfMatch(file: File, regex: Regex, function: (File) -> Unit) {
       if (regex.containsMatchIn(file.readText())) {
         function.invoke(file)
@@ -425,7 +423,6 @@ abstract class AbstractAllIntellijEntitiesGenerationTest {
       srcRoots@ for (sourceRoot in storage.entities<SourceRootEntity>()) {
         val moduleEntity = sourceRoot.contentRoot.module
 
-        if (moduleEntity.name in skippedModules) continue
         //if (moduleEntity.name != "intellij.platform.externalSystem") continue
         if (sourceRoot.javaSourceRoots.none { !it.generated }) continue
 
@@ -507,3 +504,11 @@ private fun createProjectConfigLocation(): JpsProjectConfigLocation {
 private fun VirtualFileUrl.toVirtualFile(): VirtualFile? {
   return VirtualFileManager.getInstance().refreshAndFindFileByNioPath(Path.of(presentableUrl))
 }
+
+private val ModuleEntity.explicitApiEnabled: Boolean
+  get() {
+    val additionalArgs = this.kotlinSettings.mapNotNull { settings ->
+      settings.compilerSettings?.additionalArguments
+    }
+    return additionalArgs.any {  it.contains("-Xexplicit-api=${ExplicitApiMode.STRICT.state}") }
+  }

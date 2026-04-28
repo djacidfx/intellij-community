@@ -24,7 +24,7 @@ jvm_library(
   name = "compiler-tests_test_lib",
   module_name = "intellij.java.compiler.tests",
   visibility = ["//visibility:public"],
-  srcs = glob(["tests/**/*.kt", "tests/**/*.java", "tests/**/*.form"], allow_empty = True),
+  srcs = glob(["testGen/**/*.kt", "testGen/**/*.java", "tests/**/*.kt", "tests/**/*.java", "tests/**/*.form"], allow_empty = True),
   deps = [
     "//java/compiler/impl",
     "//java/compiler/impl:impl_test_lib",

@@ -331,6 +331,8 @@ jvm_library(
     "//platform/vcs-impl:vcs-impl-tests_test_lib",
     "//platform/service-container:serviceContainer-tests",
     "//platform/service-container:serviceContainer-tests_test_lib",
+    "//platform/workspace/storage/testEntities",
+    "//platform/workspace/storage/testEntities:testEntities_test_lib",
   ],
   runtime_deps = [
     ":tests",
