@@ -22,13 +22,17 @@ import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.psi.PsiModifier;
 import com.intellij.psi.PsiModifierListOwner;
 import com.intellij.psi.PsiNewExpression;
+import com.intellij.psi.PsiTypeParameter;
+import com.intellij.psi.PsiTypeParameterList;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.util.PsiTypesUtil;
 import com.intellij.util.containers.ContainerUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 final class ExtractGeneratedClassUtil {
   private static final Logger LOG = Logger.getInstance(ExtractGeneratedClassUtil.class);
@@ -50,6 +54,7 @@ final class ExtractGeneratedClassUtil {
     String packageName = dotIndex == -1 ? "" : explicitGeneratedEvaluationClassFullName.substring(0, dotIndex);
 
     PsiClass extractedClass = elementFactory.createClass(generatedEvaluationClass);
+    copyTypeParameters(generatedInnerClass, extractedClass);
 
     for (PsiField field : generatedInnerClass.getAllFields()) {
       extractedClass.add(elementFactory.createFieldFromText(field.getText(), anchor)); // TODO: check if null is OK
@@ -73,6 +78,29 @@ final class ExtractGeneratedClassUtil {
 
     addGeneratedClassInfo(codeBlock, generatedInnerClass, extractedClass);
     return extractedClass;
+  }
+
+  private static void copyTypeParameters(@NotNull PsiClass generatedInnerClass, @NotNull PsiClass extractedClass) {
+    PsiTypeParameterList targetTypeParameters = extractedClass.getTypeParameterList();
+    if (targetTypeParameters == null) return;
+
+    Set<String> visibleTypeParameters = new HashSet<>();
+    for (PsiClass containingClass = generatedInnerClass; containingClass != null; containingClass = containingClass.getContainingClass()) {
+      collectVisibleTypeParameters(containingClass.getTypeParameterList(), targetTypeParameters, visibleTypeParameters);
+    }
+  }
+
+  private static void collectVisibleTypeParameters(@Nullable PsiTypeParameterList sourceTypeParameters,
+                                                   @NotNull PsiTypeParameterList targetTypeParameters,
+                                                   @NotNull Set<String> visibleTypeParameters) {
+    if (sourceTypeParameters == null) return;
+
+    for (PsiTypeParameter typeParameter : sourceTypeParameters.getTypeParameters()) {
+      String name = typeParameter.getName();
+      if (name != null && visibleTypeParameters.add(name)) {
+        targetTypeParameters.add(typeParameter);
+      }
+    }
   }
 
   private static void copyStaticImports(@NotNull PsiElement from,
