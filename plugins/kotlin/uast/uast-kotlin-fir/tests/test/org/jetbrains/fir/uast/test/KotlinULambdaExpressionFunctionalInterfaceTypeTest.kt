@@ -1,18 +1,24 @@
-// Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
-package org.jetbrains.uast.test.kotlin
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
+package org.jetbrains.fir.uast.test
+
+import org.jetbrains.fir.uast.test.env.kotlin.AbstractFirUastTest
 import org.jetbrains.kotlin.idea.base.plugin.KotlinPluginMode
 import org.jetbrains.uast.UFile
 import org.jetbrains.uast.ULambdaExpression
 import org.jetbrains.uast.getContainingUMethod
+import org.jetbrains.uast.test.kotlin.TEST_KOTLIN_MODEL_PATH
 import org.jetbrains.uast.visitor.AbstractUastVisitor
+import java.nio.file.Path
 
-class KotlinULambdaExpressionFunctionalInterfaceTypeTest : AbstractKotlinUastTest() {
+class KotlinULambdaExpressionFunctionalInterfaceTypeTest : AbstractFirUastTest() {
 
     override val pluginMode: KotlinPluginMode
-        get() = KotlinPluginMode.K1
+        get() = KotlinPluginMode.K2
 
-    override fun check(testName: String, file: UFile) {
+    override val testBasePath: Path = TEST_KOTLIN_MODEL_PATH
+
+    override fun check(filePath: String, file: UFile) {
         val errors = mutableListOf<String>()
         file.accept(object : AbstractUastVisitor() {
             override fun visitLambdaExpression(node: ULambdaExpression): Boolean {
@@ -21,7 +27,7 @@ class KotlinULambdaExpressionFunctionalInterfaceTypeTest : AbstractKotlinUastTes
                         ?.removePrefix("/*")
                         ?.removeSuffix("*/")
                         ?.trim()
-                        ?: kotlin.test.fail("Could not find comment with type")
+                        ?: fail("Could not find comment with type")
                     val actualSam = node.functionalInterfaceType?.canonicalText
 
                     assertEquals("Unexpected canonical text", samText, actualSam)
@@ -39,5 +45,5 @@ class KotlinULambdaExpressionFunctionalInterfaceTypeTest : AbstractKotlinUastTes
         )
     }
 
-    fun `test ULambdaExpression functionalInterfaceType`() = doTest("LambdaExpressionFunctionalInterfaceType")
+    fun `test ULambdaExpression functionalInterfaceType`() = doCheck("LambdaExpressionFunctionalInterfaceType.kt")
 }
