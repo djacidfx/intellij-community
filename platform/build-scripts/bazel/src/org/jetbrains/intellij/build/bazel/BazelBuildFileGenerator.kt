@@ -1178,16 +1178,16 @@ private fun computeKotlincOptions(buildFile: BuildFile, module: ModuleDescriptor
     options.put("x_x_language", effectiveXXLanguage)
   }
 
-  val handledInternalXXLanguage = kotlincDefaults.xxLanguage.map { "-XXLanguage:$it" }.toMutableSet()
+  val allowedInternalXXLanguage = kotlincDefaults.xxLanguage.map { "-XXLanguage:$it" }.toMutableSet()
   // Some modules use -XXLanguage:+InlineClasses to opt into inline classes; this pre-existed kotlinc.xml-driven defaults.
-  handledInternalXXLanguage += "-XXLanguage:+InlineClasses"
+  allowedInternalXXLanguage += "-XXLanguage:+InlineClasses"
 
   checkNoUnhandledKotlincOptions(
     module.module,
     mergedCompilerArguments,
     handledArguments = handledArguments + setOf("jvmTarget", "pluginClasspaths"),
-    handledInternalArguments = handledInternalXXLanguage,
-    handledUnknownExtraFlags = setOf("-Xallow-result-return-type", "-Xstrict-java-nullability-assertions", "-Xwasm-attach-js-exception", "-Xwasm-kclass-fqn"),
+    allowedInternalArguments = allowedInternalXXLanguage,
+    allowedUnknownExtraFlags = setOf("-Xallow-result-return-type", "-Xstrict-java-nullability-assertions", "-Xwasm-attach-js-exception", "-Xwasm-kclass-fqn"),
   )
 
   if (options.isEmpty()) {
@@ -1209,7 +1209,7 @@ private fun computeKotlincOptions(buildFile: BuildFile, module: ModuleDescriptor
   return ":$kotlincOptionsName"
 }
 
-private fun checkNoUnhandledKotlincOptions(module: JpsModule, mergedCompilerArguments: K2JVMCompilerArguments, handledArguments: Set<String>, handledInternalArguments: Set<String>, handledUnknownExtraFlags: Set<String>) {
+private fun checkNoUnhandledKotlincOptions(module: JpsModule, mergedCompilerArguments: K2JVMCompilerArguments, handledArguments: Set<String>, allowedInternalArguments: Set<String>, allowedUnknownExtraFlags: Set<String>) {
   // check arguments:
   mergedCompilerArguments::class.memberProperties
     .filter { it.javaField!!.getAnnotation(Argument::class.java) != null }
@@ -1222,7 +1222,7 @@ private fun checkNoUnhandledKotlincOptions(module: JpsModule, mergedCompilerArgu
     }
 
   // check internal arguments:
-  mergedCompilerArguments.internalArguments.filterNot { it.stringRepresentation in handledInternalArguments }.forEach {
+  mergedCompilerArguments.internalArguments.filterNot { it.stringRepresentation in allowedInternalArguments }.forEach {
     error("module '${module.name}' has compiler internal argument which is not supported: ${it.stringRepresentation}")
   }
 
@@ -1230,7 +1230,7 @@ private fun checkNoUnhandledKotlincOptions(module: JpsModule, mergedCompilerArgu
   mergedCompilerArguments.errors?.unknownArgs.orEmpty().forEach {
     error("module '${module.name}' has unknown compiler argument: $it")
   }
-  mergedCompilerArguments.errors?.unknownExtraFlags.orEmpty().filterNot { it in handledUnknownExtraFlags }.forEach {
+  mergedCompilerArguments.errors?.unknownExtraFlags.orEmpty().filterNot { it in allowedUnknownExtraFlags }.forEach {
     error("module '${module.name}' has unknown compiler extra flag: $it")
   }
   mergedCompilerArguments.errors?.argumentWithoutValue?.let {
