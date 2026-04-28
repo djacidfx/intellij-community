@@ -1,16 +1,15 @@
-Subject: [PATCH] Upgrade `@llvm`
-Add support for MSVC ABI from `@llvm`
+Subject: [PATCH] Add support for MSVC ABI from `@llvm`
 ---
-Index: rs/experimental/platforms/triples.bzl
+Index: rs/platforms/triples.bzl
 IDEA additional info:
 Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
-diff --git a/rs/experimental/platforms/triples.bzl b/rs/experimental/platforms/triples.bzl
---- a/rs/experimental/platforms/triples.bzl	(revision 5651f1ad10471cd2274034e4f82e046583513c0e)
-+++ b/rs/experimental/platforms/triples.bzl	(revision 2e1e6e8418e859aae3d1a5fba5a72c420575dfcd)
+diff --git a/rs/platforms/triples.bzl b/rs/platforms/triples.bzl
+--- a/rs/platforms/triples.bzl	(revision 597eefe2a71e192799863d739d0ecef29d866e22)
++++ b/rs/platforms/triples.bzl	(revision 0ee91c13ef8bf9583b8c8d007d1467dbbc7db0ac)
 @@ -10,6 +10,12 @@
-     "msvc": "@rules_rs//rs/experimental/platforms/constraints:windows_msvc",
+     "msvc": "@rules_rs//rs/platforms/constraints:windows_msvc",
  }
 
 +_WINDOWS_LLVM_ABI_CONSTRAINTS = {
@@ -30,20 +29,3 @@ diff --git a/rs/experimental/platforms/triples.bzl b/rs/experimental/platforms/t
 
      return constraints
 
-Index: MODULE.bazel
-IDEA additional info:
-Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
-<+>UTF-8
-===================================================================
-diff --git a/MODULE.bazel b/MODULE.bazel
---- a/MODULE.bazel	(revision 2e1e6e8418e859aae3d1a5fba5a72c420575dfcd)
-+++ b/MODULE.bazel	(revision 35f7c253814ebf9538ca56d7c50f2ad760bd9ea8)
-@@ -54,7 +54,7 @@
- bazel_dep(name = "protobuf", version = "34.0.bcr.1", repo_name = "com_google_protobuf")
- bazel_dep(name = "rules_cc", version = "0.2.8")
- bazel_dep(name = "rules_proto", version = "7.1.0")
--bazel_dep(name = "llvm", version = "0.7.0")
-+bazel_dep(name = "llvm", version = "0.7.1")
- bazel_dep(name = "aspect_tools_telemetry", version = "0.3.2")
-
- tel = use_extension("@aspect_tools_telemetry//:extension.bzl", "telemetry")
