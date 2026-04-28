@@ -126,7 +126,7 @@ internal class BuildTasksImpl(private val context: BuildContextImpl) : BuildTask
     buildNonBundledPlugins(mainPluginModules = mainPluginModules, dependencyModules = dependencyModules, context = context)
   }
 
-  override suspend fun buildUnpackedDistribution(targetDirectory: Path, includeBinAndRuntime: Boolean) {
+  override suspend fun buildUnpackedDistribution(targetDirectory: Path) {
     val currentOs = OsFamily.currentOs
     context.paths.distAllDir = targetDirectory
     context.options.targetOs = persistentListOf(currentOs)
@@ -148,22 +148,17 @@ internal class BuildTasksImpl(private val context: BuildContextImpl) : BuildTask
     buildDistribution(context = context, isUpdateFromSources = true)
     val targetLibcImpl = LibcImpl.current(OsFamily.currentOs)
     layoutShared(context)
-    if (includeBinAndRuntime) {
-      val propertiesFile = createIdeaPropertyFile(context)
-      val builder = getOsDistributionBuilder(os = currentOs, libcImpl = targetLibcImpl, ideaProperties = propertiesFile, context = context)!!
-      builder.copyFilesForOsDistribution(targetDirectory, arch)
-      val osSpecificDistDirectory = getOsAndArchSpecificDistDirectory(currentOs, JvmArchitecture.currentJvmArch, targetLibcImpl, context)
-      if (osSpecificDistDirectory.exists()) {
-        copyDir(sourceDir = osSpecificDistDirectory, targetDir = targetDirectory)
-      }
-      context.bundledRuntime.extractTo(os = currentOs, arch = arch, libc = targetLibcImpl, destinationDir = targetDirectory.resolve("jbr"))
-      updateExecutablePermissions(targetDirectory, builder.generateExecutableFilesMatchers(includeRuntime = true, arch, targetLibcImpl).keys)
-      builder.checkExecutablePermissions(distribution = targetDirectory, root = "", includeRuntime = true, arch = arch, libc = targetLibcImpl, context = context)
-      builder.writeProductInfoFile(targetDirectory, arch)
+    val propertiesFile = createIdeaPropertyFile(context)
+    val builder = getOsDistributionBuilder(os = currentOs, libcImpl = targetLibcImpl, ideaProperties = propertiesFile, context = context)!!
+    builder.copyFilesForOsDistribution(targetDirectory, arch)
+    val osSpecificDistDirectory = getOsAndArchSpecificDistDirectory(currentOs, JvmArchitecture.currentJvmArch, targetLibcImpl, context)
+    if (osSpecificDistDirectory.exists()) {
+      copyDir(sourceDir = osSpecificDistDirectory, targetDir = targetDirectory)
     }
-    else {
-      copyDistFiles(newDir = targetDirectory, os = currentOs, arch = arch, libcImpl = targetLibcImpl, context = context)
-    }
+    context.bundledRuntime.extractTo(os = currentOs, arch = arch, libc = targetLibcImpl, destinationDir = targetDirectory.resolve("jbr"))
+    updateExecutablePermissions(targetDirectory, builder.generateExecutableFilesMatchers(includeRuntime = true, arch, targetLibcImpl).keys)
+    builder.checkExecutablePermissions(distribution = targetDirectory, root = "", includeRuntime = true, arch = arch, libc = targetLibcImpl, context = context)
+    builder.writeProductInfoFile(targetDirectory, arch)
   }
 }
 
