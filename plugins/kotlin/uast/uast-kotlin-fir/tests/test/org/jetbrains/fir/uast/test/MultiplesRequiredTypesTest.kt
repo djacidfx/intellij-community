@@ -1,9 +1,10 @@
-// Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
-package org.jetbrains.uast.test.kotlin
+package org.jetbrains.fir.uast.test
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
+import org.jetbrains.fir.uast.test.env.kotlin.AbstractFirUastTest
 import org.jetbrains.kotlin.idea.KotlinLanguage
 import org.jetbrains.kotlin.idea.base.plugin.KotlinPluginMode
 import org.jetbrains.kotlin.psi.KtFile
@@ -13,17 +14,20 @@ import org.jetbrains.uast.UFile
 import org.jetbrains.uast.UMethod
 import org.jetbrains.uast.UastLanguagePlugin
 import org.jetbrains.uast.test.env.kotlin.assertEqualsToFile
-import java.io.File
+import org.jetbrains.uast.test.kotlin.TEST_KOTLIN_MODEL_PATH
+import java.nio.file.Path
 
-class MultiplesRequiredTypesTest : AbstractKotlinUastTest() {
+class MultiplesRequiredTypesTest : AbstractFirUastTest() {
 
     override val pluginMode: KotlinPluginMode
-        get() = KotlinPluginMode.K1
+        get() = KotlinPluginMode.K2
 
-    fun testInnerClasses() = doTest("InnerClasses")
+    override val testBasePath: Path = TEST_KOTLIN_MODEL_PATH
 
-    override fun check(testName: String, file: UFile) {
-        val valuesFile = getTestFile(testName, "splog.txt")
+    fun testInnerClasses() = doCheck("InnerClasses.kt")
+
+    override fun check(filePath: String, file: UFile) {
+        val valuesFile = testBasePath.resolve("${getTestName(false)}.splog.txt").toFile()
         assertEqualsToFile("MultiplesTargetConversionResult", valuesFile, file.asMultiplesTargetConversionResult())
     }
 
@@ -31,6 +35,7 @@ class MultiplesRequiredTypesTest : AbstractKotlinUastTest() {
         val plugin = UastLanguagePlugin.byLanguage(KotlinLanguage.INSTANCE)!!
         val builder = StringBuilder()
         var level = 0
+        @Suppress("DEPRECATION")
         (this.psi as KtFile).accept(object : PsiElementVisitor() {
             override fun visitElement(element: PsiElement) {
                 val uElement =
@@ -50,8 +55,4 @@ class MultiplesRequiredTypesTest : AbstractKotlinUastTest() {
         })
         return builder.toString()
     }
-
-    private fun getTestFile(testName: String, ext: String) =
-        File(File(TEST_KOTLIN_MODEL_DIR, testName).canonicalPath + '.' + ext)
-
 }
