@@ -16,11 +16,14 @@ import org.junit.platform.launcher.core.LauncherFactory;
 
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 public class JUnit5IdeaTestRunner implements IdeaTestRunner<TestIdentifier> {
+  public static final String EXPLICIT_TEST_EXECUTION_LISTENERS_PROPERTY = "idea.junit5.test.execution.listeners";
+
   private final List<JUnit5TestExecutionListener> myExecutionListeners = new ArrayList<>();
   private ArrayList<String> myListeners;
   private Launcher myLauncher;
@@ -60,6 +63,7 @@ public class JUnit5IdeaTestRunner implements IdeaTestRunner<TestIdentifier> {
         final IDEAJUnitListener junitListener = (IDEAJUnitListener)Class.forName(listenerClassName).newInstance();
         listeners.add(new MyCustomListenerWrapper(junitListener));
       }
+      listeners.addAll(loadExplicitTestExecutionListeners());
       if (sendTree) {
         for (JUnit5TestExecutionListener executionListener : myExecutionListeners) {
           executionListener.setRootName(packageNameRef[0]);
@@ -136,6 +140,34 @@ public class JUnit5IdeaTestRunner implements IdeaTestRunner<TestIdentifier> {
 
   protected JUnit5TestRunnerHelper getHelper() {
     return myHelper;
+  }
+
+  private static List<TestExecutionListener> loadExplicitTestExecutionListeners() throws ReflectiveOperationException {
+    String listenerClassNames = System.getProperty(EXPLICIT_TEST_EXECUTION_LISTENERS_PROPERTY);
+    if (listenerClassNames == null || listenerClassNames.trim().isEmpty()) {
+      return Collections.emptyList();
+    }
+
+    ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+    if (classLoader == null) {
+      classLoader = JUnit5IdeaTestRunner.class.getClassLoader();
+    }
+
+    List<TestExecutionListener> listeners = new ArrayList<>();
+    for (String listenerClassName : listenerClassNames.split(",")) {
+      String trimmedListenerClassName = listenerClassName.trim();
+      if (trimmedListenerClassName.isEmpty()) {
+        continue;
+      }
+
+      Class<?> listenerClass = Class.forName(trimmedListenerClassName, true, classLoader);
+      if (!TestExecutionListener.class.isAssignableFrom(listenerClass)) {
+        throw new IllegalArgumentException(trimmedListenerClassName + " does not implement " + TestExecutionListener.class.getName());
+      }
+
+      listeners.add((TestExecutionListener)listenerClass.getDeclaredConstructor().newInstance());
+    }
+    return listeners;
   }
 
   private static class MyCustomListenerWrapper implements TestExecutionListener {

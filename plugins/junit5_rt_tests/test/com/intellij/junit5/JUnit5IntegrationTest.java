@@ -3,6 +3,7 @@ package com.intellij.junit5;
 
 import com.intellij.execution.ExecutionException;
 import com.intellij.execution.configurations.RunConfiguration;
+import com.intellij.execution.junit.JUnitConfiguration;
 import com.intellij.java.execution.AbstractTestFrameworkCompilingIntegrationTest;
 import com.intellij.openapi.projectRoots.Sdk;
 import com.intellij.openapi.roots.ModuleRootModificationUtil;
@@ -54,6 +55,7 @@ public class JUnit5IntegrationTest extends AbstractTestFrameworkCompilingIntegra
 
     addMavenLibs(myModule, new JpsMavenRepositoryLibraryDescriptor("org.junit.jupiter", "junit-jupiter-api", "5.13.0"), repoManager);
     addMavenLibs(myModule, new JpsMavenRepositoryLibraryDescriptor("org.junit.jupiter", "junit-jupiter-params", "5.13.0"), repoManager);
+    addMavenLibs(myModule, new JpsMavenRepositoryLibraryDescriptor("org.junit.platform", "junit-platform-launcher", "1.13.1"), repoManager);
     addMavenLibs(myModule, new JpsMavenRepositoryLibraryDescriptor("org.junit.platform", "junit-platform-suite-api", "1.13.1"),
                  repoManager);
   }
@@ -70,6 +72,20 @@ public class JUnit5IntegrationTest extends AbstractTestFrameworkCompilingIntegra
     assertTestsStarted(output, "enabled()", "disabled()");
     assertTestsFinished(output, "enabled()", "disabled()");
     assertTestsIgnored(output, "disabled()");
+  }
+
+  public void testExplicitExecutionListenerFromVmParameters() throws Exception {
+    PsiClass testClass = JavaPsiFacade.getInstance(myProject).findClass("checkClasspath.CheckerTest", GlobalSearchScope.projectScope(myProject));
+    assertNotNull("Test class not found", testClass);
+
+    JUnitConfiguration configuration = createConfiguration(testClass);
+    configuration.setVMParameters("-D" + JUnit5IdeaTestRunner.EXPLICIT_TEST_EXECUTION_LISTENERS_PROPERTY + "=listeners.ExplicitListener");
+
+    ProcessOutput output = doStartTestsProcess(configuration);
+
+    assertEmpty(output.err);
+    assertTrue("Expected explicit listener output, got: " + output.out,
+               ContainerUtil.exists(output.out, s -> s.contains("explicit-listener=test()")));
   }
 
   public void testInterfaceDynamicTestsDemo() throws Exception {

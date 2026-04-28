@@ -55,6 +55,7 @@ jvm_library(
   ],
   exports = [
     "//plugins/performanceTesting/commands-model:tools-ide-performanceTesting-commands",
+    "@lib//:io-qameta-allure-java-commons",
     "//plugins/performanceTesting/event-bus:tools-ide-starter-bus",
   ]
 )
@@ -68,6 +69,7 @@ jvm_library(
   exports = [
     "//plugins/performanceTesting/commands-model:tools-ide-performanceTesting-commands",
     "//plugins/performanceTesting/commands-model:tools-ide-performanceTesting-commands_test_lib",
+    "@lib//:io-qameta-allure-java-commons",
     "//plugins/performanceTesting/event-bus:tools-ide-starter-bus",
     "//plugins/performanceTesting/event-bus:tools-ide-starter-bus_test_lib",
   ],

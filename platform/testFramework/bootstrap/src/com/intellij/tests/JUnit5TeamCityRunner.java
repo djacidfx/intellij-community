@@ -90,6 +90,7 @@ public final class JUnit5TeamCityRunner {
   private static final String LIST_CLASSES = System.getProperty("intellij.build.test.list.classes");
   private static final String REVERSE_ORDER = System.getProperty("intellij.build.test.reverse.order");
   private static final String INCLUDE_TAGS = System.getProperty("intellij.build.test.tags");
+  private static final String EXTRA_EXECUTION_LISTENERS = System.getProperty("idea.junit5.test.execution.listeners");
 
   static boolean isUnderTeamCity() {
     var teamCityVersion = System.getenv("TEAMCITY_VERSION");
@@ -156,6 +157,7 @@ public final class JUnit5TeamCityRunner {
       LoggerFactory.addListener(new TCLogRecordListener());  // report warnings/errors as build problems on TeamCity, incl. test discovery
 
       Launcher launcher = LauncherFactory.create();
+      registerExtraExecutionListeners(launcher, classLoader);
       LauncherDiscoveryRequest discoveryRequest = LauncherDiscoveryRequestBuilder.request()
         .selectors(selectors)
         .filters(filters.toArray(Filter[]::new))
@@ -247,6 +249,32 @@ public final class JUnit5TeamCityRunner {
                   "getClassRoots", MethodType.methodType(List.class))
       .invokeExact();
     return new HashSet<>(testRoots);
+  }
+
+  private static void registerExtraExecutionListeners(Launcher launcher, ClassLoader classLoader) {
+    if (EXTRA_EXECUTION_LISTENERS == null || EXTRA_EXECUTION_LISTENERS.isBlank()) return;
+    List<TestExecutionListener> extras = new ArrayList<>();
+    for (String fqn : EXTRA_EXECUTION_LISTENERS.split(",")) {
+      String name = fqn.trim();
+      if (name.isEmpty()) continue;
+      try {
+        Class<?> clazz = Class.forName(name, true, classLoader);
+        Object instance = clazz.getDeclaredConstructor().newInstance();
+        if (instance instanceof TestExecutionListener tel) {
+          extras.add(tel);
+        }
+        else {
+          System.err.println("idea.junit5.test.execution.listeners: " + name + " is not a TestExecutionListener, skipping");
+        }
+      }
+      catch (Throwable t) {
+        System.err.println("idea.junit5.test.execution.listeners: failed to instantiate " + name + ": " + t);
+        t.printStackTrace();
+      }
+    }
+    if (!extras.isEmpty()) {
+      launcher.registerTestExecutionListeners(extras.toArray(new TestExecutionListener[0]));
+    }
   }
 
   private static void executeInReverseOrder(Launcher launcher, TestPlan testPlan, TestExecutionListener listener, List<Filter<?>> filters) {
