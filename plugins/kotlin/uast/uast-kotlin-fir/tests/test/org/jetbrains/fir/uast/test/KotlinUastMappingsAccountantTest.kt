@@ -1,5 +1,5 @@
-// Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
-package org.jetbrains.uast.test.kotlin
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+package org.jetbrains.fir.uast.test
 
 import com.intellij.openapi.fileTypes.ExtensionFileNameMatcher
 import com.intellij.platform.uast.testFramework.common.PsiClassToString
@@ -11,13 +11,13 @@ import org.jetbrains.kotlin.idea.KotlinFileType
 import org.jetbrains.kotlin.idea.base.plugin.KotlinPluginMode
 import org.jetbrains.kotlin.idea.test.KotlinLightCodeInsightFixtureTestCase
 import org.jetbrains.kotlin.idea.test.KotlinWithJdkAndRuntimeLightProjectDescriptor
+import org.jetbrains.uast.test.kotlin.TEST_KOTLIN_MODEL_DIR
 import org.junit.Ignore
 import org.junit.Test
 import java.io.File
 
-
 /**
- * Computes Kotlin PSI to UAST mappings over the [TEST_KOTLIN_MODEL_DIR]
+ * Computes Kotlin PSI to UAST mappings over the [org.jetbrains.uast.test.kotlin.TEST_KOTLIN_MODEL_DIR]
  */
 @Ignore("Not a test suite, should be called manually only")
 class KotlinUastMappingsAccountantTest :
@@ -33,7 +33,7 @@ class KotlinUastMappingsAccountantTest :
         KotlinWithJdkAndRuntimeLightProjectDescriptor.getInstanceFullJdk()
 
     override val pluginMode: KotlinPluginMode
-        get() = KotlinPluginMode.K1
+        get() = KotlinPluginMode.K2
 
     private val delegate by lazy(LazyThreadSafetyMode.NONE) {
         UastMappingsAccountantTest(
