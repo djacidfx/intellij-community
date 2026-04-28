@@ -1,15 +1,12 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.platform.runtime.product.serialization;
 
-import com.intellij.platform.runtime.product.PluginModuleGroup;
 import com.intellij.platform.runtime.product.ProductMode;
 import com.intellij.platform.runtime.product.ProductModules;
 import com.intellij.platform.runtime.product.impl.MainRuntimeModuleGroup;
-import com.intellij.platform.runtime.product.impl.PluginModuleGroupImpl;
 import com.intellij.platform.runtime.product.impl.ProductModulesImpl;
 import com.intellij.platform.runtime.product.serialization.impl.ProductModulesXmlSerializer;
 import com.intellij.platform.runtime.repository.MalformedRepositoryException;
-import com.intellij.platform.runtime.repository.RuntimeModuleDescriptor;
 import com.intellij.platform.runtime.repository.RuntimeModuleId;
 import com.intellij.platform.runtime.repository.RuntimeModuleRepository;
 import com.intellij.platform.runtime.repository.serialization.RawIncludedRuntimeModule;
@@ -22,11 +19,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public final class ProductModulesSerialization {
@@ -54,7 +48,7 @@ public final class ProductModulesSerialization {
                                                            @NotNull RuntimeModuleRepository repository,
                                                            @NotNull ResourceFileResolver resourceFileResolver) {
     RawProductModules rawProductModules = readProductModulesAndMergeIncluded(inputStream, filePath, resourceFileResolver);
-    return loadProductModules(rawProductModules, filePath, currentMode, repository, resourceFileResolver);
+    return loadProductModules(rawProductModules, filePath, currentMode, repository);
   }
 
   public static @NotNull RawProductModules readProductModulesAndMergeIncluded(@NotNull InputStream inputStream, @NotNull String filePath,
@@ -79,24 +73,10 @@ public final class ProductModulesSerialization {
   private static @NotNull ProductModulesImpl loadProductModules(@NotNull RawProductModules rawProductModules,
                                                                 @NotNull String debugName,
                                                                 @NotNull ProductMode currentMode,
-                                                                @NotNull RuntimeModuleRepository repository,
-                                                                @NotNull ResourceFileResolver resourceFileResolver) {
+                                                                @NotNull RuntimeModuleRepository repository) {
 
     MainRuntimeModuleGroup mainGroup = new MainRuntimeModuleGroup(rawProductModules.getMainGroupModules(), currentMode, repository);
-    List<PluginModuleGroup> bundledPluginModuleGroups = new ArrayList<>();
-    Map<RuntimeModuleId, List<RuntimeModuleId>> notLoadedBundledPluginModules = new HashMap<>();
-    for (RuntimeModuleId pluginMainModule : rawProductModules.getBundledPluginMainModules()) {
-      RuntimeModuleRepository.ResolveResult resolveResult = repository.resolveModule(pluginMainModule);
-      RuntimeModuleDescriptor module = resolveResult.getResolvedModule();
-      if (module != null) {
-        bundledPluginModuleGroups.add(new PluginModuleGroupImpl(module, currentMode, repository, resourceFileResolver));
-      }
-      else {
-        notLoadedBundledPluginModules.put(pluginMainModule, resolveResult.getFailedDependencyPath());
-      }
-    }
-    return new ProductModulesImpl(debugName, mainGroup, bundledPluginModuleGroups, rawProductModules.getBundledPluginMainModules(),
-                                  notLoadedBundledPluginModules);
+    return new ProductModulesImpl(debugName, mainGroup, rawProductModules.getBundledPluginMainModules());
   }
 
   private static void mergeIncludedFiles(@NotNull RawProductModules rawProductModules,
