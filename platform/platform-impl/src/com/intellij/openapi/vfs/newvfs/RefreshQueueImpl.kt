@@ -64,6 +64,13 @@ class RefreshQueueImpl(coroutineScope: CoroutineScope) : RefreshQueue(), Disposa
    */
   private val eventScanSemaphore: Semaphore = Semaphore(1)
 
+  /**
+   * Although high-priority refreshes can run regardless of low-priority ones,
+   * we still want to be careful and limit concurrency
+   * The number 2 is chosen arbitrarily.
+   */
+  private val highPriorityEventScanSemaphore: Semaphore = Semaphore(2)
+
   private val eventProcessingScope: CoroutineScope = coroutineScope.childScope("RefreshQueue pool", Dispatchers.Default.limitedParallelism(1))
 
   private val myRefreshIndicator = RefreshProgress.create()
@@ -147,12 +154,16 @@ class RefreshQueueImpl(coroutineScope: CoroutineScope) : RefreshQueue(), Disposa
     myEventCounter.eventHappened(session)
   }
 
-  internal suspend fun executeSuspending(session: RefreshSessionImpl) {
+  internal suspend fun executeSuspending(session: RefreshSessionImpl, highPriority: Boolean) {
     // suspending vfs refresh works in the context of the caller
-    // however, we must maintain an invariant that no more than one scanning part of refresh is running
+    // however, we must maintain an invariant that no more than one scanning part of low-priority refresh is running
     // hence we limit ourselves with a semaphore
     val events = if (session.isEventSession) {
       session.events
+    } else if (highPriority) {
+      highPriorityEventScanSemaphore.withPermit {
+        collectEventsSuspending(session, -1L)
+      }
     } else {
       eventScanSemaphore.withPermit {
         collectEventsSuspending(session, -1L)
@@ -432,11 +443,19 @@ class RefreshQueueImpl(coroutineScope: CoroutineScope) : RefreshQueue(), Disposa
   }
 
   override suspend fun refresh(recursive: Boolean, files: List<VirtualFile>) {
+    doRunRefresh(recursive, files, false)
+  }
+
+  override suspend fun refreshWithHighPriority(recursive: Boolean, files: List<VirtualFile>) {
+    doRunRefresh(recursive, files, true)
+  }
+
+  private suspend fun doRunRefresh(recursive: Boolean, files: List<VirtualFile>, highPriority: Boolean) {
     @Suppress("ForbiddenInSuspectContextMethod")
     val session = createSession(false, recursive, null, ModalityState.defaultModalityState())
     session.addAllFiles(files)
     if (isVfsRefreshInBackgroundWriteActionAllowed()) {
-      session.executeInBackgroundWriteAction()
+      session.executeInBackgroundWriteAction(highPriority)
     }
     else {
       currentCoroutineContext().job.invokeOnCompletion {
@@ -453,7 +472,7 @@ class RefreshQueueImpl(coroutineScope: CoroutineScope) : RefreshQueue(), Disposa
     val session = createSession(false, false, null, ModalityState.defaultModalityState())
     session.addEvents(events)
     if (isVfsRefreshInBackgroundWriteActionAllowed()) {
-      session.executeInBackgroundWriteAction()
+      session.executeInBackgroundWriteAction(false)
     }
     else {
       currentCoroutineContext().job.invokeOnCompletion {

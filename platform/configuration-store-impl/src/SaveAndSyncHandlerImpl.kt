@@ -15,7 +15,6 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.CoroutineSupport
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.WriteIntentReadAction
-import com.intellij.openapi.application.backgroundWriteAction
 import com.intellij.openapi.application.impl.LaterInvocator
 import com.intellij.openapi.application.ui
 import com.intellij.openapi.components.ComponentManager
@@ -44,7 +43,6 @@ import com.intellij.platform.ide.progress.ModalTaskOwner
 import com.intellij.platform.ide.progress.TaskCancellation
 import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import com.intellij.project.stateStore
-import com.intellij.util.application
 import com.intellij.util.ui.EDT
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineName
@@ -70,7 +68,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.jetbrains.annotations.TestOnly
 import java.util.ArrayDeque
 import java.util.concurrent.TimeUnit.NANOSECONDS
 import java.util.concurrent.atomic.AtomicBoolean
@@ -509,15 +506,8 @@ private suspend fun doRefreshOpenedFiles(refreshQueue: RefreshQueue) {
     return
   }
 
-  backgroundWriteAction {
-    val session = refreshQueue.createSession(
-      /* async = */ false,
-      /* recursive = */ false,
-      /* finishRunnable = */ null,
-      /* state = */ ModalityState.nonModal(),
-    )
-    session.addAllFiles(files)
-    session.launch()
+  withContext(Dispatchers.Default) {
+    refreshQueue.refreshWithHighPriority(false, files)
   }
 }
 
