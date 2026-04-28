@@ -46,6 +46,7 @@ import com.intellij.platform.workspace.storage.url.VirtualFileUrl
 import com.intellij.pom.PomManager
 import com.intellij.testFramework.IdeaTestUtil
 import com.intellij.testFramework.IndexingTestUtil.Companion.suspendUntilIndexesAreReady
+import com.intellij.testFramework.common.timeoutRunBlocking
 import com.intellij.testFramework.fixtures.IdeaTestExecutionPolicy
 import com.intellij.testFramework.junit5.fixture.disposableFixture
 import com.intellij.testFramework.junit5.fixture.projectFixture
@@ -77,6 +78,7 @@ import org.junit.jupiter.params.provider.MethodSource
 import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
+import kotlin.time.Duration.Companion.minutes
 
 abstract class AbstractAllIntellijEntitiesGenerationTest {
   private val virtualFileManager = IdeVirtualFileUrlManagerImpl()
@@ -211,7 +213,7 @@ abstract class AbstractAllIntellijEntitiesGenerationTest {
     ultimateStorage: MutableEntityStorage,
     jpsProjectSerializer: JpsProjectSerializers,
     processGenerated: suspend (MutableEntityStorage, SourceRootEntity, VirtualFile, VirtualFile) -> Boolean,
-  ): Unit = runBlocking {
+  ): Unit = timeoutRunBlocking(5.minutes) {
     println("Generating workspace code for module ${ultimateModuleEntity.name} [${ultimateSourceRoot.url.presentableUrl}]")
     val ultimateSourceRootPath =
       VirtualFileManager.getInstance().refreshAndFindFileByNioPath(Path.of(ultimateSourceRoot.url.presentableUrl))!!
