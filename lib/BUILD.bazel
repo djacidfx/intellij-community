@@ -12220,17 +12220,17 @@ jvm_import(
 )
 
 copy_file(
-  name = "org.jetbrains.intellij.deps.jcef/jcef-137.0.17-gf354b0e-chromium-137.0.7151.104-api-1.21-262-b28.jar_copy",
-  src = "@org_jetbrains_intellij_deps_jcef-jcef-137_0_17-gf354b0e-chromium-137_0_7151_104-api-1_21-262-b28_http//file",
-  out = "org.jetbrains.intellij.deps.jcef/jcef-137.0.17-gf354b0e-chromium-137.0.7151.104-api-1.21-262-b28.jar",
+  name = "org.jetbrains.intellij.deps.jcef/jcef-144.0.15-g72717cf-chromium-144.0.7559.172-api-1.21-262-b34.jar_copy",
+  src = "@org_jetbrains_intellij_deps_jcef-jcef-144_0_15-g72717cf-chromium-144_0_7559_172-api-1_21-262-b34_http//file",
+  out = "org.jetbrains.intellij.deps.jcef/jcef-144.0.15-g72717cf-chromium-144.0.7559.172-api-1.21-262-b34.jar",
   allow_symlink = True,
   visibility = ["//visibility:public"]
 )
 
 jvm_import(
   name = "libraries-jcef-jcef",
-  jar = "@org_jetbrains_intellij_deps_jcef-jcef-137_0_17-gf354b0e-chromium-137_0_7151_104-api-1_21-262-b28_http//file",
-  source_jar = "@org_jetbrains_intellij_deps_jcef-jcef-137_0_17-gf354b0e-chromium-137_0_7151_104-api-1_21-262-b28-sources_http//file",
+  jar = "@org_jetbrains_intellij_deps_jcef-jcef-144_0_15-g72717cf-chromium-144_0_7559_172-api-1_21-262-b34_http//file",
+  source_jar = "@org_jetbrains_intellij_deps_jcef-jcef-144_0_15-g72717cf-chromium-144_0_7559_172-api-1_21-262-b34-sources_http//file",
   visibility = ["//visibility:public"]
 )
 
