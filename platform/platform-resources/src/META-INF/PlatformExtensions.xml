@@ -774,6 +774,7 @@
                              id="preferences.pluginManager"
                              treeRenderer="com.intellij.ide.plugins.PluginManagerConfigurableTreeRenderer"
                              bundle="messages.IdeBundle"
+                             searchableInActions="false"
                              key="title.plugins"/>
 
     <applicationConfigurable parentId="preferences.general" instance="com.intellij.ide.gdpr.ConsentConfigurable" id="consents"
