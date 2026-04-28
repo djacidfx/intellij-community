@@ -85,7 +85,7 @@ suspend fun generateInitDescriptor(
     }
   }
 
-  val classpath = descriptorClassPath.map { file ->
+  val classpath = descriptorClassPath.toSet().map { file ->
     PluginPart.Bundled(HashedJar.fromFile(
       hash = CodeCacheHasher().hash(file),
       file = file,
