@@ -117,7 +117,7 @@ public final class ExplainRegExpIntention implements IntentionAction, Iconable, 
 
       @Override
       public String convertValueToText(Object value, boolean selected, boolean expanded, boolean leaf, int row, boolean hasFocus) {
-        if (getSelectionCount() > 0 && value instanceof RegExpTreeNode node) {
+        if (getSelectionCount() > 1 && value instanceof RegExpTreeNode node) {
           int depth = -1;
           RegExpTreeNode parent = node.getParent();
           while (parent != null) {
@@ -250,8 +250,8 @@ record ValueNode(
   public @NotNull String toString() {
     String nameString = nameNode.toString();
     return nameString.isEmpty()
-           ? StringUtil.join(pattern, "") + " – " + explanation
-           : StringUtil.join(pattern, "") + ' ' + nameNode + " – " + explanation;
+           ? StringUtil.join(pattern, "") + " – " + StringUtil.stripHtml(explanation, false)
+           : StringUtil.join(pattern, "") + ' ' + nameNode + " – " + StringUtil.stripHtml(explanation, false);
   }
 }
 record NameNode(@NotNull @NlsContexts.ColumnName String name, @NotNull @NonNls String url) {
@@ -599,17 +599,6 @@ class ExplanationVisitor extends RegExpRecursiveElementVisitor {
            && isVisibleCodePoint(c.getValue());
   }
 
-  @NlsContexts.ColumnName
-  private static String getLookaroundName(RegExpGroup group) {
-    return switch (group.getType()) {
-      case POSITIVE_LOOKAHEAD -> "Positive Lookahead Assertion";
-      case NEGATIVE_LOOKAHEAD -> "Negative Lookahead Assertion";
-      case POSITIVE_LOOKBEHIND -> "Positive Lookbehind Assertion";
-      case NEGATIVE_LOOKBEHIND -> "Negative Lookbehind Assertion";
-      default -> throw new AssertionError();
-    };
-  }
-
   @Override
   public void visitRegExpGroup(RegExpGroup group) {
     switch (group.getType()) {
@@ -657,6 +646,59 @@ class ExplanationVisitor extends RegExpRecursiveElementVisitor {
     }
     super.visitRegExpGroup(group);
     parent();
+  }
+
+  @Override
+  public void visitRegExpConditional(RegExpConditional conditional) {
+    RegExpAtom condition = conditional.getCondition();
+    String explanation;
+    if (condition instanceof RegExpGroup group) {
+      String name = getLookaroundName(group);
+      explanation = conditional.getElseBranch() == null
+                    ? "matches depending on whether " + name + " succeeds"
+                    : "matches one of two alternatives based on whether " + name + " succeeds";
+    }
+    else if (condition instanceof RegExpNamedGroupRef ref) {
+      String name = "Named Capturing Group <b>" + ref.getGroupName() + "</b>";
+      explanation = conditional.getElseBranch() == null
+                    ? "matches depending on whether " + name + " matches"
+                    : "matches one of two alternatives based on whether " + name + " matches";
+    }
+    else if (condition instanceof RegExpBackref ref) {
+      String name = "Capturing Group <b>#" + ref.getIndex() + "</b>";
+      explanation = conditional.getElseBranch() == null
+                    ? "matches depending on whether " + name + " matches"
+                    : "matches one of two alternatives based on whether " + name + " matches";
+    }
+    else {
+      explanation = "incomplete expression";
+    }
+    branch(conditional, new NameNode("Conditional", "https://www.regular-expressions.info/conditional.html"), explanation);
+    if (condition instanceof RegExpGroup) {
+      super.visitRegExpConditional(conditional);
+    }
+    else {
+      RegExpBranch thenBranch = conditional.getThenBranch();
+      if (thenBranch != null) {
+        visitRegExpBranch(thenBranch);
+      }
+      RegExpBranch elseBranch = conditional.getElseBranch();
+      if (elseBranch != null) {
+        visitRegExpBranch(elseBranch);
+      }
+    }
+    parent();
+  }
+
+  @NlsContexts.ColumnName
+  private static String getLookaroundName(RegExpGroup group) {
+    return switch (group.getType()) {
+      case POSITIVE_LOOKAHEAD -> "Positive Lookahead Assertion";
+      case NEGATIVE_LOOKAHEAD -> "Negative Lookahead Assertion";
+      case POSITIVE_LOOKBEHIND -> "Positive Lookbehind Assertion";
+      case NEGATIVE_LOOKBEHIND -> "Negative Lookbehind Assertion";
+      default -> throw new AssertionError();
+    };
   }
 
   @Override
@@ -721,48 +763,6 @@ class ExplanationVisitor extends RegExpRecursiveElementVisitor {
       }
     }
     super.visitRegExpProperty(property);
-  }
-
-  @Override
-  public void visitRegExpConditional(RegExpConditional conditional) {
-    RegExpAtom condition = conditional.getCondition();
-    String explanation;
-    if (condition instanceof RegExpGroup group) {
-      String name = getLookaroundName(group);
-      explanation = conditional.getElseBranch() == null
-                    ? "matches depending on whether " + name + " succeeds"
-                    : "matches one of two alternatives based on whether " + name + " succeeds";
-    }
-    else if (condition instanceof RegExpNamedGroupRef ref) {
-      String name = "Named Capturing Group <b>" + ref.getGroupName() + "</b>";
-      explanation = conditional.getElseBranch() == null
-                    ? "matches depending on whether " + name + " matches"
-                    : "matches one of two alternatives based on whether " + name + " matches";
-    }
-    else if (condition instanceof RegExpBackref ref) {
-      String name = "Capturing Group <b>#" + ref.getIndex() + "</b>";
-      explanation = conditional.getElseBranch() == null
-                    ? "matches depending on whether " + name + " matches"
-                    : "matches one of two alternatives based on whether " + name + " matches";
-    }
-    else {
-      explanation = "incomplete expression";
-    }
-    branch(conditional, new NameNode("Conditional", "https://www.regular-expressions.info/conditional.html"), explanation);
-    if (condition instanceof RegExpGroup) {
-      super.visitRegExpConditional(conditional);
-    }
-    else {
-      RegExpBranch thenBranch = conditional.getThenBranch();
-      if (thenBranch != null) {
-        visitRegExpBranch(thenBranch);
-      }
-      RegExpBranch elseBranch = conditional.getElseBranch();
-      if (elseBranch != null) {
-        visitRegExpBranch(elseBranch);
-      }
-    }
-    parent();
   }
 
   @Override

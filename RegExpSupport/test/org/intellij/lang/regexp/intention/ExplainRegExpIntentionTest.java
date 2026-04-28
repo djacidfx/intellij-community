@@ -69,7 +69,7 @@ public final class ExplainRegExpIntentionTest extends BasePlatformTestCase {
   public void testAlternation() {
     doTest("(\\( \\b|\\b \\))",
            """
-             (\\( \\b|\\b \\)) Capturing Group (https://www.regular-expressions.info/brackets.html) – <b>#1</b> stores the text it matches for later reference
+             (\\( \\b|\\b \\)) Capturing Group (https://www.regular-expressions.info/brackets.html) – #1 stores the text it matches for later reference
                \\( \\b|\\b \\) Alternation (https://www.regular-expressions.info/alternation.html) – matches 1 of 2 alternatives
                  \\( \\b – matches elements in order
                    \\( – matches the LEFT PARENTHESIS character
