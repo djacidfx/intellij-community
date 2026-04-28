@@ -171,6 +171,7 @@ public final class DaemonCodeAnalyzerImpl extends DaemonCodeAnalyzerEx
   private final DaemonListener myDaemonListenerPublisher;
 
   private final DaemonCodeAnalyzerRepaintIconHelper repaintIconHelper;
+  volatile Future<?> renewInBackgroundAndRestart = CompletableFuture.completedFuture(null); // accessed in EDT only
 
   public DaemonCodeAnalyzerImpl(@NotNull Project project, @NotNull CoroutineScope coroutineScope) {
     // DependencyValidationManagerImpl adds scope listener, so we need to force service creation
@@ -1297,6 +1298,7 @@ public final class DaemonCodeAnalyzerImpl extends DaemonCodeAnalyzerEx
    * return null if the session wasn't created because highlighter/document/psiFile wasn't found or
    * throw PCE if it really wasn't an appropriate moment to ask
    */
+  @RequiresEdt
   HighlightingSession queuePassesCreation(@NotNull FileEditor fileEditor,
                                           @NotNull VirtualFile virtualFile,
                                           int @NotNull [] passesToIgnore,
@@ -1324,13 +1326,14 @@ public final class DaemonCodeAnalyzerImpl extends DaemonCodeAnalyzerEx
       }
       return null;
     }
-    DaemonProgressIndicator progress = createUpdateProgress(fileEditor);
-    // pre-create HighlightingSession in EDT to make visible range available in a background thread
     if (editor != null && editor.getDocument().isInBulkUpdate()) {
       // avoid restarts until the bulk mode is finished and daemon restarted in DaemonListeners
-      stopProcess(false, editor.getDocument() +" is in bulk state");
-      throw new ProcessCanceledException();
+      if (PassExecutorService.LOG.isDebugEnabled()) {
+        PassExecutorService.log(null, null, editor.getDocument() +" is in bulk state");
+      }
+      return null;
     }
+    DaemonProgressIndicator progress;
     HighlightingSessionImpl session;
     try (AccessToken ignored = ClientId.withExplicitClientId(ClientFileEditorManager.getClientId(fileEditor))) {
       Document document = editor == null ? FileDocumentManager.getInstance().getCachedDocument(virtualFile) : editor.getDocument();
@@ -1342,23 +1345,24 @@ public final class DaemonCodeAnalyzerImpl extends DaemonCodeAnalyzerEx
         String reason = document == null ? "queuePassesCreation: couldn't submit" +  virtualFile + " because document is null: fileEditor="+ fileEditor+" ("+ fileEditor.getClass()+")"
                         : "queuePassesCreation: psiFile is null for "+virtualFile+"; context:"+context+"; cachedContext:"+cachedContext;
         if (PassExecutorService.LOG.isDebugEnabled()) {
-          PassExecutorService.log(progress, null, reason);
+          PassExecutorService.log(null, null, reason);
         }
-        ForkJoinPool.commonPool().execute(() -> {
+        renewInBackgroundAndRestart.cancel(false);
+        renewInBackgroundAndRestart = ForkJoinPool.commonPool().submit(() -> {
           ApplicationManagerEx.getApplicationEx().tryRunReadAction(() -> {
             if (!myProject.isDisposed()) {
               // refresh the current file and cache it (in background) so that FileDocumentManager.getCachedDocument above could retrieve it later
               Document renewedDocument = editor == null ? FileDocumentManager.getInstance().getDocument(virtualFile) : editor.getDocument();
-              CodeInsightContext renewedContext = editor != null
-                                                  ? EditorContextManager.getEditorContext(editor, myProject)
-                                                  : CodeInsightContexts.anyContext();
               if (renewedDocument != null) {
+                CodeInsightContext renewedContext = editor != null
+                                                    ? EditorContextManager.getEditorContext(editor, myProject)
+                                                    : CodeInsightContexts.anyContext();
                 PsiFile psiFile = TextEditorBackgroundHighlighter.renewFile(myProject, renewedDocument, renewedContext);
-                if (psiFile != null) {
+                if (psiFile != null && !isRunning()) {
                   // if for some reason the TextEditorBackgroundHighlighter.getCachedFileToHighlight() returned null,
-                  // but the full refresh and get PSI returned not-null PSI, restart the daemon
+                  // but the full refresh and get PSI returned not-null PSI, restart the daemon (if not already restarted)
                   // (but only in this case; all other cases e.g., the file out of project roots should not lead to endless restarts)
-                  stopAndRestartMyProcess(progress, null, reason);
+                  stopProcess(true, reason);
                 }
               }
             }
@@ -1366,6 +1370,8 @@ public final class DaemonCodeAnalyzerImpl extends DaemonCodeAnalyzerEx
         });
         return null;
       }
+      progress = createUpdateProgress(fileEditor);
+      // pre-create HighlightingSession in EDT to make visible range available in a background thread
       session = HighlightingSessionImpl.createHighlightingSession(psiFileToSubmit, editor, scheme, progress, daemonCancelEventCount);
       JobLauncher.getInstance().submitToJobThread(ThreadContext.captureThreadContext(Context.current().wrap(() ->
             submitInBackground(fileEditor, document, virtualFile, psiFileToSubmit, highlighter, passesToIgnore, progress, session, mainDocumentPasses))),
