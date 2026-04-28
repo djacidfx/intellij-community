@@ -1,11 +1,18 @@
 <component name="libraryTable">
-  <library name="kotlinc.kotlin-objcexport-header-generator">
+  <library name="kotlinc.kotlin-objcexport-header-generator" type="repository">
+    <properties include-transitive-deps="false" maven-id="org.jetbrains.kotlin:kotlin-objcexport-header-generator-for-ide:2.4.20-dev-2209">
+      <verification>
+        <artifact url="file://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-objcexport-header-generator-for-ide/2.4.20-dev-2209/kotlin-objcexport-header-generator-for-ide-2.4.20-dev-2209.jar">
+          <sha256sum>0fef8ee8fe8140f73bb0da4b369d787d51e7822c7a6d6c57be4478d0c1ef2157</sha256sum>
+        </artifact>
+      </verification>
+    </properties>
     <CLASSES>
-      <root url="jar://$PROJECT_DIR$/lib/kotlin-snapshot/org/jetbrains/kotlin/kotlin-objcexport-header-generator-for-ide/2.4.255-dev-255/kotlin-objcexport-header-generator-for-ide-2.4.255-dev-255.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-objcexport-header-generator-for-ide/2.4.20-dev-2209/kotlin-objcexport-header-generator-for-ide-2.4.20-dev-2209.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES>
-      <root url="jar://$PROJECT_DIR$/lib/kotlin-snapshot/org/jetbrains/kotlin/kotlin-objcexport-header-generator-for-ide/2.4.255-dev-255/kotlin-objcexport-header-generator-for-ide-2.4.255-dev-255-sources.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-objcexport-header-generator-for-ide/2.4.20-dev-2209/kotlin-objcexport-header-generator-for-ide-2.4.20-dev-2209-sources.jar!/" />
     </SOURCES>
   </library>
 </component>
