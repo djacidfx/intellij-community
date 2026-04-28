@@ -25,6 +25,7 @@ import io.github.smiley4.schemakenerator.jsonschema.jsonDsl.JsonTextValue
 import io.github.smiley4.schemakenerator.serialization.SerializationSteps.analyzeTypeUsingKotlinxSerialization
 import io.github.smiley4.schemakenerator.serialization.analyzer.AnnotationAnalyzer
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
@@ -32,6 +33,8 @@ import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import kotlinx.serialization.json.JsonArray as KtJsonArray
+import kotlinx.serialization.json.JsonObject as KtJsonObject
 import kotlinx.serialization.serializerOrNull
 import kotlin.reflect.KAnnotatedElement
 import kotlin.reflect.KCallable
@@ -76,7 +79,7 @@ internal fun parametersSchema(callable: KCallable<*>, vararg additionalImplicitP
     if (customizer != null) {
       parameterSchemas.remove("projectPath")?.let { originalSchema ->
         parameterSchemas[customizer.parameterName] = buildJsonObject {
-          for ((key, value) in originalSchema as kotlinx.serialization.json.JsonObject) {
+          for ((key, value) in originalSchema as KtJsonObject) {
             if (key == "description") put("description", customizer.parameterDescription) else put(key, value)
           }
         }
@@ -124,12 +127,12 @@ internal fun returnTypeSchema(callable: KCallable<*>): McpToolSchema? {
     .addStringTypeToEnums()
 
   val schema = intermediateJsonSchemaData.compileInlining()
-  val jsonSchema = schema.json.toKt() as? kotlinx.serialization.json.JsonObject ?: error("Non-primitive type is expected in return type: ${type.classifier} in $callable")
-  val properties = jsonSchema["properties"] as? kotlinx.serialization.json.JsonObject ?: error("Properties are expected in return type: ${type.classifier} in $callable")
-  val required = jsonSchema["required"] as? kotlinx.serialization.json.JsonArray ?: error("Required is expected in return type: ${type.classifier} in $callable")
+  val jsonSchema = schema.json.toKt() as? KtJsonObject ?: error("Non-primitive type is expected in return type: ${type.classifier} in $callable")
+  val adjustedSchema = removeRequiredForDefaultValues(jsonSchema, serializer)
+  val properties = adjustedSchema["properties"] as? KtJsonObject ?: error("Properties are expected in return type: ${type.classifier} in $callable")
+  val required = adjustedSchema["required"] as? KtJsonArray ?: error("Required is expected in return type: ${type.classifier} in $callable")
   val requiredProperties = required.map { it.jsonPrimitive.content }.toSet()
-  val adjustedRequired = removeRequiredForDefaultValues(requiredProperties, serializer)
-  return McpToolSchema.ofPropertiesSchema(properties = properties, requiredProperties = adjustedRequired, definitions = emptyMap(), definitionsPath = McpToolSchema.DEFAULT_DEFINITIONS_PATH)
+  return McpToolSchema.ofPropertiesSchema(properties = properties, requiredProperties = requiredProperties, definitions = emptyMap(), definitionsPath = McpToolSchema.DEFAULT_DEFINITIONS_PATH)
 }
 
 private fun JsonNode.toKt(): JsonElement {
@@ -143,7 +146,7 @@ private fun JsonNode.toKt(): JsonElement {
   }
 }
 
-private fun JsonObject.toKtObject(): kotlinx.serialization.json.JsonObject {
+private fun JsonObject.toKtObject(): KtJsonObject {
   return buildJsonObject {
     for ((key, value) in this@toKtObject.properties) {
       put(key, value.toKt())
@@ -151,7 +154,7 @@ private fun JsonObject.toKtObject(): kotlinx.serialization.json.JsonObject {
   }
 }
 
-private fun JsonArray.toKtArray(): kotlinx.serialization.json.JsonArray {
+private fun JsonArray.toKtArray(): KtJsonArray {
   return buildJsonArray {
     for (item in this@toKtArray.items) {
       add(item.toKt())
@@ -182,19 +185,67 @@ private fun IntermediateJsonSchemaData.addStringTypeToEnums(): IntermediateJsonS
 // to mark properties as optional when they have default values
 // fixes problem with EncodeDefault.Never case
 // see https://youtrack.jetbrains.com/issue/IJPL-230494
-private fun removeRequiredForDefaultValues(requiredProperties: Set<String>, serializer: KSerializer<*>): Set<String> {
-  val result = mutableSetOf(*requiredProperties.toTypedArray())
+private fun removeRequiredForDefaultValues(schema: KtJsonObject, serializer: KSerializer<*>): KtJsonObject {
+  return removeRequiredForDefaultValues(schema, serializer.descriptor) as? KtJsonObject ?: schema
+}
 
-  val descriptor = serializer.descriptor
-  if (descriptor.elementsCount == 0) return result
-
-  for (i in 0 until descriptor.elementsCount) {
-    if (descriptor.isElementOptional(i)) {
-      result.remove(descriptor.getElementName(i))
+private fun removeRequiredForDefaultValues(schema: JsonElement, descriptor: SerialDescriptor): JsonElement {
+  val schemaObject = schema as? KtJsonObject ?: return schema
+  return buildJsonObject {
+    for ((key, value) in schemaObject) {
+      when (key) {
+        "required" -> put(key, removeOptionalElements(value, descriptor))
+        "properties" -> put(key, removeRequiredForDefaultValuesFromProperties(value, descriptor))
+        "items" -> put(key, removeRequiredForDefaultValuesFromItems(value, descriptor))
+        else -> put(key, value)
+      }
     }
   }
+}
 
-  return result
+private fun removeOptionalElements(required: JsonElement, descriptor: SerialDescriptor): JsonElement {
+  val requiredArray = required as? KtJsonArray ?: return required
+  if (descriptor.elementsCount == 0) return required
+
+  val optionalElements = buildSet {
+    for (i in 0 until descriptor.elementsCount) {
+      if (descriptor.isElementOptional(i)) add(descriptor.getElementName(i))
+    }
+  }
+  if (optionalElements.isEmpty()) return required
+
+  return buildJsonArray {
+    for (element in requiredArray) {
+      if (element.jsonPrimitive.content !in optionalElements) add(element)
+    }
+  }
+}
+
+private fun removeRequiredForDefaultValuesFromProperties(properties: JsonElement, descriptor: SerialDescriptor): JsonElement {
+  val propertiesObject = properties as? KtJsonObject ?: return properties
+  return buildJsonObject {
+    for ((name, schema) in propertiesObject) {
+      val elementDescriptor = descriptor.getElementDescriptorOrNull(name)
+      put(name, if (elementDescriptor == null) schema else removeRequiredForDefaultValues(schema, elementDescriptor))
+    }
+  }
+}
+
+private fun removeRequiredForDefaultValuesFromItems(items: JsonElement, descriptor: SerialDescriptor): JsonElement {
+  val elementDescriptor = descriptor.getListElementDescriptorOrNull() ?: return items
+  return removeRequiredForDefaultValues(items, elementDescriptor)
+}
+
+private fun SerialDescriptor.getElementDescriptorOrNull(name: String): SerialDescriptor? {
+  for (i in 0 until elementsCount) {
+    if (getElementName(i) == name) return getElementDescriptor(i)
+  }
+  return null
+}
+
+private fun SerialDescriptor.getListElementDescriptorOrNull(): SerialDescriptor? {
+  if (elementsCount != 1) return null
+  return getElementDescriptor(0)
 }
 
 private const val descriptionPropertyNameInschema = "description"

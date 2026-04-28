@@ -1031,8 +1031,8 @@ JSON schemas for both input parameters and return types are derived in [
   `@McpDescription` text (see [§4.2](#42-default-values-make-a-parameter-optional)).
 
 **Output schema (`returnTypeSchema`).** Only generated for non-primitive, non-`Unit`, non-`McpToolCallResult` types. Same post-processing as
-inputs, plus one crucial extra step: `removeRequiredForDefaultValues(requiredProperties, serializer)` walks the `SerialDescriptor` and
-removes any element whose `isElementOptional` is true from the `required` set. This
+inputs, plus one crucial extra step: `removeRequiredForDefaultValues(jsonSchema, serializer)` walks the generated schema and matching
+`SerialDescriptor` tree and removes any element whose `isElementOptional` is true from the corresponding `required` set. This
 fixes [IJPL-230494](https://youtrack.jetbrains.com/issue/IJPL-230494) — without it, `@EncodeDefault(NEVER)` fields would be omitted on the
 wire (because of `explicitNulls = false` in [`McpServerJson`](src/com/intellij/mcpserver/impl/util/McpServerJson.kt)) while still being
 declared `required` in the schema, causing clients to reject valid responses. This is the single most important reason to use
