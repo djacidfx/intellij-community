@@ -5,20 +5,20 @@ import com.intellij.openapi.diagnostic.debug
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.vcs.VcsException
 import com.intellij.platform.util.coroutines.childScope
+import com.intellij.platform.util.coroutines.sync.OverflowSemaphore
 import git4idea.GitWorkingTree
 import git4idea.commands.Git
 import git4idea.remoteApi.GitRepositoryFrontendSynchronizer
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 internal class GitWorkingTreeHolderImpl(private val repository: GitRepository) : GitWorkingTreeHolder {
   private val cs = repository.coroutineScope.childScope("GitWorkingTreeHolderImpl")
 
-  private val updateLock = Mutex()
+  private val updateSemaphore = OverflowSemaphore(1, BufferOverflow.DROP_OLDEST)
   private val _state = MutableStateFlow<Collection<GitWorkingTree>>(emptyList())
 
   override fun getWorkingTrees(): Collection<GitWorkingTree> = _state.value
@@ -28,7 +28,7 @@ internal class GitWorkingTreeHolderImpl(private val repository: GitRepository) :
   }
 
   suspend fun updateState() {
-    updateLock.withLock {
+    updateSemaphore.withPermit {
       _state.value = withContext(Dispatchers.IO) {
         readWorkingTreesFromGit()
       }
