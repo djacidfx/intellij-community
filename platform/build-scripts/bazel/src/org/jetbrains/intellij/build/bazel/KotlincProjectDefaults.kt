@@ -24,30 +24,35 @@ private const val PROGRESSIVE_FLAG = "-progressive"
 private const val XJVM_DEFAULT_PREFIX = "-Xjvm-default="
 private const val XX_LANGUAGE_PREFIX = "-XXLanguage:"
 
-private val KOTLIN2_JVM_KNOWN_OPTIONS = setOf("jvmTarget")
-private val KOTLIN_COMMON_KNOWN_OPTIONS = setOf("apiVersion", "languageVersion")
-private val KOTLIN_COMPILER_SETTINGS_KNOWN_OPTIONS = setOf("additionalArguments")
-private val KOTLIN_JPS_PLUGIN_KNOWN_OPTIONS = setOf("version")
+/**
+ * Every component name allowed at `<project>` level in `kotlinc.xml`, mapped to the set of `<option name="...">`
+ * names allowed within it. Components not listed here cause a hard fail; options whose name is not in the
+ * matching set also cause a hard fail.
+ */
+private val KNOWN_COMPONENTS: Map<String, Set<String>> = mapOf(
+  "Kotlin2JsCompilerArguments" to setOf("moduleKind"),
+  "Kotlin2JvmCompilerArguments" to setOf("jvmTarget"),
+  "KotlinCommonCompilerArguments" to setOf("apiVersion", "languageVersion"),
+  "KotlinCompilerSettings" to setOf("additionalArguments"),
+  "KotlinJpsPluginSettings" to setOf("version"),
+)
+
+private val ALLOWED_COMPONENT_ATTRIBUTES = setOf("name")
+private val ALLOWED_OPTION_ATTRIBUTES = setOf("name", "value")
 
 internal fun parseKotlincProjectDefaultsFromXml(kotlincXml: Path): KotlincProjectDefaults {
   val xml = JDOMUtil.load(kotlincXml)
+  validateKotlincXmlStructure(xml, kotlincXml)
 
   val jvmComponent = requireComponent(xml, "Kotlin2JvmCompilerArguments", kotlincXml)
   val commonComponent = requireComponent(xml, "KotlinCommonCompilerArguments", kotlincXml)
   val compilerSettings = requireComponent(xml, "KotlinCompilerSettings", kotlincXml)
-  val jpsPluginSettings = requireComponent(xml, "KotlinJpsPluginSettings", kotlincXml)
+  requireComponent(xml, "KotlinJpsPluginSettings", kotlincXml)
 
   val jvmTarget = requireOption(jvmComponent, "jvmTarget", "Kotlin2JvmCompilerArguments", kotlincXml)
-  rejectUnknownOptions(jvmComponent, "Kotlin2JvmCompilerArguments", KOTLIN2_JVM_KNOWN_OPTIONS, kotlincXml)
-
   val apiVersion = requireOption(commonComponent, "apiVersion", "KotlinCommonCompilerArguments", kotlincXml)
   val languageVersion = requireOption(commonComponent, "languageVersion", "KotlinCommonCompilerArguments", kotlincXml)
-  rejectUnknownOptions(commonComponent, "KotlinCommonCompilerArguments", KOTLIN_COMMON_KNOWN_OPTIONS, kotlincXml)
-
   val additionalArguments = requireOption(compilerSettings, "additionalArguments", "KotlinCompilerSettings", kotlincXml)
-  rejectUnknownOptions(compilerSettings, "KotlinCompilerSettings", KOTLIN_COMPILER_SETTINGS_KNOWN_OPTIONS, kotlincXml)
-
-  rejectUnknownOptions(jpsPluginSettings, "KotlinJpsPluginSettings", KOTLIN_JPS_PLUGIN_KNOWN_OPTIONS, kotlincXml)
 
   val optIn = mutableListOf<String>()
   var progressive = false
@@ -87,6 +92,63 @@ internal fun parseKotlincProjectDefaultsFromXml(kotlincXml: Path): KotlincProjec
   )
 }
 
+private fun validateKotlincXmlStructure(root: Element, kotlincXml: Path) {
+  val seenComponents = mutableSetOf<String>()
+  for (component in root.getChildren("component")) {
+    val componentName = component.getAttributeValue("name")
+                        ?: error("<component> in $kotlincXml is missing the 'name' attribute")
+
+    val knownOptions = KNOWN_COMPONENTS[componentName]
+                       ?: error(
+                         "Unsupported component '$componentName' in $kotlincXml. " +
+                         "To support it, extend KNOWN_COMPONENTS in parseKotlincProjectDefaults()."
+                       )
+
+    check(seenComponents.add(componentName)) {
+      "Duplicate <component name=\"$componentName\"> in $kotlincXml"
+    }
+
+    rejectUnknownAttributes(
+      element = component,
+      elementDescription = "<component name=\"$componentName\">",
+      allowed = ALLOWED_COMPONENT_ATTRIBUTES,
+      kotlincXml = kotlincXml,
+    )
+
+    val seenOptions = mutableSetOf<String>()
+    for (option in component.getChildren("option")) {
+      val optionName = option.getAttributeValue("name")
+                       ?: error("<option> in <component name=\"$componentName\"> in $kotlincXml is missing the 'name' attribute")
+      if (optionName !in knownOptions) {
+        error(
+          "Unsupported option '$optionName' in $componentName in $kotlincXml. " +
+          "To support it, extend parseKotlincProjectDefaults() and the create_kotlinc_options template in CompilerOptionsBzlGenerator."
+        )
+      }
+      check(seenOptions.add(optionName)) {
+        "Duplicate <option name=\"$optionName\"> in <component name=\"$componentName\"> in $kotlincXml"
+      }
+      rejectUnknownAttributes(
+        element = option,
+        elementDescription = "<option name=\"$optionName\"> in <component name=\"$componentName\">",
+        allowed = ALLOWED_OPTION_ATTRIBUTES,
+        kotlincXml = kotlincXml,
+      )
+    }
+  }
+}
+
+private fun rejectUnknownAttributes(element: Element, elementDescription: String, allowed: Set<String>, kotlincXml: Path) {
+  for (attribute in element.attributes) {
+    if (attribute.name !in allowed) {
+      error(
+        "Unsupported attribute '${attribute.name}' on $elementDescription in $kotlincXml. " +
+        "To support it, extend parseKotlincProjectDefaults()."
+      )
+    }
+  }
+}
+
 private fun normalizeLegacyJvmDefault(rawValue: String, kotlincXml: Path): String = when (rawValue) {
   "disable" -> "disable"
   "all-compatibility" -> "enable"
@@ -106,16 +168,4 @@ private fun requireOption(component: Element, optionName: String, componentName:
                ?: error("$optionName option not found in $componentName in $kotlincXml")
   return option.getAttributeValue("value")
          ?: error("$optionName option in $componentName in $kotlincXml is missing the 'value' attribute")
-}
-
-private fun rejectUnknownOptions(component: Element, componentName: String, knownOptions: Set<String>, kotlincXml: Path) {
-  for (option in component.getChildren("option")) {
-    val name = option.getAttributeValue("name")
-    if (name !in knownOptions) {
-      error(
-        "Unsupported option '$name' in $componentName in $kotlincXml. " +
-        "To support it, extend parseKotlincProjectDefaults() and the create_kotlinc_options template in CompilerOptionsBzlGenerator."
-      )
-    }
-  }
 }

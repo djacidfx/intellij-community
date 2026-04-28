@@ -144,6 +144,204 @@ class KotlincProjectDefaultsTest {
   }
 
   @Test
+  fun `unknown component name fails`() {
+    val xml = writeRawKotlincXml(
+      """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <project version="4">
+          <component name="Kotlin2JvmCompilerArguments">
+            <option name="jvmTarget" value="25" />
+          </component>
+          <component name="KotlinCommonCompilerArguments">
+            <option name="apiVersion" value="2.3" />
+            <option name="languageVersion" value="2.3" />
+          </component>
+          <component name="KotlinCompilerSettings">
+            <option name="additionalArguments" value="-Xjvm-default=all" />
+          </component>
+          <component name="KotlinJpsPluginSettings">
+            <option name="version" value="2.3.21-RC2" />
+          </component>
+          <component name="KotlinFutureCompilerArguments">
+            <option name="something" value="x" />
+          </component>
+        </project>
+      """.trimIndent(),
+    )
+    val ex = assertThrows(IllegalStateException::class.java) { parseKotlincProjectDefaultsFromXml(xml) }
+    val message = ex.message ?: error("Exception had no message")
+    assertTrue(message, message.contains("KotlinFutureCompilerArguments"))
+    assertTrue(message, message.contains("KNOWN_COMPONENTS"))
+    assertTrue(message, message.contains("parseKotlincProjectDefaults"))
+  }
+
+  @Test
+  fun `unknown attribute on component fails`() {
+    val xml = writeRawKotlincXml(
+      """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <project version="4">
+          <component name="Kotlin2JvmCompilerArguments" futureFlag="x">
+            <option name="jvmTarget" value="25" />
+          </component>
+          <component name="KotlinCommonCompilerArguments">
+            <option name="apiVersion" value="2.3" />
+            <option name="languageVersion" value="2.3" />
+          </component>
+          <component name="KotlinCompilerSettings">
+            <option name="additionalArguments" value="-Xjvm-default=all" />
+          </component>
+          <component name="KotlinJpsPluginSettings">
+            <option name="version" value="2.3.21-RC2" />
+          </component>
+        </project>
+      """.trimIndent(),
+    )
+    val ex = assertThrows(IllegalStateException::class.java) { parseKotlincProjectDefaultsFromXml(xml) }
+    val message = ex.message ?: error("Exception had no message")
+    assertTrue(message, message.contains("futureFlag"))
+    assertTrue(message, message.contains("Kotlin2JvmCompilerArguments"))
+    assertTrue(message, message.contains("parseKotlincProjectDefaults"))
+  }
+
+  @Test
+  fun `unknown attribute on option fails`() {
+    val xml = writeRawKotlincXml(
+      """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <project version="4">
+          <component name="Kotlin2JvmCompilerArguments">
+            <option name="jvmTarget" value="25" futureFlag="x" />
+          </component>
+          <component name="KotlinCommonCompilerArguments">
+            <option name="apiVersion" value="2.3" />
+            <option name="languageVersion" value="2.3" />
+          </component>
+          <component name="KotlinCompilerSettings">
+            <option name="additionalArguments" value="-Xjvm-default=all" />
+          </component>
+          <component name="KotlinJpsPluginSettings">
+            <option name="version" value="2.3.21-RC2" />
+          </component>
+        </project>
+      """.trimIndent(),
+    )
+    val ex = assertThrows(IllegalStateException::class.java) { parseKotlincProjectDefaultsFromXml(xml) }
+    val message = ex.message ?: error("Exception had no message")
+    assertTrue(message, message.contains("futureFlag"))
+    assertTrue(message, message.contains("jvmTarget"))
+    assertTrue(message, message.contains("Kotlin2JvmCompilerArguments"))
+  }
+
+  @Test
+  fun `duplicate component fails`() {
+    val xml = writeRawKotlincXml(
+      """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <project version="4">
+          <component name="Kotlin2JvmCompilerArguments">
+            <option name="jvmTarget" value="25" />
+          </component>
+          <component name="Kotlin2JvmCompilerArguments">
+            <option name="jvmTarget" value="21" />
+          </component>
+          <component name="KotlinCommonCompilerArguments">
+            <option name="apiVersion" value="2.3" />
+            <option name="languageVersion" value="2.3" />
+          </component>
+          <component name="KotlinCompilerSettings">
+            <option name="additionalArguments" value="-Xjvm-default=all" />
+          </component>
+          <component name="KotlinJpsPluginSettings">
+            <option name="version" value="2.3.21-RC2" />
+          </component>
+        </project>
+      """.trimIndent(),
+    )
+    val ex = assertThrows(IllegalStateException::class.java) { parseKotlincProjectDefaultsFromXml(xml) }
+    val message = ex.message ?: error("Exception had no message")
+    assertTrue(message, message.contains("Duplicate"))
+    assertTrue(message, message.contains("Kotlin2JvmCompilerArguments"))
+  }
+
+  @Test
+  fun `duplicate option in component fails`() {
+    val xml = writeRawKotlincXml(
+      """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <project version="4">
+          <component name="Kotlin2JvmCompilerArguments">
+            <option name="jvmTarget" value="25" />
+            <option name="jvmTarget" value="21" />
+          </component>
+          <component name="KotlinCommonCompilerArguments">
+            <option name="apiVersion" value="2.3" />
+            <option name="languageVersion" value="2.3" />
+          </component>
+          <component name="KotlinCompilerSettings">
+            <option name="additionalArguments" value="-Xjvm-default=all" />
+          </component>
+          <component name="KotlinJpsPluginSettings">
+            <option name="version" value="2.3.21-RC2" />
+          </component>
+        </project>
+      """.trimIndent(),
+    )
+    val ex = assertThrows(IllegalStateException::class.java) { parseKotlincProjectDefaultsFromXml(xml) }
+    val message = ex.message ?: error("Exception had no message")
+    assertTrue(message, message.contains("Duplicate"))
+    assertTrue(message, message.contains("jvmTarget"))
+    assertTrue(message, message.contains("Kotlin2JvmCompilerArguments"))
+  }
+
+  @Test
+  fun `component without name attribute fails`() {
+    val xml = writeRawKotlincXml(
+      """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <project version="4">
+          <component>
+            <option name="jvmTarget" value="25" />
+          </component>
+        </project>
+      """.trimIndent(),
+    )
+    val ex = assertThrows(IllegalStateException::class.java) { parseKotlincProjectDefaultsFromXml(xml) }
+    val message = ex.message ?: error("Exception had no message")
+    assertTrue(message, message.contains("'name'"))
+    assertTrue(message, message.contains("<component>"))
+  }
+
+  @Test
+  fun `parses Kotlin2JsCompilerArguments without using its values`() {
+    // Sanity check that the validator accepts the canonical-shape Kotlin2JsCompilerArguments component.
+    val defaults = parseKotlincProjectDefaultsFromXml(writeRawKotlincXml(
+      """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <project version="4">
+          <component name="Kotlin2JsCompilerArguments">
+            <option name="moduleKind" value="plain" />
+          </component>
+          <component name="Kotlin2JvmCompilerArguments">
+            <option name="jvmTarget" value="25" />
+          </component>
+          <component name="KotlinCommonCompilerArguments">
+            <option name="apiVersion" value="2.3" />
+            <option name="languageVersion" value="2.3" />
+          </component>
+          <component name="KotlinCompilerSettings">
+            <option name="additionalArguments" value="-Xjvm-default=all" />
+          </component>
+          <component name="KotlinJpsPluginSettings">
+            <option name="version" value="2.3.21-RC2" />
+          </component>
+        </project>
+      """.trimIndent(),
+    ))
+    assertEquals("25", defaults.jvmTarget)
+  }
+
+  @Test
   fun `missing KotlinJpsPluginSettings fails`() {
     val xml = writeRawKotlincXml(
       """
