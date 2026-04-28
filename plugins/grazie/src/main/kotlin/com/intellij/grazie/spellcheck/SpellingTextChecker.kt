@@ -25,12 +25,12 @@ import com.intellij.grazie.text.TextChecker.ProofreadingContext
 import com.intellij.grazie.text.TextProblem
 import com.intellij.grazie.utils.EXTRACTOR_SOURCE
 import com.intellij.grazie.utils.NaturalTextDetector
+import com.intellij.grazie.utils.getGrazieTracker
 import com.intellij.grazie.utils.getProblems
 import com.intellij.grazie.utils.getTextProblems
 import com.intellij.grazie.utils.toLinkedSet
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.Service
-import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
@@ -38,7 +38,6 @@ import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.util.text.StringUtil.BombedCharSequence
 import com.intellij.psi.PsiFile
 import com.intellij.spellchecker.SpellCheckerManager
-import com.intellij.spellchecker.engine.DictionaryModificationTracker
 import com.intellij.spellchecker.inspections.IdentifierSplitter.MINIMAL_TYPO_LENGTH
 import com.intellij.spellchecker.inspections.SpellCheckingInspection.SpellCheckingScope
 import com.intellij.spellchecker.tokenizer.SpellcheckingStrategy.getSpellcheckingStrategy
@@ -62,14 +61,13 @@ internal class SpellingTextChecker : ExternalTextChecker() {
 
   private inline fun doCheck(context: ProofreadingContext, action: (Project) -> List<TypoProblem>): List<TypoProblem> {
     val file = context.text.containingFile
-    val project = file.project
     val scopes = GrazieSpellCheckingInspection.buildAllowedScopes(file)
     if (!useTextLevelSpellchecking(context, scopes)) return emptyList()
 
-    val configStamp = getConfigStamp(project)
+    val configStamp = getGrazieTracker(file).modificationCount
     var cache = getCachedTypos(context, configStamp)
     if (cache == null) {
-      cache = action(project)
+      cache = action(file.project)
         .filterNot { it.word.length < MINIMAL_TYPO_LENGTH }
         .filterNot { hasUnknownFragments(it) }
       context.text.putUserData(spellingKey, CachedResults(configStamp, cache))
@@ -95,15 +93,14 @@ internal class SpellingTextChecker : ExternalTextChecker() {
     if (contexts.isEmpty()) return emptyList()
 
     val file = contexts.first().text.containingFile
-    val project = file.project
     val scopes = GrazieSpellCheckingInspection.buildAllowedScopes(file)
     val toCheck = contexts.filter { useTextLevelSpellchecking(it, scopes) }
     if (toCheck.isEmpty()) return emptyList()
 
-    val configStamp = getConfigStamp(project)
+    val configStamp = getGrazieTracker(file).modificationCount
     var cache = getCachedTypos(file, configStamp)
     if (cache == null) {
-      cache = action(toCheck, project)
+      cache = action(toCheck, file.project)
         .filterNot { it.word.length < MINIMAL_TYPO_LENGTH }
         .filterNot { hasUnknownFragments(it) }
       file.putUserData(spellingKey, CachedResults(configStamp, cache))
@@ -116,10 +113,6 @@ internal class SpellingTextChecker : ExternalTextChecker() {
     val strategy = getSpellcheckingStrategy(element)
     return strategy != null && strategy.elementFitsScope(element, scopes) && strategy.useTextLevelSpellchecking(element)
   }
-
-  private fun getConfigStamp(project: Project): Long =
-    service<GrazieConfig>().modificationCount +
-    DictionaryModificationTracker.getInstance(project).modificationCount
 
   private fun getCachedTypos(context: ProofreadingContext, configStamp: Long): List<TypoProblem>? {
     val cache = context.text.getUserData(spellingKey)
