@@ -1,14 +1,10 @@
 package com.intellij.searchEverywhereMl.ranking.core.features.statistician
 
-import com.intellij.openapi.application.EDT
-import com.intellij.openapi.application.writeIntentReadAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.util.Key
 import com.intellij.psi.statistics.StatisticsManager
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 
 @Service(Service.Level.APP)
@@ -22,11 +18,7 @@ class SearchEverywhereStatisticianService(private val coroutineScope: CoroutineS
       val info = getSerializedInfo(element) ?: return@launch
       val manager = StatisticsManager.getInstance()
 
-      withContext(Dispatchers.EDT) {
-        writeIntentReadAction {
-          manager.incUseCount(info)
-        }
-      }
+      manager.incUseCount(info)
     }
   }
 
