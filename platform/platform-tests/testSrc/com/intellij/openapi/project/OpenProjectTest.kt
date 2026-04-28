@@ -87,17 +87,38 @@ internal enum class IdeaProjectMaker {
     override fun makeProject(projectDir: Path): Path {
       projectDir.createDirectories()
       val projectPath = projectDir.resolve("project.ipr")
-      projectPath.writeText("""
+      projectPath.writeText($$"""
         <?xml version="1.0" encoding="UTF-8"?>
         <project version="4">
+          <component name="ProjectRootManager" version="2" />
+          <component name="ProjectModuleManager">
+            <modules>
+              <module fileurl="file://$PROJECT_DIR$/module01.iml" filepath="$PROJECT_DIR$/module01.iml" />
+            </modules>
+          </component>
         </project>
       """.trimIndent())
+
+      projectDir.resolve("module01.iml").writeText($$"""
+        <module relativePaths="true" type="JAVA_MODULE" version="4">
+          <component name="NewModuleRootManager" >
+            <content url="file://$MODULE_DIR$">
+              <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
+            </content>
+          </component>
+        </module>
+      """.trimIndent())
+
       return projectPath
     }
   },
   ;
 
   abstract fun makeProject(projectDir: Path): Path
+
+  fun getExpectedProjectState(projectDir: Path): ExpectedProjectState {
+    return ExpectedProjectState(projectDir, listOf($$"$ROOT$"), listOf($$"$ROOT$"))
+  }
 }
 
 @RunWith(Parameterized::class)
@@ -153,11 +174,17 @@ internal class OpenProjectTest(private val opener: Opener) {
 
   @Test
   fun `open ipr file with ability to attach`() = runBlocking(Dispatchers.Default) {
+    Assume.assumeTrue(
+      "Ignore ModeFolderAsProject/ModeFolderAsFolder, because we are checking opening of regular files here, not folders",
+      opener.mode != ModeFolderAsProject && opener.mode != ModeFolderAsFolder,
+    )
+
     ExtensionTestUtil.maskExtensions(ProjectAttachProcessor.EP_NAME, listOf(ModuleAttachProcessor()), disposableRule.disposable)
     val projectDir = tempDir.newPath("project")
     val projectFileToOpen = IdeaProjectMaker.IprFile.makeProject(projectDir)
     openWithOpenerAndAssertProjectState(projectFileToOpen,
-                                        opener.getExpectedProjectState(projectDir),
+      // when opening an ipr file the result is always a project described in that ipr file
+                                        IdeaProjectMaker.IprFile.getExpectedProjectState(projectDir),
                                         opener.defaultProjectTemplateShouldBeAppliedOverride ?: false)
   }
 
@@ -196,7 +223,8 @@ internal class OpenProjectTest(private val opener: Opener) {
     val projectDir = tempDir.newPath("project")
     val projectFileToOpen = IdeaProjectMaker.IprFile.makeProject(projectDir)
     openWithOpenerAndAssertProjectState(projectFileToOpen,
-                                        opener.getExpectedProjectState(projectDir),
+      // when opening an ipr file the result is always a project described in that ipr file
+                                        IdeaProjectMaker.IprFile.getExpectedProjectState(projectDir),
                                         opener.defaultProjectTemplateShouldBeAppliedOverride ?: false)
   }
 
