@@ -3,6 +3,7 @@ load("@rules_jvm//:jvm.bzl", "jvm_library")
 
 jvm_library(
   name = "module",
+  module_name = "module",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
   runtime_deps = ["@lib//snapshots:dokka-core-1-4-10-2-dev-52-snapshot"]
@@ -13,6 +14,7 @@ jvm_library(
   module_name = "module",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
+  kotlinc_opts = "@community//:k21",
   runtime_deps = [":module"]
 )
 ### auto-generated section `build module` end
