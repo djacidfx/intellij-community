@@ -16,7 +16,6 @@ jvm_library(
   deps = [
     "@lib//:kotlin-stdlib",
     "//platform/core-api:core",
-    "//plugins/kotlin/base/frontend-agnostic",
     "//plugins/kotlin/base/util",
     "//plugins/kotlin/base/plugin",
     "//platform/core-impl",
@@ -37,7 +36,6 @@ jvm_library(
   runtime_deps = [
     ":kotlin-base-externalSystem",
     "//platform/core-api:core_test_lib",
-    "//plugins/kotlin/base/frontend-agnostic:frontend-agnostic_test_lib",
     "//plugins/kotlin/base/util:util_test_lib",
     "//plugins/kotlin/base/plugin:plugin_test_lib",
     "//platform/core-impl:core-impl_test_lib",

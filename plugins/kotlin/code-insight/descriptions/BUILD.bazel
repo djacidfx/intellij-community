@@ -12,8 +12,7 @@ jvm_library(
   module_name = "intellij.kotlin.codeInsight.descriptions",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
-  resources = [":descriptions_resources"],
-  runtime_deps = ["//plugins/kotlin/base/frontend-agnostic"]
+  resources = [":descriptions_resources"]
 )
 
 jvm_library(
@@ -22,10 +21,7 @@ jvm_library(
   module_name = "intellij.kotlin.codeInsight.descriptions",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
-  runtime_deps = [
-    ":descriptions",
-    "//plugins/kotlin/base/frontend-agnostic:frontend-agnostic_test_lib",
-  ]
+  runtime_deps = [":descriptions"]
 )
 ### auto-generated section `build intellij.kotlin.codeInsight.descriptions` end
 

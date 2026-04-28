@@ -37,7 +37,6 @@ jvm_library(
     "@lib//:kotlin-stdlib",
     "@lib//:kotlinc-kotlin-compiler-common",
     "//platform/core-api:core",
-    "//plugins/kotlin/base/frontend-agnostic",
     "//platform/util",
     "//platform/util-ex",
     "//platform/util:util-ui",
@@ -56,7 +55,6 @@ jvm_library(
   runtime_deps = [
     ":kotlin-base-resources",
     "//platform/core-api:core_test_lib",
-    "//plugins/kotlin/base/frontend-agnostic:frontend-agnostic_test_lib",
     "//platform/util:util_test_lib",
     "//platform/util-ex:util-ex_test_lib",
     "//platform/util:util-ui_test_lib",

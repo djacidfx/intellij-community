@@ -10,7 +10,6 @@ jvm_library(
     "@lib//:kotlin-stdlib",
     "@lib//:kotlinc-kotlin-compiler-common",
     "//platform/core-api:core",
-    "//plugins/kotlin/base/frontend-agnostic",
     "//plugins/kotlin/base/psi",
     "//platform/core-impl",
     "//platform/indexing-api:indexing",
@@ -35,7 +34,6 @@ jvm_library(
   runtime_deps = [
     ":indices",
     "//platform/core-api:core_test_lib",
-    "//plugins/kotlin/base/frontend-agnostic:frontend-agnostic_test_lib",
     "//plugins/kotlin/base/psi:psi_test_lib",
     "//platform/core-impl:core-impl_test_lib",
     "//platform/indexing-api:indexing_test_lib",

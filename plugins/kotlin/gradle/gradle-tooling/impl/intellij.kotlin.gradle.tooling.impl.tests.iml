@@ -14,7 +14,6 @@
     <orderEntry type="library" scope="TEST" name="kotlin-gradle-plugin-idea-proto" level="project" />
     <orderEntry type="library" scope="TEST" name="kotlin-gradle-plugin-idea" level="project" />
     <orderEntry type="module" module-name="intellij.kotlin.gradle.tooling" scope="TEST" />
-    <orderEntry type="module" module-name="kotlin.base.frontend-agnostic" scope="TEST" />
     <orderEntry type="module" module-name="intellij.kotlin.base.projectModel" scope="TEST" />
     <orderEntry type="module" module-name="intellij.gradle.toolingExtension" scope="TEST" />
     <orderEntry type="module" module-name="intellij.gradle.toolingExtension.impl" scope="TEST" />

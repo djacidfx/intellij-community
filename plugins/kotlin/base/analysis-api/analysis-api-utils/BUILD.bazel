@@ -22,7 +22,6 @@ jvm_library(
   deps = [
     "@lib//:kotlin-stdlib",
     "//java/java-indexing-api:indexing",
-    "//plugins/kotlin/base/frontend-agnostic",
     "//platform/core-api:core",
     "//platform/ide-core-impl",
     "//platform/core-impl",
@@ -52,7 +51,6 @@ jvm_library(
   runtime_deps = [
     ":kotlin-base-analysis-utils",
     "//java/java-indexing-api:indexing_test_lib",
-    "//plugins/kotlin/base/frontend-agnostic:frontend-agnostic_test_lib",
     "//platform/core-api:core_test_lib",
     "//platform/ide-core-impl:ide-core-impl_test_lib",
     "//platform/core-impl:core-impl_test_lib",

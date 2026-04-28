@@ -1975,7 +1975,6 @@
       <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/base/fe10/obsolete-compat/kotlin.base.fe10.obsolete-compat.iml" filepath="$PROJECT_DIR$/plugins/kotlin/base/fe10/obsolete-compat/kotlin.base.fe10.obsolete-compat.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/base/fe10/plugin/kotlin.base.fe10.plugin.iml" filepath="$PROJECT_DIR$/plugins/kotlin/base/fe10/plugin/kotlin.base.fe10.plugin.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/base/fe10/project-structure/kotlin.base.fe10.project-structure.iml" filepath="$PROJECT_DIR$/plugins/kotlin/base/fe10/project-structure/kotlin.base.fe10.project-structure.iml" />
-      <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/base/frontend-agnostic/kotlin.base.frontend-agnostic.iml" filepath="$PROJECT_DIR$/plugins/kotlin/base/frontend-agnostic/kotlin.base.frontend-agnostic.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/injection/base/kotlin.base.injection.iml" filepath="$PROJECT_DIR$/plugins/kotlin/injection/base/kotlin.base.injection.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/injection/base/tests/kotlin.base.injection.tests.iml" filepath="$PROJECT_DIR$/plugins/kotlin/injection/base/tests/kotlin.base.injection.tests.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugins/kotlin/base/obsolete-compat/kotlin.base.obsolete-compat.iml" filepath="$PROJECT_DIR$/plugins/kotlin/base/obsolete-compat/kotlin.base.obsolete-compat.iml" />

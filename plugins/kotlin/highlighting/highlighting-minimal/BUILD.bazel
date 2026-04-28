@@ -27,8 +27,7 @@ jvm_library(
     "//java/java-frontback-psi-impl:frontback-psi-impl",
     "//platform/platform-api:ide",
     "//platform/ide-core",
-  ],
-  runtime_deps = ["//plugins/kotlin/base/frontend-agnostic"]
+  ]
 )
 
 jvm_library(
@@ -48,7 +47,6 @@ jvm_library(
     "//plugins/kotlin/base/resources:kotlin-base-resources_test_lib",
     "//platform/util:util-ui_test_lib",
     "//platform/lang-impl:lang-impl_test_lib",
-    "//plugins/kotlin/base/frontend-agnostic:frontend-agnostic_test_lib",
     "//java/java-frontback-psi-impl:frontback-psi-impl_test_lib",
     "//platform/platform-api:ide_test_lib",
     "//platform/ide-core:ide-core_test_lib",

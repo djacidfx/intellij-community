@@ -15,7 +15,6 @@ jvm_library(
   resources = [":scripting-plugin_resources"],
   deps = [
     "@lib//:kotlin-stdlib",
-    "//plugins/kotlin/base/frontend-agnostic",
     "//plugins/kotlin/jsr223",
     "//platform/util",
     "@lib//:kotlinc-kotlin-compiler-common",
@@ -31,7 +30,6 @@ jvm_library(
   srcs = glob([], allow_empty = True),
   runtime_deps = [
     ":scripting-plugin",
-    "//plugins/kotlin/base/frontend-agnostic:frontend-agnostic_test_lib",
     "//plugins/kotlin/jsr223:jsr223_test_lib",
     "//platform/util:util_test_lib",
     "//platform/core-impl:core-impl_test_lib",

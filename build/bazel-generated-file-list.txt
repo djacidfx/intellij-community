@@ -1167,7 +1167,6 @@ plugins/kotlin/base/fir/analysis-api-platform
 plugins/kotlin/base/fir/code-insight
 plugins/kotlin/base/fir/project-structure
 plugins/kotlin/base/fir/scripting
-plugins/kotlin/base/frontend-agnostic
 plugins/kotlin/base/indices
 plugins/kotlin/base/indices/tests
 plugins/kotlin/base/jps

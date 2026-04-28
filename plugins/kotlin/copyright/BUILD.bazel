@@ -17,7 +17,6 @@ jvm_library(
     "@lib//:kotlin-stdlib",
     "@lib//:kotlinc-kotlin-compiler-common",
     "//platform/projectModel-api:projectModel",
-    "//plugins/kotlin/base/frontend-agnostic",
     "//platform/core-api:core",
     "//platform/util",
     "//plugins/copyright",
@@ -33,7 +32,6 @@ jvm_library(
   runtime_deps = [
     ":copyright",
     "//platform/projectModel-api:projectModel_test_lib",
-    "//plugins/kotlin/base/frontend-agnostic:frontend-agnostic_test_lib",
     "//platform/core-api:core_test_lib",
     "//platform/util:util_test_lib",
     "//plugins/copyright:copyright_test_lib",

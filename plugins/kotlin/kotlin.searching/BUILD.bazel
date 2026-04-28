@@ -49,8 +49,7 @@ jvm_library(
     "//plugins/kotlin/base/facet",
     "//plugins/kotlin/base/analysis-api/analysis-api-utils:kotlin-base-analysis-utils",
     "//plugins/kotlin/base/psi",
-  ],
-  runtime_deps = ["//plugins/kotlin/base/frontend-agnostic"]
+  ]
 )
 
 jvm_library(
@@ -64,7 +63,6 @@ jvm_library(
     ":kotlin.searching",
     "//java/java-psi-api:psi_test_lib",
     "//java/java-indexing-api:indexing_test_lib",
-    "//plugins/kotlin/base/frontend-agnostic:frontend-agnostic_test_lib",
     "//platform/core-api:core_test_lib",
     "//platform/core-impl:core-impl_test_lib",
     "//platform/indexing-api:indexing_test_lib",

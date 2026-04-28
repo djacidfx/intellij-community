@@ -15,6 +15,7 @@ jvm_library(
   runtime_deps = [
     "@lib//:kotlin-stdlib",
     "//platform/core-api:core",
+    "//plugins/kotlin/copyright/tests",
     "//plugins/kotlin/base/testFramework",
     "//plugins/kotlin/base/code-insight",
     "//plugins/kotlin/base/plugin",
@@ -38,7 +39,6 @@ jvm_library(
     "//plugins/kotlin/j2k/k1.new/tests",
     "//plugins/kotlin/j2k/shared/tests",
     "//plugins/kotlin/jps/graphImplementationTests",
-    "//plugins/kotlin/copyright/tests",
     "//plugins/kotlin/uast/uast-kotlin-base:kotlin-uast-base",
     "//plugins/kotlin/uast/uast-kotlin/tests",
     "//plugins/kotlin/uast/uast-kotlin-idea/tests",
@@ -62,7 +62,6 @@ jvm_library(
     "//plugins/kotlin/code-insight/kotlin.code-insight.k1:kotlin-code-insight-k1",
     "//plugins/kotlin/completion/tests-shared:kotlin-completion-tests-shared",
     "//plugins/kotlin/completion/tests-k1:kotlin-completion-tests-k1",
-    "//plugins/kotlin/ml-completion/tests",
     "//plugins/kotlin/uast/uast-kotlin-base/tests",
     "//plugins/kotlin/refactorings/kotlin.refactorings.common.tests:kotlin-refactorings-common-tests",
     "//plugins/kotlin/injection/k1/tests",
@@ -99,6 +98,7 @@ jvm_library(
     "//plugins/kotlin/base/scripting/scripting.k1:kotlin-base-scripting-k1-tests",
     "//plugins/kotlin/code-insight/live-templates-shared:kotlin-code-insight-live-templates-shared-tests",
     "//plugins/kotlin/gradle/gradle-java:kotlin-gradle-gradle-java-tests",
+    "//plugins/kotlin/tests-compose",
   ]
 )
 
@@ -114,6 +114,7 @@ jvm_library(
     "//plugins/kotlin/plugin/k1",
     "//plugins/kotlin/plugin/k1:k1_test_lib",
     "//platform/core-api:core_test_lib",
+    "//plugins/kotlin/copyright/tests:tests_test_lib",
     "//plugins/kotlin/base/testFramework:testFramework_test_lib",
     "//plugins/kotlin/base/code-insight:code-insight_test_lib",
     "//plugins/kotlin/base/plugin:plugin_test_lib",
@@ -137,7 +138,6 @@ jvm_library(
     "//plugins/kotlin/j2k/k1.new/tests:tests_test_lib",
     "//plugins/kotlin/j2k/shared/tests:tests_test_lib",
     "//plugins/kotlin/jps/graphImplementationTests:graphImplementationTests_test_lib",
-    "//plugins/kotlin/copyright/tests:tests_test_lib",
     "//plugins/kotlin/uast/uast-kotlin-base:kotlin-uast-base_test_lib",
     "//plugins/kotlin/uast/uast-kotlin/tests:tests_test_lib",
     "//plugins/kotlin/uast/uast-kotlin-idea/tests:tests_test_lib",
@@ -161,7 +161,6 @@ jvm_library(
     "//plugins/kotlin/code-insight/kotlin.code-insight.k1:kotlin-code-insight-k1_test_lib",
     "//plugins/kotlin/completion/tests-shared:kotlin-completion-tests-shared_test_lib",
     "//plugins/kotlin/completion/tests-k1:kotlin-completion-tests-k1_test_lib",
-    "//plugins/kotlin/ml-completion/tests:tests_test_lib",
     "//plugins/kotlin/uast/uast-kotlin-base/tests:tests_test_lib",
     "//plugins/kotlin/refactorings/kotlin.refactorings.common.tests:kotlin-refactorings-common-tests_test_lib",
     "//plugins/kotlin/injection/k1/tests:tests_test_lib",
@@ -198,6 +197,7 @@ jvm_library(
     "//plugins/kotlin/base/scripting/scripting.k1:kotlin-base-scripting-k1-tests_test_lib",
     "//plugins/kotlin/code-insight/live-templates-shared:kotlin-code-insight-live-templates-shared-tests_test_lib",
     "//plugins/kotlin/gradle/gradle-java:kotlin-gradle-gradle-java-tests_test_lib",
+    "//plugins/kotlin/tests-compose:tests-compose_test_lib",
   ]
 )
 ### auto-generated section `build kotlin.all-tests` end

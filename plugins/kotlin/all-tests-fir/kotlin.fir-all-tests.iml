@@ -106,5 +106,25 @@
     <orderEntry type="module" module-name="intellij.kotlin.projectWizard.compose.tests" scope="RUNTIME" />
     <orderEntry type="module" module-name="kotlin.code-insight.live-templates.shared.tests" scope="RUNTIME" />
     <orderEntry type="module" module-name="kotlin.gradle.gradle-java.tests" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.kotlin.completion.ml.tests" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.kotlin.gradle.gradle.tests" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.kotlin.gradle.tooling.tests" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.kotlin.jvm.debugger.eval4j.tests" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.kotlin.jvm.debugger.test.compose.testFramework" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.kotlin.jvm.debugger.test.parcelize.testFramework" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.kotlin.jvm.debugger.test.testFramework" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.kotlin.native.tests" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.kotlin.onboarding.gradle.tests" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.kotlin.onboarding.tests" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.kotlin.uast.base.tests" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.kotlin.uast.idea.base.tests" scope="RUNTIME" />
+    <orderEntry type="module" module-name="kotlin.completion.tests.shared" scope="RUNTIME" />
+    <orderEntry type="module" module-name="kotlin.copyright.tests" scope="RUNTIME" />
+    <orderEntry type="module" module-name="kotlin.gradle.gradle-java.tests.shared" scope="RUNTIME" />
+    <orderEntry type="module" module-name="kotlin.injection.tests" scope="RUNTIME" />
+    <orderEntry type="module" module-name="kotlin.j2k.shared.tests" scope="RUNTIME" />
+    <orderEntry type="module" module-name="kotlin.jps.graphImplementationTests" scope="RUNTIME" />
+    <orderEntry type="module" module-name="kotlin.jvm-debugger.testFramework" scope="RUNTIME" />
+    <orderEntry type="module" module-name="kotlin.refactorings.common.tests" scope="RUNTIME" />
   </component>
 </module>
