@@ -687,6 +687,7 @@ internal class BazelBuildFileGenerator(
       val testLibTargetName = "${moduleDescriptor.targetName}$TEST_LIB_NAME_SUFFIX"
       testCompileTargets.add(BazelLabel(testLibTargetName, moduleDescriptor))
       option("name", testLibTargetName)
+      option("testonly", true)
 
       var testDeps = moduleList.testDeps.get(moduleDescriptor)
       if (testDeps == null || testDeps.associates.isEmpty()) { // => in this case no 'associates' attribute will be generated
