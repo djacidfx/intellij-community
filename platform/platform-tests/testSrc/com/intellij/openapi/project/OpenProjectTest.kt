@@ -102,7 +102,7 @@ internal enum class IdeaProjectMaker {
       projectDir.resolve("module01.iml").writeText($$"""
         <module relativePaths="true" type="JAVA_MODULE" version="4">
           <component name="NewModuleRootManager" >
-            <content url="file://$MODULE_DIR$">
+            <content url="file://$MODULE_DIR$/mod1">
               <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
             </content>
           </component>
@@ -117,7 +117,7 @@ internal enum class IdeaProjectMaker {
   abstract fun makeProject(projectDir: Path): Path
 
   fun getExpectedProjectState(projectDir: Path): ExpectedProjectState {
-    return ExpectedProjectState(projectDir, listOf($$"$ROOT$"), listOf($$"$ROOT$"))
+    return ExpectedProjectState(projectDir, listOf($$"$ROOT$/mod1"), listOf($$"$ROOT$"))
   }
 }
 
