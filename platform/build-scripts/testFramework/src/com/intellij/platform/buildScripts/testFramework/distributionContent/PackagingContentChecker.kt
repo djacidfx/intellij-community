@@ -127,7 +127,7 @@ data class PackagingTargetValidationSpec(
 data class PackagingTargetSpec(
   @JvmField val id: String,
   @JvmField val createProductProperties: (projectHome: Path) -> ProductProperties,
-  @JvmField val contentYamlPath: String,
+  @JvmField val contentYamlPath: String?,
   @JvmField val buildTools: ProprietaryBuildTools = ProprietaryBuildTools.DUMMY,
   @JvmField val checkPlugins: Boolean = true,
   @JvmField val suggestedReviewer: String? = null,
@@ -292,6 +292,7 @@ class PackagingSuiteFixture private constructor(
   fun createPlatformTests(): List<DynamicTest> {
     val tests = ArrayList<DynamicTest>(packagingTasks.size)
     for (task in packagingTasks) {
+      val expectedContentYamlPath = task.spec.contentYamlPath ?: continue
       tests.add(DynamicTest.dynamicTest(task.spec.id) {
         runBlocking {
           withTelemetrySpan(
@@ -304,7 +305,7 @@ class PackagingSuiteFixture private constructor(
             val packageResult = task.resultDeferred.await().getOrAbort("Platform content check for ${task.spec.id} skipped because packaging failed")
             checkThatContentIsNotChanged(
               actualFileEntries = packageResult.content.platform,
-              expectedFile = spec.homePath.resolve(task.spec.contentYamlPath),
+              expectedFile = spec.homePath.resolve(expectedContentYamlPath),
               projectHome = packageResult.projectHome,
               isBundled = true,
               suggestedReviewer = task.spec.suggestedReviewer,
