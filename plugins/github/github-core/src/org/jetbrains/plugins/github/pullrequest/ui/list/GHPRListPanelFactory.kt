@@ -6,8 +6,8 @@ import com.intellij.collaboration.async.nestedDisposable
 import com.intellij.collaboration.ui.CollaborationToolsUIUtil.wrapWithProgressStripe
 import com.intellij.collaboration.ui.codereview.list.ReviewListUtil.wrapWithLazyVerticalScroll
 import com.intellij.collaboration.ui.util.toListModelIn
-import com.intellij.ide.DataManager
 import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.UiDataProvider
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.project.Project
 import com.intellij.platform.util.coroutines.childScope
@@ -57,16 +57,14 @@ object GHPRListPanelFactory {
     GHPRListPanelController(project, cs, listVm, list.emptyText, listLoaderPanel, listWrapper)
 
     return JBUI.Panels.simplePanel(progressStripe).addToTop(searchPanel).andTransparent().also {
-      val listController = GHPRListControllerImpl(listVm)
-      DataManager.registerDataProvider(it) { dataId ->
-        when {
-          GHPRActionKeys.PULL_REQUESTS_LIST_CONTROLLER.`is`(dataId) -> listController
-          GHPRActionKeys.PULL_REQUEST_ID.`is`(dataId) -> list.selectedValue?.prId
-          GHPRActionKeys.PULL_REQUEST_URL.`is`(dataId) -> list.selectedValue?.url
-          else -> null
-        }
-      }
       actionManager.getAction("Github.PullRequest.List.Reload").registerCustomShortcutSet(it, cs.nestedDisposable())
+    }.let { panel ->
+      val listController = GHPRListControllerImpl(listVm)
+      UiDataProvider.wrapComponent(panel) { sink ->
+        sink[GHPRActionKeys.PULL_REQUESTS_LIST_CONTROLLER] = listController
+        sink[GHPRActionKeys.PULL_REQUEST_ID] = list.selectedValue?.prId
+        sink[GHPRActionKeys.PULL_REQUEST_URL] = list.selectedValue?.url
+      }
     }
   }
 
