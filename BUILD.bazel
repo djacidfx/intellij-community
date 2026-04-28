@@ -17,6 +17,7 @@ exports_files(
 filegroup(
   name = "jps_to_bazel_community_model_root_files",
   srcs = [
+    ".idea/misc.xml",
     ".idea/modules.xml",
   ] + glob([".idea/libraries/*.xml"]),
   visibility = ["//visibility:public"],

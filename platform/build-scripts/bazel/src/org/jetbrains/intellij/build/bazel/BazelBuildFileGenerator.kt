@@ -109,6 +109,12 @@ internal class BazelBuildFileGenerator(
   @JvmField
   val javaExtensionService: JpsJavaExtensionService = JpsJavaExtensionService.getInstance()
   private val projectJavacSettings = javaExtensionService.getCompilerConfiguration(project)
+  private val projectLanguageLevel: LanguageLevel = run {
+    val projectExtension = javaExtensionService.getProjectExtension(project)
+      ?: error("Project-level language version is not defined: JpsJavaProjectExtension is missing on project ${project.name}")
+    projectExtension.languageLevel
+      ?: error("Project-level language version is not defined: JpsJavaProjectExtension.languageLevel is null on project ${project.name}")
+  }
 
   private val moduleToDescriptor = IdentityHashMap<JpsModule, ModuleDescriptor>()
 
@@ -868,15 +874,14 @@ internal class BazelBuildFileGenerator(
   }
 
   private fun getLanguageLevel(module: JpsModule): String {
-    val languageLevel = javaExtensionService.getLanguageLevel(module)
-    return when {
-      languageLevel == LanguageLevel.JDK_1_8 -> "8"
-      languageLevel == LanguageLevel.JDK_11 -> "11"
-      languageLevel == LanguageLevel.JDK_17 -> "17"
-      languageLevel == LanguageLevel.JDK_21 -> "21"
-      languageLevel == LanguageLevel.JDK_25 -> "25"
-      languageLevel != null -> error("Unsupported language level: $languageLevel")
-      else -> "21"
+    val languageLevel = javaExtensionService.getLanguageLevel(module) ?: projectLanguageLevel
+    return when (languageLevel) {
+      LanguageLevel.JDK_1_8 -> "8"
+      LanguageLevel.JDK_11 -> "11"
+      LanguageLevel.JDK_17 -> "17"
+      LanguageLevel.JDK_21 -> "21"
+      LanguageLevel.JDK_25 -> "25"
+      else -> error("Unsupported language level: $languageLevel for module ${module.name}")
     }
   }
 
