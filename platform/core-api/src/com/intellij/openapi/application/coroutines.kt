@@ -10,6 +10,7 @@ import com.intellij.util.ui.EDT
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainCoroutineDispatcher
+import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.withContext
 import org.jetbrains.annotations.ApiStatus.Experimental
 import org.jetbrains.annotations.ApiStatus.Internal
@@ -169,7 +170,7 @@ suspend fun <T> readAndWriteAction(action: ReadAndWriteScope.() -> ReadResult<T>
  * Same as [readAndEdtWriteAction], but invokes write actions on a background thread instead of EDT.
  */
 suspend fun <T> readAndBackgroundWriteAction(action: ReadAndWriteScope.() -> ReadResult<T>): T {
-  return readWriteActionSupport().executeReadAndWriteAction(emptyArray(), false, false, action)
+  return readWriteActionSupport().executeReadAndWriteAction(emptyArray(), runWriteActionOnEdt = false, undispatched = false, action)
 }
 
 /**
@@ -180,7 +181,7 @@ suspend fun <T> readAndBackgroundWriteAction(action: ReadAndWriteScope.() -> Rea
  */
 @Experimental
 suspend fun <T> readAndBackgroundWriteActionUndispatched(action: ReadAndWriteScope.() -> ReadResult<T>): T {
-  return readWriteActionSupport().executeReadAndWriteAction(emptyArray(), false, true, action)
+  return readWriteActionSupport().executeReadAndWriteAction(emptyArray(), runWriteActionOnEdt = false, undispatched = true, action)
 }
 
 /**
@@ -191,7 +192,7 @@ suspend fun <T> readAndBackgroundWriteActionUndispatched(action: ReadAndWriteSco
  */
 @Experimental
 suspend fun <T> readAndEdtWriteActionUndispatched(action: ReadAndWriteScope.() -> ReadResult<T>): T {
-  return readWriteActionSupport().executeReadAndWriteAction(emptyArray(), true, true, action)
+  return readWriteActionSupport().executeReadAndWriteAction(emptyArray(), runWriteActionOnEdt = true, undispatched = true, action)
 }
 
 
@@ -210,7 +211,7 @@ suspend fun <T> readAndEdtWriteActionUndispatched(action: ReadAndWriteScope.() -
  * @see constrainedReadAction
  */
 suspend fun <T> readAndEdtWriteAction(action: ReadAndWriteScope.() -> ReadResult<T>): T {
-  return readWriteActionSupport().executeReadAndWriteAction(emptyArray(), true, false, action)
+  return readWriteActionSupport().executeReadAndWriteAction(emptyArray(), runWriteActionOnEdt = true, undispatched = false, action)
 }
 
 /**
@@ -261,7 +262,7 @@ suspend fun <T> readAndEdtWriteAction(action: ReadAndWriteScope.() -> ReadResult
  *
  */
 suspend fun <T> constrainedReadAndWriteAction(vararg constraints: ReadConstraint, action: ReadAndWriteScope.() -> ReadResult<T>): T {
-  return readWriteActionSupport().executeReadAndWriteAction(constraints, true, false, action = action)
+  return readWriteActionSupport().executeReadAndWriteAction(constraints, runWriteActionOnEdt = true, undispatched = false, action = action)
 }
 
 /**
@@ -277,8 +278,74 @@ suspend fun <T> constrainedReadAndWriteAction(vararg constraints: ReadConstraint
  */
 suspend fun <T> edtWriteAction(action: () -> T): T {
   return withContext(Dispatchers.EDT) {
-    ApplicationManager.getApplication().runWriteAction(Computable(action))
+    ApplicationManager.getApplication().runWriteAction(lambdaToComputable<T>(action))
   }
+}
+
+private class ComputableWrapper<T,E : Throwable>(val lambda: ()->T) : Computable<T>, ThrowableComputable<T,E> {
+  override fun compute(): T {
+    return lambda.invoke()
+  }
+
+  override fun toString(): String {
+    return lambda.toString()
+  }
+}
+private class RunnableWrapper(val lambda: ()->Unit) : Runnable {
+  override fun run() {
+    lambda.invoke()
+  }
+
+  override fun toString(): String {
+    return lambda.toString()
+  }
+}
+@Internal
+fun <T> computableToLambda(runnable: Computable<T>) : () -> T {
+  return if (runnable is ComputableWrapper<T, *>) runnable.lambda else ComputableFunction(runnable)
+}
+@Internal
+fun <T,E:Throwable> throwableComputableToLambda(runnable: ThrowableComputable<T,E>) : () -> T {
+  return if (runnable is ComputableWrapper<T, *>) runnable.lambda else ThrowableComputableFunction(runnable)
+}
+@Internal
+fun runnableToLambda(runnable: Runnable) : () -> Unit {
+  return if (runnable is RunnableWrapper) runnable.lambda else RunnableUnitFunction(runnable)
+}
+private abstract class LambdaWrapper<COMPUTABLE:Any,T>(val computable: COMPUTABLE) : () -> T
+internal fun <T> lambdaToComputable(l: ()->T) : Computable<T> {
+  return if (l is ComputableFunction) l.computable else ComputableWrapper<T, RuntimeException>(l)
+}
+private class RunnableUnitFunction(runnable: Runnable) : LambdaWrapper<Runnable, Unit>(runnable) {
+  override fun invoke() {
+    computable.run()
+  }
+  override fun toString(): String {
+    return computable.toString()
+  }
+}
+private class ThrowableComputableFunction<T>(runnable: ThrowableComputable<T, *>) : LambdaWrapper<ThrowableComputable<T, *>, T>(runnable) {
+  override fun invoke() : T {
+    return computable.compute()
+  }
+  override fun toString(): String {
+    return computable.toString()
+  }
+}
+private class ComputableFunction<T>(runnable: Computable<T>) : LambdaWrapper<Computable<T>, T>(runnable) {
+  override fun invoke() : T {
+    return computable.compute()
+  }
+  override fun toString(): String {
+    return computable.toString()
+  }
+}
+@Internal
+fun <T> getComputationClassForListener(computation: () -> T): Class<*> {
+  if (computation is LambdaWrapper<*, *>) {
+    return computation.computable.javaClass
+  }
+  return computation.javaClass
 }
 
 /**
@@ -293,7 +360,7 @@ suspend fun <T> edtWriteAction(action: () -> T): T {
 @Experimental
 suspend fun <T> writeAction(action: () -> T): T {
   return withContext(Dispatchers.EDT) {
-    ApplicationManager.getApplication().runWriteAction(Computable(action))
+    ApplicationManager.getApplication().runWriteAction(lambdaToComputable<T>(action))
   }
 }
 

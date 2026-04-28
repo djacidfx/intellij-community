@@ -2,19 +2,18 @@
 package com.intellij.openapi.application
 
 import com.intellij.openapi.command.CommandProcessor
-import com.intellij.openapi.util.Computable
 import com.intellij.util.concurrency.annotations.RequiresBlockingContext
 import org.jetbrains.annotations.ApiStatus.Internal
 import org.jetbrains.annotations.ApiStatus.Obsolete
 
 /** Use [edtWriteAction]. */
 fun <T> runWriteAction(runnable: () -> T): T {
-  return ApplicationManager.getApplication().runWriteAction(Computable(runnable))
+  return ApplicationManager.getApplication().runWriteAction(lambdaToComputable(runnable))
 }
 
 fun <T> runUndoTransparentWriteAction(runnable: () -> T): T {
   return CommandProcessor.getInstance().withUndoTransparentAction().use {
-    ApplicationManager.getApplication().runWriteAction(Computable(runnable))
+    ApplicationManager.getApplication().runWriteAction(lambdaToComputable(runnable))
   }
 }
 
@@ -46,7 +45,7 @@ fun <T> runReadActionBlocking(runnable: () -> T): T {
   if (application.isReadAllowedButNotWrite()) {
     return runnable()
   }
-  return application.runReadAction(Computable(runnable))
+  return application.runReadAction(lambdaToComputable(runnable))
 }
 
 /**
