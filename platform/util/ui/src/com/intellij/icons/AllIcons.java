@@ -988,7 +988,7 @@ public class AllIcons {
     /** 16x16 */ public static final @NotNull Icon Library = load("expui/nodes/library.svg", 954949276, 2);
     /** 16x16 */ public static final @NotNull Icon Locked = load("expui/nodes/locked.svg", "nodes/locked.svg", 1553434086, 0);
     /** 16x16 */ public static final @NotNull Icon LogFolder = load("expui/nodes/logFolder.svg", "nodes/logFolder.svg", 1356256727, 2);
-    /** 16x16 */ public static final @NotNull Icon McpServer = load("expui/nodes/mcp-server.svg", -1602444318, 2);
+    /** 16x16 */ public static final @NotNull Icon McpServer = load("expui/nodes/mcpServer.svg", -688113088, 2);
     /** 16x16 */ public static final @NotNull Icon Method = load("expui/nodes/method.svg", "nodes/method.svg", 769751382, 1);
     /** 16x16 */ public static final @NotNull Icon MethodReference = load("expui/nodes/methodReference.svg", "nodes/methodReference.svg", -1852540687, 1);
     /** 16x16 */ public static final @NotNull Icon Mnemonic = load("expui/bookmarks/mnemonic.svg", "nodes/mnemonic.svg", 421519755, 2);
