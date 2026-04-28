@@ -1,5 +1,5 @@
-// Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
-package org.jetbrains.uast.test.kotlin
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+package org.jetbrains.fir.uast.test
 
 import com.intellij.platform.uast.testFramework.common.PsiClassToString
 import com.intellij.platform.uast.testFramework.common.UastMappingsAccountantSingleTestBase
@@ -7,9 +7,7 @@ import com.intellij.platform.uast.testFramework.common.UastMappingsAccountantTes
 import com.intellij.platform.uast.testFramework.common.sourcesFromLargeProject
 import org.jetbrains.kotlin.idea.KotlinFileType
 import org.junit.Ignore
-import org.junit.Test
 import java.nio.file.Path
-
 
 /**
  * Computes Kotlin PSI to Uast mappings over the custom large project.
@@ -38,7 +36,6 @@ class KotlinUastMappingsAccountantOverLargeProjectTest :
         )
     }
 
-    @Test
     override fun `test compute all mappings and print in all variations`() {
         delegate.`test compute all mappings and print in all variations`()
     }
