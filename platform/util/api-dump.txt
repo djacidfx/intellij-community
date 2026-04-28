@@ -38,7 +38,6 @@ f:com.intellij.openapi.application.PathManager
 - s:getHomeDir(Z):java.nio.file.Path
 - s:getHomePath():java.lang.String
 - s:getHomePath(Z):java.lang.String
-- s:getIdeaHomeUpwards(java.nio.file.Path):java.nio.file.Path
 - s:getLibDir():java.nio.file.Path
 - s:getLibPath():java.lang.String
 - s:getLogDir():java.nio.file.Path

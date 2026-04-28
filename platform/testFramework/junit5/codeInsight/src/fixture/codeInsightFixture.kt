@@ -2,7 +2,6 @@
 package com.intellij.platform.testFramework.junit5.codeInsight.fixture
 
 import com.intellij.idea.AppMode
-import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.modules
@@ -124,12 +123,12 @@ private fun getHomePath(): Path {
   }
 
   return if (AppMode.isRunningFromDevBuild()) {
-    val resolvedHomeDir = PathManager.getIdeaHomeUpwards(homeDir)
+    val resolvedHomeDir = AppMode.getDevIdeaProjectDir()
     check(resolvedHomeDir != null) {
-      "Couldn't find home path upwards from $homeDir in dev-build"
+      "Couldn't find dev-idea project directory"
     }
 
-    resolvedHomeDir
+    Path.of(resolvedHomeDir)
   }
   else {
     homeDir
