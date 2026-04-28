@@ -4,7 +4,6 @@ package org.jetbrains.kotlin.idea.core.script.k2.configurations
 import com.intellij.codeInsight.daemon.impl.analysis.HighlightingSettingsPerFile
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
-import com.intellij.openapi.application.smartReadAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
@@ -39,6 +38,7 @@ import org.jetbrains.kotlin.idea.core.script.k2.modules.KotlinScriptLibraryEntit
 import org.jetbrains.kotlin.idea.core.script.k2.modules.modifyKotlinScriptLibraryEntity
 import org.jetbrains.kotlin.idea.core.script.shared.KotlinBaseScriptingBundle
 import org.jetbrains.kotlin.idea.core.script.shared.KotlinScriptProcessingFilter
+import org.jetbrains.kotlin.idea.core.script.shared.smartRefineScriptCompilationConfiguration
 import org.jetbrains.kotlin.idea.core.script.v1.ScriptDependenciesModificationTracker
 import org.jetbrains.kotlin.idea.core.script.v1.awaitExternalSystemInitialization
 import org.jetbrains.kotlin.idea.core.script.v1.scriptingDebugLog
@@ -47,8 +47,6 @@ import org.jetbrains.kotlin.scripting.definitions.findScriptDefinition
 import org.jetbrains.kotlin.scripting.resolve.ScriptCompilationConfigurationResult
 import org.jetbrains.kotlin.scripting.resolve.ScriptCompilationConfigurationWrapper
 import org.jetbrains.kotlin.scripting.resolve.VirtualFileScriptSource
-import org.jetbrains.kotlin.scripting.resolve.refineScriptCompilationConfiguration
-import org.jetbrains.kotlin.utils.topologicalSort
 import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.isDirectory
@@ -130,7 +128,7 @@ class KotlinScriptService(val project: Project, val coroutineScope: CoroutineSco
                 )
             }) {
                 this.valueOrNull()?.importedScripts.orEmpty().map {
-                    refineScriptCompilationConfiguration(it, definition, project)
+                    smartRefineScriptCompilationConfiguration(it, definition, project, null)
                 }
             }.reversed()
 
@@ -230,9 +228,7 @@ class KotlinScriptService(val project: Project, val coroutineScope: CoroutineSco
         return withBackgroundProgress(
             project, title = KotlinBaseScriptingBundle.message("progress.title.dependency.resolution", virtualFile.name)
         ) {
-            smartReadAction(project) {
-                refineScriptCompilationConfiguration(scriptSource, definition, project, configuration)
-            }
+            smartRefineScriptCompilationConfiguration(scriptSource, definition, project, configuration)
         }
     }
 
@@ -277,6 +273,37 @@ class KotlinScriptService(val project: Project, val coroutineScope: CoroutineSco
             project.publishGlobalScriptModuleStateModificationEvent()
         }
     }
+}
+
+/**
+ * suspendable version of [org.jetbrains.kotlin.utils.topologicalSort]
+ */
+private suspend fun <A> topologicalSort(
+    nodes: Iterable<A>,
+    reportCycle: (A) -> Nothing = { throw IllegalStateException("Cannot compute a topological sort: The node $it is in a cycle.") },
+    dependencies: suspend A.() -> Iterable<A>,
+): List<A> {
+    val visiting = mutableSetOf<A>()
+    val visited = mutableSetOf<A>()
+
+    suspend fun visit(node: A) {
+        if (node in visited) return
+        if (node in visiting) reportCycle(node)
+
+        // Keeping track of the nodes that are being visited allows the algorithm to throw an exception in case of a cycle. The input should
+        // never be cyclic, but this approach gives some additional safety in case of bugs.
+        visiting.add(node)
+        node.dependencies().forEach { it.dependencies() }
+        visiting.remove(node)
+
+        visited.add(node)
+    }
+
+    nodes.forEach { visit(it) }
+
+    // The paper algorithm inserts nodes at the head of the result list. Because our `visited` set remembers elements in their order of
+    // insertion, the result needs to be reversed.
+    return visited.toMutableList()
 }
 
 object KotlinScriptEntitySource : EntitySource

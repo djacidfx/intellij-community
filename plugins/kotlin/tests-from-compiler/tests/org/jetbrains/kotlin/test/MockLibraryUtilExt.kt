@@ -4,7 +4,6 @@
 
 package org.jetbrains.kotlin.test
 
-import org.jetbrains.kotlin.idea.base.test.JUnit4Assertions
 import java.io.File
 
 object MockLibraryUtilExt {
@@ -28,7 +27,6 @@ object MockLibraryUtilExt {
             extraClasspath,
             extraModulepath = listOf(),
             useJava11,
-            JUnit4Assertions,
         )
     }
 }

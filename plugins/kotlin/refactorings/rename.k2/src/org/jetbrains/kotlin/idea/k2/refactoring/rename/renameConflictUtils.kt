@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.kotlin.idea.k2.refactoring.rename
 
 import com.intellij.codeInsight.CodeInsightUtilCore
@@ -11,6 +11,7 @@ import com.intellij.psi.search.searches.MethodReferencesSearch
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.usageView.UsageInfo
+import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
@@ -19,15 +20,10 @@ import org.jetbrains.kotlin.analysis.api.resolution.KaImplicitReceiverValue
 import org.jetbrains.kotlin.analysis.api.resolution.KaSmartCastedReceiverValue
 import org.jetbrains.kotlin.analysis.api.resolution.successfulCallOrNull
 import org.jetbrains.kotlin.analysis.api.resolution.symbol
-import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassKind
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaDeclarationSymbol
-import org.jetbrains.kotlin.analysis.api.symbols.KaEnumEntrySymbol
-import org.jetbrains.kotlin.analysis.api.symbols.KaJavaFieldSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaNamedClassSymbol
-import org.jetbrains.kotlin.analysis.api.symbols.KaNamedFunctionSymbol
-import org.jetbrains.kotlin.analysis.api.symbols.KaPropertySymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaSyntheticJavaPropertySymbol
 import org.jetbrains.kotlin.analysis.api.symbols.symbol
 import org.jetbrains.kotlin.analysis.api.types.KaErrorType
@@ -299,6 +295,7 @@ private fun KtPsiFactory.createCodeFragmentWithNewName(
 
 private data class QualifiedState(val expression: KtExpression?, val explicitlyQualified: Boolean)
 
+@OptIn(KaExperimentalApi::class)
 private fun createQualifiedExpression(callExpression: KtExpression, newName: String): QualifiedState? {
     val psiFactory = KtPsiFactory(callExpression.project)
     analyze(callExpression) {
@@ -320,7 +317,7 @@ private fun createQualifiedExpression(callExpression: KtExpression, newName: Str
         }
 
         val qualifierText = when (receiver) {
-            is KaImplicitReceiverValue -> runUnless(appliedSymbol?.symbol?.isStatic == true) { getThisQualifier(receiver) }
+            is KaImplicitReceiverValue -> runUnless(appliedSymbol?.symbol?.isCompanion == true) { getThisQualifier(receiver) }
 
             is KaExplicitReceiverValue -> {
                 getExplicitQualifier(receiver) ?: return QualifiedState(null, true)
@@ -352,15 +349,6 @@ private fun createQualifiedExpression(callExpression: KtExpression, newName: Str
         return QualifiedState(qualifiedExpression, receiver is KaExplicitReceiverValue)
     }
 }
-
-private val KaCallableSymbol.isStatic: Boolean
-    get() = when (this) {
-        is KaNamedFunctionSymbol -> isStatic
-        is KaJavaFieldSymbol -> isStatic
-        is KaPropertySymbol -> isStatic
-        is KaEnumEntrySymbol -> true
-        else -> false
-    }
 
 private fun reportShadowing(
     declaration: PsiNamedElement,

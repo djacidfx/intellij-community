@@ -6,7 +6,6 @@ import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.components.createUseSiteVisibilityChecker
 import org.jetbrains.kotlin.analysis.api.symbols.KaEnumEntrySymbol
-import org.jetbrains.kotlin.analysis.utils.errors.requireIsInstance
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.KtSymbolFromIndexProvider
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.psi.KtEnumEntry
@@ -15,7 +14,7 @@ internal class EnumEntryImportCandidatesProvider(override val importContext: Imp
     AbstractImportCandidatesProvider() {
 
     init {
-        requireIsInstance<ImportPositionType.DefaultCall>(importContext.positionType)
+        require(importContext.positionType is ImportPositionType.DefaultCall)
     }
 
     private fun acceptsKotlinEnumEntry(enumEntry: KtEnumEntry): Boolean {
