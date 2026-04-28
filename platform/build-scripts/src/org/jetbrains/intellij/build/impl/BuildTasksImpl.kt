@@ -86,6 +86,7 @@ import java.util.EnumSet
 import java.util.SortedSet
 import java.util.concurrent.TimeUnit
 import java.util.zip.Deflater
+import kotlin.io.path.exists
 import kotlin.io.path.listDirectoryEntries
 import kotlin.io.path.relativeTo
 
@@ -151,6 +152,10 @@ internal class BuildTasksImpl(private val context: BuildContextImpl) : BuildTask
       val propertiesFile = createIdeaPropertyFile(context)
       val builder = getOsDistributionBuilder(os = currentOs, libcImpl = targetLibcImpl, ideaProperties = propertiesFile, context = context)!!
       builder.copyFilesForOsDistribution(targetDirectory, arch)
+      val osSpecificDistDirectory = getOsAndArchSpecificDistDirectory(currentOs, JvmArchitecture.currentJvmArch, targetLibcImpl, context)
+      if (osSpecificDistDirectory.exists()) {
+        copyDir(sourceDir = osSpecificDistDirectory, targetDir = targetDirectory)
+      }
       context.bundledRuntime.extractTo(os = currentOs, arch = arch, libc = targetLibcImpl, destinationDir = targetDirectory.resolve("jbr"))
       updateExecutablePermissions(targetDirectory, builder.generateExecutableFilesMatchers(includeRuntime = true, arch, targetLibcImpl).keys)
       builder.checkExecutablePermissions(distribution = targetDirectory, root = "", includeRuntime = true, arch = arch, libc = targetLibcImpl, context = context)
