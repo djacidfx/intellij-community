@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.platform.ide.impl.wsl
 
 import com.intellij.execution.wsl.WSLDistribution
@@ -41,8 +41,12 @@ class ProductionWslIjentManager(private val scope: CoroutineScope) : WslIjentMan
     )
   }
 
-  @VisibleForTesting
-  suspend fun getIjentSession(wslDistribution: WSLDistribution, project: Project?, rootUser: Boolean, sessionScope: CoroutineScope): IjentSession.Posix {
+  private suspend fun getIjentSession(
+    wslDistribution: WSLDistribution,
+    project: Project?,
+    rootUser: Boolean,
+    sessionScope: CoroutineScope,
+  ): IjentSession.Posix {
     val ijentSessionRegistry = IjentSessionRegistry.instanceAsync()
     val ijentIdLabel = ijentIdLabel(wslDistribution, rootUser)
     val ijentId = myCache.computeIfAbsent(ijentIdLabel) { ijentName ->
