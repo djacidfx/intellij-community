@@ -60,7 +60,7 @@ class EmbeddedClientLauncher private constructor(private val moduleRepository: R
         moduleRepository.getModule(getRootFrontendModule())
       }
       catch (e: Exception) {
-        LOG.warn("Failed to load embedded client: " + e.message)
+        LOG.warn("Failed to load embedded client: " + e.message, e)
         return null
       }
       return EmbeddedClientLauncher(moduleRepository, moduleRepositoryPath)
