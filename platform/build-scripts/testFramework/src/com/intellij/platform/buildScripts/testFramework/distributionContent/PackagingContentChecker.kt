@@ -7,6 +7,8 @@ import com.intellij.openapi.util.io.NioFiles
 import com.intellij.platform.buildScripts.testFramework.createBuildOptionsForTest
 import com.intellij.platform.buildScripts.testFramework.customizeBuildOptionsForPackagingContentTest
 import com.intellij.platform.buildScripts.testFramework.doRunTestBuild
+import com.intellij.platform.runtime.repository.RuntimeModuleId
+import com.intellij.platform.runtime.repository.RuntimeModuleRepository
 import com.intellij.testFramework.TestLoggerFactory
 import io.opentelemetry.api.trace.Span
 import io.opentelemetry.api.trace.TracerProvider
@@ -24,13 +26,18 @@ import org.jetbrains.annotations.ApiStatus.Internal
 import org.jetbrains.intellij.build.BuildContext
 import org.jetbrains.intellij.build.BuildPaths
 import org.jetbrains.intellij.build.CompilationContext
+import org.jetbrains.intellij.build.JvmArchitecture
 import org.jetbrains.intellij.build.ModuleOutputProvider
+import org.jetbrains.intellij.build.OsFamily
 import org.jetbrains.intellij.build.ProductProperties
 import org.jetbrains.intellij.build.ProprietaryBuildTools
+import org.jetbrains.intellij.build.impl.MODULE_DESCRIPTORS_COMPACT_PATH
+import org.jetbrains.intellij.build.impl.SUPPORTED_DISTRIBUTIONS
 import org.jetbrains.intellij.build.impl.asArchivedIfNeeded
 import org.jetbrains.intellij.build.impl.buildDistributions
 import org.jetbrains.intellij.build.impl.createBuildContext
 import org.jetbrains.intellij.build.impl.createCompilationContext
+import org.jetbrains.intellij.build.impl.getOsAndArchSpecificDistDirectory
 import org.jetbrains.intellij.build.impl.logging.BuildMessagesImpl
 import org.jetbrains.intellij.build.impl.toBazelIfNeeded
 import org.jetbrains.intellij.build.telemetry.JaegerJsonSpanExporterManager
@@ -45,11 +52,13 @@ import org.opentest4j.TestAbortedException
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
+import kotlin.io.path.exists
 
 private data class PackageResult(
   @JvmField val projectHome: Path,
   @JvmField val jpsProject: JpsProject,
   @JvmField val content: ParsedContentReport,
+  @JvmField val runtimeModuleRepository: RuntimeModuleRepository?,
 )
 
 private data class PackagingSuiteTelemetry(
@@ -110,6 +119,7 @@ data class PackagingTargetValidationContext(
   @JvmField val tempDir: Path,
   @JvmField val project: JpsProject,
   @JvmField val outputProvider: ModuleOutputProvider,
+  @JvmField val runtimeModuleRepository: RuntimeModuleRepository?,
   @JvmField val content: ParsedContentReport,
 )
 
@@ -583,6 +593,7 @@ private fun createTargetValidationTasks(
                   tempDir = validationTempDir,
                   project = packageResult.jpsProject,
                   outputProvider = suiteContext.compilationContext.outputProvider,
+                  runtimeModuleRepository = packageResult.runtimeModuleRepository,
                   content = packageResult.content,
                 )
               )
@@ -752,11 +763,34 @@ private suspend fun computePackageResult(context: BuildContext): PackageResult {
       buildDistributions(buildContext)
       PackageResult(
         content = readContentReportZip(buildContext.paths.artifactDir.resolve("content-report.zip")),
+        runtimeModuleRepository = readGeneratedRuntimeModuleRepository(buildContext),
         jpsProject = buildContext.project,
         projectHome = buildContext.paths.projectHome,
       )
     },
   )
+}
+
+private fun readGeneratedRuntimeModuleRepository(buildContext: BuildContext): RuntimeModuleRepository? {
+  val repositoryPath = findGeneratedRuntimeModuleRepository(buildContext) ?: return null
+  val repository = RuntimeModuleRepository.create(repositoryPath)
+  //force RuntimeModuleRepository to parse the file, otherwise it'll fail because the artifacts are deleted by doRunTestBuild before the packaging tests start
+  repository.findHeader(RuntimeModuleId.contentModule("intellij.platform.frontend", RuntimeModuleId.DEFAULT_NAMESPACE))
+  return repository
+}
+
+private fun findGeneratedRuntimeModuleRepository(context: BuildContext): Path? {
+  val commonFile = context.paths.distAllDir.resolve(MODULE_DESCRIPTORS_COMPACT_PATH)
+  if (commonFile.exists()) {
+    return commonFile
+  }
+  //ideally, we should run separate checks for different OS, but for now let's check only for the current one
+  val currentDistribution = SUPPORTED_DISTRIBUTIONS.find { it.os == OsFamily.currentOs && it.arch == JvmArchitecture.currentJvmArch } ?: return null
+  val osSpecificFile = getOsAndArchSpecificDistDirectory(currentDistribution.os, currentDistribution.arch, currentDistribution.libcImpl, context).resolve(MODULE_DESCRIPTORS_COMPACT_PATH)
+  if (osSpecificFile.exists()) {
+    return osSpecificFile
+  }
+  return null
 }
 
 @Internal
