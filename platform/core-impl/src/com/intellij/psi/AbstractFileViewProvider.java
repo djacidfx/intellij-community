@@ -82,7 +82,7 @@ public abstract class AbstractFileViewProvider extends UserDataHolderBase implem
     myVirtualFile = virtualFile;
     myEventSystemEnabled = eventSystemEnabled;
     setContent(new VirtualFileContent());
-    myPhysical = isEventSystemEnabled() &&
+    myPhysical = eventSystemEnabled &&
                  !(virtualFile instanceof LightVirtualFile) &&
                  !(virtualFile.getFileSystem() instanceof NonPhysicalFileSystem);
     virtualFile.putUserData(FREE_THREADED, isFreeThreaded(this));
