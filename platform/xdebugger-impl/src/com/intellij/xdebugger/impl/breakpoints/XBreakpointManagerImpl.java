@@ -655,19 +655,18 @@ public final class XBreakpointManagerImpl implements XBreakpointManager {
       withLockMaybeCancellable(myLock, () -> {
         myBreakpointsDialogSettings = state.getBreakpointsDialogProperties();
 
+        List.copyOf(myAllBreakpoints).forEach(breakpoint -> doRemoveBreakpointImpl(breakpoint, isDefaultBreakpoint(breakpoint)));
         myAllBreakpoints.clear();
+        myBreakpoints.clear();
         myDefaultBreakpoints.clear();
         myBreakpointsDefaults.clear();
 
         distinctDefaultBreakpoints(state.getDefaultBreakpoints())
           .forEach(breakpointState -> loadBreakpoint(breakpointState, true));
 
-        //noinspection unchecked
         StreamEx.of(defaultBreakpoints)
           .remove(b -> myDefaultBreakpoints.containsKey(b.getType()))
           .forEach(b -> addBreakpoint(b, true, false));
-
-        List.copyOf(myBreakpoints.values()).forEach(this::doRemoveBreakpoint);
 
         ContainerUtil.notNullize(state.getBreakpoints()).forEach(breakpointState -> loadBreakpoint(breakpointState, false));
 
