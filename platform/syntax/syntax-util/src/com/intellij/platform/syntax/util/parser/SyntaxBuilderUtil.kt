@@ -9,10 +9,8 @@ import com.intellij.platform.syntax.lexer.TokenList
 import com.intellij.platform.syntax.parser.SyntaxTreeBuilder
 import com.intellij.platform.syntax.parser.WhitespacesBinders
 import com.intellij.util.text.CharSequenceSubSequence
-import org.jetbrains.annotations.ApiStatus
 import kotlin.jvm.JvmStatic
 
-@ApiStatus.Experimental
 object SyntaxBuilderUtil {
   /**
    * Advances lexer by given number of tokens (but not beyond the end of token stream).

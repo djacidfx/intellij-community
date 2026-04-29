@@ -14,7 +14,6 @@ import org.jetbrains.annotations.NonNls
  *
  * @See SyntaxTreeBuilderFactory
  */
-@ApiStatus.Experimental
 @ApiStatus.NonExtendable
 interface SyntaxTreeBuilder {
   /**
