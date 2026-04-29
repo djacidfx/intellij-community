@@ -7,8 +7,6 @@
   </dependencies>
 
   <extensionPoints>
-    <extensionPoint qualifiedName="Pythonid.pyAnnotator" interface="com.jetbrains.python.validation.PyAnnotator" dynamic="true"/>
-
     <extensionPoint qualifiedName="Pythonid.documentationLinkProvider"
                     interface="com.jetbrains.python.documentation.PythonDocumentationLinkProvider"
                     dynamic="true"/>
@@ -17,8 +15,6 @@
                     dynamic="true"/>
 
     <extensionPoint qualifiedName="Pythonid.typeHintProvider" interface="com.jetbrains.python.codeInsight.typing.PyTypeHintProvider" dynamic="true"/>
-
-
   </extensionPoints>
 
   <extensions defaultExtensionNs="com.intellij">
@@ -186,7 +182,6 @@
     <annotator language="Python" implementationClass="com.jetbrains.python.validation.PyDocStringHighlightingAnnotator"/>
     <annotator language="Python" implementationClass="com.jetbrains.python.validation.PyDefinitionsHighlightingAnnotator"/>
     <annotator language="Python" implementationClass="com.jetbrains.python.validation.PyLocalVariableHighlightingAnnotator"/>
-    <annotator language="Python" implementationClass="com.jetbrains.python.validation.PyCompositeAnnotator"/>
     <annotator language="Python" implementationClass="com.jetbrains.python.validation.PyFunctionHighlightingAnnotator"/>
     <annotator language="Python" implementationClass="com.jetbrains.python.validation.PyBuiltinHighlightingAnnotator"/>
     <annotator language="Python" implementationClass="com.jetbrains.python.validation.UnsupportedFeatures"/>
