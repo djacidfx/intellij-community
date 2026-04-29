@@ -30,7 +30,6 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.vfs.ex.temp.TempFileSystem
 import com.intellij.platform.eel.EelApi
 import com.intellij.python.community.services.systemPython.SystemPythonService
-import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.jetbrains.python.PyBundle
 import com.jetbrains.python.errorProcessing.PyResult
 import com.jetbrains.python.isCondaVirtualEnv
@@ -58,7 +57,7 @@ import kotlin.io.path.Path
 import kotlin.io.path.div
 import kotlin.io.path.pathString
 
-internal data class TargetAndPath(
+private data class TargetAndPath(
   val target: TargetEnvironmentConfiguration?,
   val path: FullPathOnTarget?,
 )
@@ -122,7 +121,7 @@ fun configurePythonSdk(project: Project, module: Module, sdk: Sdk) {
  *
  * @param context used to get [BASE_DIR] in [VirtualEnvSdkFlavor.suggestLocalHomePaths]
  */
-@ApiStatus.Obsolete
+@Deprecated("PyDetectedSdk will be dropped soon, use SystemPythonService")
 @JvmOverloads
 fun detectSystemWideSdks(
   module: Module?,
@@ -174,11 +173,6 @@ fun filterAssociatedSdks(module: Module, existingSdks: List<Sdk>): List<Sdk> {
   return existingSdks.filter { isPythonSdk(it) && it.isAssociatedWithModule(module) }
 }
 
-@Internal
-@RequiresBackgroundThread
-fun detectAssociatedEnvironments(module: Module, existingSdks: List<Sdk>, context: UserDataHolder): List<PyRichSdk> =
-  detectVirtualEnvs(module, existingSdks, context).filter { it.isAssociatedWithModule(module) }
-
 
 @Internal
 suspend fun createSdk(
@@ -203,8 +197,7 @@ suspend fun createSdk(
     sdkAdditionalData,
     null)
 
-  return sdk?.let { PyResult.success(it) }
-         ?: PyResult.localizedError(PyBundle.message("python.sdk.failed.to.create.interpreter.title"))
+  return PyResult.success(sdk)
 }
 
 @Internal
@@ -269,7 +262,7 @@ fun Sdk.isAssociatedWithModule(module: Module?): Boolean {
   val associatedPath = associatedModulePath
   if (basePath != null && associatedPath == basePath) return true
   if (isAssociatedWithAnotherModule(module)) return false
-  return isLocatedInsideModule(module) || containsModuleName(module)
+  return (module !=null && isLocatedInsideModule(module)) || containsModuleName(module)
 }
 
 @Internal
@@ -420,9 +413,8 @@ private val Sdk.associatedPathFromAdditionalData: String?
 
 val Sdk.sdkFlavor: PythonSdkFlavor<*> get() = getOrCreateAdditionalData().flavor
 
-@Internal
-fun Sdk.isLocatedInsideModule(module: Module?): Boolean {
-  val moduleDir = module?.baseDir
+private fun Sdk.isLocatedInsideModule(module: Module): Boolean {
+  val moduleDir = module.baseDir
   val sdkDir = homeDirectory
   return moduleDir != null && sdkDir != null && VfsUtil.isAncestor(moduleDir, sdkDir, true)
 }
@@ -433,11 +425,14 @@ private fun Sdk.isLocatedInsideBaseDir(baseDir: Path?): Boolean {
   return FileUtil.isAncestor(basePath, homePath, true)
 }
 
+
+private val PY_VER_REGEX = Regex(""".*python(\d\.\d)""")
+@Deprecated("See com.intellij.python.junit5Tests.env.services.internal.impl.PythonWithLanguageLevelImplTest.testSunnyDay")
 @get:Internal
 val Sdk.guessedLanguageLevel: LanguageLevel?
   get() {
     val path = homePath ?: return null
-    val result = Regex(""".*python(\d\.\d)""").find(path) ?: return null
+    val result = PY_VER_REGEX.find(path) ?: return null
     val versionString = result.groupValues.getOrNull(1) ?: return null
     return LanguageLevel.fromPythonVersion(versionString)
   }
@@ -490,7 +485,7 @@ private fun filterSuggestedPaths(
  * Where a "remote_sources" folder for certain SDK is stored
  */
 @get:Internal
-val Sdk.remoteSourcesLocalPath: Path
+internal val Sdk.remoteSourcesLocalPath: Path
   get() =
     Path.of(PathManager.getSystemPath()) /
     Path.of(PythonSdkUtil.REMOTE_SOURCES_DIR_NAME) /
