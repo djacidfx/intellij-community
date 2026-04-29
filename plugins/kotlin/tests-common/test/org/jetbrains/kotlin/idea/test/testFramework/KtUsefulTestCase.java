@@ -23,8 +23,6 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileVisitor;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.codeStyle.CodeStyleSettings;
-import com.intellij.psi.impl.DocumentCommitProcessor;
-import com.intellij.psi.impl.DocumentCommitThread;
 import com.intellij.psi.impl.source.PostprocessReformattingAspect;
 import com.intellij.testFramework.EdtTestUtil;
 import com.intellij.testFramework.EdtTestUtilKt;
@@ -769,10 +767,7 @@ public abstract class KtUsefulTestCase extends TestCase {
                         });
                     }
 
-                    DocumentCommitThread commitThread = (DocumentCommitThread)app.getServiceIfCreated(DocumentCommitProcessor.class);
-                    if (commitThread != null) {
-                        commitThread.waitForAllCommits(timeout, timeUnit);
-                    }
+                    PlatformTestUtil.waitForAllDocumentsCommitted(timeout, timeUnit);
                 }
             });
         } catch (Exception e) {
