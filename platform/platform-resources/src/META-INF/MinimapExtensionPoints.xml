@@ -1,11 +1,6 @@
 <!--suppress PluginXmlRegistrationCheck -->
 <idea-plugin>
   <extensionPoints>
-    <!-- Structure extraction pipeline -->
-    <extensionPoint name="minimapStructureMarkerPolicy"
-                    interface="com.intellij.ide.minimap.model.MinimapStructureMarkerPolicy"
-                    dynamic="true"/>
-
     <!-- Layer pipeline -->
     <extensionPoint name="minimapLayerFactory"
                     interface="com.intellij.ide.minimap.layers.MinimapLayerFactory"
@@ -15,25 +10,16 @@
                     dynamic="true"/>
 
     <!-- Layout and rendering -->
-    <extensionPoint name="minimapLayoutProfileProvider"
-                    interface="com.intellij.ide.minimap.layout.MinimapLayoutProfileProvider"
-                    dynamic="true"/>
-    <extensionPoint name="minimapLineSpanProvider"
-                    interface="com.intellij.ide.minimap.model.MinimapLineSpanProvider"
+    <extensionPoint name="minimapLayoutPolicy"
+                    interface="com.intellij.ide.minimap.layout.MinimapLayoutPolicy"
                     dynamic="true"/>
     <extensionPoint name="minimapTokenRenderPolicy"
                     interface="com.intellij.ide.minimap.render.MinimapTokenRenderPolicy"
                     dynamic="true"/>
 
     <!-- Interaction -->
-    <extensionPoint name="minimapHoverPolicy"
-                    interface="com.intellij.ide.minimap.hover.MinimapHoverPolicy"
-                    dynamic="true"/>
-    <extensionPoint name="minimapClickHandler"
-                    interface="com.intellij.ide.minimap.interaction.MinimapClickHandler"
-                    dynamic="true"/>
-    <extensionPoint name="minimapScrollPolicy"
-                    interface="com.intellij.ide.minimap.interaction.MinimapScrollPolicy"
+    <extensionPoint name="minimapInteractionPolicy"
+                    interface="com.intellij.ide.minimap.interaction.MinimapInteractionPolicy"
                     dynamic="true"/>
 
     <!-- File support -->

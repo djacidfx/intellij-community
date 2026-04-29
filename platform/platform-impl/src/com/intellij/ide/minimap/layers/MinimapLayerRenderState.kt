@@ -7,4 +7,5 @@ data class MinimapLayerRenderState(
   val snapshot: MinimapSnapshot,
   val panelWidth: Int,
   val isLegacyMode: Boolean,
+  val isMouseOver: Boolean,
 )

@@ -22,7 +22,7 @@ class MinimapBreakpointPainter {
     try {
       graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
       for (entry in entries) {
-        if (lineHighlightWidth > 0.0) {
+        if (entry.hasLineHighlight && lineHighlightWidth > 0.0) {
           val highlightRect = Rectangle2D.Double(
             lineHighlightX,
             entry.rect2d.y,

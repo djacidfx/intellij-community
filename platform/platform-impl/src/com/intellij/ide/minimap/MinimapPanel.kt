@@ -14,6 +14,7 @@ import com.intellij.ide.ui.customization.CustomActionsSchema
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.application.WriteIntentReadAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.util.Disposer
@@ -37,6 +38,7 @@ class MinimapPanel(
   private var snapshot: MinimapSnapshot? = null
 
   private var initialized = false
+  var isMouseOver: Boolean = false
 
   @Volatile
   private var disposed = false
@@ -121,7 +123,11 @@ class MinimapPanel(
 
   override fun paint(g: Graphics) {
     if (!initialized) {
-      minimapController.refreshSnapshot()
+      // refreshSnapshot resolves SmartPsiElementPointers via MinimapLayoutCalculator, which needs
+      // read access. Paint runs on EDT; wrap with WriteIntentReadAction so the PSI access is legal.
+      WriteIntentReadAction.run {
+        minimapController.refreshSnapshot()
+      }
       initialized = true
     }
 
@@ -134,6 +140,7 @@ class MinimapPanel(
       snapshot = snapshot,
       panelWidth = width,
       isLegacyMode = MinimapRegistry.isLegacy(),
+      isMouseOver = isMouseOver,
     )
     layerPipeline.paint(g2d, layerState)
   }

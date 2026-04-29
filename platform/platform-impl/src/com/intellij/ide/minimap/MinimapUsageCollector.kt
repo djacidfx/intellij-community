@@ -5,11 +5,12 @@ import com.intellij.ide.minimap.settings.MinimapScaleMode
 import com.intellij.internal.statistic.eventLog.EventLogGroup
 import com.intellij.internal.statistic.eventLog.events.EventFields
 import com.intellij.internal.statistic.service.fus.collectors.CounterUsagesCollector
+import com.intellij.openapi.fileTypes.FileType
 import org.jetbrains.annotations.ApiStatus
 
 @ApiStatus.Internal
 object MinimapUsageCollector : CounterUsagesCollector() {
-  private val GROUP = EventLogGroup("editor.minimap", 1)
+  private val GROUP = EventLogGroup("editor.minimap", 2)
 
   override fun getGroup(): EventLogGroup = GROUP
 
@@ -73,6 +74,7 @@ object MinimapUsageCollector : CounterUsagesCollector() {
     SCALE_MODE,
     RIGHT_ALIGNED,
     INTERACTION_SOURCE,
+    EventFields.FileType,
   )
 
   private val DRAGGED = GROUP.registerVarargEvent(
@@ -82,6 +84,7 @@ object MinimapUsageCollector : CounterUsagesCollector() {
     RIGHT_ALIGNED,
     DRAG_DISTANCE,
     INTERACTION_SOURCE,
+    EventFields.FileType,
   )
 
   private val WHEEL_SCROLLED = GROUP.registerVarargEvent(
@@ -90,6 +93,7 @@ object MinimapUsageCollector : CounterUsagesCollector() {
     SCALE_MODE,
     SCROLL_DIRECTION,
     INTERACTION_SOURCE,
+    EventFields.FileType,
   )
 
   private val HOVER_SHOWN = GROUP.registerEvent(
@@ -120,12 +124,14 @@ object MinimapUsageCollector : CounterUsagesCollector() {
     scaleMode: MinimapScaleMode,
     rightAligned: Boolean,
     source: InteractionSource = InteractionSource.UNKNOWN,
+    fileType: FileType? = null,
   ) {
     CLICKED.log(
       MODE.with(mode()),
       SCALE_MODE.with(scaleMode),
       RIGHT_ALIGNED.with(rightAligned),
       INTERACTION_SOURCE.with(source),
+      EventFields.FileType.with(fileType),
     )
   }
 
@@ -135,6 +141,7 @@ object MinimapUsageCollector : CounterUsagesCollector() {
     rightAligned: Boolean,
     dragDistanceBucket: DragDistanceBucket,
     source: InteractionSource = InteractionSource.UNKNOWN,
+    fileType: FileType? = null,
   ) {
     DRAGGED.log(
       MODE.with(mode()),
@@ -142,6 +149,7 @@ object MinimapUsageCollector : CounterUsagesCollector() {
       RIGHT_ALIGNED.with(rightAligned),
       DRAG_DISTANCE.with(dragDistanceBucket),
       INTERACTION_SOURCE.with(source),
+      EventFields.FileType.with(fileType),
     )
   }
 
@@ -150,12 +158,14 @@ object MinimapUsageCollector : CounterUsagesCollector() {
     scaleMode: MinimapScaleMode,
     direction: ScrollDirection,
     source: InteractionSource = InteractionSource.UNKNOWN,
+    fileType: FileType? = null,
   ) {
     WHEEL_SCROLLED.log(
       MODE.with(mode()),
       SCALE_MODE.with(scaleMode),
       SCROLL_DIRECTION.with(direction),
       INTERACTION_SOURCE.with(source),
+      EventFields.FileType.with(fileType),
     )
   }
 

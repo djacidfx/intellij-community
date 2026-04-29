@@ -1,7 +1,7 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.minimap.geometry
 
-import com.intellij.ide.minimap.layout.MinimapLayoutProfileProvider
+import com.intellij.ide.minimap.layout.MinimapLayoutPolicy
 import com.intellij.ide.minimap.layout.MinimapLayoutUtil
 import com.intellij.ide.minimap.settings.MinimapScaleMode
 import com.intellij.openapi.editor.Editor
@@ -19,7 +19,7 @@ object MinimapScaleUtil {
                    panelHeight: Int,
                    fixedWidth: Int,
                    scaleMode: MinimapScaleMode): MinimapScaleData {
-    val additionalWidth = MinimapLayoutProfileProvider.forEditor(editor).additionalPanelWidthPx
+    val additionalWidth = MinimapLayoutPolicy.forLayoutProfile(editor).additionalPanelWidthPx
     val maxWidth = fixedWidth.coerceAtLeast(1)
     if (scaleMode != MinimapScaleMode.FIT) {
       return MinimapScaleData(width = applyAdditionalWidth(maxWidth, additionalWidth), fitToHeight = false)

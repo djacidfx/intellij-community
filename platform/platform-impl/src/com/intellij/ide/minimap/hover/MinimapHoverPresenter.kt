@@ -41,7 +41,7 @@ class MinimapHoverPresenter(private val panel: MinimapPanel) {
     val context = lastContext ?: return
 
     val lineHeight = computeLineHeight(context)
-    hoverPainter.paint(graphics, target.rect, lineHeight, hoverColor())
+    hoverPainter.paint(graphics, target.rect, target.declarationWidth, lineHeight, hoverColor())
   }
 
   fun hide() {

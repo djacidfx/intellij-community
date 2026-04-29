@@ -19,11 +19,10 @@ import kotlin.math.min
  * |= - a little hook at the very bottom
  */
 class MinimapHoverPainter {
-  fun paint(graphics: Graphics2D, rect: Rectangle, lineHeight: Int, color: Color) {
+  fun paint(graphics: Graphics2D, rect: Rectangle, declarationWidth: Int, lineHeight: Int, color: Color) {
     val topHeight = lineHeight.coerceIn(1, rect.height)
     graphics.color = color
-    // top bar, todo: consider making it shorter, like the structure element itself
-    graphics.fillRect(rect.x, rect.y, rect.width, topHeight)
+    graphics.fillRect(rect.x, rect.y, declarationWidth, topHeight)
 
     val hookHeight = min(rect.height - topHeight, HOOK_HEIGHT)
     val lineHeightPx = (rect.height - topHeight - hookHeight).coerceAtLeast(0)

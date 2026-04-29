@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class MinimapHoverStateMachine(
@@ -76,6 +78,6 @@ internal class MinimapHoverStateMachine(
   }
 
   companion object {
-    private const val HOVER_DELAY_MS: Long = 125
+    private val HOVER_DELAY_MS: Duration = 60.milliseconds
   }
 }

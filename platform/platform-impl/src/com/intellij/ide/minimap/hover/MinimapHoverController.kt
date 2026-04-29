@@ -2,6 +2,7 @@
 package com.intellij.ide.minimap.hover
 
 import com.intellij.ide.minimap.MinimapPanel
+import com.intellij.ide.minimap.interaction.MinimapInteractionPolicy
 import com.intellij.ide.minimap.scene.MinimapSnapshot
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Disposer
@@ -19,7 +20,7 @@ class MinimapHoverController(
   private val scope = coroutineScope.childScope("MinimapHoverController")
   private val hitChecker = MinimapHoverHitCheck(panel.editor)
   private val presenter = MinimapHoverPresenter(panel)
-  private val hoverPolicy = MinimapHoverPolicy.forEditor(panel.editor)
+  private val hoverPolicy = MinimapInteractionPolicy.forEditor(panel.editor)
   private var lastSnapshot: MinimapSnapshot? = null
   private var hoverEnabled = true
 
@@ -89,7 +90,7 @@ class MinimapHoverController(
       return
     }
 
-    hoverStateMachine.updateTarget(MinimapHoverTarget(hit.entry, hit.rect, text, hit.icon))
+    hoverStateMachine.updateTarget(MinimapHoverTarget(hit.entry, hit.rect, text, hit.icon, hit.declarationWidth))
   }
 
   private fun updateActiveTargetForSnapshot(snapshot: MinimapSnapshot) {
@@ -112,6 +113,7 @@ class MinimapHoverController(
       return
     }
 
-    hoverStateMachine.syncActiveTarget(active.copy(entry = updatedEntry, rect = updatedRect))
+    val updatedDeclarationWidth = hitChecker.computeDeclarationWidth(updatedEntry, snapshot.context, snapshot.layoutMetrics)
+    hoverStateMachine.syncActiveTarget(active.copy(entry = updatedEntry, rect = updatedRect, declarationWidth = updatedDeclarationWidth))
   }
 }
