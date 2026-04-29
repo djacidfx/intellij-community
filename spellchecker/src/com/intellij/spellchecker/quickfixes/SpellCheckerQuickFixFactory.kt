@@ -39,7 +39,10 @@ abstract class SpellCheckerQuickFixFactory {
       suggestions: Set<String>? = null,
     ): List<LocalQuickFix> {
       if (IS_LOGGED.compareAndSet(false, true)) {
-        LOGGER.warn("Consider migrating to text level spellchecking. See `SpellcheckingStrategy#useTextLevelSpellchecking()` documentation.")
+        LOGGER.warn("""
+          Consider migrating programming language `${element.language}` to text level spellchecking. 
+          See `SpellcheckingStrategy#useTextLevelSpellchecking()` documentation.
+        """.trimIndent())
       }
       return EP_NAME.extensionList.firstNotNullOfOrNull { it.createChangeToVariantsFixes(element, rangeInElement, word) }
              ?: ChangeTo(word, element, rangeInElement, tracker, suggestions).getAllAsFixes()
