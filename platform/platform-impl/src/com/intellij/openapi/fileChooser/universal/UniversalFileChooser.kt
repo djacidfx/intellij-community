@@ -58,8 +58,7 @@ import com.intellij.util.Consumer
 import com.intellij.util.SystemProperties
 import com.intellij.util.containers.isEmpty
 import com.intellij.util.containers.toArray
-import com.intellij.util.ui.JBUI
-import com.intellij.util.ui.UIUtil
+
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -82,6 +81,7 @@ import java.awt.event.MouseEvent
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentHashMap
+import java.util.function.BooleanSupplier
 import java.util.function.Predicate
 import javax.swing.DefaultListModel
 import javax.swing.Icon
@@ -587,7 +587,7 @@ object UniversalFileChooser {
       private var currentCrumbs: List<FileCrumb> = emptyList()
       private val barCardLayout = CardLayout()
       private val barPanel = JPanel(barCardLayout)
-      private val pathTextField: FileTextField = FileChooserFactory.getInstance().createFileTextField(descriptor, disposable)
+      private val pathTextField: NioPathTextField = NioPathTextField(scope)
 
       companion object {
         private const val LOADING_CARD = "loading"
@@ -637,10 +637,8 @@ object UniversalFileChooser {
         }, disposable)
         val scrollPane = ScrollPaneFactory.createScrollPane(fileTree.getTree())
 
-        barPanel.border = UIUtil.getTextFieldBorder()
-        pathTextField.field.border = JBUI.Borders.empty()
         barPanel.add(breadcrumbs, BREADCRUMBS_CARD)
-        barPanel.add(pathTextField.field, PATH_CARD)
+        barPanel.add(pathTextField, PATH_CARD)
         breadcrumbs.onSelect { crumb, event ->
           val fileCrumb = crumb as? FileCrumb ?: return@onSelect
           if (fileCrumb == currentCrumbs.lastOrNull() && Files.isDirectory(fileCrumb.file)) {
@@ -657,8 +655,10 @@ object UniversalFileChooser {
             }
           }
         })
-        pathTextField.field.addKeyListener(object : KeyAdapter() {
+        pathTextField.showHiddenSupplier = BooleanSupplier { fileTree.areHiddensShown() }
+        pathTextField.addKeyListener(object : KeyAdapter() {
           override fun keyPressed(e: KeyEvent) {
+            if (e.isConsumed) return
             when (e.keyCode) {
               KeyEvent.VK_ENTER -> {
                 navigateToTextFieldPath(); e.consume()
@@ -838,10 +838,10 @@ object UniversalFileChooser {
 
       private fun switchToEditMode() {
         val selectedFile = fileTree.getSelectedFile()
-        pathTextField.field.text = selectedFile?.toString() ?: ""
+        pathTextField.text = selectedFile?.toString() ?: ""
         barCardLayout.show(barPanel, PATH_CARD)
-        pathTextField.field.requestFocusInWindow()
-        pathTextField.field.selectAll()
+        pathTextField.requestFocusInWindow()
+        pathTextField.selectAll()
       }
 
       private fun switchToBreadcrumbs() {
@@ -850,7 +850,7 @@ object UniversalFileChooser {
       }
 
       private fun navigateToTextFieldPath() {
-        val text = pathTextField.field.text.trim()
+        val text = pathTextField.text.trim()
         switchToBreadcrumbs()
         if (text.isEmpty()) return
         scope.launch {
@@ -885,9 +885,7 @@ object UniversalFileChooser {
         val showHidden = fileTree.areHiddensShown()
         scope.launch {
           withContext(Dispatchers.IO) {
-            val children = runCatching { Files.list(directory).asSequence()
-              .filter { runCatching { Files.isDirectory(it) && (showHidden || !isHidden(it)) }.getOrElse { false } }
-              .sortedBy { it.name.lowercase() }.toList() }.getOrElse { emptyList() }
+            val children = NioFileChooserUtil.safeGetChildren(directory, showHidden, false)
             if (!children.isEmpty()) {
               runOnEdt {
                 JBPopupFactory.getInstance()

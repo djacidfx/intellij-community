@@ -250,10 +250,7 @@ class NioFileTreeModel @JvmOverloads constructor(
     private fun updateContent() {
       val p = path
       updateName(fileName(p))
-      updateIcon(
-        if (Files.isDirectory(p)) PlatformIcons.FOLDER_ICON
-        else FileTypeRegistry.getInstance().getFileTypeByFileName(p.toString()).icon
-      )
+      updateIcon(NioFileChooserUtil.getIcon(p))
       updateValid(Files.exists(p))
       updateHidden(NioFileChooserUtil.isHidden(p))
       updateSymlink(Files.isSymbolicLink(p))
