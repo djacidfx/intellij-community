@@ -1,8 +1,9 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.platform.searchEverywhere.backend.impl
 
+import com.intellij.ide.rpc.DataContextDeserializationResult
 import com.intellij.ide.rpc.DataContextId
-import com.intellij.ide.rpc.dataContext
+import com.intellij.ide.rpc.dataContextWithDiagnostics
 import com.intellij.openapi.actionSystem.ActionUiKind
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.EDT
@@ -160,10 +161,11 @@ class SeBackendService(val project: Project, private val coroutineScope: Corouti
         return@withLock null
       }
 
-      val dataContext = withContext(Dispatchers.EDT) {
-        dataContextId.dataContext()
-      } ?: run {
-        SeLog.error("Cannot create providers on the backend: couldn't deserialize data context")
+      val dataContextResolution = withContext(Dispatchers.EDT) {
+        dataContextId.dataContextWithDiagnostics()
+      }
+      val dataContext = dataContextResolution.dataContext ?: run {
+        logDataContextDeserializationFailure(dataContextResolution)
         return@withLock null
       }
 
@@ -178,6 +180,45 @@ class SeBackendService(val project: Project, private val coroutineScope: Corouti
 
       return@withLock providersHolder
     }
+
+  private fun logDataContextDeserializationFailure(result: DataContextDeserializationResult) {
+    val message = buildString {
+      append("Cannot create providers on the backend: couldn't deserialize data context")
+      append(" [reason=").append(describeDeserializationReason(result))
+      result.serializerClassName?.let {
+        append(", serializer=").append(it)
+      }
+      formatCauseChain(result.failure)?.let {
+        append(", failure=").append(it)
+      }
+      append(']')
+    }
+
+    SeLog.error(message)
+  }
+
+  private fun describeDeserializationReason(result: DataContextDeserializationResult): String {
+    return when {
+      !result.hasSerializedValue -> "missing-serialized-value"
+      result.serializerClassName == null -> "no-matching-rpc-serializer"
+      result.failure != null -> "serializer-threw"
+      else -> "serializer-returned-null"
+    }
+  }
+
+  private fun formatCauseChain(throwable: Throwable?): String? {
+    if (throwable == null) return null
+
+    return generateSequence(throwable) { it.cause }
+      .joinToString(" -> ") { current ->
+        buildString {
+          append(current::class.java.name)
+          current.message?.takeIf { it.isNotBlank() }?.let {
+            append(": ").append(it)
+          }
+        }
+      }
+  }
 
   suspend fun itemSelected(session: SeSession, itemData: SeItemData, modifiers: Int, searchText: String, isAllTab: Boolean): Boolean {
     val provider = getProvidersHolder(session, null)?.get(itemData.providerId, isAllTab) ?: return false
