@@ -25,7 +25,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.nio.file.Path
-import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.io.path.exists
 import kotlin.io.path.readBytes
 import kotlin.time.Duration.Companion.milliseconds
@@ -73,23 +73,24 @@ internal class ProcessPerProjectSharedConfigFolderApplicationInitializedListener
 
   private fun setupSyncDisabledPlugins(path: Path, asyncScope: CoroutineScope) {
     val syncDisabledPluginsRequests = MutableSharedFlow<Unit>(replay = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
-    val syncIsPending = AtomicBoolean(false)
+    val modificationCount = AtomicInteger()
+    val maxProcessedModification = AtomicInteger()
     asyncScope.launch(Dispatchers.IO) {
       try {
         syncDisabledPluginsRequests.debounce(100.milliseconds).collectLatest {
+          maxProcessedModification.getAndAccumulate(modificationCount.get(), ::maxOf)
           syncDisabledPluginsFile(path)
-          syncIsPending.set(false)
         }
       }
       finally {
-        if (syncIsPending.get()) {
+        if (maxProcessedModification.get() < modificationCount.get()) {
           syncDisabledPluginsFile(path)
         }
       }
     }
     DisabledPluginsState.addDisablePluginListener {
       LOG.debug("Disabled plugins changed, starting sync")
-      syncIsPending.set(true)
+      modificationCount.incrementAndGet()
       syncDisabledPluginsRequests.tryEmit(Unit)
     }
   }
