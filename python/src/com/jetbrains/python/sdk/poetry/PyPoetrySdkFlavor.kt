@@ -5,7 +5,6 @@ import com.intellij.python.community.impl.poetry.common.icons.PythonCommunityImp
 import com.jetbrains.python.sdk.flavors.CPythonSdkFlavor
 import com.jetbrains.python.sdk.flavors.PyFlavorData
 import com.jetbrains.python.sdk.flavors.PythonFlavorProvider
-import com.jetbrains.python.sdk.flavors.VirtualEnvBasedFlavor
 import java.nio.file.Path
 import javax.swing.Icon
 
@@ -14,7 +13,7 @@ import javax.swing.Icon
  *  This source code is edited by @koxudaxi Koudai Aono <koxudaxi@gmail.com>
  */
 
-object PyPoetrySdkFlavor : CPythonSdkFlavor<PyFlavorData.Empty>(), VirtualEnvBasedFlavor {
+object PyPoetrySdkFlavor : CPythonSdkFlavor<PyFlavorData.Empty>() {
   override fun getIcon(): Icon = PythonCommunityImplPoetryCommonIcons.Poetry
   override fun getFlavorDataClass(): Class<PyFlavorData.Empty> = PyFlavorData.Empty::class.java
 

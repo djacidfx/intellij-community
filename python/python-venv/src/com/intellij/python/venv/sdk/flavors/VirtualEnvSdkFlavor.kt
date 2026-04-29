@@ -13,14 +13,13 @@ import com.jetbrains.python.sdk.baseDir
 import com.jetbrains.python.sdk.detectPythonEnvironment
 import com.jetbrains.python.sdk.flavors.CPythonSdkFlavor
 import com.jetbrains.python.sdk.flavors.PyFlavorData
-import com.jetbrains.python.sdk.flavors.VirtualEnvBasedFlavor
 import com.jetbrains.python.venvReader.VirtualEnvReader
 import org.jetbrains.annotations.ApiStatus.Internal
 import java.nio.file.Path
 import javax.swing.Icon
 
 @Internal
-class VirtualEnvSdkFlavor private constructor() : CPythonSdkFlavor<PyFlavorData.Empty>(), VirtualEnvBasedFlavor {
+class VirtualEnvSdkFlavor private constructor() : CPythonSdkFlavor<PyFlavorData.Empty>() {
 
   override fun isPlatformIndependent(): Boolean = true
 
