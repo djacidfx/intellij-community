@@ -418,13 +418,13 @@ public final class TestDaemonCodeAnalyzerImpl {
         @Override
         public void daemonFinished(@NotNull Collection<? extends FileEditor> fileEditors) {
           listenersCalled.up();
-          PassExecutorService.LOG.trace("waitForDaemonToFinish.daemonFinished");
+          DaemonCodeAnalyzerImpl.LOG.trace("waitForDaemonToFinish.daemonFinished: "+fileEditors);
         }
 
         @Override
         public void daemonCancelEventOccurred(@NotNull String reason) {
           listenersCalled.up();
-          PassExecutorService.LOG.trace("waitForDaemonToFinish.daemonCancelEventOccurred: " + reason);
+          DaemonCodeAnalyzerImpl.LOG.trace("waitForDaemonToFinish.daemonCancelEventOccurred: " + reason);
         }
       });
       if (!daemonIsWorkingOrPending(document)) {

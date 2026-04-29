@@ -1114,15 +1114,16 @@ public class DaemonRespondToChangesTest extends ProductionDaemonAnalyzerTestCase
       Editor alienEditor = Objects.requireNonNull(FileEditorManager.getInstance(alienProject).openTextEditor(alienDescriptor, false));
       ((EditorImpl)alienEditor).setCaretActive();
       myTestDaemonCodeAnalyzer.waitForTermination();
-      myDaemonCodeAnalyzer.restart(getTestName(false));
-      // start daemon in the main project. should check for its cancel when typing in alien
       AtomicBoolean checked = new AtomicBoolean();
       Runnable callbackWhileWaiting = () -> {
         if (!checked.getAndSet(true)) {
           typeInAlienEditor(alienEditor, 'x');
         }
       };
+      // start daemon in the main project. should check for its cancel when typing in alien
+      myDaemonCodeAnalyzer.restart(getTestName(false));
       myTestDaemonCodeAnalyzer.waitForDaemonToFinish(getFile(), callbackWhileWaiting);
+      assertTrue(checked.get());
     }
     catch (ProcessCanceledException ignored) {
       return;
