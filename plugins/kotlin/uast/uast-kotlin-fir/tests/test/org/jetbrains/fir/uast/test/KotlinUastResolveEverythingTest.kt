@@ -8,6 +8,7 @@ import org.jetbrains.uast.UFile
 import org.jetbrains.uast.test.common.kotlin.resolvableWithTargets
 import org.jetbrains.uast.test.env.kotlin.assertEqualsToFile
 import org.jetbrains.uast.test.kotlin.TEST_KOTLIN_MODEL_PATH
+import org.junit.Test
 import java.nio.file.Path
 
 class KotlinUastResolveEverythingTest : AbstractFirUastTest() {
@@ -21,27 +22,39 @@ class KotlinUastResolveEverythingTest : AbstractFirUastTest() {
         assertEqualsToFile("resolved", expected, file.resolvableWithTargets())
     }
 
+    @Test
     fun testClassAnnotation() = doCheck("ClassAnnotation.kt")
 
+    @Test
     fun testLocalDeclarations() = doCheck("LocalDeclarations.kt")
 
+    @Test
     fun testConstructors() = doCheck("Constructors.kt")
 
+    @Test
     fun testSimpleAnnotated() = doCheck("SimpleAnnotated.kt")
 
+    @Test
     fun testAnonymous() = doCheck("Anonymous.kt")
 
+    @Test
     fun testTypeReferences() = doCheck("TypeReferences.kt")
 
+    @Test
     fun testImports() = doCheck("Imports.kt")
 
+    @Test
     fun testReifiedResolve() = doCheck("ReifiedResolve.kt")
 
+    @Test
     fun testResolve() = doCheck("Resolve.kt")
 
+    @Test
     fun testPropertyReferences() = doCheck("PropertyReferences.kt")
 
+    @Test
     fun testTypeAliasConstructorReference() = doCheck("TypeAliasConstructorReference.kt")
 
+    @Test
     fun testComments() = doCheck("Comments.kt")
 }

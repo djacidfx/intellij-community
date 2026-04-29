@@ -7,6 +7,7 @@ import com.intellij.platform.uast.testFramework.common.UastMappingsAccountantTes
 import com.intellij.platform.uast.testFramework.common.sourcesFromLargeProject
 import org.jetbrains.kotlin.idea.KotlinFileType
 import org.junit.Ignore
+import org.junit.Test
 import java.nio.file.Path
 
 /**
@@ -36,6 +37,7 @@ class KotlinUastMappingsAccountantOverLargeProjectTest :
         )
     }
 
+    @Test
     override fun `test compute all mappings and print in all variations`() {
         delegate.`test compute all mappings and print in all variations`()
     }

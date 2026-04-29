@@ -2,7 +2,11 @@
 
 package org.jetbrains.fir.uast.test
 
+import org.junit.Test
+
 class KotlinExpressionValueTest : AbstractKotlinExpressionValueTest() {
+
+    @Test
     fun testDelegate() {
         doCheck("Delegate.kt")
     }

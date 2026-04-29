@@ -10,6 +10,7 @@ import org.jetbrains.uast.UFile
 import org.jetbrains.uast.UResolvable
 import org.jetbrains.uast.test.kotlin.TEST_KOTLIN_MODEL_PATH
 import org.junit.Assert
+import org.junit.Test
 import java.nio.file.Path
 
 class KotlinUastResolveTest : AbstractFirUastTest() {
@@ -33,5 +34,6 @@ class KotlinUastResolveTest : AbstractFirUastTest() {
         Assert.assertEquals(resultComment.text.substringAfter("RESULT:"), resultText)
     }
 
+    @Test
     fun testMethodReference() = doCheck("MethodReference.kt")
 }

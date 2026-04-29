@@ -4,6 +4,7 @@ package org.jetbrains.fir.uast.test
 
 import org.jetbrains.kotlin.idea.base.plugin.KotlinPluginMode
 import org.jetbrains.uast.test.kotlin.TEST_KOTLIN_MODEL_PATH
+import org.junit.Test
 import java.nio.file.Path
 
 class KotlinUastValuesTest : AbstractFirUastValuesTest() {
@@ -13,15 +14,21 @@ class KotlinUastValuesTest : AbstractFirUastValuesTest() {
 
     override val testBasePath: Path = TEST_KOTLIN_MODEL_PATH
 
+    @Test
     fun testAssertion() = doCheck("Assertion.kt")
 
+    @Test
     fun testDelegate() = doCheck("Delegate.kt")
 
+    @Test
     fun testIn() = doCheck("In.kt")
 
+    @Test
     fun testLocalDeclarations() = doCheck("LocalDeclarations.kt")
 
+    @Test
     fun testSimple() = doCheck("Simple.kt")
 
+    @Test
     fun testStringTemplateComplex() = doCheck("StringTemplateComplex.kt")
 }

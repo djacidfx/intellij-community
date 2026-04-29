@@ -3,13 +3,16 @@
 package org.jetbrains.fir.uast.test
 
 import org.jetbrains.uast.test.kotlin.TEST_KOTLIN_MODEL_PATH
+import org.junit.Test
 import java.nio.file.Path
 
 class KotlinUastCommentOwnersTest : AbstractFirUastCommentsTest() {
 
     override val testBasePath: Path = TEST_KOTLIN_MODEL_PATH
 
+    @Test
     fun testCommentOwners() = doCheck("CommentOwners.kt")
 
+    @Test
     fun testComments() = doCheck("Comments.kt")
 }

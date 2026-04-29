@@ -12,6 +12,7 @@ import org.jetbrains.uast.UFile
 import org.jetbrains.uast.test.kotlin.TEST_KOTLIN_MODEL_PATH
 import org.jetbrains.uast.toUElement
 import org.jetbrains.uast.visitor.UastVisitor
+import org.junit.Test
 import java.nio.file.Path
 
 class KotlinUastNonVisitorConversionsTest : AbstractFirUastTest() {
@@ -51,33 +52,48 @@ class KotlinUastNonVisitorConversionsTest : AbstractFirUastTest() {
         assertEqualsToFile("MissedElements", testBasePath.resolve("${getTestName(false)}.missed.txt").toFile(), missedText.toString())
     }
 
+    @Test
     fun testClassAnnotation() = doCheck("ClassAnnotation.kt")
 
+    @Test
     fun testLocalDeclarations() = doCheck("LocalDeclarations.kt")
 
+    @Test
     fun testComments() = doCheck("Comments.kt")
 
+    @Test
     fun testConstructors() = doCheck("Constructors.kt")
 
+    @Test
     fun testSimpleAnnotated() = doCheck("SimpleAnnotated.kt")
 
+    @Test
     fun testAnonymous() = doCheck("Anonymous.kt")
 
+    @Test
     fun testAnnotationParameters() = doCheck("AnnotationParameters.kt")
 
+    @Test
     fun testLambdas() = doCheck("Lambdas.kt")
 
+    @Test
     fun testSuperCalls() = doCheck("SuperCalls.kt")
 
+    @Test
     fun testPropertyInitializer() = doCheck("PropertyInitializer.kt")
 
+    @Test
     fun testEnumValuesConstructors() = doCheck("EnumValuesConstructors.kt")
 
+    @Test
     fun testNonTrivialIdentifiers() = doCheck("NonTrivialIdentifiers.kt")
 
+    @Test
     fun testBrokenDataClass() = doCheck("BrokenDataClass.kt")
 
+    @Test
     fun testBrokenGeneric() = doCheck("BrokenGeneric.kt")
 
+    @Test
     fun testTryCatch() = doCheck("TryCatch.kt")
 }
