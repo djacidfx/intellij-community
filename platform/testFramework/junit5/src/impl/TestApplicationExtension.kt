@@ -16,7 +16,6 @@ import com.intellij.testFramework.common.timeoutRunBlocking
 import com.intellij.testFramework.common.waitForAppLeakingThreads
 import com.intellij.util.ui.EDT
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import org.jetbrains.annotations.TestOnly
@@ -68,11 +67,7 @@ private class TestApplicationResource(val initializationResult: Result<Unit>) : 
         val application = ApplicationManager.getApplication()
         application.messageBus.syncPublisher(AppLifecycleListener.TOPIC).appWillBeClosed(false)
         yield()
-        withContext(Dispatchers.IO) {
-          runInterruptible {
-            waitForAppLeakingThreads(application, 10, TimeUnit.SECONDS)
-          }
-        }
+        waitForAppLeakingThreads(application, 10, TimeUnit.SECONDS)
         assertNonDefaultProjectsAreNotLeaked() // TODO? ability to disable this check for local (=non-build-server) runs
         yield()
         disposeTestApplication()

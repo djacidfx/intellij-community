@@ -335,6 +335,7 @@ class DocumentCommitThread : DocumentCommitProcessor, Disposable {
   @TestOnly
   @ApiStatus.Internal
   fun waitForAllCommits(timeout: Long, timeUnit: TimeUnit) {
+    assert(ApplicationManager.getApplication().isUnitTestMode)
     val deadLine = System.nanoTime() + timeUnit.toNanos(timeout)
     val projectManager = ProjectManagerEx.getInstanceEx()
     val allProjects = projectManager.openProjects + if (projectManager.isDefaultProjectInitialized) arrayOf(projectManager.defaultProject) else arrayOf()

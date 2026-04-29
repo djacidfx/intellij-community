@@ -83,8 +83,8 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiManager;
 import com.intellij.psi.PsiRecursiveElementWalkingVisitor;
 import com.intellij.psi.PsiReference;
-import com.intellij.psi.impl.DocumentCommitThread;
 import com.intellij.psi.impl.source.resolve.reference.impl.PsiMultiReference;
+import com.intellij.testFramework.common.TestApplicationKt;
 import com.intellij.testFramework.fixtures.IdeaTestExecutionPolicy;
 import com.intellij.ui.ClientProperty;
 import com.intellij.ui.tree.AsyncTreeModel;
@@ -534,7 +534,7 @@ public final class PlatformTestUtil {
         var laterInvoked = new AtomicBoolean();
         app.invokeLater(() -> laterInvoked.set(true));
         dispatchAllInvocationEventsInIdeEventQueue();
-        waitForAllDocumentsCommitted(10, TimeUnit.SECONDS);
+        TestApplicationKt.waitForAllDocumentsCommitted(10, TimeUnit.SECONDS);
         assertTrue(laterInvoked.get());
 
         TimeoutUtil.sleep(sleptAlready ? 10 : delay);
@@ -1498,16 +1498,5 @@ public final class PlatformTestUtil {
         "; FJP configured parallelism=" + ForkJoinPool.getCommonPoolParallelism() +
         "; FJP actual common pool parallelism=" + ForkJoinPool.commonPool().getParallelism());
     }
-  }
-
-  @RequiresEdt
-  @TestOnly
-  public static void waitForAllDocumentsCommitted(long timeout, @NotNull TimeUnit timeUnit) {
-    var documentCommitThread = DocumentCommitThread.getInstance();
-    TestOnlyThreading.releaseTheAcquiredWriteIntentLockThenExecuteActionAndTakeWriteIntentLockBack(() -> {
-      documentCommitThread.waitForAllCommits(timeout, timeUnit);
-    });
-    // some callbacks on document commit might require EDT. So we forcibly dispatch pending events to run these callbacks
-    dispatchAllInvocationEventsInIdeEventQueue();
   }
 }

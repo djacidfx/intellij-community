@@ -32,6 +32,7 @@ import com.intellij.testFramework.TestFrameworkUtil;
 import com.intellij.testFramework.TestLoggerFactory;
 import com.intellij.testFramework.Timings;
 import com.intellij.testFramework.UITestUtil;
+import com.intellij.testFramework.common.TestApplicationKt;
 import com.intellij.testFramework.exceptionCases.AbstractExceptionCase;
 import com.intellij.testFramework.fixtures.IdeaTestExecutionPolicy;
 import com.intellij.util.DocumentUtil;
@@ -767,7 +768,7 @@ public abstract class KtUsefulTestCase extends TestCase {
                         });
                     }
 
-                    PlatformTestUtil.waitForAllDocumentsCommitted(timeout, timeUnit);
+                    TestApplicationKt.waitForAllDocumentsCommitted(timeout, timeUnit);
                 }
             });
         } catch (Exception e) {
