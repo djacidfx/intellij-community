@@ -452,6 +452,7 @@ public abstract class PsiDocumentManagerBase extends PsiDocumentManagerEx implem
     return list == null ? Collections.emptyList() : list;
   }
 
+  @RequiresEdt
   private @NotNull @Unmodifiable List<Runnable> getAndClearAllDocumentCommitActions() {
     ThreadingAssertions.assertEventDispatchThread();
 
@@ -560,6 +561,9 @@ public abstract class PsiDocumentManagerBase extends PsiDocumentManagerEx implem
       finally {
         if (success.get()) {
           myUncommittedDocuments.remove(document);
+          if (LOG.isTraceEnabled()) {
+            LOG.trace("finishCommitInWriteAction: " + document + " became committed");
+          }
           myUncommittedDocumentTraces.remove(document);
         }
       }
@@ -635,6 +639,9 @@ public abstract class PsiDocumentManagerBase extends PsiDocumentManagerEx implem
     PsiFile psiFile = getPsiFile(document);
     if (psiFile == null) {
       myUncommittedDocuments.remove(document);
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("doCommit: " + document + " became committed since psiFile==null");
+      }
       myUncommittedDocumentTraces.remove(document);
       runAfterCommitActions(document);
       return true; // the project must be closing or file deleted
@@ -749,6 +756,7 @@ public abstract class PsiDocumentManagerBase extends PsiDocumentManagerEx implem
   }
 
   // return true when action is run, false when it's queued to run later
+  @RequiresEdt
   private boolean performWhenAllCommitted(@NotNull ModalityState modality, @NotNull Runnable action) {
     ThreadingAssertions.assertEventDispatchThread();
     assertWeAreOutsideAfterCommitHandler();
@@ -898,6 +906,7 @@ public abstract class PsiDocumentManagerBase extends PsiDocumentManagerEx implem
     }
   }
 
+  @RequiresEdt
   private boolean mayRunActionsWhenAllCommitted() {
     ThreadingAssertions.assertEventDispatchThread();
     return !isCommitInProgress() &&
@@ -918,6 +927,7 @@ public abstract class PsiDocumentManagerBase extends PsiDocumentManagerEx implem
     }
   }
 
+  @RequiresEdt
   private boolean isInsideCommitHandler() {
     ThreadingAssertions.assertEventDispatchThread();
     return isInsideCommitHandler;
@@ -1127,7 +1137,7 @@ public abstract class PsiDocumentManagerBase extends PsiDocumentManagerEx implem
     }
 
     boolean commitNecessary =
-      !ContainerUtil.exists(files, file -> PsiToDocumentSynchronizer.isInsideAtomicChange(file) || !(file instanceof PsiFileImpl));
+      ContainerUtil.all(files, psiFile -> !PsiToDocumentSynchronizer.isInsideAtomicChange(psiFile) && psiFile instanceof PsiFileImpl);
 
     Application application = ApplicationManager.getApplication();
     boolean forceCommit = ExternalChangeActionUtil.isExternalChangeInProgress() &&
@@ -1144,6 +1154,9 @@ public abstract class PsiDocumentManagerBase extends PsiDocumentManagerEx implem
     if (commitNecessary) {
       assert !(document instanceof DocumentWindow);
       myUncommittedDocuments.add(document);
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("documentChanged: " + event + " -> " + document + " became uncommitted");
+      }
       if (Registry.is("ide.activity.tracking.enable.debug")) {
         myUncommittedDocumentTraces.put(document, new Throwable());
       }
@@ -1243,6 +1256,10 @@ public abstract class PsiDocumentManagerBase extends PsiDocumentManagerEx implem
     }
 
     myUncommittedDocuments.remove(document);
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("handleCommitWithoutPsi: " + document + " became committed");
+    }
+
     myUncommittedDocumentTraces.remove(document);
 
     if (!myProject.isInitialized() || myProject.isDisposed() || myProject.isDefault()) {
@@ -1360,6 +1377,7 @@ public abstract class PsiDocumentManagerBase extends PsiDocumentManagerEx implem
     myUncommittedDocuments.clear();
     myUncommittedDocumentTraces.clear();
     mySynchronizer.cleanupForNextTest();
+    myDocumentCommitProcessor.clearUncommittedDocuments(myProject);
   }
 
   @TestOnly

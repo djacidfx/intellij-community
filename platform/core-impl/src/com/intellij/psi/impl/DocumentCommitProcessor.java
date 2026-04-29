@@ -1,6 +1,7 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.psi.impl;
 
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
@@ -8,6 +9,7 @@ import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.TestOnly;
 
 @ApiStatus.Internal
 public interface DocumentCommitProcessor {
@@ -18,4 +20,9 @@ public interface DocumentCommitProcessor {
                             @NotNull Document document,
                             @NonNls @NotNull Object reason,
                             @NotNull ModalityState modality);
+
+  @TestOnly
+  default void clearUncommittedDocuments(@NotNull Project project) {
+    assert ApplicationManager.getApplication().isUnitTestMode();
+  }
 }
