@@ -536,7 +536,7 @@ fun Sdk.configureBuilderToRunPythonOnTarget(targetCommandLineBuilder: TargetedCo
   getOrCreateAdditionalData().flavorAndData.data.prepareTargetCommandLine(this, targetCommandLineBuilder)
 }
 
-@Deprecated("use SdkExtKt.isSdkSeemsValid")
+@Deprecated("use SdkExtKt.isSdkSeemsValid", level = DeprecationLevel.ERROR)
 val Sdk.sdkSeemsValid: Boolean
   get() = isSdkSeemsValid
 
