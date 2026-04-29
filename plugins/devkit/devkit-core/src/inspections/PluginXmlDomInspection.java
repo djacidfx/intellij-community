@@ -235,7 +235,8 @@ public final class PluginXmlDomInspection extends DevKitPluginXmlInspectionBase 
     assert ideaPlugin != null;
     for (var dependency : ideaPlugin.getDepends()) {
       if (dependency.getOptional().getValue() != Boolean.TRUE) {
-        holder.createProblem(dependency, HighlightSeverity.ERROR, DevKitBundle.message("inspections.plugin.xml.dependency.descriptor.cannot.use.depends"))
+        holder.createProblem(dependency, ProblemHighlightType.WARNING, DevKitBundle.message(
+            "inspections.plugin.xml.dependency.descriptor.should.not.use.depends"), null)
           .highlightWholeElement();
       }
     }
