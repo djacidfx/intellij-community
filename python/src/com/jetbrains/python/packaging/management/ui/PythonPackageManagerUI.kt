@@ -97,16 +97,6 @@ class PythonPackageManagerUI private constructor(
     }
   }
 
-  @ApiStatus.Internal
-  suspend fun installPackagesRequestDetachedBackground(
-    installRequest: PythonPackageInstallRequest,
-    options: List<String> = emptyList(),
-  ): List<PythonPackage>? {
-    return executeCommand(getProgressTitle(installRequest)) {
-      manager.installPackageDetached(installRequest, options)
-    }
-  }
-
   private fun getProgressTitle(installRequest: PythonPackageInstallRequest): @Nls String {
     return when (installRequest) {
       is PythonPackageInstallRequest.ByLocation -> PyBundle.message("python.packaging.installing.package", installRequest.title)

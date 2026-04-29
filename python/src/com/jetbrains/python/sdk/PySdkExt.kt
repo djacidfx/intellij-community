@@ -13,8 +13,6 @@ import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtil
-import com.intellij.openapi.progress.ProgressManager
-import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.openapi.projectRoots.impl.SdkConfigurationUtil
@@ -33,18 +31,18 @@ import com.intellij.openapi.vfs.ex.temp.TempFileSystem
 import com.intellij.platform.eel.EelApi
 import com.intellij.python.community.services.systemPython.SystemPythonService
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
-import com.intellij.webcore.packaging.PackagesNotificationPanel
 import com.jetbrains.python.PyBundle
 import com.jetbrains.python.errorProcessing.PyResult
 import com.jetbrains.python.isCondaVirtualEnv
 import com.jetbrains.python.isNonToolVirtualEnv
-import com.jetbrains.python.packaging.ui.PyPackageManagementService
 import com.jetbrains.python.psi.LanguageLevel
 import com.jetbrains.python.run.PythonInterpreterTargetEnvironmentFactory
 import com.jetbrains.python.sdk.add.v2.PathHolder
 import com.jetbrains.python.sdk.flavors.PyFlavorAndData
 import com.jetbrains.python.sdk.flavors.PythonSdkFlavor
 import com.intellij.python.venv.sdk.flavors.VirtualEnvSdkFlavor
+import com.intellij.webcore.packaging.PackagesNotificationPanel
+import com.jetbrains.python.packaging.ui.PyPackageManagementService
 import com.jetbrains.python.sdk.legacy.PythonSdkUtil
 import com.jetbrains.python.sdk.legacy.PythonSdkUtil.isPythonSdk
 import com.jetbrains.python.sdk.readOnly.PythonSdkReadOnlyProvider
@@ -90,6 +88,7 @@ fun findBaseSdks(existingSdks: List<Sdk>, module: Module?, context: UserDataHold
     }
 }
 
+@Internal
 fun mostPreferred(sdks: List<Sdk>): Sdk? = sdks.minWithOrNull(PreferredSdkComparator.INSTANCE)
 
 @Internal
@@ -180,33 +179,6 @@ fun filterAssociatedSdks(module: Module, existingSdks: List<Sdk>): List<Sdk> {
 fun detectAssociatedEnvironments(module: Module, existingSdks: List<Sdk>, context: UserDataHolder): List<PyRichSdk> =
   detectVirtualEnvs(module, existingSdks, context).filter { it.isAssociatedWithModule(module) }
 
-@Internal
-fun createSdkByGenerateTask(
-  generateSdkHomePath: Task.WithResult<String, ExecutionException>,
-  existingSdks: List<Sdk>,
-  baseSdk: Sdk?,
-  associatedProjectPath: Path?,
-  suggestedSdkName: String?,
-  sdkAdditionalData: PythonSdkAdditionalData? = null,
-): Sdk {
-  val homeFile = try {
-    val homePath = ProgressManager.getInstance().run(generateSdkHomePath)
-    StandardFileSystems.local().refreshAndFindFileByPath(homePath) ?: throw ExecutionException(
-      PyBundle.message("python.sdk.python.executable.not.found", homePath)
-    )
-  }
-  catch (e: ExecutionException) {
-    showSdkExecutionException(baseSdk, e, PyBundle.message("python.sdk.failed.to.create.interpreter.title"))
-    throw e
-  }
-
-  return SdkConfigurationUtil.setupSdk(
-    existingSdks.toTypedArray(),
-    homeFile,
-    PythonSdkType.getInstance(),
-    sdkAdditionalData,
-    suggestedSdkName)
-}
 
 @Internal
 suspend fun createSdk(
