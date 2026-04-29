@@ -9,6 +9,7 @@ import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread;
 import com.intellij.util.concurrency.annotations.RequiresEdt;
+import com.intellij.util.concurrency.annotations.RequiresReadLock;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -151,6 +152,7 @@ public abstract class PsiDocumentManager {
    * @return the array of uncommitted documents.
    * @see #commitDocument(Document)
    */
+  @RequiresReadLock
   public abstract @NotNull Document @NotNull [] getUncommittedDocuments();
 
   /**

@@ -1500,6 +1500,7 @@ public final class PlatformTestUtil {
     }
   }
 
+  @RequiresEdt
   @TestOnly
   public static void waitForAllDocumentsCommitted(long timeout, @NotNull TimeUnit timeUnit) {
     var documentCommitThread = DocumentCommitThread.getInstance();

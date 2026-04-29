@@ -16,6 +16,7 @@ import com.intellij.openapi.application.TransactionGuard
 import com.intellij.openapi.application.asContextElement
 import com.intellij.openapi.application.readAndBackgroundWriteActionUndispatched
 import com.intellij.openapi.application.readAndEdtWriteActionUndispatched
+import com.intellij.openapi.application.runReadActionBlocking
 import com.intellij.openapi.application.useBackgroundWriteAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
@@ -29,6 +30,7 @@ import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressIndicatorProvider
 import com.intellij.openapi.progress.util.StandardProgressIndicatorBase
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.ex.ProjectManagerEx
 import com.intellij.openapi.util.ProperTextRange
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.registry.Registry
@@ -40,7 +42,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.SingleRootFileViewProvider
 import com.intellij.psi.text.BlockSupport
 import com.intellij.util.SmartList
-import com.intellij.util.concurrency.BoundedTaskExecutor
+import com.intellij.util.TimeoutUtil
 import com.intellij.util.concurrency.SequentialTaskExecutor
 import com.intellij.util.concurrency.annotations.RequiresReadLock
 import com.intellij.util.containers.CollectionFactory
@@ -330,30 +332,29 @@ class DocumentCommitThread : DocumentCommitProcessor, Disposable {
 
   // NB: failures applying EDT tasks are not handled - i.e., failed documents are added back to the queue and the method returns
   @TestOnly
+  @ApiStatus.Internal
   fun waitForAllCommits(timeout: Long, timeUnit: TimeUnit) {
-    val boundedTaskExecutor = myExecutor as BoundedTaskExecutor
-    if (!ApplicationManager.getApplication().isDispatchThread()) {
-      boundedTaskExecutor.waitAllTasksExecuted(timeout, timeUnit)
-      while (commitDispatcherSuspender.availablePermits == 0) {
-        Thread.sleep(10)
-      }
-      return
-    }
-
-    assert(!ApplicationManager.getApplication().isWriteAccessAllowed())
-
-    EDT.dispatchAllInvocationEvents()
     val deadLine = System.nanoTime() + timeUnit.toNanos(timeout)
-    while (!boundedTaskExecutor.isEmpty || commitDispatcherSuspender.availablePermits == 0) {
-      try {
-        boundedTaskExecutor.waitAllTasksExecuted(10, TimeUnit.MILLISECONDS)
-      }
-      catch (e: TimeoutException) {
+    val projectManager = ProjectManagerEx.getInstanceEx()
+    val allProjects = projectManager.openProjects + if (projectManager.isDefaultProjectInitialized) arrayOf(projectManager.defaultProject) else arrayOf()
+    allProjects.forEach { project ->
+      while (true) {
+        val documentManager = PsiDocumentManager.getInstance(project) as PsiDocumentManagerEx
+        val documents = runReadActionBlocking {
+          documentManager.uncommittedDocuments.filter { documentManager.isEventSystemEnabled(it) }
+        }
+        if (documents.isEmpty()) {
+          break
+        }
         if (System.nanoTime() > deadLine) {
-          throw e
+          throw TimeoutException("Uncommitted documents: " +
+                                 StringUtil.join(documents, {d -> ""+d+": "+System.identityHashCode(d)}, ", ")+" in $project")
+        }
+        TimeoutUtil.sleep(10) // do not saturate edt completely
+        if (EDT.isCurrentThreadEdt()) {
+          EDT.dispatchAllInvocationEvents()
         }
       }
-      EDT.dispatchAllInvocationEvents()
     }
   }
 
