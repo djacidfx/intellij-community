@@ -102,16 +102,16 @@ internal class ModernDiffPreviewPanel(
     } else null
   }
 
-  private fun configureUiPanel(panel: JPanel, omitBottomGap: Boolean = false): JPanel {
+  private fun configureUiPanel(panel: JPanel, omitTopGap: Boolean = true, omitBottomGap: Boolean = false,): JPanel {
     return panel.apply {
-      border = JBUI.Borders.empty(0, 5, if (omitBottomGap) 0 else 5, 5)
+      border = JBUI.Borders.empty(if (omitTopGap) 0 else 3, 5, if (omitBottomGap) 0 else 5, 5)
     }
   }
 
   private fun createSingleDiffPanel(ui: CreatedPreviewUI): JPanel {
     return if (!ui.isFileNameTrivial || Registry.`is`("modern.diff.show.file.name.when.trivial")) {
       createVerticalFlowingContainerWithCaptionsForUis(listOf(ui))
-    } else configureUiPanel(ui.panel)
+    } else configureUiPanel(ui.panel, omitTopGap = false, omitBottomGap = false)
   }
 
   private fun createVerticalFlowingContainerWithCaptionsForUis(diffUis: List<CreatedPreviewUI>): JPanel {
@@ -142,7 +142,7 @@ internal class ModernDiffPreviewPanel(
       flowingContainerPanel.add(
         BorderLayoutPanel().apply {
           add(label, BorderLayout.NORTH)
-          add(configureUiPanel(ui.panel, i != diffUis.lastIndex), BorderLayout.SOUTH)
+          add(configureUiPanel(ui.panel, omitBottomGap = i != diffUis.lastIndex), BorderLayout.SOUTH)
         }
       )
     }
