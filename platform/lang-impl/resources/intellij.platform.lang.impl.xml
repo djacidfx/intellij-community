@@ -142,5 +142,6 @@
     <projectSettings service="com.intellij.ui.tabs.PerUserFileColorModelStorageManager"/>
     <projectSettings service="com.intellij.ui.tabs.PerTeamFileColorModelStorageManager"/>
     <applicationSettings service="com.intellij.codeInsight.hints.chain.DeclarativeCallChainInlaySettings"/>
+    <registryKey key="hyperlink.ide.decompiler.open.file" defaultValue="true" description="Load binary files in hyperlink on background thread"/>
   </extensions>
 </idea-plugin>

@@ -729,6 +729,8 @@ com.intellij.openapi.fileTypes.FileType
 - a:isBinary():Z
 - isCharsetHardcoded():Z
 - isReadOnly():Z
+c:com.intellij.openapi.fileTypes.FileTypeExtension
+- isBinaryWithDecompiler(com.intellij.openapi.vfs.VirtualFile):Z
 com.intellij.openapi.fileTypes.FileTypeRegistry$FileTypeDetector
 - sf:EP_NAME:com.intellij.openapi.extensions.ExtensionPointName
 - a:detect(com.intellij.openapi.vfs.VirtualFile,com.intellij.openapi.util.io.ByteSequence,java.lang.CharSequence):com.intellij.openapi.fileTypes.FileType

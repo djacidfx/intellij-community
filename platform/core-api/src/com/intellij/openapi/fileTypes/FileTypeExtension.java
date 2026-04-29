@@ -3,6 +3,7 @@ package com.intellij.openapi.fileTypes;
 
 import com.intellij.openapi.extensions.ExtensionPointName;
 import com.intellij.openapi.util.KeyedExtensionCollector;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.util.KeyedLazyInstance;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
@@ -33,6 +34,11 @@ public class FileTypeExtension<T> extends KeyedExtensionCollector<T, FileType> {
   public @Nullable T forFileType(@NotNull FileType t) {
     final List<T> all = allForFileType(t);
     return all.isEmpty() ? null : all.get(0);
+  }
+
+  public boolean isBinaryWithDecompiler(@NotNull VirtualFile file) {
+    FileType type = file.getFileType();
+    return type.isBinary() && BinaryFileTypeDecompilers.getInstance().forFileType(type) != null;
   }
 
   public @NotNull Map<FileType, T> getAllRegisteredExtensions() {

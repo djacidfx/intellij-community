@@ -669,8 +669,7 @@ public class FileDocumentManagerImpl extends FileDocumentManagerBase implements 
   }
 
   private static boolean isBinaryWithDecompiler(@NotNull VirtualFile file) {
-    FileType type = file.getFileType();
-    return type.isBinary() && BinaryFileTypeDecompilers.getInstance().forFileType(type) != null;
+    return BinaryFileTypeDecompilers.getInstance().isBinaryWithDecompiler(file);
   }
 
   static final class MyAsyncFileListener implements AsyncFileListener {
