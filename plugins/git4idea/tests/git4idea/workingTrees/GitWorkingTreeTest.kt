@@ -4,6 +4,7 @@ package git4idea.workingTrees
 import com.intellij.ide.impl.OpenProjectTask
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ex.ProjectManagerEx
+import com.intellij.openapi.util.io.NioFiles
 import com.intellij.openapi.vcs.Executor.cd
 import com.intellij.openapi.vcs.LocalFilePath
 import com.intellij.openapi.vfs.LocalFileSystem
@@ -86,9 +87,37 @@ internal abstract class GitWorkingTreeTest : GitWorkingTreeTestBase() {
     val workingTree = createdWorkingTrees.firstOrNull { it.path.path.endsWith(treeRoot) }
     assertNotNull(workingTree)
 
-    Git.getInstance().deleteWorkingTree(project, workingTree!!)
+    Git.getInstance().deleteWorkingTree(repo, workingTree!!)
     val removedWorkingTree = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(newWorkingTreeRootPath)
     assertNull(removedWorkingTree)
+
+    repo.ensureWorkingTreesUpToDateForTests()
+    assertSameElements(repo.workingTreeHolder.getWorkingTrees(), getExpectedDefaultWorkingTrees())
+  }
+
+  fun `test deleting working tree after manual deletion of the folder`() {
+    val branch = "tree"
+    val treeRoot = "treeRoot"
+    val newWorkingTreeRootPath = testNioRoot.resolve(treeRoot)
+
+    git("worktree add -B $branch ../$treeRoot")
+
+    val createdWorkTreeRoot = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(newWorkingTreeRootPath)
+    assertNotNull(createdWorkTreeRoot)
+
+    repo.ensureWorkingTreesUpToDateForTests()
+    val createdWorkingTrees = repo.workingTreeHolder.getWorkingTrees()
+    val workingTree = createdWorkingTrees.firstOrNull { it.path.path.endsWith(treeRoot) }
+    assertNotNull(workingTree)
+
+    NioFiles.deleteRecursively(newWorkingTreeRootPath)
+    val removedWorkingTree = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(newWorkingTreeRootPath)
+    assertNull(removedWorkingTree)
+    repo.ensureWorkingTreesUpToDateForTests()
+
+    Git.getInstance().deleteWorkingTree(repo, workingTree!!)
+    val emptyWorkingTree = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(newWorkingTreeRootPath)
+    assertNull(emptyWorkingTree)
 
     repo.ensureWorkingTreesUpToDateForTests()
     assertSameElements(repo.workingTreeHolder.getWorkingTrees(), getExpectedDefaultWorkingTrees())

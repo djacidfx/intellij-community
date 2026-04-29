@@ -344,7 +344,7 @@ public interface Git {
   GitObjectType getObjectTypeEnum(@NotNull GitRepository repository, @NotNull String object);
 
   @NotNull
-  GitCommandResult deleteWorkingTree(@NotNull Project project, @NotNull GitWorkingTree tree);
+  GitCommandResult deleteWorkingTree(@NotNull GitRepository repository, @NotNull GitWorkingTree tree);
 
   @NotNull
   List<GitWorkingTree> listWorktrees(@NotNull GitRepository repository) throws VcsException;

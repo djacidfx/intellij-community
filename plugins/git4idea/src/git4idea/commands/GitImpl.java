@@ -862,8 +862,8 @@ public class GitImpl extends GitImplBase {
   }
 
   @Override
-  public @NotNull GitCommandResult deleteWorkingTree(@NotNull Project project, @NotNull GitWorkingTree tree) {
-    GitLineHandler handler = new GitLineHandler(project, Paths.get(tree.getPath().getPath()), GitCommand.WORKTREE);
+  public @NotNull GitCommandResult deleteWorkingTree(@NotNull GitRepository repository, @NotNull GitWorkingTree tree) {
+    GitLineHandler handler = new GitLineHandler(repository.getProject(), repository.getRoot(), GitCommand.WORKTREE);
     handler.setSilent(false);
     handler.setStdoutSuppressed(false);
     handler.setStderrSuppressed(false);
