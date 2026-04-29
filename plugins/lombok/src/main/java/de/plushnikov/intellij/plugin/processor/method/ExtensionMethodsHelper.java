@@ -5,9 +5,9 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.JavaPsiFacade;
-import com.intellij.psi.PsiArrayType;
 import com.intellij.psi.JavaResolveResult;
 import com.intellij.psi.PsiAnnotation;
+import com.intellij.psi.PsiArrayType;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiClassType;
 import com.intellij.psi.PsiElement;
@@ -28,8 +28,8 @@ import com.intellij.psi.util.CachedValuesManager;
 import com.intellij.psi.util.MethodSignatureBackedByPsiMethod;
 import com.intellij.psi.util.PsiModificationTracker;
 import com.intellij.psi.util.PsiTreeUtil;
-import com.intellij.psi.util.PsiUtil;
 import com.intellij.psi.util.PsiTypesUtil;
+import com.intellij.psi.util.PsiUtil;
 import com.intellij.psi.util.TypeConversionUtil;
 import com.intellij.util.containers.ContainerUtil;
 import de.plushnikov.intellij.plugin.LombokClassNames;
@@ -61,15 +61,12 @@ public final class ExtensionMethodsHelper {
       return Collections.emptyList();
     }
     PsiReferenceExpression methodExpression = methodCallExpression.getMethodExpression();
-    PsiExpression qualifierExpression = methodExpression.getQualifierExpression();
-    if (qualifierExpression == null ||
-        !nameHint.equals(methodExpression.getReferenceName()) ||
-        qualifierExpression instanceof PsiReferenceExpression && ((PsiReferenceExpression)qualifierExpression).resolve() instanceof PsiClass) {
+    if (!nameHint.equals(methodExpression.getReferenceName()) || getExtensionMethodQualifier(methodExpression) == null) {
       return Collections.emptyList();
     }
 
     return collectExtensionMethods(targetClass, place, (providerClass, extensionMethodImpl) -> createExtensionMethod(
-      providerClass, extensionMethodImpl, targetClass, methodCallExpression));
+      providerClass, extensionMethodImpl, targetClass, methodCallExpression, nameHint::equals));
   }
 
   private static List<PsiExtensionMethod> collectExtensionMethods(PsiClass targetClass,
@@ -148,16 +145,18 @@ public final class ExtensionMethodsHelper {
 
   /// Creates a [PsiExtensionMethod] that represents an extension method binding `extensionMethodImpl` from `providerClass`
   /// to an instance method of `targetClass`.
-  /// Ensures that the provided static method matches the method invoked by the
-  /// given call expression and resolves its applicability or returns null otherwise.
+  /// Preserves substitutions inferred from the full call when possible and falls back to receiver-only compatibility.
   private static @Nullable PsiExtensionMethod createExtensionMethod(PsiClass providerClass,
-                                                          PsiMethod extensionMethodImpl,
-                                                          PsiClass targetClass,
-                                                          PsiMethodCallExpression callExpression) {
-    if (!extensionMethodImpl.getName().equals(callExpression.getMethodExpression().getReferenceName())) return null;
+                                                                    PsiMethod extensionMethodImpl,
+                                                                    PsiClass targetClass,
+                                                                    PsiMethodCallExpression callExpression,
+                                                                    Predicate<? super String> nameFilter) {
+    if (!nameFilter.test(extensionMethodImpl.getName())) return null;
+    PsiReferenceExpression methodExpression = callExpression.getMethodExpression();
+    PsiExpression qualifierExpression = methodExpression.getQualifierExpression();
     PsiMethodCallExpression staticMethodCall;
     try {
-      StringBuilder args = new StringBuilder(Objects.requireNonNull(callExpression.getMethodExpression().getQualifierExpression()).getText());
+      StringBuilder args = new StringBuilder(Objects.requireNonNull(qualifierExpression).getText());
       PsiExpression[] expressions = callExpression.getArgumentList().getExpressions();
       if (expressions.length > 0) {
         args.append(", ");
@@ -165,7 +164,8 @@ public final class ExtensionMethodsHelper {
       args.append(StringUtil.join(expressions, expression -> expression.getText(), ","));
 
       staticMethodCall = (PsiMethodCallExpression)JavaPsiFacade.getElementFactory(extensionMethodImpl.getProject())
-        .createExpressionFromText(providerClass.getQualifiedName() + "." + extensionMethodImpl.getName() + "(" + args + ")", callExpression);
+        .createExpressionFromText(providerClass.getQualifiedName() + "." + extensionMethodImpl.getName() + "(" + args + ")",
+                                  callExpression);
     }
     catch (ProcessCanceledException e) {
       throw e;
@@ -176,17 +176,17 @@ public final class ExtensionMethodsHelper {
     }
 
     JavaResolveResult result = staticMethodCall.resolveMethodGenerics();
-    if (!(result instanceof MethodCandidateInfo)) return null;
-    PsiMethod method = ((MethodCandidateInfo)result).getElement();
-    if (!method.equals(extensionMethodImpl) || !((MethodCandidateInfo)result).isApplicable()) return null;
-    PsiSubstitutor substitutor = result.getSubstitutor();
-
-    return createLightMethod(extensionMethodImpl, targetClass, substitutor);
+    if (result instanceof MethodCandidateInfo methodCandidateInfo && methodCandidateInfo.isApplicable()) {
+      return extensionMethodImpl.equals(result.getElement())
+             ? createExtensionMethod(extensionMethodImpl, targetClass, result.getSubstitutor())
+             : null;
+    }
+    return createReceiverCompatibleExtensionMethod(extensionMethodImpl, targetClass, qualifierExpression, methodExpression, nameFilter);
   }
 
-  private static @Nullable PsiExtensionMethod createLightMethod(final PsiMethod staticMethod,
-                                                                final PsiClass targetClass,
-                                                                final PsiSubstitutor substitutor) {
+  private static @Nullable PsiExtensionMethod createExtensionMethod(final PsiMethod staticMethod,
+                                                                    final PsiClass targetClass,
+                                                                    final PsiSubstitutor substitutor) {
     final LombokExtensionMethod lightMethod = new LombokExtensionMethod(staticMethod);
     lightMethod.addModifiers(PsiModifier.PUBLIC);
     PsiParameter[] parameters = staticMethod.getParameterList().getParameters();
@@ -228,7 +228,7 @@ public final class ExtensionMethodsHelper {
   /// Collects extension methods that should be available in completion for the given method reference.
   ///
   /// @param referenceExpression reference being completed; its qualifier is used as the extension method receiver
-  /// @param nameFilter filters extension method names before compatibility checks
+  /// @param nameFilter          filters extension method names before compatibility checks
   /// @return compatible extension methods or an empty list if the qualifier/target class cannot be resolved
   public static List<PsiExtensionMethod> getExtensionMethodsForCompletion(PsiReferenceExpression referenceExpression,
                                                                           Predicate<? super String> nameFilter) {
@@ -241,7 +241,7 @@ public final class ExtensionMethodsHelper {
       return Collections.emptyList();
     }
     BiFunction<PsiClass, PsiMethod, @Nullable PsiExtensionMethod> function =
-      (PsiClass providerClass, PsiMethod extensionMethodImpl) -> createCompletionExtensionMethod(
+      (PsiClass providerClass, PsiMethod extensionMethodImpl) -> createReceiverCompatibleExtensionMethod(
         extensionMethodImpl, targetClass, qualifierExpression, referenceExpression, nameFilter);
     return collectExtensionMethods(targetClass, referenceExpression, function);
   }
@@ -265,11 +265,11 @@ public final class ExtensionMethodsHelper {
     return PsiUtil.resolveClassInClassTypeOnly(qualifierType);
   }
 
-  private static @Nullable PsiExtensionMethod createCompletionExtensionMethod(PsiMethod staticMethod,
-                                                                              PsiClass targetClass,
-                                                                              PsiExpression qualifierExpression,
-                                                                              PsiReferenceExpression referenceExpression,
-                                                                              Predicate<? super String> nameFilter) {
+  private static @Nullable PsiExtensionMethod createReceiverCompatibleExtensionMethod(PsiMethod staticMethod,
+                                                                                      PsiClass targetClass,
+                                                                                      PsiExpression qualifierExpression,
+                                                                                      PsiReferenceExpression referenceExpression,
+                                                                                      Predicate<? super String> nameFilter) {
     if (!nameFilter.test(staticMethod.getName())) return null;
     PsiParameter receiverParameter = staticMethod.getParameterList().getParameter(0);
     if (receiverParameter == null) return null;
@@ -281,7 +281,7 @@ public final class ExtensionMethodsHelper {
     if (receiverType == null || !TypeConversionUtil.isAssignable(receiverType, qualifierType)) {
       return null;
     }
-    return createLightMethod(staticMethod, targetClass, substitutor);
+    return createExtensionMethod(staticMethod, targetClass, substitutor);
   }
 
   private static PsiSubstitutor inferReceiverSubstitutor(PsiMethod staticMethod,
