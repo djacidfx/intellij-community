@@ -82,6 +82,27 @@ public final class ExplainRegExpIntentionTest extends BasePlatformTestCase {
              """);
   }
 
+  public void testComment() {
+    doTest("(?x)  implausible# inconceivable",
+           """
+             (?x) Inline Mode Modifier (https://www.regular-expressions.info/modifiers.html) – turns regex modes on or off
+               x – turns on comments mode
+             implausible – matches characters in order
+               i – matches the LATIN SMALL LETTER I character
+               m – matches the LATIN SMALL LETTER M character
+               p – matches the LATIN SMALL LETTER P character
+               l – matches the LATIN SMALL LETTER L character
+               a – matches the LATIN SMALL LETTER A character
+               u – matches the LATIN SMALL LETTER U character
+               s – matches the LATIN SMALL LETTER S character
+               i – matches the LATIN SMALL LETTER I character
+               b – matches the LATIN SMALL LETTER B character
+               l – matches the LATIN SMALL LETTER L character
+               e – matches the LATIN SMALL LETTER E character
+             # inconceivable Comment (https://www.regular-expressions.info/freespacing.html)
+             """);
+  }
+
   private void doTest(@Language("RegExp") String regexp, String result) {
     PsiFile file = myFixture.configureByText(RegExpFileType.INSTANCE, regexp);
     assertEquals(result, toString(ExplainRegExpIntention.buildExplanationTree(file)));

@@ -22,6 +22,7 @@ import com.intellij.openapi.util.NlsSafe;
 import com.intellij.openapi.util.registry.Registry;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.wm.IdeFocusManager;
+import com.intellij.psi.PsiComment;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.util.PsiTreeUtil;
@@ -249,9 +250,8 @@ record ValueNode(
   @Override
   public @NotNull String toString() {
     String nameString = nameNode.toString();
-    return nameString.isEmpty()
-           ? StringUtil.join(pattern, "") + " – " + StringUtil.stripHtml(explanation, false)
-           : StringUtil.join(pattern, "") + ' ' + nameNode + " – " + StringUtil.stripHtml(explanation, false);
+    String s = nameString.isEmpty() ? StringUtil.join(pattern, "") : StringUtil.join(pattern, "") + ' ' + nameNode;
+    return !explanation.isEmpty() ? s + " – " + StringUtil.stripHtml(explanation, false) : s;
   }
 }
 record NameNode(@NotNull @NlsContexts.ColumnName String name, @NotNull @NonNls String url) {
@@ -264,6 +264,21 @@ record Fragment(@NotNull @NlsSafe String text, @NotNull SimpleTextAttributes att
   @Override
   public @NotNull String toString() {
     return text;
+  }
+}
+class RegExpTreeNode extends DefaultMutableTreeNode {
+  RegExpTreeNode(@Nullable ValueNode value) {
+    super(value);
+  }
+
+  @Override
+  public ValueNode getUserObject() {
+    return (ValueNode)super.getUserObject();
+  }
+
+  @Override
+  public RegExpTreeNode getParent() {
+    return (RegExpTreeNode)super.getParent();
   }
 }
 class ExplanationVisitor extends RegExpRecursiveElementVisitor {
@@ -280,11 +295,11 @@ class ExplanationVisitor extends RegExpRecursiveElementVisitor {
     return root;
   }
 
-  private void leaf(@NotNull RegExpElement element, @NotNull NameNode nameNode, @NotNull @DetailedDescription String explanation) {
+  private void leaf(@NotNull PsiElement element, @NotNull NameNode nameNode, @NotNull @DetailedDescription String explanation) {
     node(buildNodeValue(element, nameNode, explanation), false);
   }
 
-  private void branch(@NotNull RegExpElement element, @NotNull NameNode nameNode, @NotNull @DetailedDescription String explanation) {
+  private void branch(@NotNull PsiElement element, @NotNull NameNode nameNode, @NotNull @DetailedDescription String explanation) {
     node(buildNodeValue(element, nameNode, explanation), true);
   }
 
@@ -294,13 +309,13 @@ class ExplanationVisitor extends RegExpRecursiveElementVisitor {
     if (makeCurrent) current = node;
   }
 
-  private static ValueNode buildNodeValue(@NotNull RegExpElement element,
+  private static ValueNode buildNodeValue(@NotNull PsiElement element,
                                           @NotNull NameNode nameNode,
                                           @NotNull @DetailedDescription String explanation) {
     return buildNodeValue(element, nameNode, explanation, true);
   }
 
-  private static ValueNode buildNodeValue(RegExpElement element,
+  private static ValueNode buildNodeValue(PsiElement element,
                                           @NotNull NameNode nameNode,
                                           @NotNull @DetailedDescription String explanation,
                                           boolean expand) {
@@ -309,6 +324,9 @@ class ExplanationVisitor extends RegExpRecursiveElementVisitor {
 
   private static List<Fragment> buildPatternFragments(PsiElement element, boolean emphasize, List<Fragment> list) {
     PsiElement child = element.getFirstChild();
+    if (child == null) {
+      list.add(new Fragment(element.getText(), emphasize ? PATTERN_ATTRIBUTES : SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES));
+    }
     while (child != null) {
       if (child.getFirstChild() == null) {
         list.add(new Fragment(child instanceof RegExpElement e ? e.getUnescapedText() : child.getText(),
@@ -335,20 +353,6 @@ class ExplanationVisitor extends RegExpRecursiveElementVisitor {
 
   private void parent() {
     current = current.getParent();
-  }
-
-  @Override
-  public void visitFile(@NotNull PsiFile file) {
-    super.visitFile(file);
-    PsiElement child = file.getFirstChild();
-    if (child instanceof RegExpPattern pattern) {
-      visitRegExpPattern(pattern);
-    }
-  }
-
-  @Override
-  public void visitRegExpElement(RegExpElement element) {
-    super.visitRegExpElement(element);
   }
 
   @Override
@@ -556,15 +560,15 @@ class ExplanationVisitor extends RegExpRecursiveElementVisitor {
     if (!isSimpleChar(c) || c.getParent() instanceof RegExpClass || isSimpleChar(c.getPrevSibling())) {
       return null;
     }
-    RegExpElement next = (RegExpElement)c.getNextSibling();
+    PsiElement next = c.getNextSibling();
     if (!isSimpleChar(next)) {
       return null;
     }
     List<Fragment> result = new SmartList<>();
     result.add(new Fragment(c.getUnescapedText(), PATTERN_ATTRIBUTES));
     while (isSimpleChar(next)) {
-      result.add(new Fragment(next.getUnescapedText(), PATTERN_ATTRIBUTES));
-      next = (RegExpElement)next.getNextSibling();
+      result.add(new Fragment(((RegExpChar)next).getUnescapedText(), PATTERN_ATTRIBUTES));
+      next = next.getNextSibling();
     }
     return result;
   }
@@ -827,19 +831,10 @@ class ExplanationVisitor extends RegExpRecursiveElementVisitor {
     }
     super.visitRegExpBoundary(boundary);
   }
-}
-class RegExpTreeNode extends DefaultMutableTreeNode {
-  RegExpTreeNode(@Nullable ValueNode value) {
-    super(value);
-  }
 
   @Override
-  public ValueNode getUserObject() {
-    return (ValueNode)super.getUserObject();
-  }
-
-  @Override
-  public RegExpTreeNode getParent() {
-    return (RegExpTreeNode)super.getParent();
+  public void visitComment(@NotNull PsiComment comment) {
+    leaf(comment, new NameNode("Comment", "https://www.regular-expressions.info/freespacing.html"), "");
+    super.visitComment(comment);
   }
 }
