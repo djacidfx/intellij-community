@@ -26,6 +26,7 @@ import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.util.InspectionMessage
 import com.intellij.grazie.GrazieBundle
 import com.intellij.grazie.GrazieConfig
+import com.intellij.grazie.detection.toAvailableLang
 import com.intellij.grazie.ide.inspection.ai.RephraseAction
 import com.intellij.grazie.ide.inspection.auto.AutoFix
 import com.intellij.grazie.ide.ui.configurable.StyleConfigurable.Companion.ruleEngineLanguages
@@ -56,9 +57,6 @@ import com.intellij.util.ExceptionUtil
 import com.intellij.util.text.StringOperation
 import org.jetbrains.annotations.ApiStatus
 import java.net.URL
-import java.util.HashMap
-import java.util.LinkedHashMap
-import java.util.LinkedHashSet
 import java.util.SequencedMap
 
 typealias TreeRange = ai.grazie.rules.tree.TextRange
@@ -625,7 +623,7 @@ class TreeRuleChecker private constructor() {
               )
             }
             else {
-              ConfigureSuggestedParameter(suggestion, domain, match.rule().language(), suggestion.quickFixText)
+              ConfigureSuggestedParameter(suggestion, domain, match.rule().language().toAvailableLang(), suggestion.quickFixText)
             }
           }
           ActionSuggestion.RephraseAround -> RephraseAction()

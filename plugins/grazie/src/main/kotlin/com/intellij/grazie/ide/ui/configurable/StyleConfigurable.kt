@@ -2,8 +2,6 @@ package com.intellij.grazie.ide.ui.configurable
 
 import ai.grazie.gec.model.problem.ActionSuggestion
 import ai.grazie.nlp.langs.Language
-import ai.grazie.nlp.langs.utils.englishName
-import ai.grazie.nlp.langs.utils.nativeName
 import ai.grazie.rules.Rule
 import ai.grazie.rules.settings.Setting
 import ai.grazie.rules.settings.SettingComponent
@@ -17,6 +15,7 @@ import com.intellij.grazie.ide.ui.components.dsl.msg
 import com.intellij.grazie.ide.ui.configurable.StyleConfigurable.Companion.ruleEngineLanguages
 import com.intellij.grazie.ide.ui.grammar.tabs.rules.component.GrazieDescriptionComponent
 import com.intellij.grazie.ide.ui.grammar.tabs.rules.component.GrazieTreeComponent
+import com.intellij.grazie.jlanguage.Lang
 import com.intellij.grazie.rule.RuleIdeClient
 import com.intellij.grazie.utils.TextStyleDomain
 import com.intellij.grazie.utils.featuredSettings
@@ -46,6 +45,7 @@ import com.intellij.ui.TitledSeparator
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.dsl.builder.Align
+import com.intellij.ui.dsl.builder.Cell
 import com.intellij.ui.dsl.builder.IntelliJSpacingConfiguration
 import com.intellij.ui.dsl.builder.Row
 import com.intellij.ui.dsl.builder.bindItem
@@ -81,14 +81,14 @@ import javax.swing.event.HyperlinkEvent
 
 class StyleConfigurable : BoundConfigurable(GrazieBundle.message("grazie.settings.grammar.tabs.rules"), null), Disposable, Configurable.NoScroll {
   private val settings: Settings = Settings()
-  private val langComboModel = CollectionComboBoxModel(ArrayList<Language>())
-  private lateinit var langCombo: ComboBox<Language>
+  private val langComboModel = CollectionComboBoxModel(ArrayList<Lang>())
+  private lateinit var langCombo: ComboBox<Lang>
 
   private val filterComponent: SearchTextField = SearchTextField(false).also {
     it.textEditor.emptyText.text = GrazieBundle.message("grazie.settings.style.search.placeholder")
     it.textEditor.document.addDocumentListener(object : DocumentAdapter() {
       override fun textChanged(e: DocumentEvent) {
-        settings.updateFilter(textStyle, langComboModel.selected!!, filterComponent.text)
+        settings.updateFilter(textStyle, langComboModel.selected!!.toLanguage(), filterComponent.text)
       }
     })
     it.border = JBEmptyBorder(5)
@@ -148,7 +148,7 @@ class StyleConfigurable : BoundConfigurable(GrazieBundle.message("grazie.setting
             selectTextStyle(textStyle, langComboModel.selected!!)
           }
           .component
-        domainComboBox.selectedItem = TextStyleDomain.Other
+        domainComboBox.selected = TextStyleDomain.Other
 
         val styleLabelCell = label(GrazieBundle.message("grazie.settings.writing.style.text"))
         val styleComboCell = writingStyleComboBox()
@@ -161,25 +161,26 @@ class StyleConfigurable : BoundConfigurable(GrazieBundle.message("grazie.setting
           }
         settings.addTextStyle(userTextStyle, Language.ENGLISH, filterComponent)
         styleProfileCombo = styleComboCell.component
-        styleProfileCombo.selectedItem = userTextStyle
+        styleProfileCombo.selected = userTextStyle
         styleRowVisibleUpdater = { visible ->
           styleLabelCell.visible(visible)
           styleComboCell.visible(visible)
           styleComboCell.enabled(visible)
         }
-        styleRowVisibleUpdater.invoke(domainComboBox.selectedItem == TextStyleDomain.Other)
+        styleRowVisibleUpdater.invoke(domainComboBox.selected == TextStyleDomain.Other)
       }
 
       row(GrazieBundle.message("grazie.settings.language.chooser.label")) {
         langCombo = comboBox(langComboModel, textListCellRenderer("") { it.nativeName })
           .widthGroup("TopCombo")
-          .whenItemSelectedFromUi { language ->
-            selectTextStyle(textStyle, language)
+          .whenItemSelectedFromUi { lang ->
+            val language = lang.toLanguage()
+            selectTextStyle(textStyle, lang)
             separator.text = GrazieBundle.message(if (language in ruleEngineLanguages) "grazie.settings.style.rules.other" else "grazie.settings.style.rules.all")
             settings.updateFilter(textStyle, language, filterComponent.text)
           }
           .component
-        langCombo.selectedItem = Language.ENGLISH
+        langCombo.selected = GrazieConfig.get().availableLanguages.find { it.isEnglish() }
         trackNewLanguageAddition()
       }
 
@@ -225,13 +226,14 @@ class StyleConfigurable : BoundConfigurable(GrazieBundle.message("grazie.setting
     disposeUIResources()
   }
 
-  private fun selectTextStyle(textStyle: TextStyle, language: Language) {
+  private fun selectTextStyle(textStyle: TextStyle, lang: Lang) {
+    val language = lang.toLanguage()
     val domain = textStyle.getTextDomain()
-    if (domain != TextStyleDomain.Other) domainComboBox.selectedItem = domain else styleProfileCombo.selectedItem = textStyle
+    if (domain != TextStyleDomain.Other) domainComboBox.selected = domain else styleProfileCombo.selected = textStyle
     styleRowVisibleUpdater.invoke(domain == TextStyleDomain.Other)
 
     settings.addTextStyle(textStyle, language, filterComponent)
-    langCombo.selectedItem = language
+    langCombo.selected = lang
     repaintSettings(textStyle, language)
     settings.updateFilter(textStyle, language, filterComponent.text)
   }
@@ -257,19 +259,24 @@ class StyleConfigurable : BoundConfigurable(GrazieBundle.message("grazie.setting
     GrazieConfig.subscribe(this) {
       val newLanguages = loadLanguages() ?: return@subscribe
 
-      val language = if (langComboModel.selected != null && langComboModel.selected in newLanguages) langComboModel.selected!! else Language.ENGLISH
+      val lang = if (langComboModel.selected != null && langComboModel.selected in newLanguages) {
+        langComboModel.selected!!
+      } else {
+        GrazieConfig.get().availableLanguages.first { it.isEnglish() }
+      }
+      val language = lang.toLanguage()
       settings.clear()
       settings.addTextStyle(textStyle, language, filterComponent)
       repaintSettings(textStyle, language)
-      langCombo.selectedItem = language
+      langCombo.selected = lang
     }
   }
 
-  private fun loadLanguages(): Set<Language>? {
-    val langs = GrazieConfig.get().availableLanguages.map { it.toLanguage() }.sortedBy { it.englishName }
+  private fun loadLanguages(): Set<Lang>? {
+    val langs = GrazieConfig.get().availableLanguages
     if (langComboModel.items == langs) return null
     langComboModel.removeAll()
-    langComboModel.add(langs)
+    langComboModel.add(langs.toList())
     return langs.toSet()
   }
 
@@ -289,11 +296,12 @@ class StyleConfigurable : BoundConfigurable(GrazieBundle.message("grazie.setting
     val ruleEngineLanguages: List<Language> = listOf(Language.ENGLISH, Language.GERMAN, Language.RUSSIAN, Language.UKRAINIAN)
 
     @JvmStatic
-    fun focusSetting(parameter: ActionSuggestion.ChangeParameter, domain: TextStyleDomain, language: Language, project: Project): Boolean {
+    fun focusSetting(parameter: ActionSuggestion.ChangeParameter, domain: TextStyleDomain, lang: Lang, project: Project): Boolean {
+      val language = lang.toLanguage()
       val configurable = StyleConfigurable().apply {
         createComponent()
         val style = if (domain == TextStyleDomain.Other) GrazieConfig.get().getTextStyle() else domain.textStyle
-        selectTextStyle(style, language)
+        selectTextStyle(style, lang)
         featuredSettings(language)
           .filterIsInstance<Parameter>()
           .find { it.id() == parameter.parameterId }
@@ -303,12 +311,13 @@ class StyleConfigurable : BoundConfigurable(GrazieBundle.message("grazie.setting
     }
 
     @JvmStatic
-    fun focusSetting(setting: Setting?, rule: com.intellij.grazie.text.Rule?, domain: TextStyleDomain, language: Language, project: Project): Boolean {
+    fun focusSetting(setting: Setting?, rule: com.intellij.grazie.text.Rule?, domain: TextStyleDomain, lang: Lang, project: Project): Boolean {
+      val language = lang.toLanguage()
       require(setting != null || rule != null) { "Setting and Rule can't be null" }
       val configurable = StyleConfigurable().apply {
         createComponent()
         val style = if (domain == TextStyleDomain.Other) GrazieConfig.get().getTextStyle() else domain.textStyle
-        selectTextStyle(style, language)
+        selectTextStyle(style, lang)
 
         if (setting != null && featuredSettings(language).contains(setting)) focusFeaturedSetting(this, setting, style, language, project)
         else if (rule != null) focusTreeSetting(this, rule, style, language, project)
@@ -586,7 +595,7 @@ private fun createLinkLabel(@NlsContexts.LinkLabel text: String, onClick: Runnab
   return link
 }
 
-fun Row.writingStyleComboBox() = comboBox(
+fun Row.writingStyleComboBox(): Cell<ComboBox<TextStyle>> = comboBox(
   CollectionComboBoxModel(getOtherDomainStyles()),
   textListCellRenderer("") {
     GrazieBundle.messageOrNull("grazie.settings.style.profile.display.${it.id}")
@@ -602,5 +611,6 @@ private fun Row.domainComboBox() = comboBox(
 )
 
 @Suppress("UNCHECKED_CAST")
-private val <T> ComboBox<T>.selected: T?
+private var <T> ComboBox<T>.selected: T?
   get() = this.selectedItem as? T
+  set(value) { this.selectedItem = value }
