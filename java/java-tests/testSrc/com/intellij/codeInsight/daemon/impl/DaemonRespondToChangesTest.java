@@ -1091,10 +1091,11 @@ public class DaemonRespondToChangesTest extends ProductionDaemonAnalyzerTestCase
   }
 
   public void testCancelsItSelfOnTypingInAlienProject() throws Throwable {
-    String body = StringUtil.repeat("\"String field = null;\"\n", 1000);
+    String body = StringUtil.repeat("{String field = null;}\n", 1000);
     @Language("JAVA")
     String text = "class X{ void f() {" + body + "<caret>\n} }";
     configureByText(JavaFileType.INSTANCE, text);
+    assertEmpty(myTestDaemonCodeAnalyzer.waitHighlightingSurviveCancellations(getFile(), HighlightSeverity.ERROR));
 
     Project alienProject = PlatformTestUtil.loadAndOpenProject(createTempDirectory().toPath().resolve("alien.ipr"), getTestRootDisposable());
 
@@ -1110,8 +1111,7 @@ public class DaemonRespondToChangesTest extends ProductionDaemonAnalyzerTestCase
         return new OpenFileDescriptor(alienProject, alienFile);
       });
 
-      FileEditorManager fe = FileEditorManager.getInstance(alienProject);
-      Editor alienEditor = Objects.requireNonNull(fe.openTextEditor(alienDescriptor, false));
+      Editor alienEditor = Objects.requireNonNull(FileEditorManager.getInstance(alienProject).openTextEditor(alienDescriptor, false));
       ((EditorImpl)alienEditor).setCaretActive();
       myTestDaemonCodeAnalyzer.waitForTermination();
       myDaemonCodeAnalyzer.restart(getTestName(false));
