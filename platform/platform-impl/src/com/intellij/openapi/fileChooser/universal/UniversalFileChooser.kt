@@ -186,14 +186,16 @@ object UniversalFileChooser {
     @Suppress("OPT_IN_USAGE")
     private val scope = GlobalScope.childScope("UniversalFileChooser")
 
+    private val topToolbar: ActionToolbar
+
     init {
       layout = BorderLayout()
+      topToolbar = createTopToolbar()
       val screenSize = Toolkit.getDefaultToolkit().screenSize
       preferredSize = Dimension(screenSize.width / 2, screenSize.height / 2)
       tabbedPane = JBTabbedPane()
       for (contributor in UniversalFileChooserContributor.EP_NAME.extensionList) {
-        val navigateToProjectAction = if (project.isDefault) null else Runnable { navigateToProject() }
-        val fileView = FileView(contributor, descriptor, disposable, project, okAction, scope, Runnable { navigateToHome() }, navigateToProjectAction)
+        val fileView = FileView(contributor, descriptor, disposable, project, okAction, scope, topToolbar)
         fileViews.add(fileView)
         tabbedPane.addTab(contributor.tabTitle, fileView.topComponent)
       }
@@ -207,12 +209,244 @@ object UniversalFileChooser {
         add(splitter, BorderLayout.CENTER)
       }
       else {
+        val topPanel = panel {
+          row {
+            cell(topToolbar.component).align(AlignX.LEFT)
+          }
+        }
+        add(topPanel, BorderLayout.NORTH)
+        topToolbar.targetComponent = this
         add(tabbedPane, BorderLayout.CENTER)
       }
 
       disposable.whenDisposed {
         scope.cancel()
       }
+    }
+
+    private fun createTopToolbar(): ActionToolbar {
+      val homeAction = object : AnAction(
+        IdeBundle.message("universal.file.chooser.action.home.text"),
+        IdeBundle.message("universal.file.chooser.action.home.description"),
+        AllIcons.Nodes.HomeFolder
+      ) {
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+
+        override fun actionPerformed(e: AnActionEvent) {
+          navigateToHome()
+        }
+      }
+
+      val projectAction = if (!project.isDefault) object : AnAction(
+        IdeBundle.message("universal.file.chooser.action.project.text"),
+        IdeBundle.message("universal.file.chooser.action.project.description"),
+        AllIcons.Nodes.Project
+      ) {
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+
+        override fun actionPerformed(e: AnActionEvent) {
+          navigateToProject()
+        }
+      } else null
+
+      val showHiddenAction = object : ToggleAction(
+        IdeBundle.message("universal.file.chooser.action.show.hidden.text"),
+        IdeBundle.message("universal.file.chooser.action.show.hidden.description"),
+        AllIcons.Actions.ToggleVisibility
+      ) {
+        override fun isSelected(e: AnActionEvent): Boolean = getActiveFileView()?.fileTree?.areHiddensShown() == true
+
+        override fun setSelected(e: AnActionEvent, state: Boolean) {
+          getActiveFileView()?.fileTree?.showHiddens(state)
+        }
+
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+      }
+
+      val createDirectoryAction = object : AnAction(
+        IdeBundle.message("universal.file.chooser.action.create.directory.text"),
+        IdeBundle.message("universal.file.chooser.action.create.directory.description"),
+        AllIcons.Actions.NewFolder
+      ) {
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+
+        override fun update(e: AnActionEvent) {
+          val fileView = getActiveFileView()
+          if (fileView == null) { e.presentation.isEnabled = false; return }
+          val parent = fileView.fileTree.getNewFileParent()
+          e.presentation.isEnabled = parent != null && Files.isDirectory(parent) && Files.isWritable(parent)
+        }
+
+        override fun actionPerformed(e: AnActionEvent) {
+          val fileView = getActiveFileView() ?: return
+          val parent = fileView.fileTree.getNewFileParent() ?: return
+          val newFolderName = Messages.showInputDialog(
+            UIBundle.message("create.new.folder.enter.new.folder.name.prompt.text"),
+            UIBundle.message("new.folder.dialog.title"),
+            Messages.getQuestionIcon(),
+            "",
+            null
+          ) ?: return
+          val failReason = fileView.fileTree.createNewFolder(parent, newFolderName)
+          if (failReason != null) {
+            Messages.showMessageDialog(
+              UIBundle.message("create.new.folder.could.not.create.folder.error.message", newFolderName),
+              UIBundle.message("error.dialog.title"),
+              Messages.getErrorIcon()
+            )
+          }
+        }
+      }
+
+      val deleteAction = object : AnAction(
+        IdeBundle.message("universal.file.chooser.action.delete.text"),
+        IdeBundle.message("universal.file.chooser.action.delete.description"),
+        AllIcons.General.Delete
+      ) {
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+
+        override fun update(e: AnActionEvent) {
+          val fileView = getActiveFileView()
+          if (fileView == null) { e.presentation.isEnabled = false; return }
+          val selected = fileView.fileTree.getSelectedFile()
+          if (selected == null || fileView.roots.contains(selected.invariantSeparatorsPathString) || !Files.isWritable(selected)) {
+            e.presentation.isEnabled = false; return
+          }
+          if (Files.isDirectory(selected) && !runCatching { Files.list(selected).isEmpty() }.getOrElse { true }) {
+            e.presentation.isEnabled = false; return
+          }
+          e.presentation.isEnabled = true
+        }
+
+        override fun actionPerformed(e: AnActionEvent) {
+          val fileView = getActiveFileView() ?: return
+          val selected = fileView.fileTree.getSelectedFile() ?: return
+          val parent = selected.parent ?: return
+          if (Messages.showYesNoDialog(
+              IdeBundle.message("universal.file.chooser.action.delete.confirm", selected.name),
+              IdeBundle.message("universal.file.chooser.action.delete.text"),
+              Messages.getWarningIcon()
+            ) != Messages.YES) return
+
+          scope.launch {
+            withContext(Dispatchers.IO) {
+              val result = runCatching { Files.delete(selected) }
+              runOnEdt {
+                if (result.isSuccess) {
+                  fileView.fileTree.updateTree()
+                }
+                else {
+                  val message = result.exceptionOrNull()?.message ?: ""
+                  Messages.showErrorDialog(message, IdeBundle.message("universal.file.chooser.action.delete.text"))
+                }
+              }
+            }
+          }
+        }
+      }
+
+      val refreshAction = object : AnAction(
+        IdeBundle.message("universal.file.chooser.action.refresh.text"),
+        IdeBundle.message("universal.file.chooser.action.refresh.description"),
+        AllIcons.Actions.Refresh
+      ) {
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+
+        override fun actionPerformed(e: AnActionEvent) {
+          getActiveFileView()?.fileTree?.updateTree()
+        }
+      }
+
+      val mountStatusAction = object : AnAction() {
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+
+        override fun update(e: AnActionEvent) {
+          val fileView = getActiveFileView()
+          if (fileView == null) { e.presentation.isVisible = false; return }
+          val selectedVirtualRoot = fileView.virtualRootList.selectedValue
+          e.presentation.icon = AllIcons.Actions.Execute
+          e.presentation.text = IdeBundle.message("universal.file.chooser.action.mount.status.unmounted")
+          if (selectedVirtualRoot != null) {
+            e.presentation.isVisible = true
+            e.presentation.isEnabled = !fileView.isMountActionInProgress
+            return
+          }
+          val selected = fileView.fileTree.getSelectedFile()
+          if (selected == null) {
+            e.presentation.isVisible = false
+            return
+          }
+          val status = fileView.mountStatusCache[selected.invariantSeparatorsPathString]
+          if (status == MountStatus.Permanent || status == null) {
+            e.presentation.isVisible = false
+          }
+          else {
+            e.presentation.isVisible = true
+          }
+          e.presentation.isEnabled = !fileView.isMountActionInProgress && status != MountStatus.Mounted
+        }
+
+        override fun actionPerformed(e: AnActionEvent) {
+          val fileView = getActiveFileView() ?: return
+          val selectedVirtualRoot = fileView.virtualRootList.selectedValue
+          if (selectedVirtualRoot != null) {
+            fileView.isMountActionInProgress = true
+            fileView.cacheUpdateJob?.cancel()
+            fileView.topComponent.cursor = Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)
+            scope.launch {
+              try {
+                withContext(Dispatchers.IO) {
+                  fileView.contributor.mountVirtualRoot(selectedVirtualRoot)
+                }
+              }
+              finally {
+                fileView.topComponent.cursor = Cursor.getDefaultCursor()
+                fileView.isMountActionInProgress = false
+                fileView.loadRoots()
+              }
+            }
+            return
+          }
+          fileView.fileTree.getSelectedFile()?.let { selected ->
+            val root = selected.root
+            fileView.isMountActionInProgress = true
+            fileView.cacheUpdateJob?.cancel()
+            fileView.topComponent.cursor = Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)
+            scope.launch {
+              try {
+                withContext(Dispatchers.IO) {
+                  val status = fileView.contributor.getMountStatus(root)
+                  if (status == MountStatus.Unmounted) {
+                    fileView.contributor.mount(root)
+                  }
+                }
+                fileView.fileToSelect = root
+              }
+              finally {
+                fileView.topComponent.cursor = Cursor.getDefaultCursor()
+                fileView.isMountActionInProgress = false
+                fileView.startCacheUpdates()
+                fileView.loadRoots()
+                runOnEdt {
+                  fileView.fileTree.updateTree()
+                }
+              }
+            }
+          }
+        }
+      }
+
+      val actionGroup = DefaultActionGroup().apply {
+        add(homeAction)
+        if (projectAction != null) add(projectAction)
+        add(mountStatusAction)
+        add(showHiddenAction)
+        add(createDirectoryAction)
+        add(deleteAction)
+        add(refreshAction)
+      }
+
+      return ActionManager.getInstance().createActionToolbar("UniversalFileChooserTopToolbar", actionGroup, true)
     }
 
     private fun preselectProjectTab(project: Project) {
@@ -342,12 +576,11 @@ object UniversalFileChooser {
       project: Project,
       okAction: Runnable,
       val scope: CoroutineScope,
-      private val navigateToHome: Runnable,
-      private val navigateToProject: Runnable?,
+      private val topToolbar: ActionToolbar,
     ) {
       val topComponent: JComponent
       val fileTree: NioFileSystemTree
-      private val roots: MutableList<String> = mutableListOf()
+      val roots: MutableList<String> = mutableListOf()
       private val virtualRootMap: MutableMap<Path, VirtualRoot> = ConcurrentHashMap()
       var fileToSelect: Path? = null
       private val breadcrumbs = Breadcrumbs()
@@ -366,18 +599,17 @@ object UniversalFileChooser {
       private val cardLayout = CardLayout()
       private val contentPanel = JPanel(cardLayout)
       private val tree = Tree()
-      private var toolbar: ActionToolbar? = null
-      private val mountStatusCache: MutableMap<String, MountStatus> = ConcurrentHashMap()
+      val mountStatusCache: MutableMap<String, MountStatus> = ConcurrentHashMap()
       private val presentationCache: MutableMap<String, UniversalFileChooserContributor.Presentation> = ConcurrentHashMap()
       private val virtualRootListModel = DefaultListModel<VirtualRoot>()
-      private val virtualRootList = JBList(virtualRootListModel)
+      val virtualRootList: JBList<VirtualRoot> = JBList(virtualRootListModel)
       private val virtualRootScrollPane: JComponent
 
       @Volatile
-      private var cacheUpdateJob: Job? = null
+      var cacheUpdateJob: Job? = null
 
       @Volatile
-      private var isMountActionInProgress = false
+      var isMountActionInProgress: Boolean = false
 
       init {
         val descriptorCopy = FileChooserDescriptor(descriptor)
@@ -405,8 +637,6 @@ object UniversalFileChooser {
         }, disposable)
         val scrollPane = ScrollPaneFactory.createScrollPane(fileTree.getTree())
 
-        val toolbar = createToolbar()
-        this.toolbar = toolbar
         barPanel.border = UIUtil.getTextFieldBorder()
         pathTextField.field.border = JBUI.Borders.empty()
         barPanel.add(breadcrumbs, BREADCRUMBS_CARD)
@@ -448,13 +678,13 @@ object UniversalFileChooser {
         }
         virtualRootList.addListSelectionListener {
           tree.clearSelection()
-          toolbar.updateActionsAsync()
+          topToolbar.updateActionsAsync()
         }
         tree.addTreeSelectionListener {
           if (tree.selectionCount > 0 && !virtualRootList.isSelectionEmpty) {
             virtualRootList.clearSelection()
           }
-          toolbar.updateActionsAsync()
+          topToolbar.updateActionsAsync()
         }
 
         virtualRootScrollPane = ScrollPaneFactory.createScrollPane(virtualRootList).apply { isVisible = false }
@@ -470,9 +700,7 @@ object UniversalFileChooser {
           row {
             cell(barPanel)
               .align(AlignX.FILL)
-          }
-          row {
-            cell(toolbar.component)
+              .resizableColumn()
           }
           row {
             cell(contentPanel)
@@ -482,7 +710,6 @@ object UniversalFileChooser {
           }.resizableRow()
         }
 
-        toolbar.targetComponent = mainPanel
         topComponent = mainPanel
         topComponent.putUserData(FILE_VIEW_KEY, this)
 
@@ -490,7 +717,7 @@ object UniversalFileChooser {
 
       }
 
-      private fun loadRoots() {
+      fun loadRoots() {
         cardLayout.show(contentPanel, LOADING_CARD)
         scope.launch {
           withContext(Dispatchers.IO) {
@@ -533,7 +760,7 @@ object UniversalFileChooser {
         }
       }
 
-      private fun startCacheUpdates() {
+      fun startCacheUpdates() {
         cacheUpdateJob?.cancel()
         val changed = mutableSetOf<String>()
         cacheUpdateJob = scope.launch {
@@ -562,236 +789,18 @@ object UniversalFileChooser {
           MountStatus.Unmounted -> {
             runOnEdt {
               collapseUnmountedRoot(root)
-              toolbar?.updateActionsAsync()
+              topToolbar.updateActionsAsync()
             }
             loadRoots()
           }
           MountStatus.Mounted -> {
             loadRoots()
             runOnEdt {
-              toolbar?.updateActionsAsync()
+              topToolbar.updateActionsAsync()
             }
           }
           else -> {}
         }
-      }
-
-      private fun createToolbar(): ActionToolbar {
-        val showHiddenAction = object : ToggleAction(
-          IdeBundle.message("universal.file.chooser.action.show.hidden.text"),
-          IdeBundle.message("universal.file.chooser.action.show.hidden.description"),
-          AllIcons.Actions.ToggleVisibility
-        ) {
-          override fun isSelected(e: AnActionEvent): Boolean = fileTree.areHiddensShown()
-
-          override fun setSelected(e: AnActionEvent, state: Boolean) {
-            fileTree.showHiddens(state)
-          }
-
-          override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
-        }
-
-        val createDirectoryAction = object : AnAction(
-          IdeBundle.message("universal.file.chooser.action.create.directory.text"),
-          IdeBundle.message("universal.file.chooser.action.create.directory.description"),
-          AllIcons.Actions.NewFolder
-        ) {
-          override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
-
-          override fun update(e: AnActionEvent) {
-            val parent = fileTree.getNewFileParent()
-            e.presentation.isEnabled = parent != null && Files.isDirectory(parent) && Files.isWritable(parent)
-          }
-
-          override fun actionPerformed(e: AnActionEvent) {
-            val parent = fileTree.getNewFileParent() ?: return
-            val newFolderName = Messages.showInputDialog(
-              UIBundle.message("create.new.folder.enter.new.folder.name.prompt.text"),
-              UIBundle.message("new.folder.dialog.title"),
-              Messages.getQuestionIcon(),
-              "",
-              null
-            ) ?: return
-            val failReason = fileTree.createNewFolder(parent, newFolderName)
-            if (failReason != null) {
-              Messages.showMessageDialog(
-                UIBundle.message("create.new.folder.could.not.create.folder.error.message", newFolderName),
-                UIBundle.message("error.dialog.title"),
-                Messages.getErrorIcon()
-              )
-            }
-          }
-        }
-
-        val deleteAction = object : AnAction(
-          IdeBundle.message("universal.file.chooser.action.delete.text"),
-          IdeBundle.message("universal.file.chooser.action.delete.description"),
-          AllIcons.General.Delete
-        ) {
-          override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
-
-          override fun update(e: AnActionEvent) {
-            val selected = fileTree.getSelectedFile()
-            if (selected == null || roots.contains(selected.invariantSeparatorsPathString) || !Files.isWritable(selected)) {
-              e.presentation.isEnabled = false; return
-            }
-            if (Files.isDirectory(selected) && !runCatching { Files.list(selected).isEmpty() }.getOrElse { true }) {
-              e.presentation.isEnabled = false; return
-            }
-            e.presentation.isEnabled = true
-          }
-
-          override fun actionPerformed(e: AnActionEvent) {
-            val selected = fileTree.getSelectedFile() ?: return
-            val parent = selected.parent ?: return
-            if (Messages.showYesNoDialog(
-                IdeBundle.message("universal.file.chooser.action.delete.confirm", selected.name),
-                IdeBundle.message("universal.file.chooser.action.delete.text"),
-                Messages.getWarningIcon()
-              ) != Messages.YES) return
-
-            scope.launch {
-              withContext(Dispatchers.IO) {
-                val result = runCatching { Files.delete(selected) }
-                runOnEdt {
-                  if (result.isSuccess) {
-                    fileTree.updateTree()
-                  }
-                  else {
-                    val message = result.exceptionOrNull()?.message ?: ""
-                    Messages.showErrorDialog(message, IdeBundle.message("universal.file.chooser.action.delete.text"))
-                  }
-                }
-              }
-            }
-          }
-        }
-
-        val refreshAction = object : AnAction(
-          IdeBundle.message("universal.file.chooser.action.refresh.text"),
-          IdeBundle.message("universal.file.chooser.action.refresh.description"),
-          AllIcons.Actions.Refresh
-        ) {
-          override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
-
-          override fun actionPerformed(e: AnActionEvent) {
-            fileTree.updateTree()
-          }
-        }
-
-        val mountStatusAction = object : AnAction() {
-          override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
-
-          override fun update(e: AnActionEvent) {
-            val selectedVirtualRoot = virtualRootList.selectedValue
-            e.presentation.icon = AllIcons.Actions.Execute
-            e.presentation.text = IdeBundle.message("universal.file.chooser.action.mount.status.unmounted")
-            if (selectedVirtualRoot != null) {
-              e.presentation.isVisible = true
-              e.presentation.isEnabled = !isMountActionInProgress
-              return
-            }
-            val selected = fileTree.getSelectedFile()
-            if (selected == null) {
-              e.presentation.isVisible = false
-              return
-            }
-            val status = mountStatusCache[selected.invariantSeparatorsPathString]
-            if (status == MountStatus.Permanent || status == null) {
-              e.presentation.isVisible = false
-            }
-            else {
-              e.presentation.isVisible = true
-            }
-            e.presentation.isEnabled = !isMountActionInProgress && status != MountStatus.Mounted
-          }
-
-          override fun actionPerformed(e: AnActionEvent) {
-            val selectedVirtualRoot = virtualRootList.selectedValue
-            if (selectedVirtualRoot != null) {
-              isMountActionInProgress = true
-              cacheUpdateJob?.cancel()
-              topComponent.cursor = Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)
-              scope.launch {
-                try {
-                  withContext(Dispatchers.IO) {
-                    contributor.mountVirtualRoot(selectedVirtualRoot)
-                  }
-                }
-                finally {
-                  topComponent.cursor = Cursor.getDefaultCursor()
-                  isMountActionInProgress = false
-                  loadRoots()
-                }
-              }
-              return
-            }
-            fileTree.getSelectedFile()?.let { selected ->
-              val root = selected.root
-              isMountActionInProgress = true
-              cacheUpdateJob?.cancel()
-              topComponent.cursor = Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)
-              scope.launch {
-                try {
-                  withContext(Dispatchers.IO) {
-                    val status = contributor.getMountStatus(root)
-                    if (status == MountStatus.Unmounted) {
-                      contributor.mount(root)
-                    }
-                  }
-                  fileToSelect = root
-                }
-                finally {
-                  topComponent.cursor = Cursor.getDefaultCursor()
-                  isMountActionInProgress = false
-                  startCacheUpdates()
-                  loadRoots()
-                  runOnEdt {
-                    fileTree.updateTree()
-                  }
-                }
-              }
-            }
-          }
-        }
-
-        val homeAction = object : AnAction(
-          IdeBundle.message("universal.file.chooser.action.home.text"),
-          IdeBundle.message("universal.file.chooser.action.home.description"),
-          AllIcons.Nodes.HomeFolder
-        ) {
-          override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
-
-          override fun actionPerformed(e: AnActionEvent) {
-            navigateToHome.run()
-          }
-        }
-
-        val projectAction = if (navigateToProject != null) object : AnAction(
-          IdeBundle.message("universal.file.chooser.action.project.text"),
-          IdeBundle.message("universal.file.chooser.action.project.description"),
-          AllIcons.Nodes.Project
-        ) {
-          override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
-
-          override fun actionPerformed(e: AnActionEvent) {
-            navigateToProject.run()
-          }
-        } else null
-
-        val actionGroup = DefaultActionGroup().apply {
-          if (!leftPanel) {
-            add(homeAction)
-            if (projectAction != null) add(projectAction)
-          }
-          add(mountStatusAction)
-          add(showHiddenAction)
-          add(createDirectoryAction)
-          add(deleteAction)
-          add(refreshAction)
-        }
-
-        return ActionManager.getInstance().createActionToolbar("UniversalFileChooserToolbar", actionGroup, true)
       }
 
       fun getSelectedFiles(): List<Path> {
@@ -912,6 +921,3 @@ object UniversalFileChooser {
   }
 
 }
-
-
-
