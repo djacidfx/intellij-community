@@ -62,6 +62,7 @@ import java.awt.geom.Path2D
 import java.awt.geom.RoundRectangle2D
 import java.io.StringReader
 import java.net.URL
+import java.util.concurrent.ConcurrentHashMap
 import javax.swing.Box
 import javax.swing.BoxLayout
 import javax.swing.Icon
@@ -1126,7 +1127,44 @@ private fun View.getFloatAttribute(key: Any, defaultValue: Float): Float {
 private val InlineView.borderColorAttr: Color? get() =
   attributes.getAttribute(CSS.Attribute.BORDER_TOP_COLOR)?.toString()?.let { ColorUtil.fromHex(it) }
 
-private const val ICON_DEFAULT_STROKE_ID = "icon-default-stroke"
+private object SvgCustomAttributes {
+
+  enum class ColorType {
+    STROKE,
+    FILL
+  }
+
+  private const val COLOR_STROKE_KEY_ATTR = "color-stroke-key"
+  private const val COLOR_FILL_KEY_ATTR = "color-fill-key"
+
+  private val log = thisLogger()
+  private val unknownAttrColorTypes = ConcurrentHashMap.newKeySet<String>()
+
+  fun getFillColorType(attributes: Map<String, String>): ColorType? {
+    return getColorType(COLOR_FILL_KEY_ATTR, attributes)
+  }
+
+  fun getStrokeColorType(attributes: Map<String, String>): ColorType? {
+    return getColorType(COLOR_STROKE_KEY_ATTR, attributes)
+  }
+
+  private fun getColorType(attribute: String, attributes: Map<String, String>): ColorType? {
+    val value = attributes[attribute] ?: return null
+
+    return when {
+      value.endsWith("-stroke") -> ColorType.STROKE
+      value.endsWith("-fill") -> ColorType.FILL
+
+      else -> {
+        if (unknownAttrColorTypes.add(value)) {
+          log.warn("Invalid $attribute attribute format: $value. Should end with '-stroke' or '-fill'")
+        }
+
+        null
+      }
+    }
+  }
+}
 
 private fun Icon.colorizeIfPossible(fillColor: Color, borderColor: Color = fillColor): Icon =
   (this as? CachedImageIcon)?.createWithPatcher(colorPatcher = object : SVGLoader.SvgElementColorPatcherProvider, SvgAttributePatcher {
@@ -1139,17 +1177,16 @@ private fun Icon.colorizeIfPossible(fillColor: Color, borderColor: Color = fillC
     }
 
     override fun patchColors(attributes: MutableMap<String, String>) {
-      when (attributes["id"]) {
-        ICON_DEFAULT_STROKE_ID -> {
-          setAttribute(attributes, "fill", borderColor)
-          setAttribute(attributes, "stroke", borderColor)
-        }
+      val effectiveFill = if (SvgCustomAttributes.getFillColorType(attributes) == SvgCustomAttributes.ColorType.STROKE)
+        borderColor
+      else fillColor
 
-        else -> {
-          setAttribute(attributes, "fill", fillColor)
-          setAttribute(attributes, "stroke", borderColor)
-        }
-      }
+      val effectiveStroke = if (SvgCustomAttributes.getStrokeColorType(attributes) == SvgCustomAttributes.ColorType.FILL)
+        fillColor
+      else borderColor
+
+      setAttribute(attributes, "fill", effectiveFill)
+      setAttribute(attributes, "stroke", effectiveStroke)
     }
 
     override fun attributeForPath(path: String) = this
