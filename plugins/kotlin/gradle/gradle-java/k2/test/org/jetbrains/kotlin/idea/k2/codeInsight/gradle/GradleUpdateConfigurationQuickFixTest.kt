@@ -54,14 +54,12 @@ class GradleUpdateConfigurationQuickFixTest : GradleImportingTestCase() {
         )
     }
 
-    // Duplicated setting of languageVersion in the after file is expected and should be fixed in KTIJ-37923
     @Test
     @TargetVersions("7.6.3 <=> 8.14.4")
     fun testUpdateExistingLanguageVersion() {
         doTest("Increase language version to 2.2")
     }
 
-    // Duplicated setting of languageVersion in the after file is expected and should be fixed in KTIJ-37923
     @Test
     @TargetVersions("7.6.3 <=> 8.14.4")
     fun testUpdateExistingLanguageVersionKts() {
@@ -79,6 +77,24 @@ class GradleUpdateConfigurationQuickFixTest : GradleImportingTestCase() {
     @TargetVersions("7.6.3 <=> 8.14.4")
     fun testUpdateExistingLanguageVersionKMPKts() {
         doKMPTest("Increase language version to 2.2")
+    }
+
+    @Test
+    @TargetVersions("7.6.3 <=> 8.14.4")
+    fun testUpdateExistingLanguageVersionInTasksDslKts() {
+        doTest("Increase language version to 2.2")
+    }
+
+    @Test
+    @TargetVersions("7.6.3 <=> 8.14.4")
+    fun testUpdateExistingLanguageVersionInTasksDslWithImportKts() {
+        doTest("Increase language version to 2.2")
+    }
+
+    @Test
+    @TargetVersions("7.6.3 <=> 8.14.4")
+    fun testUpdateExistingLanguageVersionInTasksDslWithSeveralImportsKts() {
+        doTest("Increase language version to 2.2")
     }
 
     private fun doKMPTest(intentionName: String) = doTest(intentionName, "src/jvmMain/kotlin/src.kt")

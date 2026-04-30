@@ -36,6 +36,8 @@ class DefinedKotlinPluginManagementVersion(
     val parsedVersion: IdeKotlinVersion?
 )
 
+const val COMPILER_OPTIONS: String = "compilerOptions"
+
 interface GradleBuildScriptManipulator<out Psi : PsiFile> {
     fun isApplicable(file: PsiFile): Boolean
 

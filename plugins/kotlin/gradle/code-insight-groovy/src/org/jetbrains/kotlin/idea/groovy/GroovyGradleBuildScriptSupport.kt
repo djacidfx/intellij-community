@@ -31,6 +31,7 @@ import org.jetbrains.kotlin.idea.configuration.getRepositoryForVersion
 import org.jetbrains.kotlin.idea.configuration.isRepositoryConfigured
 import org.jetbrains.kotlin.idea.configuration.toGradleCompileScope
 import org.jetbrains.kotlin.idea.configuration.toGroovyRepositorySnippet
+import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.COMPILER_OPTIONS
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.DefinedKotlinPluginManagementVersion
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.FOOJAY_RESOLVER_CONVENTION_NAME
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.FOOJAY_RESOLVER_NAME
@@ -651,7 +652,7 @@ class GroovyBuildScriptManipulator(
             /*
             If we didn't find, we try to find it in the `compilerOptions {`
              */
-            var compilerOptionsBlock = outerDslBlock.getBlockByName("compilerOptions")
+            var compilerOptionsBlock = outerDslBlock.getBlockByName(COMPILER_OPTIONS)
             if (compilerOptionsBlock != null) {
                 foundAndReplaced = compilerOptionsBlock.findAndReplaceCompilerOption(
                     parameterName,
@@ -660,7 +661,7 @@ class GroovyBuildScriptManipulator(
                     replaceIt = replaceIt,
                 )
             } else {
-                compilerOptionsBlock = outerDslBlock.createBlock("compilerOptions")
+                compilerOptionsBlock = outerDslBlock.createBlock(COMPILER_OPTIONS)
             }
 
             if (!foundAndReplaced) {

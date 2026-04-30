@@ -34,6 +34,7 @@ import org.jetbrains.kotlin.idea.configuration.getRepositoryForVersion
 import org.jetbrains.kotlin.idea.configuration.isRepositoryConfigured
 import org.jetbrains.kotlin.idea.configuration.toGradleCompileScope
 import org.jetbrains.kotlin.idea.configuration.toKotlinRepositorySnippet
+import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.COMPILER_OPTIONS
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.DefinedKotlinPluginManagementVersion
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.FOOJAY_RESOLVER_CONVENTION_NAME
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.FOOJAY_RESOLVER_NAME
@@ -767,7 +768,15 @@ class KotlinBuildScriptManipulator(
         compilerOption.classToImport?.let {
             addImportIfMissing(it.toString())
         }
-        val compilerOptionsBlock = findScriptInitializer("$taskName.compilerOptions")?.getBlock()
+        var compilerOptionsBlock = findScriptInitializer("$taskName.$COMPILER_OPTIONS")?.getBlock()
+        if (compilerOptionsBlock == null) {
+            compilerOptionsBlock = findScriptInitializer("kotlin")?.getBlock()?.findBlock(COMPILER_OPTIONS)
+            if (compilerOptionsBlock == null) {
+                val scriptInitializer = findScriptInitializer("tasks.withType<KotlinCompile>")
+                    ?: findScriptInitializer("tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>")
+                compilerOptionsBlock = scriptInitializer?.getBlock()?.findBlock(COMPILER_OPTIONS)
+            }
+        }
         return if (compilerOptionsBlock == null) {
             addCompilerOptionsBlockAndOption(taskName, compilerOption)
         } else {
