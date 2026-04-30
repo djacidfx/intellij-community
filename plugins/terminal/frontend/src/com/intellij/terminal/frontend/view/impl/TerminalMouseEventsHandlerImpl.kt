@@ -70,7 +70,9 @@ internal class TerminalMouseEventsHandlerImpl(
       return
     }
     if (shouldSendMouseData(MouseMode.MOUSE_REPORTING_ALL_MOTION)) {
-      terminalInput.sendBytes(mouseReport(MouseButtonCodes.RELEASE, x + 1, y + 1))
+      terminalInput.sendBytes(
+        mouseReport(MouseButtonCodes.RELEASE or MouseButtonModifierFlags.MOUSE_BUTTON_MOTION_FLAG, x + 1, y + 1)
+      )
     }
     lastMotionReport = Point(x, y)
   }
