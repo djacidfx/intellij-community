@@ -611,13 +611,17 @@ public class ImportHelperTest extends ProductionDaemonAnalyzerTestCase {
 
     assertNoImportsAdded();
 
-    otherEditor.getCaretModel().moveToOffset(otherText.indexOf("//")); //before //
+    int offset = otherText.indexOf("//");//before //
+    otherEditor.getCaretModel().moveToOffset(offset);
     @Language("JAVA")
     String toType = "public static class SomeOtherMethodClass12 {}";
-    for (int i = 0; i < toType.length(); i++) {
-      char c = toType.charAt(i);
-      EditorTestUtil.performTypingAction(otherEditor, c);
-    }
+
+    //for (int i = 0; i < toType.length(); i++) {
+    //  char c = toType.charAt(i);
+    //  EditorTestUtil.performTypingAction(otherEditor, c);
+    //}
+    WriteCommandAction.runWriteCommandAction(getProject(), ()->otherEditor.getDocument().insertString(offset, toType)); // typing sometimes does excessive overtyping and messes the text
+
     PsiDocumentManager.getInstance(getProject()).commitAllDocuments();
     assertNotNull(PsiDocumentManager.getInstance(getProject()).getPsiFile(otherEditor.getDocument()));
 
