@@ -15530,6 +15530,60 @@ public abstract class K2LocalInspectionTestGenerated extends AbstractK2LocalInsp
         }
 
         @RunWith(JUnit3RunnerWithInners.class)
+        @TestMetadata("testData/inspectionsLocal/replaceMapKeysCallChainWithKeys")
+        public static class ReplaceMapKeysCallChainWithKeys extends AbstractK2LocalInspectionTest {
+            @java.lang.Override
+            @org.jetbrains.annotations.NotNull
+            public final KotlinPluginMode getPluginMode() {
+                return KotlinPluginMode.K2;
+            }
+
+            private void runTest(String testDataFilePath) throws Exception {
+                KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
+            }
+
+            @TestMetadata("entriesReceiver.kt")
+            public void testEntriesReceiver() throws Exception {
+                runTest("testData/inspectionsLocal/replaceMapKeysCallChainWithKeys/entriesReceiver.kt");
+            }
+
+            @TestMetadata("explicitParameter.kt")
+            public void testExplicitParameter() throws Exception {
+                runTest("testData/inspectionsLocal/replaceMapKeysCallChainWithKeys/explicitParameter.kt");
+            }
+
+            @TestMetadata("implicitIt.kt")
+            public void testImplicitIt() throws Exception {
+                runTest("testData/inspectionsLocal/replaceMapKeysCallChainWithKeys/implicitIt.kt");
+            }
+
+            @TestMetadata("lambdaWithComment.kt")
+            public void testLambdaWithComment() throws Exception {
+                runTest("testData/inspectionsLocal/replaceMapKeysCallChainWithKeys/lambdaWithComment.kt");
+            }
+
+            @TestMetadata("nonMapReceiver.kt")
+            public void testNonMapReceiver() throws Exception {
+                runTest("testData/inspectionsLocal/replaceMapKeysCallChainWithKeys/nonMapReceiver.kt");
+            }
+
+            @TestMetadata("safeCall.kt")
+            public void testSafeCall() throws Exception {
+                runTest("testData/inspectionsLocal/replaceMapKeysCallChainWithKeys/safeCall.kt");
+            }
+
+            @TestMetadata("toList.kt")
+            public void testToList() throws Exception {
+                runTest("testData/inspectionsLocal/replaceMapKeysCallChainWithKeys/toList.kt");
+            }
+
+            @TestMetadata("valueInsteadOfKey.kt")
+            public void testValueInsteadOfKey() throws Exception {
+                runTest("testData/inspectionsLocal/replaceMapKeysCallChainWithKeys/valueInsteadOfKey.kt");
+            }
+        }
+
+        @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("testData/inspectionsLocal/replaceSizeCheckWithIsNotEmpty")
         public static class ReplaceSizeCheckWithIsNotEmpty extends AbstractK2LocalInspectionTest {
             @java.lang.Override
