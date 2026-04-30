@@ -568,7 +568,9 @@ private suspend fun focusSelectedEditor(editorComponent: EditorsSplitters) {
       return
     }
     else {
-      focusSelectedEditorInComposite(composite)
+      withContext(Dispatchers.EDT) {
+        focusSelectedEditorInComposite(composite)
+      }
     }
   }
 }
