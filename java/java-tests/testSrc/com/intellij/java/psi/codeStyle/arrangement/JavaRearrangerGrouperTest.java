@@ -1,4 +1,4 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.java.psi.codeStyle.arrangement;
 
 import com.intellij.psi.codeStyle.arrangement.group.ArrangementGroupingRule;
@@ -333,6 +333,74 @@ public class JavaRearrangerGrouperTest extends AbstractJavaRearrangerTest {
 
              }
              """, List.of(), List.of(group(DEPENDENT_METHODS, DEPTH_FIRST)));
+  }
+
+  public void test_dependent_methods_DFS2() {
+    // IDEA-149524
+    doTest("""
+             public class StepdownRule {
+                 private void nestedPrivateMethod() {}
+             
+                 private void secondPrivateMethod() {}
+             
+                 private void firstPrivateMethod() {
+                     nestedPrivateMethod();
+                 }
+             
+                 public void publicMethod() {
+                     firstPrivateMethod();
+                     secondPrivateMethod();
+                 }
+             }""",
+           """
+             public class StepdownRule {
+                 public void publicMethod() {
+                     firstPrivateMethod();
+                     secondPrivateMethod();
+                 }
+                 private void firstPrivateMethod() {
+                     nestedPrivateMethod();
+                 }
+                 private void nestedPrivateMethod() {}
+                 private void secondPrivateMethod() {}
+             }""", List.of(), List.of(group(DEPENDENT_METHODS, DEPTH_FIRST)));
+  }
+
+  public void test_dependent_methods_DFS3() {
+    // IDEA-166524
+    doTest("""
+             public class Sample {
+             
+                  public Sample() {
+                      firstLevel1();
+                      firstLevel2();
+                  }
+             
+                  private void firstLevel2() {
+                  }
+             
+                  private void firstLevel1() {
+                      secondLevel1();
+                  }
+             
+                  private void secondLevel1() {
+                  }
+              }""",
+           """
+             public class Sample {
+             
+                  public Sample() {
+                      firstLevel1();
+                      firstLevel2();
+                  }
+                  private void firstLevel1() {
+                      secondLevel1();
+                  }
+                  private void secondLevel1() {
+                  }
+                  private void firstLevel2() {
+                  }
+              }""", List.of(), List.of(group(DEPENDENT_METHODS, DEPTH_FIRST)));
   }
 
   public void test_dependent_methods_BFS() {
