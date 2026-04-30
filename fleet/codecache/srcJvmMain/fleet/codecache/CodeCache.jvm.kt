@@ -82,7 +82,7 @@ class CodeCache(
                                        tmpFile: Path,
                                        coord: Coordinates.Remote,
                                        queryParams: Map<String, String>): Boolean {
-    logger.debug("Downloading $coord to $targetFile")
+    logger.debug { "Downloading $coord to $targetFile" }
 
     ensureDirExists(targetFile.parent)
     ensureDirExists(tmpFile.parent)

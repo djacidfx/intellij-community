@@ -322,7 +322,7 @@ class RpcExecutor private constructor(
       }
       is RpcMessage.StreamInit -> {
         if (channels[message.streamId] == null) {
-          logger.trace("received StreamInit for unregistered stream ${message.streamId}, will respond with StreamClosed")
+          logger.trace { "received StreamInit for unregistered stream ${message.streamId}, will respond with StreamClosed" }
           sendAsync(RpcMessage.StreamClosed(message.streamId).seal(clientId, route))
         }
       }

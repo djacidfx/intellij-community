@@ -292,7 +292,7 @@ internal suspend fun withLspImpl(
                                         runCatching {
                                             when (val handler = handlers.notificationHandler(notification.method)) {
                                                 null ->
-                                                    LOG.debug("no handler for notification: ${notification.method}")
+                                                    LOG.debug { "no handler for notification: ${notification.method}" }
 
                                                 else -> {
                                                     val deserializedParams = notification.params?.let { params ->
