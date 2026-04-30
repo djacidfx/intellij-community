@@ -15475,6 +15475,26 @@ public abstract class K1IntentionTestGenerated extends AbstractK1IntentionTest {
             runTest("testData/intentions/removeAllArgumentNames/defaultArguments4.kt");
         }
 
+        @TestMetadata("explicitContextArgument.kt")
+        public void testExplicitContextArgument() throws Exception {
+            runTest("testData/intentions/removeAllArgumentNames/explicitContextArgument.kt");
+        }
+
+        @TestMetadata("explicitContextArgumentAtEnd.kt")
+        public void testExplicitContextArgumentAtEnd() throws Exception {
+            runTest("testData/intentions/removeAllArgumentNames/explicitContextArgumentAtEnd.kt");
+        }
+
+        @TestMetadata("explicitContextArgumentMultiple.kt")
+        public void testExplicitContextArgumentMultiple() throws Exception {
+            runTest("testData/intentions/removeAllArgumentNames/explicitContextArgumentMultiple.kt");
+        }
+
+        @TestMetadata("explicitContextArgumentWithDefault.kt")
+        public void testExplicitContextArgumentWithDefault() throws Exception {
+            runTest("testData/intentions/removeAllArgumentNames/explicitContextArgumentWithDefault.kt");
+        }
+
         @TestMetadata("noNamedArguments.kt")
         public void testNoNamedArguments() throws Exception {
             runTest("testData/intentions/removeAllArgumentNames/noNamedArguments.kt");
@@ -15518,6 +15538,21 @@ public abstract class K1IntentionTestGenerated extends AbstractK1IntentionTest {
         @TestMetadata("varargIsNotLast3.kt")
         public void testVarargIsNotLast3() throws Exception {
             runTest("testData/intentions/removeAllArgumentNames/varargIsNotLast3.kt");
+        }
+
+        @TestMetadata("varargNamedArrayOf.kt")
+        public void testVarargNamedArrayOf() throws Exception {
+            runTest("testData/intentions/removeAllArgumentNames/varargNamedArrayOf.kt");
+        }
+
+        @TestMetadata("varargNamedArrayOfReordered.kt")
+        public void testVarargNamedArrayOfReordered() throws Exception {
+            runTest("testData/intentions/removeAllArgumentNames/varargNamedArrayOfReordered.kt");
+        }
+
+        @TestMetadata("varargSpreadNoNamesToRemove.kt")
+        public void testVarargSpreadNoNamesToRemove() throws Exception {
+            runTest("testData/intentions/removeAllArgumentNames/varargSpreadNoNamesToRemove.kt");
         }
     }
 
