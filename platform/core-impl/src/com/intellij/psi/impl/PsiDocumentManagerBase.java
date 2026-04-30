@@ -1377,7 +1377,6 @@ public abstract class PsiDocumentManagerBase extends PsiDocumentManagerEx implem
     myUncommittedDocuments.clear();
     myUncommittedDocumentTraces.clear();
     mySynchronizer.cleanupForNextTest();
-    myDocumentCommitProcessor.clearUncommittedDocuments(myProject);
   }
 
   @TestOnly

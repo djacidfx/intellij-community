@@ -43,7 +43,6 @@ import com.intellij.psi.SingleRootFileViewProvider
 import com.intellij.psi.text.BlockSupport
 import com.intellij.util.SmartList
 import com.intellij.util.TimeoutUtil
-import com.intellij.util.concurrency.BoundedTaskExecutor
 import com.intellij.util.concurrency.SequentialTaskExecutor
 import com.intellij.util.concurrency.annotations.RequiresReadLock
 import com.intellij.util.containers.CollectionFactory
@@ -548,12 +547,5 @@ class DocumentCommitThread : DocumentCommitProcessor, Disposable {
     finally {
       psiFile.putUserData(BlockSupport.DO_NOT_REPARSE_INCREMENTALLY, null)
     }
-  }
-
-  @TestOnly
-  override fun clearUncommittedDocuments(project: Project) {
-    assert(ApplicationManager.getApplication().isUnitTestMode())
-    (myExecutor as BoundedTaskExecutor).clearAndCancelAll()
-    project.getServiceIfCreated(PerProjectDocumentCommitRegistry::class.java)?.publishedDocumentCommitRequests?.values?.forEach { it.cancel() }
   }
 }
