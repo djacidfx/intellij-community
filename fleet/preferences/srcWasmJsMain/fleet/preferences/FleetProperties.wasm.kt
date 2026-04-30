@@ -8,6 +8,7 @@ import web.window.Window
 import web.url.URL
 import js.objects.ReadonlyRecord
 import js.string.JsStrings.toKotlinString
+import web.storage.localStorage
 
 private val allowedPropertiesPassedInQuery = setOf(
   "fahrplan.startup",
@@ -23,6 +24,7 @@ private val allowedPropertiesPassedInQuery = setOf(
   "fleet.ship.type",
   "fleet.startup.performance.checkpoints",
   "fleet.transient.agent-session-id",
+  "fleet.log.level",
 )
 
 private val urlParameters by lazy {
@@ -36,9 +38,14 @@ private val urlParameters by lazy {
 @Actual
 fun fleetPropertyWasmJs(name: String, defaultValue: String?): String? {
   val nameWithoutPrefix = name.removePrefix("fleet.")
-  return getJsConfigProperty(window, nameWithoutPrefix)
-         ?: urlParameters[nameWithoutPrefix.replace('.', '_')].takeIf { name in allowedPropertiesPassedInQuery }
-         ?: defaultValue
+  return getJsConfigProperty(window, nameWithoutPrefix) ?: run {
+    if (name in allowedPropertiesPassedInQuery) {
+      urlParameters[nameWithoutPrefix.replace('.', '_')] ?: localStorage.getItem(name)
+    }
+    else {
+      null
+    }
+  }?: defaultValue
 }
 
 private fun getJsConfigProperty(obj: Window, name: String): String? {
