@@ -45,7 +45,6 @@ jvm_library(
     "@lib//:kotlinc-analysis-api",
     "@lib//:kotlinc-analysis-api-impl-base",
     "@lib//:kotlinc-analysis-api-k2",
-    "//plugins/kotlin/base/frontend-agnostic",
     "//plugins/kotlin/base/util",
     "//plugins/kotlin/base/psi",
     "//plugins/kotlin/base/resources:kotlin-base-resources",
@@ -86,6 +85,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-codeInsight-shared_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.codeInsight.shared",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -102,7 +102,6 @@ jvm_library(
     "//platform/refactoring:refactoring_test_lib",
     "//platform/usageView:usageView_test_lib",
     "//libraries/kotlin/reflect:reflect_test_lib",
-    "//plugins/kotlin/base/frontend-agnostic:frontend-agnostic_test_lib",
     "//plugins/kotlin/base/util:util_test_lib",
     "//plugins/kotlin/base/psi:psi_test_lib",
     "//plugins/kotlin/base/resources:kotlin-base-resources_test_lib",

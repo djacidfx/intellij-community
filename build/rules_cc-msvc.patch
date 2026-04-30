@@ -1,5 +1,4 @@
-Subject: [PATCH] Limit compiler feature visibility
-Support MSVC with rule-based toolchain
+Subject: [PATCH] Support MSVC with rule-based toolchain
 ---
 Index: .bazelci/presubmit.yml
 IDEA additional info:
@@ -7,9 +6,9 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/.bazelci/presubmit.yml b/.bazelci/presubmit.yml
---- a/.bazelci/presubmit.yml	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/.bazelci/presubmit.yml	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
-@@ -195,3 +195,17 @@
+--- a/.bazelci/presubmit.yml	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/.bazelci/presubmit.yml	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
+@@ -295,3 +295,17 @@
        - "--enable_bzlmod"
      build_targets:
        - "//..."
@@ -33,8 +32,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/cc/toolchains/args/BUILD b/cc/toolchains/args/BUILD
---- a/cc/toolchains/args/BUILD	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/cc/toolchains/args/BUILD	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/cc/toolchains/args/BUILD	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/cc/toolchains/args/BUILD	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -1,4 +1,3 @@
 -load("//cc/toolchains:feature.bzl", "cc_feature")
  load("//cc/toolchains:feature_set.bzl", "cc_feature_set")
@@ -48,12 +47,11 @@ diff --git a/cc/toolchains/args/BUILD b/cc/toolchains/args/BUILD
          "//cc/toolchains/args/archiver_flags:feature",
          "//cc/toolchains/args/pic_flags:feature",
          "//cc/toolchains/args/libraries_to_link:feature",
-@@ -30,9 +28,19 @@
+@@ -30,7 +28,19 @@
          "//cc/toolchains/args/soname_flags:feature",
          "//cc/toolchains/args/static_libgcc:feature",
          "//cc/toolchains/args/include_flags:feature",
--        "//cc/toolchains/args/compiler_input_flags:feature",
-         "//cc/toolchains/args/compiler_output_flags:feature",
++        "//cc/toolchains/args/compiler_output_flags:feature",
 +        "//cc/toolchains/args/compiler_input_flags:feature",  # the inputs must follow the outputs, or ml.exe assembler doesn't work
 +        "//cc/toolchains/args/windows:def_file_feature",
 +        "//cc/toolchains/args/windows:default_compile_flags_feature",
@@ -69,11 +67,10 @@ diff --git a/cc/toolchains/args/BUILD b/cc/toolchains/args/BUILD
          "//cc/toolchains/args/link_flags:feature",
          "//cc/toolchains/args/linkstamp_flags:feature",
          "//cc/toolchains/args/library_search_directories:feature",
-@@ -40,14 +48,3 @@
-         "//cc/toolchains/args/compile_flags:feature",  # NOTE: This should come below default flags so user flags can override them
+@@ -45,17 +55,6 @@
      ],
  )
--
+
 -cc_feature(
 -    name = "backfill_legacy_args",
 -    feature_name = "experimental_replace_legacy_action_config_features",
@@ -84,14 +81,18 @@ diff --git a/cc/toolchains/args/BUILD b/cc/toolchains/args/BUILD
 -    ],
 -    visibility = ["//visibility:private"],
 -)
+-
+ filegroup(
+     name = "srcs",
+     srcs = glob(["**"]),
 Index: cc/toolchains/args/archiver_flags/BUILD
 IDEA additional info:
 Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/cc/toolchains/args/archiver_flags/BUILD b/cc/toolchains/args/archiver_flags/BUILD
---- a/cc/toolchains/args/archiver_flags/BUILD	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/cc/toolchains/args/archiver_flags/BUILD	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/cc/toolchains/args/archiver_flags/BUILD	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/cc/toolchains/args/archiver_flags/BUILD	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -3,6 +3,7 @@
  load("//cc/toolchains:args_list.bzl", "cc_args_list")
  load("//cc/toolchains:feature.bzl", "cc_feature")
@@ -117,7 +118,7 @@ diff --git a/cc/toolchains/args/archiver_flags/BUILD b/cc/toolchains/args/archiv
      name = "create_static_archive",
      actions = ["//cc/toolchains/actions:ar_actions"],
      args = select({
-@@ -47,16 +50,47 @@
+@@ -47,15 +50,46 @@
          ],
          "//conditions:default": ["rcsD"],
      }),
@@ -125,7 +126,6 @@ diff --git a/cc/toolchains/args/archiver_flags/BUILD b/cc/toolchains/args/archiv
 +        "msvc-cl",
 +        "clang-cl",
 +    ],
-+    requires_not_none = "//cc/toolchains/variables:output_execpath",
 +)
 +
 +cc_args_for_compiler(
@@ -136,7 +136,7 @@ diff --git a/cc/toolchains/args/archiver_flags/BUILD b/cc/toolchains/args/archiv
 +        "msvc-cl",
 +        "clang-cl",
 +    ],
-     requires_not_none = "//cc/toolchains/variables:output_execpath",
++    requires_not_none = "//cc/toolchains/variables:output_execpath",
  )
 
 -cc_args(
@@ -172,8 +172,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/cc/toolchains/args/compiler_input_flags/BUILD b/cc/toolchains/args/compiler_input_flags/BUILD
---- a/cc/toolchains/args/compiler_input_flags/BUILD	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/cc/toolchains/args/compiler_input_flags/BUILD	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/cc/toolchains/args/compiler_input_flags/BUILD	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/cc/toolchains/args/compiler_input_flags/BUILD	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -1,20 +1,54 @@
 -load("//cc/toolchains:args.bzl", "cc_args")
  load("//cc/toolchains:feature.bzl", "cc_feature")
@@ -238,8 +238,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/cc/toolchains/args/compiler_output_flags/BUILD b/cc/toolchains/args/compiler_output_flags/BUILD
---- a/cc/toolchains/args/compiler_output_flags/BUILD	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/cc/toolchains/args/compiler_output_flags/BUILD	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/cc/toolchains/args/compiler_output_flags/BUILD	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/cc/toolchains/args/compiler_output_flags/BUILD	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -1,6 +1,7 @@
 -load("//cc/toolchains:args.bzl", "cc_args")
  load("//cc/toolchains:args_list.bzl", "cc_args_list")
@@ -429,8 +429,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/cc/toolchains/args/dependency_file/BUILD b/cc/toolchains/args/dependency_file/BUILD
---- a/cc/toolchains/args/dependency_file/BUILD	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/cc/toolchains/args/dependency_file/BUILD	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/cc/toolchains/args/dependency_file/BUILD	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/cc/toolchains/args/dependency_file/BUILD	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -1,14 +1,20 @@
 -load("//cc/toolchains:args.bzl", "cc_args")
  load("//cc/toolchains:feature.bzl", "cc_feature")
@@ -471,8 +471,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/cc/toolchains/args/external_include_paths/BUILD b/cc/toolchains/args/external_include_paths/BUILD
---- a/cc/toolchains/args/external_include_paths/BUILD	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/cc/toolchains/args/external_include_paths/BUILD	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/cc/toolchains/args/external_include_paths/BUILD	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/cc/toolchains/args/external_include_paths/BUILD	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -1,13 +1,41 @@
 -load("//cc/toolchains:args.bzl", "cc_args")
  load("//cc/toolchains:nested_args.bzl", "cc_nested_args")
@@ -538,8 +538,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/cc/toolchains/args/generate_linkmap/BUILD b/cc/toolchains/args/generate_linkmap/BUILD
---- a/cc/toolchains/args/generate_linkmap/BUILD	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/cc/toolchains/args/generate_linkmap/BUILD	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/cc/toolchains/args/generate_linkmap/BUILD	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/cc/toolchains/args/generate_linkmap/BUILD	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -1,21 +1,41 @@
 -load("//cc/toolchains:args.bzl", "cc_args")
  load("//cc/toolchains:feature.bzl", "cc_feature")
@@ -592,8 +592,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/cc/toolchains/args/include_flags/BUILD b/cc/toolchains/args/include_flags/BUILD
---- a/cc/toolchains/args/include_flags/BUILD	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/cc/toolchains/args/include_flags/BUILD	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/cc/toolchains/args/include_flags/BUILD	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/cc/toolchains/args/include_flags/BUILD	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -1,6 +1,16 @@
 -load("//cc/toolchains:args.bzl", "cc_args")
  load("//cc/toolchains:feature.bzl", "cc_feature")
@@ -766,8 +766,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/cc/toolchains/args/libraries_to_link/BUILD b/cc/toolchains/args/libraries_to_link/BUILD
---- a/cc/toolchains/args/libraries_to_link/BUILD	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/cc/toolchains/args/libraries_to_link/BUILD	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/cc/toolchains/args/libraries_to_link/BUILD	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/cc/toolchains/args/libraries_to_link/BUILD	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -1,7 +1,8 @@
 -load("//cc/toolchains:args.bzl", "cc_args")
 +load("//cc/toolchains:args_list.bzl", "cc_args_list")
@@ -961,8 +961,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/cc/toolchains/args/library_search_directories/BUILD b/cc/toolchains/args/library_search_directories/BUILD
---- a/cc/toolchains/args/library_search_directories/BUILD	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/cc/toolchains/args/library_search_directories/BUILD	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/cc/toolchains/args/library_search_directories/BUILD	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/cc/toolchains/args/library_search_directories/BUILD	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -1,5 +1,5 @@
 -load("//cc/toolchains:args.bzl", "cc_args")
  load("//cc/toolchains:feature.bzl", "cc_feature")
@@ -992,8 +992,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/cc/toolchains/args/link_flags/BUILD b/cc/toolchains/args/link_flags/BUILD
---- a/cc/toolchains/args/link_flags/BUILD	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/cc/toolchains/args/link_flags/BUILD	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/cc/toolchains/args/link_flags/BUILD	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/cc/toolchains/args/link_flags/BUILD	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -1,6 +1,9 @@
  load("//cc/toolchains:args.bzl", "cc_args")
 +load("//cc/toolchains:args_list.bzl", "cc_args_list")
@@ -1201,8 +1201,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/cc/toolchains/args/preprocessor_defines/BUILD b/cc/toolchains/args/preprocessor_defines/BUILD
---- a/cc/toolchains/args/preprocessor_defines/BUILD	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/cc/toolchains/args/preprocessor_defines/BUILD	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/cc/toolchains/args/preprocessor_defines/BUILD	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/cc/toolchains/args/preprocessor_defines/BUILD	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -1,18 +1,47 @@
 -load("//cc/toolchains:args.bzl", "cc_args")
  load("//cc/toolchains:feature.bzl", "cc_feature")
@@ -1260,8 +1260,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/cc/toolchains/args/random_seed/BUILD b/cc/toolchains/args/random_seed/BUILD
---- a/cc/toolchains/args/random_seed/BUILD	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/cc/toolchains/args/random_seed/BUILD	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/cc/toolchains/args/random_seed/BUILD	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/cc/toolchains/args/random_seed/BUILD	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -1,5 +1,5 @@
 -load("//cc/toolchains:args.bzl", "cc_args")
  load("//cc/toolchains:feature.bzl", "cc_feature")
@@ -1291,8 +1291,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/cc/toolchains/args/runtime_library_search_directories/BUILD b/cc/toolchains/args/runtime_library_search_directories/BUILD
---- a/cc/toolchains/args/runtime_library_search_directories/BUILD	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/cc/toolchains/args/runtime_library_search_directories/BUILD	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/cc/toolchains/args/runtime_library_search_directories/BUILD	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/cc/toolchains/args/runtime_library_search_directories/BUILD	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -1,8 +1,8 @@
 -load("//cc/toolchains:args.bzl", "cc_args")
  load("//cc/toolchains:args_list.bzl", "cc_args_list")
@@ -1339,8 +1339,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/cc/toolchains/args/shared_flag/BUILD b/cc/toolchains/args/shared_flag/BUILD
---- a/cc/toolchains/args/shared_flag/BUILD	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/cc/toolchains/args/shared_flag/BUILD	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/cc/toolchains/args/shared_flag/BUILD	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/cc/toolchains/args/shared_flag/BUILD	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -1,18 +1,36 @@
 -load("//cc/toolchains:args.bzl", "cc_args")
  load("//cc/toolchains:feature.bzl", "cc_feature")
@@ -1387,8 +1387,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/cc/toolchains/args/strip_debug_symbols/BUILD b/cc/toolchains/args/strip_debug_symbols/BUILD
---- a/cc/toolchains/args/strip_debug_symbols/BUILD	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/cc/toolchains/args/strip_debug_symbols/BUILD	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/cc/toolchains/args/strip_debug_symbols/BUILD	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/cc/toolchains/args/strip_debug_symbols/BUILD	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -1,5 +1,6 @@
 -load("//cc/toolchains:args.bzl", "cc_args")
 +load("//cc/toolchains:args_list.bzl", "cc_args_list")
@@ -1426,8 +1426,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/cc/toolchains/args/strip_flags/BUILD b/cc/toolchains/args/strip_flags/BUILD
---- a/cc/toolchains/args/strip_flags/BUILD	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/cc/toolchains/args/strip_flags/BUILD	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/cc/toolchains/args/strip_flags/BUILD	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/cc/toolchains/args/strip_flags/BUILD	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -1,6 +1,7 @@
  load("//cc/toolchains:args.bzl", "cc_args")
  load("//cc/toolchains:args_list.bzl", "cc_args_list")
@@ -1463,8 +1463,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 ===================================================================
 diff --git a/cc/toolchains/args/windows/BUILD b/cc/toolchains/args/windows/BUILD
 new file mode 100644
---- /dev/null	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
-+++ b/cc/toolchains/args/windows/BUILD	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- /dev/null	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
++++ b/cc/toolchains/args/windows/BUILD	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -0,0 +1,757 @@
 +load("//cc/toolchains:args.bzl", "cc_args")
 +load("//cc/toolchains:args_list.bzl", "cc_args_list")
@@ -2229,8 +2229,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/cc/toolchains/capabilities/BUILD b/cc/toolchains/capabilities/BUILD
---- a/cc/toolchains/capabilities/BUILD	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/cc/toolchains/capabilities/BUILD	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/cc/toolchains/capabilities/BUILD	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/cc/toolchains/capabilities/BUILD	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -17,3 +17,15 @@
  cc_tool_capability(
      name = "supports_pic",
@@ -2253,9 +2253,9 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/cc/toolchains/cc_toolchain_info.bzl b/cc/toolchains/cc_toolchain_info.bzl
---- a/cc/toolchains/cc_toolchain_info.bzl	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/cc/toolchains/cc_toolchain_info.bzl	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
-@@ -229,6 +229,7 @@
+--- a/cc/toolchains/cc_toolchain_info.bzl	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/cc/toolchains/cc_toolchain_info.bzl	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
+@@ -230,6 +230,7 @@
          "features": "(Sequence[FeatureInfo]) The features available for this toolchain",
          "enabled_features": "(Sequence[FeatureInfo]) The features That are enabled by default for this toolchain",
          "tool_map": "(ToolConfigInfo) A provider mapping toolchain action types to tools.",
@@ -2270,15 +2270,12 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 ===================================================================
 diff --git a/cc/toolchains/compiler/BUILD b/cc/toolchains/compiler/BUILD
 new file mode 100644
---- /dev/null	(revision 2d9cb5a3c0b94ee408cd3946185a9608d2113ebd)
-+++ b/cc/toolchains/compiler/BUILD	(revision 2d9cb5a3c0b94ee408cd3946185a9608d2113ebd)
-@@ -0,0 +1,36 @@
+--- /dev/null	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
++++ b/cc/toolchains/compiler/BUILD	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
+@@ -0,0 +1,33 @@
 +load("//cc/toolchains:feature.bzl", "cc_feature")
 +
-+package(default_visibility = [
-+    "//cc/toolchains:__subpackages__",
-+    "//tests:__subpackages__",
-+])
++package(default_visibility = ["//visibility:public"])
 +
 +cc_feature(
 +    name = "clang",
@@ -2315,8 +2312,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/cc/toolchains/features/legacy/BUILD b/cc/toolchains/features/legacy/BUILD
---- a/cc/toolchains/features/legacy/BUILD	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/cc/toolchains/features/legacy/BUILD	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/cc/toolchains/features/legacy/BUILD	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/cc/toolchains/features/legacy/BUILD	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -101,6 +101,18 @@
      overridable = True,
  )
@@ -2342,13 +2339,12 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/cc/toolchains/impl/BUILD b/cc/toolchains/impl/BUILD
---- a/cc/toolchains/impl/BUILD	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/cc/toolchains/impl/BUILD	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
-@@ -72,3 +72,12 @@
-     ],
+--- a/cc/toolchains/impl/BUILD	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/cc/toolchains/impl/BUILD	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
+@@ -73,6 +73,15 @@
      visibility = ["//visibility:public"],
  )
-+
+
 +config_setting(
 +    name = "windows_aarch64",
 +    constraint_values = [
@@ -2357,6 +2353,10 @@ diff --git a/cc/toolchains/impl/BUILD b/cc/toolchains/impl/BUILD
 +    ],
 +    visibility = ["//visibility:public"],
 +)
++
+ filegroup(
+     name = "srcs",
+     srcs = glob(["**"]),
 Index: cc/toolchains/impl/args_for_compiler.bzl
 IDEA additional info:
 Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
@@ -2364,8 +2364,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 ===================================================================
 diff --git a/cc/toolchains/impl/args_for_compiler.bzl b/cc/toolchains/impl/args_for_compiler.bzl
 new file mode 100644
---- /dev/null	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
-+++ b/cc/toolchains/impl/args_for_compiler.bzl	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- /dev/null	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
++++ b/cc/toolchains/impl/args_for_compiler.bzl	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -0,0 +1,104 @@
 +# Copyright 2026 The Bazel Authors. All rights reserved.
 +#
@@ -2477,8 +2477,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/cc/toolchains/impl/legacy_converter.bzl b/cc/toolchains/impl/legacy_converter.bzl
---- a/cc/toolchains/impl/legacy_converter.bzl	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/cc/toolchains/impl/legacy_converter.bzl	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/cc/toolchains/impl/legacy_converter.bzl	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/cc/toolchains/impl/legacy_converter.bzl	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -157,7 +157,7 @@
              caps[cap] = None
 
@@ -2494,9 +2494,9 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/cc/toolchains/impl/toolchain_config.bzl b/cc/toolchains/impl/toolchain_config.bzl
---- a/cc/toolchains/impl/toolchain_config.bzl	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/cc/toolchains/impl/toolchain_config.bzl	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
-@@ -50,18 +50,27 @@
+--- a/cc/toolchains/impl/toolchain_config.bzl	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/cc/toolchains/impl/toolchain_config.bzl	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
+@@ -51,6 +51,13 @@
      },
  )
 
@@ -2507,7 +2507,14 @@ diff --git a/cc/toolchains/impl/toolchain_config.bzl b/cc/toolchains/impl/toolch
 +    }
 +    return features.get(ctx.attr.compiler, features.get("gcc"))
 +
- def _cc_toolchain_config_impl(ctx):
+ def cc_toolchain_config_impl_helper(ctx):
+     """Main implementation for _cc_toolchain_config_impl, reused for rules-based toolchains
+
+@@ -58,18 +65,19 @@
+       ctx: Rule context
+     Returns:
+         toolchain_config_info and cc_toolchain_config_info providers"""
+-
      if ctx.attr.features:
          fail("Features is a reserved attribute in bazel. Did you mean 'known_features' or 'enabled_features'?")
 
@@ -2526,9 +2533,9 @@ diff --git a/cc/toolchains/impl/toolchain_config.bzl b/cc/toolchains/impl/toolch
      )
 
      legacy = convert_toolchain(toolchain_config)
-@@ -112,6 +121,14 @@
-         "artifact_name_patterns": attr.label_list(providers = [ArtifactNamePatternInfo]),
-         "make_variables": attr.label_list(providers = [MakeVariableInfo]),
+@@ -129,6 +137,14 @@
+     implementation = _cc_toolchain_config_impl,
+     attrs = CC_TOOLCHAIN_CONFIG_PUBLIC_ATTRS | {
          "_builtin_features": attr.label(default = "//cc/toolchains/features:all_builtin_features"),
 +        "_compiler_known_features": attr.label_list(default = [
 +            "//cc/toolchains/compiler:clang",
@@ -2547,8 +2554,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/cc/toolchains/impl/toolchain_config_info.bzl b/cc/toolchains/impl/toolchain_config_info.bzl
---- a/cc/toolchains/impl/toolchain_config_info.bzl	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/cc/toolchains/impl/toolchain_config_info.bzl	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/cc/toolchains/impl/toolchain_config_info.bzl	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/cc/toolchains/impl/toolchain_config_info.bzl	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -13,7 +13,7 @@
  # limitations under the License.
  """Helper functions to create and validate a ToolchainConfigInfo."""
@@ -2597,8 +2604,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/cc/toolchains/variables/BUILD b/cc/toolchains/variables/BUILD
---- a/cc/toolchains/variables/BUILD	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/cc/toolchains/variables/BUILD	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/cc/toolchains/variables/BUILD	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/cc/toolchains/variables/BUILD	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -23,6 +23,12 @@
      type = types.option(types.file),
  )
@@ -2656,7 +2663,7 @@ diff --git a/cc/toolchains/variables/BUILD b/cc/toolchains/variables/BUILD
 
  cc_variable(
      name = "module_name",
-@@ -318,7 +345,12 @@
+@@ -324,7 +351,12 @@
 
  cc_variable(
      name = "output_assembly_file",
@@ -2670,7 +2677,7 @@ diff --git a/cc/toolchains/variables/BUILD b/cc/toolchains/variables/BUILD
      type = types.option(types.file),
  )
 
-@@ -341,6 +373,9 @@
+@@ -377,6 +409,9 @@
      name = "output_file",
      actions = [
          "//cc/toolchains/actions:compile_actions",
@@ -2680,7 +2687,7 @@ diff --git a/cc/toolchains/variables/BUILD b/cc/toolchains/variables/BUILD
          "//cc/toolchains/actions:strip",
      ],
      type = types.option(types.file),
-@@ -348,7 +383,12 @@
+@@ -384,7 +419,12 @@
 
  cc_variable(
      name = "output_preprocess_file",
@@ -2694,7 +2701,7 @@ diff --git a/cc/toolchains/variables/BUILD b/cc/toolchains/variables/BUILD
      type = types.option(types.file),
  )
 
-@@ -366,7 +406,21 @@
+@@ -402,7 +442,21 @@
 
  cc_variable(
      name = "preprocessor_defines",
@@ -2717,7 +2724,7 @@ diff --git a/cc/toolchains/variables/BUILD b/cc/toolchains/variables/BUILD
      type = types.list(types.string),
  )
 
-@@ -402,7 +456,12 @@
+@@ -438,7 +492,12 @@
 
  cc_variable(
      name = "source_file",
@@ -2731,10 +2738,10 @@ diff --git a/cc/toolchains/variables/BUILD b/cc/toolchains/variables/BUILD
      type = types.option(types.file),
  )
 
-@@ -496,12 +555,15 @@
- cc_builtin_variables(
+@@ -533,12 +592,15 @@
      name = "variables",
      srcs = [
+         ":cc_library_exec_paths",
 +        ":cpp_module_output_file",
          ":cs_fdo_instrument_path",
 +        ":dbg_mode_debug_flag",
@@ -2753,8 +2760,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/examples/rule_based_toolchain/.bazelrc b/examples/rule_based_toolchain/.bazelrc
---- a/examples/rule_based_toolchain/.bazelrc	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/examples/rule_based_toolchain/.bazelrc	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/examples/rule_based_toolchain/.bazelrc	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/examples/rule_based_toolchain/.bazelrc	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -5,4 +5,10 @@
  build --enable_platform_specific_config
  build:macos --platforms=//:linux_x86_64
@@ -2772,8 +2779,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/examples/rule_based_toolchain/MODULE.bazel b/examples/rule_based_toolchain/MODULE.bazel
---- a/examples/rule_based_toolchain/MODULE.bazel	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/examples/rule_based_toolchain/MODULE.bazel	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/examples/rule_based_toolchain/MODULE.bazel	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/examples/rule_based_toolchain/MODULE.bazel	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -46,6 +46,28 @@
      url = "https://chrome-infra-packages.appspot.com/dl/fuchsia/third_party/clang/mac-amd64/+/git_revision:0cfd03ac0d3f9713090a581bda07584754c73a49",
  )
@@ -2809,8 +2816,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/examples/rule_based_toolchain/README.md b/examples/rule_based_toolchain/README.md
---- a/examples/rule_based_toolchain/README.md	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/examples/rule_based_toolchain/README.md	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/examples/rule_based_toolchain/README.md	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/examples/rule_based_toolchain/README.md	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -1,6 +1,6 @@
  # Rule-based toolchains
 -This example showcases a fully working rule-based toolchain for Linux. This also
@@ -2844,8 +2851,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/examples/rule_based_toolchain/asm_answer/BUILD.bazel b/examples/rule_based_toolchain/asm_answer/BUILD.bazel
---- a/examples/rule_based_toolchain/asm_answer/BUILD.bazel	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/examples/rule_based_toolchain/asm_answer/BUILD.bazel	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/examples/rule_based_toolchain/asm_answer/BUILD.bazel	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/examples/rule_based_toolchain/asm_answer/BUILD.bazel	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -18,7 +18,11 @@
 
  cc_library(
@@ -2866,8 +2873,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 ===================================================================
 diff --git a/examples/rule_based_toolchain/asm_answer/asm_answer_win.asm b/examples/rule_based_toolchain/asm_answer/asm_answer_win.asm
 new file mode 100644
---- /dev/null	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
-+++ b/examples/rule_based_toolchain/asm_answer/asm_answer_win.asm	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- /dev/null	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
++++ b/examples/rule_based_toolchain/asm_answer/asm_answer_win.asm	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -0,0 +1,21 @@
 +; Copyright 2026 The Bazel Authors. All rights reserved.
 +;
@@ -2896,8 +2903,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/examples/rule_based_toolchain/constraint/BUILD.bazel b/examples/rule_based_toolchain/constraint/BUILD.bazel
---- a/examples/rule_based_toolchain/constraint/BUILD.bazel	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/examples/rule_based_toolchain/constraint/BUILD.bazel	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/examples/rule_based_toolchain/constraint/BUILD.bazel	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/examples/rule_based_toolchain/constraint/BUILD.bazel	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -73,3 +73,45 @@
      name = "gcc",
      flag_values = {"//toolchains:compiler_kind": "gcc"},
@@ -2950,8 +2957,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/examples/rule_based_toolchain/dynamic_answer/BUILD.bazel b/examples/rule_based_toolchain/dynamic_answer/BUILD.bazel
---- a/examples/rule_based_toolchain/dynamic_answer/BUILD.bazel	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/examples/rule_based_toolchain/dynamic_answer/BUILD.bazel	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/examples/rule_based_toolchain/dynamic_answer/BUILD.bazel	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/examples/rule_based_toolchain/dynamic_answer/BUILD.bazel	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -12,6 +12,7 @@
  # See the License for the specific language governing permissions and
  # limitations under the License.
@@ -3006,8 +3013,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 ===================================================================
 diff --git a/examples/rule_based_toolchain/dynamic_answer/dynamic_answer.def b/examples/rule_based_toolchain/dynamic_answer/dynamic_answer.def
 new file mode 100644
---- /dev/null	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
-+++ b/examples/rule_based_toolchain/dynamic_answer/dynamic_answer.def	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- /dev/null	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
++++ b/examples/rule_based_toolchain/dynamic_answer/dynamic_answer.def	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -0,0 +1,3 @@
 +LIBRARY shared_library
 +EXPORTS
@@ -3018,8 +3025,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/examples/rule_based_toolchain/toolchains/BUILD.bazel b/examples/rule_based_toolchain/toolchains/BUILD.bazel
---- a/examples/rule_based_toolchain/toolchains/BUILD.bazel	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/examples/rule_based_toolchain/toolchains/BUILD.bazel	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/examples/rule_based_toolchain/toolchains/BUILD.bazel	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/examples/rule_based_toolchain/toolchains/BUILD.bazel	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -19,6 +19,10 @@
      actual = select({
          "//constraint:clang": "//toolchains/clang:host_clang_toolchain",
@@ -3046,8 +3053,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/examples/rule_based_toolchain/toolchains/args/BUILD.bazel b/examples/rule_based_toolchain/toolchains/args/BUILD.bazel
---- a/examples/rule_based_toolchain/toolchains/args/BUILD.bazel	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/examples/rule_based_toolchain/toolchains/args/BUILD.bazel	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/examples/rule_based_toolchain/toolchains/args/BUILD.bazel	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/examples/rule_based_toolchain/toolchains/args/BUILD.bazel	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -13,9 +13,21 @@
  # limitations under the License.
 
@@ -3203,8 +3210,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 ===================================================================
 diff --git a/examples/rule_based_toolchain/toolchains/clang_cl/BUILD.bazel b/examples/rule_based_toolchain/toolchains/clang_cl/BUILD.bazel
 new file mode 100644
---- /dev/null	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
-+++ b/examples/rule_based_toolchain/toolchains/clang_cl/BUILD.bazel	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- /dev/null	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
++++ b/examples/rule_based_toolchain/toolchains/clang_cl/BUILD.bazel	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -0,0 +1,89 @@
 +# Copyright 2026 The Bazel Authors. All rights reserved.
 +#
@@ -3302,8 +3309,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 ===================================================================
 diff --git a/examples/rule_based_toolchain/toolchains/clang_cl/clang.BUILD b/examples/rule_based_toolchain/toolchains/clang_cl/clang.BUILD
 new file mode 100644
---- /dev/null	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
-+++ b/examples/rule_based_toolchain/toolchains/clang_cl/clang.BUILD	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- /dev/null	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
++++ b/examples/rule_based_toolchain/toolchains/clang_cl/clang.BUILD	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -0,0 +1,73 @@
 +# Copyright 2026 The Bazel Authors. All rights reserved.
 +#
@@ -3385,8 +3392,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 ===================================================================
 diff --git a/examples/rule_based_toolchain/toolchains/clang_cl/tools/BUILD.bazel b/examples/rule_based_toolchain/toolchains/clang_cl/tools/BUILD.bazel
 new file mode 100644
---- /dev/null	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
-+++ b/examples/rule_based_toolchain/toolchains/clang_cl/tools/BUILD.bazel	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- /dev/null	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
++++ b/examples/rule_based_toolchain/toolchains/clang_cl/tools/BUILD.bazel	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -0,0 +1,133 @@
 +# Copyright 2026 The Bazel Authors. All rights reserved.
 +#
@@ -3528,8 +3535,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 ===================================================================
 diff --git a/examples/rule_based_toolchain/toolchains/msvc/BUILD.bazel b/examples/rule_based_toolchain/toolchains/msvc/BUILD.bazel
 new file mode 100644
---- /dev/null	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
-+++ b/examples/rule_based_toolchain/toolchains/msvc/BUILD.bazel	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- /dev/null	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
++++ b/examples/rule_based_toolchain/toolchains/msvc/BUILD.bazel	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -0,0 +1,88 @@
 +# Copyright 2026 The Bazel Authors. All rights reserved.
 +#
@@ -3626,8 +3633,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 ===================================================================
 diff --git a/examples/rule_based_toolchain/toolchains/msvc/tools/BUILD.bazel b/examples/rule_based_toolchain/toolchains/msvc/tools/BUILD.bazel
 new file mode 100644
---- /dev/null	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
-+++ b/examples/rule_based_toolchain/toolchains/msvc/tools/BUILD.bazel	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- /dev/null	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
++++ b/examples/rule_based_toolchain/toolchains/msvc/tools/BUILD.bazel	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -0,0 +1,80 @@
 +# Copyright 2026 The Bazel Authors. All rights reserved.
 +#
@@ -3716,8 +3723,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 ===================================================================
 diff --git a/examples/rule_based_toolchain/toolchains/msvc/tools/msvc_nop.bat b/examples/rule_based_toolchain/toolchains/msvc/tools/msvc_nop.bat
 new file mode 100644
---- /dev/null	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
-+++ b/examples/rule_based_toolchain/toolchains/msvc/tools/msvc_nop.bat	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- /dev/null	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
++++ b/examples/rule_based_toolchain/toolchains/msvc/tools/msvc_nop.bat	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -0,0 +1,2 @@
 +@echo off
 +exit /b 0
@@ -3728,8 +3735,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 ===================================================================
 diff --git a/examples/rule_based_toolchain/toolchains/windows/BUILD.bazel b/examples/rule_based_toolchain/toolchains/windows/BUILD.bazel
 new file mode 100644
---- /dev/null	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
-+++ b/examples/rule_based_toolchain/toolchains/windows/BUILD.bazel	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- /dev/null	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
++++ b/examples/rule_based_toolchain/toolchains/windows/BUILD.bazel	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -0,0 +1,59 @@
 +# Copyright 2025 The Bazel Authors. All rights reserved.
 +#
@@ -3797,8 +3804,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 ===================================================================
 diff --git a/examples/rule_based_toolchain/toolchains/windows/msvc_repo.bzl b/examples/rule_based_toolchain/toolchains/windows/msvc_repo.bzl
 new file mode 100644
---- /dev/null	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
-+++ b/examples/rule_based_toolchain/toolchains/windows/msvc_repo.bzl	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- /dev/null	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
++++ b/examples/rule_based_toolchain/toolchains/windows/msvc_repo.bzl	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -0,0 +1,269 @@
 +"""Repository rule to read MSVC from the host."""
 +
@@ -4075,8 +4082,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/tests/rule_based_toolchain/legacy_features_as_args/BUILD b/tests/rule_based_toolchain/legacy_features_as_args/BUILD
---- a/tests/rule_based_toolchain/legacy_features_as_args/BUILD	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/tests/rule_based_toolchain/legacy_features_as_args/BUILD	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/tests/rule_based_toolchain/legacy_features_as_args/BUILD	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/tests/rule_based_toolchain/legacy_features_as_args/BUILD	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -14,6 +14,7 @@
      actual_implementation = "//cc/toolchains/args/archiver_flags",
      expected = select({
@@ -4091,9 +4098,9 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/tests/rule_based_toolchain/legacy_features_as_args/goldens/macos/archiver_flags.textproto b/tests/rule_based_toolchain/legacy_features_as_args/goldens/macos/archiver_flags.textproto
---- a/tests/rule_based_toolchain/legacy_features_as_args/goldens/macos/archiver_flags.textproto	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/tests/rule_based_toolchain/legacy_features_as_args/goldens/macos/archiver_flags.textproto	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
-@@ -7,6 +7,18 @@
+--- a/tests/rule_based_toolchain/legacy_features_as_args/goldens/macos/archiver_flags.textproto	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/tests/rule_based_toolchain/legacy_features_as_args/goldens/macos/archiver_flags.textproto	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
+@@ -6,6 +6,18 @@
      flags: "-no_warning_for_no_symbols"
      flags: "-static"
    }
@@ -4112,7 +4119,7 @@ diff --git a/tests/rule_based_toolchain/legacy_features_as_args/goldens/macos/ar
  }
  flag_sets {
    actions: "c++-link-static-library"
-@@ -15,6 +27,31 @@
+@@ -14,6 +26,31 @@
      flags: "-o"
      flags: "%{output_execpath}"
    }
@@ -4150,8 +4157,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/tests/rule_based_toolchain/legacy_features_as_args/goldens/macos/libraries_to_link.textproto b/tests/rule_based_toolchain/legacy_features_as_args/goldens/macos/libraries_to_link.textproto
---- a/tests/rule_based_toolchain/legacy_features_as_args/goldens/macos/libraries_to_link.textproto	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/tests/rule_based_toolchain/legacy_features_as_args/goldens/macos/libraries_to_link.textproto	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/tests/rule_based_toolchain/legacy_features_as_args/goldens/macos/libraries_to_link.textproto	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/tests/rule_based_toolchain/legacy_features_as_args/goldens/macos/libraries_to_link.textproto	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -120,5 +120,82 @@
        }
      }
@@ -4241,8 +4248,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/tests/rule_based_toolchain/legacy_features_as_args/goldens/macos/runtime_library_search_directories.textproto b/tests/rule_based_toolchain/legacy_features_as_args/goldens/macos/runtime_library_search_directories.textproto
---- a/tests/rule_based_toolchain/legacy_features_as_args/goldens/macos/runtime_library_search_directories.textproto	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/tests/rule_based_toolchain/legacy_features_as_args/goldens/macos/runtime_library_search_directories.textproto	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/tests/rule_based_toolchain/legacy_features_as_args/goldens/macos/runtime_library_search_directories.textproto	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/tests/rule_based_toolchain/legacy_features_as_args/goldens/macos/runtime_library_search_directories.textproto	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -28,6 +28,19 @@
      }
    }
@@ -4289,10 +4296,10 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/tests/rule_based_toolchain/legacy_features_as_args/goldens/unix/archiver_flags.textproto b/tests/rule_based_toolchain/legacy_features_as_args/goldens/unix/archiver_flags.textproto
---- a/tests/rule_based_toolchain/legacy_features_as_args/goldens/unix/archiver_flags.textproto	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/tests/rule_based_toolchain/legacy_features_as_args/goldens/unix/archiver_flags.textproto	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
-@@ -5,6 +5,18 @@
-     expand_if_available: "output_execpath"
+--- a/tests/rule_based_toolchain/legacy_features_as_args/goldens/unix/archiver_flags.textproto	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/tests/rule_based_toolchain/legacy_features_as_args/goldens/unix/archiver_flags.textproto	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
+@@ -4,6 +4,18 @@
+   flag_groups {
      flags: "rcsD"
    }
 +  with_features {
@@ -4310,7 +4317,7 @@ diff --git a/tests/rule_based_toolchain/legacy_features_as_args/goldens/unix/arc
  }
  flag_sets {
    actions: "c++-link-static-library"
-@@ -12,6 +24,31 @@
+@@ -11,6 +23,31 @@
      expand_if_available: "output_execpath"
      flags: "%{output_execpath}"
    }
@@ -4348,8 +4355,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/tests/rule_based_toolchain/legacy_features_as_args/goldens/unix/libraries_to_link.textproto b/tests/rule_based_toolchain/legacy_features_as_args/goldens/unix/libraries_to_link.textproto
---- a/tests/rule_based_toolchain/legacy_features_as_args/goldens/unix/libraries_to_link.textproto	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/tests/rule_based_toolchain/legacy_features_as_args/goldens/unix/libraries_to_link.textproto	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/tests/rule_based_toolchain/legacy_features_as_args/goldens/unix/libraries_to_link.textproto	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/tests/rule_based_toolchain/legacy_features_as_args/goldens/unix/libraries_to_link.textproto	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -104,5 +104,82 @@
        }
      }
@@ -4439,8 +4446,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/tests/rule_based_toolchain/legacy_features_as_args/goldens/unix/runtime_library_search_directories.textproto b/tests/rule_based_toolchain/legacy_features_as_args/goldens/unix/runtime_library_search_directories.textproto
---- a/tests/rule_based_toolchain/legacy_features_as_args/goldens/unix/runtime_library_search_directories.textproto	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/tests/rule_based_toolchain/legacy_features_as_args/goldens/unix/runtime_library_search_directories.textproto	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/tests/rule_based_toolchain/legacy_features_as_args/goldens/unix/runtime_library_search_directories.textproto	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/tests/rule_based_toolchain/legacy_features_as_args/goldens/unix/runtime_library_search_directories.textproto	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -28,6 +28,19 @@
      }
    }
@@ -4487,8 +4494,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/tests/rule_based_toolchain/legacy_features_as_args/goldens/unix/shared_flag.textproto b/tests/rule_based_toolchain/legacy_features_as_args/goldens/unix/shared_flag.textproto
---- a/tests/rule_based_toolchain/legacy_features_as_args/goldens/unix/shared_flag.textproto	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/tests/rule_based_toolchain/legacy_features_as_args/goldens/unix/shared_flag.textproto	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/tests/rule_based_toolchain/legacy_features_as_args/goldens/unix/shared_flag.textproto	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/tests/rule_based_toolchain/legacy_features_as_args/goldens/unix/shared_flag.textproto	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -7,5 +7,17 @@
    flag_groups {
      flags: "-shared"
@@ -4514,8 +4521,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 ===================================================================
 diff --git a/tests/rule_based_toolchain/legacy_features_as_args/goldens/windows/archiver_flags.textproto b/tests/rule_based_toolchain/legacy_features_as_args/goldens/windows/archiver_flags.textproto
 new file mode 100755
---- /dev/null	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
-+++ b/tests/rule_based_toolchain/legacy_features_as_args/goldens/windows/archiver_flags.textproto	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- /dev/null	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
++++ b/tests/rule_based_toolchain/legacy_features_as_args/goldens/windows/archiver_flags.textproto	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -0,0 +1,77 @@
 +enabled: false
 +flag_sets {
@@ -4600,8 +4607,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/tests/rule_based_toolchain/subjects.bzl b/tests/rule_based_toolchain/subjects.bzl
---- a/tests/rule_based_toolchain/subjects.bzl	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/tests/rule_based_toolchain/subjects.bzl	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/tests/rule_based_toolchain/subjects.bzl	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/tests/rule_based_toolchain/subjects.bzl	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -232,6 +232,7 @@
          features = ProviderDepset(_FeatureFactory),
          enabled_features = _subjects.collection,
@@ -4616,8 +4623,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/tests/rule_based_toolchain/toolchain_config/toolchain_config_test.bzl b/tests/rule_based_toolchain/toolchain_config/toolchain_config_test.bzl
---- a/tests/rule_based_toolchain/toolchain_config/toolchain_config_test.bzl	(revision 541eda5d72e9b5f18e6a24e8d14975afcd865717)
-+++ b/tests/rule_based_toolchain/toolchain_config/toolchain_config_test.bzl	(revision 6215de319b3629dba7d30a72b5ce6358e0178ca4)
+--- a/tests/rule_based_toolchain/toolchain_config/toolchain_config_test.bzl	(revision 0850152bab13d8ec609631452e905df46c1495e7)
++++ b/tests/rule_based_toolchain/toolchain_config/toolchain_config_test.bzl	(revision 59b791d06ac059e1801b95b2595814dceccb33c3)
 @@ -49,7 +49,9 @@
      "tests/rule_based_toolchain/testdata/subdir3/file_baz",
  ]
@@ -4737,7 +4744,7 @@ diff --git a/tests/rule_based_toolchain/toolchain_config/toolchain_config_test.b
          args = [targets.requires_all_simple_args],
          known_features = [targets.simple_feature],
          tool_map = targets.empty_tool_map,
-@@ -197,6 +213,10 @@
+@@ -190,6 +206,10 @@
                  ],
              )],
          ),
@@ -4748,7 +4755,7 @@ diff --git a/tests/rule_based_toolchain/toolchain_config/toolchain_config_test.b
          legacy_feature(
              name = "compile_feature",
              enabled = False,
-@@ -208,9 +228,29 @@
+@@ -201,9 +221,29 @@
              )],
          ),
          legacy_feature(
@@ -4779,7 +4786,7 @@ diff --git a/tests/rule_based_toolchain/toolchain_config/toolchain_config_test.b
          legacy_feature(
              name = "implied_by_always_enabled_env_sets",
              enabled = True,
-@@ -259,6 +299,7 @@
+@@ -252,6 +292,7 @@
      ]).in_order()
 
  TARGETS = [

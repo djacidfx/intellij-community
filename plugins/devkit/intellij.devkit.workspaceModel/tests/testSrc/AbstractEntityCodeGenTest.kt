@@ -15,6 +15,8 @@ import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.util.io.findOrCreateDirectory
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.newvfs.persistent.PersistentFS
+import com.intellij.openapi.vfs.newvfs.persistent.PersistentFSImpl
 import com.intellij.platform.backend.workspace.toVirtualFileUrl
 import com.intellij.platform.backend.workspace.workspaceModel
 import com.intellij.platform.workspace.jps.entities.ContentRootEntity
@@ -24,6 +26,7 @@ import com.intellij.platform.workspace.jps.entities.SourceRootEntity
 import com.intellij.pom.PomManager
 import com.intellij.testFramework.IdeaTestUtil
 import com.intellij.testFramework.IndexingTestUtil
+import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.junit5.fixture.disposableFixture
 import com.intellij.testFramework.junit5.fixture.projectFixture
 import com.intellij.testFramework.junit5.fixture.tempPathFixture
@@ -205,7 +208,7 @@ abstract class AbstractEntityCodeGenTest {
 
   @Test
   fun testBothLinksAreParents() {
-    doTestAndCheckErrorMessage("Both fields MainEntity#secondaryEntity and SecondaryEntity#mainEntity are marked as parent. Probably both properties are annotated with @Parent, while only one should be.")
+    doTestAndCheckErrorMessage("Failed to generate code for secondaryEntity (MainEntity): Both fields MainEntity#secondaryEntity and SecondaryEntity#mainEntity are marked as parent. Probably both properties are annotated with @Parent, while only one should be.")
   }
 
   @Test
@@ -271,6 +274,8 @@ abstract class AbstractEntityCodeGenTest {
     }
 
     FileDocumentManager.getInstance().saveAllDocuments()
+    //Flush pending VFS tasks before comparing files using Path API:
+    PlatformTestUtil.flushAllPendingVFSUpdates()
 
     Path.of(actualGenRoot.path).assertMatches(directoryContentOf(testDataDirectory.resolve("after/gen")))
   }

@@ -14,6 +14,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.projectRoots.JdkUtil;
 import com.intellij.openapi.projectRoots.Sdk;
+import com.intellij.openapi.roots.AnnotationOrderRootType;
 import com.intellij.openapi.roots.ModuleRootManager;
 import com.intellij.openapi.roots.OrderEnumerator;
 import com.intellij.openapi.roots.ProjectRootManager;
@@ -285,6 +286,7 @@ public final class VfsRootAccess {
       OrderEnumerator enumerator = ProjectRootManager.getInstance(project).orderEntries().using(new DefaultModulesProvider(project));
       ContainerUtil.addAll(roots, enumerator.classes().getUrls());
       ContainerUtil.addAll(roots, enumerator.sources().getUrls());
+      ContainerUtil.addAll(roots, enumerator.roots(AnnotationOrderRootType.getInstance()).getUrls());
       return roots;
     }
     finally {

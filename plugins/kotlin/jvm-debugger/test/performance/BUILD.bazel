@@ -10,6 +10,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-jvm-debugger-performance-test_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.jvm.debugger.performance.test",
   visibility = ["//visibility:public"],
   srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form"], allow_empty = True),

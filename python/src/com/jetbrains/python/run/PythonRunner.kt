@@ -13,6 +13,7 @@ import com.intellij.execution.ui.RunContentDescriptor
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.writeAction
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.vfs.newvfs.persistent.PersistentFSImpl
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.concurrency.Promise
@@ -38,6 +39,7 @@ open class PythonRunner : AsyncProgramRunner<RunnerSettings>() {
       writeAction {
         FileDocumentManager.getInstance().saveAllDocuments()
       }
+      PersistentFSImpl.flushPendingUpdatesOrNotify()
       val executionResult = if (state is PythonCommandLineState) {
         // TODO [cloud-api.python] profile functionality must be applied here:
         //      - com.jetbrains.django.run.DjangoServerRunConfiguration.patchCommandLineFirst() - host:port is put in user data

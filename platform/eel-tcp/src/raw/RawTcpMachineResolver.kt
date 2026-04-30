@@ -3,13 +3,17 @@ package com.intellij.platform.eel.tcp.raw
 
 import com.intellij.platform.eel.EelDescriptor
 import com.intellij.platform.eel.EelMachine
+import com.intellij.platform.eel.channels.EelDelicateApi
 import com.intellij.platform.eel.provider.EelMachineResolver
+import com.intellij.platform.ijent.IjentScope
+import com.intellij.platform.ijent.ParentOfIjentScopes
 import com.intellij.platform.ijent.tcp.TcpDeployInfo
 import com.intellij.platform.util.coroutines.childScope
 import kotlinx.coroutines.CoroutineScope
 import java.util.concurrent.ConcurrentHashMap
 
-internal class RawTcpMachineResolver(private val coroutineScope: CoroutineScope) : EelMachineResolver {
+internal class RawTcpMachineResolver(coroutineScope: CoroutineScope) : EelMachineResolver {
+  private val coroutineScope = ParentOfIjentScopes(coroutineScope)
   private val cache = ConcurrentHashMap<String, RawTcpEelMachine>()
 
   override fun getResolvedEelMachine(eelDescriptor: EelDescriptor): EelMachine? {
@@ -34,7 +38,10 @@ internal class RawTcpMachineResolver(private val coroutineScope: CoroutineScope)
   private fun createMachine(deploy: TcpDeployInfo.FixedPort): RawTcpEelMachine {
     return RawTcpEelMachine(
       deploy = deploy,
-      coroutineScope = coroutineScope.childScope("Scope for ${RawTcpEelMachine::class.simpleName} $deploy")
+      coroutineScope = @OptIn(EelDelicateApi::class) IjentScope(
+        coroutineScope,
+        coroutineScope.s.childScope("Scope for ${RawTcpEelMachine::class.simpleName} $deploy")
+      ),
     )
   }
 }

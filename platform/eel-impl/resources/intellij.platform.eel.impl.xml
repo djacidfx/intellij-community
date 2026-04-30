@@ -11,17 +11,6 @@
   </dependencies>
   <!-- endregion -->
   <extensions defaultExtensionNs="com.intellij">
-    <applicationService serviceInterface="com.intellij.platform.eel.provider.LocalWindowsEelApi"
-                        serviceImplementation="com.intellij.platform.eel.impl.local.LocalWindowsEelApiImpl" os="windows"/>
-    <applicationService serviceInterface="com.intellij.platform.eel.provider.LocalPosixEelApi"
-                        serviceImplementation="com.intellij.platform.eel.impl.local.LocalPosixEelApiImpl" os="unix"/>"/>
-
-    <registryKey
-      description="Using incremental walking transfer for IJent"
-      key="ijent.incremental.walking.transfer"
-      restartRequired="false"
-      defaultValue="true"/>
-
     <advancedSetting
       id="container.environments.env.var.shell.mode"
       enumClass="com.intellij.platform.eel.impl.settings.EnvVarShellMode"

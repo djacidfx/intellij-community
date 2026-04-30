@@ -506,6 +506,7 @@ com.intellij.psi.impl.source.tree.injected.InjectedFileViewProvider
 - s:same(com.intellij.psi.impl.source.tree.injected.Place,com.intellij.psi.impl.source.tree.injected.Place):Z
 - setShreds(com.intellij.psi.impl.source.tree.injected.Place):Z
 com.intellij.psi.impl.source.tree.injected.InjectionBackgroundSuppressor
+- sf:SUPPRESS_INJECTION_BACKGROUND:com.intellij.openapi.util.Key
 com.intellij.psi.search.SearchScopeProvider
 - sf:EP_NAME:com.intellij.openapi.extensions.ExtensionPointName
 - getDisplayName():java.lang.String

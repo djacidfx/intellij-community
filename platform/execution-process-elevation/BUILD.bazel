@@ -33,6 +33,7 @@ jvm_library(
 
 jvm_library(
   name = "execution-process-elevation_test_lib",
+  testonly = True,
   module_name = "intellij.execution.process.elevation",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

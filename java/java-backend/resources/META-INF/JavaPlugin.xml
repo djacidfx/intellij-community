@@ -1200,6 +1200,7 @@
     <!--<codeInsight.completion.command.provider language="JAVA" implementationClass="com.intellij.codeInsight.completion.command.commands.SimpleRunMarkerCommandProvider" />-->
     <codeInsight.completion.command.provider language="JAVA" implementationClass="com.intellij.codeInsight.completion.command.commands.DirectIntentionCommandProvider" order="last"/>
     <codeInsight.completion.command.provider language="JAVA" implementationClass="com.intellij.codeInsight.completion.commands.impl.JavaGenerateCommandCompletion" />
+    <codeInsight.completion.command.provider language="JAVA" implementationClass="org.intellij.lang.regexp.intention.ExplainRegExpCommandCompletionProvider" />
     <codeInsight.completion.command.provider language="JAVA" implementationClass="com.intellij.codeInsight.completion.commands.impl.JavaInlineVariableCompletionCommandProvider" />
     <codeInsight.completion.command.provider language="JAVA" implementationClass="com.intellij.codeInsight.completion.commands.impl.JavaGoToDeclarationCommandCompletionProvider" />
     <codeInsight.completion.command.provider language="JAVA"
@@ -1461,6 +1462,31 @@
     <optionController implementation="com.intellij.codeInsight.NullableNotNullManagerImpl$Provider"/>
     <lang.jvm.annotations.marker.suppressor implementation="com.intellij.java.JavaNonCodeAnnotationsMarkerSuppressor"/>
     <scratchLanguageFilter implementation="com.intellij.ui.JshellScratchFileTypeFilter"/>
+    <applicationSettings service="com.intellij.codeInsight.generation.EqualsHashCodeTemplatesManager"/>
+    <applicationSettings service="com.intellij.openapi.roots.ui.configuration.projectRoot.daemon.GlobalProjectStructureProblemsSettings"/>
+    <projectSettings service="com.intellij.openapi.roots.ui.configuration.projectRoot.daemon.ProjectStructureProblemsSettingsImpl"/>
+    <projectSettings service="com.intellij.facet.impl.ui.FacetEditorsStateManagerImpl"/>
+    <applicationSettings service="com.intellij.pom.java.AcceptedLanguageLevelsSettings"/>
+    <projectSettings service="com.intellij.compiler.impl.rmiCompiler.RmicConfiguration"/>
+    <projectSettings service="com.intellij.compiler.impl.javaCompiler.eclipse.EclipseCompilerConfiguration"/>
+    <applicationSettings service="org.jetbrains.java.generate.template.toString.ToStringTemplatesManager"/>
+    <projectSettings service="com.intellij.execution.testDiscovery.JavaAutoRunManager"/>
+    <projectSettings service="com.intellij.compiler.server.impl.BuildProcessCustomPluginsConfiguration"/>
+    <projectSettings service="com.intellij.compiler.options.ValidationConfiguration$ExcludedFromValidationConfiguration"/>
+    <projectSettings service="com.intellij.compiler.options.ValidationConfiguration"/>
+    <applicationSettings service="com.intellij.ide.util.newProjectWizard.SelectTemplateSettings"/>
+    <projectSettings service="com.intellij.compiler.CompilerConfigurationImpl"/>
+    <projectSettings service="com.intellij.jarRepository.services.MavenRepositoryServicesManager"/>
+    <projectSettings service="com.intellij.jarRepository.RemoteRepositoriesConfiguration"/>
+    <applicationSettings service="org.jetbrains.java.generate.GenerateToStringContext"/>
+    <applicationSettings service="com.intellij.execution.filters.StackTraceFoldingSettings"/>
+    <projectSettings service="com.intellij.codeInspection.ex.impl.EntryPointsManagerImpl"/>
+    <projectSettings service="com.intellij.codeInsight.JavaProjectCodeInsightSettings"/>
+    <applicationSettings service="com.intellij.codeInsight.JavaIdeCodeInsightSettings"/>
+    <applicationSettings service="com.intellij.codeInsight.generation.GetterTemplatesManager"/>
+    <applicationSettings service="com.intellij.refactoring.JavaRefactoringSettings"/>
+    <projectSettings service="com.intellij.codeInsight.NullableNotNullManagerImpl"/>
+    <applicationSettings service="com.intellij.codeInsight.generation.SetterTemplatesManager"/>
   </extensions>
 
   <extensions defaultExtensionNs="org.jetbrains">

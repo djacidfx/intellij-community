@@ -20,6 +20,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-base-analysis-analysis-api-k2-tests_test_lib",
+  testonly = True,
   module_name = "kotlin.base.analysis.analysis-api.k2.tests",
   visibility = ["//visibility:public"],
   srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form"], allow_empty = True),

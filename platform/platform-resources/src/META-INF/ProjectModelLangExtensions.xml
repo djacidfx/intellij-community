@@ -119,6 +119,10 @@
                  description="Use WSM listeners to invalidate PSI caches (new) in addition to legacy ModuleRootListener"/>
 
     <editorNotificationProvider implementation="com.intellij.openapi.projectRoots.impl.UnknownSdkEditorNotificationsProvider"/>
+    <projectSettings service="com.intellij.framework.detection.impl.exclude.DetectionExcludesConfigurationImpl"/>
+    <projectSettings service="com.intellij.facet.impl.invalid.InvalidFacetManagerImpl"/>
+    <projectSettings service="com.intellij.openapi.module.impl.AutomaticModuleUnloaderImpl"/>
+    <projectSettings service="com.intellij.facet.impl.ProjectFacetManagerImpl"/>
   </extensions>
   <projectListeners>
     <listener class="com.intellij.psi.impl.file.impl.PsiVFSModuleRootListener"

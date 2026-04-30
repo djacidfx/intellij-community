@@ -26,11 +26,13 @@ jvm_library(
     "//platform/kernel/shared:kernel",
     "//platform/kernel/pasta",
     "//fleet/rhizomedb",
-  ]
+  ],
+  runtime_deps = ["//platform/backend"]
 )
 
 jvm_library(
   name = "backend_test_lib",
+  testonly = True,
   module_name = "intellij.platform.editor.backend",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -38,6 +40,7 @@ jvm_library(
     ":backend",
     "//libraries/kotlinx/coroutines/core:core_test_lib",
     "//platform/core-api:core_test_lib",
+    "//platform/backend:backend_test_lib",
     "//platform/editor/shared:editor_test_lib",
     "//platform/editor-ui-api:editor-ui_test_lib",
     "//fleet/kernel:kernel_test_lib",

@@ -102,5 +102,8 @@
       serviceImplementation="com.intellij.refactoring.introduceVariable.JavaIntroduceVariableService"/>
 
     <registryKey defaultValue="false" description="Enable postfix mod completion" key="postfix.template.mod.completion.enabled"/>
+    <applicationSettings service="com.intellij.codeInsight.hints.AnnotationInlaySettings"/>
+    <projectSettings service="com.intellij.javadoc.JavadocGenerationManager"/>
+    <projectSettings service="com.intellij.ui.logging.JvmLoggingSettingsStorage"/>
   </extensions>
 </idea-plugin>

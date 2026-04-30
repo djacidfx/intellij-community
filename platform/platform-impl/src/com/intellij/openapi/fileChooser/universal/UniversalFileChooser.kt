@@ -22,7 +22,6 @@ import com.intellij.openapi.fileChooser.universal.NioFileChooserUtil.isHidden
 import com.intellij.openapi.fileChooser.universal.UniversalFileChooserContributor.MountStatus
 import com.intellij.openapi.fileChooser.universal.UniversalFileChooserContributor.VirtualRoot
 import com.intellij.openapi.observable.util.whenDisposed
-import com.intellij.openapi.progress.runBlockingCancellable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.ui.DialogWrapper
@@ -101,6 +100,8 @@ import kotlin.io.path.name
 import kotlin.io.path.pathString
 import kotlin.streams.asSequence
 import kotlin.time.Duration.Companion.seconds
+
+private const val leftPanel: Boolean = false
 
 @ApiStatus.Internal
 object UniversalFileChooser {
@@ -191,17 +192,23 @@ object UniversalFileChooser {
       preferredSize = Dimension(screenSize.width / 2, screenSize.height / 2)
       tabbedPane = JBTabbedPane()
       for (contributor in UniversalFileChooserContributor.EP_NAME.extensionList) {
-        val fileView = FileView(contributor, descriptor, disposable, project, okAction, scope)
+        val navigateToProjectAction = if (project.isDefault) null else Runnable { navigateToProject() }
+        val fileView = FileView(contributor, descriptor, disposable, project, okAction, scope, Runnable { navigateToHome() }, navigateToProjectAction)
         fileViews.add(fileView)
         tabbedPane.addTab(contributor.tabTitle, fileView.topComponent)
       }
 
       preselectProjectTab(project)
 
-      val splitter = OnePixelSplitter(false, LOCATIONS_PROPORTION_KEY, LOCATIONS_DEFAULT_PROPORTION)
-      splitter.firstComponent = createLocationsPanel(project)
-      splitter.secondComponent = tabbedPane
-      add(splitter, BorderLayout.CENTER)
+      if (leftPanel) {
+        val splitter = OnePixelSplitter(false, LOCATIONS_PROPORTION_KEY, LOCATIONS_DEFAULT_PROPORTION)
+        splitter.firstComponent = createLocationsPanel(project)
+        splitter.secondComponent = tabbedPane
+        add(splitter, BorderLayout.CENTER)
+      }
+      else {
+        add(tabbedPane, BorderLayout.CENTER)
+      }
 
       disposable.whenDisposed {
         scope.cancel()
@@ -335,6 +342,8 @@ object UniversalFileChooser {
       project: Project,
       okAction: Runnable,
       val scope: CoroutineScope,
+      private val navigateToHome: Runnable,
+      private val navigateToProject: Runnable?,
     ) {
       val topComponent: JComponent
       val fileTree: NioFileSystemTree
@@ -510,12 +519,14 @@ object UniversalFileChooser {
               }
               virtualRootScrollPane.isVisible = virtualRootListModel.size() > 0
               mountStatusCache.clear()
-              for (root in roots) {
-                mountStatusCache[root] = MountStatus.Unmounted
-              }
               ((tree.model as AsyncTreeModel).model as NioFileTreeModel).resetRoots()
               cardLayout.show(contentPanel, TREE_CARD)
-              fileToSelect?.let { fileTree.select(it, null) }
+              fileToSelect?.let {
+                val selection = if ( it.root == it ) {
+                  ((tree.model as AsyncTreeModel).model as NioFileTreeModel).matchRoot(it)
+                } else it
+                fileTree.select(selection, null)
+              }
               startCacheUpdates()
             }
           }
@@ -530,9 +541,13 @@ object UniversalFileChooser {
             changed.clear()
             withContext(Dispatchers.IO) {
               for (root in roots) {
+                val oldStatus = mountStatusCache.get(root)
                 val newStatus = contributor.getMountStatus(Path.of(root))
-                if (mountStatusCache.put(root, newStatus) != newStatus) {
-                  changed.add(root)
+                if (oldStatus != newStatus) {
+                  mountStatusCache.put(root, newStatus)
+                  if (oldStatus != null) {
+                    changed.add(root)
+                  }
                 }
               }
             }
@@ -543,15 +558,21 @@ object UniversalFileChooser {
       }
 
       private fun handleMountStatusChange(root: Path) {
-        scope.launch {
-          when (mountStatusCache[root.invariantSeparatorsPathString]) {
-            MountStatus.Unmounted -> runOnEdt {
+        when (mountStatusCache[root.invariantSeparatorsPathString]) {
+          MountStatus.Unmounted -> {
+            runOnEdt {
               collapseUnmountedRoot(root)
               toolbar?.updateActionsAsync()
             }
-            MountStatus.Mounted -> {}
-            else -> {}
+            loadRoots()
           }
+          MountStatus.Mounted -> {
+            loadRoots()
+            runOnEdt {
+              toolbar?.updateActionsAsync()
+            }
+          }
+          else -> {}
         }
       }
 
@@ -675,17 +696,12 @@ object UniversalFileChooser {
               e.presentation.isVisible = false
               return
             }
-            val status = runBlockingCancellable { contributor.getMountStatus(selected) }
-            when (status) {
-              MountStatus.Permanent -> {
-                e.presentation.isVisible = false
-              }
-              MountStatus.Mounted -> {
-                e.presentation.isVisible = true
-              }
-              MountStatus.Unmounted -> {
-                e.presentation.isVisible = true
-              }
+            val status = mountStatusCache[selected.invariantSeparatorsPathString]
+            if (status == MountStatus.Permanent || status == null) {
+              e.presentation.isVisible = false
+            }
+            else {
+              e.presentation.isVisible = true
             }
             e.presentation.isEnabled = !isMountActionInProgress && status != MountStatus.Mounted
           }
@@ -723,6 +739,7 @@ object UniversalFileChooser {
                       contributor.mount(root)
                     }
                   }
+                  fileToSelect = root
                 }
                 finally {
                   topComponent.cursor = Cursor.getDefaultCursor()
@@ -738,7 +755,35 @@ object UniversalFileChooser {
           }
         }
 
+        val homeAction = object : AnAction(
+          IdeBundle.message("universal.file.chooser.action.home.text"),
+          IdeBundle.message("universal.file.chooser.action.home.description"),
+          AllIcons.Nodes.HomeFolder
+        ) {
+          override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+
+          override fun actionPerformed(e: AnActionEvent) {
+            navigateToHome.run()
+          }
+        }
+
+        val projectAction = if (navigateToProject != null) object : AnAction(
+          IdeBundle.message("universal.file.chooser.action.project.text"),
+          IdeBundle.message("universal.file.chooser.action.project.description"),
+          AllIcons.Nodes.Project
+        ) {
+          override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+
+          override fun actionPerformed(e: AnActionEvent) {
+            navigateToProject.run()
+          }
+        } else null
+
         val actionGroup = DefaultActionGroup().apply {
+          if (!leftPanel) {
+            add(homeAction)
+            if (projectAction != null) add(projectAction)
+          }
           add(mountStatusAction)
           add(showHiddenAction)
           add(createDirectoryAction)

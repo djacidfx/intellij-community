@@ -48,6 +48,7 @@ jvm_library(
 
 jvm_library(
   name = "inspections-fe10_test_lib",
+  testonly = True,
   module_name = "kotlin.inspections-fe10",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

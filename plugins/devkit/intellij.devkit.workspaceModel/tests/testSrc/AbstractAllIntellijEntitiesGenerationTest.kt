@@ -25,6 +25,8 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.vfs.findDirectory
 import com.intellij.openapi.vfs.findOrCreateDirectory
+import com.intellij.openapi.vfs.newvfs.persistent.PersistentFS
+import com.intellij.openapi.vfs.newvfs.persistent.PersistentFSImpl
 import com.intellij.platform.backend.workspace.toVirtualFileUrl
 import com.intellij.platform.backend.workspace.workspaceModel
 import com.intellij.platform.workspace.jps.JpsProjectConfigLocation
@@ -33,6 +35,7 @@ import com.intellij.platform.workspace.jps.entities.ModuleEntity
 import com.intellij.platform.workspace.jps.entities.ModuleSourceDependency
 import com.intellij.platform.workspace.jps.entities.SourceRootEntity
 import com.intellij.platform.workspace.jps.entities.modifyContentRootEntity
+import com.intellij.platform.workspace.jps.entities.sourceRoots
 import com.intellij.platform.workspace.jps.serialization.impl.ErrorReporter
 import com.intellij.platform.workspace.jps.serialization.impl.JpsProjectEntitiesLoader
 import com.intellij.platform.workspace.jps.serialization.impl.JpsProjectSerializers
@@ -46,6 +49,8 @@ import com.intellij.platform.workspace.storage.url.VirtualFileUrl
 import com.intellij.pom.PomManager
 import com.intellij.testFramework.IdeaTestUtil
 import com.intellij.testFramework.IndexingTestUtil.Companion.suspendUntilIndexesAreReady
+import com.intellij.testFramework.common.timeoutRunBlocking
+import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.IdeaTestExecutionPolicy
 import com.intellij.testFramework.junit5.fixture.disposableFixture
 import com.intellij.testFramework.junit5.fixture.projectFixture
@@ -67,6 +72,8 @@ import kotlinx.coroutines.runBlocking
 import org.editorconfig.Utils
 import org.editorconfig.configmanagement.extended.EditorConfigCodeStyleSettingsModifier
 import org.jetbrains.jps.model.serialization.PathMacroUtil
+import org.jetbrains.kotlin.config.ExplicitApiMode
+import org.jetbrains.kotlin.idea.workspaceModel.kotlinSettings
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeEach
@@ -77,6 +84,7 @@ import org.junit.jupiter.params.provider.MethodSource
 import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
+import kotlin.time.Duration.Companion.minutes
 
 abstract class AbstractAllIntellijEntitiesGenerationTest {
   private val virtualFileManager = IdeVirtualFileUrlManagerImpl()
@@ -211,7 +219,7 @@ abstract class AbstractAllIntellijEntitiesGenerationTest {
     ultimateStorage: MutableEntityStorage,
     jpsProjectSerializer: JpsProjectSerializers,
     processGenerated: suspend (MutableEntityStorage, SourceRootEntity, VirtualFile, VirtualFile) -> Boolean,
-  ): Unit = runBlocking {
+  ): Unit = timeoutRunBlocking(5.minutes) {
     println("Generating workspace code for module ${ultimateModuleEntity.name} [${ultimateSourceRoot.url.presentableUrl}]")
     val ultimateSourceRootPath =
       VirtualFileManager.getInstance().refreshAndFindFileByNioPath(Path.of(ultimateSourceRoot.url.presentableUrl))!!
@@ -242,7 +250,7 @@ abstract class AbstractAllIntellijEntitiesGenerationTest {
                         module = testProjectModule,
                         actualSrcRoot,
                         processAbstractTypes = ultimateModuleEntity.withAbstractTypes,
-                        explicitApiEnabled = false,
+                        explicitApiEnabled = ultimateModuleEntity.explicitApiEnabled,
                         isTestSourceFolder = false,
                         isTestModule = isTestModule,
                         targetFolderGenerator = { actualGenRoot },
@@ -305,9 +313,8 @@ abstract class AbstractAllIntellijEntitiesGenerationTest {
     val moduleEntity = ultimateSourceRoot.contentRoot.module
 
     val ultimateSrcPath = Path.of(ultimateSourceRoot.url.presentableUrl)
-    val ultimateGenPath = ultimateSourceRoot.contentRoot.sourceRoots.flatMap { it.javaSourceRoots }.firstOrNull { it.generated }?.let {
-      Path.of(it.sourceRoot.url.presentableUrl)
-    } ?: error("No generated source root for ${moduleEntity.name} ${ultimateSourceRoot.url.presentableUrl}")
+    val ultimateGenPath = findGenSourceRoot(ultimateSourceRoot)?.let { Path.of(it.url.presentableUrl) }
+                          ?: error("No generated source root for ${moduleEntity.name} ${ultimateSourceRoot.url.presentableUrl}")
     val genIsInsideSrc = ultimateGenPath.startsWith(ultimateSrcPath) && ultimateGenPath != ultimateSrcPath
 
     //val expectedSrcDir = FileUtil.createTempDirectory(CodeGenerationTestBase::class.java.simpleName, "${testDirectoryName}_api", true)
@@ -316,6 +323,8 @@ abstract class AbstractAllIntellijEntitiesGenerationTest {
     //  VfsUtil.copyDirectory(this, newSrcRoot, vfExpectedSrcDir, null)
     //}
 
+    //transition from VFS to Path API: need to force VFS to flush pending updates
+    PlatformTestUtil.flushAllPendingVFSUpdates()
     val filePathFilter: (String) -> Boolean = { it.endsWith(".kt") && !it.endsWith("GradleJvmSupportDefaultData.kt") }
     if (genIsInsideSrc) {
       Path.of(newSrcRoot.presentableUrl)
@@ -347,7 +356,12 @@ abstract class AbstractAllIntellijEntitiesGenerationTest {
     if (inContentRoot != null) {
       return inContentRoot.sourceRoot
     }
-    return null
+    if (sourceRoot.rootTypeId != JAVA_TEST_ROOT_ENTITY_TYPE_ID)
+      return null
+    val testGenSourceRoot = sourceRoot.contentRoot.module.sourceRoots.flatMap { it.javaSourceRoots }.firstOrNull { it.generated }?.takeIf {
+      it.sourceRoot.url.presentableUrl.endsWith("/testGen")
+    }
+    return testGenSourceRoot?.sourceRoot
   }
 
   private fun createGenSourceRoot(storage: MutableEntityStorage, sourceRoot: SourceRootEntity): SourceRootEntity {
@@ -402,15 +416,6 @@ abstract class AbstractAllIntellijEntitiesGenerationTest {
     private val ModuleEntity.withAbstractTypes: Boolean
       get() = name in modulesWithAbstractTypes || name.startsWith(RIDER_MODULES_PREFIX)
 
-    private val skippedModules: Set<String> = setOf(
-      "intellij.platform.workspace.storage.tests",
-      "intellij.java.compiler.tests", // IJPL-178663
-      "intellij.graphql",
-      "intellij.gradle.tests",
-      "intellij.platform.lang.tests",
-      "intellij.java.impl" // IJPL-196541
-    )
-
     private fun processFileIfMatch(file: File, regex: Regex, function: (File) -> Unit) {
       if (regex.containsMatchIn(file.readText())) {
         function.invoke(file)
@@ -423,7 +428,6 @@ abstract class AbstractAllIntellijEntitiesGenerationTest {
       srcRoots@ for (sourceRoot in storage.entities<SourceRootEntity>()) {
         val moduleEntity = sourceRoot.contentRoot.module
 
-        if (moduleEntity.name in skippedModules) continue
         //if (moduleEntity.name != "intellij.platform.externalSystem") continue
         if (sourceRoot.javaSourceRoots.none { !it.generated }) continue
 
@@ -505,3 +509,11 @@ private fun createProjectConfigLocation(): JpsProjectConfigLocation {
 private fun VirtualFileUrl.toVirtualFile(): VirtualFile? {
   return VirtualFileManager.getInstance().refreshAndFindFileByNioPath(Path.of(presentableUrl))
 }
+
+private val ModuleEntity.explicitApiEnabled: Boolean
+  get() {
+    val additionalArgs = this.kotlinSettings.mapNotNull { settings ->
+      settings.compilerSettings?.additionalArguments
+    }
+    return additionalArgs.any {  it.contains("-Xexplicit-api=${ExplicitApiMode.STRICT.state}") }
+  }

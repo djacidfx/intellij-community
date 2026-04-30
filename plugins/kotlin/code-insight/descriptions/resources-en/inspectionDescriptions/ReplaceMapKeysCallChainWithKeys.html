@@ -1,0 +1,19 @@
+<html>
+<body>
+Reports <code>map { it.key }.toSet()</code> call chains on map receivers that can be replaced with <code>keys</code>.
+<p>The quick-fix replaces the call chain with the map's <code>keys</code> property.</p>
+<p><b>Example:</b></p>
+<pre><code>
+  fun test(steps: Map&lt;String, Int&gt;) {
+      steps.map { it.key }.toSet()
+  }
+</code></pre>
+<p>After the quick-fix is applied:</p>
+<pre><code>
+  fun test(steps: Map&lt;String, Int&gt;) {
+      steps.keys
+  }
+</code></pre>
+<!-- tooltip end -->
+</body>
+</html>

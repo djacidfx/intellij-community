@@ -46,6 +46,8 @@
                  description="Whether to show tip dialog automatically after any project opening even if tips were already shown today."
                  defaultValue="FALSE"
                  restartRequired="false"/>
+    <applicationSettings service="com.intellij.ide.util.TipsFeedback"/>
+    <applicationSettings service="com.intellij.ide.util.TipsUsageManager"/>
   </extensions>
 
   <applicationListeners>

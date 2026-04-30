@@ -39,6 +39,7 @@ jvm_library(
 
 jvm_library(
   name = "license_test_lib",
+  testonly = True,
   module_name = "fleet.build.license",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

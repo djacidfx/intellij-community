@@ -30,10 +30,15 @@ jvm_library(
 
 jvm_library(
   name = "tests_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.uast.tests",
   visibility = ["//visibility:public"],
   srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form"], allow_empty = True),
   deps = [
+    "//platform/refactoring",
+    "//platform/refactoring:refactoring_test_lib",
+    "//platform/editor-ui-api:editor-ui",
+    "//platform/editor-ui-api:editor-ui_test_lib",
     "//plugins/kotlin/plugin/k2",
     "//plugins/kotlin/plugin/k2:k2_test_lib",
     "@lib//:kotlin-stdlib",
@@ -82,6 +87,10 @@ jvm_library(
     "@lib//:kotlinc-symbol-light-classes",
     "//uast/testFramework",
     "//uast/testFramework:testFramework_test_lib",
+    "//plugins/kotlin/base/pluginTestFramework:kotlin-base-plugin-testFramework",
+    "//plugins/kotlin/base/pluginTestFramework:kotlin-base-plugin-testFramework_test_lib",
+    "//jps/model-api:model",
+    "//jps/model-api:model_test_lib",
   ],
   runtime_deps = [
     ":tests",

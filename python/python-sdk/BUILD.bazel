@@ -46,12 +46,16 @@ jvm_library(
     "//python/common",
     "//platform/workspace/jps",
     "//platform/workspace/storage",
+    "//platform/lang-api:lang",
+    "//platform/util:util-ui",
+    "//platform/core-ui",
   ],
   runtime_deps = ["//platform/backend"]
 )
 
 jvm_library(
   name = "sdk_test_lib",
+  testonly = True,
   module_name = "intellij.python.sdk",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -90,6 +94,9 @@ jvm_library(
     "//python/common:common_test_lib",
     "//platform/workspace/jps:jps_test_lib",
     "//platform/workspace/storage:storage_test_lib",
+    "//platform/lang-api:lang_test_lib",
+    "//platform/util:util-ui_test_lib",
+    "//platform/core-ui:core-ui_test_lib",
   ]
 )
 ### auto-generated section `build intellij.python.sdk` end
@@ -117,6 +124,7 @@ jvm_library(
 
 jvm_library(
   name = "sdk-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["tests/**/*.kt", "tests/**/*.java", "tests/**/*.form"], allow_empty = True),
   resources = [":sdk-tests_test_resources"],

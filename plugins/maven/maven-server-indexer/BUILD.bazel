@@ -19,6 +19,7 @@ jvm_library(
 
 jvm_library(
   name = "server-indexer_test_lib",
+  testonly = True,
   module_name = "intellij.maven.server.indexer",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

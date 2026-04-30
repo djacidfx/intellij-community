@@ -45,6 +45,7 @@ jvm_library(
 
 jvm_library(
   name = "performance_test_lib",
+  testonly = True,
   module_name = "intellij.gradle.java.performance",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

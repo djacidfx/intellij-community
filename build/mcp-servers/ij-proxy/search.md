@@ -27,10 +27,10 @@ Common semantics:
 Output shape:
 
 - JSON with `items` and optional `more`.
-- Each item is an object with `filePath` and optional `lineNumber`/`lineText`.
+- Each item is an object with `filePath` and optional `startLine`/`startColumn`/`endLine`/`endColumn`.
 - `search_file` returns only `filePath`.
-- `search_text` / `search_regex` return snippets (`lineNumber`, `lineText`) when available.
-- `search_symbol` returns file paths and snippets when available.
+- `search_text` / `search_regex` return match coordinates when available.
+- `search_symbol` returns file paths and coordinates when available.
 
 ## Tool Exposure
 

@@ -1,8 +1,9 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.openapi.components
 
+import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
-import com.intellij.platform.workspace.jps.entities.ModuleEntity
+import com.intellij.util.concurrency.annotations.RequiresWriteLock
 import org.jetbrains.annotations.ApiStatus
 
 /**
@@ -35,11 +36,13 @@ import org.jetbrains.annotations.ApiStatus
  *   val componentService = CustomImlComponentService.getInstance(module.project)
  *
  *   fun getState(): MyState? {
- *     return componentService.getComponentValue<MyState>(module.findModuleEntity()!!, COMPONENT_NAME)
+ *     return componentService.getComponentValue<MyState>(module, COMPONENT_NAME)
  *   }
  *
- *   suspend fun setState(value: MyState) {
- *     componentService.setComponentValue(module.findModuleEntity()!!, COMPONENT_NAME, value)
+ *   fun setState(value: MyState) {
+ *     WriteAction.run<Throwable> {
+ *       componentService.setComponentValueBlocking(module, COMPONENT_NAME, value)
+ *     }
  *   }
  * }
  * ```
@@ -49,14 +52,21 @@ interface CustomImlComponentService {
   /**
    *  Returns the deserialized value of a persistent component, or `null` if the component is not stored for the module.
    */
-  fun <T> getComponentValue(module: ModuleEntity, componentName: String, componentClass: Class<T>): T?
+  fun <T> getComponentValue(module: Module, componentName: String, componentClass: Class<T>): T?
 
   /**
-   * Serializes and stores a persistent component value for the given module.
+   * **Asynchronously** serializes and stores a persistent component value for the given module.
    */
-  suspend fun <T> setComponentValue(module: ModuleEntity, componentName: String, component: T)
+  suspend fun <T> setComponentValue(module: Module, componentName: String, component: T)
+
+  /**
+   * Serializes and stores a persistent component value for the given module. Requires write action.
+   */
+  @RequiresWriteLock
+  fun <T> setComponentValueBlocking(module: Module, componentName: String, component: T)
 
   companion object {
+    @JvmStatic
     fun getInstance(project: Project): CustomImlComponentService {
       return project.service<CustomImlComponentService>()
     }
@@ -64,6 +74,6 @@ interface CustomImlComponentService {
 }
 
 /** Convenience overload for [getComponentValue]. */
-inline fun <reified T> CustomImlComponentService.getComponentValue(module: ModuleEntity, componentName: String): T? {
+inline fun <reified T> CustomImlComponentService.getComponentValue(module: Module, componentName: String): T? {
   return getComponentValue(module, componentName, T::class.java)
 }

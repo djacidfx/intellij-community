@@ -25,6 +25,7 @@ jvm_library(
 
 jvm_library(
   name = "community-helpersLocator_test_lib",
+  testonly = True,
   module_name = "intellij.python.community.helpersLocator",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

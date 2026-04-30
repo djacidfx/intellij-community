@@ -16,4 +16,7 @@
     <module name="intellij.platform.util.ui"/>
   </dependencies>
   <!-- endregion -->
+  <extensions defaultExtensionNs="com.intellij">
+    <applicationSettings service="com.intellij.ide.GeneralLocalSettings"/>
+  </extensions>
 </idea-plugin>

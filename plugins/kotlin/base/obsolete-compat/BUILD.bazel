@@ -37,6 +37,7 @@ jvm_library(
 
 jvm_library(
   name = "obsolete-compat_test_lib",
+  testonly = True,
   module_name = "kotlin.base.obsolete-compat",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

@@ -9,6 +9,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.debug
 import com.intellij.openapi.diagnostic.fileLogger
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.vfs.newvfs.persistent.PersistentFSImpl
 import com.intellij.openapi.observable.util.addFocusListener
 import com.intellij.platform.util.coroutines.childScope
 import com.intellij.util.asDisposable
@@ -40,6 +41,7 @@ fun refreshVfsOnFocusChange(component: Component, coroutineScope: CoroutineScope
     saveAllDocumentsRequests.collect {
       LOG.debug { "Focus gained, save all documents to VFS." }
       FileDocumentManager.getInstance().saveAllDocuments()
+      PersistentFSImpl.flushPendingUpdatesOrNotify()
     }
   }
 

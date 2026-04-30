@@ -25,6 +25,7 @@ jvm_library(
 
 jvm_library(
   name = "tests_test_lib",
+  testonly = True,
   module_name = "intellij.toml.tests",
   visibility = ["//visibility:public"],
   srcs = glob(["src/test/kotlin/**/*.kt", "src/test/kotlin/**/*.java", "src/test/kotlin/**/*.form"], allow_empty = True),

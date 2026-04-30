@@ -49,12 +49,12 @@ jvm_library(
     "//plugins/kotlin/base/scripting/scripting.k1",
     "//platform/external-system-impl:externalSystem-impl",
     "//plugins/kotlin/base/scripting/scripting.shared",
-    "//platform/indexing-api:indexing",
   ]
 )
 
 jvm_library(
   name = "kotlin-gradle-scripting-k1_test_lib",
+  testonly = True,
   module_name = "kotlin.gradle.scripting.k1",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -82,7 +82,6 @@ jvm_library(
     "//plugins/kotlin/base/scripting/scripting.k1:scripting.k1_test_lib",
     "//platform/external-system-impl:externalSystem-impl_test_lib",
     "//plugins/kotlin/base/scripting/scripting.shared:scripting.shared_test_lib",
-    "//platform/indexing-api:indexing_test_lib",
   ]
 )
 ### auto-generated section `build kotlin.gradle.scripting.k1` end
@@ -111,6 +110,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-gradle-scripting-k1-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form"], allow_empty = True),
   kotlinc_opts = ":custom_kotlin-gradle-scripting-k1-tests",

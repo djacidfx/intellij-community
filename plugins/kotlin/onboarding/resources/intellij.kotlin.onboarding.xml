@@ -14,6 +14,7 @@
     <feedback.idleFeedbackSurvey implementation="org.jetbrains.kotlin.onboarding.OnboardingFeedbackSurvey"/>
 
     <statusBarWidgetFactory id="kotlin.fir.ide" implementation="org.jetbrains.kotlin.onboarding.k2.FirStatusBarWidgetFactory"/>
+    <applicationSettings service="org.jetbrains.kotlin.onboarding.KotlinNewUserTracker"/>
   </extensions>
   <actions resource-bundle="messages.FeedbackBundle">
     <group id="OnboardingKotlin" internal="true">

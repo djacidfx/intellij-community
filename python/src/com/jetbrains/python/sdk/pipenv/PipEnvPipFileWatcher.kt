@@ -119,7 +119,7 @@ internal class PipEnvPipFileWatcher : EditorFactoryListener {
           ShowingMessageErrorSync.emit(it, module.project)
         }
 
-        withContext(Dispatchers.Default) {
+        withContext(Dispatchers.IO) {
           PySkeletonUtil.getSitePackagesDirectory(sdk)?.refresh(true, true)
           sdk.associatedModuleDir?.refresh(true, false)
         }

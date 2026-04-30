@@ -75,6 +75,7 @@ jvm_library(
 
 jvm_library(
   name = "vcs-gitlab_test_lib",
+  testonly = True,
   module_name = "intellij.vcs.gitlab",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -164,6 +165,7 @@ jvm_library(
 
 jvm_library(
   name = "vcs-gitlab-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form", "testApi/**/*.kt", "testApi/**/*.java", "testApi/**/*.form"], allow_empty = True),
   resources = [":vcs-gitlab-tests_test_resources"],

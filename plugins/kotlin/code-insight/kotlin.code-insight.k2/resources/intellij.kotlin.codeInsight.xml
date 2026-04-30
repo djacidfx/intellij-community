@@ -346,6 +346,8 @@
     <registryKey key="enable.kotlin.code.vision.inlay"
                  defaultValue="true"
                  description="Allows to disable usages and inheritors code vision for kotlin" />
+    <applicationSettings service="org.jetbrains.kotlin.idea.k2.codeinsight.generate.KotlinEqualsHashCodeTemplatesManager"/>
+    <applicationSettings service="org.jetbrains.kotlin.idea.k2.codeinsight.generate.KotlinToStringTemplatesManager"/>
   </extensions>
   <actions>
     <group id="KotlinGenerateGroup">

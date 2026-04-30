@@ -24,10 +24,10 @@ import com.intellij.util.messages.MessageBusConnection
 import com.jetbrains.python.PyBundle
 import com.jetbrains.python.PythonIdeLanguageCustomization
 import com.jetbrains.python.sdk.PySdkPopupFactory
-import com.jetbrains.python.sdk.PySdkPopupFactory.Companion.descriptionInPopup
-import com.jetbrains.python.sdk.PySdkPopupFactory.Companion.shortenNameInPopup
 import com.jetbrains.python.sdk.legacy.PythonSdkUtil
+import com.intellij.util.IconUtil
 import com.jetbrains.python.sdk.noInterpreterMarker
+import com.jetbrains.python.sdk.pyInterpreterPresentation
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -88,7 +88,10 @@ private class PySdkStatusBar(project: Project, scope: CoroutineScope) : EditorBa
       WidgetState("", noInterpreterMarker, true)
     }
     else {
-      WidgetState(PyBundle.message("current.interpreter", descriptionInPopup(sdk)), shortenNameInPopup(sdk, 50), true)
+      val presentation = sdk.pyInterpreterPresentation()
+      WidgetState(PyBundle.message("current.interpreter", presentation.description), presentation.shortName, true).also {
+        it.icon = IconUtil.desaturate(presentation.icon)
+      }
     }
   }
 

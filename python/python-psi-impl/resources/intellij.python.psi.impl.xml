@@ -608,6 +608,8 @@
                  description="Use a process worker pool for skeleton generation to avoid process creation overhead"/>
 
     <virtualFileCustomDataProvider implementation="com.jetbrains.python.formatter.PyCodeStyleSettingsProvider"/>
+    <projectSettings service="com.jetbrains.python.findUsages.PyFindUsagesOptions"/>
+    <applicationSettings service="com.jetbrains.python.documentation.PythonDocumentationMap"/>
   </extensions>
 
   <extensionPoints>

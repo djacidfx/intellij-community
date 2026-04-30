@@ -27,6 +27,7 @@ jvm_library(
 
 jvm_library(
   name = "remote-driver.compose_test_lib",
+  testonly = True,
   module_name = "intellij.performanceTesting.remoteDriver.compose",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

@@ -16,6 +16,7 @@ jvm_library(
 
 jvm_library(
   name = "recentProjects_test_lib",
+  testonly = True,
   module_name = "intellij.platform.ide.recentProjects",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

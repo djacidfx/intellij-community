@@ -2,9 +2,9 @@
 package com.intellij.ide.minimap.thumb
 
 import com.intellij.ide.minimap.geometry.MinimapGeometryData
+import com.intellij.ui.JBColor
 import com.intellij.util.ui.JBUI
 import java.awt.AlphaComposite
-import java.awt.Color
 import java.awt.Graphics2D
 import kotlin.math.roundToInt
 
@@ -68,10 +68,10 @@ internal object MinimapThumb {
     }
   }
 
-  fun paint(graphics: Graphics2D, panelWidth: Int, geometry: MinimapGeometryData, color: Color) {
+  fun paint(graphics: Graphics2D, panelWidth: Int, geometry: MinimapGeometryData) {
     if (panelWidth <= 0 || geometry.thumbHeight <= 0) return
 
-    graphics.color = color
+    graphics.color = JBColor.DARK_GRAY
     val oldComposite = graphics.composite
     graphics.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, THUMB_ALPHA)
     graphics.fillRect(0, geometry.thumbStart - geometry.areaStart, panelWidth, geometry.thumbHeight)
@@ -79,5 +79,5 @@ internal object MinimapThumb {
   }
 
   private val MIN_THUMB_HEIGHT: Int = JBUI.scale(6)  // necessary in case >10 LoC file in fit mode
-  private const val THUMB_ALPHA: Float = 0.2f
+  private const val THUMB_ALPHA: Float = 0.12f
 }

@@ -7,13 +7,14 @@ import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.diagnostic.trace
 import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.platform.eel.EelPlatform
+import com.intellij.platform.eel.SafeDeferred
 import com.intellij.platform.ijent.IjentUnavailableException
+import com.intellij.platform.ijent.ParentOfIjentScopes
 import com.intellij.platform.ijent.getIjentGrpcArgv
 import com.intellij.platform.ijent.tcp.TcpDeployInfo
 import com.intellij.util.io.copyToAsync
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -45,7 +46,10 @@ interface IjentDeploymentListener {
   fun shellInitialized(initializationTime: Duration)
 }
 
-abstract class IjentDeployingOverShellProcessStrategy(scope: CoroutineScope, currentDispatcher: CoroutineDispatcher) : IjentControlledEnvironmentDeployingStrategy() {
+abstract class IjentDeployingOverShellProcessStrategy(
+  scope: ParentOfIjentScopes,
+  currentDispatcher: CoroutineDispatcher,
+) : IjentControlledEnvironmentDeployingStrategy() {
   protected abstract val ijentLabel: String
 
   /**
@@ -65,7 +69,7 @@ abstract class IjentDeployingOverShellProcessStrategy(scope: CoroutineScope, cur
 
   private val myContext: Deferred<DeployingContextAndShell> = run {
     var createdShellProcess: ShellProcessWrapper? = null
-    val context = scope.async(currentDispatcher, start = CoroutineStart.LAZY) {
+    val context = scope.s.async(currentDispatcher, start = CoroutineStart.LAZY) {
       val shellProcess = ShellProcessWrapper(IjentSessionProcessMediator.create(
         parentScope = scope,
         process = createShellProcess(),
@@ -90,7 +94,7 @@ abstract class IjentDeployingOverShellProcessStrategy(scope: CoroutineScope, cur
     context
   }
 
-  private val myTargetPlatform = scope.async(currentDispatcher, start = CoroutineStart.LAZY) {
+  private val myTargetPlatform = scope.s.async(currentDispatcher, start = CoroutineStart.LAZY) {
     getMyContext().execCommand {
       getTargetPlatform()
     }
@@ -165,10 +169,14 @@ abstract class IjentDeployingOverShellProcessStrategy(scope: CoroutineScope, cur
         while (true) {
           ensureActive()
           while (stream.available() == 0) {
-            if (mediator!!.processExit.isCompleted) {
-              throw IOException("Shell process exited instead of reading a line.")
+            when (mediator!!.processExit.state) {
+              is SafeDeferred.State.Finished -> {
+                throw IOException("Shell process exited instead of reading a line.")
+              }
+              SafeDeferred.State.Active -> {
+                delay(1.milliseconds)
+              }
             }
-            delay(1.milliseconds)
           }
           val c = stream.read()
           if (c < 0 || c == '\n'.code) {
@@ -195,7 +203,7 @@ abstract class IjentDeployingOverShellProcessStrategy(scope: CoroutineScope, cur
     suspend fun destroyForciblyAndGetError(): Throwable {
       mediator!!.process.destroyForcibly()
       try {
-        val job = mediator!!.ijentProcessScope.coroutineContext.job
+        val job = mediator!!.ijentProcessScope.s.coroutineContext.job
         job.join()
         throw job.getCancellationException()
       }

@@ -14,6 +14,7 @@ jvm_library(
 
 jvm_library(
   name = "compose-all-tests-k2_test_lib",
+  testonly = True,
   module_name = "kotlin.compose-all-tests.k2",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

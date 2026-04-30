@@ -43,6 +43,7 @@ jvm_library(
 
 jvm_library(
   name = "community_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["tests/**/*.kt", "tests/**/*.java", "tests/**/*.form"], allow_empty = True),
   resources = [":community_test_resources"],

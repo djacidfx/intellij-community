@@ -39,6 +39,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-project-wizard-idea-k1_test_lib",
+  testonly = True,
   module_name = "kotlin.project-wizard.idea.k1",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

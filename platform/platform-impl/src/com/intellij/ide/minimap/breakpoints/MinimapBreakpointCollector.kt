@@ -61,11 +61,13 @@ class MinimapBreakpointCollector(private val editor: Editor) {
           areaStart = context.geometry.areaStart.toDouble(),
           maxWidth = gutterWidth,
         )
+        val hasLineHighlight = highlighter.getTextAttributes(editor.colorsScheme)?.backgroundColor != null
         entries.add(
           MinimapBreakpointEntry(
             projectedLine = projectedLine,
             rect2d = rect,
             color = colorFor(highlighter),
+            hasLineHighlight = hasLineHighlight,
           ),
         )
       }

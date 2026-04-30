@@ -174,5 +174,6 @@
     <orderEntry type="module" module-name="intellij.platform.debugger.impl.tests" scope="TEST" />
     <orderEntry type="module" module-name="intellij.platform.vcs.impl.tests" scope="TEST" />
     <orderEntry type="module" module-name="intellij.platform.serviceContainer.tests" scope="TEST" />
+    <orderEntry type="module" module-name="intellij.platform.workspace.storage.testEntities" scope="TEST" />
   </component>
 </module>

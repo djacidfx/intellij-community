@@ -314,6 +314,121 @@ internal class SplitModeXmlApiUsageInspectionTest : JavaCodeInsightFixtureTestCa
     myFixture.checkHighlighting()
   }
 
+  fun testBackendExtensionInContentModuleOfPluginModuleWithOwnContentDescriptor() {
+    addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.17",
+      descriptorRelativePathToResourcesDirectory = "META-INF/plugin.xml",
+      """
+        <idea-plugin>
+          <id>com.example.plugin.with.content.descriptor</id>
+          <dependencies>
+            <module name="intellij.platform.backend"/>
+          </dependencies>
+          <content>
+            <module name="unique.module.name.17"/>
+            <module name="unique.module.name.18"/>
+          </content>
+        </idea-plugin>
+      """.trimIndent()
+    )
+    myFixture.addFileToProject(
+      "unique.module.name.17/resources/unique.module.name.17.xml",
+      """
+        <idea-plugin>
+          <dependencies>
+            <module name="intellij.platform.backend"/>
+          </dependencies>
+        </idea-plugin>
+      """.trimIndent()
+    )
+    val contentModuleDescriptor = addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.18",
+      descriptorRelativePathToResourcesDirectory = "unique.module.name.18.xml",
+      """
+        <idea-plugin>
+          <extensions defaultExtensionNs="com.intellij">
+            <<warning descr="'com.intellij.fileEditorProvider' can only be used in 'frontend' module type. Actual module type is 'backend'. Reason: module declares no own FE/BE dependencies, but the containing plugin.xml files do: module 'unique.module.name.17'  -> backend">fileEditorProvider</warning>/>
+          </extensions>
+        </idea-plugin>
+      """.trimIndent()
+    )
+    myFixture.configureFromExistingVirtualFile(contentModuleDescriptor.virtualFile)
+
+    myFixture.checkHighlighting()
+  }
+
+  fun testBackendExtensionInMutuallyContainingContentModules() {
+    val originalContentModuleDescriptor = addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.19",
+      descriptorRelativePathToResourcesDirectory = "unique.module.name.19.xml",
+      """
+        <idea-plugin>
+          <content>
+            <module name="unique.module.name.20"/>
+          </content>
+          <extensions defaultExtensionNs="com.intellij">
+            <<warning descr="'com.intellij.fileEditorProvider' can only be used in 'frontend' module type. Actual module type is 'backend'. Reason: module declares no own FE/BE dependencies, but the containing plugin.xml files do: module 'unique.module.name.20'  -> backend">fileEditorProvider</warning>/>
+          </extensions>
+        </idea-plugin>
+      """.trimIndent()
+    )
+    addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.20",
+      descriptorRelativePathToResourcesDirectory = "unique.module.name.20.xml",
+      """
+        <idea-plugin>
+          <dependencies>
+            <module name="intellij.platform.backend"/>
+          </dependencies>
+          <content>
+            <module name="unique.module.name.19"/>
+          </content>
+        </idea-plugin>
+      """.trimIndent()
+    )
+    myFixture.configureFromExistingVirtualFile(originalContentModuleDescriptor.virtualFile)
+
+    myFixture.checkHighlighting()
+  }
+
+  fun testMixedDependenciesInMutuallyContainingContentModules() {
+    val originalContentModuleDescriptor = addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.21",
+      descriptorRelativePathToResourcesDirectory = "unique.module.name.21.xml",
+      """
+        <<error descr="This module effectively depends on frontend-only and backend-only modules simultaneously. It will not get loaded in runtime. Reason: frontend dependencies: dependency 'intellij.platform.frontend' from descriptor 'unique.module.name.21.xml' in module 'unique.module.name.21'; backend dependencies: dependency 'intellij.platform.backend' from containing plugin descriptor 'unique.module.name.22.xml' in module 'unique.module.name.22'">idea-plugin</error>>
+          <dependencies>
+            <module name="intellij.platform.frontend"/>
+          </dependencies>
+          <content>
+            <module name="unique.module.name.22"/>
+          </content>
+          <extensions defaultExtensionNs="com.intellij">
+            <fileEditorProvider/>
+            <localInspection/>
+          </extensions>
+        </idea-plugin>
+      """.trimIndent()
+    )
+    addModuleWithXmlDescriptor(
+      moduleName = "unique.module.name.22",
+      descriptorRelativePathToResourcesDirectory = "unique.module.name.22.xml",
+      """
+        <idea-plugin>
+          <dependencies>
+            <module name="intellij.platform.backend"/>
+          </dependencies>
+          <content>
+            <module name="unique.module.name.21"/>
+          </content>
+        </idea-plugin>
+      """.trimIndent()
+    )
+    myFixture.configureFromExistingVirtualFile(originalContentModuleDescriptor.virtualFile)
+
+    myFixture.checkHighlighting()
+  }
+
   private fun addModuleWithXmlDescriptor(
     moduleName: String,
     descriptorRelativePathToResourcesDirectory: String,

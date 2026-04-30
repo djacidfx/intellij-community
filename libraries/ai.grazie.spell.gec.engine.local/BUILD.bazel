@@ -30,6 +30,7 @@ jvm_library(
 
 jvm_library(
   name = "ai.grazie.spell.gec.engine.local_test_lib",
+  testonly = True,
   module_name = "intellij.libraries.ai.grazie.spell.gec.engine.local",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

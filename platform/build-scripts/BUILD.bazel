@@ -121,6 +121,7 @@ jvm_library(
 
 jvm_library(
   name = "build-scripts_test_lib",
+  testonly = True,
   module_name = "intellij.platform.buildScripts",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

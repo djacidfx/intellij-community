@@ -83,6 +83,7 @@
     <jbProtocolCommand implementation="org.jetbrains.ide.OpenSettingsJbProtocolService"/>
 
     <httpRequestHandler implementation="org.jetbrains.builtInWebServer.BuiltInWebServer" order="last"/>
+    <applicationSettings service="org.jetbrains.builtInWebServer.BuiltInServerOptions"/>
   </extensions>
   <extensions defaultExtensionNs="org.jetbrains">
     <customPortServerManager implementation="org.jetbrains.builtInWebServer.BuiltInServerOptions$MyCustomPortServerManager"/>

@@ -254,14 +254,28 @@ internal object SplitModeModuleKindResolver {
   fun getOrComputeModuleAnalysis(module: Module): ModuleAnalysis {
     return CachedValuesManager.getManager(module.project).getCachedValue(module) {
       CachedValueProvider.Result.create(
-        computeModuleAnalysis(module),
+        computeModuleAnalysis(module, mutableSetOf()),
         ProjectRootModificationTracker.getInstance(module.project),
         PsiManager.getInstance(module.project).modificationTracker.forLanguage(XMLLanguage.INSTANCE),
       )
     }
   }
 
-  private fun computeModuleAnalysis(module: Module): ModuleAnalysis {
+  private fun computeModuleAnalysis(module: Module, visitedModules: MutableSet<Module>): ModuleAnalysis {
+    if (!visitedModules.add(module)) {
+      LOG.debug { "Skipping recursive split-mode containing-plugin analysis for module '${module.name}'" }
+      return computeModuleAnalysis(module, false, visitedModules)
+    }
+
+    try {
+      return computeModuleAnalysis(module, true, visitedModules)
+    }
+    finally {
+      visitedModules.remove(module)
+    }
+  }
+
+  private fun computeModuleAnalysis(module: Module, includeContainingPlugins: Boolean, visitedModules: MutableSet<Module>): ModuleAnalysis {
     val moduleName = module.name
     val contentModuleXmlDescriptor = PluginModuleType.getContentModuleDescriptorXml(module)
     val xmlDescriptor = contentModuleXmlDescriptor ?: PluginModuleType.getPluginXml(module)
@@ -274,7 +288,13 @@ internal object SplitModeModuleKindResolver {
     }
 
     val directDependencies = collectDescriptorDependencies(moduleName, xmlDescriptor, parsedXmlDescriptor)
-    val containingPlugins = if (contentModuleXmlDescriptor == null) emptyList() else collectContainingPlugins(contentModuleXmlDescriptor)
+    val containingPlugins =
+      if (!includeContainingPlugins || contentModuleXmlDescriptor == null) {
+        emptyList()
+      }
+      else {
+        collectContainingPlugins(contentModuleXmlDescriptor, visitedModules)
+      }
     val dependencyAnalysis = DependencyAnalysis(moduleName, directDependencies, containingPlugins)
     val resolvedModuleKind = computeModuleKind(dependencyAnalysis)
 
@@ -400,7 +420,7 @@ internal object SplitModeModuleKindResolver {
     )
   }
 
-  private fun collectContainingPlugins(contentModuleDescriptor: XmlFile): List<ContainingPlugin> {
+  private fun collectContainingPlugins(contentModuleDescriptor: XmlFile, visitedModules: MutableSet<Module>): List<ContainingPlugin> {
     val contentModuleName = contentModuleDescriptor.virtualFile?.nameWithoutExtension ?: return emptyList()
     val containingPlugins = ArrayList<ContainingPlugin>()
     val scope = PluginRelatedLocatorsUtils.getCandidatesScope(contentModuleDescriptor.project)
@@ -428,7 +448,7 @@ internal object SplitModeModuleKindResolver {
         ContainingPlugin(
           xmlFile = pluginXml,
           module = containingModule,
-          moduleKind = getOrComputeModuleAnalysis(containingModule).resolvedModuleKind,
+          moduleKind = computeModuleAnalysis(containingModule, visitedModules).resolvedModuleKind,
           directDependencies = directDependencies,
         )
       )

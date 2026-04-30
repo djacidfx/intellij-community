@@ -71,6 +71,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-jvm_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.jvm",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -139,6 +140,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-jvm-tests_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.jvm.tests",
   visibility = ["//visibility:public"],
   srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form"], allow_empty = True),

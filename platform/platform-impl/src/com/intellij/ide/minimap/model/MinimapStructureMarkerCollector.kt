@@ -1,6 +1,7 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.ide.minimap.model
 
+import com.intellij.ide.minimap.interaction.MinimapInteractionPolicy
 import com.intellij.ide.structureView.StructureViewTreeElement
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.editor.Document
@@ -14,7 +15,7 @@ import com.intellij.util.concurrency.annotations.RequiresReadLock
 import java.util.IdentityHashMap
 
 internal class MinimapStructureMarkerCollector(
-  private val structureMarkerPolicy: MinimapStructureMarkerPolicy,
+  private val structureMarkerPolicy: MinimapInteractionPolicy,
   private val previousByElement: IdentityHashMap<StructureViewTreeElement, MinimapStructureMarker>,
   private val reusedStructureMarkers: IdentityHashMap<MinimapStructureMarker, Boolean>,
   private val result: MutableList<MinimapStructureMarker>,

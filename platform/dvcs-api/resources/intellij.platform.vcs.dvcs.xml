@@ -11,4 +11,7 @@
     <module name="intellij.platform.vcs.log"/>
   </dependencies>
   <!-- endregion -->
+  <extensions defaultExtensionNs="com.intellij">
+    <projectSettings service="com.intellij.dvcs.push.PushSettings"/>
+  </extensions>
 </idea-plugin>

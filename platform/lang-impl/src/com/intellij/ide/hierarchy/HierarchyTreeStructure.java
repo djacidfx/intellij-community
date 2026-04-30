@@ -16,6 +16,7 @@ import com.intellij.psi.PsiCompiledElement;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiManager;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.search.GlobalSearchScopesCore;
 import com.intellij.psi.search.LocalSearchScope;
@@ -167,10 +168,10 @@ public abstract class HierarchyTreeStructure extends AbstractTreeStructure {
       return module != null && module.getModuleScope().contains(virtualFile);
     }
     if (HierarchyBrowserBaseEx.SCOPE_PROJECT.equals(scopeType)) {
-      // Kotlin declarations referenced from Java are exposed as light (non-physical) PSI elements.
-      // The `isPhysical()` check keeps such wrappers in the project scope while still filtering out
+      // Kotlin declarations in source code that are referenced from Java are exposed as compiled PSI elements that are present in the project.
+      // The `PsiManager#isInProject()` check keeps such wrappers in the project scope while still filtering out
       // real compiled classes (e.g. loaded from library JARs).
-      if (srcElement.getContainingFile() instanceof PsiCompiledElement && srcElement.isPhysical()) return false;
+      if (srcElement.getContainingFile() instanceof PsiCompiledElement && !PsiManager.getInstance(myProject).isInProject(srcElement)) return false;
       VirtualFile virtualFile = srcElement.getContainingFile().getVirtualFile();
       return virtualFile == null || !TestSourcesFilter.isTestSources(virtualFile, myProject);
     }

@@ -769,7 +769,7 @@ object PluginManagerCore {
   ) {
     val shouldNotifyUser = !plugin.isImplementationDetail && !pluginRequiresUltimatePluginButItsDisabled(
       initContext = resolvedPluginSet.initContext,
-      ambiguousPluginSet = resolvedPluginSet.originalPluginSet.asAmbiguousPluginSet(),
+      ambiguousPluginSet = broadResolveContext.value,
       plugin
     )
 

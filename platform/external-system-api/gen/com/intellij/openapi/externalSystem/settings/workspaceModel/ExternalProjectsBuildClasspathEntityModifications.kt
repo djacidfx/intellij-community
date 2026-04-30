@@ -1,5 +1,5 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-@file:JvmName("ExternalProjectsBuildClasspathEntityModifications")
+@file:JvmName("ExternalProjectsBuildClasspathEntityModifications") @file:ApiStatus.Internal
 
 package com.intellij.openapi.externalSystem.settings.workspaceModel
 
@@ -8,6 +8,7 @@ import com.intellij.platform.workspace.storage.EntityType
 import com.intellij.platform.workspace.storage.GeneratedCodeApiVersion
 import com.intellij.platform.workspace.storage.MutableEntityStorage
 import com.intellij.platform.workspace.storage.WorkspaceEntityBuilder
+import org.jetbrains.annotations.ApiStatus
 
 @GeneratedCodeApiVersion(3)
 interface ExternalProjectsBuildClasspathEntityBuilder : WorkspaceEntityBuilder<ExternalProjectsBuildClasspathEntity> {

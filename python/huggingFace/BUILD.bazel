@@ -40,6 +40,7 @@ jvm_library(
 
 jvm_library(
   name = "huggingFace_test_lib",
+  testonly = True,
   module_name = "intellij.python.community.impl.huggingFace",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

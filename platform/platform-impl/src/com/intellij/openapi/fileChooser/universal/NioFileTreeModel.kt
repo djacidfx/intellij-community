@@ -20,6 +20,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.function.Predicate
 import javax.swing.tree.TreePath
+import kotlin.io.path.invariantSeparatorsPathString
 
 /**
  * A tree model backed by Java NIO [Path] instead of [com.intellij.openapi.vfs.VirtualFile].
@@ -133,6 +134,11 @@ class NioFileTreeModel @JvmOverloads constructor(
       treeStructureChanged(state.path, null, null)
     }
   }
+
+
+  fun matchRoot(path: Path): Path? =
+    state.getRoots().firstOrNull { root -> root.path.invariantSeparatorsPathString == path.invariantSeparatorsPathString }?.path
+
 
   // -- Inner classes ------------------------------------------------------------------------------------------------
 

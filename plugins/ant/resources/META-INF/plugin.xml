@@ -99,6 +99,9 @@ To use the <b>Ant</b> tool window, select <b>View > Tool Windows > Ant</b>.
     <externalTextProvider implementation="com.intellij.lang.ant.config.impl.AntTextProvider"/>
 
     <buildProcess.parametersProvider implementation="com.intellij.lang.ant.AntBuildParametersProvider"/>
+    <applicationSettings service="com.intellij.lang.ant.config.impl.GlobalAntConfiguration"/>
+    <projectSettings service="com.intellij.lang.ant.config.impl.AntConfigurationImpl"/>
+    <projectSettings service="com.intellij.lang.ant.config.impl.AntWorkspaceConfiguration"/>
   </extensions>
 
   <actions>

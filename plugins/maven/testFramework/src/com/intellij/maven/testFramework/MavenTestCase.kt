@@ -169,7 +169,8 @@ abstract class MavenTestCase : UsefulTestCase() {
   }
 
   private fun setupCustomJdk() {
-    val jdkPath = EelTestJdkProvider.getJdkPath()
+    val jdkPath = EelTestJdkProvider.getJdkPath(myProject!!.getEelDescriptor())
+    VfsRootAccess.allowRootAccess(testRootDisposable, jdkPath.toString())
     if (myJdk == null && jdkPath != null) {
       myJdk = JavaSdk.getInstance().createJdk("Maven Test JDK", jdkPath.toString())
       val jdkTable = ProjectJdkTable.getInstance(project)

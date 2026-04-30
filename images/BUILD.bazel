@@ -49,6 +49,7 @@ jvm_library(
 
 jvm_library(
   name = "images_test_lib",
+  testonly = True,
   module_name = "intellij.platform.images",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -103,6 +104,7 @@ jvm_library(
 
 jvm_library(
   name = "images-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form"], allow_empty = True),
   associates = [

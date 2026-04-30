@@ -27,12 +27,12 @@ jvm_library(
     "//java/java-frontback-psi-impl:frontback-psi-impl",
     "//platform/platform-api:ide",
     "//platform/ide-core",
-  ],
-  runtime_deps = ["//plugins/kotlin/base/frontend-agnostic"]
+  ]
 )
 
 jvm_library(
   name = "kotlin-highlighting-minimal_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.highlighting.minimal",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -47,7 +47,6 @@ jvm_library(
     "//plugins/kotlin/base/resources:kotlin-base-resources_test_lib",
     "//platform/util:util-ui_test_lib",
     "//platform/lang-impl:lang-impl_test_lib",
-    "//plugins/kotlin/base/frontend-agnostic:frontend-agnostic_test_lib",
     "//java/java-frontback-psi-impl:frontback-psi-impl_test_lib",
     "//platform/platform-api:ide_test_lib",
     "//platform/ide-core:ide-core_test_lib",

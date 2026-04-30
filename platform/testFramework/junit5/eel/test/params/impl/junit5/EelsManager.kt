@@ -5,11 +5,11 @@ import com.intellij.execution.target.EelTargetEnvironmentRequest
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
+import com.intellij.platform.ijent.ParentOfIjentScopes
 import com.intellij.platform.testFramework.junit5.eel.params.api.EelHolder
 import com.intellij.platform.testFramework.junit5.eel.params.api.EelHolderImpl
 import com.intellij.platform.testFramework.junit5.eel.params.api.LocalEelHolder
 import com.intellij.platform.testFramework.junit5.eel.params.api.TestApplicationWithEel
-import com.intellij.platform.testFramework.junit5.eel.params.impl.junit5.EelsManager.Companion.create
 import com.intellij.platform.testFramework.junit5.eel.params.spi.EelIjentTestProvider.StartResult.Skipped
 import com.intellij.platform.testFramework.junit5.eel.params.spi.EelIjentTestProvider.StartResult.Started
 import com.intellij.platform.util.coroutines.childScope
@@ -36,7 +36,9 @@ internal class EelsManager private constructor(private val eelHolders: List<EelH
   // Autocloseable things might be closed by JUnit, hence need not be closed two times
   private var closed = false
   private val closeAfterTest: MutableList<Closeable> = mutableListOf<Closeable>()
-  private val scope: CoroutineScope = ApplicationManager.getApplication().service<EelTestService>().scope.childScope("Eel test child scope")
+  private val scope: ParentOfIjentScopes = ParentOfIjentScopes(
+    ApplicationManager.getApplication().service<EelTestService>().scope.childScope("Eel test child scope")
+  )
 
   companion object {
     fun create(invocationContext: ReflectiveInvocationContext<*>, extensionContext: ExtensionContext): EelsManager? {
@@ -114,8 +116,8 @@ internal class EelsManager private constructor(private val eelHolders: List<EelH
         for (closeable in closeAfterTest) {
           closeable.close()
         }
-        scope.coroutineContext.job.cancelAndJoin()
-        scope.cancel()
+        scope.s.coroutineContext.job.cancelAndJoin()
+        scope.s.cancel()
       }
     }
   }
@@ -124,7 +126,7 @@ internal class EelsManager private constructor(private val eelHolders: List<EelH
 
 @TestOnly
 private suspend fun <T : Annotation> EelHolderImpl<T>.startIjentProvider(
-  scope: CoroutineScope,
+  scope: ParentOfIjentScopes,
 ): Started {
   val provider = this.eelTestProvider
   when (val r = provider.start(scope, annotation)) {

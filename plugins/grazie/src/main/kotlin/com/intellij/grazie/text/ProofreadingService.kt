@@ -1,15 +1,12 @@
 package com.intellij.grazie.text
 
-import com.intellij.grazie.GrazieConfig
 import com.intellij.grazie.spellcheck.TypoProblem
 import com.intellij.grazie.utils.HighlightingUtil.checkedDomains
 import com.intellij.grazie.utils.getAllProblems
-import com.intellij.openapi.components.service
+import com.intellij.grazie.utils.getGrazieTracker
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
-import com.intellij.psi.util.PsiModificationTracker
-import com.intellij.spellchecker.engine.DictionaryModificationTracker
 import com.intellij.util.ConcurrencyUtil
 import org.jetbrains.annotations.ApiStatus
 import java.util.concurrent.ConcurrentHashMap
@@ -61,7 +58,7 @@ class ProofreadingService {
 
     private fun PsiFile.getRangesCache(): Ranges {
       val cache = this.getUserData(key)
-      val stamp = getStamp(this)
+      val stamp = getGrazieTracker(this).modificationCount
       if (cache != null && cache.configStamp == stamp) {
         return cache
       } else {
@@ -72,12 +69,6 @@ class ProofreadingService {
     // if a typo's suggestion is to be calculated locally, let's hope there will be suggestion
     private fun TextProblem.hasSuggestions(): Boolean =
       this is TypoProblem && !this.isCloud || this.suggestions.isNotEmpty() || this.customFixes.isNotEmpty()
-
-    private fun getStamp(file: PsiFile): Long =
-      service<GrazieConfig>().modificationCount +
-      DictionaryModificationTracker.getInstance(file.project).modificationCount +
-      file.modificationStamp +
-      PsiModificationTracker.getInstance(file.project).modificationCount
 
     private fun getProblemTextRanges(problem: TextProblem) = problem.highlightRanges.map { problem.text.textRangeToFile(it) }
     private fun TextProblem.intersects(range: TextRange) = getProblemTextRanges(this)

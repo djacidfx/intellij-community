@@ -1,9 +1,14 @@
 package com.jetbrains.lsp.implementation
 
+import com.jetbrains.lsp.protocol.ClientCapabilities
 import com.jetbrains.lsp.protocol.LSP
 import com.jetbrains.lsp.protocol.ProgressParams
+import com.jetbrains.lsp.protocol.ProgressToken
+import com.jetbrains.lsp.protocol.StringOrInt
+import com.jetbrains.lsp.protocol.Window
 import com.jetbrains.lsp.protocol.WorkDoneProgress
-import com.jetbrains.lsp.protocol.WorkDoneProgressParams
+import com.jetbrains.lsp.protocol.WorkDoneProgressCreateParams
+import fleet.util.async.catching
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -20,13 +25,33 @@ fun interface ProgressReporter {
   fun report(progress: WorkDoneProgress)
 }
 
+suspend fun LspClient.withServerInitiatedProgress(
+    capabilities: ClientCapabilities,
+    beginTitle: String,
+    body: suspend CoroutineScope.(ProgressReporter) -> WorkDoneProgress.End,
+) {
+    val token = when {
+        capabilities.window?.workDoneProgress == true -> {
+            val token = ProgressToken(StringOrInt.int(42))
+            catching {
+                request(Window.CreateProgress, WorkDoneProgressCreateParams(token))
+            }
+            token
+        }
+        else -> null
+    }
+    withProgress(token, beginTitle) { progress ->
+        body(progress)
+    }
+}
+
 suspend fun LspClient.withProgress(
-  request: WorkDoneProgressParams,
-  beginTitle: String,
-  body: suspend CoroutineScope.(ProgressReporter) -> WorkDoneProgress.End,
+    token: ProgressToken?,
+    beginTitle: String,
+    body: suspend CoroutineScope.(ProgressReporter) -> WorkDoneProgress.End,
 ) {
   coroutineScope {
-    when (val token = request.workDoneToken) {
+    when (token) {
       null -> body(ProgressReporter.NOOP)
       else -> {
         val beginProgress = WorkDoneProgress.Begin(title = beginTitle)

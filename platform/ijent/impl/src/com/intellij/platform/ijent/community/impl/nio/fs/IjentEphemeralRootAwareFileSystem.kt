@@ -1,7 +1,6 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.platform.ijent.community.impl.nio.fs
 
-import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.io.FileUtil.toSystemIndependentName
 import com.intellij.platform.core.nio.fs.BasicFileAttributesHolder2
 import com.intellij.platform.core.nio.fs.DelegatingFileSystem
@@ -12,8 +11,9 @@ import com.intellij.platform.eel.EelDescriptor
 import com.intellij.platform.eel.EelOsFamily
 import com.intellij.platform.eel.provider.EelDescriptorOwner
 import com.intellij.platform.eel.provider.getEelDescriptor
+import com.intellij.platform.eel.provider.utils.EelPathTransfer
 import com.intellij.platform.eel.provider.utils.EelPathUtils
- import com.intellij.platform.eel.provider.utils.WindowsPathUtils
+import com.intellij.platform.eel.provider.utils.WindowsPathUtils
 import com.intellij.platform.ijent.community.impl.nio.AbsoluteIjentNioPath
 import com.intellij.platform.ijent.community.impl.nio.IjentNioPath
 import com.intellij.util.text.nullize
@@ -186,7 +186,7 @@ class IjentEphemeralRootAwarePath(
 
   override fun toString(): String {
     return if (isAbsolute) {
-      when (originalPath.fileSystem.ijentFs.descriptor.osFamily) {
+      when (fileSystem.eelDescriptor.osFamily) {
         EelOsFamily.Posix -> {
           rootPath.resolve(originalPath.pathString.removePrefix("/").replace("\\", fileSystem.separator)).pathString
         }
@@ -263,7 +263,7 @@ class IjentEphemeralRootAwareFileSystemProvider(
       super.copy(source, target, *options)
     }
     else {
-      EelPathUtils.walkingTransfer(source.toOriginalPath(), target.toOriginalPath(), removeSource = false, copyAttributes = StandardCopyOption.COPY_ATTRIBUTES in options)
+      EelPathTransfer.walkingTransfer(source.toOriginalPath(), target.toOriginalPath(), removeSource = false, copyAttributes = StandardCopyOption.COPY_ATTRIBUTES in options)
     }
   }
 
@@ -272,7 +272,7 @@ class IjentEphemeralRootAwareFileSystemProvider(
       super.move(source, target, *options)
     }
     else {
-      EelPathUtils.walkingTransfer(source.toOriginalPath(), target.toOriginalPath(), removeSource = true, copyAttributes = StandardCopyOption.COPY_ATTRIBUTES in options)
+      EelPathTransfer.walkingTransfer(source.toOriginalPath(), target.toOriginalPath(), removeSource = true, copyAttributes = StandardCopyOption.COPY_ATTRIBUTES in options)
     }
   }
 
@@ -400,6 +400,15 @@ class IjentEphemeralRootAwareFileSystem(
     addAll(ijentFs.supportedFileAttributeViews())
   }
 
+  override fun equals(other: Any?): Boolean {
+    if (this === other) return true
+    if (other !is IjentEphemeralRootAwareFileSystem) return false
+    return eelDescriptor == other.eelDescriptor
+           && ijentFs == other.ijentFs
+           && originalFs == other.originalFs
+           && useRootDirectoriesFromOriginalFs == other.useRootDirectoriesFromOriginalFs
+  }
+
   private fun isPathUnderRoot(path: String): Boolean {
     return toSystemIndependentName(path).startsWith(invariantSeparatorRootPathString)
   }
@@ -422,5 +431,16 @@ class IjentEphemeralRootAwareFileSystem(
         }
       }
     }
+  }
+
+  override fun hashCode(): Int {
+    var result = useRootDirectoriesFromOriginalFs.hashCode()
+    result = 31 * result + rootAwareFileSystemProvider.hashCode()
+    result = 31 * result + ijentFs.hashCode()
+    result = 31 * result + originalFs.hashCode()
+    result = 31 * result + eelDescriptor.hashCode()
+    result = 31 * result + root.hashCode()
+    result = 31 * result + invariantSeparatorRootPathString.hashCode()
+    return result
   }
 }

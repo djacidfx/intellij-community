@@ -1385,6 +1385,11 @@
     <lang.dumb.mode.supported language="Groovy" implementationClass="org.jetbrains.plugins.groovy.GroovyLanguageDumbAware"/>
 
     <statistics.projectUsagesCollector implementation="org.jetbrains.plugins.groovy.config.GroovyLanguageVersionCollector"/>
+    <projectSettings service="org.jetbrains.plugins.groovy.compiler.GroovyCompilerConfiguration"/>
+    <projectSettings service="org.jetbrains.plugins.groovy.compiler.GreclipseIdeaCompilerSettings"/>
+    <applicationSettings service="org.jetbrains.plugins.groovy.dsl.DslActivationStatus"/>
+    <applicationSettings service="org.jetbrains.plugins.groovy.settings.GroovyApplicationSettings"/>
+    <projectSettings service="org.jetbrains.plugins.groovy.gant.GantSettings"/>
   </extensions>
 
   <extensions defaultExtensionNs="com.intellij.debugger">

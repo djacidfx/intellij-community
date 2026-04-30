@@ -66,5 +66,8 @@
     <notificationGroup id="Spellchecker" displayType="BALLOON" bundle="messages.SpellCheckerBundle" key="notification.group.spellchecker"/>
 
     <spellchecker.dictionary.checker implementation="com.intellij.spellchecker.dictionary.ProjectNameDictionaryChecker"/>
+    <applicationSettings service="com.intellij.spellchecker.state.AppDictionaryState"/>
+    <projectSettings service="com.intellij.spellchecker.state.ProjectDictionaryState"/>
+    <projectSettings service="com.intellij.spellchecker.settings.SpellCheckerSettings"/>
   </extensions>
 </idea-plugin>

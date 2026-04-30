@@ -50,5 +50,7 @@
             implementation="org.jetbrains.kotlin.idea.roots.KotlinNonJvmSourceRootConverterProvider"/>
 
     <orderEnumerationHandlerFactory implementation="org.jetbrains.kotlin.idea.roots.KotlinNonJvmOrderEnumerationHandler$Factory"/>
+    <projectSettings
+            service="org.jetbrains.kotlin.idea.base.projectStructure.libraryToSourceAnalysis.KotlinLibraryToSourceAnalysisStateComponent"/>
   </extensions>
 </idea-plugin>

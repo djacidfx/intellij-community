@@ -45,6 +45,7 @@ jvm_library(
 
 jvm_library(
   name = "rpc_test_lib",
+  testonly = True,
   module_name = "fleet.rpc",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

@@ -19,7 +19,6 @@ jvm_library(
     "//platform/analysis-api:analysis",
     "//platform/core-api:core",
     "//platform/refactoring",
-    "//plugins/kotlin/base/frontend-agnostic",
     "//plugins/kotlin/base/util",
     "//plugins/kotlin/base/plugin",
     "//plugins/kotlin/base/project-structure",
@@ -44,6 +43,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-highlighting-shared_test_lib",
+  testonly = True,
   module_name = "kotlin.highlighting.shared",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -56,7 +56,6 @@ jvm_library(
     "//platform/analysis-api:analysis_test_lib",
     "//platform/core-api:core_test_lib",
     "//platform/refactoring:refactoring_test_lib",
-    "//plugins/kotlin/base/frontend-agnostic:frontend-agnostic_test_lib",
     "//plugins/kotlin/base/util:util_test_lib",
     "//plugins/kotlin/base/plugin:plugin_test_lib",
     "//plugins/kotlin/base/project-structure:project-structure_test_lib",

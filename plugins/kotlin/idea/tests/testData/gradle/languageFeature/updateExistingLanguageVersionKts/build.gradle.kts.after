@@ -1,6 +1,5 @@
 import org.gradle.kotlin.dsl.invoke
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version "2.2.0"
@@ -19,14 +18,10 @@ dependencies {
 
 kotlin {
     compilerOptions {
-        languageVersion.set(KotlinVersion.KOTLIN_2_1)
+        languageVersion.set(KotlinVersion.KOTLIN_2_2)
     }
 }
 
 tasks.test {
     useJUnitPlatform()
-}
-val compileKotlin: KotlinCompile by tasks
-compileKotlin.compilerOptions {
-    languageVersion.set(KotlinVersion.KOTLIN_2_2)
 }

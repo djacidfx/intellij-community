@@ -55,6 +55,7 @@ jvm_library(
 
 jvm_library(
   name = "int-ui-standalone-styling_test_lib",
+  testonly = True,
   module_name = "intellij.platform.jewel.markdown.intUiStandaloneStyling",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

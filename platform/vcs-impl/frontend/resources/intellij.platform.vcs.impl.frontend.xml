@@ -32,6 +32,7 @@
 
     <recentFiles.navigator implementation="com.intellij.platform.vcs.impl.frontend.diff.DiffRecentFilesNavigator"/>
     <recentFiles.excluder implementation="com.intellij.platform.vcs.impl.frontend.diff.DiffRecentFilesExcluder"/>
+    <projectSettings service="com.intellij.platform.vcs.impl.frontend.VcsFrontendConfiguration"/>
   </extensions>
 
   <actions resource-bundle="messages.ActionsBundle">

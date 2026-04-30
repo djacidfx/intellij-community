@@ -83,6 +83,7 @@
                            implementationClass="com.intellij.openapi.vcs.changes.ui.DirectoryChangesGroupingPolicy$Factory"/>
 
     <vcs.changes.changesViewModifier implementation="com.intellij.platform.vcs.impl.shared.commit.EditedCommitChangesViewModifier"/>
+    <projectSettings service="com.intellij.platform.vcs.impl.shared.changes.ChangesViewSettingsImpl"/>
   </extensions>
 
   <actions>

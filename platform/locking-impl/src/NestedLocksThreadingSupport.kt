@@ -15,13 +15,12 @@ import com.intellij.openapi.application.ThreadingSupport
 import com.intellij.openapi.application.WriteActionListener
 import com.intellij.openapi.application.WriteIntentReadActionListener
 import com.intellij.openapi.application.WriteLockReacquisitionListener
+import com.intellij.openapi.application.getComputationClassForListener
 import com.intellij.openapi.application.readLockCompensationTimeout
 import com.intellij.openapi.application.reportInvalidActionChains
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.Cancellation
 import com.intellij.openapi.progress.ProcessCanceledException
-import com.intellij.openapi.util.Computable
-import com.intellij.openapi.util.ThrowableComputable
 import com.intellij.platform.locking.impl.listeners.ErrorHandler
 import com.intellij.platform.locking.impl.listeners.LegacyProgressIndicatorProvider
 import com.intellij.platform.locking.impl.listeners.LockAcquisitionListener
@@ -1037,30 +1036,6 @@ class NestedLocksThreadingSupport : ThreadingSupport {
         fireAfterWriteActionFinished(writeIntentInitResult.listeners, clazz)
       }
     }
-  }
-
-  abstract class LambdaWrapper<L:Any,T>(val lambda: L) : () -> T
-  class RunnableUnitFunction(runnable: Runnable) : LambdaWrapper<Runnable, Unit>(runnable) {
-    override fun invoke() {
-      lambda.run()
-    }
-  }
-  class ThrowableComputableFunction<T>(runnable: ThrowableComputable<T, *>) : LambdaWrapper<ThrowableComputable<T, *>, T>(runnable) {
-    override fun invoke() : T {
-      return lambda.compute()
-    }
-  }
-  class ComputableFunction<T>(runnable: Computable<T>) : LambdaWrapper<Computable<T>, T>(runnable) {
-    override fun invoke() : T {
-      return lambda.compute()
-    }
-  }
-
-  private fun <T> getComputationClassForListener(computation: () -> T): Class<*> {
-    if (computation is LambdaWrapper<*,*>) {
-      return computation.lambda.javaClass
-    }
-    return computation.javaClass
   }
 
   private suspend inline fun <T> proceedWithSuspendWriteLockAcquisitionFromWriteIntent(computationState: ComputationState, writeIntentInitResult: PreparatoryWriteIntent, clazz: Class<*>, crossinline action: () -> T): T {

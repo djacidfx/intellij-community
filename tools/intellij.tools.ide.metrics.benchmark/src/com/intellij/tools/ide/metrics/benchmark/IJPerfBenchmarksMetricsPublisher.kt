@@ -111,8 +111,8 @@ internal class IJPerfBenchmarksMetricsPublisher {
         // https://youtrack.jetbrains.com/issue/AT-644/Performance-tests-do-not-check-anything#focus=Comments-27-8578186.0-0
         // https://youtrack.jetbrains.com/issue/AT-726
         if (!UsefulTestCase.IS_UNDER_TEAMCITY) {
-          BenchmarkTestInfo.LOG.info("Collected metrics: (can be found in ${teamCityClient.artifactForPublishingDir.resolve(uniqueTestIdentifier).toUri()})")
-          BenchmarkTestInfo.LOG.info(metricsDto.metrics.joinToString(separator = System.lineSeparator()) { String.format("%-60s %6s", it.n, it.v) })
+          println("Collected metrics: (can be found in ${teamCityClient.artifactForPublishingDir.resolve(uniqueTestIdentifier).toUri()})")
+          println(metricsDto.metrics.joinToString(separator = System.lineSeparator()) { String.format("%-60s %6s", it.n, it.v) })
         }
 
         teamCityClient.publishTeamCityArtifacts(source = reportFile,

@@ -27,7 +27,6 @@ jvm_library(
     "@lib//:kotlinc-analysis-api",
     "//libraries/guava",
     "//platform/projectModel-api:projectModel",
-    "//plugins/kotlin/base/frontend-agnostic",
     "//plugins/kotlin/base/project-structure",
     "//plugins/kotlin/base/psi",
     "//plugins/kotlin/completion/api",
@@ -54,6 +53,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-completion-impl-shared_test_lib",
+  testonly = True,
   module_name = "kotlin.completion.impl.shared",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -66,7 +66,6 @@ jvm_library(
     "//platform/platform-impl:ide-impl_test_lib",
     "//libraries/guava:guava_test_lib",
     "//platform/projectModel-api:projectModel_test_lib",
-    "//plugins/kotlin/base/frontend-agnostic:frontend-agnostic_test_lib",
     "//plugins/kotlin/base/project-structure:project-structure_test_lib",
     "//plugins/kotlin/base/psi:psi_test_lib",
     "//plugins/kotlin/completion/api:api_test_lib",

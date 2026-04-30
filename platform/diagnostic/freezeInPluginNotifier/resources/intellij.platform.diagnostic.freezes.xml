@@ -28,6 +28,7 @@
     <registryKey key="ide.diagnostics.notification.freezes.in.bundled.plugins"
                  defaultValue="true"
                  description="Show notification about freezes in bundled plugins (in releases)"/>
+    <applicationSettings service="com.intellij.platform.diagnostic.plugin.freeze.PluginsFreezesService"/>
   </extensions>
 
   <actions>

@@ -34,6 +34,7 @@ public class PyPackageRequirementsInspectionTest extends PyInspectionTestCase {
   public void setUp() throws Exception {
     super.setUp();
     final Sdk sdk = PythonSdkUtil.findPythonSdk(myFixture.getModule());
+    assertNotNull(sdk);
     setAssociationToModuleAsync(sdk, myFixture.getModule());
 
     PyPIPackageCache.reload(List.of("opster", "clevercss", "django", "test3", "pyzmq", "markdown", "pytest", "django-simple-captcha"));

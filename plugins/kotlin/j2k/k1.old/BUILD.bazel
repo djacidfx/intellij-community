@@ -51,6 +51,7 @@ jvm_library(
 
 jvm_library(
   name = "k1.old_test_lib",
+  testonly = True,
   module_name = "kotlin.j2k.k1.old",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

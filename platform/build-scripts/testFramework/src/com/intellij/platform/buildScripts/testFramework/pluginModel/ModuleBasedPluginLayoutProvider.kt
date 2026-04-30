@@ -3,7 +3,6 @@ package com.intellij.platform.buildScripts.testFramework.pluginModel
 
 import com.intellij.platform.runtime.product.ProductMode
 import com.intellij.platform.runtime.product.ProductModules
-import com.intellij.platform.runtime.product.impl.ServiceModuleMapping
 import com.intellij.platform.runtime.product.serialization.ProductModulesSerialization
 import com.intellij.platform.runtime.product.serialization.ResourceFileResolver
 import com.intellij.platform.runtime.repository.RuntimeModuleDescriptor
@@ -27,7 +26,7 @@ class ModuleBasedPluginLayoutProvider(
 ) : PluginLayoutProvider {
   private val productModules: ProductModules
   private val mainModulesOfBundledPlugins: Set<String>
-  private val additionalModulesInBundledPlugins: Map<String, List<String>>
+  private val embeddedModulesInBundledPlugins: Map<String, List<String>>
 
   init {
     val productRootModule = requireNotNull(project.findModuleByName(productRootModuleName)) { "Cannot find module '$productRootModuleName'" }
@@ -47,14 +46,16 @@ class ModuleBasedPluginLayoutProvider(
       runtimeModuleRepository,
       resourceFileResolver,
     )
-    val serviceModuleMapping = ServiceModuleMapping.buildMapping(productModules, includeDebugInfoInErrorMessage = true)
-    mainModulesOfBundledPlugins = productModules.bundledPluginModuleGroups.mapTo(HashSet()) { it.mainModule.moduleId.name }
-    additionalModulesInBundledPlugins = productModules.bundledPluginModuleGroups.associateBy(
-      { it.mainModule.moduleId.name },
-      {
-        serviceModuleMapping.getAdditionalModules(it).mapNotNull { descriptor ->
-          descriptor.moduleId.name.takeUnless { descriptor.moduleId.namespace == RuntimeModuleId.LEGACY_JPS_LIBRARY_NAMESPACE }
-        }
+    mainModulesOfBundledPlugins = productModules.bundledPluginDescriptorModules.mapTo(HashSet()) { it.name }
+    val pluginHeaders = runtimeModuleRepository.bundledPluginHeaders.associateBy { it.pluginDescriptorModuleId.name }
+    embeddedModulesInBundledPlugins = productModules.bundledPluginDescriptorModules.associateBy(
+      { it.name },
+      { pluginDescriptorModule ->
+        val header = pluginHeaders[pluginDescriptorModule.name] ?: return@associateBy emptyList()
+        header.includedModules
+          .filter { it.loadingRule == RuntimeModuleLoadingRule.EMBEDDED && it.moduleId.namespace != RuntimeModuleId.LEGACY_JPS_LIBRARY_NAMESPACE
+                    && it.moduleId.namespace != RuntimeModuleId.LEGACY_JPS_MODULE_TESTS_NAMESPACE }
+          .map { it.moduleId.name }
       })
   }
 
@@ -102,11 +103,11 @@ class ModuleBasedPluginLayoutProvider(
       return null
     }
 
-    val additionalModules = additionalModulesInBundledPlugins[mainModule.name]?.toSet() ?: emptySet()
+    val embeddedModules = embeddedModulesInBundledPlugins[mainModule.name]?.toSet() ?: emptySet()
     return PluginLayoutDescription(
       mainJpsModule = mainModule.name,
       pluginDescriptorPath = "META-INF/plugin.xml",
-      jpsModulesInClasspath = setOf(mainModule.name) + additionalModules,
+      jpsModulesInClasspath = embeddedModules,
     )
   }
 

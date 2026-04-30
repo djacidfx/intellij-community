@@ -39,6 +39,7 @@ import com.jetbrains.python.sdk.PySdkListCellRenderer;
 import com.jetbrains.python.sdk.PyTransferredSdkRootsKt;
 import com.jetbrains.python.sdk.PythonSdkConfigurationMutexKt;
 import com.jetbrains.python.sdk.PythonSdkType;
+import com.jetbrains.python.sdk.SdkExtKt;
 import com.jetbrains.python.sdk.legacy.PythonSdkUtil;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -364,7 +365,7 @@ public class PyActiveSdkConfigurable implements UnnamedConfigurable {
     items.add(null);
 
     final Map<PyRenderedSdkType, List<Sdk>> moduleSdksByTypes =
-      groupModuleSdksByTypes(allPythonSdks, myModule, sdk -> !PySdkExtKt.getSdkSeemsValid(sdk));
+      groupModuleSdksByTypes(allPythonSdks, myModule, sdk -> !SdkExtKt.isSdkSeemsValid(sdk));
 
     final PyRenderedSdkType[] renderedSdkTypes = PyRenderedSdkType.values();
     for (int i = 0; i < renderedSdkTypes.length; i++) {

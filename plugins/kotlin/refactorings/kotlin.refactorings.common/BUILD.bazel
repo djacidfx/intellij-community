@@ -59,12 +59,12 @@ jvm_library(
     "//libraries/guava",
     "//plugins/kotlin/kotlin.searching/base",
     "//plugins/kotlin/formatter",
-  ],
-  runtime_deps = ["//plugins/kotlin/base/frontend-agnostic"]
+  ]
 )
 
 jvm_library(
   name = "kotlin-refactorings-common_test_lib",
+  testonly = True,
   module_name = "kotlin.refactorings.common",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -92,7 +92,6 @@ jvm_library(
     "@lib//:kotlinc-kotlin-compiler-tests",
     "//java/java-impl-refactorings:impl-refactorings_test_lib",
     "//java/openapi:java_test_lib",
-    "//plugins/kotlin/base/frontend-agnostic:frontend-agnostic_test_lib",
     "//platform/platform-impl:ide-impl_test_lib",
     "//platform/progress/shared:ide-progress_test_lib",
     "//platform/usageView:usageView_test_lib",

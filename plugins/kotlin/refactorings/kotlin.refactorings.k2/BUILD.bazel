@@ -87,6 +87,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-refactorings_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.refactorings",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

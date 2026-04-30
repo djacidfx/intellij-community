@@ -85,9 +85,6 @@ class SearchToolsetTest : GeneralMcpToolsetTestBase() {
     val startColumn: Int? = null,
     val endLine: Int? = null,
     val endColumn: Int? = null,
-    val startOffset: Int? = null,
-    val endOffset: Int? = null,
-    val lineText: String? = null,
   )
 
   @Serializable
@@ -151,9 +148,6 @@ class SearchToolsetTest : GeneralMcpToolsetTestBase() {
       assertThat(item?.startColumn).isNull()
       assertThat(item?.endLine).isNull()
       assertThat(item?.endColumn).isNull()
-      assertThat(item?.startOffset).isNull()
-      assertThat(item?.endOffset).isNull()
-      assertThat(item?.lineText).isNull()
     }
   }
 
@@ -227,6 +221,26 @@ class SearchToolsetTest : GeneralMcpToolsetTestBase() {
   }
 
   @Test
+  fun search_file_supports_wildcard_file_name_with_paths_scope() = runBlocking(Dispatchers.Default) {
+    DumbService.getInstance(project).waitForSmartMode()
+    testMcpTool(
+      SearchToolset::search_file.name,
+      buildJsonObject {
+        put("q", JsonPrimitive("se_scoped_*"))
+        put("paths", JsonArray(listOf(
+          JsonPrimitive("subdir1/**"),
+          JsonPrimitive("!**/*.txt"),
+        )))
+      }
+    ) { actualResult ->
+      val filePaths = parseResult(actualResult.textContent.text).filePaths()
+      assertThat(filePaths).anyMatch { it.contains(scopedJavaFileInSubdir1.name) }
+      assertThat(filePaths).noneMatch { it.contains(scopedFileInSubdir1.name) }
+      assertThat(filePaths).noneMatch { it.contains("subdir2") }
+    }
+  }
+
+  @Test
   fun search_file_includes_excluded_files_when_requested() = runBlocking(Dispatchers.Default) {
     val excludedFile = createExcludedFile()
     DumbService.getInstance(project).waitForSmartMode()
@@ -255,7 +269,7 @@ class SearchToolsetTest : GeneralMcpToolsetTestBase() {
   }
 
   @Test
-  fun search_text_returns_snippet_details() = runBlocking(Dispatchers.Default) {
+  fun search_text_returns_match_coordinate_details() = runBlocking(Dispatchers.Default) {
     awaitExternalChangesAndIndexing(project)
     val query = "Search Everywhere file content"
     testMcpTool(
@@ -271,10 +285,6 @@ class SearchToolsetTest : GeneralMcpToolsetTestBase() {
       assertThat(item?.startColumn).isNotNull
       assertThat(item?.endLine).isNotNull
       assertThat(item?.endColumn).isNotNull
-      assertThat(item?.startOffset).isNotNull
-      assertThat(item?.endOffset).isNotNull
-      assertThat(item?.lineText).contains("||")
-      assertThat(item?.lineText).contains("Search Everywhere")
     }
   }
 
@@ -294,8 +304,6 @@ class SearchToolsetTest : GeneralMcpToolsetTestBase() {
       assertThat(item?.startLine).isEqualTo(1)
       assertThat(item?.endLine).isEqualTo(1)
       assertThat(item?.startColumn).isEqualTo(1)
-      assertThat(item?.startOffset).isEqualTo(0)
-      assertThat(item?.endOffset).isEqualTo(query.length)
       assertThat(item?.endColumn).isEqualTo(query.length + 1)
     }
   }
@@ -316,8 +324,6 @@ class SearchToolsetTest : GeneralMcpToolsetTestBase() {
       assertThat(item?.endLine).isNotNull
       assertThat(item?.startColumn).isNotNull
       assertThat(item?.endColumn).isNotNull
-      assertThat(item?.startOffset).isNotNull
-      assertThat(item?.endOffset).isNotNull
     }
   }
 
@@ -399,7 +405,7 @@ class SearchToolsetTest : GeneralMcpToolsetTestBase() {
   }
 
   @Test
-  fun search_symbol_returns_snippet_details() = runBlocking(Dispatchers.Default) {
+  fun search_symbol_returns_match_coordinate_details() = runBlocking(Dispatchers.Default) {
     DumbService.getInstance(project).waitForSmartMode()
     val query = "${symbolPrefix}Alpha"
     testMcpTool(
@@ -412,7 +418,9 @@ class SearchToolsetTest : GeneralMcpToolsetTestBase() {
       val item = result.items.firstOrNull { it.filePath.contains(symbolFileInSubdir1.name) }
       assertThat(item).isNotNull
       assertThat(item?.startLine).isNotNull
-      assertThat(item?.lineText).contains(query)
+      assertThat(item?.startColumn).isNotNull
+      assertThat(item?.endLine).isNotNull
+      assertThat(item?.endColumn).isNotNull
     }
   }
 
@@ -465,6 +473,28 @@ class SearchToolsetTest : GeneralMcpToolsetTestBase() {
       val filePaths = parseResult(actualResult.textContent.text).filePaths()
       assertThat(filePaths).anyMatch { it.contains(symbolFileInSubdir2.name) }
       assertThat(filePaths).noneMatch { it.contains(symbolFileInSubdir1.name) }
+    }
+  }
+
+  @Test
+  fun search_symbol_respects_paths_excludes_before_limit() = runBlocking(Dispatchers.Default) {
+    repeat(6) { index ->
+      createFileInSubdir1("se_symbol_excluded_limit_$index", "se_symbol_excluded_limit_$index.kt", "class ${symbolPrefix}A$index {}\n")
+    }
+    DumbService.getInstance(project).waitForSmartMode()
+    testMcpTool(
+      SearchToolset::search_symbol.name,
+      buildJsonObject {
+        put("q", JsonPrimitive(symbolPrefix))
+        put("paths", JsonArray(listOf(JsonPrimitive("!subdir1/**"))))
+        put("limit", JsonPrimitive(1))
+      }
+    ) { actualResult ->
+      val result = parseResult(actualResult.textContent.text)
+      val filePaths = result.filePaths()
+      assertThat(result.items).hasSize(1)
+      assertThat(filePaths).anyMatch { it.contains(symbolFileInSubdir2.name) }
+      assertThat(filePaths).noneMatch { it.contains("subdir1") }
     }
   }
 

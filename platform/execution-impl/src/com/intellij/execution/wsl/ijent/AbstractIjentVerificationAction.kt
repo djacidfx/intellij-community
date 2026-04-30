@@ -22,9 +22,9 @@ import com.intellij.platform.ide.progress.ModalTaskOwner
 import com.intellij.platform.ide.progress.TaskCancellation
 import com.intellij.platform.ide.progress.withModalProgress
 import com.intellij.platform.ijent.IjentMissingBinary
+import com.intellij.platform.ijent.ParentOfIjentScopes
 import com.intellij.platform.ijent.community.impl.nio.IjentNioFileSystemProvider
 import com.intellij.platform.ijent.spi.IjentDeployingStrategy
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -62,7 +62,7 @@ abstract class AbstractIjentVerificationAction : DumbAwareAction() {
     GlobalScope.launch {
       LOG.runAndLogException {
         try {
-          val (title, deployingStrategy, descriptor) = deployingStrategy(this)
+          val (title, deployingStrategy, descriptor) = deployingStrategy(ParentOfIjentScopes(this))
           withModalProgress(modalTaskOwner, e.presentation.text, TaskCancellation.cancellable()) {
             deployingStrategy.createIjentSession().getIjentInstance(descriptor).use { ijent ->
               coroutineScope {
@@ -116,7 +116,7 @@ abstract class AbstractIjentVerificationAction : DumbAwareAction() {
     }
   }
 
-  protected abstract suspend fun deployingStrategy(ijentProcessScope: CoroutineScope): Triple<String, IjentDeployingStrategy, EelDescriptor>
+  protected abstract suspend fun deployingStrategy(ijentProcessScope: ParentOfIjentScopes): Triple<String, IjentDeployingStrategy, EelDescriptor>
 
   companion object {
     protected val LOG = logger<AbstractIjentVerificationAction>()

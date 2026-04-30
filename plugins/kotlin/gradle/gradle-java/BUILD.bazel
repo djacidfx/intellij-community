@@ -46,7 +46,6 @@ jvm_library(
     "//jps/model-api:model",
     "//platform/lang-core",
     "//platform/projectModel-api:projectModel",
-    "//plugins/kotlin/base/frontend-agnostic",
     "//plugins/kotlin/base/util",
     "//plugins/kotlin/base/compiler-configuration",
     "//plugins/kotlin/base/plugin",
@@ -107,6 +106,7 @@ jvm_library(
 
 jvm_library(
   name = "gradle-java_test_lib",
+  testonly = True,
   module_name = "kotlin.gradle.gradle-java",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -126,7 +126,6 @@ jvm_library(
     "//jps/model-api:model_test_lib",
     "//platform/lang-core:lang-core_test_lib",
     "//platform/projectModel-api:projectModel_test_lib",
-    "//plugins/kotlin/base/frontend-agnostic:frontend-agnostic_test_lib",
     "//plugins/kotlin/base/util:util_test_lib",
     "//plugins/kotlin/base/compiler-configuration:compiler-configuration_test_lib",
     "//plugins/kotlin/base/plugin:plugin_test_lib",
@@ -211,6 +210,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-gradle-gradle-java-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form"], allow_empty = True),
   kotlinc_opts = ":custom_kotlin-gradle-gradle-java-tests",
@@ -250,8 +250,6 @@ jvm_library(
     "//platform/lang-core:lang-core_test_lib",
     "//platform/projectModel-api:projectModel",
     "//platform/projectModel-api:projectModel_test_lib",
-    "//plugins/kotlin/base/frontend-agnostic",
-    "//plugins/kotlin/base/frontend-agnostic:frontend-agnostic_test_lib",
     "//plugins/kotlin/base/util",
     "//plugins/kotlin/base/util:util_test_lib",
     "//plugins/kotlin/base/compiler-configuration",

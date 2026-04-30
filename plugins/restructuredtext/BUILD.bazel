@@ -61,6 +61,7 @@ jvm_library(
 
 jvm_library(
   name = "restructuredtext_test_lib",
+  testonly = True,
   module_name = "intellij.restructuredtext",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -120,6 +121,7 @@ jvm_library(
 
 jvm_library(
   name = "restructuredtext-tests_test_lib",
+  testonly = True,
   module_name = "intellij.restructuredtext.tests",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

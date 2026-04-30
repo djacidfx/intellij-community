@@ -11,6 +11,7 @@ jvm_library(
 
 jvm_library(
   name = "tests-from-compiler_test_lib",
+  testonly = True,
   module_name = "kotlin.testsFromCompiler",
   visibility = ["//visibility:public"],
   srcs = glob(["tests/**/*.kt", "tests/**/*.java", "tests/**/*.form"], allow_empty = True),

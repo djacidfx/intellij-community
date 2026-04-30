@@ -4,7 +4,6 @@ package org.jetbrains.plugins.gradle.testFramework.fixtures.impl
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.serviceIfCreated
-import com.intellij.openapi.externalSystem.util.awaitOpenProjectActivity
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.observable.operation.OperationExecutionStatus
 import com.intellij.openapi.observable.operation.core.whenOperationStarted
@@ -14,6 +13,7 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.use
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.externalSystem.testFramework.ExternalSystemImportingTestCase
+import com.intellij.platform.externalSystem.testFramework.ExternalSystemTestObservation.awaitOpenProjectActivity
 import com.intellij.testFramework.closeOpenedProjectsIfFailAsync
 import com.intellij.testFramework.closeProjectAsync
 import com.intellij.testFramework.common.runAll

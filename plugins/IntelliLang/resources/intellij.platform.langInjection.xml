@@ -68,6 +68,8 @@
 
     <registryKey key="org.intellij.intelliLang.comment.completion" defaultValue="true"
                  description="Enables completion of 'language=' in comments"/>
+    <projectSettings service="org.intellij.plugins.intelliLang.Configuration$Prj"/>
+    <applicationSettings service="org.intellij.plugins.intelliLang.Configuration$App"/>
   </extensions>
 
 </idea-plugin>

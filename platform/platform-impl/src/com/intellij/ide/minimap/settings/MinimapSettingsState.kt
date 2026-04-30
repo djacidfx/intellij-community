@@ -15,7 +15,8 @@ import com.intellij.util.ui.JBUI
 data class MinimapSettingsState(var enabled: Boolean = true,
                                 var width: Int = FIXED_WIDTH,
                                 var scaleMode: MinimapScaleMode = MinimapScaleMode.FILL,
-                                var rightAligned: Boolean = true) {
+                                var rightAligned: Boolean = true,
+                                var insideScrollbar: Boolean = false) {
   companion object {
     val FIXED_WIDTH: Int = JBUI.scale(160)
   }

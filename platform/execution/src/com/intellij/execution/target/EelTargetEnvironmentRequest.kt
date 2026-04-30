@@ -35,7 +35,7 @@ import com.intellij.platform.eel.provider.asEelPath
 import com.intellij.platform.eel.provider.asNioPath
 import com.intellij.platform.eel.provider.getEelDescriptor
 import com.intellij.platform.eel.provider.toEelApiBlocking
-import com.intellij.platform.eel.provider.utils.EelPathUtils
+import com.intellij.platform.eel.provider.utils.EelPathTransfer
 import com.intellij.platform.eel.provider.utils.asEelChannel
 import com.intellij.platform.eel.provider.utils.consumeAsEelChannel
 import com.intellij.platform.eel.provider.utils.copy
@@ -282,10 +282,10 @@ class EelTargetEnvironment(override val request: EelTargetEnvironmentRequest) : 
         if (!Files.exists(from)) throw err
       }
       // TODO: generalize com.intellij.execution.wsl.ijent.nio.IjentWslNioFileSystemProvider.copy
-      EelPathUtils.walkingTransfer(from,
+      EelPathTransfer.walkingTransfer(from,
                                    to,
                                    removeSource = false,
-                                   EelPathUtils.FileTransferAttributesStrategy.Copy,
+                                   EelPathTransfer.FileTransferAttributesStrategy.Copy,
                                    absoluteSymlinkHandler = null,
                                    filter = filter)
     }
@@ -300,10 +300,10 @@ class EelTargetEnvironment(override val request: EelTargetEnvironmentRequest) : 
         if (!Files.exists(from)) throw err
       }
       // TODO: generalize com.intellij.execution.wsl.ijent.nio.IjentWslNioFileSystemProvider.copy
-      EelPathUtils.walkingTransfer(from,
+      EelPathTransfer.walkingTransfer(from,
                                    to,
                                    removeSource = false,
-                                   EelPathUtils.FileTransferAttributesStrategy.Copy,
+                                   EelPathTransfer.FileTransferAttributesStrategy.Copy,
                                    absoluteSymlinkHandler = null,
                                    filter = null)
     }

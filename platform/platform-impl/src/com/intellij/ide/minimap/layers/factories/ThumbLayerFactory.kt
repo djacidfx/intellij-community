@@ -11,6 +11,7 @@ internal class ThumbLayerFactory : MinimapDefaultLayerFactory(
   order = 90,
 ) {
   override fun paint(layerPainter: MinimapLayerPainter, graphics: Graphics2D, state: MinimapLayerRenderState) {
+    if (!state.isMouseOver) return
     layerPainter.paintThumbLayer(graphics, state)
   }
 }

@@ -29,6 +29,7 @@ jvm_library(
 
 jvm_library(
   name = "xpath_test_lib",
+  testonly = True,
   module_name = "intellij.xml.langInjection.xpath",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

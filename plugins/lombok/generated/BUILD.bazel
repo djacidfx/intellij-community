@@ -17,6 +17,7 @@ jvm_library(
 
 jvm_library(
   name = "generated_test_lib",
+  testonly = True,
   module_name = "intellij.lombok.generated",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

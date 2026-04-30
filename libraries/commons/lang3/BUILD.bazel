@@ -19,6 +19,7 @@ jvm_library(
 
 jvm_library(
   name = "lang3_test_lib",
+  testonly = True,
   module_name = "intellij.libraries.commons.lang3",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

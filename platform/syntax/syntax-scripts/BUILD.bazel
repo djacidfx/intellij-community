@@ -14,6 +14,7 @@ jvm_library(
 
 jvm_library(
   name = "scripts_test_lib",
+  testonly = True,
   module_name = "intellij.platform.syntax.scripts",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

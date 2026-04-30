@@ -8819,6 +8819,16 @@ public abstract class HighLevelQuickFixTestGenerated extends AbstractHighLevelQu
             runTest("../../../idea/tests/testData/quickfix/expressions/removeUselessIsCheckInWhenExpressionlessNegateForNull.kt");
         }
 
+        @TestMetadata("removeUselessIsCheckInWhenMultipleConditions.kt")
+        public void testRemoveUselessIsCheckInWhenMultipleConditions() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/expressions/removeUselessIsCheckInWhenMultipleConditions.kt");
+        }
+
+        @TestMetadata("removeUselessIsCheckInWhenMultipleConditionsFirst.kt")
+        public void testRemoveUselessIsCheckInWhenMultipleConditionsFirst() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/expressions/removeUselessIsCheckInWhenMultipleConditionsFirst.kt");
+        }
+
         @TestMetadata("removeUselessIsCheckInWhenNegate.kt")
         public void testRemoveUselessIsCheckInWhenNegate() throws Exception {
             runTest("../../../idea/tests/testData/quickfix/expressions/removeUselessIsCheckInWhenNegate.kt");

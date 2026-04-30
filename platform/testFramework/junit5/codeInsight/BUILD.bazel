@@ -29,6 +29,7 @@ jvm_library(
 
 jvm_library(
   name = "codeInsight_test_lib",
+  testonly = True,
   module_name = "intellij.platform.testFramework.junit5.codeInsight",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

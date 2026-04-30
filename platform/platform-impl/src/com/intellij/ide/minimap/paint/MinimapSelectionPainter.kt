@@ -35,11 +35,8 @@ class MinimapSelectionPainter(private val editor: Editor) {
     val pxPerColumn = metrics.pxPerColumn
     val style = selectionRenderStyle()
 
-    val oldComposite = graphics.composite
-    graphics.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, style.alpha)
-    graphics.color = style.color
-
-    for (caret in carets) {
+    val selLines = ArrayList<SelectionLine>()
+    for ((caretIdx, caret) in carets.withIndex()) {
       if (!caret.hasSelection()) continue
       val textLength = document.textLength
       val selectionStart = caret.selectionStart.coerceIn(0, textLength)
@@ -49,40 +46,56 @@ class MinimapSelectionPainter(private val editor: Editor) {
       val endOffsetInclusive = (selectionEnd - 1).coerceAtLeast(selectionStart)
       val startLine = document.getLineNumber(selectionStart)
       val endLine = document.getLineNumber(endOffsetInclusive)
-      var previousRect: SelectionRect? = null
 
       for (line in startLine..endLine) {
         val projectedLine = lineProjection.logicalToVisibleProjectedLine(line) ?: continue
+        val y = projectedLine * baseLineHeight - context.geometry.areaStart
+        if (y > maxYOffset || y + lineHeight < 0.0) continue
+
         val lineStartOffset = document.getLineStartOffset(line)
         val lineEndOffset = document.getLineEndOffset(line)
         val segmentStart = if (line == startLine) selectionStart else lineStartOffset
         val segmentEndExclusive = if (line == endLine) selectionEnd else lineEndOffset
-        if (segmentEndExclusive <= segmentStart) continue
 
-        val startColumn = (segmentStart - lineStartOffset).coerceAtLeast(0)
-        val endColumn = (segmentEndExclusive - lineStartOffset).coerceAtLeast(startColumn + 1)
-
-        val x = if (pxPerColumn > 0.0) contentStartX + startColumn * pxPerColumn else contentStartX
-        val width = if (pxPerColumn > 0.0) {
-          ((endColumn - startColumn) * pxPerColumn).coerceAtLeast(1.0)
+        val tokenRect = if (segmentEndExclusive > segmentStart) {
+          val startColumn = (segmentStart - lineStartOffset).coerceAtLeast(0)
+          val endColumn = (segmentEndExclusive - lineStartOffset).coerceAtLeast(startColumn + 1)
+          val x = if (pxPerColumn > 0.0) contentStartX + startColumn * pxPerColumn else contentStartX
+          val width = if (pxPerColumn > 0.0) ((endColumn - startColumn) * pxPerColumn).coerceAtLeast(1.0) else metrics.contentWidth
+          clampSelectionRect(projectedLine, x, y, width, lineHeight, contentStartX, contentEndX, style.horizontalPaddingPx)
         }
-        else {
-          metrics.contentWidth
-        }
+        else null
 
-        val y = projectedLine * baseLineHeight - context.geometry.areaStart
-        if (y > maxYOffset || y + lineHeight < 0.0) continue
-
-        val rect = clampSelectionRect(projectedLine, x, y, width, lineHeight, contentStartX, contentEndX, style.horizontalPaddingPx) ?: continue
-        previousRect?.let { prev ->
-          if (prev.line + 1 == projectedLine) {
-            fillConnector(graphics, prev, rect, contentStartX, contentEndX, maxYOffset, style.connectorHeightPx)
-          }
-        }
-
-        graphics.fill(Rectangle2D.Double(rect.x, rect.y, rect.width, rect.height))
-        previousRect = rect
+        selLines += SelectionLine(caretIdx, projectedLine, y, tokenRect)
       }
+    }
+
+    if (selLines.isEmpty()) return
+
+    val oldComposite = graphics.composite
+    graphics.color = style.color
+
+    graphics.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, style.lineBgAlpha)
+    for (sl in selLines) {
+      graphics.fill(Rectangle2D.Double(0.0, sl.y, context.panelWidth.toDouble(), lineHeight))
+    }
+
+    graphics.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, style.alpha)
+    var prevCaretIdx = -1
+    var prevLine: SelectionLine? = null
+    for (sl in selLines) {
+      if (sl.caretIdx != prevCaretIdx) {
+        prevCaretIdx = sl.caretIdx
+        prevLine = null
+      }
+      val rect = sl.tokenRect ?: run { prevLine = sl; continue }
+      prevLine?.tokenRect?.let { prevRect ->
+        if (prevLine.projectedLine + 1 == sl.projectedLine) {
+          fillConnector(graphics, prevRect, rect, contentStartX, contentEndX, maxYOffset, style.connectorHeightPx)
+        }
+      }
+      graphics.fill(Rectangle2D.Double(rect.x, rect.y, rect.width, rect.height))
+      prevLine = sl
     }
 
     graphics.composite = oldComposite
@@ -104,6 +117,7 @@ class MinimapSelectionPainter(private val editor: Editor) {
 
     return SelectionRenderStyle(
       alpha = SELECTION_ALPHA,
+      lineBgAlpha = SELECTION_LINE_BG_ALPHA,
       color = color,
       horizontalPaddingPx = SELECTION_HORIZONTAL_PADDING_PX,
       connectorHeightPx = SELECTION_CONNECTOR_HEIGHT_PX
@@ -145,6 +159,13 @@ class MinimapSelectionPainter(private val editor: Editor) {
     graphics.fill(Rectangle2D.Double(connectorStartX, connectorY, connectorWidth, connectorHeightPx))
   }
 
+  private data class SelectionLine(
+    val caretIdx: Int,
+    val projectedLine: Int,
+    val y: Double,
+    val tokenRect: SelectionRect?,
+  )
+
   private data class SelectionRect(
     val line: Int,
     val x: Double,
@@ -155,6 +176,7 @@ class MinimapSelectionPainter(private val editor: Editor) {
 
   private data class SelectionRenderStyle(
     val alpha: Float,
+    val lineBgAlpha: Float,
     val color: Color,
     val horizontalPaddingPx: Double,
     val connectorHeightPx: Double
@@ -162,6 +184,7 @@ class MinimapSelectionPainter(private val editor: Editor) {
 
   companion object {
     private const val SELECTION_ALPHA: Float = 0.9f
+    private const val SELECTION_LINE_BG_ALPHA: Float = 0.15f
     private const val SELECTION_HORIZONTAL_PADDING_PX: Double = 0.5
     private const val SELECTION_CONNECTOR_HEIGHT_PX: Double = 1.0
   }

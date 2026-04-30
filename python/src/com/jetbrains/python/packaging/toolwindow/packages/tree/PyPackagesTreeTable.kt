@@ -32,6 +32,7 @@ import com.jetbrains.python.packaging.toolwindow.model.WorkspaceMember
 import com.jetbrains.python.packaging.toolwindow.packages.tree.renderers.PackageNameCellRenderer
 import com.jetbrains.python.packaging.toolwindow.packages.tree.renderers.PackageVersionCellRenderer
 import com.jetbrains.python.sdk.isReadOnly
+import org.intellij.lang.annotations.Language
 import org.jetbrains.annotations.ApiStatus
 import java.awt.Component
 import java.awt.Point
@@ -58,6 +59,8 @@ class PyPackagesTreeTable(
   companion object {
     private const val COLUMN_PROPORTION = 0.3f
     private const val POPUP_MENU_PLACE = "PackagePopup"
+
+    @Language("devkit-action-id")
     private const val PACKAGE_ACTION_GROUP_ID = "PyPackageToolwindowContext"
     private const val INVALID_POSITION = -1
     internal val TREE_TABLE_KEY: Key<PyPackagesTreeTable> = Key.create("PyPackageToolwindow.TreeTable")

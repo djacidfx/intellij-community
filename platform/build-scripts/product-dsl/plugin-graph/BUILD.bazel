@@ -28,6 +28,7 @@ jvm_library(
 
 jvm_library(
   name = "plugin-graph_test_lib",
+  testonly = True,
   module_name = "intellij.platform.pluginGraph",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -71,6 +72,7 @@ jvm_library(
 
 jvm_library(
   name = "pluginGraph-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["testSrc/**/*.kt", "testSrc/**/*.java", "testSrc/**/*.form"], allow_empty = True),
   kotlinc_opts = ":custom_pluginGraph-tests",

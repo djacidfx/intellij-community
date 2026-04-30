@@ -18,7 +18,6 @@ import com.intellij.testFramework.TemporaryDirectoryExtension
 import com.intellij.testFramework.junit5.TestApplication
 import com.intellij.testFramework.junit5.TestDisposable
 import com.intellij.testFramework.registerOrReplaceServiceInstance
-import com.intellij.workspaceModel.ide.legacyBridge.findModuleEntity
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -71,10 +70,10 @@ class CustomImlComponentServiceTest {
       assertEquals(updatedSecondState,
                    secondService.getState())
       assertEquals(updatedFirstState,
-                   componentService.getComponentValue<FirstTestModuleService.State>(module.findModuleEntity()!!,
+                   componentService.getComponentValue<FirstTestModuleService.State>(module,
                                                                                     FirstTestModuleService.COMPONENT_NAME))
       assertEquals(updatedSecondState,
-                   componentService.getComponentValue<SecondTestModuleService.State>(module.findModuleEntity()!!,
+                   componentService.getComponentValue<SecondTestModuleService.State>(module,
                                                                                      SecondTestModuleService.COMPONENT_NAME))
 
       saveProject(project)
@@ -128,10 +127,10 @@ class CustomImlComponentServiceTest {
       assertEquals(firstModuleState, firstService.getState())
       assertEquals(secondModuleState, secondService.getState())
       assertEquals(firstModuleState,
-                   componentService.getComponentValue<FirstTestModuleService.State>(firstModule.findModuleEntity()!!,
+                   componentService.getComponentValue<FirstTestModuleService.State>(firstModule,
                                                                                     FirstTestModuleService.COMPONENT_NAME))
       assertEquals(secondModuleState,
-                   componentService.getComponentValue<FirstTestModuleService.State>(secondModule.findModuleEntity()!!,
+                   componentService.getComponentValue<FirstTestModuleService.State>(secondModule,
                                                                                     FirstTestModuleService.COMPONENT_NAME))
 
       saveProject(project)
@@ -202,11 +201,11 @@ internal class FirstTestModuleService(private val module: Module) {
   )
 
   fun getState(): State {
-    return module.project.service<CustomImlComponentService>().getComponentValue(module.findModuleEntity()!!, COMPONENT_NAME) ?: State()
+    return module.project.service<CustomImlComponentService>().getComponentValue(module, COMPONENT_NAME) ?: State()
   }
 
   suspend fun setState(state: State) {
-    module.project.service<CustomImlComponentService>().setComponentValue(module.findModuleEntity()!!, COMPONENT_NAME, state)
+    module.project.service<CustomImlComponentService>().setComponentValue(module, COMPONENT_NAME, state)
   }
 
   companion object {
@@ -221,11 +220,11 @@ internal class SecondTestModuleService(private val module: Module) {
   )
 
   fun getState(): State {
-    return module.project.service<CustomImlComponentService>().getComponentValue(module.findModuleEntity()!!, COMPONENT_NAME) ?: State()
+    return module.project.service<CustomImlComponentService>().getComponentValue(module, COMPONENT_NAME) ?: State()
   }
 
   suspend fun setState(state: State) {
-    module.project.service<CustomImlComponentService>().setComponentValue(module.findModuleEntity()!!, COMPONENT_NAME, state)
+    module.project.service<CustomImlComponentService>().setComponentValue(module, COMPONENT_NAME, state)
   }
 
   companion object {

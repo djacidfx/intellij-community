@@ -39,6 +39,7 @@ jvm_library(
 
 jvm_library(
   name = "common_test_lib",
+  testonly = True,
   module_name = "kotlin.compiler-plugins.sam-with-receiver.common",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

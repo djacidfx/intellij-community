@@ -13,12 +13,6 @@ import javax.swing.Icon
 
 internal class PoetrySdkProvider : PySdkProvider {
 
-  override fun getSdkAdditionalText(sdk: Sdk): String? = if (sdk.isPoetry) sdk.versionString else null
-
-  override fun getSdkIcon(sdk: Sdk): Icon? {
-    return if (sdk.isPoetry) PythonCommunityImplPoetryCommonIcons.Poetry else null
-  }
-
   override fun loadAdditionalDataForSdk(element: Element): SdkAdditionalData? {
     return PyPoetrySdkAdditionalData.load(element)
   }

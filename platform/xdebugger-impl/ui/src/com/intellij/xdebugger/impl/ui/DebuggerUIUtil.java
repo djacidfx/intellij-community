@@ -51,10 +51,12 @@ import com.intellij.openapi.util.Ref;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.IdeFocusManager;
+import com.intellij.platform.debugger.impl.shared.proxy.XBreakpointAttachment;
 import com.intellij.platform.debugger.impl.shared.proxy.XBreakpointManagerProxy;
 import com.intellij.platform.debugger.impl.shared.proxy.XBreakpointProxy;
 import com.intellij.platform.debugger.impl.shared.proxy.XDebugManagerProxy;
 import com.intellij.platform.debugger.impl.shared.proxy.XDebugSessionProxy;
+import com.intellij.platform.debugger.impl.shared.proxy.XLineBreakpointProxy;
 import com.intellij.platform.debugger.impl.ui.XDebuggerEntityConverter;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiManager;
@@ -408,8 +410,10 @@ public final class DebuggerUIUtil {
     };
 
     final JComponent mainPanel = propertiesPanel.getMainPanel();
-    final Balloon balloon = showBreakpointEditor(project, mainPanel, point, component, showMoreOptions, breakpoint);
-    balloonRef.set(balloon);
+    final Balloon balloon = showBreakpointEditor(project, mainPanel, point, component,
+                                                 () -> notifyBreakpointAttachments(breakpoint),
+                                                 showMoreOptions,
+                                                 breakpoint);
     propertiesPanel.setBalloon(balloon);
 
     Disposable disposable = Disposer.newDisposable();
@@ -429,17 +433,28 @@ public final class DebuggerUIUtil {
       public void breakpointRemoved(@NotNull XBreakpoint<?> removedBreakpoint) {
         XBreakpointProxy removedBreakpointProxy = XDebuggerEntityConverter.asProxy(removedBreakpoint);
         if (removedBreakpointProxy != null && removedBreakpointProxy.equals(breakpoint)) {
-          balloon.hide();
+          ApplicationManager.getApplication().invokeLater(() -> balloon.hide());
         }
       }
     });
     ApplicationManager.getApplication().invokeLater(() -> IdeFocusManager.findInstance().requestFocus(mainPanel, true));
   }
 
-  public static Balloon showBreakpointEditor(Project project, final JComponent mainPanel,
+  private static void notifyBreakpointAttachments(@NotNull XBreakpointProxy breakpoint) {
+    if (breakpoint instanceof XLineBreakpointProxy breakpointProxy) {
+      for (XBreakpointAttachment attachment : breakpointProxy.getAttachments()) {
+        attachment.breakpointChanged();
+      }
+    }
+  }
+
+  public static Balloon showBreakpointEditor(Project project,
+                                             final JComponent mainPanel,
                                              final Point whereToShow,
                                              final JComponent component,
-                                             final @Nullable Runnable showMoreOptions, Object breakpoint) {
+                                             final @Nullable Runnable onDone,
+                                             final @Nullable Runnable showMoreOptions,
+                                             Object breakpoint) {
     final BreakpointEditor editor = new BreakpointEditor();
     editor.setPropertiesPanel(mainPanel);
     editor.setShowMoreOptionsLink(true);
@@ -470,6 +485,9 @@ public final class DebuggerUIUtil {
     editor.setDelegate(new BreakpointEditor.Delegate() {
       @Override
       public void done() {
+        if (onDone != null) {
+          onDone.run();
+        }
         balloon.hide();
       }
 

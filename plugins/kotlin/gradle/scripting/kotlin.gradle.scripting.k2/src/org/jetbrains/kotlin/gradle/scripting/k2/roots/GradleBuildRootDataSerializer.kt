@@ -2,8 +2,6 @@
 package org.jetbrains.kotlin.gradle.scripting.k2.roots
 
 import com.intellij.openapi.util.IntellijInternalApi
-import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.util.gist.VirtualFileAwareExternalizer
 import com.intellij.util.io.DataExternalizer
 import org.jetbrains.kotlin.gradle.scripting.shared.roots.AbstractGradleBuildRootDataSerializer
 import org.jetbrains.kotlin.gradle.scripting.shared.roots.GradleBuildRootData
@@ -12,9 +10,9 @@ import java.io.DataInput
 import java.io.DataOutput
 
 class GradleBuildRootDataSerializer : AbstractGradleBuildRootDataSerializer() {
-    override fun getExternalizer(): DataExternalizer<GradleBuildRootData> = object : VirtualFileAwareExternalizer<GradleBuildRootData> {
+    override fun getExternalizer(): DataExternalizer<GradleBuildRootData> = object : DataExternalizer<GradleBuildRootData> {
         override fun save(out: DataOutput, value: GradleBuildRootData) = writeKotlinDslScriptModels(out, value)
-        override fun read(file: VirtualFile, `in`: DataInput): GradleBuildRootData = readKotlinDslScriptModels(`in`, file.path)
+        override fun read(`in`: DataInput): GradleBuildRootData = readKotlinDslScriptModels(`in`, currentBuildRoot.get().path)
     }
 
     companion object {

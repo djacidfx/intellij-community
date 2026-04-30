@@ -20,6 +20,7 @@
     <backgroundPostStartupActivity implementation="com.intellij.python.pyproject.model.internal.platformBridge.PyProjectSyncActivity"/>
 
     <statistics.projectUsagesCollector implementation="com.intellij.python.pyproject.statistics.PythonTomlStatsUsagesCollector"/>
+    <projectSettings service="com.intellij.python.pyproject.model.PyProjectModelSettings"/>
   </extensions>
   <extensionPoints>
     <extensionPoint qualifiedName="com.intellij.python.pyproject.model.tool" interface="com.intellij.python.pyproject.model.spi.Tool"

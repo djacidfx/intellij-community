@@ -53,14 +53,13 @@ import com.jetbrains.python.sdk.createSdk
 import com.jetbrains.python.sdk.excludeInnerVirtualEnv
 import com.jetbrains.python.sdk.flavors.PyFlavorAndData
 import com.jetbrains.python.sdk.flavors.PyFlavorData
-import com.jetbrains.python.sdk.flavors.VirtualEnvSdkFlavor
+import com.intellij.python.venv.sdk.flavors.VirtualEnvSdkFlavor
 import com.jetbrains.python.sdk.installSdkIfNeeded
 import com.jetbrains.python.sdk.moduleIfExists
 import com.jetbrains.python.sdk.persist
 import com.jetbrains.python.sdk.pythonSdk
 import com.jetbrains.python.sdk.service.PySdkService.Companion.pySdkService
 import com.jetbrains.python.sdk.setAssociationToModule
-import com.jetbrains.python.sdk.suggestAssociatedSdkName
 import com.jetbrains.python.statistics.InterpreterTarget
 import com.jetbrains.python.statistics.PythonInterpreterInstallationIdsHolder.Companion.PYTHON_INSTALLATION_INTERRUPTED
 import com.jetbrains.python.target.PyTargetAwareAdditionalData
@@ -224,7 +223,7 @@ internal suspend fun <P : PathHolder> setupSdk(
 ): PyResult<Sdk> {
 
   val (additionalData, customSdkSuggestedName) = when (fileSystem) {
-    is FileSystem.Eel -> null to suggestAssociatedSdkName(pythonBinaryPath.toString(), project?.basePath)
+    is FileSystem.Eel -> null to null
     is FileSystem.Target -> {
       val data = PyTargetAwareAdditionalData(PyFlavorAndData(PyFlavorData.Empty, VirtualEnvSdkFlavor.getInstance())).also {
         it.interpreterPath = pythonBinaryPath.toString()

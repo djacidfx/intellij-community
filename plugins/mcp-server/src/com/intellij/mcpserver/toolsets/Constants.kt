@@ -15,7 +15,6 @@ object Constants {
   const val SHORT_TIMEOUT_MILLISECONDS_VALUE: Int = 1 * 1000
   const val MAX_LINES_COUNT_DESCRIPTION: String = "Maximum number of lines to return"
   const val MAX_LINES_COUNT_VALUE: Int = 1000
-  const val MAX_USAGE_TEXT_CHARS: Int = 1000
   const val TRUNCATE_MODE_DESCRIPTION: String = "How to truncate the text: from the start, in the middle, at the end, or don't truncate at all"
   internal const val RUN_CONFIGURATION_PREVIEW_MAX_LENGTH: Int = 10 * 1000
   internal const val RUN_CONFIGURATION_PREVIEW_MAX_LINE_LENGTH: Int = 1000

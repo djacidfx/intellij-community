@@ -15,6 +15,7 @@ repositories {
 
 dependencies {
     testCompile("junit:junit:4.12")
+    testImplementation(kotlin("test"))
 }
 
 // VERSION: 1.6.20

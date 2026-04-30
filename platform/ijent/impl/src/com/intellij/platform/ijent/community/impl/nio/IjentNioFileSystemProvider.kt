@@ -1,8 +1,9 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.platform.ijent.community.impl.nio
 
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.platform.core.nio.fs.BasicFileAttributesHolder2.FetchAttributesFilter
+import com.intellij.platform.eel.EelOsFamily
 import com.intellij.platform.eel.directorySeparators
 import com.intellij.platform.eel.fs.EelFileInfo.Type.Directory
 import com.intellij.platform.eel.fs.EelFileInfo.Type.Other
@@ -26,13 +27,15 @@ import com.intellij.platform.eel.impl.fs.EelFsResultImpl
 import com.intellij.platform.eel.provider.utils.EelPathUtils
 import com.intellij.platform.eel.provider.utils.getOrThrowFileSystemException
 import com.intellij.platform.eel.provider.utils.throwFileSystemException
-import com.intellij.platform.ijent.community.impl.nio.IjentNioFileSystemProvider.Companion.newFileSystemMap
 import com.intellij.platform.ijent.fs.IjentFileSystemApi
 import com.intellij.platform.ijent.fs.IjentFileSystemPosixApi
 import com.intellij.platform.ijent.fs.IjentFileSystemWindowsApi
 import com.intellij.util.io.PosixFilePermissionsUtil
 import com.intellij.util.text.nullize
 import com.sun.nio.file.ExtendedCopyOption
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.job
+import org.jetbrains.annotations.TestOnly
 import java.io.IOException
 import java.net.URI
 import java.nio.channels.AsynchronousFileChannel
@@ -175,9 +178,9 @@ class IjentNioFileSystemProvider : FileSystemProvider() {
     val nioFs = getFileSystem(uri)
     val relativeUri = nioFs.uri.relativize(uri)
     return nioFs.getPath(
-      when (nioFs.ijentFs) {
-        is IjentFileSystemPosixApi -> relativeUri.path.nullize() ?: "/"
-        is IjentFileSystemWindowsApi -> {
+      when (nioFs.eelDescriptor.osFamily) {
+        EelOsFamily.Posix -> relativeUri.path.nullize() ?: "/"
+        EelOsFamily.Windows -> {
           val windowsPath = relativeUri.path.trimStart('/')
           require(windowsPath.length >= 2 && windowsPath[0].isLetter() && windowsPath[1] == ':') {
             "Windows URI path must contain a drive letter: $uri"
@@ -692,6 +695,18 @@ class IjentNioFileSystemProvider : FileSystemProvider() {
       authorityRegistry[uri]
     }
 
+  @TestOnly
+  fun getNioFs(ijentFs: IjentFileSystemApi): IjentNioFileSystem =
+    criticalSection {
+      authorityRegistry.entries
+        .single { (_, fs) ->
+          // Checking by descriptor to match IjentFailSafeFileSystemApi with its wrapped IjentFileSystemApi.
+          fs.descriptor == ijentFs.descriptor
+        }
+        .key
+        .let(::getFileSystem)
+    }
+
   @OptIn(ExperimentalContracts::class)
   private fun ensureIjentNioPath(path: Path): IjentNioPath {
     contract {
@@ -716,6 +731,18 @@ class IjentNioFileSystemProvider : FileSystemProvider() {
     }
 
     return path
+  }
+
+  @TestOnly
+  fun maskFileSystems(lifetime: CoroutineScope) {
+    criticalSection {
+      val oldAuthority = authorityRegistry.toMutableMap()
+      authorityRegistry.clear()
+      lifetime.coroutineContext.job.invokeOnCompletion {
+        authorityRegistry.clear()
+        authorityRegistry.putAll(oldAuthority)
+      }
+    }
   }
 }
 

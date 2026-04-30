@@ -8,4 +8,5 @@ data class MinimapBreakpointEntry(
   val projectedLine: Int,
   val rect2d: Rectangle2D.Double,
   val color: Color,
+  val hasLineHighlight: Boolean,
 )

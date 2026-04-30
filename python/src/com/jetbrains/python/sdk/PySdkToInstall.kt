@@ -94,7 +94,7 @@ class PySdkToInstall(
 
   @RequiresEdt
   @Internal
-  fun install(module: Module?, systemWideSdksDetector: () -> List<PyDetectedSdk>): Result<PyDetectedSdk> {
+  fun install(module: Module?, systemWideSdksDetector: () -> List<Sdk>): Result<Sdk> {
     val project = module?.project
     return installBinary(installation, project) {
       findInstalledSdkInternal(
@@ -110,8 +110,8 @@ class PySdkToInstall(
 internal fun findInstalledSdkInternal(
   languageLevel: LanguageLevel?,
   project: Project?,
-  systemWideSdksDetector: () -> List<PyDetectedSdk>,
-): PyDetectedSdk? {
+  systemWideSdksDetector: () -> List<Sdk>,
+): Sdk? {
   LOGGER.debug("Resetting system-wide sdks detectors")
   resetSystemWideSdksDetectors()
 

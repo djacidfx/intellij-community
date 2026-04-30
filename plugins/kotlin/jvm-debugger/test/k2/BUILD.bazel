@@ -33,6 +33,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-jvm-debugger-test_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.jvm.debugger.test",
   visibility = ["//visibility:public"],
   srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form"], allow_empty = True),

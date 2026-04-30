@@ -31,6 +31,7 @@ jvm_library(
 
 jvm_library(
   name = "rd-community_test_lib",
+  testonly = True,
   module_name = "intellij.platform.rd.community",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

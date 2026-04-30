@@ -145,6 +145,12 @@ abstract class DumbService {
     - `NonBlockingReadAction(...).inSmartMode()` 
   """)
   fun <T> runReadActionInSmartMode(r: Computable<T>): T {
+    if (ApplicationManager.getApplication().isReadAccessAllowed) {
+      // we can't wait for smart mode to begin (it'd result in a deadlock),
+      // so let's just pretend it's already smart and fail with IndexNotReadyException if not
+      return r.compute()
+    }
+
     val result = Ref<T>()
     runReadActionInSmartMode { result.set(r.compute()) }
     return result.get()

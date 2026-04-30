@@ -42,8 +42,8 @@ describe('ij MCP proxy search', {timeout: SUITE_TIMEOUT_MS}, () => {
 
       const payload = JSON.parse(response.result.content[0].text)
       deepStrictEqual(payload.items, [
-        {filePath: 'src/a.txt', lineNumber: 3, lineText: 'alpha'},
-        {filePath: 'src/b.txt', lineNumber: 1, lineText: 'beta'}
+        {filePath: 'src/a.txt', startLine: 3},
+        {filePath: 'src/b.txt', startLine: 1}
       ])
       strictEqual(calls.length, 1)
 
@@ -96,7 +96,7 @@ describe('ij MCP proxy search', {timeout: SUITE_TIMEOUT_MS}, () => {
 
       const payload = JSON.parse(response.result.content[0].text)
       deepStrictEqual(payload.items, [
-        {filePath: 'src/a.txt', lineNumber: 1, lineText: 'alpha'}
+        {filePath: 'src/a.txt', startLine: 1}
       ])
       strictEqual(calls.length, 1)
       strictEqual(calls[0].name, 'search_in_files_by_text')
@@ -141,7 +141,7 @@ describe('ij MCP proxy search', {timeout: SUITE_TIMEOUT_MS}, () => {
 
       const payload = JSON.parse(response.result.content[0].text)
       deepStrictEqual(payload.items, [
-        {filePath: 'src/a.txt', lineNumber: 3, lineText: 'alpha'}
+        {filePath: 'src/a.txt', startLine: 3}
       ])
       strictEqual(calls.length, 1)
       strictEqual(calls[0].name, 'search_in_files_by_regex')
@@ -257,7 +257,7 @@ describe('ij MCP proxy search', {timeout: SUITE_TIMEOUT_MS}, () => {
       })
 
       const payload = JSON.parse(response.result.content[0].text)
-      deepStrictEqual(payload.items, [{filePath: 'src/a.txt', lineNumber: 3, lineText: 'alpha'}])
+      deepStrictEqual(payload.items, [{filePath: 'src/a.txt', startLine: 3}])
       strictEqual(calls.length, 1)
 
       const call = calls[0]

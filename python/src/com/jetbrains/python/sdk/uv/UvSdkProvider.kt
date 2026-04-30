@@ -10,12 +10,6 @@ import javax.swing.Icon
 
 internal class UvSdkProvider : PySdkProvider {
 
-  override fun getSdkAdditionalText(sdk: Sdk): String? = if (sdk.isUv) sdk.versionString else null
-
-  override fun getSdkIcon(sdk: Sdk): Icon? {
-    return if (sdk.isUv) PythonCommunityImplUVCommonIcons.UV else null
-  }
-
   override fun loadAdditionalDataForSdk(element: Element): SdkAdditionalData? {
     return UvSdkAdditionalData.load(element)
   }

@@ -30,6 +30,7 @@ jvm_library(
 
 jvm_library(
   name = "grazie-tests_test_lib",
+  testonly = True,
   module_name = "intellij.grazie.tests",
   visibility = ["//visibility:public"],
   srcs = glob(["kotlin/**/*.kt", "kotlin/**/*.java", "kotlin/**/*.form"], allow_empty = True),

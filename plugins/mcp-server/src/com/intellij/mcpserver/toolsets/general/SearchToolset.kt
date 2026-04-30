@@ -1,4 +1,4 @@
-@file:Suppress("FunctionName", "unused")
+@file:Suppress("FunctionName")
 
 package com.intellij.mcpserver.toolsets.general
 
@@ -16,7 +16,6 @@ import com.intellij.mcpserver.mcpFail
 import com.intellij.mcpserver.project
 import com.intellij.mcpserver.reportToolActivity
 import com.intellij.mcpserver.toolsets.Constants
-import com.intellij.mcpserver.toolsets.Constants.MAX_USAGE_TEXT_CHARS
 import com.intellij.mcpserver.util.projectDirectory
 import com.intellij.mcpserver.util.relativizeIfPossible
 import com.intellij.mcpserver.util.resolveInProject
@@ -32,7 +31,6 @@ import com.intellij.openapi.roots.ContentIterator
 import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.Segment
-import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.getPathMatcher
 import com.intellij.openapi.util.io.FileUtilRt
 import com.intellij.openapi.vfs.LocalFileSystem
@@ -53,6 +51,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
+import org.jetbrains.annotations.ApiStatus.Internal
 import java.nio.file.FileSystems
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
@@ -62,8 +61,11 @@ import kotlin.io.path.isDirectory
 import kotlin.io.path.pathString
 import kotlin.time.Duration.Companion.milliseconds
 
-internal const val MAX_RESULTS_UPPER_BOUND = 5000
-internal const val SEARCH_SCOPE_MULTIPLIER = 5
+@Internal
+const val MAX_RESULTS_UPPER_BOUND: Int = 5000
+
+@Internal
+const val SEARCH_SCOPE_MULTIPLIER: Int = 5
 private const val PATHS_DESCRIPTION = "Optional list of project-relative glob patterns to filter results. " +
                                       "Supports '!' excludes. Trailing '/' expands to '**'. " +
                                       "Patterns without '/' are treated as '**/pattern'. Empty strings are ignored."
@@ -82,8 +84,8 @@ internal class SearchToolset : McpToolset {
   @McpTool
   @McpDescription("""
         |Searches for a text substring within project files.
-        |Use this tool for fast text search with snippet results.
-        |Results include match coordinates when available (1-based line/column, 0-based offsets).
+        |Use this tool for fast text search with match coordinates.
+        |Results include match coordinates when available (1-based line/column, end exclusive).
         |
         |Paths are glob patterns relative to the project root.
         |Examples: ["src/**", "!**/test/**"], ["**/*.kt"], ["foo/"].
@@ -102,8 +104,8 @@ internal class SearchToolset : McpToolset {
   @McpTool
   @McpDescription("""
         |Searches for regex matches within project files.
-        |Use this tool when you need regex search with snippet results.
-        |Results include match coordinates when available (1-based line/column, 0-based offsets).
+        |Use this tool when you need regex search with match coordinates.
+        |Results include match coordinates when available (1-based line/column, end exclusive).
         |
         |Paths are glob patterns relative to the project root.
         |Examples: ["src/**", "!**/test/**"], ["**/*.kt"], ["foo/"].
@@ -123,7 +125,7 @@ internal class SearchToolset : McpToolset {
   @McpDescription("""
         |Searches for symbols (classes, methods, fields).
         |Use this tool for semantic lookup by identifier fragments.
-        |Results include match coordinates when available (1-based line/column, 0-based offsets).
+        |Results include match coordinates when available (1-based line/column, end exclusive).
         |
         |Paths are glob patterns relative to the project root.
         |By default this searches project symbols only.
@@ -141,7 +143,7 @@ internal class SearchToolset : McpToolset {
     return try {
       searchSymbols(q, paths, include_external, limit)
     }
-    catch (e: LinkageError) {
+    catch (_: LinkageError) {
       mcpFail("search_symbol is not supported by this IDE version")
     }
   }
@@ -176,7 +178,8 @@ internal class SearchToolset : McpToolset {
  * 1) Best-effort narrowing via `FindModel.directoryName` and `FindModel.fileFilter`.
  * 2) Exact post-filtering via [PathScope.matches].
  */
-private suspend fun searchInFiles(
+@Internal
+suspend fun searchInFiles(
   q: String,
   paths: List<String>?,
   limit: Int,
@@ -254,7 +257,7 @@ private suspend fun searchInFiles(
 }
 
 /**
- * Converts usage hits into [SearchItem]s with snippet text.
+ * Converts usage hits into [SearchItem]s with match coordinates.
  */
 private suspend fun mapUsagesToItems(usages: List<UsageInfo>, projectDir: Path): List<SearchItem> {
   val fileDocumentManager = serviceAsync<FileDocumentManager>()
@@ -263,7 +266,7 @@ private suspend fun mapUsagesToItems(usages: List<UsageInfo>, projectDir: Path):
       val file = usage.virtualFile ?: return@mapNotNull null
       val document = fileDocumentManager.getDocument(file) ?: return@mapNotNull null
       val textRange = usage.navigationRange ?: return@mapNotNull null
-      val snippet = buildSearchSnippet(document, textRange, MAX_USAGE_TEXT_CHARS)
+      val snippet = buildSearchSnippet(document, textRange)
       val filePath = projectDir.relativizeIfPossible(file)
       if (filePath.isBlank()) return@mapNotNull null
       SearchItem(
@@ -272,9 +275,6 @@ private suspend fun mapUsagesToItems(usages: List<UsageInfo>, projectDir: Path):
         startColumn = snippet.startColumn,
         endLine = snippet.endLine,
         endColumn = snippet.endColumn,
-        startOffset = snippet.startOffset,
-        endOffset = snippet.endOffset,
-        lineText = snippet.lineText,
       )
     }
   }
@@ -286,7 +286,8 @@ private suspend fun mapUsagesToItems(usages: List<UsageInfo>, projectDir: Path):
  * Uses project indexes for content roots and optionally scans excluded roots
  * to include ignored/excluded files when requested.
  */
-private suspend fun searchFiles(
+@Internal
+suspend fun searchFiles(
   q: String,
   paths: List<String>?,
   includeExcluded: Boolean,
@@ -303,7 +304,7 @@ private suspend fun searchFiles(
   val seenPaths = if (includeExcluded) HashSet<String>(minOf(effectiveLimit, 256)) else null
   var reachedLimit = false
   val searchRoot = resolveSearchRoot(project, pathScope, normalizedPattern)
-  val exactFileName = extractExactFileName(normalizedPattern)
+  val indexedFileNamePattern = extractIndexedFileNamePattern(normalizedPattern)
 
   /**
    * Shared candidate processing for both indexed and excluded-root scans.
@@ -332,16 +333,16 @@ private suspend fun searchFiles(
       McpServerBundle.message("progress.title.searching.for.files.by.glob.pattern", q),
       cancellable = true
     ) {
-      // Fast path: for patterns like "**/Foo.kt" (exact file name match), prefer FilenameIndex over full content traversal.
-      // This is dramatically faster on large repos and still keeps semantics identical thanks to post-filtering via `matcher` and `pathScope`.
-      if (!includeExcluded && exactFileName != null) {
+      // Fast path: use FilenameIndex when the path glob has a concrete filename segment, including wildcard masks like "*Service.kt".
+      if (!includeExcluded && indexedFileNamePattern != null) {
         val baseScope = GlobalSearchScope.projectScope(project)
-        val scope = if (searchRoot != null) GlobalSearchScopes.directoryScope(project, searchRoot, true).intersectWith(baseScope) else baseScope
+        val scope =
+          if (searchRoot != null) GlobalSearchScopes.directoryScope(project, searchRoot, true).intersectWith(baseScope) else baseScope
+        val coroutineContext = currentCoroutineContext()
         val usedIndex = try {
-          val candidates = readAction { FilenameIndex.getVirtualFilesByName(exactFileName, scope).toList() }
-          for (file in candidates) {
-            ensureActive()
-            if (!processCandidate(file)) break
+          processIndexedFileNameMatches(indexedFileNamePattern, scope) { file ->
+            coroutineContext.ensureActive()
+            processCandidate(file)
           }
           true
         }
@@ -379,10 +380,40 @@ private suspend fun searchFiles(
   return SearchResult(items = results.toList(), more = timedOut || reachedLimit)
 }
 
-private fun extractExactFileName(globPattern: String): String? {
+private fun extractIndexedFileNamePattern(globPattern: String): String? {
   val lastSegment = globPattern.substringAfterLast('/')
   if (lastSegment.isBlank()) return null
-  return lastSegment.takeIf { indexOfGlobChar(it) < 0 }
+  if (lastSegment == "**" || lastSegment == "*") return null
+  return lastSegment
+}
+
+private suspend fun processIndexedFileNameMatches(
+  fileNamePattern: String,
+  scope: GlobalSearchScope,
+  processCandidate: (VirtualFile) -> Boolean,
+) {
+  readAction {
+    if (indexOfGlobChar(fileNamePattern) < 0) {
+      FilenameIndex.processFilesByName(fileNamePattern, true, scope, Processor { file ->
+        processCandidate(file)
+      })
+      return@readAction
+    }
+
+    val fileNameMatcher = createPathMatcher(fileNamePattern)
+    FilenameIndex.processAllFileNames(Processor { fileName ->
+      val candidateFileName = try {
+        Path.of(fileName)
+      }
+      catch (_: InvalidPathException) {
+        return@Processor true
+      }
+      if (!fileNameMatcher.matches(candidateFileName)) return@Processor true
+      FilenameIndex.processFilesByName(fileName, true, scope, Processor { file ->
+        processCandidate(file)
+      })
+    }, scope, null)
+  }
 }
 
 private fun toGlobPath(relativePath: Path): Path {
@@ -414,7 +445,7 @@ private data class PathPattern(
 )
 
 /**
- * Builds include/exclude matchers and derives common prefix + file mask.
+ * Builds include/exclude matchers and derive common prefix and file mask.
  */
 internal fun buildPathScope(projectDir: Path, paths: List<String>?): PathScope? {
   if (paths == null) return null
@@ -541,7 +572,7 @@ private fun normalizePathPattern(pattern: String, projectDir: Path): String {
   val prefixPath = try {
     Path.of(prefixTrimmed)
   }
-  catch (e: InvalidPathException) {
+  catch (_: InvalidPathException) {
     mcpFail("Invalid path: $prefixTrimmed")
   }
   val absolutePrefix = if (prefixPath.isAbsolute) prefixPath.normalize() else projectDir.resolve(prefixPath).normalize()
@@ -558,6 +589,7 @@ private fun normalizePathPattern(pattern: String, projectDir: Path): String {
   }
 }
 
+@Suppress("RedundantIf")
 private fun isAbsolutePattern(pattern: String): Boolean {
   if (pattern.startsWith("/")) return true
   return pattern.length >= 3 && pattern[1] == ':' && pattern[2] == '/'
@@ -579,7 +611,7 @@ private fun createPathMatcher(pattern: String): PathMatcher {
   return try {
     getPathMatcher(pattern, ignorePatternSyntaxException = false)
   }
-  catch (e: PatternSyntaxException) {
+  catch (_: PatternSyntaxException) {
     mcpFail("Invalid glob pattern: $pattern")
   }
 }
@@ -686,61 +718,52 @@ internal fun normalizeLimit(limit: Int): Int {
   return limit.coerceAtMost(MAX_RESULTS_UPPER_BOUND)
 }
 
-internal data class SearchSnippet(
-  @JvmField val lineText: String,
+@Internal
+data class SearchSnippet(
   @JvmField val startLine: Int,
   @JvmField val startColumn: Int,
   @JvmField val endLine: Int,
   @JvmField val endColumn: Int,
-  @JvmField val startOffset: Int,
-  @JvmField val endOffset: Int,
 )
 
 @Serializable
-internal data class SearchItem(
+@Internal
+data class SearchItem(
   /*
    * Search results are always serialized as SearchItem objects, so all search_* tools
    * share one stable, predictable schema. This keeps client parsing simple and
    * allows adding optional fields later without breaking existing consumers.
    * For search_file we only populate filePath; other fields remain null
    * because there is no text match to report for pure glob-based file search.
-   * Match coordinates use 1-based line/column and 0-based offsets; end is exclusive.
+   * Match coordinates use 1-based line/column; end is exclusive.
    */
   @JvmField val filePath: String,
   @JvmField val startLine: Int? = null,
   @JvmField val startColumn: Int? = null,
   @JvmField val endLine: Int? = null,
   @JvmField val endColumn: Int? = null,
-  @JvmField val startOffset: Int? = null,
-  @JvmField val endOffset: Int? = null,
-  @JvmField val lineText: String? = null,
 )
 
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable
-internal data class SearchResult(
+@Internal
+data class SearchResult(
   @JvmField @EncodeDefault(mode = EncodeDefault.Mode.ALWAYS) val items: List<SearchItem> = emptyList(),
   @JvmField @EncodeDefault(mode = EncodeDefault.Mode.NEVER) val more: Boolean = false,
 )
 
-internal fun buildSearchSnippet(document: Document, textRange: Segment, @Suppress("SameParameterValue") maxTextChars: Int): SearchSnippet {
+@Internal
+fun buildSearchSnippet(document: Document, textRange: Segment): SearchSnippet {
   val startOffset = textRange.startOffset
   val endOffset = textRange.endOffset
   val startLineNumber = document.getLineNumber(startOffset)
   val startLineStartOffset = document.getLineStartOffset(startLineNumber)
   val endLineNumber = document.getLineNumber(endOffset)
   val endLineStartOffset = document.getLineStartOffset(endLineNumber)
-  val endLineEndOffset = document.getLineEndOffset(endLineNumber)
-  val textBeforeOccurrence = document.getText(TextRange(startLineStartOffset, startOffset)).take(maxTextChars)
-  val textInner = document.getText(TextRange(startOffset, endOffset)).take(maxTextChars)
-  val textAfterOccurrence = document.getText(TextRange(endOffset, endLineEndOffset)).take(maxTextChars)
   return SearchSnippet(
-    lineText = "$textBeforeOccurrence||$textInner||$textAfterOccurrence",
     startLine = startLineNumber + 1,
     startColumn = startOffset - startLineStartOffset + 1,
     endLine = endLineNumber + 1,
     endColumn = endOffset - endLineStartOffset + 1,
-    startOffset = startOffset,
-    endOffset = endOffset,
   )
 }

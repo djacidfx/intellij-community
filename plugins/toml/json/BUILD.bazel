@@ -34,6 +34,7 @@ jvm_library(
 
 jvm_library(
   name = "json_test_lib",
+  testonly = True,
   module_name = "intellij.toml.json",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

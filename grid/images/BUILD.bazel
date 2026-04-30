@@ -28,6 +28,7 @@ jvm_library(
 
 jvm_library(
   name = "images-impl_test_lib",
+  testonly = True,
   module_name = "intellij.grid.images.impl",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

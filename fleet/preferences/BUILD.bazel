@@ -39,6 +39,7 @@ jvm_library(
 
 jvm_library(
   name = "preferences_test_lib",
+  testonly = True,
   module_name = "fleet.preferences",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

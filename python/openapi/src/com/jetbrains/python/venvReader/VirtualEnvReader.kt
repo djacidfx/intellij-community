@@ -88,7 +88,7 @@ class VirtualEnvReader private constructor(
 
     val candidates: ArrayList<Path> = arrayListOf()
     val children = try {
-      root.listDirectoryEntries()
+      root.listDirectoryEntries().sortedBy { it.fileName.toString() }
     }
     catch (_: NoSuchFileException) {
       return emptyList()

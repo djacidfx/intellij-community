@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.platform.ide.impl.wsl
 
 import com.intellij.execution.eel.MultiRoutingFileSystemUtils
@@ -16,8 +16,8 @@ import com.intellij.platform.eel.EelOsFamily
 import com.intellij.platform.eel.EelPathBoundDescriptor
 import com.intellij.platform.eel.annotations.MultiRoutingFileSystemPath
 import com.intellij.platform.eel.nioFs.impl.MultiRoutingFileSystemBackend
-import com.intellij.platform.eel.provider.EelEnvironmentInitializer
 import com.intellij.platform.eel.provider.EelAlternativeRootProvider
+import com.intellij.platform.eel.provider.EelEnvironmentInitializer
 import com.intellij.platform.eel.provider.getEelDescriptor
 import com.intellij.platform.ide.impl.wsl.ijent.nio.IjentWslNioFileSystemProvider
 import com.intellij.platform.ijent.community.impl.ijentFailSafeFileSystemApi
@@ -244,7 +244,9 @@ object WslPathParser {
   }
 }
 
-class WslEelDescriptor internal constructor(val distribution: WSLDistribution, internal val fsRoot: String) : EelPathBoundDescriptor {
+class WslEelDescriptor internal constructor(val distribution: WSLDistribution, fsRoot: String) : EelPathBoundDescriptor {
+  internal val fsRoot = fsRoot.replace('/', '\\')
+
   constructor(distribution: WSLDistribution) : this(distribution, distribution.getUNCRootPath().pathString)
 
   override val rootPath: Path get() = fsRoot.let(::Path)
@@ -269,4 +271,6 @@ class WslEelDescriptor internal constructor(val distribution: WSLDistribution, i
     result = 31 * result + fsRoot.hashCode()
     return result
   }
+
+  override fun toString(): String = "WslEelDescriptor(distribution=$distribution, fsRoot='$fsRoot')"
 }

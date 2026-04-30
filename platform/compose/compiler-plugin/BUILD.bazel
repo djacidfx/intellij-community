@@ -10,6 +10,7 @@ jvm_library(
 
 jvm_library(
   name = "compiler-plugin_test_lib",
+  testonly = True,
   module_name = "intellij.platform.compose.compilerPlugin",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

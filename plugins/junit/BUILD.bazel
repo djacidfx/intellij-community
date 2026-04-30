@@ -67,6 +67,7 @@ jvm_library(
 
 jvm_library(
   name = "junit_test_lib",
+  testonly = True,
   module_name = "intellij.junit",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

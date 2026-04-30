@@ -1241,7 +1241,7 @@ public final class ImportHelper extends ImportHelperBase {
           continue;
         }
 
-        if (refElement == null && referenceElement != null) {
+        if (refElement == null && referenceElement != null && IncompleteModelUtil.canBeClassReference(referenceElement)) {
           refElement = ResolveClassUtil.resolveClass(referenceElement, referenceElement.getContainingFile()); // might be incomplete code
         }
         if (refElement == null) continue;

@@ -77,13 +77,14 @@ import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileFilter;
 import com.intellij.openapi.vfs.ex.temp.TempFileSystem;
+import com.intellij.openapi.vfs.newvfs.persistent.PersistentFSImpl;
 import com.intellij.platform.testFramework.core.FileComparisonFailedError;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiManager;
 import com.intellij.psi.PsiRecursiveElementWalkingVisitor;
 import com.intellij.psi.PsiReference;
-import com.intellij.psi.impl.DocumentCommitThread;
 import com.intellij.psi.impl.source.resolve.reference.impl.PsiMultiReference;
+import com.intellij.testFramework.common.TestApplicationKt;
 import com.intellij.testFramework.fixtures.IdeaTestExecutionPolicy;
 import com.intellij.ui.ClientProperty;
 import com.intellij.ui.tree.AsyncTreeModel;
@@ -533,7 +534,7 @@ public final class PlatformTestUtil {
         var laterInvoked = new AtomicBoolean();
         app.invokeLater(() -> laterInvoked.set(true));
         dispatchAllInvocationEventsInIdeEventQueue();
-        waitForAllDocumentsCommitted(10, TimeUnit.SECONDS);
+        TestApplicationKt.waitForAllDocumentsCommitted(10, TimeUnit.SECONDS);
         assertTrue(laterInvoked.get());
 
         TimeoutUtil.sleep(sleptAlready ? 10 : delay);
@@ -897,6 +898,8 @@ public final class PlatformTestUtil {
     @Nullable Function<VirtualFile, String> fileNameMapper
   ) throws IOException {
     FileDocumentManager.getInstance().saveAllDocuments();
+    //Async Iops, if any in progress, may ruin the comparison -- flush them:
+    flushAllPendingVFSUpdates();
 
     var childrenAfter = dirExpected.getChildren();
     shallowCompare(dirExpected, childrenAfter);
@@ -959,6 +962,23 @@ public final class PlatformTestUtil {
         "Text mismatch in the file " + fileExpected.getName(), expected, actual,
         fileActual.getUserData(VfsTestUtil.TEST_DATA_FILE_PATH));
     }
+  }
+
+  /**
+   * Flushes IO operations pending in VFS, if any.
+   * Use before transition from VFS to File/Path, or before launching an external process that uses the file(s) modified via VFS.
+   */
+  public static void flushAllPendingVFSUpdates() throws IOException {
+    PersistentFSImpl.flushPendingUpdates();
+  }
+
+  /**
+   * Flushes IO operations pending in VFS (if any) for the given file.
+   * Use before transition from VFS to File/Path, or before launching an external process that uses the file previously modified
+   * via VFS.
+   */
+  public static void flushPendingVFSUpdatesFor(@NotNull VirtualFile file) throws IOException {
+    PersistentFSImpl.flushPendingUpdates(file);
   }
 
   private static String fileText(@NotNull VirtualFile file) throws IOException {
@@ -1478,15 +1498,5 @@ public final class PlatformTestUtil {
         "; FJP configured parallelism=" + ForkJoinPool.getCommonPoolParallelism() +
         "; FJP actual common pool parallelism=" + ForkJoinPool.commonPool().getParallelism());
     }
-  }
-
-  @TestOnly
-  public static void waitForAllDocumentsCommitted(long timeout, @NotNull TimeUnit timeUnit) {
-    var documentCommitThread = DocumentCommitThread.getInstance();
-    TestOnlyThreading.releaseTheAcquiredWriteIntentLockThenExecuteActionAndTakeWriteIntentLockBack(() -> {
-      documentCommitThread.waitForAllCommits(timeout, timeUnit);
-    });
-    // some callbacks on document commit might require EDT. So we forcibly dispatch pending events to run these callbacks
-    dispatchAllInvocationEventsInIdeEventQueue();
   }
 }

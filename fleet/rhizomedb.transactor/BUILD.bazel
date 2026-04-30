@@ -76,6 +76,7 @@ jvm_library(
 
 jvm_library(
   name = "rhizomedb.transactor_test_lib",
+  testonly = True,
   module_name = "fleet.rhizomedb.transactor",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

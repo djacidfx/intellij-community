@@ -10,6 +10,7 @@ jvm_library(
 
 jvm_library(
   name = "android-extensions-stubs_test_lib",
+  testonly = True,
   module_name = "kotlin.compiler-plugins.android-extensions-stubs",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

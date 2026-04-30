@@ -35,6 +35,7 @@ jvm_library(
 
 jvm_library(
   name = "debugger-streams-core_test_lib",
+  testonly = True,
   module_name = "intellij.debugger.streams.core",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

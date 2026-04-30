@@ -133,5 +133,7 @@
     <applicationService serviceImplementation="com.intellij.application.options.editor.WebEditorOptions"/>
     <applicationSettings service="com.intellij.application.options.editor.WebEditorOptions"/>
     <rdct.remoteSettingProvider implementation="com.intellij.application.options.editor.WebEditorOptionsRemoteSettingInfoProvider"/>
+    <applicationSettings service="com.intellij.application.options.editor.XmlFoldingSettings"/>
+    <projectSettings service="com.intellij.javaee.ProjectResources"/>
   </extensions>
 </idea-plugin>

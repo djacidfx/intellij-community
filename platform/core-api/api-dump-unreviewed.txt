@@ -408,7 +408,6 @@ a:com.intellij.lang.folding.CustomFoldingBuilder
 - p:isCustomFoldingCandidate(com.intellij.lang.ASTNode):Z
 - f:isCustomFoldingCandidate(com.intellij.psi.PsiElement):Z
 - p:isCustomFoldingRoot(com.intellij.lang.ASTNode):Z
-- ps:isCustomRegionElement(com.intellij.psi.PsiElement):Z
 - pf:isCustomRegionEnd(com.intellij.lang.ASTNode):Z
 - f:isCustomRegionStart(com.intellij.lang.ASTNode):Z
 - isDumbAware():Z

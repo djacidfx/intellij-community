@@ -23,6 +23,7 @@ jvm_library(
 
 jvm_library(
   name = "community-plugin-minorRider_test_lib",
+  testonly = True,
   module_name = "intellij.python.community.plugin.minorRider",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

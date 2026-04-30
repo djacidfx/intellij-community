@@ -10,6 +10,10 @@ interface GradleBuildScriptSupport {
         val EP_NAME: ExtensionPointName<GradleBuildScriptSupport> =
             ExtensionPointName.create("org.jetbrains.kotlin.idea.gradleBuildScriptSupport")
 
+        const val TEST_LIB_ID: String = "kotlin-test"
+        const val IMPLEMENTATION: String = "implementation"
+        const val TEST_IMPLEMENTATION: String = "testImplementation"
+
         fun findManipulator(file: PsiFile, preferNewSyntax: Boolean = true): GradleBuildScriptManipulator<*>? {
             for (extension in EP_NAME.extensionList) {
                 extension.createManipulator(file, preferNewSyntax)?.let {

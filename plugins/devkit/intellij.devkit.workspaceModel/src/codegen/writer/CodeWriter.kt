@@ -308,6 +308,8 @@ object CodeWriter {
     val generatorSettings = GeneratorSettings(explicitApiEnabled = explicitApiEnabled, testModeEnabled = isTestModule)
     val entitiesImplementations = objModules.map { codeGenerator.generateEntitiesImplementation(it, generatorSettings) }
       .filter { it.generatedCode.isNotEmpty() || it.problems.isNotEmpty() }
+    if (entitiesImplementations.any { it.problems.any { problem -> problem.level == GenerationProblem.Level.ERROR } })
+      return entitiesImplementations
     val metadataStorageImplementation = codeGenerator.generateMetadataStoragesImplementation(objModules, generatorSettings)
     return entitiesImplementations + metadataStorageImplementation
   }
@@ -398,6 +400,13 @@ object CodeWriter {
       val visibility = apiClass.visibilityModifierType().takeIf { !apiClass.isPublic }
       if (visibility != null) {
         generatedModificationsFile.declarations.forEach { it.addModifier(visibility) }
+      }
+
+      val apiClassFileAnnotationsNoJvmName = apiClass.containingKtFile.annotationEntries.filter { it.shortName?.asString() != "JvmName" }
+      val generatedModificationsFileAnnotations = generatedModificationsFile.fileAnnotationList
+                                                  ?: error("Generated EntityModifications file should have at least JvmName annotation, but it is missing for ${generatedModificationsFile.name}")
+      apiClassFileAnnotationsNoJvmName.forEach { annotation ->
+        generatedModificationsFileAnnotations.add(annotation)
       }
 
       val apiTargetDirectory = targetDirectory.parent!!

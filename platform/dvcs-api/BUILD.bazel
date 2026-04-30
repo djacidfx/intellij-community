@@ -30,6 +30,7 @@ jvm_library(
 
 jvm_library(
   name = "vcs-dvcs_test_lib",
+  testonly = True,
   module_name = "intellij.platform.vcs.dvcs",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

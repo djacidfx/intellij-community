@@ -26,6 +26,7 @@ jvm_library(
 
 jvm_library(
   name = "training_test_lib",
+  testonly = True,
   module_name = "intellij.java.ide.customization.training",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

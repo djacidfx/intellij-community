@@ -25,6 +25,7 @@ jvm_library(
 
 jvm_library(
   name = "xdebugger_test_lib",
+  testonly = True,
   module_name = "intellij.platform.images.xdebugger",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

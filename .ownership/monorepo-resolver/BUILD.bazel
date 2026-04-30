@@ -24,6 +24,7 @@ jvm_library(
 
 jvm_library(
   name = "codeowners-monorepo-resolver_test_lib",
+  testonly = True,
   module_name = "intellij.codeowners.monorepo.resolver",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

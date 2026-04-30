@@ -1,6 +1,6 @@
 module(name = "community")
 
-bazel_dep(name = "bazel_features", version = "1.39.0")
+bazel_dep(name = "bazel_features", version = "1.43.0")
 bazel_dep(name = "bazel_skylib", version = "1.9.0")
 bazel_dep(name = "platforms", version = "1.0.0")
 bazel_dep(name = "rules_kotlin", version = "2.2.2")
@@ -70,12 +70,13 @@ local_path_override(
 )
 
 bazel_dep(name = "windows_support", version = "0.1.1")
-bazel_dep(name = "llvm", version = "0.7.1")
+bazel_dep(name = "llvm", version = "0.7.5")
 single_version_override(
     module_name = "llvm",
     patch_strip = 1,
     patches = [
         "//:build/llvm_msvc.patch",  # TODO: remove that once merged to upstream
+        "//:build/llvm_libunwind.patch",  # TODO: remove that once https://github.com/hermeticbuild/hermetic-llvm/issues/513 is fixed
         "//:build/llvm_windows-llvm.patch",  # TODO: remove that once LLVM prebuilts are fixed for Windows ARM in upstream
     ],
 )

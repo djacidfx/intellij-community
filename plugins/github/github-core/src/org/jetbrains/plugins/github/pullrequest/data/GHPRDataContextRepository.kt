@@ -164,7 +164,6 @@ internal class GHPRDataContextRepository(private val project: Project, parentCs:
       val reactionsService = GHReactionsServiceImpl(requestExecutor, apiRepositoryCoordinates)
 
       val listLoader = GHPRListLoader(cs, requestExecutor, apiRepositoryCoordinates)
-      val listUpdatesChecker = GHPRListETagUpdateChecker(cs, ProgressManager.getInstance(), requestExecutor, account.server, apiRepositoryPath)
 
       val dataProviderRepository = GHPRDataProviderRepositoryImpl(cs,
                                                                   repoDataService,
@@ -189,7 +188,7 @@ internal class GHPRDataContextRepository(private val project: Project, parentCs:
 
       val creationService = GHPRCreationServiceImpl(requestExecutor, repoDataService)
       ensureActive()
-      GHPRDataContext(cs, listLoader, listUpdatesChecker, dataProviderRepository,
+      GHPRDataContext(cs, listLoader, dataProviderRepository,
                       securityService, repoDataService, creationService, detailsService, reactionsService,
                       imageLoader, avatarIconsProvider, mentionableUsersProvider, reactionIconsProvider,
                       interactionState)

@@ -17,6 +17,7 @@ jvm_library(
 
 jvm_library(
   name = "plugin_test_lib",
+  testonly = True,
   module_name = "intellij.sh.plugin",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -49,6 +50,7 @@ jvm_library(
 
 jvm_library(
   name = "plugin-main_test_lib",
+  testonly = True,
   module_name = "intellij.sh.plugin.main",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

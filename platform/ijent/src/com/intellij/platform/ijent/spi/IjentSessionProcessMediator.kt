@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 @file:OptIn(IntellijInternalApi::class)
 
 package com.intellij.platform.ijent.spi
@@ -7,19 +7,19 @@ import com.intellij.openapi.diagnostic.debug
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.progress.Cancellation.ensureActive
 import com.intellij.openapi.util.IntellijInternalApi
+import com.intellij.platform.eel.SafeDeferred
+import com.intellij.platform.ijent.IjentScope
 import com.intellij.platform.ijent.IjentUnavailableException
+import com.intellij.platform.ijent.ParentOfIjentScopes
 import com.intellij.platform.ijent.coroutineNameAppended
 import com.intellij.platform.ijent.spi.IjentSessionProcessMediator.ProcessExitPolicy.CHECK_CODE
 import com.intellij.platform.ijent.spi.IjentSessionProcessMediator.ProcessExitPolicy.NORMAL
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineName
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
@@ -37,10 +37,10 @@ import java.util.concurrent.TimeUnit
  * throws [IjentUnavailableException].
  */
 abstract class IjentSessionProcessMediator private constructor(
-  override val ijentProcessScope: CoroutineScope,
+  override val ijentProcessScope: IjentScope,
   val process: Process,
-  override val processExit: Deferred<Unit>,
-): IjentSessionMediator {
+  override val processExit: SafeDeferred<Unit>,
+) : IjentSessionMediator {
   /**
    * Defines how process exits should be handled in terms of error reporting.
    * Used to determine whether a process termination should be treated as an error.
@@ -75,14 +75,11 @@ abstract class IjentSessionProcessMediator private constructor(
      */
     @OptIn(DelicateCoroutinesApi::class)
     fun create(
-      parentScope: CoroutineScope,
+      parentScope: ParentOfIjentScopes,
       process: Process,
       ijentLabel: String,
       isExpectedProcessExit: suspend (exitCode: Int) -> Boolean = { it == 0 },
     ): IjentSessionProcessMediator {
-      require(parentScope.coroutineContext[Job] != null) {
-        "Scope $parentScope has no Job"
-      }
       val context = IjentThreadPool.coroutineContext
       val ijentProcessScope = IjentSessionMediatorUtils.createProcessScope(parentScope, ijentLabel, LOG)
 
@@ -95,17 +92,17 @@ abstract class IjentSessionProcessMediator private constructor(
       // stderr logger should outlive the current scope. In case if an error appears, the scope is cancelled immediately, but the whole
       // intention of the stderr logger is to write logs of the remote process, which come from the remote machine to the local one with
       // a delay.
-      GlobalScope.launch(IjentThreadPool.coroutineContext + ijentProcessScope.coroutineNameAppended("stderr logger")) {
+      GlobalScope.launch(IjentThreadPool.coroutineContext + ijentProcessScope.s.coroutineNameAppended("stderr logger")) {
         IjentSessionMediatorUtils.ijentProcessStderrLogger(process.errorStream, ijentLabel, lastStderrMessages, LOG)
       }
 
       val processExit = CompletableDeferred<Unit>()
 
-      val mediator = object : IjentSessionProcessMediator(ijentProcessScope, process, processExit) {
+      val mediator = object : IjentSessionProcessMediator(ijentProcessScope, process, SafeDeferred(processExit)) {
         override suspend fun isExpectedProcessExit(exitCode: Int): Boolean = isExpectedProcessExit(exitCode)
       }
 
-      val awaiterScope = ijentProcessScope.launch(context = context + ijentProcessScope.coroutineNameAppended("exit awaiter scope")) {
+      val awaiterScope = ijentProcessScope.s.launch(context = context + ijentProcessScope.s.coroutineNameAppended("exit awaiter scope")) {
         IjentSessionMediatorUtils.ijentProcessExitAwaiter(
           ijentLabel,
           lastStderrMessages,
@@ -114,7 +111,7 @@ abstract class IjentSessionProcessMediator private constructor(
         ) { ijentProcessExitAwaiter(mediator) }
       }
 
-      val finalizerScope = ijentProcessScope.launch(context = context + ijentProcessScope.coroutineNameAppended("finalizer scope")) {
+      val finalizerScope = ijentProcessScope.s.launch(context = context + ijentProcessScope.s.coroutineNameAppended("finalizer scope")) {
         IjentSessionMediatorUtils.ijentProcessFinalizer(ijentLabel) { ijentProcessFinalizer(ijentLabel, mediator) }
       }
 

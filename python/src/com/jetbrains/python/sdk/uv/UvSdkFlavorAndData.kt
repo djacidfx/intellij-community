@@ -13,7 +13,6 @@ import com.jetbrains.python.sdk.flavors.PyFlavorAndData
 import com.jetbrains.python.sdk.flavors.PyFlavorData
 import com.jetbrains.python.sdk.flavors.PythonFlavorProvider
 import com.jetbrains.python.sdk.flavors.PythonSdkFlavor
-import com.jetbrains.python.sdk.flavors.VirtualEnvBasedFlavor
 import com.jetbrains.python.sdk.legacy.PythonSdkUtil
 import org.jdom.Element
 import java.nio.file.Path
@@ -109,11 +108,11 @@ data class UvSdkFlavorData(
   }
 }
 
-object UvSdkFlavor : CPythonSdkFlavor<UvSdkFlavorData>(), VirtualEnvBasedFlavor {
+object UvSdkFlavor : CPythonSdkFlavor<UvSdkFlavorData>() {
   override fun getIcon(): Icon = PythonCommunityImplUVCommonIcons.UV
   override fun getFlavorDataClass(): Class<UvSdkFlavorData> = UvSdkFlavorData::class.java
 
-  override fun isValidSdkPath(pathStr: String): Boolean {
+  override fun isValidSdkPath(pythonBinaryPath: Path): Boolean {
     return false
   }
 }

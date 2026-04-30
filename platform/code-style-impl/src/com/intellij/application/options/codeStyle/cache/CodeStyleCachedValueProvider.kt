@@ -132,6 +132,8 @@ internal class CodeStyleCachedValueProvider(val fileSupplier: Supplier<VirtualFi
     val tracker = SimpleModificationTracker()
     private var job: Job? = null
     private val scheduledRunnables = ArrayList<Runnable>()
+    private val scheduledRunnablesLock = Any()
+    private var scheduledRunnablesWereInvoked = false
     private var oldTrackerSetting: Long = 0
     private var insideRestartedComputation = false
 
@@ -183,11 +185,14 @@ internal class CodeStyleCachedValueProvider(val fileSupplier: Supplier<VirtualFi
 
     fun schedule(runnable: Runnable) {
       if (isActive.get()) {
-        scheduledRunnables.add(ClientId.decorateRunnable(runnable))
+        synchronized(scheduledRunnablesLock) {
+          if (!scheduledRunnablesWereInvoked) {
+            scheduledRunnables.add(ClientId.decorateRunnable(runnable))
+            return
+          }
+        }
       }
-      else {
-        runnable.run()
-      }
+      runnable.run()
     }
 
     /**
@@ -261,8 +266,11 @@ internal class CodeStyleCachedValueProvider(val fileSupplier: Supplier<VirtualFi
     }
 
     fun reset() {
-      scheduledRunnables.clear()
-      isActive.set(false)
+      synchronized(scheduledRunnablesLock) {
+        scheduledRunnables.clear()
+        isActive.set(false)
+        scheduledRunnablesWereInvoked = false
+      }
       LOG.debug { "Computation reset for ${file.name}" }
     }
 
@@ -282,8 +290,11 @@ internal class CodeStyleCachedValueProvider(val fileSupplier: Supplier<VirtualFi
         return
       }
       LOG.debug { "running scheduled runnables for ${file.name}" }
-      for (runnable in scheduledRunnables) {
-        runnable.run()
+      synchronized(scheduledRunnablesLock) {
+        for (runnable in scheduledRunnables) {
+          runnable.run()
+        }
+        scheduledRunnablesWereInvoked = true
       }
       if (shouldFireEvent && !project.isDisposed) {
         /* IJPL-179136

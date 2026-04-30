@@ -9,11 +9,6 @@ import org.jdom.Element
 import javax.swing.Icon
 
 internal class PyPipEnvSdkProvider : PySdkProvider {
-
-  override fun getSdkAdditionalText(sdk: Sdk): String? = if (sdk.isPipEnv) sdk.versionString else null
-
-  override fun getSdkIcon(sdk: Sdk): Icon? = if (sdk.isPipEnv) PIPENV_ICON else null
-
   override fun loadAdditionalDataForSdk(element: Element): SdkAdditionalData? {
     return PyPipEnvSdkAdditionalData.load(element)
   }

@@ -47,6 +47,7 @@ jvm_library(
 
 jvm_library(
   name = "tls_test_lib",
+  testonly = True,
   module_name = "fleet.ktor.network.tls",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

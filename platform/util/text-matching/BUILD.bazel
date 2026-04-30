@@ -17,6 +17,7 @@ jvm_library(
 
 jvm_library(
   name = "text-matching_test_lib",
+  testonly = True,
   module_name = "intellij.platform.util.text.matching",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -48,6 +49,7 @@ jvm_library(
 
 jvm_library(
   name = "text-matching-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form", "testJvm/**/*.kt", "testJvm/**/*.java", "testJvm/**/*.form"], allow_empty = True),
   associates = [

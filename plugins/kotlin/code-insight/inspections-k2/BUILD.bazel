@@ -90,6 +90,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-codeInsight-inspections_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.codeInsight.inspections",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

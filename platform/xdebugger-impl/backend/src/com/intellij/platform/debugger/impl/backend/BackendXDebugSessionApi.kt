@@ -165,7 +165,7 @@ internal class BackendXDebugSessionApi : XDebugSessionApi {
     val handler = session.debugProcess.smartStepIntoHandler ?: return
     withContext(Dispatchers.EDT) {
       @Suppress("UNCHECKED_CAST")
-      session.smartStepInto(handler as XSmartStepIntoHandler<XSmartStepIntoVariant?>, targetModel.target)
+      session.smartStepInto(handler as XSmartStepIntoHandler<XSmartStepIntoVariant>, targetModel.target)
     }
   }
 

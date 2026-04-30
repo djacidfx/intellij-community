@@ -17,6 +17,7 @@ jvm_library(
 
 jvm_library(
   name = "junit-v6-rt-tests_test_lib",
+  testonly = True,
   module_name = "intellij.junit.v6.rt.tests",
   visibility = ["//visibility:public"],
   srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form"], allow_empty = True),

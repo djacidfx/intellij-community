@@ -14,6 +14,7 @@ jvm_library(
 
 jvm_library(
   name = "testEntities_test_lib",
+  testonly = True,
   module_name = "intellij.platform.workspace.storage.testEntities",
   visibility = ["//visibility:public"],
   srcs = glob(["testSrc/**/*.kt", "testSrc/**/*.java", "testSrc/**/*.form", "testGen/**/*.kt", "testGen/**/*.java"], allow_empty = True),

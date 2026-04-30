@@ -1031,5 +1031,8 @@ com.intellij.workspaceModel.ide.legacyBridge.SourceRootTypeRegistry
 f:com.intellij.workspaceModel.ide.legacyBridge.SourceRootTypeRegistry$Companion
 - f:getInstance():com.intellij.workspaceModel.ide.legacyBridge.SourceRootTypeRegistry
 com.intellij.workspaceModel.ide.legacyBridge.WorkspaceModelLegacyBridge
+- sf:Companion:com.intellij.workspaceModel.ide.legacyBridge.WorkspaceModelLegacyBridge$Companion
 - a:findLegacyModule(com.intellij.platform.workspace.jps.entities.ModuleEntity):com.intellij.openapi.module.Module
 - a:findModuleEntity(com.intellij.openapi.module.Module):com.intellij.platform.workspace.jps.entities.ModuleEntity
+f:com.intellij.workspaceModel.ide.legacyBridge.WorkspaceModelLegacyBridge$Companion
+- f:getInstance(com.intellij.openapi.project.Project):com.intellij.workspaceModel.ide.legacyBridge.WorkspaceModelLegacyBridge

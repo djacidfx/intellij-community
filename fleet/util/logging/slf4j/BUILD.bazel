@@ -43,6 +43,7 @@ jvm_library(
 
 jvm_library(
   name = "slf4j_test_lib",
+  testonly = True,
   module_name = "fleet.util.logging.slf4j",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

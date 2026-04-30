@@ -12,21 +12,31 @@ class MinimapDiagnosticsPainter(private val editor: Editor) {
   fun paint(graphics: Graphics2D, entries: List<MinimapDiagnosticEntry>) {
     if (entries.isEmpty()) return
 
-    val warningStyle = styleFor(MinimapDiagnosticSeverity.WARNING)
-    val errorStyle = styleFor(MinimapDiagnosticSeverity.ERROR)
+    val warningStyle = warningStyle()
+    val errorColor = run {
+      val scheme = editor.colorsScheme
+      scheme.getAttributes(CodeInsightColors.ERRORS_ATTRIBUTES)?.errorStripeColor
+      ?: scheme.getAttributes(CodeInsightColors.ERRORS_ATTRIBUTES)?.effectColor
+      ?: scheme.defaultForeground
+    }
 
     val oldComposite = graphics.composite
     val oldStroke = graphics.stroke
     try {
       for (entry in entries) {
-        val style = when (entry.severity) {
-          MinimapDiagnosticSeverity.WARNING -> warningStyle
-          MinimapDiagnosticSeverity.ERROR -> errorStyle
+        when (entry.severity) {
+          MinimapDiagnosticSeverity.ERROR -> {
+            graphics.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f)
+            graphics.color = errorColor
+            graphics.fill(entry.rect2d)
+          }
+          MinimapDiagnosticSeverity.WARNING -> {
+            graphics.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, warningStyle.alpha)
+            graphics.stroke = warningStyle.stroke
+            graphics.color = warningStyle.color
+            graphics.draw(expanded(entry.rect2d, warningStyle.padding))
+          }
         }
-        graphics.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, style.alpha)
-        graphics.stroke = style.stroke
-        graphics.color = style.color
-        graphics.draw(expanded(entry.rect2d, style.padding))
       }
     }
     finally {
@@ -35,27 +45,16 @@ class MinimapDiagnosticsPainter(private val editor: Editor) {
     }
   }
 
-  private fun styleFor(severity: MinimapDiagnosticSeverity): MinimapDiagnosticRenderStyle {
+  private fun warningStyle(): MinimapDiagnosticRenderStyle {
     val scheme = editor.colorsScheme
-    return when (severity) {
-      MinimapDiagnosticSeverity.WARNING -> MinimapDiagnosticRenderStyle(
-        color = scheme.getAttributes(CodeInsightColors.WARNINGS_ATTRIBUTES)?.errorStripeColor
-                ?: scheme.getAttributes(CodeInsightColors.WARNINGS_ATTRIBUTES)?.effectColor
-                ?: scheme.defaultForeground,
-        alpha = WARNING_ALPHA,
-        stroke = BasicStroke(WARNING_STROKE_WIDTH, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND),
-        padding = WARNING_PADDING,
-      )
-
-      MinimapDiagnosticSeverity.ERROR -> MinimapDiagnosticRenderStyle(
-        color = scheme.getAttributes(CodeInsightColors.ERRORS_ATTRIBUTES)?.errorStripeColor
-                ?: scheme.getAttributes(CodeInsightColors.ERRORS_ATTRIBUTES)?.effectColor
-                ?: scheme.defaultForeground,
-        alpha = ERROR_ALPHA,
-        stroke = BasicStroke(ERROR_STROKE_WIDTH, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND),
-        padding = ERROR_PADDING,
-      )
-    }
+    return MinimapDiagnosticRenderStyle(
+      color = scheme.getAttributes(CodeInsightColors.WARNINGS_ATTRIBUTES)?.errorStripeColor
+              ?: scheme.getAttributes(CodeInsightColors.WARNINGS_ATTRIBUTES)?.effectColor
+              ?: scheme.defaultForeground,
+      alpha = WARNING_ALPHA,
+      stroke = BasicStroke(WARNING_STROKE_WIDTH, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND),
+      padding = WARNING_PADDING,
+    )
   }
 
   private fun expanded(source: Rectangle2D.Double, padding: Double): Rectangle2D.Double {
@@ -70,12 +69,7 @@ class MinimapDiagnosticsPainter(private val editor: Editor) {
 
   companion object {
     private const val WARNING_ALPHA: Float = 0.9f
-    private const val ERROR_ALPHA: Float = 0.95f
-
     private const val WARNING_STROKE_WIDTH: Float = 1.2f
-    private const val ERROR_STROKE_WIDTH: Float = 1.5f
-
     private const val WARNING_PADDING: Double = 0.5
-    private const val ERROR_PADDING: Double = 0.7
   }
 }

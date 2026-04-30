@@ -1,12 +1,14 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.platform.problemsView.backend
 
+import com.intellij.analysis.problemsView.toolWindow.ProblemsView
 import com.intellij.analysis.problemsView.toolWindow.ProblemsViewPanel
 import com.intellij.analysis.problemsView.toolWindow.ProblemsViewPanelProvider
 import com.intellij.analysis.problemsView.toolWindow.ProblemsViewState
 import com.intellij.analysis.problemsView.toolWindow.ProblemsViewTab
 import com.intellij.openapi.project.Project
 import com.intellij.analysis.problemsView.toolWindow.splitApi.isSplitProblemsViewKeyEnabled
+import com.intellij.openapi.util.Disposer
 import org.jetbrains.annotations.ApiStatus
 
 /**
@@ -21,7 +23,13 @@ internal class BackendProblemsViewHighlightingPanelProvider(private val project:
     if (!isSplitProblemsViewKeyEnabled()) {
       return null
     }
-    return MockHighlightingPanel(project, ProblemsViewState.getInstance(project))
+
+    val toolWindow = ProblemsView.getToolWindow(project) ?: return null
+    val mockPanel = MockHighlightingPanel(project, ProblemsViewState.getInstance(project))
+
+    Disposer.register(toolWindow.disposable, mockPanel)
+
+    return mockPanel
   }
 }
 

@@ -45,6 +45,7 @@ jvm_library(
 
 jvm_library(
   name = "core_test_lib",
+  testonly = True,
   module_name = "intellij.sh.core",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -111,6 +112,7 @@ jvm_library(
 
 jvm_library(
   name = "tests_test_lib",
+  testonly = True,
   module_name = "intellij.sh.tests",
   visibility = ["//visibility:public"],
   srcs = glob(["tests/**/*.kt", "tests/**/*.java", "tests/**/*.form"], allow_empty = True),

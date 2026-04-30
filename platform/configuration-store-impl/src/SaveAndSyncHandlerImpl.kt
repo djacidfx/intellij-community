@@ -15,7 +15,6 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.CoroutineSupport
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.WriteIntentReadAction
-import com.intellij.openapi.application.backgroundWriteAction
 import com.intellij.openapi.application.impl.LaterInvocator
 import com.intellij.openapi.application.ui
 import com.intellij.openapi.components.ComponentManager
@@ -39,12 +38,12 @@ import com.intellij.openapi.vfs.newvfs.RefreshQueue
 import com.intellij.openapi.vfs.newvfs.RefreshQueueImpl
 import com.intellij.openapi.vfs.newvfs.RefreshSession
 import com.intellij.openapi.vfs.newvfs.monitoring.VfsUsageCollector
+import com.intellij.openapi.vfs.newvfs.persistent.PersistentFSImpl
 import com.intellij.openapi.wm.IdeFrame
 import com.intellij.platform.ide.progress.ModalTaskOwner
 import com.intellij.platform.ide.progress.TaskCancellation
 import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import com.intellij.project.stateStore
-import com.intellij.util.application
 import com.intellij.util.ui.EDT
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineName
@@ -70,7 +69,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.jetbrains.annotations.TestOnly
 import java.util.ArrayDeque
 import java.util.concurrent.TimeUnit.NANOSECONDS
 import java.util.concurrent.atomic.AtomicBoolean
@@ -282,6 +280,8 @@ internal class SaveAndSyncHandlerImpl @JvmOverloads constructor(
               WriteIntentReadAction.run {
                 (FileDocumentManager.getInstance() as FileDocumentManagerImpl).saveAllDocuments(false)
               }
+              //flush pending IO tasks, if any:
+              PersistentFSImpl.flushPendingUpdates()
             }
             if (addToSaveQueue(saveAppAndProjectsSettingsTask)) {
               requestSave()
@@ -324,6 +324,8 @@ internal class SaveAndSyncHandlerImpl @JvmOverloads constructor(
   private fun saveDocumentsInBackgroundWriteAction() {
     coroutineScope.launch(CoroutineName("Saving documents on frame deactivation") + savingDispatcher + NonCancellable) {
       (FileDocumentManager.getInstance() as FileDocumentManagerImpl).saveAllDocuments(false)
+      //flush pending IO tasks, if any:
+      PersistentFSImpl.flushPendingUpdates()
     }
   }
 
@@ -509,15 +511,8 @@ private suspend fun doRefreshOpenedFiles(refreshQueue: RefreshQueue) {
     return
   }
 
-  backgroundWriteAction {
-    val session = refreshQueue.createSession(
-      /* async = */ false,
-      /* recursive = */ false,
-      /* finishRunnable = */ null,
-      /* state = */ ModalityState.nonModal(),
-    )
-    session.addAllFiles(files)
-    session.launch()
+  withContext(Dispatchers.Default) {
+    refreshQueue.refreshWithHighPriority(false, files)
   }
 }
 

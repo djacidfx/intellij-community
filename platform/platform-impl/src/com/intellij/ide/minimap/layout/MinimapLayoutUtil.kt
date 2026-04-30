@@ -19,7 +19,7 @@ object MinimapLayoutUtil {
     if (lineCount <= 0) return null
 
     val baseLineHeight = MinimapLineGeometryUtil.baseLineHeight(lineCount, context.geometry.minimapHeight)
-    val layoutProfile = MinimapLayoutProfileProvider.forEditor(editor)
+    val layoutProfile = MinimapLayoutPolicy.forLayoutProfile(editor)
     val minimumContentWidth = layoutProfile.minContentWidthPx.coerceIn(1, context.panelWidth)
     val contentStartX = getContentStartX(context.panelWidth, layoutProfile.leadingGutterWidthPx, minimumContentWidth)
     val contentWidth = (context.panelWidth.toDouble() - contentStartX).coerceAtLeast(minimumContentWidth.toDouble())

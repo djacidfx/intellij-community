@@ -69,6 +69,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-highlighting-k1_test_lib",
+  testonly = True,
   module_name = "kotlin.highlighting.k1",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

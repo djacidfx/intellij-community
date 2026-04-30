@@ -5,7 +5,6 @@ package com.intellij.platform.ijent
 
 import com.intellij.platform.eel.EelDescriptor
 import com.intellij.platform.eel.EelPlatform
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 
 interface IjentSession {
@@ -17,7 +16,7 @@ interface IjentSession {
    * A scope for the process. Use very cautiously, it's not a supervisor scope, it can destroy the whole communication.
    */
   @DelicateCoroutinesApi
-  val sessionCoroutineScope: CoroutineScope
+  val sessionCoroutineScope: IjentScope
 
   suspend fun updateLogLevel()
 

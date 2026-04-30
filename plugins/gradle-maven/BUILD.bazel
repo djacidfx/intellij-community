@@ -36,6 +36,7 @@ jvm_library(
 
 jvm_library(
   name = "gradle-java-maven_test_lib",
+  testonly = True,
   module_name = "intellij.gradle.java.maven",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -80,6 +81,7 @@ jvm_library(
 
 jvm_library(
   name = "gradle-java-maven-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["testSources/**/*.kt", "testSources/**/*.java", "testSources/**/*.form"], allow_empty = True),
   associates = [

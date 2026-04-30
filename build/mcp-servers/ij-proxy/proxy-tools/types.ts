@@ -28,8 +28,10 @@ export interface SearchEntry {
 
 export interface SearchItem {
   filePath: string
-  lineNumber?: number
-  lineText?: string
+  startLine?: number
+  startColumn?: number
+  endLine?: number
+  endColumn?: number
   [key: string]: unknown
 }
 

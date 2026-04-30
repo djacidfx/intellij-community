@@ -220,14 +220,15 @@ public abstract class XLineBreakpointType<P extends XBreakpointProperties> exten
   }
 
   /**
-   * Determines whether creating a default breakpoint of this type is allowed.
+   * Determines whether creating a default breakpoint of this type is allowed
+   * when no breakpoint variants are available.
    * Disabling default breakpoint creation makes it possible to handle the case
    * when no breakpoint variants are available differently and to avoid creating
    * potentially unwanted full-line breakpoints.
    */
   @ApiStatus.Internal
   @ApiStatus.Experimental
-  public boolean isCreationOfDefaultBreakpointAllowed() {
+  public boolean isCreationOfDefaultBreakpointVariantAllowed() {
     return true;
   }
 

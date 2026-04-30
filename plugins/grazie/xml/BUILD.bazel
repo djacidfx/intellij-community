@@ -33,6 +33,7 @@ jvm_library(
 
 jvm_library(
   name = "xml_test_lib",
+  testonly = True,
   module_name = "intellij.grazie.xml",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

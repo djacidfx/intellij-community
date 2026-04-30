@@ -25,6 +25,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.getOpenedProjects
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.newvfs.persistent.PersistentFSImpl
 import com.intellij.platform.ide.progress.ModalTaskOwner
 import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import com.intellij.platform.ide.progress.withBackgroundProgress
@@ -205,7 +206,7 @@ private val ENVIRONMENT_SPECIFIC_OPTIONS_FILENAMES = setOf("jdk.table.xml", "app
  */
 @Internal
 fun getFileRelativeToRootConfig(fileSpecPassedToProvider: String): String =
-  // For PersistentStateComponents the fileSpec is passed without the 'options' folder, e.g. 'editor.xml' or 'mac/keymaps.xml'
+// For PersistentStateComponents the fileSpec is passed without the 'options' folder, e.g. 'editor.xml' or 'mac/keymaps.xml'
   // OTOH for schemas it is passed together with the containing folder, e.g. 'keymaps/my_keymap.xml'
   if (!fileSpecPassedToProvider.contains("/")
       || fileSpecPassedToProvider.startsWith(getPerOsSettingsStorageFolderName() + "/")
@@ -234,6 +235,8 @@ suspend fun saveProjectsAndApp(forceSavingAllSettings: Boolean, onlyProject: Pro
       }
     }
   }
+  //flush pending IO tasks, if any:
+  PersistentFSImpl.flushPendingUpdates()
 
   val duration = (System.nanoTime() - start).nanoseconds.inWholeMilliseconds
   if (duration > 1000 || LOG.isDebugEnabled) {

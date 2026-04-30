@@ -310,6 +310,7 @@ java/java-frontback-impl
 java/java-frontback-psi-api
 java/java-frontback-psi-impl
 java/java-frontback-tests
+java/java-frontend
 java/java-impl
 java/java-impl-inspections
 java/java-impl-refactorings
@@ -1111,6 +1112,7 @@ plugins/javaFX/common
 plugins/javaFX/community
 plugins/javaFX/jps
 plugins/javaFX/sceneBuilder
+plugins/jcef/frontend
 plugins/jcef/plugin
 plugins/jshell
 plugins/jshell/console
@@ -1167,7 +1169,6 @@ plugins/kotlin/base/fir/analysis-api-platform
 plugins/kotlin/base/fir/code-insight
 plugins/kotlin/base/fir/project-structure
 plugins/kotlin/base/fir/scripting
-plugins/kotlin/base/frontend-agnostic
 plugins/kotlin/base/indices
 plugins/kotlin/base/indices/tests
 plugins/kotlin/base/jps

@@ -53,22 +53,72 @@ import kotlin.io.path.writeText
 enum class TestProjectSource { SourceOpenFileAction, SourceCLI }
 enum class TestOpenMode { ModeFileOrFolderDefault, ModeFolderAsProject, ModeFolderAsFolder }
 
+internal class ExpectedProjectState(
+  private val resolveRoot: Path,
+  private val expectedModuleContentRoots: List<String>,
+  private val expectedProjectRoots: List<String>,
+) {
+  private fun expandPath(list: List<String>, root: Path): List<Path> {
+    return list
+      .map { it.replace($$"$ROOT$", root.toString()) }
+      .map(Path::of)
+  }
+
+  fun getExpectedModules(): List<Path> {
+    return expandPath(expectedModuleContentRoots, resolveRoot)
+
+  }
+
+  fun getExpectedRoots(): List<Path> {
+    return expandPath(expectedProjectRoots, resolveRoot)
+  }
+}
+
+private val emptyProject = { resolveRoot: Path ->
+  ExpectedProjectState(resolveRoot, emptyList(), listOf($$"$ROOT$"))
+}
+
+private val singleModuleProject = { resolveRoot: Path ->
+  ExpectedProjectState(resolveRoot, listOf($$"$ROOT$"), listOf($$"$ROOT$"))
+}
+
 internal enum class IdeaProjectMaker {
   IprFile {
     override fun makeProject(projectDir: Path): Path {
       projectDir.createDirectories()
       val projectPath = projectDir.resolve("project.ipr")
-      projectPath.writeText("""
+      projectPath.writeText($$"""
         <?xml version="1.0" encoding="UTF-8"?>
         <project version="4">
+          <component name="ProjectRootManager" version="2" />
+          <component name="ProjectModuleManager">
+            <modules>
+              <module fileurl="file://$PROJECT_DIR$/module01.iml" filepath="$PROJECT_DIR$/module01.iml" />
+            </modules>
+          </component>
         </project>
       """.trimIndent())
+
+      projectDir.resolve("module01.iml").writeText($$"""
+        <module relativePaths="true" type="JAVA_MODULE" version="4">
+          <component name="NewModuleRootManager" >
+            <content url="file://$MODULE_DIR$/mod1">
+              <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
+            </content>
+          </component>
+        </module>
+      """.trimIndent())
+
       return projectPath
     }
   },
   ;
 
   abstract fun makeProject(projectDir: Path): Path
+
+  fun getExpectedProjectState(projectDir: Path): ExpectedProjectState {
+    return ExpectedProjectState(projectDir, listOf($$"$ROOT$/mod1"), listOf($$"$ROOT$"))
+  }
 }
 
 @RunWith(Parameterized::class)
@@ -81,25 +131,25 @@ internal class OpenProjectTest(private val opener: Opener) {
     @Parameterized.Parameters(name = "{0}")
     fun params(): Iterable<Opener> {
       return listOf(
-        Opener(SourceOpenFileAction, ModeFolderAsProject, expectedModules = listOf($$"$ROOT$"), expectedRoots = listOf($$"$ROOT$")) {
+        Opener(SourceOpenFileAction, ModeFolderAsProject, expectedResult = singleModuleProject) {
           runBlocking { ProjectUtil.openExistingDir(it, AS_PROJECT, null) }
         },
 
         // I don't have strong opinion about defaultProjectTemplateShouldBeAppliedOverride.
         // Weak opinion: a folder is not a project => we don't need default project settings.
         // Feel free to change the test if you have strong opinion about desired behavior.
-        Opener(SourceOpenFileAction, ModeFolderAsFolder, expectedModules = emptyList(), expectedRoots = listOf($$"$ROOT$"), defaultProjectTemplateShouldBeAppliedOverride = false) {
+        Opener(SourceOpenFileAction, ModeFolderAsFolder, expectedResult = emptyProject, defaultProjectTemplateShouldBeAppliedOverride = false) {
           runBlocking { ProjectUtil.openExistingDir(it, AS_FOLDER, null) }
         },
 
-        Opener(SourceCLI, ModeFolderAsProject, expectedModules = listOf($$"$ROOT$"), expectedRoots = listOf($$"$ROOT$")) {
+        Opener(SourceCLI, ModeFolderAsProject, expectedResult = singleModuleProject) {
           runBlocking { CommandLineProcessor.doOpenFileOrProject(it, createOrOpenExistingProject = true, false) }.project!!
         },
 
         // I don't have strong opinion about defaultProjectTemplateShouldBeAppliedOverride.
         // Weak opinion: a folder is not a project => we don't need default project settings.
         // Feel free to change the test if you have strong opinion about desired behavior.
-        Opener(SourceCLI, ModeFileOrFolderDefault, expectedModules = emptyList(), expectedRoots = listOf($$"$ROOT$"), defaultProjectTemplateShouldBeAppliedOverride = false) {
+        Opener(SourceCLI, ModeFileOrFolderDefault, expectedResult = emptyProject, defaultProjectTemplateShouldBeAppliedOverride = false) {
           runBlocking { CommandLineProcessor.doOpenFileOrProject(it, createOrOpenExistingProject = false, false) }.project!!
         },
       )
@@ -124,10 +174,18 @@ internal class OpenProjectTest(private val opener: Opener) {
 
   @Test
   fun `open ipr file with ability to attach`() = runBlocking(Dispatchers.Default) {
+    Assume.assumeTrue(
+      "Ignore ModeFolderAsProject/ModeFolderAsFolder, because we are checking opening of regular files here, not folders",
+      opener.mode != ModeFolderAsProject && opener.mode != ModeFolderAsFolder,
+    )
+
     ExtensionTestUtil.maskExtensions(ProjectAttachProcessor.EP_NAME, listOf(ModuleAttachProcessor()), disposableRule.disposable)
     val projectDir = tempDir.newPath("project")
     val projectFileToOpen = IdeaProjectMaker.IprFile.makeProject(projectDir)
-    openWithOpenerAndAssertProjectState(projectDir, projectFileToOpen, opener.defaultProjectTemplateShouldBeAppliedOverride ?: false)
+    openWithOpenerAndAssertProjectState(projectFileToOpen,
+      // when opening an ipr file the result is always a project described in that ipr file
+                                        IdeaProjectMaker.IprFile.getExpectedProjectState(projectDir),
+                                        opener.defaultProjectTemplateShouldBeAppliedOverride ?: false)
   }
 
   @Test
@@ -164,7 +222,10 @@ internal class OpenProjectTest(private val opener: Opener) {
     ExtensionTestUtil.maskExtensions(ProjectAttachProcessor.EP_NAME, listOf(), disposableRule.disposable)
     val projectDir = tempDir.newPath("project")
     val projectFileToOpen = IdeaProjectMaker.IprFile.makeProject(projectDir)
-    openWithOpenerAndAssertProjectState(projectDir, projectFileToOpen, opener.defaultProjectTemplateShouldBeAppliedOverride ?: false)
+    openWithOpenerAndAssertProjectState(projectFileToOpen,
+      // when opening an ipr file the result is always a project described in that ipr file
+                                        IdeaProjectMaker.IprFile.getExpectedProjectState(projectDir),
+                                        opener.defaultProjectTemplateShouldBeAppliedOverride ?: false)
   }
 
   @Test
@@ -194,7 +255,7 @@ internal class OpenProjectTest(private val opener: Opener) {
     )
 
     val processorNames = ProjectOpenProcessor.EXTENSION_POINT_NAME.extensionList.map(ProjectOpenProcessor::name)
-    assertThat(processorNames).`as` { "Use intellij.idea.community.main as a classpath" }.containsAll(listOf("Maven", "Gradle"))
+    assertThat(processorNames).`as` { "Use intellij.idea.community.main.tests as a classpath" }.containsAll(listOf("Maven", "Gradle"))
     ExtensionTestUtil.maskExtensions(ProjectAttachProcessor.EP_NAME, listOf(), disposableRule.disposable)
     val projectDir = setupMultibuildProject()
     var suggestedProcessors: List<String>? = null
@@ -284,12 +345,15 @@ internal class OpenProjectTest(private val opener: Opener) {
     defaultProjectTemplateShouldBeApplied: Boolean,
     beforeOtherChecks: ((Project) -> Unit)? = null,
   ) {
-    return openWithOpenerAndAssertProjectState(projectDir, projectDir, defaultProjectTemplateShouldBeApplied, beforeOtherChecks)
+    return openWithOpenerAndAssertProjectState(projectDir,
+                                               opener.getExpectedProjectState(projectDir),
+                                               defaultProjectTemplateShouldBeApplied,
+                                               beforeOtherChecks)
   }
 
   private suspend fun openWithOpenerAndAssertProjectState(
-    projectDir: Path,
     projectFileToOpen: Path,
+    expectedProjectState: ExpectedProjectState,
     defaultProjectTemplateShouldBeApplied: Boolean,
     beforeOtherChecks: ((Project) -> Unit)? = null,
   ) {
@@ -297,8 +361,8 @@ internal class OpenProjectTest(private val opener: Opener) {
       val project = opener.opener(projectFileToOpen)!!
       project.useProject {
         beforeOtherChecks?.invoke(project)
-        assertThatProjectContainsModules(project, opener.getExpectedModules(projectDir))
-        assertThatProjectContainsRootEntities(project, opener.getExpectedRoots(projectDir))
+        assertThatProjectContainsModules(project, expectedProjectState.getExpectedModules())
+        assertThatProjectContainsRootEntities(project, expectedProjectState.getExpectedRoots())
         checkDefaultProjectAsTemplateTask(project, defaultProjectTemplateShouldBeApplied)
       }
     }
@@ -308,26 +372,14 @@ internal class OpenProjectTest(private val opener: Opener) {
 internal class Opener(
   val source: TestProjectSource,
   val mode: TestOpenMode,
-  val expectedModules: List<String>,
-  val expectedRoots: List<String>,
+  val expectedResult: (Path) -> ExpectedProjectState,
   val defaultProjectTemplateShouldBeAppliedOverride: Boolean? = null,
   val opener: (Path) -> Project?,
 ) {
   override fun toString() = "${source.toString().substringAfter("Source")}-${mode.toString().substringAfter("Mode")}"
 
-  private fun expandPath(list: List<String>, root: Path): List<Path> {
-    return list
-      .map { it.replace($$"$ROOT$", root.toString()) }
-      .map(Path::of)
-  }
-
-  fun getExpectedModules(projectDir: Path): List<Path> {
-    return expandPath(expectedModules, projectDir)
-
-  }
-
-  fun getExpectedRoots(projectDir: Path): List<Path> {
-    return expandPath(expectedRoots, projectDir)
+  fun getExpectedProjectState(projectDir: Path): ExpectedProjectState {
+    return expectedResult(projectDir)
   }
 }
 

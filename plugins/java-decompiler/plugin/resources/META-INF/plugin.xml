@@ -53,6 +53,7 @@
       defaultValue="false"
       description="Show original line numbers as comments in decompiled text"/>
 
+    <applicationSettings service="org.jetbrains.java.decompiler.IdeaDecompilerSettings"/>
   </extensions>
 
   <applicationListeners>

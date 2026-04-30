@@ -57,6 +57,10 @@
     <structuralsearch.filterProvider implementation="com.intellij.structuralsearch.plugin.ui.filters.DefaultFilterProvider"/>
     <notificationGroup id="Structural Search" displayType="STICKY_BALLOON" toolWindowId="Find"
                        bundle="messages.SSRBundle" key="structural.search.title" isLogByDefault="true"/>
+    <applicationSettings service="com.intellij.structuralsearch.plugin.ui.ConfigurationManager$ConfigurationManagerState"/>
+    <projectSettings service="com.intellij.structuralsearch.plugin.ui.ConfigurationManager$ProjectConfigurationManagerState"/>
+    <projectSettings service="com.intellij.structuralsearch.plugin.ui.ConfigurationManager"/>
+    <applicationSettings service="com.intellij.structuralsearch.plugin.ui.UIState"/>
   </extensions>
 
   <actions>

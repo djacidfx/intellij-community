@@ -26,11 +26,13 @@ jvm_library(
     "//python/python-exec-service/execService.python",
     "//platform/eel-provider",
     "//python/common",
+    "//platform/analysis-api:analysis",
   ]
 )
 
 jvm_library(
   name = "venv_test_lib",
+  testonly = True,
   module_name = "intellij.python.venv",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -46,6 +48,7 @@ jvm_library(
     "//python/python-exec-service/execService.python:execService.python_test_lib",
     "//platform/eel-provider:eel-provider_test_lib",
     "//python/common:common_test_lib",
+    "//platform/analysis-api:analysis_test_lib",
   ]
 )
 ### auto-generated section `build intellij.python.venv` end
@@ -72,6 +75,7 @@ jvm_library(
 
 jvm_library(
   name = "venv-tests_test_lib",
+  testonly = True,
   module_name = "intellij.python.venv.tests",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

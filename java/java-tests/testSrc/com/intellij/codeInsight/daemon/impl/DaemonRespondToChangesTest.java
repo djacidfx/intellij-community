@@ -1091,10 +1091,11 @@ public class DaemonRespondToChangesTest extends ProductionDaemonAnalyzerTestCase
   }
 
   public void testCancelsItSelfOnTypingInAlienProject() throws Throwable {
-    String body = StringUtil.repeat("\"String field = null;\"\n", 1000);
+    String body = StringUtil.repeat("{String field = null;}\n", 1000);
     @Language("JAVA")
     String text = "class X{ void f() {" + body + "<caret>\n} }";
     configureByText(JavaFileType.INSTANCE, text);
+    assertEmpty(myTestDaemonCodeAnalyzer.waitHighlightingSurviveCancellations(getFile(), HighlightSeverity.ERROR));
 
     Project alienProject = PlatformTestUtil.loadAndOpenProject(createTempDirectory().toPath().resolve("alien.ipr"), getTestRootDisposable());
 
@@ -1110,19 +1111,19 @@ public class DaemonRespondToChangesTest extends ProductionDaemonAnalyzerTestCase
         return new OpenFileDescriptor(alienProject, alienFile);
       });
 
-      FileEditorManager fe = FileEditorManager.getInstance(alienProject);
-      Editor alienEditor = Objects.requireNonNull(fe.openTextEditor(alienDescriptor, false));
+      Editor alienEditor = Objects.requireNonNull(FileEditorManager.getInstance(alienProject).openTextEditor(alienDescriptor, false));
       ((EditorImpl)alienEditor).setCaretActive();
       myTestDaemonCodeAnalyzer.waitForTermination();
-      myDaemonCodeAnalyzer.restart(getTestName(false));
-      // start daemon in the main project. should check for its cancel when typing in alien
       AtomicBoolean checked = new AtomicBoolean();
       Runnable callbackWhileWaiting = () -> {
         if (!checked.getAndSet(true)) {
           typeInAlienEditor(alienEditor, 'x');
         }
       };
+      // start daemon in the main project. should check for its cancel when typing in alien
+      myDaemonCodeAnalyzer.restart(getTestName(false));
       myTestDaemonCodeAnalyzer.waitForDaemonToFinish(getFile(), callbackWhileWaiting);
+      assertTrue(checked.get());
     }
     catch (ProcessCanceledException ignored) {
       return;

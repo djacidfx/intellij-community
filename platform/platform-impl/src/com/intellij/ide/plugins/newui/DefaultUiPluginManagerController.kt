@@ -479,10 +479,10 @@ object DefaultUiPluginManagerController : UiPluginManagerController {
   }
 
   override fun connectToUpdateServiceWithCounter(sessionId: String, callback: (Int?) -> Unit): PluginUpdatesService {
-    val session = PluginManagerSessionService.getInstance().getSession(sessionId)
+    val session = createSession(sessionId)
     val service = PluginUpdatesService.connectWithCounter(callback)
-    service.setFilter { session?.isPluginEnabled(it.pluginId) ?: true }
-    session?.updateService = service
+    service.setFilter { session.isPluginEnabled(it.pluginId) }
+    session.updateService = service
     return service
   }
 

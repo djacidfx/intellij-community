@@ -92,6 +92,9 @@ internal class JpsModuleToBazel {
       )
       val jarRepositories = loadJarRepositories(projectDir)
 
+      val kotlincDefaults = parseKotlincProjectDefaults(communityRoot)
+      generateCompilerOptionsBzl(communityRoot, kotlincDefaults)
+
       val modulesBazel = listOfNotNull(
         ultimateRoot?.resolve("lib/MODULE.bazel"),
         communityRoot.resolve("lib/MODULE.bazel"),
@@ -106,6 +109,7 @@ internal class JpsModuleToBazel {
         projectDir = projectDir,
         urlCache = urlCache,
         customModules = if (defaultCustomModules.toBooleanStrict()) DEFAULT_CUSTOM_MODULES else emptyMap(),
+        kotlincDefaults = kotlincDefaults,
       )
       val moduleList = generator.computeModuleList(m2RepoPath)
       // first, generate community to collect libs, that used by community (to separate community and ultimate libs)

@@ -37,6 +37,7 @@ import com.intellij.util.DocumentUtil
 import com.intellij.util.ThreeState
 import com.intellij.xdebugger.XDebuggerUtil
 import com.intellij.xdebugger.breakpoints.SuspendPolicy
+import com.intellij.xdebugger.impl.ui.DebuggerUIUtil
 import com.intellij.xdebugger.ui.DebuggerColors
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -230,13 +231,16 @@ class XBreakpointVisualRepresentation(
   }
 
   fun removeHighlighter() {
-    try {
-      rangeMarker?.dispose()
-    }
-    catch (e: Exception) {
-      LOG.error(e)
-    }
+    val marker = rangeMarker ?: return
     rangeMarker = null
+    DebuggerUIUtil.invokeLater {
+      try {
+        marker.dispose()
+      }
+      catch (e: Exception) {
+        LOG.error(e)
+      }
+    }
   }
 
   private fun redrawInlineInlays() {

@@ -40,6 +40,7 @@ jvm_library(
 
 jvm_library(
   name = "warmup_test_lib",
+  testonly = True,
   module_name = "intellij.platform.warmup",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

@@ -144,6 +144,14 @@
                  defaultValue="true"
                  description="Handles scrolling to the selected commit in the VCS log table. If true, the selected commit will be centered. If false, it will be on the bottom of the table."/>."
     />
+    <applicationSettings service="com.intellij.vcs.log.data.index.VcsLogBigRepositoriesList"/>
+    <projectSettings service="com.intellij.vcs.log.impl.VcsLogSharedSettings"/>
+    <applicationSettings service="com.intellij.vcs.log.ui.editor.VcsLogEditorTabNameCache"/>
+    <projectSettings service="com.intellij.vcs.log.impl.VcsLogProjectTabsProperties"/>
+    <applicationSettings service="com.intellij.vcs.log.impl.VcsLogApplicationSettings"/>
+    <projectSettings service="com.intellij.vcs.log.history.FileHistoryUiProperties"/>
+    <projectSettings service="com.intellij.vcs.log.history.VcsDirectoryRenamesProvider"/>
+    <projectSettings service="com.intellij.vcs.log.statistics.VcsLogIndexCollector"/>
   </extensions>
 
   <projectListeners>

@@ -31,6 +31,7 @@ jvm_library(
 
 jvm_library(
   name = "vcs-log_test_lib",
+  testonly = True,
   module_name = "intellij.platform.vcs.log",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

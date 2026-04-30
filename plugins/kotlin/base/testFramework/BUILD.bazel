@@ -23,7 +23,6 @@ jvm_library(
     "//platform/projectModel-api:projectModel",
     "//platform/testFramework",
     "//platform/util:util-ui",
-    "//plugins/kotlin/base/frontend-agnostic",
     "//plugins/kotlin/base/plugin",
     "//java/testFramework",
     "//plugins/junit_rt:junit-rt",
@@ -38,6 +37,7 @@ jvm_library(
 
 jvm_library(
   name = "testFramework_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.base.testFramework",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -58,7 +58,6 @@ jvm_library(
     "//platform/projectModel-api:projectModel_test_lib",
     "//platform/testFramework:testFramework_test_lib",
     "//platform/util:util-ui_test_lib",
-    "//plugins/kotlin/base/frontend-agnostic:frontend-agnostic_test_lib",
     "//plugins/kotlin/base/plugin:plugin_test_lib",
     "//java/testFramework:testFramework_test_lib",
     "//plugins/junit_rt:junit-rt_test_lib",

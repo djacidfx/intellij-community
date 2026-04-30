@@ -34,6 +34,7 @@ jvm_library(
 
 jvm_library(
   name = "freezes_test_lib",
+  testonly = True,
   module_name = "intellij.platform.diagnostic.freezes",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

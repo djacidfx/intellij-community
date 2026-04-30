@@ -6848,17 +6848,17 @@ java_library(
 )
 
 copy_file(
-  name = "org.jetbrains.intellij.deps/debugger-agent-1.168.jar_copy",
-  src = "@org_jetbrains_intellij_deps-debugger-agent-1_168_http//file",
-  out = "org.jetbrains.intellij.deps/debugger-agent-1.168.jar",
+  name = "org.jetbrains.intellij.deps/debugger-agent-1.169.jar_copy",
+  src = "@org_jetbrains_intellij_deps-debugger-agent-1_169_http//file",
+  out = "org.jetbrains.intellij.deps/debugger-agent-1.169.jar",
   allow_symlink = True,
   visibility = ["//visibility:public"]
 )
 
 jvm_import(
   name = "java-debugger-agent-holder-debugger-agent",
-  jar = "@org_jetbrains_intellij_deps-debugger-agent-1_168_http//file",
-  source_jar = "@org_jetbrains_intellij_deps-debugger-agent-1_168-sources_http//file",
+  jar = "@org_jetbrains_intellij_deps-debugger-agent-1_169_http//file",
+  source_jar = "@org_jetbrains_intellij_deps-debugger-agent-1_169-sources_http//file",
   visibility = ["//visibility:public"]
 )
 
@@ -7120,17 +7120,17 @@ jvm_import(
 )
 
 copy_file(
-  name = "org.jetbrains.jediterm/jediterm-core-3.64.jar_copy",
-  src = "@org_jetbrains_jediterm-jediterm-core-3_64_http//file",
-  out = "org.jetbrains.jediterm/jediterm-core-3.64.jar",
+  name = "org.jetbrains.jediterm/jediterm-core-3.66.jar_copy",
+  src = "@org_jetbrains_jediterm-jediterm-core-3_66_http//file",
+  out = "org.jetbrains.jediterm/jediterm-core-3.66.jar",
   allow_symlink = True,
   visibility = ["//visibility:public"]
 )
 
 jvm_import(
   name = "jediterm-core",
-  jar = "@org_jetbrains_jediterm-jediterm-core-3_64_http//file",
-  source_jar = "@org_jetbrains_jediterm-jediterm-core-3_64-sources_http//file",
+  jar = "@org_jetbrains_jediterm-jediterm-core-3_66_http//file",
+  source_jar = "@org_jetbrains_jediterm-jediterm-core-3_66-sources_http//file",
   visibility = ["//visibility:public"]
 )
 
@@ -12220,17 +12220,17 @@ jvm_import(
 )
 
 copy_file(
-  name = "org.jetbrains.intellij.deps.jcef/jcef-137.0.17-gf354b0e-chromium-137.0.7151.104-api-1.21-262-b28.jar_copy",
-  src = "@org_jetbrains_intellij_deps_jcef-jcef-137_0_17-gf354b0e-chromium-137_0_7151_104-api-1_21-262-b28_http//file",
-  out = "org.jetbrains.intellij.deps.jcef/jcef-137.0.17-gf354b0e-chromium-137.0.7151.104-api-1.21-262-b28.jar",
+  name = "org.jetbrains.intellij.deps.jcef/jcef-144.0.15-g72717cf-chromium-144.0.7559.172-api-1.21-262-b34.jar_copy",
+  src = "@org_jetbrains_intellij_deps_jcef-jcef-144_0_15-g72717cf-chromium-144_0_7559_172-api-1_21-262-b34_http//file",
+  out = "org.jetbrains.intellij.deps.jcef/jcef-144.0.15-g72717cf-chromium-144.0.7559.172-api-1.21-262-b34.jar",
   allow_symlink = True,
   visibility = ["//visibility:public"]
 )
 
 jvm_import(
   name = "libraries-jcef-jcef",
-  jar = "@org_jetbrains_intellij_deps_jcef-jcef-137_0_17-gf354b0e-chromium-137_0_7151_104-api-1_21-262-b28_http//file",
-  source_jar = "@org_jetbrains_intellij_deps_jcef-jcef-137_0_17-gf354b0e-chromium-137_0_7151_104-api-1_21-262-b28-sources_http//file",
+  jar = "@org_jetbrains_intellij_deps_jcef-jcef-144_0_15-g72717cf-chromium-144_0_7559_172-api-1_21-262-b34_http//file",
+  source_jar = "@org_jetbrains_intellij_deps_jcef-jcef-144_0_15-g72717cf-chromium-144_0_7559_172-api-1_21-262-b34-sources_http//file",
   visibility = ["//visibility:public"]
 )
 
@@ -12250,17 +12250,17 @@ jvm_import(
 )
 
 copy_file(
-  name = "org.jetbrains.jediterm/jediterm-ui-3.64.jar_copy",
-  src = "@org_jetbrains_jediterm-jediterm-ui-3_64_http//file",
-  out = "org.jetbrains.jediterm/jediterm-ui-3.64.jar",
+  name = "org.jetbrains.jediterm/jediterm-ui-3.66.jar_copy",
+  src = "@org_jetbrains_jediterm-jediterm-ui-3_66_http//file",
+  out = "org.jetbrains.jediterm/jediterm-ui-3.66.jar",
   allow_symlink = True,
   visibility = ["//visibility:public"]
 )
 
 jvm_import(
   name = "libraries-jediterm-ui-jediterm-ui",
-  jar = "@org_jetbrains_jediterm-jediterm-ui-3_64_http//file",
-  source_jar = "@org_jetbrains_jediterm-jediterm-ui-3_64-sources_http//file",
+  jar = "@org_jetbrains_jediterm-jediterm-ui-3_66_http//file",
+  source_jar = "@org_jetbrains_jediterm-jediterm-ui-3_66-sources_http//file",
   visibility = ["//visibility:public"]
 )
 

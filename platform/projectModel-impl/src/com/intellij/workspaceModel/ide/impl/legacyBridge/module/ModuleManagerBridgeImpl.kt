@@ -2,8 +2,11 @@
 package com.intellij.workspaceModel.ide.impl.legacyBridge.module
 
 import com.intellij.ide.plugins.ContentModuleDescriptor
+import com.intellij.ide.plugins.DependsSubDescriptor
 import com.intellij.ide.plugins.IdeaPluginDescriptorImpl
+import com.intellij.ide.plugins.PluginMainDescriptor
 import com.intellij.ide.plugins.PluginManagerCore
+import com.intellij.ide.plugins.contentModuleName
 import com.intellij.ide.plugins.getMainDescriptor
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
@@ -671,20 +674,21 @@ abstract class ModuleManagerBridgeImpl(
 
 private fun checkModuleLevelServiceAndExtensionRegistration() {
   for (module in PluginManagerCore.getPluginSet().sequenceResolvedSortedDescriptorsForRegistration()) {
-    if (module is ContentModuleDescriptor) {
-      checkModuleLevel(plugin = module.parent, child = module, forbid = false)
-    } else {
-      checkModuleLevel(plugin = module.getMainDescriptor(), child = module, forbid = true)
-    }
+    checkModuleLevel(plugin = module.getMainDescriptor(), child = module)
   }
 }
 
-private fun checkModuleLevel(plugin: IdeaPluginDescriptorImpl, child: IdeaPluginDescriptorImpl, forbid: Boolean) {
-  fun check(list: List<*>, asWarn: Boolean = false) {
+private fun checkModuleLevel(plugin: IdeaPluginDescriptorImpl, child: IdeaPluginDescriptorImpl) {
+  fun IdeaPluginDescriptorImpl.describe(): String = when (this) {
+    is PluginMainDescriptor -> "plugin '$name' ($pluginId, $version)"
+    is ContentModuleDescriptor -> "content module $contentModuleName"
+    is DependsSubDescriptor -> "<depends> sub-descriptor ($dependsTargetId)"
+  }
+  fun check(list: List<*>, debugLevel: Boolean = false) {
     if (list.isNotEmpty()) {
-      val message = "Plugin $plugin is trying to register $list in a content module ($child). " +
-                    "Module-level services and extensions are deprecated, and support is scheduled to be removed."
-      if (!asWarn || forbid) {
+      val message = "Module-level elements are deprecated, and support is scheduled to be removed: " +
+                    "${child.describe()} of ${plugin.describe()} registers $list"
+      if (!debugLevel) {
         LOG.warn(message)
       }
       else {
@@ -693,7 +697,7 @@ private fun checkModuleLevel(plugin: IdeaPluginDescriptorImpl, child: IdeaPlugin
     }
   }
 
-  check(child.moduleContainerDescriptor.services, asWarn = true)
+  check(child.moduleContainerDescriptor.services, debugLevel = true) // IJPL-243276
   check(child.moduleContainerDescriptor.components)
   check(child.moduleContainerDescriptor.extensionPoints)
   check(child.moduleContainerDescriptor.listeners)

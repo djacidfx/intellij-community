@@ -40,6 +40,7 @@ jvm_library(
 
 jvm_library(
   name = "junit-fe10_test_lib",
+  testonly = True,
   module_name = "kotlin.run-configurations.junit-fe10",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

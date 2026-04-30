@@ -23,8 +23,7 @@ import com.jetbrains.python.PyBundle
 import com.jetbrains.python.TraceContext
 import com.jetbrains.python.packaging.toolwindow.PyPackagingToolWindowService
 import com.jetbrains.python.packaging.utils.PyPackageCoroutine
-import com.jetbrains.python.sdk.PySdkPopupFactory
-import com.jetbrains.python.sdk.icon
+import com.jetbrains.python.sdk.pyInterpreterPresentation
 import com.jetbrains.python.sdk.pythonSdk
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -50,8 +49,9 @@ internal class PyPackagesSdkController(private val project: Project) : Disposabl
 
   private val sdkListRenderer = object : SimpleListCellRenderer<Sdk>() {
     override fun customize(list: JList<out Sdk>, value: Sdk, index: Int, selected: Boolean, hasFocus: Boolean) {
-      text = PySdkPopupFactory.shortenNameInPopup(value, 50)
-      icon = icon(value)
+      val presentation = value.pyInterpreterPresentation()
+      text = presentation.shortName
+      icon = presentation.icon
     }
   }
 

@@ -24,4 +24,7 @@
     <module name="intellij.platform.util.ui"/>
   </dependencies>
   <!-- endregion -->
+  <extensions defaultExtensionNs="com.intellij">
+    <projectSettings service="com.intellij.execution.testframework.autotest.AutoTestManager"/>
+  </extensions>
 </idea-plugin>

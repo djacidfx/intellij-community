@@ -18,6 +18,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-refactorings-common-tests_test_lib",
+  testonly = True,
   module_name = "kotlin.refactorings.common.tests",
   visibility = ["//visibility:public"],
   srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form"], allow_empty = True),

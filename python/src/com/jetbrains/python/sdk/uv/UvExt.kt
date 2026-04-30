@@ -33,12 +33,12 @@ import com.jetbrains.python.sdk.flavors.PyFlavorAndData
 import com.jetbrains.python.sdk.getOrCreateAdditionalData
 import com.jetbrains.python.sdk.impl.resolvePythonBinary
 import com.jetbrains.python.sdk.legacy.PythonSdkUtil
-import com.jetbrains.python.sdk.pyvenvContains
 import com.jetbrains.python.sdk.uv.impl.createUvCli
 import com.jetbrains.python.sdk.uv.impl.createUvLowLevel
 import com.jetbrains.python.sdk.uv.impl.detectUvExecutable
 import com.jetbrains.python.target.PyTargetAwareAdditionalData
 import com.jetbrains.python.target.PythonLanguageRuntimeConfiguration
+import com.jetbrains.python.uv.sdk.configuration.isUvEnv
 import io.github.z4kn4fein.semver.Version
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -134,11 +134,6 @@ sealed interface UvPathOperations<P : PathHolder> {
   fun mapProbablyWslPath(path: P): P
 
   /**
-   * Suggests SDK name appropriate for this context type.
-   */
-  fun suggestSdkName(sdkAdditionalData: PythonSdkAdditionalData): String
-
-  /**
    * Detects UV environments in immediate subdirectories of [workingDir].
    */
   suspend fun detectEnvironments(): List<DetectedSelectableInterpreter<P>>
@@ -157,17 +152,13 @@ sealed interface UvPathOperations<P : PathHolder> {
       return UvSdkAdditionalData(workingDir, usePip, venvPath.path, uvPath.path)
     }
 
-    override fun suggestSdkName(sdkAdditionalData: PythonSdkAdditionalData): String {
-      return "uv (${PathUtil.getFileName(workingDir.pathString)})"
-    }
-
     override suspend fun detectEnvironments(): List<DetectedSelectableInterpreter<PathHolder.Eel>> {
       if (workingDir.getEelDescriptor().toEelApi() != fileSystem.eelApi) return emptyList()
 
       return workingDir.listDirectoryEntries().filter { it.isDirectory() }.mapNotNull { possibleVenvHome ->
         val pythonBinary = possibleVenvHome.resolvePythonBinary() ?: return@mapNotNull null
         val pythonInfo = pythonBinary.validatePythonAndGetInfo().successOrNull ?: return@mapNotNull null
-        val ui = if (pythonBinary.pyvenvContains("uv = ")) UV_UI_INFO else null
+        val ui = if (pythonBinary.isUvEnv()) UV_UI_INFO else null
         DetectedSelectableInterpreter(PathHolder.Eel(pythonBinary), pythonInfo, false, ui)
       }
     }
@@ -191,11 +182,6 @@ sealed interface UvPathOperations<P : PathHolder> {
       return PyTargetAwareAdditionalData(flavorAndData, targetConfig).also {
         it.interpreterPath = pythonBinary.pathString
       }
-    }
-
-    override fun suggestSdkName(sdkAdditionalData: PythonSdkAdditionalData): String {
-      val baseName = PythonInterpreterTargetEnvironmentFactory.findDefaultSdkName(null, sdkAdditionalData as PyTargetAwareAdditionalData, null)
-      return "uv $baseName"
     }
 
     // TODO PY-87712 Support detection for remotes
@@ -372,7 +358,6 @@ suspend fun <P : PathHolder> setupExistingEnvAndSdk(
 ): PyResult<Sdk> = withProgressText(PyBundle.message("python.sdk.progress.uv.configuring")) {
   val ops = createUvPathOperations(workingDir, fileSystem)
   val sdkAdditionalData = ops.createSdkAdditionalData(workingDir, pythonBinary, usePip, uvPath)
-  val sdkName = ops.suggestSdkName(sdkAdditionalData)
-  val sdk = createSdk(pythonBinary, sdkName, sdkAdditionalData)
+  val sdk = createSdk(pythonBinary, sdkAdditionalData = sdkAdditionalData)
   sdk
 }

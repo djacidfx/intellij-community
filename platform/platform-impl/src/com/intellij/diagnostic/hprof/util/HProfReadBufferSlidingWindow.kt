@@ -176,6 +176,9 @@ class HProfReadBufferSlidingWindow private constructor(
     if (!hasRemaining()) {
       return EMPTY_BUFFER
     }
+    if (!buffer.hasRemaining()) {
+      remapBuffer(position())
+    }
     return buffer.slice().asReadOnlyBuffer()
   }
 

@@ -62,6 +62,7 @@ jvm_library(
 
 jvm_library(
   name = "cio_test_lib",
+  testonly = True,
   module_name = "fleet.ktor.server.cio",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

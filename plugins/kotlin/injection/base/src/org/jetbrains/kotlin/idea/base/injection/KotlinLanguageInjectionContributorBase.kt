@@ -42,10 +42,12 @@ import org.intellij.plugins.intelliLang.util.AnnotationUtilEx
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.kotlin.KtNodeTypes
 import org.jetbrains.kotlin.analysis.api.analyze
+import org.jetbrains.kotlin.analysis.api.analyzeCopy
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisFromWriteAction
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisFromWriteAction
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
+import org.jetbrains.kotlin.analysis.api.projectStructure.KaDanglingFileResolutionMode
 import org.jetbrains.kotlin.analysis.api.resolution.singleFunctionCallOrNull
 import org.jetbrains.kotlin.analysis.api.resolution.symbol
 import org.jetbrains.kotlin.builtins.StandardNames
@@ -75,6 +77,7 @@ import org.jetbrains.kotlin.psi.KtDeclaration
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtExpression
+import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtFunction
 import org.jetbrains.kotlin.psi.KtIfExpression
 import org.jetbrains.kotlin.psi.KtLiteralStringTemplateEntry
@@ -174,7 +177,15 @@ abstract class KotlinLanguageInjectionContributorBase : LanguageInjectionContrib
         @OptIn(KaAllowAnalysisOnEdt::class, KaAllowAnalysisFromWriteAction::class)
         return allowAnalysisOnEdt {
             allowAnalysisFromWriteAction {
-                getBaseInjection(context, support).takeIf { it != absentKotlinInjection }
+                val containingFile = context.containingFile
+                val originalFile = containingFile?.originalFile
+                if (containingFile is KtFile && originalFile != null && originalFile != context.containingFile) {
+                    analyzeCopy(containingFile, resolutionMode = KaDanglingFileResolutionMode.PREFER_SELF) {
+                        getBaseInjection(context, support).takeIf { it != absentKotlinInjection }
+                    }
+                } else {
+                    getBaseInjection(context, support).takeIf { it != absentKotlinInjection }
+                }
             }
         }
     }

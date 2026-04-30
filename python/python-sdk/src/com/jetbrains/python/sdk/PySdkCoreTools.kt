@@ -7,6 +7,7 @@ import com.intellij.openapi.projectRoots.ProjectJdkTable
 import com.intellij.openapi.projectRoots.Sdk
 import com.jetbrains.python.sdk.flavors.PythonSdkFlavor
 import org.jetbrains.annotations.ApiStatus.Internal
+import java.nio.file.Path
 
 /**
  * Each [Sdk] has [PythonSdkAdditionalData]. Use this method to get it.
@@ -28,7 +29,7 @@ fun Sdk.getOrCreateAdditionalData(): PythonSdkAdditionalData {
     error("homePath is null for $this")
   }
 
-  val flavor = PythonSdkFlavor.tryDetectFlavorByLocalPath(homePath!!)
+  val flavor = PythonSdkFlavor.tryDetectFlavorByLocalPath(Path.of(homePath!!))
   if (flavor == null) {
     thisLogger().error("No flavor detected for $homePath sdk")
     return PyInvalidSdk

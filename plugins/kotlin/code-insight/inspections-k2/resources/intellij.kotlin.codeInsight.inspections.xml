@@ -738,6 +738,16 @@
                      key="inspection.simplifiable.call.chain.display.name" bundle="messages.KotlinBundle"
                      />
 
+    <localInspection implementationClass="org.jetbrains.kotlin.idea.k2.codeinsight.inspections.ReplaceMapKeysCallChainWithKeysInspection"
+                     language="kotlin"
+                     groupPath="Kotlin"
+                     groupBundle="messages.KotlinBundle" groupKey="group.names.style.issues"
+                     enabledByDefault="true"
+                     cleanupTool="true"
+                     level="WEAK WARNING"
+                     key="inspection.replace.map.keys.call.chain.with.keys.display.name" bundle="messages.KotlinBundle"
+                     />
+
     <localInspection implementationClass="org.jetbrains.kotlin.idea.k2.codeinsight.inspections.MapToForEachInspection"
                      language="kotlin"
                      groupPath="Kotlin"

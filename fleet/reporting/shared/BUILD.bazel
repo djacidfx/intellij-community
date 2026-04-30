@@ -37,6 +37,7 @@ jvm_library(
 
 jvm_library(
   name = "shared_test_lib",
+  testonly = True,
   module_name = "fleet.reporting.shared",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

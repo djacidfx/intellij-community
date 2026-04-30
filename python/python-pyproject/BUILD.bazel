@@ -49,6 +49,7 @@ jvm_library(
 
 jvm_library(
   name = "pyproject_test_lib",
+  testonly = True,
   module_name = "intellij.python.pyproject",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -109,6 +110,7 @@ jvm_library(
 
 jvm_library(
   name = "pyproject-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form"], allow_empty = True),
   resources = [":pyproject-tests_test_resources"],

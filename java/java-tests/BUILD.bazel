@@ -16,6 +16,7 @@ jvm_library(
     "//plugins/java-i18n",
     "//plugins/coverage",
     "//java/java-backend:backend",
+    "//java/java-frontend:frontend",
   ],
   runtime_deps = [
     "//platform/testFramework",
@@ -44,6 +45,7 @@ jvm_library(
     "//xml/xml-psi-impl:psi-impl",
     "//plugins/coverage",
     "//java/java-backend:backend",
+    "//java/java-frontend:frontend",
     "//libraries/stream",
     "//libraries/fastutil",
     "//platform/platform-impl:ide-impl",
@@ -58,6 +60,7 @@ jvm_library(
 
 jvm_library(
   name = "tests_test_lib",
+  testonly = True,
   module_name = "intellij.java.tests",
   visibility = ["//visibility:public"],
   srcs = glob(["testSrc/**/*.kt", "testSrc/**/*.java", "testSrc/**/*.form", "testGen/**/*.kt", "testGen/**/*.java"], allow_empty = True, exclude = ["testSrc/com/intellij/java/codeInspection/bytecodeAnalysis/precompiledData/**/*"]),
@@ -207,6 +210,8 @@ jvm_library(
     "//plugins/coverage:coverage_test_lib",
     "//java/java-backend:backend",
     "//java/java-backend:backend_test_lib",
+    "//java/java-frontend:frontend",
+    "//java/java-frontend:frontend_test_lib",
     "//platform/workspace/jps",
     "//platform/workspace/jps:jps_test_lib",
     "//libraries/jackson3/jackson:libraries-jackson3",
@@ -341,6 +346,8 @@ jvm_library(
     "//plugins/coverage:coverage_test_lib",
     "//java/java-backend:backend",
     "//java/java-backend:backend_test_lib",
+    "//java/java-frontend:frontend",
+    "//java/java-frontend:frontend_test_lib",
   ],
   runtime_deps = [
     ":tests",
@@ -388,6 +395,7 @@ jvm_library(
 
 jvm_library(
   name = "tests-main_test_lib",
+  testonly = True,
   module_name = "intellij.java.tests.main",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

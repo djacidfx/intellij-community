@@ -68,6 +68,8 @@
     <applicationService serviceInterface="com.intellij.codeInsight.folding.JavaCodeFoldingSettings"
                         serviceImplementation="com.intellij.codeInsight.folding.impl.JavaCodeFoldingSettingsImpl"/>
 
+    <rdct.remoteSettingProvider implementation="com.intellij.codeInsight.folding.impl.JavaCodeFoldingRemoteSettingProvider"/>
+
     <statementUpDownMover implementation="com.intellij.codeInsight.editorActions.moveUpDown.JavaDeclarationMover" id="declaration"
                           order="before xml"/>
     <statementUpDownMover implementation="com.intellij.codeInsight.editorActions.moveUpDown.JavaStatementMover" id="statement"
@@ -101,5 +103,8 @@
 
     <completion.frontendFriendlyInsertHandler target="com.intellij.codeInsight.completion.FrontendFriendlyOverridableSpaceInsertHandler"/>
 
+    <registryKey key="java.folding.split.frontend.backend" defaultValue="true"
+                 description="Split Java code folding between frontend (syntax-based) and backend (resolve-based) builders"/>
+    <applicationSettings service="com.intellij.codeInsight.folding.impl.JavaCodeFoldingSettingsImpl"/>
   </extensions>
 </idea-plugin>

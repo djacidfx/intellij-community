@@ -3,15 +3,15 @@
 import {deepStrictEqual, strictEqual} from 'node:assert/strict'
 import {describe, it} from 'bun:test'
 import {
-  resolveRoute,
-  resolveIdeForPath,
-  rewriteArgsForTarget,
+  createPathPrefixTransformer,
+  extractPathArg,
   isMergeTool,
   isRiderPath,
-  extractPathArg,
-  splitPathListArgsByIde,
+  resolveIdeForPath,
+  resolveRoute,
+  rewriteArgsForTarget,
   riderItemTransformer,
-  createPathPrefixTransformer
+  splitPathListArgsByIde
 } from './routing'
 
 const PROJECT_ROOT = '/repo'
@@ -192,16 +192,16 @@ describe('ij MCP proxy routing', () => {
 
   describe('riderItemTransformer', () => {
     it('prefixes filePath with dotnet/', () => {
-      const items = [{filePath: 'Psi.Features/Foo.cs', lineNumber: 1}]
+      const items = [{filePath: 'Psi.Features/Foo.cs', startLine: 1}]
       const result = riderItemTransformer(items)
       strictEqual(result[0].filePath, 'dotnet/Psi.Features/Foo.cs')
     })
 
     it('preserves other fields', () => {
-      const items = [{filePath: 'Foo.cs', lineNumber: 42, lineText: 'hello'}]
+      const items = [{filePath: 'Foo.cs', startLine: 42, startColumn: 5}]
       const result = riderItemTransformer(items)
-      strictEqual(result[0].lineNumber, 42)
-      strictEqual(result[0].lineText, 'hello')
+      strictEqual(result[0].startLine, 42)
+      strictEqual(result[0].startColumn, 5)
     })
 
     it('handles empty array', () => {

@@ -28,6 +28,7 @@ jvm_library(
 
 jvm_library(
   name = "object-serializer_test_lib",
+  testonly = True,
   module_name = "intellij.platform.objectSerializer",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -71,6 +72,7 @@ jvm_library(
 
 jvm_library(
   name = "objectSerializer-annotations_test_lib",
+  testonly = True,
   module_name = "intellij.platform.objectSerializer.annotations",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -101,6 +103,7 @@ jvm_library(
 
 jvm_library(
   name = "objectSerializer-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["testInternalSrc/**/*.kt", "testInternalSrc/**/*.java", "testInternalSrc/**/*.form", "testSrc/**/*.kt", "testSrc/**/*.java", "testSrc/**/*.form"], allow_empty = True),
   associates = [

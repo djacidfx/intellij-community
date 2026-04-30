@@ -4,9 +4,9 @@ package org.jetbrains.plugins.gradle.execution.build
 import com.intellij.execution.application.ApplicationConfigurationType
 import com.intellij.execution.scratch.JavaScratchConfigurationType
 import com.intellij.openapi.concurrency.awaitPromise
-import com.intellij.openapi.externalSystem.util.DEFAULT_SYNC_TIMEOUT
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.use
+import com.intellij.platform.externalSystem.testFramework.DEFAULT_EXTERNAL_SYSTEM_TEST_TIMEOUT
 import com.intellij.task.ProjectTaskContext
 import com.intellij.task.ProjectTaskRunner
 import com.intellij.task.TaskRunnerResults
@@ -89,7 +89,7 @@ class GradleProjectTaskRunnerTest : GradleProjectTaskRunnerTestCase() {
 
               val buildPromise = projectTaskRunner.run(project, buildTaskContext, buildTask)
               val buildResult = withContext(NonCancellable) {
-                buildPromise.awaitPromise(DEFAULT_SYNC_TIMEOUT)
+                buildPromise.awaitPromise(DEFAULT_EXTERNAL_SYSTEM_TEST_TIMEOUT)
               }
 
               Assertions.assertEquals(TaskRunnerResults.SUCCESS, buildResult)
@@ -124,7 +124,7 @@ class GradleProjectTaskRunnerTest : GradleProjectTaskRunnerTestCase() {
 
         val buildPromise = projectTaskRunner.run(project, buildTaskContext, buildTask)
         val buildResult = withContext(NonCancellable) {
-          buildPromise.awaitPromise(DEFAULT_SYNC_TIMEOUT)
+          buildPromise.awaitPromise(DEFAULT_EXTERNAL_SYSTEM_TEST_TIMEOUT)
         }
 
         Assertions.assertEquals(TaskRunnerResults.FAILURE, buildResult)

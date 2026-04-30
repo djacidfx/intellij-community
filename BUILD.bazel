@@ -17,6 +17,8 @@ exports_files(
 filegroup(
   name = "jps_to_bazel_community_model_root_files",
   srcs = [
+    ".idea/kotlinc.xml",
+    ".idea/misc.xml",
     ".idea/modules.xml",
   ] + glob([".idea/libraries/*.xml"]),
   visibility = ["//visibility:public"],
@@ -304,6 +306,7 @@ jvm_library(
 
 jvm_library(
   name = "main_test_lib",
+  testonly = True,
   module_name = "intellij.idea.community.main",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -513,6 +516,7 @@ jvm_library(
 
 jvm_library(
   name = "main-android_test_lib",
+  testonly = True,
   module_name = "intellij.idea.community.main.android",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -547,6 +551,7 @@ jvm_library(
 
 jvm_library(
   name = "main-tests_test_lib",
+  testonly = True,
   module_name = "intellij.idea.community.main.tests",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -998,6 +1003,8 @@ jvm_library(
     "//platform/syntax/syntax-i18n:i18n-tests_test_lib",
     "//platform/syntax/syntax-api:tests",
     "//platform/syntax/syntax-api:tests_test_lib",
+    "//platform/syntax/syntax-util:util-tests",
+    "//platform/syntax/syntax-util:util-tests_test_lib",
     "//platform/testFramework/junit5.jimfs:junit5-jimfs-tests",
     "//platform/testFramework/junit5.jimfs:junit5-jimfs-tests_test_lib",
     "//platform/testFramework/junit5/projectStructure:testFramework-junit5-projectStructure-tests",

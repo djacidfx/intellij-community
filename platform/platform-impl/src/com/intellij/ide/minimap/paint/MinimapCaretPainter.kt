@@ -34,15 +34,14 @@ class MinimapCaretPainter(private val editor: Editor, private val panel: Minimap
     }
 
     val baseLineHeight = MinimapLineGeometryUtil.baseLineHeight(lineCount, geometry.minimapHeight)
-    val lineGap = MinimapLineGeometryUtil.lineGap(baseLineHeight)
 
     val document = editor.document
     val safeOffset = offset.coerceIn(0, document.textLength)
     val lineNumber = document.getLineNumber(safeOffset)
     val projectedLine = lineProjection.logicalToProjectedLine(lineNumber) ?: return null
 
-    val lineStartY = MinimapLineGeometryUtil.lineTop(projectedLine, baseLineHeight) - geometry.areaStart + lineGap / 2.0
-    val lineHeight = MinimapLineGeometryUtil.lineHeight(baseLineHeight, lineGap)
+    val lineStartY = MinimapLineGeometryUtil.lineTop(projectedLine, baseLineHeight) - geometry.areaStart
+    val lineHeight = baseLineHeight.coerceAtLeast(1.0)
 
     if (lineHeight <= 0.0 || lineStartY > context.panelHeight || lineStartY + lineHeight < 0) {
       return null

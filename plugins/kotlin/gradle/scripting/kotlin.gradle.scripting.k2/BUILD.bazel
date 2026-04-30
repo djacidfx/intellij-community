@@ -83,12 +83,12 @@ jvm_library(
     "//plugins/kotlin/code-insight/impl-base:kotlin-codeInsight-shared",
     "//plugins/kotlin/uast/uast-kotlin-base:kotlin-uast-base",
     "//platform/lang-api:lang",
-    "//platform/indexing-api:indexing",
   ]
 )
 
 jvm_library(
   name = "kotlin-gradle-scripting_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.gradle.scripting",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -136,7 +136,6 @@ jvm_library(
     "//plugins/kotlin/code-insight/impl-base:kotlin-codeInsight-shared_test_lib",
     "//plugins/kotlin/uast/uast-kotlin-base:kotlin-uast-base_test_lib",
     "//platform/lang-api:lang_test_lib",
-    "//platform/indexing-api:indexing_test_lib",
   ]
 )
 ### auto-generated section `build intellij.kotlin.gradle.scripting` end
@@ -168,6 +167,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-gradle-scripting-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["tests/**/*.kt", "tests/**/*.java", "tests/**/*.form"], allow_empty = True),
   kotlinc_opts = ":custom_kotlin-gradle-scripting-tests",

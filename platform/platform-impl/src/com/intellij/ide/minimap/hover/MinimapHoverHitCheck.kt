@@ -2,9 +2,10 @@
 package com.intellij.ide.minimap.hover
 
 import com.intellij.ide.minimap.geometry.MinimapLineGeometryUtil
+import com.intellij.ide.minimap.layout.MinimapLayoutMetrics
 import com.intellij.ide.minimap.layout.MinimapLayoutUtil.lineTop
 import com.intellij.ide.minimap.render.MinimapRenderEntry
-import com.intellij.ide.minimap.model.MinimapStructureMarkerPolicy
+import com.intellij.ide.minimap.interaction.MinimapInteractionPolicy
 import com.intellij.ide.minimap.render.MinimapRenderContext
 import com.intellij.ide.minimap.scene.MinimapSnapshot
 import com.intellij.navigation.ItemPresentation
@@ -19,7 +20,7 @@ import javax.swing.Icon
 import kotlin.math.ceil
 
 class MinimapHoverHitCheck(private val editor: Editor) {
-  private val structureMarkerPolicy = MinimapStructureMarkerPolicy.forEditor(editor)
+  private val structureMarkerPolicy = MinimapInteractionPolicy.forEditor(editor)
 
   private data class HoverData(
     val range: TextRange,
@@ -45,7 +46,8 @@ class MinimapHoverHitCheck(private val editor: Editor) {
 
       if (area < bestArea) {
         bestArea = area
-        bestResult = MinimapHoverHitCheckResult(entry, rect, data.text, data.icon)
+        val declarationWidth = computeDeclarationWidth(data.range.startOffset, context, snapshot.layoutMetrics)
+        bestResult = MinimapHoverHitCheckResult(entry, rect, data.text, data.icon, declarationWidth)
       }
     }
 
@@ -121,6 +123,21 @@ class MinimapHoverHitCheck(private val editor: Editor) {
 
       HoverData(range, text, icon)
     }
+  }
+
+  fun computeDeclarationWidth(entry: MinimapRenderEntry, context: MinimapRenderContext, metrics: MinimapLayoutMetrics?): Int {
+    val range = resolveRange(entry) ?: return context.panelWidth
+    return computeDeclarationWidth(range.startOffset, context, metrics)
+  }
+
+  private fun computeDeclarationWidth(startOffset: Int, context: MinimapRenderContext, metrics: MinimapLayoutMetrics?): Int {
+    if (metrics == null || metrics.pxPerColumn <= 0.0) return context.panelWidth
+    val document = editor.document
+    val startLine = document.getLineNumber(startOffset.coerceAtLeast(0))
+    val lineStart = document.getLineStartOffset(startLine)
+    val lineEnd = document.getLineEndOffset(startLine)
+    val trimmedLength = document.charsSequence.subSequence(lineStart, lineEnd).trimEnd().length
+    return (metrics.contentStartX + trimmedLength * metrics.pxPerColumn).toInt().coerceIn(1, context.panelWidth)
   }
 
   private fun getText(presentation: ItemPresentation, value: Any): String? {

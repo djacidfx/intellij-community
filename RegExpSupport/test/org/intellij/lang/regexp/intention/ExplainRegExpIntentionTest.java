@@ -69,7 +69,7 @@ public final class ExplainRegExpIntentionTest extends BasePlatformTestCase {
   public void testAlternation() {
     doTest("(\\( \\b|\\b \\))",
            """
-             (\\( \\b|\\b \\)) Capturing Group (https://www.regular-expressions.info/brackets.html) – <b>#1</b> stores the text it matches for later reference
+             (\\( \\b|\\b \\)) Capturing Group (https://www.regular-expressions.info/brackets.html) – #1 stores the text it matches for later reference
                \\( \\b|\\b \\) Alternation (https://www.regular-expressions.info/alternation.html) – matches 1 of 2 alternatives
                  \\( \\b – matches elements in order
                    \\( – matches the LEFT PARENTHESIS character
@@ -79,6 +79,27 @@ public final class ExplainRegExpIntentionTest extends BasePlatformTestCase {
                    \\b Word Boundary (https://www.regular-expressions.info/wordboundaries.html) – matches between a word character and a non-word character
                      – matches the SPACE character
                    \\) – matches the RIGHT PARENTHESIS character
+             """);
+  }
+
+  public void testComment() {
+    doTest("(?x)  implausible# inconceivable",
+           """
+             (?x) Inline Mode Modifier (https://www.regular-expressions.info/modifiers.html) – turns regex modes on or off
+               x – turns on comments mode
+             implausible – matches characters in order
+               i – matches the LATIN SMALL LETTER I character
+               m – matches the LATIN SMALL LETTER M character
+               p – matches the LATIN SMALL LETTER P character
+               l – matches the LATIN SMALL LETTER L character
+               a – matches the LATIN SMALL LETTER A character
+               u – matches the LATIN SMALL LETTER U character
+               s – matches the LATIN SMALL LETTER S character
+               i – matches the LATIN SMALL LETTER I character
+               b – matches the LATIN SMALL LETTER B character
+               l – matches the LATIN SMALL LETTER L character
+               e – matches the LATIN SMALL LETTER E character
+             # inconceivable Comment (https://www.regular-expressions.info/freespacing.html)
              """);
   }
 

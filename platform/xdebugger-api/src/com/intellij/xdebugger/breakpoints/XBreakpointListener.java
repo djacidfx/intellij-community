@@ -10,6 +10,11 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.EventListener;
 
+/**
+ * Listener interface for receiving notifications about changes to breakpoints managed by the XBreakpointManager.
+ * <p/>
+ * A thread where the listener is invoked is unspecified and may vary depending on the implementation.
+ */
 public interface XBreakpointListener<B extends XBreakpoint<?>> extends EventListener {
 
   @Topic.ProjectLevel

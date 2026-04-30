@@ -102,19 +102,20 @@
                  description="Milliseconds margin used when comparing known last seen date with last updated at date for PRs"
                  key="github.last.seen.state.margin.millis"/>
 
-    <registryKey defaultValue="true"
-                 description="Whether to check that the PR list is up-to-date using ETags"
-                 key="github.pr.list.automatic.refresh.enabled"/>
-    <registryKey defaultValue="30"
-                 description="Seconds between checking the ETag for the PR list"
-                 key="github.pr.list.automatic.refresh.seconds"/>
-
     <vcs.github.gistContentsCollector
       implementation="org.jetbrains.plugins.github.DefaultGithubGistContentsCollector"
       id="default"
       order="last"/>
 
     <statistics.counterUsagesCollector implementationClass="org.jetbrains.plugins.github.authentication.GHLoginCollector"/>
+    <applicationSettings service="org.jetbrains.plugins.github.util.GithubSettings"/>
+    <applicationSettings service="org.jetbrains.plugins.github.authentication.accounts.GHPersistentAccounts"/>
+    <projectSettings service="org.jetbrains.plugins.github.pullrequest.ui.filters.GHPRListPersistentSearchHistory"/>
+    <projectSettings service="org.jetbrains.plugins.github.pullrequest.data.service.GHPRPersistentInteractionState"/>
+    <projectSettings service="org.jetbrains.plugins.github.authentication.accounts.GithubProjectDefaultAccountHolder"/>
+    <projectSettings service="org.jetbrains.plugins.github.util.GithubProjectSettings"/>
+    <projectSettings service="org.jetbrains.plugins.github.pullrequest.config.GithubPullRequestsProjectUISettings"/>
+    <projectSettings service="org.jetbrains.plugins.github.util.GithubSharedProjectSettings"/>
   </extensions>
 
   <extensions defaultExtensionNs="Git4Idea">

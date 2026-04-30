@@ -100,6 +100,7 @@ jvm_library(
 
 jvm_library(
   name = "gradle_test_lib",
+  testonly = True,
   module_name = "intellij.gradle",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -198,6 +199,7 @@ jvm_library(
 
 jvm_library(
   name = "gradle-common_test_lib",
+  testonly = True,
   module_name = "intellij.gradle.common",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -246,6 +248,7 @@ jvm_library(
 
 jvm_library(
   name = "gradle-tests_test_lib",
+  testonly = True,
   module_name = "intellij.gradle.tests",
   visibility = ["//visibility:public"],
   srcs = glob(["testGen/**/*.kt", "testGen/**/*.java", "testSources/**/*.kt", "testSources/**/*.java", "testSources/**/*.form"], allow_empty = True),
@@ -425,6 +428,7 @@ jvm_library(
 
 jvm_library(
   name = "gradle-tests-main_test_lib",
+  testonly = True,
   module_name = "intellij.gradle.tests.main",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

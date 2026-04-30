@@ -31,7 +31,6 @@ enum class GithubApiRequestOperation {
   RestGetIssues,
   RestGetIssueComment,
   RestGetPullRequests,
-  RestGetPullRequestListETag,
   RestGetPullRequestDiffFiles,
   RestGetGist,
   RestGetEmojiMap,

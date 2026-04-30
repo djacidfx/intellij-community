@@ -62,6 +62,8 @@
     <statistics.counterUsagesCollector implementationClass="org.jetbrains.kotlin.idea.gradle.statistics.v2.flow.KotlinBuildToolFusFlowCollector"/>
     <statistics.projectUsagesCollector implementation="org.jetbrains.kotlin.idea.gradle.statistics.ComposeLibraryUsagesCollector"/>
     <statistics.projectUsagesCollector implementation="org.jetbrains.kotlin.idea.gradle.statistics.KotlinJsLibraryUsagesCollector"/>
+    <projectSettings service="org.jetbrains.kotlin.idea.gradle.ui.IdeResolveModulePerSourceSetComponent"/>
+    <projectSettings service="org.jetbrains.kotlin.idea.gradle.statistics.KotlinGradleFUSSettings"/>
   </extensions>
   <resource-bundle>messages.KotlinBundle</resource-bundle>
 </idea-plugin>

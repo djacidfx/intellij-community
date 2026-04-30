@@ -26,6 +26,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -234,6 +235,38 @@ public class XBreakpointManagerTest extends XBreakpointsTestCase {
     assertFalse(save().getContent().isEmpty());
     reload();
     assertEquals("changed", getSingleBreakpoint().getProperties().myOption);
+  }
+
+  @Test
+  public void testReloadDoesNotDuplicateDefaultBreakpointsInEventDrivenConsumer() {
+    List<XBreakpoint<MyBreakpointProperties>> visibleBreakpoints =
+      new ArrayList<>(myBreakpointManager.getDefaultBreakpoints(MY_SIMPLE_BREAKPOINT_TYPE));
+    List<String> listenerCalls = new ArrayList<>();
+    myBreakpointManager.addBreakpointListener(MY_SIMPLE_BREAKPOINT_TYPE, new XBreakpointListener<>() {
+      @Override
+      public void breakpointAdded(@NotNull XBreakpoint<MyBreakpointProperties> breakpoint) {
+        listenerCalls.add("breakpoint added " + breakpoint.getProperties().myOption);
+        visibleBreakpoints.add(breakpoint);
+      }
+
+      @Override
+      public void breakpointRemoved(@NotNull XBreakpoint<MyBreakpointProperties> breakpoint) {
+        listenerCalls.add("breakpoint removed " + breakpoint.getProperties().myOption);
+        visibleBreakpoints.remove(breakpoint);
+      }
+
+      @Override
+      public void breakpointChanged(@NotNull XBreakpoint<MyBreakpointProperties> breakpoint) {
+        listenerCalls.add("breakpoint changed " + breakpoint.getProperties().myOption);
+      }
+    }, getTestRootDisposable());
+
+    reload();
+
+    XBreakpoint<MyBreakpointProperties> restoredBreakpoint = assertOneElement(myBreakpointManager.getDefaultBreakpoints(MY_SIMPLE_BREAKPOINT_TYPE));
+    assertThat(listenerCalls).containsExactly("breakpoint removed default", "breakpoint added default");
+    assertThat(visibleBreakpoints).doesNotHaveDuplicates();
+    assertThat(visibleBreakpoints).containsExactly(restoredBreakpoint);
   }
 
   @Test

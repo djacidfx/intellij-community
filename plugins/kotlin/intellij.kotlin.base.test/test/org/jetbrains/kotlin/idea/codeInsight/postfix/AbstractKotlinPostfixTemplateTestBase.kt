@@ -8,7 +8,7 @@ import com.intellij.openapi.application.impl.NonBlockingReadActionImpl
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.util.TextRange
 import com.intellij.testFramework.LightProjectDescriptor
-import com.intellij.testFramework.PlatformTestUtil
+import com.intellij.testFramework.common.waitForAllDocumentsCommitted
 import org.jetbrains.kotlin.idea.KotlinLanguage
 import org.jetbrains.kotlin.idea.base.test.IgnoreTests
 import org.jetbrains.kotlin.idea.base.test.KotlinJvmLightProjectDescriptor
@@ -61,7 +61,7 @@ abstract class AbstractKotlinPostfixTemplateTestBase : NewLightKotlinCodeInsight
                     myFixture.type("\t")
                 }
                 NonBlockingReadActionImpl.waitForAsyncTaskCompletion()
-                PlatformTestUtil.waitForAllDocumentsCommitted(10, TimeUnit.SECONDS)
+                waitForAllDocumentsCommitted(10, TimeUnit.SECONDS)
 
                 val allowMultipleExpressions = InTextDirectivesUtils.isDirectiveDefined(fileText, ALLOW_MULTIPLE_EXPRESSIONS)
                 val suggestedExpressions = with(KotlinPostfixTemplateInfo) { file.suggestedExpressions }

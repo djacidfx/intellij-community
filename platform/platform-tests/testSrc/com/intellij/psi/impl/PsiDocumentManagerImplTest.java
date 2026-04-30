@@ -66,6 +66,7 @@ import com.intellij.testFramework.LeakHunter;
 import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.testFramework.LoggedErrorProcessor;
 import com.intellij.testFramework.PlatformTestUtil;
+import com.intellij.testFramework.common.TestApplicationKt;
 import com.intellij.testFramework.common.ThreadUtil;
 import com.intellij.util.ArrayUtilRt;
 import com.intellij.util.IncorrectOperationException;
@@ -301,7 +302,7 @@ public class PsiDocumentManagerImplTest extends HeavyPlatformTestCase {
     });
 
     while (!getPsiDocumentManager().isCommitted(document)) {
-      PlatformTestUtil.waitForAllDocumentsCommitted(10, TimeUnit.SECONDS);
+      TestApplicationKt.waitForAllDocumentsCommitted(10, TimeUnit.SECONDS);
     }
     assertCommitted(document, true, "");
     assertEquals(1, count.get());
@@ -317,7 +318,7 @@ public class PsiDocumentManagerImplTest extends HeavyPlatformTestCase {
     });
 
     while (!getPsiDocumentManager().isCommitted(document)) {
-      PlatformTestUtil.waitForAllDocumentsCommitted(10, TimeUnit.SECONDS);
+      TestApplicationKt.waitForAllDocumentsCommitted(10, TimeUnit.SECONDS);
     }
     assertCommitted(document, true, "");
     assertEquals(2, count.get());
@@ -595,7 +596,7 @@ public class PsiDocumentManagerImplTest extends HeavyPlatformTestCase {
   }
 
   private static void waitForCommits() {
-    PlatformTestUtil.waitForAllDocumentsCommitted(100, TimeUnit.SECONDS);
+    TestApplicationKt.waitForAllDocumentsCommitted(100, TimeUnit.SECONDS);
   }
 
   public void testReparseDoesNotModifyDocument() throws Exception {
@@ -755,7 +756,7 @@ public class PsiDocumentManagerImplTest extends HeavyPlatformTestCase {
     assertTrue(pdm.hasUncommitedDocuments());
     assertEquals("a", document.getText());
 
-    PlatformTestUtil.waitForAllDocumentsCommitted(100, TimeUnit.SECONDS);
+    TestApplicationKt.waitForAllDocumentsCommitted(100, TimeUnit.SECONDS);
     assertEquals("ab", document.getText());
   }
 
@@ -779,7 +780,7 @@ public class PsiDocumentManagerImplTest extends HeavyPlatformTestCase {
       }
     });
 
-    PlatformTestUtil.waitForAllDocumentsCommitted(100, TimeUnit.SECONDS);
+    TestApplicationKt.waitForAllDocumentsCommitted(100, TimeUnit.SECONDS);
 
     assertCommitted(document, true, "");
     assertFalse(file.isValid());
@@ -1089,7 +1090,7 @@ public class PsiDocumentManagerImplTest extends HeavyPlatformTestCase {
             });
             WriteCommandAction.runWriteCommandAction(getProject(), () -> doc.insertString(0, " "));
           }
-          PlatformTestUtil.waitForAllDocumentsCommitted(1, TimeUnit.MINUTES);
+          TestApplicationKt.waitForAllDocumentsCommitted(1, TimeUnit.MINUTES);
         }
         finally {
           psiDocumentManager.clearUncommittedDocuments();

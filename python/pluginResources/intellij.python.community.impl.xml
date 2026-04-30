@@ -135,6 +135,21 @@
     <statistics.validation.customValidationRule implementation="com.jetbrains.python.run.features.PyRunToolIdValidator"/>
 
     <postStartupActivity implementation="com.jetbrains.python.sdk.PostStartupAvailableSdkNotifier"/>
+    <applicationSettings service="com.jetbrains.python.ReSTService$AppService"/>
+    <projectSettings service="com.jetbrains.python.packaging.PyPackagingSettings"/>
+    <applicationSettings service="com.jetbrains.python.packaging.PyPackageService"/>
+    <applicationSettings service="com.jetbrains.python.packaging.PyPackageRequirementsSettings$AppService"/>
+    <projectSettings service="com.jetbrains.python.console.PyConsoleOptions"/>
+    <applicationSettings service="com.jetbrains.python.testing.TestRunnerService$AppService"/>
+    <projectSettings service="com.jetbrains.python.debugger.PyDebuggerOptionsProvider"/>
+    <projectSettings service="com.jetbrains.python.inspections.PyCompatibilityInspectionAdvertiserSettings"/>
+    <applicationSettings service="com.jetbrains.python.debugger.variablesview.usertyperenderers.PyUserTypeRenderersSettings"/>
+    <applicationSettings service="com.jetbrains.python.sdk.add.v2.poetry.PoetryConfigService"/>
+    <projectSettings service="com.jetbrains.python.black.configuration.BlackFormatterConfiguration"/>
+    <projectSettings service="com.jetbrains.python.module.PySourceRootDetectionService"/>
+    <applicationSettings service="com.jetbrains.python.packaging.repository.PyPackageRepositories"/>
+    <projectSettings service="com.jetbrains.python.statistics.PyPackageUsageStatistics"/>
+    <projectSettings service="com.jetbrains.python.sdk.PyVirtualEnvVcsSettings"/>
   </extensions>
 
 
@@ -163,7 +178,7 @@
                  description="Enable pyi stubs for Django (django-stubs package)"
                  key="django.enable.pyi.stubs"/>
     <iconMapper mappingFile="PythonIconMappings.json"/>
-    <minimapStructureMarkerPolicy implementation="com.jetbrains.python.PyMinimapStructureMarkerPolicy"/>
+    <minimapInteractionPolicy implementation="com.jetbrains.python.PyMinimapInteractionPolicy"/>
     <library.type implementation="com.jetbrains.python.library.PythonLibraryType"/>
     <renameHandler implementation="com.jetbrains.python.magicLiteral.PyMagicLiteralRenameHandler"/>
     <nameSuggestionProvider implementation="com.jetbrains.python.refactoring.PyNameSuggestionProvider"/>
@@ -238,7 +253,7 @@
     <facetIgnorer implementation="com.jetbrains.python.run.DjangoFacetIgnorer"/>
 
     <programRunner implementation="com.jetbrains.python.run.PythonRunner" order="before defaultRunRunner"/>
-    <programRunner implementation="com.jetbrains.python.debugger.PyDebugRunner" order="before defaultDebugRunner"/>
+    <programRunner implementation="com.jetbrains.python.debugger.PyDebugRunner" order="after intellij.platform.dap.DapProgramRunner, before defaultDebugRunner"/>
     <runConfigurationProducer implementation="com.jetbrains.python.run.PythonRunConfigurationProducer"/>
     <xdebugger.breakpointType implementation="com.jetbrains.python.debugger.PyLineBreakpointType"/>
     <xdebugger.breakpointType implementation="com.jetbrains.python.debugger.PyExceptionBreakpointType"/>
@@ -843,11 +858,6 @@
                     interface="com.jetbrains.python.debugger.PyDebugAsyncioCustomizer"
                     dynamic="true"/>
 
-    <!-- Experimental sdk EP, avoid using it -->
-    <extensionPoint qualifiedName="Pythonid.pySdkProvider"
-                    interface="com.jetbrains.python.sdk.PySdkProvider"
-                    dynamic="true"/>
-
     <extensionPoint qualifiedName="Pythonid.connectionCredentialsToTargetConfigurationConverter"
                     interface="com.jetbrains.python.run.target.ConnectionCredentialsToTargetConfigurationConverter"
                     dynamic="true"/>
@@ -956,10 +966,6 @@
 
     <!-- SDK Flavors -->
     <pythonFlavorProvider implementation="com.jetbrains.python.sdk.flavors.conda.CondaEnvSdkFlavorProvider"/>
-    <pythonSdkFlavor implementation="com.jetbrains.python.sdk.flavors.MacPythonSdkFlavor"/>
-    <pythonSdkFlavor implementation="com.jetbrains.python.sdk.flavors.UnixPythonSdkFlavor"/>
-    <pythonSdkFlavor implementation="com.jetbrains.python.sdk.flavors.VirtualEnvSdkFlavor"/>
-    <pythonSdkFlavor implementation="com.jetbrains.python.sdk.flavors.WinPythonSdkFlavor"/>
 
     <!-- Other -->
     <pythonFlavorProvider implementation="com.jetbrains.python.sdk.flavors.MayaFlavorProvider"/>

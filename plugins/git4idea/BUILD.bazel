@@ -118,6 +118,7 @@ jvm_library(
 
 jvm_library(
   name = "vcs-git_test_lib",
+  testonly = True,
   module_name = "intellij.vcs.git",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -281,6 +282,7 @@ jvm_library(
 
 jvm_library(
   name = "vcs-git-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["tests/**/*.kt", "tests/**/*.java", "tests/**/*.form"], allow_empty = True),
   resources = [":vcs-git-tests_test_resources"],

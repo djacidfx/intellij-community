@@ -123,17 +123,6 @@ abstract class PythonPackageManager @ApiStatus.Internal constructor(
   }
 
   @ApiStatus.Internal
-  suspend fun installPackageDetached(
-    installRequest: PythonPackageInstallRequest,
-    options: List<String> = emptyList(),
-  ): PyResult<List<PythonPackage>> {
-    waitForInit()
-    installPackageDetachedCommand(installRequest, options).getOr { return it }
-
-    return reloadPackages()
-  }
-
-  @ApiStatus.Internal
   suspend fun updatePackages(vararg packages: PythonRepositoryPackageSpecification): PyResult<List<PythonPackage>> {
     if (sdk.isReadOnly) {
       return PyResult.localizedError(sdk.readOnlyErrorMessage)

@@ -216,12 +216,20 @@ public final class JavaRearranger implements Rearranger<JavaElementArrangementEn
   }
 
   private static void setupDepthFirstDependency(@NotNull ArrangementEntryDependencyInfo info) {
-    for (ArrangementEntryDependencyInfo dependencyInfo : info.getDependentEntriesInfos()) {
-      setupDepthFirstDependency(dependencyInfo);
-      JavaElementArrangementEntry dependentEntry = dependencyInfo.getAnchorEntry();
-      if (dependentEntry.getDependencies() == null) {
-        dependentEntry.addDependency(info.getAnchorEntry());
+    List<ArrangementEntryDependencyInfo> toProcess = new ArrayList<>(); // used as a stack
+    toProcess.add(info);
+    JavaElementArrangementEntry prev = null;
+    while (!toProcess.isEmpty()) {
+      ArrangementEntryDependencyInfo current = toProcess.removeLast();
+      @NotNull List<ArrangementEntryDependencyInfo> infos = current.getDependentEntriesInfos();
+      for (int i = infos.size() - 1; i >= 0; i--) {
+        toProcess.add(infos.get(i));
       }
+      JavaElementArrangementEntry currentAnchor = current.getAnchorEntry();
+      if (prev != null && currentAnchor.getDependencies() == null) {
+        currentAnchor.addDependency(prev);
+      }
+      prev = currentAnchor;
     }
   }
 

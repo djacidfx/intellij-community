@@ -33,7 +33,6 @@ jvm_library(
     "//platform/refactoring",
     "//xml/xml-psi-api:psi",
     "//xml/xml-parser:parser",
-    "//plugins/kotlin/base/frontend-agnostic",
     "//plugins/kotlin/base/facet",
     "//plugins/kotlin/base/util",
     "//plugins/kotlin/base/psi",
@@ -68,6 +67,7 @@ jvm_library(
 
 jvm_library(
   name = "frontend-independent_test_lib",
+  testonly = True,
   module_name = "kotlin.fir.frontend-independent",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -88,7 +88,6 @@ jvm_library(
     "//platform/refactoring:refactoring_test_lib",
     "//xml/xml-psi-api:psi_test_lib",
     "//xml/xml-parser:parser_test_lib",
-    "//plugins/kotlin/base/frontend-agnostic:frontend-agnostic_test_lib",
     "//plugins/kotlin/base/facet:facet_test_lib",
     "//plugins/kotlin/base/util:util_test_lib",
     "//plugins/kotlin/base/psi:psi_test_lib",

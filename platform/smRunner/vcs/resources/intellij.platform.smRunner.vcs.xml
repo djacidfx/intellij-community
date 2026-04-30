@@ -19,5 +19,6 @@
   <!-- endregion -->
   <extensions defaultExtensionNs="com.intellij">
     <checkinHandlerFactory implementation="com.intellij.execution.vcs.RunConfigurationBeforeCommitHandlerFactory" id="tests"/>
+    <projectSettings service="com.intellij.execution.vcs.VcsRunConfigurationBeforeCommitConfig"/>
   </extensions>
 </idea-plugin>

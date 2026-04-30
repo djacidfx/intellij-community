@@ -50,6 +50,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-codeInsight-overrideImplement_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.codeInsight.overrideImplement",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

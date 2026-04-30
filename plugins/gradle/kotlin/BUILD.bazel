@@ -16,6 +16,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-tests-main_test_lib",
+  testonly = True,
   module_name = "intellij.gradle.kotlin.tests.main",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

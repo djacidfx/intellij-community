@@ -47,6 +47,8 @@ import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.limits.FileSizeLimit;
+import com.intellij.openapi.vfs.newvfs.persistent.PersistentFS;
+import com.intellij.openapi.vfs.newvfs.persistent.PersistentFSImpl;
 import com.intellij.openapi.wm.impl.status.EncodingPanel;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiManager;
@@ -285,6 +287,8 @@ public class FileEncodingTest implements TestDialog {
 
       setText(document, UTF8_XML_PROLOG + XML_TEST_BODY);
       FileDocumentManager.getInstance().saveAllDocuments();
+      //ensure pending VFS IOps are finished before reading files via Path API:
+      PlatformTestUtil.flushAllPendingVFSUpdates();
 
       byte[] savedBytes = Files.readAllBytes(file);
       String saved = new String(savedBytes, StandardCharsets.UTF_8).replace("\r\n", "\n");
@@ -352,7 +356,11 @@ public class FileEncodingTest implements TestDialog {
     //assertTrue(CharsetToolkit.hasUTF16LEBom(fileCopy.getBOM()));
 
     setText(document, "\u04ab\u04cd\u04ef");
+
     FileDocumentManager.getInstance().saveAllDocuments();
+    //ensure pending VFS IOps are finished before reading files via Path API:
+    PlatformTestUtil.flushAllPendingVFSUpdates();
+
     byte[] bytes = Files.readAllBytes(copy);
     assertTrue(Arrays.toString(bytes), CharsetToolkit.hasUTF16LEBom(bytes));
     assertEquals("[-1, -2, -85, 4, -51, 4, -17, 4]", Arrays.toString(bytes));
@@ -479,6 +487,9 @@ public class FileEncodingTest implements TestDialog {
     changed[0] = false;
 
     FileDocumentManager.getInstance().saveAllDocuments();
+    //ensure pending VFS IOps are finished before reading files via Path API:
+    PlatformTestUtil.flushAllPendingVFSUpdates();
+
     byte[] bytes = FileUtil.loadFileBytes(ioFile);
     //file on disk is still windows_1251
     assertArrayEquals(text.getBytes(WINDOWS_1251), bytes);

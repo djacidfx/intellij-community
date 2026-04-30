@@ -129,6 +129,7 @@
 
     <registryKey key="lvcs.trace.changes.persistence.limit" defaultValue="100"
                  description="The maximum number of change entries to log when tracing the local history persistence"/>
+    <applicationSettings service="com.intellij.platform.lvcs.impl.settings.ActivityViewApplicationSettings"/>
   </extensions>
 
   <applicationListeners>

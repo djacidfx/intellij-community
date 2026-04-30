@@ -114,5 +114,21 @@
 
     <statistics.counterUsagesCollector implementationClass="com.intellij.platform.ide.menu.MainMenuCollector"/>
     <statistics.counterUsagesCollector implementationClass="com.intellij.ide.minimap.MinimapUsageCollector"/>
+    <projectSettings service="com.intellij.openapi.updateSettings.impl.pluginsAdvertisement.UnknownFeaturesCollector"/>
+    <projectSettings service="com.intellij.ui.RecentsManager"/>
+    <projectSettings service="com.intellij.ide.errorTreeView.impl.ErrorTreeViewConfiguration"/>
+    <applicationSettings service="com.intellij.execution.wsl.WSLDistributionService"/>
+    <applicationSettings service="com.intellij.util.singleProduct.MigrationToSingleProductSettings"/>
+    <projectSettings service="com.intellij.openapi.project.impl.ProjectRootPersistentStateComponent"/>
+    <projectSettings service="com.intellij.ide.ProjectColorInfoManager"/>
+    <projectSettings service="com.intellij.platform.OpenProjectSettingsService"/>
+    <applicationSettings service="com.intellij.diagnostic.ExceptionEAPAutoReportManager"/>
+    <applicationSettings service="com.intellij.diagnostic.logs.LogLevelConfigurationManager"/>
+    <projectSettings service="com.intellij.openapi.fileEditor.impl.EditorHistoryManager"/>
+    <applicationSettings service="com.intellij.toolWindow.ButtonsStateService"/>
+    <applicationSettings service="com.intellij.toolWindow.ToolWindowDefaultLayoutManager"/>
+    <applicationSettings service="com.intellij.toolWindow.xNext.toolbar.data.XNextPinnedService"/>
+    <applicationSettings service="com.intellij.notification.impl.RemindLaterManager"/>
+    <applicationSettings service="com.intellij.ide.plugins.org.PluginManagerConfigurableForOrgConfig"/>
   </extensions>
 </idea-plugin>

@@ -126,6 +126,9 @@
     <projectService serviceImplementation="com.intellij.uiDesigner.propertyInspector.DesignerToolWindowManager" headlessImplementation=""/>
 
     <projectService serviceImplementation="com.intellij.ide.palette.impl.PaletteToolWindowManager" headlessImplementation=""/>
+    <projectSettings service="com.intellij.uiDesigner.GuiDesignerConfiguration"/>
+    <projectSettings service="com.intellij.uiDesigner.palette.Palette"/>
+    <projectSettings service="com.intellij.uiDesigner.clientProperties.ClientPropertiesManager"/>
   </extensions>
 
   <actions>

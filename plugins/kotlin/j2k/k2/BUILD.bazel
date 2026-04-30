@@ -59,6 +59,7 @@ jvm_library(
 
 jvm_library(
   name = "kotlin-j2k_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.j2k",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

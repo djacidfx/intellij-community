@@ -7,7 +7,8 @@ import com.intellij.ide.minimap.geometry.MinimapScaleUtil
 import com.intellij.ide.minimap.layout.MinimapLayoutCalculator
 import com.intellij.ide.minimap.listeners.MinimapStateListeners
 import com.intellij.ide.minimap.listeners.MinimapUiListeners
-import com.intellij.ide.minimap.interaction.MinimapScrollPolicy
+import com.intellij.ide.minimap.interaction.MinimapInteractionPolicy
+import com.intellij.ide.minimap.layout.MinimapLayoutPolicy
 import com.intellij.ide.minimap.model.MinimapModel
 import com.intellij.ide.minimap.scene.MinimapSceneBuilder
 import com.intellij.ide.minimap.settings.MinimapSettings
@@ -106,7 +107,8 @@ class MinimapController(
   fun refreshSnapshot() {
     val state = settings.state
     val panelHeight = max(if (panel.height > 0) panel.height else container.height, 0)
-    val scaleData = MinimapScaleUtil.computeScale(editor, panelHeight, state.width, state.scaleMode)
+    val effectiveScaleMode = MinimapLayoutPolicy.getEffectiveScaleMode(editor, state.scaleMode)
+    val scaleData = MinimapScaleUtil.computeScale(editor, panelHeight, state.width, effectiveScaleMode)
     if (!updatePanelVisibility(scaleData.width)) {
       return
     }
@@ -120,7 +122,7 @@ class MinimapController(
       panelWidth,
       panelHeight,
       scaleData,
-      state.scaleMode,
+      effectiveScaleMode,
       MinimapRegistry.isLegacy(),
       areaStartOverride,
     )
@@ -131,7 +133,7 @@ class MinimapController(
   }
 
   fun isIndependentScrollEnabled(): Boolean {
-    return MinimapScrollPolicy.useIndependentMinimapScroll(editor)
+    return MinimapInteractionPolicy.useIndependentMinimapScroll(editor)
   }
 
   fun scrollIndependentViewportBy(deltaPx: Int): Boolean {

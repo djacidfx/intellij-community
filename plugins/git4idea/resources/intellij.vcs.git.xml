@@ -962,6 +962,22 @@
 
     <vcs.commitSuccessNotificationActionProvider
       implementation="git4idea.rebase.log.GitCommitSuccessNotificationRewordProvider"/>
+    <projectSettings service="git4idea.config.GitMergeSettings"/>
+    <projectSettings service="git4idea.config.GitRebaseSettings"/>
+    <projectSettings service="git4idea.config.GitPullSettings"/>
+    <applicationSettings service="git4idea.config.SSHConnectionSettings"/>
+    <projectSettings service="git4idea.config.GitSharedSettings"/>
+    <applicationSettings service="git4idea.config.GitVcsApplicationSettings"/>
+    <applicationSettings service="git4idea.remote.GitRememberedInputs"/>
+    <applicationSettings service="git4idea.log.GitExternalLogTabsProperties"/>
+    <applicationSettings service="git4idea.index.ui.GitStageUiApplicationSettings"/>
+    <projectSettings service="git4idea.update.GitUpdateProjectInfoLogProperties"/>
+    <projectSettings service="git4idea.ui.branch.dashboard.BranchesTreeStateHolder"/>
+    <projectSettings service="git4idea.branch.GitCompareBranchesBottomLogProperties"/>
+    <projectSettings service="git4idea.branch.GitCompareBranchesTopLogProperties"/>
+    <projectSettings service="git4idea.rebase.interactive.GitRewordedCommitMessageProvider"/>
+    <projectSettings service="git4idea.search.GitSearchEverywhereFilterConfiguration"/>
+    <projectSettings service="git4idea.index.ui.GitStageUiProjectSettings"/>
   </extensions>
 
   <extensions defaultExtensionNs="Git4Idea">

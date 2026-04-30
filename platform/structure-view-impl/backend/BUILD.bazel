@@ -36,11 +36,13 @@ jvm_library(
     "//platform/remote-topics/shared:rpc-topics",
     "//platform/util:util-ui",
     "//fleet/rhizomedb",
-  ]
+  ],
+  runtime_deps = ["//platform/backend"]
 )
 
 jvm_library(
   name = "backend_test_lib",
+  testonly = True,
   module_name = "intellij.platform.structureView.backend",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -50,6 +52,7 @@ jvm_library(
     "//platform/platform-impl:ide-impl_test_lib",
     "//platform/platform-impl/rpc:rpc_test_lib",
     "//platform/kernel/shared:kernel_test_lib",
+    "//platform/backend:backend_test_lib",
     "//platform/kernel/rpc.backend:rpc.backend_test_lib",
     "//platform/editor-ui-api:editor-ui_test_lib",
     "//platform/platform-api:ide_test_lib",

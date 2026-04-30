@@ -291,6 +291,8 @@ com.intellij.lang.WhitespacesAndCommentsBinder$TokenTextGetter
 - a:get(I):java.lang.CharSequence
 c:com.intellij.lang.folding.CompositeFoldingBuilder
 - keepExpandedOnFirstCollapseAll(com.intellij.lang.folding.FoldingDescriptor):Z
+a:com.intellij.lang.folding.CustomFoldingBuilder
+- s:isCustomRegionElement(com.intellij.psi.PsiElement):Z
 com.intellij.lang.folding.FoldingBuilder
 - com.intellij.openapi.project.PossiblyDumbAware
 - a:buildFoldRegions(com.intellij.lang.ASTNode,com.intellij.openapi.editor.Document):com.intellij.lang.folding.FoldingDescriptor[]

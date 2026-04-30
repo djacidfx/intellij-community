@@ -171,6 +171,10 @@ class PluginManagerConfigurable() : SearchableConfigurable, Configurable.NoScrol
     createPanelIfNeeded().select(pluginIds)
   }
 
+  override fun isSearchableInActions(): Boolean {
+    return false
+  }
+
   companion object {
     const val ID: String = "preferences.pluginManager"
     const val SELECTION_TAB_KEY: String = "PluginConfigurable.selectionTab"

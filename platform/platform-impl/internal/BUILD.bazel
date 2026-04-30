@@ -72,6 +72,7 @@ jvm_library(
 
 jvm_library(
   name = "internal_test_lib",
+  testonly = True,
   module_name = "intellij.platform.ide.internal",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

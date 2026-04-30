@@ -3,15 +3,18 @@ load("@rules_jvm//:jvm.bzl", "jvm_library")
 
 jvm_library(
   name = "main-tests",
+  module_name = "intellij.idea.community.main.tests",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True)
 )
 
 jvm_library(
   name = "main-tests_test_lib",
+  testonly = True,
   module_name = "intellij.idea.community.main.tests",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
+  kotlinc_opts = "@community//:k21",
   runtime_deps = [":main-tests"]
 )
 ### auto-generated section `build intellij.idea.community.main.tests` end

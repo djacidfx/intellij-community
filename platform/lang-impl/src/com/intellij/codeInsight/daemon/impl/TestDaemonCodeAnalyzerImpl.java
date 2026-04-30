@@ -154,6 +154,8 @@ public final class TestDaemonCodeAnalyzerImpl {
   @RequiresEdt
   private void waitForAllThingsBeforeDaemonStart(@NotNull Document document, boolean mustWaitForSmartMode, long timeoutMs) {
     ThreadingAssertions.assertEventDispatchThread();
+    waitWhilePumping(myDaemonCodeAnalyzer.renewInBackgroundAndRestart);
+
     ((FileTypeManagerImpl)FileTypeManager.getInstance()).drainReDetectQueue();
     do {
       dispatchAllInvocationEventsInIdeEventQueueReleasingWIL();
@@ -416,13 +418,13 @@ public final class TestDaemonCodeAnalyzerImpl {
         @Override
         public void daemonFinished(@NotNull Collection<? extends FileEditor> fileEditors) {
           listenersCalled.up();
-          PassExecutorService.LOG.trace("waitForDaemonToFinish.daemonFinished");
+          DaemonCodeAnalyzerImpl.LOG.trace("waitForDaemonToFinish.daemonFinished: "+fileEditors);
         }
 
         @Override
         public void daemonCancelEventOccurred(@NotNull String reason) {
           listenersCalled.up();
-          PassExecutorService.LOG.trace("waitForDaemonToFinish.daemonCancelEventOccurred: " + reason);
+          DaemonCodeAnalyzerImpl.LOG.trace("waitForDaemonToFinish.daemonCancelEventOccurred: " + reason);
         }
       });
       if (!daemonIsWorkingOrPending(document)) {
@@ -492,6 +494,7 @@ public final class TestDaemonCodeAnalyzerImpl {
     finally {
       Disposer.dispose(disposable);
       Reference.reachabilityFence(document);
+      Reference.reachabilityFence(psiFile);
     }
   }
 
@@ -541,6 +544,8 @@ public final class TestDaemonCodeAnalyzerImpl {
     }
     } finally {
       Disposer.dispose(disposable);
+      Reference.reachabilityFence(document);
+      Reference.reachabilityFence(psiFile);
     }
     DaemonCodeAnalyzerImpl.LOG.debug("waitForDaemonToStart("+document+") finished because daemon completed: progress="+myDaemonCodeAnalyzer.getUpdateProgress()+
                                      "\n; fileStatusMap:"+ myDaemonCodeAnalyzer.getFileStatusMap()+
@@ -623,5 +628,54 @@ public final class TestDaemonCodeAnalyzerImpl {
   public boolean isMarkedCodeFragment(@NotNull Document document) {
     assert ApplicationManager.getApplication().isUnitTestMode();
     return myDaemonCodeAnalyzer.myListeners.isMarkedCodeFragment(document);
+  }
+  // set daemon loggers to TRACE log level, execute runnable, and restore the level to not freak out other tests
+
+  public static void restoreOldLevels(@NotNull Map<JulLogger, LogLevel> oldLevels) {
+    for (Map.Entry<JulLogger, LogLevel> entry : oldLevels.entrySet()) {
+      JulLogger logger = entry.getKey();
+      LogLevel oldLevel = entry.getValue();
+      logger.setLevel(oldLevel);
+    }
+  }
+
+  public static @NotNull Map<JulLogger, LogLevel> setTraceLevel(boolean isStressTest) {
+    List<String> classNames = List.of(
+      BackgroundUpdateHighlightersUtil.class.getName(),
+      DaemonCodeAnalyzerImpl.class.getName(),
+      DaemonProgressIndicator.class.getName(),
+      FileStatusMap.class.getName(),
+      GeneralHighlightingPass.class.getName(),
+      HighlightInfoUpdaterImpl.class.getName(),
+      IntervalTreeImpl.class.getName(),
+      PassExecutorService.class.getName(),
+      "com.intellij.openapi.editor.impl.RangeHighlighterImpl",
+      UpdateHighlightersUtil.class.getName()
+    );
+    return ContainerUtil.map2Map(classNames, className -> {
+      JulLogger logger;
+      try {
+        logger = (JulLogger)ReflectionUtil.getField(Class.forName(className), null, Logger.class, "LOG");
+      }
+      catch (ClassNotFoundException e) {
+        throw new RuntimeException(e);
+      }
+      LogLevel oldLevel = logger.getLevel();
+      Pair<JulLogger, LogLevel> pair = Pair.create(logger, oldLevel);
+      if (!isStressTest) {
+        logger.setLevel(LogLevel.TRACE);
+      }
+      return pair;
+    });
+  }
+
+  public static <T extends Throwable> void runWithDaemonLoggerTraceLevel(boolean isStressTest, @NotNull ThrowableRunnable<T> runnable) throws T {
+    Map<JulLogger, LogLevel> oldLevels = setTraceLevel(isStressTest);
+    try {
+      runnable.run();
+    }
+    finally {
+      restoreOldLevels(oldLevels);
+    }
   }
 }

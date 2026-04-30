@@ -25,6 +25,7 @@
                  description="Enable rendering of overlapping execution filters with hyperlinks."
                  defaultValue="true"
                  restartRequired="false"/>
+    <projectSettings service="com.intellij.execution.RunConfigurationProducerService"/>
   </extensions>
 
 </idea-plugin>

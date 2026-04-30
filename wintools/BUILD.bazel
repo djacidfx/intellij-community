@@ -23,6 +23,7 @@ jvm_library(
 
 jvm_library(
   name = "wintools_test_lib",
+  testonly = True,
   module_name = "intellij.community.wintools",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -53,6 +54,7 @@ jvm_library(
 
 jvm_library(
   name = "wintools-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["tests/**/*.kt", "tests/**/*.java", "tests/**/*.form"], allow_empty = True),
   associates = [

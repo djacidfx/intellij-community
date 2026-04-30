@@ -64,6 +64,8 @@
     <editorFloatingToolbarProvider
             implementation="org.jetbrains.kotlin.idea.core.script.k2.ScriptConfigurationFloatingToolbarProvider"
             id="ScriptConfigurationFloatingToolbarProvider"/>
+    <projectSettings service="org.jetbrains.kotlin.idea.core.script.k2.settings.ScriptDefinitionSettingsPersistentStateComponent"/>
+    <projectSettings service="org.jetbrains.kotlin.idea.core.script.k2.definitions.ScriptTemplatesDefinitionsFromDependenciesStorage"/>
   </extensions>
 
   <extensionPoints>

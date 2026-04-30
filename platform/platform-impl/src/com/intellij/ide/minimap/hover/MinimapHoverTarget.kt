@@ -9,7 +9,8 @@ data class MinimapHoverTarget(
   val entry: MinimapRenderEntry,
   val rect: Rectangle,
   val text: String,
-  val icon: Icon?
+  val icon: Icon?,
+  val declarationWidth: Int,
 ) {
   fun sameAs(other: MinimapHoverTarget?): Boolean {
     if (other == null) return false

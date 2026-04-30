@@ -24,6 +24,7 @@ jvm_library(
 
 jvm_library(
   name = "conda_test_lib",
+  testonly = True,
   module_name = "intellij.python.community.impl.conda",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

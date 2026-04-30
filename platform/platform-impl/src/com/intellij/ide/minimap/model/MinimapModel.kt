@@ -2,6 +2,8 @@
 package com.intellij.ide.minimap.model
 
 import com.intellij.ide.minimap.MinimapStructureProvider
+import com.intellij.ide.minimap.interaction.MinimapInteractionPolicy
+import com.intellij.ide.minimap.layout.MinimapLayoutPolicy
 import com.intellij.ide.structureView.StructureViewModel
 import com.intellij.ide.structureView.StructureViewTreeElement
 import com.intellij.openapi.Disposable
@@ -35,7 +37,7 @@ class MinimapModel(private val editor: Editor): Disposable {
     val document = editor.document
     val lineCount = document.lineCount
     val documentStamp = document.modificationStamp
-    val providerVersion = MinimapLineSpanProvider.projectionVersion(editor, document, lineCount)
+    val providerVersion = MinimapLayoutPolicy.projectionVersion(editor, document, lineCount)
     val projectionVersion = lineProjectionVersion
     if (cachedLineProjectionDocumentStamp == documentStamp &&
         cachedLineProjectionLineCount == lineCount &&
@@ -74,12 +76,12 @@ class MinimapModel(private val editor: Editor): Disposable {
         val startLine = document.getLineNumber(startOffset)
         val endLine = document.getLineNumber((endOffsetExclusive - 1).coerceAtLeast(startOffset))
         if (endLine <= startLine) continue
-        if (!MinimapLineSpanProvider.shouldUseCollapsedFoldRegion(editor, document, lineCount, region, startLine, endLine)) continue
+        if (!MinimapLayoutPolicy.shouldUseCollapsedFoldRegion(editor, document, lineCount, region, startLine, endLine)) continue
         foldedRegions += startLine to endLine
       }
     }
 
-    val lineSpanOverrides = MinimapLineSpanProvider.collect(editor, document, lineCount)
+    val lineSpanOverrides = MinimapLayoutPolicy.collect(editor, document, lineCount)
     if (foldedRegions.isEmpty() && lineSpanOverrides.isEmpty()) return MinimapLineProjection.identity(lineCount)
     foldedRegions.sortBy { it.first }
     return MinimapLineProjection.create(lineCount, foldedRegions, lineSpanOverrides)
@@ -105,7 +107,7 @@ class MinimapModel(private val editor: Editor): Disposable {
       return
     }
 
-    val structureMarkerPolicy = MinimapStructureMarkerPolicy.forEditor(editor)
+    val structureMarkerPolicy = MinimapInteractionPolicy.forEditor(editor)
 
     try {
       MinimapStructureMarkerCollector(

@@ -110,10 +110,7 @@ function coerceSearchItem(value: unknown): SearchItem | null {
     if (typeof value[0] !== 'string') return null
     const item: SearchItem = {filePath: value[0]}
     if (typeof value[1] === 'number') {
-      item.lineNumber = value[1]
-      if (typeof value[2] === 'string') {
-        item.lineText = value[2]
-      }
+      item.startLine = value[1]
     }
     return item
   }
@@ -121,16 +118,16 @@ function coerceSearchItem(value: unknown): SearchItem | null {
     const filePath = typeof value.filePath === 'string' ? value.filePath : null
     if (!filePath) return null
     const item: SearchItem = {...value, filePath}
-    if (typeof value.lineNumber === 'number') {
-      item.lineNumber = value.lineNumber
-    } else {
-      delete item.lineNumber
-    }
-    if (typeof value.lineText === 'string') {
-      item.lineText = value.lineText
-    } else {
-      delete item.lineText
-    }
+    if (typeof value.startLine === 'number') item.startLine = value.startLine
+    else if (typeof value.lineNumber === 'number') item.startLine = value.lineNumber
+    else delete item.startLine
+    if (typeof value.startColumn !== 'number') delete item.startColumn
+    if (typeof value.endLine !== 'number') delete item.endLine
+    if (typeof value.endColumn !== 'number') delete item.endColumn
+    delete item.lineNumber
+    delete item.lineText
+    delete item.startOffset
+    delete item.endOffset
     return item
   }
   return null
@@ -164,8 +161,7 @@ function extractItemsFromValue(value: unknown): SearchItem[] | null {
 function itemsToEntries(items: SearchItem[]): SearchEntry[] {
   return items.map((item) => ({
     filePath: item.filePath,
-    lineNumber: item.lineNumber,
-    lineText: item.lineText
+    lineNumber: item.startLine,
   }))
 }
 

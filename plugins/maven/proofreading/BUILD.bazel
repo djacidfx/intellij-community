@@ -25,6 +25,7 @@ jvm_library(
 
 jvm_library(
   name = "proofreading_test_lib",
+  testonly = True,
   module_name = "intellij.maven.proofreading",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
@@ -59,6 +60,7 @@ jvm_library(
 
 jvm_library(
   name = "proofreading-tests_test_lib",
+  testonly = True,
   visibility = ["//visibility:public"],
   srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form"], allow_empty = True),
   associates = [

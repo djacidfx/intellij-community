@@ -29,6 +29,7 @@ jvm_library(
 
 jvm_library(
   name = "maven_test_lib",
+  testonly = True,
   module_name = "intellij.kotlin.compilerPlugins.assignment.maven",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

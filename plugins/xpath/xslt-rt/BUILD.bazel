@@ -11,6 +11,7 @@ jvm_library(
 
 jvm_library(
   name = "rt_test_lib",
+  testonly = True,
   module_name = "intellij.xpath.rt",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

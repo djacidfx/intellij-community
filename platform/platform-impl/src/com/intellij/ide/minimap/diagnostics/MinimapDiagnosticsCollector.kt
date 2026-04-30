@@ -3,6 +3,7 @@ package com.intellij.ide.minimap.diagnostics
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.ide.minimap.layout.MinimapLayoutMetrics
+import com.intellij.ide.minimap.geometry.MinimapLineGeometryUtil
 import com.intellij.ide.minimap.layout.MinimapLayoutUtil
 import com.intellij.ide.minimap.model.MinimapLineProjection
 import com.intellij.ide.minimap.render.MinimapRenderContext
@@ -125,14 +126,20 @@ class MinimapDiagnosticsCollector(private val editor: Editor) {
     segmentStart: Int,
     segmentEndExclusive: Int,
   ):  Rectangle2D.Double {
+    val lineGap = MinimapLineGeometryUtil.lineGap(metrics.baseLineHeight)
+    val lineHeight = MinimapLineGeometryUtil.lineHeight(metrics.baseLineHeight, lineGap)
+    val lineTop = MinimapLineGeometryUtil.lineTop(projectedLine, metrics.baseLineHeight)
+    val y1 = lineTop + lineGap / 2.0
+    val y2 = y1 + lineHeight
+
     return if (highlighter.targetArea == HighlighterTargetArea.LINES_IN_RANGE || metrics.pxPerColumn <= 0.0) {
       val contentStartX = metrics.contentStartX
       val contentEndX = contentStartX + metrics.contentWidth
       MinimapLayoutUtil.rectFromDoubles(
         x1 = contentStartX,
         x2 = contentEndX,
-        y1 = projectedLine * metrics.baseLineHeight,
-        y2 = (projectedLine + 1) * metrics.baseLineHeight,
+        y1 = y1,
+        y2 = y2,
         areaStart = context.geometry.areaStart.toDouble(),
         maxWidth = contentEndX,
       )
@@ -145,8 +152,8 @@ class MinimapDiagnosticsCollector(private val editor: Editor) {
       MinimapLayoutUtil.rectFromDoubles(
         x1 = contentStartX + startColumn * metrics.pxPerColumn,
         x2 = contentStartX + endColumn * metrics.pxPerColumn,
-        y1 = projectedLine * metrics.baseLineHeight,
-        y2 = (projectedLine + 1) * metrics.baseLineHeight,
+        y1 = y1,
+        y2 = y2,
         areaStart = context.geometry.areaStart.toDouble(),
         maxWidth = contentEndX,
       )

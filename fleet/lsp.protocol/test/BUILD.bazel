@@ -29,6 +29,7 @@ jvm_library(
 
 jvm_library(
   name = "test_test_lib",
+  testonly = True,
   module_name = "fleet.lsp.protocol.test",
   visibility = ["//visibility:public"],
   srcs = glob(["srcCommonTest/**/*.kt", "srcCommonTest/**/*.java", "srcCommonTest/**/*.form"], allow_empty = True),

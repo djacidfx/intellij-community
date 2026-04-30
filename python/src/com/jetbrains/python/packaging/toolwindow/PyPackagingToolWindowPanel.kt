@@ -42,6 +42,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.intellij.lang.annotations.Language
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nls
 import java.awt.BorderLayout
@@ -281,6 +282,8 @@ class PyPackagingToolWindowPanel(private val project: Project) : SimpleToolWindo
 
   companion object {
     private const val TOOLWINDOW_ID = "Python Packages"
+
+    @Language("devkit-action-id")
     private const val ADDITIONAL_PACKAGE_TOOLBAR_ACTION_ID = "PyPackageToolbarAdditional"
     private const val HORIZONTAL_SPLITTER_KEY = "Python.PackagingToolWindow.Horizontal"
     private const val VERTICAL_SPLITTER_KEY = "Python.PackagingToolWindow.Vertical"

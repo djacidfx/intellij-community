@@ -250,7 +250,7 @@ MarkdownFile
   MarkdownParagraph(Markdown:PARAGRAPH)
     PsiElement(Markdown:Markdown:TEXT)('Inline')
     PsiWhiteSpace(' ')
-    ASTWrapperPsiElement(Markdown:Markdown:CODE_SPAN)
+    MarkdownCodeSpan(Markdown:Markdown:CODE_SPAN)
       PsiElement(Markdown:Markdown:BACKTICK)('`')
       PsiElement(Markdown:Markdown:TEXT)('code span in a')
       PsiElement(Markdown:Markdown:BACKTICK)('`')

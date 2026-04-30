@@ -1,4 +1,4 @@
-// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.platform.ide.impl.wsl
 
 import com.intellij.execution.wsl.WSLDistribution
@@ -13,6 +13,7 @@ import com.intellij.platform.ijent.IjentId
 import com.intellij.platform.ijent.IjentPosixApi
 import com.intellij.platform.ijent.IjentSession
 import com.intellij.platform.ijent.IjentSessionRegistry
+import com.intellij.platform.ijent.ParentOfIjentScopes
 import com.intellij.platform.ijent.spi.IjentThreadPool
 import com.intellij.platform.util.coroutines.childScope
 import com.intellij.util.containers.ContainerUtil
@@ -41,8 +42,12 @@ class ProductionWslIjentManager(private val scope: CoroutineScope) : WslIjentMan
     )
   }
 
-  @VisibleForTesting
-  suspend fun getIjentSession(wslDistribution: WSLDistribution, project: Project?, rootUser: Boolean, sessionScope: CoroutineScope): IjentSession.Posix {
+  private suspend fun getIjentSession(
+    wslDistribution: WSLDistribution,
+    project: Project?,
+    rootUser: Boolean,
+    sessionScope: ParentOfIjentScopes,
+  ): IjentSession.Posix {
     val ijentSessionRegistry = IjentSessionRegistry.instanceAsync()
     val ijentIdLabel = ijentIdLabel(wslDistribution, rootUser)
     val ijentId = myCache.computeIfAbsent(ijentIdLabel) { ijentName ->
@@ -53,12 +58,12 @@ class ProductionWslIjentManager(private val scope: CoroutineScope) : WslIjentMan
           ijentId.toString(),
           wslCommandLineOptionsModifier = { it.setSudo(rootUser) },
         )
-        sessionScope.coroutineContext.job.invokeOnCompletion {
+        sessionScope.s.coroutineContext.job.invokeOnCompletion {
           ijentSession.close()
         }
         ijentSession
       }
-      sessionScope.coroutineContext.job.invokeOnCompletion {
+      sessionScope.s.coroutineContext.job.invokeOnCompletion {
         ijentSessionRegistry.unregister(ijentId)
         myCache.remove(ijentName)
       }
@@ -70,7 +75,7 @@ class ProductionWslIjentManager(private val scope: CoroutineScope) : WslIjentMan
 
   override suspend fun getIjentApi(descriptor: EelDescriptor?, wslDistribution: WSLDistribution, project: Project?, rootUser: Boolean): IjentPosixApi {
     val descriptor = (descriptor ?: (project?.getEelDescriptor() as? WslEelDescriptor) ?: WslEelDescriptor(wslDistribution)) as WslEelDescriptor
-    return getIjentSession(wslDistribution, project, rootUser, scope).getIjentInstance(descriptor)
+    return getIjentSession(wslDistribution, project, rootUser, ParentOfIjentScopes(scope)).getIjentInstance(descriptor)
   }
 
   override fun isIjentInitialized(descriptor: EelDescriptor): Boolean {

@@ -6,6 +6,7 @@ import com.intellij.ide.minimap.utils.MiniMessagesBundle
 import com.intellij.openapi.options.BoundConfigurable
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.ui.components.JBCheckBox
+import com.intellij.ui.components.JBRadioButton
 import com.intellij.ui.dsl.builder.bind
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.panel
@@ -26,9 +27,11 @@ class MinimapConfigurable : BoundConfigurable(MiniMessagesBundle.message("settin
       state.rightAligned = it.rightAligned
       state.width = it.width
       state.scaleMode = it.scaleMode
+      state.insideScrollbar = it.insideScrollbar
     }
 
     lateinit var enabled: JBCheckBox
+    lateinit var rightAligned: JBRadioButton
     row {
       enabled = checkBox(MiniMessagesBundle.message("settings.enable"))
         .applyToComponent {
@@ -41,9 +44,14 @@ class MinimapConfigurable : BoundConfigurable(MiniMessagesBundle.message("settin
       buttonsGroup {
         row(MiniMessagesBundle.message("settings.alignment")) {
           radioButton(MiniMessagesBundle.message("settings.left"), false)
-          radioButton(MiniMessagesBundle.message("settings.right"), true)
+          rightAligned = radioButton(MiniMessagesBundle.message("settings.right"), true).component
         }
       }.bind(state::rightAligned)
+      row {
+        checkBox(MiniMessagesBundle.message("settings.inside.scrollbar"))
+          .bindSelected(state::insideScrollbar)
+          .enabledIf(rightAligned.selected)
+      }
       buttonsGroup {
         row(MiniMessagesBundle.message("settings.scale")) {
           radioButton(MiniMessagesBundle.message("settings.scale.fill"), MinimapScaleMode.FILL)
@@ -63,7 +71,8 @@ class MinimapConfigurable : BoundConfigurable(MiniMessagesBundle.message("settin
     val settings = MinimapSettings.getInstance()
     val currentState = settings.state
     val needToRebuildUI = currentState.rightAligned != state.rightAligned ||
-                          currentState.enabled != state.enabled
+                          currentState.enabled != state.enabled ||
+                          currentState.insideScrollbar != state.insideScrollbar
     if (currentState.enabled != state.enabled) {
       MinimapUsageCollector.logToggled(
         enabled = state.enabled,

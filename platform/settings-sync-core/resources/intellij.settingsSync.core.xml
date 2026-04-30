@@ -67,6 +67,8 @@
                  description="Use new toolwindow to display Backup and Sync history."/>
     <toolWindow id="Backup and Sync History" secondary="false" icon="AllIcons.Toolwindows.SettingSync" anchor="left"
                 factoryClass="com.intellij.settingsSync.core.git.SettingsHistoryToolWindowFactory"/>
+    <applicationSettings service="com.intellij.settingsSync.core.SettingsSyncLocalSettings"/>
+    <applicationSettings service="com.intellij.settingsSync.core.SettingsSyncSettings"/>
   </extensions>
 
   <applicationListeners>

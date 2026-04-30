@@ -35,6 +35,7 @@ jvm_library(
 
 jvm_library(
   name = "stacktrace_test_lib",
+  testonly = True,
   module_name = "intellij.devkit.stacktrace",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

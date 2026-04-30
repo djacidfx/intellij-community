@@ -83,6 +83,12 @@
 
     <registryKey defaultValue="true" description="Enable file uploading action for review notes"
                  key="gitlab.merge.requests.file.upload.enabled"/>
+    <applicationSettings service="org.jetbrains.plugins.gitlab.authentication.accounts.GitLabPersistentAccounts"/>
+    <projectSettings service="org.jetbrains.plugins.gitlab.mergerequest.ui.filters.GitLabMergeRequestsPersistentFiltersHistory"/>
+    <projectSettings service="org.jetbrains.plugins.gitlab.mergerequest.GitLabMergeRequestsPreferences"/>
+    <projectSettings service="org.jetbrains.plugins.gitlab.mergerequest.ui.details.model.GitLabPersistentMergeRequestChangesViewedState"/>
+    <projectSettings service="org.jetbrains.plugins.gitlab.authentication.accounts.GitLabProjectDefaultAccountHolder"/>
+    <applicationSettings service="org.jetbrains.plugins.gitlab.GitLabSettings"/>
   </extensions>
 
   <extensions defaultExtensionNs="com.intellij.statistics">

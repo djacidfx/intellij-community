@@ -51,6 +51,7 @@ jvm_library(
 
 jvm_library(
   name = "repository-search_test_lib",
+  testonly = True,
   module_name = "intellij.repository.search",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),

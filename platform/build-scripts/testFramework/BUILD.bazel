@@ -57,6 +57,7 @@ jvm_library(
 
 jvm_library(
   name = "testFramework_test_lib",
+  testonly = True,
   module_name = "intellij.platform.buildScripts.testFramework",
   visibility = ["//visibility:public"],
   srcs = glob([], allow_empty = True),
