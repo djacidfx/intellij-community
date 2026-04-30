@@ -6,6 +6,12 @@ import kotlin.math.absoluteValue
 import web.console.console
 import kotlin.reflect.KClass
 
+private var defaultLogLevel = BrowserConsoleLogLevel.DEBUG
+
+fun setDefaultLogLevel(loglevel: BrowserConsoleLogLevel) {
+  defaultLogLevel = loglevel
+}
+
 @Actual("getLoggerFactory")
 internal fun getLoggerFactoryWasmJs(): KLoggerFactory {
   return object : KLoggerFactory {
@@ -36,9 +42,9 @@ internal fun getLoggerFactoryWasmJs(): KLoggerFactory {
   }
 }
 
-private enum class BrowserConsoleLogLevel(
-  val label: String,
-  val style: String,
+enum class BrowserConsoleLogLevel(
+  internal val label: String,
+  internal val style: String,
 ) {
   ERROR("ERROR", "background:#d93025;color:#fff;padding:1px 6px;border-radius:999px;font-weight:700"),
   WARN("WARN ", "color:#e8a317;font-weight:700"),
@@ -65,11 +71,11 @@ private const val LOGGER_COLUMN_WIDTH = 28
 
 private fun getLogger(name: String, contextProvider: () -> Map<String, String>): KLogger {
   return KLogger(object : BaseLogger {
-    override val isTraceEnabled: Boolean = false
-    override val isDebugEnabled: Boolean = true
-    override val isInfoEnabled: Boolean = true
-    override val isWarnEnabled: Boolean = true
-    override val isErrorEnabled: Boolean = true
+    override val isTraceEnabled: Boolean = defaultLogLevel == BrowserConsoleLogLevel.TRACE
+    override val isDebugEnabled: Boolean = defaultLogLevel.ordinal >= BrowserConsoleLogLevel.DEBUG.ordinal
+    override val isInfoEnabled: Boolean = defaultLogLevel.ordinal >= BrowserConsoleLogLevel.INFO.ordinal
+    override val isWarnEnabled: Boolean = defaultLogLevel.ordinal >= BrowserConsoleLogLevel.WARN.ordinal
+    override val isErrorEnabled: Boolean = defaultLogLevel.ordinal >= BrowserConsoleLogLevel.ERROR.ordinal
 
     override fun trace(message: Any?) {
       log(BrowserConsoleLogLevel.TRACE, message)
@@ -116,6 +122,8 @@ private fun getLogger(name: String, contextProvider: () -> Map<String, String>):
       message: Any?,
       t: Throwable? = null,
     ) {
+      if (defaultLogLevel.ordinal < level.ordinal) return
+
       val renderedMessage = message?.toString().orEmpty()
       val context = contextProvider()
       val role = context.firstNonBlankValue("role", "ROLE", "fleet.role")
