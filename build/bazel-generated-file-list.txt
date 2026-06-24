@@ -528,6 +528,7 @@ libraries/mvstore
 libraries/netty/buffer
 libraries/netty/codec-compression
 libraries/netty/codec-http
+libraries/netty/codec-protobuf
 libraries/netty/handler-proxy
 libraries/netty/tcnative-boringssl
 libraries/objenesis

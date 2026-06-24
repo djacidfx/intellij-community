@@ -305,11 +305,6 @@
 - name: lib/modules/intellij.uiDesigner.jar
   contentModules:
   - name: intellij.uiDesigner
-- name: lib/netty-codec-protobuf.jar
-  library: netty-codec-protobuf
-  files:
-  - name: $MAVEN_REPOSITORY$/io/netty/netty-codec-protobuf/4/netty-codec-protobuf-4.jar
-  reason: withProjectLibrary
 - name: lib/rt/debugger-agent.jar
   library: debugger-agent
   module: intellij.java.debugger.agent.holder

@@ -13281,6 +13281,21 @@ jvm_import(
 )
 
 copy_file(
+    name = "io.netty/netty-codec-protobuf-4.2.15.Final.jar_copy",
+    src = "@io_netty-netty-codec-protobuf-4_2_15_Final_http//file",
+    out = "io.netty/netty-codec-protobuf-4.2.15.Final.jar",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+jvm_import(
+    name = "libraries-netty-codec-protobuf-netty-codec-protobuf",
+    jar = "@io_netty-netty-codec-protobuf-4_2_15_Final_http//file",
+    source_jar = "@io_netty-netty-codec-protobuf-4_2_15_Final-sources_http//file",
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
     name = "io.netty/netty-handler-proxy-4.2.15.Final.jar_copy",
     src = "@io_netty-netty-handler-proxy-4_2_15_Final_http//file",
     out = "io.netty/netty-handler-proxy-4.2.15.Final.jar",
@@ -18561,21 +18576,6 @@ jvm_import(
     name = "mockito-kotlin",
     jar = "@org_mockito_kotlin-mockito-kotlin-6_0_0_http//file",
     source_jar = "@org_mockito_kotlin-mockito-kotlin-6_0_0-sources_http//file",
-    visibility = ["//visibility:public"],
-)
-
-copy_file(
-    name = "io.netty/netty-codec-protobuf-4.2.15.Final.jar_copy",
-    src = "@io_netty-netty-codec-protobuf-4_2_15_Final_http//file",
-    out = "io.netty/netty-codec-protobuf-4.2.15.Final.jar",
-    allow_symlink = True,
-    visibility = ["//visibility:public"],
-)
-
-jvm_import(
-    name = "netty-codec-protobuf",
-    jar = "@io_netty-netty-codec-protobuf-4_2_15_Final_http//file",
-    source_jar = "@io_netty-netty-codec-protobuf-4_2_15_Final-sources_http//file",
     visibility = ["//visibility:public"],
 )
 

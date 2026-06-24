@@ -113,6 +113,7 @@ object CoreModuleSets {
     embeddedModule("intellij.libraries.netty.buffer")
     embeddedModule("intellij.libraries.netty.codec.compression")
     embeddedModule("intellij.libraries.netty.codec.http")
+    embeddedModule("intellij.libraries.netty.codec.protobuf")
     embeddedModule("intellij.libraries.netty.handler.proxy")
 
     embeddedModule("intellij.libraries.oro.matcher")

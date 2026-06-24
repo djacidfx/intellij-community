@@ -1115,6 +1115,7 @@
       <module fileurl="file://$PROJECT_DIR$/libraries/netty/buffer/intellij.libraries.netty.buffer.iml" filepath="$PROJECT_DIR$/libraries/netty/buffer/intellij.libraries.netty.buffer.iml" />
       <module fileurl="file://$PROJECT_DIR$/libraries/netty/codec-compression/intellij.libraries.netty.codec.compression.iml" filepath="$PROJECT_DIR$/libraries/netty/codec-compression/intellij.libraries.netty.codec.compression.iml" />
       <module fileurl="file://$PROJECT_DIR$/libraries/netty/codec-http/intellij.libraries.netty.codec.http.iml" filepath="$PROJECT_DIR$/libraries/netty/codec-http/intellij.libraries.netty.codec.http.iml" />
+      <module fileurl="file://$PROJECT_DIR$/libraries/netty/codec-protobuf/intellij.libraries.netty.codec.protobuf.iml" filepath="$PROJECT_DIR$/libraries/netty/codec-protobuf/intellij.libraries.netty.codec.protobuf.iml" />
       <module fileurl="file://$PROJECT_DIR$/libraries/netty/handler-proxy/intellij.libraries.netty.handler.proxy.iml" filepath="$PROJECT_DIR$/libraries/netty/handler-proxy/intellij.libraries.netty.handler.proxy.iml" />
       <module fileurl="file://$PROJECT_DIR$/libraries/netty/tcnative-boringssl/intellij.libraries.netty.tcnative.boringssl.iml" filepath="$PROJECT_DIR$/libraries/netty/tcnative-boringssl/intellij.libraries.netty.tcnative.boringssl.iml" />
       <module fileurl="file://$PROJECT_DIR$/libraries/objenesis/intellij.libraries.objenesis.iml" filepath="$PROJECT_DIR$/libraries/objenesis/intellij.libraries.objenesis.iml" />
