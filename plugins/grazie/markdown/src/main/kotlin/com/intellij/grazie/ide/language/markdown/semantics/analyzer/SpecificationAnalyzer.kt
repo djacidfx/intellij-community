@@ -130,7 +130,7 @@ internal object SpecificationAnalyzer {
 
 private data class Storage<T>(val file: PsiFile, val name: String, val text: String, val stamp: Long, val cache: Cache<LlmIssue<T>>?) {
   constructor(file: PsiFile, analyzerKey: AnalyzerCacheKey<T>) :
-    this(file, file.viewProvider.virtualFile.path, file.text, file.viewProvider.modificationStamp, file.getUserData(analyzerKey))
+    this(file, file.viewProvider.virtualFile.path, file.text, file.modificationStamp, file.getUserData(analyzerKey))
 
   fun isOutdated(dependencies: Set<String>): Boolean =
     cache == null || cache.stamp != this.stamp || cache.dependencies != dependencies
